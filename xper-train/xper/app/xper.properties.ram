@@ -1,0 +1,81 @@
+# MATLAB is only used for mock experiment
+matlab.home=/usr/local/matlab70_sp1
+xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
+
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://172.30.6.27/ram_train
+
+jdbc.username=xper_rw
+jdbc.password=up2nite
+
+#############################################################################
+# configuration classes
+#############################################################################
+# if not specified, the default is org.xper.config.AcqConfig
+acq.config_class=
+
+# experiment.config_class=org.xper.config.ClassicConfig
+experiment.config_class=org.xper.config.FixationConfig
+
+experiment.ga.config_class=org.xper.sach.config.SachGAConfig
+
+# if not specified, the default is org.xper.config.FixCalConfig
+fixcal.config_class=
+
+# To use digital port device to control juice
+fixcal.config_class=
+
+# if not specified, the default is org.xper.config.RFPlotConfig
+rfplot.config_class=
+
+# if not specified, the default is org.xper.rds.RdsConfig
+rds.config_class=
+
+# if not specified, the default is org.xper.app.mock.MockAppConfig
+mock.config_class=
+
+#############################################################################
+# parameters
+#############################################################################
+#acq.server_host=localhost
+#acq.server_host=172.30.6.27
+#acq.server_host=192.168.1.1
+acq.server_host=172.30.6.26
+
+# none, comedi, ni
+#acq.driver_name=none
+acq.driver_name=comedi
+
+console.host=172.30.6.26
+#console.host=192.168.1.1
+#console.host=localhost
+
+console.eye_simulation=true
+#console.eye_simulation=false
+
+#experiment.host=localhost
+#experiment.host=192.168.1.2
+experiment.host=172.30.6.25
+
+# bind experiment thread to CPU # 0, 1, 2, or 3
+experiment.cpu=0
+#experiment.monkey_window_fullscreen=false
+experiment.monkey_window_fullscreen=true
+
+experiment.acq_offline=false
+#experiment.acq_offline=true
+
+# this is for classic experiment.
+# choice experiment is always mark_every_step
+experiment.mark_every_step=true
+
+# for choice experiment
+experiment.digital_port_juice_trigger_delay=200
+
+# for fixcal experiment: stereo or mono
+fixcal.screen_setup=stereo
+
+# for mock experiment
+mock.tasks_per_trial=8
+mock.spike_generator_plugin=randomSpikeGenerator
+mock.matlab_spike_function_name=RandomSpike

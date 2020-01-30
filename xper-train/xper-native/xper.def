@@ -1,0 +1,6 @@
+EXPORTS
+
+Java_org_xper_util_OsUtil_setAffinity
+Java_org_xper_util_OsUtil_getAffinity
+
+Java_org_xper_util_OsUtil_getTimeOfDay

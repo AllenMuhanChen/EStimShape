@@ -1,0 +1,69 @@
+===============================================================================
+Default ports:
+===============================================================================
+
+SocketTimeServer			DEFAULT_TIME_PORT 						8888
+ExperimentRunner			DEFAULT_XPER_PORT 						8889
+SocketSamplingDeviceServer 	DEFAULT_SOCKET_SAMPLING_DEVICE_PORT 	8890
+SocketDataAcqServer 		DEFAULT_ACQ_PORT 						8891
+RFPlotTaskDataSource		DEFAULT_RF_PLOT_TASK_DATA_SOURCE_PORT	8892
+RDSControlServer			DEFAULT_RDS_CONTROL_SEVER				8887
+
+Experiment Message Multicast: 228.8.8.8:8900
+
+===============================================================================
+Data Acquisition threads:
+===============================================================================
+
+Main thread
+	SocketDataAcqServer
+		Socket listening for commands (CONNECT, DISCONNECT, START, STOP, SHUTDOWN)
+		
+Time Sever thread
+	TimeServer(SocketTimeServer)
+	
+Acquisition thread
+	AcqController(DefaultAcqController)
+	
+Data processing thread
+	AcqController(DefaultAcqController)
+	
+Data buffer thread
+	DataBuffer(DatabaseDataBuffer)
+
+===============================================================================
+Experiment Runner threads:
+===============================================================================
+
+Main thread
+	ExperimentRunner	
+		Socket listening for commands (PAUSE, RESUME, STOP)
+		
+Experiment thread
+	Experiment (ChoiceTrialExperiment, SlideTrialExperiment)
+	
+Eye monitoring thread
+	EyeMonitorController
+	EyeSampler (DefaultEyeSampler)
+	
+Experiment message thread
+	MessageDispatcherController, 
+	MessageDispatcher(TrialExperimentMessageDispatcher, ChoiceTrialExperimentMessageDispatcher)
+	
+Task data source thread
+	DatabaseTaskDataSourceController,
+	TaskDataSource(DatabaseTaskDataSource)
+	
+==============================================================================
+Experiment console thread:
+==============================================================================
+Main Swing thread:
+	ExperimentSwingconsole
+	
+Mock sampling device thread:
+	SocketSamplingDeviceServer
+	
+Message receiver thread:
+	ExperimentMessageReceiver
+	
+	

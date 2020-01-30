@@ -1,0 +1,70 @@
+
+Instructions
+
+0. Build MySQL database
+
+	Run the script in xper-db.sql to build a MySQL database required by the system.
+
+1. Check out the code from http://xper.googlecode.com/svn/trunk/
+
+The projects everybody needs are xper, xper-example, xper-native
+Each person has two personal projects.
+
+	Dennis: xper-choice, xper-choice-example
+	Take: xper-match, xper-match-example; xper-match-choice, xper-match-choice-example
+	Sia: xper-sia-fix-chg, xper-sia-fix-chg-example
+	Sach: xper-sach, xper-sach-example
+	
+The prefered IDE is Eclipse.
+	
+2. Build the system
+	2.1 Build the native libraries
+	
+	In xper-native, make linux.mk, macos.mk or windows.mk depending on the platform (This requires the CDT plugin for Eclipse).
+	
+	For other projects, if you run from Eclipse, no extra step is needed. 
+	If you want to run from command line, run the build.xml in each project. 
+	The resulting jar files are copied to dist folder at the same level as the project folders themselves.
+	
+	The structure of dist folder:
+	
+	dist -- (Here's all the root level jar files and properties files are saved.)
+	  |
+	  |-- lib (all third party java libraries)
+	  |-- native (platform specific native files)
+	  |-- plugin (all the jar files for each person's projects)
+	  
+3. Run your example projects
+
+	I created example projects for each person. You can extend and modify them to satisfy your needs.
+	To run in Eclipse, you need to change the xper.properties file in the app source folder under xper project.
+	The experiment.config_class has to changed to your specific config file in your example project.
+	
+	Run AcqServer (in org.xper.app.acq) if you have the collections online, or TimeServer if you are doing development.
+	Run RandGen (in org.xper.app.experiment.test) to generate some test stimuli. 
+		You need to create your own stimulus generation programs.
+	Run Console and Experiment (in org.xper.app.experiment) to start the experiment.
+	
+	In real experiment, it's better to keep Experiment in a dedicated machine.
+	AcqServer, RandGen (or whatever generation program you wrote) and Console can be run on the data collection computer.
+	
+	In development environment, they care all run in the same machine.
+	
+	FixCalConsole and FixCalExperiment are for ISCAN calibration when monkey do fixation tasks.
+	
+	AcqClient and TimeClient are for TimeServer and AcqServer testing.
+	
+	MockExperiment generates fake spike data for testing of your generation program.
+	You can write spike generation modules in matlab to plugin the Mock program. This requires JMatLink. 
+	I only include the jar file, you need to install the native component.
+	
+	RdsConsole and RdsExperiment are used to present the fixation tasks in random dot sterograms to ensure the monkey are seeing objects in 3D.
+	
+	RFPlotConsole and RFPlotExperiment are for receptive field ploting. (As of June 9, 2012, they are still under construction)
+	
+3. Write your own experiment plugin to extend xper system
+
+	You need to modify and/or extend your personal example project.
+	You need to design a class to store the specification of a task. Please use my *GaborSpec as an example.
+	You also need to write a class to draw the actual stimulus for each task. Please use my *GaborScene as an example.
+	You can use whatever name you like. Just remember to change the *AppConfig to reflect your own class names.

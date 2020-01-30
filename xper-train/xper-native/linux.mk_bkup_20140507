@@ -1,0 +1,40 @@
+
+# Change the following variables according to system setup.
+#JAVA_HOME = /usr/local/connorlab/apps/x86_32/java_versions/jdk1.6.0_03
+JAVA_HOME = /usr/lib/jvm/java-6-sun
+#XPER_CLASSPATH = /mnt/data/home/m3_dennis/tmp/wang_xper/xper/xper/class
+XPER_CLASSPATH = /home/john/xper-src/xper/class
+NI_DRIVER_PATH = /usr/local/natinst/nidaqmxbase
+
+JAVAH = ${JAVA_HOME}/bin/javah
+
+# Do not change below this
+DIST = linux
+CLASSPATH= -classpath $(XPER_CLASSPATH)
+
+NI_INC_PATH = -I$(NI_DRIVER_PATH)/include
+NI_LIB_PATH = -L$(NI_DRIVER_PATH)/lib
+NI_LIB = $(NI_LIB_PATH) -lnidaqmxbase
+
+CFLAGS = -fPIC -DLINUX -DNI_BASE_DRIVER
+LFLAGS = -shared
+
+COMEDI_LIB = -lcomedi
+
+XPER_LIB_PATH = -L/usr/X11R6/lib
+XPER_LIB = $(XPER_LIB_PATH)
+
+INC_PATH = -I. -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux $(NI_INC_PATH)
+
+XPER = libxper.so
+XPER_DEF =
+
+XPER_NI = libxper-ni.so
+XPER_NI_DEF =
+
+XPER_COMEDI = libxper-comedi.so
+XPER_COMEDI_DEF =
+
+TARGET = xper comedi bindcpu
+
+include common.mk
