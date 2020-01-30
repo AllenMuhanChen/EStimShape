@@ -1,0 +1,187 @@
+<project name="xper" default="dist" basedir=".">
+	<property name="build.home" location="${basedir}/class" />
+	<property name="dist.home" location="${basedir}/../dist" />
+	<property name="native.home" location="${basedir}/../xper-native" />	
+
+	<path id="classpath">
+		<fileset dir="lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<pathconvert property="manifest.classpath" dirsep="/" pathsep=" ">
+		<path refid="classpath">
+		</path>
+		<map from="${basedir}${file.separator}lib" to="lib" />
+	</pathconvert>
+
+	<echo message="Manifest classpath is ${manifest.classpath}" />
+
+	<target name="clean">
+		<delete dir="${build.home}" />
+		<delete dir="${dist.home}" />
+	</target>
+
+	<target name="prepare">
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${dist.home}/native" />
+		<mkdir dir="${dist.home}/native/windows" />
+		<mkdir dir="${dist.home}/native/linux" />
+		<mkdir dir="${dist.home}/native/macos" />
+
+		<copy todir="${build.home}">
+			<fileset dir="src" excludes="**/*.java" />
+		</copy>
+	</target>
+
+	<target name="compile" depends="prepare">
+		<javac srcdir="src" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
+			<classpath refid="classpath" />
+		</javac>
+		<javac srcdir="app" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	<target name="dist" depends="compile">
+		<copy todir="${dist.home}" includeEmptyDirs="false">
+			<fileset dir="app" excludes="**/*.java" />
+		</copy>
+		<copy todir="${dist.home}/lib">
+			<fileset dir="lib" />
+		</copy>
+		
+		<copy todir="${dist.home}/native/windows" failonerror="false">
+			<fileset dir="${native.home}/windows" />
+		</copy>
+		<copy todir="${dist.home}/native/linux" failonerror="false">
+			<fileset dir="${native.home}/linux" />
+		</copy>
+		<copy todir="${dist.home}/native/macos" failonerror="false">
+			<fileset dir="${native.home}/macos" />
+		</copy>
+
+		<jar jarfile="${dist.home}/xper.jar" basedir="${build.home}">
+		</jar>
+
+		<jar jarfile="${dist.home}/acq_server.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/acq/AcqServer.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.acq.AcqServer" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+		<jar jarfile="${dist.home}/acq_client.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/acq/AcqClient.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.acq.AcqClient" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+		<jar jarfile="${dist.home}/time_server.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/acq/TimeServer*.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.acq.TimeServer" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/time_client.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/acq/TimeClient.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.acq.TimeClient" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/fixcal.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/fixcal/FixCalExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.fixcal.FixCalExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/fixcal_console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/fixcal/FixCalConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.fixcal.FixCalConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${dist.home}/rds_experiment.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/rds/RdsExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.rds.RdsExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/rds_console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/rds/RdsConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.rds.RdsConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/experiment.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/experiment/Experiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.experiment.Experiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/experiment/Console.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.experiment.Console" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${dist.home}/rand_gen.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/experiment/test/RandGen.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.experiment.test.RandGen" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/mock_xper.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/mock/MockExperiment*.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.mock.MockExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+	</target>
+</project>

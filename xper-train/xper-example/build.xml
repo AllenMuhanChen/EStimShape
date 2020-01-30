@@ -1,0 +1,51 @@
+<project name="xper" default="dist" basedir=".">
+	<property name="build.home" location="${basedir}/class" />
+	<property name="xper.home" location="${basedir}/../xper" />
+	<property name="dist.home" location="${basedir}/../dist" />
+	<property name="native.home" location="${basedir}/../xper-native" />
+
+	<path id="libpath">
+		<fileset dir="${xper.home}/lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	
+	<path id="classpath">
+		<path refid="libpath"/>
+		<pathelement location="${xper.home}/class"/>
+	</path>
+
+	<pathconvert property="manifest.libpath" dirsep="/" pathsep=" ">
+		<path refid="libpath">
+		</path>
+		<map from="${xper.home}${file.separator}lib" to="../lib" />
+	</pathconvert>
+
+	<echo message="Manifest classpath is ${manifest.libpath}" />
+
+	<target name="clean">
+		<delete dir="${build.home}" />
+	</target>
+
+	<target name="prepare">
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${dist.home}/plugin" />
+
+		<copy todir="${build.home}">
+			<fileset dir="src" excludes="**/*.java" />
+		</copy>
+	</target>
+
+	<target name="compile" depends="prepare">
+		<javac srcdir="src" destdir="${build.home}">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	<target name="dist" depends="compile">
+		<jar jarfile="${dist.home}/plugin/xper-example.jar" basedir="${build.home}">
+		</jar>
+
+	</target>
+</project>
