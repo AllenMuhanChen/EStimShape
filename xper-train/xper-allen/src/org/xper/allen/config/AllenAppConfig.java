@@ -39,7 +39,6 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.experiment.test.TestGeneration;
 import org.xper.config.AcqConfig;
-import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
@@ -53,10 +52,9 @@ import org.xper.example.classic.GaborSpecGenerator;
 @AnnotationDrivenConfig
 @Import(ClassicConfig.class)
 public class AllenAppConfig {
-	@Autowired ClassicConfig classicConfig; //AC: changed to protected
+	@Autowired ClassicConfig classicConfig;
 	//@Autowired BaseConfig baseConfig;
 	@Autowired AllenConfig allenConfig; 
-
 	@Autowired protected AcqConfig acqConfig;
 	
 	
@@ -94,7 +92,7 @@ public class AllenAppConfig {
 	@Bean
 	public TestGeneration randomGen () {
 		TestGeneration gen = new TestGeneration();
-		gen.setDbUtil(allenConfig.dbUtil());
+		gen.setDbUtil(allenConfig.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setTaskCount(100);
 		gen.setGenerator(generator());
