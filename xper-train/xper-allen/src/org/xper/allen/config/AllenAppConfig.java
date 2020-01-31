@@ -40,6 +40,12 @@ import org.xper.allen.app.experiment.test.TestGeneration;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.drawing.TaskScene;
+import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveStereoRenderer;
+import org.xper.example.classic.GaborScene;
+import org.xper.example.classic.GaborSpecGenerator;
 
 
 @Configuration(defaultLazy=Lazy.TRUE)
@@ -53,7 +59,36 @@ public class AllenAppConfig {
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
 	
-	/*
+	@Bean
+	public AbstractRenderer experimentGLRenderer () {
+		PerspectiveStereoRenderer renderer = new PerspectiveStereoRenderer();
+		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
+		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
+		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
+		
+		System.out.println("23108 screen width = " + classicConfig.xperMonkeyScreenWidth());
+		
+		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
+		renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
+		return renderer;
+	}
+	
+	@Bean
+	public TaskScene taskScene() {
+		GaborScene scene = new GaborScene();
+		scene.setRenderer(experimentGLRenderer());
+		scene.setFixation(classicConfig.experimentFixationPoint());
+		scene.setMarker(classicConfig.screenMarker());
+		scene.setBlankScreen(new BlankScreen());
+		return scene;
+	}
+	
+	@Bean
+	public GaborSpecGenerator generator() {
+		GaborSpecGenerator gen = new GaborSpecGenerator();
+		return gen;
+	}
 	@Bean
 	public TestGeneration testGen() {
 		TestGeneration gen = new TestGeneration();
@@ -64,5 +99,5 @@ public class AllenAppConfig {
 		return gen;
 		
 	}
-	*/
+	
 }

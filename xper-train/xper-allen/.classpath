@@ -38,5 +38,6 @@
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl-debug.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
