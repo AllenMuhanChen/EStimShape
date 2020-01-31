@@ -40,18 +40,20 @@ import org.xper.allen.app.experiment.test.TestGeneration;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.example.classic.ClassicAppConfig;
+
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
+
 @Import(AllenConfig.class)
 public class AllenAppConfig {
+	@Autowired AllenConfig allenConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
-	@Autowired AllenConfig allenConfig; 
 	@Autowired AcqConfig acqConfig;
 	
+	/*
 	@Bean
 	public TestGeneration testGen() {
 		TestGeneration gen = new TestGeneration();
@@ -60,6 +62,7 @@ public class AllenAppConfig {
 		//gen.setTaskCount(100);
 		gen.setGenerator(generator());
 		return gen;
+		
 	}
-
+	*/
 }

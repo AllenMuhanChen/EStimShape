@@ -33,14 +33,16 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.config.BaseConfig;
+import org.xper.config.ClassicConfig;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(BaseConfig.class)
+@Import(ClassicConfig.class)
 public class AllenConfig {
 	@Autowired BaseConfig baseConfig;
 		
+	
 	@Bean
 	public AllenDbUtil allenDbUtil() {
 		AllenDbUtil util = new AllenDbUtil();
