@@ -55,8 +55,6 @@ public class TestGeneration {
 		this.dbUtil = dbUtil;
 	}
 
-	
-
 	public TimeUtil getGlobalTimeUtil() {
 		return globalTimeUtil;
 	}
