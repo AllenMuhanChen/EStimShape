@@ -1,16 +1,16 @@
-package org.xper.allen.app.experiment.test;
+package org.xper.allen.app.classic;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.app.experiment.test.TestGeneration;
+import org.xper.allen.app.classic.randGenerationClassic;
 import org.xper.util.FileUtil;
 
-public class TestGen {
+public class randGenClassic {
 	public static void main(String[] args) {
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		TestGeneration gen = context.getBean(TestGeneration.class);
+		randGenerationClassic gen = context.getBean(randGenerationClassic.class);
 		gen.generate();
 	}
 }

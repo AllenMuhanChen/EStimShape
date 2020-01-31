@@ -7,7 +7,7 @@ import org.xper.experiment.StimSpecGenerator;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
 
-public class TestGeneration {
+public class randGenerationClassic {
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
