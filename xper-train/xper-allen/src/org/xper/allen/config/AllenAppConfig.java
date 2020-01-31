@@ -20,7 +20,7 @@ public class AllenAppConfig extends ClassicAppConfig {
 	public TestGeneration testGen() {
 		TestGeneration gen = new TestGeneration();
 		gen.setDbUtil(allenConfig.allenDbUtil());
-		gen.setGlobalTimeUtil(acqConfig.timeClient());
+		gen.setGlobalTimeUtil(allenAcqConfig.timeClient());
 		//gen.setTaskCount(100);
 		gen.setGenerator(generator());
 		return gen;
@@ -38,19 +38,19 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.experiment.test.TestGeneration;
 import org.xper.config.AcqConfig;
+import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-
 import org.xper.example.classic.ClassicAppConfig;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(ClassicConfig.class)
-public class AllenAppConfig extends ClassicAppConfig{
+@Import(AllenConfig.class)
+public class AllenAppConfig {
 	@Autowired ClassicConfig classicConfig;
-	//@Autowired BaseConfig baseConfig;
+	@Autowired BaseConfig baseConfig;
 	@Autowired AllenConfig allenConfig; 
-	@Autowired protected AcqConfig acqConfig;
+	@Autowired AcqConfig acqConfig;
 	
 	@Bean
 	public TestGeneration testGen() {
