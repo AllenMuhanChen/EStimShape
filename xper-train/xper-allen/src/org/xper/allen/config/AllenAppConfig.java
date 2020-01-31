@@ -60,14 +60,9 @@ public class AllenAppConfig {
 		GaborSpecGenerator gen = new GaborSpecGenerator();
 		return gen;
 	}
+	
 	@Bean
-	public randGenerationClassic testGen() {
-		randGenerationClassic gen = new randGenerationClassic();
-		gen.setDbUtil(allenConfig.allenDbUtil());
-		gen.setGlobalTimeUtil(acqConfig.timeClient());
-		gen.setTaskCount(100);
-		gen.setGenerator(generator());
-		return gen;
+	public CatchSpecGenerator catchGenerator() {
 		
 	}
 	
