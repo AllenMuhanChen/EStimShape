@@ -42,12 +42,12 @@ import org.xper.config.ClassicConfig;
 public class AllenConfig {
 	@Autowired BaseConfig baseConfig;
 		
-	
 	@Bean
 	public AllenDbUtil allenDbUtil() {
-		AllenDbUtil util = new AllenDbUtil();
-		util.setDataSource(baseConfig.dataSource());
-		return util;
+		AllenDbUtil dbUtil = new AllenDbUtil();
+		dbUtil.setDataSource(baseConfig.dataSource());
+		
+		return dbUtil;
 	}
 
 }
