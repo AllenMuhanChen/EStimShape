@@ -10,7 +10,7 @@ public class RandGenAllen {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		randGenerationClassic gen = context.getBean(randGenerationClassic.class);
+		RandGenerationAllen gen = context.getBean(RandGenerationAllen.class);
 		gen.generate();
 	}
 }
