@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
+	<classpathentry excluding="org/xper/allen/config/AllenAcqConfig.java|org/xper/allen/config/AllenClassicConfig.java" kind="src" path="src"/>
 	<classpathentry kind="src" path="app"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
@@ -29,5 +29,15 @@
 	<classpathentry kind="lib" path="/xper/lib/spring/spring-javaconfig.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/spring/spring-jdbc.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/spring/spring-tx.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/xper-native"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/AppleJavaExtensions.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/asm-debug-all.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/jinput.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl_test.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl_util_applet.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl_util.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl-debug.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

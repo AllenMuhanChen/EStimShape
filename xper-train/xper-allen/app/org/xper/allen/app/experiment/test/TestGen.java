@@ -8,7 +8,7 @@ public class TestGen {
 	public static void main(String[] args) {
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-				FileUtil.loadConfigClass("experiment.config_class"));
+				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
 		TestGeneration gen = context.getBean(TestGeneration.class);
 		gen.generate();
