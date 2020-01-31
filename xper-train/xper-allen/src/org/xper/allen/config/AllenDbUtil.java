@@ -16,7 +16,7 @@ import org.xper.allen.specs.StimObjData;
 
 //AC
 public class AllenDbUtil extends DbUtil {
-	
+	/*
 	@Dependency
 	protected
 	DataSource dataSource;
@@ -28,6 +28,7 @@ public class AllenDbUtil extends DbUtil {
 		super();
 		this.dataSource = dataSource;
 	}
+*/
 
 	/**
 	 * Before DbUtil can be used. DataSource must be set.
@@ -36,10 +37,11 @@ public class AllenDbUtil extends DbUtil {
 	 * 
 	 * @param dataSource
 	 */
+	/*
 	public void setDataSource(DataSource dataSource) {
 		this.dataSource = dataSource;
 	}
-	
+	*/
 	//AC
 	//=====================EStimSpec========================================
 	public void writeEStimSpec(long id, EStimSpec e) {

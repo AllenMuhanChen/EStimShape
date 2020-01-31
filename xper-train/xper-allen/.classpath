@@ -3,7 +3,6 @@
 	<classpathentry excluding="org/xper/allen/config/AllenAcqConfig.java|org/xper/allen/config/AllenClassicConfig.java" kind="src" path="src"/>
 	<classpathentry kind="src" path="app"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/xper/lib/c3p0-0.9.0.2.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/cglib-nodep-2.1_3.jar"/>
@@ -39,5 +38,6 @@
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl-debug.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
