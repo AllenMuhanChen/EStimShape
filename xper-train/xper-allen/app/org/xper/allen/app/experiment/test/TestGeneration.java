@@ -47,7 +47,7 @@ public class TestGeneration {
 		System.out.println("done.");
 	}
 
-	public DbUtil getDbUtil() {
+	public AllenDbUtil getDbUtil() {
 		return dbUtil;
 	}
 
