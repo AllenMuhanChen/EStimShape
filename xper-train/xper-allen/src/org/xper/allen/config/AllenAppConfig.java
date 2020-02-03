@@ -8,6 +8,7 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.classic.randGenerationClassic;
+import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -56,8 +57,8 @@ public class AllenAppConfig {
 	}
 	
 	@Bean
-	public GaborSpecGenerator generator() {
-		GaborSpecGenerator gen = new GaborSpecGenerator();
+	public GaussianSpecGenerator generator() {
+		GaussianSpecGenerator gen = new GaussianSpecGenerator();
 		return gen;
 	}
 	
