@@ -1,9 +1,16 @@
 package org.xper.allen.app.blockGenerators.trials;
 
+import com.thoughtworks.xstream.XStream;
+
 public class visualTrial extends Trial{
 	
 	int[] stimObjData = {2};
 	int[] eStimObjData = {1};
+	
+	static {
+		s = new XStream();
+		s.alias("StimSpec", visualTrial.class);
+	}
 	
 	public visualTrial() {
 		//Empty Constructor
@@ -13,18 +20,4 @@ public class visualTrial extends Trial{
 		//stimObj Constructor
 		this.stimObjData = stimObjData;
 	}
-	
-	public int[] getStimObjData() {
-		return stimObjData;
-	}
-	public void setStimObjData(int[] stimObjData) {
-		this.stimObjData = stimObjData;
-	}
-	public int[] getEStimObjData() {
-		return eStimObjData;
-	}
-	public void setEStimObjData(int[] eStimObjData) {
-		this.eStimObjData = eStimObjData;
-	}
-
 }

@@ -9,7 +9,6 @@ import org.xper.allen.config.AllenDbUtil;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.time.TimeUtil;
 
-import com.thoughtworks.xstream.XStream;
 
 public class sampleBlockGen {
 
@@ -50,9 +49,10 @@ public class sampleBlockGen {
 			else if (trialTypeList[i]=='b') {
 				trialList[i] = new bothTrial();
 			}
-			String spec = trialList[i].toXml();
+			String spec = Trial.toXml(trialList[i]);
 			dbUtil.writeStimSpec(taskId, spec);
 		}
+		System.out.println("Done Generating...");
 		return trialList;
 		
 	}
