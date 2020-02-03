@@ -3,29 +3,16 @@ package org.xper.allen.experiment;
 import org.xper.experiment.StimSpecGenerator;
 import org.xper.rfplot.GaborSpec;
 
-public class GaussianSpecGenerator implements StimSpecGenerator {
-	static int XCenter = 0;
-	static int YCenter = 0;
-	static int Size = 100;
-	static int Orientation = (int) (Math.random() * Math.PI);
-	static int Frequency = 0;
-	static int Phase = (int) Math.PI;
-	static boolean Animation = true;
+public class GaussianSpecGenerator{
+	int XCenter = 0;
+	int YCenter = 0;
+	int Size = 100;
+	int Orientation = (int) (Math.random() * Math.PI);
+	int Frequency = 0;
+	int Phase = (int) Math.PI;
+	boolean Animation = true;
 	
-	//Default Constructor
-	public GaussianSpecGenerator() {
-		super();
-	}
-	
-	//Location & Size Constructor
-	public GaussianSpecGenerator(int XCenter, int YCenter, int Size) {
-		GaussianSpecGenerator.XCenter = XCenter;
-		GaussianSpecGenerator.YCenter = YCenter;
-		GaussianSpecGenerator.Size = Size;
-	}
-
-
-	public static GaborSpec generate() {
+	public GaborSpec generate() {
 		GaborSpec g = new GaborSpec();
 		g.setXCenter(XCenter);
 		g.setYCenter(YCenter);
@@ -39,6 +26,85 @@ public class GaussianSpecGenerator implements StimSpecGenerator {
 	
 
 	public String generateStimSpec() {
-		return GaussianSpecGenerator.generate().toXml();
+		return this.generate().toXml();
+	}
+
+	public void reset() { //There may be a better way of doing this, but this will reset the variables to their defaults.
+		XCenter = 0;
+		YCenter = 0;
+		Size = 100;
+		Orientation = (int) (Math.random() * Math.PI);
+		Frequency = 0;
+		Phase = (int) Math.PI;
+		Animation = true;
+	}
+	
+	public int getXCenter() {
+		return XCenter;
+	}
+
+
+	public void setXCenter(int xCenter) {
+		XCenter = xCenter;
+	}
+
+
+	public int getYCenter() {
+		return YCenter;
+	}
+
+
+	public void setYCenter(int yCenter) {
+		YCenter = yCenter;
+	}
+
+
+	public int getSize() {
+		return Size;
+	}
+
+
+	public void setSize(int size) {
+		Size = size;
+	}
+
+
+	public int getOrientation() {
+		return Orientation;
+	}
+
+
+	public void setOrientation(int orientation) {
+		Orientation = orientation;
+	}
+
+
+	public int getFrequency() {
+		return Frequency;
+	}
+
+
+	public void setFrequency(int frequency) {
+		Frequency = frequency;
+	}
+
+
+	public int getPhase() {
+		return Phase;
+	}
+
+
+	public void setPhase(int phase) {
+		Phase = phase;
+	}
+
+
+	public boolean isAnimation() {
+		return Animation;
+	}
+
+
+	public void setAnimation(boolean animation) {
+		Animation = animation;
 	}
 }
