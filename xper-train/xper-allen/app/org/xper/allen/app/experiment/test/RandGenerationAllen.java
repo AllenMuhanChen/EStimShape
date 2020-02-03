@@ -18,6 +18,8 @@ public class RandGenerationAllen {
 	TimeUtil globalTimeUtil;
 	@Dependency
 	GaussianSpecGenerator generator;
+	@Dependency
+	EStimSpecGenerator egenerator;
 	int taskCount;
 
 	public int getTaskCount() {
@@ -98,4 +100,5 @@ public class RandGenerationAllen {
 	public void setGenerator(GaussianSpecGenerator generator) {
 		this.generator = generator;
 	}
+	
 }

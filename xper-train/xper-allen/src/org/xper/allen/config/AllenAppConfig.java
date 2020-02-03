@@ -61,6 +61,10 @@ public class AllenAppConfig {
 		return gen;
 	}
 	
+	@Bean EStimSpecGenerator egenerator() {
+		
+	}
+	
 	@Bean
 	public RandGenerationAllen randomGen() {
 		RandGenerationAllen gen = new RandGenerationAllen();
