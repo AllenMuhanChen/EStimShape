@@ -3,19 +3,21 @@ package org.xper.allen.app.experiment.test;
 import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.config.AllenDbUtil;
+import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.experiment.StimSpecGenerator;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
 
+//AC: Removing abstraction with StimSpecGenerator, as random generation heavily depends on what type of stimuli it's using. 
 public class RandGenerationAllen {
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
 	TimeUtil globalTimeUtil;
 	@Dependency
-	StimSpecGenerator generator;
+	GaussianSpecGenerator generator;
 	int taskCount;
 
 	public int getTaskCount() {
@@ -46,17 +48,21 @@ public class RandGenerationAllen {
 				System.out.print(".");
 			}
 			//BLOCK LOGIC
-			String spec = generator.generateStimSpec();
-			
 			long taskId = globalTimeUtil.currentTimeMicros();
 			if (trialList[i]=='c') {
-				dbUtil.writeStimObjData(0, spec, spec);
+				generator.setSize(0);								//Visual Stimulus
+				String spec = generator.generateStimSpec();
+				dbUtil.writeStimObjData(taskId, spec, "c");
+				generator.reset();
 			}
 			else if(trialList[i]=='v'){
 				
 			}
 			else if(trialList[i]=='e') {
-				
+				generator.setSize(0);								//Visual Stimulus
+				String spec = generator.generateStimSpec();
+				dbUtil.writeStimObjData(taskId, spec, "c");
+				generator.reset();
 			}
 			else if(trialList[i]=='b') {
 				
@@ -85,11 +91,11 @@ public class RandGenerationAllen {
 		this.globalTimeUtil = globalTimeUtil;
 	}
 
-	public StimSpecGenerator getGenerator() {
+	public GaussianSpecGenerator getGenerator() {
 		return generator;
 	}
 
-	public void setGenerator(StimSpecGenerator generator) {
+	public void setGenerator(GaussianSpecGenerator generator) {
 		this.generator = generator;
 	}
 }
