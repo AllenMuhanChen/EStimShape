@@ -2,8 +2,8 @@ package org.xper.allen.app.stimInserters;
 
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.xper.allen.config.AllenDbUtil;
-import org.xper.allen.experiment.EStimSpecGenerator;
-import org.xper.allen.experiment.GaussianSpecGenerator;
+import org.xper.allen.experiment.EStimObjDataGenerator;
+
 
 //Generates ands Inserts a Specified Gauss spec into StimObjData
 public class InsertEStimSpec {
@@ -20,14 +20,14 @@ public class InsertEStimSpec {
 		
 		//Main Code
 		//Generate EStim
-		EStimSpecGenerator egenerator = new EStimSpecGenerator();
+		EStimObjDataGenerator egenerator = new EStimObjDataGenerator();
 		
 		//MODIFY PARAMS HERE
 		//egenerator.setChan(0);
 		
 		
 		//Insert
-		dbutil.writeEStimSpec(0,egenerator.generate());
+		dbutil.writeEStimObjData(0,egenerator.generate());
 		System.out.println("Finished Generating");
 	}
 
