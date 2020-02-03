@@ -61,6 +61,7 @@ public class ClassicAppConfig {
 		GaborSpecGenerator gen = new GaborSpecGenerator();
 		return gen;
 	}
+	
 	@Bean
 	public randGenerationClassic testGen() {
 		randGenerationClassic gen = new randGenerationClassic();
