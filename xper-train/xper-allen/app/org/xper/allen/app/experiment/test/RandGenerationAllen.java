@@ -3,6 +3,7 @@ package org.xper.allen.app.experiment.test;
 import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.config.AllenDbUtil;
+import org.xper.allen.experiment.EStimSpecGenerator;
 import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.exception.VariableNotFoundException;
@@ -56,6 +57,7 @@ public class RandGenerationAllen {
 				String spec = generator.generateStimSpec();
 				dbUtil.writeStimObjData(taskId, spec, "c");
 				generator.reset();
+				
 			}
 			else if(trialList[i]=='v'){
 				

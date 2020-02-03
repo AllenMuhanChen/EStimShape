@@ -1,7 +1,8 @@
 package org.xper.allen.experiment;
 
+import org.xper.allen.specs.GaussSpec;
 import org.xper.experiment.StimSpecGenerator;
-import org.xper.rfplot.GaborSpec;
+
 
 public class GaussianSpecGenerator{
 	int XCenter = 0;
@@ -12,8 +13,8 @@ public class GaussianSpecGenerator{
 	int Phase = (int) Math.PI;
 	boolean Animation = true;
 	
-	public GaborSpec generate() {
-		GaborSpec g = new GaborSpec();
+	public GaussSpec generate() {
+		GaussSpec g = new GaussSpec();
 		g.setXCenter(XCenter);
 		g.setYCenter(YCenter);
 		g.setSize(Size);
