@@ -1,21 +1,14 @@
 package org.xper.allen.app.blockGenerators.trials;
 
-public class catchTrial implements trial{
-	public int[] getStimObjData() {
-		return stimObjData;
+import com.thoughtworks.xstream.XStream;
+
+public class catchTrial extends Trial{
+	
+	static {
+		s = new XStream();
+		s.alias("StimSpec", catchTrial.class);
 	}
-	public void setStimObjData(int[] stimObjData) {
-		this.stimObjData = stimObjData;
-	}
-	public int[] getEStimObjData() {
-		return eStimObjData;
-	}
-	public void setEStimObjData(int[] eStimObjData) {
-		this.eStimObjData = eStimObjData;
-	}
+	
 	int[] stimObjData = {1};
 	int[] eStimObjData = {1};
-
-
-
 }

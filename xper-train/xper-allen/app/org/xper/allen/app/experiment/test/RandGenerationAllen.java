@@ -2,6 +2,9 @@ package org.xper.allen.app.experiment.test;
 
 import org.xper.Dependency;
 import org.xper.allen.Block;
+import org.xper.allen.app.blockGenerators.sampleBlockGen;
+import org.xper.allen.app.blockGenerators.trials.Trial;
+import org.xper.allen.app.blockGenerators.trials.trial;
 import org.xper.allen.config.AllenDbUtil;
 import org.xper.allen.experiment.EStimObjDataGenerator;
 import org.xper.allen.experiment.GaussianSpecGenerator;
@@ -21,6 +24,8 @@ public class RandGenerationAllen {
 	@Dependency
 	EStimObjDataGenerator egenerator;
 	int taskCount;
+	
+	Trial[] trialList;
 
 	public int getTaskCount() {
 		return taskCount;
@@ -35,9 +40,9 @@ public class RandGenerationAllen {
 		long genId = 1;
 		//BLOCK LOGIC
 		long blockId = genId;
-		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
-		Block block = new Block(blockspec);
-		char trialList[] = block.generateTrialList();
+		sampleBlockGen blockgen = new sampleBlockGen(blockId);
+		trialList = blockgen.generate();
+		Block block = blockgen.getBlock();
 		//------------
 		
 		try {
@@ -45,36 +50,15 @@ public class RandGenerationAllen {
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
-		for (int i = 0; i < block.get_taskCount(); i++) {
-			if (i % 10 == 0) {
-				System.out.print(".");
-			}
-			//BLOCK LOGIC
+		
+		for (int i=0; i < block.get_taskCount(); i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
-			if (trialList[i]=='c') {
-				generator.setSize(0);								//Visual Stimulus
-				String spec = generator.generateStimSpec();
-				dbUtil.writeStimObjData(taskId, spec, "c");
-				generator.reset();
-				
-			}
-			else if(trialList[i]=='v'){
-				
-			}
-			else if(trialList[i]=='e') {
-				generator.setSize(0);								//Visual Stimulus
-				String spec = generator.generateStimSpec();
-				dbUtil.writeStimObjData(taskId, spec, "c");
-				generator.reset();
-			}
-			else if(trialList[i]=='b') {
-				
-			}
-
-			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
+			
+			
+			dbUtil.writeStimSpec(taskId, trialList[i].getEStimObjData().toXml());
 		}
-		dbUtil.updateReadyGenerationInfo(genId, taskCount);
-		System.out.println("done.");
+		
+		//dbUtil.writeStimSpec(taskId, blockgen.toXml());
 	}
 
 	public AllenDbUtil getDbUtil() {
