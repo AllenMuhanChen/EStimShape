@@ -9,6 +9,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.classic.randGenerationClassic;
 import org.xper.allen.app.experiment.test.RandGenerationAllen;
+import org.xper.allen.experiment.EStimObjDataGenerator;
 import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -61,8 +62,9 @@ public class AllenAppConfig {
 		return gen;
 	}
 	
-	@Bean EStimSpecGenerator egenerator() {
-		
+	@Bean EStimObjDataGenerator egenerator() {
+		EStimObjDataGenerator egen = new EStimObjDataGenerator();
+		return egen;
 	}
 	
 	@Bean

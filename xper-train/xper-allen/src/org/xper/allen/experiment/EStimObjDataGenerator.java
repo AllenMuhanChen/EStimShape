@@ -1,8 +1,8 @@
 
 package org.xper.allen.experiment;
-import org.xper.allen.specs.EStimSpec;
+import org.xper.allen.specs.EStimObjData;
 
-public class EStimSpecGenerator {
+public class EStimObjDataGenerator {
 	int chan = 1;
 	String trig_src = "";
 	int num_pulses = 1;
@@ -21,8 +21,8 @@ public class EStimSpecGenerator {
 	float post_stim_charge_recovery_on = 0;
 	float post_stim_charge_recovery_off = 0;
 	
-	public EStimSpec generate () {
-		EStimSpec e = new EStimSpec();
+	public EStimObjData generate () {
+		EStimObjData e = new EStimObjData();
 		e.set_chan(chan);
 		e.set_trig_src(trig_src);
 		e.set_num_pulses(num_pulses);
@@ -43,7 +43,7 @@ public class EStimSpecGenerator {
 		return e;
 	}
 
-	public EStimSpec generateStimSpec() {
+	public EStimObjData generatEStimObjData() {
 		return this.generate();
 	}
 
