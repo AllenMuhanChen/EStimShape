@@ -3,6 +3,7 @@ package org.xper.allen.app.experiment.test;
 import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.app.blockGenerators.sampleBlockGen;
+import org.xper.allen.app.blockGenerators.trials.Trial;
 import org.xper.allen.app.blockGenerators.trials.trial;
 import org.xper.allen.config.AllenDbUtil;
 import org.xper.allen.experiment.EStimObjDataGenerator;
@@ -24,7 +25,7 @@ public class RandGenerationAllen {
 	EStimObjDataGenerator egenerator;
 	int taskCount;
 	
-	trial[] trialList;
+	Trial[] trialList;
 
 	public int getTaskCount() {
 		return taskCount;
@@ -41,6 +42,7 @@ public class RandGenerationAllen {
 		long blockId = genId;
 		sampleBlockGen blockgen = new sampleBlockGen(blockId);
 		trialList = blockgen.generate();
+		Block block = blockgen.getBlock();
 		//------------
 		
 		try {
@@ -49,7 +51,13 @@ public class RandGenerationAllen {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
 		
-		long taskId = globalTimeUtil.currentTimeMicros();
+		for (int i=0; i < block.get_taskCount(); i++) {
+			long taskId = globalTimeUtil.currentTimeMicros();
+			
+			
+			dbUtil.writeStimSpec(taskId, trialList[i].getEStimObjData().toXml());
+		}
+		
 		//dbUtil.writeStimSpec(taskId, blockgen.toXml());
 	}
 

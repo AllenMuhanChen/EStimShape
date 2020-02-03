@@ -1,6 +1,6 @@
 package org.xper.allen.app.blockGenerators.trials;
 
-public class visualTrial implements trial{
+public class visualTrial extends Trial{
 	
 	int[] stimObjData = {2};
 	int[] eStimObjData = {1};

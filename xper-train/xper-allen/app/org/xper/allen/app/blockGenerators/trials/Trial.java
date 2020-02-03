@@ -1,19 +1,10 @@
 package org.xper.allen.app.blockGenerators.trials;
 
-public class bothTrial extends Trial{
-	
-	int[] stimObjData = {2};
-	int[] eStimObjData = {2};
-	
-	public bothTrial() {
-		//Empty Constructor
-	}
-	
-	public bothTrial(int[] stimObjData, int[] estimObjData) {
-		//stimObj Constructor
-		this.eStimObjData = estimObjData;
-		this.stimObjData = stimObjData;
-	}
+import com.thoughtworks.xstream.XStream;
+
+public abstract class Trial {
+	int[] stimObjData;
+	int[] eStimObjData;
 	
 	public int[] getStimObjData() {
 		return stimObjData;
@@ -27,5 +18,19 @@ public class bothTrial extends Trial{
 	public void setEStimObjData(int[] eStimObjData) {
 		this.eStimObjData = eStimObjData;
 	}
-
+	
+	transient static XStream s;
+	
+	static {
+		s = new XStream();
+		s.alias("StimSpec", Trial.class);
+	}
+	
+	public String toXml() {
+		return Trial.toXml(this);
+	}
+	
+	public static String toXml(Trial trial) {
+		return s.toXML(trial);
+	}
 }
