@@ -8,6 +8,8 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.classic.randGenerationClassic;
+import org.xper.allen.app.experiment.test.RandGenerationAllen;
+import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -16,7 +18,6 @@ import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.example.classic.GaborScene;
-import org.xper.example.classic.GaborSpecGenerator;
 
 
 @Configuration(defaultLazy=Lazy.TRUE)
@@ -54,15 +55,15 @@ public class AllenAppConfig {
 		scene.setBlankScreen(new BlankScreen());
 		return scene;
 	}
-	
-	@Bean
-	public GaborSpecGenerator generator() {
-		GaborSpecGenerator gen = new GaborSpecGenerator();
+
+	@Bean GaussianSpecGenerator generator() {
+		GaussianSpecGenerator gen = new GaussianSpecGenerator();
 		return gen;
 	}
+	
 	@Bean
-	public randGenerationClassic testGen() {
-		randGenerationClassic gen = new randGenerationClassic();
+	public RandGenerationAllen randomGen() {
+		RandGenerationAllen gen = new RandGenerationAllen();
 		gen.setDbUtil(allenConfig.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setTaskCount(100);
