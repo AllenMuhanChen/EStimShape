@@ -9,9 +9,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.Dependency;
-import org.xper.allen.db.vo.EStimSpecEntry;
+import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.BlockSpec;
-import org.xper.allen.specs.EStimSpec;
+import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.StimObjData;
 
 //AC
@@ -43,11 +43,11 @@ public class AllenDbUtil extends DbUtil {
 	}
 	*/
 	//AC
-	//=====================EStimSpec========================================
-	public void writeEStimSpec(long id, EStimSpec e) {
+	//=====================EStimObjData========================================
+	public void writeEStimObjData(long id, EStimObjData e) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.update(
-				"insert into EStimSpec (id, chan, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off) values (?, ?, ?, ? ,? ,? ,? ,? ,? ,? ,?, ?, ?, ?, ?, ?, ?, ?)",
+				"insert into EStimObjData (id, chan, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off) values (?, ?, ?, ? ,? ,? ,? ,? ,? ,? ,?, ?, ?, ?, ?, ?, ?, ?)",
 				new Object[] { id, e.get_chan(), e.get_trig_src(), e.get_num_pulses(),
 						e.get_pulse_train_period(), e.get_post_stim_refractory_period(), e.get_stim_shape(),
 						e.get_stim_polarity(), e.get_d1(), e.get_d2(), e.get_dp(), e.get_a1(), e.get_a2(),
@@ -56,13 +56,13 @@ public class AllenDbUtil extends DbUtil {
 						e.get_post_stim_charge_recovery_off() });
 	}
 	
-	public EStimSpecEntry readEStimSpec(long estimId) {
+	public EStimObjDataEntry readEStimObjData(long estimId) {
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
 		return jt.queryForObject(
-				" select id, chan, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stimp_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off from EStimSpec where id = ? ",
-				new ParameterizedRowMapper<EStimSpecEntry>() {
-					public EStimSpecEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
-						EStimSpecEntry e = new EStimSpecEntry();
+				" select id, chan, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stimp_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off from EStimObjData where id = ? ",
+				new ParameterizedRowMapper<EStimObjDataEntry>() {
+					public EStimObjDataEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
+						EStimObjDataEntry e = new EStimObjDataEntry();
 						e.set_id(rs.getLong("id"));
 						e.set_chan(rs.getInt("chan"));
 						e.set_trig_src(rs.getString("trig_src"));
