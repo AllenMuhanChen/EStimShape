@@ -1,6 +1,14 @@
 package org.xper.allen.app.blockGenerators.trials;
 
-public class catchTrial implements trial{
+public class visualTrial implements trial{
+	
+	int[] stimObjData = {2};
+	int[] eStimObjData = {1};
+	
+	public visualTrial(int[] stimObjData) {
+		this.stimObjData = stimObjData;
+	}
+	
 	public int[] getStimObjData() {
 		return stimObjData;
 	}
@@ -13,6 +21,5 @@ public class catchTrial implements trial{
 	public void setEStimObjData(int[] eStimObjData) {
 		this.eStimObjData = eStimObjData;
 	}
-	int[] stimObjData = {1};
-	int[] eStimObjData = {1};
+
 }
