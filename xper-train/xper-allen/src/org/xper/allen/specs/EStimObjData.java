@@ -1,10 +1,8 @@
 //AC
-package org.xper.allen.db.vo;
+package org.xper.allen.specs;
 
-import org.xper.allen.specs.StimSpec;
-
-public class EStimSpecEntry{
-	long id;
+public class EStimObjData {
+	//long id;
 	int chan;
 	String trig_src;
 	int num_pulses;
@@ -24,7 +22,7 @@ public class EStimSpecEntry{
 	float post_stim_charge_recovery_off;
 	
 	/*
-	public EStimSpec(EStimSpec d) {
+	public EStimObjData(EStimObjData d) {
 		id = d.get_id();
 		chan = d.get_chan();
 		trig_src = d.get_trig_src();
@@ -45,13 +43,14 @@ public class EStimSpecEntry{
 		post_stim_charge_recovery_off = d.get_post_stim_charge_recovery_off();
 	}
 	*/
-	
+	/*
 	public long get_id() {
 		return id;
 	}
 	public void set_id(long id_) {
 		id = id_;
 	}
+	*/
 	public int get_chan() {
 		return chan;
 	}
