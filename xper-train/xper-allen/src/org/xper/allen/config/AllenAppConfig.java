@@ -7,6 +7,7 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.xper.allen.app.blockGenerators.sampleBlockGen;
 import org.xper.allen.app.classic.randGenerationClassic;
 import org.xper.allen.app.experiment.test.RandGenerationAllen;
 import org.xper.allen.experiment.EStimObjDataGenerator;
@@ -66,7 +67,7 @@ public class AllenAppConfig {
 		EStimObjDataGenerator egen = new EStimObjDataGenerator();
 		return egen;
 	}
-	
+	/*
 	@Bean
 	public RandGenerationAllen randomGen() {
 		RandGenerationAllen gen = new RandGenerationAllen();
@@ -75,6 +76,14 @@ public class AllenAppConfig {
 		gen.setTaskCount(100);
 		gen.setGenerator(generator());
 		return gen;
+	}
+	*/
+	@Bean
+	public sampleBlockGen sampleGen() {
+		sampleBlockGen blockgen = new sampleBlockGen();
+		blockgen.setDbUtil(allenConfig.allenDbUtil());
+		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
+		return blockgen;
 	}
 
 }

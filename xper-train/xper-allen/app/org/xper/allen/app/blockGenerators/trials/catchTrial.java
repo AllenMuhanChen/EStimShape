@@ -1,6 +1,6 @@
 package org.xper.allen.app.blockGenerators.trials;
 
-public class catchTrial implements trial{
+public class catchTrial extends Trial{
 	public int[] getStimObjData() {
 		return stimObjData;
 	}

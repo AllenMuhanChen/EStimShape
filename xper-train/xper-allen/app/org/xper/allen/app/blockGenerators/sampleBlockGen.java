@@ -1,10 +1,13 @@
 package org.xper.allen.app.blockGenerators;
 
+import java.util.Arrays;
+
 import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.app.blockGenerators.trials.*;
 import org.xper.allen.config.AllenDbUtil;
 import org.xper.allen.specs.BlockSpec;
+import org.xper.time.TimeUtil;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -12,23 +15,29 @@ public class sampleBlockGen {
 
 	@Dependency
 	AllenDbUtil dbUtil;
+	@Dependency
+	TimeUtil globalTimeUtil;
 	
 	int[] channel_list = {1};
 	int num_per_chan;
 	long blockId;
-	trial[] trialList;
+	Trial[] trialList;
 	BlockSpec blockspec;
 	Block block;
 	char[] trialTypeList;
+	public sampleBlockGen() {
+		
+	}
 	
-	public sampleBlockGen(long blockId) {
+	public Trial[] generate(long blockId) { //
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
-	}
-	
-	public trial[] generate() { //
+		trialList = new Trial[block.get_taskCount()];
+		
 		for (int i = 0; i < block.get_taskCount(); i++) {
+			long taskId = globalTimeUtil.currentTimeMicros();
+			
 			if (trialTypeList[i]=='c') {
 				trialList[i] = new catchTrial();
 			}
@@ -41,24 +50,41 @@ public class sampleBlockGen {
 			else if (trialTypeList[i]=='b') {
 				trialList[i] = new bothTrial();
 			}
+			String spec = trialList[i].toXml();
+			dbUtil.writeStimSpec(taskId, spec);
 		}
 		return trialList;
 		
 	}
-	/*
-	transient static XStream s;
-	
-	static {
-		s = new XStream();
-		s.alias("StimSpec", trial[].class);
+
+	public BlockSpec getBlockspec() {
+		return blockspec;
 	}
-	
-	public String toXml() {
-		return sampleBlockGen.toXml(trialList);
+
+	public void setBlockspec(BlockSpec blockspec) {
+		this.blockspec = blockspec;
 	}
-	
-	public static String toXml (trial[] trialList) {
-		return s.toXML(trialList);
+
+	public Block getBlock() {
+		return block;
 	}
-*/
+
+	public void setBlock(Block block) {
+		this.block = block;
+	}
+	public AllenDbUtil getDbUtil() {
+		return dbUtil;
+	}
+
+	public void setDbUtil(AllenDbUtil dbUtil) {
+		this.dbUtil = dbUtil;
+	}
+	public TimeUtil getGlobalTimeUtil() {
+		return globalTimeUtil;
+	}
+
+	public void setGlobalTimeUtil(TimeUtil globalTimeUtil) {
+		this.globalTimeUtil = globalTimeUtil;
+	}
+
 }
