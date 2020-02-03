@@ -1,16 +1,17 @@
 package org.xper.allen.app.blockGenerators.trials;
 
-public class visualTrial implements trial{
+public class bothTrial implements trial{
 	
 	int[] stimObjData = {2};
-	int[] eStimObjData = {1};
+	int[] eStimObjData = {2};
 	
-	public visualTrial() {
+	public bothTrial() {
 		//Empty Constructor
 	}
 	
-	public visualTrial(int[] stimObjData) {
+	public bothTrial(int[] stimObjData, int[] estimObjData) {
 		//stimObj Constructor
+		this.eStimObjData = estimObjData;
 		this.stimObjData = stimObjData;
 	}
 	

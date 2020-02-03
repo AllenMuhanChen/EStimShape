@@ -75,7 +75,6 @@ public class AllenAppConfig {
 		gen.setTaskCount(100);
 		gen.setGenerator(generator());
 		return gen;
-		
 	}
-	
+
 }
