@@ -3,13 +3,12 @@ package org.xper.allen.app.experiment.test;
 import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.config.AllenDbUtil;
-import org.xper.allen.experiment.EStimSpecGenerator;
+import org.xper.allen.experiment.EStimObjDataGenerator;
 import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.exception.VariableNotFoundException;
-import org.xper.experiment.StimSpecGenerator;
 import org.xper.time.TimeUtil;
-import org.xper.util.DbUtil;
+
 
 //AC: Removing abstraction with StimSpecGenerator, as random generation heavily depends on what type of stimuli it's using. 
 public class RandGenerationAllen {
@@ -20,7 +19,7 @@ public class RandGenerationAllen {
 	@Dependency
 	GaussianSpecGenerator generator;
 	@Dependency
-	EStimSpecGenerator egenerator;
+	EStimObjDataGenerator egenerator;
 	int taskCount;
 
 	public int getTaskCount() {
@@ -72,7 +71,6 @@ public class RandGenerationAllen {
 				
 			}
 
-			dbUtil.writeStimSpec(taskId, spec);
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
 		dbUtil.updateReadyGenerationInfo(genId, taskCount);
