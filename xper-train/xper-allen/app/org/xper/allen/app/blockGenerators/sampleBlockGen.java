@@ -27,7 +27,7 @@ public class sampleBlockGen {
 	public sampleBlockGen() {
 		
 	}
-	
+	long genId = 1;
 	public Trial[] generate(long blockId) { //
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
@@ -51,6 +51,7 @@ public class sampleBlockGen {
 			}
 			String spec = Trial.toXml(trialList[i]);
 			dbUtil.writeStimSpec(taskId, spec);
+			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
 		System.out.println("Done Generating...");
 		return trialList;
