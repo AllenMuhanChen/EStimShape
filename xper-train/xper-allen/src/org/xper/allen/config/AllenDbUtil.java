@@ -136,7 +136,7 @@ public class AllenDbUtil extends DbUtil {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.query(
 				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
-						" (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
+						" (select spec from StimObjData s where s.id = t.stim_id ) as stim_spec, " +
 						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
 				" from TaskToDo t " +
 				" where t.gen_id = ? and t.task_id > ? " +
