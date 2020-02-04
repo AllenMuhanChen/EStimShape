@@ -134,7 +134,6 @@ public class AllenDbUtil extends DbUtil {
 //=================New ReadStimSpec to pass correct Ids to readExperimentTasks
 
 	public AllenStimSpecEntry readStimSpec(long StimSpecId) {
-		System.out.println("STIMSPECID:"+StimSpecId);
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
 		return jt.queryForObject(
 				" select id, spec from StimSpec where id = ? ",
@@ -181,8 +180,8 @@ public class AllenDbUtil extends DbUtil {
 						as.setSpec(rs.getString("stim_spec"));
 							//StimObjData
 						StimSpec ss = as.genStimSpec();
-						System.out.println("I HAVE SS: " + ss.getStimObjData());
-						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).toString());
+						System.out.println("What i'm toStringing: " +readStimObjData(ss.getStimObjData()[0]).getSpec());
+						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());
 							//TODO: EStimObjData
 						//
 						task.setTaskId(rs.getLong("task_id"));
