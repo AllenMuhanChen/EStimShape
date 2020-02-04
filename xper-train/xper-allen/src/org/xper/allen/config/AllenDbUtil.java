@@ -118,16 +118,15 @@ public class AllenDbUtil extends DbUtil {
 		jt.update("insert into StimObjData (id, spec, data) values (?, ?, ?)", 
 				new Object[] { id, spec, data });
 	}
-	public StimObjData readStimObjData(long StimObjId) {
+	public StimSpecEntry readStimObjData(long StimObjId) {
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
 		return jt.queryForObject(
-				" select id, spec, data from StimObjData where id = ? ",
-				new ParameterizedRowMapper<StimObjData>() {
-					public StimObjData mapRow(ResultSet rs, int rowNum) throws SQLException {
-						StimObjData so = new StimObjData();
-						so.set_id(rs.getLong("id"));
-						so.set_spec(rs.getString("spec"));
-						so.set_data(rs.getString("data"));
+				" select id, spec from StimObjData where id = ? ",
+				new ParameterizedRowMapper<StimSpecEntry>() {
+					public StimSpecEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
+						StimSpecEntry so = new StimSpecEntry();
+						so.setStimId(rs.getLong("id"));
+						so.setSpec(rs.getString("spec"));
 						return so;
 					}
 				}, StimObjId);
@@ -135,9 +134,10 @@ public class AllenDbUtil extends DbUtil {
 //=================New ReadStimSpec to pass correct Ids to readExperimentTasks
 
 	public AllenStimSpecEntry readStimSpec(long StimSpecId) {
+		System.out.println("STIMSPECID:"+StimSpecId);
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
 		return jt.queryForObject(
-				" select id, spec, data from StimSpec where id = ? ",
+				" select id, spec from StimSpec where id = ? ",
 				new ParameterizedRowMapper<AllenStimSpecEntry>() {
 					public AllenStimSpecEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
 						AllenStimSpecEntry s = new AllenStimSpecEntry();
@@ -158,6 +158,7 @@ public class AllenDbUtil extends DbUtil {
 			long lastDoneTaskId) {
 
 		//AC
+		System.out.println("IM CALLING READSTIMSPEC");
 		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
 		//
 		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
@@ -172,16 +173,16 @@ public class AllenDbUtil extends DbUtil {
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
-
+						System.out.println(rs.getLong("stim_id"));
 						ExperimentTask task = new ExperimentTask();
 						task.setGenId(rs.getLong("gen_id"));
 						task.setStimId(rs.getLong("stim_id"));
 						//AC
 						as.setSpec(rs.getString("stim_spec"));
-						System.out.println(as.getSpec());
 							//StimObjData
 						StimSpec ss = as.genStimSpec();
-						task.setStimSpec(readStimObjData(ss.getStimObjIds()[0]).toString());
+						System.out.println("I HAVE SS: " + ss.getStimObjData());
+						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).toString());
 							//TODO: EStimObjData
 						//
 						task.setTaskId(rs.getLong("task_id"));

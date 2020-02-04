@@ -5,8 +5,8 @@ import org.xper.allen.config.AllenDbUtil;
 import com.thoughtworks.xstream.XStream;
 
 public class StimSpec {
-	long estimIds[];
-	long stimObjIds[];
+	long[] stimObjData;
+	long[] eStimObjData;
 
 	
 	public StimSpec(long[] stimObjIds, long[] estimIds) {
@@ -28,24 +28,29 @@ public class StimSpec {
 		return s.toXML(spec);
 	}
 	
-	public StimSpec fromXml (String xml) {
+	public String toXml() {
+		return StimSpec.toXml(this);
+	}
+	
+	public static StimSpec fromXml (String xml) {
 		StimSpec ss = (StimSpec)s.fromXML(xml);
 		return ss;
 	}
 
-	public long[] getEstimIds() {
-		return estimIds;
+	public long[] getStimObjData() {
+		return stimObjData;
 	}
 
-	public void setEstimIds(long[] estimIds) {
-		this.estimIds = estimIds;
+	public void setStimObjData(long[] stimObjData) {
+		this.stimObjData = stimObjData;
 	}
 
-	public long[] getStimObjIds() {
-		return stimObjIds;
+	public long[] geteStimObjData() {
+		return eStimObjData;
 	}
 
-	public void setStimObjId(long[] stimObjId) {
-		this.stimObjIds = stimObjId;
+	public void seteStimObjData(long[] eStimObjData) {
+		this.eStimObjData = eStimObjData;
 	}
+
 }

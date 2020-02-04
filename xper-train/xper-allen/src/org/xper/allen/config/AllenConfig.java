@@ -10,6 +10,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.experiment.DatabaseTaskDataSource;
+import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -24,6 +26,15 @@ public class AllenConfig {
 		dbUtil.setDataSource(baseConfig.dataSource());
 		
 		return dbUtil;
+	}
+	
+	@Bean
+	public DatabaseTaskDataSource databaseTaskDataSource () {
+		DatabaseTaskDataSource source = new DatabaseTaskDataSource();
+		source.setDbUtil(allenDbUtil());
+		source.setQueryInterval(1000);
+		source.setUngetBehavior(UngetPolicy.HEAD);
+		return source;
 	}
 
 }

@@ -7,6 +7,7 @@ import org.xper.allen.Block;
 import org.xper.allen.app.blockGenerators.trials.*;
 import org.xper.allen.config.AllenDbUtil;
 import org.xper.allen.specs.BlockSpec;
+import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 
 
@@ -33,7 +34,11 @@ public class sampleBlockGen {
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
 		trialList = new Trial[block.get_taskCount()];
-		
+		try {
+			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
+		} catch (VariableNotFoundException e) {
+			dbUtil.writeReadyGenerationInfo(genId, 0);
+		}
 		for (int i = 0; i < block.get_taskCount(); i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
 			
@@ -53,6 +58,7 @@ public class sampleBlockGen {
 			dbUtil.writeStimSpec(taskId, spec);
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
+		dbUtil.updateReadyGenerationInfo(genId, block.get_taskCount());
 		System.out.println("Done Generating...");
 		return trialList;
 		
