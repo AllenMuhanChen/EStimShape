@@ -7,13 +7,13 @@ public class estimTrial extends Trial{
 		s = new XStream();
 		s.alias("StimSpec", estimTrial.class);
 	}
-	int[] stimObjData = {1};
-	int[] eStimObjData = {2};
+	long[] stimObjData = {1};
+	long[] eStimObjData = {2};
 	
 	public estimTrial() {
 	}
 	
-	public estimTrial(int[] estimObjData) {
+	public estimTrial(long[] estimObjData) {
 		this.eStimObjData = estimObjData;
 	}
 	
