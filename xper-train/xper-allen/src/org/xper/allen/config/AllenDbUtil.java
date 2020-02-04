@@ -178,6 +178,7 @@ public class AllenDbUtil extends DbUtil {
 						task.setStimId(rs.getLong("stim_id"));
 						//AC
 						as.setSpec(rs.getString("stim_spec"));
+						System.out.println(as.getSpec());
 							//StimObjData
 						StimSpec ss = as.genStimSpec();
 						task.setStimSpec(readStimObjData(ss.getStimObjIds()[0]).toString());
