@@ -2,10 +2,13 @@ package org.xper.allen.config;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
+
 import javax.sql.DataSource;
 
 import org.xper.util.DbUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.Dependency;
@@ -13,6 +16,7 @@ import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.StimObjData;
+import org.xper.experiment.ExperimentTask;
 
 //AC
 public class AllenDbUtil extends DbUtil {
@@ -125,4 +129,29 @@ public class AllenDbUtil extends DbUtil {
 					}
 				}, StimObjId);
 	}
+//=================readExperimentTasks============================================
+	public LinkedList<ExperimentTask> readExperimentTasks(long genId,
+			long lastDoneTaskId) {
+		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
+						" (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
+						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
+				" from TaskToDo t " +
+				" where t.gen_id = ? and t.task_id > ? " +
+				" order by t.task_id", 
+				new Object[] { genId, lastDoneTaskId },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						ExperimentTask task = new ExperimentTask();
+						task.setGenId(rs.getLong("gen_id"));
+						task.setStimId(rs.getLong("stim_id"));
+						task.setStimSpec(rs.getString("stim_spec"));
+						task.setTaskId(rs.getLong("task_id"));
+						task.setXfmId(rs.getLong("xfm_id"));
+						task.setXfmSpec(rs.getString("xfm_spec"));
+						taskToDo.add(task);
+					}});
+		return taskToDo;
 }
