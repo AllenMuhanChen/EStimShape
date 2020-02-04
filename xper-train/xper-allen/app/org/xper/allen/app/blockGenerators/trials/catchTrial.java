@@ -9,6 +9,6 @@ public class catchTrial extends Trial{
 		s.alias("StimSpec", catchTrial.class);
 	}
 	
-	int[] stimObjData = {1};
-	int[] eStimObjData = {1};
+	long[] stimObjData = {1};
+	long[] eStimObjData = {1};
 }

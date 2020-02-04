@@ -4,19 +4,19 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public abstract class Trial {
-	int[] stimObjData;
-	int[] eStimObjData;
+	long[] stimObjData;
+	long[] eStimObjData;
 	
-	public int[] getStimObjData() {
+	public long[] getStimObjData() {
 		return stimObjData;
 	}
-	public void setStimObjData(int[] stimObjData) {
+	public void setStimObjData(long[] stimObjData) {
 		this.stimObjData = stimObjData;
 	}
-	public int[] getEStimObjData() {
+	public long[] getEStimObjData() {
 		return eStimObjData;
 	}
-	public void setEStimObjData(int[] eStimObjData) {
+	public void setEStimObjData(long[] eStimObjData) {
 		this.eStimObjData = eStimObjData;
 	}
 	
