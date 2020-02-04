@@ -12,10 +12,13 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.Dependency;
+import org.xper.allen.db.vo.AllenStimSpecEntry;
 import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.StimObjData;
+import org.xper.allen.specs.StimSpec;
+import org.xper.db.vo.StimSpecEntry;
 import org.xper.experiment.ExperimentTask;
 
 //AC
@@ -129,14 +132,39 @@ public class AllenDbUtil extends DbUtil {
 					}
 				}, StimObjId);
 	}
+//=================New ReadStimSpec to pass correct Ids to readExperimentTasks
+
+	public AllenStimSpecEntry readStimSpec(long StimSpecId) {
+		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
+		return jt.queryForObject(
+				" select id, spec, data from StimSpec where id = ? ",
+				new ParameterizedRowMapper<AllenStimSpecEntry>() {
+					public AllenStimSpecEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
+						AllenStimSpecEntry s = new AllenStimSpecEntry();
+						s.setStimId(rs.getLong("id"));
+						s.setSpec(rs.getString("spec"));
+						return s;
+					}
+				}, StimSpecId);
+		
+		
+	}
+	
+
 //=================readExperimentTasks============================================
+	//TODO: Add stimObjData ID and estimObjData ID to this. Make function to read.
+	
 	public LinkedList<ExperimentTask> readExperimentTasks(long genId,
 			long lastDoneTaskId) {
+
+		//AC
+		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
+		//
 		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.query(
 				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
-						" (select spec from StimObjData s where s.id = t.stim_id ) as stim_spec, " +
+						" (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
 						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
 				" from TaskToDo t " +
 				" where t.gen_id = ? and t.task_id > ? " +
@@ -144,6 +172,48 @@ public class AllenDbUtil extends DbUtil {
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
+
+						ExperimentTask task = new ExperimentTask();
+						task.setGenId(rs.getLong("gen_id"));
+						task.setStimId(rs.getLong("stim_id"));
+						//AC
+						as.setSpec(rs.getString("stim_spec"));
+							//StimObjData
+						StimSpec ss = as.genStimSpec();
+						task.setStimSpec(readStimObjData(ss.getStimObjIds()[0]).toString());
+							//TODO: EStimObjData
+						//
+						task.setTaskId(rs.getLong("task_id"));
+						task.setXfmId(rs.getLong("xfm_id"));
+						task.setXfmSpec(rs.getString("xfm_spec"));
+						taskToDo.add(task);
+					}});
+		return taskToDo;
+	}	
+	
+	/*
+	public LinkedList<ExperimentTask> readExperimentTasks(long genId,
+			long lastDoneTaskId) {
+
+		//
+		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
+		StimSpec ss = as.genStimSpec();
+		long[] eStimObjIds = ss.getEstimIds();
+		long[] stimObjIds = ss.getStimObjIds(); 
+		
+		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
+						" (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
+						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
+				" from TaskToDo t " +
+				" where t.gen_id = ? and t.task_id > ? " +
+				" order by t.task_id", 
+				new Object[] { genId, lastDoneTaskId },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+
 						ExperimentTask task = new ExperimentTask();
 						task.setGenId(rs.getLong("gen_id"));
 						task.setStimId(rs.getLong("stim_id"));
@@ -154,4 +224,6 @@ public class AllenDbUtil extends DbUtil {
 						taskToDo.add(task);
 					}});
 		return taskToDo;
+	}	
+	*/
 }
