@@ -4,8 +4,8 @@ import com.thoughtworks.xstream.XStream;
 
 public class bothTrial extends Trial{
 	
-	int[] stimObjData = {2};
-	int[] eStimObjData = {2};
+	long[] stimObjData = {2};
+	long[] eStimObjData = {2};
 	
 	static {
 		s = new XStream();
@@ -16,7 +16,7 @@ public class bothTrial extends Trial{
 		//Empty Constructor
 	}
 	
-	public bothTrial(int[] stimObjData, int[] estimObjData) {
+	public bothTrial(long[] stimObjData, long[] estimObjData) {
 		//stimObj Constructor
 		this.eStimObjData = estimObjData;
 		this.stimObjData = stimObjData;
