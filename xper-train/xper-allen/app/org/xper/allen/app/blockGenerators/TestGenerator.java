@@ -1,9 +1,6 @@
 package org.xper.allen.app.blockGenerators;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.xper.allen.config.AllenDbUtil;
-import org.xper.app.experiment.test.RandomGeneration;
 import org.xper.util.FileUtil;
 
 public class TestGenerator {

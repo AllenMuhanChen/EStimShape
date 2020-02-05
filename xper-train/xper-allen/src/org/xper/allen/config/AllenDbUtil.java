@@ -3,20 +3,15 @@ package org.xper.allen.config;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
-
-import javax.sql.DataSource;
-
 import org.xper.util.DbUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.xper.Dependency;
 import org.xper.allen.db.vo.AllenStimSpecEntry;
 import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
-import org.xper.allen.specs.StimObjData;
 import org.xper.allen.specs.StimSpec;
 import org.xper.db.vo.StimSpecEntry;
 import org.xper.experiment.ExperimentTask;
@@ -177,11 +172,10 @@ public class AllenDbUtil extends DbUtil {
 						task.setGenId(rs.getLong("gen_id"));
 						task.setStimId(rs.getLong("stim_id"));
 						//AC
-						as.setSpec(rs.getString("stim_spec"));
+						as.setSpec(rs.getString("stim_spec"));									//Reads stimSpec which is now three arrays and stores XML into AllenSpecEntry.spec
 							//StimObjData
-						StimSpec ss = as.genStimSpec();
-						System.out.println("What i'm toStringing: " +readStimObjData(ss.getStimObjData()[0]).getSpec());
-						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());
+						StimSpec ss = as.genStimSpec();											//StimSpec class mirrors layout of stimSpec table in order to XML read it
+						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	//Extract stimObjDataId from StimSpec class and put into readStimObjData dbUtil --> set as spec of task
 							//TODO: EStimObjData
 						//
 						task.setTaskId(rs.getLong("task_id"));

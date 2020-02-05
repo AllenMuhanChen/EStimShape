@@ -1,13 +1,11 @@
 package org.xper.allen.specs;
 
-import org.xper.allen.config.AllenDbUtil;
-
 import com.thoughtworks.xstream.XStream;
 
 public class StimSpec {
 	long[] stimObjData;
 	long[] eStimObjData;
-
+	int[] eStimObjChans;
 	
 	public StimSpec(long[] stimObjIds, long[] estimIds) {
 		stimObjIds = new long[stimObjIds.length];
@@ -51,6 +49,14 @@ public class StimSpec {
 
 	public void seteStimObjData(long[] eStimObjData) {
 		this.eStimObjData = eStimObjData;
+	}
+
+	public int[] geteStimObjChans() {
+		return eStimObjChans;
+	}
+
+	public void seteStimObjChans(int[] eStimObjChans) {
+		this.eStimObjChans = eStimObjChans;
 	}
 
 }

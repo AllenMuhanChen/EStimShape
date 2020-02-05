@@ -1,7 +1,5 @@
 package org.xper.allen.app.blockGenerators;
 
-import java.util.Arrays;
-
 import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.app.blockGenerators.trials.*;
