@@ -1,8 +1,6 @@
 package org.xper.allen.experiment;
 
 import org.xper.allen.specs.GaussSpec;
-import org.xper.experiment.StimSpecGenerator;
-
 
 public class GaussianSpecGenerator{
 	int XCenter = 0;
