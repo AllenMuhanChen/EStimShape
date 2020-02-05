@@ -30,7 +30,7 @@ public class sampleBlockGen {
 	}
 	long genId = 1;
 	public Trial[] generate(long blockId) { //
-		blockId = 2;
+		blockId = 3;
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
@@ -47,10 +47,13 @@ public class sampleBlockGen {
 				trialList[i] = new catchTrial();
 			}
 			else if (trialTypeList[i]=='v') {
-				trialList[i] = new visualTrial(); 
+				long[] stims = {1,2,3};
+				trialList[i] = new visualTrial(stims); 
 			}
 			else if (trialTypeList[i]=='e') {
-				trialList[i] = new estimTrial();
+				long[] stims = {1,2,3};
+				int[] chans = {1,2,3};
+				trialList[i] = new estimTrial(stims, chans);
 			}
 			else if (trialTypeList[i]=='b') {
 				trialList[i] = new bothTrial();
