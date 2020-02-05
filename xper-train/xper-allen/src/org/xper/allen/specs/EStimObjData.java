@@ -3,7 +3,7 @@ package org.xper.allen.specs;
 
 public class EStimObjData {
 	//long id;
-	int chan;
+	float post_trigger_delay;
 	String trig_src;
 	int num_pulses;
 	float pulse_train_period;
@@ -24,7 +24,7 @@ public class EStimObjData {
 	/*
 	public EStimObjData(EStimObjData d) {
 		id = d.get_id();
-		chan = d.get_chan();
+		post_trigger_delay = d.get_post_trigger_delay();
 		trig_src = d.get_trig_src();
 		num_pulses = d.get_num_pulses();
 		pulse_train_period = d.get_pulse_train_period();
@@ -51,11 +51,11 @@ public class EStimObjData {
 		id = id_;
 	}
 	*/
-	public int get_chan() {
-		return chan;
+	public float get_post_trigger_delay() {
+		return post_trigger_delay;
 	}
-	public void set_chan(int chan_) {
-		chan = chan_;
+	public void set_post_trigger_delay(float post_trigger_delay_) {
+		post_trigger_delay = post_trigger_delay_;
 	}
 	public String get_trig_src() {
 		return trig_src;
