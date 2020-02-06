@@ -152,7 +152,6 @@ public class AllenDbUtil extends DbUtil {
 			long lastDoneTaskId) {
 
 		//AC
-		System.out.println("IM CALLING READSTIMSPEC");
 		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
 		//
 		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
