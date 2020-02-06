@@ -28,7 +28,6 @@ public class sampleBlockGen {
 	}
 	long genId = 1;
 	public Trial[] generate(long blockId) { //
-		blockId = 3;
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
