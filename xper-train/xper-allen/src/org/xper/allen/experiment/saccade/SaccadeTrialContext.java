@@ -2,7 +2,6 @@ package org.xper.allen.experiment.saccade;
 
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Coordinates2D;
-import org.xper.experiment.ExperimentTask;
 
 public class SaccadeTrialContext extends TrialContext {
 	long targetOnTime;
@@ -21,6 +20,22 @@ public class SaccadeTrialContext extends TrialContext {
 
 	public void setCurrentTask(SaccadeExperimentTask currentTask) {
 		this.currentTask = currentTask;
+	}
+
+	public Coordinates2D getTargetPos() {
+		return targetPos;
+	}
+
+	public void setTargetPos(Coordinates2D targetPos) {
+		this.targetPos = targetPos;
+	}
+
+	public double getTargetEyeWindowSize() {
+		return targetEyeWindowSize;
+	}
+
+	public void setTargetEyeWindowSize(double targetEyeWindowSize) {
+		this.targetEyeWindowSize = targetEyeWindowSize;
 	}
 
 }

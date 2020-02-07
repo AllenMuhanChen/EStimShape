@@ -54,7 +54,7 @@ public class TrialExperimentState {
 	 * trial stops, it can be tested for null to decide if we need to re-do it
 	 * next time by unget it back into the task data source.
 	 */
-	ExperimentTask currentTask = null;
+	protected ExperimentTask currentTask = null;
 	TrialContext currentContext = null;
 	boolean isAnimation;
 	public static final int SLEEP_INTERVAL = 1;

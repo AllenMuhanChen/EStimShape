@@ -2,7 +2,9 @@ package org.xper.allen.experiment.saccade;
 
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
+import org.xper.allen.config.AllenDbUtil;
 import org.xper.classic.SlideRunner;
+import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialRunner;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
@@ -34,7 +36,10 @@ public class SaccadeTrialExperiment implements Experiment {
 
 	@Dependency
 	SaccadeTrialExperimentState stateObject;
-
+	@Dependency
+	AllenDbUtil dbUtil;
+	
+	
 	public boolean isRunning() {
 		return threadHelper.isRunning();
 	}
@@ -66,10 +71,13 @@ public class SaccadeTrialExperiment implements Experiment {
 					stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
 					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
 					*/
-					n
 					//target info -AC
 					Coordinates2D targetPosition = context.getCurrentTask().parseCoords();
 					//TODO: when come back: add logic of getting target window size from stimSpec
+					float targetEyeWinSize = dbUtil.ReadEyeWinSize(context.getCurrentTask().getStimId());
+					context.setTargetPos(targetPosition);
+					context.setTargetEyeWindowSize(targetEyeWinSize);
+					
 					
 					// run trial
 					return TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
@@ -77,8 +85,8 @@ public class SaccadeTrialExperiment implements Experiment {
 						public TrialResult runSlide() {
 							int slidePerTrial = stateObject.getSlidePerTrial();
 							TrialDrawingController drawingController = stateObject.getDrawingController();
-							ExperimentTask currentTask = stateObject.getCurrentTask();
-							TrialContext currentContext = stateObject.getCurrentContext();	
+							SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
+							SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();	
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
 							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
 							
