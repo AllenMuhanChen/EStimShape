@@ -3,6 +3,7 @@ package org.xper.allen.specs;
 import com.thoughtworks.xstream.XStream;
 
 public class StimSpec {
+	float targetEyeWinSize;
 	long[] stimObjData;
 	long[] eStimObjData;
 	int[] eStimObjChans;
@@ -57,6 +58,14 @@ public class StimSpec {
 
 	public void seteStimObjChans(int[] eStimObjChans) {
 		this.eStimObjChans = eStimObjChans;
+	}
+
+	public float getTargetEyeWinSize() {
+		return targetEyeWinSize;
+	}
+
+	public void setTargetEyeWinSize(float targetEyeWinSize) {
+		this.targetEyeWinSize = targetEyeWinSize;
 	}
 
 }
