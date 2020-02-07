@@ -42,7 +42,7 @@ public class bothTrial extends Trial{
 	public String toXml() {
 		return Trial.toXml(this);
 	}
-	public static String toXml(Trial trial) {
+	public static String toXml(bothTrial trial) {
 		return s.toXML(trial);
 	}
 	
