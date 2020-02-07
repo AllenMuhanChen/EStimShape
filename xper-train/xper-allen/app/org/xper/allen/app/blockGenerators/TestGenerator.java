@@ -11,7 +11,7 @@ public class TestGenerator {
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
 		sampleBlockGen gen = context.getBean(sampleBlockGen.class);
-		gen.generate(4);
+		gen.generate(1);
 
 	}
 

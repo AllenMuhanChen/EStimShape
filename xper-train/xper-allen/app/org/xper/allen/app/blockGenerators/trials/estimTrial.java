@@ -26,14 +26,14 @@ public class estimTrial extends Trial{
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", bothTrial.class);
+		s.alias("StimSpec", estimTrial.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
 	public String toXml() {
 		return Trial.toXml(this);
 	}
-	public static String toXml(bothTrial trial) {
+	public static String toXml(estimTrial trial) {
 		return s.toXML(trial);
 	}
 	

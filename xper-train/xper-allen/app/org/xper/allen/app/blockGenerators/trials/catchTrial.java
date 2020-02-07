@@ -21,14 +21,14 @@ public class catchTrial extends Trial{
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", bothTrial.class);
+		s.alias("StimSpec", catchTrial.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
 	public String toXml() {
 		return Trial.toXml(this);
 	}
-	public static String toXml(bothTrial trial) {
+	public static String toXml(catchTrial trial) {
 		return s.toXML(trial);
 	}
 	

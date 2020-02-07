@@ -27,14 +27,14 @@ public class visualTrial extends Trial{
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", bothTrial.class);
+		s.alias("StimSpec", visualTrial.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
 	public String toXml() {
 		return Trial.toXml(this);
 	}
-	public static String toXml(bothTrial trial) {
+	public static String toXml(visualTrial trial) {
 		return s.toXML(trial);
 	}
 }
