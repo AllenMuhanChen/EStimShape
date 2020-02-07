@@ -5,7 +5,6 @@ import java.util.List;
 import org.xper.Dependency;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.vo.TrialExperimentState;
-import org.xper.experiment.ExperimentTask;
 
 public class SaccadeTrialExperimentState extends TrialExperimentState {
 	@Dependency
@@ -67,7 +66,7 @@ public class SaccadeTrialExperimentState extends TrialExperimentState {
 	}
 	
 	public SaccadeExperimentTask getCurrentTask() {
-		return getCurrentTask();
+		return (SaccadeExperimentTask) currentTask;
 	}
 	
 	public void setCurrentTask(SaccadeExperimentTask currentTask) {
