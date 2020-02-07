@@ -28,7 +28,6 @@ public class sampleBlockGen {
 	}
 	long genId = 1;
 	public Trial[] generate(long blockId) { //
-		blockId = 3;
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
@@ -54,9 +53,11 @@ public class sampleBlockGen {
 				trialList[i] = new estimTrial(stims, chans);
 			}
 			else if (trialTypeList[i]=='b') {
-				trialList[i] = new bothTrial();
+				long[] stims = {1,2,3};
+				int[] chans = {1,2,3};
+				trialList[i] = new bothTrial(stims, stims, chans);
 			}
-			String spec = Trial.toXml(trialList[i]);
+			String spec = trialList[i].toXml();
 			dbUtil.writeStimSpec(taskId, spec);
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
