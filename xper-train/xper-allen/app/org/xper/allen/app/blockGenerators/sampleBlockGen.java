@@ -31,6 +31,7 @@ public class sampleBlockGen {
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
+		System.out.println(trialTypeList);
 		trialList = new Trial[block.get_taskCount()];
 		try {
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
@@ -58,7 +59,8 @@ public class sampleBlockGen {
 				trialList[i] = new bothTrial(stims, stims, chans);
 			}
 			String spec = trialList[i].toXml();
-			dbUtil.writeStimSpec(taskId, spec);
+			//dbUtil.writeStimSpec(taskId, spec);
+			dbUtil.writeStimSpec(i, spec);
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
 		dbUtil.updateReadyGenerationInfo(genId, block.get_taskCount());
