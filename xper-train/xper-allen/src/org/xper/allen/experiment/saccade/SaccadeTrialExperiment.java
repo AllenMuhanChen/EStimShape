@@ -66,7 +66,7 @@ public class SaccadeTrialExperiment implements Experiment {
 					stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
 					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
 					*/
-					
+					n
 					//target info -AC
 					Coordinates2D targetPosition = context.getCurrentTask().parseCoords();
 					//TODO: when come back: add logic of getting target window size from stimSpec

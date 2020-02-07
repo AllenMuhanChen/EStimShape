@@ -4,29 +4,46 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public class bothTrial extends Trial{
+	@XStreamAlias("targetEyeWinSize")
+	float targetEyeWinSize;
 	@XStreamAlias("stimObjData")
-	long[] stimObjData = {2};
+	long[] stimObjData;
 	@XStreamAlias("eStimObjData")
-	long[] eStimObjData = {2};
-	@XStreamAlias("eStimObjChan")
-	int[] eStimObjChan;
-	
-	static {
-		s = new XStream();
-		s.alias("StimSpec", bothTrial.class);
-	}
+	long[] eStimObjData;
+	@XStreamAlias("eStimObjChans")
+	int[] eStimObjChans;
 	
 	public bothTrial() {
 		//Empty Constructor
 	}
 	
-	public bothTrial(long[] stimObjData, long[] estimObjData, int[] eStimObjChans) {
+	public bothTrial(float targetEyeWinSize,long[] stimObjData, long[] estimObjData, int[] eStimObjChans) {
 		//stimObj Constructor
+		this.targetEyeWinSize = targetEyeWinSize;
 		this.eStimObjData = estimObjData;
 		this.stimObjData = stimObjData;
-		this.eStimObjChan = eStimObjChans;
+		this.eStimObjChans = eStimObjChans;
 	}
-
-		
+	
+	public bothTrial(long[] stimObjData, long[] estimObjData, int[] eStimObjChans) {
+		//stimObj Constructor
+		targetEyeWinSize = 4;
+		this.stimObjData = stimObjData;
+		this.eStimObjData = estimObjData;
+		this.eStimObjChans = eStimObjChans;
+	}
+	
+	static {
+		s = new XStream();
+		s.alias("StimSpec", bothTrial.class);
+		s.setMode(XStream.NO_REFERENCES);
+	}
+	
+	public String toXml() {
+		return Trial.toXml(this);
+	}
+	public static String toXml(Trial trial) {
+		return s.toXML(trial);
+	}
 	
 }

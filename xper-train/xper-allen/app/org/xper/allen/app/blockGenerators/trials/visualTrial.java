@@ -6,9 +6,9 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 public class visualTrial extends Trial{
 	
 	@XStreamAlias("stimObjData")
-	long[] stimObjData = {2};
+	long[] stimObjData;
 	@XStreamAlias("eStimObjData")
-	long[] eStimObjData = {1};
+	long[] eStimObjData;
 	
 	static {
 		s = new XStream();
