@@ -1,10 +1,13 @@
 package org.xper.allen.experiment.saccade;
 
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
 import org.xper.allen.config.AllenDbUtil;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
+import org.xper.classic.TrialEventListener;
 import org.xper.classic.TrialRunner;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
@@ -13,6 +16,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.Experiment;
 import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.TaskDoneCache;
+import org.xper.eye.EyeTargetSelector;
 import org.xper.time.TimeUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
@@ -35,7 +39,7 @@ public class SaccadeTrialExperiment implements Experiment {
 	ThreadHelper threadHelper = new ThreadHelper("SaccadeTrialExperiment", this);
 
 	@Dependency
-	SaccadeTrialExperimentState stateObject;
+	SaccadeExperimentState stateObject;
 	@Dependency
 	AllenDbUtil dbUtil;
 	
@@ -85,10 +89,15 @@ public class SaccadeTrialExperiment implements Experiment {
 						public TrialResult runSlide() {
 							int slidePerTrial = stateObject.getSlidePerTrial();
 							TrialDrawingController drawingController = stateObject.getDrawingController();
-							SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
+							SaccadeExperimentTask currentTask = (SaccadeExperimentTask) stateObject.getCurrentTask();
 							SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();	
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
 							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
+							TimeUtil timeUtil = stateObject.getLocalTimeUtil();
+							EyeTargetSelector targetSelector = stateObject.getTargetSelector();
+							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
+							TrialResult result = TrialResult.FIXATION_SUCCESS;
+							boolean behCorrect = true;
 							
 							try {
 								for (int i = 0; i < slidePerTrial; i++) {
