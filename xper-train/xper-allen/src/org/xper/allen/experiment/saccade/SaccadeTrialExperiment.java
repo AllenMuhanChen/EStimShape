@@ -99,14 +99,17 @@ public class SaccadeTrialExperiment implements Experiment {
 							TrialResult result = TrialResult.FIXATION_SUCCESS;
 							boolean behCorrect = true;
 							
+							
+							//TODO: Reward adding here?
+							
 							try {
 								for (int i = 0; i < slidePerTrial; i++) {
 									
 									// draw the slide
-									TrialResult result = TrialExperimentUtil.doSlide(i, stateObject);
+									result = TrialExperimentUtil.doSlide(i, stateObject);
 									if (result != TrialResult.SLIDE_OK) {
 										return result;
-									}
+									}//TODO: Sach has a earlyTargetFixationAllowableTime where it's okay to break fixation
 
 									// slide done successfully
 									if (currentTask != null) {
