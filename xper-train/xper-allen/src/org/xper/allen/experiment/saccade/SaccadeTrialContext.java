@@ -38,4 +38,28 @@ public class SaccadeTrialContext extends TrialContext {
 		this.targetEyeWindowSize = targetEyeWindowSize;
 	}
 
+	public long getTargetOnTime() {
+		return targetOnTime;
+	}
+
+	public void setTargetOnTime(long targetOnTime) {
+		this.targetOnTime = targetOnTime;
+	}
+
+	public long getTargetInitialSelectionTime() {
+		return targetInitialSelectionTime;
+	}
+
+	public void setTargetInitialSelectionTime(long targetInitialSelectionTime) {
+		this.targetInitialSelectionTime = targetInitialSelectionTime;
+	}
+
+	public long getTargetSelectionSuccessTime() {
+		return targetSelectionSuccessTime;
+	}
+
+	public void setTargetSelectionSuccessTime(long targetSelectionSuccessTime) {
+		this.targetSelectionSuccessTime = targetSelectionSuccessTime;
+	}
+
 }

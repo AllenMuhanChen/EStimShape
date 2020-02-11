@@ -42,7 +42,8 @@ public class SaccadeTrialExperiment implements Experiment {
 	SaccadeExperimentState stateObject;
 	@Dependency
 	AllenDbUtil dbUtil;
-	
+	//@Dependency
+	//int blankTargetScreenDisplayTime; //in ms
 	
 	public boolean isRunning() {
 		return threadHelper.isRunning();
@@ -81,7 +82,7 @@ public class SaccadeTrialExperiment implements Experiment {
 					float targetEyeWinSize = dbUtil.ReadEyeWinSize(context.getCurrentTask().getStimId());
 					context.setTargetPos(targetPosition);
 					context.setTargetEyeWindowSize(targetEyeWinSize);
-					
+					context.set
 					
 					// run trial
 					return TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
@@ -106,7 +107,7 @@ public class SaccadeTrialExperiment implements Experiment {
 								for (int i = 0; i < slidePerTrial; i++) {
 									
 									// draw the slide
-									result = TrialExperimentUtil.doSlide(i, stateObject);
+									result = SaccadeTrialExperimentUtil.doSlide(i, stateObject);
 									if (result != TrialResult.SLIDE_OK) {
 										return result;
 									}//TODO: Sach has a earlyTargetFixationAllowableTime where it's okay to break fixation
@@ -139,7 +140,7 @@ public class SaccadeTrialExperiment implements Experiment {
 												currentContext);
 									}
 									// inter slide interval
-									result = TrialExperimentUtil.waitInterSlideInterval(stateObject, threadHelper);
+									result = SaccadeTrialExperimentUtil.waitInterSlideInterval(stateObject, threadHelper);
 									if (result != TrialResult.SLIDE_OK) {
 										return result;
 									}
@@ -178,15 +179,24 @@ public class SaccadeTrialExperiment implements Experiment {
 		}
 	}
 
-	public SlideTrialExperimentState getStateObject() {
+	public SaccadeExperimentState getStateObject() {
 		return stateObject;
 	}
 
-	public void setStateObject(SlideTrialExperimentState stateObject) {
+	public void setStateObject(SaccadeExperimentState stateObject) {
 		this.stateObject = stateObject;
 	}
 
 	public void setPause(boolean pause) {
 		stateObject.setPause(pause);
 	}
+/*
+	public int getBlankTargetScreenDisplayTime() {
+		return blankTargetScreenDisplayTime;
+	}
+
+	public void setBlankTargetScreenDisplayTime(int blankTargetScreenDisplayTime) {
+		this.blankTargetScreenDisplayTime = blankTargetScreenDisplayTime;
+	}
+	*/
 }
