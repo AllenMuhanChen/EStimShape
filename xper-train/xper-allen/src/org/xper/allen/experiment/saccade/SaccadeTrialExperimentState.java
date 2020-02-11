@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.xper.Dependency;
 import org.xper.classic.SlideEventListener;
+import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
+import org.xper.eye.EyeTargetSelector;
 
 public class SaccadeTrialExperimentState extends TrialExperimentState {
 	@Dependency
@@ -19,6 +21,11 @@ public class SaccadeTrialExperimentState extends TrialExperimentState {
 	boolean doEmptyTask = true;
 	@Dependency
 	boolean repeatTrialIfEyeBreak = false; //TODO; add injection
+	@Dependency
+	EyeTargetSelector targetSelector;
+	@Dependency
+	SaccadeTrialContext currentContext;
+	
 	/**
 	 * in ms
 	 */
@@ -72,4 +79,20 @@ public class SaccadeTrialExperimentState extends TrialExperimentState {
 	public void setCurrentTask(SaccadeExperimentTask currentTask) {
 		this.currentTask = currentTask;
 	}
+
+	public EyeTargetSelector getTargetSelector() {
+		return targetSelector;
+	}
+
+	public void setTargetSelector(EyeTargetSelector targetController) {
+		this.targetSelector = targetController;
+	}
+	public TrialContext getCurrentContext() {
+		return currentContext;
+	}
+
+	public void setCurrentContext(SaccadeTrialContext currentContext) {
+		this.currentContext = currentContext;
+	}
+
 }

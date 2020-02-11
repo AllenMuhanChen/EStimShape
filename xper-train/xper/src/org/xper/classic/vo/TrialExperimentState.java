@@ -48,6 +48,14 @@ public class TrialExperimentState {
 	@Dependency
 	TimeUtil localTimeUtil;
 	
+	@Dependency
+	long timeAllowedForInitialTargetSelection;
+	@Dependency
+	long requiredTargetSelectionHoldTime;
+	@Dependency
+	long targetSelectionStartDelay;
+	
+	
 	AtomicBoolean pause = new AtomicBoolean(false);
 	/**
 	 * Current task being presented. When done, set it to null so that when
@@ -227,6 +235,30 @@ public class TrialExperimentState {
 
 	public void setDelayAfterTrialComplete(int delayAfterTrialComplete) {
 		this.delayAfterTrialComplete = delayAfterTrialComplete;
+	}
+
+	public long getTimeAllowedForInitialTargetSelection() {
+		return timeAllowedForInitialTargetSelection;
+	}
+
+	public void setTimeAllowedForInitialTargetSelection(long timeAllowedForInitialTargetSelection) {
+		this.timeAllowedForInitialTargetSelection = timeAllowedForInitialTargetSelection;
+	}
+
+	public long getRequiredTargetSelectionHoldTime() {
+		return requiredTargetSelectionHoldTime;
+	}
+
+	public void setRequiredTargetSelectionHoldTime(long requiredTargetSelectionHoldTime) {
+		this.requiredTargetSelectionHoldTime = requiredTargetSelectionHoldTime;
+	}
+
+	public long getTargetSelectionStartDelay() {
+		return targetSelectionStartDelay;
+	}
+
+	public void setTargetSelectionStartDelay(long targetSelectionStartDelay) {
+		this.targetSelectionStartDelay = targetSelectionStartDelay;
 	}
 
 }
