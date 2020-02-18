@@ -1,10 +1,12 @@
 package org.xper.allen.config;
 
 
+import java.beans.PropertyVetoException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.lwjgl.opengl.PixelFormat;
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
 import org.springframework.config.java.annotation.Configuration;
@@ -14,31 +16,23 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
-import org.xper.classic.MarkEveryStepTrialDrawingController;
-import org.xper.classic.MarkStimTrialDrawingController;
-import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.BlankTaskScene;
-import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.RGBColor;
 import org.xper.drawing.TaskScene;
-import org.xper.drawing.object.AlternatingScreenMarker;
 import org.xper.drawing.object.BlankScreen;
-import org.xper.drawing.object.FixationPoint;
-import org.xper.drawing.object.MonkeyWindow;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
-import org.xper.experiment.DatabaseTaskDataSource;
+import org.xper.exception.DbException;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 import org.xper.eye.RobustEyeTargetSelector;
 import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
-import org.xper.sach.SachExperimentMessageDispatcher;
+
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -49,6 +43,20 @@ public class AllenConfig {
 	@Autowired ClassicConfig classicConfig;	
 	@Autowired AcqConfig acqConfig;
 	
+	
+	@ExternalValue("jdbc.driver")
+	public String jdbcDriver;
+
+	@ExternalValue("jdbc.url")
+	public String jdbcUrl;
+
+	@ExternalValue("jdbc.username")
+	public String jdbcUserName;
+
+	@ExternalValue("jdbc.password")
+	public String jdbcPassword;
+	
+	
 	@ExternalValue("experiment.monkey_window_fullscreen")
 	public boolean monkeyWindowFullScreen;
 	
@@ -58,9 +66,9 @@ public class AllenConfig {
 	@Bean
 	public TaskScene taskScene() {
 		BlankTaskScene scene = new BlankTaskScene();
-		scene.setRenderer(experimentGLRenderer());
-		scene.setFixation(experimentFixationPoint());
-		scene.setMarker(screenMarker());
+		scene.setRenderer(classicConfig.experimentGLRenderer());
+		scene.setFixation(classicConfig.experimentFixationPoint());
+		scene.setMarker(classicConfig.screenMarker());
 		scene.setBlankScreen(new BlankScreen());
 		return scene;
 	}
@@ -68,14 +76,27 @@ public class AllenConfig {
 	@Bean
 	public AllenDbUtil allenDbUtil() {
 		AllenDbUtil dbUtil = new AllenDbUtil();
-		dbUtil.setDataSource(baseConfig.dataSource());
-		
+		dbUtil.setDataSource(dataSource());
 		return dbUtil;
 	}
 	
 	@Bean
-	public DatabaseTaskDataSource databaseTaskDataSource () {
-		DatabaseTaskDataSource source = new DatabaseTaskDataSource();
+	public DataSource dataSource() {
+		ComboPooledDataSource source = new ComboPooledDataSource();
+		try {
+			source.setDriverClass(jdbcDriver);
+		} catch (PropertyVetoException e) {
+			throw new DbException(e);
+		}
+		source.setJdbcUrl(jdbcUrl);
+		source.setUser(jdbcUserName);
+		source.setPassword(jdbcPassword);
+		return source;
+	}
+	
+	@Bean
+	public AllenDatabaseTaskDataSource databaseTaskDataSource () {
+		AllenDatabaseTaskDataSource source = new AllenDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
 		source.setUngetBehavior(UngetPolicy.HEAD);
@@ -87,6 +108,7 @@ public class AllenConfig {
 		SaccadeTrialExperiment xper = new SaccadeTrialExperiment();
 		xper.setStateObject(experimentState());
 		xper.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
+		xper.setDbUtil(allenDbUtil());
 		return xper;
 	}
 	@Bean(scope = DefaultScopes.PROTOTYPE)

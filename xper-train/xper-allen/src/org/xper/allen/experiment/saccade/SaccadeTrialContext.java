@@ -15,7 +15,7 @@ public class SaccadeTrialContext extends TrialContext {
 	boolean targetFixationSuccess;
 
 	public SaccadeExperimentTask getCurrentTask() {
-		return this.getCurrentTask();
+		return (SaccadeExperimentTask) this.currentTask;
 	}
 
 	public void setCurrentTask(SaccadeExperimentTask currentTask) {
@@ -61,5 +61,7 @@ public class SaccadeTrialContext extends TrialContext {
 	public void setTargetSelectionSuccessTime(long targetSelectionSuccessTime) {
 		this.targetSelectionSuccessTime = targetSelectionSuccessTime;
 	}
+	
+	
 
 }

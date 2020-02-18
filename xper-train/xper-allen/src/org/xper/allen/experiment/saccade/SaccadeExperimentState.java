@@ -9,6 +9,7 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	EyeTargetSelector targetSelector;
 	int blankTargetScreenDisplayTime;
 	
+	
 	public EyeTargetSelector getTargetSelector() {
 		return targetSelector;
 	}

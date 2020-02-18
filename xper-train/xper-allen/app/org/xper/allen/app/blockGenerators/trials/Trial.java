@@ -4,7 +4,6 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public abstract class Trial {
-	float targetEyeWinSize;
 	long[] stimObjData;
 	long[] eStimObjData;
 	int[] eStimObjChans;
@@ -30,12 +29,6 @@ public abstract class Trial {
 	}
 	
 	
-	public float getTargetEyeWinSize() {
-		return targetEyeWinSize;
-	}
-	public void setTargetEyeWinSize(float targetEyeWinSize) {
-		this.targetEyeWinSize = targetEyeWinSize;
-	}
 
 	transient static XStream s;
 	

@@ -6,6 +6,7 @@ import org.xper.Dependency;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
+import org.xper.experiment.TaskDataSource;
 import org.xper.eye.EyeTargetSelector;
 
 public class SaccadeTrialExperimentState extends TrialExperimentState {
@@ -25,6 +26,9 @@ public class SaccadeTrialExperimentState extends TrialExperimentState {
 	EyeTargetSelector targetSelector;
 	@Dependency
 	SaccadeTrialContext currentContext;
+	@Dependency
+	TaskDataSource taskDataSource;
+	
 	
 	/**
 	 * in ms
