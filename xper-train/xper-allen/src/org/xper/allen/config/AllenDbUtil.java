@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.allen.db.vo.AllenStimSpecEntry;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.experiment.saccade.SaccadeExperimentTask;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.StimSpec;
@@ -148,14 +149,14 @@ public class AllenDbUtil extends DbUtil {
 //=================readExperimentTasks============================================
 	//TODO: Add stimObjData ID and estimObjData ID to this. Make function to read.
 	
-	public LinkedList<ExperimentTask> readExperimentTasks(long genId,
+
+	public LinkedList<SaccadeExperimentTask> readSaccadeExperimentTasks(long genId,
 			long lastDoneTaskId) {
 
 		//AC
-		System.out.println("IM CALLING READSTIMSPEC");
 		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
 		//
-		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
+		final LinkedList<SaccadeExperimentTask> taskToDo = new LinkedList<SaccadeExperimentTask>();
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.query(
 				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
@@ -167,8 +168,7 @@ public class AllenDbUtil extends DbUtil {
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
-						System.out.println(rs.getLong("stim_id"));
-						ExperimentTask task = new ExperimentTask();
+						SaccadeExperimentTask task = new SaccadeExperimentTask();
 						task.setGenId(rs.getLong("gen_id"));
 						task.setStimId(rs.getLong("stim_id"));
 						//AC

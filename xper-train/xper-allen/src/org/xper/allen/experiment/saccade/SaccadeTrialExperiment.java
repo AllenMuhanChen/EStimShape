@@ -10,17 +10,15 @@ import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.TrialRunner;
 import org.xper.classic.vo.SlideTrialExperimentState;
-import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialResult;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.Experiment;
-import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.time.TimeUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
-import org.xper.util.XmlUtil;
+
 
 /**
  * Format of StimSpec:
@@ -42,8 +40,10 @@ public class SaccadeTrialExperiment implements Experiment {
 	SaccadeExperimentState stateObject;
 	@Dependency
 	AllenDbUtil dbUtil;
-	//@Dependency
-	//int blankTargetScreenDisplayTime; //in ms
+
+
+	@Dependency
+	int blankTargetScreenDisplayTime; //in ms
 	
 	public boolean isRunning() {
 		return threadHelper.isRunning();
@@ -54,11 +54,11 @@ public class SaccadeTrialExperiment implements Experiment {
 	}
 
 	public void run() {
-		TrialExperimentUtil.run(stateObject, threadHelper, new TrialRunner() {
+		SaccadeTrialExperimentUtil.run(stateObject, threadHelper, new TrialRunner() {
 			public TrialResult runTrial() {
 				try {
 					// get a task
-					TrialExperimentUtil.getNextTask(stateObject);
+					SaccadeTrialExperimentUtil.getNextTask(stateObject);
 
 					if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
 						try {
@@ -72,8 +72,8 @@ public class SaccadeTrialExperiment implements Experiment {
 					SaccadeTrialContext context = new SaccadeTrialContext();
 					context.setCurrentTask(stateObject.getCurrentTask());
 					stateObject.setCurrentContext(context);
-					/*
 					stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
+					/*
 					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
 					*/
 					//target info -AC
@@ -82,10 +82,10 @@ public class SaccadeTrialExperiment implements Experiment {
 					float targetEyeWinSize = dbUtil.ReadEyeWinSize(context.getCurrentTask().getStimId());
 					context.setTargetPos(targetPosition);
 					context.setTargetEyeWindowSize(targetEyeWinSize);
-					context.set
+	
 					
 					// run trial
-					return TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
+					return SaccadeTrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public TrialResult runSlide() {
 							int slidePerTrial = stateObject.getSlidePerTrial();
@@ -100,18 +100,17 @@ public class SaccadeTrialExperiment implements Experiment {
 							TrialResult result = TrialResult.FIXATION_SUCCESS;
 							boolean behCorrect = true;
 							
-							
-							//TODO: Reward adding here?
-							
 							try {
 								for (int i = 0; i < slidePerTrial; i++) {
 									
 									// draw the slide
 									result = SaccadeTrialExperimentUtil.doSlide(i, stateObject);
-									if (result != TrialResult.SLIDE_OK) {
-										return result;
-									}//TODO: Sach has a earlyTargetFixationAllowableTime where it's okay to break fixation
 
+									
+									if (result != TrialResult.TARGET_SELECTION_DONE) {
+										return result;
+									}
+									
 									// slide done successfully
 									if (currentTask != null) {
 										taskDoneCache.put(currentTask, globalTimeClient
@@ -120,6 +119,7 @@ public class SaccadeTrialExperiment implements Experiment {
 										stateObject.setCurrentTask(currentTask);
 									}
 
+									/*
 									// prepare next task
 									if (i < slidePerTrial - 1) {
 										TrialExperimentUtil.getNextTask(stateObject);
@@ -139,11 +139,15 @@ public class SaccadeTrialExperiment implements Experiment {
 										drawingController.prepareNextSlide(currentTask,
 												currentContext);
 									}
+									*/
+									
 									// inter slide interval
+									/*
 									result = SaccadeTrialExperimentUtil.waitInterSlideInterval(stateObject, threadHelper);
 									if (result != TrialResult.SLIDE_OK) {
 										return result;
 									}
+									*/
 								}
 								return TrialResult.TRIAL_COMPLETE;
 								// end of SlideRunner.runSlide
@@ -161,7 +165,7 @@ public class SaccadeTrialExperiment implements Experiment {
 					// end of TrialRunner.runTrial	
 				} finally {
 					try {
-						TrialExperimentUtil.cleanupTrial(stateObject);
+						SaccadeTrialExperimentUtil.cleanupTrial(stateObject);
 					} catch (Exception e) {
 						logger.warn(e.getMessage());
 						e.printStackTrace();
@@ -190,7 +194,7 @@ public class SaccadeTrialExperiment implements Experiment {
 	public void setPause(boolean pause) {
 		stateObject.setPause(pause);
 	}
-/*
+
 	public int getBlankTargetScreenDisplayTime() {
 		return blankTargetScreenDisplayTime;
 	}
@@ -198,5 +202,12 @@ public class SaccadeTrialExperiment implements Experiment {
 	public void setBlankTargetScreenDisplayTime(int blankTargetScreenDisplayTime) {
 		this.blankTargetScreenDisplayTime = blankTargetScreenDisplayTime;
 	}
-	*/
+
+	public AllenDbUtil getDbUtil() {
+		return dbUtil;
+	}
+
+	public void setDbUtil(AllenDbUtil dbUtil) {
+		this.dbUtil = dbUtil;
+	}
 }
