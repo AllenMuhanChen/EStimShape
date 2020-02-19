@@ -1,10 +1,16 @@
 package org.xper.allen.specs;
 
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public class StimSpec {
+	@XStreamAlias("targetEyeWinSize")
+	float targetEyeWinSize;
+	@XStreamAlias("stimObjData")
 	long[] stimObjData;
+	@XStreamAlias("eStimObjData")
 	long[] eStimObjData;
+	@XStreamAlias("eStimObjChans")
 	int[] eStimObjChans;
 	
 	public StimSpec(long[] stimObjIds, long[] estimIds) {
@@ -31,6 +37,8 @@ public class StimSpec {
 	}
 	
 	public static StimSpec fromXml (String xml) {
+		
+		//s.aliasField("targetEyeWinSize", StimSpec.class, "targetEyeWinSize");
 		StimSpec ss = (StimSpec)s.fromXML(xml);
 		return ss;
 	}
@@ -57,6 +65,14 @@ public class StimSpec {
 
 	public void seteStimObjChans(int[] eStimObjChans) {
 		this.eStimObjChans = eStimObjChans;
+	}
+
+	public float getTargetEyeWinSize() {
+		return targetEyeWinSize;
+	}
+
+	public void setTargetEyeWinSize(float targetEyeWinSize) {
+		this.targetEyeWinSize = targetEyeWinSize;
 	}
 
 }

@@ -4,14 +4,33 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public class catchTrial extends Trial{
+	@XStreamAlias("targetEyeWinSize")
+	float targetEyeWinSize;
+	@XStreamAlias("stimObjData")
+	long[] stimObjData;
+	@XStreamAlias("eStimObjData")
+	long[] eStimObjData;
+	@XStreamAlias("eStimObjChans")
+	int[] eStimObjChans;
+	
+	public catchTrial() {
+		targetEyeWinSize = 4;
+		stimObjData = new long[] {1};
+		eStimObjData = new long[] {1};
+	}
 	
 	static {
 		s = new XStream();
 		s.alias("StimSpec", catchTrial.class);
+		s.setMode(XStream.NO_REFERENCES);
 	}
 	
-	@XStreamAlias("stimObjData")
-	long[] stimObjData = {1};
-	@XStreamAlias("eStimObjData")
-	long[] eStimObjData = {1};
+	public String toXml() {
+		return Trial.toXml(this);
+	}
+	public static String toXml(catchTrial trial) {
+		return s.toXML(trial);
+	}
+	
+
 }

@@ -8,7 +8,7 @@ public class randGenClassic {
 	public static void main(String[] args) {
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-				FileUtil.loadConfigClass("experiment.ga.config_class"));
+				FileUtil.loadConfigClass("experiment.config_class"));
 
 		randGenerationClassic gen = context.getBean(randGenerationClassic.class);
 		gen.generate();

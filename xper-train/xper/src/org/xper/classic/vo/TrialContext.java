@@ -22,7 +22,7 @@ public class TrialContext extends Context {
 	long currentSlideOnTime;
 	long currentSlideOffTime;
 	
-	ExperimentTask currentTask;
+	protected ExperimentTask currentTask;
 	
 	public int getAnimationFrameIndex() {
 		return animationFrameIndex;

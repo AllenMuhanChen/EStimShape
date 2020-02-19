@@ -4,13 +4,10 @@ import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public abstract class Trial {
-	@XStreamAlias("stimObjData")
 	long[] stimObjData;
-	@XStreamAlias("eStimObjData")
 	long[] eStimObjData;
-	@XStreamAlias("eStimObjChans")
 	int[] eStimObjChans;
-	
+
 	public long[] getStimObjData() {
 		return stimObjData;
 	}
@@ -30,6 +27,8 @@ public abstract class Trial {
 	public void seteStimObjChans(int[] eStimObjChans) {
 		this.eStimObjChans = eStimObjChans;
 	}
+	
+	
 
 	transient static XStream s;
 	
@@ -37,12 +36,11 @@ public abstract class Trial {
 		s = new XStream();
 		s.alias("StimSpec", Trial.class);
 	}
-	
 	public String toXml() {
 		return Trial.toXml(this);
 	}
-	
 	public static String toXml(Trial trial) {
 		return s.toXML(trial);
 	}
+
 }
