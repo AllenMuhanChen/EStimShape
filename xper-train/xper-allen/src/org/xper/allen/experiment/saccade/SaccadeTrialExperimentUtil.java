@@ -51,7 +51,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		//Eye on Target Logic
 		//eye selector
 		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
-		currentContext.setTargetOnTime(targetOnLocalTime+stateObject.getTargetSelectionStartDelay()); 
+		currentContext.setTargetOnTime(targetOnLocalTime); 
 		
 		//Sleep for the duration of the start delay
 		ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
@@ -64,22 +64,14 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {100},
 			     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 			     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+		System.out.println("getTargetPos: ["+ currentContext.getTargetPos().getX()+","+currentContext.getTargetPos().getY()+"]");
 		System.out.println("getTargetOnTime: " + currentContext.getTargetOnTime());
-		System.out.println("getTimeAllowedForInitialTargetSelection " + stateObject.getTimeAllowedForInitialTargetSelection()*1000);
-		System.out.println("getTargetSelectionStartDelay() " + stateObject.getTargetSelectionStartDelay() * 1000);
-		System.out.println("getRequiredTargetSelectionHoldTime" + stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+		System.out.println("getTimeAllowedForInitialTargetSelection: " + stateObject.getTimeAllowedForInitialTargetSelection()*1000);
+		System.out.println("getTargetSelectionStartDelay: " + stateObject.getTargetSelectionStartDelay() * 1000);
+		System.out.println("getRequiredTargetSelectionHoldTime: " + stateObject.getRequiredTargetSelectionHoldTime() * 1000);
 		
 		do {
-			// Stuff from TrialExperimentUtil, unsure if needed 
-			/*
-		}
-			currentContext.setAnimationFrameIndex(0);
-			if(stateObject.isAnimation()) {
-				currentContext.setAnimationFrameIndex(currentContext.getAnimationFrameIndex()+1);
-				drawingController.animateSlide(currentTask,
-						currentContext);
-			}
-			*/
+			System.out.println("Selector Driver Is Working");
 		}
 		while(!selectorDriver.isDone());
 		selectorDriver.stop();
