@@ -31,6 +31,7 @@ public class sampleBlockGen {
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
+		System.out.println(trialTypeList);
 		trialList = new Trial[block.get_taskCount()];
 		try {
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
@@ -44,7 +45,7 @@ public class sampleBlockGen {
 				trialList[i] = new catchTrial();
 			}
 			else if (trialTypeList[i]=='v') {
-				long[] stims = {1,2,3};
+				long[] stims = {2};
 				trialList[i] = new visualTrial(stims); 
 			}
 			else if (trialTypeList[i]=='e') {
@@ -53,9 +54,11 @@ public class sampleBlockGen {
 				trialList[i] = new estimTrial(stims, chans);
 			}
 			else if (trialTypeList[i]=='b') {
-				trialList[i] = new bothTrial();
+				long[] stims = {2};
+				int[] chans = {1,2,3};
+				trialList[i] = new bothTrial(stims, stims, chans);
 			}
-			String spec = Trial.toXml(trialList[i]);
+			String spec = trialList[i].toXml();
 			dbUtil.writeStimSpec(taskId, spec);
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}

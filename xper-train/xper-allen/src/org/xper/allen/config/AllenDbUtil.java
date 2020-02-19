@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.allen.db.vo.AllenStimSpecEntry;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.experiment.saccade.SaccadeExperimentTask;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.StimSpec;
@@ -148,13 +149,14 @@ public class AllenDbUtil extends DbUtil {
 //=================readExperimentTasks============================================
 	//TODO: Add stimObjData ID and estimObjData ID to this. Make function to read.
 	
-	public LinkedList<ExperimentTask> readExperimentTasks(long genId,
+
+	public LinkedList<SaccadeExperimentTask> readSaccadeExperimentTasks(long genId,
 			long lastDoneTaskId) {
 
 		//AC
 		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
 		//
-		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
+		final LinkedList<SaccadeExperimentTask> taskToDo = new LinkedList<SaccadeExperimentTask>();
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.query(
 				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
@@ -166,8 +168,7 @@ public class AllenDbUtil extends DbUtil {
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
-						System.out.println(rs.getLong("stim_id"));
-						ExperimentTask task = new ExperimentTask();
+						SaccadeExperimentTask task = new SaccadeExperimentTask();
 						task.setGenId(rs.getLong("gen_id"));
 						task.setStimId(rs.getLong("stim_id"));
 						//AC
@@ -185,39 +186,10 @@ public class AllenDbUtil extends DbUtil {
 		return taskToDo;
 	}	
 	
-	/*
-	public LinkedList<ExperimentTask> readExperimentTasks(long genId,
-			long lastDoneTaskId) {
-
-		//
-		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
+//==============ReadEyeWinSize========================
+	public float ReadEyeWinSize(long stimSpecId) {
+		AllenStimSpecEntry as = readStimSpec(stimSpecId);
 		StimSpec ss = as.genStimSpec();
-		long[] eStimObjIds = ss.getEstimIds();
-		long[] stimObjIds = ss.getStimObjIds(); 
-		
-		final LinkedList<ExperimentTask> taskToDo = new LinkedList<ExperimentTask>();
-		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.query(
-				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
-						" (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
-						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
-				" from TaskToDo t " +
-				" where t.gen_id = ? and t.task_id > ? " +
-				" order by t.task_id", 
-				new Object[] { genId, lastDoneTaskId },
-				new RowCallbackHandler() {
-					public void processRow(ResultSet rs) throws SQLException {
-
-						ExperimentTask task = new ExperimentTask();
-						task.setGenId(rs.getLong("gen_id"));
-						task.setStimId(rs.getLong("stim_id"));
-						task.setStimSpec(rs.getString("stim_spec"));
-						task.setTaskId(rs.getLong("task_id"));
-						task.setXfmId(rs.getLong("xfm_id"));
-						task.setXfmSpec(rs.getString("xfm_spec"));
-						taskToDo.add(task);
-					}});
-		return taskToDo;
-	}	
-	*/
+		return ss.getTargetEyeWinSize();
+	}
 }

@@ -59,8 +59,6 @@ public class AllenAppConfig {
 		GaussianSpecGenerator gen = new GaussianSpecGenerator();
 		return gen;
 	}
-	
-	
 	/*
 	@Bean EStimObjDataGenerator egenerator() {
 		EStimObjDataGenerator egen = new EStimObjDataGenerator();

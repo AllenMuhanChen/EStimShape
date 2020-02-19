@@ -1,5 +1,7 @@
 package org.xper.allen.specs;
 
+import com.thoughtworks.xstream.XStream;
+
 public class StimObjData {
 	long id;
 	String spec;
@@ -23,4 +25,6 @@ public class StimObjData {
 	public void set_data(String data) {
 		this.data = data;
 	}
+	
+
 }
