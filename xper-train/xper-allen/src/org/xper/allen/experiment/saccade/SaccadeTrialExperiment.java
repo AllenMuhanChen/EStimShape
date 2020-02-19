@@ -82,7 +82,6 @@ public class SaccadeTrialExperiment implements Experiment {
 					float targetEyeWinSize = dbUtil.ReadEyeWinSize(context.getCurrentTask().getStimId());
 					context.setTargetPos(targetPosition);
 					context.setTargetEyeWindowSize(targetEyeWinSize);
-	
 					
 					// run trial
 					return SaccadeTrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
