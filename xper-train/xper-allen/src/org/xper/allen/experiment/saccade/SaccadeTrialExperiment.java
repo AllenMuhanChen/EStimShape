@@ -119,45 +119,12 @@ public class SaccadeTrialExperiment implements Experiment {
 									
 									// draw the slide
 									result = SaccadeTrialExperimentUtil.doSlide(i, stateObject);
-									/*
-									if (result != TrialResult.SLIDE_OK) {
+									
+									if (result!= TrialResult.TARGET_SELECTION_DONE) {
 										return result;
 									}
-									*/
 									
-									//Eye on Target Logic
-									//eye selector
-									EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
-									currentContext.setTargetOnTime(currentContext.getCurrentSlideOffTime()); 
-									
-									
-									//Sleep for the duration of the start delay
-									//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
-									
-									//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
-									selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
-													     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
-													     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-								
-									/*
-									System.out.println("getTargetPos: ["+ currentContext.getTargetPos().getX()+","+currentContext.getTargetPos().getY()+"]");
-									System.out.println("getTargetOnTime: " + currentContext.getTargetOnTime());
-									System.out.println("getTimeAllowedForInitialTargetSelection: " + stateObject.getTimeAllowedForInitialTargetSelection()*1000);
-									System.out.println("getTargetSelectionStartDelay: " + stateObject.getTargetSelectionStartDelay() * 1000);
-									System.out.println("getRequiredTargetSelectionHoldTime: " + stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-									*/
-									do {
-									}
-									while(!selectorDriver.isDone());
-									selectorDriver.stop();
-									TargetSelectorResult selectorResult = selectorDriver.getResult();
-									System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
-	
-									if (selectorDriver.getResult().getSelectionStatusResult()!= TrialResult.TARGET_SELECTION_DONE) {
-										return selectorDriver.getResult().getSelectionStatusResult();
-									}
-									
-									// slide done successfully
+									// Trial done successfully
 									if (currentTask != null) {
 										taskDoneCache.put(currentTask, globalTimeClient
 												.currentTimeMicros(), false);
