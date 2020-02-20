@@ -13,10 +13,15 @@ import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialResult;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.Experiment;
+import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
+import org.xper.eye.EyeMonitor;
 import org.xper.eye.EyeTargetSelector;
+import org.xper.eye.EyeTargetSelectorConcurrentDriver;
+import org.xper.eye.TargetSelectorResult;
 import org.xper.time.TimeUtil;
 import org.xper.util.ThreadHelper;
+import org.xper.util.ThreadUtil;
 import org.xper.util.TrialExperimentUtil;
 
 
@@ -35,7 +40,8 @@ public class SaccadeTrialExperiment implements Experiment {
 	static Logger logger = Logger.getLogger(SaccadeTrialExperiment.class);
 
 	ThreadHelper threadHelper = new ThreadHelper("SaccadeTrialExperiment", this);
-
+	@Dependency
+	EyeMonitor eyeMonitor;
 	@Dependency
 	SaccadeExperimentState stateObject;
 	@Dependency
@@ -97,17 +103,53 @@ public class SaccadeTrialExperiment implements Experiment {
 							EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
 							TrialResult result = TrialResult.FIXATION_SUCCESS;
-							boolean behCorrect = true;
+							EyeController eyeController = stateObject.getEyeController();
 							
 							try {
 								for (int i = 0; i < slidePerTrial; i++) {
 									
 									// draw the slide
 									result = SaccadeTrialExperimentUtil.doSlide(i, stateObject);
-
-									
-									if (result != TrialResult.TARGET_SELECTION_DONE) {
+									/*
+									if (result != TrialResult.SLIDE_OK) {
 										return result;
+									}
+									*/
+									
+									//Eye on Target Logic
+									//eye selector
+									EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
+									currentContext.setTargetOnTime(currentContext.getCurrentSlideOffTime()); 
+									
+									
+									//Sleep for the duration of the start delay
+									//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
+									
+									//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
+									/*selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
+													     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
+													     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+									*/
+									selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {10},
+										     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
+										     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+									/*
+									System.out.println("getTargetPos: ["+ currentContext.getTargetPos().getX()+","+currentContext.getTargetPos().getY()+"]");
+									System.out.println("getTargetOnTime: " + currentContext.getTargetOnTime());
+									System.out.println("getTimeAllowedForInitialTargetSelection: " + stateObject.getTimeAllowedForInitialTargetSelection()*1000);
+									System.out.println("getTargetSelectionStartDelay: " + stateObject.getTargetSelectionStartDelay() * 1000);
+									System.out.println("getRequiredTargetSelectionHoldTime: " + stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+									*/
+									do {
+										//System.out.println("Selector Driver Is Working");
+									}
+									while(!selectorDriver.isDone());
+									selectorDriver.stop();
+									TargetSelectorResult selectorResult = selectorDriver.getResult();
+									System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
+	
+									if (selectorDriver.getResult().getSelectionStatusResult()!= TrialResult.TARGET_SELECTION_DONE) {
+										return selectorDriver.getResult().getSelectionStatusResult();
 									}
 									
 									// slide done successfully
@@ -118,35 +160,6 @@ public class SaccadeTrialExperiment implements Experiment {
 										stateObject.setCurrentTask(currentTask);
 									}
 
-									/*
-									// prepare next task
-									if (i < slidePerTrial - 1) {
-										TrialExperimentUtil.getNextTask(stateObject);
-										currentTask = stateObject.getCurrentTask();
-										if (currentTask == null && !stateObject.isDoEmptyTask()) {
-											try {
-												Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
-											} catch (InterruptedException e) {
-											}
-											//return TrialResult.NO_MORE_TASKS;
-											//deliver juice after complete.
-											return TrialResult.TRIAL_COMPLETE;
-										}
-										stateObject.setAnimation(XmlUtil.slideIsAnimation(currentTask));
-										currentContext.setSlideIndex(i + 1);
-										currentContext.setCurrentTask(currentTask);
-										drawingController.prepareNextSlide(currentTask,
-												currentContext);
-									}
-									*/
-									
-									// inter slide interval
-									/*
-									result = SaccadeTrialExperimentUtil.waitInterSlideInterval(stateObject, threadHelper);
-									if (result != TrialResult.SLIDE_OK) {
-										return result;
-									}
-									*/
 								}
 								return TrialResult.TRIAL_COMPLETE;
 								// end of SlideRunner.runSlide
@@ -208,5 +221,11 @@ public class SaccadeTrialExperiment implements Experiment {
 
 	public void setDbUtil(AllenDbUtil dbUtil) {
 		this.dbUtil = dbUtil;
+	}
+	public EyeMonitor getEyeMonitor() {
+		return eyeMonitor;
+	}
+	public void setEyeMonitor(EyeMonitor eyeMonitor) {
+		this.eyeMonitor = eyeMonitor;
 	}
 }

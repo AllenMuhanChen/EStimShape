@@ -29,6 +29,7 @@ import org.xper.drawing.object.BlankScreen;
 import org.xper.exception.DbException;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 import org.xper.eye.RobustEyeTargetSelector;
+import org.xper.eye.listener.EyeSamplerEventListener;
 import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
 
@@ -106,6 +107,7 @@ public class AllenConfig {
 	@Bean
 	public SaccadeTrialExperiment experiment() {
 		SaccadeTrialExperiment xper = new SaccadeTrialExperiment();
+		xper.setEyeMonitor(classicConfig.eyeMonitor());
 		xper.setStateObject(experimentState());
 		xper.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		xper.setDbUtil(allenDbUtil());
@@ -127,7 +129,6 @@ public class AllenConfig {
 		state.setTaskDataSource(databaseTaskDataSource());
 		state.setTaskDoneCache(classicConfig.taskDoneCache());
 		state.setGlobalTimeClient(acqConfig.timeClient());
-		state.setTargetSelector(eyeTargetSelector());
 		state.setDrawingController(classicConfig.drawingController());
 		state.setInterTrialInterval(classicConfig.xperInterTrialInterval());
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
@@ -141,6 +142,7 @@ public class AllenConfig {
 		state.setPause(classicConfig.xperExperimentInitialPause());
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		//TargetStuff
+		state.setTargetSelector(eyeTargetSelector());
 		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());  
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
@@ -169,6 +171,14 @@ public class AllenConfig {
 		selector.setTargetInTimeThreshold(xperTargetSelectionEyeInTimeThreshold());
 		selector.setTargetOutTimeThreshold(xperTargetSelectionEyeOutTimeThreshold());
 		return selector;
+	}
+	
+	@Bean (scope = DefaultScopes.PROTOTYPE)
+	public List<EyeSamplerEventListener> eyeSamplerEventListeners () {
+		List<EyeSamplerEventListener> sampleListeners = new LinkedList<EyeSamplerEventListener>();
+		sampleListeners.add(eyeTargetSelector());
+		sampleListeners.add(classicConfig.eyeMonitor());
+		return sampleListeners;
 	}
 	
 	@Bean

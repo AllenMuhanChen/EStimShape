@@ -34,7 +34,6 @@ public class EyeTargetSelectorConcurrentDriver {
 		task = exec.submit(new Callable<TargetSelectorResult>() {
 			public TargetSelectorResult call() throws Exception {
 				TargetSelectorResult result = new TargetSelectorResult();
-				
 				int sel = selector.waitInitialSelection(targetCenter, targetWinSize, deadlineIntialEyeIn);
 				if (sel < 0) {
 					result.setSelectionStatusResult(TrialResult.TARGET_SELECTION_EYE_FAIL);
