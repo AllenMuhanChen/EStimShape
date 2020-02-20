@@ -52,7 +52,7 @@ public class RobustEyeTargetSelector implements EyeSamplerEventListener, EyeTarg
 	/**
 	 * This runs in DefaultEyeSampler thread, since it's called from the sample method.
 	 */
-	void eyeMonitor(EyeSampler sampler, long sampleLocalTime, int i) {
+	void eyeMonitor(EyeSampler sampler, long sampleLocalTime, int i) {	
 		if (!sampler.isIn(eyeInstrategy, targetCenter[i], targetWinSize[i])) { // eye is out
 			if (!eyeOutEvent[i]) {
 				if (!eyeOutStatus[i]) { // first time eye out

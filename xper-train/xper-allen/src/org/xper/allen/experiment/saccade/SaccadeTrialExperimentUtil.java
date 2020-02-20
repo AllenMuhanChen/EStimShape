@@ -36,46 +36,23 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
+		EyeController eyeController = stateObject.getEyeController();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
 		
 
 		//show current slide after a delay (blank time)
+		
 		drawingController.showSlide(currentTask, currentContext);
 		long slideOnLocalTime = timeUtil.currentTimeMicros() + stateObject.getBlankTargetScreenDisplayTime()*1000;
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
 		long targetOnLocalTime = currentContext.getCurrentSlideOnTime();
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
 		
-	
-		//Eye on Target Logic
-		//eye selector
-		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
-		currentContext.setTargetOnTime(targetOnLocalTime); 
-		
-		//Sleep for the duration of the start delay
-		ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
-		
-		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
-		/*selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
-						     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
-						     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-		*/
-		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {100},
-			     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
-			     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-		System.out.println("getTargetPos: ["+ currentContext.getTargetPos().getX()+","+currentContext.getTargetPos().getY()+"]");
-		System.out.println("getTargetOnTime: " + currentContext.getTargetOnTime());
-		System.out.println("getTimeAllowedForInitialTargetSelection: " + stateObject.getTimeAllowedForInitialTargetSelection()*1000);
-		System.out.println("getTargetSelectionStartDelay: " + stateObject.getTargetSelectionStartDelay() * 1000);
-		System.out.println("getRequiredTargetSelectionHoldTime: " + stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-		
 		do {
-			System.out.println("Selector Driver Is Working");
-		}
-		while(!selectorDriver.isDone());
-		selectorDriver.stop();
-		TargetSelectorResult selectorResult = selectorDriver.getResult();
+			
+		} while (timeUtil.currentTimeMicros() < slideOnLocalTime
+				+ stateObject.getSlideLength() * 1000);
 		
 		//finish current slide
 		drawingController.slideFinish(currentTask, currentContext);
@@ -85,8 +62,8 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		currentContext.getAnimationFrameIndex(),
 		slideEventListeners);
 		currentContext.setAnimationFrameIndex(0);
-		System.out.println("SelectionStatisResult = " + selectorResult.getSelectionStatusResult());
-		return selectorResult.getSelectionStatusResult();
+		
+		return TrialResult.SLIDE_OK;
 	}
 
 	
