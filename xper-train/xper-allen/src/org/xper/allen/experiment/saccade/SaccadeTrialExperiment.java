@@ -82,19 +82,14 @@ public class SaccadeTrialExperiment implements Experiment {
 					/*
 					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
 					*/
-					//target info -AC
-					Coordinates2D targetPosition = context.getCurrentTask().parseCoords();
-					//TODO: when come back: add logic of getting target window size from stimSpec
-					float targetEyeWinSize = dbUtil.ReadEyeWinSize(context.getCurrentTask().getStimId());
-					context.setTargetPos(targetPosition);
-					context.setTargetEyeWindowSize(targetEyeWinSize);
+					
+
 					
 					// run trial
 					return SaccadeTrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public TrialResult runSlide() {
 							int slidePerTrial = stateObject.getSlidePerTrial();
-							TrialDrawingController drawingController = stateObject.getDrawingController();
 							SaccadeExperimentTask currentTask = (SaccadeExperimentTask) stateObject.getCurrentTask();
 							SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();	
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
@@ -103,9 +98,23 @@ public class SaccadeTrialExperiment implements Experiment {
 							EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
 							TrialResult result = TrialResult.FIXATION_SUCCESS;
-							EyeController eyeController = stateObject.getEyeController();
 							
 							try {
+								try {
+									//target info -AC
+									Coordinates2D targetPosition = context.getCurrentTask().parseCoords();
+									float targetEyeWinSize = dbUtil.ReadEyeWinSize(context.getCurrentTask().getStimId());
+									context.setTargetPos(targetPosition);
+									context.setTargetEyeWindowSize(targetEyeWinSize);
+								} catch (Exception e){
+									System.out.println("No More Trials");
+									try {
+										Thread.sleep(SaccadeTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
+									} catch (InterruptedException ie) {
+									}
+									return TrialResult.NO_MORE_TASKS;
+								}
+
 								for (int i = 0; i < slidePerTrial; i++) {
 									
 									// draw the slide
@@ -126,13 +135,10 @@ public class SaccadeTrialExperiment implements Experiment {
 									//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
 									
 									//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
-									/*selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
+									selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
 													     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 													     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-									*/
-									selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {10},
-										     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
-										     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+								
 									/*
 									System.out.println("getTargetPos: ["+ currentContext.getTargetPos().getX()+","+currentContext.getTargetPos().getY()+"]");
 									System.out.println("getTargetOnTime: " + currentContext.getTargetOnTime());
@@ -141,7 +147,6 @@ public class SaccadeTrialExperiment implements Experiment {
 									System.out.println("getRequiredTargetSelectionHoldTime: " + stateObject.getRequiredTargetSelectionHoldTime() * 1000);
 									*/
 									do {
-										//System.out.println("Selector Driver Is Working");
 									}
 									while(!selectorDriver.isDone());
 									selectorDriver.stop();
