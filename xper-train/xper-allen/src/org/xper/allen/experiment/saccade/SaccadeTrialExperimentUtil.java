@@ -44,15 +44,20 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		
 		
 		//show current slide after a delay (blank time)
+		long blankOnLocalTime = timeUtil.currentTimeMicros();
+		do {
+			//do nothing
+		}while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
 		
 		drawingController.showSlide(currentTask, currentContext);
-		long slideOnLocalTime = timeUtil.currentTimeMicros() + stateObject.getBlankTargetScreenDisplayTime()*1000;
+		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
 		long targetOnLocalTime = currentContext.getCurrentSlideOnTime();
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
 		
 		//Eye on Target Logic
 		//eye selector
+		long beforeDriverInit = timeUtil.currentTimeMicros();
 		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
 		currentContext.setTargetOnTime(currentContext.getCurrentSlideOnTime()); 
 		
@@ -61,16 +66,16 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
 		
 		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
+		long beforeDriver = timeUtil.currentTimeMicros();
 		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
 						     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 						     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+		
 		do {
 		}
-		while(!selectorDriver.isDone());
-		selectorDriver.stop();
-		TargetSelectorResult selectorResult = selectorDriver.getResult();
-		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
-
+		while((timeUtil.currentTimeMicros() < slideOnLocalTime
+				+ stateObject.getSlideLength() * 1000));
+		
 		//finish current slide
 		drawingController.slideFinish(currentTask, currentContext);
 		long slideOffLocalTime = timeUtil.currentTimeMicros();
@@ -80,6 +85,13 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		slideEventListeners);
 		currentContext.setAnimationFrameIndex(0);
 		
+		System.out.println("Slide was on for: "+ (slideOffLocalTime - slideOnLocalTime));
+		do {
+			
+		}while(!selectorDriver.isDone());
+		selectorDriver.stop();
+		TargetSelectorResult selectorResult = selectorDriver.getResult();
+		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		return selectorResult.getSelectionStatusResult();
 	}
 
