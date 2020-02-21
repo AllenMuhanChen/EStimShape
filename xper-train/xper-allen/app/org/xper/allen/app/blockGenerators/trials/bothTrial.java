@@ -31,19 +31,14 @@ public class bothTrial extends Trial{
 		this.stimObjData = stimObjData;
 		this.eStimObjData = estimObjData;
 		this.eStimObjChans = eStimObjChans;
-	}
-	
-	static {
+		
 		s = new XStream();
 		s.alias("StimSpec", bothTrial.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
 	public String toXml() {
-		return Trial.toXml(this);
-	}
-	public static String toXml(bothTrial trial) {
-		return s.toXML(trial);
+		return s.toXML(this);
 	}
 	
 }

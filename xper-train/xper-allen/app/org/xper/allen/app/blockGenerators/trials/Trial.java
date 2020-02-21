@@ -36,11 +36,9 @@ public abstract class Trial {
 		s = new XStream();
 		s.alias("StimSpec", Trial.class);
 	}
+	
 	public String toXml() {
-		return Trial.toXml(this);
-	}
-	public static String toXml(Trial trial) {
-		return s.toXML(trial);
+		return s.toXML(this);
 	}
 
 }

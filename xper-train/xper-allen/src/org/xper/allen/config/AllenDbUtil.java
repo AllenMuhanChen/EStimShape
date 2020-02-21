@@ -3,6 +3,8 @@ package org.xper.allen.config;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
+import java.util.Random;
+
 import org.xper.util.DbUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -149,12 +151,20 @@ public class AllenDbUtil extends DbUtil {
 //=================readExperimentTasks============================================
 	//TODO: Add stimObjData ID and estimObjData ID to this. Make function to read.
 	
-
-	public LinkedList<SaccadeExperimentTask> readSaccadeExperimentTasks(long genId,
+/**
+ * Reads stimSpec from TaskToDo and pulls stimulus information from StimObjData. If StimObjData is an array, it returns a random stimulus from that array. 
+ * @param genId
+ * @param lastDoneTaskId
+ * @author allenchen
+ * @return
+ */
+	public LinkedList<SaccadeExperimentTask> readRandomSaccadeExperimentTasks(long genId,
 			long lastDoneTaskId) {
 
 		//AC
 		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
+		Random r = new Random();
+		
 		//
 		final LinkedList<SaccadeExperimentTask> taskToDo = new LinkedList<SaccadeExperimentTask>();
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
@@ -169,13 +179,27 @@ public class AllenDbUtil extends DbUtil {
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
 						SaccadeExperimentTask task = new SaccadeExperimentTask();
+						int randIndex;
 						task.setGenId(rs.getLong("gen_id"));
 						task.setStimId(rs.getLong("stim_id"));
 						//AC
 						as.setSpec(rs.getString("stim_spec"));									//Reads stimSpec which is now three arrays and stores XML into AllenSpecEntry.spec
 							//StimObjData
+						System.out.println("AS GETSPEC: " +as.getSpec());
+						System.out.println("Generated StimSpec: " +as.genStimSpec().toXml());
 						StimSpec ss = as.genStimSpec();											//StimSpec class mirrors layout of stimSpec table in order to XML read it
-						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	//Extract stimObjDataId from StimSpec class and put into readStimObjData dbUtil --> set as spec of task
+						
+						int temp = ss.getStimObjData().length-1;
+						if (temp == 0) {
+							randIndex = 0;
+						}
+						else {
+							randIndex = r.nextInt(temp);
+						}
+							
+						System.out.println("randIndex: "+ randIndex);
+						System.out.println("stimObjData: "+ readStimObjData(ss.getStimObjData()[randIndex]).getSpec());
+						task.setStimSpec(readStimObjData(ss.getStimObjData()[randIndex]).getSpec());	//Extract stimObjDataId from StimSpec class and put into readStimObjData dbUtil --> set as spec of task
 							//TODO: EStimObjData
 						//
 						task.setTaskId(rs.getLong("task_id"));
