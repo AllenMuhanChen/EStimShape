@@ -22,19 +22,13 @@ public class estimTrial extends Trial{
 		stimObjData = new long[] {1};
 		this.eStimObjData = estimObjData;
 		this.eStimObjChans = eStimObjChans;
-	}
-	
-	static {
+		
 		s = new XStream();
 		s.alias("StimSpec", estimTrial.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
 	public String toXml() {
-		return Trial.toXml(this);
+		return s.toXML(this);
 	}
-	public static String toXml(estimTrial trial) {
-		return s.toXML(trial);
-	}
-	
 }

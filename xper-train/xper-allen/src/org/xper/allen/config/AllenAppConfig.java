@@ -8,6 +8,7 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.blockGenerators.sampleBlockGen;
+import org.xper.allen.app.blockGenerators.trainingBlockGen;
 import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -84,4 +85,11 @@ public class AllenAppConfig {
 		return blockgen;
 	}
 
+	@Bean
+	public trainingBlockGen trainingGen() {
+		trainingBlockGen blockgen = new trainingBlockGen();
+		blockgen.setDbUtil(allenConfig.allenDbUtil());
+		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
+		return blockgen;
+	}
 }

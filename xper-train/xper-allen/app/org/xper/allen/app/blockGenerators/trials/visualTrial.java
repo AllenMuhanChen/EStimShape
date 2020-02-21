@@ -19,22 +19,19 @@ public class visualTrial extends Trial{
 	
 	public visualTrial(long[] stimObjData) {
 		//stimObj Constructor
-		targetEyeWinSize = 4; 
+		this.targetEyeWinSize = 4; 
 		this.stimObjData = stimObjData;
-		eStimObjData = new long[] {1};
-		eStimObjChans = new int[] {};
-	}
-	
-	static {
+		this.eStimObjData = new long[] {1};
+		this.eStimObjChans = new int[] {};
+		
+		
 		s = new XStream();
 		s.alias("StimSpec", visualTrial.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
+	@Override
 	public String toXml() {
-		return Trial.toXml(this);
-	}
-	public static String toXml(visualTrial trial) {
-		return s.toXML(trial);
+		return s.toXML(this);
 	}
 }
