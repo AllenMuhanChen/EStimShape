@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="org/xper/allen/config/AllenAcqConfig.java|org/xper/allen/config/AllenClassicConfig.java|org/xper/allen/experiment/EStimObjDataGenerator.java" kind="src" path="src"/>
+	<classpathentry excluding="org/xper/allen/config/AllenAcqConfig.java|org/xper/allen/config/AllenClassicConfig.java" kind="src" path="src"/>
 	<classpathentry excluding="org/xper/allen/app/stimInserters/InsertEStimSpec.java" kind="src" path="app"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
@@ -39,5 +39,5 @@
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="output" path="class"/>
 </classpath>

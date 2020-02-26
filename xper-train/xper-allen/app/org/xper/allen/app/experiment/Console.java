@@ -1,4 +1,4 @@
-package org.xper.app.experiment;
+package org.xper.allen.app.experiment;
 
 
 import javax.swing.UIManager;

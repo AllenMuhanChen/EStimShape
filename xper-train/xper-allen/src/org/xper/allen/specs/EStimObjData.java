@@ -153,4 +153,8 @@ public class EStimObjData {
 	public void set_post_stim_charge_recovery_off(float post_stim_charge_recovery_off_) {
 		post_stim_charge_recovery_off = post_stim_charge_recovery_off_;
 	}
+	public void setPost_trigger_delay(float post_trigger_delay2) {
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -1,0 +1,98 @@
+<project name="xper" default="dist" basedir=".">
+	<property name="build.home" location="${basedir}/class" />
+	<property name="xper.home" location="${basedir}/../xper" />
+	<property name="native.home" location="${basedir}/../xper-native" />
+	<property name="dist.home" location="${basedir}/../dist" />
+	<property name="allen.home" location="${dist.home}/allen" />
+	
+	<target name="clean">
+		<delete dir="${build.home}" />
+		<delete dir="${allen.home}" />
+	</target>
+
+	<path id="classpath">
+		<fileset dir="${xper.home}/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset file="${dist.home}/xper.jar" />
+	</path>
+	
+	<pathconvert property="manifest.classpath" dirsep="/" pathsep=" ">
+		<path refid="classpath">
+		</path>
+		<map from="${xper.home}${file.separator}lib" to="../lib" />
+		<map from="${dist.home}${file.separator}" to="../" />
+	</pathconvert>
+	
+	<echo message="Manifest classpath is ${manifest.classpath}" />
+	
+	
+	<target name="prepare">
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${dist.home}/allen" />		
+		
+		<copy todir="${dist.home}" includeEmptyDirs="false">
+			<fileset dir="src" excludes="**/*.java" />
+			<fileset dir="app" excludes="**/*.java" />
+		</copy>
+	</target>
+
+	
+	<target name="compile" depends="prepare">
+		<javac srcdir="src" destdir="${build.home}">
+			<classpath refid="classpath" />
+		</javac>
+		<javac srcdir="app" destdir="${build.home}">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	
+	<target name="dist" depends="compile">
+		
+
+		<jar jarfile="${allen.home}/xper_allen.jar" basedir="${build.home}">
+		</jar>
+		
+		<jar jarfile="${allen.home}/trainingGeneration.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/blockGenerators/TrainingGenerator.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.blockGenerators.TrainingGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar" />
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${allen.home}/training.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/experiment/Experiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.experiment.Experiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} " />
+			</manifest>
+		</jar>	
+		
+		<jar jarfile="${allen.home}/console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/experiment/Console.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.experiment.Console" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${allen.home}/timeserver.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/acq/TimeServer.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.acq.TimeServer" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>	
+	</target>
+</project>
