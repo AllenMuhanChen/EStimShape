@@ -158,7 +158,7 @@ public class AllenDbUtil extends DbUtil {
  * @author allenchen
  * @return
  */
-	public LinkedList<SaccadeExperimentTask> readRandomSaccadeExperimentTasks(long genId,
+	public LinkedList<SaccadeExperimentTask> readSaccadeExperimentTasks(long genId,
 			long lastDoneTaskId) {
 
 		//AC
@@ -185,21 +185,8 @@ public class AllenDbUtil extends DbUtil {
 						//AC
 						as.setSpec(rs.getString("stim_spec"));									//Reads stimSpec which is now three arrays and stores XML into AllenSpecEntry.spec
 							//StimObjData
-						System.out.println("AS GETSPEC: " +as.getSpec());
-						System.out.println("Generated StimSpec: " +as.genStimSpec().toXml());
 						StimSpec ss = as.genStimSpec();											//StimSpec class mirrors layout of stimSpec table in order to XML read it
-						
-						int temp = ss.getStimObjData().length-1;
-						if (temp == 0) {
-							randIndex = 0;
-						}
-						else {
-							randIndex = r.nextInt(temp);
-						}
-							
-						System.out.println("randIndex: "+ randIndex);
-						System.out.println("stimObjData: "+ readStimObjData(ss.getStimObjData()[randIndex]).getSpec());
-						task.setStimSpec(readStimObjData(ss.getStimObjData()[randIndex]).getSpec());	//Extract stimObjDataId from StimSpec class and put into readStimObjData dbUtil --> set as spec of task
+						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	//Extract stimObjDataId from StimSpec class and put into readStimObjData dbUtil --> set as spec of task
 							//TODO: EStimObjData
 						//
 						task.setTaskId(rs.getLong("task_id"));

@@ -96,7 +96,7 @@ public class AllenDatabaseTaskDataSource extends DatabaseTaskDataSource {
 				if (info.getGenId() > currentGenId) {
 					// new generation found
 					LinkedList<SaccadeExperimentTask> taskToDo = dbUtil
-							.readRandomSaccadeExperimentTasks(info.getGenId(), lastDoneTaskId);
+							.readSaccadeExperimentTasks(info.getGenId(), lastDoneTaskId);
 
 					if (logger.isDebugEnabled()) {
 						logger.debug("Generation " + info.getGenId() + " size: "

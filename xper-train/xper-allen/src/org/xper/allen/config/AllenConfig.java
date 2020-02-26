@@ -23,10 +23,15 @@ import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.console.ExperimentConsole;
+import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.BlankTaskScene;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.exception.DbException;
+import org.xper.experiment.ExperimentRunner;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 import org.xper.eye.RobustEyeTargetSelector;
 import org.xper.eye.listener.EyeSamplerEventListener;
@@ -82,6 +87,23 @@ public class AllenConfig {
 	}
 	
 	@Bean
+	public ExperimentConsole experimentConsole () {
+		ExperimentConsole console = new ExperimentConsole();
+		
+		console.setPaused(classicConfig.xperExperimentInitialPause());
+		console.setConsoleRenderer(classicConfig.consoleRenderer());
+		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
+		console.setModel(classicConfig.experimentConsoleModel());
+		console.setCanvasScaleFactor(3);
+		
+		ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
+		// register itself to avoid circular reference
+		receiver.addMessageReceiverEventListener(console);
+		
+		return console;
+	}
+	
+	@Bean
 	public DataSource dataSource() {
 		ComboPooledDataSource source = new ComboPooledDataSource();
 		try {
@@ -105,6 +127,14 @@ public class AllenConfig {
 	}
 	
 	@Bean
+	public ExperimentRunner experimentRunner () {
+		ExperimentRunner runner = new ExperimentRunner();
+		runner.setHost(classicConfig.experimentHost);
+		runner.setExperiment(experiment());
+		return runner;
+	}
+	
+	@Bean
 	public SaccadeTrialExperiment experiment() {
 		SaccadeTrialExperiment xper = new SaccadeTrialExperiment();
 		xper.setEyeMonitor(classicConfig.eyeMonitor());
@@ -113,11 +143,7 @@ public class AllenConfig {
 		xper.setDbUtil(allenDbUtil());
 		return xper;
 	}
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public Integer xperBlankTargetScreenDisplayTime() {
-		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_blank_target_screen_display_time", 0));
-	}
-	
+
 	@Bean
 	public SaccadeExperimentState experimentState() {
 		SaccadeExperimentState state = new SaccadeExperimentState();
@@ -215,5 +241,13 @@ public class AllenConfig {
 	public Long xperTargetSelectionEyeMonitorStartDelay() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_target_selection_eye_monitor_start_delay", 0));
 	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Integer xperBlankTargetScreenDisplayTime() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_blank_target_screen_display_time", 0));
+	}
+
+
+	
 }
 	
