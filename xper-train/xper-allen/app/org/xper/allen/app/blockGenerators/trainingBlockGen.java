@@ -1,5 +1,6 @@
 package org.xper.allen.app.blockGenerators;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -31,7 +32,6 @@ public class trainingBlockGen {
 	/**
 	 * Selects visual stimuli randomly from stimTypes
 	 */
-	long[] stimTypes = {2,3,4,5,6};
 	Random r = new Random();
 	
 	public trainingBlockGen() {
@@ -39,7 +39,7 @@ public class trainingBlockGen {
 	
 	
 	long genId = 1;
-	public Trial[] generate(long blockId) { //
+	public Trial[] generate(int blockId, ArrayList<Integer> visualTypes) { //
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
@@ -59,11 +59,11 @@ public class trainingBlockGen {
 			else if (trialTypeList[i]=='v') {
 				int randIndex;
 				try {
-					randIndex = r.nextInt(stimTypes.length-1);
+					randIndex = r.nextInt(visualTypes.size()-1);
 				}catch(Exception e) {
 					randIndex = 0;
 				}
-				long[] stims = {stimTypes[randIndex]};
+				long[] stims = {visualTypes.get(randIndex)};
 				trialList[i] = new visualTrial(stims); 
 			}
 			else if (trialTypeList[i]=='e') {
