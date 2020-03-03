@@ -7,6 +7,7 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.xper.allen.GaussScene;
 import org.xper.allen.app.blockGenerators.sampleBlockGen;
 import org.xper.allen.app.blockGenerators.trainingBlockGen;
 import org.xper.allen.experiment.GaussianSpecGenerator;
@@ -48,7 +49,7 @@ public class AllenAppConfig {
 	
 	@Bean
 	public TaskScene taskScene() {
-		GaborScene scene = new GaborScene();
+		GaussScene scene = new GaussScene();
 		scene.setRenderer(experimentGLRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setMarker(classicConfig.screenMarker());

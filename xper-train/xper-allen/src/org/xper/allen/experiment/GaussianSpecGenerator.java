@@ -6,20 +6,14 @@ public class GaussianSpecGenerator{
 	int XCenter = 0;
 	int YCenter = 0;
 	int Size = 100;
-	int Orientation = (int) (Math.random() * Math.PI);
-	int Frequency = 0;
-	int Phase = (int) Math.PI;
-	boolean Animation = true;
+	double Brightness = 1.0;
 	
 	public GaussSpec generate() {
 		GaussSpec g = new GaussSpec();
 		g.setXCenter(XCenter);
 		g.setYCenter(YCenter);
 		g.setSize(Size);
-		g.setOrientation(Orientation);
-		g.setFrequency(Frequency);
-		g.setPhase(Phase);
-		g.setAnimation(Animation);
+		g.setBrightness(Brightness);
 		return g;
 	}
 	
@@ -32,10 +26,7 @@ public class GaussianSpecGenerator{
 		XCenter = 0;
 		YCenter = 0;
 		Size = 100;
-		Orientation = (int) (Math.random() * Math.PI);
-		Frequency = 0;
-		Phase = (int) Math.PI;
-		Animation = true;
+		Brightness = 1.0;
 	}
 	
 	public int getXCenter() {
@@ -65,45 +56,5 @@ public class GaussianSpecGenerator{
 
 	public void setSize(int size) {
 		Size = size;
-	}
-
-
-	public int getOrientation() {
-		return Orientation;
-	}
-
-
-	public void setOrientation(int orientation) {
-		Orientation = orientation;
-	}
-
-
-	public int getFrequency() {
-		return Frequency;
-	}
-
-
-	public void setFrequency(int frequency) {
-		Frequency = frequency;
-	}
-
-
-	public int getPhase() {
-		return Phase;
-	}
-
-
-	public void setPhase(int phase) {
-		Phase = phase;
-	}
-
-
-	public boolean isAnimation() {
-		return Animation;
-	}
-
-
-	public void setAnimation(boolean animation) {
-		Animation = animation;
 	}
 }
