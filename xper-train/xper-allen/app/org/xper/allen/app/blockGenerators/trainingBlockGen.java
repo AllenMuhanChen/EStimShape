@@ -59,7 +59,7 @@ public class trainingBlockGen {
 			else if (trialTypeList[i]=='v') {
 				int randIndex;
 				try {
-					randIndex = r.nextInt(visualTypes.size()-1);
+					randIndex = r.nextInt(visualTypes.size());
 				}catch(Exception e) {
 					randIndex = 0;
 				}
