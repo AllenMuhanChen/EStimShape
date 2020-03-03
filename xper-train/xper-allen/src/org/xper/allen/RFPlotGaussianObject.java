@@ -52,7 +52,6 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		double yCenter = spec.getYCenter() * rfRadius;
 		double size = spec.getSize() * rfRadius;
 		double brightness = spec.getBrightness();
-		System.out.println(String.valueOf(brightness));
 		
 		float cury;
 		float color_ratio;
