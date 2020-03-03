@@ -122,7 +122,7 @@ public class AllenConfig {
 		AllenDatabaseTaskDataSource source = new AllenDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
-		source.setUngetBehavior(UngetPolicy.TAIL);
+		source.setUngetBehavior(UngetPolicy.HEAD);
 		return source;
 	}
 	
