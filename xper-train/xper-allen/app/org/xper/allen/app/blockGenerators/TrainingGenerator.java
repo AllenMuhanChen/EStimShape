@@ -22,7 +22,9 @@ public class TrainingGenerator {
 			for (String s:elements) {
 				visualTypes.add(Integer.parseInt(s));
 			}
-			gen.generate(blockId, visualTypes);
+			//target eye window size
+			int targetEyeWinSize = Integer.parseInt(args[2]);
+			gen.generate(blockId, visualTypes, targetEyeWinSize);
 		}
 		catch(Exception e) {
 			System.out.println("Not enough arguments were given. args[0]: int blockId, args[1]: visualTypes (comma separated list of StimObjIDs) ");

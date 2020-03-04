@@ -17,9 +17,9 @@ public class visualTrial extends Trial{
 		//Empty Constructor
 	}
 	
-	public visualTrial(long[] stimObjData) {
+	public visualTrial(long[] stimObjData, int targetEyeWinSize) {
 		//stimObj Constructor
-		this.targetEyeWinSize = 4; 
+		this.targetEyeWinSize = targetEyeWinSize; 
 		this.stimObjData = stimObjData;
 		this.eStimObjData = new long[] {1};
 		this.eStimObjChans = new int[] {};

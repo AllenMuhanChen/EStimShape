@@ -18,7 +18,6 @@ import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
-import org.xper.example.classic.GaborScene;
 
 
 @Configuration(defaultLazy=Lazy.TRUE)

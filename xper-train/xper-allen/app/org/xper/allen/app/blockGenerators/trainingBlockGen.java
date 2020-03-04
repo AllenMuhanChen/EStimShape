@@ -39,7 +39,7 @@ public class trainingBlockGen {
 	
 	
 	long genId = 1;
-	public Trial[] generate(int blockId, ArrayList<Integer> visualTypes) { //
+	public Trial[] generate(int blockId, ArrayList<Integer> visualTypes, int targetEyeWinSize) { //
 		BlockSpec blockspec = dbUtil.readBlockSpec(blockId);
 		Block block = new Block(blockspec);
 		char[] trialTypeList = block.generateTrialList();
@@ -64,7 +64,7 @@ public class trainingBlockGen {
 					randIndex = 0;
 				}
 				long[] stims = {visualTypes.get(randIndex)};
-				trialList[i] = new visualTrial(stims); 
+				trialList[i] = new visualTrial(stims, targetEyeWinSize); 
 			}
 			else if (trialTypeList[i]=='e') {
 				System.out.println("NON CATCH OR VISUAL STIMULUS DETECTED. CHANGE BLOCKID.");
