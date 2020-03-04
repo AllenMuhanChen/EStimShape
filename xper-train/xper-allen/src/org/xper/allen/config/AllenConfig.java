@@ -148,7 +148,7 @@ public class AllenConfig {
 	public SaccadeExperimentState experimentState() {
 		SaccadeExperimentState state = new SaccadeExperimentState();
 		state.setLocalTimeUtil(baseConfig.localTimeUtil());
-		state.setTrialEventListeners(trialEventListeners());
+		state.setTrialEventListeners(classicConfig.trialEventListeners());
 		state.setSlideEventListeners(classicConfig.slideEventListeners());
 		state.setEyeController(classicConfig.eyeController());
 		state.setExperimentEventListeners(classicConfig.experimentEventListeners());
@@ -175,20 +175,6 @@ public class AllenConfig {
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		return state;
 	}
-
-	@Bean (scope = DefaultScopes.PROTOTYPE)
-	public List<TrialEventListener> trialEventListeners () {
-		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
-		trialEventListener.add(classicConfig.eyeMonitorController());
-		//trialEventListener.add(trialEventLogger());
-		trialEventListener.add(classicConfig.experimentProfiler());
-		//trialEventListener.add(messageDispatcher());
-		trialEventListener.add(classicConfig.juiceController());
-		trialEventListener.add(classicConfig.dataAcqController());
-		trialEventListener.add(classicConfig.jvmManager());
-		return trialEventListener;
-	}
-	
 	@Bean
 	public RobustEyeTargetSelector eyeTargetSelector() {
 		RobustEyeTargetSelector selector = new RobustEyeTargetSelector();
