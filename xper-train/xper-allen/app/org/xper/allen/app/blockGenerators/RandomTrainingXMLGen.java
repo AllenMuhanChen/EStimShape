@@ -42,7 +42,12 @@ import com.thoughtworks.xstream.XStream;
 public class RandomTrainingXMLGen {
 	static ArrayList<Double> xLim = new ArrayList<Double>();
 	static ArrayList<Double> yLim = new ArrayList<Double>();
-	static XStream s = new XStream();
+	transient static XStream s;
+	static {
+		s = new XStream();
+		s.alias("GaussSpec", GaussSpec.class);
+		s.setMode(XStream.NO_REFERENCES);
+	}
 	
 	public static void main(String[] args) {
 	//DB set-up
@@ -82,8 +87,7 @@ public class RandomTrainingXMLGen {
 	//Generating XML String
 		ArrayList<GaussSpec> gaussList = new ArrayList<GaussSpec>();
 		
-		s.alias("GaussSpec", GaussSpec.class);
-		s.setMode(XStream.NO_REFERENCES);
+
 		
 		
 		for (int i=0; i<numberStimuli; i++) {
