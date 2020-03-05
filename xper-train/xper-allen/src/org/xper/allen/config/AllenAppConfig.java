@@ -82,6 +82,7 @@ public class AllenAppConfig {
 		trainingBlockGen blockgen = new trainingBlockGen();
 		blockgen.setDbUtil(allenConfig.allenDbUtil());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
+		blockgen.setXmlUtil(allenConfig.allenXMLUtil());
 		return blockgen;
 	}
 }

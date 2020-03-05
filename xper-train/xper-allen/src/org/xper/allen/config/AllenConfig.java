@@ -20,6 +20,7 @@ import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
 import org.xper.allen.util.AllenDbUtil;
+import org.xper.allen.util.AllenXMLUtil;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -87,6 +88,11 @@ public class AllenConfig {
 		return dbUtil;
 	}
 	
+	@Bean
+	public AllenXMLUtil allenXMLUtil() {
+		AllenXMLUtil xmlUtil = new AllenXMLUtil();
+		return xmlUtil;
+	}
 	@Bean
 	public ExperimentConsole experimentConsole () {
 		ExperimentConsole console = new ExperimentConsole();

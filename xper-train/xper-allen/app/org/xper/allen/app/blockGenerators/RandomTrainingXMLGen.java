@@ -30,7 +30,7 @@ import com.thoughtworks.xstream.XStream;
 
 /**
  * Generates stimuli based on random parameters. In this case: 1) random location & 2) random brightness. 
- * @param args[0]: name of xmlFile to be printed
+ * @param args[0]: Path of XML file to be printed
  * 		  args[1]: number of stimuli desired<br>
  * 		  args[2]: range of brightness of stimuli desired (between 0 and 1) <br>
  * 		  args[3]: range of size of stimuli desired <br>
@@ -60,7 +60,7 @@ public class RandomTrainingXMLGen {
 		
 	//Arguments
 		//Name of File
-		String filename = args[0];
+		String filepath = args[0];
 		//Number of Stimuli
 		int numberStimuli = Integer.parseInt(args[1]);
 		//Brightness Range
@@ -83,7 +83,7 @@ public class RandomTrainingXMLGen {
 		ArrayList<GaussSpec> gaussList = new ArrayList<GaussSpec>();
 		
 		XStream s = new XStream();
-		s.alias("StimSpec", GaussSpec.class);
+		s.alias("GaussSpec", GaussSpec.class);
 		s.setMode(XStream.NO_REFERENCES);
 		
 		
@@ -110,7 +110,8 @@ public class RandomTrainingXMLGen {
 		try {
 			Transformer transformer = transformerFactory.newTransformer();
 			DOMSource source = new DOMSource(doc);
-			StreamResult result = new StreamResult(new File("doc/"+filename));
+			StreamResult result = new StreamResult(new File(filepath));
+			//StreamResult result = new StreamResult(new File("doc/"+filename));
 			try {
 				transformer.transform(source, result);
 			} catch (TransformerException e) {
