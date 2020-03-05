@@ -3,7 +3,6 @@ package org.xper.allen.app.blockGenerators;
 import java.io.File;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -43,9 +42,21 @@ import com.thoughtworks.xstream.XStream;
 public class RandomTrainingXMLGen {
 	static ArrayList<Double> xLim = new ArrayList<Double>();
 	static ArrayList<Double> yLim = new ArrayList<Double>();
+	static XStream s = new XStream();
 	
 	public static void main(String[] args) {
-
+	//DB set-up
+		DriverManagerDataSource dataSource = new DriverManagerDataSource();
+		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
+		dataSource.setUrl("jdbc:mysql://172.30.6.27/v1microstim");
+		dataSource.setUsername("xper_rw");
+		dataSource.setPassword("up2nite");
+		AllenDbUtil dbUtil = new AllenDbUtil();
+		dbUtil.setDataSource(dataSource);
+		SystemVariableContainer systemVarContainer = createSysVarContainer(dbUtil);
+		double monkey_screen_width = Double.parseDouble(systemVarContainer.get("xper_monkey_screen_width", 0));
+		double monkey_screen_height = Double.parseDouble(systemVarContainer.get("xper_monkey_screen_height", 0));
+		TimeUtil timeUtil = new DefaultTimeUtil();
 		
 	//Arguments
 		//Name of File
@@ -57,15 +68,20 @@ public class RandomTrainingXMLGen {
 		//Size Range
 		ArrayList<Double> sizeLim = argsToArrayListDouble(args[3]);
 		//Location Lims
-		xLim = argsToArrayListDouble(args[4]);
-		yLim = argsToArrayListDouble(args[5]);
-		
-
+		if (args.length == 6) { //Location Range Given
+			xLim = argsToArrayListDouble(args[4]);
+			yLim = argsToArrayListDouble(args[5]);
+		}
+		else {
+			xLim.add(-1*monkey_screen_width/4); 
+			xLim.add(monkey_screen_width/4);
+			yLim.add(-1*monkey_screen_height/2);
+			yLim.add(monkey_screen_height/2);
+		}
 		
 	//Generating XML String
 		ArrayList<GaussSpec> gaussList = new ArrayList<GaussSpec>();
 		
-		XStream s = new XStream();
 		s.alias("GaussSpec", GaussSpec.class);
 		s.setMode(XStream.NO_REFERENCES);
 		
