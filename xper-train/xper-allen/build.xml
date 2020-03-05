@@ -57,10 +57,10 @@
 		
 		<jar jarfile="${allen.home}/trainingGeneration.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/blockGenerators/TrainingGenerator.class" />
+				<include name="org/xper/allen/app/specGenerators/TrainingGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.blockGenerators.TrainingGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.specGenerators.TrainingGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar" />
 			</manifest>
 		</jar>
@@ -84,15 +84,17 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath}" />
 			</manifest>
 		</jar>
-
-		<jar jarfile="${allen.home}/timeserver.jar">
+		
+		<jar jarfile="${allen.home}/RandomXmlGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/app/acq/TimeServer.class" />
+				<include name="org/xper/allen/app/blockGenerators/RandomTrainingXMLGen.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.app.acq.TimeServer" />
+				<attribute name="Main-Class" value="org.xper.allen.app.blockGenerators.RandomTrainingXMLGen" />
 				<attribute name="Class-Path" value=". ${manifest.classpath}" />
 			</manifest>
-		</jar>	
+		</jar>
+		
+		
 	</target>
 </project>
