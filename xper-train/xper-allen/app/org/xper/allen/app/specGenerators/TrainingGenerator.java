@@ -20,8 +20,8 @@ public class TrainingGenerator {
 			gen.generate(filepath, targetEyeWinSize);
 		}
 		catch(Exception e) {
-			//System.out.println("Not enough arguments were given. args[0]: int blockId, args[1]: visualTypes (comma separated list of StimObjIDs) ");
-		
+			System.out.println("Something went wrong");
+			e.printStackTrace();
 		
 
 		}
