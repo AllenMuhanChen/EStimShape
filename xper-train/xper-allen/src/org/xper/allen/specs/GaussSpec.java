@@ -17,13 +17,9 @@ public class GaussSpec {
 	}
 	
 	public String toXml () {
-		return GaussSpec.toXml(this);
+		return s.toXML(this);
 	}
-	
-	public static String toXml (GaussSpec spec) {
-		return s.toXML(spec);
-	}
-	
+
 	public static GaussSpec fromXml (String xml) {
 		GaussSpec g = (GaussSpec)s.fromXML(xml);
 		return g;

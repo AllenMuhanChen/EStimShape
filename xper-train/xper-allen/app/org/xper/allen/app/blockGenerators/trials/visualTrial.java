@@ -5,7 +5,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public class visualTrial extends Trial{
 	@XStreamAlias("targetEyeWinSize")
-	float targetEyeWinSize;
+	double targetEyeWinSize;
 	@XStreamAlias("stimObjData")
 	long[] stimObjData;
 	@XStreamAlias("eStimObjData")
@@ -17,7 +17,7 @@ public class visualTrial extends Trial{
 		//Empty Constructor
 	}
 	
-	public visualTrial(long[] stimObjData, int targetEyeWinSize) {
+	public visualTrial(long[] stimObjData, double targetEyeWinSize) {
 		//stimObj Constructor
 		this.targetEyeWinSize = targetEyeWinSize; 
 		this.stimObjData = stimObjData;

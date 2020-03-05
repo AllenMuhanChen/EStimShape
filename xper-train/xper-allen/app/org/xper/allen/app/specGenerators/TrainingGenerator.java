@@ -14,20 +14,13 @@ public class TrainingGenerator {
 		
 		try {
 			//blockId
-			int blockId = Integer.parseInt(args[0]);
-			//visTypes
-			String csvInput = args[1];
-			String[] elements = csvInput.split(",");
-			ArrayList<Integer> visualTypes = new ArrayList<Integer>();
-			for (String s:elements) {
-				visualTypes.add(Integer.parseInt(s));
-			}
+			String filepath = args[0];
 			//target eye window size
-			int targetEyeWinSize = Integer.parseInt(args[2]);
-			gen.generate(blockId, visualTypes, targetEyeWinSize);
+			double targetEyeWinSize = Double.parseDouble(args[1]);
+			gen.generate(filepath, targetEyeWinSize);
 		}
 		catch(Exception e) {
-			System.out.println("Not enough arguments were given. args[0]: int blockId, args[1]: visualTypes (comma separated list of StimObjIDs) ");
+			//System.out.println("Not enough arguments were given. args[0]: int blockId, args[1]: visualTypes (comma separated list of StimObjIDs) ");
 		
 		
 
