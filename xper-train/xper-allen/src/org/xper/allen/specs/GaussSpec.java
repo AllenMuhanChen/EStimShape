@@ -31,13 +31,14 @@ public class GaussSpec {
 	
 	public GaussSpec() {}
 	
-	public GaussSpec(GaussSpec d) {
-		xCenter = d.getXCenter();
-		yCenter = d.getYCenter();
-		size = d.getSize();
-		brightness = d.getBrightness();
+	public GaussSpec(double xCenter, double yCenter, double size, double brightness) {
+		super();
+		this.xCenter = xCenter;
+		this.yCenter = yCenter;
+		this.size = size;
+		this.brightness = brightness;
 	}
-	
+
 	public double getXCenter() {
 		return xCenter;
 	}

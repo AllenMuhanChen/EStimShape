@@ -1,4 +1,4 @@
-package org.xper.allen.app.blockGenerators;
+package org.xper.allen.app.specGenerators;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,8 +11,8 @@ import org.xper.allen.app.blockGenerators.trials.bothTrial;
 import org.xper.allen.app.blockGenerators.trials.catchTrial;
 import org.xper.allen.app.blockGenerators.trials.estimTrial;
 import org.xper.allen.app.blockGenerators.trials.visualTrial;
-import org.xper.allen.config.AllenDbUtil;
 import org.xper.allen.specs.BlockSpec;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 

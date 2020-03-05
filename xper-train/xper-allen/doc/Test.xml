@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><list>
+  <StimSpec>
+    <xCenter>-157.27008701655194</xCenter>
+    <yCenter>-9.247925584902475</yCenter>
+    <size>7.748879619660096</size>
+    <brightness>0.8383416123908984</brightness>
+  </StimSpec>
+  <StimSpec>
+    <xCenter>22.213539496564835</xCenter>
+    <yCenter>-138.43208427203675</yCenter>
+    <size>2.8176796779715065</size>
+    <brightness>0.35126936798084885</brightness>
+  </StimSpec>
+  <StimSpec>
+    <xCenter>-5.721680578094151</xCenter>
+    <yCenter>-148.9728323962075</yCenter>
+    <size>8.634929691674124</size>
+    <brightness>0.2191667638937087</brightness>
+  </StimSpec>
+  <StimSpec>
+    <xCenter>137.58350259365517</xCenter>
+    <yCenter>73.94333024015648</yCenter>
+    <size>5.998115541534678</size>
+    <brightness>0.1569887498434709</brightness>
+  </StimSpec>
+  <StimSpec>
+    <xCenter>74.35402619487854</xCenter>
+    <yCenter>86.4606543311398</yCenter>
+    <size>7.729770083686825</size>
+    <brightness>0.1080473431237291</brightness>
+  </StimSpec>
+</list>

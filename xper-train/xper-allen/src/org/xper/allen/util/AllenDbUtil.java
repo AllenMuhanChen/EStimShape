@@ -1,4 +1,4 @@
-package org.xper.allen.config;
+package org.xper.allen.util;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -19,6 +19,7 @@ import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -175,6 +176,7 @@ public class AllenConfig {
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		return state;
 	}
+
 	@Bean
 	public RobustEyeTargetSelector eyeTargetSelector() {
 		RobustEyeTargetSelector selector = new RobustEyeTargetSelector();
