@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
-import org.xper.allen.config.AllenDbUtil;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.db.vo.GenerationInfo;
 import org.xper.experiment.DatabaseTaskDataSource;
 import org.xper.experiment.ExperimentTask;

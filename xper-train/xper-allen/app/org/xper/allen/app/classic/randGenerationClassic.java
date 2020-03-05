@@ -1,7 +1,7 @@
 package org.xper.allen.app.classic;
 
 import org.xper.Dependency;
-import org.xper.allen.config.AllenDbUtil;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.experiment.StimSpecGenerator;
 import org.xper.time.TimeUtil;

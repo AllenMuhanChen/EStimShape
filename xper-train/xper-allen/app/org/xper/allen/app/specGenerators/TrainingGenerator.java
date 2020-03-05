@@ -1,4 +1,4 @@
-package org.xper.allen.app.blockGenerators;
+package org.xper.allen.app.specGenerators;
 
 import java.util.ArrayList;
 
