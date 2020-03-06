@@ -83,10 +83,11 @@ public class RandomTrainingXMLGen {
 		ArrayList<Double> sizeLim = argsToArrayListDouble(args[3]);
 		//Location Lims
 		if (args.length == 7) { //Location Range Given
-			xLim = argsToArrayListDouble(args[4]);
-			yLim = argsToArrayListDouble(args[5]);
+			xLim = argsToArrayListDouble(args[5]);
+			yLim = argsToArrayListDouble(args[6]);
 		}
 		else {
+			
 			xLim.add(-1*monkey_screen_width/4); 
 			xLim.add(monkey_screen_width/4);
 			yLim.add(-1*monkey_screen_height/2);
