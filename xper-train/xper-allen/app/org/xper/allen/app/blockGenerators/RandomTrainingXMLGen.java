@@ -2,6 +2,8 @@ package org.xper.allen.app.blockGenerators;
 
 import java.io.File;
 import java.io.StringReader;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -42,6 +44,7 @@ import com.thoughtworks.xstream.XStream;
 public class RandomTrainingXMLGen {
 	static ArrayList<Double> xLim = new ArrayList<Double>();
 	static ArrayList<Double> yLim = new ArrayList<Double>();
+	static String filepath;
 	transient static XStream s;
 	static {
 		s = new XStream();
@@ -65,7 +68,13 @@ public class RandomTrainingXMLGen {
 		
 	//Arguments
 		//Name of File
-		String filepath = args[0];
+		if (args[0].isEmpty()) {
+			DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+			LocalDateTime now = LocalDateTime.now();
+			filepath = "doc/" + dtf.format(now)+".xml";
+		}else {
+			filepath = args[0];
+		}
 		//Number of Stimuli
 		int numberStimuli = Integer.parseInt(args[1]);
 		//Brightness Range
@@ -73,7 +82,7 @@ public class RandomTrainingXMLGen {
 		//Size Range
 		ArrayList<Double> sizeLim = argsToArrayListDouble(args[3]);
 		//Location Lims
-		if (args.length == 6) { //Location Range Given
+		if (args.length == 7) { //Location Range Given
 			xLim = argsToArrayListDouble(args[4]);
 			yLim = argsToArrayListDouble(args[5]);
 		}
@@ -93,13 +102,10 @@ public class RandomTrainingXMLGen {
 		for (int i=0; i<numberStimuli; i++) {
 			
 			//StimObjData
-			ArrayList<GaussSpec> gaussSpecs = new ArrayList<GaussSpec>();
-			double randXCenter = ThreadLocalRandom.current().nextDouble(xLim.get(0), xLim.get(1));
-			double randYCenter = ThreadLocalRandom.current().nextDouble(yLim.get(0), yLim.get(1));
-			double randSize = ThreadLocalRandom.current().nextDouble(sizeLim.get(0), sizeLim.get(1));
-			System.out.println(brightnessLim.get(0));
-			System.out.println(brightnessLim.get(1));
-			double randBrightness = ThreadLocalRandom.current().nextDouble(brightnessLim.get(0), brightnessLim.get(1));
+			double randXCenter = inclusiveRandomDouble(xLim.get(0),xLim.get(1));
+			double randYCenter = inclusiveRandomDouble(yLim.get(0),yLim.get(1));
+			double randSize = inclusiveRandomDouble(sizeLim.get(0), sizeLim.get(1));
+			double randBrightness = inclusiveRandomDouble(brightnessLim.get(0), brightnessLim.get(1));
 			
 			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness);
 			gaussList.add(randGaussSpec);
@@ -123,6 +129,16 @@ public class RandomTrainingXMLGen {
 		} catch (TransformerConfigurationException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public static double inclusiveRandomDouble(double val1, double val2) {
+		if (val1==val2){
+			return val1;
+		}
+		else {
+			return ThreadLocalRandom.current().nextDouble(val1, val2);
+		}
+
 	}
 	
 	public static SystemVariableContainer createSysVarContainer(AllenDbUtil dbUtil) {
