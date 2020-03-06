@@ -64,7 +64,6 @@ public class RandomTrainingXMLGen {
 		SystemVariableContainer systemVarContainer = createSysVarContainer(dbUtil);
 		double monkey_screen_width = Double.parseDouble(systemVarContainer.get("xper_monkey_screen_width", 0));
 		double monkey_screen_height = Double.parseDouble(systemVarContainer.get("xper_monkey_screen_height", 0));
-		TimeUtil timeUtil = new DefaultTimeUtil();
 		
 	//Arguments
 		//Name of File
@@ -103,9 +102,9 @@ public class RandomTrainingXMLGen {
 		for (int i=0; i<numberStimuli; i++) {
 			
 			//StimObjData
-			double randXCenter = inclusiveRandomDouble(xLim.get(0),xLim.get(1));
-			double randYCenter = inclusiveRandomDouble(yLim.get(0),yLim.get(1));
 			double randSize = inclusiveRandomDouble(sizeLim.get(0), sizeLim.get(1));
+			double randXCenter = inclusiveRandomDouble(xLim.get(0)+randSize,xLim.get(1)-randSize); //+/- randSize puts padding around screen edges
+			double randYCenter = inclusiveRandomDouble(yLim.get(0)+randSize,yLim.get(1)-randSize); 
 			double randBrightness = inclusiveRandomDouble(brightnessLim.get(0), brightnessLim.get(1));
 			
 			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness);
