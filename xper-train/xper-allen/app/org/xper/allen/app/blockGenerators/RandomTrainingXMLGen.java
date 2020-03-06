@@ -35,9 +35,8 @@ import com.thoughtworks.xstream.XStream;
  * 		  args[1]: number of stimuli desired<br>
  * 		  args[2]: range of brightness of stimuli desired (between 0 and 1) <br>
  * 		  args[3]: range of size of stimuli desired <br>
- * 		  args[4]: size of targetWindow desired <br>
- * 		  args[5]: range of xLocations desired. If null, will default to entire screen. 
- * 		  args[6]: range of yLocations desired. If null, will default to entire screen. 
+ * 		  args[4]: range of xLocations desired. If null, will default to entire screen. 
+ * 		  args[5]: range of yLocations desired. If null, will default to entire screen. 
  * @author allenchen
  *
  */
@@ -81,9 +80,9 @@ public class RandomTrainingXMLGen {
 		//Size Range
 		ArrayList<Double> sizeLim = argsToArrayListDouble(args[3]);
 		//Location Lims
-		if (args.length == 7) { //Location Range Given
-			xLim = argsToArrayListDouble(args[5]);
-			yLim = argsToArrayListDouble(args[6]);
+		if (args.length == 6) { //Location Range Given
+			xLim = argsToArrayListDouble(args[4]);
+			yLim = argsToArrayListDouble(args[5]);
 		}
 		else {
 			
