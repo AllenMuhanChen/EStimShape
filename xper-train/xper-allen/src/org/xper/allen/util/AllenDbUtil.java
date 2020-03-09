@@ -10,8 +10,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.xper.allen.db.vo.AllenStimSpecEntry;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.db.vo.StimSpecEntryUtil;
 import org.xper.allen.experiment.saccade.SaccadeExperimentTask;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
@@ -131,13 +131,13 @@ public class AllenDbUtil extends DbUtil {
 	}
 //=================New ReadStimSpec to pass correct Ids to readExperimentTasks
 
-	public AllenStimSpecEntry readStimSpec(long StimSpecId) {
+	public StimSpecEntry readStimSpec(long StimSpecId) {
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
 		return jt.queryForObject(
 				" select id, spec from StimSpec where id = ? ",
-				new ParameterizedRowMapper<AllenStimSpecEntry>() {
-					public AllenStimSpecEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
-						AllenStimSpecEntry s = new AllenStimSpecEntry();
+				new ParameterizedRowMapper<StimSpecEntry>() {
+					public StimSpecEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
+						StimSpecEntry s = new StimSpecEntry();
 						s.setStimId(rs.getLong("id"));
 						s.setSpec(rs.getString("spec"));
 						return s;
@@ -162,8 +162,8 @@ public class AllenDbUtil extends DbUtil {
 			long lastDoneTaskId) {
 
 		//AC
-		AllenStimSpecEntry as = readStimSpec(lastDoneTaskId);
-		Random r = new Random();
+		StimSpecEntry sse = readStimSpec(lastDoneTaskId);
+		StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
 		
 		//
 		final LinkedList<SaccadeExperimentTask> taskToDo = new LinkedList<SaccadeExperimentTask>();
@@ -179,16 +179,19 @@ public class AllenDbUtil extends DbUtil {
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
 						SaccadeExperimentTask task = new SaccadeExperimentTask();
-						int randIndex;
 						task.setGenId(rs.getLong("gen_id"));
 						task.setStimId(rs.getLong("stim_id"));
-						//AC
-						as.setSpec(rs.getString("stim_spec"));									//Reads stimSpec which is now three arrays and stores XML into AllenSpecEntry.spec
-							//StimObjData
-						StimSpec ss = as.genStimSpec();											//StimSpec class mirrors layout of stimSpec table in order to XML read it
-						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	//Extract stimObjDataId from StimSpec class and put into readStimObjData dbUtil --> set as spec of task
-							//TODO: EStimObjData
-						//
+						//Serializing StimSpec
+						sse.setSpec(rs.getString("stim_spec"));	
+						StimSpec ss = sseU.fromXmlSpec();
+						//StimObjData														
+						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	
+						//StimSpec
+						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
+						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
+						task.setDuration(ss.getDuration());
+						//TODO: EStimObjData
+						
 						task.setTaskId(rs.getLong("task_id"));
 						task.setXfmId(rs.getLong("xfm_id"));
 						task.setXfmSpec(rs.getString("xfm_spec"));
@@ -196,11 +199,4 @@ public class AllenDbUtil extends DbUtil {
 					}});
 		return taskToDo;
 	}	
-	
-//==============ReadEyeWinSize========================
-	public float ReadEyeWinSize(long stimSpecId) {
-		AllenStimSpecEntry as = readStimSpec(stimSpecId);
-		StimSpec ss = as.genStimSpec();
-		return ss.getTargetEyeWinSize();
-	}
 }

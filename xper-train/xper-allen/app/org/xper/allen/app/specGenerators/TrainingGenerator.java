@@ -16,8 +16,7 @@ public class TrainingGenerator {
 			//blockId
 			String filepath = args[0];
 			//target eye window size
-			double targetEyeWinSize = Double.parseDouble(args[1]);
-			gen.generate(filepath, targetEyeWinSize);
+			gen.generate(filepath);
 		}
 		catch(Exception e) {
 			System.out.println("Something went wrong");

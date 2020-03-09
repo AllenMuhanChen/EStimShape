@@ -1,7 +1,6 @@
 package org.xper.allen.app.specGenerators;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 
 import org.xper.Dependency;
@@ -10,7 +9,7 @@ import org.xper.allen.app.blockGenerators.VisualTrial;
 import org.xper.allen.app.blockGenerators.trials.Trial;
 import org.xper.allen.app.blockGenerators.trials.VisualStimSpec;
 import org.xper.allen.specs.BlockSpec;
-import org.xper.allen.specs.GaussSpec;
+import org.xper.allen.specs.StimSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.exception.VariableNotFoundException;
@@ -41,7 +40,7 @@ public class trainingBlockGen {
 	
 	
 	long genId = 1;
-	public Trial[] generate(String filepath, double targetEyeWinSize) { //
+	public Trial[] generate(String filepath) { //
 	
 		ArrayList<VisualTrial> visualTrials = (ArrayList<VisualTrial>) xmlUtil.parseFile(filepath);
 		try {
@@ -56,9 +55,10 @@ public class trainingBlockGen {
 			String spec = trial.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());
-			VisualStimSpec visStimSpec = new VisualStimSpec(new long[] {taskId}, targetEyeWinSize);
-			dbUtil.writeStimSpec(taskId, visStimSpec.toXml());
+			StimSpec stimSpec = new VisualStimSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId);
+			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
+		
 		}
 		dbUtil.updateReadyGenerationInfo(genId, visualTrials.size());
 		System.out.println("Done Generating...");
