@@ -3,7 +3,7 @@ package org.xper.allen.app.blockGenerators.trials;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
-public class visualTrial extends Trial{
+public class VisualStimSpec extends Trial{
 	@XStreamAlias("targetEyeWinSize")
 	double targetEyeWinSize;
 	@XStreamAlias("stimObjData")
@@ -13,11 +13,11 @@ public class visualTrial extends Trial{
 	@XStreamAlias("eStimObjChans")
 	int[] eStimObjChans;
 
-	public visualTrial() {
+	public VisualStimSpec() {
 		//Empty Constructor
 	}
 	
-	public visualTrial(long[] stimObjData, double targetEyeWinSize) {
+	public VisualStimSpec(long[] stimObjData, double targetEyeWinSize) {
 		//stimObj Constructor
 		this.targetEyeWinSize = targetEyeWinSize; 
 		this.stimObjData = stimObjData;
@@ -26,7 +26,7 @@ public class visualTrial extends Trial{
 		
 		
 		s = new XStream();
-		s.alias("StimSpec", visualTrial.class);
+		s.alias("StimSpec", VisualStimSpec.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	

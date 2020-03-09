@@ -1,6 +1,5 @@
 package org.xper.allen.experiment.saccade;
 
-import java.sql.Timestamp;
 import java.util.List;
 
 import org.xper.Dependency;
@@ -8,12 +7,7 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
-import org.xper.classic.vo.SlideTrialExperimentState;
-import org.xper.classic.vo.TrialContext;
-import org.xper.classic.vo.TrialExperimentState;
 import org.xper.classic.vo.TrialResult;
-import org.xper.experiment.ExperimentTask;
-import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeMonitor;
@@ -23,7 +17,6 @@ import org.xper.eye.TargetSelectorResult;
 import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
-import org.xper.util.ThreadUtil;
 import org.xper.util.TrialExperimentUtil;
 import org.xper.drawing.Coordinates2D;
 
@@ -38,7 +31,6 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
-		EyeController eyeController = stateObject.getEyeController();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
 		
@@ -52,12 +44,10 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		drawingController.showSlide(currentTask, currentContext);
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
-		long targetOnLocalTime = currentContext.getCurrentSlideOnTime();
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
 		
 		//Eye on Target Logic
 		//eye selector
-		long beforeDriverInit = timeUtil.currentTimeMicros();
 		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
 		currentContext.setTargetOnTime(currentContext.getCurrentSlideOnTime()); 
 		
@@ -66,7 +56,6 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
 		
 		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
-		long beforeDriver = timeUtil.currentTimeMicros();
 		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
 						     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 						     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);

@@ -7,7 +7,7 @@ public class GaussSpec {
 	double yCenter;
 	double size;
 	double brightness;
-	double duration;
+	
 	
 	transient static XStream s;
 	
@@ -28,13 +28,12 @@ public class GaussSpec {
 	
 	public GaussSpec() {}
 	
-	public GaussSpec(double xCenter, double yCenter, double size, double brightness, double duration) {
+	public GaussSpec(double xCenter, double yCenter, double size, double brightness) {
 		super();
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.size = size;
 		this.brightness = brightness;
-		this.duration = duration;
 	}
 
 	public double getXCenter() {
@@ -65,12 +64,6 @@ public class GaussSpec {
 		this.brightness = brightness;
 	}
 
-	public double getDuration() {
-		return duration;
-	}
 
-	public void setDuration(double duration) {
-		this.duration = duration;
-	}
 
 }

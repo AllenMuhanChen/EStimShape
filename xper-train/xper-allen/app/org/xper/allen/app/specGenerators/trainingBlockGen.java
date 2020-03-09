@@ -8,10 +8,7 @@ import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.app.blockGenerators.VisualTrial;
 import org.xper.allen.app.blockGenerators.trials.Trial;
-import org.xper.allen.app.blockGenerators.trials.bothTrial;
-import org.xper.allen.app.blockGenerators.trials.catchTrial;
-import org.xper.allen.app.blockGenerators.trials.estimTrial;
-import org.xper.allen.app.blockGenerators.trials.visualTrial;
+import org.xper.allen.app.blockGenerators.trials.VisualStimSpec;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.util.AllenDbUtil;
@@ -46,25 +43,24 @@ public class trainingBlockGen {
 	long genId = 1;
 	public Trial[] generate(String filepath, double targetEyeWinSize) { //
 	
-		ArrayList<GaussSpec> gaussSpecs = (ArrayList<GaussSpec>) xmlUtil.parseFile(filepath);
-		System.out.println(gaussSpecs.size());
+		ArrayList<VisualTrial> visualTrials = (ArrayList<VisualTrial>) xmlUtil.parseFile(filepath);
 		try {
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
-		for (int i = 0; i < gaussSpecs.size(); i++) {
+		for (int i = 0; i < visualTrials.size(); i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
 			
-			VisualTrial trial = new VisualTrial(gaussSpecs.get(i), targetEyeWinSize);
+			VisualTrial trial = visualTrials.get(i);
 			String spec = trial.toXml();
 			System.out.println(spec);
-			dbUtil.writeStimObjData(taskId, gaussSpecs.get(i).toXml(), "");
-			visualTrial vistrial = new visualTrial(new long[] {taskId}, targetEyeWinSize);
-			dbUtil.writeStimSpec(taskId, vistrial.toXml());
+			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());
+			VisualStimSpec visStimSpec = new VisualStimSpec(new long[] {taskId}, targetEyeWinSize);
+			dbUtil.writeStimSpec(taskId, visStimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
-		dbUtil.updateReadyGenerationInfo(genId, gaussSpecs.size());
+		dbUtil.updateReadyGenerationInfo(genId, visualTrials.size());
 		System.out.println("Done Generating...");
 		return trialList;
 		
