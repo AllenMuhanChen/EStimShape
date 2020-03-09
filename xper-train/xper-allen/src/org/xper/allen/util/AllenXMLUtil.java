@@ -15,7 +15,6 @@ public class AllenXMLUtil {
 		s.alias("list", ArrayList.class);
 		s.alias("VisualTrial", VisualTrial.class);
 		s.alias("GaussSpec", GaussSpec.class);
-
 	}
 	
 	public Object parseFile(String filepath) {

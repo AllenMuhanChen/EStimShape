@@ -91,7 +91,7 @@
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.blockGenerators.RandomTrainingXMLGen" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar"/>
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
 			</manifest>
 		</jar>
 		
