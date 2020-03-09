@@ -4,21 +4,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-
 import com.thoughtworks.xstream.XStream;
 
-import org.xper.allen.specs.GaussSpec;
+import org.xper.allen.app.blockGenerators.VisualTrial;
 public class AllenXMLUtil {
 	XStream s = new XStream();
 	
 	public AllenXMLUtil() {
 		s.alias("list", ArrayList.class);
-		s.alias("GaussSpec", GaussSpec.class);
+		s.alias("VisualTrial", VisualTrial.class);
 	}
 	
 	public Object parseFile(String filepath) {
