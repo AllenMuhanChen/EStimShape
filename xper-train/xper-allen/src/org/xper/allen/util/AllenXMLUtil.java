@@ -7,12 +7,14 @@ import java.util.ArrayList;
 import com.thoughtworks.xstream.XStream;
 
 import org.xper.allen.app.blockGenerators.VisualTrial;
+import org.xper.allen.specs.GaussSpec;
 public class AllenXMLUtil {
 	XStream s = new XStream();
 	
 	public AllenXMLUtil() {
 		s.alias("list", ArrayList.class);
 		s.alias("VisualTrial", VisualTrial.class);
+		s.alias("GaussSpec", GaussSpec.class);
 	}
 	
 	public Object parseFile(String filepath) {
