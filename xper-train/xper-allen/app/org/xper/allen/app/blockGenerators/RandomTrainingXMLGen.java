@@ -48,6 +48,7 @@ public class RandomTrainingXMLGen {
 	static {
 		s = new XStream();
 		s.alias("VisualTrial", VisualTrial.class);
+		s.aliasField("GaussSpec", VisualTrial.class, "gaussSpec");
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
@@ -97,9 +98,14 @@ public class RandomTrainingXMLGen {
 		}
 		//Duration Range
 		ArrayList<Double> durationLim = argsToArrayListDouble(args[6]);
-
+		String data;
 		//Data
-		String data = args[8];
+		if (args[8].isEmpty()){
+			data = " ";
+		}
+		else {
+			data = args[8];
+		}
 		
 	//Generating XML String
 		ArrayList<VisualTrial> trialList = new ArrayList<VisualTrial>();

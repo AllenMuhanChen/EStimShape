@@ -22,6 +22,7 @@ public class TrainingGenerator {
 			System.out.println("Something went wrong");
 			e.printStackTrace();
 		
+		
 
 		}
 	}

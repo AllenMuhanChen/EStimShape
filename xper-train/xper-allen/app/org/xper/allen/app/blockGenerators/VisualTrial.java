@@ -4,6 +4,7 @@ import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
  * Class to make initializing a StimSpec intended for purely visual stimuli easier. 
@@ -11,10 +12,15 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class VisualTrial {
+	@XStreamAlias("GaussSpec")
 	GaussSpec gaussSpec;
+	@XStreamAlias("targetEyeWinCoords")
 	Coordinates2D targetEyeWinCoords;
+	@XStreamAlias("targetEyeWinSize")
 	double targetEyeWinSize;
+	@XStreamAlias("duration")
 	double duration;
+	@XStreamAlias("data")
 	String data;
 	
 	transient XStream s = new XStream();
