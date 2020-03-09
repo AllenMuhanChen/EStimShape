@@ -54,8 +54,6 @@ public class trainingBlockGen {
 			VisualTrial trial = visualTrials.get(i);
 			String spec = trial.toXml();
 			System.out.println(spec);
-			System.out.println(trial.getGaussSpec());
-			System.out.println(trial.getData());
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());
 			StimSpec stimSpec = new VisualStimSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId);
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
