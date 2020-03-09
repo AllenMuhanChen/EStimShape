@@ -34,6 +34,8 @@ import com.thoughtworks.xstream.XStream;
  * 		  args[4]: range of xLocations desired. If null, will default to entire screen. 
  * 		  args[5]: range of yLocations desired. If null, will default to entire screen. 
  * 		  args[6]: range of durations desired. 
+ * 		  args[7]: size of eyeTargetWindow. If null, will default to size of stimulus. 
+ * 		  args[8]: String for "Data" column of StimObjData 
  * @author allenchen
  *
  */
@@ -94,22 +96,37 @@ public class RandomTrainingXMLGen {
 		}
 		//Duration Range
 		ArrayList<Double> durationLim = argsToArrayListDouble(args[6]);
+
+		//Data
+		String data = args[8];
 		
 	//Generating XML String
-		ArrayList<GaussSpec> gaussList = new ArrayList<GaussSpec>();
+		ArrayList<VisualTrial> trialList = new ArrayList<VisualTrial>();
 		for (int i=0; i<numberStimuli; i++) {
 			
-			//StimObjData
+			//GaussSpec
 			double randSize = inclusiveRandomDouble(sizeLim.get(0), sizeLim.get(1));
 			double randXCenter = inclusiveRandomDouble(xLim.get(0)+randSize,xLim.get(1)-randSize); //+/- randSize puts padding around screen edges
 			double randYCenter = inclusiveRandomDouble(yLim.get(0)+randSize,yLim.get(1)-randSize); 
 			double randBrightness = inclusiveRandomDouble(brightnessLim.get(0), brightnessLim.get(1));
-			double randDuration = inclusiveRandomDouble(durationLim.get(0),durationLim.get(1));
 			
-			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness, randDuration);
-			gaussList.add(randGaussSpec);
+			//StimSpec
+			double randDuration = inclusiveRandomDouble(durationLim.get(0),durationLim.get(1));
+			//EyeTargetWindow
+			double eyeTargetWindow;
+			if (args[7].isEmpty()){
+				eyeTargetWindow = randSize;
+				
+			}else
+			{
+				eyeTargetWindow = Double.parseDouble(args[7]);
+			}
+			
+			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness);
+			VisualTrial randVisualTrial = new VisualTrial(randGaussSpec, randDuration, eyeTargetWindow, data);
+			trialList.add(randVisualTrial);
 		}
-		String XML = s.toXML(gaussList);
+		String XML = s.toXML(trialList);
 		System.out.println(XML);
 		
 	//Generating XML Document
