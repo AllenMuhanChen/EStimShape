@@ -73,8 +73,9 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		
 		do {
 		}
-		while((timeUtil.currentTimeMicros() < slideOnLocalTime
-				+ stateObject.getSlideLength() * 1000));
+		while (timeUtil.currentTimeMicros()<slideOnLocalTime + currentTask.getDuration()*1000);
+		//while((timeUtil.currentTimeMicros() < slideOnLocalTime
+		//		+ stateObject.getSlideLength() * 1000));
 		
 		//finish current slide
 		drawingController.slideFinish(currentTask, currentContext);
