@@ -47,7 +47,8 @@ public class RandomTrainingXMLGen {
 	transient static XStream s;
 	static {
 		s = new XStream();
-		s.alias("GaussSpec", GaussSpec.class);
+		s.alias("VisualTrial", VisualTrial.class);
+
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	
