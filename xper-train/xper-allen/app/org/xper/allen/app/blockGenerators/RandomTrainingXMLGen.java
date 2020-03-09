@@ -21,6 +21,7 @@ import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.util.AllenDbUtil;
+import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.DatabaseSystemVariableContainer;
 import org.xper.experiment.SystemVariableContainer;
 import com.thoughtworks.xstream.XStream;
@@ -34,7 +35,7 @@ import com.thoughtworks.xstream.XStream;
  * 		  args[4]: range of xLocations desired. If null, will default to entire screen. 
  * 		  args[5]: range of yLocations desired. If null, will default to entire screen. 
  * 		  args[6]: range of durations desired. 
- * 		  args[7]: size of eyeTargetWindow. If null, will default to size of stimulus. 
+ * 		  args[7]: size of targetEyeWinSize. If null, will default to size of stimulus. 
  * 		  args[8]: String for "Data" column of StimObjData 
  * @author allenchen
  *
@@ -112,18 +113,21 @@ public class RandomTrainingXMLGen {
 			
 			//StimSpec
 			double randDuration = inclusiveRandomDouble(durationLim.get(0),durationLim.get(1));
-			//EyeTargetWindow
-			double eyeTargetWindow;
+			//targetEyeWinSize
+			double targetEyeWinSize;
 			if (args[7].isEmpty()){
-				eyeTargetWindow = randSize;
+				targetEyeWinSize = randSize;
 				
 			}else
 			{
-				eyeTargetWindow = Double.parseDouble(args[7]);
+				targetEyeWinSize = Double.parseDouble(args[7]);
 			}
+			//targetEyeWinCoords
+			Coordinates2D targetEyeWinCoords = new Coordinates2D(randXCenter, randYCenter);
 			
+			//Generating Trial Object to be added to trialList that will be Serialized
 			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness);
-			VisualTrial randVisualTrial = new VisualTrial(randGaussSpec, randDuration, eyeTargetWindow, data);
+			VisualTrial randVisualTrial = new VisualTrial(randGaussSpec, randDuration, targetEyeWinCoords, targetEyeWinSize, data);
 			trialList.add(randVisualTrial);
 		}
 		String XML = s.toXML(trialList);

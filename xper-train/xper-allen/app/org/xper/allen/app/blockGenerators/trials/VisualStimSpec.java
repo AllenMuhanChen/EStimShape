@@ -1,29 +1,30 @@
 package org.xper.allen.app.blockGenerators.trials;
 
+import org.xper.allen.specs.StimSpec;
+import org.xper.drawing.Coordinates2D;
+
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
-public class VisualStimSpec extends Trial{
-	@XStreamAlias("targetEyeWinSize")
-	double targetEyeWinSize;
-	@XStreamAlias("stimObjData")
-	long[] stimObjData;
-	@XStreamAlias("eStimObjData")
-	long[] eStimObjData;
-	@XStreamAlias("eStimObjChans")
-	int[] eStimObjChans;
-
-	public VisualStimSpec() {
-		//Empty Constructor
-	}
+public class VisualStimSpec extends StimSpec{
 	
-	public VisualStimSpec(long[] stimObjData, double targetEyeWinSize) {
-		//stimObj Constructor
-		this.targetEyeWinSize = targetEyeWinSize; 
-		this.stimObjData = stimObjData;
+	/**
+	 * 
+	 * @param targetEyeWinCoords
+	 * @param targetEyeWinSize
+	 * @param duration
+	 * @param taskid
+	 */
+	public VisualStimSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long taskid) {
+		super();
+		//Defaults
 		this.eStimObjData = new long[] {1};
-		this.eStimObjChans = new int[] {};
-		
+		this.eStimObjChans = new int[] {1};
+		this.stimObjData = new long[] {taskid};
+		//
+		this.targetEyeWinCoords = targetEyeWinCoords;
+		this.targetEyeWinSize = targetEyeWinSize;
+		this.duration = duration;
 		
 		s = new XStream();
 		s.alias("StimSpec", VisualStimSpec.class);

@@ -93,8 +93,8 @@ public class SaccadeTrialExperiment implements Experiment {
 							try {
 								try {
 									//target info -AC
-									Coordinates2D targetPosition = context.getCurrentTask().parseCoords();
-									float targetEyeWinSize = dbUtil.ReadEyeWinSize(context.getCurrentTask().getStimId());
+									Coordinates2D targetPosition = context.getCurrentTask().getTargetEyeWinCoords();
+									double targetEyeWinSize = context.getCurrentTask().getTargetEyeWinSize();
 									context.setTargetPos(targetPosition);
 									context.setTargetEyeWindowSize(targetEyeWinSize);
 								} catch (Exception e){

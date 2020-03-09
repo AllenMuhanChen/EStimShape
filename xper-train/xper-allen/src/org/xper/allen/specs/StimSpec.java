@@ -1,33 +1,47 @@
 package org.xper.allen.specs;
 
+import org.xper.drawing.Coordinates2D;
+
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public class StimSpec {
+	@XStreamAlias("targetEyeWinCoords")
+	protected Coordinates2D targetEyeWinCoords;
 	@XStreamAlias("targetEyeWinSize")
-	float targetEyeWinSize;
+	protected double targetEyeWinSize;
+	@XStreamAlias("duration")
+	protected double duration;
 	@XStreamAlias("stimObjData")
-	long[] stimObjData;
+	protected long[] stimObjData;
 	@XStreamAlias("eStimObjData")
-	long[] eStimObjData;
+	protected long[] eStimObjData;
 	@XStreamAlias("eStimObjChans")
-	int[] eStimObjChans;
+	protected int[] eStimObjChans;
 	
-	public StimSpec(long[] stimObjIds, long[] estimIds) {
-		stimObjIds = new long[stimObjIds.length];
-		estimIds = new long[estimIds.length];
-	}
-	
-	public StimSpec() {
-	//Default Constructor	
-	}
-	transient static XStream s;
+	protected transient static XStream s;
 	
 	static {
 		s = new XStream();
 		s.alias("StimSpec", StimSpec.class);
 	}
 	
+	public StimSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long[] stimObjData,
+			long[] eStimObjData, int[] eStimObjChans) {
+		super();
+		this.targetEyeWinCoords = targetEyeWinCoords;
+		this.targetEyeWinSize = targetEyeWinSize;
+		this.duration = duration;
+		this.stimObjData = stimObjData;
+		this.eStimObjData = eStimObjData;
+		this.eStimObjChans = eStimObjChans;
+	}
+
+	
+	public StimSpec() {
+	}
+
+
 	public static String toXml (StimSpec spec) {
 		return s.toXML(spec);
 	}
@@ -37,8 +51,6 @@ public class StimSpec {
 	}
 	
 	public static StimSpec fromXml (String xml) {
-		
-		//s.aliasField("targetEyeWinSize", StimSpec.class, "targetEyeWinSize");
 		StimSpec ss = (StimSpec)s.fromXML(xml);
 		return ss;
 	}
@@ -67,12 +79,28 @@ public class StimSpec {
 		this.eStimObjChans = eStimObjChans;
 	}
 
-	public float getTargetEyeWinSize() {
+	public double getTargetEyeWinSize() {
 		return targetEyeWinSize;
 	}
 
-	public void setTargetEyeWinSize(float targetEyeWinSize) {
+	public void setTargetEyeWinSize(double targetEyeWinSize) {
 		this.targetEyeWinSize = targetEyeWinSize;
+	}
+
+	public double getDuration() {
+		return duration;
+	}
+
+	public void setDuration(double duration) {
+		this.duration = duration;
+	}
+
+	public Coordinates2D getTargetEyeWinCoords() {
+		return targetEyeWinCoords;
+	}
+
+	public void setTargetEyeWinCoords(Coordinates2D targetEyeWinCoords) {
+		this.targetEyeWinCoords = targetEyeWinCoords;
 	}
 
 }

@@ -59,8 +59,9 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
 						     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 						     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-		
+		System.out.println("Duration: " + currentTask.getDuration());
 		do {
+
 		}
 		while (timeUtil.currentTimeMicros()<slideOnLocalTime + currentTask.getDuration()*1000);
 		//while((timeUtil.currentTimeMicros() < slideOnLocalTime
