@@ -19,14 +19,10 @@ import javax.xml.transform.stream.StreamResult;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
-import org.xper.allen.app.blockGenerators.trials.Trial;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.experiment.DatabaseSystemVariableContainer;
 import org.xper.experiment.SystemVariableContainer;
-import org.xper.time.DefaultTimeUtil;
-import org.xper.time.TimeUtil;
-
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -37,6 +33,7 @@ import com.thoughtworks.xstream.XStream;
  * 		  args[3]: range of size of stimuli desired <br>
  * 		  args[4]: range of xLocations desired. If null, will default to entire screen. 
  * 		  args[5]: range of yLocations desired. If null, will default to entire screen. 
+ * 		  args[6]: range of durations desired. 
  * @author allenchen
  *
  */
@@ -79,25 +76,27 @@ public class RandomTrainingXMLGen {
 		ArrayList<Double> brightnessLim = argsToArrayListDouble(args[2]);
 		//Size Range
 		ArrayList<Double> sizeLim = argsToArrayListDouble(args[3]);
-		//Location Lims
-		if (args.length == 6) { //Location Range Given
-			xLim = argsToArrayListDouble(args[4]);
-			yLim = argsToArrayListDouble(args[5]);
-		}
-		else {
-			
+		//Location Range
+		if (args[4].isEmpty()) { //Location Range Given
 			xLim.add(-1*monkey_screen_width/4); 
 			xLim.add(monkey_screen_width/4);
+		}
+		else {
+			xLim = argsToArrayListDouble(args[4]);
+		}
+		
+		if (args[5].isEmpty()) {
 			yLim.add(-1*monkey_screen_height/2);
 			yLim.add(monkey_screen_height/2);
 		}
+		else {
+			yLim = argsToArrayListDouble(args[5]);
+		}
+		//Duration Range
+		ArrayList<Double> durationLim = argsToArrayListDouble(args[6]);
 		
 	//Generating XML String
 		ArrayList<GaussSpec> gaussList = new ArrayList<GaussSpec>();
-		
-
-		
-		
 		for (int i=0; i<numberStimuli; i++) {
 			
 			//StimObjData
@@ -105,8 +104,9 @@ public class RandomTrainingXMLGen {
 			double randXCenter = inclusiveRandomDouble(xLim.get(0)+randSize,xLim.get(1)-randSize); //+/- randSize puts padding around screen edges
 			double randYCenter = inclusiveRandomDouble(yLim.get(0)+randSize,yLim.get(1)-randSize); 
 			double randBrightness = inclusiveRandomDouble(brightnessLim.get(0), brightnessLim.get(1));
+			double randDuration = inclusiveRandomDouble(durationLim.get(0),durationLim.get(1));
 			
-			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness);
+			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness, randDuration);
 			gaussList.add(randGaussSpec);
 		}
 		String XML = s.toXML(gaussList);
