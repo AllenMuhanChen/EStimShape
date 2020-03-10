@@ -35,7 +35,7 @@ import com.thoughtworks.xstream.XStream;
  * 		  args[4]: range of xLocations desired. If null, will default to entire screen. 
  * 		  args[5]: range of yLocations desired. If null, will default to entire screen. 
  * 		  args[6]: range of durations desired. 
- * 		  args[7]: size of targetEyeWinSize. If null, will default to size of stimulus. 
+ * 		  args[7]: size of targetEyeWinSize. If null, will default to double the size of stimulus. 
  * 		  args[8]: String for "Data" column of StimObjData 
  * @author allenchen
  *
@@ -117,7 +117,7 @@ public class RandomTrainingXMLGen {
 			//targetEyeWinSize
 			double targetEyeWinSize;
 			if (args[7].isEmpty()){
-				targetEyeWinSize = randSize;
+				targetEyeWinSize = randSize*2;
 				
 			}else
 			{
@@ -153,11 +153,11 @@ public class RandomTrainingXMLGen {
 	}
 	
 	public static double inclusiveRandomDouble(double val1, double val2) {
-		if (val1==val2){
-			return val1;
+		if (val2>val1){
+			return ThreadLocalRandom.current().nextDouble(val1, val2);
 		}
 		else {
-			return ThreadLocalRandom.current().nextDouble(val1, val2);
+			return val1;
 		}
 
 	}
