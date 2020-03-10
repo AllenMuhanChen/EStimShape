@@ -32,6 +32,7 @@ import org.xper.config.ClassicConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.BlankTaskScene;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.AbstractRenderer;
@@ -103,7 +104,7 @@ public class AllenConfig {
 		
 		console.setPaused(classicConfig.xperExperimentInitialPause());
 		console.setConsoleRenderer(classicConfig.consoleRenderer());
-		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
+		console.setMonkeyScreenDimension(consoleResolution());
 		console.setModel(classicConfig.experimentConsoleModel());
 		console.setCanvasScaleFactor(3);
 		
@@ -112,6 +113,14 @@ public class AllenConfig {
 		receiver.addMessageReceiverEventListener(console);
 		
 		return console;
+	}
+	/**Changes resolution of console to be monkeyWindowWidth/2 , monkeyWindowHeight. This is to subvert the two XScreen setup aspect ratio being different from console aspect ratio.  
+	 * @author allenchen
+	 */
+	@Bean
+	public Coordinates2D consoleResolution(){
+		Coordinates2D monkeyScreenDimension = classicConfig.monkeyWindow().getScreenDimension();
+		return new Coordinates2D(monkeyScreenDimension.getX()/2,monkeyScreenDimension.getY());
 	}
 	
 	@Bean
@@ -192,10 +201,11 @@ public class AllenConfig {
 		if (markEveryStep) {
 			controller = new SaccadeMarkEveryStepTrialDrawingController();
 		} else {
-			controller = new MarkStimTrialDrawingController();
+			System.out.println("No option to turn markEveryStep off. Defaulted to markEveryStep on. Change this in AllenConfig");
+			controller = new SaccadeMarkEveryStepTrialDrawingController();
 		}
 		controller.setWindow(classicConfig.monkeyWindow());
-		controller.setTaskScene(taskScene());
+		controller.setTaskScene(classicConfig.taskScene());
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
 		return controller;
 	}
