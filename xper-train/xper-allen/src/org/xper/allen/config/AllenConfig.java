@@ -120,7 +120,7 @@ public class AllenConfig {
 	@Bean
 	public Coordinates2D consoleResolution(){
 		Coordinates2D monkeyScreenDimension = classicConfig.monkeyWindow().getScreenDimension();
-		return new Coordinates2D(monkeyScreenDimension.getX()*2,monkeyScreenDimension.getY());
+		return new Coordinates2D(monkeyScreenDimension.getX()/2,monkeyScreenDimension.getY());
 	}
 	
 	@Bean
