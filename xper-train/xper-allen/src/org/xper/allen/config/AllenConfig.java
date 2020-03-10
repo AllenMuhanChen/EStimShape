@@ -26,6 +26,7 @@ import org.xper.classic.MarkEveryStepTrialDrawingController;
 import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
+import org.xper.classic.TrialExperimentConsoleRenderer;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -34,6 +35,8 @@ import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.BlankTaskScene;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.object.Circle;
+import org.xper.drawing.object.Square;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.exception.DbException;
@@ -112,6 +115,30 @@ public class AllenConfig {
 		receiver.addMessageReceiverEventListener(console);
 		
 		return console;
+	}
+	
+	@Bean
+	public TrialExperimentConsoleRenderer consoleRenderer () {
+		TrialExperimentConsoleRenderer renderer = new TrialExperimentConsoleRenderer();
+		renderer.setMessageHandler(classicConfig.messageHandler());
+		renderer.setFixation(classicConfig.consoleFixationPoint());
+		renderer.setRenderer(consoleGLRenderer());
+		renderer.setBlankScreen(new BlankScreen());
+		renderer.setCircle(new Circle());
+		renderer.setSquare(new Square());
+		return renderer;
+	}
+	
+	
+	@Bean
+	public AbstractRenderer consoleGLRenderer () {
+		PerspectiveRenderer renderer = new PerspectiveRenderer();
+		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
+		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
+		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth()/2); //AC Change: divide xperMonkeyScreenWidth by 2 to account for two XScreen aspect ratio change. 
+		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
+		return renderer;
 	}
 	
 	@Bean
