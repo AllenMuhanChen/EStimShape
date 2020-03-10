@@ -68,7 +68,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		//		+ stateObject.getSlideLength() * 1000));
 		
 		//finish current slide
-		drawingController.slideFinish(currentTask, currentContext);
+		drawingController.trialComplete(currentContext);
 		long slideOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
 		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,

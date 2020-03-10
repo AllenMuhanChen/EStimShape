@@ -18,9 +18,13 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
+import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
+import org.xper.classic.MarkEveryStepTrialDrawingController;
+import org.xper.classic.MarkStimTrialDrawingController;
+import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -162,7 +166,7 @@ public class AllenConfig {
 		state.setTaskDataSource(databaseTaskDataSource());
 		state.setTaskDoneCache(classicConfig.taskDoneCache());
 		state.setGlobalTimeClient(acqConfig.timeClient());
-		state.setDrawingController(classicConfig.drawingController());
+		state.setDrawingController(drawingController());
 		state.setInterTrialInterval(classicConfig.xperInterTrialInterval());
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
@@ -181,6 +185,19 @@ public class AllenConfig {
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		return state;
+	}
+
+	private TrialDrawingController drawingController() {
+		MarkStimTrialDrawingController controller;
+		if (markEveryStep) {
+			controller = new SaccadeMarkEveryStepTrialDrawingController();
+		} else {
+			controller = new MarkStimTrialDrawingController();
+		}
+		controller.setWindow(classicConfig.monkeyWindow());
+		controller.setTaskScene(taskScene());
+		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
+		return controller;
 	}
 
 	@Bean
