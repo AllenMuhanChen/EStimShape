@@ -40,8 +40,6 @@ public class SaccadeExperimentConsoleRenderer {
 	
 	@Dependency
 	protected SaccadeExperimentMessageHandler messageHandler;
-	@Dependency
-	SaccadeExperimentState experimentState;
 	
 
 	
@@ -120,7 +118,7 @@ public class SaccadeExperimentConsoleRenderer {
 		double targetEyeWinSize = experimentState.getCurrentTask().getTargetEyeWinSize();
 		System.out.println("Here is targetEyeWincoords: " + targetEyeWinCoords);
 		
-		if (messageHandler.isSlideOn()) {
+		if (messageHandler.isTargetOn()) {
 			GLUtil.drawSquare(getSquare(), targetIndicatorSize, true, targetEyeWinCoords.getX(), targetEyeWinCoords.getY(), 0);
 			GLUtil.drawCircle(getCircle(), targetEyeWinSize, true, targetEyeWinCoords.getX(), targetEyeWinCoords.getY(), 0);
 		}
