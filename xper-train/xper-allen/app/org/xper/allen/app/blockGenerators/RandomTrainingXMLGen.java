@@ -51,6 +51,7 @@ public class RandomTrainingXMLGen {
 
 		s.setMode(XStream.NO_REFERENCES);
 	}
+	static double distance;
 	
 	public static void main(String[] args) {
 	//DB set-up
@@ -64,6 +65,7 @@ public class RandomTrainingXMLGen {
 		SystemVariableContainer systemVarContainer = createSysVarContainer(dbUtil);
 		double monkey_screen_width = Double.parseDouble(systemVarContainer.get("xper_monkey_screen_width", 0));
 		double monkey_screen_height = Double.parseDouble(systemVarContainer.get("xper_monkey_screen_height", 0));
+		distance = Double.parseDouble(systemVarContainer.get("xper_monkey_screen_distance", 0));
 		
 	//Arguments
 		//Name of File
@@ -81,9 +83,10 @@ public class RandomTrainingXMLGen {
 		//Size Range
 		ArrayList<Double> sizeLim = argsToArrayListDouble(args[3]);
 		//Location Range
+		System.out.println("The Screen is: "+mm2deg(monkey_screen_width/2) + "x" + mm2deg(monkey_screen_height) + "in visual degrees");
 		if (args[4].isEmpty()) { //Location Range Given
-			xLim.add(-1*monkey_screen_width/4); 
-			xLim.add(monkey_screen_width/4);
+			xLim.add(mm2deg(-1*monkey_screen_width/4)); 
+			xLim.add(mm2deg(monkey_screen_width/4));
 		}
 		else {
 			xLim = argsToArrayListDouble(args[4]);
@@ -187,5 +190,9 @@ public class RandomTrainingXMLGen {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static double mm2deg(double mm) {
+		return Math.atan(mm / distance) * 180.0 / Math.PI;
 	}
 }
