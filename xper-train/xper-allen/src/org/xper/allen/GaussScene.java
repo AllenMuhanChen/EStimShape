@@ -4,7 +4,6 @@ import org.xper.Dependency;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
-import org.xper.rfplot.RFPlotGaborObject;
 
 public class GaussScene extends AbstractTaskScene{
 	/**
@@ -12,7 +11,7 @@ public class GaussScene extends AbstractTaskScene{
 	 */
 	@Dependency
 	double distance;
-	RFPlotGaussianObject obj = new RFPlotGaussianObject(distance);
+	RFPlotGaussianObject obj = new RFPlotGaussianObject();
 	
 	public void initGL(int w, int h) {
 		super.initGL(w, h);
@@ -24,6 +23,7 @@ public class GaussScene extends AbstractTaskScene{
 	}
 
 	public void drawStimulus(Context context) {
+		obj.setDistance(distance);
 		obj.draw(context);
 	}
 

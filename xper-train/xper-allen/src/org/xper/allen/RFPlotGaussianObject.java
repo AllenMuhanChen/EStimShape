@@ -25,9 +25,6 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
 	
-	public RFPlotGaussianObject(double distance) {
-		this.distance = distance;
-	}
 	
 	static ByteBuffer makeTexture(int w, int h) {
 		ByteBuffer texture = ByteBuffer.allocateDirect(
@@ -58,12 +55,19 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	public void draw(Context context) {
 		double rfRadius = 1;
 		
+		System.out.println("distance: " + distance);
 		double xCenter = spec.getXCenter() * rfRadius;
+		System.out.println("xCenter: " + xCenter);
 		xCenter = deg2mm(xCenter);
+		System.out.println("xCenter: " + xCenter);
 		double yCenter = spec.getYCenter() * rfRadius;
+		System.out.println("yCenter: " + yCenter);
 		yCenter = deg2mm(yCenter);
+		System.out.println("yCenter: " + yCenter);
 		double size = spec.getSize() * rfRadius;
+		System.out.println("size: " + size);
 		size = deg2mm(size);
+		System.out.println("size: " + size);
 		double brightness = spec.getBrightness();
 		
 		float cury;
@@ -175,6 +179,11 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	
 	public double deg2mm(double deg) {
 		return Math.tan(deg * Math.PI / 180.0) * distance;
+	}
+
+
+	public void setDistance(double distance) {
+		this.distance = distance;
 	}
 
 }
