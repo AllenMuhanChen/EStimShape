@@ -55,19 +55,12 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	public void draw(Context context) {
 		double rfRadius = 1;
 		
-		System.out.println("distance: " + distance);
 		double xCenter = spec.getXCenter() * rfRadius;
-		System.out.println("xCenter: " + xCenter);
 		xCenter = deg2mm(xCenter);
-		System.out.println("xCenter: " + xCenter);
 		double yCenter = spec.getYCenter() * rfRadius;
-		System.out.println("yCenter: " + yCenter);
 		yCenter = deg2mm(yCenter);
-		System.out.println("yCenter: " + yCenter);
 		double size = spec.getSize() * rfRadius;
-		System.out.println("size: " + size);
 		size = deg2mm(size);
-		System.out.println("size: " + size);
 		double brightness = spec.getBrightness();
 		
 		float cury;
