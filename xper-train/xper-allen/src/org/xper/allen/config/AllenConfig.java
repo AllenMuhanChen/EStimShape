@@ -2,6 +2,7 @@ package org.xper.allen.config;
 
 
 import java.beans.PropertyVetoException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,6 +17,10 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.allen.console.SaccadeExperimentConsoleRenderer;
+import org.xper.allen.console.SaccadeExperimentMessageDispatcher;
+import org.xper.allen.console.SaccadeExperimentMessageHandler;
+import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
@@ -24,15 +29,19 @@ import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.classic.MarkEveryStepTrialDrawingController;
 import org.xper.classic.MarkStimTrialDrawingController;
+import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.TrialExperimentConsoleRenderer;
+import org.xper.classic.TrialExperimentMessageDispatcher;
+import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.BlankTaskScene;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.Circle;
@@ -46,6 +55,8 @@ import org.xper.eye.RobustEyeTargetSelector;
 import org.xper.eye.listener.EyeSamplerEventListener;
 import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
+import org.xper.eye.vo.EyeDeviceReading;
+import org.xper.eye.vo.EyeWindow;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 
@@ -105,7 +116,7 @@ public class AllenConfig {
 		ExperimentConsole console = new ExperimentConsole();
 		
 		console.setPaused(classicConfig.xperExperimentInitialPause());
-		console.setConsoleRenderer(classicConfig.consoleRenderer());
+		console.setConsoleRenderer(consoleRenderer());
 		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
 		console.setModel(classicConfig.experimentConsoleModel());
 		console.setCanvasScaleFactor(3);
@@ -118,9 +129,9 @@ public class AllenConfig {
 	}
 	
 	@Bean
-	public TrialExperimentConsoleRenderer consoleRenderer () {
-		TrialExperimentConsoleRenderer renderer = new TrialExperimentConsoleRenderer();
-		renderer.setMessageHandler(classicConfig.messageHandler());
+	public SaccadeExperimentConsoleRenderer consoleRenderer () {
+		SaccadeExperimentConsoleRenderer renderer = new SaccadeExperimentConsoleRenderer();
+		renderer.setMessageHandler(messageHandler());
 		renderer.setFixation(classicConfig.consoleFixationPoint());
 		renderer.setRenderer(consoleGLRenderer());
 		renderer.setBlankScreen(new BlankScreen());
@@ -129,6 +140,20 @@ public class AllenConfig {
 		return renderer;
 	}
 	
+	@Bean
+	public SaccadeExperimentMessageHandler  messageHandler() {
+		SaccadeExperimentMessageHandler messageHandler = new SaccadeExperimentMessageHandler();
+		HashMap<String, EyeDeviceReading> eyeDeviceReading = new HashMap<String, EyeDeviceReading>();
+		eyeDeviceReading.put(classicConfig.xperLeftIscanId(), classicConfig.zeroEyeDeviceReading());
+		eyeDeviceReading.put(classicConfig.xperRightIscanId(), classicConfig.zeroEyeDeviceReading());
+		messageHandler.setEyeDeviceReading(eyeDeviceReading);
+		messageHandler.setEyeWindow(new EyeWindow(classicConfig.xperEyeWindowCenter(), classicConfig.xperEyeWindowAlgorithmInitialWindowSize()));
+		HashMap<String, Coordinates2D> eyeZero = new HashMap<String, Coordinates2D>();
+		eyeZero.put(classicConfig.xperLeftIscanId(), classicConfig.xperLeftIscanEyeZero());
+		eyeZero.put(classicConfig.xperRightIscanId(), classicConfig.xperRightIscanEyeZero());
+		messageHandler.setEyeZero(eyeZero);
+		return messageHandler;
+	}
 	
 	@Bean
 	public AbstractRenderer consoleGLRenderer () {
@@ -188,6 +213,7 @@ public class AllenConfig {
 		state.setLocalTimeUtil(baseConfig.localTimeUtil());
 		state.setTrialEventListeners(classicConfig.trialEventListeners());
 		state.setSlideEventListeners(classicConfig.slideEventListeners());
+		state.setTargetEventListeners(targetEventListeners());
 		state.setEyeController(classicConfig.eyeController());
 		state.setExperimentEventListeners(classicConfig.experimentEventListeners());
 		state.setTaskDataSource(databaseTaskDataSource());
@@ -212,6 +238,21 @@ public class AllenConfig {
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		return state;
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public List<TargetEventListener> targetEventListeners () {
+		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
+		listeners.add(messageDispatcher());
+		return listeners;
+	}
+	
+	@Bean
+	public SaccadeExperimentMessageDispatcher messageDispatcher() {
+		SaccadeExperimentMessageDispatcher dispatcher = new SaccadeExperimentMessageDispatcher();
+		dispatcher.setHost(classicConfig.experimentHost);
+		dispatcher.setDbUtil(allenDbUtil());
+		return dispatcher;
 	}
 
 	private TrialDrawingController drawingController() {
