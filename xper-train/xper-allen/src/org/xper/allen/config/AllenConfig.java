@@ -136,7 +136,6 @@ public class AllenConfig {
 		renderer.setBlankScreen(new BlankScreen());
 		renderer.setCircle(new Circle());
 		renderer.setSquare(new Square());
-		renderer.setXperMonkeyScreenInverted(classicConfig.xperMonkeyScreenInverted());
 		return renderer;
 	}
 	

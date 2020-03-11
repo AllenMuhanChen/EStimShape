@@ -9,8 +9,6 @@ import org.xper.drawing.GLUtil;
 public class SaccadeExperimentConsoleRenderer extends TrialExperimentConsoleRenderer{
 	@Dependency 
 	SaccadeExperimentMessageHandler messageHandler;
-	@Dependency
-	boolean xperMonkeyScreenInverted;
 	
 	double targetIndicatorSize = 2.5;
 	int invert;
@@ -24,12 +22,6 @@ public class SaccadeExperimentConsoleRenderer extends TrialExperimentConsoleRend
 	}
 	
 	void drawTarget() {
-		if (xperMonkeyScreenInverted) {
-			invert = -1;
-		}
-		else {
-			invert = 1;
-		}
 		if(messageHandler.isTargetOn()) {
 			Coordinates2D targetLocation = messageHandler.getTargetPosition();
 			double targetEyeWindowSize = renderer.deg2mm(messageHandler.getTargetEyeWindowSize());
