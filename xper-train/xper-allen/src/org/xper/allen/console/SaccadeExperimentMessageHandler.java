@@ -6,7 +6,7 @@ import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.db.vo.BehMsgEntry;
 
 public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandler{
-	protected AtomicBoolean slideOn = new AtomicBoolean(false);
+	protected AtomicBoolean targetOn = new AtomicBoolean(false);
 	public boolean handleMessage(BehMsgEntry msg) {
 		if ("EyeDeviceMessage".equals(msg.getType())) {
 			handleEyeDeviceMessage(msg);
@@ -41,15 +41,18 @@ public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandl
 		} else if ("EyeOutEvent".equals(msg.getType())) {
 			eyeIn.set(false);
 			return true;
-		} else if ("SlideOn".equals(msg.getType())) {  //AC added SlideOn 
-			slideOn.set(true);
+		} else if ("TargetOn".equals(msg.getType())) {  //AC added SlideOn 
+			targetOn.set(true);
+			return true;
+		} else if ("TargetOff".equals(msg.getType())) {
+			targetOn.set(false);
 			return true;
 		} else {
 			return false;
 		}
 	}
 	
-	public boolean isSlideOn() {
-		return slideOn.get();
+	public boolean isTargetOn() {
+		return targetOn.get();
 	}
 }
