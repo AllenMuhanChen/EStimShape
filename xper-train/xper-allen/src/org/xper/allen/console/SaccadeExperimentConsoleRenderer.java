@@ -1,8 +1,11 @@
-package org.xper.classic;
+package org.xper.allen.console;
 
 import java.util.Map;
 
 import org.xper.Dependency;
+import org.xper.allen.experiment.saccade.SaccadeExperimentState;
+import org.xper.classic.TrialExperimentConsoleRenderer;
+import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
@@ -14,7 +17,9 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
 
-public class TrialExperimentConsoleRenderer {
+
+
+public class SaccadeExperimentConsoleRenderer {
 	@Dependency
 	protected AbstractRenderer renderer;
 	@Dependency
@@ -31,21 +36,22 @@ public class TrialExperimentConsoleRenderer {
 	double voltageIndicatorSize = 5;
 	double voltageMin = -10.0;
 	double voltageMax = 10.0;
+	double targetIndicatorSize = 2.5;
 	
 	@Dependency
-	protected TrialExperimentMessageHandler messageHandler;
+	protected SaccadeExperimentMessageHandler messageHandler;
+	@Dependency
+	SaccadeExperimentState experimentState;
+	
+
 	
 	public void drawCanvas(Context context, String devId) {
 		blankScreen.draw(null);
 		if (messageHandler.isInTrial()) {
 			drawFixation();
 			drawEyeDevice(devId);
+			drawTarget();
 		}
-	}
-	
-	protected void drawEyeDevice(String devId) {
-		drawEyeWindow();
-		drawEyeDeviceReading(devId);
 	}
 	
 	void drawEyeWindow() {
@@ -104,11 +110,34 @@ public class TrialExperimentConsoleRenderer {
 		}
 	}
 	
-	public TrialExperimentMessageHandler getMessageHandler() {
+	protected void drawEyeDevice(String devId) {
+		drawEyeWindow();
+		drawEyeDeviceReading(devId);
+	}
+	
+	protected void drawTarget() {
+		Coordinates2D targetEyeWinCoords = experimentState.getCurrentTask().getTargetEyeWinCoords();
+		double targetEyeWinSize = experimentState.getCurrentTask().getTargetEyeWinSize();
+		System.out.println("Here is targetEyeWincoords: " + targetEyeWinCoords);
+		
+		if (messageHandler.isSlideOn()) {
+			GLUtil.drawSquare(getSquare(), targetIndicatorSize, true, targetEyeWinCoords.getX(), targetEyeWinCoords.getY(), 0);
+			GLUtil.drawCircle(getCircle(), targetEyeWinSize, true, targetEyeWinCoords.getX(), targetEyeWinCoords.getY(), 0);
+		}
+	}
+
+	public SaccadeExperimentState getExperimentState() {
+		return experimentState;
+	}
+
+	public void setExperimentState(SaccadeExperimentState experimentState) {
+		this.experimentState = experimentState;
+	}
+	public SaccadeExperimentMessageHandler getMessageHandler() {
 		return messageHandler;
 	}
 
-	public void setMessageHandler(TrialExperimentMessageHandler messageHandler) {
+	public void setMessageHandler(SaccadeExperimentMessageHandler messageHandler) {
 		this.messageHandler = messageHandler;
 	}
 
