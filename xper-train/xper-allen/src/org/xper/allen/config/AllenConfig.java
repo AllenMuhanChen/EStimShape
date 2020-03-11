@@ -131,12 +131,18 @@ public class AllenConfig {
 	@Bean
 	public SaccadeExperimentConsoleRenderer consoleRenderer () {
 		SaccadeExperimentConsoleRenderer renderer = new SaccadeExperimentConsoleRenderer();
-		renderer.setMessageHandler(messageHandler());
+		/*
+		 * There's a messageHandler and saccadeMessageHandler because I don't know how to overwrite @Bean Dependencies.
+		 * This could be reduced to just one method by making on messageHandler that's just copy pasting TrialExperimentMessageHandler with SaccadeExperimentMessageHandler methods inside.
+		 */
+		renderer.setMessageHandler(classicConfig.messageHandler());
+		renderer.setSaccadeMessageHandler(messageHandler());
 		renderer.setFixation(classicConfig.consoleFixationPoint());
 		renderer.setRenderer(consoleGLRenderer());
 		renderer.setBlankScreen(new BlankScreen());
 		renderer.setCircle(new Circle());
 		renderer.setSquare(new Square());
+		renderer.setXperMonkeyScreenInverted(classicConfig.xperMonkeyScreenInverted());
 		return renderer;
 	}
 	

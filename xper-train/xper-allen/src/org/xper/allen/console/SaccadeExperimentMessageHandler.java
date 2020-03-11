@@ -8,9 +8,9 @@ import org.xper.db.vo.BehMsgEntry;
 import org.xper.drawing.Coordinates2D;
 
 public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandler{
-	protected AtomicBoolean targetOn = new AtomicBoolean(false);
-	AtomicReference<Coordinates2D> targetPosition = new AtomicReference<Coordinates2D>();
-	AtomicReference<Double> targetEyeWindowSize = new AtomicReference<Double>();
+	AtomicBoolean targetOn = new AtomicBoolean(false);
+	AtomicReference<Coordinates2D> targetPosition = new AtomicReference<Coordinates2D>(new Coordinates2D(0,0));
+	AtomicReference<Double> targetEyeWindowSize = new AtomicReference<Double>((double) 0);
 	
 	public boolean handleMessage(BehMsgEntry msg) {
 		if ("EyeDeviceMessage".equals(msg.getType())) {

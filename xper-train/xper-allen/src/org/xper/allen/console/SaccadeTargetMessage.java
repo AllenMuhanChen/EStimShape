@@ -15,6 +15,10 @@ public class SaccadeTargetMessage {
 		this.targetEyeWindowSize = targetEyeWindowSize;
 	}
 
+	public SaccadeTargetMessage() {
+		
+	}
+	
 	public long getTimestamp() {
 		return timestamp;
 	}
