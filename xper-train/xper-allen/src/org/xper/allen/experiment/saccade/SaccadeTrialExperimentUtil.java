@@ -83,6 +83,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 			
 		}while(!selectorDriver.isDone());
 		selectorDriver.stop();
+		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
 		TargetSelectorResult selectorResult = selectorDriver.getResult();
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		return selectorResult.getSelectionStatusResult();
