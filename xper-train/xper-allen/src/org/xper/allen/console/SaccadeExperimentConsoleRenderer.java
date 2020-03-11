@@ -28,8 +28,8 @@ public class SaccadeExperimentConsoleRenderer extends TrialExperimentConsoleRend
 			double targetX = renderer.deg2mm(targetLocation.getX());
 			double targetY = renderer.deg2mm(targetLocation.getY());
 			
-			GLUtil.drawCircle(circle, targetEyeWindowSize, false, invert*targetX, targetY, 0);
-			GLUtil.drawSquare(square, targetIndicatorSize, true, invert*targetX, targetY, 0);
+			GLUtil.drawCircle(circle, targetEyeWindowSize, false, targetX, targetY, 0);
+			GLUtil.drawSquare(square, targetIndicatorSize, true, targetX, targetY, 0);
 		}
 	}
 	
@@ -37,7 +37,4 @@ public class SaccadeExperimentConsoleRenderer extends TrialExperimentConsoleRend
 		this.messageHandler = messageHandler;
 	}
 
-	public void setXperMonkeyScreenInverted(boolean xperMonkeyScreenInverted) {
-		this.xperMonkeyScreenInverted = xperMonkeyScreenInverted;
-	}
 }
