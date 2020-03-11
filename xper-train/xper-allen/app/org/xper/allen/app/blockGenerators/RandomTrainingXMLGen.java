@@ -93,8 +93,8 @@ public class RandomTrainingXMLGen {
 		}
 		
 		if (args[5].isEmpty()) {
-			yLim.add(-1*monkey_screen_height/2);
-			yLim.add(monkey_screen_height/2);
+			yLim.add(mm2deg(-1*monkey_screen_height/2));
+			yLim.add(mm2deg(monkey_screen_height/2));
 		}
 		else {
 			yLim = argsToArrayListDouble(args[5]);
