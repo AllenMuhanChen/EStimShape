@@ -3,6 +3,8 @@ package org.xper.allen.experiment.saccade;
 import java.util.List;
 
 import org.xper.Dependency;
+import org.xper.allen.console.SaccadeEventUtil;
+import org.xper.allen.console.TargetEventListener;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
@@ -31,6 +33,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
+		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
 		
@@ -59,6 +62,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
 						     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 						     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+		SaccadeEventUtil.fireTargetOnEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
 		do {
 
 		}

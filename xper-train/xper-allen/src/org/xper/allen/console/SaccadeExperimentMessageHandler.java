@@ -1,12 +1,17 @@
 package org.xper.allen.console;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.db.vo.BehMsgEntry;
+import org.xper.drawing.Coordinates2D;
 
 public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandler{
 	protected AtomicBoolean targetOn = new AtomicBoolean(false);
+	AtomicReference<Coordinates2D> targetPosition = new AtomicReference<Coordinates2D>();
+	AtomicReference<Double> targetEyeWindowSize = new AtomicReference<Double>();
+	
 	public boolean handleMessage(BehMsgEntry msg) {
 		if ("EyeDeviceMessage".equals(msg.getType())) {
 			handleEyeDeviceMessage(msg);
@@ -41,8 +46,11 @@ public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandl
 		} else if ("EyeOutEvent".equals(msg.getType())) {
 			eyeIn.set(false);
 			return true;
-		} else if ("TargetOn".equals(msg.getType())) {  //AC added SlideOn 
+		} else if ("TargetOn".equals(msg.getType())) { //AC added targetOn
 			targetOn.set(true);
+			SaccadeTargetMessage m = SaccadeTargetMessage.fromXml(msg.getMsg());
+			targetPosition.set(m.getTargetPos());
+			targetEyeWindowSize.set(m.getTargetEyeWindowSize());
 			return true;
 		} else if ("TargetOff".equals(msg.getType())) {
 			targetOn.set(false);
@@ -54,5 +62,13 @@ public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandl
 	
 	public boolean isTargetOn() {
 		return targetOn.get();
+	}
+	
+	public Coordinates2D getTargetPosition() {
+		return targetPosition.get();	
+	}
+	
+	public double getTargetEyeWindowSize() {
+		return targetEyeWindowSize.get();
 	}
 }

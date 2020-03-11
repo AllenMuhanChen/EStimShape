@@ -1,12 +1,18 @@
 package org.xper.allen.experiment.saccade;
 
+import java.util.List;
+
 import org.xper.Dependency;
-import org.xper.classic.vo.SlideTrialExperimentState;
+import org.xper.allen.console.TargetEventListener;
+
 import org.xper.eye.EyeTargetSelector;
 
 public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	@Dependency
 	EyeTargetSelector targetSelector;
+	@Dependency
+	List<? extends TargetEventListener> targetEventListeners;
+	
 	int blankTargetScreenDisplayTime;
 	
 	
@@ -37,11 +43,18 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	
 	/**
 	 * Time for Initial Target Selection is just equal to the time the stimulus is up
+	 * @author allenchen
 	 */
 	public long getTimeAllowedForInitialTargetSelection() {
 		return (long) getCurrentTask().getDuration();
-		
-		
+	}
+
+	public List<? extends TargetEventListener> getTargetEventListeners() {
+		return targetEventListeners;
+	}
+
+	public void setTargetEventListeners(List<? extends TargetEventListener> targetEventListeners) {
+		this.targetEventListeners = targetEventListeners;
 	}
 	
 }

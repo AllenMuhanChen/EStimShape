@@ -23,8 +23,10 @@ public class TrialExperimentConsoleRenderer {
 	protected
 	Drawable blankScreen;
 	@Dependency
+	protected
 	Circle circle;
 	@Dependency
+	protected 
 	Square square;
 	
 	double eyeIndicatorSize = 2.5;
@@ -33,7 +35,7 @@ public class TrialExperimentConsoleRenderer {
 	double voltageMax = 10.0;
 	
 	@Dependency
-	protected TrialExperimentMessageHandler messageHandler;
+	TrialExperimentMessageHandler messageHandler;
 	
 	public void drawCanvas(Context context, String devId) {
 		blankScreen.draw(null);
@@ -43,7 +45,7 @@ public class TrialExperimentConsoleRenderer {
 		}
 	}
 	
-	protected void drawEyeDevice(String devId) {
+	void drawEyeDevice(String devId) {
 		drawEyeWindow();
 		drawEyeDeviceReading(devId);
 	}
@@ -96,7 +98,7 @@ public class TrialExperimentConsoleRenderer {
 		}
 	}
 	
-	protected void drawFixation() {
+	void drawFixation() {
 		if (messageHandler.isFixationOn()) {
 			TrialContext context = new TrialContext();
 			context.setRenderer(renderer);
