@@ -52,6 +52,7 @@ public class AllenAppConfig {
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setMarker(classicConfig.screenMarker());
 		scene.setBlankScreen(new BlankScreen());
+		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		return scene;
 	}
 

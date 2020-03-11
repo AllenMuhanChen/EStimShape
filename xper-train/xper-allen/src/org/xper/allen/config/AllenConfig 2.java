@@ -27,8 +27,14 @@ import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingControl
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
+import org.xper.classic.MarkEveryStepTrialDrawingController;
 import org.xper.classic.MarkStimTrialDrawingController;
+import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialDrawingController;
+import org.xper.classic.TrialEventListener;
+import org.xper.classic.TrialExperimentConsoleRenderer;
+import org.xper.classic.TrialExperimentMessageDispatcher;
+import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -129,7 +135,6 @@ public class AllenConfig {
 		 * There's a messageHandler and saccadeMessageHandler because I don't know how to overwrite @Bean Dependencies.
 		 * This could be reduced to just one method by making on messageHandler that's just copy pasting TrialExperimentMessageHandler with SaccadeExperimentMessageHandler methods inside.
 		 */
-		renderer.setMessageHandler(classicConfig.messageHandler());
 		renderer.setSaccadeMessageHandler(messageHandler());
 		renderer.setFixation(classicConfig.consoleFixationPoint());
 		renderer.setRenderer(consoleGLRenderer());
