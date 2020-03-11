@@ -32,9 +32,12 @@ public class SaccadeExperimentConsoleRenderer extends TrialExperimentConsoleRend
 		}
 		if(messageHandler.isTargetOn()) {
 			Coordinates2D targetLocation = messageHandler.getTargetPosition();
-			double targetEyeWindowSize = messageHandler.getTargetEyeWindowSize();
-			GLUtil.drawCircle(circle, targetEyeWindowSize, false, invert*targetLocation.getX(), targetLocation.getY(), 0);
-			GLUtil.drawSquare(square, targetIndicatorSize, true, invert*targetLocation.getX(), targetLocation.getY(), 0);
+			double targetEyeWindowSize = renderer.deg2mm(messageHandler.getTargetEyeWindowSize());
+			double targetX = renderer.deg2mm(targetLocation.getX());
+			double targetY = renderer.deg2mm(targetLocation.getY());
+			
+			GLUtil.drawCircle(circle, targetEyeWindowSize, false, invert*targetX, targetY, 0);
+			GLUtil.drawSquare(square, targetIndicatorSize, true, invert*targetX, targetY, 0);
 		}
 	}
 	

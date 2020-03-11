@@ -10,14 +10,24 @@ import org.xper.rfplot.RFPlotDrawable;
 
 import org.xper.util.MathUtil;
 
+import com.sun.javafx.webkit.theme.Renderer;
+
 public class RFPlotGaussianObject implements RFPlotDrawable{
 	static final int STEPS = 1024;
 	
 	GaussSpec spec;
+	/**
+	 * xper_monkey_screen_distance
+	 */
+	double distance; 
 	
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
+	
+	public RFPlotGaussianObject(double distance) {
+		this.distance = distance;
+	}
 	
 	static ByteBuffer makeTexture(int w, int h) {
 		ByteBuffer texture = ByteBuffer.allocateDirect(
@@ -47,10 +57,13 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	
 	public void draw(Context context) {
 		double rfRadius = 1;
-
+		
 		double xCenter = spec.getXCenter() * rfRadius;
+		xCenter = deg2mm(xCenter);
 		double yCenter = spec.getYCenter() * rfRadius;
+		yCenter = deg2mm(yCenter);
 		double size = spec.getSize() * rfRadius;
+		size = deg2mm(size);
 		double brightness = spec.getBrightness();
 		
 		float cury;
@@ -158,6 +171,10 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	public void setSpec(String spec) {
 		this.spec = GaussSpec.fromXml(spec);
 		
+	}
+	
+	public double deg2mm(double deg) {
+		return Math.tan(deg * Math.PI / 180.0) * distance;
 	}
 
 }
