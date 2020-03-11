@@ -29,9 +29,9 @@ public class TrialExperimentMessageHandler implements ExperimentMessageHandler {
 	@Dependency
 	ConcurrentHashMap<String, Coordinates2D> eyeZero = new ConcurrentHashMap<String, Coordinates2D>();
 	
-	AtomicBoolean fixationOn = new AtomicBoolean(false);
-	AtomicBoolean inTrial = new AtomicBoolean(false);
-	AtomicBoolean eyeIn = new AtomicBoolean(false);
+	protected AtomicBoolean fixationOn = new AtomicBoolean(false);
+	protected AtomicBoolean inTrial = new AtomicBoolean(false);
+	protected AtomicBoolean eyeIn = new AtomicBoolean(false);
 	AtomicReference<TrialStatistics> trialStat = new AtomicReference<TrialStatistics>();
 	
 	public TrialExperimentMessageHandler() {
@@ -93,23 +93,23 @@ public class TrialExperimentMessageHandler implements ExperimentMessageHandler {
 		return trialStat.get();
 	}
 
-	void handleEyeDeviceMessage(BehMsgEntry ent) {
+	protected void handleEyeDeviceMessage(BehMsgEntry ent) {
 		EyeDeviceMessage m = EyeDeviceMessage.fromXml(ent.getMsg());
 		eyeDeviceReading.put(m.getId(), new EyeDeviceReading(m.getVolt(), m
 				.getDegree()));
 	}
 
-	void handleEyeWindowMessage(BehMsgEntry ent) {
+	protected void handleEyeWindowMessage(BehMsgEntry ent) {
 		EyeWindowMessage m = EyeWindowMessage.fromXml(ent.getMsg());
 		eyeWindow.set(new EyeWindow(m.getCenter(), m.getSize()));
 	}
 
-	void handleEyeZeroMessage(BehMsgEntry ent) {
+	protected void handleEyeZeroMessage(BehMsgEntry ent) {
 		EyeZeroMessage m = EyeZeroMessage.fromXml(ent.getMsg());
 		eyeZero.put(m.getId(), m.getZero());
 	}
 
-	void handleTrialStatistics(BehMsgEntry ent) {
+	protected void handleTrialStatistics(BehMsgEntry ent) {
 		trialStat.set(TrialStatistics.fromXml(ent.getMsg()));
 	}
 
