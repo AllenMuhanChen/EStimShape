@@ -63,26 +63,23 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 						     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 						     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
 		SaccadeEventUtil.fireTargetOnEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
-		do {
-
-		}
-		while (timeUtil.currentTimeMicros()<slideOnLocalTime + currentTask.getDuration()*1000);
-		//while((timeUtil.currentTimeMicros() < slideOnLocalTime
-		//		+ stateObject.getSlideLength() * 1000));
-		
-		//finish current slide
-		drawingController.trialComplete(currentContext);
-		long slideOffLocalTime = timeUtil.currentTimeMicros();
-		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
-		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
-		currentContext.getAnimationFrameIndex(),
-		slideEventListeners);
-		currentContext.setAnimationFrameIndex(0);
 		
 		do {
 			
 		}while(!selectorDriver.isDone());
 		selectorDriver.stop();
+		//finish current slide
+		drawingController.trialComplete(currentContext);
+		long slideOffLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
+		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
+				/*
+				 * TODO: Animation frame stuff may not be needed 
+				 */
+		currentContext.getAnimationFrameIndex(),
+		slideEventListeners);
+		currentContext.setAnimationFrameIndex(0);
+		
 		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
 		TargetSelectorResult selectorResult = selectorDriver.getResult();
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
