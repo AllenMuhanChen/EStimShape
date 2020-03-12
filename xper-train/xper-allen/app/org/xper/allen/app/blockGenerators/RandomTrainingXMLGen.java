@@ -31,11 +31,11 @@ import com.thoughtworks.xstream.XStream;
  * @param args[0]: Path of XML file to be printed
  * 		  args[1]: number of stimuli desired<br>
  * 		  args[2]: range of brightness of stimuli desired (between 0 and 1) <br>
- * 		  args[3]: range of size of stimuli desired <br>
- * 		  args[4]: range of xLocations desired. If null, will default to entire screen. 
- * 		  args[5]: range of yLocations desired. If null, will default to entire screen. 
+ * 		  args[3]: range of size of stimuli desired (diameter in visual angles)<br>
+ * 		  args[4]: range of xLocations desired in visual angles. If null, will default to entire screen. 
+ * 		  args[5]: range of yLocations desired in visual angles. If null, will default to entire screen. 
  * 		  args[6]: range of durations desired. 
- * 		  args[7]: size of targetEyeWinSize. If null, will default to double the size of stimulus. 
+ * 		  args[7]: scalar multiplier of targetEyeWinSize radius in visual angles.  
  * 		  args[8]: String for "Data" column of StimObjData 
  * @author allenchen
  *
@@ -102,6 +102,9 @@ public class RandomTrainingXMLGen {
 		//Duration Range
 		ArrayList<Double> durationLim = argsToArrayListDouble(args[6]);
 
+		//TargetEyeWinSize Gain
+		double targetEyeWinSizeGain = Double.parseDouble(args[7]);
+		
 		//Data
 		String data = args[8];
 		
@@ -118,14 +121,9 @@ public class RandomTrainingXMLGen {
 			//StimSpec
 			double randDuration = inclusiveRandomDouble(durationLim.get(0),durationLim.get(1));
 			//targetEyeWinSize
-			double targetEyeWinSize;
-			if (args[7].isEmpty()){
-				targetEyeWinSize = randSize*2;
-				
-			}else
-			{
-				targetEyeWinSize = Double.parseDouble(args[7]);
-			}
+			double targetEyeWinSize = randSize/2 * targetEyeWinSizeGain;
+
+			
 			//targetEyeWinCoords
 			Coordinates2D targetEyeWinCoords = new Coordinates2D(randXCenter, randYCenter);
 			
