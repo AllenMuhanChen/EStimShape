@@ -13,7 +13,19 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+<<<<<<< Updated upstream
 import org.xper.classic.TrialEventListener;
+=======
+import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.classic.EyeMonitorController;
+import org.xper.classic.SlideTrialExperiment;
+import org.xper.classic.TrialEventListener;
+import org.xper.classic.vo.SlideTrialExperimentState;
+import org.xper.console.ExperimentConsole;
+import org.xper.console.ExperimentConsoleModel;
+import org.xper.console.ExperimentMessageReceiver;
+import org.xper.console.MessageReceiverEventListener;
+>>>>>>> Stashed changes
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.Circle;
@@ -23,13 +35,21 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.exception.ExperimentSetupException;
 import org.xper.experiment.listener.ExperimentEventListener;
+import org.xper.experiment.listener.MessageDispatcherController;
 import org.xper.experiment.mock.NullTaskDataSource;
 import org.xper.experiment.mock.NullTaskDoneCache;
 import org.xper.eye.listener.EyeDeviceMessageListener;
+import org.xper.eye.listener.EyeEventListener;
+import org.xper.eye.mapping.MappingAlgorithm;
 import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.strategy.StereoEyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
+<<<<<<< Updated upstream
+=======
+import org.xper.eye.win.EyeWindowMessageListener;
+import org.xper.eye.zero.EyeZeroAdjustable;
+>>>>>>> Stashed changes
 import org.xper.fixcal.FixCalConsoleRenderer;
 import org.xper.fixcal.FixCalEventListener;
 import org.xper.fixcal.FixCalMessageDispatcher;
@@ -55,6 +75,61 @@ public class FixCalConfig {
 		strategy.setRightDeviceId(classicConfig.xperRightIscanId());
 		return strategy;
 	}
+<<<<<<< Updated upstream
+=======
+	*/
+	@Bean
+	public Experiment experiment () {
+		SlideTrialExperiment xper = new SlideTrialExperiment();
+		xper.setStateObject(experimentState());
+		return xper;
+	}
+	
+	@Bean
+	public SlideTrialExperimentState experimentState () {
+		SlideTrialExperimentState state = new SlideTrialExperimentState ();
+		state.setLocalTimeUtil(baseConfig.localTimeUtil());
+		state.setTrialEventListeners(trialEventListeners());
+		state.setSlideEventListeners(classicConfig.slideEventListeners());
+		state.setEyeController(classicConfig.eyeController());
+		state.setExperimentEventListeners(experimentEventListeners());
+		state.setTaskDataSource(taskDataSource());
+		state.setTaskDoneCache(taskDoneCache());
+		state.setGlobalTimeClient(acqConfig.timeClient());
+		state.setDrawingController(classicConfig.drawingController());
+		state.setInterTrialInterval(classicConfig.xperInterTrialInterval());
+		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
+		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
+		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
+		state.setSlidePerTrial(1);				// these are to set the total fixation time
+		state.setSlideLength(500);				// msec
+		state.setInterSlideInterval(500);		// msec
+		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
+		state.setSleepWhileWait(true);
+		state.setPause(classicConfig.xperExperimentInitialPause());
+		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
+		return state;
+	}
+	
+	@Bean
+	public FixationCalibration taskScene() {
+		FixationCalibration scene = new FixationCalibration();
+		scene.setFixation(experimentFixationPoint());
+		scene.setMarker(classicConfig.screenMarker());
+		scene.setBlankScreen(new BlankScreen());
+		scene.setRenderer(classicConfig.experimentGLRenderer());
+		scene.setCalibrationDegree(5.0);
+		scene.setFixationPoint(experimentFixationPoint());
+		scene.setEyeMonitor(classicConfig.eyeMonitor());
+		scene.setDeviceDbVariableMap(classicConfig.xperEyeDeviceParameterIdDbVariableMap());
+		scene.setEyeZeroDbVariableMap(classicConfig.xperEyeZeroIdDbVariableMap());
+		List<FixCalEventListener> fixCalEventListeners = new LinkedList<FixCalEventListener>();
+		fixCalEventListeners.add(messageDispatcher());
+		scene.setFixCalEventListeners(fixCalEventListeners);
+		scene.setDbUtil(baseConfig.dbUtil());
+		return scene;
+	}
+>>>>>>> Stashed changes
 	
 	@Bean
 	public AbstractRenderer experimentGLRenderer () {
@@ -120,10 +195,18 @@ public class FixCalConfig {
 		List<ExperimentEventListener> listeners =  new LinkedList<ExperimentEventListener>();
 		listeners.add(taskScene());
 		listeners.add(messageDispatcher());
-		listeners.add(classicConfig.messageDispatcherController());
+		listeners.add(messageDispatcherController());
 		listeners.add(classicConfig.experimentCpuBinder());
 		return listeners;
 	}
+	
+	@Bean
+	public MessageDispatcherController messageDispatcherController() {
+		MessageDispatcherController controller = new MessageDispatcherController();
+		controller.setMessageDispatcher(messageDispatcher());
+		return controller;
+	}
+	
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
@@ -142,24 +225,7 @@ public class FixCalConfig {
 		return listeners;
 	}
 	
-	@Bean
-	public FixationCalibration taskScene() {
-		FixationCalibration scene = new FixationCalibration();
-		scene.setFixation(experimentFixationPoint());
-		scene.setMarker(classicConfig.screenMarker());
-		scene.setBlankScreen(new BlankScreen());
-		scene.setRenderer(classicConfig.experimentGLRenderer());
-		scene.setCalibrationDegree(5.0);
-		scene.setFixationPoint(experimentFixationPoint());
-		scene.setEyeMonitor(classicConfig.eyeMonitor());
-		scene.setDeviceDbVariableMap(classicConfig.xperEyeDeviceParameterIdDbVariableMap());
-		scene.setEyeZeroDbVariableMap(classicConfig.xperEyeZeroIdDbVariableMap());
-		List<FixCalEventListener> fixCalEventListeners = new LinkedList<FixCalEventListener>();
-		fixCalEventListeners.add(messageDispatcher());
-		scene.setFixCalEventListeners(fixCalEventListeners);
-		scene.setDbUtil(baseConfig.dbUtil());
-		return scene;
-	}
+
 	
 	@Bean
 	public FixCalMessageDispatcher messageDispatcher() {
@@ -195,4 +261,67 @@ public class FixCalConfig {
 		messageHandler.setEyeZero(eyeZero);
 		return messageHandler;
 	}
+	@Bean
+	public ExperimentMessageReceiver messageReceiver () {
+		ExperimentMessageReceiver receiver = new ExperimentMessageReceiver();
+		receiver.setReceiverHost(classicConfig.consoleHost);
+		receiver.setDispatcherHost(classicConfig.experimentHost);
+		LinkedList<MessageReceiverEventListener> messageReceiverEventListeners = new LinkedList<MessageReceiverEventListener>();
+		// let console to register itself to avoid circular reference
+		// messageReceiverEventListeners.add(console);
+		receiver.setMessageReceiverEventListeners(messageReceiverEventListeners);
+		receiver.setMessageHandler(messageHandler());
+		
+		return receiver;
+	}
+	
+	@Bean
+	public ExperimentConsoleModel experimentConsoleModel () {
+		ExperimentConsoleModel model = new ExperimentConsoleModel();
+		model.setMessageReceiver(messageReceiver());
+		model.setLocalTimeUtil(baseConfig.localTimeUtil());
+		
+		HashMap<String, MappingAlgorithm> eyeMappingAlgorithm = new HashMap<String, MappingAlgorithm>();
+		eyeMappingAlgorithm.put(classicConfig.xperLeftIscanId(), classicConfig.leftIscanMappingAlgorithm());
+		eyeMappingAlgorithm.put(classicConfig.xperRightIscanId(), classicConfig.rightIscanMappingAlgorithm());
+		model.setEyeMappingAlgorithm(eyeMappingAlgorithm);
+		
+		model.setExperimentRunnerClient(classicConfig.experimentRunnerClient());
+		model.setChannelMap(classicConfig.iscanChannelMap());
+		model.setMessageHandler(messageHandler());
+		
+		if (classicConfig.consoleEyeSimulation || acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
+			// socket sampling server for eye simulation
+			SocketSamplingDeviceServer server = new SocketSamplingDeviceServer();
+			server.setHost(classicConfig.consoleHost);
+			server.setSamplingDevice(model);
+			HashMap<Integer, Double> data = new HashMap<Integer, Double>();
+			data.put(classicConfig.xperLeftIscanXChannel(), new Double(0));
+			data.put(classicConfig.xperLeftIscanYChannel(), new Double(0));
+			data.put(classicConfig.xperRightIscanXChannel(), new Double(0));
+			data.put(classicConfig.xperRightIscanYChannel(), new Double(0));
+			server.setCurrentChannelData(data);
+			
+			model.setSamplingServer(server);
+		}
+		return model;
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public List<EyeWindowMessageListener> eyeWindowMessageListeners () {
+		List<EyeWindowMessageListener> listeners = new LinkedList<EyeWindowMessageListener>();
+		listeners.add(messageDispatcher());
+		return listeners;
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public List<EyeEventListener> eyeEventListeners() {
+		List<EyeEventListener> listeners = new LinkedList<EyeEventListener> ();
+		listeners.add(classicConfig.eyeController());
+		listeners.add(classicConfig.eyeEventLogger());
+		listeners.add(messageDispatcher());
+		return listeners;
+	}
+	
+	
 }
