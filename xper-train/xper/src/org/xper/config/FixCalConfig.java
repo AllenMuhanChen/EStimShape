@@ -13,9 +13,7 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
-<<<<<<< Updated upstream
 import org.xper.classic.TrialEventListener;
-=======
 import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.classic.EyeMonitorController;
 import org.xper.classic.SlideTrialExperiment;
@@ -25,7 +23,6 @@ import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentConsoleModel;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.MessageReceiverEventListener;
->>>>>>> Stashed changes
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.Circle;
@@ -34,6 +31,7 @@ import org.xper.drawing.object.Square;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.exception.ExperimentSetupException;
+import org.xper.experiment.Experiment;
 import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.MessageDispatcherController;
 import org.xper.experiment.mock.NullTaskDataSource;
@@ -45,11 +43,8 @@ import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.strategy.StereoEyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
-<<<<<<< Updated upstream
-=======
 import org.xper.eye.win.EyeWindowMessageListener;
 import org.xper.eye.zero.EyeZeroAdjustable;
->>>>>>> Stashed changes
 import org.xper.fixcal.FixCalConsoleRenderer;
 import org.xper.fixcal.FixCalEventListener;
 import org.xper.fixcal.FixCalMessageDispatcher;
@@ -75,9 +70,7 @@ public class FixCalConfig {
 		strategy.setRightDeviceId(classicConfig.xperRightIscanId());
 		return strategy;
 	}
-<<<<<<< Updated upstream
-=======
-	*/
+
 	@Bean
 	public Experiment experiment () {
 		SlideTrialExperiment xper = new SlideTrialExperiment();
@@ -129,8 +122,7 @@ public class FixCalConfig {
 		scene.setDbUtil(baseConfig.dbUtil());
 		return scene;
 	}
->>>>>>> Stashed changes
-	
+
 	@Bean
 	public AbstractRenderer experimentGLRenderer () {
 		if (fixcalScreenSetup.equalsIgnoreCase("stereo")) {
