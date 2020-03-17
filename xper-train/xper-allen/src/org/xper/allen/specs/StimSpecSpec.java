@@ -5,7 +5,13 @@ import org.xper.drawing.Coordinates2D;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
-public class StimSpec {
+/**
+ * Fields correspond with xml entries in the "spec" column in "v1microstim.stimspec" database table. 
+ * Contains toXML and fromXML methods. 
+ * @author Allen Chen
+ *
+ */
+public class StimSpecSpec {
 	@XStreamAlias("targetEyeWinCoords")
 	protected Coordinates2D targetEyeWinCoords;
 	@XStreamAlias("targetEyeWinSize")
@@ -23,10 +29,10 @@ public class StimSpec {
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", StimSpec.class);
+		s.alias("StimSpec", StimSpecSpec.class);
 	}
 	
-	public StimSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long[] stimObjData,
+	public StimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long[] stimObjData,
 			long[] eStimObjData, int[] eStimObjChans) {
 		super();
 		this.targetEyeWinCoords = targetEyeWinCoords;
@@ -38,20 +44,20 @@ public class StimSpec {
 	}
 
 	
-	public StimSpec() {
+	public StimSpecSpec() {
 	}
 
 
-	public static String toXml (StimSpec spec) {
+	public static String toXml (StimSpecSpec spec) {
 		return s.toXML(spec);
 	}
 	
 	public String toXml() {
-		return StimSpec.toXml(this);
+		return StimSpecSpec.toXml(this);
 	}
 	
-	public static StimSpec fromXml (String xml) {
-		StimSpec ss = (StimSpec)s.fromXML(xml);
+	public static StimSpecSpec fromXml (String xml) {
+		StimSpecSpec ss = (StimSpecSpec)s.fromXML(xml);
 		return ss;
 	}
 

@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 import com.thoughtworks.xstream.XStream;
 
-import org.xper.allen.app.blockGenerators.VisualTrial;
+import org.xper.allen.blockgen.VisualTrial;
 import org.xper.allen.specs.GaussSpec;
 public class AllenXMLUtil {
 	XStream s = new XStream();

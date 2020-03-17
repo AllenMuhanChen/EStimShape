@@ -1,4 +1,4 @@
-package org.xper.allen.app.experiment;
+package org.xper.allen.app.training;
 
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;

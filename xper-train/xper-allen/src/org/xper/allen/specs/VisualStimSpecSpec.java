@@ -1,21 +1,26 @@
-package org.xper.allen.app.blockGenerators.trials;
+package org.xper.allen.specs;
 
-import org.xper.allen.specs.StimSpec;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
-public class VisualStimSpec extends StimSpec{
+/**
+ * Fields correspond with xml entries of "spec" column of "v1microstim.stimspec database table"   
+ * Contains toXML and from XML functions. 
+ *
+ * @param targetEyeWinCoords
+ * @param targetEyeWinSize
+ * @param duration
+ * @param taskid
+ * @author Allen Chen
+ * 
+ */
+public class VisualStimSpecSpec extends StimSpecSpec{
 	
-	/**
-	 * 
-	 * @param targetEyeWinCoords
-	 * @param targetEyeWinSize
-	 * @param duration
-	 * @param taskid
-	 */
-	public VisualStimSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long taskid) {
+
+	
+	public VisualStimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long taskid) {
 		super();
 		//Defaults
 		this.eStimObjData = new long[] {1};
@@ -27,7 +32,7 @@ public class VisualStimSpec extends StimSpec{
 		this.duration = duration;
 		
 		s = new XStream();
-		s.alias("StimSpec", VisualStimSpec.class);
+		s.alias("StimSpec", VisualStimSpecSpec.class);
 		s.setMode(XStream.NO_REFERENCES);
 	}
 	

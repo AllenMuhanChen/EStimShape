@@ -1,8 +1,9 @@
-package org.xper.allen.app.specGenerators;
+package org.xper.allen.blockgen;
 
 import java.util.ArrayList;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.app.training.TrainingBlockGen;
 import org.xper.util.FileUtil;
 
 public class TrainingGenerator {
@@ -10,7 +11,7 @@ public class TrainingGenerator {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		trainingBlockGen gen = context.getBean(trainingBlockGen.class);
+		TrainingBlockGen gen = context.getBean(TrainingBlockGen.class);
 		
 		try {
 			//blockId

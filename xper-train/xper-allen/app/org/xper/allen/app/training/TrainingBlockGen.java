@@ -1,21 +1,20 @@
-package org.xper.allen.app.specGenerators;
+package org.xper.allen.app.training;
 
 import java.util.ArrayList;
 import java.util.Random;
 
 import org.xper.Dependency;
 import org.xper.allen.Block;
-import org.xper.allen.app.blockGenerators.VisualTrial;
-import org.xper.allen.app.blockGenerators.trials.Trial;
-import org.xper.allen.app.blockGenerators.trials.VisualStimSpec;
+import org.xper.allen.blockgen.VisualTrial;
 import org.xper.allen.specs.BlockSpec;
-import org.xper.allen.specs.StimSpec;
+import org.xper.allen.specs.StimSpecSpec;
+import org.xper.allen.specs.VisualStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 
-public class trainingBlockGen {
+public class TrainingBlockGen {
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
@@ -26,7 +25,6 @@ public class trainingBlockGen {
 	int[] channel_list = {1};
 	int num_per_chan;
 	long blockId;
-	Trial[] trialList;
 	BlockSpec blockspec;
 	Block block;
 	char[] trialTypeList;
@@ -35,12 +33,12 @@ public class trainingBlockGen {
 	 */
 	Random r = new Random();
 	
-	public trainingBlockGen() {
+	public TrainingBlockGen() {
 	}
 	
 	
 	long genId = 1;
-	public Trial[] generate(String filepath) { //
+	public void generate(String filepath) { //
 	
 		ArrayList<VisualTrial> visualTrials = (ArrayList<VisualTrial>) xmlUtil.parseFile(filepath);
 		try {
@@ -55,14 +53,14 @@ public class trainingBlockGen {
 			String spec = trial.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());
-			StimSpec stimSpec = new VisualStimSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId);
+			StimSpecSpec stimSpec = new VisualStimSpecSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId);
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		
 		}
 		dbUtil.updateReadyGenerationInfo(genId, visualTrials.size());
 		System.out.println("Done Generating...");
-		return trialList;
+		return;
 		
 	}
 
