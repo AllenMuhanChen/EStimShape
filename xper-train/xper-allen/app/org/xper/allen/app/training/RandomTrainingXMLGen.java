@@ -1,4 +1,4 @@
-package org.xper.allen.app.blockGenerators;
+package org.xper.allen.app.training;
 
 import java.io.File;
 import java.io.StringReader;
@@ -19,6 +19,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
+import org.xper.allen.blockgen.VisualTrial;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
@@ -57,7 +58,8 @@ public class RandomTrainingXMLGen {
 	//DB set-up
 		DriverManagerDataSource dataSource = new DriverManagerDataSource();
 		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://172.30.6.27/v1microstim");
+		dataSource.setUrl("jdbc:mysql://10.0.0.197/v1microstim"); //WORKATHOME
+		//dataSource.setUrl("jdbc:mysql://172.30.6.27/v1microstim"); //RIG
 		dataSource.setUsername("xper_rw");
 		dataSource.setPassword("up2nite");
 		AllenDbUtil dbUtil = new AllenDbUtil();

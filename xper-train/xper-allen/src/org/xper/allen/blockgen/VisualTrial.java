@@ -1,4 +1,4 @@
-package org.xper.allen.app.blockGenerators;
+package org.xper.allen.blockgen;
 
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;

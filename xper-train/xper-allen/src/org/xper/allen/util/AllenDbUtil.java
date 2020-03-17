@@ -15,7 +15,7 @@ import org.xper.allen.db.vo.StimSpecEntryUtil;
 import org.xper.allen.experiment.saccade.SaccadeExperimentTask;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
-import org.xper.allen.specs.StimSpec;
+import org.xper.allen.specs.StimSpecSpec;
 import org.xper.db.vo.StimSpecEntry;
 import org.xper.experiment.ExperimentTask;
 
@@ -183,7 +183,7 @@ public class AllenDbUtil extends DbUtil {
 						task.setStimId(rs.getLong("stim_id"));
 						//Serializing StimSpec
 						sse.setSpec(rs.getString("stim_spec"));	
-						StimSpec ss = sseU.fromXmlSpec();
+						StimSpecSpec ss = sseU.fromXmlSpec();
 						//StimObjData														
 						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	
 						//StimSpec
