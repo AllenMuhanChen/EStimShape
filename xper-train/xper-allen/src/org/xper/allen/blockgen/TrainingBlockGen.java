@@ -1,11 +1,10 @@
-package org.xper.allen.app.training;
+package org.xper.allen.blockgen;
 
 import java.util.ArrayList;
 import java.util.Random;
 
 import org.xper.Dependency;
 import org.xper.allen.Block;
-import org.xper.allen.blockgen.VisualTrial;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.StimSpecSpec;
 import org.xper.allen.specs.VisualStimSpecSpec;
