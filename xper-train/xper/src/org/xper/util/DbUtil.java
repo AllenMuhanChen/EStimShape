@@ -48,6 +48,7 @@ import com.mindprod.ledatastream.LEDataInputStream;
 import com.mindprod.ledatastream.LEDataOutputStream;
 
 public class DbUtil {
+
 	@Dependency
 	protected
 	DataSource dataSource;

@@ -1,9 +1,9 @@
-package org.xper.allen.blockgen;
+package org.xper.allen.app.training;
 
 import java.util.ArrayList;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.app.training.TrainingBlockGen;
+import org.xper.allen.blockgen.TrainingBlockGen;
 import org.xper.util.FileUtil;
 
 public class TrainingGenerator {

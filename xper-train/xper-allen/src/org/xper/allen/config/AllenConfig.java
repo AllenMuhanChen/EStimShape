@@ -59,6 +59,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @AnnotationDrivenConfig
 @Import(ClassicConfig.class)
 public class AllenConfig {
+
 	@Autowired BaseConfig baseConfig;
 	@Autowired ClassicConfig classicConfig;	
 	@Autowired AcqConfig acqConfig;
@@ -66,10 +67,10 @@ public class AllenConfig {
 	
 	@ExternalValue("jdbc.driver")
 	public String jdbcDriver;
-
+	
 	@ExternalValue("jdbc.url")
 	public String jdbcUrl;
-
+	
 	@ExternalValue("jdbc.username")
 	public String jdbcUserName;
 
@@ -82,6 +83,11 @@ public class AllenConfig {
 	
 	@ExternalValue("experiment.mark_every_step")
 	public boolean markEveryStep;
+	
+	public String getJdbcUrl() {
+		return jdbcUrl;
+	}
+
 	
 	@Bean
 	public TaskScene taskScene() {

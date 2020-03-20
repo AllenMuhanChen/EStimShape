@@ -5,6 +5,8 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.Random;
 
+import javax.sql.DataSource;
+
 import org.xper.util.DbUtil;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -48,6 +50,14 @@ public class AllenDbUtil extends DbUtil {
 	}
 	*/
 	//AC
+	
+	
+	
+	public DataSource getDataSource() {
+		return dataSource;
+	}
+
+	
 	//=====================EStimObjData========================================
 	public void writeEStimObjData(long id, EStimObjData e) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
