@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry excluding="org/xper/allen/config/AllenAcqConfig.java|org/xper/allen/config/AllenClassicConfig.java" kind="src" path="src"/>
-	<classpathentry excluding="org/xper/allen/app/stimInserters/InsertEStimSpec.java" kind="src" path="app"/>
+	<classpathentry excluding="org/xper/allen/app/stimInserters/InsertEStimSpec.java|org/xper/allen/app/classic/" kind="src" path="app"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/xper/lib/c3p0-0.9.0.2.jar"/>

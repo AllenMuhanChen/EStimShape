@@ -57,40 +57,40 @@
 		
 		<jar jarfile="${allen.home}/trainingGeneration.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/specGenerators/TrainingGenerator.class" />
+				<include name="org/xper/allen/app/training/TrainingGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.specGenerators.TrainingGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.training.TrainingGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar" />
 			</manifest>
 		</jar>
 		
 		<jar jarfile="${allen.home}/training.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/experiment/Experiment.class" />
+				<include name="org/xper/allen/app/training/Experiment.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.experiment.Experiment" />
+				<attribute name="Main-Class" value="org.xper.allen.app.training.Experiment" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} " />
 			</manifest>
 		</jar>	
 		
 		<jar jarfile="${allen.home}/console.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/experiment/Console.class" />
+				<include name="org/xper/allen/app/training/Console.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.experiment.Console" />
+				<attribute name="Main-Class" value="org.xper.allen.app.training.Console" />
 				<attribute name="Class-Path" value=". ${manifest.classpath}" />
 			</manifest>
 		</jar>
 		
 		<jar jarfile="${allen.home}/RandomXmlGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/blockGenerators/RandomTrainingXMLGen.class" />
+				<include name="org/xper/allen/app/training/RandomTrainingXMLGen.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.blockGenerators.RandomTrainingXMLGen" />
+				<attribute name="Main-Class" value="org.xper.allen.app.training.blockGenerators.RandomTrainingXMLGen" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
 			</manifest>
 		</jar>
