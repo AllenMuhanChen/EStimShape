@@ -8,11 +8,13 @@ public class SaccadeTargetMessage {
 	long timestamp;
 	Coordinates2D targetPos = new Coordinates2D();
 	double targetEyeWindowSize;
+	long stimObjDataId;
 	
-	public SaccadeTargetMessage(long timestamp, Coordinates2D targetPos, double targetEyeWindowSize) {
+	public SaccadeTargetMessage(long timestamp, Coordinates2D targetPos, double targetEyeWindowSize, long stimObjDataId) {
 		this.timestamp = timestamp;
 		this.targetPos = targetPos;
 		this.targetEyeWindowSize = targetEyeWindowSize;
+		this.stimObjDataId = stimObjDataId;
 	}
 
 	public SaccadeTargetMessage() {
@@ -43,6 +45,14 @@ public class SaccadeTargetMessage {
 		this.targetEyeWindowSize = targetEyeWindowSize;
 	}
 	
+	public long getStimObjDataId() {
+		return stimObjDataId;
+	}
+
+	public void setStimObjDataId(long stimObjDataId) {
+		this.stimObjDataId = stimObjDataId;
+	}
+	
 	transient static XStream s = new XStream();
 	
 	static {
@@ -61,4 +71,6 @@ public class SaccadeTargetMessage {
 	public String toXml() {
 		return s.toXML(this);
 	}
+
+
 }

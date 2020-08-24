@@ -9,7 +9,7 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 	public void targetOn(long timestamp, TrialContext context) {
 		SaccadeExperimentTask currentTask = (SaccadeExperimentTask) context.getCurrentTask();
 		
-		SaccadeTargetMessage SaccadeTargetMsg = new SaccadeTargetMessage(timestamp, currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize());
+		SaccadeTargetMessage SaccadeTargetMsg = new SaccadeTargetMessage(timestamp, currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize(), currentTask.getStimId());
 		String msg = SaccadeTargetMsg.toXml();
 		enqueue(timestamp, "TargetOn", msg);
 		

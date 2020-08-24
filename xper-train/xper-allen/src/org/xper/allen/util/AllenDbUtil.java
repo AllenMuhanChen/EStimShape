@@ -190,11 +190,11 @@ public class AllenDbUtil extends DbUtil {
 					public void processRow(ResultSet rs) throws SQLException {
 						SaccadeExperimentTask task = new SaccadeExperimentTask();
 						task.setGenId(rs.getLong("gen_id"));
-						task.setStimId(rs.getLong("stim_id"));
 						//Serializing StimSpec
 						sse.setSpec(rs.getString("stim_spec"));	
 						StimSpecSpec ss = sseU.fromXmlSpec();
-						//StimObjData														
+						//StimObjData	
+						task.setStimId(readStimObjData(ss.getStimObjData()[0]).getStimId());
 						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	
 						//StimSpec
 						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
