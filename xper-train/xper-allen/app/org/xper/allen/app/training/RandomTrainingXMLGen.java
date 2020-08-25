@@ -58,8 +58,8 @@ public class RandomTrainingXMLGen {
 	//DB set-up
 		DriverManagerDataSource dataSource = new DriverManagerDataSource();
 		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://10.0.0.197/v1microstim"); //WORKATHOME
-		//dataSource.setUrl("jdbc:mysql://172.30.6.27/v1microstim"); //RIG
+		//dataSource.setUrl("jdbc:mysql://10.0.0.197/v1microstim"); //WORKATHOME
+		dataSource.setUrl("jdbc:mysql://172.30.6.27/v1microstim"); //RIG
 		dataSource.setUsername("xper_rw");
 		dataSource.setPassword("up2nite");
 		AllenDbUtil dbUtil = new AllenDbUtil();
