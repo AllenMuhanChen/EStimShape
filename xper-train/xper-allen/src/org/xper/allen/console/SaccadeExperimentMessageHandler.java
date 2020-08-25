@@ -7,6 +7,9 @@ import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.db.vo.BehMsgEntry;
 import org.xper.drawing.Coordinates2D;
 
+/**
+ * Provides methods for reading behmsg entries and allowing any part of xper to access them (the console) 
+ */
 public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandler{
 	AtomicBoolean targetOn = new AtomicBoolean(false);
 	AtomicReference<Coordinates2D> targetPosition = new AtomicReference<Coordinates2D>(new Coordinates2D(0,0));

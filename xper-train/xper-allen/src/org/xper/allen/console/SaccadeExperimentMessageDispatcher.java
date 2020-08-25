@@ -3,6 +3,12 @@ package org.xper.allen.console;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;
 import org.xper.allen.experiment.saccade.*;
+
+/**
+ * Provides methods for sending "TargetOn" and "TargetOff" messages to database (behmsg)
+ * @author Allen Chen
+ *
+ */
 public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDispatcher implements TargetEventListener{
 
 	@Override
