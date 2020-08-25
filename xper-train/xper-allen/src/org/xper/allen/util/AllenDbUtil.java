@@ -170,9 +170,17 @@ public class AllenDbUtil extends DbUtil {
  */
 	public LinkedList<SaccadeExperimentTask> readSaccadeExperimentTasks(long genId,
 			long lastDoneTaskId) {
-
+		StimSpecEntry sse;
 		//AC
-		StimSpecEntry sse = readStimSpec(lastDoneTaskId);
+		//System.out.println(Long.toString(lastDoneTaskId));
+		if (lastDoneTaskId > 0) {
+			 sse = readStimSpec(lastDoneTaskId);
+		
+		}
+		else {
+			long TaskToDoMaxId = readTaskToDoMaxId();
+			 sse = readStimSpec(TaskToDoMaxId);
+		}
 		StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
 		
 		//
