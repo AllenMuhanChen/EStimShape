@@ -90,7 +90,7 @@
 				<include name="org/xper/allen/app/training/RandomTrainingXMLGen.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.blockGenerators.RandomTrainingXMLGen" />
+				<attribute name="Main-Class" value="org.xper.allen.app.training.RandomTrainingXMLGen" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
 			</manifest>
 		</jar>
