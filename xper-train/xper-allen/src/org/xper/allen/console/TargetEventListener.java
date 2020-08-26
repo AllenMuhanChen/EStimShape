@@ -12,5 +12,10 @@ public interface TargetEventListener {
 	 * @param timestamp (microseconds)
 	 * @param context
 	 */
-	public void targetOff(long timestamp, TrialContext context);
+	public void targetOff(long timestamp);
+	
+	public void targetSelectionEyeFail(long timestamp);
+	
+	public void targetSelectionEyeBreak(long timestamp);
+	
 }

@@ -32,7 +32,7 @@ public class TrialExperimentMessageHandler implements ExperimentMessageHandler {
 	protected AtomicBoolean fixationOn = new AtomicBoolean(false);
 	protected AtomicBoolean inTrial = new AtomicBoolean(false);
 	protected AtomicBoolean eyeIn = new AtomicBoolean(false);
-	AtomicReference<TrialStatistics> trialStat = new AtomicReference<TrialStatistics>();
+	protected AtomicReference<TrialStatistics> trialStat = new AtomicReference<TrialStatistics>();
 	
 	public TrialExperimentMessageHandler() {
 		trialStat.set(new TrialStatistics());

@@ -3,14 +3,14 @@ package org.xper.classic.vo;
 import com.thoughtworks.xstream.XStream;
 
 public class TrialStatistics {
-	int completeTrials = 0;
-	int failedTrials = 0;
-	int brokenTrials = 0;
+	protected int completeTrials = 0;
+	protected int failedTrials = 0;
+	protected int brokenTrials = 0;
 	
-	int allTrialsPASS = 0;
-	int allTrialsFAIL = 0;
-	int allTrialsBREAK = 0;
-	int allTrialsNOGO = 0;
+	protected int allTrialsPASS = 0;
+	protected int allTrialsFAIL = 0;
+	protected int allTrialsBREAK = 0;
+	protected int allTrialsNOGO = 0;
 	
 	public void reset() {
 		completeTrials = 0;

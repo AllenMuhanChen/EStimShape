@@ -3,7 +3,9 @@ package org.xper.allen.console;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.xper.allen.db.vo.SaccadeTrialStatistics;
 import org.xper.classic.TrialExperimentMessageHandler;
+import org.xper.classic.vo.TrialStatistics;
 import org.xper.db.vo.BehMsgEntry;
 import org.xper.drawing.Coordinates2D;
 
@@ -14,7 +16,14 @@ public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandl
 	AtomicBoolean targetOn = new AtomicBoolean(false);
 	AtomicReference<Coordinates2D> targetPosition = new AtomicReference<Coordinates2D>(new Coordinates2D(0,0));
 	AtomicReference<Double> targetEyeWindowSize = new AtomicReference<Double>((double) 0);
+	AtomicReference<SaccadeTrialStatistics> trialStat = new AtomicReference<SaccadeTrialStatistics>();
 	
+	public SaccadeExperimentMessageHandler() {
+		trialStat.set(new SaccadeTrialStatistics());
+	}
+	
+	
+	@Override
 	public boolean handleMessage(BehMsgEntry msg) {
 		if ("EyeDeviceMessage".equals(msg.getType())) {
 			handleEyeDeviceMessage(msg);
@@ -61,6 +70,14 @@ public class SaccadeExperimentMessageHandler extends TrialExperimentMessageHandl
 		} else {
 			return false;
 		}
+	}
+	
+	public SaccadeTrialStatistics getTrialStatistics() {
+		return trialStat.get();
+	}
+	
+	protected void handleTrialStatistics(BehMsgEntry ent) {
+		trialStat.set(SaccadeTrialStatistics.fromXml(ent.getMsg()));
 	}
 	
 	public boolean isTargetOn() {

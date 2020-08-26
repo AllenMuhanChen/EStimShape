@@ -209,7 +209,6 @@ public class AllenDbUtil extends DbUtil {
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						task.setDuration(ss.getDuration());
 						//TODO: EStimObjData
-						
 						task.setTaskId(rs.getLong("task_id"));
 						task.setXfmId(rs.getLong("xfm_id"));
 						task.setXfmSpec(rs.getString("xfm_spec"));
