@@ -16,10 +16,22 @@ public class SaccadeEventUtil extends EventUtil{
 			}
 	}
 	
-	public static void fireTargetOffEvent(long timestamp, List<?extends TargetEventListener> targetEventListeners,TrialContext currentContext) {
+	public static void fireTargetOffEvent(long timestamp, List<?extends TargetEventListener> targetEventListeners) {
 		for (TargetEventListener listener: targetEventListeners) {
-			listener.targetOff(timestamp, currentContext);
+			listener.targetOff(timestamp);
 		}
 	}
 	
+	
+	public static void fireTargetSelectionEyeFailEvent(long timestamp, List<?extends TargetEventListener> targetEventListeners) {
+		for (TargetEventListener listener: targetEventListeners) {
+			listener.targetSelectionEyeFail(timestamp);
+		}
+	}
+	
+	public static void fireTargetSelectionEyeBreakEvent(long timestamp, List<?extends TargetEventListener> targetEventListeners) {
+		for (TargetEventListener listener: targetEventListeners) {
+			listener.targetSelectionEyeBreak(timestamp);
+		}
+	}
 }

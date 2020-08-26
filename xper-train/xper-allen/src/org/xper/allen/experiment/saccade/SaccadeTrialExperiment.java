@@ -111,6 +111,7 @@ public class SaccadeTrialExperiment implements Experiment {
 									// draw the slide
 									result = SaccadeTrialExperimentUtil.doSlide(i, stateObject);
 									
+													
 									if (result!= TrialResult.TARGET_SELECTION_DONE) {
 										return result;
 									}

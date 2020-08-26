@@ -4,6 +4,7 @@ package org.xper.allen.app.training;
 import javax.swing.UIManager;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.console.SaccadeExperimentConsole;
 import org.xper.console.ExperimentConsole;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
@@ -16,9 +17,11 @@ public class Console {
 		} catch (Exception e) {
 			throw new XGLException(e);
 		}
+		System.out.println("Test");
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
-		ExperimentConsole console = context.getBean(ExperimentConsole.class);
+		System.out.println("Test");
+		SaccadeExperimentConsole console = context.getBean(SaccadeExperimentConsole.class);
 		console.run();
 	}
 }

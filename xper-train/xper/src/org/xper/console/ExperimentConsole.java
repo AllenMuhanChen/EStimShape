@@ -95,11 +95,11 @@ public class ExperimentConsole extends JFrame implements
 	
 	static final double DEFAULT_CANVAS_SCALE_FACTOR = 2.5;
 	
-	boolean isMonitorMode () {
+	public boolean isMonitorMode () {
 		return currentPlugin == null;
 	}
                          
-    private void initComponents() {
+    public void initComponents() {
     	setTitle("Experiment Console");
     	setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     	setResizable(true);
@@ -345,7 +345,7 @@ public class ExperimentConsole extends JFrame implements
         trialStatPanel.add(new JLabel("Complete"),
         		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));   
         completeTrialCount = new JLabel("0");
-        trialStatPanel.add(completeTrialCount,
+        trialStatPanel.add(getCompleteTrialCount(),
         		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
       
         trialStatPanel.add(new JLabel("Break"),
@@ -516,7 +516,7 @@ public class ExperimentConsole extends JFrame implements
     	}
 	}
 
-	void stop() {
+	public void stop() {
 		final JDialog progress = GuiUtil.createProgressDialog(this, "Shuting down experiment...");
 		ThreadUtil.backgroundRun(new Runnable() {
 			public void run() {
@@ -544,7 +544,7 @@ public class ExperimentConsole extends JFrame implements
 		});
 	}
 
-	void mousePosition(int x, int y) {
+	public void mousePosition(int x, int y) {
 		if (!lockSimulatedEyePos) {
 			mouseXCanvas.setText(String.valueOf(x));
 			mouseYCanvas.setText(String.valueOf(y));
@@ -563,7 +563,7 @@ public class ExperimentConsole extends JFrame implements
 		}
 	}
 
-	void changeCurrentDeviceId(String id) {
+	public void changeCurrentDeviceId(String id) {
 		currentDeviceId.set(id);
 	}
 
@@ -599,7 +599,7 @@ public class ExperimentConsole extends JFrame implements
 		}
 	}
 
-	void updateStatistics() {
+	protected void updateStatistics() {
 		TrialStatistics stat = model.getTrialStatistics();
 
 //		String lastCount = this.completeTrialCount.getText();
@@ -629,7 +629,7 @@ public class ExperimentConsole extends JFrame implements
 //			this.failTrialCount.setForeground(Color.RED);
 //		}
 		
-		updateLabelCount(completeTrialCount,stat.getCompleteTrials());
+		updateLabelCount(getCompleteTrialCount(),stat.getCompleteTrials());
 		updateLabelCount(breakTrialCount,stat.getBrokenTrials());
 		updateLabelCount(failTrialCount,stat.getFailedTrials());
 		
@@ -639,7 +639,7 @@ public class ExperimentConsole extends JFrame implements
 		updateLabelCount(trialNogoCount,stat.getAllTrialsNOGO());
 	}
 	
-	void updateLabelCount(JLabel label, int trialCount) {
+	public void updateLabelCount(JLabel label, int trialCount) {
 		String lastCount = label.getText();
 		String thisCount = StringUtil.format(trialCount, 0);
 		label.setText(thisCount);
@@ -656,7 +656,7 @@ public class ExperimentConsole extends JFrame implements
 		this.eyeZeroY.setText(StringUtil.format(eyeZero.getY(), 1));
 	}
 
-	Canvas getCanvas() {
+	protected Canvas getCanvas() {
 		try {
 			return new org.lwjgl.opengl.AWTGLCanvas() {
 				private static final long serialVersionUID = 392316101235320412L;
@@ -695,32 +695,32 @@ public class ExperimentConsole extends JFrame implements
 		}
 	}
          
-    private JLabel breakTrialCount;
-    private JLabel completeTrialCount;
-    private Canvas consoleCanvas;
-    private JComboBox eyeDeviceSelect;
-    private JLabel eyeReadingDegreeX;
-    private JLabel eyeReadingDegreeY;
-    private JLabel eyeReadingVoltX;
-    private JLabel eyeReadingVoltY;
-    private JLabel eyeWindowCenterX;
-    private JLabel eyeWindowCenterY;
-    private JLabel eyeWindowSize;
-    private JLabel eyeZeroX;
-    private JLabel eyeZeroY;
-    private JLabel failTrialCount;
-    private JLabel mouseXCanvas;
-    private JLabel mouseXDegree;
-    private JLabel mouseXWorld;
-    private JLabel mouseYCanvas;
-    private JLabel mouseYDegree;
-    private JLabel mouseYWorld;
-    private JLabel modeLabel;
-    private JButton pauseResumeButton;             
-    private JLabel trialPassCount;
-    private JLabel trialFailCount;
-    private JLabel trialBreakCount;
-    private JLabel trialNogoCount;
+    protected JLabel breakTrialCount;
+    protected JLabel completeTrialCount;
+    protected Canvas consoleCanvas;
+    protected JComboBox eyeDeviceSelect;
+    protected JLabel eyeReadingDegreeX;
+    protected JLabel eyeReadingDegreeY;
+    protected JLabel eyeReadingVoltX;
+    protected JLabel eyeReadingVoltY;
+    protected JLabel eyeWindowCenterX;
+    protected JLabel eyeWindowCenterY;
+    protected JLabel eyeWindowSize;
+    protected JLabel eyeZeroX;
+    protected JLabel eyeZeroY;
+    protected JLabel failTrialCount;
+    protected JLabel mouseXCanvas;
+    protected JLabel mouseXDegree;
+    protected JLabel mouseXWorld;
+    protected JLabel mouseYCanvas;
+    protected JLabel mouseYDegree;
+    protected JLabel mouseYWorld;
+    protected JLabel modeLabel;
+    protected JButton pauseResumeButton;             
+    protected JLabel trialPassCount;
+    protected JLabel trialFailCount;
+    protected JLabel trialBreakCount;
+    protected JLabel trialNogoCount;
 
 	public void messageReceived() {
 		SwingUtilities.invokeLater(new Runnable() {
@@ -777,6 +777,10 @@ public class ExperimentConsole extends JFrame implements
 
 	public void setConsolePlugins(List<IConsolePlugin> consolePlugins) {
 		this.consolePlugins = consolePlugins;
+	}
+
+	public JLabel getCompleteTrialCount() {
+		return completeTrialCount;
 	}
 	
 	

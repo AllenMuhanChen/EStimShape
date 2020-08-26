@@ -47,7 +47,7 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	/**
 	 * monkey eye voltage.
 	 */ 
-	AtomicReference<Coordinates2D> eyePositionInDegree = new AtomicReference<Coordinates2D>();
+	protected AtomicReference<Coordinates2D> eyePositionInDegree = new AtomicReference<Coordinates2D>();
 	
 	public void resume () {
 		experimentRunnerClient.resume();
@@ -58,7 +58,7 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	}
 	
 	public void start () {
-		eyePositionInDegree.set(new Coordinates2D(0,0));
+		getEyePositionInDegree().set(new Coordinates2D(0,0));
 		messageReceiver.start();
 		if (samplingServer != null) {
 			samplingServer.start();
@@ -101,14 +101,14 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	}
 	
 	public void setEyePosition (Coordinates2D degree) {
-		eyePositionInDegree.set(degree);
+		getEyePositionInDegree().set(degree);
 	}
 
 	public double getData(int channel) {
 		EyeDeviceIdChannelPair deviceChannel = channelMap.get(channel);
 		Coordinates2D eyeZero = messageHandler
 				.getEyeZeroByDeviceId(deviceChannel.getId());
-		Coordinates2D degree = eyePositionInDegree.get();
+		Coordinates2D degree = getEyePositionInDegree().get();
 		MappingAlgorithm algorithm = eyeMappingAlgorithm.get(deviceChannel.getId());
 		Coordinates2D volt = algorithm.degree2Volt(degree, eyeZero);
 
@@ -182,6 +182,10 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 
 	public void setLocalTimeUtil(TimeUtil localTimeUtil) {
 		this.localTimeUtil = localTimeUtil;
+	}
+
+	public AtomicReference<Coordinates2D> getEyePositionInDegree() {
+		return eyePositionInDegree;
 	}
 	
 }

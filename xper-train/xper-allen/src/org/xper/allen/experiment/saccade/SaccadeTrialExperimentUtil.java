@@ -80,8 +80,14 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		slideEventListeners);
 		currentContext.setAnimationFrameIndex(0);
 		
-		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
+		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners);
 		TargetSelectorResult selectorResult = selectorDriver.getResult();
+		if (selectorResult.getSelectionStatusResult() == TrialResult.TARGET_SELECTION_EYE_FAIL) {
+			SaccadeEventUtil.fireTargetSelectionEyeFailEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+		}
+		else if (selectorResult.getSelectionStatusResult() == TrialResult.TARGET_SELECTION_EYE_BREAK) {
+			SaccadeEventUtil.fireTargetSelectionEyeBreakEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+		}
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		return selectorResult.getSelectionStatusResult();
 	}

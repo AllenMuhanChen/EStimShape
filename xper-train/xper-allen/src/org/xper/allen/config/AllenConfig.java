@@ -17,6 +17,9 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.allen.console.SaccadeExperimentConsole;
+import org.xper.allen.console.SaccadeExperimentConsoleModel;
 import org.xper.allen.console.SaccadeExperimentConsoleRenderer;
 import org.xper.allen.console.SaccadeExperimentMessageDispatcher;
 import org.xper.allen.console.SaccadeExperimentMessageHandler;
@@ -33,6 +36,7 @@ import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.console.ExperimentConsole;
+import org.xper.console.ExperimentConsoleModel;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.BlankTaskScene;
 import org.xper.drawing.Coordinates2D;
@@ -47,6 +51,7 @@ import org.xper.experiment.ExperimentRunner;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 import org.xper.eye.RobustEyeTargetSelector;
 import org.xper.eye.listener.EyeSamplerEventListener;
+import org.xper.eye.mapping.MappingAlgorithm;
 import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
@@ -112,13 +117,13 @@ public class AllenConfig {
 		return xmlUtil;
 	}
 	@Bean
-	public ExperimentConsole experimentConsole () {
-		ExperimentConsole console = new ExperimentConsole();
+	public SaccadeExperimentConsole experimentConsole () {
+		SaccadeExperimentConsole console = new SaccadeExperimentConsole();
 		
 		console.setPaused(classicConfig.xperExperimentInitialPause());
 		console.setConsoleRenderer(consoleRenderer());
 		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
-		console.setModel(classicConfig.experimentConsoleModel());
+		console.setModel(experimentConsoleModel());
 		console.setCanvasScaleFactor(3);
 		
 		ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
@@ -126,6 +131,38 @@ public class AllenConfig {
 		receiver.addMessageReceiverEventListener(console);
 		
 		return console;
+	}
+	
+	@Bean
+	public SaccadeExperimentConsoleModel experimentConsoleModel () {
+		SaccadeExperimentConsoleModel model = new SaccadeExperimentConsoleModel();
+		model.setMessageReceiver(classicConfig.messageReceiver());
+		model.setLocalTimeUtil(baseConfig.localTimeUtil());
+		
+		HashMap<String, MappingAlgorithm> eyeMappingAlgorithm = new HashMap<String, MappingAlgorithm>();
+		eyeMappingAlgorithm.put(classicConfig.xperLeftIscanId(), classicConfig.leftIscanMappingAlgorithm());
+		eyeMappingAlgorithm.put(classicConfig.xperRightIscanId(), classicConfig.rightIscanMappingAlgorithm());
+		model.setEyeMappingAlgorithm(eyeMappingAlgorithm);
+		
+		model.setExperimentRunnerClient(classicConfig.experimentRunnerClient());
+		model.setChannelMap(classicConfig.iscanChannelMap());
+		model.setMessageHandler(messageHandler());
+		
+		if (classicConfig.consoleEyeSimulation || acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
+			// socket sampling server for eye simulation
+			SocketSamplingDeviceServer server = new SocketSamplingDeviceServer();
+			server.setHost(classicConfig.consoleHost);
+			server.setSamplingDevice(model);
+			HashMap<Integer, Double> data = new HashMap<Integer, Double>();
+			data.put(classicConfig.xperLeftIscanXChannel(), new Double(0));
+			data.put(classicConfig.xperLeftIscanYChannel(), new Double(0));
+			data.put(classicConfig.xperRightIscanXChannel(), new Double(0));
+			data.put(classicConfig.xperRightIscanYChannel(), new Double(0));
+			server.setCurrentChannelData(data);
+			
+			model.setSamplingServer(server);
+		}
+		return model;
 	}
 	
 	@Bean
@@ -248,7 +285,7 @@ public class AllenConfig {
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<TargetEventListener> targetEventListeners () {
 		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
-		listeners.add(messageDispatcher());
+		listeners.add((TargetEventListener) messageDispatcher());
 		return listeners;
 	}
 	
