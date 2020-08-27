@@ -88,7 +88,7 @@ public class SaccadeTrialExperiment implements Experiment {
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
 							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
 							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
-							TrialResult result = TrialResult.FIXATION_SUCCESS;
+							TrialResult result;
 							
 							try {
 								try {
