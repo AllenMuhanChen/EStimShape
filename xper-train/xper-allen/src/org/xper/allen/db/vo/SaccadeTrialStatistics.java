@@ -10,6 +10,8 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class SaccadeTrialStatistics extends TrialStatistics{
+	// These two are actually kind of useless, since there are existing fields that can used in TrialStatistics. However I kept this in here as a model in case i need to add something novel in the future
+	// 
 	int targetSelectionEyeFail = 0;
 	int targetSelectionEyeBreak = 0;
 	

@@ -17,5 +17,6 @@ public interface TargetEventListener {
 	public void targetSelectionEyeFail(long timestamp);
 	
 	public void targetSelectionEyeBreak(long timestamp);
+	public void targetSelectionDone(long timestamp);
 	
 }

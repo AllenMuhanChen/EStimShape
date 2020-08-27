@@ -16,6 +16,8 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 	
 	protected SaccadeTrialStatistics trialStat = new SaccadeTrialStatistics();
 
+	
+	//Target Related Messages:
 	public void targetOn(long timestamp, TrialContext context) {
 		SaccadeExperimentTask currentTask = (SaccadeExperimentTask) context.getCurrentTask();
 		
@@ -31,11 +33,10 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 		
 	}
 	
-	public void trialStop(long timestamp, TrialContext context) {
-		enqueue(timestamp, "TrialStop", "");
-		enqueue(timestamp, "TrialStatistics",
-				SaccadeTrialStatistics.toXml(trialStat));
-	}
+	public void targetSelectionDone(long timestamp) {
+		enqueue(timestamp, "TargetSelectionDone", "");
+		trialStat.setAllTrialsPASS(trialStat.getAllTrialsPASS());
+		}
 
 	public void targetSelectionEyeFail(long timestamp) {
 		enqueue(timestamp, "TargetSelectionEyeFail", "");
@@ -47,6 +48,13 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 		trialStat.setTargetSelectionEyeBreak(trialStat.getTargetSelectionEyeBreak()+1);
 	}
 
+	//Overriden Messages from TrialExperimentMessageDispatcher, since I need a new SaccadeTrialStatistics. 
+	public void trialStop(long timestamp, TrialContext context) {
+		enqueue(timestamp, "TrialStop", "");
+		enqueue(timestamp, "TrialStatistics",
+				SaccadeTrialStatistics.toXml(trialStat));
+	}
+	
 	public void eyeInBreak(long timestamp, TrialContext context) {
 		enqueue(timestamp, "EyeInBreak", "");
 		trialStat.setBrokenTrials(trialStat.getBrokenTrials()+1);
