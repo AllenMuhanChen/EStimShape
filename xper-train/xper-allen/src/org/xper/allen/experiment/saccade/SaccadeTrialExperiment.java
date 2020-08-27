@@ -122,10 +122,11 @@ public class SaccadeTrialExperiment implements Experiment {
 												.currentTimeMicros(), false);
 										currentTask = null;
 										stateObject.setCurrentTask(currentTask);
+										return TrialResult.TRIAL_COMPLETE;
 									}
 
 								}
-								return TrialResult.TRIAL_COMPLETE;
+								
 								// end of SlideRunner.runSlide
 							} finally {
 								try {

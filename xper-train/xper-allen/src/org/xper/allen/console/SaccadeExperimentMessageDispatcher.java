@@ -47,7 +47,30 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 		trialStat.setTargetSelectionEyeBreak(trialStat.getTargetSelectionEyeBreak()+1);
 	}
 
+	public void eyeInBreak(long timestamp, TrialContext context) {
+		enqueue(timestamp, "EyeInBreak", "");
+		trialStat.setBrokenTrials(trialStat.getBrokenTrials()+1);
+	}
 
+	public void eyeInHoldFail(long timestamp, TrialContext context) {
+		enqueue(timestamp, "EyeInHoldFail", "");
+		trialStat.setFailedTrials(trialStat.getFailedTrials()+1);
+	}
 
+	public void experimentStart(long timestamp) {
+		enqueue(timestamp, "ExperimentStart", "");
+
+		trialStat.reset();
+	}
+	
+	public void initialEyeInFail(long timestamp, TrialContext context) {
+		enqueue(timestamp, "InitialEyeInFail", "");
+		trialStat.setFailedTrials(trialStat.getFailedTrials()+1);
+	}
+	
+	public void trialComplete(long timestamp, TrialContext context) {
+		enqueue(timestamp, "TrialComplete", "");
+		trialStat.setCompleteTrials(trialStat.getCompleteTrials() + 1);
+	}
 
 }
