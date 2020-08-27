@@ -88,6 +88,9 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		else if (selectorResult.getSelectionStatusResult() == TrialResult.TARGET_SELECTION_EYE_BREAK) {
 			SaccadeEventUtil.fireTargetSelectionEyeBreakEvent(timeUtil.currentTimeMicros(), targetEventListeners);
 		}
+		else if (selectorResult.getSelectionStatusResult()== TrialResult.TARGET_SELECTION_DONE) {
+			SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+		}
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		return selectorResult.getSelectionStatusResult();
 	}

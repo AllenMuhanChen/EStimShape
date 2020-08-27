@@ -17,7 +17,7 @@ import org.xper.eye.EyeMonitor;
 import org.xper.time.TimeUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
-
+import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 
 /**
  * Format of StimSpec:
@@ -111,10 +111,6 @@ public class SaccadeTrialExperiment implements Experiment {
 									// draw the slide
 									result = SaccadeTrialExperimentUtil.doSlide(i, stateObject);
 									
-													
-									if (result!= TrialResult.TARGET_SELECTION_DONE) {
-										return result;
-									}
 									
 									// Trial done successfully
 									if (currentTask != null) {
@@ -122,11 +118,11 @@ public class SaccadeTrialExperiment implements Experiment {
 												.currentTimeMicros(), false);
 										currentTask = null;
 										stateObject.setCurrentTask(currentTask);
-										return TrialResult.TRIAL_COMPLETE;
+										
 									}
 
 								}
-								
+								return TrialResult.TRIAL_COMPLETE;
 								// end of SlideRunner.runSlide
 							} finally {
 								try {
