@@ -35,7 +35,7 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 	
 	public void targetSelectionDone(long timestamp) {
 		enqueue(timestamp, "TargetSelectionDone", "");
-		trialStat.setAllTrialsPASS(trialStat.getAllTrialsPASS());
+		trialStat.setAllTrialsPASS(trialStat.getAllTrialsPASS()+1);
 		}
 
 	public void targetSelectionEyeFail(long timestamp) {
