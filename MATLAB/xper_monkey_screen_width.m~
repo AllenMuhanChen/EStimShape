@@ -1,0 +1,5 @@
+function val = fetchFromSystemVar(conn, name)
+sqlQuery = "SELECT val FROM systemvar WHERE name=" + num2str(tstamp);
+behmsg = fetch(conn,sqlQuery);
+behmsg = table2array(behmsg); string(behmsg);
+end 

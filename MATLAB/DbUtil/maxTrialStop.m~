@@ -1,0 +1,4 @@
+function [timestamp] = maxTrialStop()
+    global conn;
+    sqlquery= 'SELECT MAX(tstamp) FROM behmsg WHERE type="TrialStop''
+end 

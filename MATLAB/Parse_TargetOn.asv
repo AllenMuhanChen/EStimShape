@@ -1,0 +1,21 @@
+%inputs
+tstamp = 1.584677425613684e+15
+%
+%Fetching data from database and converting to string
+sqlQuery = "SELECT msg FROM behmsg WHERE tstamp=" + num2str(tstamp);
+behmsg = fetch(conn,sqlQuery);
+behmsg = table2array(behmsg); string(behmsg);
+
+%Parsing XML
+behmsg_struct = parseXML(behmsg);
+    %targetPos
+isTargetPos = cellfun(@(x) strcmp(x,'targetPos'), {behmsg_struct.Children.Name})
+targetPos_struct = behmsg_struct.Children(isTargetPos);
+        %x
+isX = cellfun(@(x) strcmp(x,'x'),{targetPos_struct.Children.Name});
+x = str2double(targetPos_struct.Children(isX).Children.Data);
+        %y
+isY = cellfun(@(x) strcmp(x,'y'),{targetPos_struct.Children.Name});
+y = str2double
+
+
