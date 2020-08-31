@@ -1,0 +1,5 @@
+% Input: tstamp of TrialInit
+trialInit_tstamp = 1584636728890106;
+trialStop_tstamp = 1584636731626677;
+
+[xs_left, ys_right, xs_right, ys_right]

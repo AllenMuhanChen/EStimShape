@@ -1,0 +1,56 @@
+clear all;
+close all;
+
+global conn;
+conn = DBConnect(); %outside of function
+
+% Input: tstamp of TrialInit
+trialInit_tstamp = 1598566830796307;
+trialStop_tstamp = 1598566833893352;
+
+[xs_left, ys_left, xs_right, ys_right] = Parse_behmsgeye(trialInit_tstamp, trialStop_tstamp);
+TargetOn_tstamp = TStampBetween(trialInit_tstamp, trialStop_tstamp, "TargetOn");
+[targetPos_x, targetPos_y, targetEyeWindowSize] = Parse_TargetOn(TargetOn_tstamp);
+
+%Variables for Plotting
+%Screen Size
+monkey_screen_width_mm = SystemVar(conn, "xper_monkey_screen_width");
+monkey_screen_height_mm = SystemVar(conn, "xper_monkey_screen_height");
+monkey_screen_distance_mm = SystemVar(conn, "xper_monkey_screen_distance");
+screen_width_deg = rad2deg(2*atan((monkey_screen_width_mm/2)/(2*monkey_screen_distance_mm)));
+screen_height_deg = rad2deg(2*atan((monkey_screen_height_mm)/(2*monkey_screen_distance_mm)));
+%Fixation Point
+fixation_color = [SystemVar(conn, "xper_fixation_point_color", 0), SystemVar(conn, "xper_fixation_point_color", 1), SystemVar(conn, "xper_fixation_point_color", 2)];
+
+
+fig = figure;
+subplot(1,2,1);
+plot(xs_left,ys_left);
+axis equal;
+hold on;
+plot(0, 0, 'Marker', 'square', 'MarkerEdgeColor',fixation_color, 'MarkerFaceColor', fixation_color)
+set(gca,'Color','k')
+title('Left Eye'); xlabel('X-Position (degrees)'); ylabel('Y-Position (degrees)');
+xlim([-screen_width_deg screen_width_deg]);
+ylim([-screen_height_deg, screen_height_deg]);
+pos = fig.Children(1).Position; 
+xAxisLengthPoints = pos(3);
+xAxisLengthDegrees = fig.Children(1).XLim(2)-fig.Children(1).XLim(1);
+xDeg2PointsScalar = xAxisLengthPoints/xAxisLengthDegrees;
+%plot(targetPos_x, targetPos_y, 'Marker', 'o', 'MarkerSize', targetEyeWindowSize * xDeg2PointsScalar);
+rectangle('Position', [targetPos_x, targetPos_y, (targetEyeWindowSize * xDeg2PointsScalar), (targetEyeWindowSize * xDeg2PointsScalar)], 'Curvature', [1,1], 'EdgeColor','r')
+
+subplot(1,2,2);  
+plot(xs_right, ys_right);
+axis equal;
+hold on;
+plot(0, 0, 'Marker', 'square', 'MarkerEdgeColor',fixation_color, 'MarkerFaceColor', fixation_color)
+set(gca,'Color','k')
+title('Right Eye'); xlabel('X-Position (degrees)'); ylabel('Y-Position (degrees)');
+xlim([-screen_width_deg screen_width_deg]);
+ylim([-screen_height_deg, screen_height_deg]);
+pos = fig.Children(2).Position; 
+xAxisLengthPoints = pos(3);
+xAxisLengthDegrees = fig.Children(2).XLim(2)-fig.Children(2).XLim(1);
+xDeg2PointsScalar = xAxisLengthPoints/xAxisLengthDegrees;
+plot(targetPos_x, targetPos_y, 'Marker', 'o', 'MarkerSize', xDeg2PointsScalar * targetEyeWindowSize);
