@@ -26,12 +26,15 @@ import org.xper.allen.console.SaccadeExperimentMessageHandler;
 import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
+import org.xper.allen.experiment.saccade.SaccadeJuiceController;
 import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
+import org.xper.classic.JuiceController;
 import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.TrialDrawingController;
+import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -56,6 +59,7 @@ import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
+import org.xper.juice.mock.NullDynamicJuice;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 
@@ -253,7 +257,7 @@ public class AllenConfig {
 	public SaccadeExperimentState experimentState() {
 		SaccadeExperimentState state = new SaccadeExperimentState();
 		state.setLocalTimeUtil(baseConfig.localTimeUtil());
-		state.setTrialEventListeners(classicConfig.trialEventListeners());
+		state.setTrialEventListeners(trialEventListeners());
 		state.setSlideEventListeners(classicConfig.slideEventListeners());
 		state.setTargetEventListeners(targetEventListeners());
 		state.setEyeController(classicConfig.eyeController());
@@ -280,6 +284,35 @@ public class AllenConfig {
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		return state;
+	}
+	
+	@Bean (scope = DefaultScopes.PROTOTYPE)
+	public List<TrialEventListener> trialEventListeners () {
+		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
+		trialEventListener.add(classicConfig.eyeMonitorController());
+		trialEventListener.add(classicConfig.trialEventLogger());
+		trialEventListener.add(classicConfig.experimentProfiler());
+		trialEventListener.add(messageDispatcher());
+		trialEventListener.add(juiceController());
+		trialEventListener.add(classicConfig.trialSyncController());
+		trialEventListener.add(classicConfig.dataAcqController());
+		trialEventListener.add(classicConfig.jvmManager());
+		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
+			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
+		}
+		
+		return trialEventListener;
+	}
+	
+	@Bean
+	public TrialEventListener juiceController() {
+		SaccadeJuiceController controller = new SaccadeJuiceController();
+		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
+			controller.setJuice(new NullDynamicJuice());
+		} else {
+			controller.setJuice(classicConfig.xperDynamicJuice());
+		}
+		return controller;
 	}
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
