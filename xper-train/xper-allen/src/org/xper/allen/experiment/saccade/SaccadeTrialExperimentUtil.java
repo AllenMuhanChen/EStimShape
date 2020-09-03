@@ -25,10 +25,10 @@ import org.xper.drawing.Coordinates2D;
 public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	@Dependency
 	EyeMonitor eyeMonitor;
-	
+
 	public static TrialResult doSlide(int i, SaccadeExperimentState stateObject) {
 
-		
+
 		TrialDrawingController drawingController = stateObject.getDrawingController();
 		SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
@@ -36,52 +36,44 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
-		
-		
+
+
+		TargetSelectorResult selectorResult;
+
 		//show current slide after a delay (blank time)
 		long blankOnLocalTime = timeUtil.currentTimeMicros();
 		do {
 			//do nothing
 		}while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
-		
+
 		drawingController.showSlide(currentTask, currentContext);
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
-		
+
+
 		//Eye on Target Logic
 		//eye selector
 		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
 		currentContext.setTargetOnTime(currentContext.getCurrentSlideOnTime()); 
-		
-		
+
+
 		//Sleep for the duration of the start delay
 		//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
-		
+
 		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
 		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
-						     currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
-						     + stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
+				currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
+				+ stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
 		SaccadeEventUtil.fireTargetOnEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
-		
+
 		do {
-			
+			//Wait for Eye Target Selector To Finish
 		}while(!selectorDriver.isDone());
 		selectorDriver.stop();
-		//finish current slide
-		drawingController.trialComplete(currentContext);
-		long slideOffLocalTime = timeUtil.currentTimeMicros();
-		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
-		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
-				/*
-				 * TODO: Animation frame stuff may not be needed 
-				 */
-		currentContext.getAnimationFrameIndex(),
-		slideEventListeners);
-		currentContext.setAnimationFrameIndex(0);
-		
+
 		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners);
-		TargetSelectorResult selectorResult = selectorDriver.getResult();
+		selectorResult = selectorDriver.getResult();
 		if (selectorResult.getSelectionStatusResult() == TrialResult.TARGET_SELECTION_EYE_FAIL) {
 			SaccadeEventUtil.fireTargetSelectionEyeFailEvent(timeUtil.currentTimeMicros(), targetEventListeners);
 		}
@@ -91,11 +83,28 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		else if (selectorResult.getSelectionStatusResult()== TrialResult.TARGET_SELECTION_DONE) {
 			SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
 		}
+
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
+		do {
+			//Wait for Slide to Finish
+		}while(timeUtil.currentTimeMicros()<slideOnLocalTime+stateObject.getSlideLength()*1000);
+		//finish current slide
+		drawingController.trialComplete(currentContext);
+		long slideOffLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
+		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
+				/*
+				 * TODO: Animation frame stuff may not be needed 
+				 */
+				currentContext.getAnimationFrameIndex(),
+				slideEventListeners);
+		currentContext.setAnimationFrameIndex(0);
+
+
 		return selectorResult.getSelectionStatusResult();
+
 	}
 
-	
 	public static TrialResult runTrial (SaccadeExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
 		TrialResult result = SaccadeTrialExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != TrialResult.FIXATION_SUCCESS) {
@@ -111,7 +120,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 
 		return TrialResult.TRIAL_COMPLETE;
 	}
-	
+
 	public static void cleanupTrial (SaccadeTrialExperimentState state) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		SaccadeExperimentTask currentTask = state.getCurrentTask();
@@ -120,8 +129,8 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
-		.getTrialEventListeners();
-		
+				.getTrialEventListeners();
+
 		// unget failed task
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
@@ -140,5 +149,5 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		state.setCurrentContext(null);
 	}
 
-	
+
 }
