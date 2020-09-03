@@ -1,7 +1,7 @@
 function theStruct = parseXML(string)
 % modified function from MATHWORKS. 
 % Source: https://www.mathworks.com/help/matlab/ref/xmlread.html
-% Modifications: xmlreadstring to generate tree rather than xmlread
+% Modifications: xmlreadstring rather than xmlread to generate tree 
 % Modified by: Allen Chen
 % PARSEXML Convert XML file to a MATLAB structure.
 try

@@ -1,0 +1,42 @@
+function stimObjData_struct = ParseXML_stimObjData(id)
+
+% targetOn_tstamp = 1598651280635894;
+% targetOff_tstamp = 1598651278976121;
+% sqlQuery = "SELECT msg FROM behmsgeye WHERE tstamp<"+num2str(targetOn_tstamp)+" AND tstamp>"+num2str(targetOff_tstamp);
+% behmsgeye_msgs = fetch(conn,sqlQuery);
+% behmsgeye_msg = string(behmsgeye_msgs.msg(1));
+
+stimObjData_struct = struct;
+TargetOn_msg_string = id{1};
+
+%xCenter
+name1 = '<xCenter>';
+name2 = '</xCenter>';
+indx1 = strfind(id, name1);
+indx2 = strfind(id, name2 );
+stimObjData_struct.xCenter = str2double(TargetOn_msg_string([indx1+numel(name1):indx2-1]));
+
+%yCenter
+name1 = '<yCenter>';
+name2 = '</yCenter>';
+indx1 = strfind(id, name1);
+indx2 = strfind(id, name2 );
+stimObjData_struct.yCenter = str2double(TargetOn_msg_string([indx1+numel(name1):indx2-1]));
+
+%size
+name1 = '<size>';
+name2 = '</size>';
+indx1 = strfind(id, name1);
+indx2 = strfind(id, name2 );
+stimObjData_struct.size = str2double(TargetOn_msg_string([indx1+numel(name1):indx2-1]));
+
+%brightness
+name1 = '<size>';
+name2 = '</size>';
+indx1 = strfind(id, name1);
+indx2 = strfind(id, name2 );
+stimObjData_struct.size = str2double(TargetOn_msg_string([indx1+numel(name1):indx2-1]));
+
+
+end
+

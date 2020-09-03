@@ -1,1502 +1,1502 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?><list>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-1.884227642996926</xCenter>
-      <yCenter>8.966245874252618</yCenter>
-      <size>0.9292730266030773</size>
-      <brightness>0.07250586592563779</brightness>
+      <xCenter>4.793589563681952</xCenter>
+      <yCenter>-2.0452280606136743</yCenter>
+      <size>0.9675968128977681</size>
+      <brightness>0.15675703598677637</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-1.884227642996926</x>
-      <y>8.966245874252618</y>
+      <x>4.793589563681952</x>
+      <y>-2.0452280606136743</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.46463651330153866</targetEyeWinSize>
-    <duration>1558.980871405006</duration>
+    <targetEyeWinSize>0.48379840644888406</targetEyeWinSize>
+    <duration>1659.6352159686721</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>10.420668052212331</xCenter>
-      <yCenter>-14.238874013261585</yCenter>
-      <size>0.6125928274525252</size>
-      <brightness>0.4692582713117681</brightness>
+      <xCenter>-6.034860938317622</xCenter>
+      <yCenter>-0.7480066224829465</yCenter>
+      <size>0.5229076765172809</size>
+      <brightness>0.6506376103281686</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>10.420668052212331</x>
-      <y>-14.238874013261585</y>
+      <x>-6.034860938317622</x>
+      <y>-0.7480066224829465</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3062964137262626</targetEyeWinSize>
-    <duration>1746.8450787461713</duration>
+    <targetEyeWinSize>0.26145383825864044</targetEyeWinSize>
+    <duration>1856.4373440207728</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-1.5392990471287504</xCenter>
-      <yCenter>-7.013106237112762</yCenter>
-      <size>0.600216775682014</size>
-      <brightness>0.3911725515821227</brightness>
+      <xCenter>-1.686336016579668</xCenter>
+      <yCenter>5.955363834737697</yCenter>
+      <size>0.9974793548654228</size>
+      <brightness>0.04355357797646553</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-1.5392990471287504</x>
-      <y>-7.013106237112762</y>
+      <x>-1.686336016579668</x>
+      <y>5.955363834737697</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.300108387841007</targetEyeWinSize>
-    <duration>1889.2115640435964</duration>
+    <targetEyeWinSize>0.4987396774327114</targetEyeWinSize>
+    <duration>1998.4781440104864</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>18.834625635540657</xCenter>
-      <yCenter>13.042683729826903</yCenter>
-      <size>0.661289872270006</size>
-      <brightness>0.7700809710123335</brightness>
+      <xCenter>-5.99460851732438</xCenter>
+      <yCenter>3.066561568253152</yCenter>
+      <size>0.6884771720310059</size>
+      <brightness>0.8143895003058976</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>18.834625635540657</x>
-      <y>13.042683729826903</y>
+      <x>-5.99460851732438</x>
+      <y>3.066561568253152</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.330644936135003</targetEyeWinSize>
-    <duration>1846.0194617639374</duration>
+    <targetEyeWinSize>0.34423858601550295</targetEyeWinSize>
+    <duration>1364.8940535951522</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>14.289993111328336</xCenter>
-      <yCenter>11.685175874011984</yCenter>
-      <size>0.7170051154381183</size>
-      <brightness>0.42727071875192524</brightness>
+      <xCenter>-0.9082648889494742</xCenter>
+      <yCenter>4.323295521678002</yCenter>
+      <size>0.9852041704382388</size>
+      <brightness>0.5594586451122981</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>14.289993111328336</x>
-      <y>11.685175874011984</y>
+      <x>-0.9082648889494742</x>
+      <y>4.323295521678002</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.35850255771905915</targetEyeWinSize>
-    <duration>1228.4712520689448</duration>
+    <targetEyeWinSize>0.4926020852191194</targetEyeWinSize>
+    <duration>1389.9552496563942</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-6.018164677625091</xCenter>
-      <yCenter>-5.49167874824847</yCenter>
-      <size>0.9929922936174653</size>
-      <brightness>0.01645359169311078</brightness>
+      <xCenter>-1.2554605026262</xCenter>
+      <yCenter>4.882865414343787</yCenter>
+      <size>0.7901319668182236</size>
+      <brightness>0.787016352664399</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-6.018164677625091</x>
-      <y>-5.49167874824847</y>
+      <x>-1.2554605026262</x>
+      <y>4.882865414343787</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.49649614680873266</targetEyeWinSize>
-    <duration>1716.1868186535137</duration>
+    <targetEyeWinSize>0.3950659834091118</targetEyeWinSize>
+    <duration>1387.8020024479824</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>6.757331361990968</xCenter>
-      <yCenter>-14.160148731189187</yCenter>
-      <size>0.5810735006233343</size>
-      <brightness>0.5956587103196375</brightness>
+      <xCenter>-0.24154576252565557</xCenter>
+      <yCenter>-6.572556731859226</yCenter>
+      <size>0.7638026757622589</size>
+      <brightness>0.8485454848146537</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>6.757331361990968</x>
-      <y>-14.160148731189187</y>
+      <x>-0.24154576252565557</x>
+      <y>-6.572556731859226</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.29053675031166715</targetEyeWinSize>
-    <duration>1673.5587528139108</duration>
+    <targetEyeWinSize>0.38190133788112945</targetEyeWinSize>
+    <duration>1877.5938526400041</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>2.616629091501302</xCenter>
-      <yCenter>-1.310949657222654</yCenter>
-      <size>0.7230897253667576</size>
-      <brightness>0.6600780417228049</brightness>
+      <xCenter>6.030530697835676</xCenter>
+      <yCenter>2.3039588759882794</yCenter>
+      <size>0.9643785980076467</size>
+      <brightness>0.39611179728260937</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>2.616629091501302</x>
-      <y>-1.310949657222654</y>
+      <x>6.030530697835676</x>
+      <y>2.3039588759882794</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3615448626833788</targetEyeWinSize>
-    <duration>1686.8802539646495</duration>
+    <targetEyeWinSize>0.48218929900382335</targetEyeWinSize>
+    <duration>1630.2546558945821</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-16.750239748164184</xCenter>
-      <yCenter>8.007814471980684</yCenter>
-      <size>0.5511376305217723</size>
-      <brightness>0.3225478832080584</brightness>
+      <xCenter>6.253366358827696</xCenter>
+      <yCenter>0.8230557188919595</yCenter>
+      <size>0.7628495994685097</size>
+      <brightness>0.7051414834298846</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-16.750239748164184</x>
-      <y>8.007814471980684</y>
+      <x>6.253366358827696</x>
+      <y>0.8230557188919595</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.27556881526088617</targetEyeWinSize>
-    <duration>1226.416174619522</duration>
+    <targetEyeWinSize>0.38142479973425486</targetEyeWinSize>
+    <duration>1221.4217310286022</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>15.868324026291287</xCenter>
-      <yCenter>6.613945000073951</yCenter>
-      <size>0.8785153988357135</size>
-      <brightness>0.5970496729507181</brightness>
+      <xCenter>2.8230801260876865</xCenter>
+      <yCenter>-0.5817199680036961</yCenter>
+      <size>0.8195680726815748</size>
+      <brightness>0.30302332590142944</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>15.868324026291287</x>
-      <y>6.613945000073951</y>
+      <x>2.8230801260876865</x>
+      <y>-0.5817199680036961</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.43925769941785675</targetEyeWinSize>
-    <duration>1210.5296834211445</duration>
+    <targetEyeWinSize>0.4097840363407874</targetEyeWinSize>
+    <duration>1284.693294831093</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-20.165615057234493</xCenter>
-      <yCenter>-3.552305377060433</yCenter>
-      <size>0.7152194569863571</size>
-      <brightness>0.7773838414117851</brightness>
+      <xCenter>0.9414338823115568</xCenter>
+      <yCenter>-2.982653944120533</yCenter>
+      <size>0.5280920373676871</size>
+      <brightness>0.3836890476910729</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-20.165615057234493</x>
-      <y>-3.552305377060433</y>
+      <x>0.9414338823115568</x>
+      <y>-2.982653944120533</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.35760972849317857</targetEyeWinSize>
-    <duration>1535.4581307264998</duration>
+    <targetEyeWinSize>0.26404601868384353</targetEyeWinSize>
+    <duration>1891.5870082798745</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-7.071276567361883</xCenter>
-      <yCenter>-4.883942249615826</yCenter>
-      <size>0.8525899204533276</size>
-      <brightness>0.3683469008014898</brightness>
+      <xCenter>2.701631536189825</xCenter>
+      <yCenter>0.4444281408233114</yCenter>
+      <size>0.7070120386103171</size>
+      <brightness>0.40716688534008794</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-7.071276567361883</x>
-      <y>-4.883942249615826</y>
+      <x>2.701631536189825</x>
+      <y>0.4444281408233114</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4262949602266638</targetEyeWinSize>
-    <duration>1577.1731475189044</duration>
+    <targetEyeWinSize>0.35350601930515857</targetEyeWinSize>
+    <duration>1461.9386588228585</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>17.38532335054234</xCenter>
-      <yCenter>6.223247027623733</yCenter>
-      <size>0.6152096932862159</size>
-      <brightness>0.09014362287542865</brightness>
+      <xCenter>-5.422165494116681</xCenter>
+      <yCenter>3.669545514311859</yCenter>
+      <size>0.6765460997932377</size>
+      <brightness>0.4474877678348864</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>17.38532335054234</x>
-      <y>6.223247027623733</y>
+      <x>-5.422165494116681</x>
+      <y>3.669545514311859</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.30760484664310794</targetEyeWinSize>
-    <duration>1563.0217352289133</duration>
+    <targetEyeWinSize>0.3382730498966188</targetEyeWinSize>
+    <duration>1944.7771958464828</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>8.358226500386724</xCenter>
-      <yCenter>6.307473169095363</yCenter>
-      <size>0.8644860310651095</size>
-      <brightness>0.27107301899466907</brightness>
+      <xCenter>0.5017397707354088</xCenter>
+      <yCenter>-3.095544054222351</yCenter>
+      <size>0.7437199614871004</size>
+      <brightness>0.5760353431820827</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>8.358226500386724</x>
-      <y>6.307473169095363</y>
+      <x>0.5017397707354088</x>
+      <y>-3.095544054222351</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.43224301553255473</targetEyeWinSize>
-    <duration>1190.6406752046773</duration>
+    <targetEyeWinSize>0.3718599807435502</targetEyeWinSize>
+    <duration>1708.242259183166</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>17.41385231286393</xCenter>
-      <yCenter>-3.5762343912799803</yCenter>
-      <size>0.577648508033802</size>
-      <brightness>0.2416619840123767</brightness>
+      <xCenter>1.083211084783993</xCenter>
+      <yCenter>4.358215469832719</yCenter>
+      <size>0.519276876684052</size>
+      <brightness>0.2987874811591871</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>17.41385231286393</x>
-      <y>-3.5762343912799803</y>
+      <x>1.083211084783993</x>
+      <y>4.358215469832719</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.288824254016901</targetEyeWinSize>
-    <duration>1676.5303953516857</duration>
+    <targetEyeWinSize>0.259638438342026</targetEyeWinSize>
+    <duration>1844.1877646274406</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>8.672513704724395</xCenter>
-      <yCenter>3.7877220647586185</yCenter>
-      <size>0.9721159444492491</size>
-      <brightness>0.28627706349710413</brightness>
+      <xCenter>3.7706708305540193</xCenter>
+      <yCenter>2.209982569843532</yCenter>
+      <size>0.9009936170362125</size>
+      <brightness>0.5032809470612142</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>8.672513704724395</x>
-      <y>3.7877220647586185</y>
+      <x>3.7706708305540193</x>
+      <y>2.209982569843532</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.48605797222462455</targetEyeWinSize>
-    <duration>1251.476677149961</duration>
+    <targetEyeWinSize>0.45049680851810625</targetEyeWinSize>
+    <duration>1169.817757774682</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-17.528335297574714</xCenter>
-      <yCenter>6.388315001144619</yCenter>
-      <size>0.5628265716172005</size>
-      <brightness>0.08641344341100998</brightness>
+      <xCenter>-0.2819222867840083</xCenter>
+      <yCenter>2.0992196424711445</yCenter>
+      <size>0.5116174034533207</size>
+      <brightness>0.6607296082664166</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-17.528335297574714</x>
-      <y>6.388315001144619</y>
+      <x>-0.2819222867840083</x>
+      <y>2.0992196424711445</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.28141328580860026</targetEyeWinSize>
-    <duration>1307.0882313255581</duration>
+    <targetEyeWinSize>0.25580870172666037</targetEyeWinSize>
+    <duration>1231.4738918832907</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-3.8058418246320898</xCenter>
-      <yCenter>7.488536920716339</yCenter>
-      <size>0.8498851538261967</size>
-      <brightness>0.25184671710761797</brightness>
+      <xCenter>-1.2100322845066342</xCenter>
+      <yCenter>4.174879963361955</yCenter>
+      <size>0.8495877228263796</size>
+      <brightness>0.11218628417746734</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-3.8058418246320898</x>
-      <y>7.488536920716339</y>
+      <x>-1.2100322845066342</x>
+      <y>4.174879963361955</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.42494257691309834</targetEyeWinSize>
-    <duration>1857.861345065765</duration>
+    <targetEyeWinSize>0.4247938614131898</targetEyeWinSize>
+    <duration>1420.2008501033172</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-18.66249876009986</xCenter>
-      <yCenter>-9.31232169655824</yCenter>
-      <size>0.9274112540193318</size>
-      <brightness>0.43764099055412</brightness>
+      <xCenter>0.11524265522875386</xCenter>
+      <yCenter>2.962393407698019</yCenter>
+      <size>0.9100489011954642</size>
+      <brightness>0.25669569528200065</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-18.66249876009986</x>
-      <y>-9.31232169655824</y>
+      <x>0.11524265522875386</x>
+      <y>2.962393407698019</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4637056270096659</targetEyeWinSize>
-    <duration>1923.9101039772281</duration>
+    <targetEyeWinSize>0.4550244505977321</targetEyeWinSize>
+    <duration>1803.76383226498</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>13.212208716735518</xCenter>
-      <yCenter>-12.53588794062238</yCenter>
-      <size>0.9844697876729986</size>
-      <brightness>0.31499426170536704</brightness>
+      <xCenter>-5.329481400474814</xCenter>
+      <yCenter>-1.2353479433606127</yCenter>
+      <size>0.609798423254658</size>
+      <brightness>0.849020606407331</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>13.212208716735518</x>
-      <y>-12.53588794062238</y>
+      <x>-5.329481400474814</x>
+      <y>-1.2353479433606127</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4922348938364993</targetEyeWinSize>
-    <duration>1434.876989023535</duration>
+    <targetEyeWinSize>0.304899211627329</targetEyeWinSize>
+    <duration>1727.0510154216408</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-19.038059760470713</xCenter>
-      <yCenter>-1.7005769348610578</yCenter>
-      <size>0.5417903690908976</size>
-      <brightness>0.7119694033086932</brightness>
+      <xCenter>-4.4769601313025795</xCenter>
+      <yCenter>1.0660681150661464</yCenter>
+      <size>0.7293337202973719</size>
+      <brightness>0.8239575009481251</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-19.038059760470713</x>
-      <y>-1.7005769348610578</y>
+      <x>-4.4769601313025795</x>
+      <y>1.0660681150661464</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.2708951845454488</targetEyeWinSize>
-    <duration>1538.0031756192393</duration>
+    <targetEyeWinSize>0.36466686014868593</targetEyeWinSize>
+    <duration>1081.688152550329</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-19.552743714120417</xCenter>
-      <yCenter>-13.246868446856986</yCenter>
-      <size>0.5319922373710337</size>
-      <brightness>0.4431064367847769</brightness>
+      <xCenter>4.099048126575825</xCenter>
+      <yCenter>-2.7544741086859132</yCenter>
+      <size>0.5565825962019708</size>
+      <brightness>0.6655031026918682</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-19.552743714120417</x>
-      <y>-13.246868446856986</y>
+      <x>4.099048126575825</x>
+      <y>-2.7544741086859132</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.26599611868551687</targetEyeWinSize>
-    <duration>1316.7790789772182</duration>
+    <targetEyeWinSize>0.2782912981009854</targetEyeWinSize>
+    <duration>1232.372726603943</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>5.2508155880532925</xCenter>
-      <yCenter>14.47453735184022</yCenter>
-      <size>0.997262723443826</size>
-      <brightness>0.08237136515042898</brightness>
+      <xCenter>4.662205694875621</xCenter>
+      <yCenter>-1.3711973886699955</yCenter>
+      <size>0.8146794220042379</size>
+      <brightness>0.4289301036125225</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>5.2508155880532925</x>
-      <y>14.47453735184022</y>
+      <x>4.662205694875621</x>
+      <y>-1.3711973886699955</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.498631361721913</targetEyeWinSize>
-    <duration>1118.405649788416</duration>
+    <targetEyeWinSize>0.40733971100211896</targetEyeWinSize>
+    <duration>1168.3259424387786</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-11.379178627590532</xCenter>
-      <yCenter>8.334568573778036</yCenter>
-      <size>0.9657771657957923</size>
-      <brightness>0.8383652981639061</brightness>
+      <xCenter>2.111476953557498</xCenter>
+      <yCenter>0.8167565281941691</yCenter>
+      <size>0.6098910877730892</size>
+      <brightness>0.7096670543024869</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-11.379178627590532</x>
-      <y>8.334568573778036</y>
+      <x>2.111476953557498</x>
+      <y>0.8167565281941691</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.48288858289789616</targetEyeWinSize>
-    <duration>1580.7421702532724</duration>
+    <targetEyeWinSize>0.3049455438865446</targetEyeWinSize>
+    <duration>1516.2911620704726</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>3.563636730104516</xCenter>
-      <yCenter>14.801913360247521</yCenter>
-      <size>0.6897213750785559</size>
-      <brightness>0.17033367808580757</brightness>
+      <xCenter>0.6416704931028625</xCenter>
+      <yCenter>-2.9136760348029025</yCenter>
+      <size>0.6199559681480062</size>
+      <brightness>0.8181115483036752</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>3.563636730104516</x>
-      <y>14.801913360247521</y>
+      <x>0.6416704931028625</x>
+      <y>-2.9136760348029025</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.34486068753927795</targetEyeWinSize>
-    <duration>1473.8301824110058</duration>
+    <targetEyeWinSize>0.3099779840740031</targetEyeWinSize>
+    <duration>1665.9094521390923</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-20.117625398327704</xCenter>
-      <yCenter>3.164488714913624</yCenter>
-      <size>0.766907319416443</size>
-      <brightness>0.19841625335735635</brightness>
+      <xCenter>2.2267842776186053</xCenter>
+      <yCenter>6.133316419175586</yCenter>
+      <size>0.5529679589448808</size>
+      <brightness>0.5027691319696324</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-20.117625398327704</x>
-      <y>3.164488714913624</y>
+      <x>2.2267842776186053</x>
+      <y>6.133316419175586</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3834536597082215</targetEyeWinSize>
-    <duration>1880.399968961432</duration>
+    <targetEyeWinSize>0.2764839794724404</targetEyeWinSize>
+    <duration>1918.6965463561464</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>14.198533238874056</xCenter>
-      <yCenter>6.472775789753378</yCenter>
-      <size>0.603040316194309</size>
-      <brightness>0.955312487797903</brightness>
+      <xCenter>1.3980020406193974</xCenter>
+      <yCenter>4.919373120444531</yCenter>
+      <size>0.6656944215592582</size>
+      <brightness>0.4146112257464313</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>14.198533238874056</x>
-      <y>6.472775789753378</y>
+      <x>1.3980020406193974</x>
+      <y>4.919373120444531</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3015201580971545</targetEyeWinSize>
-    <duration>1036.293285414923</duration>
+    <targetEyeWinSize>0.3328472107796291</targetEyeWinSize>
+    <duration>1524.770320669028</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-4.173785176794812</xCenter>
-      <yCenter>6.53609214076266</yCenter>
-      <size>0.6023876731324854</size>
-      <brightness>0.07560652446036864</brightness>
+      <xCenter>1.48424097550053</xCenter>
+      <yCenter>3.1519639633828227</yCenter>
+      <size>0.8926185657360296</size>
+      <brightness>0.17502803783112209</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-4.173785176794812</x>
-      <y>6.53609214076266</y>
+      <x>1.48424097550053</x>
+      <y>3.1519639633828227</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3011938365662427</targetEyeWinSize>
-    <duration>1546.6490993705202</duration>
+    <targetEyeWinSize>0.4463092828680148</targetEyeWinSize>
+    <duration>1514.034393249684</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>5.253523876175951</xCenter>
-      <yCenter>-2.482025815408676</yCenter>
-      <size>0.5294436615591165</size>
-      <brightness>0.1960721659221164</brightness>
+      <xCenter>-2.976875716085908</xCenter>
+      <yCenter>0.6841508462771405</yCenter>
+      <size>0.9909447106492737</size>
+      <brightness>0.36785875700056037</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>5.253523876175951</x>
-      <y>-2.482025815408676</y>
+      <x>-2.976875716085908</x>
+      <y>0.6841508462771405</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.26472183077955824</targetEyeWinSize>
-    <duration>1872.025622798659</duration>
+    <targetEyeWinSize>0.49547235532463685</targetEyeWinSize>
+    <duration>1163.1458672752349</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-4.035986856423619</xCenter>
-      <yCenter>7.294593057060045</yCenter>
-      <size>0.956557494311167</size>
-      <brightness>0.8153444872151511</brightness>
+      <xCenter>6.0330647230813526</xCenter>
+      <yCenter>3.2108515116828706</yCenter>
+      <size>0.7212091855717231</size>
+      <brightness>0.13373569004311658</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-4.035986856423619</x>
-      <y>7.294593057060045</y>
+      <x>6.0330647230813526</x>
+      <y>3.2108515116828706</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4782787471555835</targetEyeWinSize>
-    <duration>1755.5683851659792</duration>
+    <targetEyeWinSize>0.36060459278586154</targetEyeWinSize>
+    <duration>1181.707501830823</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-19.075199223147763</xCenter>
-      <yCenter>-8.331819392738172</yCenter>
-      <size>0.9875902220254316</size>
-      <brightness>0.9735399043217265</brightness>
+      <xCenter>1.5161999329205669</xCenter>
+      <yCenter>4.017724949913071</yCenter>
+      <size>0.8033428874157524</size>
+      <brightness>0.5526771990944206</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-19.075199223147763</x>
-      <y>-8.331819392738172</y>
+      <x>1.5161999329205669</x>
+      <y>4.017724949913071</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4937951110127158</targetEyeWinSize>
-    <duration>1102.9713216233386</duration>
+    <targetEyeWinSize>0.4016714437078762</targetEyeWinSize>
+    <duration>1111.8233221437345</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>13.378129691397874</xCenter>
-      <yCenter>-13.694217210601927</yCenter>
-      <size>0.7510536419058415</size>
-      <brightness>0.5291763486863976</brightness>
+      <xCenter>1.4800877532392052</xCenter>
+      <yCenter>0.44014464794316366</yCenter>
+      <size>0.8937253128596561</size>
+      <brightness>0.15942385193502728</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>13.378129691397874</x>
-      <y>-13.694217210601927</y>
+      <x>1.4800877532392052</x>
+      <y>0.44014464794316366</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3755268209529207</targetEyeWinSize>
-    <duration>1997.2171932142955</duration>
+    <targetEyeWinSize>0.44686265642982803</targetEyeWinSize>
+    <duration>1607.928106520232</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-6.948233970320752</xCenter>
-      <yCenter>-10.718207447573235</yCenter>
-      <size>0.8898607798039033</size>
-      <brightness>0.7338557488486692</brightness>
+      <xCenter>-0.9841568360642365</xCenter>
+      <yCenter>6.722486400623846</yCenter>
+      <size>0.9136387955473555</size>
+      <brightness>0.3478128207031824</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-6.948233970320752</x>
-      <y>-10.718207447573235</y>
+      <x>-0.9841568360642365</x>
+      <y>6.722486400623846</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.44493038990195166</targetEyeWinSize>
-    <duration>1392.827282090172</duration>
+    <targetEyeWinSize>0.45681939777367775</targetEyeWinSize>
+    <duration>1881.507024060581</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-7.927473804758424</xCenter>
-      <yCenter>-12.011366276254812</yCenter>
-      <size>0.9444722714457379</size>
-      <brightness>0.9627821285091865</brightness>
+      <xCenter>-4.093018455184502</xCenter>
+      <yCenter>5.160982602243167</yCenter>
+      <size>0.5799689407719812</size>
+      <brightness>0.41325283078332686</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-7.927473804758424</x>
-      <y>-12.011366276254812</y>
+      <x>-4.093018455184502</x>
+      <y>5.160982602243167</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.47223613572286893</targetEyeWinSize>
-    <duration>1271.255263762935</duration>
+    <targetEyeWinSize>0.2899844703859906</targetEyeWinSize>
+    <duration>1796.8339613202443</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-9.370040966984977</xCenter>
-      <yCenter>-2.070664182563709</yCenter>
-      <size>0.8098841186376037</size>
-      <brightness>0.11381674847214096</brightness>
+      <xCenter>-6.756379879713772</xCenter>
+      <yCenter>-0.953131218040659</yCenter>
+      <size>0.6223384394212838</size>
+      <brightness>0.06653954611943758</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-9.370040966984977</x>
-      <y>-2.070664182563709</y>
+      <x>-6.756379879713772</x>
+      <y>-0.953131218040659</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.40494205931880184</targetEyeWinSize>
-    <duration>1103.6547995252308</duration>
+    <targetEyeWinSize>0.3111692197106419</targetEyeWinSize>
+    <duration>1278.319735750702</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>11.27961560332174</xCenter>
-      <yCenter>5.206961157885278</yCenter>
-      <size>0.6769296455178596</size>
-      <brightness>0.2541158544777452</brightness>
+      <xCenter>0.6545647401424268</xCenter>
+      <yCenter>6.684888633887818</yCenter>
+      <size>0.7762311764843027</size>
+      <brightness>0.02332844453941396</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>11.27961560332174</x>
-      <y>5.206961157885278</y>
+      <x>0.6545647401424268</x>
+      <y>6.684888633887818</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3384648227589298</targetEyeWinSize>
-    <duration>1129.5512283171224</duration>
+    <targetEyeWinSize>0.38811558824215137</targetEyeWinSize>
+    <duration>1549.4087826962946</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>7.107625887289096</xCenter>
-      <yCenter>1.182992161200918</yCenter>
-      <size>0.6815082898250788</size>
-      <brightness>0.04797664508887178</brightness>
+      <xCenter>4.604563399279083</xCenter>
+      <yCenter>2.654149046064578</yCenter>
+      <size>0.6283827913649804</size>
+      <brightness>0.2819974681042</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>7.107625887289096</x>
-      <y>1.182992161200918</y>
+      <x>4.604563399279083</x>
+      <y>2.654149046064578</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3407541449125394</targetEyeWinSize>
-    <duration>1610.7978279447957</duration>
+    <targetEyeWinSize>0.3141913956824902</targetEyeWinSize>
+    <duration>1037.8823286160866</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-10.905732279753867</xCenter>
-      <yCenter>9.447469831548865</yCenter>
-      <size>0.870143497945555</size>
-      <brightness>0.5297966315993836</brightness>
+      <xCenter>-1.5202357706765273</xCenter>
+      <yCenter>-1.7676193702107192</yCenter>
+      <size>0.7282447143014972</size>
+      <brightness>0.43716206894981013</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-10.905732279753867</x>
-      <y>9.447469831548865</y>
+      <x>-1.5202357706765273</x>
+      <y>-1.7676193702107192</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4350717489727775</targetEyeWinSize>
-    <duration>1556.5141418885105</duration>
+    <targetEyeWinSize>0.3641223571507486</targetEyeWinSize>
+    <duration>1012.4247061128744</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-11.124402210705851</xCenter>
-      <yCenter>3.6268168592170547</yCenter>
-      <size>0.8361546471914494</size>
-      <brightness>0.9802561901665164</brightness>
+      <xCenter>4.215155194523423</xCenter>
+      <yCenter>0.8951689166468055</yCenter>
+      <size>0.8868407148143361</size>
+      <brightness>0.658502107239138</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-11.124402210705851</x>
-      <y>3.6268168592170547</y>
+      <x>4.215155194523423</x>
+      <y>0.8951689166468055</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4180773235957247</targetEyeWinSize>
-    <duration>1780.590825221636</duration>
+    <targetEyeWinSize>0.44342035740716806</targetEyeWinSize>
+    <duration>1115.4496038680506</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>9.498695587491301</xCenter>
-      <yCenter>-14.200695696055913</yCenter>
-      <size>0.6492993358856094</size>
-      <brightness>0.1323293421462316</brightness>
+      <xCenter>-2.3925119579599228</xCenter>
+      <yCenter>-2.976521755216132</yCenter>
+      <size>0.9178864874055288</size>
+      <brightness>0.5962735778095744</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>9.498695587491301</x>
-      <y>-14.200695696055913</y>
+      <x>-2.3925119579599228</x>
+      <y>-2.976521755216132</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3246496679428047</targetEyeWinSize>
-    <duration>1256.3951103642582</duration>
+    <targetEyeWinSize>0.4589432437027644</targetEyeWinSize>
+    <duration>1354.391550982873</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-3.874425170807303</xCenter>
-      <yCenter>-11.539960224329526</yCenter>
-      <size>0.8988699048120055</size>
-      <brightness>0.5647570137383188</brightness>
+      <xCenter>-5.736419824409269</xCenter>
+      <yCenter>-1.000140698556136</yCenter>
+      <size>0.6582101125136928</size>
+      <brightness>0.6126188811611928</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-3.874425170807303</x>
-      <y>-11.539960224329526</y>
+      <x>-5.736419824409269</x>
+      <y>-1.000140698556136</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.44943495240600273</targetEyeWinSize>
-    <duration>1791.0551586477397</duration>
+    <targetEyeWinSize>0.3291050562568464</targetEyeWinSize>
+    <duration>1087.024781872451</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>12.570699215952555</xCenter>
-      <yCenter>-11.332359683908606</yCenter>
-      <size>0.803835505597523</size>
-      <brightness>0.8653264716175536</brightness>
+      <xCenter>-1.858743208875951</xCenter>
+      <yCenter>-4.789615569870906</yCenter>
+      <size>0.7086260645240865</size>
+      <brightness>0.2559370249191427</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>12.570699215952555</x>
-      <y>-11.332359683908606</y>
+      <x>-1.858743208875951</x>
+      <y>-4.789615569870906</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4019177527987615</targetEyeWinSize>
-    <duration>1789.8272958709786</duration>
+    <targetEyeWinSize>0.35431303226204325</targetEyeWinSize>
+    <duration>1050.6817647138118</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>9.118001253090291</xCenter>
-      <yCenter>-3.012271023386525</yCenter>
-      <size>0.8025935459023226</size>
-      <brightness>0.4894173837725153</brightness>
+      <xCenter>4.844194028910665</xCenter>
+      <yCenter>-3.240158623919094</yCenter>
+      <size>0.6215688607291041</size>
+      <brightness>0.197826814114495</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>9.118001253090291</x>
-      <y>-3.012271023386525</y>
+      <x>4.844194028910665</x>
+      <y>-3.240158623919094</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4012967729511613</targetEyeWinSize>
-    <duration>1803.2056139370338</duration>
+    <targetEyeWinSize>0.31078443036455206</targetEyeWinSize>
+    <duration>1180.2099565365065</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>11.355423528228531</xCenter>
-      <yCenter>6.042349963898859</yCenter>
-      <size>0.9881118628449447</size>
-      <brightness>0.06803303095630286</brightness>
+      <xCenter>-2.473291492455351</xCenter>
+      <yCenter>2.7260505159209023</yCenter>
+      <size>0.5683396431522607</size>
+      <brightness>0.7406009888160829</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>11.355423528228531</x>
-      <y>6.042349963898859</y>
+      <x>-2.473291492455351</x>
+      <y>2.7260505159209023</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.49405593142247234</targetEyeWinSize>
-    <duration>1827.1319573561136</duration>
+    <targetEyeWinSize>0.28416982157613035</targetEyeWinSize>
+    <duration>1204.3497531405078</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-9.46777136129673</xCenter>
-      <yCenter>-10.54865227898351</yCenter>
-      <size>0.8912039478122917</size>
-      <brightness>0.5584368951829853</brightness>
+      <xCenter>2.5044868499783544</xCenter>
+      <yCenter>-2.3252528869121063</yCenter>
+      <size>0.9518482682867069</size>
+      <brightness>0.653016670224795</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-9.46777136129673</x>
-      <y>-10.54865227898351</y>
+      <x>2.5044868499783544</x>
+      <y>-2.3252528869121063</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.44560197390614587</targetEyeWinSize>
-    <duration>1110.9195069863263</duration>
+    <targetEyeWinSize>0.47592413414335344</targetEyeWinSize>
+    <duration>1184.415518252608</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-3.5175296352175387</xCenter>
-      <yCenter>4.95548537688599</yCenter>
-      <size>0.7015529010065029</size>
-      <brightness>0.09365537975932436</brightness>
+      <xCenter>-3.0458982887514705</xCenter>
+      <yCenter>2.621768370855909</yCenter>
+      <size>0.7965486528497019</size>
+      <brightness>0.8716253465395202</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-3.5175296352175387</x>
-      <y>4.95548537688599</y>
+      <x>-3.0458982887514705</x>
+      <y>2.621768370855909</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.35077645050325146</targetEyeWinSize>
-    <duration>1717.7478169853405</duration>
+    <targetEyeWinSize>0.39827432642485094</targetEyeWinSize>
+    <duration>1339.7885323395644</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>4.426577036115674</xCenter>
-      <yCenter>-12.784718480876261</yCenter>
-      <size>0.6843034028050407</size>
-      <brightness>0.68950985322707</brightness>
+      <xCenter>5.219070920011803</xCenter>
+      <yCenter>-2.369491254368217</yCenter>
+      <size>0.8066098803174275</size>
+      <brightness>0.8528200199115217</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>4.426577036115674</x>
-      <y>-12.784718480876261</y>
+      <x>5.219070920011803</x>
+      <y>-2.369491254368217</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3421517014025203</targetEyeWinSize>
-    <duration>1339.1079482261066</duration>
+    <targetEyeWinSize>0.40330494015871377</targetEyeWinSize>
+    <duration>1112.5396359287884</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-17.309827112785783</xCenter>
-      <yCenter>-9.06595462719442</yCenter>
-      <size>0.9451061206288193</size>
-      <brightness>0.9815101745406222</brightness>
+      <xCenter>-5.646182546196831</xCenter>
+      <yCenter>-0.41665415936703903</yCenter>
+      <size>0.8146883562465529</size>
+      <brightness>0.7933267231046031</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-17.309827112785783</x>
-      <y>-9.06595462719442</y>
+      <x>-5.646182546196831</x>
+      <y>-0.41665415936703903</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.47255306031440963</targetEyeWinSize>
-    <duration>1268.277042676129</duration>
+    <targetEyeWinSize>0.40734417812327645</targetEyeWinSize>
+    <duration>1437.7797632152283</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>0.8123507002483414</xCenter>
-      <yCenter>-5.89237752185835</yCenter>
-      <size>0.6763469431701603</size>
-      <brightness>0.8297852170547213</brightness>
+      <xCenter>6.820775434394575</xCenter>
+      <yCenter>0.3515069135169494</yCenter>
+      <size>0.9096422894477796</size>
+      <brightness>0.8803901180596138</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>0.8123507002483414</x>
-      <y>-5.89237752185835</y>
+      <x>6.820775434394575</x>
+      <y>0.3515069135169494</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.33817347158508015</targetEyeWinSize>
-    <duration>1042.3604253682267</duration>
+    <targetEyeWinSize>0.4548211447238898</targetEyeWinSize>
+    <duration>1960.019561118973</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>9.333914331315558</xCenter>
-      <yCenter>6.929693166257504</yCenter>
-      <size>0.5977538548961623</size>
-      <brightness>0.640627791514253</brightness>
+      <xCenter>-1.2306272705022987</xCenter>
+      <yCenter>-5.420794132211703</yCenter>
+      <size>0.6700979078458358</size>
+      <brightness>0.9155769498892061</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>9.333914331315558</x>
-      <y>6.929693166257504</y>
+      <x>-1.2306272705022987</x>
+      <y>-5.420794132211703</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.29887692744808114</targetEyeWinSize>
-    <duration>1731.3826781386224</duration>
+    <targetEyeWinSize>0.3350489539229179</targetEyeWinSize>
+    <duration>1264.8082531606037</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>10.838255075175095</xCenter>
-      <yCenter>-13.710685085414074</yCenter>
-      <size>0.795635515277433</size>
-      <brightness>0.5088089266567222</brightness>
+      <xCenter>5.325278166190451</xCenter>
+      <yCenter>2.417065687662547</yCenter>
+      <size>0.8655137064307824</size>
+      <brightness>0.3286228413762492</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>10.838255075175095</x>
-      <y>-13.710685085414074</y>
+      <x>5.325278166190451</x>
+      <y>2.417065687662547</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3978177576387165</targetEyeWinSize>
-    <duration>1976.751526043386</duration>
+    <targetEyeWinSize>0.4327568532153912</targetEyeWinSize>
+    <duration>1861.6332314741321</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>16.250435538660255</xCenter>
-      <yCenter>7.121881881000011</yCenter>
-      <size>0.6533507467021737</size>
-      <brightness>0.18037240018642364</brightness>
+      <xCenter>-5.792807140164902</xCenter>
+      <yCenter>1.5518314142621943</yCenter>
+      <size>0.5388556153745534</size>
+      <brightness>0.7125907213307658</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>16.250435538660255</x>
-      <y>7.121881881000011</y>
+      <x>-5.792807140164902</x>
+      <y>1.5518314142621943</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3266753733510869</targetEyeWinSize>
-    <duration>1558.5825376680368</duration>
+    <targetEyeWinSize>0.2694278076872767</targetEyeWinSize>
+    <duration>1980.2103096696064</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>17.991473233011217</xCenter>
-      <yCenter>-12.013559328604384</yCenter>
-      <size>0.613896929039331</size>
-      <brightness>0.8966684790611691</brightness>
+      <xCenter>2.4810869596940726</xCenter>
+      <yCenter>-4.841204513260364</yCenter>
+      <size>0.6977634999727292</size>
+      <brightness>0.08993790471032781</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>17.991473233011217</x>
-      <y>-12.013559328604384</y>
+      <x>2.4810869596940726</x>
+      <y>-4.841204513260364</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3069484645196655</targetEyeWinSize>
-    <duration>1960.231278597742</duration>
+    <targetEyeWinSize>0.3488817499863646</targetEyeWinSize>
+    <duration>1128.9274328349113</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-11.350328962401942</xCenter>
-      <yCenter>-10.299002944136742</yCenter>
-      <size>0.8566999301838436</size>
-      <brightness>0.5578384872910389</brightness>
+      <xCenter>-2.4448949931698807</xCenter>
+      <yCenter>-3.804976151432896</yCenter>
+      <size>0.5541238509223447</size>
+      <brightness>0.8764619860959003</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-11.350328962401942</x>
-      <y>-10.299002944136742</y>
+      <x>-2.4448949931698807</x>
+      <y>-3.804976151432896</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4283499650919218</targetEyeWinSize>
-    <duration>1896.6072782035872</duration>
+    <targetEyeWinSize>0.27706192546117236</targetEyeWinSize>
+    <duration>1960.78098971565</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>6.007585627557017</xCenter>
-      <yCenter>-0.5013864696316332</yCenter>
-      <size>0.7808776480870459</size>
-      <brightness>0.6189025047786373</brightness>
+      <xCenter>-4.414698082300713</xCenter>
+      <yCenter>-0.43287898659334895</yCenter>
+      <size>0.8788300460113924</size>
+      <brightness>0.6208744324930072</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>6.007585627557017</x>
-      <y>-0.5013864696316332</y>
+      <x>-4.414698082300713</x>
+      <y>-0.43287898659334895</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3904388240435229</targetEyeWinSize>
-    <duration>1218.1361126846725</duration>
+    <targetEyeWinSize>0.4394150230056962</targetEyeWinSize>
+    <duration>1243.0180985599682</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-9.427081088192256</xCenter>
-      <yCenter>2.4691939676129415</yCenter>
-      <size>0.8160486914460607</size>
-      <brightness>0.14845492956887318</brightness>
+      <xCenter>4.299390329210703</xCenter>
+      <yCenter>-1.200205349461382</yCenter>
+      <size>0.6739771066766762</size>
+      <brightness>0.37140053501617576</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-9.427081088192256</x>
-      <y>2.4691939676129415</y>
+      <x>4.299390329210703</x>
+      <y>-1.200205349461382</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.40802434572303037</targetEyeWinSize>
-    <duration>1427.5119951056654</duration>
+    <targetEyeWinSize>0.3369885533383381</targetEyeWinSize>
+    <duration>1952.512603429012</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>13.717018420319171</xCenter>
-      <yCenter>3.13582597277348</yCenter>
-      <size>0.8427233230573008</size>
-      <brightness>0.7554958865832337</brightness>
+      <xCenter>-1.992235509116337</xCenter>
+      <yCenter>-3.6265037852159216</yCenter>
+      <size>0.7693925256393237</size>
+      <brightness>0.8048511336767843</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>13.717018420319171</x>
-      <y>3.13582597277348</y>
+      <x>-1.992235509116337</x>
+      <y>-3.6265037852159216</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4213616615286504</targetEyeWinSize>
-    <duration>1696.182728882542</duration>
+    <targetEyeWinSize>0.38469626281966185</targetEyeWinSize>
+    <duration>1904.0886626387528</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-7.086871009743657</xCenter>
-      <yCenter>-14.67164170129219</yCenter>
-      <size>0.7055680159769135</size>
-      <brightness>0.5529904044367757</brightness>
+      <xCenter>-4.525531929699038</xCenter>
+      <yCenter>2.7415888993430366</yCenter>
+      <size>0.648059999275006</size>
+      <brightness>0.9716335089802701</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-7.086871009743657</x>
-      <y>-14.67164170129219</y>
+      <x>-4.525531929699038</x>
+      <y>2.7415888993430366</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.35278400798845677</targetEyeWinSize>
-    <duration>1419.3243829084834</duration>
+    <targetEyeWinSize>0.324029999637503</targetEyeWinSize>
+    <duration>1077.0921311679508</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>5.818920156293302</xCenter>
-      <yCenter>-9.105478709017216</yCenter>
-      <size>0.9281552167576637</size>
-      <brightness>0.028635268521499224</brightness>
+      <xCenter>0.1362612924126395</xCenter>
+      <yCenter>4.2431381026742345</yCenter>
+      <size>0.6651212572935071</size>
+      <brightness>0.8428189163096191</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>5.818920156293302</x>
-      <y>-9.105478709017216</y>
+      <x>0.1362612924126395</x>
+      <y>4.2431381026742345</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.46407760837883183</targetEyeWinSize>
-    <duration>1839.8620679116084</duration>
+    <targetEyeWinSize>0.33256062864675356</targetEyeWinSize>
+    <duration>1447.2156283806812</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>9.509934884441641</xCenter>
-      <yCenter>-7.102142494561809</yCenter>
-      <size>0.6893103526229314</size>
-      <brightness>0.8092801369927236</brightness>
+      <xCenter>3.0661485695029147</xCenter>
+      <yCenter>4.042786860252027</yCenter>
+      <size>0.5907234925428284</size>
+      <brightness>0.4657667084812097</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>9.509934884441641</x>
-      <y>-7.102142494561809</y>
+      <x>3.0661485695029147</x>
+      <y>4.042786860252027</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3446551763114657</targetEyeWinSize>
-    <duration>1244.4128986335468</duration>
+    <targetEyeWinSize>0.2953617462714142</targetEyeWinSize>
+    <duration>1010.1355162007793</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-5.108285239908762</xCenter>
-      <yCenter>-14.315570760712252</yCenter>
-      <size>0.8814726681711258</size>
-      <brightness>0.8144734684508765</brightness>
+      <xCenter>0.08936284460858225</xCenter>
+      <yCenter>-6.286665454581822</yCenter>
+      <size>0.6016192960102533</size>
+      <brightness>0.9099119557499455</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-5.108285239908762</x>
-      <y>-14.315570760712252</y>
+      <x>0.08936284460858225</x>
+      <y>-6.286665454581822</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4407363340855629</targetEyeWinSize>
-    <duration>1077.9055286783187</duration>
+    <targetEyeWinSize>0.30080964800512666</targetEyeWinSize>
+    <duration>1764.3518195532108</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-10.25902446886839</xCenter>
-      <yCenter>-10.59166703760612</yCenter>
-      <size>0.6012154817768338</size>
-      <brightness>0.4237430115167663</brightness>
+      <xCenter>1.0166710517074715</xCenter>
+      <yCenter>2.9197141172194367</yCenter>
+      <size>0.57830263615595</size>
+      <brightness>0.9514107331891516</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-10.25902446886839</x>
-      <y>-10.59166703760612</y>
+      <x>1.0166710517074715</x>
+      <y>2.9197141172194367</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3006077408884169</targetEyeWinSize>
-    <duration>1436.3251991346347</duration>
+    <targetEyeWinSize>0.289151318077975</targetEyeWinSize>
+    <duration>1543.114953903375</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>0.9732391327160812</xCenter>
-      <yCenter>-8.819200418541897</yCenter>
-      <size>0.53564174573912</size>
-      <brightness>0.3768761333173163</brightness>
+      <xCenter>-1.6404114428096528</xCenter>
+      <yCenter>4.9963335307518735</yCenter>
+      <size>0.9433484604930014</size>
+      <brightness>0.8353016778499384</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>0.9732391327160812</x>
-      <y>-8.819200418541897</y>
+      <x>-1.6404114428096528</x>
+      <y>4.9963335307518735</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.26782087286956</targetEyeWinSize>
-    <duration>1482.6445749834943</duration>
+    <targetEyeWinSize>0.4716742302465007</targetEyeWinSize>
+    <duration>1336.1289695088947</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>14.235850583024277</xCenter>
-      <yCenter>-9.390630806324133</yCenter>
-      <size>0.9544899814080834</size>
-      <brightness>0.2161433266948668</brightness>
+      <xCenter>-1.185301070323508</xCenter>
+      <yCenter>1.8091784361105572</yCenter>
+      <size>0.8987098168322666</size>
+      <brightness>0.3231972163178958</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>14.235850583024277</x>
-      <y>-9.390630806324133</y>
+      <x>-1.185301070323508</x>
+      <y>1.8091784361105572</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4772449907040417</targetEyeWinSize>
-    <duration>1187.2579161611302</duration>
+    <targetEyeWinSize>0.4493549084161333</targetEyeWinSize>
+    <duration>1062.3389523444002</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>11.326049863362574</xCenter>
-      <yCenter>13.41554930562506</yCenter>
-      <size>0.6339911607073134</size>
-      <brightness>0.5665249236586485</brightness>
+      <xCenter>6.260811935395116</xCenter>
+      <yCenter>-1.100925951401148</yCenter>
+      <size>0.9971813174967686</size>
+      <brightness>0.7104324188842419</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>11.326049863362574</x>
-      <y>13.41554930562506</y>
+      <x>6.260811935395116</x>
+      <y>-1.100925951401148</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3169955803536567</targetEyeWinSize>
-    <duration>1759.378654892167</duration>
+    <targetEyeWinSize>0.4985906587483843</targetEyeWinSize>
+    <duration>1730.903498203938</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>6.555756222586027</xCenter>
-      <yCenter>-8.854104343685746</yCenter>
-      <size>0.6196548124203102</size>
-      <brightness>0.7127968125885661</brightness>
+      <xCenter>-0.6542926340794739</xCenter>
+      <yCenter>2.8503709021241086</yCenter>
+      <size>0.6954068753800542</size>
+      <brightness>0.7517033070286823</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>6.555756222586027</x>
-      <y>-8.854104343685746</y>
+      <x>-0.6542926340794739</x>
+      <y>2.8503709021241086</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3098274062101551</targetEyeWinSize>
-    <duration>1706.9060241649468</duration>
+    <targetEyeWinSize>0.3477034376900271</targetEyeWinSize>
+    <duration>1202.5605862859331</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-12.844264704759322</xCenter>
-      <yCenter>3.771596165680746</yCenter>
-      <size>0.9887081080200392</size>
-      <brightness>0.6932343516214969</brightness>
+      <xCenter>4.55907576950307</xCenter>
+      <yCenter>3.0724320204760414</yCenter>
+      <size>0.7005690413834262</size>
+      <brightness>0.8278579999533359</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-12.844264704759322</x>
-      <y>3.771596165680746</y>
+      <x>4.55907576950307</x>
+      <y>3.0724320204760414</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4943540540100196</targetEyeWinSize>
-    <duration>1710.1427010269113</duration>
+    <targetEyeWinSize>0.3502845206917131</targetEyeWinSize>
+    <duration>1116.082394246168</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-20.405024668916727</xCenter>
-      <yCenter>-6.37044983979882</yCenter>
-      <size>0.6190342762058323</size>
-      <brightness>0.6908154205008068</brightness>
+      <xCenter>3.002191875405989</xCenter>
+      <yCenter>-5.353509042631167</yCenter>
+      <size>0.5911187373158454</size>
+      <brightness>0.05556146117670746</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-20.405024668916727</x>
-      <y>-6.37044983979882</y>
+      <x>3.002191875405989</x>
+      <y>-5.353509042631167</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.30951713810291615</targetEyeWinSize>
-    <duration>1725.2929528554687</duration>
+    <targetEyeWinSize>0.2955593686579227</targetEyeWinSize>
+    <duration>1244.212126372351</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-9.615152725121822</xCenter>
-      <yCenter>12.462549730284772</yCenter>
-      <size>0.9867754536831499</size>
-      <brightness>0.854095717835907</brightness>
+      <xCenter>4.034612450271402</xCenter>
+      <yCenter>0.5705169424571392</yCenter>
+      <size>0.6060336406005015</size>
+      <brightness>0.5295707770170516</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-9.615152725121822</x>
-      <y>12.462549730284772</y>
+      <x>4.034612450271402</x>
+      <y>0.5705169424571392</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.49338772684157495</targetEyeWinSize>
-    <duration>1789.4724186122585</duration>
+    <targetEyeWinSize>0.30301682030025073</targetEyeWinSize>
+    <duration>1680.7615678470734</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-1.9616585368870005</xCenter>
-      <yCenter>-1.723695191315045</yCenter>
-      <size>0.5500489023768014</size>
-      <brightness>0.5043233286626986</brightness>
+      <xCenter>-0.43801502837945633</xCenter>
+      <yCenter>2.7745487423368917</yCenter>
+      <size>0.6774386946644058</size>
+      <brightness>0.75884797705463</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-1.9616585368870005</x>
-      <y>-1.723695191315045</y>
+      <x>-0.43801502837945633</x>
+      <y>2.7745487423368917</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.2750244511884007</targetEyeWinSize>
-    <duration>1650.472975726165</duration>
+    <targetEyeWinSize>0.3387193473322029</targetEyeWinSize>
+    <duration>1833.4292041211302</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-13.737644544668893</xCenter>
-      <yCenter>-15.31895459211978</yCenter>
-      <size>0.8168798384048088</size>
-      <brightness>0.08631843550773455</brightness>
+      <xCenter>3.055398625833884</xCenter>
+      <yCenter>-0.9904168396182883</yCenter>
+      <size>0.9634989873549658</size>
+      <brightness>0.0032820656724393826</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-13.737644544668893</x>
-      <y>-15.31895459211978</y>
+      <x>3.055398625833884</x>
+      <y>-0.9904168396182883</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4084399192024044</targetEyeWinSize>
-    <duration>1359.5338579469042</duration>
+    <targetEyeWinSize>0.4817494936774829</targetEyeWinSize>
+    <duration>1032.8829713449447</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-2.6609102515131653</xCenter>
-      <yCenter>5.063089409716312</yCenter>
-      <size>0.616809183705015</size>
-      <brightness>0.7971567564472317</brightness>
+      <xCenter>-0.690233773711244</xCenter>
+      <yCenter>-4.240126132218764</yCenter>
+      <size>0.6653156295726017</size>
+      <brightness>0.2368956663940195</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-2.6609102515131653</x>
-      <y>5.063089409716312</y>
+      <x>-0.690233773711244</x>
+      <y>-4.240126132218764</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3084045918525075</targetEyeWinSize>
-    <duration>1654.4900430375792</duration>
+    <targetEyeWinSize>0.33265781478630085</targetEyeWinSize>
+    <duration>1086.3406620293645</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-9.62987778749113</xCenter>
-      <yCenter>2.269498659914909</yCenter>
-      <size>0.8197858092093783</size>
-      <brightness>0.17821355197769528</brightness>
+      <xCenter>4.015377258183233</xCenter>
+      <yCenter>-5.039351144847693</yCenter>
+      <size>0.7520640388048775</size>
+      <brightness>0.421153344724145</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-9.62987778749113</x>
-      <y>2.269498659914909</y>
+      <x>4.015377258183233</x>
+      <y>-5.039351144847693</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.40989290460468913</targetEyeWinSize>
-    <duration>1192.7704321316553</duration>
+    <targetEyeWinSize>0.37603201940243874</targetEyeWinSize>
+    <duration>1313.9012289986417</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>6.060389233478009</xCenter>
-      <yCenter>12.140392083060307</yCenter>
-      <size>0.7074869102508377</size>
-      <brightness>0.8629349110093136</brightness>
+      <xCenter>-4.714917042017615</xCenter>
+      <yCenter>0.6711855723528926</yCenter>
+      <size>0.9405727840629172</size>
+      <brightness>0.977159761867761</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>6.060389233478009</x>
-      <y>12.140392083060307</y>
+      <x>-4.714917042017615</x>
+      <y>0.6711855723528926</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3537434551254188</targetEyeWinSize>
-    <duration>1376.8230595365635</duration>
+    <targetEyeWinSize>0.4702863920314586</targetEyeWinSize>
+    <duration>1003.0992119817593</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-18.700269410189907</xCenter>
-      <yCenter>-3.866711149346143</yCenter>
-      <size>0.8704691403169189</size>
-      <brightness>0.6826073586629574</brightness>
+      <xCenter>-1.9483288564785048</xCenter>
+      <yCenter>-4.957130908882075</yCenter>
+      <size>0.7523302047162079</size>
+      <brightness>0.18309958582155406</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-18.700269410189907</x>
-      <y>-3.866711149346143</y>
+      <x>-1.9483288564785048</x>
+      <y>-4.957130908882075</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.43523457015845946</targetEyeWinSize>
-    <duration>1866.0459425570023</duration>
+    <targetEyeWinSize>0.37616510235810396</targetEyeWinSize>
+    <duration>1618.9092420165111</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-3.9122169474586066</xCenter>
-      <yCenter>0.3648768898102315</yCenter>
-      <size>0.7705902004304855</size>
-      <brightness>0.13780590435270523</brightness>
+      <xCenter>-3.1210613766831994</xCenter>
+      <yCenter>2.261571683328465</yCenter>
+      <size>0.9037044425157245</size>
+      <brightness>0.19099743538960345</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-3.9122169474586066</x>
-      <y>0.3648768898102315</y>
+      <x>-3.1210613766831994</x>
+      <y>2.261571683328465</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.38529510021524277</targetEyeWinSize>
-    <duration>1043.7053467869673</duration>
+    <targetEyeWinSize>0.45185222125786223</targetEyeWinSize>
+    <duration>1150.4846485429916</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-19.78449408823908</xCenter>
-      <yCenter>-7.95755428392393</yCenter>
-      <size>0.9974382367063644</size>
-      <brightness>0.29764183259910804</brightness>
+      <xCenter>-1.314471438684826</xCenter>
+      <yCenter>-4.799075833093739</yCenter>
+      <size>0.9032272847162086</size>
+      <brightness>0.3864603783070687</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-19.78449408823908</x>
-      <y>-7.95755428392393</y>
+      <x>-1.314471438684826</x>
+      <y>-4.799075833093739</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4987191183531822</targetEyeWinSize>
-    <duration>1713.4926874549528</duration>
+    <targetEyeWinSize>0.4516136423581043</targetEyeWinSize>
+    <duration>1479.8246492619435</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-9.460822957542135</xCenter>
-      <yCenter>6.135847388993444</yCenter>
-      <size>0.6457177893345053</size>
-      <brightness>0.7680829294798617</brightness>
+      <xCenter>0.773074485417117</xCenter>
+      <yCenter>3.092508808046925</yCenter>
+      <size>0.5827142473060511</size>
+      <brightness>0.9359370531407729</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-9.460822957542135</x>
-      <y>6.135847388993444</y>
+      <x>0.773074485417117</x>
+      <y>3.092508808046925</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.32285889466725265</targetEyeWinSize>
-    <duration>1381.605257254599</duration>
+    <targetEyeWinSize>0.2913571236530256</targetEyeWinSize>
+    <duration>1555.2881759260242</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>9.46523870953747</xCenter>
-      <yCenter>13.372808208319013</yCenter>
-      <size>0.7912444852464324</size>
-      <brightness>0.3175480375544938</brightness>
+      <xCenter>2.16636779174723</xCenter>
+      <yCenter>5.764309557552057</yCenter>
+      <size>0.5788656278847285</size>
+      <brightness>0.19489000439534332</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>9.46523870953747</x>
-      <y>13.372808208319013</y>
+      <x>2.16636779174723</x>
+      <y>5.764309557552057</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3956222426232162</targetEyeWinSize>
-    <duration>1724.3267285703778</duration>
+    <targetEyeWinSize>0.28943281394236425</targetEyeWinSize>
+    <duration>1519.9838221950415</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>5.541053530348428</xCenter>
-      <yCenter>-0.8628686531932104</yCenter>
-      <size>0.7440748493549536</size>
-      <brightness>0.9799142400530859</brightness>
+      <xCenter>-3.0993426209509964</xCenter>
+      <yCenter>-4.514945850463855</yCenter>
+      <size>0.7145072713851803</size>
+      <brightness>0.5969902892048635</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>5.541053530348428</x>
-      <y>-0.8628686531932104</y>
+      <x>-3.0993426209509964</x>
+      <y>-4.514945850463855</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3720374246774768</targetEyeWinSize>
-    <duration>1635.3171291262588</duration>
+    <targetEyeWinSize>0.35725363569259017</targetEyeWinSize>
+    <duration>1064.1225226898964</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>0.7200522447602289</xCenter>
-      <yCenter>-13.097418568196431</yCenter>
-      <size>0.520050445058331</size>
-      <brightness>0.6900930539678535</brightness>
+      <xCenter>-0.05426203646072662</xCenter>
+      <yCenter>1.990296108530118</yCenter>
+      <size>0.7136575419605988</size>
+      <brightness>0.4212121313770786</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>0.7200522447602289</x>
-      <y>-13.097418568196431</y>
+      <x>-0.05426203646072662</x>
+      <y>1.990296108530118</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.2600252225291655</targetEyeWinSize>
-    <duration>1454.9846154780241</duration>
+    <targetEyeWinSize>0.3568287709802994</targetEyeWinSize>
+    <duration>1381.6916693793999</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-15.56374778076462</xCenter>
-      <yCenter>-6.237730301093546</yCenter>
-      <size>0.883202059726749</size>
-      <brightness>0.6340057269057963</brightness>
+      <xCenter>-5.758778498838789</xCenter>
+      <yCenter>-0.41635590344772366</yCenter>
+      <size>0.7210771068043509</size>
+      <brightness>0.4603459814376766</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-15.56374778076462</x>
-      <y>-6.237730301093546</y>
+      <x>-5.758778498838789</x>
+      <y>-0.41635590344772366</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4416010298633745</targetEyeWinSize>
-    <duration>1503.5009680836026</duration>
+    <targetEyeWinSize>0.36053855340217544</targetEyeWinSize>
+    <duration>1194.4848257448737</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>4.828164531389213</xCenter>
-      <yCenter>14.722855087444701</yCenter>
-      <size>0.525104447353085</size>
-      <brightness>0.5162427953424763</brightness>
+      <xCenter>-5.500045454966393</xCenter>
+      <yCenter>-0.27169704434914665</yCenter>
+      <size>0.5442599655246514</size>
+      <brightness>0.9620510089136975</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>4.828164531389213</x>
-      <y>14.722855087444701</y>
+      <x>-5.500045454966393</x>
+      <y>-0.27169704434914665</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.2625522236765425</targetEyeWinSize>
-    <duration>1070.5553924352298</duration>
+    <targetEyeWinSize>0.2721299827623257</targetEyeWinSize>
+    <duration>1061.6743210396571</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-19.129019081131453</xCenter>
-      <yCenter>5.821954873550874</yCenter>
-      <size>0.5417130762443692</size>
-      <brightness>0.4650066686521269</brightness>
+      <xCenter>-1.032399304368893</xCenter>
+      <yCenter>2.525765020113861</yCenter>
+      <size>0.7232115714398278</size>
+      <brightness>0.16461187012672795</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-19.129019081131453</x>
-      <y>5.821954873550874</y>
+      <x>-1.032399304368893</x>
+      <y>2.525765020113861</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.2708565381221846</targetEyeWinSize>
-    <duration>1230.2827933317699</duration>
+    <targetEyeWinSize>0.3616057857199139</targetEyeWinSize>
+    <duration>1080.0542578655434</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-6.583269125117674</xCenter>
-      <yCenter>-4.410151996177573</yCenter>
-      <size>0.544896242621751</size>
-      <brightness>0.3269705714804365</brightness>
+      <xCenter>0.5887044185875533</xCenter>
+      <yCenter>2.178262077271113</yCenter>
+      <size>0.6664311797605523</size>
+      <brightness>0.7762729536745481</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-6.583269125117674</x>
-      <y>-4.410151996177573</y>
+      <x>0.5887044185875533</x>
+      <y>2.178262077271113</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.2724481213108755</targetEyeWinSize>
-    <duration>1191.6892048142845</duration>
+    <targetEyeWinSize>0.33321558988027616</targetEyeWinSize>
+    <duration>1085.9045860553824</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-2.9668044922671157</xCenter>
-      <yCenter>3.9580176507785936</yCenter>
-      <size>0.6448945451299051</size>
-      <brightness>0.2008913023920582</brightness>
+      <xCenter>-4.31715844776434</xCenter>
+      <yCenter>2.367362453723687</yCenter>
+      <size>0.9895386189773878</size>
+      <brightness>0.297838010156543</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-2.9668044922671157</x>
-      <y>3.9580176507785936</y>
+      <x>-4.31715844776434</x>
+      <y>2.367362453723687</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.32244727256495254</targetEyeWinSize>
-    <duration>1013.2164884757068</duration>
+    <targetEyeWinSize>0.4947693094886939</targetEyeWinSize>
+    <duration>1118.7152010652007</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-19.488167694656116</xCenter>
-      <yCenter>-3.988045963950121</yCenter>
-      <size>0.9295132203981724</size>
-      <brightness>0.8334767123605914</brightness>
+      <xCenter>-1.3086935214357387</xCenter>
+      <yCenter>0.3030389987480381</yCenter>
+      <size>0.9897520617349551</size>
+      <brightness>0.7557580108177476</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-19.488167694656116</x>
-      <y>-3.988045963950121</y>
+      <x>-1.3086935214357387</x>
+      <y>0.3030389987480381</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4647566101990862</targetEyeWinSize>
-    <duration>1627.3416572045758</duration>
+    <targetEyeWinSize>0.49487603086747756</targetEyeWinSize>
+    <duration>1228.7007751116234</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-12.305000401397777</xCenter>
-      <yCenter>-4.711284801045082</yCenter>
-      <size>0.853606307850012</size>
-      <brightness>0.14444687281593227</brightness>
+      <xCenter>3.2761499190766328</xCenter>
+      <yCenter>-5.037604431484195</yCenter>
+      <size>0.8709672913350308</size>
+      <brightness>0.9604546361502548</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-12.305000401397777</x>
-      <y>-4.711284801045082</y>
+      <x>3.2761499190766328</x>
+      <y>-5.037604431484195</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.426803153925006</targetEyeWinSize>
-    <duration>1788.199474811413</duration>
+    <targetEyeWinSize>0.4354836456675154</targetEyeWinSize>
+    <duration>1232.7466796301508</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-9.599376409282353</xCenter>
-      <yCenter>-14.400519024020246</yCenter>
-      <size>0.9301756809105919</size>
-      <brightness>0.42310462961667894</brightness>
+      <xCenter>-3.87653942115144</xCenter>
+      <yCenter>-2.589153485493658</yCenter>
+      <size>0.7687432834156525</size>
+      <brightness>0.942663673476658</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-9.599376409282353</x>
-      <y>-14.400519024020246</y>
+      <x>-3.87653942115144</x>
+      <y>-2.589153485493658</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.46508784045529594</targetEyeWinSize>
-    <duration>1279.6069146851717</duration>
+    <targetEyeWinSize>0.38437164170782623</targetEyeWinSize>
+    <duration>1727.7257815001426</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-0.1809594742868761</xCenter>
-      <yCenter>-13.282694734914715</yCenter>
-      <size>0.8056154299233531</size>
-      <brightness>0.5982927708441278</brightness>
+      <xCenter>1.4548622024606306</xCenter>
+      <yCenter>3.6574141186595184</yCenter>
+      <size>0.6810641916480064</size>
+      <brightness>0.02483278698181568</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-0.1809594742868761</x>
-      <y>-13.282694734914715</y>
+      <x>1.4548622024606306</x>
+      <y>3.6574141186595184</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.40280771496167656</targetEyeWinSize>
-    <duration>1703.0285964354152</duration>
+    <targetEyeWinSize>0.3405320958240032</targetEyeWinSize>
+    <duration>1729.1180934873885</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>6.76868286971558</xCenter>
-      <yCenter>1.1026009715036036</yCenter>
-      <size>0.8694706918462192</size>
-      <brightness>0.3874513479174897</brightness>
+      <xCenter>4.047660610600335</xCenter>
+      <yCenter>-4.000502020331508</yCenter>
+      <size>0.8521924539115989</size>
+      <brightness>0.7559294628813085</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>6.76868286971558</x>
-      <y>1.1026009715036036</y>
+      <x>4.047660610600335</x>
+      <y>-4.000502020331508</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4347353459231096</targetEyeWinSize>
-    <duration>1153.4453221422218</duration>
+    <targetEyeWinSize>0.42609622695579946</targetEyeWinSize>
+    <duration>1672.9596081965442</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>9.634514464105198</xCenter>
-      <yCenter>-2.633614239555449</yCenter>
-      <size>0.673495866658099</size>
-      <brightness>0.15966708716475808</brightness>
+      <xCenter>1.1486127563210886</xCenter>
+      <yCenter>5.483300694611222</yCenter>
+      <size>0.8502670733850799</size>
+      <brightness>0.4468392030235234</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>9.634514464105198</x>
-      <y>-2.633614239555449</y>
+      <x>1.1486127563210886</x>
+      <y>5.483300694611222</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3367479333290495</targetEyeWinSize>
-    <duration>1349.519065887758</duration>
+    <targetEyeWinSize>0.42513353669253995</targetEyeWinSize>
+    <duration>1543.7273122370714</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-0.46509076111737</xCenter>
-      <yCenter>7.398887579453204</yCenter>
-      <size>0.7968356302610304</size>
-      <brightness>0.03652718378802522</brightness>
+      <xCenter>-3.6577618479215315</xCenter>
+      <yCenter>3.1484553660283794</yCenter>
+      <size>0.5836714858885077</size>
+      <brightness>0.2991122060640007</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-0.46509076111737</x>
-      <y>7.398887579453204</y>
+      <x>-3.6577618479215315</x>
+      <y>3.1484553660283794</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3984178151305152</targetEyeWinSize>
-    <duration>1367.7536629404544</duration>
+    <targetEyeWinSize>0.29183574294425385</targetEyeWinSize>
+    <duration>1892.3672143265255</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-6.1944330132621435</xCenter>
-      <yCenter>9.210705902241244</yCenter>
-      <size>0.6964683475598428</size>
-      <brightness>0.8394929787384752</brightness>
+      <xCenter>-3.5699590824878493</xCenter>
+      <yCenter>1.9954544579198474</yCenter>
+      <size>0.9446504958624605</size>
+      <brightness>0.7865057203000434</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-6.1944330132621435</x>
-      <y>9.210705902241244</y>
+      <x>-3.5699590824878493</x>
+      <y>1.9954544579198474</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.3482341737799214</targetEyeWinSize>
-    <duration>1405.231611002585</duration>
+    <targetEyeWinSize>0.47232524793123026</targetEyeWinSize>
+    <duration>1611.0102944823589</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-15.732439852356524</xCenter>
-      <yCenter>-3.503275373440152</yCenter>
-      <size>0.5440243697444042</size>
-      <brightness>0.8092710271125833</brightness>
+      <xCenter>0.9988560603426972</xCenter>
+      <yCenter>-5.284496292482187</yCenter>
+      <size>0.8062720638378694</size>
+      <brightness>0.3919214474393862</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-15.732439852356524</x>
-      <y>-3.503275373440152</y>
+      <x>0.9988560603426972</x>
+      <y>-5.284496292482187</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.2720121848722021</targetEyeWinSize>
-    <duration>1675.4945251814408</duration>
+    <targetEyeWinSize>0.4031360319189347</targetEyeWinSize>
+    <duration>1268.3963779805174</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>0.579652797934255</xCenter>
-      <yCenter>-10.361826003923984</yCenter>
-      <size>0.5062711946447311</size>
-      <brightness>0.7570066184442975</brightness>
+      <xCenter>4.885455269996675</xCenter>
+      <yCenter>2.473408694005503</yCenter>
+      <size>0.5002971522074011</size>
+      <brightness>0.6492358061964609</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>0.579652797934255</x>
-      <y>-10.361826003923984</y>
+      <x>4.885455269996675</x>
+      <y>2.473408694005503</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.25313559732236557</targetEyeWinSize>
-    <duration>1738.8190633448685</duration>
+    <targetEyeWinSize>0.25014857610370056</targetEyeWinSize>
+    <duration>1940.5712136211541</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-12.512790950625664</xCenter>
-      <yCenter>-12.773600009384245</yCenter>
-      <size>0.9287982828228902</size>
-      <brightness>0.2636955768587048</brightness>
+      <xCenter>-4.052056631773332</xCenter>
+      <yCenter>-3.1163535439718975</yCenter>
+      <size>0.7906538144901518</size>
+      <brightness>0.869150092115409</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-12.512790950625664</x>
-      <y>-12.773600009384245</y>
+      <x>-4.052056631773332</x>
+      <y>-3.1163535439718975</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4643991414114451</targetEyeWinSize>
-    <duration>1391.2573750928723</duration>
+    <targetEyeWinSize>0.3953269072450759</targetEyeWinSize>
+    <duration>1686.6606627289084</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>0.8798933708477463</xCenter>
-      <yCenter>12.807357164929261</yCenter>
-      <size>0.8249127129560776</size>
-      <brightness>0.6347877908338013</brightness>
+      <xCenter>-1.572979281527721</xCenter>
+      <yCenter>3.76400231377011</yCenter>
+      <size>0.6556281751237831</size>
+      <brightness>0.988401329318993</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>0.8798933708477463</x>
-      <y>12.807357164929261</y>
+      <x>-1.572979281527721</x>
+      <y>3.76400231377011</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4124563564780388</targetEyeWinSize>
-    <duration>1126.289457029952</duration>
+    <targetEyeWinSize>0.32781408756189157</targetEyeWinSize>
+    <duration>1922.3717211168255</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-17.07748311183308</xCenter>
-      <yCenter>-5.534645670848386</yCenter>
-      <size>0.8478086337031498</size>
-      <brightness>0.03448008595344643</brightness>
+      <xCenter>0.5975840323563658</xCenter>
+      <yCenter>6.4497500802549705</yCenter>
+      <size>0.7056419717006308</size>
+      <brightness>0.9107463000453347</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-17.07748311183308</x>
-      <y>-5.534645670848386</y>
+      <x>0.5975840323563658</x>
+      <y>6.4497500802549705</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.4239043168515749</targetEyeWinSize>
-    <duration>1582.6091488501515</duration>
+    <targetEyeWinSize>0.3528209858503154</targetEyeWinSize>
+    <duration>1893.950196279412</duration>
     <data>random</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-11.100024637170039</xCenter>
-      <yCenter>11.574811038611227</yCenter>
-      <size>0.5027358801373145</size>
-      <brightness>0.5738131398779237</brightness>
+      <xCenter>-2.239361004145105</xCenter>
+      <yCenter>-3.022743497697938</yCenter>
+      <size>0.625098418332056</size>
+      <brightness>0.8779671474408985</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-11.100024637170039</x>
-      <y>11.574811038611227</y>
+      <x>-2.239361004145105</x>
+      <y>-3.022743497697938</y>
     </targetEyeWinCoords>
-    <targetEyeWinSize>0.25136794006865726</targetEyeWinSize>
-    <duration>1414.256558508202</duration>
+    <targetEyeWinSize>0.312549209166028</targetEyeWinSize>
+    <duration>1228.2991870303188</duration>
     <data>random</data>
   </VisualTrial>
 </list>
