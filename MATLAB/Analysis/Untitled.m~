@@ -9,8 +9,7 @@ tstamp2 = 1598902276624334;
 TrialInits = TStampBetween(tstamp1, tstamp2, 'TrialInit');
 TrialStops = TStampBetween(tstamp1, tstamp2, 'TrialStop');
 
-%Vetting Trial Start/Stops for bijection (one-to-one correspondence between
-%trialInits and trialStops
+%Vetting Trial Start/Stops for bijection
 if numel(TrialInits) > numel(TrialStops)
     for i = 1:length(TrialInits)
         if(sum(TrialStops>TrialInits(i)) == 0) %There is a TrialInit without a TrialStop following it
@@ -34,17 +33,7 @@ if ~all(TrialInits<TrialStops)
     disp("Something went wrong with checking vetting the trials: Trial Inits and TrialStops do not correspond correctly")
      exit()
 end 
-
-%Removing Trials With no TargetOn
-numTrials = length(TrialInits);
-toRemove = [];
-for i = 1:numTrials
-    if isempty(TStampBetween(TrialInits(i), TrialStops(i), 'TargetOn'))
-        toRemove = [toRemove i];
-    end 
-end 
-TrialInits(toRemove) = [];
-TrialStops(toRemove) = [];
+%Removing Trials 
 %% Main Data Parsing Loop
 trial_data = struct;
 numTrials = length(TrialInits);
@@ -67,10 +56,7 @@ for i = 1:numTrials
     
     %Parsing Target Information
     targetOn_tstamp = TStampBetween(TrialInits(i), TrialStops(i), 'TargetOn');
-    targetOn_msg_struct = Parse_TargetOn(targetOn_tstamp);
-    stimObjData_id = targetOn_msg_struct.stimObjDataId;
-    num2str(stimObjData_id)
-    stimObjData_struct = Parse_StimObjData(stimObjData_id)
+    targetOn_msg_struct = Parse_TargetOn(targetOn_tstamp)
 
     
     

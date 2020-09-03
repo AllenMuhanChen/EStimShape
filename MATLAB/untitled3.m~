@@ -1,0 +1,19 @@
+%Parse Target On
+%   input: tstamp
+%   output: datastruct
+global conn;
+conn = DBConnect();
+tstamp = 1598644087821097;
+
+
+
+sqlquery = "SELECT msg FROM behmsg WHERE type='TargetOn' AND tstamp="+tstamp;
+sqlquery = convertStringsToChars(sqlquery);
+targetOn_msg = fetch(conn,sqlquery);
+targetOn_msg = string(table2array(type_tstamp));
+targetOn_msg_struct = ParseXML_behmsg_TargetOn(targetOn_msg);
+
+
+
+
+

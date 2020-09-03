@@ -95,6 +95,16 @@
 			</manifest>
 		</jar>
 		
+		<jar jarfile="${allen.home}/RandomCircleXmlGen.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/training/RandomCircleTrainingXMLGen.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.training.RandomCircleTrainingXMLGen" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
+			</manifest>
+		</jar>
+		
 		
 	</target>
 </project>
