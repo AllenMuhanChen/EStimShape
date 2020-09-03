@@ -15,7 +15,6 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	
 	int blankTargetScreenDisplayTime;
 	
-	
 	public EyeTargetSelector getTargetSelector() {
 		return targetSelector;
 	}
@@ -41,13 +40,6 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 		this.blankTargetScreenDisplayTime = blankTargetScreenDisplayTime;
 	}
 	
-	/**
-	 * Time for Initial Target Selection is just equal to the time the stimulus is up
-	 * @author allenchen
-	 */
-	public long getTimeAllowedForInitialTargetSelection() {
-		return (long) getCurrentTask().getDuration();
-	}
 
 	public List<? extends TargetEventListener> getTargetEventListeners() {
 		return targetEventListeners;

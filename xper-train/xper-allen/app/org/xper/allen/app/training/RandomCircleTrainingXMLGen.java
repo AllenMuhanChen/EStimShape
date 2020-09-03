@@ -35,7 +35,7 @@ import com.thoughtworks.xstream.XStream;
  * 		  args[3]: range of size of stimuli desired (diameter in visual angles)<br>
  * 		  args[4]: The max radius away from the center the stimulus is allowed to be. . 
  * 		  args[5]: range of durations desired. 
- * 		  args[6]: scalar multiplier of targetEyeWinSize radius in visual angles.  
+ * 		  args[6]: Size of targetEyeWinSize in radius degrees of visual angle 
  * 		  args[7]: String for "Data" column of StimObjData 
  * @author allenchen
  *
@@ -86,13 +86,10 @@ public class RandomCircleTrainingXMLGen {
 		//Location Range
 		System.out.println("The Screen is: "+mm2deg(monkey_screen_width/2) + "x" + mm2deg(monkey_screen_height) + "in visual degrees");
 		double rangeRadius = Double.parseDouble(args[4]);
-		
 		//Duration Range
 		ArrayList<Double> durationLim = argsToArrayListDouble(args[5]);
-
-		//TargetEyeWinSize Gain
-		double targetEyeWinSizeGain = Double.parseDouble(args[6]);
-		
+		//TargetEyeWinSize 
+		double targetEyeWinRadius = Double.parseDouble(args[6]);
 		//Data
 		String data = args[7];
 		
@@ -111,7 +108,7 @@ public class RandomCircleTrainingXMLGen {
 			//StimSpec
 			double randDuration = inclusiveRandomDouble(durationLim.get(0),durationLim.get(1));
 			//targetEyeWinSize
-			double targetEyeWinSize = randSize/2 * targetEyeWinSizeGain;
+			double targetEyeWinSize = targetEyeWinRadius;
 
 			
 			//targetEyeWinCoords
