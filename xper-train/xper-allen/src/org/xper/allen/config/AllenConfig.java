@@ -319,6 +319,7 @@ public class AllenConfig {
 	public List<TargetEventListener> targetEventListeners () {
 		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
 		listeners.add((TargetEventListener) messageDispatcher());
+		listeners.add((TargetEventListener) juiceController());
 		return listeners;
 	}
 	

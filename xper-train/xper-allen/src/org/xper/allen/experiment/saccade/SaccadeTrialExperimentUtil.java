@@ -73,6 +73,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		selectorDriver.stop();
 
 		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+		
 		selectorResult = selectorDriver.getResult();
 		if (selectorResult.getSelectionStatusResult() == TrialResult.TARGET_SELECTION_EYE_FAIL) {
 			SaccadeEventUtil.fireTargetSelectionEyeFailEvent(timeUtil.currentTimeMicros(), targetEventListeners);

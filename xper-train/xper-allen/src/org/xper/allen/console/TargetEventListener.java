@@ -1,8 +1,9 @@
 package org.xper.allen.console;
 
+import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
 
-public interface TargetEventListener {
+public interface TargetEventListener{
 	/**
 	 * @param timestamp (microseconds)
 	 * @param context
