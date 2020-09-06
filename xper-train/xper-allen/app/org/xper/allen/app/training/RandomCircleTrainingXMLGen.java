@@ -33,7 +33,7 @@ import com.thoughtworks.xstream.XStream;
  * 		  args[1]: number of stimuli desired<br>
  * 		  args[2]: range of brightness of stimuli desired (between 0 and 1) <br>
  * 		  args[3]: range of size of stimuli desired (diameter in visual angles)<br>
- * 		  args[4]: The max radius away from the center the stimulus is allowed to be. . 
+ * 		  args[4]: The range of radius away from the center of the screen that the stimulus should be. 
  * 		  args[5]: range of durations desired. 
  * 		  args[6]: Size of targetEyeWinSize in radius degrees of visual angle 
  * 		  args[7]: String for "Data" column of StimObjData 
@@ -85,7 +85,7 @@ public class RandomCircleTrainingXMLGen {
 		ArrayList<Double> sizeLim = argsToArrayListDouble(args[3]);
 		//Location Range
 		System.out.println("The Screen is: "+mm2deg(monkey_screen_width/2) + "x" + mm2deg(monkey_screen_height) + "in visual degrees");
-		double rangeRadius = Double.parseDouble(args[4]);
+		ArrayList<Double> radiusLim = argsToArrayListDouble(args[4]);
 		//Duration Range
 		ArrayList<Double> durationLim = argsToArrayListDouble(args[5]);
 		//TargetEyeWinSize 
@@ -99,10 +99,9 @@ public class RandomCircleTrainingXMLGen {
 			
 			//GaussSpec
 			double randSize = inclusiveRandomDouble(sizeLim.get(0), sizeLim.get(1));
-			
-			double[] xy = randomWithinRadius(rangeRadius);
-			double randXCenter = xy[0];
-			double randYCenter = xy[1]; 
+			ArrayList<Double> randXY = randomWithinRadius(radiusLim);
+			double randXCenter = randXY.get(0);
+			double randYCenter = randXY.get(1); 
 			double randBrightness = inclusiveRandomDouble(brightnessLim.get(0), brightnessLim.get(1));
 			
 			//StimSpec
@@ -150,14 +149,16 @@ public class RandomCircleTrainingXMLGen {
 
 	}
 	
-	public static double[] randomWithinRadius(double radius) {
+	public static ArrayList<Double> randomWithinRadius(ArrayList<Double> radiusLim) {
 		
-		double r = radius * Math.sqrt(ThreadLocalRandom.current().nextDouble());
+		double r = Math.sqrt(ThreadLocalRandom.current().nextDouble() * (radiusLim.get(1)-radiusLim.get(0)) + radiusLim.get(1));
 		double theta = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
 		
 		double x = 0 + r * Math.cos(theta);
 		double y = 0 + r * Math.sin(theta);
-		double[] output = {x, y};
+		ArrayList<Double> output = new ArrayList<Double>(); 
+		output.add(x); 
+		output.add(y);
 		return output;
 	}
 	
