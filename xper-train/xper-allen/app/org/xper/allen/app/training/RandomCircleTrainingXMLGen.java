@@ -151,11 +151,12 @@ public class RandomCircleTrainingXMLGen {
 	
 	public static ArrayList<Double> randomWithinRadius(ArrayList<Double> radiusLim) {
 		
-		double r = Math.sqrt(ThreadLocalRandom.current().nextDouble() * (radiusLim.get(1)-radiusLim.get(0)) + radiusLim.get(1));
+		double r = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * (radiusLim.get(1)-radiusLim.get(0)) + radiusLim.get(1);
 		double theta = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
 		
 		double x = 0 + r * Math.cos(theta);
 		double y = 0 + r * Math.sin(theta);
+		System.out.println(x);
 		ArrayList<Double> output = new ArrayList<Double>(); 
 		output.add(x); 
 		output.add(y);
