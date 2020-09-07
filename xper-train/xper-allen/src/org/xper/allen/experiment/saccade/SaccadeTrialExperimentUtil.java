@@ -126,18 +126,20 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		SaccadeExperimentTask currentTask = state.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) state.getCurrentContext();
-		TaskDataSource taskDataSource = state.getTaskDataSource();
+		AllenDatabaseTaskDataSource taskDataSource = (AllenDatabaseTaskDataSource) state.getTaskDataSource();
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
 				.getTrialEventListeners();
 
 		// unget failed task
+		
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
+			
 			state.setCurrentTask(null);
 		}
-		taskDoneCache.flush();
+		 
 
 		// trial stop
 		if (currentContext != null) {

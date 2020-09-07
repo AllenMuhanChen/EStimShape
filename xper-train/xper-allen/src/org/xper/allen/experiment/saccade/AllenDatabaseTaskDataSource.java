@@ -16,9 +16,6 @@ import org.xper.util.ThreadHelper;
 public class AllenDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	static Logger logger = Logger.getLogger(DatabaseTaskDataSource.class);
 
-	public enum UngetPolicy {
-		HEAD, TAIL
-	};
 	static final int DEFAULT_QUERY_INTERVAL = 1000;
 
 	@Dependency
@@ -26,7 +23,7 @@ public class AllenDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	@Dependency
 	long queryInterval = DEFAULT_QUERY_INTERVAL;
 	@Dependency
-	UngetPolicy ungetBehavior = UngetPolicy.HEAD;
+	UngetPolicy ungetBehavior;
 
 	AtomicReference<LinkedList<SaccadeExperimentTask>> currentGeneration = new AtomicReference<LinkedList<SaccadeExperimentTask>>();
 	ThreadHelper threadHelper = new ThreadHelper("DatabaseTaskDataSource", this);
@@ -64,6 +61,7 @@ public class AllenDatabaseTaskDataSource extends DatabaseTaskDataSource {
 			return;
 
 		LinkedList<SaccadeExperimentTask> tasks = currentGeneration.get();
+		System.out.println(tasks);
 		if (tasks == null) {
 			return;
 		}
@@ -144,11 +142,11 @@ public class AllenDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	public void setQueryInterval(long queryInterval) {
 		this.queryInterval = queryInterval;
 	}
-/*
+
 	public UngetPolicy getUngetBehavior() {
 		return ungetBehavior;
 	}
-*/
+
 	public void setUngetBehavior(UngetPolicy ungetBehavior) {
 		this.ungetBehavior = ungetBehavior;
 	}

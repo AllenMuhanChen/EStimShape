@@ -126,7 +126,7 @@ public class SaccadeTrialExperiment implements Experiment {
 								// end of SlideRunner.runSlide
 							} finally {
 								try {
-									TrialExperimentUtil.cleanupTask(stateObject);
+									SaccadeTrialExperimentUtil.cleanupTask(stateObject);
 								} catch (Exception e) {
 									logger.warn(e.getMessage());
 									e.printStackTrace();

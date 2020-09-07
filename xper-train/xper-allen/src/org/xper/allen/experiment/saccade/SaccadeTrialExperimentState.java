@@ -98,5 +98,7 @@ public class SaccadeTrialExperimentState extends TrialExperimentState {
 	public void setCurrentContext(SaccadeTrialContext currentContext) {
 		this.currentContext = currentContext;
 	}
+	
+	
 
 }
