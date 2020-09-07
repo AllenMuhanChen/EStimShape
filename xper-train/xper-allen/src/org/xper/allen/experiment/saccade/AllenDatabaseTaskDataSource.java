@@ -61,7 +61,6 @@ public class AllenDatabaseTaskDataSource extends DatabaseTaskDataSource {
 			return;
 
 		LinkedList<SaccadeExperimentTask> tasks = currentGeneration.get();
-		System.out.println(tasks);
 		if (tasks == null) {
 			return;
 		}
