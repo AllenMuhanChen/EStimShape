@@ -2,7 +2,6 @@
 package org.xper.allen.db.vo;
 
 public class EStimObjDataEntry{
-	long id;
 	String chans;
 	float post_trigger_delay;
 	String trig_src;
@@ -44,13 +43,7 @@ public class EStimObjDataEntry{
 		post_stim_charge_recovery_off = d.get_post_stim_charge_recovery_off();
 	}
 	*/
-	
-	public long get_id() {
-		return id;
-	}
-	public void set_id(long id_) {
-		id = id_;
-	}
+
 	public String getChans() {
 		return chans;
 	}

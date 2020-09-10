@@ -78,7 +78,6 @@ public class AllenDbUtil extends DbUtil {
 				new ParameterizedRowMapper<EStimObjDataEntry>() {
 					public EStimObjDataEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
 						EStimObjDataEntry e = new EStimObjDataEntry();
-						e.set_id(rs.getLong("id"));
 						e.setChans(rs.getString("chans"));
 						e.set_post_trigger_delay(rs.getInt("post_trigger_delay"));
 						e.set_trig_src(rs.getString("trig_src"));
@@ -210,6 +209,7 @@ public class AllenDbUtil extends DbUtil {
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						task.setDuration(ss.getDuration());
 						//TODO: EStimObjData
+						task.seteStimObjDataEntry(readEStimObjData(ss.geteStimObjData()[0]));
 						task.setTaskId(rs.getLong("task_id"));
 						task.setXfmId(rs.getLong("xfm_id"));
 						task.setXfmSpec(rs.getString("xfm_spec"));
