@@ -199,9 +199,14 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		
 		String output = new String();
 		for (EStimParameter param:eStimParams) {
+			int loopindx = 0;
+			if(loopindx>0) {
+				output.concat(",");
+			}
 			output.concat(param.getName());
 			output.concat(",");
 			output.concat(param.getValue());
+			loopindx++;
 			
 		}
 		return output;
