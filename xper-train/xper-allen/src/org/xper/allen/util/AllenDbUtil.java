@@ -62,13 +62,13 @@ public class AllenDbUtil extends DbUtil {
 	public void writeEStimObjData(long id, EStimObjData e) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.update(
-				"insert into EStimObjData (id, post_trigger_delay, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off) values (?, ?, ?, ? ,? ,? ,? ,? ,? ,? ,?, ?, ?, ?, ?, ?, ?, ?)",
-				new Object[] { id, e.get_post_trigger_delay(), e.get_trig_src(), e.get_num_pulses(),
-						e.get_pulse_train_period(), e.get_post_stim_refractory_period(), e.get_stim_shape(),
-						e.get_stim_polarity(), e.get_d1(), e.get_d2(), e.get_dp(), e.get_a1(), e.get_a2(),
-						e.get_pre_stim_amp_settle(), e.get_post_stim_amp_settle(),
-						e.get_maintain_amp_settle_during_pulse_train(), e.get_post_stim_charge_recovery_on(),
-						e.get_post_stim_charge_recovery_off() });
+				"insert into EStimObjData (id, chans, post_trigger_delay, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off) values (?, ?, ?, ? ,? ,? ,? ,? ,? ,? ,?, ?, ?, ?, ?, ?, ?, ?)",
+				new Object[] { id, e.getChans(), e.getPost_trigger_delay(), e.getTrig_src(), e.getNum_pulses(),
+						e.getPulse_train_period(), e.getPost_stim_refractory_period(), e.getStim_shape(),
+						e.getStim_polarity(), e.getD1(), e.getD2(), e.getDp(), e.getA1(), e.getA2(),
+						e.getPre_stim_amp_settle(), e.getPost_stim_amp_settle(),
+						e.getMaintain_amp_settle_during_pulse_train(), e.getPost_stim_charge_recovery_on(),
+						e.getPost_stim_charge_recovery_off() });
 	}
 	
 	public EStimObjDataEntry readEStimObjData(long estimId) {
@@ -79,6 +79,7 @@ public class AllenDbUtil extends DbUtil {
 					public EStimObjDataEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
 						EStimObjDataEntry e = new EStimObjDataEntry();
 						e.set_id(rs.getLong("id"));
+						e.setChans(rs.getString("chans"));
 						e.set_post_trigger_delay(rs.getInt("post_trigger_delay"));
 						e.set_trig_src(rs.getString("trig_src"));
 						e.set_num_pulses(rs.getInt("num_pulses"));
