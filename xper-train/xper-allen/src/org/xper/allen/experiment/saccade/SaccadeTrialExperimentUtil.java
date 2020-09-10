@@ -1,10 +1,12 @@
 package org.xper.allen.experiment.saccade;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.xper.Dependency;
 import org.xper.allen.console.SaccadeEventUtil;
 import org.xper.allen.console.TargetEventListener;
+import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
@@ -21,6 +23,7 @@ import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.allen.intan.EStimParameter;
 
 public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	@Dependency
@@ -50,7 +53,9 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
-
+		
+		//ESTIMULATOR
+		sendEStimTrigger();
 
 		//Eye on Target Logic
 		//eye selector
@@ -111,7 +116,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
-
+		sendEStims(stateObject);
 		result = runner.runSlide();
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
@@ -151,6 +156,55 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		}
 		state.setCurrentContext(null);
 	}
+	/**
+	 * ESTIMULATOR
+	 * Send string of params for estim over to Intan
+	 * @param state
+	 */
+	public static void sendEStims (SaccadeExperimentState state) {
+		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+		System.out.println("Sending EStimSpecs to Intan");
+		System.out.println(eStimsToString(eStimObjData));
+	}
 
+	/**
+	 * ESTIMULATOR
+	 * Send trigger for estim over to Intan
+	 * 
+	 */
+	public static void sendEStimTrigger() {
+		System.out.println("Sending Trigger");
+	}
+	
+	private static String eStimsToString(EStimObjDataEntry eStimObjData){
+		ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();
+		eStimParams.add(new EStimParameter("chans",eStimObjData.getChans()));
+		eStimParams.add(new EStimParameter("post_trigger_delay",eStimObjData.get_post_trigger_delay()));
+		eStimParams.add(new EStimParameter("trig_src",eStimObjData.get_trig_src()));
+		eStimParams.add(new EStimParameter("num_pulses",eStimObjData.get_num_pulses()));
+		eStimParams.add(new EStimParameter("pulse_train_period",eStimObjData.get_pulse_train_period()));
+		eStimParams.add(new EStimParameter("post_stim_refractory_period",eStimObjData.get_post_stim_refractory_period()));
+		eStimParams.add(new EStimParameter("stim_shape",eStimObjData.get_stim_shape()));
+		eStimParams.add(new EStimParameter("stim_polarity",eStimObjData.get_stim_polarity()));
+		eStimParams.add(new EStimParameter("d1",eStimObjData.get_d1()));
+		eStimParams.add(new EStimParameter("d2",eStimObjData.get_d2()));
+		eStimParams.add(new EStimParameter("dp",eStimObjData.get_dp()));
+		eStimParams.add(new EStimParameter("a1",eStimObjData.get_a1()));
+		eStimParams.add(new EStimParameter("a2",eStimObjData.get_a2()));
+		eStimParams.add(new EStimParameter("pre_stim_amp_settle",eStimObjData.get_pre_stim_amp_settle()));
+		eStimParams.add(new EStimParameter("post_stim_amp_settle",eStimObjData.get_post_stim_amp_settle()));
+		eStimParams.add(new EStimParameter("maintain_amp_settle_during_pulse_train",eStimObjData.get_maintain_amp_settle_during_pulse_train()));
+		eStimParams.add(new EStimParameter("post_stim_charge_recovery_on",eStimObjData.get_post_stim_charge_recovery_on()));
+		eStimParams.add(new EStimParameter("post_stim_charge_recovery_off",eStimObjData.get_post_stim_charge_recovery_off()));
+		
+		String output = new String();
+		for (EStimParameter param:eStimParams) {
+			output.concat(param.getName());
+			output.concat(",");
+			output.concat(param.getValue());
+			
+		}
+		return output;
+	}
 
 }
