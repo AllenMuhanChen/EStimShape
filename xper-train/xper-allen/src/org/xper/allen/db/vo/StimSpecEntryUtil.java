@@ -24,7 +24,7 @@ public class StimSpecEntryUtil{
 	}
 	
 	/**
-	 * Transforms stimSpec xml String into StimSpec object. 
+	 * Transforms stimSpec xml String into StimSpecSpec object. 
 	 * @return
 	 */
 	public StimSpecSpec fromXmlSpec() {

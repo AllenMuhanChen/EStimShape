@@ -3,6 +3,7 @@ package org.xper.allen.db.vo;
 
 public class EStimObjDataEntry{
 	long id;
+	String chans;
 	float post_trigger_delay;
 	String trig_src;
 	int num_pulses;
@@ -49,6 +50,12 @@ public class EStimObjDataEntry{
 	}
 	public void set_id(long id_) {
 		id = id_;
+	}
+	public String getChans() {
+		return chans;
+	}
+	public void setChans(String chans) {
+		this.chans = chans;
 	}
 	public float get_post_trigger_delay() {
 		return post_trigger_delay;
