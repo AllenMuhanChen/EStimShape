@@ -24,9 +24,9 @@ import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 
-@Import(AllenConfig.class)
-public class AllenAppConfig {
-	@Autowired AllenConfig allenConfig;
+@Import(SimpleEStimConfig.class)
+public class SimpleEStimAppConfig {
+	@Autowired SimpleEStimConfig allenConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
@@ -66,7 +66,7 @@ public class AllenAppConfig {
 	public TrainingBlockGen trainingGen() {
 		TrainingBlockGen blockgen = new TrainingBlockGen();
 		blockgen.setDbUtil(allenConfig.allenDbUtil());
-		System.out.println(((AllenConfig) allenConfig).getJdbcUrl());
+		System.out.println(((SimpleEStimConfig) allenConfig).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
 		blockgen.setXmlUtil(allenConfig.allenXMLUtil());
 		return blockgen;
@@ -76,7 +76,7 @@ public class AllenAppConfig {
 	public SimpleEStimBlockGen simpleEStimGen() {
 		SimpleEStimBlockGen blockgen = new SimpleEStimBlockGen();
 		blockgen.setDbUtil(allenConfig.allenDbUtil());
-		System.out.println(((AllenConfig) allenConfig).getJdbcUrl());
+		System.out.println(((SimpleEStimConfig) allenConfig).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
 		blockgen.setXmlUtil(allenConfig.allenXMLUtil());
 		return blockgen;

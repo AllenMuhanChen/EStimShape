@@ -67,7 +67,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 @Import(ClassicConfig.class)
-public class AllenConfig {
+public class SimpleEStimConfig {
 
 	@Autowired BaseConfig baseConfig;
 	@Autowired ClassicConfig classicConfig;	
