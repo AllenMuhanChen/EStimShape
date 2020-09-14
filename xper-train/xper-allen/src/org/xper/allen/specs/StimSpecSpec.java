@@ -33,8 +33,8 @@ public class StimSpecSpec {
 	}
 	
 	public StimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long[] stimObjData,
-			long[] eStimObjData, int[] eStimObjChans) {
-		super();
+			long[] eStimObjData) {
+		//super();
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
 		this.duration = duration;

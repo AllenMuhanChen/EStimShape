@@ -7,14 +7,14 @@ import java.util.ArrayList;
 
 import com.thoughtworks.xstream.XStream;
 
-import org.xper.allen.blockgen.VisualTrial;
+import org.xper.allen.blockgen.TrainingTrial;
 import org.xper.allen.specs.GaussSpec;
 public class AllenXMLUtil {
 	XStream s = new XStream();
 	
 	public AllenXMLUtil() {
 		s.alias("list", ArrayList.class);
-		s.alias("VisualTrial", VisualTrial.class);
+		s.alias("VisualTrial", TrainingTrial.class);
 
 	}
 	
