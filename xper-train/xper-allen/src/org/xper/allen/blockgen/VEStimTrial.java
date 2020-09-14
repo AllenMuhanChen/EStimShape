@@ -1,13 +1,13 @@
 package org.xper.allen.blockgen;
 
-import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
 
 public class VEStimTrial {
-	EStimObjDataEntry eStimSpec;
+	EStimObjData eStimSpec;
 	GaussSpec gaussSpec;
 	Coordinates2D targetEyeWinCoords;
 	double targetEyeWinSize;
@@ -16,7 +16,7 @@ public class VEStimTrial {
 	
 	transient XStream s = new XStream();
 	
-	public VEStimTrial(EStimObjDataEntry eStimSpec, GaussSpec gaussSpec, Coordinates2D targetEyeWinCoords, double targetEyewinSize, double duration, String data) {
+	public VEStimTrial(EStimObjData eStimSpec, GaussSpec gaussSpec, Coordinates2D targetEyeWinCoords, double targetEyewinSize, double duration, String data) {
 		this.eStimSpec = eStimSpec;
 		this.gaussSpec = gaussSpec;
 		this.targetEyeWinCoords = targetEyeWinCoords;
@@ -28,11 +28,11 @@ public class VEStimTrial {
 		return s.toXML(this);
 	}
 
-	public EStimObjDataEntry getEStimSpec() {
+	public EStimObjData getEStimSpec() {
 		return eStimSpec;
 	}
 
-	public void setEStimSpec(EStimObjDataEntry eStimSpec) {
+	public void setEStimSpec(EStimObjData eStimSpec) {
 		this.eStimSpec = eStimSpec;
 	}
 

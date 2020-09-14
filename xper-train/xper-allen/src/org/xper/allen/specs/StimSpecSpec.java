@@ -41,6 +41,20 @@ public class StimSpecSpec {
 		this.stimObjData = stimObjData;
 		this.eStimObjData = eStimObjData;
 	}
+	
+	public StimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
+			 long eStimObjData) {
+		//super();
+		this.targetEyeWinCoords = targetEyeWinCoords;
+		this.targetEyeWinSize = targetEyeWinSize;
+		this.duration = duration;
+		long[] stimObjDataArr = new long[1];
+		stimObjDataArr[0] = stimObjData;
+		this.stimObjData = stimObjDataArr;
+		long[]eStimObjDataArr = new long[1];
+		eStimObjDataArr[0] = eStimObjData;
+		this.eStimObjData = eStimObjDataArr;
+	}
 
 	
 	public StimSpecSpec() {
