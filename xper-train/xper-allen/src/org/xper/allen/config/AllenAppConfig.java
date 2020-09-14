@@ -8,6 +8,7 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.GaussScene;
+import org.xper.allen.blockgen.SimpleEStimBlockGen;
 import org.xper.allen.blockgen.TrainingBlockGen;
 import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.config.AcqConfig;
@@ -60,27 +61,20 @@ public class AllenAppConfig {
 		GaussianSpecGenerator gen = new GaussianSpecGenerator();
 		return gen;
 	}
-	/*
-	@Bean EStimObjDataGenerator egenerator() {
-		EStimObjDataGenerator egen = new EStimObjDataGenerator();
-		return egen;
-	}
-	*/
-	/*
-	@Bean
-	public RandGenerationAllen randomGen() {
-		RandGenerationAllen gen = new RandGenerationAllen();
-		gen.setDbUtil(allenConfig.allenDbUtil());
-		gen.setGlobalTimeUtil(acqConfig.timeClient());
-		gen.setTaskCount(100);
-		gen.setGenerator(generator());
-		return gen;
-	}
-	*/
 
 	@Bean
 	public TrainingBlockGen trainingGen() {
 		TrainingBlockGen blockgen = new TrainingBlockGen();
+		blockgen.setDbUtil(allenConfig.allenDbUtil());
+		System.out.println(((AllenConfig) allenConfig).getJdbcUrl());
+		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
+		blockgen.setXmlUtil(allenConfig.allenXMLUtil());
+		return blockgen;
+	}
+	
+	@Bean
+	public SimpleEStimBlockGen simpleEStimGen() {
+		SimpleEStimBlockGen blockgen = new SimpleEStimBlockGen();
 		blockgen.setDbUtil(allenConfig.allenDbUtil());
 		System.out.println(((AllenConfig) allenConfig).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());

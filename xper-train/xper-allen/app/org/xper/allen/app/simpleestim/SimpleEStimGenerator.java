@@ -2,7 +2,6 @@ package org.xper.allen.app.simpleestim;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.blockgen.SimpleEStimBlockGen;
-import org.xper.allen.blockgen.TrainingBlockGen;
 import org.xper.util.FileUtil;
 
 public class SimpleEStimGenerator {
