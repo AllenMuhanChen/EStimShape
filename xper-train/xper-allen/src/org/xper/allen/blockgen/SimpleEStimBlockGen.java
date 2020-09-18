@@ -29,7 +29,7 @@ public class SimpleEStimBlockGen {
 		
 		for (int i = 0; i < trials.size(); i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
-			VEStimTrial trial = (VEStimTrial) trials.get(i);
+			Trial trial = trials.get(i);
 			String spec = trial.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());

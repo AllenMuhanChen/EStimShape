@@ -1,5 +1,7 @@
 package org.xper.allen.blockgen;
 
+import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 
@@ -82,5 +84,11 @@ public class TrainingTrial implements Trial {
 
 	public void setTargetEyeWinCoords(Coordinates2D targetEyeWinCoords) {
 		this.targetEyeWinCoords = targetEyeWinCoords;
+	}
+
+	@Override
+	public EStimObjDataEntry getEStimSpec() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

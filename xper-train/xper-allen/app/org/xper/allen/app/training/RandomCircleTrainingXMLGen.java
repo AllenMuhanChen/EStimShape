@@ -41,9 +41,9 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class RandomCircleTrainingXMLGen {
-	static ArrayList<Double> xLim = new ArrayList<Double>();
-	static ArrayList<Double> yLim = new ArrayList<Double>();
-	static String filepath;
+	protected static ArrayList<Double> xLim = new ArrayList<Double>();
+	protected static ArrayList<Double> yLim = new ArrayList<Double>();
+	protected static String filepath;
 	transient static XStream s;
 	static {
 		s = new XStream();
@@ -51,7 +51,7 @@ public class RandomCircleTrainingXMLGen {
 
 		s.setMode(XStream.NO_REFERENCES);
 	}
-	static double distance;
+	protected static double distance;
 	
 	public static void main(String[] args) {
 	//DB set-up

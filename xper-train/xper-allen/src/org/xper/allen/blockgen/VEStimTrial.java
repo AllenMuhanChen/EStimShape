@@ -1,13 +1,14 @@
 package org.xper.allen.blockgen;
 
+import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
 
-public class VEStimTrial {
-	EStimObjData eStimSpec;
+public class VEStimTrial implements Trial{
+	EStimObjDataEntry eStimSpec;
 	GaussSpec gaussSpec;
 	Coordinates2D targetEyeWinCoords;
 	double targetEyeWinSize;
@@ -16,7 +17,7 @@ public class VEStimTrial {
 	
 	transient XStream s = new XStream();
 	
-	public VEStimTrial(EStimObjData eStimSpec, GaussSpec gaussSpec, Coordinates2D targetEyeWinCoords, double targetEyewinSize, double duration, String data) {
+	public VEStimTrial(EStimObjDataEntry eStimSpec, GaussSpec gaussSpec, Coordinates2D targetEyeWinCoords, double targetEyewinSize, double duration, String data) {
 		this.eStimSpec = eStimSpec;
 		this.gaussSpec = gaussSpec;
 		this.targetEyeWinCoords = targetEyeWinCoords;
@@ -24,15 +25,19 @@ public class VEStimTrial {
 		this.data = data;
 	}
 	
+	public VEStimTrial() {
+		
+	}
+	
 	public String toXml() {
 		return s.toXML(this);
 	}
 
-	public EStimObjData getEStimSpec() {
+	public EStimObjDataEntry getEStimSpec() {
 		return eStimSpec;
 	}
 
-	public void setEStimSpec(EStimObjData eStimSpec) {
+	public void setEStimSpec(EStimObjDataEntry eStimSpec) {
 		this.eStimSpec = eStimSpec;
 	}
 

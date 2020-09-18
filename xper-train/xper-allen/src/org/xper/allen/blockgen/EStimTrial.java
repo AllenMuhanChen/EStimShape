@@ -1,6 +1,6 @@
 package org.xper.allen.blockgen;
 
-import org.xper.allen.specs.EStimObjData;
+import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 
@@ -11,9 +11,13 @@ public class EStimTrial extends VEStimTrial implements Trial {
 	
 	transient XStream s = new XStream();
 	
-	public EStimTrial(EStimObjData eStimSpec, Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, String data) {
+	public EStimTrial(EStimObjDataEntry eStimSpec, Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, String data) {
 		super(eStimSpec, null, targetEyeWinCoords, targetEyeWinSize, duration, data);
 		gaussSpec = catchGaussSpec();
+	}
+	
+	public EStimTrial() {
+		
 	}
 	
 	private GaussSpec catchGaussSpec() {

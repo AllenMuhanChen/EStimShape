@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?><list>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>2.2995724907072708</xCenter>
-      <yCenter>4.608322129679989</yCenter>
-      <size>0.7940558888006278</size>
-      <brightness>0.22164565146473902</brightness>
+      <xCenter>-6.178513391913981</xCenter>
+      <yCenter>-3.056580036043861</yCenter>
+      <size>0.6661564142897274</size>
+      <brightness>0.0711154658672194</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>2.2995724907072708</x>
-      <y>4.608322129679989</y>
+      <x>-6.178513391913981</x>
+      <y>-3.056580036043861</y>
     </targetEyeWinCoords>
     <targetEyeWinSize>1.0</targetEyeWinSize>
-    <duration>1191.0926874551822</duration>
+    <duration>1615.424158286345</duration>
     <data>TEST</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>5.414609576326787</xCenter>
-      <yCenter>-5.830063740575537</yCenter>
-      <size>0.5531011632061495</size>
-      <brightness>0.44714876853521457</brightness>
+      <xCenter>9.157387997571337</xCenter>
+      <yCenter>-0.6949745000574046</yCenter>
+      <size>0.8257321307632361</size>
+      <brightness>0.20189027531168502</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>5.414609576326787</x>
-      <y>-5.830063740575537</y>
+      <x>9.157387997571337</x>
+      <y>-0.6949745000574046</y>
     </targetEyeWinCoords>
     <targetEyeWinSize>1.0</targetEyeWinSize>
-    <duration>1605.108932931612</duration>
+    <duration>1319.6330605495536</duration>
     <data>TEST</data>
   </VisualTrial>
   <VisualTrial>
     <gaussSpec>
-      <xCenter>-6.609237313072789</xCenter>
-      <yCenter>-2.145105849777359</yCenter>
-      <size>0.9877191346384736</size>
-      <brightness>0.828468273472387</brightness>
+      <xCenter>2.215893349863618</xCenter>
+      <yCenter>7.907225131794848</yCenter>
+      <size>0.9778103473134898</size>
+      <brightness>0.14832754714153085</brightness>
     </gaussSpec>
     <targetEyeWinCoords>
-      <x>-6.609237313072789</x>
-      <y>-2.145105849777359</y>
+      <x>2.215893349863618</x>
+      <y>7.907225131794848</y>
     </targetEyeWinCoords>
     <targetEyeWinSize>1.0</targetEyeWinSize>
-    <duration>1223.779570483951</duration>
+    <duration>1800.4849479156553</duration>
     <data>TEST</data>
   </VisualTrial>
 </list>
