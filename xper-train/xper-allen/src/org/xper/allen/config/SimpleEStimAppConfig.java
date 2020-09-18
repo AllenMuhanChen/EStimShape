@@ -10,7 +10,6 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.GaussScene;
 import org.xper.allen.blockgen.SimpleEStimBlockGen;
 import org.xper.allen.blockgen.TrainingBlockGen;
-import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -26,7 +25,7 @@ import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 
 @Import(SimpleEStimConfig.class)
 public class SimpleEStimAppConfig {
-	@Autowired SimpleEStimConfig allenConfig;
+	@Autowired SimpleEStimConfig simpleEStimConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
@@ -56,29 +55,29 @@ public class SimpleEStimAppConfig {
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		return scene;
 	}
-
+/*
 	@Bean GaussianSpecGenerator generator() {
 		GaussianSpecGenerator gen = new GaussianSpecGenerator();
 		return gen;
 	}
-
+*/
 	@Bean
 	public TrainingBlockGen trainingGen() {
 		TrainingBlockGen blockgen = new TrainingBlockGen();
-		blockgen.setDbUtil(allenConfig.allenDbUtil());
-		System.out.println(((SimpleEStimConfig) allenConfig).getJdbcUrl());
+		blockgen.setDbUtil(simpleEStimConfig.allenDbUtil());
+		System.out.println(((SimpleEStimConfig) simpleEStimConfig).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
-		blockgen.setXmlUtil(allenConfig.allenXMLUtil());
+		blockgen.setXmlUtil(simpleEStimConfig.allenXMLUtil());
 		return blockgen;
 	}
 	
 	@Bean
 	public SimpleEStimBlockGen simpleEStimGen() {
 		SimpleEStimBlockGen blockgen = new SimpleEStimBlockGen();
-		blockgen.setDbUtil(allenConfig.allenDbUtil());
-		System.out.println(((SimpleEStimConfig) allenConfig).getJdbcUrl());
+		blockgen.setDbUtil(simpleEStimConfig.allenDbUtil());
+		System.out.println(((SimpleEStimConfig) simpleEStimConfig).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
-		blockgen.setXmlUtil(allenConfig.allenXMLUtil());
+		blockgen.setXmlUtil(simpleEStimConfig.allenXMLUtil());
 		return blockgen;
 	}
 }

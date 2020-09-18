@@ -178,7 +178,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	
 	private static String eStimsToString(EStimObjDataEntry eStimObjData){
 		ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();
-		eStimParams.add(new EStimParameter("chans",eStimObjData.getChans()));
+		eStimParams.add(new EStimParameter("chans",addBrackets(eStimObjData.getChans())));
 		eStimParams.add(new EStimParameter("post_trigger_delay",eStimObjData.get_post_trigger_delay()));
 		eStimParams.add(new EStimParameter("trig_src",eStimObjData.get_trig_src()));
 		eStimParams.add(new EStimParameter("num_pulses",eStimObjData.get_num_pulses()));
@@ -198,18 +198,22 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		eStimParams.add(new EStimParameter("post_stim_charge_recovery_off",eStimObjData.get_post_stim_charge_recovery_off()));
 		
 		String output = new String();
+		int loopindx = 0;
 		for (EStimParameter param:eStimParams) {
-			int loopindx = 0;
 			if(loopindx>0) {
-				output.concat(",");
+				output = output.concat(",");
 			}
-			output.concat(param.getName());
-			output.concat(",");
-			output.concat(param.getValue());
+			output = output.concat(param.getName());
+			output = output.concat(",");
+			output = output.concat(param.getValue());
 			loopindx++;
 			
 		}
 		return output;
+	}
+	
+	private static String addBrackets(String str) {
+	 return "{" + str +"}";
 	}
 
 }

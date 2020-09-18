@@ -1,5 +1,6 @@
 package org.xper.allen.blockgen;
 
+import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
@@ -16,8 +17,8 @@ public class VisualTrial extends VEStimTrial implements Trial {
 
 	}
 	
-	private EStimObjData catchEStimSpec() {
-		return new EStimObjData();
+	private EStimObjDataEntry catchEStimSpec() {
+		return new EStimObjDataEntry();
 	}
 	
 	public String toXml() {
