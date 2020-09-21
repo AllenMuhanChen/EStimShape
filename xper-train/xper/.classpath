@@ -45,5 +45,7 @@
 	<classpathentry kind="lib" path="/xper-example/class"/>
 	<classpathentry kind="lib" path="lib/jaxen-full.jar"/>
 	<classpathentry kind="lib" path="lib/saxpath.jar"/>
+	<classpathentry kind="lib" path="/Users/allenchen/Documents/GitHub/V1Microstim/IntanUtilFiles/jssc-2.9.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Users/allenchen/Documents/GitHub/V1Microstim/IntanUtilFiles/jssc-2.9.2.jar"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>
