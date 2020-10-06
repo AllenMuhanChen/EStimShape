@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?><list>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -36,7 +36,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -71,7 +71,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -106,7 +106,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -141,7 +141,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -176,7 +176,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -211,7 +211,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -246,7 +246,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -281,7 +281,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
@@ -316,7 +316,7 @@
   </org.xper.allen.blockgen.EStimTrial>
   <org.xper.allen.blockgen.EStimTrial>
     <eStimSpec>
-      <chans>1,2,3,4</chans>
+      <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
       <num__pulses>1</num__pulses>
