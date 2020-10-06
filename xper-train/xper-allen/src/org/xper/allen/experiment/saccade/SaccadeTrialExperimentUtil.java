@@ -175,10 +175,12 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	 * @throws SocketException 
 	 */
 	public static void sendEStims (SaccadeExperimentState state) {
+		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+		System.out.println(eStimsToString(eStimObjData));
 		IntanUtil intanUtil = null;
 		try {
 			intanUtil = new IntanUtil();
-			EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 			System.out.println("Sending EStimSpecs to Intan");
 			System.out.println(eStimsToString(eStimObjData));
 			intanUtil.send(eStimsToString(eStimObjData));
@@ -216,14 +218,14 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	
 	private static String eStimsToString(EStimObjDataEntry eStimObjData){
 		ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();
-		eStimParams.add(new EStimParameter("chans",addBrackets(eStimObjData.getChans())));
-		eStimParams.add(new EStimParameter("post_trigger_delay",eStimObjData.get_post_trigger_delay()));
+		eStimParams.add(new EStimParameter("chans",eStimObjData.getChans()));
+		eStimParams.add(new EStimParameter("stim_polarity",eStimObjData.get_stim_polarity()));
 		eStimParams.add(new EStimParameter("trig_src",eStimObjData.get_trig_src()));
+		eStimParams.add(new EStimParameter("stim_shape",eStimObjData.get_stim_shape()));
+		eStimParams.add(new EStimParameter("post_trigger_delay",eStimObjData.get_post_trigger_delay()));
 		eStimParams.add(new EStimParameter("num_pulses",eStimObjData.get_num_pulses()));
 		eStimParams.add(new EStimParameter("pulse_train_period",eStimObjData.get_pulse_train_period()));
 		eStimParams.add(new EStimParameter("post_stim_refractory_period",eStimObjData.get_post_stim_refractory_period()));
-		eStimParams.add(new EStimParameter("stim_shape",eStimObjData.get_stim_shape()));
-		eStimParams.add(new EStimParameter("stim_polarity",eStimObjData.get_stim_polarity()));
 		eStimParams.add(new EStimParameter("d1",eStimObjData.get_d1()));
 		eStimParams.add(new EStimParameter("d2",eStimObjData.get_d2()));
 		eStimParams.add(new EStimParameter("dp",eStimObjData.get_dp()));
@@ -249,9 +251,10 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		}
 		return output;
 	}
-	
+	/*
 	private static String addBrackets(String str) {
 	 return "{" + str +"}";
 	}
+	*/
 
 }
