@@ -31,15 +31,12 @@ import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingControl
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
-import org.xper.classic.JuiceController;
 import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.console.ExperimentConsole;
-import org.xper.console.ExperimentConsoleModel;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.BlankTaskScene;
 import org.xper.drawing.Coordinates2D;
@@ -60,6 +57,7 @@ import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
 import org.xper.juice.mock.NullDynamicJuice;
+import org.xper.util.IntanUtil;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 
@@ -96,7 +94,17 @@ public class SimpleEStimConfig {
 	public String getJdbcUrl() {
 		return jdbcUrl;
 	}
-
+	@Bean
+	public IntanUtil intanUtil() {
+		IntanUtil iUtil = null;
+		try {
+		iUtil = new IntanUtil();
+		} catch (Exception e) {
+			System.out.println("WARNING: IntanUtil could not be initialized");
+			e.printStackTrace();
+		}
+		return iUtil;
+	}
 	
 	@Bean
 	public TaskScene taskScene() {
@@ -227,7 +235,7 @@ public class SimpleEStimConfig {
 	}
 	
 	@Bean
-	public AllenDatabaseTaskDataSource databaseTaskDataSource () {
+	public AllenDatabaseTaskDataSource databaseTaskDataSource() {
 		AllenDatabaseTaskDataSource source = new AllenDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
@@ -277,12 +285,14 @@ public class SimpleEStimConfig {
 		state.setSleepWhileWait(true);
 		state.setPause(classicConfig.xperExperimentInitialPause());
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
-		//TargetStuff
+		//Target Stuff
 		state.setTargetSelector(eyeTargetSelector());
 		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());  
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
+		//Intan Stuff
+		state.setIntanUtil(intanUtil());
 		return state;
 	}
 	
