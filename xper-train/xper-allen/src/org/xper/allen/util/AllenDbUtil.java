@@ -62,25 +62,26 @@ public class AllenDbUtil extends DbUtil {
 	public void writeEStimObjData(long id, EStimObjDataEntry e) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.update(
-				"insert into EStimObjData (id, chans, post_trigger_delay, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off) values (?, ?, ?, ?, ? ,? ,? ,? ,? ,? ,? ,?, ?, ?, ?, ?, ?, ?, ?)",
-				new Object[] { id, e.getChans(), e.get_post_trigger_delay(), e.get_trig_src(), e.get_num_pulses(),
+				"insert into EStimObjData (id, chans, post_trigger_delay, trig_src, pulse_repetition, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, enable_amp_settle, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, enable_charge_recovery, post_stim_charge_recovery_on, post_stim_charge_recovery_off) values (?, ?, ?, ?, ?, ?, ?, ? ,? ,? ,? ,? ,? ,? ,?, ?, ?, ?, ?, ?, ?, ?)",
+				new Object[] { id, e.getChans(), e.get_post_trigger_delay(), e.get_trig_src(),e.getPulse_repetition(), e.get_num_pulses(),
 						e.get_pulse_train_period(), e.get_post_stim_refractory_period(), e.get_stim_shape(),
-						e.get_stim_polarity(), e.get_d1(), e.get_d2(), e.get_dp(), e.get_a1(), e.get_a2(),
+						e.get_stim_polarity(), e.get_d1(), e.get_d2(), e.get_dp(), e.get_a1(), e.get_a2(), e.isEnable_amp_settle(),
 						e.get_pre_stim_amp_settle(), e.get_post_stim_amp_settle(),
-						e.get_maintain_amp_settle_during_pulse_train(), e.get_post_stim_charge_recovery_on(),
+						e.get_maintain_amp_settle_during_pulse_train(), e.isEnable_charge_recovery(), e.get_post_stim_charge_recovery_on(),
 						e.get_post_stim_charge_recovery_off() });
 	}
 	
 	public EStimObjDataEntry readEStimObjData(long estimId) {
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
 		return jt.queryForObject(
-				" select id, chans, post_trigger_delay, trig_src, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, post_stim_charge_recovery_on, post_stim_charge_recovery_off from EStimObjData where id = ? ",
+				" select id, chans, post_trigger_delay, trig_src, pulse_repetition, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, enable_amp_settle, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, enable_charge_recovery, post_stim_charge_recovery_on, post_stim_charge_recovery_off from EStimObjData where id = ? ",
 				new ParameterizedRowMapper<EStimObjDataEntry>() {
 					public EStimObjDataEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
 						EStimObjDataEntry e = new EStimObjDataEntry();
 						e.setChans(rs.getString("chans"));
 						e.set_post_trigger_delay(rs.getInt("post_trigger_delay"));
 						e.set_trig_src(rs.getString("trig_src"));
+						e.setPulse_repetition(rs.getString("pulse_repetition"));
 						e.set_num_pulses(rs.getInt("num_pulses"));
 						e.set_pulse_train_period(rs.getFloat("pulse_train_period"));
 						e.set_post_stim_refractory_period(rs.getFloat("post_stim_refractory_period"));
@@ -91,10 +92,12 @@ public class AllenDbUtil extends DbUtil {
 						e.set_dp(rs.getFloat("dp"));
 						e.set_a1(rs.getFloat("a1"));
 						e.set_a2(rs.getFloat("a2"));
+						e.setEnable_amp_settle(rs.getBoolean("enable_amp_settle"));
 						e.set_pre_stim_amp_settle(rs.getFloat("pre_stim_amp_settle"));
 						e.set_post_stim_amp_settle(rs.getFloat("post_stim_amp_settle"));
 						e.set_maintain_amp_settle_during_pulse_train(
-								rs.getInt("maintain_amp_settle_during_pulse_train"));
+								rs.getBoolean("maintain_amp_settle_during_pulse_train"));
+						e.setEnable_charge_recovery(rs.getBoolean("enable_charge_recovery"));
 						e.set_post_stim_charge_recovery_on(rs.getFloat("post_stim_charge_recovery_on"));
 						e.set_post_stim_charge_recovery_off(rs.getFloat("post_stim_charge_recovery_off"));
 						return e;

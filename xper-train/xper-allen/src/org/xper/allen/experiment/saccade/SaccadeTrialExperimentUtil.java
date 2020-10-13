@@ -184,6 +184,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 			System.out.println("Sending EStimSpecs to Intan");
 			System.out.println(eStimsToString(eStimObjData));
 			intanUtil.send(eStimsToString(eStimObjData));
+			intanUtil.shutdown();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -209,6 +210,8 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		System.out.println("Sending Trigger");
 		try {
 			intanUtil.trigger();
+			intanUtil.shutdown();
+			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -223,6 +226,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		eStimParams.add(new EStimParameter("trig_src",eStimObjData.get_trig_src()));
 		eStimParams.add(new EStimParameter("stim_shape",eStimObjData.get_stim_shape()));
 		eStimParams.add(new EStimParameter("post_trigger_delay",eStimObjData.get_post_trigger_delay()));
+		eStimParams.add(new EStimParameter("pulse_repetition",eStimObjData.getPulse_repetition()));
 		eStimParams.add(new EStimParameter("num_pulses",eStimObjData.get_num_pulses()));
 		eStimParams.add(new EStimParameter("pulse_train_period",eStimObjData.get_pulse_train_period()));
 		eStimParams.add(new EStimParameter("post_stim_refractory_period",eStimObjData.get_post_stim_refractory_period()));
@@ -231,9 +235,11 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		eStimParams.add(new EStimParameter("dp",eStimObjData.get_dp()));
 		eStimParams.add(new EStimParameter("a1",eStimObjData.get_a1()));
 		eStimParams.add(new EStimParameter("a2",eStimObjData.get_a2()));
+		eStimParams.add(new EStimParameter("enable_amp_settle",eStimObjData.isEnable_amp_settle()));
 		eStimParams.add(new EStimParameter("pre_stim_amp_settle",eStimObjData.get_pre_stim_amp_settle()));
 		eStimParams.add(new EStimParameter("post_stim_amp_settle",eStimObjData.get_post_stim_amp_settle()));
 		eStimParams.add(new EStimParameter("maintain_amp_settle_during_pulse_train",eStimObjData.get_maintain_amp_settle_during_pulse_train()));
+		eStimParams.add(new EStimParameter("enable_charge_recovery",eStimObjData.isEnable_charge_recovery()));
 		eStimParams.add(new EStimParameter("post_stim_charge_recovery_on",eStimObjData.get_post_stim_charge_recovery_on()));
 		eStimParams.add(new EStimParameter("post_stim_charge_recovery_off",eStimObjData.get_post_stim_charge_recovery_off()));
 		

@@ -71,46 +71,49 @@ public class EStimTestXMLGen extends RandomCircleTrainingXMLGen{
 		String chans = args[2];
 		float post_trigger_delay = Float.parseFloat(args[3]);
 		String trig_src = args[4];
-		int num_pulses = Integer.parseInt(args[5]);
+		String pulse_repetition = args[5];
+		int num_pulses = Integer.parseInt(args[6]);
 		float pulse_train_period;
 		try {
-		pulse_train_period = Float.parseFloat(args[6]);
+		pulse_train_period = Float.parseFloat(args[7]);
 		} catch (Exception e) {
 			pulse_train_period = 0;
 			System.out.println("Assuming Single Pulse");
 		}
-		float post_stim_refractory_period = Float.parseFloat(args[7]);
-		String stim_shape = args[8];
-		String stim_polarity = args[9];
-		float d1 = Float.parseFloat(args[10]);
-		float d2 = Float.parseFloat(args[11]);
+		float post_stim_refractory_period = Float.parseFloat(args[8]);
+		String stim_shape = args[9];
+		String stim_polarity = args[10];
+		float d1 = Float.parseFloat(args[11]);
+		float d2 = Float.parseFloat(args[12]);
 		float dp;
 		try {
-		dp = Float.parseFloat(args[12]);
+		dp = Float.parseFloat(args[13]);
 		} catch (Exception e) {
 			dp = 0;
 			System.out.println("Assuming No Delay");
 		}
-		float a1 = Float.parseFloat(args[13]);
-		float a2 = Float.parseFloat(args[14]);
+		float a1 = Float.parseFloat(args[14]);
+		float a2 = Float.parseFloat(args[15]);
+		boolean enable_amp_settle = Boolean.parseBoolean(args[16]);
 		float pre_stim_amp_settle;
 		float post_stim_amp_settle;
-		int maintain_amp_settle_during_pulse_train;
+		boolean maintain_amp_settle_during_pulse_train;
 		try {
-		pre_stim_amp_settle = Float.parseFloat(args[15]);
-		post_stim_amp_settle = Float.parseFloat(args[16]);
-		maintain_amp_settle_during_pulse_train = Integer.parseInt(args[17]);
+		pre_stim_amp_settle = Float.parseFloat(args[17]);
+		post_stim_amp_settle = Float.parseFloat(args[18]);
+		maintain_amp_settle_during_pulse_train = Boolean.parseBoolean(args[19]);
 		} catch (Exception e) {
 			pre_stim_amp_settle = 0;
 			post_stim_amp_settle = 0;
-			maintain_amp_settle_during_pulse_train = 0;
+			maintain_amp_settle_during_pulse_train = false;
 			System.out.println("Assuming No Amp Settle");
 		}
+		boolean enable_charge_recovery = Boolean.parseBoolean(args[20]);
 		float post_stim_charge_recovery_on;
 		float post_stim_charge_recovery_off;
 		try {
-		post_stim_charge_recovery_on = Float.parseFloat(args[18]);
-		post_stim_charge_recovery_off = Float.parseFloat(args[19]);
+		post_stim_charge_recovery_on = Float.parseFloat(args[21]);
+		post_stim_charge_recovery_off = Float.parseFloat(args[22]);
 		} catch (Exception e) {
 			post_stim_charge_recovery_on = 0;
 			post_stim_charge_recovery_off = 0;
@@ -128,6 +131,7 @@ public class EStimTestXMLGen extends RandomCircleTrainingXMLGen{
 		eStimSpec.setChans(chans);
 		eStimSpec.set_post_trigger_delay(post_trigger_delay);
 		eStimSpec.set_trig_src(trig_src);
+		eStimSpec.setPulse_repetition(pulse_repetition);
 		eStimSpec.set_num_pulses(num_pulses);
 		eStimSpec.set_pulse_train_period(pulse_train_period);
 		eStimSpec.set_post_stim_refractory_period(post_stim_refractory_period);
@@ -138,9 +142,11 @@ public class EStimTestXMLGen extends RandomCircleTrainingXMLGen{
 		eStimSpec.set_dp(dp);
 		eStimSpec.set_a1(a1);
 		eStimSpec.set_a2(a2);
+		eStimSpec.setEnable_amp_settle(enable_amp_settle);
 		eStimSpec.set_pre_stim_amp_settle(pre_stim_amp_settle);
 		eStimSpec.set_post_stim_amp_settle(post_stim_amp_settle);
 		eStimSpec.set_maintain_amp_settle_during_pulse_train(maintain_amp_settle_during_pulse_train);
+		eStimSpec.setEnable_charge_recovery(enable_charge_recovery);
 		eStimSpec.set_post_stim_charge_recovery_on(post_stim_charge_recovery_on);
 		eStimSpec.set_post_stim_charge_recovery_off(post_stim_charge_recovery_off);
 		
