@@ -4,6 +4,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -14,9 +15,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -39,6 +42,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -49,9 +53,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -74,6 +80,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -84,9 +91,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -109,6 +118,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -119,9 +129,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -144,6 +156,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -154,9 +167,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -179,6 +194,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -189,9 +205,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -214,6 +232,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -224,9 +243,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -249,6 +270,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -259,9 +281,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -284,6 +308,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -294,9 +319,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
@@ -319,6 +346,7 @@
       <chans>1 2 3 4</chans>
       <post__trigger__delay>0.0</post__trigger__delay>
       <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
       <num__pulses>1</num__pulses>
       <pulse__train__period>0.0</pulse__train__period>
       <post__stim__refractory__period>1.0</post__stim__refractory__period>
@@ -329,9 +357,11 @@
       <dp>100.0</dp>
       <a1>10.0</a1>
       <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
       <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
       <post__stim__amp__settle>0.0</post__stim__amp__settle>
-      <maintain__amp__settle__during__pulse__train>0</maintain__amp__settle__during__pulse__train>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
       <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
       <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
     </eStimSpec>
