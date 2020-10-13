@@ -34,12 +34,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.allen.intan.EStimParameter;
 
 public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
-	@Dependency
-	EyeMonitor eyeMonitor;
-
 	public static TrialResult doSlide(int i, SaccadeExperimentState stateObject) {
-
-
 		TrialDrawingController drawingController = stateObject.getDrawingController();
 		SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
@@ -64,7 +59,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
 		
 		//ESTIMULATOR
-		sendEStimTrigger();
+		sendEStimTrigger(stateObject);
 
 		//Eye on Target Logic
 		//eye selector
@@ -175,19 +170,20 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	 * @throws SocketException 
 	 */
 	public static void sendEStims (SaccadeExperimentState state) {
+		IntanUtil intanUtil = state.getIntanUtil();
 		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 		System.out.println(eStimsToString(eStimObjData));
-		IntanUtil intanUtil = null;
-		try {
-			intanUtil = new IntanUtil();
 			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 			System.out.println("Sending EStimSpecs to Intan");
 			System.out.println(eStimsToString(eStimObjData));
-			intanUtil.send(eStimsToString(eStimObjData));
-			intanUtil.shutdown();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+			try {
+				intanUtil.send(eStimsToString(eStimObjData));
+				System.out.println("EStimSpecs Successfully Sent");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		
 	}
 
 	/**
@@ -199,19 +195,12 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	 * @throws SocketException 
 	 * 
 	 */
-	public static void sendEStimTrigger(){
-		IntanUtil intanUtil = null;
-		try {
-			intanUtil = new IntanUtil();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	public static void sendEStimTrigger(SaccadeExperimentState state){
+		IntanUtil intanUtil = state.getIntanUtil();
 		System.out.println("Sending Trigger");
 		try {
-			intanUtil.trigger();
-			intanUtil.shutdown();
-			
+			intanUtil.trigger();	
+			System.out.println("Trigger Successfully Sent");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
