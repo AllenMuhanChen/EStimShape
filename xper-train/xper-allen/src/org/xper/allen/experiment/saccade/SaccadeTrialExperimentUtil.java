@@ -11,6 +11,7 @@ import org.xper.Dependency;
 import org.xper.allen.console.SaccadeEventUtil;
 import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
@@ -32,6 +33,7 @@ import jssc.SerialPortException;
 import org.xper.util.IntanUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.allen.intan.EStimParameter;
+import org.xper.allen.intan.SimpleEStimEventListener;
 
 public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	public static TrialResult doSlide(int i, SaccadeExperimentState stateObject) {
@@ -40,11 +42,12 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
 		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
+		List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
 		
-	
 
+		
 		TargetSelectorResult selectorResult;
 
 		//show current slide after a delay (blank time)
@@ -60,7 +63,8 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		
 		//ESTIMULATOR
 		sendEStimTrigger(stateObject);
-
+		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
+		System.out.println("Fired");
 		//Eye on Target Logic
 		//eye selector
 		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);

@@ -29,6 +29,8 @@ import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeJuiceController;
 import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
+import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.intan.SimpleEStimMessageDispatcher;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.classic.MarkStimTrialDrawingController;
@@ -268,6 +270,7 @@ public class SimpleEStimConfig {
 		state.setTrialEventListeners(trialEventListeners());
 		state.setSlideEventListeners(classicConfig.slideEventListeners());
 		state.setTargetEventListeners(targetEventListeners());
+		state.seteStimEventListeners(eStimEventListeners());
 		state.setEyeController(classicConfig.eyeController());
 		state.setExperimentEventListeners(classicConfig.experimentEventListeners());
 		state.setTaskDataSource(databaseTaskDataSource());
@@ -296,6 +299,7 @@ public class SimpleEStimConfig {
 		return state;
 	}
 	
+	
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
@@ -313,6 +317,24 @@ public class SimpleEStimConfig {
 		
 		return trialEventListener;
 	}
+
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public List<TargetEventListener> targetEventListeners () {
+		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
+		listeners.add((TargetEventListener) messageDispatcher());
+		listeners.add((TargetEventListener) juiceController());
+		return listeners;
+	}
+	
+	
+	@Bean
+	public SaccadeExperimentMessageDispatcher messageDispatcher() {
+		SaccadeExperimentMessageDispatcher dispatcher = new SaccadeExperimentMessageDispatcher();
+		dispatcher.setHost(classicConfig.experimentHost);
+		dispatcher.setDbUtil(allenDbUtil());
+		return dispatcher;
+	}
 	
 	@Bean
 	public TrialEventListener juiceController() {
@@ -324,22 +346,14 @@ public class SimpleEStimConfig {
 		}
 		return controller;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public List<TargetEventListener> targetEventListeners () {
-		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
-		listeners.add((TargetEventListener) messageDispatcher());
-		listeners.add((TargetEventListener) juiceController());
+	public List<SimpleEStimEventListener> eStimEventListeners(){
+		List<SimpleEStimEventListener> listeners = new LinkedList<SimpleEStimEventListener>();
+		listeners.add((SimpleEStimEventListener) messageDispatcher());
 		return listeners;
 	}
-	
-	@Bean
-	public SaccadeExperimentMessageDispatcher messageDispatcher() {
-		SaccadeExperimentMessageDispatcher dispatcher = new SaccadeExperimentMessageDispatcher();
-		dispatcher.setHost(classicConfig.experimentHost);
-		dispatcher.setDbUtil(allenDbUtil());
-		return dispatcher;
-	}
+
 
 	private TrialDrawingController drawingController() {
 		MarkStimTrialDrawingController controller;
