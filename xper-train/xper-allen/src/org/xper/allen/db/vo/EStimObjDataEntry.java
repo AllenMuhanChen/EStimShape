@@ -50,6 +50,37 @@ public class EStimObjDataEntry{
 	public String getChans() {
 		return chans;
 	}
+	public EStimObjDataEntry(String chans, float post_trigger_delay, String trig_src, String pulse_repetition,
+			int num_pulses, float pulse_train_period, float post_stim_refractory_period, String stim_shape,
+			String stim_polarity, float d1, float d2, float dp, float a1, float a2, boolean enable_amp_settle,
+			float pre_stim_amp_settle, float post_stim_amp_settle, boolean maintain_amp_settle_during_pulse_train,
+			boolean enable_charge_recovery, float post_stim_charge_recovery_on, float post_stim_charge_recovery_off) {
+		super();
+		this.chans = chans;
+		this.post_trigger_delay = post_trigger_delay;
+		this.trig_src = trig_src;
+		this.pulse_repetition = pulse_repetition;
+		this.num_pulses = num_pulses;
+		this.pulse_train_period = pulse_train_period;
+		this.post_stim_refractory_period = post_stim_refractory_period;
+		this.stim_shape = stim_shape;
+		this.stim_polarity = stim_polarity;
+		this.d1 = d1;
+		this.d2 = d2;
+		this.dp = dp;
+		this.a1 = a1;
+		this.a2 = a2;
+		this.enable_amp_settle = enable_amp_settle;
+		this.pre_stim_amp_settle = pre_stim_amp_settle;
+		this.post_stim_amp_settle = post_stim_amp_settle;
+		this.maintain_amp_settle_during_pulse_train = maintain_amp_settle_during_pulse_train;
+		this.enable_charge_recovery = enable_charge_recovery;
+		this.post_stim_charge_recovery_on = post_stim_charge_recovery_on;
+		this.post_stim_charge_recovery_off = post_stim_charge_recovery_off;
+	}
+	public EStimObjDataEntry() {
+		super();
+	}
 	public void setChans(String chans) {
 		this.chans = chans;
 	}
