@@ -14,7 +14,11 @@ public class VisualTrial extends VEStimTrial implements Trial {
 	public VisualTrial(GaussSpec gaussSpec, Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, String data) {
 		super(null, gaussSpec, targetEyeWinCoords, targetEyeWinSize, duration, data);
 		eStimSpec = catchEStimSpec();
+	}
+	
+	public VisualTrial() {
 
+		
 	}
 	
 	private EStimObjDataEntry catchEStimSpec() {

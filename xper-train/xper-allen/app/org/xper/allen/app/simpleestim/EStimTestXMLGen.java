@@ -163,6 +163,11 @@ public class EStimTestXMLGen extends RandomCircleTrainingXMLGen{
 		System.out.println(XML);
 		
 		//Generating XML Document
+		toXmlFile(XML, filepath);
+
+	}
+	
+	public static void toXmlFile(String XML, String filepath) {
 		Document doc = convertStringToXMLDocument(XML);
 		TransformerFactory transformerFactory = TransformerFactory.newInstance();
 		try {
@@ -178,7 +183,6 @@ public class EStimTestXMLGen extends RandomCircleTrainingXMLGen{
 		} catch (TransformerConfigurationException e) {
 			e.printStackTrace();
 		}
-
 
 	}
 	
