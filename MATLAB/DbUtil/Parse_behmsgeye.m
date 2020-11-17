@@ -6,11 +6,14 @@ global conn;
 targetOn_tstamp = TStampBetween(trialInit_tstamp, trialStop_tstamp, "TargetOff");
 targetOff_tstamp = TStampBetween(trialInit_tstamp, trialStop_tstamp, "TargetOn");
 %% Read begmsgeye between TargetOn and TargetOff
-sqlQuery = "SELECT msg FROM behmsgeye WHERE tstamp<"+targetOn_tstamp+" AND tstamp>"+targetOff_tstamp;
+disp("Starting MySQL Query")
+sqlQuery = "SELECT msg FROM behmsgeye WHERE tstamp<"+num2str(targetOn_tstamp)+" AND tstamp>"+num2str(targetOff_tstamp);
 behmsgeye_msgs = fetch(conn,sqlQuery);
+disp("Finished MySQL Query")
 
 %% parse behmsgeye.msg xml
 %initialize storage vars
+disp("Starting behmsgeye.msg xml parsing")
 numMsgs = height(behmsgeye_msgs);
 timeStamps = zeros(1,numMsgs);
 ids = cell(1,numMsgs);

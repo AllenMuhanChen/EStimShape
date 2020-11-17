@@ -34,7 +34,6 @@ previousTrialStop = recentTrialStop;
 
 
 fig = figure('Name', 'Live Eye Traces', 'NumberTitle', 'off','Position', [6, 1378, 1592, 1098]);
-set(fig, 'InvertHardCopy', 'off');
 while ~programStop
     recentTrialStop = maxTrialStop();
     
@@ -47,8 +46,7 @@ while ~programStop
             figure(fig);
             filename = [datestr(now, 'HH-MM-SS') '.fig'];
             savefig(fullfile(path,filename));
-            filename = [datestr(now, 'HH-MM-SS') '.png'];
-            saveas(fig, fullfile(path,filename));
+            sav
             
             catch E
                 warning('Problematic Loading... Skipping')
