@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><list>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+  <org.xper.allen.blockgen.EStimTrial>
+    <eStimSpec>
+      <chans>1 2 3 4</chans>
+      <post__trigger__delay>0.0</post__trigger__delay>
+      <trig__src>DIGITAL IN ONE</trig__src>
+      <pulse__repitition>SingleStimPulse</pulse__repitition>
+      <num__pulses>1</num__pulses>
+      <pulse__train__period>0.0</pulse__train__period>
+      <post__stim__refractory__period>1.0</post__stim__refractory__period>
+      <stim__shape>Biphasic with Delay</stim__shape>
+      <stim__polarity>Cathodic Current First</stim__polarity>
+      <d1>100.0</d1>
+      <d2>100.0</d2>
+      <dp>100.0</dp>
+      <a1>10.0</a1>
+      <a2>10.0</a2>
+      <enable__amp__settle>false</enable__amp__settle>
+      <pre__stim__amp__settle>0.0</pre__stim__amp__settle>
+      <post__stim__amp__settle>0.0</post__stim__amp__settle>
+      <maintain__amp__settle__during__pulse__train>false</maintain__amp__settle__during__pulse__train>
+      <enable__charge__recovery>false</enable__charge__recovery>
+      <post__stim__charge__recovery__on>0.0</post__stim__charge__recovery__on>
+      <post__stim__charge__recovery__off>0.0</post__stim__charge__recovery__off>
+    </eStimSpec>
+    <gaussSpec>
+      <xCenter>0.0</xCenter>
+      <yCenter>0.0</yCenter>
+      <size>0.0</size>
+      <brightness>0.0</brightness>
+    </gaussSpec>
+    <targetEyeWinCoords>
+      <x>0.0</x>
+      <y>5.0</y>
+    </targetEyeWinCoords>
+    <targetEyeWinSize>0.0</targetEyeWinSize>
+    <duration>3000.0</duration>
+    <data>EStimOnly Test Trial</data>
+  </org.xper.allen.blockgen.EStimTrial>
+</list>

@@ -21,7 +21,6 @@ public class TrainingBlockGen {
 	@Dependency
 	AllenXMLUtil xmlUtil;
 	
-	int[] channel_list = {1};
 	int num_per_chan;
 	long blockId;
 	BlockSpec blockspec;
@@ -39,7 +38,7 @@ public class TrainingBlockGen {
 	long genId = 1;
 	public void generate(String filepath) { //
 	
-		ArrayList<VisualTrial> visualTrials = (ArrayList<VisualTrial>) xmlUtil.parseFile(filepath);
+		ArrayList<TrainingTrial> visualTrials = (ArrayList<TrainingTrial>) xmlUtil.parseFile(filepath);
 		try {
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
@@ -48,7 +47,7 @@ public class TrainingBlockGen {
 		for (int i = 0; i < visualTrials.size(); i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
 			
-			VisualTrial trial = visualTrials.get(i);
+			TrainingTrial trial = visualTrials.get(i);
 			String spec = trial.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());

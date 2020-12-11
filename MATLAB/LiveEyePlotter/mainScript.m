@@ -6,6 +6,15 @@ global conn;
 global screen_width_deg; global screen_height_deg; global fixation_color; global fixation_size;
 conn = DBConnect(); %outside of function
 
+%% Set-up for Saving Data
+home_path = "C:\Users\a1_allen\Documents\Saccade Training Eye Traces";
+path = fullfile(home_path,date);
+if ~exist(date)
+    disp("Creating new directory at "+path)
+    mkdir(path);
+end 
+
+%% 
 %Variables for Plotting
 %Screen Size
 monkey_screen_width_mm = SystemVar(conn, "xper_monkey_screen_width");
@@ -25,6 +34,7 @@ previousTrialStop = recentTrialStop;
 
 
 fig = figure('Name', 'Live Eye Traces', 'NumberTitle', 'off','Position', [6, 1378, 1592, 1098]);
+set(fig, 'InvertHardCopy', 'off');
 while ~programStop
     recentTrialStop = maxTrialStop();
     
@@ -35,7 +45,11 @@ while ~programStop
             try
             ParseTrial(previousTrialStop, recentTrialStop, fig);
             figure(fig);
-           
+            filename = [datestr(now, 'HH-MM-SS') '.fig'];
+            savefig(fullfile(path,filename));
+            filename = [datestr(now, 'HH-MM-SS') '.png'];
+            saveas(fig, fullfile(path,filename));
+            
             catch E
                 warning('Problematic Loading... Skipping')
                 msgText = getReport(E)

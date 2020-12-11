@@ -1,10 +1,17 @@
 package org.xper.allen.experiment.saccade;
 
+import java.io.IOException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.xper.Dependency;
 import org.xper.allen.console.SaccadeEventUtil;
 import org.xper.allen.console.TargetEventListener;
+import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
@@ -20,24 +27,27 @@ import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
+
+import jssc.SerialPortException;
+
+import org.xper.util.IntanUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.allen.intan.EStimParameter;
+import org.xper.allen.intan.SimpleEStimEventListener;
 
 public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
-	@Dependency
-	EyeMonitor eyeMonitor;
-
 	public static TrialResult doSlide(int i, SaccadeExperimentState stateObject) {
-
-
 		TrialDrawingController drawingController = stateObject.getDrawingController();
 		SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
 		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
+		List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
+		
 
-
+		
 		TargetSelectorResult selectorResult;
 
 		//show current slide after a delay (blank time)
@@ -50,8 +60,11 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
-
-
+		
+		//ESTIMULATOR
+		sendEStimTrigger(stateObject);
+		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
+		System.out.println("Fired");
 		//Eye on Target Logic
 		//eye selector
 		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
@@ -111,7 +124,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
-
+		sendEStims(stateObject);
 		result = runner.runSlide();
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
@@ -151,6 +164,100 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		}
 		state.setCurrentContext(null);
 	}
+	/**
+	 * ESTIMULATOR
+	 * Send string of params for estim over to Intan
+	 * @param state
+	 * @throws Exception 
+	 * @throws SQLException 
+	 * @throws UnknownHostException 
+	 * @throws SocketException 
+	 */
+	public static void sendEStims (SaccadeExperimentState state) {
+		try {
+		IntanUtil intanUtil = state.getIntanUtil();
+		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+		System.out.println(eStimsToString(eStimObjData));
+			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+			System.out.println("Sending EStimSpecs to Intan");
+			System.out.println(eStimsToString(eStimObjData));
+			try {
+				intanUtil.send(eStimsToString(eStimObjData));
+				System.out.println("EStimSpecs Successfully Sent");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		catch (NullPointerException e){
+		System.out.println("Cannot Send EStims Because There Is No Trial");
+		}
+	}
 
+	/**
+	 * ESTIMULATOR
+	 * Send trigger for estim over to Intan
+	 * @throws Exception 
+	 * @throws SQLException 
+	 * @throws UnknownHostException 
+	 * @throws SocketException 
+	 * 
+	 */
+	public static void sendEStimTrigger(SaccadeExperimentState state){
+		IntanUtil intanUtil = state.getIntanUtil();
+		System.out.println("Sending Trigger");
+		try {
+			intanUtil.trigger();	
+			System.out.println("Trigger Successfully Sent");
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private static String eStimsToString(EStimObjDataEntry eStimObjData){
+		ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();
+		eStimParams.add(new EStimParameter("chans",eStimObjData.getChans()));
+		eStimParams.add(new EStimParameter("stim_polarity",eStimObjData.get_stim_polarity()));
+		eStimParams.add(new EStimParameter("trig_src",eStimObjData.get_trig_src()));
+		eStimParams.add(new EStimParameter("stim_shape",eStimObjData.get_stim_shape()));
+		eStimParams.add(new EStimParameter("post_trigger_delay",eStimObjData.get_post_trigger_delay()));
+		eStimParams.add(new EStimParameter("pulse_repetition",eStimObjData.getPulse_repetition()));
+		eStimParams.add(new EStimParameter("num_pulses",eStimObjData.get_num_pulses()));
+		eStimParams.add(new EStimParameter("pulse_train_period",eStimObjData.get_pulse_train_period()));
+		eStimParams.add(new EStimParameter("post_stim_refractory_period",eStimObjData.get_post_stim_refractory_period()));
+		eStimParams.add(new EStimParameter("d1",eStimObjData.get_d1()));
+		eStimParams.add(new EStimParameter("d2",eStimObjData.get_d2()));
+		eStimParams.add(new EStimParameter("dp",eStimObjData.get_dp()));
+		eStimParams.add(new EStimParameter("a1",eStimObjData.get_a1()));
+		eStimParams.add(new EStimParameter("a2",eStimObjData.get_a2()));
+		eStimParams.add(new EStimParameter("enable_amp_settle",eStimObjData.isEnable_amp_settle()));
+		eStimParams.add(new EStimParameter("pre_stim_amp_settle",eStimObjData.get_pre_stim_amp_settle()));
+		eStimParams.add(new EStimParameter("post_stim_amp_settle",eStimObjData.get_post_stim_amp_settle()));
+		eStimParams.add(new EStimParameter("maintain_amp_settle_during_pulse_train",eStimObjData.get_maintain_amp_settle_during_pulse_train()));
+		eStimParams.add(new EStimParameter("enable_charge_recovery",eStimObjData.isEnable_charge_recovery()));
+		eStimParams.add(new EStimParameter("post_stim_charge_recovery_on",eStimObjData.get_post_stim_charge_recovery_on()));
+		eStimParams.add(new EStimParameter("post_stim_charge_recovery_off",eStimObjData.get_post_stim_charge_recovery_off()));
+		
+		String output = new String();
+		int loopindx = 0;
+		for (EStimParameter param:eStimParams) {
+			if(loopindx>0) {
+				output = output.concat(",");
+			}
+			output = output.concat(param.getName());
+			output = output.concat(",");
+			output = output.concat(param.getValue());
+			loopindx++;
+			
+		}
+		return output;
+	}
+	/*
+	private static String addBrackets(String str) {
+	 return "{" + str +"}";
+	}
+	*/
 
 }

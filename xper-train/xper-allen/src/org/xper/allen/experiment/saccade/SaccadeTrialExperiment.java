@@ -15,8 +15,12 @@ import org.xper.experiment.Experiment;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeMonitor;
 import org.xper.time.TimeUtil;
+import org.xper.util.IntanUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
+
+import jssc.SerialPortException;
+
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 
 /**
@@ -154,6 +158,13 @@ public class SaccadeTrialExperiment implements Experiment {
 			threadHelper.stop();
 			threadHelper.join();
 		}
+		try {
+			System.out.println("SHUTTING DOWN SERIAl PORT");
+			stateObject.getIntanUtil().shutdown();
+			System.out.println("SERIAL PORT SHUT DOWN");
+		} catch (SerialPortException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public SaccadeExperimentState getStateObject() {
@@ -189,4 +200,6 @@ public class SaccadeTrialExperiment implements Experiment {
 	public void setEyeMonitor(EyeMonitor eyeMonitor) {
 		this.eyeMonitor = eyeMonitor;
 	}
+
+
 }

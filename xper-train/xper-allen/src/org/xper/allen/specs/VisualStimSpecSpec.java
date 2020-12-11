@@ -24,7 +24,6 @@ public class VisualStimSpecSpec extends StimSpecSpec{
 		super();
 		//Defaults
 		this.eStimObjData = new long[] {1};
-		this.eStimObjChans = new int[] {1};
 		this.stimObjData = new long[] {taskid};
 		//
 		this.targetEyeWinCoords = targetEyeWinCoords;

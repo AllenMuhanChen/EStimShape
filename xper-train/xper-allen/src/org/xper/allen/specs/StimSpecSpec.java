@@ -22,8 +22,8 @@ public class StimSpecSpec {
 	protected long[] stimObjData;
 	@XStreamAlias("eStimObjData")
 	protected long[] eStimObjData;
-	@XStreamAlias("eStimObjChans")
-	protected int[] eStimObjChans;
+	//@XStreamAlias("eStimObjChans")
+	//protected int[] eStimObjChans;
 	
 	protected transient static XStream s;
 	
@@ -33,14 +33,27 @@ public class StimSpecSpec {
 	}
 	
 	public StimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long[] stimObjData,
-			long[] eStimObjData, int[] eStimObjChans) {
-		super();
+			long[] eStimObjData) {
+		//super();
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
 		this.duration = duration;
 		this.stimObjData = stimObjData;
 		this.eStimObjData = eStimObjData;
-		this.eStimObjChans = eStimObjChans;
+	}
+	
+	public StimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
+			 long eStimObjData) {
+		//super();
+		this.targetEyeWinCoords = targetEyeWinCoords;
+		this.targetEyeWinSize = targetEyeWinSize;
+		this.duration = duration;
+		long[] stimObjDataArr = new long[1];
+		stimObjDataArr[0] = stimObjData;
+		this.stimObjData = stimObjDataArr;
+		long[]eStimObjDataArr = new long[1];
+		eStimObjDataArr[0] = eStimObjData;
+		this.eStimObjData = eStimObjDataArr;
 	}
 
 	
@@ -77,13 +90,6 @@ public class StimSpecSpec {
 		this.eStimObjData = eStimObjData;
 	}
 
-	public int[] geteStimObjChans() {
-		return eStimObjChans;
-	}
-
-	public void seteStimObjChans(int[] eStimObjChans) {
-		this.eStimObjChans = eStimObjChans;
-	}
 
 	public double getTargetEyeWinSize() {
 		return targetEyeWinSize;

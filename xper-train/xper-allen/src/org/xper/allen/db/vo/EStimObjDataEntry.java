@@ -2,9 +2,10 @@
 package org.xper.allen.db.vo;
 
 public class EStimObjDataEntry{
-	long id;
+	String chans;
 	float post_trigger_delay;
 	String trig_src;
+	String pulse_repetition; 
 	int num_pulses;
 	float pulse_train_period;
 	float post_stim_refractory_period;
@@ -15,9 +16,11 @@ public class EStimObjDataEntry{
 	float dp;
 	float a1;
 	float a2;
+	boolean enable_amp_settle;
 	float pre_stim_amp_settle;
 	float post_stim_amp_settle;
-	int maintain_amp_settle_during_pulse_train;
+	boolean maintain_amp_settle_during_pulse_train;
+	boolean enable_charge_recovery;
 	float post_stim_charge_recovery_on;
 	float post_stim_charge_recovery_off;
 	
@@ -43,12 +46,43 @@ public class EStimObjDataEntry{
 		post_stim_charge_recovery_off = d.get_post_stim_charge_recovery_off();
 	}
 	*/
-	
-	public long get_id() {
-		return id;
+
+	public String getChans() {
+		return chans;
 	}
-	public void set_id(long id_) {
-		id = id_;
+	public EStimObjDataEntry(String chans, float post_trigger_delay, String trig_src, String pulse_repetition,
+			int num_pulses, float pulse_train_period, float post_stim_refractory_period, String stim_shape,
+			String stim_polarity, float d1, float d2, float dp, float a1, float a2, boolean enable_amp_settle,
+			float pre_stim_amp_settle, float post_stim_amp_settle, boolean maintain_amp_settle_during_pulse_train,
+			boolean enable_charge_recovery, float post_stim_charge_recovery_on, float post_stim_charge_recovery_off) {
+		super();
+		this.chans = chans;
+		this.post_trigger_delay = post_trigger_delay;
+		this.trig_src = trig_src;
+		this.pulse_repetition = pulse_repetition;
+		this.num_pulses = num_pulses;
+		this.pulse_train_period = pulse_train_period;
+		this.post_stim_refractory_period = post_stim_refractory_period;
+		this.stim_shape = stim_shape;
+		this.stim_polarity = stim_polarity;
+		this.d1 = d1;
+		this.d2 = d2;
+		this.dp = dp;
+		this.a1 = a1;
+		this.a2 = a2;
+		this.enable_amp_settle = enable_amp_settle;
+		this.pre_stim_amp_settle = pre_stim_amp_settle;
+		this.post_stim_amp_settle = post_stim_amp_settle;
+		this.maintain_amp_settle_during_pulse_train = maintain_amp_settle_during_pulse_train;
+		this.enable_charge_recovery = enable_charge_recovery;
+		this.post_stim_charge_recovery_on = post_stim_charge_recovery_on;
+		this.post_stim_charge_recovery_off = post_stim_charge_recovery_off;
+	}
+	public EStimObjDataEntry() {
+		super();
+	}
+	public void setChans(String chans) {
+		this.chans = chans;
 	}
 	public float get_post_trigger_delay() {
 		return post_trigger_delay;
@@ -134,10 +168,10 @@ public class EStimObjDataEntry{
 	public void set_post_stim_amp_settle(float post_stim_amp_settle_) {
 		post_stim_amp_settle = post_stim_amp_settle_;
 	}
-	public int get_maintain_amp_settle_during_pulse_train() {
+	public boolean get_maintain_amp_settle_during_pulse_train() {
 		return maintain_amp_settle_during_pulse_train;
 	}
-	public void set_maintain_amp_settle_during_pulse_train(int maintain_amp_settle_during_pulse_train_) {
+	public void set_maintain_amp_settle_during_pulse_train(boolean maintain_amp_settle_during_pulse_train_) {
 		maintain_amp_settle_during_pulse_train = maintain_amp_settle_during_pulse_train_;
 	}
 	public float get_post_stim_charge_recovery_on() {
@@ -151,5 +185,23 @@ public class EStimObjDataEntry{
 	}
 	public void set_post_stim_charge_recovery_off(float post_stim_charge_recovery_off_) {
 		post_stim_charge_recovery_off = post_stim_charge_recovery_off_;
+	}
+	public String getPulse_repetition() {
+		return pulse_repetition;
+	}
+	public void setPulse_repetition(String pulse_repitition) {
+		this.pulse_repetition = pulse_repitition;
+	}
+	public boolean isEnable_amp_settle() {
+		return enable_amp_settle;
+	}
+	public void setEnable_amp_settle(boolean enable_amp_settle) {
+		this.enable_amp_settle = enable_amp_settle;
+	}
+	public boolean isEnable_charge_recovery() {
+		return enable_charge_recovery;
+	}
+	public void setEnable_charge_recovery(boolean enable_charge_recovery) {
+		this.enable_charge_recovery = enable_charge_recovery;
 	}
 }

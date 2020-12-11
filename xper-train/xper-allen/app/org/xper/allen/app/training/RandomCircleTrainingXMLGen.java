@@ -19,7 +19,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
-import org.xper.allen.blockgen.VisualTrial;
+import org.xper.allen.blockgen.TrainingTrial;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
@@ -41,17 +41,17 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class RandomCircleTrainingXMLGen {
-	static ArrayList<Double> xLim = new ArrayList<Double>();
-	static ArrayList<Double> yLim = new ArrayList<Double>();
-	static String filepath;
+	protected static ArrayList<Double> xLim = new ArrayList<Double>();
+	protected static ArrayList<Double> yLim = new ArrayList<Double>();
+	protected static String filepath;
 	transient static XStream s;
 	static {
 		s = new XStream();
-		s.alias("VisualTrial", VisualTrial.class);
+		s.alias("VisualTrial", TrainingTrial.class);
 
 		s.setMode(XStream.NO_REFERENCES);
 	}
-	static double distance;
+	protected static double distance;
 	
 	public static void main(String[] args) {
 	//DB set-up
@@ -94,7 +94,7 @@ public class RandomCircleTrainingXMLGen {
 		String data = args[7];
 		
 	//Generating XML String
-		ArrayList<VisualTrial> trialList = new ArrayList<VisualTrial>();
+		ArrayList<TrainingTrial> trialList = new ArrayList<TrainingTrial>();
 		for (int i=0; i<numberStimuli; i++) {
 			
 			//GaussSpec
@@ -115,7 +115,7 @@ public class RandomCircleTrainingXMLGen {
 			
 			//Generating Trial Object to be added to trialList that will be Serialized
 			GaussSpec randGaussSpec = new GaussSpec(randXCenter, randYCenter, randSize, randBrightness);
-			VisualTrial randVisualTrial = new VisualTrial(randGaussSpec, randDuration, targetEyeWinCoords, targetEyeWinSize, data);
+			TrainingTrial randVisualTrial = new TrainingTrial(randGaussSpec, randDuration, targetEyeWinCoords, targetEyeWinSize, data);
 			trialList.add(randVisualTrial);
 		}
 		String XML = s.toXML(trialList);
