@@ -174,6 +174,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	 * @throws SocketException 
 	 */
 	public static void sendEStims (SaccadeExperimentState state) {
+		try {
 		IntanUtil intanUtil = state.getIntanUtil();
 		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 		System.out.println(eStimsToString(eStimObjData));
@@ -187,7 +188,10 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-		
+		}
+		catch (NullPointerException e){
+		System.out.println("Cannot Send EStims Because There Is No Trial");
+		}
 	}
 
 	/**
