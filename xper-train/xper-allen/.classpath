@@ -39,5 +39,7 @@
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
+	<classpathentry kind="lib" path="/Users/allenchen/Documents/GitHub/V1Microstim/IntanUtilFiles/jssc-2.9.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Users/allenchen/Documents/GitHub/V1Microstim/IntanUtilFiles/jssc-2.9.2.jar"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>

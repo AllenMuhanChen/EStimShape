@@ -1,0 +1,4 @@
+function [tstamp] = nextTrialInit(input_tStamp)
+%Input: 
+end
+

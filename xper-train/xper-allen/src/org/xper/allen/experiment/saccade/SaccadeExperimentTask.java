@@ -1,5 +1,6 @@
 package org.xper.allen.experiment.saccade;
 
+import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.ExperimentTask;
@@ -14,6 +15,7 @@ public class SaccadeExperimentTask extends ExperimentTask {
 	Coordinates2D targetEyeWinCoords;
 	double targetEyeWinSize;
 	double duration;
+	EStimObjDataEntry eStimObjDataEntry;
 	
 	/*
 	public Coordinates2D parseCoords() {
@@ -45,6 +47,15 @@ public class SaccadeExperimentTask extends ExperimentTask {
 	public double getDuration() {
 		return duration;
 	}
+
+	public EStimObjDataEntry geteStimObjDataEntry() {
+		return eStimObjDataEntry;
+	}
+
+	public void seteStimObjDataEntry(EStimObjDataEntry eStimObjDataEntry) {
+		this.eStimObjDataEntry = eStimObjDataEntry;
+	}
+	
 	
 
 }

@@ -29,17 +29,16 @@ import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeJuiceController;
 import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
+import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.intan.SimpleEStimMessageDispatcher;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
-import org.xper.classic.JuiceController;
 import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.console.ExperimentConsole;
-import org.xper.console.ExperimentConsoleModel;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.BlankTaskScene;
 import org.xper.drawing.Coordinates2D;
@@ -60,6 +59,7 @@ import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
 import org.xper.juice.mock.NullDynamicJuice;
+import org.xper.util.IntanUtil;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 
@@ -67,7 +67,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 @Import(ClassicConfig.class)
-public class AllenConfig {
+public class SimpleEStimConfig {
 
 	@Autowired BaseConfig baseConfig;
 	@Autowired ClassicConfig classicConfig;	
@@ -96,7 +96,17 @@ public class AllenConfig {
 	public String getJdbcUrl() {
 		return jdbcUrl;
 	}
-
+	@Bean
+	public IntanUtil intanUtil() {
+		IntanUtil iUtil = null;
+		try {
+		iUtil = new IntanUtil();
+		} catch (Exception e) {
+			System.out.println("WARNING: IntanUtil could not be initialized");
+			e.printStackTrace();
+		}
+		return iUtil;
+	}
 	
 	@Bean
 	public TaskScene taskScene() {
@@ -227,7 +237,7 @@ public class AllenConfig {
 	}
 	
 	@Bean
-	public AllenDatabaseTaskDataSource databaseTaskDataSource () {
+	public AllenDatabaseTaskDataSource databaseTaskDataSource() {
 		AllenDatabaseTaskDataSource source = new AllenDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
@@ -260,6 +270,7 @@ public class AllenConfig {
 		state.setTrialEventListeners(trialEventListeners());
 		state.setSlideEventListeners(classicConfig.slideEventListeners());
 		state.setTargetEventListeners(targetEventListeners());
+		state.seteStimEventListeners(eStimEventListeners());
 		state.setEyeController(classicConfig.eyeController());
 		state.setExperimentEventListeners(classicConfig.experimentEventListeners());
 		state.setTaskDataSource(databaseTaskDataSource());
@@ -277,14 +288,17 @@ public class AllenConfig {
 		state.setSleepWhileWait(true);
 		state.setPause(classicConfig.xperExperimentInitialPause());
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
-		//TargetStuff
+		//Target Stuff
 		state.setTargetSelector(eyeTargetSelector());
 		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());  
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
+		//Intan Stuff
+		state.setIntanUtil(intanUtil());
 		return state;
 	}
+	
 	
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
@@ -303,6 +317,24 @@ public class AllenConfig {
 		
 		return trialEventListener;
 	}
+
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public List<TargetEventListener> targetEventListeners () {
+		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
+		listeners.add((TargetEventListener) messageDispatcher());
+		listeners.add((TargetEventListener) juiceController());
+		return listeners;
+	}
+	
+	
+	@Bean
+	public SaccadeExperimentMessageDispatcher messageDispatcher() {
+		SaccadeExperimentMessageDispatcher dispatcher = new SaccadeExperimentMessageDispatcher();
+		dispatcher.setHost(classicConfig.experimentHost);
+		dispatcher.setDbUtil(allenDbUtil());
+		return dispatcher;
+	}
 	
 	@Bean
 	public TrialEventListener juiceController() {
@@ -314,22 +346,14 @@ public class AllenConfig {
 		}
 		return controller;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public List<TargetEventListener> targetEventListeners () {
-		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
-		listeners.add((TargetEventListener) messageDispatcher());
-		listeners.add((TargetEventListener) juiceController());
+	public List<SimpleEStimEventListener> eStimEventListeners(){
+		List<SimpleEStimEventListener> listeners = new LinkedList<SimpleEStimEventListener>();
+		listeners.add((SimpleEStimEventListener) messageDispatcher());
 		return listeners;
 	}
-	
-	@Bean
-	public SaccadeExperimentMessageDispatcher messageDispatcher() {
-		SaccadeExperimentMessageDispatcher dispatcher = new SaccadeExperimentMessageDispatcher();
-		dispatcher.setHost(classicConfig.experimentHost);
-		dispatcher.setDbUtil(allenDbUtil());
-		return dispatcher;
-	}
+
 
 	private TrialDrawingController drawingController() {
 		MarkStimTrialDrawingController controller;

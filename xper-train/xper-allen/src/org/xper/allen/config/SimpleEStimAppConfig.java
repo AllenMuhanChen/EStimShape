@@ -8,8 +8,8 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.GaussScene;
+import org.xper.allen.blockgen.SimpleEStimBlockGen;
 import org.xper.allen.blockgen.TrainingBlockGen;
-import org.xper.allen.experiment.GaussianSpecGenerator;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -23,9 +23,9 @@ import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 
-@Import(AllenConfig.class)
-public class AllenAppConfig {
-	@Autowired AllenConfig allenConfig;
+@Import(SimpleEStimConfig.class)
+public class SimpleEStimAppConfig {
+	@Autowired SimpleEStimConfig simpleEStimConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
@@ -55,36 +55,29 @@ public class AllenAppConfig {
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		return scene;
 	}
-
+/*
 	@Bean GaussianSpecGenerator generator() {
 		GaussianSpecGenerator gen = new GaussianSpecGenerator();
 		return gen;
 	}
-	/*
-	@Bean EStimObjDataGenerator egenerator() {
-		EStimObjDataGenerator egen = new EStimObjDataGenerator();
-		return egen;
-	}
-	*/
-	/*
-	@Bean
-	public RandGenerationAllen randomGen() {
-		RandGenerationAllen gen = new RandGenerationAllen();
-		gen.setDbUtil(allenConfig.allenDbUtil());
-		gen.setGlobalTimeUtil(acqConfig.timeClient());
-		gen.setTaskCount(100);
-		gen.setGenerator(generator());
-		return gen;
-	}
-	*/
-
+*/
 	@Bean
 	public TrainingBlockGen trainingGen() {
 		TrainingBlockGen blockgen = new TrainingBlockGen();
-		blockgen.setDbUtil(allenConfig.allenDbUtil());
-		System.out.println(((AllenConfig) allenConfig).getJdbcUrl());
+		blockgen.setDbUtil(simpleEStimConfig.allenDbUtil());
+		System.out.println(((SimpleEStimConfig) simpleEStimConfig).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
-		blockgen.setXmlUtil(allenConfig.allenXMLUtil());
+		blockgen.setXmlUtil(simpleEStimConfig.allenXMLUtil());
+		return blockgen;
+	}
+	
+	@Bean
+	public SimpleEStimBlockGen simpleEStimGen() {
+		SimpleEStimBlockGen blockgen = new SimpleEStimBlockGen();
+		blockgen.setDbUtil(simpleEStimConfig.allenDbUtil());
+		System.out.println(((SimpleEStimConfig) simpleEStimConfig).getJdbcUrl());
+		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
+		blockgen.setXmlUtil(simpleEStimConfig.allenXMLUtil());
 		return blockgen;
 	}
 }

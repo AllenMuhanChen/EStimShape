@@ -5,6 +5,8 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialStatistics;
 import org.xper.allen.db.vo.SaccadeTrialStatistics;
 import org.xper.allen.experiment.saccade.*;
+import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.intan.SimpleEStimMessage;
 
 /**
  * Provides methods for sending "TargetOn" and "TargetOff" messages to database (behmsg).
@@ -12,7 +14,7 @@ import org.xper.allen.experiment.saccade.*;
  * @author Allen Chen
  *
  */
-public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDispatcher implements TargetEventListener{
+public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDispatcher implements TargetEventListener, SimpleEStimEventListener{
 	
 	protected SaccadeTrialStatistics trialStat = new SaccadeTrialStatistics();
 
@@ -79,6 +81,16 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 	public void trialComplete(long timestamp, TrialContext context) {
 		enqueue(timestamp, "TrialComplete", "");
 		trialStat.setCompleteTrials(trialStat.getCompleteTrials() + 1);
+	}
+	
+	@Override
+	public void eStimOn(long timestamp, TrialContext context) {
+		// TODO Auto-generated method stub
+		SaccadeExperimentTask currentTask = (SaccadeExperimentTask) context.getCurrentTask();
+		
+		SimpleEStimMessage simpleEStimMsg = new SimpleEStimMessage(timestamp, currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize(), currentTask.getStimId());
+		String msg = simpleEStimMsg.toXml();
+		enqueue(timestamp, "EStimOn", msg);
 	}
 
 }

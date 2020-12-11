@@ -8,6 +8,14 @@ public class GaussSpec {
 	double size;
 	double brightness;
 	
+	public GaussSpec() {}
+	
+	public GaussSpec(double xCenter, double yCenter, double size, double brightness) {
+		this.xCenter = xCenter;
+		this.yCenter = yCenter;
+		this.size = size;
+		this.brightness = brightness;
+	}
 	
 	transient static XStream s;
 	
@@ -25,16 +33,7 @@ public class GaussSpec {
 		GaussSpec g = (GaussSpec)s.fromXML(xml);
 		return g;
 	}
-	
-	public GaussSpec() {}
-	
-	public GaussSpec(double xCenter, double yCenter, double size, double brightness) {
-		super();
-		this.xCenter = xCenter;
-		this.yCenter = yCenter;
-		this.size = size;
-		this.brightness = brightness;
-	}
+
 
 	public double getXCenter() {
 		return xCenter;
