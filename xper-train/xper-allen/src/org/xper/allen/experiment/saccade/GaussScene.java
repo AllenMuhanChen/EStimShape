@@ -1,6 +1,7 @@
-package org.xper.allen;
+package org.xper.allen.experiment.saccade;
 
 import org.xper.Dependency;
+import org.xper.allen.RFPlotGaussianObject;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;

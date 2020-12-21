@@ -24,8 +24,8 @@ import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 @AnnotationDrivenConfig
 
 @Import(SimpleEStimConfig.class)
-public class SimpleEStimAppConfig {
-	@Autowired SimpleEStimConfig simpleEStimConfig;
+public class ChoiceInRFAppConfig {
+	@Autowired ChoiceInRFConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
@@ -64,20 +64,20 @@ public class SimpleEStimAppConfig {
 	@Bean
 	public TrainingBlockGen trainingGen() {
 		TrainingBlockGen blockgen = new TrainingBlockGen();
-		blockgen.setDbUtil(simpleEStimConfig.allenDbUtil());
-		System.out.println(((SimpleEStimConfig) simpleEStimConfig).getJdbcUrl());
+		blockgen.setDbUtil(config.allenDbUtil());
+		//System.out.println(((ChoiceInRFAppConfig) config).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
-		blockgen.setXmlUtil(simpleEStimConfig.allenXMLUtil());
+		blockgen.setXmlUtil(config.allenXMLUtil());
 		return blockgen;
 	}
 	
 	@Bean
 	public SimpleEStimBlockGen simpleEStimGen() {
 		SimpleEStimBlockGen blockgen = new SimpleEStimBlockGen();
-		blockgen.setDbUtil(simpleEStimConfig.allenDbUtil());
-		System.out.println(((SimpleEStimConfig) simpleEStimConfig).getJdbcUrl());
+		blockgen.setDbUtil(config.allenDbUtil());
+		//System.out.println(((ChoiceInRFAppConfig) config).getJdbcUrl());
 		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
-		blockgen.setXmlUtil(simpleEStimConfig.allenXMLUtil());
+		blockgen.setXmlUtil(config.allenXMLUtil());
 		return blockgen;
 	}
 }
