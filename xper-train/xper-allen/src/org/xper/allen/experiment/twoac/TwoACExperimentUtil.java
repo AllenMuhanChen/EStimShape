@@ -1,4 +1,4 @@
-package org.xper.allen.experiment.saccade;
+package org.xper.allen.experiment.twoac;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -11,6 +11,7 @@ import org.xper.Dependency;
 import org.xper.allen.console.SaccadeEventUtil;
 import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
 import org.xper.allen.eye.TwoACEyeTargetSelectorConcurrentDriver;
 import org.xper.allen.eye.TwoACTargetSelectorResult;
 import org.xper.allen.intan.SimpleEStimEventUtil;
@@ -39,10 +40,10 @@ import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 
 public class TwoACExperimentUtil extends TrialExperimentUtil{
-	public static TrialResult doSlide(int i, SaccadeExperimentState stateObject) {
+	public static TrialResult doSlide(int i, TwoACExperimentState stateObject) {
 		TrialDrawingController drawingController = stateObject.getDrawingController();
-		SaccadeExperimentTask currentTask = stateObject.getCurrentTask();
-		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
+		TwoACExperimentTask currentTask = stateObject.getCurrentTask();
+		TwoACTrialContext currentContext = (TwoACTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
 		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
 		List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
@@ -78,7 +79,10 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 		//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
 
 		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
-		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
+		
+		
+		//TODO: TO SPECIFY MULTIPLE TARGETS, WE INPUT THE TARGETS HERE AS ARRAYS. 
+		selectorDriver.start(currentContext.getTargetPos(), currentContext.getTargetEyeWindowSize(),
 				currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 				+ stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
 		SaccadeEventUtil.fireTargetOnEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
@@ -97,10 +101,13 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 		else if (selectorResult.getSelectionStatusResult() == TwoACTrialResult.TARGET_SELECTION_EYE_BREAK) {
 			SaccadeEventUtil.fireTargetSelectionEyeBreakEvent(timeUtil.currentTimeMicros(), targetEventListeners);
 		}
-		//TODO: HANDLE BOTH ONE AND TWO
+		//TODO: HANDLE BOTH ONE AND TWO EVENT UTILS
 		else if (selectorResult.getSelectionStatusResult()== TwoACTrialResult.TARGET_SELECTION_ONE) {
 			//TODO: New Event Util
-			SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+			//SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+		}
+		else if (selectorResult.getSelectionStatusResult()== TwoACTrialResult.TARGET_SELECTION_ONE) {
+			//SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
 		}
 
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
@@ -124,8 +131,8 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 
 	}
 
-	public static TrialResult runTrial (SaccadeExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
-		TrialResult result = SaccadeTrialExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+	public static TrialResult runTrial (TwoACExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
+		TrialResult result = TwoACExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
@@ -140,10 +147,10 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 		return TrialResult.TRIAL_COMPLETE;
 	}
 
-	public static void cleanupTrial (SaccadeTrialExperimentState state) {
+	public static void cleanupTrial (TwoACTrialExperimentState state) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
-		SaccadeExperimentTask currentTask = state.getCurrentTask();
-		SaccadeTrialContext currentContext = (SaccadeTrialContext) state.getCurrentContext();
+		TwoACExperimentTask currentTask = state.getCurrentTask();
+		TwoACTrialContext currentContext = (TwoACTrialContext) state.getCurrentContext();
 		AllenDatabaseTaskDataSource taskDataSource = (AllenDatabaseTaskDataSource) state.getTaskDataSource();
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
 		TrialDrawingController drawingController = state.getDrawingController();
@@ -178,7 +185,7 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 	 * @throws UnknownHostException 
 	 * @throws SocketException 
 	 */
-	public static void sendEStims (SaccadeExperimentState state) {
+	public static void sendEStims (TwoACExperimentState state) {
 		try {
 		IntanUtil intanUtil = state.getIntanUtil();
 		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
@@ -208,7 +215,7 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 	 * @throws SocketException 
 	 * 
 	 */
-	public static void sendEStimTrigger(SaccadeExperimentState state){
+	public static void sendEStimTrigger(TwoACExperimentState state){
 		IntanUtil intanUtil = state.getIntanUtil();
 		System.out.println("Sending Trigger");
 		try {
