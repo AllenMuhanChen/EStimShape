@@ -1,4 +1,4 @@
-package org.xper.allen.experiment;
+package org.xper.allen.experiment.saccade;
 
 import org.xper.allen.specs.GaussSpec;
 
