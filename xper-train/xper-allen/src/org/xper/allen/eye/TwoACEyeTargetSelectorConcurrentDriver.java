@@ -30,7 +30,7 @@ public class TwoACEyeTargetSelectorConcurrentDriver {
 	 * This is running in a separate thread that is different from the main experiment thread where the Experiment objects run.
 	 * Note: both the deadlineIntialEyeIn and eyeHoldTime are in micro seconds.
 	 */
-	public void start(final Coordinates2D targetCenter [], final double targetWinSize[], 
+	public void start(final Coordinates2D targetCenter[], final double targetWinSize[], 
 			final long deadlineIntialEyeIn, final long eyeHoldTime) {
 		exec = Executors.newSingleThreadExecutor();
 		
