@@ -6,7 +6,8 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.ExperimentTask;
 
 /**
- * Holds information regarding the stimulus that does not go to the drawing controller, but something else within the experimental code. 
+ * Holds information that goes to both the drawing controller (in the form of a string XML. It is the job of the Graphics Object to decode this, like RFPlotGaussianObject)
+ * and the rest of the code. 
  * @author allenchen
  *
  */
@@ -17,6 +18,25 @@ public class TwoACExperimentTask extends ExperimentTask {
 	double duration;
 	EStimObjDataEntry eStimObjDataEntry;
 	
+	String sampleSpec;
+	String[] choiceSpec;
+	
+	public String getSampleSpec() {
+		return sampleSpec;
+	}
+
+	public void setSampleSpec(String sampleSpec) {
+		this.sampleSpec = sampleSpec;
+	}
+
+	public String[] getChoiceSpec() {
+		return choiceSpec;
+	}
+
+	public void setChoiceSpec(String[] choiceSpec) {
+		this.choiceSpec = choiceSpec;
+	}
+
 	/*
 	public Coordinates2D parseCoords() {
 		GaussSpec g = GaussSpec.fromXml(this.getStimSpec());

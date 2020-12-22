@@ -20,7 +20,11 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
+import org.xper.classic.vo.TrialContext;
+import org.xper.classic.vo.TrialExperimentState;
 import org.xper.classic.vo.TrialResult;
+import org.xper.experiment.ExperimentTask;
+import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeMonitor;
@@ -30,6 +34,7 @@ import org.xper.eye.TargetSelectorResult;
 import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
+import org.xper.util.ThreadUtil;
 import org.xper.util.TrialExperimentUtil;
 
 import jssc.SerialPortException;
@@ -39,31 +44,57 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 
-public class TwoACExperimentUtil extends TrialExperimentUtil{
-	public static TrialResult doSlide(int i, TwoACExperimentState stateObject) {
-		TrialDrawingController drawingController = stateObject.getDrawingController();
+public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
+	public static TwoACTrialResult doSlide(int i, TwoACExperimentState stateObject) {
+		TwoACMarkStimTrialDrawingController drawingController = (TwoACMarkStimTrialDrawingController) stateObject.getDrawingController();
 		TwoACExperimentTask currentTask = stateObject.getCurrentTask();
 		TwoACTrialContext currentContext = (TwoACTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
 		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
 		List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
+		List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
-		
+		EyeController eyeController = stateObject.getEyeController();
 
+		boolean fixationSuccess;
 		
 		TwoACTargetSelectorResult selectorResult;
 
-		//show current slide after a delay (blank time)
+		//show SAMPLE after delay
 		long blankOnLocalTime = timeUtil.currentTimeMicros();
 		do {
 			//do nothing
 		}while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
 
+		//drawingController.prepareSample(currentTask, currentContext); //TODO: NEED THIS?
 		drawingController.showSlide(currentTask, currentContext);
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
-		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
+		TwoACEventUtil.fireSampleOnEvent(i, slideOnLocalTime, slideEventListeners);
+		
+		
+		// wait for eye hold
+		fixationSuccess = eyeController.waitEyeInAndHold(slideOnLocalTime
+				+ stateObject.getSlideLength() * 1000 );
+
+		if (!fixationSuccess) {
+			// eye fail to hold
+			long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
+			currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
+			drawingController.eyeInHoldFail(currentContext);
+			EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
+					trialEventListeners, currentContext);
+			return TwoACTrialResult.EYE_IN_HOLD_FAIL;
+		}
+		
+		
+		//show CHOICE 	
+		drawingController.prepareChoice(currentTask, currentContext);
+		drawingController.showSlide(currentTask, currentContext);
+		long choiceOnLocalTime = timeUtil.currentTimeMicros();
+		TwoACEventUtil.fireChoiceOnEvent();
+		
 		
 		//ESTIMULATOR
 		sendEStimTrigger(stateObject);
@@ -81,7 +112,6 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
 		
 		
-		//TODO: TO SPECIFY MULTIPLE TARGETS, WE INPUT THE TARGETS HERE AS ARRAYS. 
 		selectorDriver.start(currentContext.getTargetPos(), currentContext.getTargetEyeWindowSize(),
 				currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 				+ stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
@@ -132,7 +162,7 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 	}
 
 	public static TrialResult runTrial (TwoACExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
-		TrialResult result = TwoACExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+		TrialResult result = ChoiceInRFExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
@@ -142,7 +172,7 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 			return result;
 		}
 
-		SaccadeTrialExperimentUtil.completeTrial(stateObject, threadHelper);
+		ChoiceInRFExperimentUtil.completeTrial(stateObject, threadHelper);
 
 		return TrialResult.TRIAL_COMPLETE;
 	}
@@ -197,8 +227,7 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 				intanUtil.send(eStimsToString(eStimObjData));
 				System.out.println("EStimSpecs Successfully Sent");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Cannot Send EStimSpecs");
 			}
 		}
 		catch (NullPointerException e){
@@ -222,8 +251,7 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 			intanUtil.trigger();	
 			System.out.println("Trigger Successfully Sent");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Cannot Send Trigger");
 		}
 		
 	}
@@ -266,10 +294,92 @@ public class TwoACExperimentUtil extends TrialExperimentUtil{
 		}
 		return output;
 	}
-	/*
-	private static String addBrackets(String str) {
-	 return "{" + str +"}";
+	
+	//TODO: HAVE THIS SET Prepare first trial via sampleSpec and choiceSpec via new drawing controller. 
+	public static TrialResult getMonkeyFixation(TwoACExperimentState state,
+			ThreadHelper threadHelper) {
+		TwoACMarkStimTrialDrawingController drawingController = (TwoACMarkStimTrialDrawingController) state.getDrawingController();
+		TrialContext currentContext = state.getCurrentContext();
+		TimeUtil timeUtil = state.getLocalTimeUtil();
+		List<? extends TrialEventListener> trialEventListeners = state
+				.getTrialEventListeners();
+		EyeController eyeController = state.getEyeController();
+		TwoACExperimentTask currentTask = state.getCurrentTask();
+		
+		// trial init
+		long trialInitLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setTrialInitTime(trialInitLocalTime);
+		EventUtil.fireTrialInitEvent (trialInitLocalTime, trialEventListeners, currentContext);
+
+		// trial start
+		drawingController.trialStart(currentContext);
+		long trialStartLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setTrialStartTime(trialStartLocalTime);
+		EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
+				currentContext);
+
+		// prepare fixation point
+		drawingController.prepareFixationOn(currentContext);
+
+		// time before fixation point on
+		ThreadUtil.sleepOrPinUtil(trialStartLocalTime
+				+ state.getTimeBeforeFixationPointOn() * 1000, state,
+				threadHelper);
+
+		// fixation point on
+		drawingController.fixationOn(currentContext);
+		long fixationPointOnLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setFixationPointOnTime(fixationPointOnLocalTime);
+		EventUtil.fireFixationPointOnEvent(fixationPointOnLocalTime,
+				trialEventListeners, currentContext);
+
+		// wait for initial eye in
+		boolean success = eyeController
+				.waitInitialEyeIn(fixationPointOnLocalTime
+						+ state.getTimeAllowedForInitialEyeIn() * 1000);
+
+		if (!success) {
+			// eye fail to get in
+			long initialEyeInFailLocalTime = timeUtil.currentTimeMicros();
+			currentContext.setInitialEyeInFailTime(initialEyeInFailLocalTime);
+			drawingController.initialEyeInFail(currentContext);
+			EventUtil.fireInitialEyeInFailEvent(initialEyeInFailLocalTime,
+					trialEventListeners, currentContext);
+			return TrialResult.INITIAL_EYE_IN_FAIL;
+		}
+
+		// got initial eye in
+		long eyeInitialInLoalTime = timeUtil.currentTimeMicros();
+		currentContext.setInitialEyeInTime(eyeInitialInLoalTime);
+		EventUtil.fireInitialEyeInSucceedEvent(eyeInitialInLoalTime,
+				trialEventListeners, currentContext);
+
+		// prepare first slide
+		currentContext.setSlideIndex(0);
+		currentContext.setAnimationFrameIndex(0);
+		drawingController.prepareSample(currentTask, currentContext);
+
+		// wait for eye hold
+		success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
+				+ state.getRequiredEyeInHoldTime() * 1000);
+
+		if (!success) {
+			// eye fail to hold
+			long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
+			currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
+			drawingController.eyeInHoldFail(currentContext);
+			EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
+					trialEventListeners, currentContext);
+			return TrialResult.EYE_IN_HOLD_FAIL;
+		}
+
+		// get fixation, start stimulus
+		long eyeHoldSuccessLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setFixationSuccessTime(eyeHoldSuccessLocalTime);
+		EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
+				trialEventListeners, currentContext);
+
+		return TrialResult.FIXATION_SUCCESS;
 	}
-	*/
 
 }
