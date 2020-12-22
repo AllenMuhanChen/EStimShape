@@ -281,8 +281,10 @@ public class SimpleEStimConfig {
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
 		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
-		state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
-		state.setSlideLength(classicConfig.xperSlideLength());
+		//state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
+		//state.setSlideLength(classicConfig.xperSlideLength());
+		
+		
 		state.setInterSlideInterval(classicConfig.xperInterSlideInterval());
 		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
 		state.setSleepWhileWait(true);
@@ -424,9 +426,9 @@ public class SimpleEStimConfig {
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperBlankTargetScreenDisplayTime() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_blank_target_screen_display_time", 0));
-	}
-
-
 	
+	}
 }
+
+
 	
