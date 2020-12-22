@@ -200,6 +200,7 @@ public class AllenDbUtil extends DbUtil {
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
 						SaccadeExperimentTask task = new SaccadeExperimentTask();
+
 						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
 						sse.setSpec(rs.getString("stim_spec"));	
@@ -208,6 +209,10 @@ public class AllenDbUtil extends DbUtil {
 						task.setStimId(readStimObjData(ss.getStimObjData()[0]).getStimId());
 						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	
 						//StimSpec
+						
+						//TODO SET sampleSpec and choiceSpec!
+						
+						
 						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						task.setDuration(ss.getDuration());

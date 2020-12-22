@@ -8,6 +8,7 @@ public class TwoACTrialContext extends TrialContext {
 	long targetInitialSelectionTime;
 	long targetSelectionSuccessTime;
 	
+
 	Coordinates2D[] targetPos;
 	double[] targetEyeWindowSize;
 	long targetIndex;
@@ -62,6 +63,13 @@ public class TwoACTrialContext extends TrialContext {
 		this.targetSelectionSuccessTime = targetSelectionSuccessTime;
 	}
 	
+	public long getSampleOnTime() {
+		return sampleOnTime;
+	}
+
+	public void setSampleOnTime(long sampleOnTime) {
+		this.sampleOnTime = sampleOnTime;
+	}
 	
 
 }
