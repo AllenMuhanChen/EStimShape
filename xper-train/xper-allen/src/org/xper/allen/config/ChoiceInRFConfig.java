@@ -29,6 +29,8 @@ import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeJuiceController;
 import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
+import org.xper.allen.experiment.twoac.ChoiceInRFTrialExperiment;
+import org.xper.allen.experiment.twoac.TwoACExperimentState;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -259,8 +261,8 @@ public class ChoiceInRFConfig {
 	
 	//TODO
 	@Bean
-	public SaccadeTrialExperiment experiment() {
-		SaccadeTrialExperiment xper = new SaccadeTrialExperiment();
+	public ChoiceInRFTrialExperiment experiment() {
+		ChoiceInRFTrialExperiment xper = new ChoiceInRFTrialExperiment();
 		xper.setEyeMonitor(classicConfig.eyeMonitor());
 		xper.setStateObject(experimentState());
 		xper.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
@@ -270,8 +272,8 @@ public class ChoiceInRFConfig {
 	
     //TODO
 	@Bean
-	public SaccadeExperimentState experimentState() {
-		SaccadeExperimentState state = new SaccadeExperimentState();
+	public TwoACExperimentState experimentState() {
+		TwoACExperimentState state = new TwoACExperimentState();
 		state.setLocalTimeUtil(baseConfig.localTimeUtil());
 		state.setTrialEventListeners(trialEventListeners());
 		state.setSlideEventListeners(classicConfig.slideEventListeners());
@@ -287,9 +289,11 @@ public class ChoiceInRFConfig {
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
 		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
-		state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
-		state.setSlideLength(classicConfig.xperSlideLength());
-		state.setInterSlideInterval(classicConfig.xperInterSlideInterval());
+		//state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
+		//state.setSlideLength(classicConfig.xperSlideLength());
+		state.setSampleLength(xperSampleLength());
+		state.setChoiceLength(xperChoiceLength());
+		//state.setInterSlideInterval(classicConfig.xperInterSlideInterval());
 		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
 		state.setSleepWhileWait(true);
 		state.setPause(classicConfig.xperExperimentInitialPause());
@@ -434,7 +438,15 @@ public class ChoiceInRFConfig {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_blank_target_screen_display_time", 0));
 	}
 
-
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Integer xperSampleLength() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_sample_length", 0));
+	}
 	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Integer xperChoiceLength() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_choice_length", 0));
+	}
 }
+
 	

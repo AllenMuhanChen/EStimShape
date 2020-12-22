@@ -12,12 +12,34 @@ import org.xper.eye.EyeTargetSelector;
 public class TwoACTrialExperimentState extends TrialExperimentState {
 	@Dependency
 	List<? extends SlideEventListener> slideEventListeners;
+	/*
 	@Dependency
 	protected int slidePerTrial;
 	@Dependency
 	int slideLength;
 	@Dependency
 	int interSlideInterval;
+	*/
+	@Dependency
+	int sampleLength;
+	@Dependency
+	int choiceLength;
+	public int getSampleLength() {
+		return sampleLength;
+	}
+
+	public void setSampleLength(int sampleLength) {
+		this.sampleLength = sampleLength;
+	}
+
+	public int getChoiceLength() {
+		return choiceLength;
+	}
+
+	public void setChoiceLength(int choiceLength) {
+		this.choiceLength = choiceLength;
+	}
+
 	@Dependency
 	boolean doEmptyTask = true;
 	@Dependency
@@ -42,7 +64,7 @@ public class TwoACTrialExperimentState extends TrialExperimentState {
 	public void setDoEmptyTask(boolean doEmptyTask) {
 		this.doEmptyTask = doEmptyTask;
 	}
-
+/*
 	public int getInterSlideInterval() {
 		return interSlideInterval;
 	}
@@ -66,7 +88,7 @@ public class TwoACTrialExperimentState extends TrialExperimentState {
 	public void setSlidePerTrial(int slidePerTrial) {
 		this.slidePerTrial = slidePerTrial;
 	}
-
+*/
 	public List<? extends SlideEventListener> getSlideEventListeners() {
 		return slideEventListeners;
 	}

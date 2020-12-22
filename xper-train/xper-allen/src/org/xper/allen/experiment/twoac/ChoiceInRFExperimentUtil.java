@@ -20,6 +20,7 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
+import org.xper.classic.TrialRunner;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
 import org.xper.classic.vo.TrialResult;
@@ -74,9 +75,9 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		TwoACEventUtil.fireSampleOnEvent(i, slideOnLocalTime, slideEventListeners);
 		
 		
-		// wait for eye hold
+		//HOLD FIXATION
 		fixationSuccess = eyeController.waitEyeInAndHold(slideOnLocalTime
-				+ stateObject.getSlideLength() * 1000 );
+				+ stateObject.getSampleLength() * 1000 );
 
 		if (!fixationSuccess) {
 			// eye fail to hold
@@ -143,7 +144,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		do {
 			//Wait for Slide to Finish
-		}while(timeUtil.currentTimeMicros()<slideOnLocalTime+stateObject.getSlideLength()*1000);
+		}while(timeUtil.currentTimeMicros()<slideOnLocalTime+stateObject.getChoiceLength()*1000);
 		//finish current slide
 		drawingController.trialComplete(currentContext);
 		long slideOffLocalTime = timeUtil.currentTimeMicros();
@@ -161,20 +162,20 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 
 	}
 
-	public static TrialResult runTrial (TwoACExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
-		TrialResult result = ChoiceInRFExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
-		if (result != TrialResult.FIXATION_SUCCESS) {
+	public static TwoACTrialResult runTrial (TwoACExperimentState stateObject, ThreadHelper threadHelper, TwoACSlideRunner runner){
+		TwoACTrialResult result = ChoiceInRFExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+		if (result != TwoACTrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
 		sendEStims(stateObject);
 		result = runner.runSlide();
-		if (result != TrialResult.TRIAL_COMPLETE) {
+		if (result != TwoACTrialResult.TRIAL_COMPLETE) {
 			return result;
 		}
 
 		ChoiceInRFExperimentUtil.completeTrial(stateObject, threadHelper);
 
-		return TrialResult.TRIAL_COMPLETE;
+		return TwoACTrialResult.TRIAL_COMPLETE;
 	}
 
 	public static void cleanupTrial (TwoACTrialExperimentState state) {
@@ -296,7 +297,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 	}
 	
 	//TODO: HAVE THIS SET Prepare first trial via sampleSpec and choiceSpec via new drawing controller. 
-	public static TrialResult getMonkeyFixation(TwoACExperimentState state,
+	public static TwoACTrialResult getMonkeyFixation(TwoACExperimentState state,
 			ThreadHelper threadHelper) {
 		TwoACMarkStimTrialDrawingController drawingController = (TwoACMarkStimTrialDrawingController) state.getDrawingController();
 		TrialContext currentContext = state.getCurrentContext();
@@ -345,7 +346,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 			drawingController.initialEyeInFail(currentContext);
 			EventUtil.fireInitialEyeInFailEvent(initialEyeInFailLocalTime,
 					trialEventListeners, currentContext);
-			return TrialResult.INITIAL_EYE_IN_FAIL;
+			return TwoACTrialResult.INITIAL_EYE_IN_FAIL;
 		}
 
 		// got initial eye in
@@ -370,7 +371,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 			drawingController.eyeInHoldFail(currentContext);
 			EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
 					trialEventListeners, currentContext);
-			return TrialResult.EYE_IN_HOLD_FAIL;
+			return TwoACTrialResult.EYE_IN_HOLD_FAIL;
 		}
 
 		// get fixation, start stimulus
@@ -379,7 +380,49 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
 				trialEventListeners, currentContext);
 
-		return TrialResult.FIXATION_SUCCESS;
+		return TwoACTrialResult.FIXATION_SUCCESS;
 	}
 
+	public static void run(TwoACExperimentState state,
+			ThreadHelper threadHelper, TwoACTrialRunner runner) {
+		TimeUtil timeUtil = state.getLocalTimeUtil();
+		try {
+			threadHelper.started();
+			System.out.println("SlideTrialExperiment started.");
+
+			state.getDrawingController().init();
+			EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
+					state.getExperimentEventListeners());
+
+			while (!threadHelper.isDone()) {
+				pauseExperiment(state, threadHelper);
+				if (threadHelper.isDone()) {
+					break;
+				}
+				// one trial
+				runner.runTrial();
+				if (threadHelper.isDone()) {
+					break;
+				}
+				// inter-trial interval
+				long current = timeUtil.currentTimeMicros();
+				ThreadUtil.sleepOrPinUtil(current
+						+ state.getInterTrialInterval() * 1000, state,
+						threadHelper);
+			}
+		} finally {
+			// experiment stop event
+			try {
+				System.out.println("SlideTrialExperiment stopped.");
+				EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),
+						state.getExperimentEventListeners());
+				state.getDrawingController().destroy();
+
+				threadHelper.stopped();
+			} catch (Exception e) {
+				logger.warn(e.getMessage());
+				e.printStackTrace();
+			}
+		}
+	}
 }
