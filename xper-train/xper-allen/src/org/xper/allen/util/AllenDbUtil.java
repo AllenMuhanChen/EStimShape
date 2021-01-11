@@ -15,9 +15,11 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.db.vo.StimSpecEntryUtil;
 import org.xper.allen.experiment.saccade.SaccadeExperimentTask;
+import org.xper.allen.experiment.twoac.TwoACExperimentTask;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
-import org.xper.allen.specs.StimSpecSpec;
+import org.xper.allen.specs.SaccadeStimSpecSpec;
+import org.xper.allen.specs.TwoACStimSpecSpec;
 import org.xper.db.vo.StimSpecEntry;
 import org.xper.experiment.ExperimentTask;
 
@@ -204,7 +206,7 @@ public class AllenDbUtil extends DbUtil {
 						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
 						sse.setSpec(rs.getString("stim_spec"));	
-						StimSpecSpec ss = sseU.fromXmlSpec();
+						SaccadeStimSpecSpec ss = sseU.saccadeStimSpecSpecFromXmlSpec();
 						//StimObjData	
 						task.setStimId(readStimObjData(ss.getStimObjData()[0]).getStimId());
 						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	
@@ -216,6 +218,62 @@ public class AllenDbUtil extends DbUtil {
 						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						task.setDuration(ss.getDuration());
+						//TODO: EStimObjData
+						task.seteStimObjDataEntry(readEStimObjData(ss.geteStimObjData()[0]));
+						task.setTaskId(rs.getLong("task_id"));
+						task.setXfmId(rs.getLong("xfm_id"));
+						task.setXfmSpec(rs.getString("xfm_spec"));
+						taskToDo.add(task);
+					}});
+		return taskToDo;
+	}	
+	
+	public LinkedList<TwoACExperimentTask> readTwoACExperimentTasks(long genId,
+			long lastDoneTaskId) {
+		StimSpecEntry sse;
+		//AC
+		//System.out.println(Long.toString(lastDoneTaskId));
+		if (lastDoneTaskId > 0) {
+			 sse = readStimSpec(lastDoneTaskId);
+		
+		}
+		else {
+			long TaskToDoMaxId = readTaskToDoMaxId();
+			 sse = readStimSpec(TaskToDoMaxId);
+		}
+		StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
+		
+		//
+		final LinkedList<TwoACExperimentTask> taskToDo = new LinkedList<TwoACExperimentTask>();
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
+						" (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
+						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
+				" from TaskToDo t " +
+				" where t.gen_id = ? and t.task_id > ? " +
+				" order by t.task_id", 
+				new Object[] { genId, lastDoneTaskId },
+				new RowCallbackHandler() {
+					public void processRow(ResultSet rs) throws SQLException {
+						TwoACExperimentTask task = new TwoACExperimentTask();
+
+						task.setGenId(rs.getLong("gen_id"));
+						//Serializing StimSpec
+						sse.setSpec(rs.getString("stim_spec"));	
+						TwoACStimSpecSpec ss = sseU.twoACStimSpecSpecFromXmlSpec();
+						//StimObjData	
+						task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());
+						task.setSampleSpec(readStimObjData(ss.getSampleObjData()).getSpec());	
+						String[] choiceSpec = {readStimObjData(ss.getChoiceObjData()[0]).getSpec(),
+								readStimObjData(ss.getChoiceObjData()[1]).getSpec()};
+						//choiceSpec[0] = readStimObjData(ss.getChoiceObjData()[0]).getSpec();
+						//choiceSpec[1] = readStimObjData(ss.getChoiceObjData()[1]).getSpec();
+						task.setChoiceSpec(choiceSpec);							
+						
+						//StimSpec
+						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
+						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						//TODO: EStimObjData
 						task.seteStimObjDataEntry(readEStimObjData(ss.geteStimObjData()[0]));
 						task.setTaskId(rs.getLong("task_id"));
