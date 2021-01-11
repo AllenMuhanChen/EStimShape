@@ -24,13 +24,15 @@ import org.xper.allen.console.SaccadeExperimentConsoleRenderer;
 import org.xper.allen.console.SaccadeExperimentMessageDispatcher;
 import org.xper.allen.console.SaccadeExperimentMessageHandler;
 import org.xper.allen.console.TargetEventListener;
-import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
+import org.xper.allen.experiment.saccade.SaccadeDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeJuiceController;
 import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
+import org.xper.allen.experiment.twoac.ChoiceEventListener;
 import org.xper.allen.experiment.twoac.ChoiceInRFTrialExperiment;
 import org.xper.allen.experiment.twoac.TwoACExperimentState;
+import org.xper.allen.experiment.twoac.TwoACJuiceController;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -242,8 +244,8 @@ public class ChoiceInRFConfig {
 	}
 	
 	@Bean
-	public AllenDatabaseTaskDataSource databaseTaskDataSource() {
-		AllenDatabaseTaskDataSource source = new AllenDatabaseTaskDataSource();
+	public TwoACDatabaseTaskDataSource databaseTaskDataSource() {
+		SaccadeDatabaseTaskDataSource source = new SaccadeDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
 		source.setUngetBehavior(UngetPolicy.TAIL);
@@ -299,6 +301,8 @@ public class ChoiceInRFConfig {
 		state.setPause(classicConfig.xperExperimentInitialPause());
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		//Target Stuff
+		state.setSampleLength(xperSampleLength());
+		state.setChoiceLength(xperChoiceLength());
 		state.setTargetSelector(eyeTargetSelector());
 		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());  
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
@@ -317,7 +321,7 @@ public class ChoiceInRFConfig {
 		trialEventListener.add(classicConfig.trialEventLogger());
 		trialEventListener.add(classicConfig.experimentProfiler());
 		trialEventListener.add(messageDispatcher());
-		trialEventListener.add(juiceController());
+		//trialEventListener.add(juiceController());
 		trialEventListener.add(classicConfig.trialSyncController());
 		trialEventListener.add(classicConfig.dataAcqController());
 		trialEventListener.add(classicConfig.jvmManager());
@@ -337,6 +341,15 @@ public class ChoiceInRFConfig {
 		return listeners;
 	}
 	
+	//TODO
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public List<ChoiceEventListener> choiceEventListeners () {
+		List<ChoiceEventListener> listeners = new LinkedList<ChoiceEventListener>();
+		listeners.add(juiceController());
+		return listeners;
+	}
+	
+	
 	
 	@Bean
 	public SaccadeExperimentMessageDispatcher messageDispatcher() {
@@ -347,8 +360,8 @@ public class ChoiceInRFConfig {
 	}
 	
 	@Bean
-	public TrialEventListener juiceController() {
-		SaccadeJuiceController controller = new SaccadeJuiceController();
+	public ChoiceEventListener juiceController() {
+		TwoACJuiceController controller = new TwoACJuiceController();
 		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			controller.setJuice(new NullDynamicJuice());
 		} else {

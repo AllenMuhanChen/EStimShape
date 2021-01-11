@@ -16,7 +16,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  * @author Allen Chen
  * 
  */
-public class VisualStimSpecSpec extends StimSpecSpec{
+public class VisualStimSpecSpec extends SaccadeStimSpecSpec{
 	
 
 	

@@ -15,7 +15,7 @@ public class TwoACExperimentTask extends ExperimentTask {
 	
 	Coordinates2D[] targetEyeWinCoords;
 	double[] targetEyeWinSize;
-	double duration;
+	//double[] duration;
 	EStimObjDataEntry eStimObjDataEntry;
 	
 	String sampleSpec;
@@ -59,15 +59,15 @@ public class TwoACExperimentTask extends ExperimentTask {
 	public void setTargetEyeWinSize(double[] targetEyeWinSize) {
 		this.targetEyeWinSize = targetEyeWinSize;
 	}
-
-	public void setDuration(double duration) {
+/*
+	public void setDuration(double[] duration) {
 		this.duration = duration;
 	}
 
-	public double getDuration() {
+	public double[] getDuration() {
 		return duration;
 	}
-
+*/
 	public EStimObjDataEntry geteStimObjDataEntry() {
 		return eStimObjDataEntry;
 	}

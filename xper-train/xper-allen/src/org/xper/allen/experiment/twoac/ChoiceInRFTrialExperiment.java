@@ -88,7 +88,8 @@ public class ChoiceInRFTrialExperiment implements Experiment {
 					return ChoiceInRFExperimentUtil.runTrial(stateObject, threadHelper, new TwoACSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public TwoACTrialResult runSlide() {
-							int slidePerTrial = stateObject.getSlidePerTrial();
+							//int slidePerTrial = stateObject.getSlidePerTrial();
+							int slidePerTrial = 1;
 							TwoACExperimentTask currentTask = (TwoACExperimentTask) stateObject.getCurrentTask();
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
 							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();

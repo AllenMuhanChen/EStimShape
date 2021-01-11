@@ -3,7 +3,7 @@ package org.xper.allen.blockgen;
 import java.util.ArrayList;
 
 import org.xper.Dependency;
-import org.xper.allen.specs.StimSpecSpec;
+import org.xper.allen.specs.SaccadeStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.exception.VariableNotFoundException;
@@ -34,7 +34,7 @@ public class SimpleEStimBlockGen {
 			System.out.println(spec);
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());
 			dbUtil.writeEStimObjData(taskId, trial.getEStimSpec());	
-			StimSpecSpec stimSpec = new StimSpecSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId, taskId);
+			SaccadeStimSpecSpec stimSpec = new SaccadeStimSpecSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId, taskId);
 			dbUtil.writeStimSpec(taskId,stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}

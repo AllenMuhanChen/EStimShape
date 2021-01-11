@@ -11,7 +11,7 @@ import org.xper.Dependency;
 import org.xper.allen.console.SaccadeEventUtil;
 import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.db.vo.EStimObjDataEntry;
-import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
+import org.xper.allen.experiment.saccade.SaccadeDatabaseTaskDataSource;
 import org.xper.allen.eye.TwoACEyeTargetSelectorConcurrentDriver;
 import org.xper.allen.eye.TwoACTargetSelectorResult;
 import org.xper.allen.intan.SimpleEStimEventUtil;
@@ -135,7 +135,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		//TODO: HANDLE BOTH ONE AND TWO EVENT UTILS
 		else if (selectorResult.getSelectionStatusResult()== TwoACTrialResult.TARGET_SELECTION_ONE) {
 			//TODO: New Event Util
-			//SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+			SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
 		}
 		else if (selectorResult.getSelectionStatusResult()== TwoACTrialResult.TARGET_SELECTION_ONE) {
 			//SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
@@ -182,7 +182,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		TwoACExperimentTask currentTask = state.getCurrentTask();
 		TwoACTrialContext currentContext = (TwoACTrialContext) state.getCurrentContext();
-		AllenDatabaseTaskDataSource taskDataSource = (AllenDatabaseTaskDataSource) state.getTaskDataSource();
+		SaccadeDatabaseTaskDataSource taskDataSource = (SaccadeDatabaseTaskDataSource) state.getTaskDataSource();
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state

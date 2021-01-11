@@ -6,7 +6,7 @@ import java.util.Random;
 import org.xper.Dependency;
 import org.xper.allen.Block;
 import org.xper.allen.specs.BlockSpec;
-import org.xper.allen.specs.StimSpecSpec;
+import org.xper.allen.specs.SaccadeStimSpecSpec;
 import org.xper.allen.specs.VisualStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -51,7 +51,7 @@ public class TrainingBlockGen {
 			String spec = trial.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());
-			StimSpecSpec stimSpec = new VisualStimSpecSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId);
+			SaccadeStimSpecSpec stimSpec = new VisualStimSpecSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId);
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		

@@ -11,7 +11,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  * @author Allen Chen
  *
  */
-public class StimSpecSpec {
+public class SaccadeStimSpecSpec {
 	@XStreamAlias("targetEyeWinCoords")
 	protected Coordinates2D targetEyeWinCoords;
 	@XStreamAlias("targetEyeWinSize")
@@ -29,10 +29,10 @@ public class StimSpecSpec {
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", StimSpecSpec.class);
+		s.alias("StimSpec", SaccadeStimSpecSpec.class);
 	}
 	
-	public StimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long[] stimObjData,
+	public SaccadeStimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long[] stimObjData,
 			long[] eStimObjData) {
 		//super();
 		this.targetEyeWinCoords = targetEyeWinCoords;
@@ -42,7 +42,7 @@ public class StimSpecSpec {
 		this.eStimObjData = eStimObjData;
 	}
 	
-	public StimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
+	public SaccadeStimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
 			 long eStimObjData) {
 		//super();
 		this.targetEyeWinCoords = targetEyeWinCoords;
@@ -57,20 +57,20 @@ public class StimSpecSpec {
 	}
 
 	
-	public StimSpecSpec() {
+	public SaccadeStimSpecSpec() {
 	}
 
 
-	public static String toXml (StimSpecSpec spec) {
+	public static String toXml (SaccadeStimSpecSpec spec) {
 		return s.toXML(spec);
 	}
 	
 	public String toXml() {
-		return StimSpecSpec.toXml(this);
+		return SaccadeStimSpecSpec.toXml(this);
 	}
 	
-	public static StimSpecSpec fromXml (String xml) {
-		StimSpecSpec ss = (StimSpecSpec)s.fromXML(xml);
+	public static SaccadeStimSpecSpec fromXml (String xml) {
+		SaccadeStimSpecSpec ss = (SaccadeStimSpecSpec)s.fromXML(xml);
 		return ss;
 	}
 

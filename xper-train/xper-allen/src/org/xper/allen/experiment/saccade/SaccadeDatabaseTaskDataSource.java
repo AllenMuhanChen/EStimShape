@@ -13,7 +13,7 @@ import org.xper.experiment.ExperimentTask;
 import org.xper.util.DbUtil;
 import org.xper.util.ThreadHelper;
 
-public class AllenDatabaseTaskDataSource extends DatabaseTaskDataSource {
+public class SaccadeDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	static Logger logger = Logger.getLogger(DatabaseTaskDataSource.class);
 
 	static final int DEFAULT_QUERY_INTERVAL = 1000;

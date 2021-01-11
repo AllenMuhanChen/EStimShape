@@ -1,6 +1,7 @@
 package org.xper.allen.db.vo;
 
-import org.xper.allen.specs.StimSpecSpec;
+import org.xper.allen.specs.SaccadeStimSpecSpec;
+import org.xper.allen.specs.TwoACStimSpecSpec;
 import org.xper.db.vo.StimSpecEntry;
 
 import com.thoughtworks.xstream.XStream;
@@ -27,10 +28,16 @@ public class StimSpecEntryUtil{
 	 * Transforms stimSpec xml String into StimSpecSpec object. 
 	 * @return
 	 */
-	public StimSpecSpec fromXmlSpec() {
-		StimSpecSpec ss = StimSpecSpec.fromXml(stimSpecEntry.getSpec());
+	public SaccadeStimSpecSpec saccadeStimSpecSpecFromXmlSpec() {
+		SaccadeStimSpecSpec ss = SaccadeStimSpecSpec.fromXml(stimSpecEntry.getSpec());
 		return ss;
 	}
+	
+	public TwoACStimSpecSpec twoACStimSpecSpecFromXmlSpec() {
+		TwoACStimSpecSpec ss = TwoACStimSpecSpec.fromXml(stimSpecEntry.getSpec());
+		return ss;
+	}
+	
 	
 	transient static XStream s;
 
