@@ -17,9 +17,11 @@ public class TwoACExperimentTask extends ExperimentTask {
 	double[] targetEyeWinSize;
 	//double[] duration;
 	EStimObjDataEntry eStimObjDataEntry;
-	
 	String sampleSpec;
 	String[] choiceSpec;
+	long sampleSpecId;
+	long[] choiceSpecId;
+	RewardPolicy rewardPolicy;
 	
 	public String getSampleSpec() {
 		return sampleSpec;
@@ -74,6 +76,30 @@ public class TwoACExperimentTask extends ExperimentTask {
 
 	public void seteStimObjDataEntry(EStimObjDataEntry eStimObjDataEntry) {
 		this.eStimObjDataEntry = eStimObjDataEntry;
+	}
+
+	public RewardPolicy getRewardPolicy() {
+		return rewardPolicy;
+	}
+
+	public void setRewardPolicy(RewardPolicy rewardPolicy) {
+		this.rewardPolicy = rewardPolicy;
+	}
+
+	public long getSampleSpecId() {
+		return sampleSpecId;
+	}
+
+	public void setSampleSpecId(long sampleSpecId) {
+		this.sampleSpecId = sampleSpecId;
+	}
+
+	public long[] getChoiceSpecId() {
+		return choiceSpecId;
+	}
+
+	public void setChoiceSpecId(long[] choiceSpecId) {
+		this.choiceSpecId = choiceSpecId;
 	}
 	
 	

@@ -46,12 +46,13 @@ import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 
 public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
+	@SuppressWarnings("incomplete-switch")
 	public static TwoACTrialResult doSlide(int i, TwoACExperimentState stateObject) {
 		TwoACMarkStimTrialDrawingController drawingController = (TwoACMarkStimTrialDrawingController) stateObject.getDrawingController();
 		TwoACExperimentTask currentTask = stateObject.getCurrentTask();
 		TwoACTrialContext currentContext = (TwoACTrialContext) stateObject.getCurrentContext();
+		List<? extends ChoiceEventListener> choiceEventListeners = stateObject.getChoiceEventListeners();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
-		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
 		List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
 		List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
@@ -68,15 +69,15 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 			//do nothing
 		}while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
 
-		//drawingController.prepareSample(currentTask, currentContext); //TODO: NEED THIS?
+		//SHOW SAMPLE
 		drawingController.showSlide(currentTask, currentContext);
-		long slideOnLocalTime = timeUtil.currentTimeMicros();
-		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
-		TwoACEventUtil.fireSampleOnEvent(i, slideOnLocalTime, slideEventListeners);
+		long sampleOnLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
+		TwoACEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
 		
 		
-		//HOLD FIXATION
-		fixationSuccess = eyeController.waitEyeInAndHold(slideOnLocalTime
+		//HOLD FIXATION ON SAMPLE
+		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
 				+ stateObject.getSampleLength() * 1000 );
 
 		if (!fixationSuccess) {
@@ -88,14 +89,17 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 					trialEventListeners, currentContext);
 			return TwoACTrialResult.EYE_IN_HOLD_FAIL;
 		}
+		long sampleOffLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setSampleOffTime(sampleOffLocalTime);
+		TwoACEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
 		
-		
-		//show CHOICE 	
+		//SHOW CHOICES
 		drawingController.prepareChoice(currentTask, currentContext);
 		drawingController.showSlide(currentTask, currentContext);
-		long choiceOnLocalTime = timeUtil.currentTimeMicros();
-		TwoACEventUtil.fireChoiceOnEvent();
-		
+		long choicesOnLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setChoicesOnTime(choicesOnLocalTime);
+		TwoACEventUtil.fireChoicesOnEvent(choicesOnLocalTime, choiceEventListeners,currentContext);
+	
 		
 		//ESTIMULATOR
 		sendEStimTrigger(stateObject);
@@ -104,57 +108,79 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		//Eye on Target Logic
 		//eye selector
 		TwoACEyeTargetSelectorConcurrentDriver selectorDriver = new TwoACEyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
-		currentContext.setTargetOnTime(currentContext.getCurrentSlideOnTime()); 
+		currentContext.setChoicesOnTime(currentContext.getCurrentSlideOnTime()); 
 
 
-		//Sleep for the duration of the start delay
-		//ThreadUtil.sleep(stateObject.getTargetSelectionStartDelay());
-
-		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
-		
-		
+		//SELECTOR START
 		selectorDriver.start(currentContext.getTargetPos(), currentContext.getTargetEyeWindowSize(),
-				currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
+				currentContext.getChoicesOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 				+ stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-		SaccadeEventUtil.fireTargetOnEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
 
 		do {
 			//Wait for Eye Target Selector To Finish
 		}while(!selectorDriver.isDone());
 		selectorDriver.stop();
-
-		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+		long choiceDoneLocalTime = timeUtil.currentTimeMicros();
 		
+		//HANDLING RESULTS
 		selectorResult = selectorDriver.getResult();
-		if (selectorResult.getSelectionStatusResult() == TwoACTrialResult.TARGET_SELECTION_EYE_FAIL) {
-			SaccadeEventUtil.fireTargetSelectionEyeFailEvent(timeUtil.currentTimeMicros(), targetEventListeners);
-		}
-		else if (selectorResult.getSelectionStatusResult() == TwoACTrialResult.TARGET_SELECTION_EYE_BREAK) {
-			SaccadeEventUtil.fireTargetSelectionEyeBreakEvent(timeUtil.currentTimeMicros(), targetEventListeners);
-		}
-		//TODO: HANDLE BOTH ONE AND TWO EVENT UTILS
-		else if (selectorResult.getSelectionStatusResult()== TwoACTrialResult.TARGET_SELECTION_ONE) {
-			//TODO: New Event Util
-			SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
-		}
-		else if (selectorResult.getSelectionStatusResult()== TwoACTrialResult.TARGET_SELECTION_ONE) {
-			//SaccadeEventUtil.fireTargetSelectionDoneEvent(timeUtil.currentTimeMicros(), targetEventListeners);
+		TwoACTrialResult result = selectorResult.getSelectionStatusResult();
+		RewardPolicy rewardPolicy = currentContext.getCurrentTask().getRewardPolicy();
+		switch (result) {
+			case TARGET_SELECTION_EYE_FAIL:
+				TwoACEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				TwoACEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				if (rewardPolicy == RewardPolicy.ANY) {
+					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				if (rewardPolicy == RewardPolicy.NONE) {
+					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				break;
+			case TARGET_SELECTION_EYE_BREAK:
+				TwoACEventUtil.fireChoiceSelectionEyeBreakEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				if (rewardPolicy == RewardPolicy.ANY) {
+					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				if (rewardPolicy == RewardPolicy.NONE) {
+					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				break;
+			case TARGET_SELECTION_ONE:
+				TwoACEventUtil.fireChoiceSelectionOneEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				if (rewardPolicy == RewardPolicy.ONE || rewardPolicy == RewardPolicy.EITHER) {
+					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				if (rewardPolicy == RewardPolicy.ANY) {
+					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				if (rewardPolicy == RewardPolicy.TWO) {
+					TwoACEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				break;
+			case TARGET_SELECTION_TWO:
+				TwoACEventUtil.fireChoiceSelectionTwoEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				if (rewardPolicy == RewardPolicy.TWO || rewardPolicy == RewardPolicy.EITHER) {
+					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				if (rewardPolicy == RewardPolicy.ANY) {
+					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				if (rewardPolicy == RewardPolicy.ONE) {
+					TwoACEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				}
+				break;
 		}
 
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		do {
 			//Wait for Slide to Finish
-		}while(timeUtil.currentTimeMicros()<slideOnLocalTime+stateObject.getChoiceLength()*1000);
+		}while(timeUtil.currentTimeMicros()<choicesOnLocalTime+stateObject.getChoiceLength()*1000);
 		//finish current slide
 		drawingController.trialComplete(currentContext);
-		long slideOffLocalTime = timeUtil.currentTimeMicros();
-		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
-		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
-				/*
-				 * TODO: Animation frame stuff may not be needed 
-				 */
-				currentContext.getAnimationFrameIndex(),
-				slideEventListeners);
+		long choiceOffLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setChoicesOffTime(choiceOffLocalTime);
+		TwoACEventUtil.fireChoicesOffEvent(choiceOffLocalTime, choiceEventListeners, currentContext);
 		currentContext.setAnimationFrameIndex(0);
 
 

@@ -241,6 +241,7 @@ public class AllenDbUtil extends DbUtil {
 			long TaskToDoMaxId = readTaskToDoMaxId();
 			 sse = readStimSpec(TaskToDoMaxId);
 		}
+		
 		StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
 		
 		//
@@ -260,18 +261,18 @@ public class AllenDbUtil extends DbUtil {
 
 						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
-						sse.setSpec(rs.getString("stim_spec"));	
+						//sse.setSpec(rs.getString("stim_spec"));	
 						TwoACStimSpecSpec ss = sseU.twoACStimSpecSpecFromXmlSpec();
 						//StimObjData	
-						task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());
+						//task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());
+						task.setSampleSpecId(ss.getSampleObjData());
+						task.setChoiceSpecId(ss.getChoiceObjData());
 						task.setSampleSpec(readStimObjData(ss.getSampleObjData()).getSpec());	
 						String[] choiceSpec = {readStimObjData(ss.getChoiceObjData()[0]).getSpec(),
 								readStimObjData(ss.getChoiceObjData()[1]).getSpec()};
-						//choiceSpec[0] = readStimObjData(ss.getChoiceObjData()[0]).getSpec();
-						//choiceSpec[1] = readStimObjData(ss.getChoiceObjData()[1]).getSpec();
 						task.setChoiceSpec(choiceSpec);							
-						
 						//StimSpec
+						task.setRewardPolicy(ss.getRewardPolicy());
 						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						//TODO: EStimObjData

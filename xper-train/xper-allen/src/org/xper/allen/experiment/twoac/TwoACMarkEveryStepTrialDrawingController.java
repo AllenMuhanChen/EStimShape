@@ -1,21 +1,19 @@
 package org.xper.allen.experiment.twoac;
 
 import org.xper.Dependency;
-import org.xper.classic.MarkStimTrialDrawingController;
-import org.xper.classic.TrialDrawingController;
+import org.xper.classic.MarkEveryStepTrialDrawingController;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 
-public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingController{
-
+public class TwoACMarkEveryStepTrialDrawingController extends MarkEveryStepTrialDrawingController{
 	@Dependency
 	protected TwoACTaskScene taskScene;
 	
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, false);
+		taskScene.drawBlank(context, false, true);
 		window.swapBuffers();
 	}
 	
@@ -36,8 +34,5 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 			taskScene.drawBlank(context, false, false);
 		}
 	}
-	
-	
-	
 	
 }

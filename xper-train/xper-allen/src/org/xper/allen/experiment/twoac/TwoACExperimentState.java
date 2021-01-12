@@ -12,7 +12,7 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 	@Dependency
 	EyeTargetSelector targetSelector;
 	@Dependency
-	List<? extends TargetEventListener> targetEventListeners;
+	List<? extends ChoiceEventListener> choiceEventListeners;
 	@Dependency
 	List<? extends SimpleEStimEventListener> eStimEventListeners;
 	@Dependency
@@ -46,14 +46,6 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 	}
 	
 
-	public List<? extends TargetEventListener> getTargetEventListeners() {
-		return targetEventListeners;
-	}
-
-	public void setTargetEventListeners(List<? extends TargetEventListener> targetEventListeners) {
-		this.targetEventListeners = targetEventListeners;
-	}
-
 	public IntanUtil getIntanUtil() {
 		return intanUtil;
 	}
@@ -68,6 +60,14 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 
 	public void seteStimEventListeners(List<? extends SimpleEStimEventListener> eStimEventListeners) {
 		this.eStimEventListeners = eStimEventListeners;
+	}
+
+	public List<? extends ChoiceEventListener> getChoiceEventListeners() {
+		return choiceEventListeners;
+	}
+
+	public void setChoiceEventListeners(List<? extends ChoiceEventListener> choiceEventListeners) {
+		this.choiceEventListeners = choiceEventListeners;
 	}
 	
 }

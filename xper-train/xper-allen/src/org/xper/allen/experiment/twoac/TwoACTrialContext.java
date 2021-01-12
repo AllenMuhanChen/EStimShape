@@ -4,7 +4,12 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Coordinates2D;
 
 public class TwoACTrialContext extends TrialContext {
-	long targetOnTime;
+	long sampleOnTime;
+	long sampleOffTime;
+	long choicesOnTime;
+	long choicesOffTime;
+	
+	//long targetOnTime;
 	long targetInitialSelectionTime;
 	long targetSelectionSuccessTime;
 	
@@ -39,13 +44,6 @@ public class TwoACTrialContext extends TrialContext {
 		this.targetEyeWindowSize = targetEyeWindowSize;
 	}
 
-	public long getTargetOnTime() {
-		return targetOnTime;
-	}
-
-	public void setTargetOnTime(long targetOnTime) {
-		this.targetOnTime = targetOnTime;
-	}
 
 	public long getTargetInitialSelectionTime() {
 		return targetInitialSelectionTime;
@@ -62,7 +60,7 @@ public class TwoACTrialContext extends TrialContext {
 	public void setTargetSelectionSuccessTime(long targetSelectionSuccessTime) {
 		this.targetSelectionSuccessTime = targetSelectionSuccessTime;
 	}
-	
+
 	public long getSampleOnTime() {
 		return sampleOnTime;
 	}
@@ -70,6 +68,46 @@ public class TwoACTrialContext extends TrialContext {
 	public void setSampleOnTime(long sampleOnTime) {
 		this.sampleOnTime = sampleOnTime;
 	}
-	
+
+	public long getChoicesOnTime() {
+		return choicesOnTime;
+	}
+
+	public void setChoicesOnTime(long choicesOnTime) {
+		this.choicesOnTime = choicesOnTime;
+	}
+
+	public long getTargetIndex() {
+		return targetIndex;
+	}
+
+	public void setTargetIndex(long targetIndex) {
+		this.targetIndex = targetIndex;
+	}
+
+	public boolean isTargetFixationSuccess() {
+		return targetFixationSuccess;
+	}
+
+	public void setTargetFixationSuccess(boolean targetFixationSuccess) {
+		this.targetFixationSuccess = targetFixationSuccess;
+	}
+
+	public long getSampleOffTime() {
+		return sampleOffTime;
+	}
+
+	public void setSampleOffTime(long sampleOffTime) {
+		this.sampleOffTime = sampleOffTime;
+	}
+
+	public long getChoicesOffTime() {
+		return choicesOffTime;
+	}
+
+	public void setChoicesOffTime(long choicesOffTime) {
+		this.choicesOffTime = choicesOffTime;
+	}
+
 
 }

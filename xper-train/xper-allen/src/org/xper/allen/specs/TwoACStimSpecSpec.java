@@ -1,5 +1,6 @@
 package org.xper.allen.specs;
 
+import org.xper.allen.experiment.twoac.RewardPolicy;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
@@ -22,6 +23,9 @@ public class TwoACStimSpecSpec {
 	protected long[] choiceObjData;
 	@XStreamAlias("eStimObjData")
 	protected long[] eStimObjData;
+	@XStreamAlias("rewardPolicy")
+	protected RewardPolicy rewardPolicy;
+	
 	//@XStreamAlias("eStimObjChans")
 	//protected int[] eStimObjChans;
 	
@@ -33,13 +37,14 @@ public class TwoACStimSpecSpec {
 	}
 	
 	public TwoACStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData, 
-			long[] choiceObjData, long[] eStimObjData) {
+			long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy) {
 		//super();
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
 		this.sampleObjData = sampleObjData;
 		this.choiceObjData = choiceObjData;
 		this.eStimObjData = eStimObjData;
+		this.rewardPolicy = rewardPolicy;
 	}
 /*	
 	public TwoACStimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
@@ -60,6 +65,14 @@ public class TwoACStimSpecSpec {
 	public TwoACStimSpecSpec() {
 	}
 
+
+	public RewardPolicy getRewardPolicy() {
+		return rewardPolicy;
+	}
+
+	public void setRewardPolicy(RewardPolicy rewardPolicy) {
+		this.rewardPolicy = rewardPolicy;
+	}
 
 	public Coordinates2D[] getTargetEyeWinCoords() {
 		return targetEyeWinCoords;
