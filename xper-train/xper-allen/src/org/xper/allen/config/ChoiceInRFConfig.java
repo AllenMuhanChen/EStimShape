@@ -31,8 +31,12 @@ import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingControl
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
 import org.xper.allen.experiment.twoac.ChoiceEventListener;
 import org.xper.allen.experiment.twoac.ChoiceInRFTrialExperiment;
+import org.xper.allen.experiment.twoac.TwoACDatabaseTaskDataSource;
+import org.xper.allen.experiment.twoac.TwoACExperimentMessageDispatcher;
 import org.xper.allen.experiment.twoac.TwoACExperimentState;
 import org.xper.allen.experiment.twoac.TwoACJuiceController;
+import org.xper.allen.experiment.twoac.TwoACMarkEveryStepTrialDrawingController;
+import org.xper.allen.experiment.twoac.TwoACMarkStimTrialDrawingController;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -245,7 +249,7 @@ public class ChoiceInRFConfig {
 	
 	@Bean
 	public TwoACDatabaseTaskDataSource databaseTaskDataSource() {
-		SaccadeDatabaseTaskDataSource source = new SaccadeDatabaseTaskDataSource();
+		TwoACDatabaseTaskDataSource source = new TwoACDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
 		source.setUngetBehavior(UngetPolicy.TAIL);
@@ -278,8 +282,8 @@ public class ChoiceInRFConfig {
 		TwoACExperimentState state = new TwoACExperimentState();
 		state.setLocalTimeUtil(baseConfig.localTimeUtil());
 		state.setTrialEventListeners(trialEventListeners());
+		state.setChoiceEventListeners(choiceEventListeners());
 		state.setSlideEventListeners(classicConfig.slideEventListeners());
-		state.setTargetEventListeners(targetEventListeners());
 		state.seteStimEventListeners(eStimEventListeners());
 		state.setEyeController(classicConfig.eyeController());
 		state.setExperimentEventListeners(classicConfig.experimentEventListeners());
@@ -331,7 +335,7 @@ public class ChoiceInRFConfig {
 		
 		return trialEventListener;
 	}
-
+/*
 	//TODO
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<TargetEventListener> targetEventListeners () {
@@ -340,11 +344,12 @@ public class ChoiceInRFConfig {
 		listeners.add((TargetEventListener) juiceController());
 		return listeners;
 	}
-	
+	*/
 	//TODO
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<ChoiceEventListener> choiceEventListeners () {
 		List<ChoiceEventListener> listeners = new LinkedList<ChoiceEventListener>();
+		listeners.add(messageDispatcher());
 		listeners.add(juiceController());
 		return listeners;
 	}
@@ -352,8 +357,8 @@ public class ChoiceInRFConfig {
 	
 	
 	@Bean
-	public SaccadeExperimentMessageDispatcher messageDispatcher() {
-		SaccadeExperimentMessageDispatcher dispatcher = new SaccadeExperimentMessageDispatcher();
+	public TwoACExperimentMessageDispatcher messageDispatcher() {
+		TwoACExperimentMessageDispatcher dispatcher = new TwoACExperimentMessageDispatcher();
 		dispatcher.setHost(classicConfig.experimentHost);
 		dispatcher.setDbUtil(allenDbUtil());
 		return dispatcher;
@@ -381,9 +386,9 @@ public class ChoiceInRFConfig {
 	private TrialDrawingController drawingController() {
 		MarkStimTrialDrawingController controller;
 		if (markEveryStep) {
-			controller = new SaccadeMarkEveryStepTrialDrawingController();
+			controller = new TwoACMarkEveryStepTrialDrawingController();
 		} else {
-			controller = new MarkStimTrialDrawingController();
+			controller = new TwoACMarkStimTrialDrawingController();
 		}
 		controller.setWindow(classicConfig.monkeyWindow());
 		controller.setTaskScene(taskScene());

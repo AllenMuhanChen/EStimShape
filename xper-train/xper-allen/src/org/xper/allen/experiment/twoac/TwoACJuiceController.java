@@ -24,28 +24,78 @@ public class TwoACJuiceController implements ChoiceEventListener {
 
 	
 	@Override
-	public void targetSelectionCorrect(long timestamp) {
+	public void choiceSelectionCorrect(long timestamp) {
 		juice.deliver();
 		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal correctly chose.");
 		
 	}
 
-	@Override
-	public void targetSelectionIncorrect(long timestamp) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
-	public void targetSelectionNull(long timestamp) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void targetSelectionDefaultCorrect(long timestamp) {
+	public void choiceSelectionDefaultCorrect(long timestamp) {
 		juice.deliver();
 		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal is correct by default.");
+	}
+
+	@Override
+	public void sampleOn(long timestamp, TrialContext context) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void sampleOff(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void choicesOn(long timestamp, TrialContext context) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void choicesOff(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void choiceSelectionEyeFail(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void choiceSelectionEyeBreak(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void choiceSelectionOne(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void choiceSelectionTwo(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void choiceSelectionNull(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+	@Override
+	public void choiceSelectionIncorrect(long timestamp) {
+		// TODO Auto-generated method stub
+		
 	}
 
 
