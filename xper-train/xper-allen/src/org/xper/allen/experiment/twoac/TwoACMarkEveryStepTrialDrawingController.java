@@ -4,6 +4,7 @@ import org.xper.Dependency;
 import org.xper.classic.MarkEveryStepTrialDrawingController;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
+import org.xper.drawing.TaskScene;
 import org.xper.experiment.ExperimentTask;
 
 public class TwoACMarkEveryStepTrialDrawingController extends MarkEveryStepTrialDrawingController{
@@ -20,7 +21,9 @@ public class TwoACMarkEveryStepTrialDrawingController extends MarkEveryStepTrial
 	protected void prepareSample(TwoACExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setSample(task);
+			System.out.println("Two");
 			taskScene.drawSample(context, true);
+			System.out.println("Three");
 		} else {
 			taskScene.drawBlank(context, false, false);
 		}
@@ -34,5 +37,14 @@ public class TwoACMarkEveryStepTrialDrawingController extends MarkEveryStepTrial
 			taskScene.drawBlank(context, false, false);
 		}
 	}
+
+	public TwoACTaskScene getTaskScene() {
+		return taskScene;
+	}
 	
+
+	public void setTaskScene(TwoACTaskScene taskScene) {
+		this.taskScene = taskScene;
+	}
+
 }

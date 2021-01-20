@@ -20,7 +20,7 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
 
 public class TrialExperimentUtil {
-	protected static Logger logger = Logger.getLogger(TrialExperimentUtil.class);
+	public static Logger logger = Logger.getLogger(TrialExperimentUtil.class);
 	
 	public static void cleanupTask (TrialExperimentState stateObject) {
 		ExperimentTask currentTask = stateObject.getCurrentTask();

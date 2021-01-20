@@ -1,15 +1,19 @@
-package org.xper.allen.blockgen;
+package org.xper.allen.experiment.saccade.blockgen;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 import org.xper.Dependency;
+import org.xper.allen.Block;
+import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.SaccadeStimSpecSpec;
+import org.xper.allen.specs.VisualStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 
-public class SimpleEStimBlockGen {
+public class TrainingBlockGen {
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
@@ -17,32 +21,62 @@ public class SimpleEStimBlockGen {
 	@Dependency
 	AllenXMLUtil xmlUtil;
 	
+	int num_per_chan;
+	long blockId;
+	BlockSpec blockspec;
+	Block block;
+	char[] trialTypeList;
+	/**
+	 * Selects visual stimuli randomly from stimTypes
+	 */
+	Random r = new Random();
+	
+	public TrainingBlockGen() {
+	}
+	
+	
 	long genId = 1;
-	public void generate(String filepath) {
-		
-		ArrayList<Trial> trials = (ArrayList<Trial>) xmlUtil.parseFile(filepath);
+	public void generate(String filepath) { //
+	
+		ArrayList<TrainingTrial> visualTrials = (ArrayList<TrainingTrial>) xmlUtil.parseFile(filepath);
 		try {
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
-		
-		for (int i = 0; i < trials.size(); i++) {
+		for (int i = 0; i < visualTrials.size(); i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
-			Trial trial = trials.get(i);
+			
+			TrainingTrial trial = visualTrials.get(i);
 			String spec = trial.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(taskId, trial.getGaussSpec().toXml(), trial.getData());
-			dbUtil.writeEStimObjData(taskId, trial.getEStimSpec());	
-			SaccadeStimSpecSpec stimSpec = new SaccadeStimSpecSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId, taskId);
-			dbUtil.writeStimSpec(taskId,stimSpec.toXml());
+			SaccadeStimSpecSpec stimSpec = new VisualStimSpecSpec(trial.getTargetEyeWinCoords(), trial.getTargetEyeWinSize(), trial.getDuration(), taskId);
+			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
+		
 		}
-		dbUtil.updateReadyGenerationInfo(genId, trials.size());
-		System.out.println("Done Generating");
+		dbUtil.updateReadyGenerationInfo(genId, visualTrials.size());
+		System.out.println("Done Generating...");
 		return;
+		
 	}
-	
+
+	public BlockSpec getBlockspec() {
+		return blockspec;
+	}
+
+	public void setBlockspec(BlockSpec blockspec) {
+		this.blockspec = blockspec;
+	}
+
+	public Block getBlock() {
+		return block;
+	}
+
+	public void setBlock(Block block) {
+		this.block = block;
+	}
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;
 	}
@@ -50,7 +84,6 @@ public class SimpleEStimBlockGen {
 	public void setDbUtil(AllenDbUtil dbUtil) {
 		this.dbUtil = dbUtil;
 	}
-	
 	public TimeUtil getGlobalTimeUtil() {
 		return globalTimeUtil;
 	}
@@ -58,7 +91,7 @@ public class SimpleEStimBlockGen {
 	public void setGlobalTimeUtil(TimeUtil globalTimeUtil) {
 		this.globalTimeUtil = globalTimeUtil;
 	}
-	
+
 	public AllenXMLUtil getXmlUtil() {
 		return xmlUtil;
 	}
@@ -66,4 +99,5 @@ public class SimpleEStimBlockGen {
 	public void setXmlUtil(AllenXMLUtil xmlUtil) {
 		this.xmlUtil = xmlUtil;
 	}
+
 }

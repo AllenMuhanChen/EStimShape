@@ -3,7 +3,7 @@ package org.xper.allen.experiment.twoac;
 import java.sql.Timestamp;
 
 import org.xper.Dependency;
-import org.xper.allen.console.TargetEventListener;
+import org.xper.allen.experiment.saccade.console.TargetEventListener;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
 import org.xper.juice.Juice;

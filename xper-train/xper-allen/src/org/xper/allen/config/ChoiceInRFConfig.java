@@ -18,25 +18,20 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
-import org.xper.allen.console.SaccadeExperimentConsole;
-import org.xper.allen.console.SaccadeExperimentConsoleModel;
-import org.xper.allen.console.SaccadeExperimentConsoleRenderer;
-import org.xper.allen.console.SaccadeExperimentMessageDispatcher;
-import org.xper.allen.console.SaccadeExperimentMessageHandler;
-import org.xper.allen.console.TargetEventListener;
-import org.xper.allen.experiment.saccade.SaccadeDatabaseTaskDataSource;
-import org.xper.allen.experiment.saccade.SaccadeExperimentState;
-import org.xper.allen.experiment.saccade.SaccadeJuiceController;
-import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
-import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentConsole;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentConsoleModel;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentConsoleRenderer;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentMessageHandler;
 import org.xper.allen.experiment.twoac.ChoiceEventListener;
 import org.xper.allen.experiment.twoac.ChoiceInRFTrialExperiment;
 import org.xper.allen.experiment.twoac.TwoACDatabaseTaskDataSource;
 import org.xper.allen.experiment.twoac.TwoACExperimentMessageDispatcher;
 import org.xper.allen.experiment.twoac.TwoACExperimentState;
+import org.xper.allen.experiment.twoac.TwoACGaussScene;
 import org.xper.allen.experiment.twoac.TwoACJuiceController;
 import org.xper.allen.experiment.twoac.TwoACMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.twoac.TwoACMarkStimTrialDrawingController;
+import org.xper.allen.experiment.twoac.TwoACTaskScene;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -55,6 +50,7 @@ import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.exception.DbException;
 import org.xper.experiment.ExperimentRunner;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
@@ -110,11 +106,11 @@ public class ChoiceInRFConfig {
 		iUtil = new IntanUtil();
 		} catch (Exception e) {
 			System.out.println("WARNING: IntanUtil could not be initialized");
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return iUtil;
 	}
-	
+/*	
 	@Bean
 	public TaskScene taskScene() {
 		BlankTaskScene scene = new BlankTaskScene();
@@ -124,7 +120,23 @@ public class ChoiceInRFConfig {
 		scene.setBlankScreen(new BlankScreen());
 		return scene;
 	}
+*/
 
+	@Bean
+	public AbstractRenderer experimentGLRenderer () {
+		PerspectiveStereoRenderer renderer = new PerspectiveStereoRenderer();
+		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
+		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
+		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
+		
+		System.out.println("23108 screen width = " + classicConfig.xperMonkeyScreenWidth());
+		
+		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
+		renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
+		return renderer;
+	}
+	
 	@Bean
 	public AllenDbUtil allenDbUtil() {
 		AllenDbUtil dbUtil = new AllenDbUtil();
@@ -295,11 +307,8 @@ public class ChoiceInRFConfig {
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
 		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
-		//state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
-		//state.setSlideLength(classicConfig.xperSlideLength());
 		state.setSampleLength(xperSampleLength());
 		state.setChoiceLength(xperChoiceLength());
-		//state.setInterSlideInterval(classicConfig.xperInterSlideInterval());
 		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
 		state.setSleepWhileWait(true);
 		state.setPause(classicConfig.xperExperimentInitialPause());
@@ -313,7 +322,12 @@ public class ChoiceInRFConfig {
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		//Intan Stuff
+		try {
 		state.setIntanUtil(intanUtil());
+		} catch (Exception e) {
+			System.out.println("Cant set IntanUtil");
+			
+		}
 		return state;
 	}
 	
@@ -390,12 +404,33 @@ public class ChoiceInRFConfig {
 		} else {
 			controller = new TwoACMarkStimTrialDrawingController();
 		}
+		System.out.println("Setting Window");
 		controller.setWindow(classicConfig.monkeyWindow());
-		controller.setTaskScene(taskScene());
+		System.out.println("Setting taskSCene");
+		controller.setTaskScene(this.taskScene());
+		System.out.println("ONE:");
+		System.out.println(taskScene().toString());
+		System.out.println("TWO:");
+		System.out.println(controller.getTaskScene().toString());
+		System.out.println("Setting FixaationOnWithStimuli");
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
 		return controller;
 	}
 
+	
+	@Bean
+	public TwoACGaussScene taskScene() {
+		System.out.println("taskScene called");
+		TwoACGaussScene scene = new TwoACGaussScene();
+		scene.setRenderer(experimentGLRenderer());
+		scene.setFixation(classicConfig.experimentFixationPoint());
+		scene.setMarker(classicConfig.screenMarker());
+		scene.setBlankScreen(new BlankScreen());
+		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
+		return scene;
+	}
+	
+	
 	//TODO
 	@Bean
 	public RobustEyeTargetSelector eyeTargetSelector() {

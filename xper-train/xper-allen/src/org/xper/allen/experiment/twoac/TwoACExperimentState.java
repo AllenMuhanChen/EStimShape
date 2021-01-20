@@ -3,7 +3,7 @@ package org.xper.allen.experiment.twoac;
 import java.util.List;
 
 import org.xper.Dependency;
-import org.xper.allen.console.TargetEventListener;
+import org.xper.allen.experiment.saccade.console.TargetEventListener;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.util.IntanUtil;

@@ -1,4 +1,4 @@
-package org.xper.allen.console;
+package org.xper.allen.experiment.saccade.console;
 
 import java.awt.Canvas;
 import java.awt.Color;

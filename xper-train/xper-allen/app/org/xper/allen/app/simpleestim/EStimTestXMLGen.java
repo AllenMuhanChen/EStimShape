@@ -15,12 +15,12 @@ import javax.xml.transform.stream.StreamResult;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.w3c.dom.Document;
 import org.xper.allen.app.training.RandomCircleTrainingXMLGen;
-import org.xper.allen.blockgen.TrainingTrial;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.experiment.saccade.blockgen.EStimTrial;
+import org.xper.allen.experiment.saccade.blockgen.TrainingTrial;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
-import org.xper.allen.blockgen.EStimTrial;
 import org.xper.experiment.SystemVariableContainer;
 
 import com.thoughtworks.xstream.XStream;
