@@ -34,7 +34,7 @@ import org.xper.allen.intan.SimpleEStimEventListener;
 public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 	@SuppressWarnings("incomplete-switch")
 	public static TwoACTrialResult doSlide(int i, TwoACExperimentState stateObject) {
-		TwoACMarkStimTrialDrawingController drawingController = (TwoACMarkStimTrialDrawingController) stateObject.getDrawingController();
+		TwoACMarkStimTrialDrawingController drawingController = (TwoACMarkStimTrialDrawingController) stateObject.getTwoACDrawingController();
 		TwoACExperimentTask currentTask = stateObject.getCurrentTask();
 		TwoACTrialContext currentContext = (TwoACTrialContext) stateObject.getCurrentContext();
 		List<? extends ChoiceEventListener> choiceEventListeners = stateObject.getChoiceEventListeners();
@@ -190,13 +190,13 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		return TwoACTrialResult.TRIAL_COMPLETE;
 	}
 
-	public static void cleanupTrial (TwoACTrialExperimentState state) {
+	public static void cleanupTrial (TwoACExperimentState state) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		TwoACExperimentTask currentTask = state.getCurrentTask();
 		TwoACTrialContext currentContext = (TwoACTrialContext) state.getCurrentContext();
 		TwoACDatabaseTaskDataSource taskDataSource = (TwoACDatabaseTaskDataSource) state.getTaskDataSource();
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
-		TrialDrawingController drawingController = state.getDrawingController();
+		TwoACTrialDrawingController drawingController = state.getTwoACDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
 				.getTrialEventListeners();
 
@@ -312,8 +312,10 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 	public static TwoACTrialResult getMonkeyFixation(TwoACExperimentState state,
 			ThreadHelper threadHelper) {
 
-		TwoACMarkEveryStepTrialDrawingController drawingController = (TwoACMarkEveryStepTrialDrawingController) state.getDrawingController();
-	
+		TwoACMarkEveryStepTrialDrawingController drawingController = (TwoACMarkEveryStepTrialDrawingController) state.getTwoACDrawingController();
+		System.out.println("Test:");
+		System.out.println(drawingController.toString());
+		
 		TrialContext currentContext = state.getCurrentContext();
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		List<? extends TrialEventListener> trialEventListeners = state
@@ -403,8 +405,9 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		try {
 			threadHelper.started();
 			System.out.println("SlideTrialExperiment started.");
-
-			state.getDrawingController().init();
+			System.out.println("Trying to get TwoACDrawingController");
+			System.out.println(state.getTwoACDrawingController().toString());
+			state.getTwoACDrawingController().init();
 			EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
 					state.getExperimentEventListeners());
 
@@ -430,7 +433,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 				System.out.println("SlideTrialExperiment stopped.");
 				EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),
 						state.getExperimentEventListeners());
-				state.getDrawingController().destroy();
+				state.getTwoACDrawingController().destroy();
 
 				threadHelper.stopped();
 			} catch (Exception e) {

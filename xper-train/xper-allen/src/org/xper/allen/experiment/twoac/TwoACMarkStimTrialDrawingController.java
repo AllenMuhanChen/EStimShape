@@ -7,10 +7,12 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 
-public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingController{
+public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingController implements TwoACTrialDrawingController{
 
 	@Dependency
 	protected TwoACTaskScene taskScene;
+	
+	boolean initialized = false;
 	
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
@@ -19,7 +21,7 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 		window.swapBuffers();
 	}
 	
-	protected void prepareSample(TwoACExperimentTask task, Context context) {
+	public void prepareSample(TwoACExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setSample(task);
 			taskScene.drawSample(context, true);
@@ -28,7 +30,7 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 		}
 	}
 	
-	protected void prepareChoice(TwoACExperimentTask task, Context context) {
+	public void prepareChoice(TwoACExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setChoice(task);
 			taskScene.drawChoice(context, false);
@@ -37,7 +39,29 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 		}
 	}
 	
+	public TwoACTaskScene getTwoACTaskScene() {
+		return taskScene;
+	}
+
+	public void setTaskScene(TwoACTaskScene taskScene) {
+		this.taskScene = taskScene;
+	}
 	
+	// not sure if below needed. 
+	public void init() {
+		System.out.println("Window: "+ window.toString());
+		window.create();
+		System.out.println("taskScene: "+ taskScene.toString());
+		taskScene.initGL(window.getWidth(), window.getHeight());
+		initialized = true;
+	}
 	
+	public void destroy() {
+		if (initialized) {
+			window.destroy();
+			initialized = false;
+		}
+	}
+
 	
 }

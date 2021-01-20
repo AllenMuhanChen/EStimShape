@@ -7,18 +7,9 @@ import org.xper.drawing.Context;
 import org.xper.drawing.TaskScene;
 import org.xper.experiment.ExperimentTask;
 
-public class TwoACMarkEveryStepTrialDrawingController extends MarkEveryStepTrialDrawingController{
-	@Dependency
-	protected TwoACTaskScene taskScene;
-	
-	@Override
-	public void slideFinish(ExperimentTask task, TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
-		window.swapBuffers();
-	}
-	
-	protected void prepareSample(TwoACExperimentTask task, Context context) {
+public class TwoACMarkEveryStepTrialDrawingController extends TwoACMarkStimTrialDrawingController implements TwoACTrialDrawingController{
+
+	public void prepareSample(TwoACExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setSample(task);
 			System.out.println("Two");
@@ -29,7 +20,14 @@ public class TwoACMarkEveryStepTrialDrawingController extends MarkEveryStepTrial
 		}
 	}
 	
-	protected void prepareChoice(TwoACExperimentTask task, Context context) {
+	@Override
+	public void slideFinish(ExperimentTask task, TrialContext context) {
+		taskScene.nextMarker();
+		taskScene.drawBlank(context, false, true);
+		window.swapBuffers();
+	}
+	
+	public void prepareChoice(TwoACExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setChoice(task);
 			taskScene.drawChoice(context, false);
@@ -38,13 +36,53 @@ public class TwoACMarkEveryStepTrialDrawingController extends MarkEveryStepTrial
 		}
 	}
 
-	public TwoACTaskScene getTaskScene() {
-		return taskScene;
+	//From MarkEveryStepTrialDrawingController
+	
+	public void trialStart(TrialContext context) {
+		taskScene.trialStart(context);
+		
+		taskScene.nextMarker();
+		taskScene.drawBlank(context, false, true);
+		window.swapBuffers();
+	}
+	
+	public void prepareFixationOn(TrialContext context) {
+		taskScene.nextMarker();
+		taskScene.drawBlank(context, true, true);
+	}
+	
+	public void initialEyeInFail(TrialContext context) {
+		taskScene.nextMarker();
+		taskScene.drawBlank(context, false, true);
+		window.swapBuffers();
+	}
+	
+	public void eyeInHoldFail(TrialContext context) {
+		taskScene.nextMarker();
+		taskScene.drawBlank(context, false, true);
+		window.swapBuffers();
 	}
 	
 
-	public void setTaskScene(TwoACTaskScene taskScene) {
-		this.taskScene = taskScene;
+	public void eyeInBreak(TrialContext context) {
+		taskScene.nextMarker();
+		taskScene.drawBlank(context, false, true);
+		window.swapBuffers();
 	}
+
+	public void trialComplete(TrialContext context) {
+		taskScene.nextMarker();
+		taskScene.drawBlank(context, false, true);
+		window.swapBuffers();
+	}
+
+	public void trialStop(TrialContext context) {
+		// show no markers during inter trial interval
+		taskScene.drawBlank(context, false, false);
+		window.swapBuffers();
+		
+		taskScene.trialStop(context);
+	}
+	
 
 }

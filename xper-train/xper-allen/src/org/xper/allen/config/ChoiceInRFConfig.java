@@ -32,6 +32,7 @@ import org.xper.allen.experiment.twoac.TwoACJuiceController;
 import org.xper.allen.experiment.twoac.TwoACMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.twoac.TwoACMarkStimTrialDrawingController;
 import org.xper.allen.experiment.twoac.TwoACTaskScene;
+import org.xper.allen.experiment.twoac.TwoACTrialDrawingController;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -303,6 +304,9 @@ public class ChoiceInRFConfig {
 		state.setTaskDoneCache(classicConfig.taskDoneCache());
 		state.setGlobalTimeClient(acqConfig.timeClient());
 		state.setDrawingController(drawingController());
+		System.out.println(drawingController().toString());
+		System.out.println(state.getDrawingController());
+		System.out.println(state.getTwoACDrawingController());
 		state.setInterTrialInterval(classicConfig.xperInterTrialInterval());
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
@@ -397,13 +401,14 @@ public class ChoiceInRFConfig {
 	}
 
 
-	private TrialDrawingController drawingController() {
-		MarkStimTrialDrawingController controller;
+	private TwoACTrialDrawingController drawingController() {
+		TwoACMarkStimTrialDrawingController controller;
 		if (markEveryStep) {
 			controller = new TwoACMarkEveryStepTrialDrawingController();
 		} else {
 			controller = new TwoACMarkStimTrialDrawingController();
 		}
+		System.out.println(controller.toString());
 		System.out.println("Setting Window");
 		controller.setWindow(classicConfig.monkeyWindow());
 		System.out.println("Setting taskSCene");
@@ -411,7 +416,7 @@ public class ChoiceInRFConfig {
 		System.out.println("ONE:");
 		System.out.println(taskScene().toString());
 		System.out.println("TWO:");
-		System.out.println(controller.getTaskScene().toString());
+		System.out.println(controller.getTwoACTaskScene().toString());
 		System.out.println("Setting FixaationOnWithStimuli");
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
 		return controller;
