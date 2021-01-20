@@ -1,4 +1,4 @@
-package org.xper.allen.console;
+package org.xper.allen.experiment.saccade.console;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;

@@ -13,17 +13,17 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  *
  */
 public class TwoACStimSpecSpec {
-	@XStreamAlias("targetEyeWinCoords")
+	//@XStreamAlias("targetEyeWinCoords")
 	protected Coordinates2D[] targetEyeWinCoords;
-	@XStreamAlias("targetEyeWinSize")
+	//@XStreamAlias("targetEyeWinSize")
 	protected double[] targetEyeWinSize;
-	@XStreamAlias("sampleObjData")
+	//@XStreamAlias("sampleObjData")
 	protected long sampleObjData;
-	@XStreamAlias("choiceObjData")
+	//@XStreamAlias("choiceObjData")
 	protected long[] choiceObjData;
-	@XStreamAlias("eStimObjData")
+	//@XStreamAlias("eStimObjData")
 	protected long[] eStimObjData;
-	@XStreamAlias("rewardPolicy")
+	//@XStreamAlias("rewardPolicy")
 	protected RewardPolicy rewardPolicy;
 	
 	//@XStreamAlias("eStimObjChans")
@@ -33,12 +33,11 @@ public class TwoACStimSpecSpec {
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", SaccadeStimSpecSpec.class);
+		s.alias("StimSpec", TwoACStimSpecSpec.class);
 	}
 	
 	public TwoACStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData, 
 			long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy) {
-		//super();
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
 		this.sampleObjData = sampleObjData;

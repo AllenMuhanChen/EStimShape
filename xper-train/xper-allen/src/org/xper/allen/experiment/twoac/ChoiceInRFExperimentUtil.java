@@ -7,41 +7,27 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.xper.Dependency;
-import org.xper.allen.console.SaccadeEventUtil;
-import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.db.vo.EStimObjDataEntry;
-import org.xper.allen.experiment.saccade.SaccadeDatabaseTaskDataSource;
-import org.xper.allen.eye.TwoACEyeTargetSelectorConcurrentDriver;
-import org.xper.allen.eye.TwoACTargetSelectorResult;
+import org.xper.allen.experiment.twoac.eye.TwoACEyeTargetSelectorConcurrentDriver;
+import org.xper.allen.experiment.twoac.eye.TwoACTargetSelectorResult;
 import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.allen.vo.TwoACTrialResult;
+import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.SlideEventListener;
-import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
-import org.xper.classic.TrialRunner;
 import org.xper.classic.vo.TrialContext;
-import org.xper.classic.vo.TrialExperimentState;
-import org.xper.classic.vo.TrialResult;
-import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.EyeController;
-import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.TaskDoneCache;
-import org.xper.eye.EyeMonitor;
 import org.xper.eye.EyeTargetSelector;
-import org.xper.eye.EyeTargetSelectorConcurrentDriver;
-import org.xper.eye.TargetSelectorResult;
 import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.ThreadUtil;
 import org.xper.util.TrialExperimentUtil;
 
-import jssc.SerialPortException;
 
 import org.xper.util.IntanUtil;
-import org.xper.drawing.Coordinates2D;
 import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 
@@ -208,7 +194,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		TwoACExperimentTask currentTask = state.getCurrentTask();
 		TwoACTrialContext currentContext = (TwoACTrialContext) state.getCurrentContext();
-		SaccadeDatabaseTaskDataSource taskDataSource = (SaccadeDatabaseTaskDataSource) state.getTaskDataSource();
+		TwoACDatabaseTaskDataSource taskDataSource = (TwoACDatabaseTaskDataSource) state.getTaskDataSource();
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
@@ -325,7 +311,9 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 	//TODO: HAVE THIS SET Prepare first trial via sampleSpec and choiceSpec via new drawing controller. 
 	public static TwoACTrialResult getMonkeyFixation(TwoACExperimentState state,
 			ThreadHelper threadHelper) {
-		TwoACMarkStimTrialDrawingController drawingController = (TwoACMarkStimTrialDrawingController) state.getDrawingController();
+
+		TwoACMarkEveryStepTrialDrawingController drawingController = (TwoACMarkEveryStepTrialDrawingController) state.getDrawingController();
+	
 		TrialContext currentContext = state.getCurrentContext();
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		List<? extends TrialEventListener> trialEventListeners = state
@@ -446,7 +434,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 
 				threadHelper.stopped();
 			} catch (Exception e) {
-				logger.warn(e.getMessage());
+				//logger.warn(e.getMessage());
 				e.printStackTrace();
 			}
 		}

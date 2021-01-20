@@ -1,4 +1,4 @@
-package org.xper.allen.blockgen;
+package org.xper.allen.experiment.saccade.blockgen;
 
 import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.EStimObjData;

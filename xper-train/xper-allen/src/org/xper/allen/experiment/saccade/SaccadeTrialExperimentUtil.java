@@ -8,9 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.xper.Dependency;
-import org.xper.allen.console.SaccadeEventUtil;
-import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.experiment.saccade.console.SaccadeEventUtil;
+import org.xper.allen.experiment.saccade.console.TargetEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;

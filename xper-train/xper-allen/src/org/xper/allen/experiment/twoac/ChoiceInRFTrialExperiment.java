@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
+import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.vo.TwoACTrialResult;
 import org.xper.classic.SlideRunner;
@@ -21,8 +22,6 @@ import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
 
 import jssc.SerialPortException;
-
-import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 
 /**
  * Format of StimSpec:

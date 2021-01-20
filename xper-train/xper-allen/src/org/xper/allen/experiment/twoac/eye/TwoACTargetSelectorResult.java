@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.xper.allen.eye;
+package org.xper.allen.experiment.twoac.eye;
 
 import org.xper.allen.vo.TwoACTrialResult;
 

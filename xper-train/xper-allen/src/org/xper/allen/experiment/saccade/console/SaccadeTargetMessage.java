@@ -1,4 +1,4 @@
-package org.xper.allen.console;
+package org.xper.allen.experiment.saccade.console;
 
 import org.xper.drawing.Coordinates2D;
 
