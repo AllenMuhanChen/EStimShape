@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.xper.Dependency;
 import org.xper.classic.SlideEventListener;
+import org.xper.classic.TrialDrawingController;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.TaskDataSource;
@@ -50,6 +51,7 @@ public class TwoACTrialExperimentState extends TrialExperimentState {
 	TwoACTrialContext currentContext;
 	@Dependency
 	TaskDataSource taskDataSource;
+
 	
 	
 	/**
@@ -120,6 +122,23 @@ public class TwoACTrialExperimentState extends TrialExperimentState {
 	public void setCurrentContext(TwoACTrialContext currentContext) {
 		this.currentContext = currentContext;
 	}
+
+	public boolean isRepeatTrialIfEyeBreak() {
+		return repeatTrialIfEyeBreak;
+	}
+
+	public void setRepeatTrialIfEyeBreak(boolean repeatTrialIfEyeBreak) {
+		this.repeatTrialIfEyeBreak = repeatTrialIfEyeBreak;
+	}
+
+	public TaskDataSource getTaskDataSource() {
+		return taskDataSource;
+	}
+
+	public void setTaskDataSource(TaskDataSource taskDataSource) {
+		this.taskDataSource = taskDataSource;
+	}
+
 	
 	
 

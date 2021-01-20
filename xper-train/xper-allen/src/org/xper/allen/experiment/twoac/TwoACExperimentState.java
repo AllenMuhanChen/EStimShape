@@ -17,6 +17,8 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 	List<? extends SimpleEStimEventListener> eStimEventListeners;
 	@Dependency
 	IntanUtil intanUtil;
+	@Dependency
+	TwoACTrialDrawingController drawingController;
 	
 	int blankTargetScreenDisplayTime;
 	
@@ -68,6 +70,17 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 
 	public void setChoiceEventListeners(List<? extends ChoiceEventListener> choiceEventListeners) {
 		this.choiceEventListeners = choiceEventListeners;
+	}
+
+	/*
+	 * Changed name because cannot overload because return is not part of method signature. 
+	 */
+	public TwoACTrialDrawingController getTwoACDrawingController() {
+		return drawingController;
+	}
+
+	public void setDrawingController(TwoACTrialDrawingController drawingController) {
+		this.drawingController = drawingController;
 	}
 	
 }

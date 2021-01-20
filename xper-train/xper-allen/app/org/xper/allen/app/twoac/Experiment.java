@@ -13,12 +13,6 @@ public class Experiment {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 		ExperimentRunner runner = context.getBean(ExperimentRunner.class);
-		System.out.println("Attempting to get experiment");
-		ChoiceInRFTrialExperiment exp = (ChoiceInRFTrialExperiment)runner.getExperiment();
-		System.out.println("Attempting to get controller");
-		TwoACMarkEveryStepTrialDrawingController controller = (TwoACMarkEveryStepTrialDrawingController) exp.getStateObject().getDrawingController();
-		System.out.println("Attempting to get taskScene");
-		System.out.println(controller.getTaskScene().getClass());
 		runner.run();
 	}
 }
