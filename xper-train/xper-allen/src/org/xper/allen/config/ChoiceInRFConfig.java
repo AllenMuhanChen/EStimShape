@@ -33,6 +33,10 @@ import org.xper.allen.experiment.twoac.TwoACMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.twoac.TwoACMarkStimTrialDrawingController;
 import org.xper.allen.experiment.twoac.TwoACTaskScene;
 import org.xper.allen.experiment.twoac.TwoACTrialDrawingController;
+import org.xper.allen.experiment.twoac.console.TwoACExperimentConsole;
+import org.xper.allen.experiment.twoac.console.TwoACExperimentConsoleModel;
+import org.xper.allen.experiment.twoac.console.TwoACExperimentConsoleRenderer;
+import org.xper.allen.experiment.twoac.console.TwoACExperimentMessageHandler;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -153,8 +157,8 @@ public class ChoiceInRFConfig {
 	
 
 	@Bean
-	public SaccadeExperimentConsole experimentConsole () {
-		SaccadeExperimentConsole console = new SaccadeExperimentConsole();
+	public TwoACExperimentConsole experimentConsole () {
+		TwoACExperimentConsole console = new TwoACExperimentConsole();
 		
 		console.setPaused(classicConfig.xperExperimentInitialPause());
 		console.setConsoleRenderer(consoleRenderer());
@@ -171,8 +175,8 @@ public class ChoiceInRFConfig {
 	
 
 	@Bean
-	public SaccadeExperimentConsoleModel experimentConsoleModel () {
-		SaccadeExperimentConsoleModel model = new SaccadeExperimentConsoleModel();
+	public TwoACExperimentConsoleModel experimentConsoleModel () {
+		TwoACExperimentConsoleModel model = new TwoACExperimentConsoleModel();
 		model.setMessageReceiver(classicConfig.messageReceiver());
 		model.setLocalTimeUtil(baseConfig.localTimeUtil());
 		
@@ -203,14 +207,14 @@ public class ChoiceInRFConfig {
 	}
 	
 	@Bean
-	public SaccadeExperimentConsoleRenderer consoleRenderer () {
-		SaccadeExperimentConsoleRenderer renderer = new SaccadeExperimentConsoleRenderer();
+	public TwoACExperimentConsoleRenderer consoleRenderer () {
+		TwoACExperimentConsoleRenderer renderer = new TwoACExperimentConsoleRenderer();
 		/*
 		 * There's a messageHandler and saccadeMessageHandler because I don't know how to overwrite @Bean Dependencies.
-		 * This could be reduced to just one method by making on messageHandler that's just copy pasting TrialExperimentMessageHandler with SaccadeExperimentMessageHandler methods inside.
+		 * This could be reduced to just one method by making one messageHandler that's just copy pasting TrialExperimentMessageHandler with SaccadeExperimentMessageHandler methods inside.
 		 */
 		renderer.setMessageHandler(classicConfig.messageHandler());
-		renderer.setSaccadeMessageHandler(messageHandler());
+		renderer.setTwoACMessageHandler(messageHandler());
 		renderer.setFixation(classicConfig.consoleFixationPoint());
 		renderer.setRenderer(consoleGLRenderer());
 		renderer.setBlankScreen(new BlankScreen());
@@ -221,8 +225,8 @@ public class ChoiceInRFConfig {
 	
 	//TODO 
 	@Bean
-	public SaccadeExperimentMessageHandler  messageHandler() {
-		SaccadeExperimentMessageHandler messageHandler = new SaccadeExperimentMessageHandler();
+	public TwoACExperimentMessageHandler  messageHandler() {
+		TwoACExperimentMessageHandler messageHandler = new TwoACExperimentMessageHandler();
 		HashMap<String, EyeDeviceReading> eyeDeviceReading = new HashMap<String, EyeDeviceReading>();
 		eyeDeviceReading.put(classicConfig.xperLeftIscanId(), classicConfig.zeroEyeDeviceReading());
 		eyeDeviceReading.put(classicConfig.xperRightIscanId(), classicConfig.zeroEyeDeviceReading());

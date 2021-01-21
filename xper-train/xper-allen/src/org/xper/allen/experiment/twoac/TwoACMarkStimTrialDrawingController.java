@@ -49,9 +49,7 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 	
 	// not sure if below needed. 
 	public void init() {
-		System.out.println("Window: "+ window.toString());
 		window.create();
-		System.out.println("taskScene: "+ taskScene.toString());
 		taskScene.initGL(window.getWidth(), window.getHeight());
 		initialized = true;
 	}

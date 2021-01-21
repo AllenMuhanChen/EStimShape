@@ -12,12 +12,10 @@ import org.xper.allen.experiment.twoac.eye.TwoACEyeTargetSelectorConcurrentDrive
 import org.xper.allen.experiment.twoac.eye.TwoACTargetSelectorResult;
 import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.allen.vo.TwoACTrialResult;
-import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
-import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
@@ -47,6 +45,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		EyeController eyeController = stateObject.getEyeController();
 
 		boolean fixationSuccess;
+
 		
 		TwoACTargetSelectorResult selectorResult;
 
@@ -61,7 +60,6 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		long sampleOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
 		TwoACEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
-		
 		
 		//HOLD FIXATION ON SAMPLE
 		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
@@ -87,7 +85,6 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		currentContext.setChoicesOnTime(choicesOnLocalTime);
 		TwoACEventUtil.fireChoicesOnEvent(choicesOnLocalTime, choiceEventListeners,currentContext);
 	
-		
 		//ESTIMULATOR
 		sendEStimTrigger(stateObject);
 		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
@@ -102,7 +99,6 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		selectorDriver.start(currentContext.getTargetPos(), currentContext.getTargetEyeWindowSize(),
 				currentContext.getChoicesOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
 				+ stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
-
 		do {
 			//Wait for Eye Target Selector To Finish
 		}while(!selectorDriver.isDone());
@@ -113,6 +109,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 		selectorResult = selectorDriver.getResult();
 		TwoACTrialResult result = selectorResult.getSelectionStatusResult();
 		RewardPolicy rewardPolicy = currentContext.getCurrentTask().getRewardPolicy();
+
 		switch (result) {
 			case TARGET_SELECTION_EYE_FAIL:
 				TwoACEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
@@ -158,7 +155,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 				}
 				break;
 		}
-
+		
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		do {
 			//Wait for Slide to Finish

@@ -19,7 +19,11 @@ public class TwoACChoiceMessage {
 		this.targetEyeWinSize = targetEyeWinSize;
 		this.rewardPolicy = rewardPolicy;
 	}
+	
+	public TwoACChoiceMessage() {
 
+	}
+	
 	public long[] getStimObjDataId() {
 		return stimObjDataId;
 	}
@@ -66,4 +70,9 @@ public class TwoACChoiceMessage {
 	public String toXml() {
 		return s.toXML(this);
 	}
+	
+	public static TwoACChoiceMessage fromXml(String xml) {
+		return (TwoACChoiceMessage)s.fromXML(xml);
+	}
+	
 }

@@ -41,7 +41,7 @@ public class TestBlockGen {
 	int numTrials = 100;
 		
 	Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-5, 0), new Coordinates2D(5,0)};	
-	double[] targetEyeWinSize = {10, 10};
+	double[] targetEyeWinSize = {2, 2};
 	long[] eStimObjData = {1};
 	RewardPolicy rewardPolicy = RewardPolicy.ONE;
 	

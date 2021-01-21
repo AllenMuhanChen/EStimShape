@@ -36,4 +36,9 @@ public class TwoACSampleMessage {
 	public String toXml() {
 		return s.toXML(this);
 	}
+	
+	public static TwoACSampleMessage fromXml(String xml) {
+		return (TwoACSampleMessage)s.fromXML(xml);
+	}
+	
 }
