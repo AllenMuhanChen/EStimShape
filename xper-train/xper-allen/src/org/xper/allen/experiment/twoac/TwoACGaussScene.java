@@ -27,8 +27,8 @@ public class TwoACGaussScene extends AbstractTaskScene implements TwoACTaskScene
 	
 
 	public void setChoice(TwoACExperimentTask task) {
-		objs[1].setSpec(task.getChoiceSpec()[1]);
-		objs[2].setSpec(task.getChoiceSpec()[2]);
+		objs[1].setSpec(task.getChoiceSpec()[0]);
+		objs[2].setSpec(task.getChoiceSpec()[1]);
 	}
 
 	public void drawSample(Context context, final boolean fixationOn) {
