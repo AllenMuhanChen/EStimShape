@@ -306,7 +306,6 @@ public class ChoiceInRFConfig {
 		state.setDrawingController(drawingController());
 		System.out.println(drawingController().toString());
 		System.out.println(state.getDrawingController());
-		System.out.println(state.getTwoACDrawingController());
 		state.setInterTrialInterval(classicConfig.xperInterTrialInterval());
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
