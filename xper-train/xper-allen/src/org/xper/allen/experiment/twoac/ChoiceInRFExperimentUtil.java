@@ -17,6 +17,7 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
+import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
@@ -442,4 +443,28 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 			}
 		}
 	}
+	
+	public static void completeTrial(TwoACExperimentState state, ThreadHelper threadHelper) {
+		TimeUtil timeUtil = state.getLocalTimeUtil();
+		TrialContext currentContext = state.getCurrentContext();
+		TwoACTrialDrawingController drawingController = state.getTwoACDrawingController();
+		List<? extends TrialEventListener> trialEventListeners = state
+		.getTrialEventListeners();
+		
+		// trial complete here
+		long trialCompletedLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setTrialCompleteTime(trialCompletedLocalTime);
+		drawingController.trialComplete(currentContext);
+		EventUtil.fireTrialCompleteEvent(trialCompletedLocalTime,
+				trialEventListeners, currentContext);
+		
+		// wait for delay after trial complete
+		if (state.getDelayAfterTrialComplete() > 0) {
+			long current = timeUtil.currentTimeMicros();
+			ThreadUtil.sleepOrPinUtil(current
+						+ state.getDelayAfterTrialComplete() * 1000, state,
+						threadHelper);
+		}
+	}
+
 }
