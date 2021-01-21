@@ -38,6 +38,7 @@ public class TwoACEyeTargetSelectorConcurrentDriver {
 			public TwoACTargetSelectorResult call() throws Exception {
 				TwoACTargetSelectorResult result = new TwoACTargetSelectorResult();
 				int sel = selector.waitInitialSelection(targetCenter, targetWinSize, deadlineIntialEyeIn);
+				System.out.println("sel = " + sel);
 				if (sel < 0) {
 					result.setSelectionStatusResult(TwoACTrialResult.TARGET_SELECTION_EYE_FAIL);
 					return result;
@@ -53,10 +54,10 @@ public class TwoACEyeTargetSelectorConcurrentDriver {
 				}
 				
 				result.setSelection(sel);
-				if (sel == 1 ) {
+				if (sel == 0 ) {
 				result.setSelectionStatusResult(TwoACTrialResult.TARGET_SELECTION_ONE);
 				}
-				else if(sel==2) {
+				else if(sel==1) {
 				result.setSelectionStatusResult(TwoACTrialResult.TARGET_SELECTION_TWO);
 				}
 				return result;
