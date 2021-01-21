@@ -5,6 +5,7 @@ import java.util.List;
 import org.xper.Dependency;
 import org.xper.allen.experiment.saccade.console.TargetEventListener;
 import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.classic.TrialDrawingController;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.util.IntanUtil;
 
@@ -18,7 +19,7 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 	@Dependency
 	IntanUtil intanUtil;
 	@Dependency
-	TwoACTrialDrawingController drawingController;
+	TrialDrawingController drawingController;
 	
 	int blankTargetScreenDisplayTime;
 	
@@ -35,6 +36,14 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 		return (TwoACExperimentTask) currentTask;
 	}
 	
+	public TrialDrawingController getDrawingController() {
+		return drawingController;
+	}
+
+	public void setDrawingController(TrialDrawingController drawingController) {
+		this.drawingController = drawingController;
+	}
+
 	public void setCurrentTask(TwoACExperimentTask currentTask) {
 		this.currentTask = currentTask;
 	}
@@ -70,17 +79,6 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 
 	public void setChoiceEventListeners(List<? extends ChoiceEventListener> choiceEventListeners) {
 		this.choiceEventListeners = choiceEventListeners;
-	}
-
-	/*
-	 * Changed name because cannot overload because return is not part of method signature. 
-	 */
-	public TwoACTrialDrawingController getTwoACDrawingController() {
-		return drawingController;
-	}
-
-	public void setDrawingController(TwoACTrialDrawingController drawingController) {
-		this.drawingController = drawingController;
 	}
 	
 }
