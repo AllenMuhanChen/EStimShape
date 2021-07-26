@@ -1,6 +1,6 @@
 package org.xper.allen.saccade;
 
-import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.ExperimentTask;

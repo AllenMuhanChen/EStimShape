@@ -1,4 +1,4 @@
-package org.xper.allen.vo;
+package org.xper.allen.twoac.vo;
 
 public enum TwoACTrialResult {
 	INITIAL_EYE_IN_FAIL, EYE_IN_HOLD_FAIL, FIXATION_SUCCESS, 

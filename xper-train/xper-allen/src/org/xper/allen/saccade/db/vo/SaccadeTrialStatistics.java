@@ -1,4 +1,4 @@
-package org.xper.allen.db.vo;
+package org.xper.allen.saccade.db.vo;
 
 import org.xper.classic.vo.TrialStatistics;
 

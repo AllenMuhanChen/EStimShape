@@ -5,7 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.xper.allen.vo.TwoACTrialResult;
+import org.xper.allen.twoac.vo.TwoACTrialResult;
 import org.xper.classic.vo.TrialResult;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.ThreadException;

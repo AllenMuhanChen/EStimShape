@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.xper.Dependency;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
-import org.xper.allen.db.vo.SaccadeTrialStatistics;
+import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
 import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.classic.vo.TrialStatistics;
 import org.xper.console.ExperimentConsoleModel;
