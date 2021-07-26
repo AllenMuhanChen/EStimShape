@@ -1,7 +1,7 @@
 package org.xper.allen.app.simpleestim;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.blockgen.SimpleEStimBlockGen;
+import org.xper.allen.experiment.saccade.blockgen.SimpleEStimBlockGen;
 import org.xper.util.FileUtil;
 
 public class SimpleEStimGenerator {

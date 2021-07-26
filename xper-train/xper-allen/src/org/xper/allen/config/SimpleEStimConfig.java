@@ -18,17 +18,17 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
-import org.xper.allen.console.SaccadeExperimentConsole;
-import org.xper.allen.console.SaccadeExperimentConsoleModel;
-import org.xper.allen.console.SaccadeExperimentConsoleRenderer;
-import org.xper.allen.console.SaccadeExperimentMessageDispatcher;
-import org.xper.allen.console.SaccadeExperimentMessageHandler;
-import org.xper.allen.console.TargetEventListener;
-import org.xper.allen.experiment.saccade.AllenDatabaseTaskDataSource;
+import org.xper.allen.experiment.saccade.SaccadeDatabaseTaskDataSource;
 import org.xper.allen.experiment.saccade.SaccadeExperimentState;
 import org.xper.allen.experiment.saccade.SaccadeJuiceController;
 import org.xper.allen.experiment.saccade.SaccadeMarkEveryStepTrialDrawingController;
 import org.xper.allen.experiment.saccade.SaccadeTrialExperiment;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentConsole;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentConsoleModel;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentConsoleRenderer;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentMessageDispatcher;
+import org.xper.allen.experiment.saccade.console.SaccadeExperimentMessageHandler;
+import org.xper.allen.experiment.saccade.console.TargetEventListener;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessageDispatcher;
 import org.xper.allen.util.AllenDbUtil;
@@ -237,8 +237,8 @@ public class SimpleEStimConfig {
 	}
 	
 	@Bean
-	public AllenDatabaseTaskDataSource databaseTaskDataSource() {
-		AllenDatabaseTaskDataSource source = new AllenDatabaseTaskDataSource();
+	public SaccadeDatabaseTaskDataSource databaseTaskDataSource() {
+		SaccadeDatabaseTaskDataSource source = new SaccadeDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
 		source.setUngetBehavior(UngetPolicy.TAIL);
@@ -281,8 +281,10 @@ public class SimpleEStimConfig {
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
 		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
-		state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
-		state.setSlideLength(classicConfig.xperSlideLength());
+		//state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
+		//state.setSlideLength(classicConfig.xperSlideLength());
+		
+		
 		state.setInterSlideInterval(classicConfig.xperInterSlideInterval());
 		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
 		state.setSleepWhileWait(true);
@@ -424,9 +426,9 @@ public class SimpleEStimConfig {
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperBlankTargetScreenDisplayTime() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_blank_target_screen_display_time", 0));
-	}
-
-
 	
+	}
 }
+
+
 	

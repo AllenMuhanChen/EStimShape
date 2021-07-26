@@ -8,9 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.xper.Dependency;
-import org.xper.allen.console.SaccadeEventUtil;
-import org.xper.allen.console.TargetEventListener;
 import org.xper.allen.db.vo.EStimObjDataEntry;
+import org.xper.allen.experiment.saccade.console.SaccadeEventUtil;
+import org.xper.allen.experiment.saccade.console.TargetEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
@@ -139,7 +139,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		SaccadeExperimentTask currentTask = state.getCurrentTask();
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) state.getCurrentContext();
-		AllenDatabaseTaskDataSource taskDataSource = (AllenDatabaseTaskDataSource) state.getTaskDataSource();
+		SaccadeDatabaseTaskDataSource taskDataSource = (SaccadeDatabaseTaskDataSource) state.getTaskDataSource();
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
