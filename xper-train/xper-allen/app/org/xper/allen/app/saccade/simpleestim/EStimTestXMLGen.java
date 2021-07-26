@@ -1,4 +1,4 @@
-package org.xper.allen.app.simpleestim;
+package org.xper.allen.app.saccade.simpleestim;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -14,7 +14,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.w3c.dom.Document;
-import org.xper.allen.app.training.RandomCircleTrainingXMLGen;
+import org.xper.allen.app.saccade.RandomCircleTrainingXMLGen;
 import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.saccade.blockgen.EStimTrial;
 import org.xper.allen.saccade.blockgen.TrainingTrial;

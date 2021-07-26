@@ -1,15 +1,21 @@
-package org.xper.allen.app.simpleestim;
+package org.xper.allen.app.saccade;
+
+import java.util.ArrayList;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.saccade.blockgen.SimpleEStimBlockGen;
+import org.xper.allen.saccade.blockgen.TrainingBlockGen;
 import org.xper.util.FileUtil;
 
-public class SimpleEStimGenerator {
+/**
+ * Main function for reading an XML file of stimuli specifications and inputs them into the database. 
+ * @param file path for xml file
+ */
+public class TrainingGenerator {
 	public static void main(String[] args) {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		SimpleEStimBlockGen gen = context.getBean(SimpleEStimBlockGen.class);
+		TrainingBlockGen gen = context.getBean(TrainingBlockGen.class);
 		
 		try {
 			//blockId
