@@ -3,8 +3,8 @@ package org.xper.allen.app.twoac;
 import java.util.ArrayList;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.experiment.saccade.blockgen.TrainingBlockGen;
-import org.xper.allen.experiment.twoac.blockgen.TestBlockGen;
+import org.xper.allen.saccade.blockgen.TrainingBlockGen;
+import org.xper.allen.twoac.blockgen.TestBlockGen;
 import org.xper.util.FileUtil;
 
 /**

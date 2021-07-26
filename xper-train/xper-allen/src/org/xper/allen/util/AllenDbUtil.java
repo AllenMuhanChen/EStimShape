@@ -14,12 +14,12 @@ import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.allen.db.vo.EStimObjDataEntry;
 import org.xper.allen.db.vo.StimSpecEntryUtil;
-import org.xper.allen.experiment.saccade.SaccadeExperimentTask;
-import org.xper.allen.experiment.twoac.TwoACExperimentTask;
+import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.SaccadeStimSpecSpec;
 import org.xper.allen.specs.TwoACStimSpecSpec;
+import org.xper.allen.twoac.TwoACExperimentTask;
 import org.xper.db.vo.StimSpecEntry;
 import org.xper.experiment.ExperimentTask;
 

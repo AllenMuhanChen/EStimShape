@@ -1,6 +1,6 @@
 package org.xper.allen.intan;
 
-import org.xper.allen.experiment.saccade.SaccadeExperimentTask;
+import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;

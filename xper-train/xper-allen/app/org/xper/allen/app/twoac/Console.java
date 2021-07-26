@@ -4,8 +4,8 @@ package org.xper.allen.app.twoac;
 import javax.swing.UIManager;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.experiment.saccade.console.SaccadeExperimentConsole;
-import org.xper.allen.experiment.twoac.console.TwoACExperimentConsole;
+import org.xper.allen.saccade.console.SaccadeExperimentConsole;
+import org.xper.allen.twoac.console.TwoACExperimentConsole;
 import org.xper.console.ExperimentConsole;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
