@@ -1,6 +1,6 @@
 package org.xper.allen.intan;
 
-import org.xper.allen.experiment.saccade.console.SaccadeTargetMessage;
+import org.xper.allen.saccade.console.SaccadeTargetMessage;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;

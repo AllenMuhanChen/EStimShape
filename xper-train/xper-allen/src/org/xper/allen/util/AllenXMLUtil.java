@@ -4,11 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 
+import org.xper.allen.saccade.blockgen.TrainingTrial;
+import org.xper.allen.specs.GaussSpec;
 
 import com.thoughtworks.xstream.XStream;
-
-import org.xper.allen.experiment.saccade.blockgen.TrainingTrial;
-import org.xper.allen.specs.GaussSpec;
 public class AllenXMLUtil {
 	XStream s = new XStream();
 	
