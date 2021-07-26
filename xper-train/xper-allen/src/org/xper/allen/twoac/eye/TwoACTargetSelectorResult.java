@@ -3,7 +3,7 @@
  */
 package org.xper.allen.twoac.eye;
 
-import org.xper.allen.vo.TwoACTrialResult;
+import org.xper.allen.twoac.vo.TwoACTrialResult;
 
 public class TwoACTargetSelectorResult {
 	

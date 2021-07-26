@@ -3,7 +3,7 @@ package org.xper.allen.saccade.console;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.xper.allen.db.vo.SaccadeTrialStatistics;
+import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
 import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.classic.vo.TrialStatistics;
 import org.xper.db.vo.BehMsgEntry;

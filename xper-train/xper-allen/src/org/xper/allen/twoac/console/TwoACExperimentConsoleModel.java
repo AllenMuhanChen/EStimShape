@@ -5,8 +5,8 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.xper.Dependency;
-import org.xper.allen.db.vo.SaccadeTrialStatistics;
 import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
+import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
 import org.xper.console.ExperimentConsoleModel;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.ExperimentSetupException;

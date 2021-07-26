@@ -1,9 +1,9 @@
 package org.xper.allen.saccade.console;
 
-import org.xper.allen.db.vo.SaccadeTrialStatistics;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessage;
 import org.xper.allen.saccade.*;
+import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialStatistics;

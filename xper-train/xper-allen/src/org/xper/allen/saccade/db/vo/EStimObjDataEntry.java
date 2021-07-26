@@ -1,5 +1,5 @@
 //AC
-package org.xper.allen.db.vo;
+package org.xper.allen.saccade.db.vo;
 
 public class EStimObjDataEntry{
 	String chans;
