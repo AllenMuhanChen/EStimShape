@@ -1,4 +1,4 @@
-package org.xper.allen.app.training;
+package org.xper.allen.app.saccade;
 
 
 import javax.swing.UIManager;
