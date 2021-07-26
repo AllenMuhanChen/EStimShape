@@ -3,7 +3,7 @@ package org.xper.allen.app.training;
 import java.util.ArrayList;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.blockgen.TrainingBlockGen;
+import org.xper.allen.experiment.saccade.blockgen.TrainingBlockGen;
 import org.xper.util.FileUtil;
 
 /**

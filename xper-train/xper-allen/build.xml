@@ -49,7 +49,7 @@
 	</target>
 
 	
-	<target name="dist" depends="compile">
+	<target name="dist" depends="compile" >
 		
 
 		<jar jarfile="${allen.home}/xper_allen.jar" basedir="${build.home}">
@@ -124,6 +124,35 @@
 			</manifest>
 		</jar>
 		
+		<jar jarfile="${allen.home}/cifConsole.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/twoac/Console.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.twoac.Console" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${allen.home}/cif.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/twoac/Experiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.twoac.Experiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${allen.home}/cifTestGen.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/twoac/TestingGenerator.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.twoac.TestingGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
+			</manifest>
+		</jar>
 		
 	</target>
 </project>

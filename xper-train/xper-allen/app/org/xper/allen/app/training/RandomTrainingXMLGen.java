@@ -19,7 +19,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
-import org.xper.allen.blockgen.TrainingTrial;
+import org.xper.allen.experiment.saccade.blockgen.TrainingTrial;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
