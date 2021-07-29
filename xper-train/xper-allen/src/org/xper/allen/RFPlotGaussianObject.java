@@ -10,8 +10,6 @@ import org.xper.rfplot.RFPlotDrawable;
 
 import org.xper.util.MathUtil;
 
-import com.sun.javafx.webkit.theme.Renderer;
-
 public class RFPlotGaussianObject implements RFPlotDrawable{
 	static final int STEPS = 1024;
 	
