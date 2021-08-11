@@ -24,7 +24,7 @@ import org.xper.allen.saccade.console.SaccadeExperimentConsoleModel;
 import org.xper.allen.saccade.console.SaccadeExperimentConsoleRenderer;
 import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
 import org.xper.allen.twoac.ChoiceEventListener;
-import org.xper.allen.twoac.ChoiceInRFTrialExperiment;
+import org.xper.allen.twoac.EStimChoiceTrialExperiment;
 import org.xper.allen.twoac.TwoACDatabaseTaskDataSource;
 import org.xper.allen.twoac.TwoACExperimentMessageDispatcher;
 import org.xper.allen.twoac.TwoACExperimentState;
@@ -75,7 +75,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 @Import(ClassicConfig.class)
-public class ChoiceInRFConfig {
+public class TwoACConfig {
 
 	@Autowired BaseConfig baseConfig;
 	@Autowired ClassicConfig classicConfig;	
@@ -284,8 +284,8 @@ public class ChoiceInRFConfig {
 	
 	//TODO
 	@Bean
-	public ChoiceInRFTrialExperiment experiment() {
-		ChoiceInRFTrialExperiment xper = new ChoiceInRFTrialExperiment();
+	public EStimChoiceTrialExperiment experiment() {
+		EStimChoiceTrialExperiment xper = new EStimChoiceTrialExperiment();
 		xper.setEyeMonitor(classicConfig.eyeMonitor());
 		xper.setStateObject(experimentState());
 		xper.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
