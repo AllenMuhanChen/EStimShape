@@ -30,7 +30,7 @@ import org.xper.util.TrialExperimentUtil;
 
 import org.xper.util.IntanUtil;
 
-public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
+public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 	@SuppressWarnings("incomplete-switch")
 	public static TwoACTrialResult doSlide(int i, TwoACExperimentState stateObject) {
 		TwoACTrialDrawingController drawingController = (TwoACTrialDrawingController) stateObject.getDrawingController();
@@ -173,7 +173,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 	}
 
 	public static TwoACTrialResult runTrial (TwoACExperimentState stateObject, ThreadHelper threadHelper, TwoACSlideRunner runner){
-		TwoACTrialResult result = ChoiceInRFExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+		TwoACTrialResult result = EStimChoiceExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != TwoACTrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
@@ -183,7 +183,7 @@ public class ChoiceInRFExperimentUtil extends TrialExperimentUtil{
 			return result;
 		}
 
-		ChoiceInRFExperimentUtil.completeTrial(stateObject, threadHelper);
+		EStimChoiceExperimentUtil.completeTrial(stateObject, threadHelper);
 
 		return TwoACTrialResult.TRIAL_COMPLETE;
 	}

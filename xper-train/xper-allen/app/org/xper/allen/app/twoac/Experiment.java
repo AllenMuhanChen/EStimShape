@@ -2,7 +2,7 @@ package org.xper.allen.app.twoac;
 
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.twoac.ChoiceInRFTrialExperiment;
+import org.xper.allen.twoac.EStimChoiceTrialExperiment;
 import org.xper.allen.twoac.TwoACMarkEveryStepTrialDrawingController;
 import org.xper.experiment.ExperimentRunner;
 import org.xper.util.FileUtil;

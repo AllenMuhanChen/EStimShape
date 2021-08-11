@@ -27,9 +27,9 @@ import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 
-@Import(ChoiceInRFConfig.class)
-public class ChoiceInRFAppConfig {
-	@Autowired ChoiceInRFConfig config;
+@Import(TwoACConfig.class)
+public class EStimChoiceAppConfig {
+	@Autowired TwoACConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;

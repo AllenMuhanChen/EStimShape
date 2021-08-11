@@ -34,8 +34,8 @@ import jssc.SerialPortException;
  * @author wang
  * 
  */
-public class ChoiceInRFTrialExperiment implements Experiment {
-	static Logger logger = Logger.getLogger(ChoiceInRFTrialExperiment.class);
+public class EStimChoiceTrialExperiment implements Experiment {
+	static Logger logger = Logger.getLogger(EStimChoiceTrialExperiment.class);
 
 	ThreadHelper threadHelper = new ThreadHelper("SaccadeTrialExperiment", this);
 	@Dependency
@@ -58,11 +58,11 @@ public class ChoiceInRFTrialExperiment implements Experiment {
 	}
 
 	public void run() {
-		ChoiceInRFExperimentUtil.run(stateObject, threadHelper, new TwoACTrialRunner() {
+		EStimChoiceExperimentUtil.run(stateObject, threadHelper, new TwoACTrialRunner() {
 			public TwoACTrialResult runTrial() {
 				try {
 					// get a task
-					ChoiceInRFExperimentUtil.getNextTask(stateObject);
+					EStimChoiceExperimentUtil.getNextTask(stateObject);
 
 					if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
 						try {
@@ -84,7 +84,7 @@ public class ChoiceInRFTrialExperiment implements Experiment {
 
 					
 					// run trial
-					return ChoiceInRFExperimentUtil.runTrial(stateObject, threadHelper, new TwoACSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
+					return EStimChoiceExperimentUtil.runTrial(stateObject, threadHelper, new TwoACSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public TwoACTrialResult runSlide() {
 							//int slidePerTrial = stateObject.getSlidePerTrial();
@@ -115,7 +115,7 @@ public class ChoiceInRFTrialExperiment implements Experiment {
 								for (int i = 0; i < slidePerTrial; i++) {
 									
 									// draw the slide
-									result = ChoiceInRFExperimentUtil.doSlide(i, stateObject);
+									result = EStimChoiceExperimentUtil.doSlide(i, stateObject);
 									
 									
 									// Trial done successfully
@@ -132,7 +132,7 @@ public class ChoiceInRFTrialExperiment implements Experiment {
 								// end of SlideRunner.runSlide
 							} finally {
 								try {
-									ChoiceInRFExperimentUtil.cleanupTask(stateObject);
+									EStimChoiceExperimentUtil.cleanupTask(stateObject);
 								} catch (Exception e) {
 									logger.warn(e.getMessage());
 									e.printStackTrace();
@@ -144,7 +144,7 @@ public class ChoiceInRFTrialExperiment implements Experiment {
 					// end of TrialRunner.runTrial	
 				} finally {
 					try {
-						ChoiceInRFExperimentUtil.cleanupTrial(stateObject);
+						EStimChoiceExperimentUtil.cleanupTrial(stateObject);
 					} catch (Exception e) {
 						logger.warn(e.getMessage());
 						e.printStackTrace();
