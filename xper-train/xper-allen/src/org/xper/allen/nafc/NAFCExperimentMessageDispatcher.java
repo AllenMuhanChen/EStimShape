@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessage;
@@ -6,12 +6,12 @@ import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;
 
-public class TwoACExperimentMessageDispatcher extends TrialExperimentMessageDispatcher implements SimpleEStimEventListener, ChoiceEventListener{
+public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispatcher implements SimpleEStimEventListener, ChoiceEventListener{
 
 	@Override
 	public void sampleOn(long timestamp, TrialContext context) {
-		TwoACExperimentTask currentTask = (TwoACExperimentTask) context.getCurrentTask();
-		TwoACSampleMessage sampleMsg = new TwoACSampleMessage(currentTask.getSampleSpecId());
+		NAFCExperimentTask currentTask = (NAFCExperimentTask) context.getCurrentTask();
+		NAFCSampleMessage sampleMsg = new NAFCSampleMessage(currentTask.getSampleSpecId());
 		String msg = sampleMsg.toXml();
 		enqueue(timestamp, "SampleOn", msg);
 		
@@ -25,8 +25,8 @@ public class TwoACExperimentMessageDispatcher extends TrialExperimentMessageDisp
 
 	@Override
 	public void choicesOn(long timestamp, TrialContext context) {
-		TwoACExperimentTask currentTask = (TwoACExperimentTask) context.getCurrentTask();
-		TwoACChoiceMessage sampleMsg = new TwoACChoiceMessage(currentTask.getChoiceSpecId(), currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize(), currentTask.getRewardPolicy());
+		NAFCExperimentTask currentTask = (NAFCExperimentTask) context.getCurrentTask();
+		NAFCChoiceMessage sampleMsg = new NAFCChoiceMessage(currentTask.getChoiceSpecId(), currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize(), currentTask.getRewardPolicy());
 		String msg = sampleMsg.toXml();
 		enqueue(timestamp, "ChoicesOn", msg);
 	}
@@ -90,7 +90,7 @@ public class TwoACExperimentMessageDispatcher extends TrialExperimentMessageDisp
 	 * the eStim target/coords/Id is always the first in the array (0th index)
 	 */
 	public void eStimOn(long timestamp, TrialContext context) {
-		TwoACExperimentTask currentTask = (TwoACExperimentTask) context.getCurrentTask();
+		NAFCExperimentTask currentTask = (NAFCExperimentTask) context.getCurrentTask();
 		
 		SimpleEStimMessage simpleEStimMsg = new SimpleEStimMessage(timestamp, currentTask.getTargetEyeWinCoords()[0], currentTask.getTargetEyeWinSize()[0], currentTask.getChoiceSpecId()[0]);
 		String msg = simpleEStimMsg.toXml();

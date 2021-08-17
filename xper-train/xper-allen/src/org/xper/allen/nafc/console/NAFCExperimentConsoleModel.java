@@ -1,4 +1,4 @@
-package org.xper.allen.twoac.console;
+package org.xper.allen.nafc.console;
 
 import java.lang.reflect.Method;
 import java.util.Set;
@@ -15,16 +15,16 @@ import org.xper.eye.vo.EyeDeviceIdChannelPair;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
 
-public class TwoACExperimentConsoleModel extends ExperimentConsoleModel{
+public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		@Dependency
-		TwoACExperimentMessageHandler messageHandler;
+		NAFCExperimentMessageHandler messageHandler;
 		
 		public SaccadeTrialStatistics getTrialStatistics () {
 			SaccadeTrialStatistics stat = (SaccadeTrialStatistics) messageHandler.getTrialStatistics();
 			return stat;
 		}
 		
-		public void setMessageHandler(TwoACExperimentMessageHandler msghandler) {
+		public void setMessageHandler(NAFCExperimentMessageHandler msghandler) {
 			this.messageHandler = msghandler;
 		}
 		
@@ -60,7 +60,7 @@ public class TwoACExperimentConsoleModel extends ExperimentConsoleModel{
 			}
 		}
 
-		public TwoACExperimentMessageHandler getMessageHandler() {
+		public NAFCExperimentMessageHandler getMessageHandler() {
 			return messageHandler;
 		}
 

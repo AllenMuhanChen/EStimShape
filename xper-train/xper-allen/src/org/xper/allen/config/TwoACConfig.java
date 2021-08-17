@@ -19,25 +19,25 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.nafc.ChoiceEventListener;
+import org.xper.allen.nafc.EStimChoiceTrialExperiment;
+import org.xper.allen.nafc.NAFCDatabaseTaskDataSource;
+import org.xper.allen.nafc.NAFCExperimentMessageDispatcher;
+import org.xper.allen.nafc.NAFCExperimentState;
+import org.xper.allen.nafc.NAFCGaussScene;
+import org.xper.allen.nafc.NAFCJuiceController;
+import org.xper.allen.nafc.NAFCMarkEveryStepTrialDrawingController;
+import org.xper.allen.nafc.NAFCMarkStimTrialDrawingController;
+import org.xper.allen.nafc.NAFCTaskScene;
+import org.xper.allen.nafc.NAFCTrialDrawingController;
+import org.xper.allen.nafc.console.NAFCExperimentConsole;
+import org.xper.allen.nafc.console.NAFCExperimentConsoleModel;
+import org.xper.allen.nafc.console.NAFCExperimentConsoleRenderer;
+import org.xper.allen.nafc.console.NAFCExperimentMessageHandler;
 import org.xper.allen.saccade.console.SaccadeExperimentConsole;
 import org.xper.allen.saccade.console.SaccadeExperimentConsoleModel;
 import org.xper.allen.saccade.console.SaccadeExperimentConsoleRenderer;
 import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
-import org.xper.allen.twoac.ChoiceEventListener;
-import org.xper.allen.twoac.EStimChoiceTrialExperiment;
-import org.xper.allen.twoac.TwoACDatabaseTaskDataSource;
-import org.xper.allen.twoac.TwoACExperimentMessageDispatcher;
-import org.xper.allen.twoac.TwoACExperimentState;
-import org.xper.allen.twoac.TwoACGaussScene;
-import org.xper.allen.twoac.TwoACJuiceController;
-import org.xper.allen.twoac.TwoACMarkEveryStepTrialDrawingController;
-import org.xper.allen.twoac.TwoACMarkStimTrialDrawingController;
-import org.xper.allen.twoac.TwoACTaskScene;
-import org.xper.allen.twoac.TwoACTrialDrawingController;
-import org.xper.allen.twoac.console.TwoACExperimentConsole;
-import org.xper.allen.twoac.console.TwoACExperimentConsoleModel;
-import org.xper.allen.twoac.console.TwoACExperimentConsoleRenderer;
-import org.xper.allen.twoac.console.TwoACExperimentMessageHandler;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.classic.MarkStimTrialDrawingController;
@@ -157,8 +157,8 @@ public class TwoACConfig {
 	
 
 	@Bean
-	public TwoACExperimentConsole experimentConsole () {
-		TwoACExperimentConsole console = new TwoACExperimentConsole();
+	public NAFCExperimentConsole experimentConsole () {
+		NAFCExperimentConsole console = new NAFCExperimentConsole();
 		
 		console.setPaused(classicConfig.xperExperimentInitialPause());
 		console.setConsoleRenderer(consoleRenderer());
@@ -175,8 +175,8 @@ public class TwoACConfig {
 	
 
 	@Bean
-	public TwoACExperimentConsoleModel experimentConsoleModel () {
-		TwoACExperimentConsoleModel model = new TwoACExperimentConsoleModel();
+	public NAFCExperimentConsoleModel experimentConsoleModel () {
+		NAFCExperimentConsoleModel model = new NAFCExperimentConsoleModel();
 		model.setMessageReceiver(classicConfig.messageReceiver());
 		model.setLocalTimeUtil(baseConfig.localTimeUtil());
 		
@@ -207,8 +207,8 @@ public class TwoACConfig {
 	}
 	
 	@Bean
-	public TwoACExperimentConsoleRenderer consoleRenderer () {
-		TwoACExperimentConsoleRenderer renderer = new TwoACExperimentConsoleRenderer();
+	public NAFCExperimentConsoleRenderer consoleRenderer () {
+		NAFCExperimentConsoleRenderer renderer = new NAFCExperimentConsoleRenderer();
 		/*
 		 * There's a messageHandler and saccadeMessageHandler because I don't know how to overwrite @Bean Dependencies.
 		 * This could be reduced to just one method by making one messageHandler that's just copy pasting TrialExperimentMessageHandler with SaccadeExperimentMessageHandler methods inside.
@@ -225,8 +225,8 @@ public class TwoACConfig {
 	
 	//TODO 
 	@Bean
-	public TwoACExperimentMessageHandler  messageHandler() {
-		TwoACExperimentMessageHandler messageHandler = new TwoACExperimentMessageHandler();
+	public NAFCExperimentMessageHandler  messageHandler() {
+		NAFCExperimentMessageHandler messageHandler = new NAFCExperimentMessageHandler();
 		HashMap<String, EyeDeviceReading> eyeDeviceReading = new HashMap<String, EyeDeviceReading>();
 		eyeDeviceReading.put(classicConfig.xperLeftIscanId(), classicConfig.zeroEyeDeviceReading());
 		eyeDeviceReading.put(classicConfig.xperRightIscanId(), classicConfig.zeroEyeDeviceReading());
@@ -265,8 +265,8 @@ public class TwoACConfig {
 	}
 	
 	@Bean
-	public TwoACDatabaseTaskDataSource databaseTaskDataSource() {
-		TwoACDatabaseTaskDataSource source = new TwoACDatabaseTaskDataSource();
+	public NAFCDatabaseTaskDataSource databaseTaskDataSource() {
+		NAFCDatabaseTaskDataSource source = new NAFCDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
 		source.setUngetBehavior(UngetPolicy.TAIL);
@@ -295,8 +295,8 @@ public class TwoACConfig {
 	
     //TODO
 	@Bean
-	public TwoACExperimentState experimentState() {
-		TwoACExperimentState state = new TwoACExperimentState();
+	public NAFCExperimentState experimentState() {
+		NAFCExperimentState state = new NAFCExperimentState();
 		state.setLocalTimeUtil(baseConfig.localTimeUtil());
 		state.setTrialEventListeners(trialEventListeners());
 		state.setChoiceEventListeners(choiceEventListeners());
@@ -378,8 +378,8 @@ public class TwoACConfig {
 	
 	
 	@Bean
-	public TwoACExperimentMessageDispatcher messageDispatcher() {
-		TwoACExperimentMessageDispatcher dispatcher = new TwoACExperimentMessageDispatcher();
+	public NAFCExperimentMessageDispatcher messageDispatcher() {
+		NAFCExperimentMessageDispatcher dispatcher = new NAFCExperimentMessageDispatcher();
 		dispatcher.setHost(classicConfig.experimentHost);
 		dispatcher.setDbUtil(allenDbUtil());
 		return dispatcher;
@@ -387,7 +387,7 @@ public class TwoACConfig {
 	
 	@Bean
 	public ChoiceEventListener juiceController() {
-		TwoACJuiceController controller = new TwoACJuiceController();
+		NAFCJuiceController controller = new NAFCJuiceController();
 		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			controller.setJuice(new NullDynamicJuice());
 		} else {
@@ -404,12 +404,12 @@ public class TwoACConfig {
 	}
 
 
-	private TwoACTrialDrawingController drawingController() {
-		TwoACMarkStimTrialDrawingController controller;
+	private NAFCTrialDrawingController drawingController() {
+		NAFCMarkStimTrialDrawingController controller;
 		if (markEveryStep) {
-			controller = new TwoACMarkEveryStepTrialDrawingController();
+			controller = new NAFCMarkEveryStepTrialDrawingController();
 		} else {
-			controller = new TwoACMarkStimTrialDrawingController();
+			controller = new NAFCMarkStimTrialDrawingController();
 		}
 		System.out.println(controller.toString());
 		System.out.println("Setting Window");
@@ -419,7 +419,7 @@ public class TwoACConfig {
 		System.out.println("ONE:");
 		System.out.println(taskScene().toString());
 		System.out.println("TWO:");
-		System.out.println(controller.getTwoACTaskScene().toString());
+		System.out.println(controller.getNAFCTaskScene().toString());
 		System.out.println("Setting FixaationOnWithStimuli");
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
 		return controller;
@@ -427,9 +427,9 @@ public class TwoACConfig {
 
 	
 	@Bean
-	public TwoACGaussScene taskScene() {
+	public NAFCGaussScene taskScene() {
 		System.out.println("taskScene called");
-		TwoACGaussScene scene = new TwoACGaussScene();
+		NAFCGaussScene scene = new NAFCGaussScene();
 		scene.setRenderer(experimentGLRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setMarker(classicConfig.screenMarker());

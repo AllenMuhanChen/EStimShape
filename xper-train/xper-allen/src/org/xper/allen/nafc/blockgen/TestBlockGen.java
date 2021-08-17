@@ -1,11 +1,11 @@
-package org.xper.allen.twoac.blockgen;
+package org.xper.allen.nafc.blockgen;
 
 import java.util.Random;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.RewardPolicy;
 import org.xper.allen.specs.GaussSpec;
-import org.xper.allen.specs.TwoACStimSpecSpec;
-import org.xper.allen.twoac.RewardPolicy;
+import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
@@ -41,22 +41,24 @@ public class TestBlockGen {
 	RewardPolicy rewardPolicy = RewardPolicy.ONE;
 	
 		try {
-			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
+			genId = 0;
+			//genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
 		for (int i = 0; i < numTrials; i++) {
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
-			long[] choiceId = {sampleId + 1, sampleId + 2};
+			long[] choiceId = {sampleId + 1, sampleId + 2, sampleId + 3};
 			
-			TwoACStimSpecSpec stimSpec = new TwoACStimSpecSpec(targetEyeWinCoords, targetEyeWinSize, sampleId, choiceId, eStimObjData, rewardPolicy);
+			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords, targetEyeWinSize, sampleId, choiceId, eStimObjData, rewardPolicy);
 			
 			String spec = stimSpec.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(sampleId, new GaussSpec(0, -5, 3, 1).toXml(), "sample");
 			dbUtil.writeStimObjData(choiceId[0], new GaussSpec(-5, 0, 3, 1).toXml(), "choice 1");
 			dbUtil.writeStimObjData(choiceId[1], new GaussSpec(5, 0, 3, 1).toXml(), "choice 2");
+			dbUtil.writeStimObjData(choiceId[2], new GaussSpec(0, 5, 3, 1).toXml(), "choice 3");
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		

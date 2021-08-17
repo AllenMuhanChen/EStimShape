@@ -1,10 +1,10 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.classic.TrialDrawingController;
 import org.xper.drawing.Context;
 
-public interface TwoACTrialDrawingController extends TrialDrawingController{
-	public void prepareSample(TwoACExperimentTask task, Context context);
+public interface NAFCTrialDrawingController extends TrialDrawingController{
+	public void prepareSample(NAFCExperimentTask task, Context context);
 	
-	public void prepareChoice(TwoACExperimentTask task, Context context);
+	public void prepareChoice(NAFCExperimentTask task, Context context);
 }

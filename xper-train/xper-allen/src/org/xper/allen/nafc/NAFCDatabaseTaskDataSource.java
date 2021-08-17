@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
@@ -13,7 +13,7 @@ import org.xper.experiment.ExperimentTask;
 import org.xper.util.DbUtil;
 import org.xper.util.ThreadHelper;
 
-public class TwoACDatabaseTaskDataSource extends DatabaseTaskDataSource {
+public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	static Logger logger = Logger.getLogger(DatabaseTaskDataSource.class);
 
 	static final int DEFAULT_QUERY_INTERVAL = 1000;
@@ -25,7 +25,7 @@ public class TwoACDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	@Dependency
 	UngetPolicy ungetBehavior;
 
-	AtomicReference<LinkedList<TwoACExperimentTask>> currentGeneration = new AtomicReference<LinkedList<TwoACExperimentTask>>();
+	AtomicReference<LinkedList<NAFCExperimentTask>> currentGeneration = new AtomicReference<LinkedList<NAFCExperimentTask>>();
 	ThreadHelper threadHelper = new ThreadHelper("DatabaseTaskDataSource", this);
 	long currentGenId = -1;
 	long lastDoneTaskId = -1;
@@ -34,13 +34,13 @@ public class TwoACDatabaseTaskDataSource extends DatabaseTaskDataSource {
 		return threadHelper.isRunning();
 	}
 
-	public TwoACExperimentTask getNextTask() {
+	public NAFCExperimentTask getNextTask() {
 		try {
-			LinkedList<TwoACExperimentTask> tasks = currentGeneration.get();
+			LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
 			if (tasks == null) {
 				return null;
 			}
-			TwoACExperimentTask task = tasks.removeFirst();
+			NAFCExperimentTask task = tasks.removeFirst();
 			if (logger.isDebugEnabled()) {
 				logger.debug("	Get -- Generation: " + task.getGenId() + " task: "
 						+ task.getTaskId());
@@ -51,7 +51,7 @@ public class TwoACDatabaseTaskDataSource extends DatabaseTaskDataSource {
 		}
 	}
 
-	public void ungetTask(TwoACExperimentTask t) {
+	public void ungetTask(NAFCExperimentTask t) {
 		if (logger.isDebugEnabled()) {
 			logger.debug("	Unget -- Generation: " + t.getGenId() + " task: "
 					+ t.getTaskId());
@@ -60,12 +60,12 @@ public class TwoACDatabaseTaskDataSource extends DatabaseTaskDataSource {
 		if (t == null)
 			return;
 
-		LinkedList<TwoACExperimentTask> tasks = currentGeneration.get();
+		LinkedList<NAFCExperimentTask> tasks = currentGeneration.get();
 		if (tasks == null) {
 			return;
 		}
 
-		TwoACExperimentTask cur;
+		NAFCExperimentTask cur;
 		try {
 			cur = tasks.getFirst();
 		} catch (NoSuchElementException e) {
@@ -92,8 +92,8 @@ public class TwoACDatabaseTaskDataSource extends DatabaseTaskDataSource {
 				GenerationInfo info = dbUtil.readReadyGenerationInfo();
 				if (info.getGenId() > currentGenId) {
 					// new generation found
-					LinkedList<TwoACExperimentTask> taskToDo = dbUtil
-							.readTwoACExperimentTasks(info.getGenId(), lastDoneTaskId);
+					LinkedList<NAFCExperimentTask> taskToDo = dbUtil
+							.readNAFCExperimentTasks(info.getGenId(), lastDoneTaskId);
 
 					if (logger.isDebugEnabled()) {
 						logger.debug("Generation " + info.getGenId() + " size: "

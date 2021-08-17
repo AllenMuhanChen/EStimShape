@@ -1,11 +1,11 @@
-package org.xper.allen.app.twoac;
+package org.xper.allen.app.nafc;
 
 
 import javax.swing.UIManager;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.nafc.console.NAFCExperimentConsole;
 import org.xper.allen.saccade.console.SaccadeExperimentConsole;
-import org.xper.allen.twoac.console.TwoACExperimentConsole;
 import org.xper.console.ExperimentConsole;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
@@ -20,7 +20,7 @@ public class Console {
 		}
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
-		TwoACExperimentConsole console = context.getBean(TwoACExperimentConsole.class);
+		NAFCExperimentConsole console = context.getBean(NAFCExperimentConsole.class);
 		console.run();
 	}
 }

@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 /*
  * ONE: reward only upon selecting choice "one"

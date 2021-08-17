@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import java.util.List;
 
@@ -10,7 +10,7 @@ import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.TaskDataSource;
 import org.xper.eye.EyeTargetSelector;
 
-public class TwoACTrialExperimentState extends TrialExperimentState {
+public class NAFCTrialExperimentState extends TrialExperimentState {
 	@Dependency
 	List<? extends SlideEventListener> slideEventListeners;
 	/*
@@ -48,7 +48,7 @@ public class TwoACTrialExperimentState extends TrialExperimentState {
 	@Dependency
 	EyeTargetSelector targetSelector;
 	@Dependency
-	TwoACTrialContext currentContext;
+	NAFCTrialContext currentContext;
 	@Dependency
 	TaskDataSource taskDataSource;
 
@@ -100,11 +100,11 @@ public class TwoACTrialExperimentState extends TrialExperimentState {
 		this.slideEventListeners = slideEventListeners;
 	}
 	
-	public TwoACExperimentTask getCurrentTask() {
-		return (TwoACExperimentTask) currentTask;
+	public NAFCExperimentTask getCurrentTask() {
+		return (NAFCExperimentTask) currentTask;
 	}
 	
-	public void setCurrentTask(TwoACExperimentTask currentTask) {
+	public void setCurrentTask(NAFCExperimentTask currentTask) {
 		this.currentTask = currentTask;
 	}
 
@@ -119,7 +119,7 @@ public class TwoACTrialExperimentState extends TrialExperimentState {
 		return currentContext;
 	}
 
-	public void setCurrentContext(TwoACTrialContext currentContext) {
+	public void setCurrentContext(NAFCTrialContext currentContext) {
 		this.currentContext = currentContext;
 	}
 

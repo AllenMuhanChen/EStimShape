@@ -1,15 +1,15 @@
-package org.xper.allen.twoac.console;
+package org.xper.allen.nafc.console;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.xper.allen.nafc.NAFCChoiceMessage;
 import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
-import org.xper.allen.twoac.TwoACChoiceMessage;
 import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.db.vo.BehMsgEntry;
 import org.xper.drawing.Coordinates2D;
 
-public class TwoACExperimentMessageHandler extends TrialExperimentMessageHandler{
+public class NAFCExperimentMessageHandler extends TrialExperimentMessageHandler{
 	AtomicBoolean sampleOn = new AtomicBoolean(false);
 	AtomicBoolean choicesOn = new AtomicBoolean(false);
 	AtomicReference<double[]> targetEyeWindowSize = new AtomicReference<double[]>();
@@ -17,7 +17,7 @@ public class TwoACExperimentMessageHandler extends TrialExperimentMessageHandler
 
 	AtomicReference<SaccadeTrialStatistics> trialStat = new AtomicReference<SaccadeTrialStatistics>();
 	
-	public TwoACExperimentMessageHandler() {
+	public NAFCExperimentMessageHandler() {
 		trialStat.set(new SaccadeTrialStatistics());
 	}
 
@@ -65,7 +65,7 @@ public class TwoACExperimentMessageHandler extends TrialExperimentMessageHandler
 			return true;
 		} else if ("ChoicesOn".equals(msg.getType())){
 			choicesOn.set(true);
-			TwoACChoiceMessage m = TwoACChoiceMessage.fromXml(msg.getMsg());
+			NAFCChoiceMessage m = NAFCChoiceMessage.fromXml(msg.getMsg());
 			targetPosition.set(m.getTargetEyeWinCoords());
 			targetEyeWindowSize.set(m.getTargetEyeWinSize());
 			return true;

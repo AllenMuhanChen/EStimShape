@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.Dependency;
 import org.xper.classic.MarkStimTrialDrawingController;
@@ -7,10 +7,10 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 
-public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingController implements TwoACTrialDrawingController{
+public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingController implements NAFCTrialDrawingController{
 
 	@Dependency
-	protected TwoACTaskScene taskScene;
+	protected NAFCTaskScene taskScene;
 	
 	boolean initialized = false;
 	
@@ -21,7 +21,7 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 		window.swapBuffers();
 	}
 	
-	public void prepareSample(TwoACExperimentTask task, Context context) {
+	public void prepareSample(NAFCExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setSample(task);
 			taskScene.drawSample(context, true);
@@ -30,7 +30,7 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 		}
 	}
 	
-	public void prepareChoice(TwoACExperimentTask task, Context context) {
+	public void prepareChoice(NAFCExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setChoice(task);
 			taskScene.drawChoice(context, false);
@@ -39,11 +39,11 @@ public class TwoACMarkStimTrialDrawingController extends MarkStimTrialDrawingCon
 		}
 	}
 	
-	public TwoACTaskScene getTwoACTaskScene() {
+	public NAFCTaskScene getNAFCTaskScene() {
 		return taskScene;
 	}
 
-	public void setTaskScene(TwoACTaskScene taskScene) {
+	public void setTaskScene(NAFCTaskScene taskScene) {
 		this.taskScene = taskScene;
 	}
 	

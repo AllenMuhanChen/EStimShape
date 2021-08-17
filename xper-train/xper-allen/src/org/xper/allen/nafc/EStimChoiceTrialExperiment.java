@@ -1,11 +1,11 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
+import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.allen.saccade.SaccadeExperimentState;
-import org.xper.allen.twoac.vo.TwoACTrialResult;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialEventListener;
@@ -41,7 +41,7 @@ public class EStimChoiceTrialExperiment implements Experiment {
 	@Dependency
 	EyeMonitor eyeMonitor;
 	@Dependency
-	TwoACExperimentState stateObject;
+	NAFCExperimentState stateObject;
 	@Dependency
 	AllenDbUtil dbUtil;
 
@@ -58,8 +58,8 @@ public class EStimChoiceTrialExperiment implements Experiment {
 	}
 
 	public void run() {
-		EStimChoiceExperimentUtil.run(stateObject, threadHelper, new TwoACTrialRunner() {
-			public TwoACTrialResult runTrial() {
+		EStimChoiceExperimentUtil.run(stateObject, threadHelper, new NAFCTrialRunner() {
+			public NAFCTrialResult runTrial() {
 				try {
 					// get a task
 					EStimChoiceExperimentUtil.getNextTask(stateObject);
@@ -69,11 +69,11 @@ public class EStimChoiceTrialExperiment implements Experiment {
 							Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
 						} catch (InterruptedException e) {
 						}
-						return TwoACTrialResult.NO_MORE_TASKS;
+						return NAFCTrialResult.NO_MORE_TASKS;
 					}
 
 					// initialize trial context
-					TwoACTrialContext context = new TwoACTrialContext();
+					NAFCTrialContext context = new NAFCTrialContext();
 					context.setCurrentTask(stateObject.getCurrentTask());
 					stateObject.setCurrentContext(context);
 					stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
@@ -84,16 +84,16 @@ public class EStimChoiceTrialExperiment implements Experiment {
 
 					
 					// run trial
-					return EStimChoiceExperimentUtil.runTrial(stateObject, threadHelper, new TwoACSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
+					return EStimChoiceExperimentUtil.runTrial(stateObject, threadHelper, new NAFCSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
-						public TwoACTrialResult runSlide() {
+						public NAFCTrialResult runSlide() {
 							//int slidePerTrial = stateObject.getSlidePerTrial();
 							int slidePerTrial = 1;
-							TwoACExperimentTask currentTask = (TwoACExperimentTask) stateObject.getCurrentTask();
+							NAFCExperimentTask currentTask = (NAFCExperimentTask) stateObject.getCurrentTask();
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
 							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
 							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
-							TwoACTrialResult result;
+							NAFCTrialResult result;
 							
 							try {
 								try {
@@ -106,10 +106,10 @@ public class EStimChoiceTrialExperiment implements Experiment {
 								} catch (Exception e){
 									System.out.println("No More Trials");
 									try {
-										Thread.sleep(TwoACTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
+										Thread.sleep(NAFCTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
 									} catch (InterruptedException ie) {
 									}
-									return TwoACTrialResult.NO_MORE_TASKS;
+									return NAFCTrialResult.NO_MORE_TASKS;
 								}
 
 								for (int i = 0; i < slidePerTrial; i++) {
@@ -128,7 +128,7 @@ public class EStimChoiceTrialExperiment implements Experiment {
 									}
 
 								}
-								return TwoACTrialResult.TRIAL_COMPLETE;
+								return NAFCTrialResult.TRIAL_COMPLETE;
 								// end of SlideRunner.runSlide
 							} finally {
 								try {
@@ -169,11 +169,11 @@ public class EStimChoiceTrialExperiment implements Experiment {
 		}
 	}
 
-	public TwoACExperimentState getStateObject() {
+	public NAFCExperimentState getStateObject() {
 		return stateObject;
 	}
 
-	public void setStateObject(TwoACExperimentState stateObject) {
+	public void setStateObject(NAFCExperimentState stateObject) {
 		this.stateObject = stateObject;
 	}
 

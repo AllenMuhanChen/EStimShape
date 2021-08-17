@@ -1,9 +1,9 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Coordinates2D;
 
-public class TwoACTrialContext extends TrialContext {
+public class NAFCTrialContext extends TrialContext {
 	long sampleOnTime;
 	long sampleOffTime;
 	long choicesOnTime;
@@ -20,11 +20,11 @@ public class TwoACTrialContext extends TrialContext {
 	
 	boolean targetFixationSuccess;
 
-	public TwoACExperimentTask getCurrentTask() {
-		return (TwoACExperimentTask) this.currentTask;
+	public NAFCExperimentTask getCurrentTask() {
+		return (NAFCExperimentTask) this.currentTask;
 	}
 
-	public void setCurrentTask(TwoACExperimentTask currentTask) {
+	public void setCurrentTask(NAFCExperimentTask currentTask) {
 		this.currentTask = currentTask;
 	}
 

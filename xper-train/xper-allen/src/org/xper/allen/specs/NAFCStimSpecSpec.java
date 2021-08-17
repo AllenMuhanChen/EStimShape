@@ -1,6 +1,6 @@
 package org.xper.allen.specs;
 
-import org.xper.allen.twoac.RewardPolicy;
+import org.xper.allen.nafc.RewardPolicy;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
@@ -12,7 +12,7 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  * @author Allen Chen
  *
  */
-public class TwoACStimSpecSpec {
+public class NAFCStimSpecSpec {
 	//@XStreamAlias("targetEyeWinCoords")
 	protected Coordinates2D[] targetEyeWinCoords;
 	//@XStreamAlias("targetEyeWinSize")
@@ -33,10 +33,10 @@ public class TwoACStimSpecSpec {
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", TwoACStimSpecSpec.class);
+		s.alias("StimSpec", NAFCStimSpecSpec.class);
 	}
 	
-	public TwoACStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData, 
+	public NAFCStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData, 
 			long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy) {
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
@@ -61,7 +61,7 @@ public class TwoACStimSpecSpec {
 	}
 */
 	
-	public TwoACStimSpecSpec() {
+	public NAFCStimSpecSpec() {
 	}
 
 
@@ -105,16 +105,16 @@ public class TwoACStimSpecSpec {
 		this.choiceObjData = choiceObjData;
 	}
 
-	public static String toXml (TwoACStimSpecSpec spec) {
+	public static String toXml (NAFCStimSpecSpec spec) {
 		return s.toXML(spec);
 	}
 	
 	public String toXml() {
-		return TwoACStimSpecSpec.toXml(this);
+		return NAFCStimSpecSpec.toXml(this);
 	}
 	
-	public static TwoACStimSpecSpec fromXml (String xml) {
-		TwoACStimSpecSpec ss = (TwoACStimSpecSpec)s.fromXML(xml);
+	public static NAFCStimSpecSpec fromXml (String xml) {
+		NAFCStimSpecSpec ss = (NAFCStimSpecSpec)s.fromXML(xml);
 		return ss;
 	}
 

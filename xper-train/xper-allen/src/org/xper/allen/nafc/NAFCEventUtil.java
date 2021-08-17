@@ -1,11 +1,11 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import java.util.List;
 
 
 import org.xper.classic.vo.TrialContext;
 
-public class TwoACEventUtil {
+public class NAFCEventUtil {
 
 	public static void fireSampleOnEvent(long timestamp,
 			List<?extends ChoiceEventListener> choiceEventListeners,

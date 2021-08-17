@@ -12,14 +12,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.xper.allen.nafc.NAFCExperimentTask;
 import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.allen.saccade.db.vo.StimSpecEntryUtil;
 import org.xper.allen.specs.BlockSpec;
 import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.SaccadeStimSpecSpec;
-import org.xper.allen.specs.TwoACStimSpecSpec;
-import org.xper.allen.twoac.TwoACExperimentTask;
+import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.db.vo.StimSpecEntry;
 import org.xper.experiment.ExperimentTask;
 
@@ -228,7 +228,7 @@ public class AllenDbUtil extends DbUtil {
 		return taskToDo;
 	}	
 	
-	public LinkedList<TwoACExperimentTask> readTwoACExperimentTasks(long genId,
+	public LinkedList<NAFCExperimentTask> readNAFCExperimentTasks(long genId,
 			long lastDoneTaskId) {
 		StimSpecEntry sse;
 		//AC
@@ -245,7 +245,7 @@ public class AllenDbUtil extends DbUtil {
 		StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
 		
 		//
-		final LinkedList<TwoACExperimentTask> taskToDo = new LinkedList<TwoACExperimentTask>();
+		final LinkedList<NAFCExperimentTask> taskToDo = new LinkedList<NAFCExperimentTask>();
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.query(
 				" select t.task_id, t.stim_id, t.xfm_id, t.gen_id, " +
@@ -257,19 +257,23 @@ public class AllenDbUtil extends DbUtil {
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
-						TwoACExperimentTask task = new TwoACExperimentTask();
+						NAFCExperimentTask task = new NAFCExperimentTask();
 
 						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
 						//sse.setSpec(rs.getString("stim_spec"));	
-						TwoACStimSpecSpec ss = sseU.twoACStimSpecSpecFromXmlSpec();
+						NAFCStimSpecSpec ss = sseU.twoACStimSpecSpecFromXmlSpec();
 						//StimObjData	
 						//task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());
 						task.setSampleSpecId(ss.getSampleObjData());
 						task.setChoiceSpecId(ss.getChoiceObjData());
 						task.setSampleSpec(readStimObjData(ss.getSampleObjData()).getSpec());	
-						String[] choiceSpec = {readStimObjData(ss.getChoiceObjData()[0]).getSpec(),
-								readStimObjData(ss.getChoiceObjData()[1]).getSpec()};
+						
+						int n = ss.getChoiceObjData().length;
+						String[] choiceSpec = new String[n];
+						for (int i = 0; i < n; i++){
+							choiceSpec[i] = readStimObjData(ss.getChoiceObjData()[i]).getSpec();
+						}
 						task.setChoiceSpec(choiceSpec);							
 						//StimSpec
 						task.setRewardPolicy(ss.getRewardPolicy());

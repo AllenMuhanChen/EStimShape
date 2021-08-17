@@ -1,6 +1,6 @@
-package org.xper.allen.twoac.vo;
+package org.xper.allen.nafc.vo;
 
-public enum TwoACTrialResult {
+public enum NAFCTrialResult {
 	INITIAL_EYE_IN_FAIL, EYE_IN_HOLD_FAIL, FIXATION_SUCCESS, 
 	SLIDE_OK, TRIAL_COMPLETE, EYE_BREAK, 
 	NO_MORE_TASKS, EXPERIMENT_STOPPING,

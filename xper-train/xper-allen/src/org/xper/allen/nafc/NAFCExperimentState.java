@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ import org.xper.classic.TrialDrawingController;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.util.IntanUtil;
 
-public class TwoACExperimentState extends TwoACTrialExperimentState{
+public class NAFCExperimentState extends NAFCTrialExperimentState{
 	@Dependency
 	EyeTargetSelector targetSelector;
 	@Dependency
@@ -32,8 +32,8 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 	}
 	
 	
-	public TwoACExperimentTask getCurrentTask() {
-		return (TwoACExperimentTask) currentTask;
+	public NAFCExperimentTask getCurrentTask() {
+		return (NAFCExperimentTask) currentTask;
 	}
 	
 	public TrialDrawingController getDrawingController() {
@@ -44,7 +44,7 @@ public class TwoACExperimentState extends TwoACTrialExperimentState{
 		this.drawingController = drawingController;
 	}
 
-	public void setCurrentTask(TwoACExperimentTask currentTask) {
+	public void setCurrentTask(NAFCExperimentTask currentTask) {
 		this.currentTask = currentTask;
 	}
 

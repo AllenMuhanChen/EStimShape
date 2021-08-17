@@ -1,4 +1,4 @@
-package org.xper.allen.twoac.console;
+package org.xper.allen.nafc.console;
 
 import java.awt.Canvas;
 import java.awt.Color;
@@ -65,17 +65,17 @@ import org.xper.util.ThreadUtil;
  * 
  * @author John
  */
-public class TwoACExperimentConsole extends JFrame implements
+public class NAFCExperimentConsole extends JFrame implements
 		MessageReceiverEventListener {
-	static Logger logger = Logger.getLogger(TwoACExperimentConsole.class);
+	static Logger logger = Logger.getLogger(NAFCExperimentConsole.class);
 
 	private static final long serialVersionUID = -5313216043026458229L;
 	
 	@Dependency
-	TwoACExperimentConsoleModel model;
+	NAFCExperimentConsoleModel model;
 
 	@Dependency
-	TwoACExperimentConsoleRenderer consoleRenderer;
+	NAFCExperimentConsoleRenderer consoleRenderer;
 
 	@Dependency
 	Coordinates2D monkeyScreenDimension;
@@ -751,19 +751,19 @@ public class TwoACExperimentConsole extends JFrame implements
 		this.monkeyScreenDimension.setX(this.monkeyScreenDimension.getX());
 	}
 
-	public TwoACExperimentConsoleRenderer getConsoleRenderer() {
+	public NAFCExperimentConsoleRenderer getConsoleRenderer() {
 		return consoleRenderer;
 	}
 
-	public void setConsoleRenderer(TwoACExperimentConsoleRenderer consoleRenderer) {
+	public void setConsoleRenderer(NAFCExperimentConsoleRenderer consoleRenderer) {
 		this.consoleRenderer = consoleRenderer;
 	}
 
-	public TwoACExperimentConsoleModel getModel() {
+	public NAFCExperimentConsoleModel getModel() {
 		return model;
 	}
 
-	public void setModel(TwoACExperimentConsoleModel model) {
+	public void setModel(NAFCExperimentConsoleModel model) {
 		this.model = model;
 	}
 

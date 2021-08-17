@@ -1,11 +1,11 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.drawing.Context;
 import org.xper.drawing.TaskScene;
 
-public interface TwoACTaskScene extends TaskScene{
-	public void setSample(TwoACExperimentTask task);
-	public void setChoice(TwoACExperimentTask taks);
+public interface NAFCTaskScene extends TaskScene{
+	public void setSample(NAFCExperimentTask task);
+	public void setChoice(NAFCExperimentTask taks);
 	public void drawSample(Context context, boolean fixation);
 	public void drawChoice(Context context, boolean fixation);
 }
