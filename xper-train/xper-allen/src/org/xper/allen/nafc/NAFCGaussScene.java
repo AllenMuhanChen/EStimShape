@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
@@ -8,27 +8,31 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
 
-public class TwoACGaussScene extends AbstractTaskScene implements TwoACTaskScene{
+public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	/**
 	 * xper_monkey_screen_distance
 	 */
 	@Dependency
 	double distance;
 	RFPlotGaussianObject[] objs = {new RFPlotGaussianObject(), new RFPlotGaussianObject(), new RFPlotGaussianObject()};
+	int n;
 	
 	public void initGL(int w, int h) {
 		super.initGL(w, h);
 		RFPlotGaussianObject.initGL();
 	}
 
-	public void setSample(TwoACExperimentTask task) {
+	public void setSample(NAFCExperimentTask task) {
 		objs[0].setSpec(task.getSampleSpec());
 	}
 	
 
-	public void setChoice(TwoACExperimentTask task) {
-		objs[1].setSpec(task.getChoiceSpec()[0]);
-		objs[2].setSpec(task.getChoiceSpec()[1]);
+	public void setChoice(NAFCExperimentTask task) {
+		n = task.getChoiceSpec().length;
+		for (int i = 0; i < n; i++){
+			objs[i].setSpec(task.getChoiceSpec()[i]);
+		}
+
 	}
 
 	public void drawSample(Context context, final boolean fixationOn) {
@@ -89,10 +93,11 @@ public class TwoACGaussScene extends AbstractTaskScene implements TwoACTaskScene
 	}
 	
 	public void drawChoiceStimuli(Context context) {
-		objs[1].setDistance(distance);
-		objs[1].draw(context);
-		objs[2].setDistance(distance);
-		objs[2].draw(context);
+		
+		for (int i = 0; i < n; i++){
+			objs[i].setDistance(distance);
+			objs[i].draw(context);
+		}
 	}
 	
 	public double getDistance() {

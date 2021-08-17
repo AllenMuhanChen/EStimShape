@@ -1,10 +1,10 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 
-public class BlankTwoACTaskScene extends AbstractTaskScene implements TwoACTaskScene{
+public class BlankNAFCTaskScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	public void drawStimulus(Context context) {
 	}
@@ -13,13 +13,13 @@ public class BlankTwoACTaskScene extends AbstractTaskScene implements TwoACTaskS
 	}
 
 	@Override
-	public void setSample(TwoACExperimentTask task) {
+	public void setSample(NAFCExperimentTask task) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void setChoice(TwoACExperimentTask taks) {
+	public void setChoice(NAFCExperimentTask taks) {
 		// TODO Auto-generated method stub
 		
 	}

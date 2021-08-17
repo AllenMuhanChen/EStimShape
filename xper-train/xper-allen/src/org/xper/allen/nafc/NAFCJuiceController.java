@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import java.sql.Timestamp;
 
@@ -9,7 +9,7 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.juice.Juice;
 
 
-public class TwoACJuiceController implements ChoiceEventListener {
+public class NAFCJuiceController implements ChoiceEventListener {
 	
 	@Dependency
 	Juice juice;

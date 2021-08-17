@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.Dependency;
 import org.xper.classic.MarkEveryStepTrialDrawingController;
@@ -7,14 +7,12 @@ import org.xper.drawing.Context;
 import org.xper.drawing.TaskScene;
 import org.xper.experiment.ExperimentTask;
 
-public class TwoACMarkEveryStepTrialDrawingController extends TwoACMarkStimTrialDrawingController implements TwoACTrialDrawingController{
+public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDrawingController implements NAFCTrialDrawingController{
 
-	public void prepareSample(TwoACExperimentTask task, Context context) {
+	public void prepareSample(NAFCExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setSample(task);
-			System.out.println("Two");
 			taskScene.drawSample(context, true);
-			System.out.println("Three");
 		} else {
 			taskScene.drawBlank(context, false, false);
 		}
@@ -27,7 +25,7 @@ public class TwoACMarkEveryStepTrialDrawingController extends TwoACMarkStimTrial
 		window.swapBuffers();
 	}
 	
-	public void prepareChoice(TwoACExperimentTask task, Context context) {
+	public void prepareChoice(NAFCExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setChoice(task);
 			taskScene.drawChoice(context, false);

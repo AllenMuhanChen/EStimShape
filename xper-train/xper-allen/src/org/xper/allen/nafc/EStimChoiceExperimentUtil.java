@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -10,10 +10,10 @@ import java.util.List;
 import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
+import org.xper.allen.nafc.eye.NAFCEyeTargetSelectorConcurrentDriver;
+import org.xper.allen.nafc.eye.NAFCTargetSelectorResult;
+import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
-import org.xper.allen.twoac.eye.TwoACEyeTargetSelectorConcurrentDriver;
-import org.xper.allen.twoac.eye.TwoACTargetSelectorResult;
-import org.xper.allen.twoac.vo.TwoACTrialResult;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
@@ -32,10 +32,10 @@ import org.xper.util.IntanUtil;
 
 public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 	@SuppressWarnings("incomplete-switch")
-	public static TwoACTrialResult doSlide(int i, TwoACExperimentState stateObject) {
-		TwoACTrialDrawingController drawingController = (TwoACTrialDrawingController) stateObject.getDrawingController();
-		TwoACExperimentTask currentTask = stateObject.getCurrentTask();
-		TwoACTrialContext currentContext = (TwoACTrialContext) stateObject.getCurrentContext();
+	public static NAFCTrialResult doSlide(int i, NAFCExperimentState stateObject) {
+		NAFCTrialDrawingController drawingController = (NAFCTrialDrawingController) stateObject.getDrawingController();
+		NAFCExperimentTask currentTask = stateObject.getCurrentTask();
+		NAFCTrialContext currentContext = (NAFCTrialContext) stateObject.getCurrentContext();
 		List<? extends ChoiceEventListener> choiceEventListeners = stateObject.getChoiceEventListeners();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
 		List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
@@ -47,7 +47,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		boolean fixationSuccess;
 
 		
-		TwoACTargetSelectorResult selectorResult;
+		NAFCTargetSelectorResult selectorResult;
 
 		//show SAMPLE after delay
 		long blankOnLocalTime = timeUtil.currentTimeMicros();
@@ -59,7 +59,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		drawingController.showSlide(currentTask, currentContext);
 		long sampleOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
-		TwoACEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
+		NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
 		
 		//HOLD FIXATION ON SAMPLE
 		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
@@ -72,18 +72,18 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 			drawingController.eyeInHoldFail(currentContext);
 			EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
 					trialEventListeners, currentContext);
-			return TwoACTrialResult.EYE_IN_HOLD_FAIL;
+			return NAFCTrialResult.EYE_IN_HOLD_FAIL;
 		}
 		long sampleOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setSampleOffTime(sampleOffLocalTime);
-		TwoACEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
+		NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
 		
 		//SHOW CHOICES
 		drawingController.prepareChoice(currentTask, currentContext);
 		drawingController.showSlide(currentTask, currentContext);
 		long choicesOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setChoicesOnTime(choicesOnLocalTime);
-		TwoACEventUtil.fireChoicesOnEvent(choicesOnLocalTime, choiceEventListeners,currentContext);
+		NAFCEventUtil.fireChoicesOnEvent(choicesOnLocalTime, choiceEventListeners,currentContext);
 	
 		//ESTIMULATOR
 		sendEStimTrigger(stateObject);
@@ -91,7 +91,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		System.out.println("Fired");
 		//Eye on Target Logic
 		//eye selector
-		TwoACEyeTargetSelectorConcurrentDriver selectorDriver = new TwoACEyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
+		NAFCEyeTargetSelectorConcurrentDriver selectorDriver = new NAFCEyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
 		currentContext.setChoicesOnTime(currentContext.getCurrentSlideOnTime()); 
 
 
@@ -107,51 +107,51 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		
 		//HANDLING RESULTS
 		selectorResult = selectorDriver.getResult();
-		TwoACTrialResult result = selectorResult.getSelectionStatusResult();
+		NAFCTrialResult result = selectorResult.getSelectionStatusResult();
 		RewardPolicy rewardPolicy = currentContext.getCurrentTask().getRewardPolicy();
 
 		switch (result) {
 			case TARGET_SELECTION_EYE_FAIL:
-				TwoACEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				TwoACEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				NAFCEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				if (rewardPolicy == RewardPolicy.ANY) {
-					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				if (rewardPolicy == RewardPolicy.NONE) {
-					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				break;
 			case TARGET_SELECTION_EYE_BREAK:
-				TwoACEventUtil.fireChoiceSelectionEyeBreakEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				NAFCEventUtil.fireChoiceSelectionEyeBreakEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				if (rewardPolicy == RewardPolicy.ANY) {
-					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				if (rewardPolicy == RewardPolicy.NONE) {
-					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				break;
 			case TARGET_SELECTION_ONE:
-				TwoACEventUtil.fireChoiceSelectionOneEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				NAFCEventUtil.fireChoiceSelectionOneEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				if (rewardPolicy == RewardPolicy.ONE || rewardPolicy == RewardPolicy.EITHER) {
-					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				if (rewardPolicy == RewardPolicy.ANY) {
-					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				if (rewardPolicy == RewardPolicy.TWO) {
-					TwoACEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				break;
 			case TARGET_SELECTION_TWO:
-				TwoACEventUtil.fireChoiceSelectionTwoEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				NAFCEventUtil.fireChoiceSelectionTwoEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				if (rewardPolicy == RewardPolicy.TWO || rewardPolicy == RewardPolicy.EITHER) {
-					TwoACEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				if (rewardPolicy == RewardPolicy.ANY) {
-					TwoACEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				if (rewardPolicy == RewardPolicy.ONE) {
-					TwoACEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				break;
 		}
@@ -164,7 +164,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		drawingController.trialComplete(currentContext);
 		long choiceOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setChoicesOffTime(choiceOffLocalTime);
-		TwoACEventUtil.fireChoicesOffEvent(choiceOffLocalTime, choiceEventListeners, currentContext);
+		NAFCEventUtil.fireChoicesOffEvent(choiceOffLocalTime, choiceEventListeners, currentContext);
 		currentContext.setAnimationFrameIndex(0);
 
 
@@ -172,27 +172,27 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 
 	}
 
-	public static TwoACTrialResult runTrial (TwoACExperimentState stateObject, ThreadHelper threadHelper, TwoACSlideRunner runner){
-		TwoACTrialResult result = EStimChoiceExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
-		if (result != TwoACTrialResult.FIXATION_SUCCESS) {
+	public static NAFCTrialResult runTrial (NAFCExperimentState stateObject, ThreadHelper threadHelper, NAFCSlideRunner runner){
+		NAFCTrialResult result = EStimChoiceExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
 		sendEStims(stateObject);
 		result = runner.runSlide();
-		if (result != TwoACTrialResult.TRIAL_COMPLETE) {
+		if (result != NAFCTrialResult.TRIAL_COMPLETE) {
 			return result;
 		}
 
 		EStimChoiceExperimentUtil.completeTrial(stateObject, threadHelper);
 
-		return TwoACTrialResult.TRIAL_COMPLETE;
+		return NAFCTrialResult.TRIAL_COMPLETE;
 	}
 
-	public static void cleanupTrial (TwoACExperimentState state) {
+	public static void cleanupTrial (NAFCExperimentState state) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
-		TwoACExperimentTask currentTask = state.getCurrentTask();
-		TwoACTrialContext currentContext = (TwoACTrialContext) state.getCurrentContext();
-		TwoACDatabaseTaskDataSource taskDataSource = (TwoACDatabaseTaskDataSource) state.getTaskDataSource();
+		NAFCExperimentTask currentTask = state.getCurrentTask();
+		NAFCTrialContext currentContext = (NAFCTrialContext) state.getCurrentContext();
+		NAFCDatabaseTaskDataSource taskDataSource = (NAFCDatabaseTaskDataSource) state.getTaskDataSource();
 		TaskDoneCache taskDoneCache = state.getTaskDoneCache();
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
@@ -226,14 +226,12 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 	 * @throws UnknownHostException 
 	 * @throws SocketException 
 	 */
-	public static void sendEStims (TwoACExperimentState state) {
+	public static void sendEStims (NAFCExperimentState state) {
 		try {
 		IntanUtil intanUtil = state.getIntanUtil();
 		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
-		System.out.println(eStimsToString(eStimObjData));
 			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 			System.out.println("Sending EStimSpecs to Intan");
-			System.out.println(eStimsToString(eStimObjData));
 			try {
 				intanUtil.send(eStimsToString(eStimObjData));
 				System.out.println("EStimSpecs Successfully Sent");
@@ -255,7 +253,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 	 * @throws SocketException 
 	 * 
 	 */
-	public static void sendEStimTrigger(TwoACExperimentState state){
+	public static void sendEStimTrigger(NAFCExperimentState state){
 		IntanUtil intanUtil = state.getIntanUtil();
 		System.out.println("Sending Trigger");
 		try {
@@ -307,19 +305,17 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 	}
 	
 	//TODO: HAVE THIS SET Prepare first trial via sampleSpec and choiceSpec via new drawing controller. 
-	public static TwoACTrialResult getMonkeyFixation(TwoACExperimentState state,
+	public static NAFCTrialResult getMonkeyFixation(NAFCExperimentState state,
 			ThreadHelper threadHelper) {
 
-		TwoACMarkEveryStepTrialDrawingController drawingController = (TwoACMarkEveryStepTrialDrawingController) state.getDrawingController();
-		System.out.println("Test:");
-		System.out.println(drawingController.toString());
+		NAFCMarkEveryStepTrialDrawingController drawingController = (NAFCMarkEveryStepTrialDrawingController) state.getDrawingController();
 		
 		TrialContext currentContext = state.getCurrentContext();
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		List<? extends TrialEventListener> trialEventListeners = state
 				.getTrialEventListeners();
 		EyeController eyeController = state.getEyeController();
-		TwoACExperimentTask currentTask = state.getCurrentTask();
+		NAFCExperimentTask currentTask = state.getCurrentTask();
 		
 		// trial init
 		long trialInitLocalTime = timeUtil.currentTimeMicros();
@@ -360,7 +356,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 			drawingController.initialEyeInFail(currentContext);
 			EventUtil.fireInitialEyeInFailEvent(initialEyeInFailLocalTime,
 					trialEventListeners, currentContext);
-			return TwoACTrialResult.INITIAL_EYE_IN_FAIL;
+			return NAFCTrialResult.INITIAL_EYE_IN_FAIL;
 		}
 
 		// got initial eye in
@@ -385,7 +381,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 			drawingController.eyeInHoldFail(currentContext);
 			EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
 					trialEventListeners, currentContext);
-			return TwoACTrialResult.EYE_IN_HOLD_FAIL;
+			return NAFCTrialResult.EYE_IN_HOLD_FAIL;
 		}
 
 		// get fixation, start stimulus
@@ -394,17 +390,16 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
 				trialEventListeners, currentContext);
 
-		return TwoACTrialResult.FIXATION_SUCCESS;
+		return NAFCTrialResult.FIXATION_SUCCESS;
 	}
 
-	public static void run(TwoACExperimentState state,
-			ThreadHelper threadHelper, TwoACTrialRunner runner) {
+	public static void run(NAFCExperimentState state,
+			ThreadHelper threadHelper, NAFCTrialRunner runner) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		try {
 			threadHelper.started();
 			System.out.println("SlideTrialExperiment started.");
 			System.out.println("Trying to get TwoACDrawingController");
-			System.out.println(state.getDrawingController().toString());
 			state.getDrawingController().init();
 			EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
 					state.getExperimentEventListeners());
@@ -441,7 +436,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		}
 	}
 	
-	public static void completeTrial(TwoACExperimentState state, ThreadHelper threadHelper) {
+	public static void completeTrial(NAFCExperimentState state, ThreadHelper threadHelper) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		TrialContext currentContext = state.getCurrentContext();
 		TrialDrawingController drawingController = state.getDrawingController();

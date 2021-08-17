@@ -1,7 +1,7 @@
 package org.xper.allen.saccade.db.vo;
 
 import org.xper.allen.specs.SaccadeStimSpecSpec;
-import org.xper.allen.specs.TwoACStimSpecSpec;
+import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.db.vo.StimSpecEntry;
 
 import com.thoughtworks.xstream.XStream;
@@ -33,8 +33,8 @@ public class StimSpecEntryUtil{
 		return ss;
 	}
 	
-	public TwoACStimSpecSpec twoACStimSpecSpecFromXmlSpec() {
-		TwoACStimSpecSpec ss = TwoACStimSpecSpec.fromXml(stimSpecEntry.getSpec());
+	public NAFCStimSpecSpec twoACStimSpecSpecFromXmlSpec() {
+		NAFCStimSpecSpec ss = NAFCStimSpecSpec.fromXml(stimSpecEntry.getSpec());
 		return ss;
 	}
 	

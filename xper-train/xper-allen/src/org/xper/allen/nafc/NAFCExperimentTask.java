@@ -1,4 +1,4 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.allen.specs.GaussSpec;
@@ -11,7 +11,7 @@ import org.xper.experiment.ExperimentTask;
  * @author allenchen
  *
  */
-public class TwoACExperimentTask extends ExperimentTask {
+public class NAFCExperimentTask extends ExperimentTask {
 	
 	Coordinates2D[] targetEyeWinCoords;
 	double[] targetEyeWinSize;

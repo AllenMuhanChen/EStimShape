@@ -1,4 +1,4 @@
-package org.xper.allen.twoac.console;
+package org.xper.allen.nafc.console;
 
 import org.xper.Dependency;
 import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
@@ -7,9 +7,9 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.GLUtil;
 
-public class TwoACExperimentConsoleRenderer extends TrialExperimentConsoleRenderer{
+public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRenderer{
 	@Dependency
-	TwoACExperimentMessageHandler messageHandler;
+	NAFCExperimentMessageHandler messageHandler;
 	
 	double targetIndicatorSize = 2.5;
 	int invert;
@@ -36,7 +36,7 @@ public class TwoACExperimentConsoleRenderer extends TrialExperimentConsoleRender
 		}
 	}
 	
-	public void setTwoACMessageHandler(TwoACExperimentMessageHandler messageHandler) {
+	public void setTwoACMessageHandler(NAFCExperimentMessageHandler messageHandler) {
 		this.messageHandler = messageHandler;
 	}
 }

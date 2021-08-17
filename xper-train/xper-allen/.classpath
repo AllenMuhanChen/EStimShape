@@ -14,7 +14,6 @@
 	<classpathentry kind="lib" path="/xper/lib/junit-3.8.1.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/ledatastream-1.7.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/log4j-1.2.9.jar"/>
-	<classpathentry kind="lib" path="/xper/lib/mysql-connector-java-8.0.19.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/saxpath.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/swing-layout-1.0.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/swing-worker-1.2.jar"/>
@@ -41,5 +40,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>

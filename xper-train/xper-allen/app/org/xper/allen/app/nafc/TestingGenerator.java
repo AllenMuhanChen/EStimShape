@@ -1,10 +1,10 @@
-package org.xper.allen.app.twoac;
+package org.xper.allen.app.nafc;
 
 import java.util.ArrayList;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.nafc.blockgen.TestBlockGen;
 import org.xper.allen.saccade.blockgen.TrainingBlockGen;
-import org.xper.allen.twoac.blockgen.TestBlockGen;
 import org.xper.util.FileUtil;
 
 /**

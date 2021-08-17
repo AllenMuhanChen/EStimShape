@@ -1,17 +1,17 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
 import org.xper.allen.saccade.console.SaccadeTargetMessage;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
 
-public class TwoACChoiceMessage {
+public class NAFCChoiceMessage {
 	long[] stimObjDataId;
 	Coordinates2D[] targetEyeWinCoords;
 	double[] targetEyeWinSize;
 	RewardPolicy rewardPolicy;
 	
-	public TwoACChoiceMessage(long[] stimObjDataId, Coordinates2D[] targetEyeWinCoords, double[] targetEyeWinSize,
+	public NAFCChoiceMessage(long[] stimObjDataId, Coordinates2D[] targetEyeWinCoords, double[] targetEyeWinSize,
 			RewardPolicy rewardPolicy) {
 		super();
 		this.stimObjDataId = stimObjDataId;
@@ -20,7 +20,7 @@ public class TwoACChoiceMessage {
 		this.rewardPolicy = rewardPolicy;
 	}
 	
-	public TwoACChoiceMessage() {
+	public NAFCChoiceMessage() {
 
 	}
 	
@@ -59,11 +59,11 @@ public class TwoACChoiceMessage {
 	transient static XStream s = new XStream();
 	
 	static {
-		s.alias("TwoACChoiceMessage", TwoACChoiceMessage.class);
+		s.alias("TwoACChoiceMessage", NAFCChoiceMessage.class);
 		s.alias("Coordinates2D", Coordinates2D.class);
 	}
 	
-	public static String toXml(TwoACChoiceMessage msg) {
+	public static String toXml(NAFCChoiceMessage msg) {
 		return s.toXML(msg);
 	}
 	
@@ -71,8 +71,8 @@ public class TwoACChoiceMessage {
 		return s.toXML(this);
 	}
 	
-	public static TwoACChoiceMessage fromXml(String xml) {
-		return (TwoACChoiceMessage)s.fromXML(xml);
+	public static NAFCChoiceMessage fromXml(String xml) {
+		return (NAFCChoiceMessage)s.fromXML(xml);
 	}
 	
 }

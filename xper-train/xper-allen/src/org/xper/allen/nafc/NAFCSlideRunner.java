@@ -1,7 +1,7 @@
-package org.xper.allen.twoac;
+package org.xper.allen.nafc;
 
-import org.xper.allen.twoac.vo.TwoACTrialResult;
+import org.xper.allen.nafc.vo.NAFCTrialResult;
 
-public interface TwoACSlideRunner {
-	public TwoACTrialResult runSlide();
+public interface NAFCSlideRunner {
+	public NAFCTrialResult runSlide();
 }

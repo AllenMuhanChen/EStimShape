@@ -1,22 +1,22 @@
 /**
  * 
  */
-package org.xper.allen.twoac.eye;
+package org.xper.allen.nafc.eye;
 
-import org.xper.allen.twoac.vo.TwoACTrialResult;
+import org.xper.allen.nafc.vo.NAFCTrialResult;
 
-public class TwoACTargetSelectorResult {
+public class NAFCTargetSelectorResult {
 	
-	TwoACTrialResult selectionStatusResult;
+	NAFCTrialResult selectionStatusResult;
 	long targetInitialSelectionLocalTime = -1;
 	
 	int selection = -1;
 
-	public TwoACTrialResult getSelectionStatusResult() {
+	public NAFCTrialResult getSelectionStatusResult() {
 		return selectionStatusResult;
 	}
 
-	public void setSelectionStatusResult(TwoACTrialResult selectionStatusResult) {
+	public void setSelectionStatusResult(NAFCTrialResult selectionStatusResult) {
 		this.selectionStatusResult = selectionStatusResult;
 	}
 
