@@ -25,14 +25,19 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 	void drawChoices() {
 		if(messageHandler.isChoicesOn()) {
 			Coordinates2D[] choicesLocations = messageHandler.getTargetPosition();
-			double[] targetEyeWindowSize = {renderer.deg2mm(messageHandler.getTargetEyeWindowSize()[0]), renderer.deg2mm(messageHandler.getTargetEyeWindowSize()[1])};
-			double[] targetX = {renderer.deg2mm(choicesLocations[0].getX()), renderer.deg2mm(choicesLocations[1].getX())};
-			double[] targetY = {renderer.deg2mm(choicesLocations[0].getY()), renderer.deg2mm(choicesLocations[1].getY())};
+			int n = choicesLocations.length;
 			
-			GLUtil.drawCircle(circle, targetEyeWindowSize[0], false, targetX[0], targetY[0], 0);
-			GLUtil.drawCircle(circle, targetEyeWindowSize[1], false, targetX[1], targetY[1], 0);
-			GLUtil.drawSquare(square, targetIndicatorSize, true, targetX[0], targetY[0], 0);
-			GLUtil.drawSquare(square, targetIndicatorSize, true, targetX[1], targetY[1], 0);
+			double[] targetEyeWindowSize = new double[n];
+			double[] targetX = new double[n];
+			double[] targetY = new double[n];
+			
+			for (int i = 0; i < n; i++) {
+			targetEyeWindowSize[i] = renderer.deg2mm(messageHandler.getTargetEyeWindowSize()[i]);
+			targetX[i] = renderer.deg2mm(choicesLocations[i].getX());
+			targetY[i] = renderer.deg2mm(choicesLocations[i].getY());
+			GLUtil.drawCircle(circle, targetEyeWindowSize[i], false, targetX[i], targetY[i], 0);
+			GLUtil.drawSquare(square, targetIndicatorSize, true, targetX[i], targetY[i], 0);
+			}		
 		}
 	}
 	
