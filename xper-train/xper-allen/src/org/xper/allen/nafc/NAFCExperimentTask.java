@@ -22,6 +22,7 @@ public class NAFCExperimentTask extends ExperimentTask {
 	long sampleSpecId;
 	long[] choiceSpecId;
 	RewardPolicy rewardPolicy;
+	int[] rewardList;
 	
 	public String getSampleSpec() {
 		return sampleSpec;
@@ -100,6 +101,14 @@ public class NAFCExperimentTask extends ExperimentTask {
 
 	public void setChoiceSpecId(long[] choiceSpecId) {
 		this.choiceSpecId = choiceSpecId;
+	}
+
+	public int[] getRewardList() {
+		return rewardList;
+	}
+
+	public void setRewardList(int[] rewardList) {
+		this.rewardList = rewardList;
 	}
 	
 	

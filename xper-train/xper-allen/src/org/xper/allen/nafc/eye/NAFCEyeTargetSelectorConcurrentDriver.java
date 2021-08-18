@@ -30,8 +30,10 @@ public class NAFCEyeTargetSelectorConcurrentDriver {
 	 * This is running in a separate thread that is different from the main experiment thread where the Experiment objects run.
 	 * Note: both the deadlineIntialEyeIn and eyeHoldTime are in micro seconds.
 	 */
-	public void start(final Coordinates2D targetCenter[], final double targetWinSize[], 
+	public void start(final Coordinates2D[] targetCenter, final double[] targetWinSize, 
 			final long deadlineIntialEyeIn, final long eyeHoldTime) {
+		
+
 		exec = Executors.newSingleThreadExecutor();
 		
 		task = exec.submit(new Callable<NAFCTargetSelectorResult>() {
@@ -48,17 +50,24 @@ public class NAFCEyeTargetSelectorConcurrentDriver {
 				result.setTargetInitialSelectionLocalTime(initialEyeInTime);
 				
 				boolean success = selector.waitEyeHold(sel, initialEyeInTime + eyeHoldTime);
+				/* Commented out b/c we don't want an eye break to stop the trial
 				if (!success) {
 					result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_EYE_BREAK);
 					return result;
 				}
-				
+				*/
 				result.setSelection(sel);
+				/* Old selection method for 2AFC
 				if (sel == 0 ) {
 				result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_ONE);
 				}
 				else if(sel==1) {
 				result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_TWO);
+				}
+				*/
+				
+				if (sel > -1) {
+					result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_SUCCESS);
 				}
 				return result;
 			}

@@ -1,13 +1,12 @@
 package org.xper.allen.nafc;
 
 /*
- * ONE: reward only upon selecting choice "one"
- * TWO: reward only upon selecting choice "two'
- * EITHER: reward upon selecting either choice "one" or "two". No reward upon failed selection
+ * LIST: reward only upon selecting any choice specified by a list in stimSpec
+ * ANY: reward  upon selecting any choice
  * NONE: reward only upon not selecting any choice. 
- * ANY: reward no matter what
+ * ALWAYS: reward no matter what, even if no choice is made
  */
 public enum RewardPolicy {
-	ONE, TWO, EITHER, NONE, ANY
+	LIST, ANY, NONE, ALWAYS
 	
 }

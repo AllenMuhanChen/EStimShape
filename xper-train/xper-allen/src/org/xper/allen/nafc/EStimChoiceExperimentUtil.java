@@ -5,6 +5,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.xper.allen.intan.EStimParameter;
@@ -61,7 +62,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
 		NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
 		
-		//HOLD FIXATION ON SAMPLE
+		//HOLD FIXATION DURING SAMPLE
 		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
 				+ stateObject.getSampleLength() * 1000 );
 
@@ -108,19 +109,23 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		//HANDLING RESULTS
 		selectorResult = selectorDriver.getResult();
 		NAFCTrialResult result = selectorResult.getSelectionStatusResult();
+		int choice = selectorResult.getSelection();
 		RewardPolicy rewardPolicy = currentContext.getCurrentTask().getRewardPolicy();
-
+		int[] rewardList = currentContext.getCurrentTask().getRewardList();
+		
 		switch (result) {
 			case TARGET_SELECTION_EYE_FAIL:
-				NAFCEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				if (rewardPolicy == RewardPolicy.ANY) {
-					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				NAFCEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+
+				if (rewardPolicy == RewardPolicy.ALWAYS) {
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
 				}
 				if (rewardPolicy == RewardPolicy.NONE) {
-					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
 				}
 				break;
+				/*
 			case TARGET_SELECTION_EYE_BREAK:
 				NAFCEventUtil.fireChoiceSelectionEyeBreakEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				if (rewardPolicy == RewardPolicy.ANY) {
@@ -130,30 +135,30 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				break;
-			case TARGET_SELECTION_ONE:
-				NAFCEventUtil.fireChoiceSelectionOneEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				if (rewardPolicy == RewardPolicy.ONE || rewardPolicy == RewardPolicy.EITHER) {
-					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				*/
+			case TARGET_SELECTION_SUCCESS:
+				NAFCEventUtil.fireChoiceSelectionSuccessEvent(choiceDoneLocalTime, choiceEventListeners, choice);
+				if (rewardPolicy == RewardPolicy.LIST) {
+					if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
+						NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+						System.out.println("Correct Choice");
+					}
+					else {
+						NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+						System.out.println("Incorrect Choice");
+					}
 				}
 				if (rewardPolicy == RewardPolicy.ANY) {
-					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
+					
 				}
-				if (rewardPolicy == RewardPolicy.TWO) {
-					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				}
+				if (rewardPolicy == RewardPolicy.ALWAYS) {
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
+					
+				}				
+
 				break;
-			case TARGET_SELECTION_TWO:
-				NAFCEventUtil.fireChoiceSelectionTwoEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				if (rewardPolicy == RewardPolicy.TWO || rewardPolicy == RewardPolicy.EITHER) {
-					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				}
-				if (rewardPolicy == RewardPolicy.ANY) {
-					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				}
-				if (rewardPolicy == RewardPolicy.ONE) {
-					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				}
-				break;
+
 		}
 		
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
@@ -172,6 +177,10 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 
 	}
 
+	public static boolean contains(final int[] arr, final int key) {
+        return Arrays.stream(arr).anyMatch(i -> i == key);
+	}
+        
 	public static NAFCTrialResult runTrial (NAFCExperimentState stateObject, ThreadHelper threadHelper, NAFCSlideRunner runner){
 		NAFCTrialResult result = EStimChoiceExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
@@ -304,7 +313,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		return output;
 	}
 	
-	//TODO: HAVE THIS SET Prepare first trial via sampleSpec and choiceSpec via new drawing controller. 
+ 
 	public static NAFCTrialResult getMonkeyFixation(NAFCExperimentState state,
 			ThreadHelper threadHelper) {
 

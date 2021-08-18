@@ -1,5 +1,7 @@
 package org.xper.allen.nafc;
 
+import java.util.Arrays;
+
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessage;
 import org.xper.allen.saccade.SaccadeExperimentTask;
@@ -42,24 +44,21 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 		enqueue(timestamp, "ChoiceSelectionEyeFail", "");
 		
 	}
-
+	
+	@Override
+	public void choiceSelectionSuccess(long timestamp, int choice) {
+		enqueue(timestamp, "ChoiceSelectionSuccess", String.valueOf(choice));
+		
+	}
+/*
+ * 
 	@Override
 	public void choiceSelectionEyeBreak(long timestamp) {
 		enqueue(timestamp, "ChoiceSelectionEyeBreak", "");
 		
 	}
-
-	@Override
-	public void choiceSelectionOne(long timestamp) {
-		enqueue(timestamp, "ChoiceSelectionOne", "");
-		
-	}
-
-	@Override
-	public void choiceSelectionTwo(long timestamp) {
-		enqueue(timestamp, "ChoiceSelectionTwo", "");
-		
-	}
+*/
+	
 
 	@Override
 	public void choiceSelectionNull(long timestamp) {
@@ -68,14 +67,14 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	}
 
 	@Override
-	public void choiceSelectionCorrect(long timestamp) {
-		enqueue(timestamp, "ChoiceSelectionCorrect", "");
+	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
+		enqueue(timestamp, "ChoiceSelectionCorrect", Arrays.toString(rewardList));
 		
 	}
 
 	@Override
-	public void choiceSelectionIncorrect(long timestamp) {
-		enqueue(timestamp, "ChoiceSelectionIncorect", "");
+	public void choiceSelectionIncorrect(long timestamp, int[] rewardList) {
+		enqueue(timestamp, "ChoiceSelectionIncorect", Arrays.toString(rewardList));
 		
 	}
 

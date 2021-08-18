@@ -75,7 +75,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 @Import(ClassicConfig.class)
-public class TwoACConfig {
+public class NAFCConfig {
 
 	@Autowired BaseConfig baseConfig;
 	@Autowired ClassicConfig classicConfig;	
@@ -308,8 +308,6 @@ public class TwoACConfig {
 		state.setTaskDoneCache(classicConfig.taskDoneCache());
 		state.setGlobalTimeClient(acqConfig.timeClient());
 		state.setDrawingController(drawingController());
-		System.out.println(drawingController().toString());
-		System.out.println(state.getDrawingController());
 		state.setInterTrialInterval(classicConfig.xperInterTrialInterval());
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
@@ -439,7 +437,10 @@ public class TwoACConfig {
 	}
 	
 	
-	//TODO
+	/**
+	 * Involved in both fixation point eye selection for this code &  choice target selection
+	 * @return
+	 */
 	@Bean
 	public RobustEyeTargetSelector eyeTargetSelector() {
 		RobustEyeTargetSelector selector = new RobustEyeTargetSelector();
@@ -468,22 +469,34 @@ public class TwoACConfig {
 		strategy.setEyeDevices(devices);
 		return strategy;
 	}
-	
+	/**
+	 * For fixation point eye selection, not alternative choices. 
+	 * @return
+	 */
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperTargetSelectionEyeInTimeThreshold() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_target_selection_eye_in_time_threshold", 0));
 	}
-
+	/**
+	 * CHANGE THIS for changing amount of time given to choose an alternative target 
+	 * @return
+	 */
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperTimeAllowedForInitialTargetSelection() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_time_allowed_for_initial_target_selection", 0));
 	}
-	
+	/**
+	 * CHANGE THIS for changing amount of time needed to fixate in order to choose an alternative target 
+	 * @return
+	 */
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperRequiredTargetSelectionHoldTime() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_required_target_selection_hold_time", 0));
 	}
-	
+	/**
+	 * For fixation point eye selection, not alternative choices. 
+	 * @return
+	 */
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperTargetSelectionEyeOutTimeThreshold() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_target_selection_eye_out_time_threshold", 0));

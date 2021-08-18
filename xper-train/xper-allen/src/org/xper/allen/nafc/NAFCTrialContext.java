@@ -1,5 +1,6 @@
 package org.xper.allen.nafc;
 
+import org.xper.allen.nafc.eye.NAFCTargetSelectorResult;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Coordinates2D;
 
@@ -18,6 +19,7 @@ public class NAFCTrialContext extends TrialContext {
 	double[] targetEyeWindowSize;
 	long targetIndex;
 	
+	NAFCTargetSelectorResult selectorResult;
 	boolean targetFixationSuccess;
 
 	public NAFCExperimentTask getCurrentTask() {
@@ -107,6 +109,14 @@ public class NAFCTrialContext extends TrialContext {
 
 	public void setChoicesOffTime(long choicesOffTime) {
 		this.choicesOffTime = choicesOffTime;
+	}
+
+	public NAFCTargetSelectorResult getSelectorResult() {
+		return selectorResult;
+	}
+
+	public void setSelectorResult(NAFCTargetSelectorResult selectorResult) {
+		this.selectorResult = selectorResult;
 	}
 
 

@@ -24,7 +24,7 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 	
 	@Override
-	public void choiceSelectionCorrect(long timestamp) {
+	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
 		juice.deliver();
 		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal correctly chose.");
 		
@@ -34,7 +34,7 @@ public class NAFCJuiceController implements ChoiceEventListener {
 	@Override
 	public void choiceSelectionDefaultCorrect(long timestamp) {
 		juice.deliver();
-		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal is correct by default.");
+		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal is rewarded by default.");
 	}
 
 	@Override
@@ -66,24 +66,19 @@ public class NAFCJuiceController implements ChoiceEventListener {
 		// TODO Auto-generated method stub
 		
 	}
-
+/*
 	@Override
 	public void choiceSelectionEyeBreak(long timestamp) {
 		// TODO Auto-generated method stub
 		
 	}
-
+*/
 	@Override
-	public void choiceSelectionOne(long timestamp) {
+	public void choiceSelectionSuccess(long timestamp, int choice) {
 		// TODO Auto-generated method stub
 		
 	}
 
-	@Override
-	public void choiceSelectionTwo(long timestamp) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public void choiceSelectionNull(long timestamp) {
@@ -93,7 +88,7 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 
 	@Override
-	public void choiceSelectionIncorrect(long timestamp) {
+	public void choiceSelectionIncorrect(long timestamp, int[] rewardList) {
 		// TODO Auto-generated method stub
 		
 	}

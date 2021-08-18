@@ -35,10 +35,10 @@ public class TestBlockGen {
 	public void generate() { //
 	int numTrials = 100;
 		
-	Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-5, 0), new Coordinates2D(5,0), new Coordinates2D(0,5)};	
-	double[] targetEyeWinSize = {2, 2, 2};
+	Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-10, 0), new Coordinates2D(10,0), new Coordinates2D(0,10)};	
+	double[] targetEyeWinSize = {5, 5, 5};
 	long[] eStimObjData = {1};
-	RewardPolicy rewardPolicy = RewardPolicy.ONE;
+	RewardPolicy rewardPolicy = RewardPolicy.LIST;
 	
 		try {
 			genId = 0;
@@ -50,15 +50,15 @@ public class TestBlockGen {
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			long[] choiceId = {sampleId + 1, sampleId + 2, sampleId + 3};
-			
-			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords, targetEyeWinSize, sampleId, choiceId, eStimObjData, rewardPolicy);
+			int[] rewardList = {0,2};
+			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords, targetEyeWinSize, sampleId, choiceId, eStimObjData, rewardPolicy, rewardList);
 			
 			String spec = stimSpec.toXml();
 			System.out.println(spec);
 			dbUtil.writeStimObjData(sampleId, new GaussSpec(0, -5, 3, 1).toXml(), "sample");
-			dbUtil.writeStimObjData(choiceId[0], new GaussSpec(-5, 0, 3, 1).toXml(), "choice 1");
-			dbUtil.writeStimObjData(choiceId[1], new GaussSpec(5, 0, 3, 1).toXml(), "choice 2");
-			dbUtil.writeStimObjData(choiceId[2], new GaussSpec(0, 5, 3, 1).toXml(), "choice 3");
+			dbUtil.writeStimObjData(choiceId[0], new GaussSpec(-10, 0, 3, 1).toXml(), "choice 1");
+			dbUtil.writeStimObjData(choiceId[1], new GaussSpec(10, 0, 3, 1).toXml(), "choice 2");
+			dbUtil.writeStimObjData(choiceId[2], new GaussSpec(0, 10, 3, 1).toXml(), "choice 3");
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		
