@@ -42,7 +42,14 @@ public class NAFCEventUtil {
 				listener.choicesOff(timestamp);
 			}
 	}
-	
+	public static void fireChoiceSelectionSuccessEvent(long timestamp,
+			List<?extends ChoiceEventListener> choiceEventListeners,
+			int choice) {
+		
+			for (ChoiceEventListener listener: choiceEventListeners) {
+				listener.choiceSelectionSuccess(timestamp, choice);
+			}
+	}
 	public static void fireChoiceSelectionEyeFailEvent(long timestamp,
 			List<?extends ChoiceEventListener> choiceEventListeners,
 			TrialContext currentContext) {
@@ -51,7 +58,7 @@ public class NAFCEventUtil {
 				listener.choiceSelectionEyeFail(timestamp);
 			}
 	}
-	
+/*	
 	public static void fireChoiceSelectionEyeBreakEvent(long timestamp,
 			List<?extends ChoiceEventListener> choiceEventListeners,
 			TrialContext currentContext) {
@@ -60,25 +67,7 @@ public class NAFCEventUtil {
 				listener.choiceSelectionEyeBreak(timestamp);
 			}
 	}
-	
-	public static void fireChoiceSelectionOneEvent(long timestamp,
-			List<?extends ChoiceEventListener> choiceEventListeners,
-			TrialContext currentContext) {
-		
-			for (ChoiceEventListener listener: choiceEventListeners) {
-				listener.choiceSelectionOne(timestamp);
-			}
-	}
-	
-	public static void fireChoiceSelectionTwoEvent(long timestamp,
-			List<?extends ChoiceEventListener> choiceEventListeners,
-			TrialContext currentContext) {
-		
-			for (ChoiceEventListener listener: choiceEventListeners) {
-				listener.choiceSelectionTwo(timestamp);
-			}
-	}
-	
+*/
 	public static void fireChoiceSelectionNullEvent(long timestamp,
 			List<?extends ChoiceEventListener> choiceEventListeners,
 			TrialContext currentContext) {
@@ -89,26 +78,23 @@ public class NAFCEventUtil {
 	}
 	
 	public static void fireChoiceSelectionCorrectEvent(long timestamp,
-			List<?extends ChoiceEventListener> choiceEventListeners,
-			TrialContext currentContext) {
+			List<?extends ChoiceEventListener> choiceEventListeners, int[] rewardList) {
 		
 			for (ChoiceEventListener listener: choiceEventListeners) {
-				listener.choiceSelectionCorrect(timestamp);
+				listener.choiceSelectionCorrect(timestamp, rewardList);
 			}
 	}
 	
 	public static void fireChoiceSelectionIncorrectEvent(long timestamp,
-			List<?extends ChoiceEventListener> choiceEventListeners,
-			TrialContext currentContext) {
+			List<?extends ChoiceEventListener> choiceEventListeners, int[] rewardList) {
 		
 			for (ChoiceEventListener listener: choiceEventListeners) {
-				listener.choiceSelectionIncorrect(timestamp);
+				listener.choiceSelectionIncorrect(timestamp, rewardList);
 			}
 	}
 	
 	public static void fireChoiceSelectionDefaultCorrectEvent(long timestamp,
-			List<?extends ChoiceEventListener> choiceEventListeners,
-			TrialContext currentContext) {
+			List<?extends ChoiceEventListener> choiceEventListeners) {
 		
 			for (ChoiceEventListener listener: choiceEventListeners) {
 				listener.choiceSelectionDefaultCorrect(timestamp);

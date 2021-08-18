@@ -25,7 +25,7 @@ public class NAFCStimSpecSpec {
 	protected long[] eStimObjData;
 	//@XStreamAlias("rewardPolicy")
 	protected RewardPolicy rewardPolicy;
-	
+	protected int[] rewardList;
 	//@XStreamAlias("eStimObjChans")
 	//protected int[] eStimObjChans;
 	
@@ -37,13 +37,15 @@ public class NAFCStimSpecSpec {
 	}
 	
 	public NAFCStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData, 
-			long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy) {
+			long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
 		this.targetEyeWinCoords = targetEyeWinCoords;
 		this.targetEyeWinSize = targetEyeWinSize;
 		this.sampleObjData = sampleObjData;
 		this.choiceObjData = choiceObjData;
 		this.eStimObjData = eStimObjData;
 		this.rewardPolicy = rewardPolicy;
+		this.rewardList = rewardList;
+		
 	}
 /*	
 	public TwoACStimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
@@ -125,6 +127,14 @@ public class NAFCStimSpecSpec {
 
 	public void seteStimObjData(long[] eStimObjData) {
 		this.eStimObjData = eStimObjData;
+	}
+
+	public int[] getRewardList() {
+		return rewardList;
+	}
+
+	public void setRewardList(int[] rewardList) {
+		this.rewardList = rewardList;
 	}
 
 

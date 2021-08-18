@@ -277,6 +277,7 @@ public class AllenDbUtil extends DbUtil {
 						task.setChoiceSpec(choiceSpec);							
 						//StimSpec
 						task.setRewardPolicy(ss.getRewardPolicy());
+						task.setRewardList(ss.getRewardList());
 						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						//TODO: EStimObjData
