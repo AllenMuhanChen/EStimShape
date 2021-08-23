@@ -1,7 +1,6 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.message;
 
 import java.util.List;
-
 
 import org.xper.classic.vo.TrialContext;
 

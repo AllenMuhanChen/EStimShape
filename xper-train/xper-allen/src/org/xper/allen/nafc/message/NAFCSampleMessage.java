@@ -1,4 +1,4 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.message;
 
 import org.xper.allen.saccade.console.SaccadeTargetMessage;
 import org.xper.drawing.Coordinates2D;

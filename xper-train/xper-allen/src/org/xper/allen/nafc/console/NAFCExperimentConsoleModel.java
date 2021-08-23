@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
 import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
 import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
 import org.xper.console.ExperimentConsoleModel;

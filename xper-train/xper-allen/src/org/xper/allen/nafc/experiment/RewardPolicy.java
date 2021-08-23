@@ -1,4 +1,4 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.experiment;
 
 /*
  * LIST: reward only upon selecting any choice specified by a list in stimSpec

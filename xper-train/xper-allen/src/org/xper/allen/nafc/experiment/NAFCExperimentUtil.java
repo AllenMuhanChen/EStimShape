@@ -1,4 +1,4 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.experiment;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -13,6 +13,8 @@ import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.allen.nafc.eye.NAFCEyeTargetSelectorConcurrentDriver;
 import org.xper.allen.nafc.eye.NAFCTargetSelectorResult;
+import org.xper.allen.nafc.message.ChoiceEventListener;
+import org.xper.allen.nafc.message.NAFCEventUtil;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.classic.SlideEventListener;

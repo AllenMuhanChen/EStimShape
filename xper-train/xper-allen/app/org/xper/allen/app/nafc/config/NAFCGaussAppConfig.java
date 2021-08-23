@@ -1,4 +1,4 @@
-package org.xper.allen.config;
+package org.xper.allen.app.nafc.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
@@ -7,48 +7,36 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.allen.nafc.NAFCTrialExperiment;
+import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCGaussScene;
-import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.blockgen.TestBlockGen;
-import org.xper.allen.saccade.GaussScene;
-import org.xper.allen.saccade.blockgen.SimpleEStimBlockGen;
-import org.xper.allen.saccade.blockgen.TrainingBlockGen;
-import org.xper.app.experiment.test.RandomGeneration;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 
+//@Import annotation avoids @ComponentScanning?
 @Import(NAFCConfig.class)
 /**
  * methods written here will OVERRIDE methods with identical name in config. 
+ * By default, when one spring configuration file imports another one, the later definitions (imported) are overidden by earlier ones (importing)
+ *
+ *https://stackoverflow.com/questions/10993181/defining-the-same-spring-bean-twice-with-same-name
+ *https://www.marcobehler.com/guides/spring-framework
  * @author r2_allen
  *
  */
-public class NAFCAppConfig {
+public class NAFCGaussAppConfig {
 	@Autowired NAFCConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
 	
-	@Bean
-	public NAFCTrialExperiment experiment() {
-		NAFCTrialExperiment xper = new NAFCTrialExperiment();
-		xper.setEyeMonitor(classicConfig.eyeMonitor());
-		xper.setStateObject(config.experimentState());
-		xper.setBlankTargetScreenDisplayTime(config.xperBlankTargetScreenDisplayTime());
-		xper.setDbUtil(config.allenDbUtil());
-		return xper;
-	}
 	
 	@Bean
 	public NAFCGaussScene taskScene() {
@@ -69,32 +57,4 @@ public class NAFCAppConfig {
 		gen.setXmlUtil(config.allenXMLUtil());
 		return gen;
 	}
-	
-/*
-	@Bean GaussianSpecGenerator generator() {
-		GaussianSpecGenerator gen = new GaussianSpecGenerator();
-		return gen;
-	}
-*/
-	/*
-	@Bean
-	public TrainingBlockGen trainingGen() {
-		TrainingBlockGen blockgen = new TrainingBlockGen();
-		blockgen.setDbUtil(config.allenDbUtil());
-		//System.out.println(((ChoiceInRFAppConfig) config).getJdbcUrl());
-		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
-		blockgen.setXmlUtil(config.allenXMLUtil());
-		return blockgen;
-	}
-	
-	@Bean
-	public SimpleEStimBlockGen simpleEStimGen() {
-		SimpleEStimBlockGen blockgen = new SimpleEStimBlockGen();
-		blockgen.setDbUtil(config.allenDbUtil());
-		//System.out.println(((ChoiceInRFAppConfig) config).getJdbcUrl());
-		blockgen.setGlobalTimeUtil(acqConfig.timeClient());
-		blockgen.setXmlUtil(config.allenXMLUtil());
-		return blockgen;
-	}
-	*/
 }

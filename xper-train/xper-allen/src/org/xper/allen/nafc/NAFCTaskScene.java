@@ -1,5 +1,6 @@
 package org.xper.allen.nafc;
 
+import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.drawing.Context;
 import org.xper.drawing.TaskScene;
 

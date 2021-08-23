@@ -1,9 +1,10 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.experiment;
 
 import java.util.List;
 
 import org.xper.Dependency;
 import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.saccade.console.TargetEventListener;
 import org.xper.classic.TrialDrawingController;
 import org.xper.eye.EyeTargetSelector;
