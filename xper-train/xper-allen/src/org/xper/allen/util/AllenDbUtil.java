@@ -12,7 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.xper.allen.nafc.NAFCExperimentTask;
+import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.allen.saccade.db.vo.StimSpecEntryUtil;

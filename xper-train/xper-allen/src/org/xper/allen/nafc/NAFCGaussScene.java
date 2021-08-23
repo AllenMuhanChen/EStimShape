@@ -3,6 +3,7 @@ package org.xper.allen.nafc;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.drawing.RFPlotGaussianObject;
+import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Drawable;
@@ -14,7 +15,8 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	 */
 	@Dependency
 	double distance;
-	RFPlotGaussianObject[] objs = {new RFPlotGaussianObject(), new RFPlotGaussianObject(), new RFPlotGaussianObject()};
+	RFPlotGaussianObject sample = new RFPlotGaussianObject();
+	RFPlotGaussianObject[] choices;
 	int n;
 	
 	public void initGL(int w, int h) {
@@ -23,14 +25,14 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	}
 
 	public void setSample(NAFCExperimentTask task) {
-		objs[0].setSpec(task.getSampleSpec());
+		sample.setSpec(task.getSampleSpec());
 	}
 	
 
 	public void setChoice(NAFCExperimentTask task) {
 		n = task.getChoiceSpec().length;
 		for (int i = 0; i < n; i++){
-			objs[i].setSpec(task.getChoiceSpec()[i]);
+			choices[i].setSpec(task.getChoiceSpec()[i]);
 		}
 
 	}
@@ -62,8 +64,8 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	}
 
 	public void drawSampleStimulus(Context context) {
-		objs[0].setDistance(distance);
-		objs[0].draw(context);
+		sample.setDistance(distance);
+		sample.draw(context);
 	}
 	
 	public void drawChoice(Context context, final boolean fixationOn) {
@@ -95,8 +97,8 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void drawChoiceStimuli(Context context) {
 		
 		for (int i = 0; i < n; i++){
-			objs[i].setDistance(distance);
-			objs[i].draw(context);
+			choices[i].setDistance(distance);
+			choices[i].draw(context);
 		}
 	}
 	

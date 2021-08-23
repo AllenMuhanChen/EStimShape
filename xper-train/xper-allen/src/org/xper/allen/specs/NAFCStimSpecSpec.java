@@ -1,6 +1,6 @@
 package org.xper.allen.specs;
 
-import org.xper.allen.nafc.RewardPolicy;
+import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;

@@ -1,9 +1,10 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.message;
 
 import java.util.Arrays;
 
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessage;
+import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;

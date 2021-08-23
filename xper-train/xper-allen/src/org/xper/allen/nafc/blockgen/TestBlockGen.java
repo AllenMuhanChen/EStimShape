@@ -3,7 +3,7 @@ package org.xper.allen.nafc.blockgen;
 import java.util.Random;
 
 import org.xper.Dependency;
-import org.xper.allen.nafc.RewardPolicy;
+import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;

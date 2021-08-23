@@ -5,12 +5,18 @@ import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 
-public class BlankNAFCTaskScene extends AbstractTaskScene implements NAFCTaskScene{
+public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 
-	public void drawStimulus(Context context) {
+	@Override
+	public void setTask(ExperimentTask task) {
+		// TODO Auto-generated method stub
+		
 	}
 
-	public void setTask(ExperimentTask task) {
+	@Override
+	public void drawStimulus(Context context) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	@Override

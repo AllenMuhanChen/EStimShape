@@ -1,4 +1,4 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.experiment;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.message;
 
 import java.sql.Timestamp;
 

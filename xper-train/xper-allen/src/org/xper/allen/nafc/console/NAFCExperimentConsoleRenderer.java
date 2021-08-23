@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.console;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
 import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
 import org.xper.classic.TrialExperimentConsoleRenderer;
 import org.xper.drawing.Context;

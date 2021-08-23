@@ -1,6 +1,7 @@
-package org.xper.allen.nafc;
+package org.xper.allen.nafc.experiment;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.vo.TrialContext;

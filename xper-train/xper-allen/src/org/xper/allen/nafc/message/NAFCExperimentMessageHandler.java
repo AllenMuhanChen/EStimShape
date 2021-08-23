@@ -1,9 +1,8 @@
-package org.xper.allen.nafc.console;
+package org.xper.allen.nafc.message;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.xper.allen.nafc.NAFCChoiceMessage;
 import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
 import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.db.vo.BehMsgEntry;
