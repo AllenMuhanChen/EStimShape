@@ -2,7 +2,7 @@ package org.xper.allen.app.nafc;
 
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.EStimChoiceTrialExperiment;
+import org.xper.allen.nafc.NAFCTrialExperiment;
 import org.xper.allen.nafc.NAFCMarkEveryStepTrialDrawingController;
 import org.xper.experiment.ExperimentRunner;
 import org.xper.util.FileUtil;

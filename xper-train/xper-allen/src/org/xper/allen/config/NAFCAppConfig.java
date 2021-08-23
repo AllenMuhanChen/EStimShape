@@ -7,6 +7,7 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.xper.allen.nafc.NAFCTrialExperiment;
 import org.xper.allen.nafc.NAFCGaussScene;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.blockgen.TestBlockGen;
@@ -28,38 +29,38 @@ import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 @AnnotationDrivenConfig
 
 @Import(NAFCConfig.class)
-public class EStimChoiceAppConfig {
+/**
+ * methods written here will OVERRIDE methods with identical name in config. 
+ * @author r2_allen
+ *
+ */
+public class NAFCAppConfig {
 	@Autowired NAFCConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
-	/*
+	
 	@Bean
-	public AbstractRenderer experimentGLRenderer () {
-		PerspectiveStereoRenderer renderer = new PerspectiveStereoRenderer();
-		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
-		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
-		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
-		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
-		
-		System.out.println("23108 screen width = " + classicConfig.xperMonkeyScreenWidth());
-		
-		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
-		renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
-		return renderer;
+	public NAFCTrialExperiment experiment() {
+		NAFCTrialExperiment xper = new NAFCTrialExperiment();
+		xper.setEyeMonitor(classicConfig.eyeMonitor());
+		xper.setStateObject(config.experimentState());
+		xper.setBlankTargetScreenDisplayTime(config.xperBlankTargetScreenDisplayTime());
+		xper.setDbUtil(config.allenDbUtil());
+		return xper;
 	}
 	
 	@Bean
-	public TwoACTaskScene taskScene() {
-		TwoACGaussScene scene = new TwoACGaussScene();
-		scene.setRenderer(experimentGLRenderer());
+	public NAFCGaussScene taskScene() {
+		NAFCGaussScene scene = new NAFCGaussScene();
+		scene.setRenderer(config.experimentGLRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setMarker(classicConfig.screenMarker());
 		scene.setBlankScreen(new BlankScreen());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		return scene;
 	}
-	*/
+	
 	@Bean
 	public TestBlockGen generator() {
 		TestBlockGen gen = new TestBlockGen();

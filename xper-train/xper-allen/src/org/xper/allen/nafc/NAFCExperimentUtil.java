@@ -31,7 +31,7 @@ import org.xper.util.TrialExperimentUtil;
 
 import org.xper.util.IntanUtil;
 
-public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
+public class NAFCExperimentUtil extends TrialExperimentUtil{
 	@SuppressWarnings("incomplete-switch")
 	public static NAFCTrialResult doSlide(int i, NAFCExperimentState stateObject) {
 		NAFCTrialDrawingController drawingController = (NAFCTrialDrawingController) stateObject.getDrawingController();
@@ -49,7 +49,16 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 
 		
 		NAFCTargetSelectorResult selectorResult;
-
+		//ESTIMULATOR
+		/*
+		 * EStims are meant to be sent out at the beginning of the trial with time padding added to the EStimSpec in order to match timing
+		 * with visual stimuli. 
+		 */
+		sendEStims(stateObject);
+		sendEStimTrigger(stateObject);
+		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
+		System.out.println("EStim Fired");
+		
 		//show SAMPLE after delay
 		long blankOnLocalTime = timeUtil.currentTimeMicros();
 		do {
@@ -86,10 +95,7 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 		currentContext.setChoicesOnTime(choicesOnLocalTime);
 		NAFCEventUtil.fireChoicesOnEvent(choicesOnLocalTime, choiceEventListeners,currentContext);
 	
-		//ESTIMULATOR
-		sendEStimTrigger(stateObject);
-		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
-		System.out.println("Fired");
+
 		//Eye on Target Logic
 		//eye selector
 		NAFCEyeTargetSelectorConcurrentDriver selectorDriver = new NAFCEyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
@@ -182,17 +188,17 @@ public class EStimChoiceExperimentUtil extends TrialExperimentUtil{
 	}
         
 	public static NAFCTrialResult runTrial (NAFCExperimentState stateObject, ThreadHelper threadHelper, NAFCSlideRunner runner){
-		NAFCTrialResult result = EStimChoiceExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+		NAFCTrialResult result = NAFCExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
-		sendEStims(stateObject);
+
 		result = runner.runSlide();
 		if (result != NAFCTrialResult.TRIAL_COMPLETE) {
 			return result;
 		}
 
-		EStimChoiceExperimentUtil.completeTrial(stateObject, threadHelper);
+		NAFCExperimentUtil.completeTrial(stateObject, threadHelper);
 
 		return NAFCTrialResult.TRIAL_COMPLETE;
 	}

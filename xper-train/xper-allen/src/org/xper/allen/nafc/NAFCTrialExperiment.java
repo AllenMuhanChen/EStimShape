@@ -34,8 +34,8 @@ import jssc.SerialPortException;
  * @author wang
  * 
  */
-public class EStimChoiceTrialExperiment implements Experiment {
-	static Logger logger = Logger.getLogger(EStimChoiceTrialExperiment.class);
+public class NAFCTrialExperiment implements Experiment {
+	static Logger logger = Logger.getLogger(NAFCTrialExperiment.class);
 
 	ThreadHelper threadHelper = new ThreadHelper("SaccadeTrialExperiment", this);
 	@Dependency
@@ -58,11 +58,11 @@ public class EStimChoiceTrialExperiment implements Experiment {
 	}
 
 	public void run() {
-		EStimChoiceExperimentUtil.run(stateObject, threadHelper, new NAFCTrialRunner() {
+		NAFCExperimentUtil.run(stateObject, threadHelper, new NAFCTrialRunner() {
 			public NAFCTrialResult runTrial() {
 				try {
 					// get a task
-					EStimChoiceExperimentUtil.getNextTask(stateObject);
+					NAFCExperimentUtil.getNextTask(stateObject);
 
 					if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
 						try {
@@ -84,7 +84,7 @@ public class EStimChoiceTrialExperiment implements Experiment {
 
 					
 					// run trial
-					return EStimChoiceExperimentUtil.runTrial(stateObject, threadHelper, new NAFCSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
+					return NAFCExperimentUtil.runTrial(stateObject, threadHelper, new NAFCSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public NAFCTrialResult runSlide() {
 							//int slidePerTrial = stateObject.getSlidePerTrial();
@@ -115,7 +115,7 @@ public class EStimChoiceTrialExperiment implements Experiment {
 								for (int i = 0; i < slidePerTrial; i++) {
 									
 									// draw the slide
-									result = EStimChoiceExperimentUtil.doSlide(i, stateObject);
+									result = NAFCExperimentUtil.doSlide(i, stateObject);
 									
 									
 									// Trial done successfully
@@ -132,7 +132,7 @@ public class EStimChoiceTrialExperiment implements Experiment {
 								// end of SlideRunner.runSlide
 							} finally {
 								try {
-									EStimChoiceExperimentUtil.cleanupTask(stateObject);
+									NAFCExperimentUtil.cleanupTask(stateObject);
 								} catch (Exception e) {
 									logger.warn(e.getMessage());
 									e.printStackTrace();
@@ -144,7 +144,7 @@ public class EStimChoiceTrialExperiment implements Experiment {
 					// end of TrialRunner.runTrial	
 				} finally {
 					try {
-						EStimChoiceExperimentUtil.cleanupTrial(stateObject);
+						NAFCExperimentUtil.cleanupTrial(stateObject);
 					} catch (Exception e) {
 						logger.warn(e.getMessage());
 						e.printStackTrace();

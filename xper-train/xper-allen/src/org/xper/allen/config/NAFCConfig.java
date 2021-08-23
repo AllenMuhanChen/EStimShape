@@ -20,7 +20,7 @@ import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.nafc.ChoiceEventListener;
-import org.xper.allen.nafc.EStimChoiceTrialExperiment;
+import org.xper.allen.nafc.NAFCTrialExperiment;
 import org.xper.allen.nafc.NAFCDatabaseTaskDataSource;
 import org.xper.allen.nafc.NAFCExperimentMessageDispatcher;
 import org.xper.allen.nafc.NAFCExperimentState;
@@ -284,8 +284,8 @@ public class NAFCConfig {
 	
 	//TODO
 	@Bean
-	public EStimChoiceTrialExperiment experiment() {
-		EStimChoiceTrialExperiment xper = new EStimChoiceTrialExperiment();
+	public NAFCTrialExperiment experiment() {
+		NAFCTrialExperiment xper = new NAFCTrialExperiment();
 		xper.setEyeMonitor(classicConfig.eyeMonitor());
 		xper.setStateObject(experimentState());
 		xper.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
@@ -409,16 +409,8 @@ public class NAFCConfig {
 		} else {
 			controller = new NAFCMarkStimTrialDrawingController();
 		}
-		System.out.println(controller.toString());
-		System.out.println("Setting Window");
 		controller.setWindow(classicConfig.monkeyWindow());
-		System.out.println("Setting taskSCene");
-		controller.setTaskScene(this.taskScene());
-		System.out.println("ONE:");
-		System.out.println(taskScene().toString());
-		System.out.println("TWO:");
-		System.out.println(controller.getNAFCTaskScene().toString());
-		System.out.println("Setting FixaationOnWithStimuli");
+		controller.setTaskScene(taskScene());
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
 		return controller;
 	}
@@ -426,7 +418,7 @@ public class NAFCConfig {
 	
 	@Bean
 	public NAFCGaussScene taskScene() {
-		System.out.println("taskScene called");
+		System.out.println("I HAVE BEEN CALLED!");
 		NAFCGaussScene scene = new NAFCGaussScene();
 		scene.setRenderer(experimentGLRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
