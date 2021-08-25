@@ -4,7 +4,6 @@ import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.png.Image;
 import org.xper.allen.drawing.png.ImageStack;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
-import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Drawable;
@@ -37,10 +36,6 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
 	}
 
-	public void trialStop(NAFCTrialContext context) {
-		//choices.cleanUp();
-		//sample.cleanUp();
-	}
 	
 	@Override
 	public void setSample(NAFCExperimentTask task) {

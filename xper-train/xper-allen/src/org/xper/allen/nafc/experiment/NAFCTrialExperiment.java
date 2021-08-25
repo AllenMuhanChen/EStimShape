@@ -116,7 +116,7 @@ public class NAFCTrialExperiment implements Experiment {
 									
 									// draw the slide
 									result = NAFCExperimentUtil.doSlide(i, stateObject);
-									
+									System.out.println("RESULT: " + result);
 									
 									// Trial done successfully
 									if (currentTask != null) {

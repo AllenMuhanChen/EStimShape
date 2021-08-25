@@ -175,19 +175,6 @@ public class AllenDbUtil extends DbUtil {
  */
 	public LinkedList<SaccadeExperimentTask> readSaccadeExperimentTasks(long genId,
 			long lastDoneTaskId) {
-		StimSpecEntry sse;
-		//AC
-		//System.out.println(Long.toString(lastDoneTaskId));
-		if (lastDoneTaskId > 0) {
-			 sse = readStimSpec(lastDoneTaskId);
-		
-		}
-		else {
-			long TaskToDoMaxId = readTaskToDoMaxId();
-			 sse = readStimSpec(TaskToDoMaxId);
-		}
-		StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
-		
 		//
 		final LinkedList<SaccadeExperimentTask> taskToDo = new LinkedList<SaccadeExperimentTask>();
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
@@ -201,6 +188,11 @@ public class AllenDbUtil extends DbUtil {
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
+						StimSpecEntry sse;
+						//AC
+						//System.out.println(Long.toString(lastDoneTaskId));
+						sse = readStimSpec(rs.getLong("stim_id"));
+						StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
 						SaccadeExperimentTask task = new SaccadeExperimentTask();
 
 						task.setGenId(rs.getLong("gen_id"));
@@ -230,20 +222,8 @@ public class AllenDbUtil extends DbUtil {
 	
 	public LinkedList<NAFCExperimentTask> readNAFCExperimentTasks(long genId,
 			long lastDoneTaskId) {
-		StimSpecEntry sse;
-		//AC
-		//System.out.println(Long.toString(lastDoneTaskId));
-		if (lastDoneTaskId > 0) {
-			 sse = readStimSpec(lastDoneTaskId);
 		
-		}
-		else {
-			long TaskToDoMaxId = readTaskToDoMaxId();
-			 sse = readStimSpec(TaskToDoMaxId);
-		}
-		
-		StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
-		
+
 		//
 		final LinkedList<NAFCExperimentTask> taskToDo = new LinkedList<NAFCExperimentTask>();
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
@@ -257,12 +237,21 @@ public class AllenDbUtil extends DbUtil {
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
+						StimSpecEntry sse;
+						//AC
+						//System.out.println(Long.toString(lastDoneTaskId));
+						sse = readStimSpec(rs.getLong("stim_id"));
+							 
+
+						
+						StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
+						
 						NAFCExperimentTask task = new NAFCExperimentTask();
 
 						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
 						//sse.setSpec(rs.getString("stim_spec"));	
-						NAFCStimSpecSpec ss = sseU.twoACStimSpecSpecFromXmlSpec();
+						NAFCStimSpecSpec ss = sseU.NAFCStimSpecSpecFromXmlSpec();
 						//StimObjData	
 						//task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());
 						task.setSampleSpecId(ss.getSampleObjData());
@@ -274,6 +263,7 @@ public class AllenDbUtil extends DbUtil {
 						for (int i = 0; i < n; i++){
 							choiceSpec[i] = readStimObjData(ss.getChoiceObjData()[i]).getSpec();
 						}
+					
 						task.setChoiceSpec(choiceSpec);							
 						//StimSpec
 						task.setRewardPolicy(ss.getRewardPolicy());
