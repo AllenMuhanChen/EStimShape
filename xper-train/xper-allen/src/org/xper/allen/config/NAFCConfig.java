@@ -417,7 +417,7 @@ public class NAFCConfig {
 
 	
 	@Bean
-	public NAFCGaussScene taskScene() {
+	public NAFCTaskScene taskScene() {
 		System.out.println("I HAVE BEEN CALLED!");
 		NAFCGaussScene scene = new NAFCGaussScene();
 		scene.setRenderer(experimentGLRenderer());

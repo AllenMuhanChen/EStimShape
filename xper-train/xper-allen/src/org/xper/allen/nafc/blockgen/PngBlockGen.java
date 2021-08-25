@@ -27,7 +27,8 @@ public class PngBlockGen {
 	TimeUtil globalTimeUtil;
 	@Dependency
 	AllenXMLUtil xmlUtil;
-	
+	@Dependency
+	String pngPath;
 	/**
 	 * Selects visual stimuli randomly from stimTypes
 	 */
@@ -42,7 +43,7 @@ public class PngBlockGen {
 	
 	public void generate() { //
 		//SETTINGS
-		File folder = new File("/home/r2_allen/Documents/pngs");
+		File folder = new File(pngPath);
 		File[] fileArray = folder.listFiles();
 		
 		//PARAMETERS
@@ -71,7 +72,7 @@ public class PngBlockGen {
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			int randomSampleIndex = r.nextInt(fileArray.length);
-			dbUtil.writeStimObjData(sampleId, fileArray[randomSampleIndex].getAbsolutePath(), "sample: " + randomSampleIndex);
+			dbUtil.writeStimObjData(sampleId, fileArray[randomSampleIndex].getAbsolutePath(), "sample");
 			
 			//CHOICE
 			int correctChoice = r.nextInt(numChoices);
@@ -92,10 +93,10 @@ public class PngBlockGen {
 				choiceId[j] = sampleId + j + 1;
 				
 				if (j==correctChoice){
-					dbUtil.writeStimObjData(choiceId[j], fileArray[randomSampleIndex].getAbsolutePath(), "choice " + j);
+					dbUtil.writeStimObjData(choiceId[j], fileArray[randomSampleIndex].getAbsolutePath(), "choice " + j + "; " + "match");
 				}
 				else{
-					dbUtil.writeStimObjData(choiceId[j], distractorList.get(distractorIndex).getAbsolutePath(), "choice " + j);
+					dbUtil.writeStimObjData(choiceId[j], distractorList.get(distractorIndex).getAbsolutePath(), "choice " + j + "; " + "distractor");
 					distractorIndex += 1;
 				}
 			}
@@ -137,6 +138,14 @@ public class PngBlockGen {
 
 	public void setXmlUtil(AllenXMLUtil xmlUtil) {
 		this.xmlUtil = xmlUtil;
+	}
+
+	public String getPngPath() {
+		return pngPath;
+	}
+
+	public void setPngPath(String pngPath) {
+		this.pngPath = pngPath;
 	}
 
 }
