@@ -88,9 +88,11 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 					trialEventListeners, currentContext);
 			return NAFCTrialResult.EYE_IN_HOLD_FAIL;
 		}
+		drawingController.slideFinish(currentTask, currentContext);
 		long sampleOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setSampleOffTime(sampleOffLocalTime);
 		NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
+		
 		
 		//SHOW CHOICES
 		drawingController.prepareChoice(currentTask, currentContext);
@@ -181,7 +183,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		currentContext.setChoicesOffTime(choiceOffLocalTime);
 		NAFCEventUtil.fireChoicesOffEvent(choiceOffLocalTime, choiceEventListeners, currentContext);
 		currentContext.setAnimationFrameIndex(0);
-
+		
 
 		return selectorResult.getSelectionStatusResult();
 
