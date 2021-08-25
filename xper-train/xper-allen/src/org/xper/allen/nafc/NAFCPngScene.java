@@ -1,21 +1,19 @@
 package org.xper.allen.nafc;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.Dependency;
+import org.xper.allen.drawing.png.Image;
 import org.xper.allen.drawing.png.ImageStack;
-import org.xper.allen.drawing.png.PngGAParams;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
-import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
 
 public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
-
-	ImageStack sample = new ImageStack();
-	ImageStack choices = new ImageStack();
+	Image sample;
+	
+	Image[] choices;
 	ImageStack blankImage = new ImageStack();
 	
 	double screenWidth;
@@ -37,26 +35,18 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		
         GL11.glOrtho(0, w, h, 0, 1, -1);
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
-        
-        // context is valid so load blanks
-        blankImage.setScreenWidth(screenWidth);
-        blankImage.setScreenHeight(screenHeight);
-        blankImage.setNumFrames(4);
-        blankImage.genTextures();
-
 	}
 
 	public void trialStop(NAFCTrialContext context) {
-		choices.cleanUp();
-		sample.cleanUp();
+		//choices.cleanUp();
+		//sample.cleanUp();
 	}
 	
 	@Override
 	public void setSample(NAFCExperimentTask task) {
+		sample = new Image();
 		String sampleSpec = task.getSampleSpec();
-		sample.setNumFrames(1);
-		sample.genTextures();
-		sample.loadTexture(sampleSpec, 0);
+		sample.loadTexture(sampleSpec);
 	}
 
 	@Override
@@ -64,28 +54,76 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		// TODO Auto-generated method stub
 		String[] choiceSpec = task.getChoiceSpec();
 		numChoices = choiceSpec.length;
-		choices.setNumFrames(numChoices);
-		choices.setFrameNum(0);
-		choices.genTextures();
+		
+		choices = new Image[numChoices];
 		for (int i=0; i < numChoices; i++){
-			choices.loadTexture(choiceSpec[i], i);
+			choices[i] = new Image();
+			choices[i].loadTexture(choiceSpec[i]);
 		}
 	}
 
 	@Override
 	public void drawSample(Context context, boolean fixationOn) {
-		sample.draw(context);
 		
+		// clear the whole screen before define view ports in renderer
+		blankScreen.draw(null);
+		renderer.draw(new Drawable() {
+			public void draw(Context context) {
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+				sample.draw(context);
+				if (useStencil) {
+					// 1 will pass for fixation and marker regions
+					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
+				}
+				
+				if (fixationOn) {
+					 fixation.draw(context);
+				}
+				marker.draw(context);
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+			}}, context);
 	}
+	
 
 	@Override
 	public void drawChoice(Context context, boolean fixationOn) {
 		// TODO Auto-generated method stub
 		// clear the whole screen before define view ports in renderer
-		for (int i = 0; i < numChoices; i++){
-			choices.draw(context);
-		}
+
+		
+		// clear the whole screen before define view ports in renderer
+		blankScreen.draw(null);
+		renderer.draw(new Drawable() {
+			public void draw(Context context) {
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+				for (int i = 0; i < numChoices; i++){
+					choices[i].draw(context);
+				}
+				if (useStencil) {
+					// 1 will pass for fixation and marker regions
+					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
+				}
+				
+				if (fixationOn) {
+					 fixation.draw(context);
+				}
+				marker.draw(context);
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+			}}, context);
 	}
+
 
 
 	@Override

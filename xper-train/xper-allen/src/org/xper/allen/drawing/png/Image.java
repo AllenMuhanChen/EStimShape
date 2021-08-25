@@ -42,7 +42,7 @@ public class Image implements Drawable {
 	/**
 	* @param args
 	*/
-	/*
+	 /*
 	public static void main(String[] args) {
 		
 		if(true){
@@ -53,7 +53,7 @@ public class Image implements Drawable {
 	}
 	*/
 	
-	int loadTexture(String pathname) {
+	public int loadTexture(String pathname) {
 		textureIndex = 0;
 	
 		try {
@@ -65,11 +65,33 @@ public class Image implements Drawable {
 			byte[] src = ((DataBufferByte)img.getRaster().getDataBuffer()).getData();
 	
 //			
-			bgr2rgb(src);
-	
-			pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
+			//bgr2rgb(src);
+			abgr2rgba(src);
 			
-			return 0; 
+			//pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
+			ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
+			
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIds.get(textureIndex));
+
+    		// from http://wiki.lwjgl.org/index.php?title=Multi-Texturing_with_GLSL
+    		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+    		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+    		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
+
+    		if(pixels.remaining() % 3 == 0) {
+    			// only for RGB
+    		 	GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, img.getWidth(), img.getHeight(), 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
+    		} else {
+    			// RGBA
+    			GL11.glTexImage2D( GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, img.getWidth(), img.getHeight(), 0,  GL11.GL_RGBA,  GL11.GL_UNSIGNED_BYTE, pixels);
+    		}
+    		   
+    		//System.out.println("JK 5353 ImageStack:loadTexture() " + imageFile + " : " + textureIndex + 
+    		//	    				" textureIds = " + textureIds.get(textureIndex));    		
+
+    		return textureIds.get(textureIndex);
+			
+			//return 0; 
 	
 		} catch(IOException e) {
 			e.printStackTrace();
@@ -77,12 +99,25 @@ public class Image implements Drawable {
 		}
 	}
 	
-	
+    // repack abgr to rgba    
+    void abgr2rgba(byte[] target) {
+    	byte tmpAlphaVal;
+    	byte tmpBlueVal;
+    	
+    	for(int i=0x00000000; i<target.length; i+=0x00000004) {
+    		tmpAlphaVal = target[i];
+    		target[i] = target[i+0x00000003];
+    		tmpBlueVal = target[i+0x00000001];
+    		target[i+0x00000001] = target[i+0x00000002];
+    		target[i+0x00000002] = tmpBlueVal;
+    		target[i+0x00000003] = tmpAlphaVal;
+    	}
+    }
 	
 	void bgr2rgb(byte[] target) {
 		byte tmp;
 	
-		for(int i=0x00000000; i<target.length; i+=0x00000003) {
+		for(int i=0x00000000; i<target.length-0x00000002; i+=0x00000003) {
 			tmp = target[i];
 			target[i] = target[i+0x00000002];
 			target[i+0x00000002] = tmp;
@@ -125,13 +160,13 @@ public class Image implements Drawable {
 		GL11.glEnable(GL11.GL_TEXTURE_2D);  	
 
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIds.get(textureIndex));
-		
+	/*	
 		// from http://wiki.lwjgl.org/index.php?title=Multi-Texturing_with_GLSL
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, imgWidth, imgHeight, 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
 		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
-		
+	*/	
        GL11.glColor3d(1.0, 1.0, 1.0);
        GL11.glBegin(GL11.GL_QUADS);
            GL11.glTexCoord2f(0, 1);
@@ -146,9 +181,11 @@ public class Image implements Drawable {
 
 
        // delete the texture
-       GL11.glDeleteTextures(textureIds.get(textureIndex));
+       //GL11.glDeleteTextures(textureIds.get(textureIndex));
        
        GL11.glDisable(GL11.GL_TEXTURE_2D);
+       
+
 	}
 
 
