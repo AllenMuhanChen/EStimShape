@@ -21,6 +21,7 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
+import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
@@ -68,7 +69,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		}while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
 
 		//SHOW SAMPLE
-		drawingController.prepareSample(currentTask, currentContext);
+		drawingController.prepareSample(currentTask, currentContext); //THIS is called by prepare fixation
 		drawingController.showSlide(currentTask, currentContext);
 		long sampleOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
@@ -220,10 +221,9 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
-			
 			state.setCurrentTask(null);
 		}
-		 
+		 taskDoneCache.flush();
 
 		// trial stop
 		if (currentContext != null) {
@@ -386,7 +386,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		// prepare first slide
 		currentContext.setSlideIndex(0);
 		currentContext.setAnimationFrameIndex(0);
-		drawingController.prepareSample(currentTask, currentContext);
+		//drawingController.prepareSample(currentTask, currentContext);
 
 		// wait for eye hold
 		success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
@@ -476,5 +476,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 						threadHelper);
 		}
 	}
-
+	public static void getNextTask(NAFCExperimentState state) {
+		state.setCurrentTask(state.getTaskDataSource().getNextTask());
+	}
 }

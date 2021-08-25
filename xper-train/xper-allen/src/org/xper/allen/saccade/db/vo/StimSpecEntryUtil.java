@@ -33,7 +33,7 @@ public class StimSpecEntryUtil{
 		return ss;
 	}
 	
-	public NAFCStimSpecSpec twoACStimSpecSpecFromXmlSpec() {
+	public NAFCStimSpecSpec NAFCStimSpecSpecFromXmlSpec() {
 		NAFCStimSpecSpec ss = NAFCStimSpecSpec.fromXml(stimSpecEntry.getSpec());
 		return ss;
 	}
