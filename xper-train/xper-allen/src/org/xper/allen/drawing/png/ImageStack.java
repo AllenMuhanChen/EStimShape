@@ -286,7 +286,7 @@ public class ImageStack implements Drawable {
 
     public int loadTexture(String pathname, int textureIndex) {
 
-    	pathname = "/home/justin/jkcode/ConnorLab/Alice/images/img4.png";
+    	//pathname = "/home/justin/jkcode/ConnorLab/Alice/images/img4.png";
     	//System.out.println("JK 82273 ImageStack:loadTexture()  " + pathname);
 
     	// if it's been used before, just retrieve the index and add it to the list
@@ -294,8 +294,8 @@ public class ImageStack implements Drawable {
     	if(nameMap.containsKey(pathname)) {
 			textureList.add(nameMap.get(pathname));   // reuse the (previously loaded) texture
 			
-			//System.out.println("JK 8273 ImageStack:loadTexture()  reusing " + pathname + " : " + textureIndex + 
-    		//		" textureIds = " + textureIds.get(textureIndex));  
+			System.out.println("JK 8273 ImageStack:loadTexture()  reusing " + pathname + " : " + textureIndex + 
+    				" textureIds = " + textureIds.get(textureIndex));  
 			
 			return textureIds.get(textureIndex);      // and return
 		} else {
@@ -307,7 +307,6 @@ public class ImageStack implements Drawable {
     	try {
     		File imageFile = new File(pathname);
     		BufferedImage img = ImageIO.read(imageFile);
-
     		byte[] src = ((DataBufferByte)img.getRaster().getDataBuffer()).getData();
 
     		// reorder the 4 bytes per pixel data  
@@ -346,7 +345,7 @@ public class ImageStack implements Drawable {
 	@Override
 	public void draw(Context context) {
 		TrialContext c = (TrialContext)context;		
-				
+		System.out.println("textureID:"+textureIds.get(textureList.get(frameNum)));
 		// JK 2981  18 July 2018 
 		float width = (float) screenWidth  / scaler; //  2    // texture.getImageWidth();
 		float height = (float) screenHeight / scaler; //  2    // texture.getImageHeight();		

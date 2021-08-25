@@ -9,6 +9,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCGaussScene;
+import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.allen.nafc.blockgen.TestBlockGen;
 import org.xper.config.AcqConfig;
@@ -40,13 +41,15 @@ public class NAFCPngAppConfig {
 	
 	
 	@Bean
-	public NAFCGaussScene taskScene() {
-		NAFCGaussScene scene = new NAFCGaussScene();
+	public NAFCPngScene taskScene() {
+		NAFCPngScene scene = new NAFCPngScene();
 		scene.setRenderer(config.experimentGLRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setMarker(classicConfig.screenMarker());
 		scene.setBlankScreen(new BlankScreen());
-		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
+		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
+		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
+		//scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		return scene;
 	}
 	
@@ -56,6 +59,7 @@ public class NAFCPngAppConfig {
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
+		gen.setPngPath("/home/r2_allen/Documents/pngs");
 		return gen;
 	}
 }
