@@ -27,7 +27,7 @@ public class ImageStack implements Drawable {
 	private static final int BYTES_PER_PIXEL = 4; //3 for RGB, 4 for RGBA
 
 	int numFrames = 1;
-    IntBuffer textureIds; //  = BufferUtils.createIntBuffer(numFrames);
+    public IntBuffer textureIds; //  = BufferUtils.createIntBuffer(numFrames);
     boolean texturesLoaded = false;
     int frameNum = 0;
     float scaler = 1.0f; //  3.45f;    // scales actual image size to viewport size
@@ -294,8 +294,8 @@ public class ImageStack implements Drawable {
     	if(nameMap.containsKey(pathname)) {
 			textureList.add(nameMap.get(pathname));   // reuse the (previously loaded) texture
 			
-			System.out.println("JK 8273 ImageStack:loadTexture()  reusing " + pathname + " : " + textureIndex + 
-    				" textureIds = " + textureIds.get(textureIndex));  
+			//System.out.println("JK 8273 ImageStack:loadTexture()  reusing " + pathname + " : " + textureIndex + 
+    				//" textureIds = " + textureIds.get(textureIndex));  
 			
 			return textureIds.get(textureIndex);      // and return
 		} else {

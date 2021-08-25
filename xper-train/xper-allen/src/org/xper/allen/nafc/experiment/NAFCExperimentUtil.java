@@ -68,6 +68,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		}while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
 
 		//SHOW SAMPLE
+		drawingController.prepareSample(currentTask, currentContext);
 		drawingController.showSlide(currentTask, currentContext);
 		long sampleOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
