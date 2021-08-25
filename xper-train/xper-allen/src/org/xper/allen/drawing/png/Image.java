@@ -157,6 +157,8 @@ public class Image implements Drawable {
 		float yOffset = -height / 2;
 		float xOffset = -width / 2; 
 		
+		
+		GL11.glColor3d(1.0, 1.0, 1.0);
 		GL11.glEnable(GL11.GL_TEXTURE_2D);  	
 
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIds.get(textureIndex));
@@ -167,7 +169,7 @@ public class Image implements Drawable {
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, imgWidth, imgHeight, 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
 		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
 	*/	
-       GL11.glColor3d(1.0, 1.0, 1.0);
+       
        GL11.glBegin(GL11.GL_QUADS);
            GL11.glTexCoord2f(0, 1);
            GL11.glVertex2f(xOffset, yOffset);

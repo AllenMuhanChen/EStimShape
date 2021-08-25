@@ -87,11 +87,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	
 
 	@Override
-	public void drawChoice(Context context, boolean fixationOn) {
-		// TODO Auto-generated method stub
-		// clear the whole screen before define view ports in renderer
-
-		
+	public void drawChoice(Context context, boolean fixationOn) {	
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
