@@ -124,35 +124,36 @@
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/cifConsole.jar">
+		<jar jarfile="${allen.home}/nafcConsole.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/twoac/Console.class" />
+				<include name="org/xper/allen/app/nafc/Console.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.twoac.Console" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.Console" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/cif.jar">
+		<jar jarfile="${allen.home}/nafc.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/twoac/Experiment.class" />
+				<include name="org/xper/allen/app/nafc/Experiment.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.twoac.Experiment" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.Experiment" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/cifTestGen.jar">
+		<jar jarfile="${allen.home}/nafcGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/twoac/TestingGenerator.class" />
+				<include name="org/xper/allen/app/nafc/PngGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.twoac.TestingGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
+		
 		
 	</target>
 </project>

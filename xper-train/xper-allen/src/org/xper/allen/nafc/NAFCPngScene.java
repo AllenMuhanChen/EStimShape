@@ -1,26 +1,34 @@
 package org.xper.allen.nafc;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.allen.drawing.png.Image;
-import org.xper.allen.drawing.png.ImageStack;
+import org.xper.Dependency;
+import org.xper.allen.drawing.png.TranslatableImages;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
+import org.xper.allen.specs.PngSpec;
+import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
 
 public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
-	Image sample;
-	
-	Image[] choices;
-	ImageStack blankImage = new ImageStack();
-	
-	double screenWidth;
-	double screenHeight;
+	@Dependency
 	int numChoices;
+	@Dependency
+	double distance;
+	@Dependency
+	double screenWidth;
+	@Dependency
+	double screenHeight;
+
+	TranslatableImages images; 
 	
+	Coordinates2D[] choiceLocations;
+	Coordinates2D sampleLocation;
 	
 	public void initGL(int w, int h) {
+
 		super.setUseStencil(true);
 		super.initGL(w, h);
 //		
@@ -36,24 +44,32 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
 	}
 
+	public void trialStart(TrialContext context) {
+		images = new TranslatableImages(numChoices + 1);
+		images.initTextures();
+	}
 	
 	@Override
 	public void setSample(NAFCExperimentTask task) {
-		sample = new Image();
-		String sampleSpec = task.getSampleSpec();
-		sample.loadTexture(sampleSpec);
+		PngSpec sampleSpec = PngSpec.fromXml(task.getSampleSpec());
+		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
+		images.loadTexture(sampleSpec.getPath(), 0);
 	}
 
 	@Override
 	public void setChoice(NAFCExperimentTask task) {
 		// TODO Auto-generated method stub
-		String[] choiceSpec = task.getChoiceSpec();
-		numChoices = choiceSpec.length;
+		String[] choiceSpecXml = task.getChoiceSpec();
+		numChoices = choiceSpecXml.length;
+		PngSpec[] choiceSpec = new PngSpec[numChoices];
+		choiceLocations = new Coordinates2D[numChoices];
+		for (int i=0; i < numChoices; i++) {
+			choiceSpec[i] = PngSpec.fromXml(choiceSpecXml[i]);
+			choiceLocations[i] = new Coordinates2D(choiceSpec[i].getxCenter(), choiceSpec[i].getyCenter());
+		}
 		
-		choices = new Image[numChoices];
 		for (int i=0; i < numChoices; i++){
-			choices[i] = new Image();
-			choices[i].loadTexture(choiceSpec[i]);
+			System.out.println("the textureId IS: " + images.loadTexture(choiceSpec[i].getPath(),i+1));
 		}
 	}
 
@@ -63,12 +79,12 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
-			public void draw(Context context) {
+			public void draw(Context context) { 
 				if (useStencil) {
 					// 0 will pass for stimulus region
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
-				sample.draw(context);
+				images.draw(context, 0, sampleLocation);
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
@@ -97,7 +113,8 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
 				for (int i = 0; i < numChoices; i++){
-					choices[i].draw(context);
+					//System.out.println();
+					images.draw(context,i+1, choiceLocations[i]);
 				}
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
@@ -143,6 +160,26 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	public void setScreenHeight(double screenHeight) {
 		this.screenHeight = screenHeight;
+	}
+
+
+	public double getDistance() {
+		return distance;
+	}
+
+
+	public void setDistance(double distance) {
+		this.distance = distance;
+	}
+
+
+	public int getNumChoices() {
+		return numChoices;
+	}
+
+
+	public void setNumChoices(int numChoices) {
+		this.numChoices = numChoices;
 	}
 	
 }

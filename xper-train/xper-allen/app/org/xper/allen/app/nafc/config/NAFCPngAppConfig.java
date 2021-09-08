@@ -49,7 +49,8 @@ public class NAFCPngAppConfig {
 		scene.setBlankScreen(new BlankScreen());
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
-		//scene.setDistance(classicConfig.xperMonkeyScreenDistance());
+		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
+		scene.setNumChoices(3);
 		return scene;
 	}
 	
@@ -59,7 +60,7 @@ public class NAFCPngAppConfig {
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
-		gen.setPngPath("/home/r2_allen/Documents/pngs");
+		gen.setPngPath("/home/m2_allen/Documents/pngs");
 		return gen;
 	}
 }
