@@ -49,9 +49,9 @@ public class PngBlockGen {
 		
 		//PARAMETERS
 		int numTrials = 100;
-		Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-2, 0), new Coordinates2D(2,0)};	
+		Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-20, 0), new Coordinates2D(20,0)};	
 		int numChoices = targetEyeWinCoords.length;
-		double[] targetEyeWinSize = {5, 5};
+		double[] targetEyeWinSize = {30, 30};
 		long[] eStimObjData = {1};
 		RewardPolicy rewardPolicy = RewardPolicy.LIST;
 		

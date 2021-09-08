@@ -134,7 +134,7 @@ public class NAFCConfig {
 	 */
 	@Bean
 	public AbstractRenderer experimentGLRenderer () {
-		PerspectiveRenderer renderer = new PerspectiveRenderer();
+		PerspectiveStereoRenderer renderer = new PerspectiveStereoRenderer();
 		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
 		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());

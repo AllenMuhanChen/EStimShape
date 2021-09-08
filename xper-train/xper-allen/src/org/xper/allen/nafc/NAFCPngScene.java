@@ -85,6 +85,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
 				images.draw(context, 0, sampleLocation);
+				images.cleanUpImage(0);
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
@@ -115,6 +116,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 				for (int i = 0; i < numChoices; i++){
 					//System.out.println();
 					images.draw(context,i+1, choiceLocations[i]);
+					images.cleanUpImage(i+1);
 				}
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions

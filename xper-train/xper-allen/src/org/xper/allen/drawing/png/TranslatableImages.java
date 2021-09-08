@@ -56,19 +56,13 @@ public class TranslatableImages {
 		float xOffset = -width / 2; 
 		
 		//ATTEMPTING TO FIX MONO DRAWING
-		GL11.glViewport(0, 0, context.getRenderer().getVpWidth(), context.getRenderer().getVpHeight());
-		GL11.glMatrixMode (GL11.GL_PROJECTION);
-		GL11.glLoadIdentity();
-		
-		
-		GL11.glMatrixMode (GL11.GL_MODELVIEW);
-		GL11.glLoadIdentity();
-		GLU.gluLookAt (0, 0, (float)context.getRenderer().getDistance(), 0, 0, 0, 0, 1, 0);
 		//
+		GL11.glPushMatrix();
+		GL11.glTranslated(centerPixels.getX(), centerPixels.getY(), 0);
 		
 		GL11.glColor3d(1.0, 1.0, 1.0);
+		
 		GL11.glEnable(GL11.GL_TEXTURE_2D);  	
-
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIds.get(textureIndex));
 		/*	
 		// from http://wiki.lwjgl.org/index.php?title=Multi-Texturing_with_GLSL
@@ -77,8 +71,8 @@ public class TranslatableImages {
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, imgWidth, imgHeight, 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
 		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
 		 */	
-		GL11.glPushMatrix();
-		GL11.glTranslated(centerPixels.getX(), centerPixels.getY(), 0);
+		
+
 		
 		
 		GL11.glBegin(GL11.GL_QUADS);
@@ -93,15 +87,12 @@ public class TranslatableImages {
 		GL11.glEnd();
 
 
-		// delete the texture
-		
-
-       GL11.glDisable(GL11.GL_TEXTURE_2D);
        GL11.glPopMatrix();
        
        //CLEANUP
-       GL11.glDeleteTextures(textureIds.get(textureIndex));
-       textureIds.clear(); //Technically not needed since IntBuffer.get(int) does not step buffer?
+       
+       //
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
 	}
 	/**
 	 * Load's one image, with its index specified by textureIndex. To load multiple images, call this method
@@ -152,6 +143,16 @@ public class TranslatableImages {
 			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public void cleanUpImage(int textureIndex){
+		GL11.glDeleteTextures(textureIds.get(textureIndex));
+		//textureIds.clear(); //Technically not needed since IntBuffer.get(int) does not step buffer?
+	}
+	
+	public void cleanUpTrial(){
+		textureIds.clear();
+
 	}
 	
     void abgr2rgba(byte[] target) {
