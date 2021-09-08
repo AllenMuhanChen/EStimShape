@@ -127,18 +127,20 @@ public class NAFCConfig {
 	}
 */
 
+	/**
+	 * Change PerspectiveRenderer to PerspectiveStereoRenderer to change from mono
+	 * to stero
+	 * @return
+	 */
 	@Bean
 	public AbstractRenderer experimentGLRenderer () {
-		PerspectiveStereoRenderer renderer = new PerspectiveStereoRenderer();
+		PerspectiveRenderer renderer = new PerspectiveRenderer();
 		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
 		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
 		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
-		
-		System.out.println("23108 screen width = " + classicConfig.xperMonkeyScreenWidth());
-		
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
-		renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
+		//renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
 		return renderer;
 	}
 	

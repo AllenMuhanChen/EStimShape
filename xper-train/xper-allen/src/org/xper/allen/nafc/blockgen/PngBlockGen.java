@@ -11,6 +11,7 @@ import org.xper.Dependency;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.specs.NAFCStimSpecSpec;
+import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
@@ -48,7 +49,7 @@ public class PngBlockGen {
 		
 		//PARAMETERS
 		int numTrials = 100;
-		Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-10, 0), new Coordinates2D(10,0)};	
+		Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-2, 0), new Coordinates2D(2,0)};	
 		int numChoices = targetEyeWinCoords.length;
 		double[] targetEyeWinSize = {5, 5};
 		long[] eStimObjData = {1};
@@ -72,7 +73,10 @@ public class PngBlockGen {
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			int randomSampleIndex = r.nextInt(fileArray.length);
-			dbUtil.writeStimObjData(sampleId, fileArray[randomSampleIndex].getAbsolutePath(), "sample");
+			Coordinates2D sampleLocation = new Coordinates2D(-2, -2);
+			
+			PngSpec sampleSpec = new PngSpec(sampleLocation.getX(), sampleLocation.getY(), fileArray[randomSampleIndex].getAbsolutePath());
+			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
 			
 			//CHOICE
 			int correctChoice = r.nextInt(numChoices);
@@ -90,13 +94,17 @@ public class PngBlockGen {
 			int distractorIndex = 0;
 			long[] choiceId = new long[numChoices];
 			for (int j = 0; j < numChoices; j++) {
+				
+				
 				choiceId[j] = sampleId + j + 1;
 				
 				if (j==correctChoice){
-					dbUtil.writeStimObjData(choiceId[j], fileArray[randomSampleIndex].getAbsolutePath(), "choice " + j + "; " + "match");
+					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), fileArray[randomSampleIndex].getAbsolutePath());
+					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "match");
 				}
 				else{
-					dbUtil.writeStimObjData(choiceId[j], distractorList.get(distractorIndex).getAbsolutePath(), "choice " + j + "; " + "distractor");
+					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), distractorList.get(distractorIndex).getAbsolutePath());
+					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "distractor");
 					distractorIndex += 1;
 				}
 			}
