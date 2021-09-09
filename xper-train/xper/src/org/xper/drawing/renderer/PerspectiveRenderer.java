@@ -20,11 +20,4 @@ public class PerspectiveRenderer extends AbstractRenderer {
 		GL11.glLoadIdentity();
 		GL11.glTranslated (0, 0, -distance);
 	}
-	public void draw(Drawable scene, Context context) {
-		GL11.glViewport (0, 0, vpWidth, vpHeight);
-		this.init();
-		context.setViewportIndex(0);
-		context.setRenderer(this);
-		scene.draw(context);
-	}
 }
