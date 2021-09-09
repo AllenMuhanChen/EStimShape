@@ -1,6 +1,8 @@
 package org.xper.drawing.renderer;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.drawing.Context;
+import org.xper.drawing.Drawable;
 
 public class PerspectiveRenderer extends AbstractRenderer {
 	public void init() {
@@ -17,5 +19,12 @@ public class PerspectiveRenderer extends AbstractRenderer {
 		GL11.glMatrixMode (GL11.GL_MODELVIEW);
 		GL11.glLoadIdentity();
 		GL11.glTranslated (0, 0, -distance);
+	}
+	public void draw(Drawable scene, Context context) {
+		GL11.glViewport (0, 0, vpWidth, vpHeight);
+		this.init();
+		context.setViewportIndex(0);
+		context.setRenderer(this);
+		scene.draw(context);
 	}
 }
