@@ -10,7 +10,6 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/Users/ecpc32/Dropbox/Documents/Hopkins/NHP2PV4/projectXper/xper_train/dist/native/macos"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="src" path="unit_test"/>
 	<classpathentry kind="src" path="app"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper-native"/>
 	<classpathentry kind="lib" path="lib/lwjgl/jinput.jar"/>

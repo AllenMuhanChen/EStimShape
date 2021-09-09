@@ -128,8 +128,7 @@ public class NAFCConfig {
 */
 
 	/**
-	 * Change PerspectiveRenderer to PerspectiveStereoRenderer to change from mono
-	 * to stero
+	 * Use PerspectiveStereoRenderer for mono and stereo, only changing the xper screen width accordingly. 
 	 * @return
 	 */
 	@Bean

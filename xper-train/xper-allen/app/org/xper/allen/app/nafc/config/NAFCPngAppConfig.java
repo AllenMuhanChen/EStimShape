@@ -8,14 +8,14 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.config.NAFCConfig;
-import org.xper.allen.nafc.NAFCGaussScene;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
-import org.xper.allen.nafc.blockgen.TestBlockGen;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 
 
 @Configuration(defaultLazy=Lazy.TRUE)
@@ -53,6 +53,7 @@ public class NAFCPngAppConfig {
 		scene.setNumChoices(3);
 		return scene;
 	}
+	
 	
 	@Bean
 	public PngBlockGen generator() {
