@@ -69,7 +69,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		}
 		
 		for (int i=0; i < numChoices; i++){
-			System.out.println("the textureId IS: " + images.loadTexture(choiceSpec[i].getPath(),i+1));
+			images.loadTexture(choiceSpec[i].getPath(),i+1);
 		}
 	}
 
