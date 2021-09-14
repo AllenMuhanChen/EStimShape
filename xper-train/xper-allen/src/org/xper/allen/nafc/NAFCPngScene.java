@@ -84,8 +84,9 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 					// 0 will pass for stimulus region
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
-				images.draw(context, 0, sampleLocation);
-				images.cleanUpImage(0);
+				int index = 0; //Should be zero, the sample is assigned index of zero. 
+				images.draw(context, index, sampleLocation);
+				images.cleanUpImage(index);
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
