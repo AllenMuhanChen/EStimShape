@@ -5,6 +5,7 @@ import com.thoughtworks.xstream.XStream;
 public class PngSpec {
 	double xCenter;
 	double yCenter;
+	
 	String path;
 	
 	public PngSpec(double xCenter, double yCenter, String path) {

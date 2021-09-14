@@ -55,8 +55,7 @@ public class TranslatableImages {
 		int imgHeight;
 		float xOffset = -width / 2; 
 		
-		//ATTEMPTING TO FIX MONO DRAWING
-		//
+
 		GL11.glPushMatrix();
 		GL11.glTranslated(centerPixels.getX(), centerPixels.getY(), 0);
 		

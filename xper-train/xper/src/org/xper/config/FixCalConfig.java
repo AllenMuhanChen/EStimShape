@@ -29,6 +29,7 @@ import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.FixationPoint;
 import org.xper.drawing.object.Square;
 import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.exception.ExperimentSetupException;
 import org.xper.experiment.Experiment;
@@ -135,7 +136,13 @@ public class FixCalConfig {
 			renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
 			return renderer;
 		} else if (fixcalScreenSetup.equalsIgnoreCase("mono")){
-			return classicConfig.experimentGLRenderer();
+			PerspectiveRenderer renderer = new PerspectiveRenderer();
+			renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
+			renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
+			renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
+			renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
+			renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
+			return renderer;
 		} else {
 			throw new ExperimentSetupException("Invalid screen setup: " + fixcalScreenSetup);
 		}

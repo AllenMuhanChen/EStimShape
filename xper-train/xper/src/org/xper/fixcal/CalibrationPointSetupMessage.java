@@ -9,6 +9,9 @@ public class CalibrationPointSetupMessage {
 	
 	static XStream xstream = new XStream();
 
+	public CalibrationPointSetupMessage() {
+	}
+
 	static {
 		xstream.alias("CalibrationPointSetupMessage", CalibrationPointSetupMessage.class);
 	}
