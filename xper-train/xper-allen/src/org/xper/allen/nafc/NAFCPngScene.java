@@ -1,8 +1,10 @@
 package org.xper.allen.nafc;
 
+import java.awt.Dimension;
+
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
-import org.xper.allen.drawing.png.TranslatableImages;
+import org.xper.allen.drawing.png.TranslatableResizableImages;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.specs.PngSpec;
 import org.xper.classic.vo.TrialContext;
@@ -22,10 +24,12 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	@Dependency
 	double screenHeight;
 
-	TranslatableImages images; 
+	TranslatableResizableImages images; 
 	
 	Coordinates2D[] choiceLocations;
 	Coordinates2D sampleLocation;
+	Dimension sampleDimensions;
+	Dimension[] choiceDimensions;
 	
 	public void initGL(int w, int h) {
 
@@ -45,7 +49,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	}
 
 	public void trialStart(TrialContext context) {
-		images = new TranslatableImages(numChoices + 1);
+		images = new TranslatableResizableImages(numChoices + 1);
 		images.initTextures();
 	}
 	
@@ -53,6 +57,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void setSample(NAFCExperimentTask task) {
 		PngSpec sampleSpec = PngSpec.fromXml(task.getSampleSpec());
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
+		sampleDimensions = sampleSpec.getDimensions();
 		images.loadTexture(sampleSpec.getPath(), 0);
 	}
 
@@ -63,10 +68,13 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		numChoices = choiceSpecXml.length;
 		PngSpec[] choiceSpec = new PngSpec[numChoices];
 		choiceLocations = new Coordinates2D[numChoices];
+		choiceDimensions = new Dimension[numChoices];
 		for (int i=0; i < numChoices; i++) {
 			choiceSpec[i] = PngSpec.fromXml(choiceSpecXml[i]);
 			choiceLocations[i] = new Coordinates2D(choiceSpec[i].getxCenter(), choiceSpec[i].getyCenter());
+			choiceDimensions[i] = choiceSpec[i].getDimensions();
 		}
+		
 		
 		for (int i=0; i < numChoices; i++){
 			images.loadTexture(choiceSpec[i].getPath(),i+1);
@@ -85,7 +93,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
 				int index = 0; //Should be zero, the sample is assigned index of zero. 
-				images.draw(context, index, sampleLocation);
+				images.draw(context, index, sampleLocation, sampleDimensions);
 				images.cleanUpImage(index);
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
@@ -116,7 +124,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 				for (int i = 0; i < numChoices; i++){
 					//System.out.println();
-					images.draw(context,i+1, choiceLocations[i]);
+					images.draw(context,i+1, choiceLocations[i], choiceDimensions[i]);
 					images.cleanUpImage(i+1);
 				}
 				if (useStencil) {
