@@ -30,7 +30,9 @@ public class PngBlockGen {
 	@Dependency
 	AllenXMLUtil xmlUtil;
 	@Dependency
-	String pngPath;
+	String generatorPngPath;
+	@Dependency
+	String experimentPngPath;
 	/**
 	 * Selects visual stimuli randomly from stimTypes
 	 */
@@ -44,11 +46,10 @@ public class PngBlockGen {
 	
 	
 	public void generate() { //
+		experimentPngPath = experimentPngPath+"/";
 		//SETTINGS
-
-		File folder = new File(pngPath);
+		File folder = new File(generatorPngPath);
 		File[] fileArray = folder.listFiles();
-		System.out.println(fileArray[0].getAbsolutePath());
 		
 		//PARAMETERS
 		int numTrials = 100;
@@ -74,7 +75,11 @@ public class PngBlockGen {
 			Coordinates2D sampleLocation = new Coordinates2D(-2, -2);
 			Dimension sampleDimensions = new Dimension();
 			sampleDimensions.setSize(5, 5);
-			PngSpec sampleSpec = new PngSpec(sampleLocation.getX(), sampleLocation.getY(), sampleDimensions, fileArray[randomSampleIndex].getAbsolutePath());
+			
+			String experimentPath = experimentPngPath + fileArray[randomSampleIndex].getName();
+			System.out.println(experimentPath);
+			
+			PngSpec sampleSpec = new PngSpec(sampleLocation.getX(), sampleLocation.getY(), sampleDimensions, experimentPngPath + fileArray[randomSampleIndex].getName());
 			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
 			//CHOICE
 			int correctChoice = r.nextInt(numChoices);
@@ -100,11 +105,11 @@ public class PngBlockGen {
 				choiceId[j] = sampleId + j + 1;
 				
 				if (j==correctChoice){
-					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), choiceDimensions[j], fileArray[randomSampleIndex].getAbsolutePath());
+					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), choiceDimensions[j], experimentPngPath + fileArray[randomSampleIndex].getName());
 					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "match");
 				}
 				else{
-					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(),choiceDimensions[j], distractorList.get(distractorIndex).getAbsolutePath());
+					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(),choiceDimensions[j], experimentPngPath + distractorList.get(distractorIndex).getName());
 					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "distractor");
 					distractorIndex += 1;
 				}
@@ -149,12 +154,20 @@ public class PngBlockGen {
 		this.xmlUtil = xmlUtil;
 	}
 
-	public String getPngPath() {
-		return pngPath;
+	public String getGeneratorPngPath() {
+		return generatorPngPath;
 	}
 
-	public void setPngPath(String pngPath) {
-		this.pngPath = pngPath;
+	public void setGeneratorPngPath(String generatorPngPath) {
+		this.generatorPngPath = generatorPngPath;
+	}
+
+	public String getExperimentPngPath() {
+		return experimentPngPath;
+	}
+
+	public void setExperimentPngPath(String experimentPngPath) {
+		this.experimentPngPath = experimentPngPath;
 	}
 
 }

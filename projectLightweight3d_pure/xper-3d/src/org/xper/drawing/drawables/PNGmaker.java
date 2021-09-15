@@ -14,8 +14,10 @@ import org.xper.drawing.stick.MatchStick;
 import org.xper.utils.RGBColor;
 
 public class PNGmaker {
-	int height = 224;
-	int width = 224;
+	//int height = 224;
+	//int width = 224;
+	int height = 1024;
+	int width = 1024;
 	RGBColor backColor = new RGBColor(0,0,0);
 	
 	public PNGmaker() {}
