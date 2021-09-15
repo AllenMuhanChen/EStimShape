@@ -45,7 +45,10 @@ public class NAFCPngAppConfig {
 	@Autowired AcqConfig acqConfig;
 	
 	@ExternalValue("generator.png_path")
-	public String pngPath;
+	public String generatorPngPath;
+	
+	@ExternalValue("experiment.png_path")
+	public String experimentPngPath;
 	
 	@Bean
 	public NAFCPngScene taskScene() {
@@ -68,7 +71,8 @@ public class NAFCPngAppConfig {
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
-		gen.setPngPath(pngPath);
+		gen.setGeneratorPngPath(generatorPngPath);
+		gen.setExperimentPngPath(experimentPngPath);
 		return gen;
 	}
 }
