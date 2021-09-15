@@ -3,6 +3,7 @@ package org.xper.allen.app.nafc.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
 import org.springframework.config.java.annotation.Configuration;
+import org.springframework.config.java.annotation.ExternalValue;
 import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
@@ -33,12 +34,18 @@ import org.xper.drawing.renderer.PerspectiveRenderer;
  * @author r2_allen
  *
  */
+
+
 public class NAFCPngAppConfig {
+	
+	
 	@Autowired NAFCConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
 	
+	@ExternalValue("generator.png_path")
+	public String pngPath;
 	
 	@Bean
 	public NAFCPngScene taskScene() {
@@ -61,7 +68,7 @@ public class NAFCPngAppConfig {
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
-		gen.setPngPath("/home/m2_allen/Documents/pngs");
+		gen.setPngPath(pngPath);
 		return gen;
 	}
 }

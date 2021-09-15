@@ -1,5 +1,6 @@
 package org.xper.allen.drawing.png;
 
+import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
@@ -11,14 +12,14 @@ import javax.imageio.ImageIO;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.util.glu.GLU;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 
 /**
- * Light version of JK's ImageStack with added functionality of changing location of each image on the stack.
+ * Light version of JK's ImageStack with added functionality of changing location/size of each image on the stack.
  * Changes from ImageStack:
- * 	- Images are not loaded all at once inside of TranslatableImages. They need to be loaded sequentially with loadTexture(), 
+ *  - This class receives length units in degrees and converts them into mm for OpenGL
+ * 	- Images are not loaded all at once inside of TranslatableResizableImages. They need to be loaded sequentially with loadTexture(), 
  * 		stepping textureIndex each time.
  *  - initTextures() is ran before textures are loaded 
  *  - numFrames is defined in the constructor
@@ -26,12 +27,12 @@ import org.xper.drawing.Coordinates2D;
  * @author Allen Chen
  *
  */
-public class TranslatableImages {
+public class TranslatableResizableImages {
 	IntBuffer textureIds; 
 	int NumFrames;
 	int imgWidth;
 	int imgHeight;
-	public TranslatableImages(int numFrames) {
+	public TranslatableResizableImages(int numFrames) {
 		this.NumFrames = numFrames;
 		this.textureIds = BufferUtils.createIntBuffer(NumFrames);
 	}
@@ -43,13 +44,13 @@ public class TranslatableImages {
 		GL11.glGenTextures(textureIds); 
 	}
 	
-	public void draw(Context context, int textureIndex, Coordinates2D location) {
-
-		Coordinates2D centermm = new Coordinates2D(context.getRenderer().deg2mm(location.getX()), context.getRenderer().deg2mm(location.getY()));
-		Coordinates2D centerPixels = context.getRenderer().mm2pixel(centermm);
+	public void draw(Context context, int textureIndex, Coordinates2D location, Dimension dimensions) {
 		
-		float width = imgWidth; // texture.getImageWidth();
-		float height = imgHeight; // texture.getImageHeight();		
+		Coordinates2D centermm = new Coordinates2D(context.getRenderer().deg2mm(location.getX()), context.getRenderer().deg2mm(location.getY()));
+		//Coordinates2D centerPixels = context.getRenderer().mm2pixel(centermm);
+		
+		float width = (float) context.getRenderer().deg2mm((float)dimensions.getWidth()); // texture.getImageWidth();
+		float height = (float) context.getRenderer().deg2mm((float)dimensions.getHeight()); // texture.getImageHeight();		
 
 		float yOffset = -height / 2;	int imgWidth;
 		int imgHeight;
@@ -57,7 +58,7 @@ public class TranslatableImages {
 		
 
 		GL11.glPushMatrix();
-		GL11.glTranslated(centerPixels.getX(), centerPixels.getY(), 0);
+		GL11.glTranslated(centermm.getX(), centermm.getY(), 0);
 		
 		GL11.glColor3d(1.0, 1.0, 1.0);
 		

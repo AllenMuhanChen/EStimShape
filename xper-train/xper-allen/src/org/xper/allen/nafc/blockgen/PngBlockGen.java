@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.blockgen;
 
+import java.awt.Dimension;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,8 +45,10 @@ public class PngBlockGen {
 	
 	public void generate() { //
 		//SETTINGS
+
 		File folder = new File(pngPath);
 		File[] fileArray = folder.listFiles();
+		System.out.println(fileArray[0].getAbsolutePath());
 		
 		//PARAMETERS
 		int numTrials = 100;
@@ -55,6 +58,7 @@ public class PngBlockGen {
 		long[] eStimObjData = {1};
 		RewardPolicy rewardPolicy = RewardPolicy.LIST;
 		
+	
 		//GENERATION
 		try {
 			genId = 0;
@@ -62,22 +66,16 @@ public class PngBlockGen {
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
-		for (File file : fileArray){
-			if (file.isFile()) {
-
-				
-		    }
-		}
 		for (int i = 0; i < numTrials; i++) {
 			//SAMPLE
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			int randomSampleIndex = r.nextInt(fileArray.length);
 			Coordinates2D sampleLocation = new Coordinates2D(-2, -2);
-			
-			PngSpec sampleSpec = new PngSpec(sampleLocation.getX(), sampleLocation.getY(), fileArray[randomSampleIndex].getAbsolutePath());
+			Dimension sampleDimensions = new Dimension();
+			sampleDimensions.setSize(5, 5);
+			PngSpec sampleSpec = new PngSpec(sampleLocation.getX(), sampleLocation.getY(), sampleDimensions, fileArray[randomSampleIndex].getAbsolutePath());
 			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
-			
 			//CHOICE
 			int correctChoice = r.nextInt(numChoices);
 			int[] rewardList = {correctChoice};
@@ -93,22 +91,25 @@ public class PngBlockGen {
 			//else, write the path of one of the distractors. The paths of the distractor is found through stepping through shuffled list of distractors
 			int distractorIndex = 0;
 			long[] choiceId = new long[numChoices];
+			Dimension[] choiceDimensions = new Dimension[numChoices];
+			choiceDimensions[0] = new Dimension(5,5);
+			choiceDimensions[1] = new Dimension(5,5);
 			for (int j = 0; j < numChoices; j++) {
 				
 				
 				choiceId[j] = sampleId + j + 1;
 				
 				if (j==correctChoice){
-					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), fileArray[randomSampleIndex].getAbsolutePath());
+					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), choiceDimensions[j], fileArray[randomSampleIndex].getAbsolutePath());
 					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "match");
 				}
 				else{
-					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), distractorList.get(distractorIndex).getAbsolutePath());
+					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(),choiceDimensions[j], distractorList.get(distractorIndex).getAbsolutePath());
 					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "distractor");
 					distractorIndex += 1;
 				}
 			}
-	
+			
 			//stimSpec just needs Ids, not the path of the pngs themselves. Pngs are stored in StimObjData
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords, targetEyeWinSize, sampleId, choiceId, eStimObjData, rewardPolicy, rewardList);
 			
