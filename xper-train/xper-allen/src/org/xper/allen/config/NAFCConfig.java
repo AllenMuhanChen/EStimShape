@@ -139,7 +139,7 @@ public class NAFCConfig {
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
 		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
-		//renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
+		renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
 		return renderer;
 	}
 	

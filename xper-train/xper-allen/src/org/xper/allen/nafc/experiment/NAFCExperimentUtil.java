@@ -176,6 +176,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		do {
 			//Wait for Slide to Finish
+			//Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer. 
 		}while(timeUtil.currentTimeMicros()<choicesOnLocalTime+stateObject.getChoiceLength()*1000);
 		//finish current slide
 		drawingController.trialComplete(currentContext);
@@ -418,8 +419,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		try {
 			threadHelper.started();
-			System.out.println("SlideTrialExperiment started.");
-			System.out.println("Trying to get TwoACDrawingController");
+			System.out.println("NAFCExperiment started.");
 			state.getDrawingController().init();
 			EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
 					state.getExperimentEventListeners());
@@ -443,7 +443,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		} finally {
 			// experiment stop event
 			try {
-				System.out.println("SlideTrialExperiment stopped.");
+				System.out.println("NAFCExperiment stopped.");
 				EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),
 						state.getExperimentEventListeners());
 				state.getDrawingController().destroy();

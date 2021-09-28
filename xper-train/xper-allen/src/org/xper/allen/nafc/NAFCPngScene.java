@@ -49,6 +49,8 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	}
 
 	public void trialStart(TrialContext context) {
+		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
+		numChoices = task.getChoiceSpec().length;
 		images = new TranslatableResizableImages(numChoices + 1);
 		images.initTextures();
 	}
@@ -63,7 +65,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	@Override
 	public void setChoice(NAFCExperimentTask task) {
-		// TODO Auto-generated method stub
+
 		String[] choiceSpecXml = task.getChoiceSpec();
 		numChoices = choiceSpecXml.length;
 		PngSpec[] choiceSpec = new PngSpec[numChoices];

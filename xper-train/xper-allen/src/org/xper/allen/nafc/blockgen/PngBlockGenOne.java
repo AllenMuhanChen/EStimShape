@@ -7,10 +7,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.xper.Dependency;
 import org.xper.allen.nafc.experiment.RewardPolicy;
-import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
@@ -19,10 +19,9 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 
-import com.mchange.v1.util.ArrayUtils;
 
 
-public class PngBlockGen {
+public class PngBlockGenOne{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
@@ -38,7 +37,7 @@ public class PngBlockGen {
 	 */
 	Random r = new Random();
 	
-	public PngBlockGen() {
+	public PngBlockGenOne() {
 	}
 	
 	
@@ -47,19 +46,27 @@ public class PngBlockGen {
 	
 	public void generate() { //
 		experimentPngPath = experimentPngPath+"/";
-		//SETTINGS
+		//FILEPATH
 		File folder = new File(generatorPngPath);
 		File[] fileArray = folder.listFiles();
 		
-		//PARAMETERS
+		//FIXED-PARAMETERS
 		int numTrials = 100;
-		Coordinates2D[] targetEyeWinCoords = {new Coordinates2D(-20, 0), new Coordinates2D(20,0)};	
-		int numChoices = targetEyeWinCoords.length;
-		double[] targetEyeWinSize = {1, 1};
-		long[] eStimObjData = {1};
+			//SAMPLE
+		Dimension sampleDimensions = new Dimension(4,4);
+		double[] sampleRadiusLims = {0,3}; 
+			//CHOICES
 		RewardPolicy rewardPolicy = RewardPolicy.LIST;
+		int numChoices = 1;
+		double[] targetEyeWinSize = new double[]{};
+		for (int j = 0; j<numChoices; j++){
+		    targetEyeWinSize = Arrays.copyOf(targetEyeWinSize, targetEyeWinSize.length+1);
+		    targetEyeWinSize[targetEyeWinSize.length-1] = 4;
+		}
 		
-	
+		
+		long[] eStimObjData = {1};
+		
 		//GENERATION
 		try {
 			genId = 0;
@@ -72,18 +79,25 @@ public class PngBlockGen {
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			int randomSampleIndex = r.nextInt(fileArray.length);
-			Coordinates2D sampleLocation = new Coordinates2D(0, 0);
-			Dimension sampleDimensions = new Dimension();
-			sampleDimensions.setSize(5, 5);
-			
+			Coordinates2D sampleLocation = randomWithinRadius(sampleRadiusLims[0], sampleRadiusLims[1]);
 			String experimentPath = experimentPngPath + fileArray[randomSampleIndex].getName();
-			System.out.println(experimentPath);
-			
 			PngSpec sampleSpec = new PngSpec(sampleLocation.getX(), sampleLocation.getY(), sampleDimensions, experimentPngPath + fileArray[randomSampleIndex].getName());
 			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
+			
 			//CHOICE
 			int correctChoice = r.nextInt(numChoices);
 			int[] rewardList = {correctChoice};
+			Dimension[] choiceDimensions = new Dimension[numChoices];
+			for (int j = 0; j<numChoices; j++){
+			    choiceDimensions = Arrays.copyOf(choiceDimensions,  choiceDimensions.length+1);
+			    choiceDimensions[choiceDimensions.length-1] = sampleDimensions;
+			}
+			choiceDimensions[0] = sampleDimensions;
+			Coordinates2D[] targetEyeWinCoords = new Coordinates2D[]{};
+			for (int j = 0; j<numChoices; j++){
+			    targetEyeWinCoords = Arrays.copyOf(targetEyeWinCoords, targetEyeWinCoords.length+1);
+				targetEyeWinCoords[targetEyeWinCoords.length-1] = randomChoice(10,15);
+			}
 			
 			//Handling shuffling & removing Match from possible distractors
 			int matchIndex = randomSampleIndex;
@@ -96,9 +110,7 @@ public class PngBlockGen {
 			//else, write the path of one of the distractors. The paths of the distractor is found through stepping through shuffled list of distractors
 			int distractorIndex = 0;
 			long[] choiceId = new long[numChoices];
-			Dimension[] choiceDimensions = new Dimension[numChoices];
-			choiceDimensions[0] = new Dimension(5,5);
-			choiceDimensions[1] = new Dimension(5,5);
+
 			for (int j = 0; j < numChoices; j++) {
 				
 				
@@ -130,7 +142,34 @@ public class PngBlockGen {
 		return;
 		
 	}
+	private static Coordinates2D randomChoice(double lowerRadiusLim, double upperRadiusLim){
+		return randomWithinRadius(lowerRadiusLim, upperRadiusLim);
+		
+	}
+	
+	private static double inclusiveRandomDouble(double val1, double val2) {
+		if (val2>val1){
+			return ThreadLocalRandom.current().nextDouble(val1, val2);
+		}
+		else {
+			return val1;
+		}
 
+	}
+	
+	private static Coordinates2D randomWithinRadius(double lowerLim, double upperLim) {
+		
+		double r = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * (upperLim-lowerLim) + lowerLim;
+		double theta = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
+		
+		double x = 0 + r * Math.cos(theta);
+		double y = 0 + r * Math.sin(theta);
+		Coordinates2D output = new Coordinates2D(); 
+		output.setX(x);
+		output.setY(y);
+		return output;
+	}
+	
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;
 	}

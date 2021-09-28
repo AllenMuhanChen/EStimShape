@@ -8,7 +8,7 @@ import org.xper.drawing.Drawable;
 public abstract class StereoRenderer extends AbstractRenderer {
 
 	@Dependency
-	boolean inverted = true;
+	boolean inverted;
 	
 	double le_pos;
 	double re_pos;
