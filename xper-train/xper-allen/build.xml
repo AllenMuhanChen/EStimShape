@@ -40,12 +40,13 @@
 
 	
 	<target name="compile" depends="prepare">
-		<javac srcdir="src" destdir="${build.home}">
+		<javac srcdir="src" destdir="${build.home}" debug="true" debuglevel="lines,vars,source">
 			<classpath refid="classpath" />
 		</javac>
-		<javac srcdir="app" destdir="${build.home}">
+		<javac srcdir="app" destdir="${build.home}" debug="true" debuglevel="lines,vars,source">
 			<classpath refid="classpath" />
 		</javac>
+		
 	</target>
 
 	
@@ -144,16 +145,15 @@
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/nafcGen.jar">
+		<jar jarfile="${allen.home}/nafcGenOne.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/PngGenerator.class" />
+				<include name="org/xper/allen/app/nafc/PngGeneratorOne.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGeneratorOne" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
-		
 		
 	</target>
 </project>

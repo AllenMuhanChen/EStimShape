@@ -271,7 +271,12 @@ public class AllenDbUtil extends DbUtil {
 						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						//TODO: EStimObjData
-						task.seteStimObjDataEntry(readEStimObjData(ss.geteStimObjData()[0]));
+						try{
+							task.seteStimObjDataEntry(readEStimObjData(ss.geteStimObjData()[0]));
+						} catch(Exception e){
+							System.out.println("No EStimObjData Found.");
+							task.seteStimObjDataEntry(new EStimObjDataEntry());	
+						}
 						task.setTaskId(rs.getLong("task_id"));
 						task.setXfmId(rs.getLong("xfm_id"));
 						task.setXfmSpec(rs.getString("xfm_spec"));

@@ -4,7 +4,7 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
 
 public class PerspectiveStereoRenderer extends StereoRenderer {
-
+	
 	@Override
 	protected void setupLeft() {
 		GL11.glViewport (0, 0, vpWidth, vpHeight);

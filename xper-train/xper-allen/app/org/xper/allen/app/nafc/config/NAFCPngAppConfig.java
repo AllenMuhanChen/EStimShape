@@ -11,6 +11,7 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
+import org.xper.allen.nafc.blockgen.PngBlockGenOne;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -50,6 +51,8 @@ public class NAFCPngAppConfig {
 	@ExternalValue("experiment.png_path")
 	public String experimentPngPath;
 	
+	
+	
 	@Bean
 	public NAFCPngScene taskScene() {
 		NAFCPngScene scene = new NAFCPngScene();
@@ -60,14 +63,13 @@ public class NAFCPngAppConfig {
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
-		scene.setNumChoices(3);
 		return scene;
 	}
 	
 	
 	@Bean
-	public PngBlockGen generator() {
-		PngBlockGen gen = new PngBlockGen();
+	public PngBlockGenOne generator() {
+		PngBlockGenOne gen = new PngBlockGenOne();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
