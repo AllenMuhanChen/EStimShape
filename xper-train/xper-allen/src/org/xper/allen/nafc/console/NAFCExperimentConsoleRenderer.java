@@ -15,6 +15,11 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 	double targetIndicatorSize = 2.5;
 	int invert;
 	
+	public NAFCExperimentConsoleRenderer() {
+		super();
+		super.setMessageHandler(messageHandler);
+	}
+
 	public void drawCanvas(Context context, String devId) {
 		super.drawCanvas(context, devId);
 		if(getMessageHandler().isInTrial()) {
@@ -42,7 +47,12 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 		}
 	}
 	
-	public void setTwoACMessageHandler(NAFCExperimentMessageHandler messageHandler) {
+	/**
+	 * This is an appropiate way to give the superclass access to a new variable which the superclass does not declare
+	 * @param messageHandler
+	 */
+	public void setNAFCExperimentMessageHandler(NAFCExperimentMessageHandler messageHandler) {
 		this.messageHandler = messageHandler;
+		super.setMessageHandler(messageHandler);
 	}
 }

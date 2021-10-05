@@ -95,6 +95,9 @@ public class TrialExperimentMessageDispatcher implements ExperimentEventListener
 				.toXml(new SlideEvent(index, timestamp, -1)));
 	}
 
+	/**
+	 * This is never called in NAFC
+	 */
 	public void eyeInBreak(long timestamp, TrialContext context) {
 		enqueue(timestamp, "EyeInBreak", "");
 		trialStat.setBrokenTrials(trialStat.getBrokenTrials()+1);

@@ -1,14 +1,13 @@
 package org.xper.allen.nafc.console;
 
 import java.lang.reflect.Method;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.xper.Dependency;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
-import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
-import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
 import org.xper.console.ExperimentConsoleModel;
+import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.ExperimentSetupException;
 import org.xper.eye.mapping.MappingAlgorithm;
@@ -20,9 +19,20 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		@Dependency
 		NAFCExperimentMessageHandler messageHandler;
 		
-		public SaccadeTrialStatistics getTrialStatistics () {
-			SaccadeTrialStatistics stat = (SaccadeTrialStatistics) messageHandler.getTrialStatistics();
+		@Dependency
+		NAFCExperimentMessageReceiver messageReceiver;
+		
+		public NAFCTrialStatistics getNAFCTrialStatistics () {
+			NAFCTrialStatistics stat = (NAFCTrialStatistics) messageHandler.getNAFCTrialStatistics();
 			return stat;
+		}
+		
+		public void start () {
+			getEyePositionInDegree().set(new Coordinates2D(0,0));
+			messageReceiver.start();
+			if (getSamplingServer() != null) {
+				getSamplingServer().start();
+			}
 		}
 		
 		public void setMessageHandler(NAFCExperimentMessageHandler msghandler) {
@@ -69,5 +79,13 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		public EyeWindow getEyeWindow () {
 			EyeWindow window = messageHandler.getEyeWindow();
 			return window;
+		}
+
+		public NAFCExperimentMessageReceiver getNAFCMessageReceiver() {
+			return messageReceiver;
+		}
+
+		public void setMessageReceiver(NAFCExperimentMessageReceiver messageReceiver) {
+			this.messageReceiver = messageReceiver;
 		}
 }

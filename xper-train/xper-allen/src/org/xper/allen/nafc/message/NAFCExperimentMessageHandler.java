@@ -3,7 +3,7 @@ package org.xper.allen.nafc.message;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.xper.allen.saccade.db.vo.SaccadeTrialStatistics;
+import org.xper.allen.nafc.console.NAFCTrialStatistics;
 import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.db.vo.BehMsgEntry;
 import org.xper.drawing.Coordinates2D;
@@ -14,10 +14,10 @@ public class NAFCExperimentMessageHandler extends TrialExperimentMessageHandler{
 	AtomicReference<double[]> targetEyeWindowSize = new AtomicReference<double[]>();
 	AtomicReference<Coordinates2D[]> targetPosition = new AtomicReference<Coordinates2D[]>();
 
-	AtomicReference<SaccadeTrialStatistics> trialStat = new AtomicReference<SaccadeTrialStatistics>();
+	AtomicReference<NAFCTrialStatistics> trialStat = new AtomicReference<NAFCTrialStatistics>();
 	
 	public NAFCExperimentMessageHandler() {
-		trialStat.set(new SaccadeTrialStatistics());
+		trialStat.set(new NAFCTrialStatistics());
 	}
 
 	@Override
@@ -75,6 +75,10 @@ public class NAFCExperimentMessageHandler extends TrialExperimentMessageHandler{
 			return false;
 		}
 	}
+	
+	protected void handleTrialStatistics(BehMsgEntry ent) {
+		trialStat.set(NAFCTrialStatistics.fromXml(ent.getMsg()));
+	}
 
 	public boolean isSampleOn() {
 		return sampleOn.get();
@@ -94,8 +98,9 @@ public class NAFCExperimentMessageHandler extends TrialExperimentMessageHandler{
 		return targetPosition.get();
 	}
 
-	public SaccadeTrialStatistics getTrialStatistics() {
-		return trialStat.get();
+	public NAFCTrialStatistics getNAFCTrialStatistics() {
+		return this.trialStat.get();
 	}
 
+	
 }

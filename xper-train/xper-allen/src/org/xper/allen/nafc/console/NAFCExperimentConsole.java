@@ -346,7 +346,69 @@ public class NAFCExperimentConsole extends JFrame implements
         mouseYWorld.setToolTipText("World Coordinate Y");
         mouseXDegree.setToolTipText("Degree X");
         mouseYDegree.setToolTipText("Degree Y");
+// Fix
+        trialStatPanel.add(new JLabel("Fixation Success"),
+        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));   
+        fixationSuccess = new JLabel("0");
+        trialStatPanel.add(fixationSuccess,
+        		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+      
+        trialStatPanel.add(new JLabel("Fixation Eye In Fail"),
+        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        fixationEyeInFail = new JLabel("0");
+        trialStatPanel.add(fixationEyeInFail,
+        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+       
+        trialStatPanel.add(new JLabel("Fixation Eye Hold Fail"),
+        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        fixationEyeInHoldFail = new JLabel("0");
+        trialStatPanel.add(fixationEyeInHoldFail,
+        		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+// Sample
+        trialStatPanel.add(new JLabel("Sample Success"),
+        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        sampleSuccess = new JLabel("0");
+        trialStatPanel.add(sampleSuccess,
+        		new GridBagConstraints(3,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+
+        trialStatPanel.add(new JLabel("Sample Eye Hold Fail"),
+        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        sampleEyeInHoldFail = new JLabel("0");
+        trialStatPanel.add(sampleEyeInHoldFail,
+        		new GridBagConstraints(3,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+// Choice
+        trialStatPanel.add(new JLabel("Choice Correct"),
+        		new GridBagConstraints(4,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        choiceCorrect = new JLabel("0");
+        trialStatPanel.add(choiceCorrect,
+        		new GridBagConstraints(5,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
         
+        trialStatPanel.add(new JLabel("Choice Incorrect"),
+        		new GridBagConstraints(4,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        choiceIncorrect = new JLabel("0");
+        trialStatPanel.add(choiceIncorrect,
+        		new GridBagConstraints(5,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+
+        trialStatPanel.add(new JLabel("Rewarded Incorrect"),
+        		new GridBagConstraints(4,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        choiceRewardedIncorrect = new JLabel("0");
+        trialStatPanel.add(choiceRewardedIncorrect,
+        		new GridBagConstraints(5,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+        
+        trialStatPanel.add(new JLabel("Choice Eye Fail"),
+        		new GridBagConstraints(4,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        choiceEyeFail = new JLabel("0");
+        trialStatPanel.add(choiceEyeFail,
+        		new GridBagConstraints(5,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
+
+        trialStatPanel.add(new JLabel("Completed Trials"),
+        		new GridBagConstraints(4,4,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,10)); 
+        completeTrialCount = new JLabel("0");
+        trialStatPanel.add(completeTrialCount,
+        		new GridBagConstraints(5,4,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,10));
+
+        ///////////////////////
+        /*
         trialStatPanel.add(new JLabel("Complete"),
         		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));   
         completeTrialCount = new JLabel("0");
@@ -389,19 +451,19 @@ public class NAFCExperimentConsole extends JFrame implements
         trialNogoCount = new JLabel("0");
         trialStatPanel.add(trialNogoCount,
         		new GridBagConstraints(3,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-
+*/
         
 //        completeTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
 //        breakTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
 //        failTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
 //        completeTrialCount.setPreferredSize(new Dimension(50,20));
-
+/*
         trialPassCount.setHorizontalAlignment(SwingConstants.RIGHT);
         trialPassCount.setPreferredSize(new Dimension(50,20));
         trialFailCount.setHorizontalAlignment(SwingConstants.RIGHT);
         trialBreakCount.setHorizontalAlignment(SwingConstants.RIGHT);
         trialNogoCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        
+        */
         eyeDeviceSelect = new JComboBox();
         eyeDevicePanel.add(eyeDeviceSelect,
         		new GridBagConstraints(0,0,3,1,0.0,0.0,GridBagConstraints.LINE_START,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
@@ -605,7 +667,7 @@ public class NAFCExperimentConsole extends JFrame implements
 	}
 
 	protected void updateStatistics() {
-		SaccadeTrialStatistics stat = model.getTrialStatistics();
+		NAFCTrialStatistics stat = model.getNAFCTrialStatistics();
 
 //		String lastCount = this.completeTrialCount.getText();
 //		String thisCount = StringUtil.format(stat.getCompleteTrials(),0);
@@ -633,7 +695,18 @@ public class NAFCExperimentConsole extends JFrame implements
 //		} else {
 //			this.failTrialCount.setForeground(Color.RED);
 //		}
+		updateLabelCount(fixationSuccess, stat.getFixationSuccess());
+		updateLabelCount(fixationEyeInFail, stat.getFixationEyeInFail());
+		updateLabelCount(fixationEyeInHoldFail, stat.getFixationEyeInHoldFail());
+		updateLabelCount(sampleSuccess, stat.getSampleSuccess());
+		updateLabelCount(sampleEyeInHoldFail, stat.getSampleEyeInHoldFail());
+		updateLabelCount(choiceCorrect, stat.getChoiceCorrect());
+		updateLabelCount(choiceIncorrect, stat.getChoiceIncorrect());
+		updateLabelCount(choiceRewardedIncorrect, stat.getChoiceRewardedIncorrect());
+		updateLabelCount(choiceEyeFail, stat.getChoiceEyeFail());		
 		updateLabelCount(completeTrialCount,stat.getCompleteTrials());
+		
+		/*
 		updateLabelCount(breakTrialCount,stat.getBrokenTrials());
 		updateLabelCount(failTrialCount,stat.getFailedTrials());
 		
@@ -641,6 +714,7 @@ public class NAFCExperimentConsole extends JFrame implements
 		updateLabelCount(trialFailCount,stat.getTargetSelectionEyeFail());
 		updateLabelCount(trialBreakCount,stat.getTargetSelectionEyeBreak());
 		updateLabelCount(trialNogoCount,stat.getAllTrialsNOGO());
+		*/
 	}
 	
 	public void updateLabelCount(JLabel label, int trialCount) {
@@ -725,6 +799,17 @@ public class NAFCExperimentConsole extends JFrame implements
     protected JLabel trialFailCount;
     protected JLabel trialBreakCount;
     protected JLabel trialNogoCount;
+    //////
+    protected JLabel fixationSuccess;
+    protected JLabel fixationEyeInFail;
+    protected JLabel fixationEyeInHoldFail;
+    protected JLabel sampleSuccess;
+    protected JLabel sampleEyeInHoldFail;
+    protected JLabel choiceCorrect;
+    protected JLabel choiceIncorrect;
+    protected JLabel choiceRewardedIncorrect;
+    protected JLabel choiceEyeFail;
+    protected JLabel completeTrials;
 
 	public void messageReceived() {
 		SwingUtilities.invokeLater(new Runnable() {

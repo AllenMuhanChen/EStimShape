@@ -93,5 +93,11 @@ public class NAFCJuiceController implements ChoiceEventListener {
 		
 	}
 
+	@Override
+	public void sampleEyeInHoldFail(long timestamp) {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }

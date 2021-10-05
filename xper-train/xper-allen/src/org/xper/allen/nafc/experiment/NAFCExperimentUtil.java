@@ -84,9 +84,9 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
 			currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
 			drawingController.eyeInHoldFail(currentContext);
-			EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
-					trialEventListeners, currentContext);
-			return NAFCTrialResult.EYE_IN_HOLD_FAIL;
+			NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
+					choiceEventListeners, currentContext);
+			return NAFCTrialResult.SAMPLE_EYE_IN_HOLD_FAIL;
 		}
 		drawingController.slideFinish(currentTask, currentContext);
 		long sampleOffLocalTime = timeUtil.currentTimeMicros();
@@ -136,6 +136,10 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				if (rewardPolicy == RewardPolicy.NONE) {
 					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
 				}
+				else {
+					NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+					return NAFCTrialResult.TARGET_SELECTION_EYE_FAIL;
+				}
 				break;
 				/*
 			case TARGET_SELECTION_EYE_BREAK:
@@ -161,12 +165,24 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 					}
 				}
 				if (rewardPolicy == RewardPolicy.ANY) {
-					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
-					
+					if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
+						NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+						System.out.println("Correct Choice");
+					}
+					else {
+						NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
+						System.out.println("Incorrect Choice - Rewarded by Default");
+					}
 				}
 				if (rewardPolicy == RewardPolicy.ALWAYS) {
-					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
-					
+					if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
+						NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+						System.out.println("Correct Choice");
+					}
+					else {
+						NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
+						System.out.println("Incorrect Choice - Rewarded by Default");
+					}
 				}				
 
 				break;
@@ -186,7 +202,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		currentContext.setAnimationFrameIndex(0);
 		
 
-		return selectorResult.getSelectionStatusResult();
+		return NAFCTrialResult.TRIAL_COMPLETE;
 
 	}
 
