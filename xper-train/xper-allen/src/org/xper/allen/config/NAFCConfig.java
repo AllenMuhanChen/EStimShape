@@ -24,6 +24,7 @@ import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.console.NAFCExperimentConsole;
 import org.xper.allen.nafc.console.NAFCExperimentConsoleModel;
 import org.xper.allen.nafc.console.NAFCExperimentConsoleRenderer;
+import org.xper.allen.nafc.console.NAFCExperimentMessageReceiver;
 import org.xper.allen.nafc.experiment.NAFCDatabaseTaskDataSource;
 import org.xper.allen.nafc.experiment.NAFCExperimentState;
 import org.xper.allen.nafc.experiment.NAFCMarkEveryStepTrialDrawingController;
@@ -34,22 +35,15 @@ import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCExperimentMessageDispatcher;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
 import org.xper.allen.nafc.message.NAFCJuiceController;
-import org.xper.allen.saccade.console.SaccadeExperimentConsole;
-import org.xper.allen.saccade.console.SaccadeExperimentConsoleModel;
-import org.xper.allen.saccade.console.SaccadeExperimentConsoleRenderer;
-import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
-import org.xper.classic.MarkStimTrialDrawingController;
-import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.console.ExperimentMessageReceiver;
-import org.xper.drawing.BlankTaskScene;
+import org.xper.console.MessageReceiverEventListener;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
@@ -57,8 +51,8 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.exception.DbException;
-import org.xper.experiment.ExperimentRunner;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
+import org.xper.experiment.ExperimentRunner;
 import org.xper.eye.RobustEyeTargetSelector;
 import org.xper.eye.listener.EyeSamplerEventListener;
 import org.xper.eye.mapping.MappingAlgorithm;
@@ -167,18 +161,31 @@ public class NAFCConfig {
 		console.setModel(experimentConsoleModel());
 		console.setCanvasScaleFactor(3);
 		
-		ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
+		NAFCExperimentMessageReceiver receiver = messageReceiver();
 		// register itself to avoid circular reference
 		receiver.addMessageReceiverEventListener(console);
 		
 		return console;
 	}
 	
+	@Bean
+	public NAFCExperimentMessageReceiver messageReceiver () {
+		NAFCExperimentMessageReceiver receiver = new NAFCExperimentMessageReceiver();
+		receiver.setReceiverHost(classicConfig.consoleHost);
+		receiver.setDispatcherHost(classicConfig.experimentHost);
+		LinkedList<MessageReceiverEventListener> messageReceiverEventListeners = new LinkedList<MessageReceiverEventListener>();
+		// let console to register itself to avoid circular reference
+		// messageReceiverEventListeners.add(console);
+		receiver.setMessageReceiverEventListeners(messageReceiverEventListeners);
+		receiver.setMessageHandler(messageHandler());
+		
+		return receiver;
+	}
 
 	@Bean
 	public NAFCExperimentConsoleModel experimentConsoleModel () {
 		NAFCExperimentConsoleModel model = new NAFCExperimentConsoleModel();
-		model.setMessageReceiver(classicConfig.messageReceiver());
+		model.setMessageReceiver(messageReceiver());
 		model.setLocalTimeUtil(baseConfig.localTimeUtil());
 		
 		HashMap<String, MappingAlgorithm> eyeMappingAlgorithm = new HashMap<String, MappingAlgorithm>();
@@ -214,8 +221,8 @@ public class NAFCConfig {
 		 * There's a messageHandler and saccadeMessageHandler because I don't know how to overwrite @Bean Dependencies.
 		 * This could be reduced to just one method by making one messageHandler that's just copy pasting TrialExperimentMessageHandler with SaccadeExperimentMessageHandler methods inside.
 		 */
-		renderer.setMessageHandler(classicConfig.messageHandler());
-		renderer.setTwoACMessageHandler(messageHandler());
+		//renderer.setMessageHandler(classicConfig.messageHandler());
+		renderer.setNAFCExperimentMessageHandler(messageHandler());
 		renderer.setFixation(classicConfig.consoleFixationPoint());
 		renderer.setRenderer(consoleGLRenderer());
 		renderer.setBlankScreen(new BlankScreen());

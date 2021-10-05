@@ -5,6 +5,7 @@ import org.xper.classic.vo.TrialContext;
 public interface ChoiceEventListener {
 	public void sampleOn(long timestamp, TrialContext context);
 	public void sampleOff(long timestamp);
+	public void sampleEyeInHoldFail(long timestamp);
 	public void choicesOn(long timestamp, TrialContext context);
 	public void choicesOff(long timestamp);
 	public void choiceSelectionEyeFail(long timestamp);

@@ -24,6 +24,15 @@ public class NAFCEventUtil {
 			}
 	}	
 	
+	public static void fireSampleEyeInHoldFail(long timestamp,
+			List<?extends ChoiceEventListener> choiceEventListeners,
+			TrialContext currentContext) {
+		
+			for (ChoiceEventListener listener: choiceEventListeners) {
+				listener.sampleEyeInHoldFail(timestamp);
+			}
+	}	
+	
 	public static void fireChoicesOnEvent(long timestamp,
 			List<?extends ChoiceEventListener> choiceEventListeners,
 			TrialContext currentContext) {
