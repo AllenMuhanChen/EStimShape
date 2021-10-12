@@ -4,6 +4,7 @@ import java.awt.Dimension;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
+import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.drawing.png.TranslatableResizableImages;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.specs.PngSpec;
@@ -28,8 +29,8 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	
 	Coordinates2D[] choiceLocations;
 	Coordinates2D sampleLocation;
-	Dimension sampleDimensions;
-	Dimension[] choiceDimensions;
+	ImageDimensions sampleDimensions;
+	ImageDimensions[] choiceDimensions;
 	
 	public void initGL(int w, int h) {
 
@@ -59,7 +60,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void setSample(NAFCExperimentTask task) {
 		PngSpec sampleSpec = PngSpec.fromXml(task.getSampleSpec());
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
-		sampleDimensions = sampleSpec.getDimensions();
+		sampleDimensions = sampleSpec.getImageDimensions();
 		images.loadTexture(sampleSpec.getPath(), 0);
 	}
 
@@ -70,11 +71,11 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		numChoices = choiceSpecXml.length;
 		PngSpec[] choiceSpec = new PngSpec[numChoices];
 		choiceLocations = new Coordinates2D[numChoices];
-		choiceDimensions = new Dimension[numChoices];
+		choiceDimensions = new ImageDimensions[numChoices];
 		for (int i=0; i < numChoices; i++) {
 			choiceSpec[i] = PngSpec.fromXml(choiceSpecXml[i]);
 			choiceLocations[i] = new Coordinates2D(choiceSpec[i].getxCenter(), choiceSpec[i].getyCenter());
-			choiceDimensions[i] = choiceSpec[i].getDimensions();
+			choiceDimensions[i] = choiceSpec[i].getImageDimensions();
 		}
 		
 		

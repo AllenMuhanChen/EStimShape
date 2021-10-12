@@ -44,7 +44,7 @@ public class TranslatableResizableImages {
 		GL11.glGenTextures(textureIds); 
 	}
 	
-	public void draw(Context context, int textureIndex, Coordinates2D location, Dimension dimensions) {
+	public void draw(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
 		
 		Coordinates2D centermm = new Coordinates2D(context.getRenderer().deg2mm(location.getX()), context.getRenderer().deg2mm(location.getY()));
 		//Coordinates2D centerPixels = context.getRenderer().mm2pixel(centermm);

@@ -10,6 +10,7 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.xper.Dependency;
+import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.PngSpec;
@@ -44,20 +45,20 @@ public class PngBlockGenOne{
 	long genId = 1;
 	
 	
-	public void generate() { //
+	public void generate(int numTrials, int numChoices, double width, double height, double radiusLowerLim, double radiusUpperLim) { //
 		experimentPngPath = experimentPngPath+"/";
 		//FILEPATH
 		File folder = new File(generatorPngPath);
 		File[] fileArray = folder.listFiles();
 		
 		//FIXED-PARAMETERS
-		int numTrials = 100;
+		//int numTrials = 100;
 			//SAMPLE
-		Dimension sampleDimensions = new Dimension(4,4);
-		double[] sampleRadiusLims = {0,3}; 
+		ImageDimensions sampleDimensions = new ImageDimensions(width,height);
+		double[] sampleRadiusLims = {radiusLowerLim, radiusUpperLim}; 
 			//CHOICES
 		RewardPolicy rewardPolicy = RewardPolicy.LIST;
-		int numChoices = 1;
+		//int numChoices = 1;
 		double[] targetEyeWinSize = new double[]{};
 		for (int j = 0; j<numChoices; j++){
 		    targetEyeWinSize = Arrays.copyOf(targetEyeWinSize, targetEyeWinSize.length+1);
@@ -69,8 +70,10 @@ public class PngBlockGenOne{
 		
 		//GENERATION
 		try {
-			genId = 0;
-			//genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
+			/**
+			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked. 
+			 */
+			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
@@ -87,7 +90,7 @@ public class PngBlockGenOne{
 			//CHOICE
 			int correctChoice = r.nextInt(numChoices);
 			int[] rewardList = {correctChoice};
-			Dimension[] choiceDimensions = new Dimension[numChoices];
+			ImageDimensions[] choiceDimensions = new ImageDimensions[numChoices];
 			for (int j = 0; j<numChoices; j++){
 			    choiceDimensions = Arrays.copyOf(choiceDimensions,  choiceDimensions.length+1);
 			    choiceDimensions[choiceDimensions.length-1] = sampleDimensions;
@@ -142,6 +145,7 @@ public class PngBlockGenOne{
 		return;
 		
 	}
+	
 	private static Coordinates2D randomChoice(double lowerRadiusLim, double upperRadiusLim){
 		return randomWithinRadius(lowerRadiusLim, upperRadiusLim);
 		

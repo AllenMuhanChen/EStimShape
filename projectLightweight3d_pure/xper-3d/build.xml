@@ -1,0 +1,85 @@
+<project name="xper" default="dist" basedir=".">
+	<property name="build.home" location="${basedir}/class" />
+	<property name="native.home" location="${basedir}/../../xper-train/xper-native" />
+	<property name="dist.home" location="${basedir}/../../xper-train/dist" />
+	<property name="3d.home" location="${dist.home}/3d" />
+	
+	<target name="clean">
+		<delete dir="${build.home}" />
+		<delete dir="${3d.home}" />
+	</target>
+
+	<path id="classpath">
+		<fileset dir="lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+	
+	<pathconvert property="manifest.classpath" dirsep="/" pathsep=" ">
+		<path refid="classpath">
+		</path>
+		<map from="${basedir}${file.separator}lib" to="../lib/3d" />
+		<map from="${dist.home}${file.separator}" to="../" />
+	</pathconvert>
+	
+	<echo message="Manifest classpath is ${manifest.classpath}" />
+	
+	
+	<target name="prepare">
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${dist.home}/3d" />		
+		<mkdir dir="${dist.home/lib/3d}" />
+		<mkdir dir="${3d.home}/native" />
+		<mkdir dir="${3d.home}/native/windows" />
+		<mkdir dir="${3d.home}/native/linux" />
+		<mkdir dir="${3d.home}/native/macos" />
+
+		
+		<copy todir="${dist.home}" includeEmptyDirs="false">
+			<fileset dir="src" excludes="**/*.java" />
+		</copy>
+	</target>
+
+	
+	<target name="compile" depends="prepare">
+		<javac srcdir="src" destdir="${build.home}" debug="true" debuglevel="lines,vars,source">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	
+	<target name="dist" depends="compile" >
+
+		<copy todir="${dist.home}/lib/3d">
+			<fileset dir="lib" />
+		</copy>
+		
+		
+		<copy todir="${3d.home}/native/windows" failonerror="false">
+			<fileset dir="${native.home}/windows" />
+		</copy>
+		<copy todir="${3d.home}/native/linux" failonerror="false">
+			<fileset dir="${native.home}/linux" />
+		</copy>
+		<copy todir="${3d.home}/native/macos" failonerror="false">
+			<fileset dir="${native.home}/macos" />
+		</copy>
+
+		
+		<jar jarfile="${3d.home}/xper_3d.jar" basedir="${build.home}">
+		</jar>
+		
+		<jar jarfile="${3d.home}/generateStimuli.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/generate/generateStimuli.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.generate.generateStimuli" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper_3d.jar" />
+			</manifest>
+		</jar>
+		
+		
+	</target>
+</project>

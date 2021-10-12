@@ -465,7 +465,7 @@ public class DbUtil {
 
 	/**
 	 * Get current generation ready in database.
-	 * 
+		Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked. 
 	 * @return throws exception if no <code>task_to_do_gen_ready</code>
 	 *         variable defined or if the format of the string value is not
 	 *         correct.
