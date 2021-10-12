@@ -2,15 +2,17 @@ package org.xper.allen.specs;
 
 import java.awt.Dimension;
 
+import org.xper.allen.drawing.png.ImageDimensions;
+
 import com.thoughtworks.xstream.XStream;
 
 public class PngSpec {
 	double xCenter;
 	double yCenter;
-	Dimension dimensions;
+	ImageDimensions dimensions;
 	String path;
 	
-	public PngSpec(double xCenter, double yCenter, Dimension dimensions, String path) {
+	public PngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path) {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
@@ -60,10 +62,10 @@ public class PngSpec {
 	public void setPath(String path) {
 		this.path = path;
 	}
-	public Dimension getDimensions() {
+	public ImageDimensions getImageDimensions() {
 		return dimensions;
 	}
-	public void setDimensions(Dimension dimensions) {
+	public void setImageDimensions(ImageDimensions dimensions) {
 		this.dimensions = dimensions;
 	}
 	

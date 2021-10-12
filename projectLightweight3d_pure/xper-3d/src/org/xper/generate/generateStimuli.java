@@ -22,6 +22,7 @@ public class generateStimuli {
 		// args 8-10 - foreground color
 		// args 11-13 - background color
 		
+		// args 14-15 - width, height
 		String folderPath = args[0];
 		List<Long> ids = new ArrayList<Long>();
 		List<MatchStick> objs = new ArrayList<MatchStick>();
@@ -58,7 +59,7 @@ public class generateStimuli {
 			}
 		}
 		// make all the images
-		PNGmaker pngMaker = new PNGmaker();
+		PNGmaker pngMaker = new PNGmaker(Integer.parseInt(args[14]), Integer.parseInt(args[15]));
 		pngMaker.setBackColor(backColor);
 		pngMaker.createAndSavePNGsfromObjs(objs, ids, folderPath);
 	}

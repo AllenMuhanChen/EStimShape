@@ -36,7 +36,7 @@
 	</target>
 
 	<target name="compile" depends="prepare">
-		<javac srcdir="src" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
+		<javac srcdir="src" destdir="${build.home}" debug="true" debuglevel="lines,vars,source" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
 			<classpath refid="classpath" />
 		</javac>
 		<javac srcdir="app" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">

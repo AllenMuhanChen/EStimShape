@@ -20,6 +20,11 @@ public class PNGmaker {
 	int width = 1024;
 	RGBColor backColor = new RGBColor(0,0,0);
 	
+	public PNGmaker(int width, int height) {
+		this.width = width;
+		this.height = height;
+	}
+	
 	public PNGmaker() {}
 
 	public void createAndSavePNGsfromObjs(List<MatchStick> objs,List<Long> stimObjIds,String imageFolderName) {

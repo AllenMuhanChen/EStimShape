@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.xper.Dependency;
+import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -62,8 +63,10 @@ public class PngBlockGen {
 	
 		//GENERATION
 		try {
-			genId = 0;
-			//genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
+			/**
+			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked. 
+			 */
+			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
@@ -73,7 +76,7 @@ public class PngBlockGen {
 			long taskId = sampleId;
 			int randomSampleIndex = r.nextInt(fileArray.length);
 			Coordinates2D sampleLocation = new Coordinates2D(0, 0);
-			Dimension sampleDimensions = new Dimension();
+			ImageDimensions sampleDimensions = new ImageDimensions();
 			sampleDimensions.setSize(5, 5);
 			
 			String experimentPath = experimentPngPath + fileArray[randomSampleIndex].getName();
@@ -96,9 +99,9 @@ public class PngBlockGen {
 			//else, write the path of one of the distractors. The paths of the distractor is found through stepping through shuffled list of distractors
 			int distractorIndex = 0;
 			long[] choiceId = new long[numChoices];
-			Dimension[] choiceDimensions = new Dimension[numChoices];
-			choiceDimensions[0] = new Dimension(5,5);
-			choiceDimensions[1] = new Dimension(5,5);
+			ImageDimensions[] choiceDimensions = new ImageDimensions[numChoices];
+			choiceDimensions[0] = new ImageDimensions(5,5);
+			choiceDimensions[1] = new ImageDimensions(5,5);
 			for (int j = 0; j < numChoices; j++) {
 				
 				

@@ -42,7 +42,7 @@ public class NAFCTrialExperimentState extends TrialExperimentState {
 	}
 
 	@Dependency
-	boolean doEmptyTask = true;
+	boolean doEmptyTask = false;
 	@Dependency
 	boolean repeatTrialIfEyeBreak = false; //TODO; add injection
 	@Dependency

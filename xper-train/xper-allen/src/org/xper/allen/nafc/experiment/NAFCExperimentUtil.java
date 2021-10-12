@@ -22,7 +22,9 @@ import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
+import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.EyeController;
+import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.time.TimeUtil;
@@ -497,4 +499,19 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 	public static void getNextTask(NAFCExperimentState state) {
 		state.setCurrentTask(state.getTaskDataSource().getNextTask());
 	}
+	
+
+	public static void cleanupTask(NAFCExperimentState stateObject) {
+		NAFCExperimentTask currentTask = stateObject.getCurrentTask();
+		NAFCDatabaseTaskDataSource taskDataSource = (NAFCDatabaseTaskDataSource) stateObject.getTaskDataSource();
+		
+		if (currentTask != null) {
+			taskDataSource.ungetTask(currentTask);
+			currentTask = null;
+			stateObject.setCurrentTask(currentTask);
+		}
+	}
+	
+	
+	
 }

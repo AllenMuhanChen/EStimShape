@@ -128,7 +128,6 @@ public class NAFCTrialExperiment implements Experiment {
 												.currentTimeMicros(), false);
 										currentTask = null;
 										stateObject.setCurrentTask(currentTask);
-										
 									}
 
 								}
