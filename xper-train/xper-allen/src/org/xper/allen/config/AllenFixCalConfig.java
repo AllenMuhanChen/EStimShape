@@ -1,5 +1,8 @@
 package org.xper.allen.config;
 
+import java.awt.List;
+import java.util.ArrayList;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
 import org.springframework.config.java.annotation.Configuration;
@@ -14,6 +17,8 @@ import org.xper.config.ClassicConfig;
 import org.xper.config.FixCalConfig;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.eye.strategy.AnyEyeInStategy;
+import org.xper.eye.strategy.EyeInStrategy;
 
 /**
  * Uses base fixcal config but:
@@ -46,4 +51,15 @@ public class AllenFixCalConfig {
 		//DIVIDE by two account for doubled monkey screen width. 
 		return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_monkey_screen_width", 0))/2;
 	}
+	
+	@Bean
+	public EyeInStrategy eyeInStrategy () {
+		AnyEyeInStategy strategy = new AnyEyeInStategy();
+		ArrayList<String> eyeDevices = new ArrayList<String>();
+		eyeDevices.add(classicConfig.xperLeftIscanId());
+		eyeDevices.add(classicConfig.xperRightIscanId());
+		strategy.setEyeDevices(eyeDevices);
+		return strategy;
+	}
+	
 }
