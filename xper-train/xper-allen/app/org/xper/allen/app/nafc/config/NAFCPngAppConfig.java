@@ -12,6 +12,7 @@ import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.allen.nafc.blockgen.PngBlockGenOne;
+import org.xper.allen.nafc.blockgen.PngBlockGenTwo;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -68,8 +69,8 @@ public class NAFCPngAppConfig {
 	
 	
 	@Bean
-	public PngBlockGenOne generator() {
-		PngBlockGenOne gen = new PngBlockGenOne();
+	public PngBlockGenTwo generator() {
+		PngBlockGenTwo gen = new PngBlockGenTwo();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());

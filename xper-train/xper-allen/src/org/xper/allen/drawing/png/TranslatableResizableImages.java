@@ -49,6 +49,7 @@ public class TranslatableResizableImages {
 		Coordinates2D centermm = new Coordinates2D(context.getRenderer().deg2mm(location.getX()), context.getRenderer().deg2mm(location.getY()));
 		//Coordinates2D centerPixels = context.getRenderer().mm2pixel(centermm);
 		
+		
 		float width = (float) context.getRenderer().deg2mm((float)dimensions.getWidth()); // texture.getImageWidth();
 		float height = (float) context.getRenderer().deg2mm((float)dimensions.getHeight()); // texture.getImageHeight();		
 
