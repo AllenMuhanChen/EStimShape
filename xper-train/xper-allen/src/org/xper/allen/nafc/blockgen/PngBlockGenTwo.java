@@ -22,7 +22,7 @@ import org.xper.time.TimeUtil;
 
 
 
-public class PngBlockGenOne{
+public class PngBlockGenTwo{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
@@ -37,15 +37,18 @@ public class PngBlockGenOne{
 	 * Selects visual stimuli randomly from stimTypes
 	 */
 	Random r = new Random();
-	
-	public PngBlockGenOne() {
+	/**
+	 * Generate trials with a sample of random location within specified disc region,
+	 * as well as N choices randomly within another specified disc region.   
+	 */
+	public PngBlockGenTwo() {
 	}
 	
 	
 	long genId = 1;
 	
 	
-	public void generate(int numTrials, int numChoices, double width, double height, double radiusLowerLim, double radiusUpperLim, double eyeWinSize) { //
+	public void generate(int numTrials, int numChoices, double width, double height, double sampleRadiusLowerLim, double sampleRadiusUpperLim, double eyeWinSize, double choiceRadiusLowerLim, double choiceRadiusUpperLim ) { //
 		experimentPngPath = experimentPngPath+"/";
 		//FILEPATH
 		File folder = new File(generatorPngPath);
@@ -55,7 +58,7 @@ public class PngBlockGenOne{
 		//int numTrials = 100;
 			//SAMPLE
 		ImageDimensions sampleDimensions = new ImageDimensions(width,height);
-		double[] sampleRadiusLims = {radiusLowerLim, radiusUpperLim}; 
+		double[] sampleRadiusLims = {sampleRadiusLowerLim, sampleRadiusUpperLim}; 
 			//CHOICES
 		RewardPolicy rewardPolicy = RewardPolicy.LIST;
 		//int numChoices = 1;
@@ -92,16 +95,12 @@ public class PngBlockGenOne{
 			int[] rewardList = {correctChoice};
 			ImageDimensions[] choiceDimensions = new ImageDimensions[numChoices];
 			for (int j = 0; j<numChoices; j++){
-			    choiceDimensions = Arrays.copyOf(choiceDimensions,  choiceDimensions.length+1);
-			    choiceDimensions[choiceDimensions.length-1] = sampleDimensions;
+			    choiceDimensions[j] = sampleDimensions;
 			}
-			choiceDimensions[0] = sampleDimensions;
+			//EyewinCoords of target and target location identical
 			Coordinates2D[] targetEyeWinCoords = new Coordinates2D[]{};
-			for (int j = 0; j<numChoices; j++){
-			    targetEyeWinCoords = Arrays.copyOf(targetEyeWinCoords, targetEyeWinCoords.length+1);
-				targetEyeWinCoords[targetEyeWinCoords.length-1] = randomChoice(10,15);
-			}
-			
+			targetEyeWinCoords = equidistantRandomChoices(choiceRadiusLowerLim,choiceRadiusUpperLim,numChoices);
+ 
 			//Handling shuffling & removing Match from possible distractors
 			int matchIndex = randomSampleIndex;
 			File[] distractorArray = fileArray;
@@ -118,7 +117,7 @@ public class PngBlockGenOne{
 				
 				
 				choiceId[j] = sampleId + j + 1;
-				
+
 				if (j==correctChoice){
 					PngSpec choiceSpec = new PngSpec(targetEyeWinCoords[j].getX(), targetEyeWinCoords[j].getY(), choiceDimensions[j], experimentPngPath + fileArray[randomSampleIndex].getName());
 					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "match");
@@ -151,6 +150,30 @@ public class PngBlockGenOne{
 		
 	}
 	
+	private static Coordinates2D[] equidistantRandomChoices(double lowerRadiusLim, double upperRadiusLim, int numChoices){
+		Coordinates2D[] output = new Coordinates2D[numChoices];
+		Double[] angles = new Double[numChoices];
+		Double[] radii = new Double[numChoices];
+		
+		angles[0] = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
+		radii[0] = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * (upperRadiusLim-lowerRadiusLim) + lowerRadiusLim;
+		output[0] = polarToCart(radii[0], angles[0]);
+		
+		if (numChoices==1){
+			return output;
+		}
+		else{
+			double step = 2 * Math.PI / numChoices;
+			for (int i=1; i < numChoices; i++){
+				angles[i] = angles[i-1] + step;
+				radii[i] = radii[i-1];
+				output[i] = polarToCart(radii[i], angles[i]);
+			}
+			return output;
+		}
+		
+		
+	}
 	private static double inclusiveRandomDouble(double val1, double val2) {
 		if (val2>val1){
 			return ThreadLocalRandom.current().nextDouble(val1, val2);
@@ -166,9 +189,14 @@ public class PngBlockGenOne{
 		double r = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * (upperLim-lowerLim) + lowerLim;
 		double theta = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
 		
+		Coordinates2D output = polarToCart(r, theta);
+		return output;
+	}
+	
+	private static Coordinates2D polarToCart(double r, double theta){
+		Coordinates2D output = new Coordinates2D(); 
 		double x = 0 + r * Math.cos(theta);
 		double y = 0 + r * Math.sin(theta);
-		Coordinates2D output = new Coordinates2D(); 
 		output.setX(x);
 		output.setY(y);
 		return output;
