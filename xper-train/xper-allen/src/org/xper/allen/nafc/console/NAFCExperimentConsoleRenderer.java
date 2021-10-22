@@ -4,6 +4,7 @@ import org.xper.Dependency;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
 import org.xper.allen.saccade.console.SaccadeExperimentMessageHandler;
 import org.xper.classic.TrialExperimentConsoleRenderer;
+import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.GLUtil;
@@ -21,11 +22,29 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 	}
 
 	public void drawCanvas(Context context, String devId) {
-		super.drawCanvas(context, devId);
-		if(getMessageHandler().isInTrial()) {
+		blankScreen.draw(null);
+		
+		if(messageHandler.isInTrial()) {
+			drawEyeDeviceReading(devId);
 			drawChoices();
 		}	
+		if(messageHandler.isSampleOn()){
+			drawFixation();
+			drawEyeWindow();
+		}
+		if(messageHandler.isFixationOn()){
+			drawEyeDevice(devId);
+			drawFixation();
+		}
 		
+	}
+	
+	protected void drawFixation() {
+		if (messageHandler.isFixationOn() || messageHandler.isSampleOn()) {
+			TrialContext context = new TrialContext();
+			context.setRenderer(renderer);
+			fixation.draw(context);
+		}
 	}
 	
 	void drawChoices() {
