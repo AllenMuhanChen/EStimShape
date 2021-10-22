@@ -66,7 +66,6 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	@Override
 	public void setChoice(NAFCExperimentTask task) {
-		System.out.println("SETCHOICE CALLED");
 		String[] choiceSpecXml = task.getChoiceSpec();
 		numChoices = choiceSpecXml.length;
 		PngSpec[] choiceSpec = new PngSpec[numChoices];
@@ -77,15 +76,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 			choiceLocations[i] = new Coordinates2D(choiceSpec[i].getxCenter(), choiceSpec[i].getyCenter());
 			choiceDimensions[i] = choiceSpec[i].getImageDimensions();
 		}
-		System.out.println("choiceSpecXML1: "+ choiceSpecXml[0]);
-		System.out.println("choiceSpecXML2: "+ choiceSpecXml[1]);
-		System.out.println("numCHOICES: "+ numChoices);
-		System.out.println("choiceSPEC 1 IS:" + choiceSpec[0]);
-		System.out.println("choiceSPEC 1 IS:" + choiceSpec[1]);
-		System.out.println("CHOICEDIMENSIONS ARE:" + choiceDimensions[0].getHeight());
-		System.out.println("CHOICELOCATIONS ARE:" + choiceLocations[1].getX());
-		System.out.println("CHOICEDIMENSIONS ARE:" + choiceDimensions[1].getHeight());
-		
+
 		for (int i=0; i < numChoices; i++){
 			images.loadTexture(choiceSpec[i].getPath(),i+1);
 		}
