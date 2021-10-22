@@ -129,11 +129,9 @@ public class TranslatableResizableImages {
     			// only for RGB
     			GL11.glTexImage2D( GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, img.getWidth(), img.getHeight(), 0,  GL11.GL_RGBA,  GL11.GL_UNSIGNED_BYTE, pixels);
     			//GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, img.getWidth(), img.getHeight(), 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
-    		 	System.out.println("DRAWING RGB");
     		} else {
     			// RGBA
     			GL11.glTexImage2D( GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, img.getWidth(), img.getHeight(), 0,  GL11.GL_RGBA,  GL11.GL_UNSIGNED_BYTE, pixels);
-    			System.out.println("DRAWING RGBA8");
     		}
     		   
     		//System.out.println("JK 5353 ImageStack:loadTexture() " + imageFile + " : " + textureIndex + 

@@ -8,6 +8,7 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
@@ -64,6 +65,7 @@ public class NAFCPngAppConfig {
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
+		scene.setBackgroundColor(xperBackgroundColor());
 		return scene;
 	}
 	
@@ -77,5 +79,12 @@ public class NAFCPngAppConfig {
 		gen.setGeneratorPngPath(generatorPngPath);
 		gen.setExperimentPngPath(experimentPngPath);
 		return gen;
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public double[] xperBackgroundColor() {
+		return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),
+							Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 1)),
+							Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 2))};
 	}
 }

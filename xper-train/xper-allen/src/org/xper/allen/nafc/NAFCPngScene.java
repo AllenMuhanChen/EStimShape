@@ -24,7 +24,8 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	double screenWidth;
 	@Dependency
 	double screenHeight;
-
+	@Dependency
+	double[] backgroundColor;
 	TranslatableResizableImages images; 
 	
 	Coordinates2D[] choiceLocations;
@@ -39,7 +40,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 //		
 		//System.out.println("JK 32838 w = " + screenWidth + ", h = " + screenHeight);
 		
-		GL11.glClearColor(0.5f, 0.5f, 0.5f, 0.0f);          
+		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);          
 		GL11.glViewport(0,0,w,h);
         GL11.glMatrixMode(GL11.GL_MODELVIEW); 
         GL11.glMatrixMode(GL11.GL_PROJECTION);
@@ -192,6 +193,14 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	public void setNumChoices(int numChoices) {
 		this.numChoices = numChoices;
+	}
+
+	public double[] getBackgroundColor() {
+		return backgroundColor;
+	}
+
+	public void setBackgroundColor(double[] backgroundColor) {
+		this.backgroundColor = backgroundColor;
 	}
 	
 }
