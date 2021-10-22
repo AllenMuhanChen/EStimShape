@@ -18,6 +18,7 @@ public class TrialExperimentConsoleRenderer {
 	@Dependency
 	protected AbstractRenderer renderer;
 	@Dependency
+	protected
 	Drawable fixation;
 	@Dependency
 	protected
@@ -45,12 +46,12 @@ public class TrialExperimentConsoleRenderer {
 		}
 	}
 	
-	void drawEyeDevice(String devId) {
+	protected void drawEyeDevice(String devId) {
 		drawEyeWindow();
 		drawEyeDeviceReading(devId);
 	}
 	
-	void drawEyeWindow() {
+	protected void drawEyeWindow() {
 		EyeWindow window = messageHandler.getEyeWindow();
 		Coordinates2D eyeWindowCenter = window.getCenter();
 		double eyeWindowCenterX = renderer.deg2mm(eyeWindowCenter.getX());
@@ -60,7 +61,7 @@ public class TrialExperimentConsoleRenderer {
 		GLUtil.drawCircle(circle, eyeWindowSize, false, eyeWindowCenterX, eyeWindowCenterY, 0.0);
 	}
 	
-	void drawEyeDeviceReading(String devId) {
+	protected void drawEyeDeviceReading(String devId) {
 		for (Map.Entry<String, EyeDeviceReading> ent : messageHandler
 				.getEyeDeviceReadingEntries()) {
 			
@@ -98,7 +99,7 @@ public class TrialExperimentConsoleRenderer {
 		}
 	}
 	
-	void drawFixation() {
+	protected void drawFixation() {
 		if (messageHandler.isFixationOn()) {
 			TrialContext context = new TrialContext();
 			context.setRenderer(renderer);
