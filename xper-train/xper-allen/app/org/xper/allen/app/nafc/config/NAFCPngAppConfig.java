@@ -13,6 +13,7 @@ import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.allen.nafc.blockgen.PngBlockGenOne;
+import org.xper.allen.nafc.blockgen.PngBlockGenThree;
 import org.xper.allen.nafc.blockgen.PngBlockGenTwo;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -71,7 +72,7 @@ public class NAFCPngAppConfig {
 	
 	
 	@Bean
-	public PngBlockGenTwo generator() {
+	public PngBlockGenTwo generator2() {
 		PngBlockGenTwo gen = new PngBlockGenTwo();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
@@ -80,6 +81,18 @@ public class NAFCPngAppConfig {
 		gen.setExperimentPngPath(experimentPngPath);
 		return gen;
 	}
+	
+	@Bean
+	public PngBlockGenThree generator3() {
+		PngBlockGenThree gen = new PngBlockGenThree();
+		gen.setDbUtil(config.allenDbUtil());
+		gen.setGlobalTimeUtil(acqConfig.timeClient());
+		gen.setXmlUtil(config.allenXMLUtil());
+		gen.setGeneratorPngPath(generatorPngPath);
+		gen.setExperimentPngPath(experimentPngPath);
+		return gen;
+	}
+	
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double[] xperBackgroundColor() {

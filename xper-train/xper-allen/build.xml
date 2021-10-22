@@ -165,5 +165,15 @@
 			</manifest>
 		</jar>
 		
+		<jar jarfile="${allen.home}/nafcGenThree.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/nafc/PngGeneratorThree.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGeneratorThree" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
+			</manifest>
+		</jar>
+		
 	</target>
 </project>
