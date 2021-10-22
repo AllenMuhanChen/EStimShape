@@ -48,7 +48,7 @@ public class NAFCTrialExperiment implements Experiment {
 
 	@Dependency
 	int blankTargetScreenDisplayTime; //in ms
-	
+
 	public boolean isRunning() {
 		return threadHelper.isRunning();
 	}
@@ -79,10 +79,10 @@ public class NAFCTrialExperiment implements Experiment {
 					stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
 					/*
 					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
-					*/
-					
+					 */
 
-					
+
+
 					// run trial
 					return NAFCExperimentUtil.runTrial(stateObject, threadHelper, new NAFCSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
@@ -94,11 +94,11 @@ public class NAFCTrialExperiment implements Experiment {
 							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
 							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
 							NAFCTrialResult result;
-							
+
 							try {
 								try {
 									//target info -AC
-									
+
 									Coordinates2D[] targetPosition = context.getCurrentTask().getTargetEyeWinCoords();
 									double[] targetEyeWinSize = context.getCurrentTask().getTargetEyeWinSize();
 									context.setTargetPos(targetPosition);
@@ -113,15 +113,15 @@ public class NAFCTrialExperiment implements Experiment {
 								}
 
 								for (int i = 0; i < slidePerTrial; i++) {
-									
+
 									// draw the slide
 									result = NAFCExperimentUtil.doSlide(i, stateObject);
-									
+
 									//Check if Sample Hold was Successful
 									if (result!=NAFCTrialResult.TRIAL_COMPLETE){
 										return result;
 									}
-									
+
 									// Trial done successfully
 									if (currentTask != null) {
 										taskDoneCache.put(currentTask, globalTimeClient
@@ -142,7 +142,7 @@ public class NAFCTrialExperiment implements Experiment {
 								}
 							}
 						}
-						
+
 					}); // end of TrialExperimentUtil.runTrial 
 					// end of TrialRunner.runTrial	
 				} finally {
@@ -154,7 +154,7 @@ public class NAFCTrialExperiment implements Experiment {
 					}
 				}
 			}}
-		);
+				);
 	}
 
 	public void stop() {

@@ -52,7 +52,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 
 		boolean fixationSuccess;
 
-		
+
 		NAFCTargetSelectorResult selectorResult;
 		//ESTIMULATOR
 		/*
@@ -63,7 +63,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		sendEStimTrigger(stateObject);
 		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
 		System.out.println("EStim Fired");
-		
+
 		//show SAMPLE after delay
 		long blankOnLocalTime = timeUtil.currentTimeMicros();
 		do {
@@ -76,7 +76,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		long sampleOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
 		NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
-		
+
 		//HOLD FIXATION DURING SAMPLE
 		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
 				+ stateObject.getSampleLength() * 1000 );
@@ -94,15 +94,15 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		long sampleOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setSampleOffTime(sampleOffLocalTime);
 		NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
-		
-		
+
+
 		//SHOW CHOICES
 		drawingController.prepareChoice(currentTask, currentContext);
 		drawingController.showSlide(currentTask, currentContext);
 		long choicesOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setChoicesOnTime(choicesOnLocalTime);
 		NAFCEventUtil.fireChoicesOnEvent(choicesOnLocalTime, choiceEventListeners,currentContext);
-	
+
 
 		//Eye on Target Logic
 		//eye selector
@@ -119,31 +119,31 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		}while(!selectorDriver.isDone());
 		selectorDriver.stop();
 		long choiceDoneLocalTime = timeUtil.currentTimeMicros();
-		
+
 		//HANDLING RESULTS
 		selectorResult = selectorDriver.getResult();
 		NAFCTrialResult result = selectorResult.getSelectionStatusResult();
 		int choice = selectorResult.getSelection();
 		RewardPolicy rewardPolicy = currentContext.getCurrentTask().getRewardPolicy();
 		int[] rewardList = currentContext.getCurrentTask().getRewardList();
-		
-		switch (result) {
-			case TARGET_SELECTION_EYE_FAIL:
-				NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				NAFCEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 
-				if (rewardPolicy == RewardPolicy.ALWAYS) {
-					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
-				}
-				if (rewardPolicy == RewardPolicy.NONE) {
-					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
-				}
-				else {
-					NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-					return NAFCTrialResult.TARGET_SELECTION_EYE_FAIL;
-				}
-				break;
-				/*
+		switch (result) {
+		case TARGET_SELECTION_EYE_FAIL:
+			NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+			NAFCEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+
+			if (rewardPolicy == RewardPolicy.ALWAYS) {
+				NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
+			}
+			if (rewardPolicy == RewardPolicy.NONE) {
+				NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+			}
+			else {
+				NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+				return NAFCTrialResult.TARGET_SELECTION_EYE_FAIL;
+			}
+			break;
+			/*
 			case TARGET_SELECTION_EYE_BREAK:
 				NAFCEventUtil.fireChoiceSelectionEyeBreakEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				if (rewardPolicy == RewardPolicy.ANY) {
@@ -153,44 +153,44 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 				}
 				break;
-				*/
-			case TARGET_SELECTION_SUCCESS:
-				NAFCEventUtil.fireChoiceSelectionSuccessEvent(choiceDoneLocalTime, choiceEventListeners, choice);
-				if (rewardPolicy == RewardPolicy.LIST) {
-					if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
-						NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
-						System.out.println("Correct Choice");
-					}
-					else {
-						NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
-						System.out.println("Incorrect Choice");
-					}
+			 */
+		case TARGET_SELECTION_SUCCESS:
+			NAFCEventUtil.fireChoiceSelectionSuccessEvent(choiceDoneLocalTime, choiceEventListeners, choice);
+			if (rewardPolicy == RewardPolicy.LIST) {
+				if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+					System.out.println("Correct Choice");
 				}
-				if (rewardPolicy == RewardPolicy.ANY) {
-					if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
-						NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
-						System.out.println("Correct Choice");
-					}
-					else {
-						NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
-						System.out.println("Incorrect Choice - Rewarded by Default");
-					}
+				else {
+					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+					System.out.println("Incorrect Choice");
 				}
-				if (rewardPolicy == RewardPolicy.ALWAYS) {
-					if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
-						NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
-						System.out.println("Correct Choice");
-					}
-					else {
-						NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
-						System.out.println("Incorrect Choice - Rewarded by Default");
-					}
-				}				
+			}
+			if (rewardPolicy == RewardPolicy.ANY) {
+				if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+					System.out.println("Correct Choice");
+				}
+				else {
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
+					System.out.println("Incorrect Choice - Rewarded by Default");
+				}
+			}
+			if (rewardPolicy == RewardPolicy.ALWAYS) {
+				if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
+					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+					System.out.println("Correct Choice");
+				}
+				else {
+					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
+					System.out.println("Incorrect Choice - Rewarded by Default");
+				}
+			}				
 
-				break;
+			break;
 
 		}
-		
+
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
 		do {
 			//Wait for Slide to Finish
@@ -202,16 +202,16 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		currentContext.setChoicesOffTime(choiceOffLocalTime);
 		NAFCEventUtil.fireChoicesOffEvent(choiceOffLocalTime, choiceEventListeners, currentContext);
 		currentContext.setAnimationFrameIndex(0);
-		
+
 
 		return NAFCTrialResult.TRIAL_COMPLETE;
 
 	}
 
 	public static boolean contains(final int[] arr, final int key) {
-        return Arrays.stream(arr).anyMatch(i -> i == key);
+		return Arrays.stream(arr).anyMatch(i -> i == key);
 	}
-        
+
 	public static NAFCTrialResult runTrial (NAFCExperimentState stateObject, ThreadHelper threadHelper, NAFCSlideRunner runner){
 		NAFCTrialResult result = NAFCExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
@@ -239,12 +239,12 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				.getTrialEventListeners();
 
 		// unget failed task
-		
+
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
 			state.setCurrentTask(null);
 		}
-		 taskDoneCache.flush();
+		taskDoneCache.flush();
 
 		// trial stop
 		if (currentContext != null) {
@@ -267,8 +267,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 	 */
 	public static void sendEStims (NAFCExperimentState state) {
 		try {
-		IntanUtil intanUtil = state.getIntanUtil();
-		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+			IntanUtil intanUtil = state.getIntanUtil();
+			EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 			System.out.println("Sending EStimSpecs to Intan");
 			try {
@@ -279,7 +279,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			}
 		}
 		catch (NullPointerException e){
-		System.out.println("Cannot Send EStims Because There Is No Trial");
+			System.out.println("Cannot Send EStims Because There Is No Trial");
 		}
 	}
 
@@ -301,9 +301,9 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		} catch (Exception e) {
 			System.out.println("Cannot Send Trigger");
 		}
-		
+
 	}
-	
+
 	private static String eStimsToString(EStimObjDataEntry eStimObjData){
 		ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();
 		eStimParams.add(new EStimParameter("chans",eStimObjData.getChans()));
@@ -327,7 +327,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		eStimParams.add(new EStimParameter("enable_charge_recovery",eStimObjData.isEnable_charge_recovery()));
 		eStimParams.add(new EStimParameter("post_stim_charge_recovery_on",eStimObjData.get_post_stim_charge_recovery_on()));
 		eStimParams.add(new EStimParameter("post_stim_charge_recovery_off",eStimObjData.get_post_stim_charge_recovery_off()));
-		
+
 		String output = new String();
 		int loopindx = 0;
 		for (EStimParameter param:eStimParams) {
@@ -338,24 +338,24 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			output = output.concat(",");
 			output = output.concat(param.getValue());
 			loopindx++;
-			
+
 		}
 		return output;
 	}
-	
- 
+
+
 	public static NAFCTrialResult getMonkeyFixation(NAFCExperimentState state,
 			ThreadHelper threadHelper) {
 
 		NAFCMarkEveryStepTrialDrawingController drawingController = (NAFCMarkEveryStepTrialDrawingController) state.getDrawingController();
-		
+
 		TrialContext currentContext = state.getCurrentContext();
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		List<? extends TrialEventListener> trialEventListeners = state
 				.getTrialEventListeners();
 		EyeController eyeController = state.getEyeController();
 		NAFCExperimentTask currentTask = state.getCurrentTask();
-		
+
 		// trial init
 		long trialInitLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setTrialInitTime(trialInitLocalTime);
@@ -448,7 +448,11 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 					break;
 				}
 				// one trial
+				try{
 				runner.runTrial();
+				} catch (NullPointerException e){
+					System.out.println("THERE ARE NO MORE TRIALS");
+				}
 				if (threadHelper.isDone()) {
 					break;
 				}
@@ -473,45 +477,45 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			}
 		}
 	}
-	
+
 	public static void completeTrial(NAFCExperimentState state, ThreadHelper threadHelper) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		TrialContext currentContext = state.getCurrentContext();
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
-		.getTrialEventListeners();
-		
+				.getTrialEventListeners();
+
 		// trial complete here
 		long trialCompletedLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setTrialCompleteTime(trialCompletedLocalTime);
 		drawingController.trialComplete(currentContext);
 		EventUtil.fireTrialCompleteEvent(trialCompletedLocalTime,
 				trialEventListeners, currentContext);
-		
+
 		// wait for delay after trial complete
 		if (state.getDelayAfterTrialComplete() > 0) {
 			long current = timeUtil.currentTimeMicros();
 			ThreadUtil.sleepOrPinUtil(current
-						+ state.getDelayAfterTrialComplete() * 1000, state,
-						threadHelper);
+					+ state.getDelayAfterTrialComplete() * 1000, state,
+					threadHelper);
 		}
 	}
 	public static void getNextTask(NAFCExperimentState state) {
 		state.setCurrentTask(state.getTaskDataSource().getNextTask());
 	}
-	
+
 
 	public static void cleanupTask(NAFCExperimentState stateObject) {
 		NAFCExperimentTask currentTask = stateObject.getCurrentTask();
 		NAFCDatabaseTaskDataSource taskDataSource = (NAFCDatabaseTaskDataSource) stateObject.getTaskDataSource();
-		
+
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
 			currentTask = null;
 			stateObject.setCurrentTask(currentTask);
 		}
 	}
-	
-	
-	
+
+
+
 }
