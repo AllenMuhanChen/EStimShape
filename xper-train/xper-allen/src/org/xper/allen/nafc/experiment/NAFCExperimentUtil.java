@@ -121,6 +121,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		long choiceDoneLocalTime = timeUtil.currentTimeMicros();
 
 		//HANDLING RESULTS
+		long choicesOffLocalTime = timeUtil.currentTimeMicros();
+		NAFCEventUtil.fireChoicesOffEvent(choicesOffLocalTime, choiceEventListeners, currentContext);
 		selectorResult = selectorDriver.getResult();
 		NAFCTrialResult result = selectorResult.getSelectionStatusResult();
 		int choice = selectorResult.getSelection();

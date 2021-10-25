@@ -12,9 +12,10 @@ import org.xper.Dependency;
 import org.xper.exception.RemoteException;
 
 public class ExperimentRunner {
-	static Logger logger = Logger.getLogger(ExperimentRunner.class);
+	protected static Logger logger = Logger.getLogger(ExperimentRunner.class);
 	
 	@Dependency
+	protected
 	Experiment experiment;
 	@Dependency
 	int port = DEFAULT_XPER_PORT;
@@ -33,8 +34,8 @@ public class ExperimentRunner {
 	public static final int STOP = 3;
 	private static final int DEFAULT_BACK_LOG = 10;
 	
-	ServerSocket server = null;
-	boolean done = false;
+	protected ServerSocket server = null;
+	protected boolean done = false;
 
 	public ExperimentRunner(int port, int backlog) {
 		this.port = port;
@@ -56,7 +57,7 @@ public class ExperimentRunner {
 		this.experiment = experiment;
 	}
 
-	void handleCommand() throws IOException {
+	protected void handleCommand() throws IOException {
 		Socket con = server.accept();
 		try {
 			DataInputStream is = new DataInputStream(con.getInputStream());

@@ -14,8 +14,10 @@ public class ExperimentRunnerClient {
 	 * Dependencies. Should not change after deployment.
 	 */
 	@Dependency
+	protected
 	String host;
 	@Dependency
+	protected
 	int port = ExperimentRunner.DEFAULT_XPER_PORT;
 
 	public ExperimentRunnerClient(String host, int port) {
@@ -42,7 +44,7 @@ public class ExperimentRunnerClient {
 		doCommand(ExperimentRunner.RESUME);
 	}
 
-	void doCommand(int command) {
+	protected void doCommand(int command) {
 		Socket client;
 		try {
 			client = new Socket(host, port);

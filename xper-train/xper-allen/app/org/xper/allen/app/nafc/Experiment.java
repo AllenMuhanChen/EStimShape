@@ -2,8 +2,7 @@ package org.xper.allen.app.nafc;
 
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.experiment.NAFCMarkEveryStepTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCTrialExperiment;
+import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
 import org.xper.experiment.ExperimentRunner;
 import org.xper.util.FileUtil;
 
@@ -12,7 +11,7 @@ public class Experiment {
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
-		ExperimentRunner runner = context.getBean(ExperimentRunner.class);
+		RewardButtonExperimentRunner runner = context.getBean(RewardButtonExperimentRunner.class);
 		runner.run();
 	}
 }
