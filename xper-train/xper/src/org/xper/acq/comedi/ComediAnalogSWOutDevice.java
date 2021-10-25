@@ -29,6 +29,7 @@ public class ComediAnalogSWOutDevice implements AnalogOutDevice {
 	
 	@PostConstruct
 	public void init () {
+		System.out.println("init() on ComediAnalogSWOutDevice CAlled");
 		if (deviceString == null) {
 			throw new ComediException("Device name is null.");
 		}

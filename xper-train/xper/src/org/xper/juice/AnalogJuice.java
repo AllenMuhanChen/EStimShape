@@ -7,7 +7,7 @@ import org.xper.util.ThreadUtil;
 
 public class AnalogJuice implements DynamicJuice  {
 	@Dependency
-	AnalogOutDevice device;
+	public AnalogOutDevice device;
 	
 	/**
 	 * in millisecond
@@ -27,6 +27,7 @@ public class AnalogJuice implements DynamicJuice  {
 	static final double OFF_VOLT = 0;
 
 	public void deliver() {
+		System.out.println("Analog Juice Called!");
 		ThreadUtil.sleepUtil((long)(localTimeUtil.currentTimeMicros() + delay * 1000 + 0.5), localTimeUtil);
 		turnOnJuice();
 		ThreadUtil.sleepUtil((long)(localTimeUtil.currentTimeMicros() + reward * 1000 + 0.5), localTimeUtil);

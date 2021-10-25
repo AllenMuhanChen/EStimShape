@@ -15,6 +15,7 @@ import org.xper.console.MessageReceiverEventListener;
 import org.xper.db.vo.BehMsgEntry;
 import org.xper.exception.RemoteException;
 import org.xper.experiment.Threadable;
+import org.xper.juice.Juice;
 import org.xper.util.SocketUtil;
 import org.xper.util.ThreadHelper;
 
@@ -43,6 +44,7 @@ public class NAFCExperimentMessageReceiver implements Threadable {
 		super();
 	}
 
+	
 	public boolean isRunning() {
 		return threadHelper.isRunning();
 	}
@@ -191,6 +193,7 @@ public class NAFCExperimentMessageReceiver implements Threadable {
 	public void setDispatcherHost(String dispatcherHost) {
 		this.dispatcherHost = dispatcherHost;
 	}
+
 
 
 }

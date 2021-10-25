@@ -5,9 +5,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
 import org.xper.console.ExperimentConsoleModel;
-import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.ExperimentSetupException;
 import org.xper.eye.mapping.MappingAlgorithm;
@@ -21,6 +21,16 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		
 		@Dependency
 		NAFCExperimentMessageReceiver messageReceiver;
+		
+		@Dependency
+		RewardButtonExperimentRunnerClient experimentRunnerClient;
+		public void reward(){
+			//((ComediAnalogSWOutDevice)((AnalogJuice) juice).device).init();
+			//juice.deliver();
+			//messageReceiver.reward();
+			experimentRunnerClient.reward();
+			System.out.println("Juice delivered because of console command "); 
+		}
 		
 		public NAFCTrialStatistics getNAFCTrialStatistics () {
 			NAFCTrialStatistics stat = (NAFCTrialStatistics) messageHandler.getNAFCTrialStatistics();
@@ -88,4 +98,13 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		public void setMessageReceiver(NAFCExperimentMessageReceiver messageReceiver) {
 			this.messageReceiver = messageReceiver;
 		}
+
+		public RewardButtonExperimentRunnerClient getExperimentRunnerClient() {
+			return experimentRunnerClient;
+		}
+
+		public void setExperimentRunnerClient(RewardButtonExperimentRunnerClient experimentRunnerClient) {
+			this.experimentRunnerClient = experimentRunnerClient;
+		}
+
 }

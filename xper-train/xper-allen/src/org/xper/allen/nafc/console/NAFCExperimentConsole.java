@@ -90,7 +90,7 @@ public class NAFCExperimentConsole extends JFrame implements
 	
 	KeyStroke lockUnlockKey = KeyStroke.getKeyStroke(KeyEvent.VK_L, 0);
 	KeyStroke pauseResumeKey = KeyStroke.getKeyStroke(KeyEvent.VK_P, 0);
-	
+	KeyStroke rewardKey = KeyStroke.getKeyStroke(KeyEvent.VK_R, 0);
 	IConsolePlugin currentPlugin = null;
 
 	boolean paused = true;
@@ -289,7 +289,35 @@ public class NAFCExperimentConsole extends JFrame implements
         commandPanel.add(Box.createRigidArea(new Dimension(0,6)));
         commandPanel.add(pauseResumeButton);
         commandPanel.add(Box.createRigidArea(new Dimension(0,3)));
+        //////////////////// JUICE BUTTON AC /////////////////
+        rewardButton = new JButton();
+        rewardButton.setToolTipText("Manual Reward");
+        Action rewardAction = new AbstractAction() {
+			private static final long serialVersionUID = 2L;
+			
+			public void actionPerformed(ActionEvent e) {
+				reward();
+			}
+		};
+		Dimension rewardButtonSize = new Dimension(100, 25);
+        rewardButton.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(rewardKey, rewardAction);
+        rewardButton.getActionMap().put(rewardAction, rewardAction);
+        rewardButton.setMinimumSize(rewardButtonSize);
+        rewardButton.setMaximumSize(rewardButtonSize);
+        rewardButton.setPreferredSize(rewardButtonSize);
+        rewardButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+            	reward();
+            }
+        });
+
+        rewardButton.setText("   REWARD   ");
         
+        commandPanel.add(Box.createRigidArea(new Dimension(6,6)));
+        commandPanel.add(rewardButton);
+        commandPanel.add(Box.createRigidArea(new Dimension(6,3)));
+        
+        /////////////////////
         JLabel monitorLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(monitorToken.getKeyCode()) + "</strong>: monitor mode </html>");
 		monitorLabel.setToolTipText("<html><strong>monitor mode commands</strong> <br><strong> " + GuiUtil.getKeyText(lockUnlockKey.getKeyCode()) + "</strong>: lock/unlock </html>");
         commandPanel.add(monitorLabel);
@@ -575,7 +603,10 @@ public class NAFCExperimentConsole extends JFrame implements
 			});
 		}
 	}
-
+//AC JUICE BUTTON 10/25/21
+	void reward(){
+		model.reward();
+	}
 	void start() {
 		model.start();
 		for (IConsolePlugin p : consolePlugins) {
@@ -794,7 +825,8 @@ public class NAFCExperimentConsole extends JFrame implements
     protected JLabel mouseYDegree;
     protected JLabel mouseYWorld;
     protected JLabel modeLabel;
-    protected JButton pauseResumeButton;             
+    protected JButton pauseResumeButton; 
+    protected JButton rewardButton;
     protected JLabel trialPassCount;
     protected JLabel trialFailCount;
     protected JLabel trialBreakCount;
