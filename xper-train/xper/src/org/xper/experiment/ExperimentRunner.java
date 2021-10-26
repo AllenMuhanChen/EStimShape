@@ -18,10 +18,13 @@ public class ExperimentRunner {
 	protected
 	Experiment experiment;
 	@Dependency
+	protected
 	int port = DEFAULT_XPER_PORT;
 	@Dependency
+	protected
 	int backlog = DEFAULT_BACK_LOG;
 	@Dependency
+	protected
 	String host;
 
 	public static final int DEFAULT_XPER_PORT = 8889;
