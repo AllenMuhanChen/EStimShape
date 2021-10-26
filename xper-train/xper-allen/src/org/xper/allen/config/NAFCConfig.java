@@ -138,7 +138,7 @@ public class NAFCConfig {
 	public DynamicJuice consoleButtonJuice() {
 		AnalogJuice juice = new AnalogJuice();
 		juice.setBonusDelay(classicConfig.xperJuiceBonusDelay());
-		juice.setBonusProbability(0);
+		juice.setBonusProbability(classicConfig.xperJuiceBonusProbability());
 		juice.setDelay(classicConfig.xperJuiceDelay());
 		juice.setReward(classicConfig.xperJuiceRewardLength());
 		juice.setLocalTimeUtil(baseConfig.localTimeUtil());
