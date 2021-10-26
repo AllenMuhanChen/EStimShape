@@ -25,9 +25,6 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		@Dependency
 		RewardButtonExperimentRunnerClient experimentRunnerClient;
 		public void reward(){
-			//((ComediAnalogSWOutDevice)((AnalogJuice) juice).device).init();
-			//juice.deliver();
-			//messageReceiver.reward();
 			experimentRunnerClient.reward();
 			System.out.println("Juice delivered because of console command "); 
 		}
@@ -45,6 +42,25 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 			}
 		}
 		
+		public void resume () {
+			experimentRunnerClient.resume();
+		}
+		
+		public void pause () {
+			experimentRunnerClient.pause();
+		}
+		
+		public void stop () {
+			try {
+				experimentRunnerClient.stop();
+				messageReceiver.stop();
+				if (samplingServer != null) {
+					samplingServer.stop();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		public void setMessageHandler(NAFCExperimentMessageHandler msghandler) {
 			this.messageHandler = msghandler;
 		}

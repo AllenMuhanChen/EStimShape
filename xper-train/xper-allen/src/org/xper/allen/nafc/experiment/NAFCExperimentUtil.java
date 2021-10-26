@@ -131,7 +131,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 
 		switch (result) {
 		case TARGET_SELECTION_EYE_FAIL:
-			NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
+			
 			NAFCEventUtil.fireChoiceSelectionNullEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
 
 			if (rewardPolicy == RewardPolicy.ALWAYS) {

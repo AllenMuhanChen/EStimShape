@@ -10,7 +10,6 @@ public RewardButtonExperimentRunnerClient(String host) {
 	}
 
 public void reward(){
-	System.out.println("REWARD COMMAND CALLED ON EXPERIMENTRUNNERCLIENT");
 	doCommand(RewardButtonExperimentRunner.REWARD);
 }
 	

@@ -38,6 +38,7 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	ExperimentMessageReceiver messageReceiver;
 	
 	@Dependency
+	protected
 	SocketSamplingDeviceServer samplingServer;
 	@Dependency
 	ExperimentRunnerClient experimentRunnerClient;

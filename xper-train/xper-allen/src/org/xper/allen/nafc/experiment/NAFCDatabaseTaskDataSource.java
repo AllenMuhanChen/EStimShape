@@ -91,7 +91,7 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 					lastDoneTaskId = dbUtil.readTaskDoneCompleteMaxId();
 				}
 				GenerationInfo info = dbUtil.readReadyGenerationInfo();
-				System.out.println("readyGenerationInfo: " + info.getGenId());
+				//System.out.println("readyGenerationInfo: " + info.getGenId());
 				if (info.getGenId() > currentGenId) {
 					// new generation found
 					LinkedList<NAFCExperimentTask> taskToDo = dbUtil

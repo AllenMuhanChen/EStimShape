@@ -128,8 +128,28 @@ public class NAFCConfig {
 		RewardButtonExperimentRunner runner = new RewardButtonExperimentRunner();
 		runner.setHost(classicConfig.experimentHost);
 		runner.setExperiment(experiment());
-		runner.setJuice(classicConfig.xperDynamicJuice());
+		runner.setJuice(consoleButtonJuice());
+		runner.setDbUtil(allenDbUtil());
+		runner.setTimeUtil(baseConfig.localTimeUtil());
 		return runner;
+	}
+	
+	@Bean 
+	public DynamicJuice consoleButtonJuice() {
+		AnalogJuice juice = new AnalogJuice();
+		juice.setBonusDelay(classicConfig.xperJuiceBonusDelay());
+		juice.setBonusProbability(0);
+		juice.setDelay(classicConfig.xperJuiceDelay());
+		juice.setReward(classicConfig.xperJuiceRewardLength());
+		juice.setLocalTimeUtil(baseConfig.localTimeUtil());
+		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NI)) {
+			juice.setDevice(classicConfig.niAnalogJuiceDevice());
+		} else if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_COMEDI)) {
+			juice.setDevice(classicConfig.comediAnalogJuiceDevice());
+		} else {
+			throw new ExperimentSetupException("Acq driver " + acqConfig.acqDriverName + " not supported.");
+		}
+		return juice;
 	}
 	/**
 	 * Use PerspectiveStereoRenderer for mono and stereo, only changing the xper screen width accordingly. 
@@ -207,11 +227,6 @@ public class NAFCConfig {
 		model.setChannelMap(classicConfig.iscanChannelMap());
 		model.setMessageHandler(messageHandler());
 		
-		//JUICE BUTTON AC 10/25/21
-		//model.setJuice(xperButtonJuice());
-		
-
-		
 		if (classicConfig.consoleEyeSimulation || acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			// socket sampling server for eye simulation
 			SocketSamplingDeviceServer server = new SocketSamplingDeviceServer();
@@ -235,23 +250,7 @@ public class NAFCConfig {
 		RewardButtonExperimentRunnerClient client = new RewardButtonExperimentRunnerClient(classicConfig.experimentHost);
 		return client;
 	}
-	@Bean 
-	public DynamicJuice xperButtonJuice() {
-		AnalogJuice juice = new AnalogJuice();
-		juice.setBonusDelay(classicConfig.xperJuiceBonusDelay());
-		juice.setBonusProbability(classicConfig.xperJuiceBonusProbability());
-		juice.setDelay(classicConfig.xperJuiceDelay());
-		juice.setReward(classicConfig.xperJuiceRewardLength());
-		juice.setLocalTimeUtil(baseConfig.localTimeUtil());
-		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NI)) {
-			juice.setDevice(classicConfig.niAnalogJuiceDevice());
-		} else if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_COMEDI)) {
-			juice.setDevice(classicConfig.comediAnalogJuiceDevice());
-		} else {
-			throw new ExperimentSetupException("Acq driver " + acqConfig.acqDriverName + " not supported.");
-		}
-		return juice;
-	}
+
 	@Bean
 	public NAFCExperimentConsoleRenderer consoleRenderer () {
 		NAFCExperimentConsoleRenderer renderer = new NAFCExperimentConsoleRenderer();
