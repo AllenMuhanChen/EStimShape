@@ -39,17 +39,23 @@ public class NAFCEyeTargetSelectorConcurrentDriver {
 		task = exec.submit(new Callable<NAFCTargetSelectorResult>() {
 			public NAFCTargetSelectorResult call() throws Exception {
 				NAFCTargetSelectorResult result = new NAFCTargetSelectorResult();
-				int sel = selector.waitInitialSelection(targetCenter, targetWinSize, deadlineIntialEyeIn);
-				System.out.println("sel = " + sel);
-				if (sel < 0) {
-					result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_EYE_FAIL);
-					return result;
+				
+				boolean success = false;
+				int sel = -1;
+				while (!success){
+					sel = selector.waitInitialSelection(targetCenter, targetWinSize, deadlineIntialEyeIn);
+					System.out.println("sel = " + sel);
+					if (sel < 0) {
+						result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_EYE_FAIL);
+						return result;
+					}
+
+					long initialEyeInTime = timeUtil.currentTimeMicros();
+					result.setTargetInitialSelectionLocalTime(initialEyeInTime);
+
+					success = selector.waitEyeHold(sel, initialEyeInTime + eyeHoldTime);
 				}
-				
-				long initialEyeInTime = timeUtil.currentTimeMicros();
-				result.setTargetInitialSelectionLocalTime(initialEyeInTime);
-				
-				boolean success = selector.waitEyeHold(sel, initialEyeInTime + eyeHoldTime);
+
 				/* Commented out b/c we don't want an eye break to stop the trial
 				if (!success) {
 					result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_EYE_BREAK);
