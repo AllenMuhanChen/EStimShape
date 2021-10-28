@@ -125,6 +125,26 @@
 			</manifest>
 		</jar>
 		
+		<jar jarfile="${allen.home}/fixcal_console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/fixcal/RewardButtonFixCalConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.fixcal.RewardButtonFixCalConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${allen.home}/fixcal.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/fixcal/RewardButtonFixCalExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.fixcal.RewardButtonFixCalExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
+			</manifest>
+		</jar>
+		
 		<jar jarfile="${allen.home}/nafcConsole.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/nafc/Console.class" />

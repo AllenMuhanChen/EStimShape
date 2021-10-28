@@ -1,7 +1,7 @@
 package org.xper.allen.config;
 
-import java.awt.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
@@ -11,15 +11,22 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.allen.fixcal.RewardButtonExperimentConsole;
+import org.xper.allen.fixcal.RewardButtonExperimentConsoleModel;
+import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
+import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.config.FixCalConfig;
+import org.xper.console.ExperimentMessageReceiver;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.experiment.ExperimentRunner;
+import org.xper.eye.mapping.MappingAlgorithm;
 import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
-
 /**
  * Uses base fixcal config but:
  * 1.  	tweaks the monkey screen width for the CONSOLE renderer only in order to correct 
@@ -30,12 +37,13 @@ import org.xper.eye.strategy.EyeInStrategy;
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(FixCalConfig.class)
+@Import(RewardButtonFixCalConfig.class)
 public class AllenFixCalConfig {
-	@Autowired FixCalConfig config;
+	@Autowired RewardButtonFixCalConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired AcqConfig acqConfig;
 	@Autowired BaseConfig baseConfig;
+
 	@Bean
 	public AbstractRenderer consoleGLRenderer () {
 		PerspectiveRenderer renderer = new PerspectiveRenderer();
@@ -46,6 +54,9 @@ public class AllenFixCalConfig {
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}
+	
+	
+	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Double xperMonkeyScreenWidth() {
 		//DIVIDE by two account for doubled monkey screen width. 
