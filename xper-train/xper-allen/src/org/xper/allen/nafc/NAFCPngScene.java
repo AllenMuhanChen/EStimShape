@@ -32,12 +32,12 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	Coordinates2D sampleLocation;
 	ImageDimensions sampleDimensions;
 	ImageDimensions[] choiceDimensions;
+	double[] choiceAlphas;
 	
 	public void initGL(int w, int h) {
 
 		super.setUseStencil(true);
 		super.initGL(w, h);
-//		
 		//System.out.println("JK 32838 w = " + screenWidth + ", h = " + screenHeight);
 		
 		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);          
@@ -72,14 +72,16 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		PngSpec[] choiceSpec = new PngSpec[numChoices];
 		choiceLocations = new Coordinates2D[numChoices];
 		choiceDimensions = new ImageDimensions[numChoices];
+		choiceAlphas= new double[numChoices];
 		for (int i=0; i < numChoices; i++) {
 			choiceSpec[i] = PngSpec.fromXml(choiceSpecXml[i]);
 			choiceLocations[i] = new Coordinates2D(choiceSpec[i].getxCenter(), choiceSpec[i].getyCenter());
 			choiceDimensions[i] = choiceSpec[i].getImageDimensions();
+			choiceAlphas[i] = choiceSpec[i].getAlpha();
 		}
 
 		for (int i=0; i < numChoices; i++){
-			images.loadTexture(choiceSpec[i].getPath(),i+1);
+			images.loadTexture(choiceSpec[i].getPath(),i+1, choiceAlphas[i]);
 		}
 	}
 
