@@ -26,6 +26,7 @@ public abstract class AbstractTaskScene implements TaskScene {
 			GL11.glColorMask(false, false, false, false);
 			GL11.glDepthMask(false);
 			GL11.glEnable(GL11.GL_STENCIL_TEST);
+
 			// write 1 to stencil buffer for fixation point and marker regions
 			GL11.glStencilFunc(GL11.GL_NEVER, 1, 1);
 			GL11.glStencilOp(GL11.GL_REPLACE, GL11.GL_KEEP, GL11.GL_KEEP);

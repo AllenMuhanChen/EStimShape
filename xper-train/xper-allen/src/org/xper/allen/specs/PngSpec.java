@@ -11,13 +11,39 @@ public class PngSpec {
 	double yCenter;
 	ImageDimensions dimensions;
 	String path;
+	double alpha;
 	
+	/**
+	 * For generation where alpha is specified. 
+	 * @param xCenter
+	 * @param yCenter
+	 * @param dimensions
+	 * @param path
+	 * @param alpha
+	 */
+	public PngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path, double alpha) {
+		this.xCenter = xCenter;
+		this.yCenter = yCenter;
+		this.dimensions = dimensions;
+		this.path = path;
+		this.alpha = alpha;
+	}
+	
+	/**
+	 * For generation where alpha is not specified: set to 1. 
+	 * @param xCenter
+	 * @param yCenter
+	 * @param dimensions
+	 * @param path
+	 */
 	public PngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path) {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
 		this.path = path;
+		this.alpha = 1;
 	}
+	
 	public PngSpec() {
 
 	}
@@ -68,6 +94,19 @@ public class PngSpec {
 	public void setImageDimensions(ImageDimensions dimensions) {
 		this.dimensions = dimensions;
 	}
-	
+	public ImageDimensions getDimensions() {
+		return dimensions;
+	}
+	public void setDimensions(ImageDimensions dimensions) {
+		this.dimensions = dimensions;
+	}
+
+	public double getAlpha() {
+		return alpha;
+	}
+
+	public void setAlpha(double alpha) {
+		this.alpha = alpha;
+	}
 	
 }

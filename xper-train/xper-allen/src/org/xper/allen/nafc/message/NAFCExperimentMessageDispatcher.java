@@ -1,7 +1,12 @@
 package org.xper.allen.nafc.message;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.net.MulticastSocket;
+import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.xper.Dependency;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessage;
 import org.xper.allen.nafc.console.NAFCTrialStatistics;
@@ -9,8 +14,15 @@ import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialStatistics;
+import org.xper.db.vo.BehMsgEntry;
+import org.xper.exception.OverflowException;
+import org.xper.exception.RuntimeIOException;
+import org.xper.util.SocketUtil;
 
 public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispatcher implements SimpleEStimEventListener, ChoiceEventListener{
+	public final static int PACKET_SIZE = 2048;
+	@Dependency
+	int packetSize = PACKET_SIZE;
 	
 	protected NAFCTrialStatistics trialStat  = new NAFCTrialStatistics();
 	
@@ -148,4 +160,39 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 		enqueue(timestamp, "TrialStatistics",
 				NAFCTrialStatistics.toXml(trialStat));
 	}
+	
+	protected void broadcastMessages(MulticastSocket s, ArrayList<BehMsgEntry> msgs) {
+		if (s != null && msgs != null && msgs.size() > 0) {
+			try {
+				ByteArrayOutputStream out = new ByteArrayOutputStream(
+						packetSize);
+				for (BehMsgEntry msg : msgs) {
+					byte[] data = SocketUtil.encodeBehMsgEntry(msg);
+					if (data.length > packetSize) {
+						throw new OverflowException(
+								"packet size too small, expected size: "
+										+ data.length);
+					}
+					if (out.size() + data.length > packetSize) {
+						out.close();
+						SocketUtil.sendDatagramPacket(s, out.toByteArray(),
+								group, port);
+
+						out = new ByteArrayOutputStream(packetSize);
+					}
+
+					out.write(data);
+				}
+				if (out.size() > 0) {
+					out.close();
+					SocketUtil.sendDatagramPacket(s, out.toByteArray(), group,
+							port);
+				}
+			} catch (IOException e) {
+				throw new RuntimeIOException(e);
+			}
+		}
+	}
+
+	
 }

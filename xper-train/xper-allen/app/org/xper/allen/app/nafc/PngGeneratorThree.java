@@ -18,6 +18,7 @@ public class PngGeneratorThree {
 		// args 4-5 radius limits for sample
 		// args 6   eyeWinSize
 		// args 7-8 radius limits for choice
+		// args 9   alpha for distractors. 
 		int numSingleChoiceTrials = Integer.parseInt(args[0]);
 		int numDoubleChoiceTrials = Integer.parseInt(args[1]);
 		double width = Double.parseDouble(args[2]);

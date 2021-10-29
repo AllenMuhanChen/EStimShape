@@ -12,6 +12,7 @@ import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
+import org.xper.allen.nafc.blockgen.PngBlockGenFour;
 import org.xper.allen.nafc.blockgen.PngBlockGenOne;
 import org.xper.allen.nafc.blockgen.PngBlockGenThree;
 import org.xper.allen.nafc.blockgen.PngBlockGenTwo;
@@ -72,8 +73,8 @@ public class NAFCPngAppConfig {
 	
 	
 	@Bean
-	public PngBlockGenTwo generator2() {
-		PngBlockGenTwo gen = new PngBlockGenTwo();
+	public PngBlockGenFour generator4() {
+		PngBlockGenFour gen = new PngBlockGenFour();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
@@ -83,8 +84,8 @@ public class NAFCPngAppConfig {
 	}
 	
 	@Bean
-	public PngBlockGenThree generator3() {
-		PngBlockGenThree gen = new PngBlockGenThree();
+	public PngBlockGenTwo generator2() {
+		PngBlockGenTwo gen = new PngBlockGenTwo();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
@@ -92,7 +93,6 @@ public class NAFCPngAppConfig {
 		gen.setExperimentPngPath(experimentPngPath);
 		return gen;
 	}
-	
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double[] xperBackgroundColor() {

@@ -54,8 +54,10 @@ public class TrialExperimentMessageDispatcher implements ExperimentEventListener
 	@Dependency
 	long dispatchInterval = DEFAULT_DISPATCH_INTERVAL;
 	@Dependency
+	protected
 	int port = PORT;
 	@Dependency
+	protected
 	String group = GROUP;
 	@Dependency
 	int packetSize = PACKET_SIZE;
@@ -188,7 +190,7 @@ public class TrialExperimentMessageDispatcher implements ExperimentEventListener
 		}
 	}
 
-	void broadcastMessages(MulticastSocket s, ArrayList<BehMsgEntry> msgs) {
+	protected void broadcastMessages(MulticastSocket s, ArrayList<BehMsgEntry> msgs) {
 		if (s != null && msgs != null && msgs.size() > 0) {
 			try {
 				ByteArrayOutputStream out = new ByteArrayOutputStream(
