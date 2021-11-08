@@ -363,6 +363,8 @@ public class NAFCConfig {
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
+		//Punishment
+		state.setPunishmentDelayTime(xperPunishmentDelayTime());
 		//Intan Stuff
 		try {
 		state.setIntanUtil(intanUtil());
@@ -551,6 +553,11 @@ public class NAFCConfig {
 	public Integer xperChoiceLength() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_choice_length", 0));
 	}
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Integer xperPunishmentDelayTime() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_punishment_delay_length", 0));
+	}
+	
 }
 
 	

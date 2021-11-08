@@ -37,6 +37,9 @@ import org.xper.util.TrialExperimentUtil;
 import org.xper.util.IntanUtil;
 
 public class NAFCExperimentUtil extends TrialExperimentUtil{
+	
+	static int punishmentDelayTime = 0;
+	
 	@SuppressWarnings("incomplete-switch")
 	public static NAFCTrialResult doSlide(int i, NAFCExperimentState stateObject) {
 		NAFCTrialDrawingController drawingController = (NAFCTrialDrawingController) stateObject.getDrawingController();
@@ -54,6 +57,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 
 
 		NAFCTargetSelectorResult selectorResult;
+
+	
 		//ESTIMULATOR
 		/*
 		 * EStims are meant to be sent out at the beginning of the trial with time padding added to the EStimSpec in order to match timing
@@ -128,7 +133,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		int choice = selectorResult.getSelection();
 		RewardPolicy rewardPolicy = currentContext.getCurrentTask().getRewardPolicy();
 		int[] rewardList = currentContext.getCurrentTask().getRewardList();
-
+		
+		
 		switch (result) {
 		case TARGET_SELECTION_EYE_FAIL:
 			
@@ -165,6 +171,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				}
 				else {
 					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+					//PUNISHMENT DELAY
+					punishmentDelayTime += stateObject.getPunishmentDelayTime();
 					System.out.println("Incorrect Choice");
 				}
 			}
@@ -199,12 +207,19 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			//Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer. 
 		}while(timeUtil.currentTimeMicros()<choicesOnLocalTime+stateObject.getChoiceLength()*1000);
 		//finish current slide
+		
 		drawingController.trialComplete(currentContext);
 		long choiceOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setChoicesOffTime(choiceOffLocalTime);
 		NAFCEventUtil.fireChoicesOffEvent(choiceOffLocalTime, choiceEventListeners, currentContext);
 		currentContext.setAnimationFrameIndex(0);
 
+		//PUNISHMENT DELAY TIME
+		
+		do {
+			
+		}while(timeUtil.currentTimeMicros()<choiceOffLocalTime+punishmentDelayTime*1000);
+		
 
 		return NAFCTrialResult.TRIAL_COMPLETE;
 
@@ -458,11 +473,12 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				if (threadHelper.isDone()) {
 					break;
 				}
-				// inter-trial interval
+				// inter-trial interval + PUNISHMENT DELAY TIME
 				long current = timeUtil.currentTimeMicros();
 				ThreadUtil.sleepOrPinUtil(current
-						+ state.getInterTrialInterval() * 1000, state,
+						+ state.getInterTrialInterval() * 1000 + punishmentDelayTime*1000, state,
 						threadHelper);
+				punishmentDelayTime=0;
 			}
 		} finally {
 			// experiment stop event

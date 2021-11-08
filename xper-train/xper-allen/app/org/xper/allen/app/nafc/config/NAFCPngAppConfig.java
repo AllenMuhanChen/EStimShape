@@ -40,7 +40,6 @@ import org.xper.drawing.renderer.PerspectiveRenderer;
  *
  */
 
-
 public class NAFCPngAppConfig {
 	
 	

@@ -37,9 +37,9 @@
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl-debug.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2-javadoc.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>
