@@ -23,6 +23,7 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	TrialDrawingController drawingController;
 	
 	int blankTargetScreenDisplayTime;
+	int punishmentDelayTime;
 	
 	public EyeTargetSelector getTargetSelector() {
 		return targetSelector;
@@ -80,6 +81,14 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 
 	public void setChoiceEventListeners(List<? extends ChoiceEventListener> choiceEventListeners) {
 		this.choiceEventListeners = choiceEventListeners;
+	}
+
+	public int getPunishmentDelayTime() {
+		return punishmentDelayTime;
+	}
+
+	public void setPunishmentDelayTime(int punishmentDelayTime) {
+		this.punishmentDelayTime = punishmentDelayTime;
 	}
 	
 }
