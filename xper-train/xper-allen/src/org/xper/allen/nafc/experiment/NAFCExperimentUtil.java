@@ -214,13 +214,6 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		NAFCEventUtil.fireChoicesOffEvent(choiceOffLocalTime, choiceEventListeners, currentContext);
 		currentContext.setAnimationFrameIndex(0);
 
-		//PUNISHMENT DELAY TIME
-		
-		do {
-			
-		}while(timeUtil.currentTimeMicros()<choiceOffLocalTime+punishmentDelayTime*1000);
-		
-
 		return NAFCTrialResult.TRIAL_COMPLETE;
 
 	}
