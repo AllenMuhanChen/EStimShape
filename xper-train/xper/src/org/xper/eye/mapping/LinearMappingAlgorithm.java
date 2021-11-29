@@ -38,7 +38,8 @@ public class LinearMappingAlgorithm implements MappingAlgorithm {
 	public Coordinates2D volt2Degree(Coordinates2D volt, Coordinates2D eyeZero) {
 		Coordinates2D degree = new Coordinates2D();
 		degree.setY(((volt.getY() - eyeZero.getY()) * Sxh - (volt.getX() - eyeZero.getX()) * Sxv) / (Syv * Sxh - Syh * Sxv));
-		degree.setX(((volt.getX() - eyeZero.getX()) - volt.getY() * Syh) / Sxh);
+		degree.setX(((volt.getX() - eyeZero.getX()) - degree.getY() * Syh) / Sxh);
+		//degree.setX(((volt.getX() - eyeZero.getX()) - volt.getY() * Syh) / Sxh); - BUGGED LINE? Allen Chen 11/18/21
 		if (degree.getY() > 90) degree.setY(90);
 		if (degree.getX() > 90) degree.setX(90);
 		return degree;
