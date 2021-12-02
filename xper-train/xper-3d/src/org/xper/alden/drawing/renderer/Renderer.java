@@ -1,6 +1,6 @@
-package org.xper.drawing.renderer;
+package org.xper.alden.drawing.renderer;
 
-import org.xper.drawing.drawables.Drawable;
+import org.xper.alden.drawing.drawables.Drawable;
 
 public interface Renderer {
 	public void init(int w, int h);

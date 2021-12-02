@@ -7,6 +7,7 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.allen.saccade.GaussScene;
 import org.xper.allen.saccade.blockgen.SimpleEStimBlockGen;
 import org.xper.allen.saccade.blockgen.TrainingBlockGen;
@@ -15,7 +16,6 @@ import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
-import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 
 

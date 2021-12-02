@@ -12,44 +12,44 @@ import javax.vecmath.Vector3d;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
-import org.xper.drawing.drawables.Drawable;
+import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.utils.Lighting;
 import org.xper.utils.RGBColor;
 
 public class MatchStick implements Drawable {
-    double scaleForMAxisShape = 40;
+    protected double scaleForMAxisShape = 40;
     
-    private double[] finalRotation;
-    private Point3d finalShiftinDepth = new Point3d(0,0,0);
-    private int nComponent;
+    protected double[] finalRotation;
+    protected Point3d finalShiftinDepth = new Point3d(0,0,0);
+    protected int nComponent;
 
-    private TubeComp[] comp = new TubeComp[9];
-    private int nEndPt;
-    private int nJuncPt;
-    private EndPt_struct[] endPt = new EndPt_struct[50];
-    private JuncPt_struct[] JuncPt = new JuncPt_struct[50];
-    private MStickObj4Smooth obj1;
-    private boolean[] LeafBranch = new boolean[10];
+    protected TubeComp[] comp = new TubeComp[9];
+    protected int nEndPt;
+    protected int nJuncPt;
+    protected EndPt_struct[] endPt = new EndPt_struct[50];
+    protected JuncPt_struct[] JuncPt = new JuncPt_struct[50];
+    protected MStickObj4Smooth obj1;
+    protected boolean[] LeafBranch = new boolean[10];
 
     
 //    private final double[] PARAM_nCompDist = {0.0 ,0.2, 0.6, 1.0, 0.0, 0.0, 0.0, 0.0};
-    private final double[] PARAM_nCompDist = {0.0,0.2, 0.6, 1.0, 0.0, 0.0, 0.0, 0.0};
+    protected final double[] PARAM_nCompDist = {0.0,0.2, 0.6, 1.0, 0.0, 0.0, 0.0, 0.0};
 
-    private final double PROB_addToEndorJunc = 1; 	// 60% add to end or junction pt, 40% to the branch
-    private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc", 50% add to end, 50% add to junc
+    protected final double PROB_addToEndorJunc = 1; 	// 60% add to end or junction pt, 40% to the branch
+    protected final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc", 50% add to end, 50% add to junc
                       								// however, if # of junc Pt == 0, always add to End
-    private final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
-    private final double ChangeRotationVolatileRate = 0;
+    protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
+    protected final double ChangeRotationVolatileRate = 0;
                       								// the prob. of chg the final rot angle after a GA mutate
-    private final double TangentSaveZone = Math.PI / 6.0;
+    protected final double TangentSaveZone = Math.PI / 6.0;
     
-    private int nowCenterTube;
+    protected int nowCenterTube;
     
-    private String textureType = "SHADE";
-    private double contrast = 0.5;
-    private RGBColor stimColor = new RGBColor(1,1,1);
+    protected String textureType = "SHADE";
+    protected double contrast = 0.5;
+    protected RGBColor stimColor = new RGBColor(1,1,1);
     
-    private boolean doCenterObject = false;
+    protected boolean doCenterObject = false;
 
     public MatchStick()
     {
@@ -58,7 +58,7 @@ public class MatchStick implements Drawable {
     /**
         clean the old storage of information
     */
-    private void cleanData()
+    protected void cleanData()
     {
         nComponent = 0;
         nEndPt = 0;
@@ -893,7 +893,7 @@ public class MatchStick implements Drawable {
       function check if the MStick is inside a BOX or not <BR>
       ( to prevent a shape extend too much outside one dimension)
     */
-    private boolean validMStickSize()
+    protected boolean validMStickSize()
     {
     	double maxRad = scaleForMAxisShape; // degree
     	double screenDist = 500;
@@ -915,7 +915,7 @@ public class MatchStick implements Drawable {
     /**
     * function check that if the final generated tube have remote collision or not
     */
-    private boolean finalTubeCollisionCheck()
+    protected boolean finalTubeCollisionCheck()
     {
         int nComp = this.nComponent;
         boolean[][] connect = new boolean[nComp*2+1][nComp*2+1];
@@ -1127,7 +1127,7 @@ public class MatchStick implements Drawable {
         Assign the radius value to the Match Stick.
         The radius value will be randomly chosen in reasonable range
         */
-    private void RadiusAssign(int nPreserve)
+    protected void RadiusAssign(int nPreserve)
     {
         double rMin, rMax;
         double nowRad, u_value, tempX;
@@ -1441,7 +1441,7 @@ public class MatchStick implements Drawable {
         @param nowComp the index of the new added mAxis
         @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
         */
-    private boolean Add_MStick(int nowComp, int type)
+    protected boolean Add_MStick(int nowComp, int type)
     {
         // Add new component to a existing partial MStick
         // 4 types of addition are possible , specified by type
@@ -2322,7 +2322,7 @@ public class MatchStick implements Drawable {
     /**
      *   A function that will put the center of comp1 back to origin
     */
-    private void centerShapeAtOrigin(int decidedCenterTube)
+    protected void centerShapeAtOrigin(int decidedCenterTube)
     {
         boolean showDebug = false;
         int i;
@@ -3329,11 +3329,11 @@ public class MatchStick implements Drawable {
     /**
         Remove the component from this shape ( the component to remove is indexed by removeFlg bool array
     */
-    private void removeComponent(boolean[] removeFlg)
+    protected void removeComponent(boolean[] removeFlg)
     {
         int i, j;
         int[] compMap = new int[20];
-        boolean showDebug = false;
+        boolean showDebug = true;
         if ( showDebug)
             System.out.println("In remove component sub.");
         // 1. generate the mapping from old comp to new comp
@@ -3427,7 +3427,7 @@ public class MatchStick implements Drawable {
     /**
         A private function that will decide which components are leaf branch, which are NOT
     */
-    private void decideLeafBranch()
+    protected void decideLeafBranch()
     {
         // the algorithm we use here is that:
         // regard the MStick as a un-directed connected graph ( with the connect adj matrix)
@@ -3702,8 +3702,9 @@ public class MatchStick implements Drawable {
         function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
     */
 
-    private boolean smoothizeMStick()
+    protected boolean smoothizeMStick()
     {
+
         int i;
         MStickObj4Smooth[] MObj = new MStickObj4Smooth[nComponent+1];
         // 1. generate 1 tube Object for each TubeComp
@@ -4296,172 +4297,4 @@ public class MatchStick implements Drawable {
 }
 
 
-class EndPt_struct {
-      public int comp, uNdx; // identify which component's which uNdx contribute to this endPt
-      public Point3d pos = new Point3d();
-      public Vector3d tangent = new Vector3d();
-      public double rad; // the radius value at this point
-      public EndPt_struct()
-    {
-    }
-      public EndPt_struct(int in_comp, int in_uNdx, Point3d in_pos, Vector3d in_tangent, double in_rad)
-      {
-      comp = in_comp; uNdx = in_uNdx;
-      pos.set( in_pos);
-          tangent.set( in_tangent);
-      rad = in_rad;
-      if (in_uNdx == 51) // the last end
-          tangent.negate(); // reverse the direction of tangent
 
-      }
-
-      public void copyFrom(EndPt_struct in)
-      {
-
-        this.comp = in.comp;
-        this.uNdx = in.uNdx;
-        this.tangent.set(in.tangent);
-        this.pos.set( in.pos);
-        this.rad = in.rad;
-
-      }
-
-      public void setValue(int in_comp, int in_uNdx, Point3d in_pos, Vector3d in_tangent, double in_rad)
-      {
-      comp = in_comp; uNdx = in_uNdx;
-      pos.set( in_pos);
-      tangent.set( in_tangent);
-      rad = in_rad;
-      if (in_uNdx == 51) // the last end
-          tangent.negate(); // reverse the direction of tangent
-      }
-      public void showInfo()
-      {
-        System.out.println("endPt with comp "+ comp + " uNdx: "+ uNdx +" with rad: "+ rad);
-      }
-      public String toString()
-      {
-      return "End Pt Info: (comp,uNdx) = " + comp +" , " +uNdx + "\n  pos = " + pos + "\n  tangent = " + tangent + "  rad = " + rad;
-      }
-}
-
-class JuncPt_struct {
-      public int nComp, nTangent;
-      public int[] comp = new int[20];
-      public int[] uNdx = new int[20];
-      public Point3d pos = new Point3d();
-      public Vector3d[] tangent = new Vector3d[20];
-      public int[] tangentOwner = new int[20];
-      public double rad;
-
-      public JuncPt_struct()
-      {
-        int i;
-        for (i=1; i<20; i++)
-            tangent[i] = new Vector3d();
-      }
-      public JuncPt_struct(int in_nComp, int[] comp_list, int[] uNdx_list, Point3d in_pos, int in_nTangent, Vector3d[] tangent_list,
-                int[] tangentOwner_list, double in_rad)
-      {
-        int i;
-        nComp = in_nComp;
-        nTangent = in_nTangent;
-        for (i=1; i<=nComp; i++)
-        {
-            comp[i] = comp_list[i-1];
-            uNdx[i] = uNdx_list[i-1];
-        }
-        pos.set( in_pos);
-        // for convenice, create tangent vector entries totally
-        for (i=1; i<20; i++)
-            tangent[i] = new Vector3d();
-        for (i=1; i<=nTangent; i++)
-        {
-            tangent[i].set(tangent_list[i-1]);
-            tangentOwner[i] = tangentOwner_list[i-1];
-        }
-            rad = in_rad;
-      }
-
-      /**
-        Copy any information from the structure in the paremeter
-    */
-      public void copyFrom( JuncPt_struct in)
-      {
-        int i;
-        this.nComp = in.nComp;
-        this.nTangent = in.nTangent;
-        for (i=1; i<=nComp; i++)
-        {
-            comp[i] = in.comp[i];
-            uNdx[i] = in.uNdx[i];
-        }
-        for (i=1; i<=nTangent; i++)
-        {
-            tangent[i] = new Vector3d( in.tangent[i]);
-            tangentOwner[i] = in.tangentOwner[i];
-        }
-        pos.set( in.pos);
-        rad = in.rad;
-      }
-      public void addComp(int newComp, int new_uNdx, Vector3d new_Tangent)
-      {
-         // As we know the new comp will always only bring in one new tangent vector
-     nComp++;
-     comp[nComp] = newComp;
-     uNdx[nComp] = new_uNdx;
-     nTangent++;
-     tangent[nTangent].set( new_Tangent);
-     tangentOwner[nTangent] = newComp;
-      }
-
-      public void removeComp(boolean[] removeList)
-      {
-        int i, j, k;
-        for (j=1; j<= nComp; j++)
-           if ( removeList[ comp[j] ] == true)
-            {
-//            System.out.println("at Junc:  the comp " + comp[j]  + " should be removed");
-            // we just set the info to -1, the real clean will be done later
-            comp[j] = -1;
-            for (k=1; k<= nTangent; k++)
-              if ( tangentOwner[k] == comp[j])
-              {
-                tangentOwner[k] = -1;
-              }
-            }
-
-        // remove all the entries with -1 label
-        int counter = 1;
-        for (i=1; i<=nComp; i++)
-           if (comp[i] != -1)
-        {
-            comp[counter] = comp[i];
-            uNdx[counter] = uNdx[i];
-            counter++;
-        }
-        nComp = counter -1;
-
-        counter = 1;
-        for (i=1; i<=nTangent; i++)
-            if ( tangentOwner[i] != -1)
-        {
-            tangent[counter].set( tangent[i]);
-            tangentOwner[counter] = tangentOwner[i];
-            counter++;
-        }
-        nTangent = counter -1;
-
-      }
-      public void showInfo()
-      {
-     int i;
-     System.out.println("nComp : " + nComp +" with rad: "+ rad);
-     for ( i = 1; i<=nComp; i++)
-          System.out.println(" comp " + comp[i]  + " with uNdx " + uNdx[i]);
-//   System.out.println("Pos at : " + pos);
-//   for ( i = 1 ; i<=nTangent; i++)
-//        System.out.println(" tangent : " + tangent[i] + " belongs to " + tangentOwner[i]);
-//   System.out.println("radius is " + rad +"\n----------------------------------\n\n");
-      }
-}

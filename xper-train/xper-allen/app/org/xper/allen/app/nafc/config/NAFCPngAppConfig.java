@@ -9,6 +9,8 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.alden.drawing.renderer.AbstractRenderer;
+import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
@@ -20,8 +22,6 @@ import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
 
 
 @Configuration(defaultLazy=Lazy.TRUE)

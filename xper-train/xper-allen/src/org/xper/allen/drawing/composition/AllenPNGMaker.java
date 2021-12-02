@@ -1,4 +1,4 @@
-package org.xper.drawing.drawables;
+package org.xper.allen.drawing.composition;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -10,25 +10,27 @@ import java.util.List;
 
 import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.opengl.GL11;
+import org.xper.alden.drawing.drawables.DrawingManager;
+import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.utils.RGBColor;
 
-public class PNGmaker {
+public class AllenPNGMaker{
 	//int height = 224;
 	//int width = 224;
 	int height = 1024;
 	int width = 1024;
 	RGBColor backColor = new RGBColor(0,0,0);
 	
-	public PNGmaker(int width, int height) {
+	public AllenPNGMaker(int width, int height) {
 		this.width = width;
 		this.height = height;
 	}
 	
-	public PNGmaker() {}
+	public AllenPNGMaker() {}
 
-	public void createAndSavePNGsfromObjs(List<MatchStick> objs,List<Long> stimObjIds,String imageFolderName) {
-		DrawingManager testWindow = new DrawingManager(height,width);
+	public void createAndSavePNGsfromObjs(List<? extends MatchStick> objs,List<Long> stimObjIds,String imageFolderName) {
+		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
 		testWindow.setPngMaker(this);
 		testWindow.setImageFolderName(imageFolderName);

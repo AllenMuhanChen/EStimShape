@@ -18,6 +18,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.nafc.NAFCGaussScene;
 import org.xper.allen.nafc.NAFCTaskScene;
@@ -48,8 +50,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.exception.DbException;
 import org.xper.exception.ExperimentSetupException;

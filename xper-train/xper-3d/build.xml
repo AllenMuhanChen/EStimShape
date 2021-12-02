@@ -1,7 +1,7 @@
 <project name="xper" default="dist" basedir=".">
 	<property name="build.home" location="${basedir}/class" />
-	<property name="native.home" location="${basedir}/../../xper-train/xper-native" />
-	<property name="dist.home" location="${basedir}/../../xper-train/dist" />
+	<property name="native.home" location="${basedir}/../xper-native" />
+	<property name="dist.home" location="${basedir}/../dist" />
 	<property name="3d.home" location="${dist.home}/3d" />
 	
 	<target name="clean">
@@ -29,7 +29,7 @@
 		<mkdir dir="${build.home}" />
 		<mkdir dir="${dist.home}" />
 		<mkdir dir="${dist.home}/3d" />		
-		<mkdir dir="${dist.home/lib/3d}" />
+		<mkdir dir="${dist.home}/lib/3d" />
 		<mkdir dir="${3d.home}/native" />
 		<mkdir dir="${3d.home}/native/windows" />
 		<mkdir dir="${3d.home}/native/linux" />

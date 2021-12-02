@@ -1,9 +1,11 @@
 <project name="xper" default="dist" basedir=".">
 	<property name="build.home" location="${basedir}/class" />
 	<property name="xper.home" location="${basedir}/../xper" />
+	<property name="3d.home" location="${basedir}/../xper-3d" />
 	<property name="native.home" location="${basedir}/../xper-native" />
 	<property name="dist.home" location="${basedir}/../dist" />
 	<property name="allen.home" location="${dist.home}/allen" />
+	
 	
 	<target name="clean">
 		<delete dir="${build.home}" />
@@ -14,7 +16,11 @@
 		<fileset dir="${xper.home}/lib">
 			<include name="**/*.jar" />
 		</fileset>
+		<fileset dir="${3d.home}/lib">
+			<include name="**/*.jar" />
+		</fileset>
 		<fileset file="${dist.home}/xper.jar" />
+		<fileset file="${dist.home}/3d/xper_3d.jar" />
 	</path>
 	
 	<pathconvert property="manifest.classpath" dirsep="/" pathsep=" ">
@@ -205,5 +211,14 @@
 			</manifest>
 		</jar>
 		
+		<jar jarfile="${allen.home}/Test.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/drawing/composition/Test.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.drawing.composition.Test" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
+			</manifest>
+		</jar>
 	</target>
 </project>

@@ -1,4 +1,4 @@
-package org.xper.drawing.drawables;
+package org.xper.alden.drawing.drawables;
 
 public interface Window {
 	public int getWidth();
