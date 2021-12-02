@@ -1,4 +1,4 @@
-package org.xper.drawing.drawables;
+package org.xper.alden.drawing.drawables;
 
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.Display;

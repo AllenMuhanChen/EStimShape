@@ -1,4 +1,4 @@
-package org.xper.drawing.drawables;
+package org.xper.allen.drawing.composition;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,16 +7,17 @@ import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
-
-import org.xper.drawing.drawables.Drawable;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.alden.drawing.drawables.BaseWindow;
+import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.alden.drawing.drawables.PNGmaker;
+import org.xper.alden.drawing.renderer.AbstractRenderer;
+import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.drawing.stick.MatchStick;
 
-public class DrawingManager implements Drawable {
+public class AllenDrawingManager implements Drawable {
 	Drawable stimObj;
 
-	List<MatchStick> stimObjs = new ArrayList<MatchStick>();
+	List<? extends MatchStick> stimObjs = new ArrayList<>();
 	List<Long> stimObjIds = new ArrayList<Long>();
 
 	int nStim = 0;
@@ -30,19 +31,19 @@ public class DrawingManager implements Drawable {
 	int height;
 	int width;
 
-	PNGmaker pngMaker;
+	AllenPNGMaker pngMaker;
 
 	BaseWindow window;
 	AbstractRenderer renderer;
 
-	public DrawingManager() {
+	public AllenDrawingManager() {
 		super();
 		DisplayMode mode = Display.getDisplayMode();
 		width = mode.getWidth() / 2;
 		height = mode.getHeight() / 2;
 	}
 
-	public DrawingManager(int height, int width) {
+	public AllenDrawingManager(int height, int width) {
 		super();
 		this.height = height;
 		this.width = width;
@@ -115,7 +116,7 @@ public class DrawingManager implements Drawable {
 		this.imageFolderName = folderName;
 	}
 
-	public void setPngMaker(PNGmaker pngMaker) {
+	public void setPngMaker(AllenPNGMaker pngMaker) {
 		this.pngMaker = pngMaker;
 	}
 
@@ -123,7 +124,7 @@ public class DrawingManager implements Drawable {
 		this.stimObjIds = stimObjIds;
 	}
 
-	public void setStimObjs(List<MatchStick> stimObjs) {
+	public void setStimObjs(List<? extends MatchStick> stimObjs) {
 		this.stimObjs = stimObjs;
 		nStim = stimObjs.size();
 	}

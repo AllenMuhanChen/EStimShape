@@ -27,7 +27,6 @@
 	<classpathentry kind="lib" path="/xper/lib/spring/spring-javaconfig.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/spring/spring-jdbc.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/spring/spring-tx.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/xper-native"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/AppleJavaExtensions.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/asm-debug-all.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/jinput.jar"/>
@@ -40,6 +39,7 @@
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2-javadoc.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/xper-example"/>
+	<classpathentry kind="lib" path="/xper-3d/lib/jzy3d-api-0.9.1.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/xper-3d"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>

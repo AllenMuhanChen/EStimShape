@@ -18,6 +18,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessageDispatcher;
 import org.xper.allen.saccade.SaccadeDatabaseTaskDataSource;
@@ -46,8 +48,6 @@ import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.exception.DbException;
 import org.xper.experiment.ExperimentRunner;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;

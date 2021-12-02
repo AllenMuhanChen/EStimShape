@@ -1,6 +1,7 @@
-package org.xper.drawing.renderer;
+package org.xper.alden.drawing.renderer;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.alden.drawing.renderer.AbstractRenderer;
 
 public class PerspectiveRenderer extends AbstractRenderer {
 	public void init() {

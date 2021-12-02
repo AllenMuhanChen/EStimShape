@@ -12,6 +12,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.fixcal.RewardButtonExperimentConsole;
 import org.xper.allen.fixcal.RewardButtonExperimentConsoleModel;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
@@ -21,8 +23,6 @@ import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.config.FixCalConfig;
 import org.xper.console.ExperimentMessageReceiver;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.experiment.ExperimentRunner;
 import org.xper.eye.mapping.MappingAlgorithm;
 import org.xper.eye.strategy.AnyEyeInStategy;

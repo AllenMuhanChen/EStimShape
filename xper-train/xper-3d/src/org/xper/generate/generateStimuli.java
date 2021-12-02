@@ -3,7 +3,7 @@ package org.xper.generate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.xper.drawing.drawables.PNGmaker;
+import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.drawing.stick.MStickSpec;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.utils.RGBColor;
@@ -48,7 +48,7 @@ public class generateStimuli {
 			else
 				objs.get(i).setTextureType(args[3]);
 			
-			// generate object
+			// GENERATE OBJECT
 			objs.get(i).genMatchStickRand();
 			
 			// save spec, if necessary

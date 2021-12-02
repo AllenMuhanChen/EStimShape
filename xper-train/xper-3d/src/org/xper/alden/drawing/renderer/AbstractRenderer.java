@@ -1,7 +1,8 @@
-package org.xper.drawing.renderer;
+package org.xper.alden.drawing.renderer;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.drawing.drawables.Drawable;
+import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.alden.drawing.renderer.Renderer;
 import org.xper.utils.Coordinates2D;
 
 public abstract class AbstractRenderer implements Renderer {
