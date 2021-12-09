@@ -6,6 +6,7 @@ import java.util.List;
 import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.drawing.stick.MStickSpec;
 import org.xper.drawing.stick.MatchStick;
+import org.xper.drawing.stick.TubeComp;
 import org.xper.utils.RGBColor;
 
 import com.thoughtworks.xstream.XStream;
@@ -28,27 +29,33 @@ public class Test {
 
 		// args 14-15 - width, height
 		String folderPath = args[0];
-		List<Long> ids = new ArrayList<Long>();
-		List<Long> ids2 = new ArrayList<Long>();
 
-		List<AllenMatchStick> objs = new ArrayList<AllenMatchStick>();
-		List<AllenMatchStick> objs2 = new ArrayList<AllenMatchStick>();
-		List<AllenMatchStick> objs3 = new ArrayList<AllenMatchStick>();
+		int numVariations = 5;
+
+		List<ArrayList<Long>> variationIds = new ArrayList<ArrayList<Long>>();
+
+
+		List<AllenMatchStick> obj_orig = new ArrayList<AllenMatchStick>();
+		List<AllenMatchStick> objs_match = new ArrayList<AllenMatchStick>();
+		List<AllenMatchStick> objs_leafMorph1 = new ArrayList<AllenMatchStick>();
+		List<AllenMatchStick> objs_leafMorph2 = new ArrayList<AllenMatchStick>();
+		List<AllenMatchStick> objs_leafMorph3 = new ArrayList<AllenMatchStick>();
 		List<ArrayList<AllenMatchStick>> variations = new ArrayList<ArrayList<AllenMatchStick>>();
-		variations.add((ArrayList<AllenMatchStick>) objs);
-		variations.add((ArrayList<AllenMatchStick>) objs2);
-		variations.add((ArrayList<AllenMatchStick>) objs3);
+		variations.add((ArrayList<AllenMatchStick>) obj_orig);
+		variations.add((ArrayList<AllenMatchStick>) objs_match);
+		variations.add((ArrayList<AllenMatchStick>) objs_leafMorph1);
+		variations.add((ArrayList<AllenMatchStick>) objs_leafMorph2);
+		variations.add((ArrayList<AllenMatchStick>) objs_leafMorph3);
 		
 		double contrast = Double.parseDouble(args[7]);
 		RGBColor foreColor = new RGBColor(Float.parseFloat(args[ 8]),Float.parseFloat(args[ 9]),Float.parseFloat(args[10]));
 		RGBColor backColor = new RGBColor(Float.parseFloat(args[11]),Float.parseFloat(args[12]),Float.parseFloat(args[13]));
 
 		//FOR ALL OF OUR VARIATIONS, APPLY SAME BASE PARAMETERS
-		for (int h=0; h<2; h++){	
-
+		for (int h=0; h<numVariations; h++){	
+			variationIds.add(new ArrayList<Long>());
 			for (int i=0; i<Integer.parseInt(args[2]); i++) {	
-				//TODO: make list of ids to scale this up with new scaled objs list list.
-				ids.add((long)(Integer.parseInt(args[1])+i));
+				variationIds.get(h).add((long)(Integer.parseInt(args[1])+i+h*1000));
 				variations.get(h).add(new AllenMatchStick());
 				// set object properties
 				variations.get(h).get(i).setScale(Double.parseDouble(args[4]));
@@ -61,45 +68,54 @@ public class Test {
 					else {
 						variations.get(h).get(i).setTextureType("SPECULAR");}
 				else {
-					variations.get(h).get(i).setTextureType(args[3]);}
-				//DIVERGE INTO DIFFERENT VARIATIONS
-				ids2.add((long)(Integer.parseInt(args[1])+i+100));
+				}
 			}
 		}
-		
 		//GENERATE BASE MATCHSTICK - only for training, for real experiment should choose limb from GA. 
 		//SPECIFY A LIMB
 		//GENERATE NEW STRUCTURE FROM LIMB
+		//MATCH & SAMPLE
 		//COPY NEW STRUCTURE INTO NEW VARIATIONS
+		//DISTRACTORS
+		//MORPH SELECTED LIMB
+		// ...
 		//MODIFY EACH NEW VARIATION
 		for (int i=0; i<Integer.parseInt(args[2]); i++) {
 			// GENERATE OBJECT
-			objs.get(i).genMatchStickRand();
-			
+			obj_orig.get(i).genMatchStickRand();
+
 			//GENERATE FROM RANDOM LEAF 
-			int randomLeaf = objs.get(i).chooseRandLeaf();
-			//objs2.get(i).copyFrom(objs.get(i));
-			objs2.get(i).genMatchStickFromLeaf(objs.get(i).getTubeComp(randomLeaf));
+			int randomLeaf = obj_orig.get(i).chooseRandLeaf();
+			objs_match.get(i).genMatchStickFromLeaf(randomLeaf, obj_orig.get(i));
+
+			//MORPH JUST THE LEAF
+			int leafToMorphIndx = 1; //The randomly chosen leaf before should be the first component
+			boolean maintainTangent = true;
+			objs_leafMorph1.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
+			objs_leafMorph2.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
+			objs_leafMorph3.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
 			
 			//REMOVE A RANDOM LEAF
 			/*
 			objs3.get(i).copyFrom(objs2.get(i));;
 			objs3.get(i).genRemovedLeafMatchStick();
-			*/
+			 */
 			// save spec, if necessary
-			if (Boolean.parseBoolean(args[5])) {
-				MStickSpec spec = new MStickSpec();
-				spec.setMStickInfo(objs.get(i));
-				spec.writeInfo2File(folderPath + "/" + ids.get(i), Boolean.parseBoolean(args[6]));
-			}
+
 		}
 
-
-		// make all the images
-		AllenPNGMaker pngMaker = new AllenPNGMaker(Integer.parseInt(args[14]), Integer.parseInt(args[15]));
-		pngMaker.setBackColor(backColor);
-		pngMaker.createAndSavePNGsfromObjs(objs, ids, folderPath);
-		pngMaker.createAndSavePNGsfromObjs(objs2, ids2, folderPath);
-
+		for (int h=0; h<numVariations; h++){
+			for (int i=0; i<Integer.parseInt(args[2]); i++){
+				if (Boolean.parseBoolean(args[5])) {
+					MStickSpec spec = new MStickSpec();
+					spec.setMStickInfo(variations.get(h).get(i));
+					spec.writeInfo2File(folderPath + "/" + variationIds.get(h).get(i), Boolean.parseBoolean(args[6]));
+				}
+			}
+			// make all the images
+			AllenPNGMaker pngMaker = new AllenPNGMaker(Integer.parseInt(args[14]), Integer.parseInt(args[15]));
+			pngMaker.setBackColor(backColor);
+			pngMaker.createAndSavePNGsfromObjs(variations.get(h), variationIds.get(h), folderPath);
+		}
 	}
 }
