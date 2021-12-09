@@ -1259,7 +1259,7 @@ public class MatchStick implements Drawable {
          check if the first several mAxisArc are too nearby to each other
          @param firstNComp specify till what component, we want to check
         */
-    private boolean checkSkeletonNearby(int firstNComp)
+    protected boolean checkSkeletonNearby(int firstNComp)
         {
         boolean showDebug = false;
         int nComp = firstNComp;
@@ -2371,7 +2371,7 @@ public class MatchStick implements Drawable {
         reAssign the junction radius value
         One of the last function call by mutate()
     */
-    private void MutateSUB_reAssignJunctionRadius()
+    protected void MutateSUB_reAssignJunctionRadius()
     {
         double rad_Volatile = 0.5;
         double nowRad, u_value;
@@ -2497,7 +2497,7 @@ public class MatchStick implements Drawable {
         subFunction of: (replaceComponent, fineTuneComponent) <BR>
         Will determine the relation of each component to the target component
     */
-    private int[] MutationSUB_compRelation2Target(int targetComp)
+    protected int[] MutationSUB_compRelation2Target(int targetComp)
     {
         // 1. create connect map
         boolean[][] connect = new boolean[20][20];
@@ -2550,7 +2550,7 @@ public class MatchStick implements Drawable {
         Will determine the radius of the modified component
         If there is value in [][] oriValue, it is the radius value of the original component
     */
-        private void MutationSUB_radAssign2NewComp( int targetComp, double[][] oriValue)
+        protected void MutationSUB_radAssign2NewComp( int targetComp, double[][] oriValue)
     {
         boolean showDebug = false;
         int i, j;
@@ -2718,7 +2718,7 @@ public class MatchStick implements Drawable {
         subFunction of: (replaceComponent, fineTuneComponent) <BR>
         Will determine the Hinge Pt to stay still
     */
-    private int MutationSUB_determineHinge(int targetComp)
+    protected int MutationSUB_determineHinge(int targetComp)
     {
         int i, j;
         int nHingePt = 1, alignedPt= -100;
@@ -2760,12 +2760,12 @@ public class MatchStick implements Drawable {
     /**
         replace one of the component with a total new tube
     */
-    private boolean replaceComponent(int id)
+    protected boolean replaceComponent(int id)
     {
         int i, j, k;
         int TotalTrialTime=0;
         int inner_totalTrialTime = 0; // for inner while loop
-        boolean showDebug = false;
+        boolean showDebug = true;
         //final double TangentSaveZone = Math.PI / 4.0;
         boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
         int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
