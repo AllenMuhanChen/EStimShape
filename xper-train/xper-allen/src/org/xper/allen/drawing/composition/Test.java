@@ -116,6 +116,10 @@ public class Test {
 			AllenPNGMaker pngMaker = new AllenPNGMaker(Integer.parseInt(args[14]), Integer.parseInt(args[15]));
 			pngMaker.setBackColor(backColor);
 			pngMaker.createAndSavePNGsfromObjs(variations.get(h), variationIds.get(h), folderPath);
+			
+		
+			
 		}
+		
 	}
 }

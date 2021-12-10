@@ -10,6 +10,7 @@ import java.util.List;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.MAxisArc;
@@ -31,12 +32,75 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	protected final double PROB_addToEndorJunc = 1; 	// 60% add to end or junction pt, 40% to the branch
 	protected final double PROB_addToEnd_notJunc = 0; // when "addtoEndorJunc", 50% add to end, 50% add to junc
 	protected final double[] finalRotation = new double[3]; 
+	protected double minScaleForMAxisShape;
 
-
-	protected final double[] PARAM_nCompDist = {0.0,0, 0, 0, 1, 0.0, 0, 0};
+	protected final double[] PARAM_nCompDist = {0.0,0.2, 0.6, 1.0, 0.0, 0.0, 0.0, 0.0};
 
 	public AllenMatchStick(){super.finalRotation = this.finalRotation;}
  
+	@Override
+	public void draw() {
+		init();
+		drawSkeleton();
+	}
+	
+	public void centerShapeAtPoint(int decidedCenterTube, Coordinates2D coords){
+		Point3d newLocation = new Point3d();
+		newLocation.x = coords.getX();
+		newLocation.y = coords.getY();
+		newLocation.z = 0;
+		
+		centerShapeAtPoint(decidedCenterTube, newLocation);
+	}
+	
+    /**
+     *   A function that will put the center of comp1 to a specific point. 
+    */
+    public void centerShapeAtPoint(int decidedCenterTube, Point3d point)
+    {
+        boolean showDebug = false;
+        int i;
+        int compToCenter = decidedCenterTube;
+        if ( compToCenter == -1) // no preference
+             compToCenter = findBestTubeToCenter();
+
+        this.nowCenterTube = compToCenter;
+        //Point3d nowComp1Center =   new Point3d(comp[compToCenter].mAxisInfo.mPts[comp[compToCenter].mAxisInfo.branchPt]);
+        // Dec 26th, change .branchPt to .MiddlePT (i.e. always at middle)
+        int midPtIndex = 26;
+        Point3d nowComp1Center =     new Point3d(comp[compToCenter].mAxisInfo.mPts[midPtIndex]);
+        Vector3d shiftVec = new Vector3d();
+        shiftVec.sub(point, nowComp1Center);
+//        System.out.println("comp to center "+ compToCenter);
+//        System.out.println(nowComp1Center);
+        if ( point.distance(nowComp1Center) > 0.001)
+        {
+            if ( showDebug)
+                System.out.println("shift to make it center at origin!");
+            Point3d finalPos =new Point3d();
+
+            for (i=1; i<= nComponent; i++)
+            {
+                finalPos.add( comp[i].mAxisInfo.transRotHis_finalPos, shiftVec);
+                this.comp[i].translateComp( finalPos);
+            }
+            //also, all JuncPt and EndPt
+            for (i=1; i<=nJuncPt; i++)
+            {
+                JuncPt[i].pos.add(shiftVec);
+            }
+            for (i=1; i<=nEndPt; i++)
+            {
+                endPt[i].pos.add(shiftVec);
+            }
+            //I'll call this check seperately
+            //if ( this.validMStickSize() ==  false)
+            //              return false;
+        }
+        //return true;
+
+    }
+	
 	public void genMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, boolean maintainTangent){
 
 		while (true)
@@ -302,7 +366,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	
 	public void genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf)
 	{
-		int nComp = 3; //TODO Specify nComp; 
+		double[] nCompDist = this.PARAM_nCompDist;
+		int nComp = stickMath_lib.pickFromProbDist(nCompDist); 
+		
 		this.cleanData();
 		//  debug
 		//  nComp = 4;
@@ -367,7 +433,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	}
 
 	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf, boolean onlyAddToJunc, boolean showDebug){
-		this.nComponent = nComp;
+		nComponent = nComp;
 		int i;
 		for (i=1; i<=nComponent; i++){
 			comp[i] = new TubeComp();
@@ -380,14 +446,14 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		if(onlyAddToJunc){
 			ArrayList<Integer> juncList= (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
 			ArrayList<Integer> endList= (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
-			this.nJuncPt = juncList.size();
-			this.nEndPt = endList.size();
+			nJuncPt = juncList.size();
+			nEndPt = endList.size();
 
 			for(int j=1; j<=juncList.size(); j++){
-				this.JuncPt[j] = amsOfLeaf.getJuncPtStruct(juncList.get(j-1));
+				JuncPt[j] = amsOfLeaf.getJuncPtStruct(juncList.get(j-1));
 			}
 			for(int j=1; j<=endList.size(); j++){
-				this.endPt[j] = amsOfLeaf.getEndPtStruct(endList.get(j-1));
+				endPt[j] = amsOfLeaf.getEndPtStruct(endList.get(j-1));
 			}
 
 			/*
@@ -399,9 +465,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			 */
 		}
 		else{
-			this.endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1] , 100.0);
-			this.endPt[2] = new EndPt_struct(1, 51, comp[1].mAxisInfo.mPts[51], comp[1].mAxisInfo.mTangent[51], 100.0);
-			this.nEndPt = 2;
+			endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1] , 100.0);
+			endPt[2] = new EndPt_struct(1, 51, comp[1].mAxisInfo.mPts[51], comp[1].mAxisInfo.mTangent[51], 100.0);
+			nEndPt = 2;
 		}
 
 		//this.JuncPt = new JuncPt_struct()
@@ -419,16 +485,16 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			if (randNdx < PROB_addToEndorJunc)
 			{
 				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
-					addSuccess = this.Add_MStick(nowComp, 1);
+					addSuccess = Add_MStick(nowComp, 1);
 				else
-					addSuccess = this.Add_MStick(nowComp, 2);
+					addSuccess = Add_MStick(nowComp, 2);
 			}
 			else
 			{
 				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
-					addSuccess = this.Add_MStick(nowComp, 3);
+					addSuccess = Add_MStick(nowComp, 3);
 				else
-					addSuccess = this.Add_MStick(nowComp, 4);
+					addSuccess = Add_MStick(nowComp, 4);
 			}
 			if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
 				nowComp ++;
@@ -528,8 +594,8 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		//double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
 		//double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
 		double[] nCompDist = this.PARAM_nCompDist;
-		//nComp = stickMath_lib.pickFromProbDist(nCompDist);
-		nComp = 2;
+		nComp = stickMath_lib.pickFromProbDist(nCompDist);
+		//nComp = 2;
 
 		this.cleanData();
 		//  debug
@@ -634,16 +700,42 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	}
 
 
+    /**
+    function check if the MStick is inside a BOX or not <BR>
+    ( to prevent a shape extend too much outside one dimension)
+    
+    ADDED BY Allen Chen:
+    checks if too small as well. 
+  */
+  protected boolean validMStickSize()
+  {
+  	double maxRad = scaleForMAxisShape; // degree
+  	double minRad = minScaleForMAxisShape;
+  	double screenDist = 500;
+  	double radSize = screenDist * Math.tan(maxRad*Math.PI/180/2);
 
-	/**
-	 * Creates a deep copy via serializing to xml and converting back. 
-	 * @return
-	 */
-	public AllenMatchStick deepCopy(){
-		final XStream XSTREAM = new XStream();
-		return (AllenMatchStick) XSTREAM.fromXML(XSTREAM.toXML(this));
-	}
+      int i, j;
 
-
+      Point3d ori = new Point3d(0.0,0.0,0.0);
+      double dis; double maxDis = 0;
+      for (i=1; i<=nComponent; i++)
+          for (j=1; j<= comp[i].nVect; j++) {
+	            dis = comp[i].vect_info[j].distance(ori);
+	            if (dis>maxDis){
+	            	maxDis = dis;
+	            }
+	            if ( dis > radSize )
+	                  return false;	          
+	        }
+      if (maxDis < minRad){
+    	  return false;
+      }
+      return true;
+  }
+  
+  public void setScale(double minScale, double maxScale) {
+	  minScaleForMAxisShape = minScale;
+	  scaleForMAxisShape = maxScale;
+}
 }
 
