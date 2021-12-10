@@ -78,23 +78,23 @@ public class MatchStick implements Drawable {
         this.nComponent = in.nComponent;
 
         for (i=1; i<=nComponent; i++) {
-            this.comp[i] = new TubeComp();
-            this.comp[i].copyFrom(in.comp[i]);
+            comp[i] = new TubeComp();
+            comp[i].copyFrom(in.comp[i]);
         }
         this.nEndPt = in.nEndPt;
         for (i=1; i<=nEndPt; i++) {
-            this.endPt[i] = new EndPt_struct();
-            this.endPt[i].copyFrom(in.endPt[i]);
+            endPt[i] = new EndPt_struct();
+            endPt[i].copyFrom(in.endPt[i]);
         }
         this.nJuncPt = in.nJuncPt;
         for (i=1; i<=nJuncPt; i++) {
-            this.JuncPt[i] = new JuncPt_struct();
-            this.JuncPt[i].copyFrom(in.JuncPt[i]);
+            JuncPt[i] = new JuncPt_struct();
+            JuncPt[i].copyFrom(in.JuncPt[i]);
         }
         this.obj1 = in.obj1; 
 
         for (i=1; i<=nComponent; i++)
-            this.LeafBranch[i] = in.LeafBranch[i];
+            LeafBranch[i] = in.LeafBranch[i];
     }
 
 
@@ -884,9 +884,6 @@ public class MatchStick implements Drawable {
             return false;
         }
         return true;
-
-
-
        }
 
     /**
@@ -1190,6 +1187,10 @@ public class MatchStick implements Drawable {
                 u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
                         if ( Math.abs( u_value - 0.0) < 0.0001)
                 {
+                        	//DEBUG -AC
+                        	System.out.println("AC 13849: " + comp[JuncPt[i].comp[j]]);
+                        	System.out.println("i: " + i);
+                        	System.out.println("j: " + j);
                             comp[JuncPt[i].comp[j]].radInfo[0][0] = 0.0;
                     comp[JuncPt[i].comp[j]].radInfo[0][1] = nowRad;
                 }
@@ -1560,7 +1561,7 @@ public class MatchStick implements Drawable {
             //3. update the JuncPt & endPt info and add the new Comp
             JuncPt_struct old_JuncInfo = new JuncPt_struct();
             old_JuncInfo.copyFrom(JuncPt[nowPtNdx]);
-            this.JuncPt[nowPtNdx].addComp(nowComp, 1, nowArc.mTangent[1]);
+            JuncPt[nowPtNdx].addComp(nowComp, 1, nowArc.mTangent[1]);
             comp[nowComp].initSet(nowArc, false, 2);
                 // 2.5 call the function to check if this new arc is valid
             if (this.checkSkeletonNearby(nowComp) == true)
@@ -2204,7 +2205,7 @@ public class MatchStick implements Drawable {
     /**
      *  Decide what is the best tube to center the shape at
      */
-    private int findBestTubeToCenter()
+    protected int findBestTubeToCenter()
     {
         boolean showDebug = false;
         int i, j, k, a,b;
@@ -3261,8 +3262,8 @@ public class MatchStick implements Drawable {
 
         // 1. sequentially adding new components
 
-        int nowComp = this.nComponent+1;
-        int old_nComp = this.nComponent;
+        int nowComp = nComponent+1;
+        int old_nComp = nComponent;
         this.nComponent += nAddTube;
         double randNdx;
         boolean addSuccess;
@@ -3274,20 +3275,20 @@ public class MatchStick implements Drawable {
             if (randNdx < PROB_addToEndorJunc)
             {
                 if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
-                    addSuccess = this.Add_MStick(nowComp, 1);
+                    addSuccess = Add_MStick(nowComp, 1);
                 else
-                    addSuccess = this.Add_MStick(nowComp, 2);
+                    addSuccess = Add_MStick(nowComp, 2);
             }
             else
             {
                 if (stickMath_lib.rand01() < PROB_addTiptoBranch)
-                    addSuccess = this.Add_MStick(nowComp, 3);
+                    addSuccess = Add_MStick(nowComp, 3);
                 else
-                    addSuccess = this.Add_MStick(nowComp, 4);
+                    addSuccess = Add_MStick(nowComp, 4);
             }
             if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
                 nowComp ++;
-            if (nowComp == this.nComponent+1)
+            if (nowComp == nComponent+1)
                 break;
             add_trial++;
             if ( add_trial > 100)
