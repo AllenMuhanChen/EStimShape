@@ -10,17 +10,17 @@ import javax.vecmath.Vector3d;
  */
 public class JuncPt_struct {
       public int nComp, nTangent;
-      public int[] comp = new int[20];
-      public int[] uNdx = new int[20];
+      public int[] comp = new int[100];
+      public int[] uNdx = new int[100];
       public Point3d pos = new Point3d();
-      public Vector3d[] tangent = new Vector3d[20];
-      public int[] tangentOwner = new int[20];
+      public Vector3d[] tangent = new Vector3d[100];
+      public int[] tangentOwner = new int[100];
       public double rad;
 
       public JuncPt_struct()
       {
         int i;
-        for (i=1; i<20; i++)
+        for (i=1; i<100; i++)
             tangent[i] = new Vector3d();
       }
       public JuncPt_struct(int in_nComp, int[] comp_list, int[] uNdx_list, Point3d in_pos, int in_nTangent, Vector3d[] tangent_list,
@@ -36,7 +36,7 @@ public class JuncPt_struct {
         }
         pos.set( in_pos);
         // for convenice, create tangent vector entries totally
-        for (i=1; i<20; i++)
+        for (i=1; i<100; i++)
             tangent[i] = new Vector3d();
         for (i=1; i<=nTangent; i++)
         {
@@ -69,13 +69,13 @@ public class JuncPt_struct {
       }
       public void addComp(int newComp, int new_uNdx, Vector3d new_Tangent)
       {
-         // As we know the new comp will always only bring in one new tangent vector
-     nComp++;
-     comp[nComp] = newComp;
-     uNdx[nComp] = new_uNdx;
-     nTangent++;
-     tangent[nTangent].set( new_Tangent);
-     tangentOwner[nTangent] = newComp;
+    	  // As we know the new comp will always only bring in one new tangent vector
+    	  nComp++;
+    	  comp[nComp] = newComp;
+    	  uNdx[nComp] = new_uNdx;
+    	  nTangent++;
+    	  tangent[nTangent].set( new_Tangent);
+    	  tangentOwner[nTangent] = newComp;
       }
 
       public void removeComp(boolean[] removeList)
