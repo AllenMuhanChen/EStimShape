@@ -38,8 +38,6 @@ import org.xper.drawing.object.BlankScreen;
  */
 
 public class NAFCMStickAppConfig {
-	
-	
 	@Autowired NAFCConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;

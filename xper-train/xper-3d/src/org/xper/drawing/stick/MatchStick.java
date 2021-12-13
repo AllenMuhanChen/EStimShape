@@ -17,7 +17,7 @@ import org.xper.utils.Lighting;
 import org.xper.utils.RGBColor;
 
 public class MatchStick implements Drawable {
-	protected double scaleForMAxisShape = 40;
+	public double scaleForMAxisShape = 40;
 
 	protected double[] finalRotation;
 	protected Point3d finalShiftinDepth = new Point3d(0,0,0);

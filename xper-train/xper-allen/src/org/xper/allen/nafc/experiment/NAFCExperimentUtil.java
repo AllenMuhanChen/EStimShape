@@ -461,6 +461,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				try{
 				runner.runTrial();
 				} catch (NullPointerException e){
+					e.printStackTrace();
 					System.out.println("THERE ARE NO MORE TRIALS");
 				}
 				if (threadHelper.isDone()) {

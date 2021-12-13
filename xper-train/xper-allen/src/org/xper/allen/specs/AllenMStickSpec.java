@@ -11,9 +11,9 @@ import org.xper.drawing.stick.TubeInfo;
 import com.thoughtworks.xstream.XStream;
 
 public class AllenMStickSpec extends MStickSpec{
-	double xCenter;
-	double yCenter;
-	ImageDimensions dimensions;
+
+	double minSize;
+	double maxSize;
 	
     transient static XStream s;
 
@@ -59,29 +59,23 @@ public class AllenMStickSpec extends MStickSpec{
             }
         }
     }
+
+	public double getMinSize() {
+		return minSize;
+	}
+
+	public void setMinSize(double minSize) {
+		this.minSize = minSize;
+	}
+
+	public double getMaxSize() {
+		return maxSize;
+	}
+
+	public void setMaxSize(double maxSize) {
+		this.maxSize = maxSize;
+	}
     
-	public double getxCenter() {
-		return xCenter;
-	}
 
-	public void setxCenter(double xCenter) {
-		this.xCenter = xCenter;
-	}
-
-	public double getyCenter() {
-		return yCenter;
-	}
-
-	public void setyCenter(double yCenter) {
-		this.yCenter = yCenter;
-	}
-
-	public ImageDimensions getDimensions() {
-		return dimensions;
-	}
-
-	public void setDimensions(ImageDimensions dimensions) {
-		this.dimensions = dimensions;
-	}
 
 }

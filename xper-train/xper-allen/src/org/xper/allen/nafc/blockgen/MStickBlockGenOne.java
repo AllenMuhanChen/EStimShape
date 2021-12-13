@@ -123,28 +123,31 @@ public class MStickBlockGenOne{
 				objs_distractor.get(i).get(j).centerShapeAtPoint(-1, distractorsEyeWinCoords.get(j));
 			}
 			
-			//SPECIFYING SIZE
-			objs_sample.get(i).setScale(sampleScaleLowerLim, sampleScaleUpperLim);
-			objs_match.get(i).setScale(sampleScaleLowerLim, sampleScaleUpperLim);
-			for(int j=0; j<numChoices-1; j++){
-				objs_distractor.get(i).get(j).setScale(distractorScaleLowerLim, distractorScaleUpperLim);
-			}
-			
+
 			//GENERATING SPECS
 			//SAMPLE
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			AllenMStickSpec sampleSpec = new AllenMStickSpec();
+				//SAMPLE: SIZE
 			sampleSpec.setMStickInfo(objs_sample.get(i));
+			sampleSpec.setMinSize(sampleScaleLowerLim);
+			sampleSpec.setMaxSize(sampleScaleUpperLim);
 			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
 			//MATCH
 			AllenMStickSpec matchSpec = new AllenMStickSpec();
 			List<AllenMStickSpec> distractorSpec = new ArrayList<AllenMStickSpec>();
 			matchSpec.setMStickInfo(objs_match.get(i));
+				//MATCH: SIZE
+				matchSpec.setMinSize(sampleScaleLowerLim);
+				matchSpec.setMaxSize(sampleScaleUpperLim);
 			//DISTRACTORS
 			for(int j=0; j<numChoices-1; j++){
 				distractorSpec.add(new AllenMStickSpec());
 				distractorSpec.get(j).setMStickInfo(objs_distractor.get(i).get(j));
+				//DISTRACTORS: SIZE
+				distractorSpec.get(j).setMinSize(distractorScaleLowerLim);
+				distractorSpec.get(j).setMaxSize(distractorScaleUpperLim);
 			}
 
 			//WRITING STIM-OBJ SPECS TO DB

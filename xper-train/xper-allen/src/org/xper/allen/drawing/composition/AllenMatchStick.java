@@ -30,16 +30,16 @@ import com.thoughtworks.xstream.XStream;
  */
 public class AllenMatchStick extends MatchStick implements Serializable {
 
-	protected final double PROB_addToEndorJunc = 1; // 60% add to end or
+	protected final double PROB_addToEndorJunc = 0.5; // 60% add to end or
 	// junction pt, 40% to the
 	// branch
-	protected final double PROB_addToEnd_notJunc = 0; // when "addtoEndorJunc",
+	protected final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
 	// 50% add to end, 50%
 	// add to junc
 	protected final double[] finalRotation = new double[3];
 	protected double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = { 0.0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
+	protected final double[] PARAM_nCompDist = { 0.0, 0, 0, 1, 0.0, 0.0, 0.0, 0.0 };
 	protected final double TangentSaveZone = 0;
 
 	public AllenMatchStick() {
@@ -452,124 +452,126 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		return output;
 	}
 
-	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf, boolean onlyAddToJunc,
-			boolean showDebug) {
+	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf, boolean onlyAddToJunc, boolean showDebug){
 		nComponent = nComp;
 		int i;
-		for (i = 1; i <= nComponent; i++) {
+		for (i=1; i<=nComponent; i++){
 			comp[i] = new TubeComp();
 		}
 
-		// STARTING LEAF
+		//STARTING LEAF
 		comp[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 
-		// DEFINING END AND JUNCTIONS
-		if (onlyAddToJunc) {
-			ArrayList<Integer> juncList = (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
-			ArrayList<Integer> endList = (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
+		//DEFINING END AND JUNCTIONS
+		if(onlyAddToJunc){
+			ArrayList<Integer> juncList= (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
+			ArrayList<Integer> endList= (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
 			nJuncPt = juncList.size();
 			nEndPt = endList.size();
 
-			for (int j = 1; j <= juncList.size(); j++) {
-				//JuncPt[j] = amsOfLeaf.getJuncPtStruct(juncList.get(j - 1)); //THIS LINE CAUSED A MASSIVE BUG BECAUES THIS ISNT A DEEP COPY
+			for(int j=1; j<=juncList.size(); j++){
+				//JuncPt[j] = amsOfLeaf.getJuncPtStruct(juncList.get(j-1));
 				JuncPt[j] = new JuncPt_struct();
-				JuncPt[j].copyFrom(amsOfLeaf.getJuncPtStruct(juncList.get(j - 1)));
+				JuncPt[j].copyFrom(amsOfLeaf.getJuncPtStruct(juncList.get(j-1)));
 			}
-			for (int j = 1; j <= endList.size(); j++) {
-				//endPt[j] = amsOfLeaf.getEndPtStruct(endList.get(j - 1));
+			for(int j=1; j<=endList.size(); j++){
+				//endPt[j] = amsOfLeaf.getEndPtStruct(endList.get(j-1));
 				endPt[j] = new EndPt_struct();
-				endPt[j].copyFrom(amsOfLeaf.getEndPtStruct(endList.get(j - 1)));
+				endPt[j].copyFrom(amsOfLeaf.getEndPtStruct(endList.get(j-1)));
 			}
 
 			/*
-			 * this.endPt[1] = ams.getEndPtStruct(leafIndx); this.JuncPt[1] =
-			 * ams.getJuncPtStruct(leafIndx);
-			 * 
-			 * this.nJuncPt = 1; this.nEndPt = 1;
+			this.endPt[1] = ams.getEndPtStruct(leafIndx);
+			this.JuncPt[1] = ams.getJuncPtStruct(leafIndx);
+
+			this.nJuncPt = 1;
+			this.nEndPt = 1;
 			 */
-		} else {
-			endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1], 100.0);
+		}
+		else{
+			endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1] , 100.0);
 			endPt[2] = new EndPt_struct(1, 51, comp[1].mAxisInfo.mPts[51], comp[1].mAxisInfo.mTangent[51], 100.0);
 			nEndPt = 2;
 		}
 
-		// this.JuncPt = new JuncPt_struct()
+		//this.JuncPt = new JuncPt_struct()
 		/////////////////////////////
 		int add_trial = 0;
-
-		// boolean showDebug = true;
-		double randNdx;
 		int nowComp = 2;
-		
-		while (true) {
-			boolean addSuccess;
-			if (showDebug)
-				System.out.println("TRY adding new MAxis on, now # " + nowComp);
+		//boolean showDebug = true;
+		double randNdx;
+		boolean addSuccess;
+		while (true)
+		{
+			if ( showDebug)
+				System.out.println("adding new MAxis on, now # " +  nowComp);
 			randNdx = stickMath_lib.rand01();
-
-			if (randNdx < PROB_addToEndorJunc) {
-				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc) {
+			if (nComp==2){
+				addSuccess = Add_MStick(nowComp, 2);
+			}
+			
+			else if (randNdx < PROB_addToEndorJunc)
+			{
+				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
 					addSuccess = Add_MStick(nowComp, 1);
-				}
-
-				else {
+				else
 					addSuccess = Add_MStick(nowComp, 2);
-					System.out.println(addSuccess);
-				}
-
-			} else {
+			}
+			else
+			{
 				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
 					addSuccess = Add_MStick(nowComp, 3);
 				else
 					addSuccess = Add_MStick(nowComp, 4);
 			}
-
-			if (addSuccess == true) { // otherwise, we'll run this while loop							// again, and re-generate this component
-				nowComp++;
-			}
-			if (nowComp == nComp)
+			if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
+				nowComp ++;
+			if (nowComp == nComp+1)
 				break;
-			add_trial++;
-			if (add_trial > 100)
-				return false;
-
+            add_trial++;
+            if ( add_trial > 100)
+                return false;
 		}
 
-		// up to here, the eligible skeleton should be ready
+		//up to here, the eligible skeleton should be ready
 		// 3. Assign the radius value
 		this.RadiusAssign(1); // KEEP FIRST ELEMENT SAME RADIUS
 		// 4. Apply the radius value onto each component
-		for (  i = 1; i <= nComponent; i++) {
-			if (this.comp[i].RadApplied_Factory() == false) // a fail
-				// application
+		for (i=1; i<=nComponent; i++)
+		{
+			if( this.comp[i].RadApplied_Factory() == false) // a fail application
 			{
 				return false;
 			}
 		}
 
-		// 5. check if the final shape is not working ( collide after skin
-		// application)
-		this.centerShapeAtOrigin(1);
 
-		if (this.validMStickSize() == false) {
-			if (showDebug)
+		// 5. check if the final shape is not working ( collide after skin application)
+		this.centerShapeAtOrigin(-1);
+		
+		if ( this.validMStickSize() ==  false)
+		{
+			if ( showDebug)
 				System.out.println("\n FAIL the MStick size check ....\n");
 			return false;
 		}
 
-		if (this.finalTubeCollisionCheck() == true) {
-			if (showDebug)
+		if ( this.finalTubeCollisionCheck() == true)
+		{
+			if ( showDebug)
 				System.out.println("\n FAIL the final Tube collsion Check ....\n");
 			return false;
 		}
 
+
 		// Dec 24th 2008
 		// re-center the shape before do the validMStickSize check!
-
+		
 		// this.normalizeMStickSize();
-		// System.out.println("after centering");
+		//   System.out.println("after centering");
 
 		return true;
+
 
 	}
 
