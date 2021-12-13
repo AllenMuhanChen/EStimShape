@@ -63,7 +63,6 @@ public class NAFCTrialExperiment implements Experiment {
 				try {
 					// get a task
 					NAFCExperimentUtil.getNextTask(stateObject);
-
 					if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
 						try {
 							Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
