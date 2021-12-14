@@ -40,9 +40,16 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 	AllenMatchStick sampleMStick ;
 	List<AllenMatchStick> choiceMStick;
 
-	
+
 	double[] rotation = new double[3];
-	
+
+	/*
+	 * //this is a workout in order to allow trialStart to do the prep work,
+	 *  and for the prepareChoice/prepareSample to not call setChoice or setSample. 
+	 */
+	int numSamplePrepped; 
+	int numChoicePrepped;
+
 	public void initGL(int w, int h) {
 
 		super.setUseStencil(true);
@@ -61,6 +68,8 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	@Override
 	public void trialStart(TrialContext context) {
+		numSamplePrepped = 0;
+		numChoicePrepped = 0;
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
 		choiceSpec = new AllenMStickSpec[numChoices];
@@ -70,26 +79,36 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 		for (int i=0; i<numChoices; i++){
 			choiceMStick.add(new AllenMatchStick());
 		}
+
+		setChoice(task); 
+		setSample(task); 
 	}
 
 	@Override
 	public void setSample(NAFCExperimentTask task) {
-		sampleSpec = AllenMStickSpec.fromXml(task.getSampleSpec());
-		sampleMStick.genMatchStickFromShapeSpec(sampleSpec, rotation);
-		sampleMStick.setScale(sampleSpec.getMinSize(), sampleSpec.getMaxSize());
-		sampleMStick.smoothizeMStick();
-		System.out.println("ncomp:" + sampleMStick.scaleForMAxisShape);
+		if (numSamplePrepped==0){
+			sampleSpec = AllenMStickSpec.fromXml(task.getSampleSpec());
+			sampleMStick.genMatchStickFromShapeSpec(sampleSpec, rotation);
+			sampleMStick.setScale(sampleSpec.getMinSize(), sampleSpec.getMaxSize());
+			sampleMStick.smoothizeMStick();
+			System.out.println("ncomp:" + sampleMStick.scaleForMAxisShape);
+			numSamplePrepped++;
+		}
+		
 	}
 
 	@Override
 	public void setChoice(NAFCExperimentTask task) {	
-		
-		for (int i=0; i< numChoices; i++){
-			choiceSpec[i] = AllenMStickSpec.fromXml(task.getChoiceSpec()[i]);
-			choiceMStick.get(i).genMatchStickFromShapeSpec(choiceSpec[i], rotation);
-			choiceMStick.get(i).setScale(choiceSpec[i].getMinSize(), choiceSpec[i].getMaxSize());
-			choiceMStick.get(i).smoothizeMStick();
-			//choiceSpec[i].setMStickInfo(choiceMStick.get(i));
+		if (numChoicePrepped==0){
+			for (int i=0; i< numChoices; i++){
+				choiceSpec[i] = AllenMStickSpec.fromXml(task.getChoiceSpec()[i]);
+				choiceMStick.get(i).genMatchStickFromShapeSpec(choiceSpec[i], rotation);
+				choiceMStick.get(i).setScale(choiceSpec[i].getMinSize(), choiceSpec[i].getMaxSize());
+				choiceMStick.get(i).smoothizeMStick();
+				//choiceSpec[i].setMStickInfo(choiceMStick.get(i));
+			
+			}
+			numChoicePrepped++;
 		}
 	}
 
@@ -147,9 +166,9 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
-				
+
 				if (fixationOn) {
-					 fixation.draw(context);
+					fixation.draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {
@@ -198,9 +217,9 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
-				
+
 				if (fixationOn) {
-					 fixation.draw(context);
+					fixation.draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {
