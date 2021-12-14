@@ -3708,7 +3708,7 @@ public class MatchStick implements Drawable {
         function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
 	 */
 
-	protected boolean smoothizeMStick()
+	public boolean smoothizeMStick()
 	{
 
 		int i;

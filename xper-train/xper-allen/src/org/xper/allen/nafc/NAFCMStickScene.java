@@ -77,6 +77,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 		sampleSpec = AllenMStickSpec.fromXml(task.getSampleSpec());
 		sampleMStick.genMatchStickFromShapeSpec(sampleSpec, rotation);
 		sampleMStick.setScale(sampleSpec.getMinSize(), sampleSpec.getMaxSize());
+		sampleMStick.smoothizeMStick();
 		System.out.println("ncomp:" + sampleMStick.scaleForMAxisShape);
 	}
 
@@ -87,6 +88,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 			choiceSpec[i] = AllenMStickSpec.fromXml(task.getChoiceSpec()[i]);
 			choiceMStick.get(i).genMatchStickFromShapeSpec(choiceSpec[i], rotation);
 			choiceMStick.get(i).setScale(choiceSpec[i].getMinSize(), choiceSpec[i].getMaxSize());
+			choiceMStick.get(i).smoothizeMStick();
 			//choiceSpec[i].setMStickInfo(choiceMStick.get(i));
 		}
 	}
@@ -105,6 +107,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 				int index = 0; //Should be zero, the sample is assigned index of zero. 
 				sampleMStick.draw();
+				System.out.println("sampleMSTick called");
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);

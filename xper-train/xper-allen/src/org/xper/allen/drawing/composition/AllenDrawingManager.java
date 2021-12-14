@@ -59,7 +59,7 @@ public class AllenDrawingManager implements Drawable {
 		renderer = new PerspectiveRenderer();
 //		renderer = new OrthographicRenderer();
 		renderer.setDepth(6000);
-		renderer.setDistance(500);
+		renderer.setDistance(500); //TODO: stitch this into scene so it is a dependency
 		renderer.setPupilDistance(50);
 		renderer.setHeight(height);
 		renderer.setWidth(width);
