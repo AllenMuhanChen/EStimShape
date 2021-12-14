@@ -187,8 +187,27 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	@Override
 	public void drawBlank(Context context, boolean fixationOn, boolean markerOn) {
-		// TODO Auto-generated method stub
-
+		blankScreen.draw(null);
+		renderer.draw(new Drawable() {
+			public void draw(Context context) {
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+				if (useStencil) {
+					// 1 will pass for fixation and marker regions
+					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
+				}
+				
+				if (fixationOn) {
+					 fixation.draw(context);
+				}
+				marker.draw(context);
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+			}}, context);
 	}
 
 
