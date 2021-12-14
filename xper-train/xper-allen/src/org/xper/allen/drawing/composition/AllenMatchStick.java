@@ -52,6 +52,30 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		drawSkeleton();
 	}
 
+	public void drawSkeleton() {
+		int i;
+		boolean showComponents = false;
+		if (showComponents)
+			for (i=1; i<=nComponent; i++) {
+				float[][] colorCode= {  
+						{1.0f, 1.0f, 1.0f},
+						{1.0f, 0.0f, 0.0f},
+						{0.0f, 1.0f, 0.0f},
+						{0.0f, 0.0f, 1.0f},
+						{0.0f, 1.0f, 1.0f},
+						{1.0f, 0.0f, 1.0f},
+						{1.0f, 1.0f, 0.0f},
+						{0.4f, 0.1f, 0.6f} 
+				};
+
+
+				comp[i].drawSurfPt(colorCode[i-1],scaleForMAxisShape);
+			}
+		else
+			obj1.drawVect();
+	}
+	
+	
 	public void centerShapeAtPoint(int decidedCenterTube, Coordinates2D coords) {
 		Point3d newLocation = new Point3d();
 		newLocation.x = coords.getX();
