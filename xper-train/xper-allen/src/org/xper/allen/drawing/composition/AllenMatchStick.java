@@ -33,13 +33,13 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	protected final double PROB_addToEndorJunc = 0.5; // 60% add to end or
 	// junction pt, 40% to the
 	// branch
-	protected final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
+	protected final double PROB_addToEnd_notJunc = 0; // when "addtoEndorJunc",
 	// 50% add to end, 50%
 	// add to junc
 	protected final double[] finalRotation = new double[3];
 	protected double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = { 0.0, 0, 0, 1, 0.0, 0.0, 0.0, 0.0 };
+	protected final double[] PARAM_nCompDist = {0, 0.33, 0.67, 1, 0.0, 0.0, 0.0, 0.0 };
 	protected final double TangentSaveZone = 0;
 
 	public AllenMatchStick() {
@@ -74,8 +74,8 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		else
 			obj1.drawVect();
 	}
-	
-	
+
+
 	public void centerShapeAtPoint(int decidedCenterTube, Coordinates2D coords) {
 		Point3d newLocation = new Point3d();
 		newLocation.x = coords.getX();
@@ -129,26 +129,42 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 	}
 
-	public void genMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, boolean maintainTangent) {
-
-		while (true) {
+	public boolean genMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, boolean maintainTangent) {
+		int i = 0;
+		while (i<2) {
 			this.cleanData();
 			// 0. Copy
 			copyFrom(amsToMorph);
 
 			// 1. DO THE MORPHING
-			while (!replaceComponent(leafToMorphIndx, maintainTangent))
-				; // do this until it's successful
+			int j = 0;
+			boolean success = false;
+			while (j<10){
+				success = replaceComponent(leafToMorphIndx, maintainTangent);
+				if(success){
+					break;
+				} else{
+					j++;
+				}
+			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 
-			boolean res = smoothizeMStick();
-			if (res == true) // success to smooth
-				break; // else we need to gen another shape
-			// else
-			System.out.println("      Fail to smooth combine the shape. try again.");
-
+			if(success){
+				boolean res;
+				try{
+					res = smoothizeMStick();
+				} catch(Exception e){
+					res = false;
+				}
+				if (res == true) // success to smooth
+					return true; // else we need to gen another shape
+				else{
+				}
+			}
+			i++;
 		}
+		return false;
 
 	}
 
@@ -161,7 +177,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		int i, j, k;
 		int TotalTrialTime = 0;
 		int inner_totalTrialTime = 0; // for inner while loop
-		boolean showDebug = true;
+		boolean showDebug = false;
 		// final double TangentSaveZone = Math.PI / 4.0;
 		boolean[] JuncPtFlg = new boolean[nJuncPt + 1]; // = true when this
 		// JuncPt is related to
@@ -268,11 +284,15 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 						} // for loop, check through related JuncPt for
 					// tangentSaveZone
-					if (tangentFlg == true) // still valid after all tangent
+
+					if (tangentFlg == true){ // still valid after all tangent
 						// check
 						break;
-					if (TangentTryTimes > 100)
+					}
+					TangentTryTimes++; //AC
+					if (TangentTryTimes > 100){
 						return false;
+					}
 				} // third while, will quit after tangent Save Zone check passed
 
 				// update the information of the related JuncPt
@@ -398,7 +418,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			System.out.println("successfully replace a tube");
 		return true;
 	}
-/*
+	/*
 	protected void cleanData()
 	{
 		nComponent = 0;
@@ -409,9 +429,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		JuncPt = new JuncPt_struct[50];
 		LeafBranch = new boolean[10];
 	}
-*/
-	public void genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf) {
-		double[] nCompDist = this.PARAM_nCompDist;
+	 */
+	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf) {
+		double[] nCompDist = PARAM_nCompDist;
 		int nComp = stickMath_lib.pickFromProbDist(nCompDist);
 
 		// debug
@@ -419,13 +439,20 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		// The way we write like this can guarantee that we try to
 		// generate a shape with "specific" # of components
-
-		while (true) {
+		int i=0; //Number of times tried to generate a comp and smoothize it
+		boolean compSuccess = false;
+		while (i<2) {
+			int j=0; //Number of times tried to generate a comp. 
 			this.cleanData();
-			while (true) {
+			while (j<10) {
 				boolean onlyAddToJunc = true;
-				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf, onlyAddToJunc, true) == true)
+				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf, onlyAddToJunc) == true){
+					compSuccess = true;
 					break;
+				}
+				else {
+					j++;
+				}
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
 			}
@@ -444,15 +471,26 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// finalRotation[2]);
 
 			// this.centerShapeAtOrigin(-1);
+			if(compSuccess){
+				boolean res;
+				try {
+					res = this.smoothizeMStick();
+				} catch(Exception e){
+					res = false;
+				}
+				if (res == true){ // success to smooth
+					return true;
+				}
+				else{
+				}
 
-			boolean res = this.smoothizeMStick();
-			if (res == true) // success to smooth
-				break; // else we need to gen another shape
+			}// else we need to gen another shape
 			// else
 			// System.out.println(" Fail to smooth combine the shape. try
 			// again.");
-
+			i++;
 		}
+		return false;
 
 	}
 
@@ -469,14 +507,14 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	public List<Integer> leafIndxToJuncPts(int leafIndex, AllenMatchStick ams) {
 		ArrayList<Integer> output = new ArrayList<Integer>();
 		for (int j = 1; j <= ams.nJuncPt; j++) {
-			if (Arrays.asList(ams.getJuncPtStruct(j).comp).contains(leafIndex))
-				;
+			if (Arrays.asList(ams.getJuncPtStruct(j).comp).contains(leafIndex));
 			output.add(j);
 		}
 		return output;
 	}
 
-	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf, boolean onlyAddToJunc, boolean showDebug){
+	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf, boolean onlyAddToJunc){
+		boolean showDebug = false;
 		nComponent = nComp;
 		int i;
 		for (i=1; i<=nComponent; i++){
@@ -486,24 +524,62 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		//STARTING LEAF
 		comp[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 
-		//DEFINING END AND JUNCTIONS
+		
+		//DEFINING END AND JUNCTION
 		if(onlyAddToJunc){
 			ArrayList<Integer> juncList= (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
 			ArrayList<Integer> endList= (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
-			nJuncPt = juncList.size();
-			nEndPt = endList.size();
-
+			
+			//DEFINE JUCTION TO BE A JUNCTION FROM LEAF
+			JuncPt_struct in_junc = amsOfLeaf.getJuncPtStruct(juncList.get(0));
+			int jnComp = 1;
+			int[] jCompList = {1};
+			int[] juNdx_list = {in_junc.uNdx[1]};
+			Point3d jpos = in_junc.pos;
+			int jnTangent = 1;
+			Vector3d[] jtangent_list = {in_junc.tangent[1]};
+			int[] jtangentOwner_list = {1};
+			double jrad = in_junc.rad;
+			JuncPt[1] = new JuncPt_struct(jnComp, jCompList, juNdx_list, jpos, jnTangent, jtangent_list, jtangentOwner_list, jrad);
+			
+			//DEFINE END POINT TO BE SAME END POINT AS IN LEAF
+			EndPt_struct in_end = amsOfLeaf.getEndPtStruct(endList.get(0));
+			int enComp = 1;
+			int euNdx = in_end.uNdx;
+			Point3d epos = in_end.pos;
+			Vector3d etangent = in_end.tangent;
+			double erad = in_end.rad;
+			endPt[1] = new EndPt_struct(enComp, euNdx, epos, etangent, erad);
+			
+			nJuncPt = 1;
+			nEndPt = 1;
+			//nJuncPt = juncList.size();
+			//nEndPt = endList.size();
+			/*
 			for(int j=1; j<=juncList.size(); j++){
 				//JuncPt[j] = amsOfLeaf.getJuncPtStruct(juncList.get(j-1));
 				JuncPt[j] = new JuncPt_struct();
 				JuncPt[j].copyFrom(amsOfLeaf.getJuncPtStruct(juncList.get(j-1)));
+				//Remove Juncs that don't exist anymore. This junction only includes comp 1 right now. 
+				boolean[] removeList = new boolean[JuncPt[j].nComp+1];
+				for (int k=1; k<=JuncPt[j].nComp; k++){
+					if (k==1 | k==0){
+						removeList[k] = false;
+					} else{
+						removeList[k] = true;
+					}
+				}
+				System.out.println("ncomp before: " + JuncPt[j].nComp);
+				JuncPt[j].removeComp(removeList);
+				System.out.println("ncomp: " + JuncPt[j].nComp);
 			}
 			for(int j=1; j<=endList.size(); j++){
 				//endPt[j] = amsOfLeaf.getEndPtStruct(endList.get(j-1));
 				endPt[j] = new EndPt_struct();
 				endPt[j].copyFrom(amsOfLeaf.getEndPtStruct(endList.get(j-1)));
+				endPt[j].comp = 1; //Reassign this end point to be the end point of comp 1. 
 			}
-
+			*/
 			/*
 			this.endPt[1] = ams.getEndPtStruct(leafIndx);
 			this.JuncPt[1] = ams.getJuncPtStruct(leafIndx);
@@ -522,7 +598,6 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		/////////////////////////////
 		int add_trial = 0;
 		int nowComp = 2;
-		//boolean showDebug = true;
 		double randNdx;
 		boolean addSuccess;
 		while (true)
@@ -533,7 +608,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			if (nComp==2){
 				addSuccess = Add_MStick(nowComp, 2);
 			}
-			
+
 			else if (randNdx < PROB_addToEndorJunc)
 			{
 				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
@@ -552,19 +627,21 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				nowComp ++;
 			if (nowComp == nComp+1)
 				break;
-            add_trial++;
-            if ( add_trial > 100)
-                return false;
+			add_trial++;
+			if ( add_trial > 100)
+				return false;
 		}
 
 		//up to here, the eligible skeleton should be ready
 		// 3. Assign the radius value
-		this.RadiusAssign(1); // KEEP FIRST ELEMENT SAME RADIUS
+		RadiusAssign(1); // KEEP FIRST ELEMENT SAME RADIUS
 		// 4. Apply the radius value onto each component
 		for (i=1; i<=nComponent; i++)
 		{
 			if( this.comp[i].RadApplied_Factory() == false) // a fail application
 			{
+				if(showDebug)
+					System.out.println("Failed RadApplied");
 				return false;
 			}
 		}
@@ -572,7 +649,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		// 5. check if the final shape is not working ( collide after skin application)
 		this.centerShapeAtOrigin(-1);
-		
+
 		if ( this.validMStickSize() ==  false)
 		{
 			if ( showDebug)
@@ -590,7 +667,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		// Dec 24th 2008
 		// re-center the shape before do the validMStickSize check!
-		
+
 		// this.normalizeMStickSize();
 		//   System.out.println("after centering");
 
@@ -598,6 +675,142 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 
 	}
+
+	/**
+    Assign the radius value to the Match Stick.
+    The radius value will be randomly chosen in reasonable range
+ */
+protected void RadiusAssign(int nPreserve)
+{
+	double rMin, rMax;
+	double nowRad, u_value, tempX;
+	int i, j;
+	// 0. initialize to negative value
+	for (i= nPreserve+1; i<=nComponent; i++)
+	{
+		comp[i].radInfo[0][1] = -10.0; comp[i].radInfo[1][1] = -10.0; comp[i].radInfo[2][1] = -10.0;
+	}
+	// 1. assign at JuncPt
+	for (i=1; i<=nJuncPt; i++)
+	{
+		if ( JuncPt[i].rad == 100.0) // a whole new JuncPt
+		{
+			rMin = -10.0; rMax = 100000.0;
+			int nRelated_comp = JuncPt[i].nComp;
+			for (j = 1 ; j <= nRelated_comp; j++)
+			{
+				rMin = Math.max( rMin, comp[JuncPt[i].comp[j]].mAxisInfo.arcLen / 10.0);
+				tempX = Math.min( 0.5 *comp[JuncPt[i].comp[j]].mAxisInfo.rad,
+						comp[JuncPt[i].comp[j]].mAxisInfo.arcLen / 3.0);
+				rMax = Math.min( rMax, tempX);
+			}
+
+			if (rMax < rMin)
+				System.out.println(" In radius assign, ERROR: rMax < rMin");
+
+			// select a value btw rMin and rMax
+			nowRad = stickMath_lib.randDouble( rMin, rMax);
+			// assign the value to each component
+			JuncPt[i].rad = nowRad;
+
+			for (j = 1 ; j <= nRelated_comp ; j++)
+			{
+				u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
+				if ( Math.abs( u_value - 0.0) < 0.0001)
+				{
+					comp[JuncPt[i].comp[j]].radInfo[0][0] = 0.0;
+					comp[JuncPt[i].comp[j]].radInfo[0][1] = nowRad;
+				}
+				else if ( Math.abs(u_value - 1.0) < 0.0001)
+				{
+					comp[JuncPt[i].comp[j]].radInfo[2][0] = 1.0;
+					comp[JuncPt[i].comp[j]].radInfo[2][1] = nowRad;
+				}
+				else // middle u value
+				{
+					comp[JuncPt[i].comp[j]].radInfo[1][0] = u_value;
+					comp[JuncPt[i].comp[j]].radInfo[1][1] = nowRad;
+				}
+
+			}
+		}
+		else // JuncPt.rad != 100.0, means this JuncPt is an existing one
+		{
+			for (j=1; j<= JuncPt[i].nComp; j++)
+				if ( JuncPt[i].comp[j] > nPreserve) // the component which need to assign radius
+				{
+					nowRad = JuncPt[i].rad;
+					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
+					if ( Math.abs( u_value - 0.0) < 0.0001)
+					{
+						try{
+						comp[JuncPt[i].comp[j]].radInfo[0][0] = 0.0;
+						comp[JuncPt[i].comp[j]].radInfo[0][1] = nowRad;
+						}catch(Exception e){
+							
+						}
+					}
+					else if ( Math.abs(u_value - 1.0) < 0.0001)
+					{
+						comp[JuncPt[i].comp[j]].radInfo[2][0] = 1.0;
+						comp[JuncPt[i].comp[j]].radInfo[2][1] = nowRad;
+					}
+					else // middle u value
+					{
+						comp[JuncPt[i].comp[j]].radInfo[1][0] = u_value;
+						comp[JuncPt[i].comp[j]].radInfo[1][1] = nowRad;
+					}
+				}
+
+		}
+	} // loop nJuncPt
+
+	// 2. assign at endPt
+	for ( i = 1 ;  i <= nEndPt ; i++)
+		if ( endPt[i].comp > nPreserve ) // only do the radius assign for endPt with component we need
+		{
+
+			int nowComp = endPt[i].comp;
+			u_value = ((double)endPt[i].uNdx -1.0 ) / (51.0 -1.0);
+
+			//rMin = mStick.comp(nowComp).arcLen / 10.0;
+			rMin = 0.00001; // as small as you like
+			rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+
+			// select a value btw rMin and rMax
+			nowRad = stickMath_lib.randDouble( rMin, rMax);
+
+			endPt[i].rad = nowRad;
+
+			if ( Math.abs( u_value - 0.0) < 0.0001)
+			{
+				comp[nowComp].radInfo[0][0] = 0.0;
+				comp[nowComp].radInfo[0][1] = nowRad;
+			}
+			else if (Math.abs(u_value - 1.0) < 0.0001)
+			{
+				comp[nowComp].radInfo[2][0] = 1.0;
+				comp[nowComp].radInfo[2][1] = nowRad;
+			}
+			else // middle u value
+				System.out.println( "error in endPt radius assignment");
+
+		}
+
+	// 3. other middle Pt
+	for ( i = nPreserve+1 ; i <= nComponent ; i++)
+		if ( comp[i].radInfo[1][1] == -10.0 ) // this component need a intermediate value
+		{
+			int branchPt = comp[i].mAxisInfo.branchPt;
+			u_value = ((double)branchPt-1.0) / (51.0 -1.0);
+
+			rMin = comp[i].mAxisInfo.arcLen / 10.0;
+			rMax = Math.min(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
+			nowRad = stickMath_lib.randDouble( rMin, rMax);
+			comp[i].radInfo[1][0] = u_value;
+			comp[i].radInfo[1][1] = nowRad;
+		}
+}
 
 	// TODO: Convert this into a method that takes an arguement one limb/tube
 	// and one body, removes from that body but ignores the given limb.

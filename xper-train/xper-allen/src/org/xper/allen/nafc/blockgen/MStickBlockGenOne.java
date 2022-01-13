@@ -66,7 +66,7 @@ public class MStickBlockGenOne{
 			}
 		}
 		Collections.shuffle(trialTypeList);
-		
+
 		//INITIALIZING LISTS TO HOLD MATCH STICK OBJECTS
 		List<AllenMatchStick> objs_base = new ArrayList<AllenMatchStick>();
 		List<AllenMatchStick> objs_sample = new ArrayList<AllenMatchStick>();
@@ -82,7 +82,7 @@ public class MStickBlockGenOne{
 				objs_distractor.get(i).add(new AllenMatchStick());
 			}
 		}
-		
+
 
 		//GENERATION
 		try {
@@ -93,20 +93,67 @@ public class MStickBlockGenOne{
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
+		
+		int nSuccess = 0;
 		for (int i = 0; i < numTrials; i++) {
 			int numChoices = trialTypeList.get(i);
-			//BASE: GENERATING MATCHSTICK
-			objs_base.get(i).genMatchStickRand();
-			int randomLeaf = objs_base.get(i).chooseRandLeaf();
-			
-			//SAMPLE: GENERATING MATCHSTICSK
-			objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(i));
-			
-			//CHOICES: GENERATING MATCHSTICKS
-			//GENERATING MATCH
-			int leafToMorphIndx = 1; //The randomly chosen leaf before should be the first component
-			boolean maintainTangent = true;
-			objs_match.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), maintainTangent);
+
+
+			//GENEREATE BASE, SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
+			//GENERATE MATCH FAILS, WE START OVER STARTING AT SAMPLE
+			boolean tryagain = true;
+			int nTries = 0;
+			while (tryagain){
+				boolean sampleSuccess = false;
+				boolean matchSuccess = false;
+				
+				//BASE: GENERATING MATCHSTICK
+				objs_base.get(1).genMatchStickRand();
+				int randomLeaf = objs_base.get(1).chooseRandLeaf();
+
+				
+				//SAMPLE: GENERATING MATCHSTICSK
+				//int tries = 0;
+
+				System.out.println("In Sample");
+				//System.out.println("Trying to Generate Sample. Try: " + tries);
+				sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(1));
+				//tries++;
+				if(!sampleSuccess){
+					objs_sample.set(i, new AllenMatchStick());
+				}
+
+				if(sampleSuccess){
+					//CHOICES: GENERATING MATCHSTICKS
+					//GENERATING MATCH
+					int leafToMorphIndx = 1; //The randomly chosen leaf before should be the first component
+					boolean maintainTangent = true;
+
+					System.out.println("In Match");
+					try{
+						matchSuccess = objs_match.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), maintainTangent);
+					} catch(Exception e){
+						matchSuccess = false;
+					}
+					if(!matchSuccess){
+						objs_match.set(i, new AllenMatchStick());
+					}
+
+				}
+
+
+				if(sampleSuccess & matchSuccess){
+					tryagain = false;
+					nSuccess++;
+					System.out.println("SUCCESS!: " + nSuccess);
+				}
+				else{
+					tryagain = true;
+					nTries++;
+					System.out.println("TRYING AGAIN: " + nTries + " tries.");
+				}
+			}
+
 			//GENERATING DISTRACTORS
 			for(int j=0; j<numChoices-1; j++){
 				objs_distractor.get(i).get(j).genMatchStickRand();
@@ -122,14 +169,14 @@ public class MStickBlockGenOne{
 			for(int j=0; j<numChoices-1; j++){
 				objs_distractor.get(i).get(j).centerShapeAtPoint(-1, distractorsEyeWinCoords.get(j));
 			}
-			
+
 
 			//GENERATING SPECS
 			//SAMPLE
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			AllenMStickSpec sampleSpec = new AllenMStickSpec();
-				//SAMPLE: SIZE
+			//SAMPLE: SIZE
 			sampleSpec.setMStickInfo(objs_sample.get(i));
 			sampleSpec.setMinSize(sampleScaleLowerLim);
 			sampleSpec.setMaxSize(sampleScaleUpperLim);
@@ -138,9 +185,9 @@ public class MStickBlockGenOne{
 			AllenMStickSpec matchSpec = new AllenMStickSpec();
 			List<AllenMStickSpec> distractorSpec = new ArrayList<AllenMStickSpec>();
 			matchSpec.setMStickInfo(objs_match.get(i));
-				//MATCH: SIZE
-				matchSpec.setMinSize(sampleScaleLowerLim);
-				matchSpec.setMaxSize(sampleScaleUpperLim);
+			//MATCH: SIZE
+			matchSpec.setMinSize(sampleScaleLowerLim);
+			matchSpec.setMaxSize(sampleScaleUpperLim);
 			//DISTRACTORS
 			for(int j=0; j<numChoices-1; j++){
 				distractorSpec.add(new AllenMStickSpec());
@@ -159,7 +206,7 @@ public class MStickBlockGenOne{
 				dbUtil.writeStimObjData(matchId+j+1, distractorSpec.get(j).toXml(), "Distractor");
 				choiceIds[j+1] = matchId+j+1;
 			}
-			
+
 			//WRITING STIM-SPECS TO DB
 			//targetEyeWinCoords
 			targetEyeWinCoords.add(matchEyeWinCoords);
@@ -175,7 +222,7 @@ public class MStickBlockGenOne{
 			RewardPolicy rewardPolicy = RewardPolicy.LIST;
 			//rewardList
 			int[] rewardList = {0};
-			
+
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
@@ -257,7 +304,7 @@ public class MStickBlockGenOne{
 
 			return output;
 		}
-		
+
 		/**
 		 * 
 		 * @return
