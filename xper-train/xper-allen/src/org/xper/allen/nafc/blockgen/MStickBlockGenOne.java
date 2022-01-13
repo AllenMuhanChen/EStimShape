@@ -8,17 +8,18 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
 import org.xper.Dependency;
+import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.AllenMStickSpec;
 import org.xper.allen.specs.NAFCStimSpecSpec;
-import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
+import org.xper.utils.RGBColor;
 
 
 
@@ -47,7 +48,8 @@ public class MStickBlockGenOne{
 	}
 
 	long genId = 1;
-
+	List<Long> ids = new ArrayList<Long>();
+	
 	public void generate(int[] trialTypes, int[] trialNums,
 			double sampleScaleLowerLim, double sampleScaleUpperLim, double sampleRadiusLowerLim, 
 			double sampleRadiusUpperLim, double eyeWinSize, 
@@ -93,7 +95,7 @@ public class MStickBlockGenOne{
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
-		
+
 		int nSuccess = 0;
 		for (int i = 0; i < numTrials; i++) {
 			int numChoices = trialTypeList.get(i);
@@ -106,15 +108,13 @@ public class MStickBlockGenOne{
 			while (tryagain){
 				boolean sampleSuccess = false;
 				boolean matchSuccess = false;
-				
+
 				//BASE: GENERATING MATCHSTICK
 				objs_base.get(1).genMatchStickRand();
 				int randomLeaf = objs_base.get(1).chooseRandLeaf();
 
-				
-				//SAMPLE: GENERATING MATCHSTICSK
-				//int tries = 0;
 
+				//SAMPLE: GENERATING MATCHSTICSK
 				System.out.println("In Sample");
 				//System.out.println("Trying to Generate Sample. Try: " + tries);
 				sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(1));
@@ -126,7 +126,7 @@ public class MStickBlockGenOne{
 				if(sampleSuccess){
 					//CHOICES: GENERATING MATCHSTICKS
 					//GENERATING MATCH
-					int leafToMorphIndx = 1; //The randomly chosen leaf before should be the first component
+					int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					boolean maintainTangent = true;
 
 					System.out.println("In Match");
@@ -157,6 +157,28 @@ public class MStickBlockGenOne{
 			//GENERATING DISTRACTORS
 			for(int j=0; j<numChoices-1; j++){
 				objs_distractor.get(i).get(j).genMatchStickRand();
+			}
+
+			//OBJECT PROPERTIES
+			//TEXTURE
+			objs_sample.get(i).setTextureType("SPECULAR");
+			objs_match.get(i).setTextureType("SPECULAR");
+			for(int j=0; j<numChoices-1; j++){
+				objs_distractor.get(i).get(j).setTextureType("SPECULAR");
+			}
+			//COLOR
+			RGBColor white = new RGBColor(1,1,1);
+			objs_sample.get(i).setStimColor(white);
+			objs_match.get(i).setStimColor(white);
+			for(int j=0; j<numChoices-1; j++){
+				objs_distractor.get(i).get(j).setStimColor(white);
+			}
+			//CONTRAST
+			double contrast = 1;
+			objs_sample.get(i).setContrast(contrast);
+			objs_match.get(i).setContrast(contrast);
+			for(int j=0; j<numChoices-1; j++){
+				objs_distractor.get(i).get(j).setContrast(contrast);
 			}
 
 			//SPECIFYING LOCATION
@@ -228,9 +250,20 @@ public class MStickBlockGenOne{
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 
+			ids.add((long) i);
 		}
 		dbUtil.updateReadyGenerationInfo(genId, numTrials);
 		System.out.println("Done Generating...");
+		
+		
+		//WRITE TEST IMAGE
+		AllenPNGMaker pngMaker = new AllenPNGMaker(1000,1000);
+		RGBColor backColor = new RGBColor(0,0,0);
+		pngMaker.setBackColor(backColor);
+		String folderPath = "/home/r2_allen/Documents/test_pngs";
+		
+		pngMaker.createAndSavePNGsfromObjs(objs_sample, ids, folderPath+"/sample");
+		pngMaker.createAndSavePNGsfromObjs(objs_match, ids, folderPath+"/match");
 		return;
 	}
 
