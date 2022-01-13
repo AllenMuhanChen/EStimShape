@@ -3715,7 +3715,7 @@ public class MatchStick implements Drawable {
 		MStickObj4Smooth[] MObj = new MStickObj4Smooth[nComponent+1];
 		// 1. generate 1 tube Object for each TubeComp
 		for (i=1; i<= nComponent; i++)
-			MObj[i] = new MStickObj4Smooth(this.comp[i]); // use constructor to do the initialization
+			MObj[i] = new MStickObj4Smooth(comp[i]); // use constructor to do the initialization
 
 		if (nComponent == 1) {
 			this.obj1 = MObj[1];

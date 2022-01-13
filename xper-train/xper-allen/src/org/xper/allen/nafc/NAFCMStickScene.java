@@ -44,8 +44,8 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 	double[] rotation = new double[3];
 
 	/*
-	 * //this is a workout in order to allow trialStart to do the prep work,
-	 *  and for the prepareChoice/prepareSample to not call setChoice or setSample. 
+	 * //this is a workaround in order to allow trialStart to do the prep work,
+	 *  and for the prepareChoice/prepareSample call to setChoice or setSample do nothing. 
 	 */
 	int numSamplePrepped; 
 	int numChoicePrepped;
@@ -70,6 +70,10 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void trialStart(TrialContext context) {
 		numSamplePrepped = 0;
 		numChoicePrepped = 0;
+		/*
+		 * //this is a workaround in order to allow trialStart to do the prep work,
+		 *  and for the prepareChoice/prepareSample call to setChoice or setSample do nothing. 
+		 */
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
 		choiceSpec = new AllenMStickSpec[numChoices];
