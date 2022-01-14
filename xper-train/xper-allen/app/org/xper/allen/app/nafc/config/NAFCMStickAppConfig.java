@@ -36,7 +36,11 @@ import org.xper.drawing.object.BlankScreen;
  * @author r2_allen
  *
  */
-
+/**
+ * Deprecated
+ * @author r2_allen
+ *
+ */
 public class NAFCMStickAppConfig {
 	@Autowired NAFCConfig config;
 	@Autowired ClassicConfig classicConfig;

@@ -72,7 +72,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				comp[i].drawSurfPt(colorCode[i-1],scaleForMAxisShape);
 			}
 		else
-			obj1.drawVect();
+			getObj1().drawVect();
 	}
 
 
@@ -901,6 +901,93 @@ protected void RadiusAssign(int nPreserve)
 		}
 
 	}
+	
+	/**
+    genMatchStick with nComp components
+	 */
+	public boolean genMatchStick_comp(int nComp)
+	{
+		boolean showDebug = false;
+		//        System.out.println("  Start random MAxis Shape gen...");
+		if ( showDebug)
+			System.out.println("Generate new random mStick, with " + nComp + " components");
+		int i;
+		nComponent= nComp;
+		//comp = new TubeComp[nComp+1];
+
+		for (i=1; i<=nComp; i++)
+			comp[i] = new TubeComp();
+		// 1. create first component at the center of the space.
+		createFirstComp();
+		// 2. sequentially adding new components
+
+		int nowComp = 2;
+		double randNdx;
+		boolean addSuccess;
+		while (true)
+		{
+			if ( showDebug)
+				System.out.println("adding new MAxis on, now # " +  nowComp);
+			randNdx = stickMath_lib.rand01();
+			if (randNdx < PROB_addToEndorJunc)
+			{
+				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
+					addSuccess = Add_MStick(nowComp, 1);
+				else
+					addSuccess = Add_MStick(nowComp, 2);
+			}
+			else
+			{
+				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
+					addSuccess = Add_MStick(nowComp, 3);
+				else
+					addSuccess = Add_MStick(nowComp, 4);
+			}
+			if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
+				nowComp ++;
+			if (nowComp == nComp+1)
+				break;
+		}
+
+		//up to here, the eligible skeleton should be ready
+		// 3. Assign the radius value
+		RadiusAssign( 0); // no component to preserve radius
+		// 4. Apply the radius value onto each component
+		for (i=1; i<=nComponent; i++)
+		{
+			if( comp[i].RadApplied_Factory() == false) // a fail application
+			{
+				return false;
+			}
+		}
+
+
+		// 5. check if the final shape is not working ( collide after skin application)
+
+
+		if ( finalTubeCollisionCheck() == true)
+		{
+			if ( showDebug)
+				System.out.println("\n FAIL the final Tube collsion Check ....\n");
+			return false;
+		}
+
+
+		// Dec 24th 2008
+		// re-center the shape before do the validMStickSize check!
+		this.centerShapeAtOrigin(-1);
+		// this.normalizeMStickSize();
+
+		//   System.out.println("after centering");
+		if ( this.validMStickSize() ==  false)
+		{
+			if ( showDebug)
+				System.out.println("\n FAIL the MStick size check ....\n");
+			return false;
+		}
+		return true;
+	}
+
 
 	// TODO: Figure out why this is not working...
 	public void genMatchStickOfLeaf(int leaf, AllenMatchStick amsOfLeaf) {

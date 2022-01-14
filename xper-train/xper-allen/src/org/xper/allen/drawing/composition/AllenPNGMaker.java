@@ -10,17 +10,21 @@ import java.util.List;
 
 import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.opengl.GL11;
-import org.xper.alden.drawing.drawables.DrawingManager;
-import org.xper.alden.drawing.drawables.PNGmaker;
+import org.xper.Dependency;
+import org.xper.allen.util.DPIUtil;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.utils.RGBColor;
 
 public class AllenPNGMaker{
+	@Dependency
+	DPIUtil dpiUtil;
+	@Dependency
+	AllenDrawingManager window;
 	//int height = 224;
 	//int width = 224;
 	int height = 1024;
 	int width = 1024;
-	RGBColor backColor = new RGBColor(0,0,0);
+	
 	
 	public AllenPNGMaker(int width, int height) {
 		this.width = width;
@@ -29,18 +33,15 @@ public class AllenPNGMaker{
 	
 	public AllenPNGMaker() {}
 
-	public void createAndSavePNGsfromObjs(List<? extends MatchStick> objs,List<Long> stimObjIds,String imageFolderName) {
-		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
-		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
-		testWindow.setPngMaker(this);
-		testWindow.setImageFolderName(imageFolderName);
+	
+	public void createAndSavePNGsfromObjs(List<? extends MatchStick> objs,List<Long> stimObjIds) {
 		System.out.println("creating and saving PNGs...");
 
-		testWindow.setStimObjs(objs);
-		testWindow.setStimObjIds(stimObjIds);
+		window.setStimObjs(objs);
+		window.setStimObjIds(stimObjIds);
 		
-		testWindow.drawStimuli();				// draw object
-		testWindow.close();
+		window.drawStimuli();				// draw object
+		window.close();
 		System.out.println("...done saving PNGs");
 	}
 	
@@ -101,7 +102,36 @@ public class AllenPNGMaker{
 		return ByteBuffer.allocateDirect(howmany * SIZE_BYTE).order(ByteOrder.nativeOrder());
 	}
 	
-	public void setBackColor(RGBColor backColor) {
-		this.backColor = backColor;
+
+	public DPIUtil getDpiUtil() {
+		return dpiUtil;
+	}
+
+	public void setDpiUtil(DPIUtil dpiUtil) {
+		this.dpiUtil = dpiUtil;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public void setHeight(int height) {
+		this.height = height;
+	}
+
+	public int getWidth() {
+		return width;
+	}
+
+	public void setWidth(int width) {
+		this.width = width;
+	}
+
+	public AllenDrawingManager getWindow() {
+		return window;
+	}
+
+	public void setWindow(AllenDrawingManager window) {
+		this.window = window;
 	}
 }
