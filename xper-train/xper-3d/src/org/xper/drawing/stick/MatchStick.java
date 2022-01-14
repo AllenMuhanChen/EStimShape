@@ -28,7 +28,7 @@ public class MatchStick implements Drawable {
 	protected int nJuncPt;
 	protected EndPt_struct[] endPt = new EndPt_struct[50];
 	protected JuncPt_struct[] JuncPt = new JuncPt_struct[50];
-	protected MStickObj4Smooth obj1;
+	private MStickObj4Smooth obj1;
 	protected boolean[] LeafBranch = new boolean[10];
 
 
@@ -91,7 +91,7 @@ public class MatchStick implements Drawable {
 			JuncPt[i] = new JuncPt_struct();
 			JuncPt[i].copyFrom(in.JuncPt[i]);
 		}
-		this.obj1 = in.obj1; 
+		this.setObj1(in.getObj1()); 
 
 		for (i=1; i<=nComponent; i++)
 			LeafBranch[i] = in.LeafBranch[i];
@@ -376,7 +376,7 @@ public class MatchStick implements Drawable {
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = obj1.nVect;
+					int nVect1 = getObj1().nVect;
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -386,9 +386,9 @@ public class MatchStick implements Drawable {
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= obj1.nVect; i++)
+						for (i= 1; i<= getObj1().nVect; i++)
 						{
-							Point3d p1 = new Point3d(obj1.vect_info[i]);
+							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
 							vect_dist += p1.distance(p2);
 						}
@@ -490,7 +490,7 @@ public class MatchStick implements Drawable {
 					{
 						Point3d[] oriVecList = inSpec.getVectInfo();
 						double vect_dist = 0.0;
-						int nVect1 = obj1.nVect;
+						int nVect1 = getObj1().nVect;
 						int nVect2 = inSpec.getNVect();
 						System.out.println("vec # check " + nVect1 + " " + nVect2);
 						if ( nVect1 != nVect2)
@@ -500,9 +500,9 @@ public class MatchStick implements Drawable {
 						}
 						if ( res == true)
 						{
-							for (i= 1; i<= obj1.nVect; i++)
+							for (i= 1; i<= getObj1().nVect; i++)
 							{
-								Point3d p1 = new Point3d(obj1.vect_info[i]);
+								Point3d p1 = new Point3d(getObj1().vect_info[i]);
 								Point3d p2 = oriVecList[i];
 								vect_dist += p1.distance(p2);
 							}
@@ -591,7 +591,7 @@ public class MatchStick implements Drawable {
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = this.obj1.nVect;
+					int nVect1 = this.getObj1().nVect;
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -601,9 +601,9 @@ public class MatchStick implements Drawable {
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= obj1.nVect; i++)
+						for (i= 1; i<= getObj1().nVect; i++)
 						{
-							Point3d p1 = new Point3d(obj1.vect_info[i]);
+							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
 							vect_dist += p1.distance(p2);
 						}
@@ -714,7 +714,7 @@ public class MatchStick implements Drawable {
 		Vector3d[] inormMat_info = inSpec.getNormMatInfo();
 		int[][] iFac_info = inSpec.getFacInfo();
 
-		obj1.setInfo(nVect, ivect_info, inormMat_info, nFac, iFac_info);
+		getObj1().setInfo(nVect, ivect_info, inormMat_info, nFac, iFac_info);
 
 
 		modifyMAxisFinalInfo();
@@ -797,7 +797,7 @@ public class MatchStick implements Drawable {
 				comp[i].drawSurfPt(colorCode[i-1],scaleForMAxisShape);
 			}
 		else
-			obj1.drawVect();
+			getObj1().drawVect();
 	}
 
 	/**
@@ -1707,7 +1707,7 @@ public class MatchStick implements Drawable {
 	/**
          Deal with the creation of first MAxisArc component
 	 */
-	private void createFirstComp() // create the first component of the MStick
+	protected void createFirstComp() // create the first component of the MStick
 	{
 		Point3d finalPos = new Point3d(0,0,0); //always put at origin;
 		Vector3d finalTangent = new Vector3d(0,0,0);
@@ -3528,15 +3528,15 @@ public class MatchStick implements Drawable {
 	{
 		Point3d center = new Point3d(0,0,0);
 		int i;
-		for (i=1; i<= obj1.nVect; i++)
+		for (i=1; i<= getObj1().nVect; i++)
 		{
-			center.x  += obj1.vect_info[i].x;
-			center.y  += obj1.vect_info[i].y;
-			center.z  += obj1.vect_info[i].z;
+			center.x  += getObj1().vect_info[i].x;
+			center.y  += getObj1().vect_info[i].y;
+			center.z  += getObj1().vect_info[i].z;
 		}
-		center.x /= obj1.nVect;
-		center.y /= obj1.nVect;
-		center.z /= obj1.nVect;
+		center.x /= getObj1().nVect;
+		center.y /= getObj1().nVect;
+		center.z /= getObj1().nVect;
 		// July 30 2009
 		//there are two ways
 		// 1. the avg of all points on the mesh
@@ -3718,7 +3718,7 @@ public class MatchStick implements Drawable {
 			MObj[i] = new MStickObj4Smooth(comp[i]); // use constructor to do the initialization
 
 		if (nComponent == 1) {
-			this.obj1 = MObj[1];
+			this.setObj1(MObj[1]);
 			return true;
 		}
 
@@ -3736,14 +3736,14 @@ public class MatchStick implements Drawable {
 		nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
 
 		// for debug
-		this.obj1 = new MStickObj4Smooth();
-		this.obj1 = MObj[1];
+		this.setObj1(new MStickObj4Smooth());
+		this.setObj1(MObj[1]);
 
-		this.obj1.rotateMesh(finalRotation);
-		this.obj1.scaleTheObj(scaleForMAxisShape*3);
+		this.getObj1().rotateMesh(finalRotation);
+		this.getObj1().scaleTheObj(scaleForMAxisShape*3);
 
 		if (doCenterObject)
-			this.finalShiftinDepth = this.obj1.subCenterOfMass();
+			this.finalShiftinDepth = this.getObj1().subCenterOfMass();
 
 		return true;
 	}
@@ -4157,8 +4157,8 @@ public class MatchStick implements Drawable {
 		}
 
 		// for debug
-		this.obj1 = new MStickObj4Smooth();
-		this.obj1 = MObj[1];
+		this.setObj1(new MStickObj4Smooth());
+		this.setObj1(MObj[1]);
 
 		// Oct 2nd 2008
 		// At this point, origin ( fixation pt) is inside the first component
@@ -4193,12 +4193,12 @@ public class MatchStick implements Drawable {
 	}
 	protected void initLight() {
 		if (textureType.compareTo("TWOD") == 0) { 
-			obj1.doLighting = false;
-			obj1.stimColor.setRed((float)(stimColor.getRed()*contrast));
-			obj1.stimColor.setBlue((float)(stimColor.getBlue()*contrast));
-			obj1.stimColor.setGreen((float)(stimColor.getGreen()*contrast));
+			getObj1().doLighting = false;
+			getObj1().stimColor.setRed((float)(stimColor.getRed()*contrast));
+			getObj1().stimColor.setBlue((float)(stimColor.getBlue()*contrast));
+			getObj1().stimColor.setGreen((float)(stimColor.getGreen()*contrast));
 		} else
-			obj1.doLighting = true;
+			getObj1().doLighting = true;
 
 		Lighting light = new Lighting();
 		light.setLightColor(stimColor);
@@ -4209,7 +4209,7 @@ public class MatchStick implements Drawable {
 		float[] mat_specular = light.getSpecular();
 		float mat_shininess = light.getShine();
 
-		obj1.contrast = contrast;
+		getObj1().contrast = contrast;
 
 		float[] light_position = {0.0f, 0.0f, 500.0f, 1.0f};
 
@@ -4248,7 +4248,7 @@ public class MatchStick implements Drawable {
 	}
 
 	public MStickObj4Smooth getSmoothObj() {
-		return obj1;
+		return getObj1();
 	}
 
 	public int getNComponent() {
@@ -4299,6 +4299,14 @@ public class MatchStick implements Drawable {
 
 	public TubeComp[] getComp() {
 		return this.comp;
+	}
+
+	public MStickObj4Smooth getObj1() {
+		return obj1;
+	}
+
+	public void setObj1(MStickObj4Smooth obj1) {
+		this.obj1 = obj1;
 	}
 }
 

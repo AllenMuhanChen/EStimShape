@@ -7,10 +7,12 @@ import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
+import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
+import org.xper.alden.drawing.renderer.OrthographicRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.drawing.stick.MatchStick;
 
@@ -34,6 +36,7 @@ public class AllenDrawingManager implements Drawable {
 	AllenPNGMaker pngMaker;
 
 	BaseWindow window;
+	@Dependency
 	AbstractRenderer renderer;
 
 	public AllenDrawingManager() {
@@ -49,6 +52,8 @@ public class AllenDrawingManager implements Drawable {
 		this.width = width;
 	}
 
+	public double 
+	
 	public void drawStimuli() {
 		window = new BaseWindow(height,width);
 
@@ -57,13 +62,13 @@ public class AllenDrawingManager implements Drawable {
 		window.create();
 
 		renderer = new PerspectiveRenderer();
-//		renderer = new OrthographicRenderer();
-		renderer.setDepth(6000);
-		renderer.setDistance(500); //TODO: stitch this into scene so it is a dependency
-		renderer.setPupilDistance(50);
-		renderer.setHeight(height);
-		renderer.setWidth(width);
-		renderer.init(window.getWidth(), window.getHeight());
+		//renderer = new OrthographicRenderer();
+		//renderer.setDepth(6000);
+		//renderer.setDistance(500); //TODO: stitch this into generator so it is a dependency
+		//renderer.setPupilDistance(50);
+		//renderer.setHeight(height);
+		//renderer.setWidth(width);
+		//renderer.init(window.getWidth(), window.getHeight());
 
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -127,5 +132,12 @@ public class AllenDrawingManager implements Drawable {
 	public void setStimObjs(List<? extends MatchStick> stimObjs) {
 		this.stimObjs = stimObjs;
 		nStim = stimObjs.size();
+	}
+
+	public void setBackgroundColor(double d, double e, double f) {
+		this.r_bkgrd = (float) d;
+		this.g_bkgrd = (float) e;
+		this.b_bkgrd = (float) f;
+		
 	}
 }

@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.MStickBlockGenOne;
+import org.xper.allen.nafc.blockgen.MStickPngBlockGenOne;
 import org.xper.allen.nafc.blockgen.PngBlockGenFour;
 import org.xper.allen.nafc.blockgen.PngBlockGenOne;
 import org.xper.allen.nafc.blockgen.PngBlockGenThree;
@@ -58,7 +59,7 @@ public class MStickGeneratorOne {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		MStickBlockGenOne gen = context.getBean(MStickBlockGenOne.class);
+		MStickPngBlockGenOne gen = context.getBean(MStickPngBlockGenOne.class);
 		
 		try {
 			//target eye window size
