@@ -11,37 +11,60 @@ import java.util.List;
 import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
+import org.xper.alden.drawing.renderer.AbstractRenderer;
+import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.util.DPIUtil;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.utils.RGBColor;
 
 public class AllenPNGMaker{
-	@Dependency
-	DPIUtil dpiUtil;
-	@Dependency
-	AllenDrawingManager window;
 	//int height = 224;
 	//int width = 224;
+	
+	@Dependency 
+	DPIUtil dpiUtil;
+	@Dependency
+	RGBColor backColor;
+	@Dependency
+	String imageFolderName;
+	@Dependency
+	double distance;
+	@Dependency
+	double pupilDistance;
+	@Dependency
+	double depth;
+	AbstractRenderer pngRenderer;
+	
 	int height = 1024;
 	int width = 1024;
-	
 	
 	public AllenPNGMaker(int width, int height) {
 		this.width = width;
 		this.height = height;
+		
+		pngRenderer = new PerspectiveRenderer();
+		//renderer = new OrthographicRenderer();
+		pngRenderer.setDepth(depth);
+		pngRenderer.setDistance(distance); //TODO: stitch this into generator so it is a dependency
+		pngRenderer.setPupilDistance(pupilDistance);
+		pngRenderer.setHeight(height);
+		pngRenderer.setWidth(width);
 	}
 	
 	public AllenPNGMaker() {}
 
-	
 	public void createAndSavePNGsfromObjs(List<? extends MatchStick> objs,List<Long> stimObjIds) {
+		AllenDrawingManager testWindow = new AllenDrawingManager(height,width, pngRenderer);
+		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
+		testWindow.setPngMaker(this);
+		testWindow.setImageFolderName(imageFolderName);
 		System.out.println("creating and saving PNGs...");
 
-		window.setStimObjs(objs);
-		window.setStimObjIds(stimObjIds);
+		testWindow.setStimObjs(objs);
+		testWindow.setStimObjIds(stimObjIds);
 		
-		window.drawStimuli();				// draw object
-		window.close();
+		testWindow.drawStimuli();				// draw object
+		testWindow.close();
 		System.out.println("...done saving PNGs");
 	}
 	
@@ -102,6 +125,9 @@ public class AllenPNGMaker{
 		return ByteBuffer.allocateDirect(howmany * SIZE_BYTE).order(ByteOrder.nativeOrder());
 	}
 	
+	public void setBackColor(RGBColor backColor) {
+		this.backColor = backColor;
+	}
 
 	public DPIUtil getDpiUtil() {
 		return dpiUtil;
@@ -109,6 +135,14 @@ public class AllenPNGMaker{
 
 	public void setDpiUtil(DPIUtil dpiUtil) {
 		this.dpiUtil = dpiUtil;
+	}
+
+	public String getImageFolderName() {
+		return imageFolderName;
+	}
+
+	public void setImageFolderName(String imageFolderName) {
+		this.imageFolderName = imageFolderName;
 	}
 
 	public int getHeight() {
@@ -127,11 +161,39 @@ public class AllenPNGMaker{
 		this.width = width;
 	}
 
-	public AllenDrawingManager getWindow() {
-		return window;
+	public RGBColor getBackColor() {
+		return backColor;
 	}
 
-	public void setWindow(AllenDrawingManager window) {
-		this.window = window;
+	public AbstractRenderer getPngRenderer() {
+		return pngRenderer;
+	}
+
+	public void setPngRenderer(AbstractRenderer pngRenderer) {
+		this.pngRenderer = pngRenderer;
+	}
+
+	public double getDistance() {
+		return distance;
+	}
+
+	public void setDistance(double distance) {
+		this.distance = distance;
+	}
+
+	public double getPupilDistance() {
+		return pupilDistance;
+	}
+
+	public void setPupilDistance(double pupilDistance) {
+		this.pupilDistance = pupilDistance;
+	}
+
+	public double getDepth() {
+		return depth;
+	}
+
+	public void setDepth(double depth) {
+		this.depth = depth;
 	}
 }

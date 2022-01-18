@@ -4,7 +4,6 @@ import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
  * Fields correspond with xml entries in the "spec" column in "stimspec" database table. 
@@ -66,17 +65,6 @@ public class NAFCStimSpecSpec {
 	public NAFCStimSpecSpec() {
 	}
 	
-	public NAFCStimSpecSpec(org.xper.utils.Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData, 
-			long[] choiceObjData, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
-		this.targetEyeWinCoords = targetEyeWinCoords;
-		this.targetEyeWinSize = targetEyeWinSize;
-		this.sampleObjData = sampleObjData;
-		this.choiceObjData = choiceObjData;
-		this.eStimObjData = eStimObjData;
-		this.rewardPolicy = rewardPolicy;
-		this.rewardList = rewardList;
-		
-	}
 
 
 	public RewardPolicy getRewardPolicy() {

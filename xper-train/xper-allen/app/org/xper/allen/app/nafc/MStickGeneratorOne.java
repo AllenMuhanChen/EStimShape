@@ -1,14 +1,7 @@
 package org.xper.allen.app.nafc;
 
-import java.util.Arrays;
-
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.MStickBlockGenOne;
 import org.xper.allen.nafc.blockgen.MStickPngBlockGenOne;
-import org.xper.allen.nafc.blockgen.PngBlockGenFour;
-import org.xper.allen.nafc.blockgen.PngBlockGenOne;
-import org.xper.allen.nafc.blockgen.PngBlockGenThree;
-import org.xper.allen.nafc.blockgen.PngBlockGenTwo;
 import org.xper.util.FileUtil;
 
 /**

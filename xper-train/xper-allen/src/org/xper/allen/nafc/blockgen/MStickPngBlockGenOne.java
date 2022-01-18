@@ -17,9 +17,9 @@ import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
+import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
-import org.xper.utils.Coordinates2D;
 import org.xper.utils.RGBColor;
 
 /**
@@ -173,9 +173,10 @@ public class MStickPngBlockGenOne{
 				//pixel resolutions to meet that DPI at a maximum image size.
 				//Then this pixel length is converted to degrees to use as the
 				//scale. 
-			ImageDimensions minPixelDimensions = pngMaker.getDpiUtil().calculateMinResolution();
-			Coordinates2D minMmDimensions = pngMaker.getWindow().getRenderer().pixel2mm(new Coordinates2D(minPixelDimensions.getWidth(), minPixelDimensions.getHeight()));
-			double scale = pngMaker.getWindow().getRenderer().mm2deg(minMmDimensions.getX());
+			int minPixelDimension = pngMaker.getDpiUtil().calculateMinResolution();
+			pngMaker.getPngRenderer().softInit(minPixelDimension, minPixelDimension);
+			Coordinates2D minMmDimensions = pngMaker.getPngRenderer().pixel2mm(new Coordinates2D(minPixelDimension, minPixelDimension));
+			double scale = pngMaker.getPngRenderer().mm2deg(minMmDimensions.getX());
 			double minScale = 0.5*scale;
 			
 			objs_sample.get(i).setScale(minScale, scale);
