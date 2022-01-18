@@ -2,8 +2,7 @@ package org.xper.alden.drawing.renderer;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
-import org.xper.alden.drawing.renderer.Renderer;
-import org.xper.utils.Coordinates2D;
+import org.xper.drawing.Coordinates2D;
 
 public abstract class AbstractRenderer implements Renderer {
 
@@ -172,12 +171,32 @@ public abstract class AbstractRenderer implements Renderer {
 		heightInPixel = h;
 		init();
 	}
+	
+	/**
+	 * Init without calling GL. Purely for initializing renderer to use unit conversion
+	 * methods without calling OpenGL for drawing. 
+	 */
+	public void softInit(int w, int h){
+		setPixelWidthHeight(w,h);
+		calculateCoordinates();
+	}
+	
+	/**
+	 * Allows setting width and height in pixel. 
+	 * @param w
+	 * @param h
+	 * @author r2_allen
+	 */
+	public void setPixelWidthHeight(int w, int h) {
+		widthInPixel = w;
+		heightInPixel = h;
+	}
 
 	public void draw(Drawable scene) {
 		scene.draw();
 	}
 
-	protected void calculateCoordinates() {
+	public void calculateCoordinates() {
 		hunit = width / (double) widthInPixel;
 		vunit = height / (double) heightInPixel;
 

@@ -86,10 +86,16 @@ public class NAFCMStickPngAppConfig {
 	public AllenPNGMaker pngMaker(){
 		AllenPNGMaker pngMaker = new AllenPNGMaker();
 		pngMaker.setDpiUtil(dpiUtil());
+		RGBColor backColor = new RGBColor(0,0,0);
+		pngMaker.setBackColor(backColor);
+		pngMaker.setImageFolderName(xperImageFolderName());
+		pngMaker.setDepth(classicConfig.xperMonkeyScreenDepth());
+		pngMaker.setDistance(classicConfig.xperMonkeyScreenDistance());
+		pngMaker.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return pngMaker;
 	}
-	
-	
+
+
 	@Bean
 	public DPIUtil dpiUtil(){
 		DPIUtil dpiUtil = new DPIUtil();
@@ -99,29 +105,6 @@ public class NAFCMStickPngAppConfig {
 		return dpiUtil;
 	}
 
-	@Bean
-	public AllenDrawingManager drawingManager(){
-		AllenDrawingManager testWindow = new AllenDrawingManager();
-		testWindow.setRenderer(pngRenderer());
-		testWindow.setBackgroundColor(xperBackgroundColor()[0],xperBackgroundColor()[1],xperBackgroundColor()[2]);
-		testWindow.setPngMaker(pngMaker());
-		testWindow.setImageFolderName(xperImageFolderName());
-		
-		return testWindow;
-	}
-
-	@Bean
-	public AbstractRenderer pngRenderer(){
-		PerspectiveRenderer pngRenderer = new org.xper.alden.drawing.renderer.PerspectiveRenderer();
-		pngRenderer.setDepth(classicConfig.xperMonkeyScreenDepth());
-		pngRenderer.setDistance(classicConfig.xperMonkeyScreenDistance());
-		pngRenderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
-		ImageDimensions minPixelResolution = dpiUtil().calculateMinResolution(); 
-		pngRenderer.setHeight(minPixelResolution.getHeight());
-		pngRenderer.setHeight(minPixelResolution.getWidth());
-		pngRenderer.setWidth(dpiUtil().getMaxStimulusDimensionDegrees());
-	}
-	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double[] xperBackgroundColor() {
 		return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),
@@ -133,16 +116,16 @@ public class NAFCMStickPngAppConfig {
 	public String xperImageFolderName(){
 		return baseConfig.systemVariableContainer().get("xper_image_folder_name", 0);
 	}
-	
+
 	//For DPIUtil
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double xperMonkeyScreenDPI(){
 		return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_monkey_screen_dpi", 0));
 	}
-	
+
 	//For DPIUtil
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double xperMaxImageDimensionDegrees(){
 		return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_max_image_dimension_degrees", 0));
-	
+	}
 }

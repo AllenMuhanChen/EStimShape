@@ -20,12 +20,12 @@ public class DPIUtil {
 	@Dependency
 	AbstractRenderer renderer;
 	
-	public ImageDimensions calculateMinResolution(){
+	public int calculateMinResolution(){
 		double maxDimMm = renderer.deg2mm(maxImageDimensionDegrees);
 		double maxDimInches = maxDimMm / 25.4;
-		double minPixels = Math.round(dpi*maxDimInches);
+		int minPixels = (int) Math.round(dpi*maxDimInches);
 		
-		return new ImageDimensions(minPixels, minPixels);
+		return minPixels;
 	}
 
 	public double getDpi() {
