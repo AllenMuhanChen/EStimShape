@@ -85,6 +85,8 @@ public class NAFCMStickPngAppConfig {
 	@Bean
 	public AllenPNGMaker pngMaker(){
 		AllenPNGMaker pngMaker = new AllenPNGMaker();
+		pngMaker.setWidth(dpiUtil().calculateMinResolution());
+		pngMaker.setHeight(dpiUtil().calculateMinResolution());
 		pngMaker.setDpiUtil(dpiUtil());
 		RGBColor backColor = new RGBColor(0,0,0);
 		pngMaker.setBackColor(backColor);

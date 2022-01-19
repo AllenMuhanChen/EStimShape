@@ -173,10 +173,12 @@ public class MStickPngBlockGenOne{
 				//pixel resolutions to meet that DPI at a maximum image size.
 				//Then this pixel length is converted to degrees to use as the
 				//scale. 
-			int minPixelDimension = pngMaker.getDpiUtil().calculateMinResolution();
-			pngMaker.getPngRenderer().softInit(minPixelDimension, minPixelDimension);
-			Coordinates2D minMmDimensions = pngMaker.getPngRenderer().pixel2mm(new Coordinates2D(minPixelDimension, minPixelDimension));
-			double scale = pngMaker.getPngRenderer().mm2deg(minMmDimensions.getX());
+			//int minPixelDimension = pngMaker.getDpiUtil().calculateMinResolution();
+			//pngMaker.getPngRenderer().softInit(minPixelDimension, minPixelDimension);
+			//Coordinates2D minMmDimensions = pngMaker.getPngRenderer().pixel2mm(new Coordinates2D(minPixelDimension, minPixelDimension));
+			//double scale = pngMaker.getPngRenderer().mm2deg(minMmDimensions.getX());
+			//double minScale = 0.5*scale;
+			double scale = 4;
 			double minScale = 0.5*scale;
 			
 			objs_sample.get(i).setScale(minScale, scale);
