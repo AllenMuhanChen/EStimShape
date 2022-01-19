@@ -2326,8 +2326,9 @@ public class MatchStick implements Drawable {
 	/**
 	 *   A function that will put the center of comp1 back to origin
 	 */
-	protected void centerShapeAtOrigin(int decidedCenterTube)
+	public void centerShapeAtOrigin(int decidedCenterTube)
 	{
+		try {
 		boolean showDebug = false;
 		int i;
 		int compToCenter = decidedCenterTube;
@@ -2370,7 +2371,10 @@ public class MatchStick implements Drawable {
 			//              return false;
 		}
 		//return true;
-
+		}catch (Exception e) {
+			System.out.println("Centering failed for some reason.");
+			e.printStackTrace();
+		}
 	}
 	/**
         reAssign the junction radius value

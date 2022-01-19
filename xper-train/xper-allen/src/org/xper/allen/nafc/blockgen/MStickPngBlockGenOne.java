@@ -40,7 +40,8 @@ public class MStickPngBlockGenOne{
 	String experimentPngPath;
 	@Dependency
 	AllenPNGMaker pngMaker;
-
+	@Dependency
+	double maxImageDimensionDegrees;
 
 	/**
 	 * Selects visual stimuli randomly from stimTypes
@@ -57,8 +58,6 @@ public class MStickPngBlockGenOne{
 
 	long genId = 1;
 	List<Long> ids = new ArrayList<Long>();
-	static double scale = 5;
-	static double minScale = scale/2;
 
 	public void generate(int[] trialTypes, int[] trialNums,
 			double sampleScaleLowerLim, double sampleScaleUpperLim, double sampleRadiusLowerLim, 
@@ -69,6 +68,7 @@ public class MStickPngBlockGenOne{
 			double distractorScaleUpperLim) { //
 
 
+		
 		//INTERMIXING TYPES OF TRIALS
 		int numTrials = IntStream.of(trialNums).sum(); //Sum all elements of trialNums
 		List<Integer>trialTypeList = new ArrayList<Integer>(); //Type = number of choices
@@ -136,9 +136,10 @@ public class MStickPngBlockGenOne{
 					objs_sample.set(i, new AllenMatchStick());
 				}
 
+				
+				//MATCH: GENERATING MATCHSTICK
 				if(sampleSuccess){
-					//CHOICES: GENERATING MATCHSTICKS
-					//GENERATING MATCH
+
 					int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					boolean maintainTangent = true;
 
@@ -271,7 +272,7 @@ public class MStickPngBlockGenOne{
 	 * It is imperative that these properties are set before the object is generated/is smoothized.
 	 * @param obj
 	 */
-	private static void setProperties(AllenMatchStick obj) {
+	private void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
 		//TEXTURE
 		obj.setTextureType("SHADE");
@@ -287,8 +288,14 @@ public class MStickPngBlockGenOne{
 		//SETTING SIZES 
 		//scale=4;
 		//minScale = 0.5*scale;
+		
+		double padding = 1.5;
+		double scale = maxImageDimensionDegrees - padding;
+		double minScale = maxImageDimensionDegrees/2;
+		
 		obj.setScale(minScale, scale);
-
+		
+		
 	}
 
 	private static Coordinates2D randomChoice(double lowerRadiusLim, double upperRadiusLim){
@@ -479,6 +486,14 @@ public class MStickPngBlockGenOne{
 
 	public void setPngMaker(AllenPNGMaker pngMaker) {
 		this.pngMaker = pngMaker;
+	}
+
+	public double getMaxImageDimensionDegrees() {
+		return maxImageDimensionDegrees;
+	}
+
+	public void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {
+		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
 	}
 
 }

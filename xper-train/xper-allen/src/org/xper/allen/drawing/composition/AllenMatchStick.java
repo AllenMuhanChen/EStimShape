@@ -150,6 +150,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 
+			centerShapeAtOrigin(-1);
 			if(success){
 				boolean res;
 				try{
@@ -470,7 +471,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			// this.centerShapeAtOrigin(-1);
+			this.centerShapeAtOrigin(-1);
 			if(compSuccess){
 				boolean res;
 				try {
