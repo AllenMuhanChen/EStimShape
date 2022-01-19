@@ -89,12 +89,12 @@ public class AllenPNGMaker{
 		int[] pixels = new int[width * height];
 		int bindex;
 		// grab a copy of the current frame contents as RGB (has to be UNSIGNED_BYTE or colors come out too dark)
-		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, framebytes);
+		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, framebytes);
 		// copy RGB data from ByteBuffer to integer array
 		for (int i = 0; i < pixels.length; i++) {
-			bindex = i * 3;
+			bindex = i * 4;
 			pixels[i] =
-					0xFF000000                                          // A
+					  ((framebytes.get(bindex+3) & 0x000000FF) << 24)   // A                                 // A
 					| ((framebytes.get(bindex)   & 0x000000FF) << 16)   // R
 					| ((framebytes.get(bindex+1) & 0x000000FF) <<  8)   // G
 					| ((framebytes.get(bindex+2) & 0x000000FF) <<  0);  // B

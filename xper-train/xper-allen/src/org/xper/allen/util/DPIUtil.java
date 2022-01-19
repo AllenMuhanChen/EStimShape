@@ -25,7 +25,7 @@ public class DPIUtil {
 		double maxDimInches = maxDimMm / 25.4;
 		int minPixels = (int) Math.round(dpi*maxDimInches);
 		
-		return minPixels;
+		return minPixels+1;
 	}
 
 	
