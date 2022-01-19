@@ -57,8 +57,8 @@ public class MStickPngBlockGenOne{
 
 	long genId = 1;
 	List<Long> ids = new ArrayList<Long>();
-	double scale = 0.1;
-	double minScale = scale/2;
+	static double scale = 5;
+	static double minScale = scale/2;
 
 	public void generate(int[] trialTypes, int[] trialNums,
 			double sampleScaleLowerLim, double sampleScaleUpperLim, double sampleRadiusLowerLim, 
@@ -121,6 +121,7 @@ public class MStickPngBlockGenOne{
 				boolean matchSuccess = false;
 
 				//BASE: GENERATING MATCHSTICK
+				setProperties(objs_base.get(1));
 				objs_base.get(1).genMatchStickRand();
 				int randomLeaf = objs_base.get(1).chooseRandLeaf();
 
@@ -128,6 +129,7 @@ public class MStickPngBlockGenOne{
 				//SAMPLE: GENERATING MATCHSTICSK
 				System.out.println("In Sample");
 				//System.out.println("Trying to Generate Sample. Try: " + tries);
+				setProperties(objs_sample.get(i));
 				sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(1));
 				//tries++;
 				if(!sampleSuccess){
@@ -142,6 +144,7 @@ public class MStickPngBlockGenOne{
 
 					System.out.println("In Match");
 					try{
+						setProperties(objs_match.get(i));
 						matchSuccess = objs_match.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), maintainTangent);
 					} catch(Exception e){
 						matchSuccess = false;
@@ -168,49 +171,8 @@ public class MStickPngBlockGenOne{
 
 			//GENERATING DISTRACTORS
 			for(int j=0; j<numChoices-1; j++){
+				setProperties(objs_distractor.get(i).get(j));
 				objs_distractor.get(i).get(j).genMatchStickRand();
-			}
-
-
-
-			//OBJECT PROPERTIES
-			//TEXTURE
-			objs_sample.get(i).setTextureType("SHADE");
-			objs_match.get(i).setTextureType("SHADE");
-			for(int j=0; j<numChoices-1; j++){
-				objs_distractor.get(i).get(j).setTextureType("SHADE");
-			}
-			//COLOR
-			RGBColor white = new RGBColor(1,1,1);
-			objs_sample.get(i).setStimColor(white);
-			objs_match.get(i).setStimColor(white);
-			for(int j=0; j<numChoices-1; j++){
-				objs_distractor.get(i).get(j).setStimColor(white);
-			}
-			//CONTRAST
-			double contrast = 1;
-			objs_sample.get(i).setContrast(contrast);
-			objs_match.get(i).setContrast(contrast);
-			for(int j=0; j<numChoices-1; j++){
-				objs_distractor.get(i).get(j).setContrast(contrast);
-			}
-			//SETTING SIZES 
-			//This code uses the DPI of the monitor to calculate the minimum 
-			//pixel resolutions to meet that DPI at a maximum image size.
-			//Then this pixel length is converted to degrees to use as the
-			//scale. 
-			//int minPixelDimension = pngMaker.getDpiUtil().calculateMinResolution();
-			//pngMaker.getPngRenderer().softInit(minPixelDimension, minPixelDimension);
-			//Coordinates2D minMmDimensions = pngMaker.getPngRenderer().pixel2mm(new Coordinates2D(minPixelDimension, minPixelDimension));
-			//double scale = pngMaker.getPngRenderer().mm2deg(minMmDimensions.getX());
-			//double minScale = 0.5*scale;
-			double scale =0.01;
-			double minScale = 0.5*scale;
-
-			objs_sample.get(i).setScale(minScale, scale);
-			objs_match.get(i).setScale(minScale, scale);
-			for(int j=0; j<objs_distractor.get(i).size(); j++){
-				objs_distractor.get(i).get(j).setScale(minScale, scale);
 			}
 
 			//GENERATING STIM-OBJ SPECS & WRITE TO DB
@@ -305,7 +267,11 @@ public class MStickPngBlockGenOne{
 		return;
 	}
 
-	private void setProperties(AllenMatchStick obj) {
+	/**
+	 * It is imperative that these properties are set before the object is generated/is smoothized.
+	 * @param obj
+	 */
+	private static void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
 		//TEXTURE
 		obj.setTextureType("SHADE");
@@ -319,8 +285,8 @@ public class MStickPngBlockGenOne{
 		obj.setContrast(contrast);
 
 		//SETTING SIZES 
-		scale =0.01;
-		minScale = 0.5*scale;
+		//scale=4;
+		//minScale = 0.5*scale;
 		obj.setScale(minScale, scale);
 
 	}
