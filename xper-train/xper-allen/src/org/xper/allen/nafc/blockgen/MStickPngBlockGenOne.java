@@ -208,7 +208,7 @@ public class MStickPngBlockGenOne{
 			//SAMPLE
 			long taskId = sampleId;
 			PngSpec sampleSpec = new PngSpec();
-			sampleSpec.setPath(experimentImageFolderPath+"/"+ids.get(0));
+			sampleSpec.setPath(experimentImageFolderPath+"/"+ids.get(0)+".png");
 			sampleSpec.setxCenter(sampleCoords.getX());
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -220,7 +220,7 @@ public class MStickPngBlockGenOne{
 
 			//MATCH
 			PngSpec matchSpec = new PngSpec();
-			matchSpec.setPath(experimentImageFolderPath+"/"+ids.get(1));
+			matchSpec.setPath(experimentImageFolderPath+"/"+ids.get(1)+".png");
 			matchSpec.setxCenter(matchCoords.getX());
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -232,7 +232,7 @@ public class MStickPngBlockGenOne{
 			List<PngSpec> distractorSpec = new ArrayList<PngSpec>();
 			for(int j=0; j<numChoices-1; j++){
 				distractorSpec.add(j, new PngSpec());
-				distractorSpec.get(j).setPath(experimentImageFolderPath+"/"+ids.get(j+2));
+				distractorSpec.get(j).setPath(experimentImageFolderPath+"/"+ids.get(j+2)+".png");
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);

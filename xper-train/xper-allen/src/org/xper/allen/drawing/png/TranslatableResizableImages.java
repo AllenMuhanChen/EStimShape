@@ -245,7 +245,11 @@ public class TranslatableResizableImages {
 	void changeAlpha(byte[] target, byte alpha) {
 
 		for(int i=0x00000000; i<target.length; i+=0x00000004) {
-			target[i+0x00000003] = alpha;
+			double currentAlpha = target[i+0x00000003]; 
+			double newAlpha = currentAlpha * (double) alpha;
+			System.out.println("AC12398032: " + newAlpha);
+			byte alphaBytes = (byte) (newAlpha*255);
+			target[i+0x00000003] = alphaBytes;
 
 		}
 	}
