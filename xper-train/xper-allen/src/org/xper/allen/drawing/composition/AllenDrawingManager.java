@@ -45,14 +45,6 @@ public class AllenDrawingManager implements Drawable {
 		width = mode.getWidth() / 2;
 		height = mode.getHeight() / 2;
 		
-		renderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
-		renderer.setDepth(pngMaker.getDepth());
-		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
-		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		renderer.setHeight(height);
-		renderer.setWidth(width);
-		renderer.init(height, width);
 	}
 
 	public AllenDrawingManager(int height, int width) {
@@ -60,21 +52,7 @@ public class AllenDrawingManager implements Drawable {
 		this.height = height;
 		this.width = width;
 		
-		renderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
-		renderer.setDepth(pngMaker.getDepth());
-		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
-		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		renderer.setHeight(height);
-		renderer.setWidth(width);
-	}
-	public AllenDrawingManager(int height, int width, AbstractRenderer renderer) {
-		super();
-		this.height = height;
-		this.width = width;
-		this.renderer = renderer;
-		
-		renderer.init(height, width);
+
 	}
 
 	
@@ -84,8 +62,15 @@ public class AllenDrawingManager implements Drawable {
 		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
 		window.setPixelFormat(pixelFormat);
 		window.create();
-
 		
+		renderer = new PerspectiveRenderer();
+		//renderer = new OrthographicRenderer();
+		renderer.setDepth(pngMaker.getDepth());
+		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
+		renderer.setPupilDistance(pngMaker.getPupilDistance());
+		renderer.setHeight(height);
+		renderer.setWidth(width);
+		renderer.init(window.getWidth(), window.getHeight());
 
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		GL11.glDisable(GL11.GL_DEPTH_TEST);

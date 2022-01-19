@@ -54,7 +54,7 @@ public class AllenPNGMaker{
 	public AllenPNGMaker() {}
 
 	public void createAndSavePNGsfromObjs(List<? extends MatchStick> objs,List<Long> stimObjIds) {
-		AllenDrawingManager testWindow = new AllenDrawingManager(height,width, pngRenderer);
+		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
 		testWindow.setPngMaker(this);
 		testWindow.setImageFolderName(imageFolderName);
