@@ -26,7 +26,7 @@ public class AllenPNGMaker{
 	@Dependency
 	RGBColor backColor;
 	@Dependency
-	String imageFolderName;
+	String generatorImageFolderName;
 	@Dependency
 	double distance;
 	@Dependency
@@ -57,7 +57,7 @@ public class AllenPNGMaker{
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
 		testWindow.setPngMaker(this);
-		testWindow.setImageFolderName(imageFolderName);
+		testWindow.setImageFolderName(generatorImageFolderName);
 		System.out.println("creating and saving PNGs...");
 
 		testWindow.setStimObjs(objs);
@@ -137,13 +137,7 @@ public class AllenPNGMaker{
 		this.dpiUtil = dpiUtil;
 	}
 
-	public String getImageFolderName() {
-		return imageFolderName;
-	}
 
-	public void setImageFolderName(String imageFolderName) {
-		this.imageFolderName = imageFolderName;
-	}
 
 	public int getHeight() {
 		return height;
@@ -195,5 +189,13 @@ public class AllenPNGMaker{
 
 	public void setDepth(double depth) {
 		this.depth = depth;
+	}
+
+	public String getGeneratorImageFolderName() {
+		return generatorImageFolderName;
+	}
+
+	public void setGeneratorImageFolderName(String generatorImageFolderName) {
+		this.generatorImageFolderName = generatorImageFolderName;
 	}
 }

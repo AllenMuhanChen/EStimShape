@@ -80,6 +80,7 @@ public class NAFCMStickPngAppConfig {
 		gen.setExperimentPngPath(experimentPngPath);
 		gen.setPngMaker(pngMaker());
 		gen.setMaxImageDimensionDegrees(xperMaxImageDimensionDegrees());
+		gen.setExperimentImageFolderPath(xperExperimentImageFolderName());
 		return gen;
 	}
 
@@ -91,7 +92,7 @@ public class NAFCMStickPngAppConfig {
 		pngMaker.setDpiUtil(dpiUtil());
 		RGBColor backColor = new RGBColor(0,0,0);
 		pngMaker.setBackColor(backColor);
-		pngMaker.setImageFolderName(xperImageFolderName());
+		pngMaker.setGeneratorImageFolderName(xperGeneratorImageFolderName());
 		pngMaker.setDepth(6000);
 		pngMaker.setDistance(500);
 		pngMaker.setPupilDistance(50);
@@ -116,8 +117,13 @@ public class NAFCMStickPngAppConfig {
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public String xperImageFolderName(){
-		return baseConfig.systemVariableContainer().get("xper_image_folder_name", 0);
+	public String xperExperimentImageFolderName(){
+		return baseConfig.systemVariableContainer().get("xper_experiment_image_folder_name", 0);
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public String xperGeneratorImageFolderName(){
+		return baseConfig.systemVariableContainer().get("xper_generator_image_folder_name", 0);
 	}
 
 	//For DPIUtil

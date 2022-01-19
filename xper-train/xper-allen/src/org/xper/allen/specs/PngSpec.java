@@ -11,7 +11,7 @@ public class PngSpec {
 	double yCenter;
 	ImageDimensions dimensions;
 	String path;
-	double alpha;
+	double alpha = 1;
 	
 	/**
 	 * For generation where alpha is specified. 
