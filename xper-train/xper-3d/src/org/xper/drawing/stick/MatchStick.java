@@ -2333,7 +2333,6 @@ public class MatchStick implements Drawable {
 		int compToCenter = decidedCenterTube;
 		if ( compToCenter == -1){ // no preference
 			compToCenter = findBestTubeToCenter();
-			System.out.println(compToCenter);
 		}
 		Point3d origin = new Point3d(0.0, 0.0, 0.0);
 
