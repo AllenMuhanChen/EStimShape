@@ -41,7 +41,7 @@ public class MStickPngBlockGenOne{
 	@Dependency
 	AllenPNGMaker pngMaker;
 
-	
+
 	/**
 	 * Selects visual stimuli randomly from stimTypes
 	 */
@@ -57,7 +57,9 @@ public class MStickPngBlockGenOne{
 
 	long genId = 1;
 	List<Long> ids = new ArrayList<Long>();
-	
+	double scale = 0.1;
+	double minScale = scale/2;
+
 	public void generate(int[] trialTypes, int[] trialNums,
 			double sampleScaleLowerLim, double sampleScaleUpperLim, double sampleRadiusLowerLim, 
 			double sampleRadiusUpperLim, double eyeWinSize, 
@@ -66,7 +68,7 @@ public class MStickPngBlockGenOne{
 			double distractorDistanceUpperLim, double distractorScaleLowerLim, 
 			double distractorScaleUpperLim) { //
 
-		
+
 		//INTERMIXING TYPES OF TRIALS
 		int numTrials = IntStream.of(trialNums).sum(); //Sum all elements of trialNums
 		List<Integer>trialTypeList = new ArrayList<Integer>(); //Type = number of choices
@@ -151,6 +153,7 @@ public class MStickPngBlockGenOne{
 				}
 
 
+
 				if(sampleSuccess & matchSuccess){
 					tryagain = false;
 					nSuccess++;
@@ -167,26 +170,9 @@ public class MStickPngBlockGenOne{
 			for(int j=0; j<numChoices-1; j++){
 				objs_distractor.get(i).get(j).genMatchStickRand();
 			}
-			
-			//SETTING SIZES 
-				//This code uses the DPI of the monitor to calculate the minimum 
-				//pixel resolutions to meet that DPI at a maximum image size.
-				//Then this pixel length is converted to degrees to use as the
-				//scale. 
-			//int minPixelDimension = pngMaker.getDpiUtil().calculateMinResolution();
-			//pngMaker.getPngRenderer().softInit(minPixelDimension, minPixelDimension);
-			//Coordinates2D minMmDimensions = pngMaker.getPngRenderer().pixel2mm(new Coordinates2D(minPixelDimension, minPixelDimension));
-			//double scale = pngMaker.getPngRenderer().mm2deg(minMmDimensions.getX());
-			//double minScale = 0.5*scale;
-			double scale = 4;
-			double minScale = 0.5*scale;
-			
-			objs_sample.get(i).setScale(minScale, scale);
-			objs_match.get(i).setScale(minScale, scale);
-			for(int j=0; j<objs_distractor.get(i).size(); j++){
-				objs_distractor.get(i).get(j).setScale(minScale, scale);
-			}
-			
+
+
+
 			//OBJECT PROPERTIES
 			//TEXTURE
 			objs_sample.get(i).setTextureType("SHADE");
@@ -208,6 +194,24 @@ public class MStickPngBlockGenOne{
 			for(int j=0; j<numChoices-1; j++){
 				objs_distractor.get(i).get(j).setContrast(contrast);
 			}
+			//SETTING SIZES 
+			//This code uses the DPI of the monitor to calculate the minimum 
+			//pixel resolutions to meet that DPI at a maximum image size.
+			//Then this pixel length is converted to degrees to use as the
+			//scale. 
+			//int minPixelDimension = pngMaker.getDpiUtil().calculateMinResolution();
+			//pngMaker.getPngRenderer().softInit(minPixelDimension, minPixelDimension);
+			//Coordinates2D minMmDimensions = pngMaker.getPngRenderer().pixel2mm(new Coordinates2D(minPixelDimension, minPixelDimension));
+			//double scale = pngMaker.getPngRenderer().mm2deg(minMmDimensions.getX());
+			//double minScale = 0.5*scale;
+			double scale =0.01;
+			double minScale = 0.5*scale;
+
+			objs_sample.get(i).setScale(minScale, scale);
+			objs_match.get(i).setScale(minScale, scale);
+			for(int j=0; j<objs_distractor.get(i).size(); j++){
+				objs_distractor.get(i).get(j).setScale(minScale, scale);
+			}
 
 			//GENERATING STIM-OBJ SPECS & WRITE TO DB
 			//Determine Ids
@@ -218,30 +222,25 @@ public class MStickPngBlockGenOne{
 				distractorIds.add(matchId + j + 1);
 			}
 
-			
+
 			//GENERATE PNGS
 			List<AllenMatchStick> objs = new LinkedList<AllenMatchStick>();
 			objs.add(objs_sample.get(i));
 			objs.add(objs_match.get(i));
 			objs.addAll(objs_distractor.get(i));
-			
+
 			List<Long> ids = new LinkedList<Long>();
 			ids.add(sampleId);
 			ids.add(matchId);
 			ids.addAll(distractorIds);
-			System.out.println("AC 221141: " + objs.size());
-			System.out.println("AC 211142: " + ids.size());
-			for (AllenMatchStick obj:objs){
-				System.out.println("AC 211143: " + obj.getObj1().toString());
-			}
 			pngMaker.createAndSavePNGsfromObjs(objs, ids);
-			
+
 			//SPECIFYING LOCATION
 			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceRadiusLowerLim, choiceRadiusUpperLim, distractorDistanceLowerLim,  distractorDistanceUpperLim);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
 			Coordinates2D matchCoords = ddUtil.getMatchCoords();
-			
+
 			//SAMPLE
 			long taskId = sampleId;
 			PngSpec sampleSpec = new PngSpec();
@@ -250,10 +249,10 @@ public class MStickPngBlockGenOne{
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
 			sampleSpec.setImageDimensions(sampleDimensions);
 			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
-			
+
 			//
 			long[] choiceIds = new long[numChoices];
-			
+
 			//MATCH
 			PngSpec matchSpec = new PngSpec();
 			matchSpec.setxCenter(matchCoords.getX());
@@ -262,7 +261,7 @@ public class MStickPngBlockGenOne{
 			matchSpec.setImageDimensions(matchDimensions);
 			dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
 			choiceIds[0] = matchId;
-			
+
 			//DISTRACTORS
 			List<PngSpec> distractorSpec = new ArrayList<PngSpec>();
 			for(int j=0; j<numChoices-1; j++){
@@ -291,7 +290,7 @@ public class MStickPngBlockGenOne{
 			RewardPolicy rewardPolicy = RewardPolicy.LIST;
 			//rewardList - Correct answer should always be 0 (the first choice)
 			int[] rewardList = {0};
-			
+
 			//WRITE SPEC
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 
@@ -304,6 +303,26 @@ public class MStickPngBlockGenOne{
 		System.out.println("Done Generating...");
 
 		return;
+	}
+
+	private void setProperties(AllenMatchStick obj) {
+		//OBJECT PROPERTIES
+		//TEXTURE
+		obj.setTextureType("SHADE");
+
+		//COLOR
+		RGBColor white = new RGBColor(1,1,1);
+		obj.setStimColor(white);
+
+		//CONTRAST
+		double contrast = 1;
+		obj.setContrast(contrast);
+
+		//SETTING SIZES 
+		scale =0.01;
+		minScale = 0.5*scale;
+		obj.setScale(minScale, scale);
+
 	}
 
 	private static Coordinates2D randomChoice(double lowerRadiusLim, double upperRadiusLim){
