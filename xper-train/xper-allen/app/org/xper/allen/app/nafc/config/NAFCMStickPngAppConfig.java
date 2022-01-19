@@ -79,6 +79,7 @@ public class NAFCMStickPngAppConfig {
 		gen.setGeneratorPngPath(generatorPngPath);
 		gen.setExperimentPngPath(experimentPngPath);
 		gen.setPngMaker(pngMaker());
+		gen.setMaxImageDimensionDegrees(xperMaxImageDimensionDegrees());
 		return gen;
 	}
 

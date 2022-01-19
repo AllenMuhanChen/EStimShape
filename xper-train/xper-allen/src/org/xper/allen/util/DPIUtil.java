@@ -28,6 +28,7 @@ public class DPIUtil {
 		return minPixels;
 	}
 
+	
 	public double getDpi() {
 		return dpi;
 	}
