@@ -91,9 +91,9 @@ public class NAFCMStickPngAppConfig {
 		RGBColor backColor = new RGBColor(0,0,0);
 		pngMaker.setBackColor(backColor);
 		pngMaker.setImageFolderName(xperImageFolderName());
-		pngMaker.setDepth(classicConfig.xperMonkeyScreenDepth());
-		pngMaker.setDistance(classicConfig.xperMonkeyScreenDistance());
-		pngMaker.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
+		pngMaker.setDepth(6000);
+		pngMaker.setDistance(500);
+		pngMaker.setPupilDistance(50);
 		return pngMaker;
 	}
 
