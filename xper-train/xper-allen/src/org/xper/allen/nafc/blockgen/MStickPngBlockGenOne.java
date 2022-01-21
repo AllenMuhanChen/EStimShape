@@ -61,11 +61,11 @@ public class MStickPngBlockGenOne{
 	List<Long> ids = new ArrayList<Long>();
 
 	public void generate(int[] trialTypes, int[] trialNums,
-			double sampleScaleLowerLim, double sampleScaleUpperLim, double sampleRadiusLowerLim, 
+			double sampleScaleUpperLim, double sampleRadiusLowerLim, 
 			double sampleRadiusUpperLim, double eyeWinSize, 
 			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
 			double distractorDistanceLowerLim, 
-			double distractorDistanceUpperLim, double distractorScaleLowerLim, 
+			double distractorDistanceUpperLim,
 			double distractorScaleUpperLim) { //
 
 

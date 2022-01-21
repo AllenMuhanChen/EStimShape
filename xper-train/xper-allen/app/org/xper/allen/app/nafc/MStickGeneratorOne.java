@@ -37,17 +37,15 @@ public class MStickGeneratorOne {
 		for(int i=0; i<numTrialTypes;i++){
 			trialTypeNums[i] = Integer.parseInt(trialNumStrArray[i]);
 		}
-		double sampleScaleLowerLim = Double.parseDouble(args[2]);
-		double sampleScaleUpperLim = Double.parseDouble(args[3]);
-		double sampleRadiusLowerLim = Double.parseDouble(args[4]);
-		double sampleRadiusUpperLim = Double.parseDouble(args[5]);
-		double eyeWinSize = Double.parseDouble(args[6]);
-		double choiceRadiusLowerLim = Double.parseDouble(args[7]);
-		double choiceRadiusUpperLim = Double.parseDouble(args[8]);
-		double distractorDistanceLowerLim = Double.parseDouble(args[9]);
-		double distractorDistanceUpperLim = Double.parseDouble(args[10]);
-		double distractorScaleLowerLim = Double.parseDouble(args[11]);
-		double distractorScaleUpperLim = Double.parseDouble(args[12]);
+		double sampleScaleUpperLim = Double.parseDouble(args[2]);
+		double sampleRadiusLowerLim = Double.parseDouble(args[3]);
+		double sampleRadiusUpperLim = Double.parseDouble(args[4]);
+		double eyeWinSize = Double.parseDouble(args[5]);
+		double choiceRadiusLowerLim = Double.parseDouble(args[6]);
+		double choiceRadiusUpperLim = Double.parseDouble(args[7]);
+		double distractorDistanceLowerLim = Double.parseDouble(args[8]);
+		double distractorDistanceUpperLim = Double.parseDouble(args[9]);
+		double distractorScaleUpperLim = Double.parseDouble(args[10]);
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
@@ -57,11 +55,11 @@ public class MStickGeneratorOne {
 		try {
 			//target eye window size
 			gen.toString();
-			gen.generate(trialTypes, trialTypeNums, sampleScaleLowerLim,
+			gen.generate(trialTypes, trialTypeNums,
 					sampleScaleUpperLim, sampleRadiusLowerLim, sampleRadiusUpperLim, 
 					eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim, 
 					 distractorDistanceLowerLim,
-					distractorDistanceUpperLim, distractorScaleLowerLim,
+					distractorDistanceUpperLim,
 					distractorScaleUpperLim);
 			
 		}
