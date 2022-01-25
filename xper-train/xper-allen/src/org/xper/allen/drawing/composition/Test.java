@@ -91,9 +91,9 @@ public class Test {
 			//MORPH JUST THE LEAF
 			int leafToMorphIndx = 1; //The randomly chosen leaf before should be the first component
 			boolean maintainTangent = true;
-			objs_leafMorph1.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
-			objs_leafMorph2.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
-			objs_leafMorph3.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
+			objs_leafMorph1.get(i).genReplacedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
+			objs_leafMorph2.get(i).genReplacedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
+			objs_leafMorph3.get(i).genReplacedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
 			
 			//REMOVE A RANDOM LEAF
 			/*
