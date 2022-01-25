@@ -142,12 +142,12 @@ public class MStickPngBlockGenOne{
 				if(sampleSuccess){
 
 					int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
-					boolean maintainTangent = true;
+					//boolean maintainTangent = true;
 
 					System.out.println("In Match");
 					try{
 						setProperties(objs_match.get(i));
-						matchSuccess = objs_match.get(i).genMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), maintainTangent);
+						matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i));
 					} catch(Exception e){
 						matchSuccess = false;
 					}
@@ -293,7 +293,7 @@ public class MStickPngBlockGenOne{
 		//scale=4;
 		//minScale = 0.5*scale;
 		
-		double padding = 1.5;
+		double padding = 3;
 		double scale = maxImageDimensionDegrees - padding;
 		double minScale = maxImageDimensionDegrees/2;
 		

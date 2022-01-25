@@ -3003,7 +3003,7 @@ public class MatchStick implements Drawable {
 	/**
         Fine tune the parameters of one of the component.
 	 */
-	private boolean fineTuneComponent(int id)
+	protected boolean fineTuneComponent(int id)
 	{
 		int i, j, k;
 		int inner_totalTrialTime = 0;

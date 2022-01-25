@@ -21,7 +21,7 @@ public class TubeComp
 	// we can set it to be true, to skip jacob_check
 	public boolean skipJacobInAnalysisPhase = false;
  	private int label;
-        public MAxisArc mAxisInfo = new MAxisArc();
+    public MAxisArc mAxisInfo = new MAxisArc();
 	public double[][] radInfo = new double[3][2];
 	public boolean branchUsed;
 	public double[] radiusAcross = new double[52]; // the radius value at each mPts point
