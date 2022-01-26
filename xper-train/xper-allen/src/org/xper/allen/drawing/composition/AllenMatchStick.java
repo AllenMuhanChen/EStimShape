@@ -482,14 +482,12 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		int i, j, k;
 		int inner_totalTrialTime = 0;
 		int TotalTrialTime = 0; // the # have tried, if too many, just terminate
-		final double volatileRate = 0.7;
+		final double volatileRate = 1;
 		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
 		int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
 		double[][] old_radInfo = new double[3][2];
-		if ( showDebug)
-			System.out.println("In fine tune component function, will fine tune comp " + id);
 
 		// we'll find this function need to share some sub_function with fineTuneComponent
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
@@ -518,27 +516,23 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		AllenMatchStick old_MStick = new AllenMatchStick();
 		old_MStick.copyFrom(this);
 
-		///debug
-		//tempStick = new MatchStick();
-		//tempStick.copyFrom(old_MStick);
-
 		while (true)
 		{
 			while(true)
 			{
+				//GENERATE A NEW ARC WITH NEW TANGENT (that is checked by TangentSaveZone)
 				while(true)
 				{
-					// store back to old condition
+					// RESET
 					tangentTrialTimes++;
 					copyFrom(old_MStick);
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
 					nowArc.genMetricSimilarArc( this.comp[id].mAxisInfo, alignedPt,volatileRate);
 					// use this function to generate a similar arc
-
+					
+					//for loop, check through related JuncPt for tangentSaveZone
 					Vector3d finalTangent = new Vector3d();
-
-
 					boolean tangentFlg = true;
 					Vector3d nowTangent = new Vector3d();
 					for (i=1; i<=nJuncPt; i++)
@@ -547,10 +541,10 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 							int uNdx = targetUNdx[i];
 							boolean midBranchFlg = false;
 							if (uNdx == 1)
-								finalTangent.set( nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.mTangent[uNdx]);
 							else if (uNdx == 51)
 							{
-								finalTangent.set( nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.mTangent[uNdx]);
 								finalTangent.negate();
 							}
 							else // middle branch Pt
@@ -573,8 +567,10 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 									}
 								}
 
-						} // for loop, check through related JuncPt for tangentSaveZone
-					if (tangentFlg == true) // still valid after all tangent check
+						}
+					
+					// still valid after all tangent check
+					if (tangentFlg == true) 
 						break;
 					else
 					{
@@ -594,12 +590,12 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					if (JuncPtFlg[i] == true)
 					{
 						int nowUNdx = targetUNdx[i];
-						finalTangent.set( nowArc.mTangent[ nowUNdx]);
-						if ( targetUNdx[i] == 51)
+						finalTangent.set(nowArc.mTangent[nowUNdx]);
+						if (targetUNdx[i] == 51)
 							finalTangent.negate();
 						Point3d newPos = nowArc.mPts[ nowUNdx];
 						Point3d shiftVec = new Point3d();
-						shiftVec.sub( newPos, JuncPt[i].pos);
+						shiftVec.sub(newPos, JuncPt[i].pos);
 
 						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
 						{
@@ -665,7 +661,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				if ( inner_totalTrialTime > 25)
 					return false;
 
-			} // second while
+			} //SECOND WHILE
 
 			// update the info in end pt and JuncPt
 			for (i=1; i<=nEndPt; i++)
@@ -689,7 +685,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				//show the radius value
 				//System.out.println("rad assign: ");
 				//comp[id].showRadiusInfo();
-				this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo);
+				//this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo);
 				//comp[id].showRadiusInfo();
 				if ( comp[id].RadApplied_Factory() == false)
 				{
@@ -858,7 +854,6 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					oriRad = oriValue[0][1];
 				else if ( endPt[i].uNdx == 51)
 					oriRad = oriValue[2][1];
-				System.out.println("AC19834598: ORIRAD: " + oriRad);
 				// select a value btw rMin and rMax
 				double range = rMax - rMin;
 				if ( oriRad < 0.0) {
