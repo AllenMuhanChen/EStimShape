@@ -2,7 +2,11 @@
 <classpath>
 	<classpathentry excluding="org/xper/allen/config/AllenAcqConfig.java|org/xper/allen/config/AllenClassicConfig.java|org/xper/allen/drawing/png/preview/PNGmaker.java|org/xper/allen/drawing/png/preview/DrawingManager.java|org/xper/allen/drawing/png/PngGAParams.java|org/xper/allen/drawing/png/ImageStack.java|org/xper/allen/nafc/blockgen/MStickBlockGenOne.java" kind="src" path="src"/>
 	<classpathentry excluding="org/xper/allen/app/stimInserters/InsertEStimSpec.java|org/xper/allen/app/classic/|org/xper/allen/app/nafc/config/NAFCMStickAppConfig.java" kind="src" path="app"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/xper"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/xper">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="xper-3d/lib/lwjgl/linux"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="/xper/lib/c3p0-0.9.0.2.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/cglib-nodep-2.1_3.jar"/>
@@ -34,12 +38,16 @@
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl_util_applet.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl_util.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl-debug.jar"/>
-	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl.jar"/>
+	<classpathentry kind="lib" path="/xper-3d/lib/lwjgl/lwjgl.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2-javadoc.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
 	<classpathentry kind="lib" path="/xper-3d/lib/jzy3d-api-0.9.1.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/xper-3d"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/xper-3d">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="xper-3d/lib/lwjgl/linux"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="class"/>
 </classpath>

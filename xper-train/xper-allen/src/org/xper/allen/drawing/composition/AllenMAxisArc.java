@@ -17,31 +17,22 @@ import org.xper.drawing.stick.stickMath_lib;
  */
 public class AllenMAxisArc extends MAxisArc {
 
-	/**
-	 * Only Arc Changes: ArcLen, orientation, devAngle
+	/**Reduced Only Arc Changes To: ArcLen, Orientation
 	 * @param inArc
 	 * @param alignedPt
 	 * @param volatileRate
 	 */
-	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  double volatileRate) {
+	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  double lengthChance, double orientationChance) {
 		boolean showDebug = false;
 		double RadView = 5.0;
 		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
 		// Nov 20th, the orientation change seems to be too large
 		// since this is used to generate similar tube, we should make it more narrow
 		double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
-		boolean[] chgFlg = new boolean[4];
+		boolean[] chgFlg = new boolean[3];
 		int i;
 		//possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
 		// 0. decide what parameters to chg
-		while (true) {
-			for (i=1; i<=3; i++) {
-				chgFlg[i] = false;
-				if ( stickMath_lib.rand01() < volatileRate)
-					chgFlg[i] = true; //TODO: CHANGE BACK TO TRUE
-			}
-			break;
-		}
 
 		double newRad = inArc.rad;
 		double newArcLen = inArc.arcLen;
@@ -52,7 +43,7 @@ public class AllenMAxisArc extends MAxisArc {
 		/*
 		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
 		 */
-		if ( chgFlg[1] == true) {
+		if ( stickMath_lib.rand01() < lengthChance) {
 			double[] percentage = {0.15, 0.30};
 			double oriArcLen = inArc.arcLen;
 			
@@ -66,7 +57,7 @@ public class AllenMAxisArc extends MAxisArc {
 		}
 
 		// 2. orientation
-		if ( chgFlg[2] == true) {
+		if (stickMath_lib.rand01() < orientationChance) {
 			Vector3d oriTangent = new Vector3d( inArc.mTangent[inArc.transRotHis_rotCenter]);
 			while (true) {
 				newTangent = stickMath_lib.randomUnitVec();
@@ -75,18 +66,6 @@ public class AllenMAxisArc extends MAxisArc {
 					break;
 			}
 		}
-		// 4. devAngle
-		if ( chgFlg[3] == true)
-		{
-			System.out.println("AC1938243: devAngle changed");
-			double oriDevAngle = inArc.transRotHis_devAngle;
-			double diff = stickMath_lib.randDouble( Math.PI/6.0, Math.PI/3.0); // this diff is btw  30 - 60 degree
-			if ( stickMath_lib.rand01() < 0.5)
-				newDevAngle = oriDevAngle - diff;
-			else
-				newDevAngle = oriDevAngle + diff;
-		}
-
 
 		// use the new required vlaue to generate and transROt the mAxisArc
 

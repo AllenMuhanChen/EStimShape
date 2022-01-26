@@ -82,6 +82,44 @@ public class AllenPNGMaker{
 		}
 	}
 
+	private byte[] screenShotBinaryRGB(int width, int height) 
+	{
+		System.out.println("Printing with legacy method");
+		ByteBuffer framebytes = allocBytes(width * height * 3);
+
+		int[] pixels = new int[width * height];
+		int bindex;
+		// grab a copy of the current frame contents as RGB (has to be UNSIGNED_BYTE or colors come out too dark)
+		GL11.glReadPixels(0, 0, width, height, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, framebytes);
+		// copy RGB data from ByteBuffer to integer array
+		for (int i = 0; i < pixels.length; i++) {
+			bindex = i * 3;
+			pixels[i] =
+					0xFF000000                                          // A
+					| ((framebytes.get(bindex)   & 0x000000FF) << 16)   // R
+					| ((framebytes.get(bindex+1) & 0x000000FF) <<  8)   // G
+					| ((framebytes.get(bindex+2) & 0x000000FF) <<  0);  // B
+		}
+		// free up this memory
+		framebytes = null;
+		// flip the pixels vertically (opengl has 0,0 at lower left, java is upper left)
+		pixels = GLImage.flipPixels(pixels, width, height);
+
+		try {
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+			image.setRGB(0, 0, width, height, pixels, 0, width);
+
+			javax.imageio.ImageIO.write(image, "png", out);
+			byte[] data = out.toByteArray();
+
+			return data;
+		}
+		catch (Exception e) {
+			System.out.println("screenShot(): exception " + e);
+			return null;
+		}
+	}
 	private byte[] screenShotBinary(int width, int height) 
 	{
 		ByteBuffer framebytes = allocBytes(width * height * 3);

@@ -122,16 +122,16 @@ public class MStickPngBlockGenOne{
 				boolean matchSuccess = false;
 
 				//BASE: GENERATING MATCHSTICK
-				setProperties(objs_base.get(1));
-				objs_base.get(1).genMatchStickRand();
-				int randomLeaf = objs_base.get(1).chooseRandLeaf();
-
+				setProperties(objs_base.get(i));
+				objs_base.get(i).genMatchStickRand();
+				int randomLeaf = objs_base.get(i).chooseRandLeaf();
+				
 
 				//SAMPLE: GENERATING MATCHSTICSK
 				System.out.println("In Sample");
 				//System.out.println("Trying to Generate Sample. Try: " + tries);
 				setProperties(objs_sample.get(i));
-				sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(1));
+				sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(i));
 				//tries++;
 				if(!sampleSuccess){
 					objs_sample.set(i, new AllenMatchStick());
@@ -189,11 +189,13 @@ public class MStickPngBlockGenOne{
 
 			//GENERATE PNGS
 			List<AllenMatchStick> objs = new LinkedList<AllenMatchStick>();
+			objs.add(objs_base.get(i));
 			objs.add(objs_sample.get(i));
 			objs.add(objs_match.get(i));
 			objs.addAll(objs_distractor.get(i));
 
 			List<Long> ids = new LinkedList<Long>();
+			ids.add(sampleId-1);
 			ids.add(sampleId);
 			ids.add(matchId);
 			ids.addAll(distractorIds);
@@ -278,28 +280,23 @@ public class MStickPngBlockGenOne{
 	 */
 	private void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
-		//TEXTURE
-		obj.setTextureType("SHADE");
-
-		//COLOR
-		RGBColor white = new RGBColor(1,1,1);
-		obj.setStimColor(white);
-
-		//CONTRAST
-		double contrast = 1;
-		obj.setContrast(contrast);
-
 		//SETTING SIZES 
-		//scale=4;
-		//minScale = 0.5*scale;
-		
 		double padding = 1.5;
 		double scale = maxImageDimensionDegrees - padding;
 		double minScale = maxImageDimensionDegrees/2;
-		
 		obj.setScale(minScale, scale);
 		
+		//CONTRAST
+		double contrast = 1;
+		obj.setContrast(contrast);
 		
+		//COLOR
+		RGBColor white = new RGBColor(1,1,1);
+		obj.setStimColor(white);
+		
+		//TEXTURE
+		obj.setTextureType("SHADE");
+
 	}
 
 	private static Coordinates2D randomChoice(double lowerRadiusLim, double upperRadiusLim){
