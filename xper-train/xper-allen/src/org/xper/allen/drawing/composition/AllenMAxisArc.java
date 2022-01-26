@@ -55,10 +55,14 @@ public class AllenMAxisArc extends MAxisArc {
 		if ( chgFlg[1] == true) {
 			double[] percentage = {0.15, 0.30};
 			double oriArcLen = inArc.arcLen;
-			double length_lb = percentage[0]*oriArcLen;		
-			double length_ub = percentage[1]*oriArcLen;
-			double l_range = length_ub - length_lb;
-			newArcLen = stickMath_lib.randDouble( length_lb, length_ub);
+			
+			
+			while (true) {
+				newArcLen = stickMath_lib.randDouble((1-percentage[1])*oriArcLen, (1+percentage[1]*oriArcLen));
+				if (newArcLen < (1-percentage[0])*oriArcLen || newArcLen > (1+percentage[0])*oriArcLen)
+					break;
+			}
+			
 		}
 
 		// 2. orientation

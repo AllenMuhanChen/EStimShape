@@ -40,7 +40,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	protected double minScaleForMAxisShape;
 
 	protected final double[] PARAM_nCompDist = {0, 0.33, 0.67, 1, 0.0, 0.0, 0.0, 0.0 };
-	protected final double TangentSaveZone = 0;
+	protected final double TangentSaveZone = Math.PI/64;
 
 	public AllenMatchStick() {
 		super.finalRotation = this.finalRotation;
@@ -452,7 +452,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
-			MutateSUB_reAssignJunctionRadius();
+			//MutateSUB_reAssignJunctionRadius();
 			//centerShapeAtOrigin(-1);
 			if(success){
 				boolean res;
@@ -483,7 +483,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		int inner_totalTrialTime = 0;
 		int TotalTrialTime = 0; // the # have tried, if too many, just terminate
 		final double volatileRate = 1;
-		boolean showDebug = false;
+		boolean showDebug = true;
 		//final double TangentSaveZone = Math.PI / 4.0;
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
 		int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
@@ -685,7 +685,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				//show the radius value
 				//System.out.println("rad assign: ");
 				//comp[id].showRadiusInfo();
-				//this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo);
+				this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo);
 				//comp[id].showRadiusInfo();
 				if ( comp[id].RadApplied_Factory() == false)
 				{
@@ -830,7 +830,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				}
 		}
 
-		//set new value at end Pt
+		//set new value at end Pt --> AC Set to OLD VALUE!
 		for (i=1; i<= nEndPt; i++)
 			if (endPt[i].comp == targetComp)
 			{
@@ -862,38 +862,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				}
 				else // in the case where we have old value
 				{
-					if (stickMath_lib.rand01() < volatileRate)
-					{
-						if ( oriRad <= rMax && oriRad >= rMin)
-							nowRad = oriRad;
-						else if ( oriRad > rMax) {
-							//System.out.println("AC 123842: SET TO MAX " );
-							nowRad = oriRad;
-							//nowRad = rMax;
-						}
-						else if ( oriRad < rMin) {
-							nowRad = oriRad;
-							//nowRad = rMin;
-							//System.out.println("AC 123842: SET TO MIN " );
-						}
-					}
-					else // keep same value if possible
-					{
-	
-						if ( oriRad <= rMax && oriRad >= rMin)
-							nowRad = oriRad;
-						else if ( oriRad > rMax) {
-							//System.out.println("AC 123842: SET TO MAX " );
-							nowRad = oriRad;
-							//nowRad = rMax;
-						}
-						else if ( oriRad < rMin) {
-							nowRad = oriRad;
-							//nowRad = rMin;
-							//System.out.println("AC 123842: SET TO MIN " );
-						}
-							
-					}
+					nowRad = oriRad;
 				}
 
 				endPt[i].rad = nowRad;
@@ -926,38 +895,14 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			double oriRad = oriValue[1][1]; // the middle radius value
 			double range = rMax - rMin;
 			if ( oriRad < 0.0)
+			{
+				System.out.println("AC12380432: RANDOM RAD GENERATED");
 				nowRad = stickMath_lib.randDouble( rMin, rMax);
+			}
 			else // in the case where we have old value
 			{
 
-				if (stickMath_lib.rand01() < volatileRate)
-				{
-					/*
-					if ( showDebug)
-						System.out.println("gen similar in range" + rMin + " ~ " + rMax);
-					// gen a new similar value
-					while (true)
-					{
-						nowRad = stickMath_lib.randDouble( rMin, rMax);
-						if ( oriRad > rMax || oriRad < rMin)
-							break;
-						if ( Math.abs(nowRad - oriRad) >= 0.2* range && Math.abs(nowRad - oriRad) <= 0.4* range)
-							break;
-					}
-					*/
-				}
-				else // keep same value if possible
-				{
-					if ( showDebug)
-						System.out.println("try to keep same in range" + rMin + " ~ "+ rMax);
-					if ( oriRad <= rMax && oriRad >= rMin)
-						nowRad = oriRad;
-					else if ( oriRad > rMax)
-						nowRad = rMax;
-					else if ( oriRad < rMin)
-						nowRad = rMin;
-
-				}
+				nowRad = oriRad;
 				if ( showDebug)
 				{
 					System.out.println("In assign Rad, we have old value +" + oriRad);
@@ -1124,7 +1069,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 
 		// 5. check if the final shape is not working ( collide after skin application)
-		//this.centerShapeAtOrigin(-1);
+		this.centerShapeAtOrigin(-1);
 
 		if ( this.validMStickSize() ==  false)
 		{
