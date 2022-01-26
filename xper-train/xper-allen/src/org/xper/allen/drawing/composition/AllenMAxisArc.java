@@ -17,111 +17,52 @@ import org.xper.drawing.stick.stickMath_lib;
  */
 public class AllenMAxisArc extends MAxisArc {
 
+	/**
+	 * Only Arc Changes: ArcLen, orientation, devAngle
+	 * @param inArc
+	 * @param alignedPt
+	 * @param volatileRate
+	 */
 	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  double volatileRate) {
 		boolean showDebug = false;
-		if ( showDebug) 
-			System.out.println("In MAxisArc.genSimilarArc()");
 		double RadView = 5.0;
 		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
 		// Nov 20th, the orientation change seems to be too large
 		// since this is used to generate similar tube, we should make it more narrow
 		double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
-		boolean[] chgFlg = new boolean[5];
+		boolean[] chgFlg = new boolean[4];
 		int i;
 		//possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
 		// 0. decide what parameters to chg
 		while (true) {
-			for (i=1; i<=4; i++) {
+			for (i=1; i<=3; i++) {
 				chgFlg[i] = false;
 				if ( stickMath_lib.rand01() < volatileRate)
-					chgFlg[i] = false; //TODO: CHANGE BACK TO TRUE
+					chgFlg[i] = true; //TODO: CHANGE BACK TO TRUE
 			}
-			int a = 3;
-			if ( a == 3) break;
-			//debug
-			if (inArc.rad <= 0.6 * RadView) {
-				if ( chgFlg[1] != false || chgFlg[2] != false || chgFlg[3] != false || chgFlg[4] != false) 
-					break;
-			}
-			else { // the in Arc is str8 line, then we don't want only devAngle chg, (which is not prominent) {
-				if ( chgFlg[1] !=false || chgFlg[2] !=false || chgFlg[3] !=false) 
-					break;
-			}
+			break;
 		}
-
-		if (showDebug) {
-			System.out.println("the modification of mAxis are:");
-			for (i=1; i<=4; i++) System.out.print(" "+ chgFlg[i]);
-			System.out.println("");
-		}
-
 
 		double newRad = inArc.rad;
 		double newArcLen = inArc.arcLen;
 		Vector3d newTangent = new Vector3d(inArc.mTangent[ inArc.transRotHis_rotCenter]);
 		double newDevAngle = inArc.transRotHis_devAngle;	
-
-		// 1. mAxisCurvature	  
+	
+		// 1. ArcLen
+		/*
+		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
+		 */
 		if ( chgFlg[1] == true) {
-
-			/*
-			double totalRange;
-			double oriRad = inArc.rad;
-			if ( oriRad <= 0.6 * RadView )  { // origianlly small Rad arc
-				double[] prob = {0.5, 1.0};
-				int choice = stickMath_lib.pickFromProbDist( prob);
-				if ( choice == 1) {
-					while (true) {
-						newRad = (stickMath_lib.rand01() * 0.4 + 0.2) * RadView;
-						totalRange = 0.4 * RadView;
-						if ( Math.abs( newRad - oriRad) > 0.2 * totalRange )
-							break;
-					}
-				}
-				else // chg to medium curvature regime
-					newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView;
-			}
-			else if ( oriRad <= 6.0 * RadView) { // originall in medium regime
-	 			double[] prob = {0.25, 0.75, 1.0};
-				int choice = stickMath_lib.pickFromProbDist( prob);
-				if (choice == 1)
-					newRad = (stickMath_lib.rand01() * 0.4 + 0.2) * RadView;
-				else if ( choice == 2) {
-					while (true) {
-						newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView;
-						totalRange = 5.4 * RadView;
-						if ( Math.abs(newRad - oriRad) > 0.2 * totalRange)
-							break;
-					}
-				}
-				else if ( choice == 3)
-					newRad = 100000.0;
-			}
-			else {// str8 original curvature
-				//always chg to medium curvature
-				newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView; 
-			}
-			 */
-		} // mAxisCurvature if
-
-		// 2. ArcLen
-		if ( chgFlg[2] == true) {
+			double[] percentage = {0.15, 0.30};
 			double oriArcLen = inArc.arcLen;
-			double length_lb = 2.0;		
-			double length_ub = Math.min( Math.PI * newRad, RadView);
+			double length_lb = percentage[0]*oriArcLen;		
+			double length_ub = percentage[1]*oriArcLen;
 			double l_range = length_ub - length_lb;
-			while (true) { //pick value btw length_lb, length_ub, but not very near or very far from original value
-				newArcLen = stickMath_lib.randDouble( length_lb, length_ub);
-				if ( oriArcLen > length_ub || oriArcLen < length_lb) // no need to nearby check
-					break;
-				if ( Math.abs( newArcLen - oriArcLen) >= 0.2 * l_range && 
-						Math.abs( newArcLen - oriArcLen) <= 0.4 * l_range )
-					break;
-			}
+			newArcLen = stickMath_lib.randDouble( length_lb, length_ub);
 		}
 
-		// 3. orientation
-		if ( chgFlg[3] == true) {
+		// 2. orientation
+		if ( chgFlg[2] == true) {
 			Vector3d oriTangent = new Vector3d( inArc.mTangent[inArc.transRotHis_rotCenter]);
 			while (true) {
 				newTangent = stickMath_lib.randomUnitVec();
@@ -131,7 +72,7 @@ public class AllenMAxisArc extends MAxisArc {
 			}
 		}
 		// 4. devAngle
-		if ( chgFlg[4] == true)
+		if ( chgFlg[3] == true)
 		{
 			System.out.println("AC1938243: devAngle changed");
 			double oriDevAngle = inArc.transRotHis_devAngle;
