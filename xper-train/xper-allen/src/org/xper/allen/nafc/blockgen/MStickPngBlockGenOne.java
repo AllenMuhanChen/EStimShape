@@ -293,7 +293,7 @@ public class MStickPngBlockGenOne{
 		//scale=4;
 		//minScale = 0.5*scale;
 		
-		double padding = 3;
+		double padding = 1.5;
 		double scale = maxImageDimensionDegrees - padding;
 		double minScale = maxImageDimensionDegrees/2;
 		
