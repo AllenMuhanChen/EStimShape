@@ -433,6 +433,11 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	 */
 
 	public boolean genMetricMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph) {
+		MetricMorphParams mmp = new MetricMorphParams();
+		mmp.orientationChance = 0;
+		mmp.lengthChance = 0;
+		mmp.radiusChance = 1;
+		
 		int i = 0;
 		while (i<2) {
 			this.cleanData();
@@ -442,7 +447,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			int j = 0;
 			boolean success = false;
 			while (j<10){
-				success = fineTuneComponent(leafToMorphIndx);
+				success = metricMorphComponent(leafToMorphIndx, mmp);
 				//success = metricMorph.morphLength();
 				if(success){
 					break;
@@ -472,18 +477,26 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 	}
 
+	public class MetricMorphParams{
+		double orientationChance; //chance to change orientation
+		double lengthChance;
+		double radiusChance;
+	}
 	/**
-    Fine tune the parameters of one of the component.
+    Derived from fineTuneComponent()
     
     AC: Modifications to keep finetunes to metric changes only. 
+    	orientation of limb
+    	length of limb
+    	radius of limb (not changing radius profile)
 	 */
-	protected boolean fineTuneComponent(int id)
+	protected boolean metricMorphComponent(int id, MetricMorphParams mmp)
 	{
 		int i, j, k;
 		int inner_totalTrialTime = 0;
 		int TotalTrialTime = 0; // the # have tried, if too many, just terminate
 		final double volatileRate = 1;
-		boolean showDebug = true;
+		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
 		int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
@@ -528,7 +541,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					copyFrom(old_MStick);
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
-					nowArc.genMetricSimilarArc( this.comp[id].mAxisInfo, alignedPt,volatileRate);
+					nowArc.genMetricSimilarArc( this.comp[id].mAxisInfo, alignedPt, mmp.lengthChance, mmp.orientationChance);
 					// use this function to generate a similar arc
 					
 					//for loop, check through related JuncPt for tangentSaveZone
@@ -685,7 +698,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				//show the radius value
 				//System.out.println("rad assign: ");
 				//comp[id].showRadiusInfo();
-				this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo);
+				this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo, mmp.radiusChance);
 				//comp[id].showRadiusInfo();
 				if ( comp[id].RadApplied_Factory() == false)
 				{
@@ -736,7 +749,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			int j=0; //Number of times tried to generate a comp. 
 			this.cleanData();
 			while (j<10) {
-				boolean onlyAddToJunc = true;
+				boolean onlyAddToJunc = false;
 				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf, onlyAddToJunc) == true){
 					compSuccess = true;
 					break;
@@ -760,7 +773,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
-			centerShapeAtOrigin(-1);
+			//centerShapeAtOrigin(-1);
 			if(compSuccess){
 				boolean res;
 				try {
@@ -789,15 +802,22 @@ public class AllenMatchStick extends MatchStick implements Serializable {
      Will determine the radius of the modified component
      If there is value in [][] oriValue, it is the radius value of the original component
 
-	AC: Metric: modified to not reduce change to endPt radius. 
+	AC: Metric: modified to not change radProfile (both ends & Junc) except for general scaling
 	 */
-	protected void MutationSUB_radAssign2NewComp_Metric( int targetComp, double[][] oriValue)
+	protected void MutationSUB_radAssign2NewComp_Metric( int targetComp, double[][] oriValue, double radiusChance)
 	{
 		boolean showDebug = false;
 		int i, j;
 		double rMin, rMax;
-		double volatileRate = 0.7;
 		double nowRad= -100.0, u_value;
+		double radiusScale;
+		if(stickMath_lib.rand01() < radiusChance){
+			radiusScale = stickMath_lib.randDouble(0.7, 1.3);
+		}
+		else{
+			radiusScale = 1;
+		}
+		
 		{
 			i = targetComp;
 			comp[i].radInfo[0][1] = -10.0; comp[i].radInfo[1][1] = -10.0; comp[i].radInfo[2][1] = -10.0;
@@ -809,7 +829,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			for (j=1; j<= JuncPt[i].nComp; j++)
 				if ( JuncPt[i].comp[j] == targetComp)
 				{
-					nowRad = JuncPt[i].rad;
+					nowRad = JuncPt[i].rad * radiusScale;
 
 					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
@@ -862,7 +882,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				}
 				else // in the case where we have old value
 				{
-					nowRad = oriRad;
+					nowRad = oriRad * radiusScale;
 				}
 
 				endPt[i].rad = nowRad;
@@ -902,7 +922,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			else // in the case where we have old value
 			{
 
-				nowRad = oriRad;
+				nowRad = oriRad * radiusScale;
 				if ( showDebug)
 				{
 					System.out.println("In assign Rad, we have old value +" + oriRad);
@@ -944,13 +964,18 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		//STARTING LEAF
 		comp[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
-
+		
+		//ALLEN DEBUG:
+		System.out.println("AC99481: " + comp[1].radInfo[1][1]);
 
 		//DEFINING END AND JUNCTION
 		if(onlyAddToJunc){
 			ArrayList<Integer> juncList= (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
 			ArrayList<Integer> endList= (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
 
+			System.out.println("AC568529: " + amsOfLeaf.getEndPtStruct(endList.get(0)).comp);
+			System.out.println("AC568529: " + amsOfLeaf.getJuncPtStruct(juncList.get(0)).comp[1]);
+			
 			//DEFINE JUCTION TO BE A JUNCTION FROM LEAF
 			JuncPt_struct in_junc = amsOfLeaf.getJuncPtStruct(juncList.get(0));
 			int jnComp = 1;
@@ -974,40 +999,6 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 			nJuncPt = 1;
 			nEndPt = 1;
-			//nJuncPt = juncList.size();
-			//nEndPt = endList.size();
-			/*
-			for(int j=1; j<=juncList.size(); j++){
-				//JuncPt[j] = amsOfLeaf.getJuncPtStruct(juncList.get(j-1));
-				JuncPt[j] = new JuncPt_struct();
-				JuncPt[j].copyFrom(amsOfLeaf.getJuncPtStruct(juncList.get(j-1)));
-				//Remove Juncs that don't exist anymore. This junction only includes comp 1 right now. 
-				boolean[] removeList = new boolean[JuncPt[j].nComp+1];
-				for (int k=1; k<=JuncPt[j].nComp; k++){
-					if (k==1 | k==0){
-						removeList[k] = false;
-					} else{
-						removeList[k] = true;
-					}
-				}
-				System.out.println("ncomp before: " + JuncPt[j].nComp);
-				JuncPt[j].removeComp(removeList);
-				System.out.println("ncomp: " + JuncPt[j].nComp);
-			}
-			for(int j=1; j<=endList.size(); j++){
-				//endPt[j] = amsOfLeaf.getEndPtStruct(endList.get(j-1));
-				endPt[j] = new EndPt_struct();
-				endPt[j].copyFrom(amsOfLeaf.getEndPtStruct(endList.get(j-1)));
-				endPt[j].comp = 1; //Reassign this end point to be the end point of comp 1. 
-			}
-			 */
-			/*
-			this.endPt[1] = ams.getEndPtStruct(leafIndx);
-			this.JuncPt[1] = ams.getJuncPtStruct(leafIndx);
-
-			this.nJuncPt = 1;
-			this.nEndPt = 1;
-			 */
 		}
 		else{
 			endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1] , 100.0);
@@ -1069,7 +1060,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 
 		// 5. check if the final shape is not working ( collide after skin application)
-		this.centerShapeAtOrigin(-1);
+		//this.centerShapeAtOrigin(-1);
 
 		if ( this.validMStickSize() ==  false)
 		{
@@ -1084,13 +1075,6 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				System.out.println("\n FAIL the final Tube collsion Check ....\n");
 			return false;
 		}
-
-
-		// Dec 24th 2008
-		// re-center the shape before do the validMStickSize check!
-
-		// this.normalizeMStickSize();
-		//   System.out.println("after centering");
 
 		return true;
 
@@ -1290,7 +1274,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		// generate a shape with "specific" # of components
 
 		while (true) {
-			this.cleanData();
+
 			while (true) {
 				if (genMatchStick_comp(nComp) == true)
 					break;
@@ -1311,9 +1295,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			this.centerShapeAtOrigin(-1);
+			//this.centerShapeAtOrigin(-1);
 
-			boolean res = this.smoothizeMStick();
+			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth
 				break; // else we need to gen another shape
 			// else
@@ -1321,6 +1305,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// again.");
 
 		}
+	
 
 	}
 
@@ -1373,7 +1358,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		//up to here, the eligible skeleton should be ready
 		// 3. Assign the radius value
-		RadiusAssign( 0); // no component to preserve radius
+		RadiusAssign(0); // no component to preserve radius
 		// 4. Apply the radius value onto each component
 		for (i=1; i<=nComponent; i++)
 		{
@@ -1510,8 +1495,8 @@ public class AllenMatchStick extends MatchStick implements Serializable {
     Adding a new MAxisArc to a MatchStick
     @param nowComp the index of the new added mAxis
     @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
-
     ALLEN CHEN : copy and pasting this here so it has access to the super class's tangentSaveZone
+
 	 */
 	protected boolean Add_MStick(int nowComp, int type)
 	{ 
