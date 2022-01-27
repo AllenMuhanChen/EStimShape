@@ -1,6 +1,7 @@
 package org.xper.allen.app.nafc.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.config.java.annotation.Bean;
 import org.springframework.config.java.annotation.Configuration;
 import org.springframework.config.java.annotation.ExternalValue;
@@ -9,6 +10,7 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.springframework.context.annotation.Scope;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.config.NAFCConfig;
@@ -84,7 +86,7 @@ public class NAFCMStickPngAppConfig {
 		return gen;
 	}
 
-	@Bean
+	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public AllenPNGMaker pngMaker(){
 		AllenPNGMaker pngMaker = new AllenPNGMaker();
 		pngMaker.setWidth(dpiUtil().calculateMinResolution());

@@ -281,7 +281,7 @@ public class MStickPngBlockGenOne{
 	private void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
 		//SETTING SIZES 
-		double padding = 1.5;
+		double padding = 4;
 		double scale = maxImageDimensionDegrees - padding;
 		double minScale = maxImageDimensionDegrees/2;
 		obj.setScale(minScale, scale);
