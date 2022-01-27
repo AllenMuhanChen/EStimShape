@@ -10,6 +10,7 @@ import java.util.List;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -49,6 +50,17 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	@Override
 	public void draw() {
 		init();
+		/**
+		 * AC: This thread sleep is NECESSARY. Without it, there are serious
+		 * graphical glitches with the first saved image drawn. My guess is that
+		 * there is some multithreaded stuff in init() (openGL?) that didn't have
+		 * time to finish before drawSkeleton() is called. 
+		 */
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 		drawSkeleton();
 	}
 
@@ -150,7 +162,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 
-			//centerShapeAtOrigin(-1);
+			centerShapeAtOrigin(-1);
 			if(success){
 				boolean res;
 				try{
@@ -391,17 +403,20 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					success_process = false;
 					continue; // not a good radius, try another
 				}
+				
+				if (this.finalTubeCollisionCheck() == true) {
+					if (showDebug)
+						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n");
+					success_process = false;
+				}
+				
 				if (this.validMStickSize() == false) {
 					if (showDebug)
 						System.out.println("\n IN replace tube: FAIL the MStick size check ....\n");
 					success_process = false;
 				}
 
-				if (this.finalTubeCollisionCheck() == true) {
-					if (showDebug)
-						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n");
-					success_process = false;
-				}
+
 				if (success_process)
 					break;
 			}
@@ -434,8 +449,8 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 	public boolean genMetricMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph) {
 		MetricMorphParams mmp = new MetricMorphParams();
-		mmp.orientationChance = 0;
-		mmp.lengthChance = 0;
+		mmp.orientationChance = 1;
+		mmp.lengthChance = 1;
 		mmp.radiusChance = 1;
 		
 		int i = 0;
@@ -458,7 +473,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			//centerShapeAtOrigin(-1);
+			centerShapeAtOrigin(-1);
 			if(success){
 				boolean res;
 				try{
@@ -705,6 +720,13 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					success_process = false;
 					continue; // not a good radius, try another
 				}
+				
+				if ( this.finalTubeCollisionCheck() == true)
+				{
+					if ( showDebug)
+						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
+					success_process = false;
+				}
 				if ( this.validMStickSize() ==  false)
 				{
 					if ( showDebug)
@@ -712,12 +734,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					success_process = false;
 				}
 
-				if ( this.finalTubeCollisionCheck() == true)
-				{
-					if ( showDebug)
-						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
-					success_process = false;
-				}
+
 				if ( success_process)
 					break;
 			}
@@ -773,7 +790,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
-			//centerShapeAtOrigin(-1);
+			centerShapeAtOrigin(-1);
 			if(compSuccess){
 				boolean res;
 				try {
@@ -1058,9 +1075,15 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			}
 		}
 
-
+		if ( this.finalTubeCollisionCheck() == true)
+		{
+			if ( showDebug)
+				System.out.println("\n FAIL the final Tube collsion Check ....\n");
+			return false;
+		}
+		
 		// 5. check if the final shape is not working ( collide after skin application)
-		//this.centerShapeAtOrigin(-1);
+		this.centerShapeAtOrigin(-1);
 
 		if ( this.validMStickSize() ==  false)
 		{
@@ -1069,12 +1092,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			return false;
 		}
 
-		if ( this.finalTubeCollisionCheck() == true)
-		{
-			if ( showDebug)
-				System.out.println("\n FAIL the final Tube collsion Check ....\n");
-			return false;
-		}
+
 
 		return true;
 
@@ -1295,7 +1313,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			//this.centerShapeAtOrigin(-1);
+			this.centerShapeAtOrigin(-1);
 
 			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth
@@ -1382,7 +1400,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		// Dec 24th 2008
 		// re-center the shape before do the validMStickSize check!
-		//this.centerShapeAtOrigin(-1);
+		this.centerShapeAtOrigin(-1);
 		// this.normalizeMStickSize();
 
 		//   System.out.println("after centering");
