@@ -189,13 +189,13 @@ public class MStickPngBlockGenOne{
 
 			//GENERATE PNGS
 			List<AllenMatchStick> objs = new LinkedList<AllenMatchStick>();
-			objs.add(objs_base.get(i));
+			//objs.add(objs_base.get(i));
 			objs.add(objs_sample.get(i));
 			objs.add(objs_match.get(i));
 			objs.addAll(objs_distractor.get(i));
 
 			List<Long> ids = new LinkedList<Long>();
-			ids.add(sampleId-1);
+			//ids.add(sampleId-1);
 			ids.add(sampleId);
 			ids.add(matchId);
 			ids.addAll(distractorIds);
@@ -281,9 +281,13 @@ public class MStickPngBlockGenOne{
 	private void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
 		//SETTING SIZES 
-		double padding = 4;
-		double scale = maxImageDimensionDegrees - padding;
-		double minScale = maxImageDimensionDegrees/2;
+		/**
+		 * With this strategy of scale setting, we set our maxImageDimensionDegrees to
+		 * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
+		 * to be approx half the size. 
+		 */
+		double scale = maxImageDimensionDegrees/2;
+		double minScale = maxImageDimensionDegrees/4;
 		obj.setScale(minScale, scale);
 		
 		//CONTRAST

@@ -1476,30 +1476,49 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	 * ( to prevent a shape extend too much outside one dimension)
 	 * 
 	 * ADDED BY Allen Chen: checks if too small as well.
+	 * Change detection to see if any of the vec points are outside the box rather than
+	 * using radius method. 
 	 */
 	protected boolean validMStickSize() {
-		double maxRad = scaleForMAxisShape; // degree
+		double maxRadius = scaleForMAxisShape; // degree
 		double screenDist = 500;
-		double minRad = minScaleForMAxisShape;
-		double radSize = screenDist * Math.tan(maxRad * Math.PI / 180 / 2);
-
+		double minRadius = minScaleForMAxisShape;
+		double maxBoundInMm = screenDist * Math.tan(maxRadius * Math.PI / 180 / 2);
+		double minBoundInMm = screenDist * Math.tan(minRadius * Math.PI / 180 / 2);
 		int i, j;
 
-		Point3d ori = new Point3d(0.0, 0.0, 0.0);
-		double dis;
-		double maxDis = 0;
-		for (i = 1; i <= nComponent; i++)
+		//Point3d ori = new Point3d(0.0, 0.0, 0.0);
+		//double dis;
+		//double maxDis = 0;
+		double maxX=0;
+		double maxY=0;
+		for (i = 1; i <= nComponent; i++) {
 			for (j = 1; j <= comp[i].nVect; j++) {
-				dis = comp[i].vect_info[j].distance(ori);
-				if (dis > maxDis) {
-					maxDis = dis;
-				}
-				if (dis > radSize)
+				double xLocation = scaleForMAxisShape * comp[i].vect_info[j].x;
+				double yLocation = scaleForMAxisShape * comp[i].vect_info[j].y;
+				//dis = comp[i].vect_info[j].distance(ori);
+
+				if(xLocation > maxBoundInMm || comp[i].vect_info[j].x < -maxBoundInMm){
+					System.out.println("AC:71923: TOO BIG");
 					return false;
+				}
+				if(yLocation > maxBoundInMm || comp[i].vect_info[j].y < -maxBoundInMm){
+					System.out.println("AC:71923: TOO BIG");
+					return false;
+				}
+				if(Math.abs(xLocation)>maxX)
+					maxX = Math.abs(xLocation);
+				if(Math.abs(xLocation)>maxY)
+					maxY = Math.abs(yLocation);
 			}
-		if (maxDis < minRad) {
+		}
+		if (maxX < minBoundInMm || maxY < minBoundInMm) {
+			//System.out.println("AC:71923: " + maxX);
+			//System.out.println("AC:71923: " + maxY);
 			return false;
 		}
+			
+
 		return true;
 	}
 

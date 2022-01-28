@@ -9,32 +9,43 @@ import org.xper.drawing.renderer.AbstractRenderer;
  *  in order to calculate
  * the bare minimum pixel resolution that would achieve at least that DPI at the maximum stimulus size. 
  * 
+ * Another functionality is to take the DPI of the monitor that the images are being generated on
+ * and use this to calculate the size of the openGL window in mm so the images can be generated 
+ * properly. 
  * @author Allen Chen
  *
  */
 public class DPIUtil {
 	@Dependency
-	double dpi;
+	double generatorDPI;
+	@Dependency
+	double monkeyDPI;
 	@Dependency
 	double maxImageDimensionDegrees;
 	@Dependency
 	AbstractRenderer renderer;
 	
+	public double maxDimMm;
 	public int calculateMinResolution(){
-		double maxDimMm = renderer.deg2mm(maxImageDimensionDegrees);
+		maxDimMm = renderer.deg2mm(maxImageDimensionDegrees);
 		double maxDimInches = maxDimMm / 25.4;
-		int minPixels = (int) Math.round(dpi*maxDimInches);
+		int minPixels = (int) Math.round(monkeyDPI*maxDimInches);
 		
 		return minPixels+1;
 	}
 
+	public double calculateMmForRenderer() {
+		int pixels = calculateMinResolution();
+		//System.out.println(pixels * (1/generatorDPI) * 25.4);
+		return pixels * (1/generatorDPI) * 25.4;
+	}
 	
 	public double getDpi() {
-		return dpi;
+		return monkeyDPI;
 	}
 
 	public void setDpi(double dpi) {
-		this.dpi = dpi;
+		this.monkeyDPI = dpi;
 	}
 
 	public double getMaxStimulusDimensionDegrees() {
@@ -51,5 +62,13 @@ public class DPIUtil {
 
 	public void setRenderer(AbstractRenderer renderer) {
 		this.renderer = renderer;
+	}
+
+	public double getGeneratorDPI() {
+		return generatorDPI;
+	}
+
+	public void setGeneratorDPI(double generatorDPI) {
+		this.generatorDPI = generatorDPI;
 	}
 }
