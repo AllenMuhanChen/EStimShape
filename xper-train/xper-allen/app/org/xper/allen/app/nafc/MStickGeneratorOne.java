@@ -46,6 +46,7 @@ public class MStickGeneratorOne {
 		double distractorDistanceLowerLim = Double.parseDouble(args[8]);
 		double distractorDistanceUpperLim = Double.parseDouble(args[9]);
 		double distractorScaleUpperLim = Double.parseDouble(args[10]);
+		double metricMorphMagnitude = Double.parseDouble(args[11]);
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
@@ -60,7 +61,7 @@ public class MStickGeneratorOne {
 					eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim, 
 					 distractorDistanceLowerLim,
 					distractorDistanceUpperLim,
-					distractorScaleUpperLim);
+					distractorScaleUpperLim, metricMorphMagnitude);
 			
 		}
 		catch(Exception e) {

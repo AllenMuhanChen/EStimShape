@@ -22,13 +22,14 @@ public class AllenMAxisArc extends MAxisArc {
 	 * @param alignedPt
 	 * @param volatileRate
 	 */
-	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  double lengthChance, double orientationChance) {
+	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  MetricMorphParams mmp) {
 		boolean showDebug = false;
 		double RadView = 5.0;
 		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
 		// Nov 20th, the orientation change seems to be too large
 		// since this is used to generate similar tube, we should make it more narrow
-		double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
+		//double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
+		
 		boolean[] chgFlg = new boolean[3];
 		int i;
 		//possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
@@ -43,8 +44,8 @@ public class AllenMAxisArc extends MAxisArc {
 		/*
 		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
 		 */
-		if ( stickMath_lib.rand01() < lengthChance) {
-			double[] percentage = {0.15, 0.30};
+		if ( stickMath_lib.rand01() < mmp.lengthChance) {
+			double[] percentage = mmp.lengthMagnitude;
 			double oriArcLen = inArc.arcLen;
 			
 			
@@ -57,7 +58,8 @@ public class AllenMAxisArc extends MAxisArc {
 		}
 
 		// 2. orientation
-		if (stickMath_lib.rand01() < orientationChance) {
+		double[] orientationAngleRange = mmp.orientationMagnitude;
+		if (stickMath_lib.rand01() < mmp.orientationChance) {
 			Vector3d oriTangent = new Vector3d( inArc.mTangent[inArc.transRotHis_rotCenter]);
 			while (true) {
 				newTangent = stickMath_lib.randomUnitVec();
