@@ -108,6 +108,7 @@ public class NAFCMStickPngAppConfig {
 		dpiUtil.setRenderer(config.experimentGLRenderer());
 		dpiUtil.setDpi(xperMonkeyScreenDPI());
 		dpiUtil.setMaxStimulusDimensionDegrees(xperMaxImageDimensionDegrees());
+		dpiUtil.setGeneratorDPI(91.79);
 		return dpiUtil;
 	}
 

@@ -49,5 +49,6 @@
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="xper-3d/lib/lwjgl/linux"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/xper-3d/lib/java3d/vecmath.jar"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>

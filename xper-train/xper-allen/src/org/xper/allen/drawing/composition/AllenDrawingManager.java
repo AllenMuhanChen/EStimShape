@@ -63,13 +63,16 @@ public class AllenDrawingManager implements Drawable {
 		window.setPixelFormat(pixelFormat);
 		window.create();
 		
+		
 		renderer = new PerspectiveRenderer();
 		//renderer = new OrthographicRenderer();
 		renderer.setDepth(pngMaker.getDepth());
 		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
 		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		renderer.setHeight(height);
-		renderer.setWidth(width);
+		//renderer.setHeight(height);
+		//renderer.setWidth(width);
+		renderer.setHeight(pngMaker.dpiUtil.calculateMmForRenderer());
+		renderer.setWidth(pngMaker.dpiUtil.calculateMmForRenderer());
 		renderer.init(window.getWidth(), window.getHeight());
 
 		GL11.glShadeModel(GL11.GL_SMOOTH);

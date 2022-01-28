@@ -3743,8 +3743,14 @@ public class MatchStick implements Drawable {
 		this.setObj1(MObj[1]);
 
 		this.getObj1().rotateMesh(finalRotation);
-		this.getObj1().scaleTheObj(scaleForMAxisShape*3);
-
+		//this.getObj1().scaleTheObj(scaleForMAxisShape*3);
+		this.getObj1().scaleTheObj(scaleForMAxisShape); //AC: IMPORTANT CHANGE 
+		/*
+		 * If the *3 is not removed, the printed images will all be zoomed in by factor of 3
+		 * Also, I believe this scaling my scaleForMAXisShape is what gives all of the dimmensionless
+		 * units of length in the MatchStick units for the first time. 
+		 */
+		
 		if (doCenterObject)
 			this.finalShiftinDepth = this.getObj1().subCenterOfMass();
 
