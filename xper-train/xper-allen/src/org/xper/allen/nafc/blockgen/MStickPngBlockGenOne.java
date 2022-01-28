@@ -11,6 +11,7 @@ import java.util.stream.IntStream;
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.MetricMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -66,7 +67,7 @@ public class MStickPngBlockGenOne{
 			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
 			double distractorDistanceLowerLim, 
 			double distractorDistanceUpperLim,
-			double distractorScaleUpperLim) { //
+			double distractorScaleUpperLim, double metricMorphMagnitude) { //
 
 
 		
@@ -97,7 +98,18 @@ public class MStickPngBlockGenOne{
 			}
 		}
 
-
+		//LOAD METRIC MORPH PARAMETERS
+		MetricMorphParams mmp = new MetricMorphParams();
+		mmp.orientationChance = 1;
+		mmp.lengthChance = 1;
+		mmp.radiusChance = 1;
+		double[] lengthMagnitude = {metricMorphMagnitude*0.15, metricMorphMagnitude*0.30};
+		double[] radiusMagnitude = lengthMagnitude;
+		double[] orientationMagnitude = {metricMorphMagnitude*7.5*Math.PI/180, metricMorphMagnitude*15*Math.PI/180};
+		mmp.lengthMagnitude=lengthMagnitude;
+		mmp.radiusMagnitude=radiusMagnitude;
+		mmp.orientationMagnitude=orientationMagnitude;
+		
 		//GENERATION
 		try {
 			/**
@@ -147,7 +159,7 @@ public class MStickPngBlockGenOne{
 					System.out.println("In Match");
 					try{
 						setProperties(objs_match.get(i));
-						matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i));
+						matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), mmp);
 					} catch(Exception e){
 						matchSuccess = false;
 					}

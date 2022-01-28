@@ -403,13 +403,13 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					success_process = false;
 					continue; // not a good radius, try another
 				}
-				
+
 				if (this.finalTubeCollisionCheck() == true) {
 					if (showDebug)
 						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n");
 					success_process = false;
 				}
-				
+
 				if (this.validMStickSize() == false) {
 					if (showDebug)
 						System.out.println("\n IN replace tube: FAIL the MStick size check ....\n");
@@ -447,12 +447,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	}
 	 */
 
-	public boolean genMetricMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph) {
-		MetricMorphParams mmp = new MetricMorphParams();
-		mmp.orientationChance = 1;
-		mmp.lengthChance = 1;
-		mmp.radiusChance = 1;
-		
+	public boolean genMetricMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, MetricMorphParams mmp) {
 		int i = 0;
 		while (i<2) {
 			this.cleanData();
@@ -492,14 +487,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 	}
 
-	public class MetricMorphParams{
-		double orientationChance; //chance to change orientation
-		double lengthChance;
-		double radiusChance;
-	}
 	/**
     Derived from fineTuneComponent()
-    
+
     AC: Modifications to keep finetunes to metric changes only. 
     	orientation of limb
     	length of limb
@@ -556,9 +546,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					copyFrom(old_MStick);
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
-					nowArc.genMetricSimilarArc( this.comp[id].mAxisInfo, alignedPt, mmp.lengthChance, mmp.orientationChance);
+					nowArc.genMetricSimilarArc( this.comp[id].mAxisInfo, alignedPt, mmp);
 					// use this function to generate a similar arc
-					
+
 					//for loop, check through related JuncPt for tangentSaveZone
 					Vector3d finalTangent = new Vector3d();
 					boolean tangentFlg = true;
@@ -596,7 +586,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 								}
 
 						}
-					
+
 					// still valid after all tangent check
 					if (tangentFlg == true) 
 						break;
@@ -713,14 +703,14 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				//show the radius value
 				//System.out.println("rad assign: ");
 				//comp[id].showRadiusInfo();
-				this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo, mmp.radiusChance);
+				this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo, mmp);
 				//comp[id].showRadiusInfo();
 				if ( comp[id].RadApplied_Factory() == false)
 				{
 					success_process = false;
 					continue; // not a good radius, try another
 				}
-				
+
 				if ( this.finalTubeCollisionCheck() == true)
 				{
 					if ( showDebug)
@@ -821,20 +811,26 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 	AC: Metric: modified to not change radProfile (both ends & Junc) except for general scaling
 	 */
-	protected void MutationSUB_radAssign2NewComp_Metric( int targetComp, double[][] oriValue, double radiusChance)
+	protected void MutationSUB_radAssign2NewComp_Metric( int targetComp, double[][] oriValue, MetricMorphParams mmp)
 	{
 		boolean showDebug = false;
 		int i, j;
 		double rMin, rMax;
 		double nowRad= -100.0, u_value;
 		double radiusScale;
-		if(stickMath_lib.rand01() < radiusChance){
-			radiusScale = stickMath_lib.randDouble(0.7, 1.3);
+		if(stickMath_lib.rand01() < mmp.radiusChance){
+			if(stickMath_lib.rand01()<0.5) {
+				radiusScale = 1 - stickMath_lib.randDouble(-mmp.radiusMagnitude[1], -mmp.radiusMagnitude[0]);
+			
+			}
+			else {
+				radiusScale = 1 + stickMath_lib.randDouble(mmp.radiusMagnitude[0], mmp.radiusMagnitude[1]);
+			}
 		}
 		else{
 			radiusScale = 1;
 		}
-		
+
 		{
 			i = targetComp;
 			comp[i].radInfo[0][1] = -10.0; comp[i].radInfo[1][1] = -10.0; comp[i].radInfo[2][1] = -10.0;
@@ -951,7 +947,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			comp[i].radInfo[1][1] = nowRad;
 		}
 	}
-	
+
 	public List<Integer> leafIndxToEndPts(int leafIndex, AllenMatchStick ams) {
 		ArrayList<Integer> output = new ArrayList<Integer>();
 		for (int j = 1; j <= ams.nEndPt; j++) {
@@ -981,7 +977,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		//STARTING LEAF
 		comp[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
-		
+
 		//ALLEN DEBUG:
 		System.out.println("AC99481: " + comp[1].radInfo[1][1]);
 
@@ -992,7 +988,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 			System.out.println("AC568529: " + amsOfLeaf.getEndPtStruct(endList.get(0)).comp);
 			System.out.println("AC568529: " + amsOfLeaf.getJuncPtStruct(juncList.get(0)).comp[1]);
-			
+
 			//DEFINE JUCTION TO BE A JUNCTION FROM LEAF
 			JuncPt_struct in_junc = amsOfLeaf.getJuncPtStruct(juncList.get(0));
 			int jnComp = 1;
@@ -1081,7 +1077,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				System.out.println("\n FAIL the final Tube collsion Check ....\n");
 			return false;
 		}
-		
+
 		// 5. check if the final shape is not working ( collide after skin application)
 		this.centerShapeAtOrigin(-1);
 
@@ -1323,7 +1319,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			// again.");
 
 		}
-	
+
 
 	}
 
@@ -1517,7 +1513,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			//System.out.println("AC:71923: " + maxY);
 			return false;
 		}
-			
+
 
 		return true;
 	}
