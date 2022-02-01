@@ -187,6 +187,20 @@ public class stickMath_lib
 	return random integer btw a and b ( including a and b)
     */
 
+    /**
+     * @author r2_allen
+     * return random scalar between (1-b):(1-a) and (1+a):(1+b). 
+     * @return
+     */
+    public static double randScalarInTails(double a, double b) {
+    	if(rand01()<0.5) 
+    		return 1 - randDouble(-b,-a);
+    	else
+    		return 1 + randDouble(a,b);
+    			
+    	
+    }
+    
     /** 
 	function that calculate the 3D spatial rotation
 	input are the vector to compute, the axis vector and the degree to rotate

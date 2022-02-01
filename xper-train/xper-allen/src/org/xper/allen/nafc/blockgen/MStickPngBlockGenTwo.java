@@ -28,7 +28,7 @@ import org.xper.utils.RGBColor;
  * @author r2_allen
  *
  */
-public class MStickPngBlockGenOne{
+public class MStickPngBlockGenTwo{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
@@ -49,15 +49,14 @@ public class MStickPngBlockGenOne{
 	 * Selects visual stimuli randomly from stimTypes
 	 */
 	Random r = new Random();
-	
 	/**
 	 *  Generate trials where:
 	 *  Sample: Generated matchstick from a randomly generated limb
 	 *  Match:  Morphed version of sample where starter limb is slightly morphed (metric morph)
-	 *  Distractors: completely random match sticks. 
-	 */	
-
-	public MStickPngBlockGenOne() {
+	 *  Distractors: Some are qualitative morphed stimuli where starter limb is morphed to a completely different type of limb (qualitative difference)
+			Some are completely random stimuli. 
+	 */
+	public MStickPngBlockGenTwo() {
 	}
 
 	long genId = 1;
@@ -100,7 +99,9 @@ public class MStickPngBlockGenOne{
 			}
 		}
 
-		//LOAD METRIC MORPH PARAMETERS
+		//TODO: Load qualitative parameters?
+		//LOAD METRIC MORPH PARAMETERS 
+		/*
 		MetricMorphParams mmp = new MetricMorphParams();
 		mmp.orientationChance = 1;
 		mmp.lengthChance = 1;
@@ -111,6 +112,7 @@ public class MStickPngBlockGenOne{
 		mmp.lengthMagnitude=lengthMagnitude;
 		mmp.radiusMagnitude=radiusMagnitude;
 		mmp.orientationMagnitude=orientationMagnitude;
+		*/
 		
 		//GENERATION
 		try {
@@ -161,7 +163,7 @@ public class MStickPngBlockGenOne{
 					System.out.println("In Match");
 					try{
 						setProperties(objs_match.get(i));
-						matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), mmp);
+						matchSuccess = objs_match.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i));
 					} catch(Exception e){
 						matchSuccess = false;
 					}

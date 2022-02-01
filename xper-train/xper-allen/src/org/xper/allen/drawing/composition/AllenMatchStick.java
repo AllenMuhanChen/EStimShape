@@ -447,6 +447,209 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	}
 	 */
 
+	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph) {
+		int i = 0;
+		boolean[] profileFlg = new boolean[3];
+		profileFlg[0] = false; profileFlg[1] = true; profileFlg[2] = true;
+		
+		QualitativeMorphParams qmp = new QualitativeMorphParams();
+		qmp.endChance = 1;
+		double[] endMagnitude = {0.5, 1}; qmp.endMagnitude = endMagnitude;
+		double[] middleMagnitude = {0.5, 1}; qmp.middleMagnitude = middleMagnitude;
+		
+		while (i<2) {
+			cleanData();
+			// 0. Copy
+			copyFrom(amsToMorph);
+
+			// 1. DO THE MORPHING
+			int j = 0;
+			boolean success = false;
+			while (j<10){
+				success = morphTubeRadiusProfile(leafToMorphIndx, profileFlg, qmp)
+						& postProcessMatchStick();
+				if(success){
+					break;
+				} else{
+					j++;
+				}
+			}
+			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
+			// junctions similar to previous
+
+			centerShapeAtOrigin(-1);
+			if(success){
+				boolean res;
+				try{
+					res = smoothizeMStick();
+				} catch(Exception e){
+					res = false;
+				}
+				if (res == true) // success to smooth
+					return true; // else we need to gen another shape
+				else{
+				}
+			}
+			i++;
+		}
+		return false;
+
+	}
+
+	/**
+    	Morph the radius profile of the tube with specified id. 
+    		Morphs to radius profile should be capped at a minimum and maximum amount of change
+			@param profileFlg - whether we want the Junc, End and Middle to be morphed, respectively
+	 */
+	protected boolean morphTubeRadiusProfile(int id, boolean[] profileFlg, QualitativeMorphParams qmp)
+	{
+		boolean showDebug = false;
+		double rMin, rMax;
+		double nowRad, u_value, tempX;
+		int i, j;
+		boolean[] JuncPtFlg = new boolean[nJuncPt+1];
+		
+		// 0. Determine what radius points need to be morphed. 
+
+		
+		
+		// 1. assign at JuncPt
+		for (i=1; i<= nJuncPt; i++)
+			for (j=1; j<= JuncPt[i].nComp; j++)
+			{
+				if ( JuncPt[i].comp[j] == id & profileFlg[0])
+				{
+					JuncPtFlg[i] = true;
+				}
+			}
+
+		for (i=1; i<=nJuncPt; i++)
+		{
+			if (JuncPtFlg[i] & profileFlg[0]) { 
+				for (j=1; j<= JuncPt[i].nComp; j++) {
+					//DETERMINE RANDOM RADIUS //TODO: DETERMINE RANDOM RAIUS
+					nowRad = JuncPt[i].rad;
+					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
+					if ( Math.abs( u_value - 0.0) < 0.0001)
+					{
+						comp[JuncPt[i].comp[j]].radInfo[0][0] = 0.0;
+						comp[JuncPt[i].comp[j]].radInfo[0][1] = nowRad;
+					}
+					else if ( Math.abs(u_value - 1.0) < 0.0001)
+					{
+						comp[JuncPt[i].comp[j]].radInfo[2][0] = 1.0;
+						comp[JuncPt[i].comp[j]].radInfo[2][1] = nowRad;
+					}
+					else // middle u value
+					{
+						comp[JuncPt[i].comp[j]].radInfo[1][0] = u_value;
+						comp[JuncPt[i].comp[j]].radInfo[1][1] = nowRad;
+					}
+
+				}
+			} // ?JuncPtFlg 
+		} // loop nJuncPt
+
+		// 2. assign at endPt
+		for ( i = 1 ;  i <= nEndPt ; i++) {
+			if ( endPt[i].comp == id && profileFlg[1]) // only do the radius assign for endPt with component we need
+			{
+
+				int nowComp = endPt[i].comp;
+				u_value = ((double)endPt[i].uNdx -1.0 ) / (51.0 -1.0);
+
+				//rMin = mStick.comp(nowComp).arcLen / 10.0;
+				double oldRad = endPt[i].rad;
+				//rMin = 0.00001; // as small as you like
+				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+
+				// select a random value that is a certain % change either smaller or larger from its old value
+				double modulation = stickMath_lib.randScalarInTails(qmp.endMagnitude[0], qmp.endMagnitude[1]);
+				nowRad = oldRad * modulation;
+
+				endPt[i].rad = nowRad;
+
+				if ( Math.abs( u_value - 0.0) < 0.0001)
+				{
+					comp[nowComp].radInfo[0][0] = 0.0;
+					comp[nowComp].radInfo[0][1] = nowRad;
+				}
+				else if (Math.abs(u_value - 1.0) < 0.0001)
+				{
+					comp[nowComp].radInfo[2][0] = 1.0;
+					comp[nowComp].radInfo[2][1] = nowRad;
+				}
+				else // middle u value
+					System.out.println( "error in endPt radius assignment");
+
+			}
+			
+		}
+
+		// 3. other middle Pt
+		for ( i = 1 ; i <= nComponent ; i++) {
+			if(i ==id && profileFlg[2]) // this component need a intermediate value
+			{
+				int branchPt = comp[i].mAxisInfo.branchPt;
+				u_value = ((double)branchPt-1.0) / (51.0 -1.0);
+
+				//rMin = comp[i].mAxisInfo.arcLen / 10.0;
+				//rMax = Math.min(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
+				double oldRad = comp[i].radInfo[1][1];
+				double modulation = stickMath_lib.randScalarInTails(qmp.middleMagnitude[0], qmp.middleMagnitude[1]);
+				nowRad = oldRad * modulation;
+				comp[i].radInfo[1][0] = u_value;
+				comp[i].radInfo[1][1] = nowRad;
+			}
+
+		}
+		return true;
+	}
+
+	/**
+	 * Apply radius, do tube collision check, center at origin, and smoothize. 
+	 * @return
+	 */
+	public boolean postProcessMatchStick() {
+		boolean showDebug = false;
+		// 4. Apply the radius value onto each component
+		for (int i=1; i<=nComponent; i++)
+		{
+			if( comp[i].RadApplied_Factory() == false) // a fail application
+			{
+				return false;
+			}
+		}
+
+
+		// 5. check if the final shape is not working ( collide after skin application)
+
+
+		if ( finalTubeCollisionCheck() == true)
+		{
+			if ( showDebug)
+				System.out.println("\n FAIL the final Tube collsion Check ....\n");
+			return false;
+		}
+
+
+		// Dec 24th 2008
+		// re-center the shape before do the validMStickSize check!
+		this.centerShapeAtOrigin(-1);
+		// this.normalizeMStickSize();
+
+		//   System.out.println("after centering");
+		if ( this.validMStickSize() ==  false)
+		{
+			if ( showDebug)
+				System.out.println("\n FAIL the MStick size check ....\n");
+			return false;
+		}
+		return true;
+	}
+	
+	 
+	
 	public boolean genMetricMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, MetricMorphParams mmp) {
 		int i = 0;
 		while (i<2) {
@@ -734,7 +937,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			if ( success_process) // not be here, because of 5 times try
 				break;
 
-		} //outtest while
+		} //outer test while
 
 		if ( showDebug)
 			System.out.println("successfully fine tune a tube");
@@ -821,7 +1024,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		if(stickMath_lib.rand01() < mmp.radiusChance){
 			if(stickMath_lib.rand01()<0.5) {
 				radiusScale = 1 - stickMath_lib.randDouble(-mmp.radiusMagnitude[1], -mmp.radiusMagnitude[0]);
-			
+
 			}
 			else {
 				radiusScale = 1 + stickMath_lib.randDouble(mmp.radiusMagnitude[0], mmp.radiusMagnitude[1]);
