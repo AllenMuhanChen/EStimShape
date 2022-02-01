@@ -19,6 +19,7 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.MStickPngBlockGenOne;
+import org.xper.allen.nafc.blockgen.MStickPngBlockGenTwo;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -71,7 +72,20 @@ public class NAFCMStickPngAppConfig {
 		return scene;
 	}
 
-
+	@Bean
+	public MStickPngBlockGenTwo generator2() {
+		MStickPngBlockGenTwo gen = new MStickPngBlockGenTwo();
+		gen.setDbUtil(config.allenDbUtil());
+		gen.setGlobalTimeUtil(acqConfig.timeClient());
+		gen.setXmlUtil(config.allenXMLUtil());
+		gen.setGeneratorPngPath(generatorPngPath);
+		gen.setExperimentPngPath(experimentPngPath);
+		gen.setPngMaker(pngMaker());
+		gen.setMaxImageDimensionDegrees(xperMaxImageDimensionDegrees());
+		gen.setExperimentImageFolderPath(xperExperimentImageFolderName());
+		return gen;
+	}
+	
 	@Bean
 	public MStickPngBlockGenOne generator() {
 		MStickPngBlockGenOne gen = new MStickPngBlockGenOne();
