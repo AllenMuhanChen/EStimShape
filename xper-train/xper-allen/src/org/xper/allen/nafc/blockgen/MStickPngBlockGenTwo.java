@@ -195,7 +195,8 @@ public class MStickPngBlockGenTwo{
 
 			//GENERATING STIM-OBJ SPECS & WRITE TO DB
 			//Determine Ids
-			long sampleId = globalTimeUtil.currentTimeMicros();
+			long sampleId = i*10; //TODO: REVERT!
+			//long sampleId = globalTimeUtil.currentTimeMicros();
 			long matchId = sampleId + 1;
 			List<Long> distractorIds = new LinkedList<Long>();
 			for (int j=0; j<objs_distractor.get(i).size(); j++){
@@ -231,7 +232,7 @@ public class MStickPngBlockGenTwo{
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
 			sampleSpec.setImageDimensions(sampleDimensions);
-			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
+			//dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
 
 			//
 			long[] choiceIds = new long[numChoices];
@@ -243,7 +244,7 @@ public class MStickPngBlockGenTwo{
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
 			matchSpec.setImageDimensions(matchDimensions);
-			dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
+			//dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
 			choiceIds[0] = matchId;
 
 			//DISTRACTORS
@@ -255,7 +256,7 @@ public class MStickPngBlockGenTwo{
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
 				distractorSpec.get(j).setImageDimensions(distractorDimensions);
-				dbUtil.writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "Distractor");
+				//dbUtil.writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "Distractor");
 				choiceIds[j+1] = distractorIds.get(j);
 			}
 
@@ -279,12 +280,12 @@ public class MStickPngBlockGenTwo{
 			//WRITE SPEC
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 
-			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
-			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
+			//dbUtil.writeStimSpec(taskId, stimSpec.toXml());
+			//dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 
 
 		}
-		dbUtil.updateReadyGenerationInfo(genId, numTrials);
+		//dbUtil.updateReadyGenerationInfo(genId, numTrials);
 		System.out.println("Done Generating...");
 
 		return;

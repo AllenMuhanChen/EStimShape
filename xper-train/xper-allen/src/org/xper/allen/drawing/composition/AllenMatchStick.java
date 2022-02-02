@@ -454,8 +454,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
 		qmp.endChance = 1;
-		double[] endMagnitude = {0.5, 1}; qmp.endMagnitude = endMagnitude;
-		double[] middleMagnitude = {0.5, 1}; qmp.middleMagnitude = middleMagnitude;
+		qmp.middleChance = 1;
+		double endMagnitude = 1; qmp.endMagnitude = endMagnitude;
+		double middleMagnitude = 1; qmp.middleMagnitude = middleMagnitude;
 		
 		while (i<2) {
 			cleanData();
@@ -509,8 +510,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		int i, j;
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1];
 		
-		// 0. Determine what radius points need to be morphed. 
-
+		// 0. Determine what radius points need to be morphed and what values to morph them to. 
+		double[] newRads = new double[2];
+		double[] oldRads = new double[2];
 		
 		
 		// 1. assign at JuncPt
@@ -560,12 +562,12 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 				//rMin = mStick.comp(nowComp).arcLen / 10.0;
 				double oldRad = endPt[i].rad;
-				//rMin = 0.00001; // as small as you like
-				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+				rMin = 0.00001; // as small as you like
+				rMax = Math.max( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
 
 				// select a random value that is a certain % change either smaller or larger from its old value
-				double modulation = stickMath_lib.randScalarInTails(qmp.endMagnitude[0], qmp.endMagnitude[1]);
-				nowRad = oldRad * modulation;
+				
+				nowRad = genQualitativeMorphRadius(rMin, rMax, oldRad, qmp.endMagnitude);
 
 				endPt[i].rad = nowRad;
 
@@ -593,11 +595,10 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				int branchPt = comp[i].mAxisInfo.branchPt;
 				u_value = ((double)branchPt-1.0) / (51.0 -1.0);
 
-				//rMin = comp[i].mAxisInfo.arcLen / 10.0;
-				//rMax = Math.min(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
+				rMin = comp[i].mAxisInfo.arcLen / 10.0;
+				rMax = Math.max(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
 				double oldRad = comp[i].radInfo[1][1];
-				double modulation = stickMath_lib.randScalarInTails(qmp.middleMagnitude[0], qmp.middleMagnitude[1]);
-				nowRad = oldRad * modulation;
+				nowRad = genQualitativeMorphRadius(rMin, rMax, oldRad, qmp.middleMagnitude);
 				comp[i].radInfo[1][0] = u_value;
 				comp[i].radInfo[1][1] = nowRad;
 			}
@@ -606,6 +607,19 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		return true;
 	}
 
+	public double genQualitativeMorphRadius(double rMin, double rMax, double oldRad, double magnitude) {
+		double output;
+		System.out.println("AC:774674: " + (rMax-rMin));
+		double exclusionLength = magnitude * (1/2) * (rMax - rMin);
+		while(true) {
+			output = stickMath_lib.randDouble(rMin, rMax);
+			if( output < oldRad - exclusionLength/2 || output > oldRad + exclusionLength/2) {
+				break;
+			}
+		}
+		return output; 
+	}
+	
 	/**
 	 * Apply radius, do tube collision check, center at origin, and smoothize. 
 	 * @return
@@ -959,7 +973,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			int j=0; //Number of times tried to generate a comp. 
 			this.cleanData();
 			while (j<10) {
-				boolean onlyAddToJunc = false;
+				boolean onlyAddToJunc = true;
 				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf, onlyAddToJunc) == true){
 					compSuccess = true;
 					break;
@@ -1659,7 +1673,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	}
 
 	public int chooseRandLeaf() {
-		this.decideLeafBranch();
+		decideLeafBranch();
 		List<Integer> choosableList = new LinkedList<Integer>();
 		for (int i = 0; i < nComponent; i++) {
 			if (LeafBranch[i] == true) {
