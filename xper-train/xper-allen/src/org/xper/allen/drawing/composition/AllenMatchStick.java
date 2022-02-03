@@ -451,13 +451,13 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		int i = 0;
 		boolean[] profileFlg = new boolean[3];
 		profileFlg[0] = false; profileFlg[1] = true; profileFlg[2] = true;
-		
+
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
 		qmp.endChance = 1;
 		qmp.middleChance = 1;
 		double endMagnitude = 1; qmp.endMagnitude = endMagnitude;
 		double middleMagnitude = 1; qmp.middleMagnitude = middleMagnitude;
-		
+
 		while (i<2) {
 			cleanData();
 			// 0. Copy
@@ -467,7 +467,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			int j = 0;
 			boolean success = false;
 			while (j<10){
-				success = morphTubeRadiusProfile(leafToMorphIndx, profileFlg, qmp)
+				success = morphLeafRadiusProfile(leafToMorphIndx, profileFlg, qmp)
 						& postProcessMatchStick();
 				if(success){
 					break;
@@ -502,7 +502,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
     		Morphs to radius profile should be capped at a minimum and maximum amount of change
 			@param profileFlg - whether we want the Junc, End and Middle to be morphed, respectively
 	 */
-	protected boolean morphTubeRadiusProfile(int id, boolean[] profileFlg, QualitativeMorphParams qmp)
+	protected boolean morphLeafRadiusProfile(int id, boolean[] profileFlg, QualitativeMorphParams qmp)
 	{
 		boolean showDebug = false;
 		double rMin, rMax;
@@ -513,8 +513,34 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		// 0. Determine what radius points need to be morphed and what values to morph them to. 
 		double[] newRads = new double[2];
 		double[] oldRads = new double[2];
-		
-		
+		//0.1 determine oldRad of endpoint. 
+		int endPtIndx = 0; //indices of end points that belong to limb with "id"
+		for ( i = 1 ;  i <= nEndPt ; i++) {
+			if ( endPt[i].comp == id && profileFlg[1]) // only do the radius assign for endPt with component we need
+			{
+				endPtIndx = i;
+			}
+
+		}
+		oldRads[0] = endPt[endPtIndx].rad;
+		//0.2 determine oldRad of middlept. 
+		int middlePtIndx = 0;
+		for ( i = 1 ; i <= nComponent ; i++) {
+			if(i ==id && profileFlg[2]) // this component need a intermediate value
+			{
+				middlePtIndx = i;
+
+			}
+
+		}
+		oldRads[1] = comp[middlePtIndx].radInfo[1][1];
+		//0.3 randomly determine newRads
+		rMin = 0.00001; // as small as you like
+		int nowComp = endPt[endPtIndx].comp;
+		//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+		rMax = Math.max(comp[middlePtIndx].mAxisInfo.rad, comp[nowComp].mAxisInfo.rad);
+		newRads = genQualitativeMorphRadii(rMin, rMax, oldRads, qmp.endMagnitude);
+
 		// 1. assign at JuncPt
 		for (i=1; i<= nJuncPt; i++)
 			for (j=1; j<= JuncPt[i].nComp; j++)
@@ -553,73 +579,82 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		} // loop nJuncPt
 
 		// 2. assign at endPt
-		for ( i = 1 ;  i <= nEndPt ; i++) {
-			if ( endPt[i].comp == id && profileFlg[1]) // only do the radius assign for endPt with component we need
-			{
+		//int nowComp = endPt[endPtIndx].comp;
+		u_value = ((double)endPt[endPtIndx].uNdx -1.0 ) / (51.0 -1.0);
 
-				int nowComp = endPt[i].comp;
-				u_value = ((double)endPt[i].uNdx -1.0 ) / (51.0 -1.0);
+		//rMin = mStick.comp(nowComp).arcLen / 10.0;
 
-				//rMin = mStick.comp(nowComp).arcLen / 10.0;
-				double oldRad = endPt[i].rad;
-				rMin = 0.00001; // as small as you like
-				rMax = Math.max( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+		// select a random value that is a certain % change either smaller or larger from its old value
+		nowRad = newRads[0];
 
-				// select a random value that is a certain % change either smaller or larger from its old value
-				
-				nowRad = genQualitativeMorphRadius(rMin, rMax, oldRad, qmp.endMagnitude);
 
-				endPt[i].rad = nowRad;
+		endPt[i].rad = nowRad;
 
-				if ( Math.abs( u_value - 0.0) < 0.0001)
-				{
-					comp[nowComp].radInfo[0][0] = 0.0;
-					comp[nowComp].radInfo[0][1] = nowRad;
-				}
-				else if (Math.abs(u_value - 1.0) < 0.0001)
-				{
-					comp[nowComp].radInfo[2][0] = 1.0;
-					comp[nowComp].radInfo[2][1] = nowRad;
-				}
-				else // middle u value
-					System.out.println( "error in endPt radius assignment");
-
-			}
-			
+		if ( Math.abs( u_value - 0.0) < 0.0001)
+		{
+			comp[nowComp].radInfo[0][0] = 0.0;
+			comp[nowComp].radInfo[0][1] = nowRad;
 		}
+		else if (Math.abs(u_value - 1.0) < 0.0001)
+		{
+			comp[nowComp].radInfo[2][0] = 1.0;
+			comp[nowComp].radInfo[2][1] = nowRad;
+		}
+		else // middle u value
+			System.out.println( "error in endPt radius assignment");
+
 
 		// 3. other middle Pt
-		for ( i = 1 ; i <= nComponent ; i++) {
-			if(i ==id && profileFlg[2]) // this component need a intermediate value
-			{
-				int branchPt = comp[i].mAxisInfo.branchPt;
-				u_value = ((double)branchPt-1.0) / (51.0 -1.0);
+		int branchPt = comp[i].mAxisInfo.branchPt;
+		u_value = ((double)branchPt-1.0) / (51.0 -1.0);
 
-				rMin = comp[i].mAxisInfo.arcLen / 10.0;
-				rMax = Math.max(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
-				double oldRad = comp[i].radInfo[1][1];
-				nowRad = genQualitativeMorphRadius(rMin, rMax, oldRad, qmp.middleMagnitude);
-				comp[i].radInfo[1][0] = u_value;
-				comp[i].radInfo[1][1] = nowRad;
-			}
+		rMin = comp[i].mAxisInfo.arcLen / 10.0;
+		rMax = Math.max(comp[middlePtIndx].mAxisInfo.arcLen / 3.0, 0.5 * comp[middlePtIndx].mAxisInfo.rad);
+		nowRad = newRads[1];
+		comp[middlePtIndx].radInfo[1][0] = u_value;
+		comp[middlePtIndx].radInfo[1][1] = nowRad;
 
-		}
 		return true;
 	}
 
-	public double genQualitativeMorphRadius(double rMin, double rMax, double oldRad, double magnitude) {
-		double output;
+	public double[] genQualitativeMorphRadii(double rMin, double rMax, double[] oldRads, double magnitude) {
+		double newEndPt;
+		double newMiddlePt;
 		System.out.println("AC:774674: " + (rMax-rMin));
 		double exclusionLength = magnitude * (1/2) * (rMax - rMin);
+		double differenceThreshold = 0.3; // in percentage difference
+
+		//TODO: MANAGE MIN AND MAX BETTER!
 		while(true) {
-			output = stickMath_lib.randDouble(rMin, rMax);
-			if( output < oldRad - exclusionLength/2 || output > oldRad + exclusionLength/2) {
+			double oldRatio = oldRads[1]/oldRads[0];
+			//EndPt
+			while(true) {
+				newEndPt = stickMath_lib.randDouble(rMin, rMax);
+				if( newEndPt < oldRads[0] - exclusionLength/2 || newEndPt > oldRads[0] + exclusionLength/2) {
+					break;
+				}
+			}
+			//MiddlePt
+			while(true) {
+				newMiddlePt = stickMath_lib.randDouble(rMin, rMax);
+				if( newMiddlePt < oldRads[0] - exclusionLength/2 || newMiddlePt > oldRads[0] + exclusionLength/2) {
+					break;
+				}
+			}
+
+			double newRatio = newMiddlePt/newEndPt;
+
+			if(Math.abs(newRatio - oldRatio) > differenceThreshold){
 				break;
 			}
+
 		}
+		double[] output = new double[2];
+		output[0] = newEndPt;
+		output[1] = newMiddlePt;
 		return output; 
 	}
-	
+
 	/**
 	 * Apply radius, do tube collision check, center at origin, and smoothize. 
 	 * @return
@@ -661,9 +696,9 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		}
 		return true;
 	}
-	
-	 
-	
+
+
+
 	public boolean genMetricMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, MetricMorphParams mmp) {
 		int i = 0;
 		while (i<2) {
