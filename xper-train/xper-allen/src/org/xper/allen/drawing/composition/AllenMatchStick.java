@@ -40,7 +40,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	protected final double[] finalRotation = new double[3];
 	protected double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = {0, 0.33, 0.67, 1, 0.0, 0.0, 0.0, 0.0 };
+	protected final double[] PARAM_nCompDist = {0, 0.67, 1, 0, 0.0, 0.0, 0.0, 0.0 };
 	protected final double TangentSaveZone = Math.PI/64;
 
 	public AllenMatchStick() {
@@ -450,13 +450,14 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph) {
 		int i = 0;
 		boolean[] profileFlg = new boolean[3];
-		profileFlg[0] = false; profileFlg[1] = true; profileFlg[2] = true;
+		profileFlg[0] = true; profileFlg[1] = true; profileFlg[2] = true;
 
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
 		qmp.endChance = 1;
 		qmp.middleChance = 1;
 		double endMagnitude = 1; qmp.endMagnitude = endMagnitude;
 		double middleMagnitude = 1; qmp.middleMagnitude = middleMagnitude;
+		
 
 		while (i<2) {
 			cleanData();
@@ -511,8 +512,10 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1];
 		
 		// 0. Determine what radius points need to be morphed and what values to morph them to. 
-		double[] newRads = new double[2];
-		double[] oldRads = new double[2];
+		double nowEndRad;
+		double oldEndRad;
+		double nowMidRad;
+		double oldMidRad;
 		//0.1 determine oldRad of endpoint. 
 		int endPtIndx = 0; //indices of end points that belong to limb with "id"
 		for ( i = 1 ;  i <= nEndPt ; i++) {
@@ -522,7 +525,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			}
 
 		}
-		oldRads[0] = endPt[endPtIndx].rad;
+		oldEndRad = endPt[endPtIndx].rad;
 		//0.2 determine oldRad of middlept. 
 		int middlePtIndx = 0;
 		for ( i = 1 ; i <= nComponent ; i++) {
@@ -533,13 +536,14 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 			}
 
 		}
-		oldRads[1] = comp[middlePtIndx].radInfo[1][1];
+		oldMidRad = comp[middlePtIndx].radInfo[1][1];
 		//0.3 randomly determine newRads
-		rMin = 0.00001; // as small as you like
+		//rMin = 0.00001; // as small as you like
 		int nowComp = endPt[endPtIndx].comp;
 		//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
-		rMax = Math.max(comp[middlePtIndx].mAxisInfo.rad, comp[nowComp].mAxisInfo.rad);
-		newRads = genQualitativeMorphRadii(rMin, rMax, oldRads, qmp.endMagnitude);
+		//rMax = Math.max(comp[middlePtIndx].mAxisInfo.rad, comp[nowComp].mAxisInfo.rad);
+		NowRads nowRads;
+		nowRads = genQualitativeMorphRadii(nowComp, oldEndRad, oldMidRad, qmp.endMagnitude);
 
 		// 1. assign at JuncPt
 		for (i=1; i<= nJuncPt; i++)
@@ -585,7 +589,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		//rMin = mStick.comp(nowComp).arcLen / 10.0;
 
 		// select a random value that is a certain % change either smaller or larger from its old value
-		nowRad = newRads[0];
+		nowRad = nowRads.nowEndRad;
 
 
 		endPt[i].rad = nowRad;
@@ -610,49 +614,61 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		rMin = comp[i].mAxisInfo.arcLen / 10.0;
 		rMax = Math.max(comp[middlePtIndx].mAxisInfo.arcLen / 3.0, 0.5 * comp[middlePtIndx].mAxisInfo.rad);
-		nowRad = newRads[1];
+		nowRad = nowRads.nowMidRad;
 		comp[middlePtIndx].radInfo[1][0] = u_value;
 		comp[middlePtIndx].radInfo[1][1] = nowRad;
 
 		return true;
 	}
 
-	public double[] genQualitativeMorphRadii(double rMin, double rMax, double[] oldRads, double magnitude) {
+	public NowRads genQualitativeMorphRadii(int nowComp, double oldRadEnd, double oldRadMid, double magnitude) {
 		double newEndPt;
 		double newMiddlePt;
-		System.out.println("AC:774674: " + (rMax-rMin));
-		double exclusionLength = magnitude * (1/2) * (rMax - rMin);
-		double differenceThreshold = 0.3; // in percentage difference
+		double rMinEnd = 0.00001; // as small as you like
+		//based on arclength and curvature
+		double rMaxEnd = Math.min(comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+		double exclusionLengthEnd = magnitude * (1/2) * (rMaxEnd - rMinEnd);
+		double rMinMid = comp[nowComp].mAxisInfo.arcLen / 10;
+		double rMaxMid = Math.min(comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+		double exclusionLengthMid = magnitude * (1/2) * (rMaxMid - rMinMid);
+	
+		double differenceThreshold = 1000; //How much larger the 
 
 		//TODO: MANAGE MIN AND MAX BETTER!
 		while(true) {
-			double oldRatio = oldRads[1]/oldRads[0];
+			double oldRatio = oldRadEnd/oldRadMid;
 			//EndPt
 			while(true) {
-				newEndPt = stickMath_lib.randDouble(rMin, rMax);
-				if( newEndPt < oldRads[0] - exclusionLength/2 || newEndPt > oldRads[0] + exclusionLength/2) {
+				newEndPt = stickMath_lib.randDouble(rMinEnd, rMaxEnd);
+				if( newEndPt < oldRadEnd - exclusionLengthEnd/2 || newEndPt > oldRadEnd + exclusionLengthEnd/2) {
 					break;
 				}
 			}
 			//MiddlePt
 			while(true) {
-				newMiddlePt = stickMath_lib.randDouble(rMin, rMax);
-				if( newMiddlePt < oldRads[0] - exclusionLength/2 || newMiddlePt > oldRads[0] + exclusionLength/2) {
+				newMiddlePt = stickMath_lib.randDouble(rMinMid, rMaxMid);
+				if( newMiddlePt < oldRadMid - exclusionLengthMid/2 || newMiddlePt > oldRadMid + exclusionLengthMid/2) {
 					break;
 				}
 			}
 
-			double newRatio = newMiddlePt/newEndPt;
+			double newRatio = newEndPt/newMiddlePt;
 
-			if(Math.abs(newRatio - oldRatio) > differenceThreshold){
+			if((Math.max(newRatio,oldRatio) / Math.min(newRatio,oldRatio)) > differenceThreshold){
 				break;
 			}
 
 		}
-		double[] output = new double[2];
-		output[0] = newEndPt;
-		output[1] = newMiddlePt;
-		return output; 
+		NowRads nowRads = new NowRads();
+		nowRads.nowEndRad = newEndPt;
+		nowRads.nowMidRad = newMiddlePt;
+		return nowRads; 
+	}
+	
+	public class NowRads {
+		public double nowEndRad;
+		public double nowMidRad;
+		public double nowJuncRad;
 	}
 
 	/**
@@ -798,6 +814,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					copyFrom(old_MStick);
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
+//MAJOR STEP ONE
 					nowArc.genMetricSimilarArc( this.comp[id].mAxisInfo, alignedPt, mmp);
 					// use this function to generate a similar arc
 
@@ -944,6 +961,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				Point3d newPos = new Point3d( comp[JuncPt[i].comp[1]].mAxisInfo.mPts[ JuncPt[i].uNdx[1]]);
 				JuncPt[i].pos.set(newPos);
 			}
+//MAJOR STEP TWO
 			// now, we apply radius, and then check skin closeness
 			int radiusAssignChance = 5;
 			int now_radChance = 1;
