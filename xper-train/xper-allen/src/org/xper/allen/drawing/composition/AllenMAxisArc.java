@@ -17,24 +17,21 @@ import org.xper.drawing.stick.stickMath_lib;
  */
 public class AllenMAxisArc extends MAxisArc {
 
-	/**Reduced Only Arc Changes To: ArcLen, Orientation
+	/**
 	 * @param inArc
 	 * @param alignedPt
 	 * @param volatileRate
 	 */
 	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  MetricMorphParams mmp) {
 		boolean showDebug = false;
-		double RadView = 5.0;
 		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
 		// Nov 20th, the orientation change seems to be too large
 		// since this is used to generate similar tube, we should make it more narrow
 		//double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
 		
-		boolean[] chgFlg = new boolean[3];
 		int i;
 		//possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
-		// 0. decide what parameters to chg
-
+		// 0. Initialize all possible parameters to previous values
 		double newRad = inArc.rad;
 		double newArcLen = inArc.arcLen;
 		Vector3d newTangent = new Vector3d(inArc.mTangent[ inArc.transRotHis_rotCenter]);
@@ -44,31 +41,33 @@ public class AllenMAxisArc extends MAxisArc {
 		/*
 		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
 		 */
-		if ( stickMath_lib.rand01() < mmp.lengthChance) {
-			double[] percentage = mmp.lengthMagnitude;
+		if(mmp.lengthFlag) {
 			double oriArcLen = inArc.arcLen;
-			
-			
-			while (true) {
-				newArcLen = stickMath_lib.randDouble((1-percentage[1])*oriArcLen, (1+percentage[1]*oriArcLen));
-				if (newArcLen < (1-percentage[0])*oriArcLen || newArcLen > (1+percentage[0])*oriArcLen)
-					break;
-			}
-			
+			mmp.lengthMagnitude.oldValue = oriArcLen;
+			newArcLen = mmp.lengthMagnitude.calculateMagnitude();
 		}
-
+			
 		// 2. orientation
-		double[] orientationAngleRange = mmp.orientationMagnitude;
-		if (stickMath_lib.rand01() < mmp.orientationChance) {
+		if(mmp.orientationFlag) {
 			Vector3d oriTangent = new Vector3d( inArc.mTangent[inArc.transRotHis_rotCenter]);
-			while (true) {
-				newTangent = stickMath_lib.randomUnitVec();
-				double angle = newTangent.angle(oriTangent);
-				if ( angle >= orientationAngleRange[0] && angle <= orientationAngleRange[1]) // 15 ~ 30 degree
-					break;
-			}
+			mmp.orientationMagnitude.oldVector = oriTangent;
+			newTangent = mmp.orientationMagnitude.calculateVector();
 		}
-
+		
+		//3. curvature
+		if(mmp.curvatureFlag) {
+			double oldRad = inArc.rad;
+			mmp.curvatureMagnitude.oldValue = oldRad;
+			newRad = mmp.curvatureMagnitude.calculateMagnitude();
+		}
+		
+		//4. rotation (along tangent axis)
+		if(mmp.rotationFlag) {
+			double oldDevAngle = inArc.transRotHis_devAngle;
+			mmp.rotationMagnitude.oldValue = oldDevAngle;
+			newDevAngle = mmp.rotationMagnitude.calculateMagnitude();	
+		}
+		
 		// use the new required vlaue to generate and transROt the mAxisArc
 
 		this.genArc(newRad, newArcLen); // the variable will be saved in this function

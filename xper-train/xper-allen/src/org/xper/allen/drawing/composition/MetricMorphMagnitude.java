@@ -16,13 +16,13 @@ public class MetricMorphMagnitude {
 	 */
 	public double calculateMagnitude() {
 		double newValue;
-		double outterLowerBound = (oldValue - percentChangeUpperBound*range)/2;
-		double outterUpperBound = (oldValue + percentChangeUpperBound*range)/2;
+		double outerLowerBound = (oldValue - percentChangeUpperBound*range)/2;
+		double outerUpperBound = (oldValue + percentChangeUpperBound*range)/2;
 		double innerUpperBound = (oldValue - percentChangeLowerBound*range)/2;
 		double innerLowerBound = (oldValue + percentChangeLowerBound*range)/2;
 		while (true) {
-			newValue = stickMath_lib.randDouble(outterLowerBound, outterUpperBound);
-			if (newValue < innerUpperBound && newValue > innerLowerBound)
+			newValue = stickMath_lib.randDouble(outerLowerBound, outerUpperBound);
+			if (newValue < innerUpperBound || newValue > innerLowerBound)
 				break;
 		}
 		return newValue;

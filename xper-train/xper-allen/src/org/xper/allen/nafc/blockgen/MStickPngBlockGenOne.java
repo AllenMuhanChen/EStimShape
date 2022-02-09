@@ -102,15 +102,52 @@ public class MStickPngBlockGenOne{
 
 		//LOAD METRIC MORPH PARAMETERS
 		MetricMorphParams mmp = new MetricMorphParams();
-		mmp.orientationChance = 1;
-		mmp.lengthChance = 1;
-		mmp.radiusChance = 1;
-		double[] lengthMagnitude = {metricMorphMagnitude*0.15, metricMorphMagnitude*0.30};
-		double[] radiusMagnitude = lengthMagnitude;
-		double[] orientationMagnitude = {metricMorphMagnitude*7.5*Math.PI/180, metricMorphMagnitude*15*Math.PI/180};
-		mmp.lengthMagnitude=lengthMagnitude;
-		mmp.radiusMagnitude=radiusMagnitude;
-		mmp.orientationMagnitude=orientationMagnitude;
+		//orientation (along along mAxis)
+		mmp.orientationFlag = true;
+		mmp.orientationMagnitude.percentChangeLowerBound = 0.02;
+		mmp.orientationMagnitude.percentChangeUpperBound = 0.04;
+		mmp.orientationMagnitude.range = 2*Math.PI;
+		//rotation (rotation along tangent axis)
+		mmp.rotationFlag = true;
+		mmp.rotationMagnitude.percentChangeLowerBound = 0.15;
+		mmp.rotationMagnitude.percentChangeUpperBound = 0.3;
+		mmp.rotationMagnitude.range = 2*Math.PI;
+		//length (arcLength of mAxis Arc)
+		mmp.lengthFlag = true;
+		mmp.lengthMagnitude.percentChangeLowerBound = 0.15;
+		mmp.lengthMagnitude.percentChangeUpperBound = 0.3;
+		mmp.lengthMagnitude.range = sampleScaleUpperLim;
+		//size (uniform scale of radProfile)
+		mmp.sizeFlag = true;
+		mmp.sizeMagnitude.percentChangeLowerBound = 0.15;
+		mmp.sizeMagnitude.percentChangeUpperBound = 0.3;
+		mmp.sizeMagnitude.range = 3;
+		//curvature
+		mmp.curvatureFlag = true;
+		mmp.curvatureMagnitude.percentChangeLowerBound = 0.15;
+		mmp.curvatureMagnitude.percentChangeUpperBound = 0.3;
+		mmp.curvatureMagnitude.range = mmp.lengthMagnitude.range*6;
+		//position
+		mmp.positionFlag = true;
+		mmp.positionMagnitude.percentChangeLowerBound = 0.15;
+		mmp.positionMagnitude.percentChangeUpperBound = 0.3;
+		mmp.positionMagnitude.range = 1; //TODO: TINKER WITH THIS VALUE
+		//radProfile
+		mmp.radProfileJuncFlag = true;
+		mmp.radProfileJuncMagnitude.percentChangeLowerBound = 0.15;
+		mmp.radProfileJuncMagnitude.percentChangeUpperBound = 0.3;
+		mmp.radProfileEndMagnitude.range = 
+		//
+		mmp.radProfileMidFlag = true;
+		mmp.radProfileMidMagnitude.percentChangeLowerBound = 0.15;
+		mmp.radProfileMidMagnitude.percentChangeUpperBound = 0.3;
+		mmp.radProfileEndFlag = true;
+		mmp.radProfileEndMagnitude.percentChangeLowerBound = 0.15;
+		mmp.radProfileEndMagnitude.percentChangeUpperBound = 0.3;
+		//
+		
+		
+		
 		
 		//GENERATION
 		try {

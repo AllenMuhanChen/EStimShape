@@ -29,7 +29,7 @@ import com.thoughtworks.xstream.XStream;
  * @author r2_allen
  *
  */
-public class AllenMatchStick extends MatchStick implements Serializable {
+public class AllenMatchStick extends MatchStick {
 
 	protected final double PROB_addToEndorJunc = 0.5; // 60% add to end or
 	// junction pt, 40% to the
@@ -815,7 +815,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
 //MAJOR STEP ONE
-					nowArc.genMetricSimilarArc( this.comp[id].mAxisInfo, alignedPt, mmp);
+					nowArc.genMetricSimilarArc(this.comp[id].mAxisInfo, alignedPt, mmp);
 					// use this function to generate a similar arc
 
 					//for loop, check through related JuncPt for tangentSaveZone
@@ -1087,25 +1087,21 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 		int i, j;
 		double rMin, rMax;
 		double nowRad= -100.0, u_value;
-		double radiusScale;
-		if(stickMath_lib.rand01() < mmp.radiusChance){
-			if(stickMath_lib.rand01()<0.5) {
-				radiusScale = 1 - stickMath_lib.randDouble(-mmp.radiusMagnitude[1], -mmp.radiusMagnitude[0]);
-
-			}
-			else {
-				radiusScale = 1 + stickMath_lib.randDouble(mmp.radiusMagnitude[0], mmp.radiusMagnitude[1]);
-			}
-		}
-		else{
-			radiusScale = 1;
+		double radiusScale = 1;
+		if(mmp.sizeFlag){
+			mmp.sizeMagnitude.oldValue = 1;
+			radiusScale = mmp.sizeMagnitude.calculateMagnitude();
 		}
 
+		/*
 		{
 			i = targetComp;
 			comp[i].radInfo[0][1] = -10.0; comp[i].radInfo[1][1] = -10.0; comp[i].radInfo[2][1] = -10.0;
 		}
-
+	    */
+		
+		
+		
 		//set old value at JuncPt
 		for (i=1; i<=nJuncPt; i++)
 		{
@@ -1113,7 +1109,11 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				if ( JuncPt[i].comp[j] == targetComp)
 				{
 					nowRad = JuncPt[i].rad * radiusScale;
-
+					if(mmp.radProfileJuncFlag) {
+						mmp.radProfileJuncMagnitude.oldValue = comp[JuncPt[i].comp[j]].radInfo[0][1];
+						nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
+					}
+					
 					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
@@ -1133,7 +1133,7 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				}
 		}
 
-		//set new value at end Pt --> AC Set to OLD VALUE!
+		//set new value at end Pt 
 		for (i=1; i<= nEndPt; i++)
 			if (endPt[i].comp == targetComp)
 			{
@@ -1148,24 +1148,20 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 				//set radius
 				u_value = ((double)endPt[i].uNdx-1.0) / (51.0-1.0);
 				int nowComp = targetComp;
-				rMin = 0.00001; // as small as you like
-				rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
-				double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims. 
+				//rMin = 0.00001; // as small as you like
+				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims. 
 				// retrive the oriValue
-				double oriRad = -10.0;
+				double oriRad;
 				if ( endPt[i].uNdx == 1)
 					oriRad = oriValue[0][1];
-				else if ( endPt[i].uNdx == 51)
+				else  //endPt[i].uNdx == 51
 					oriRad = oriValue[2][1];
-				// select a value btw rMin and rMax
-				double range = rMax - rMin;
-				if ( oriRad < 0.0) {
-					System.out.println("AC 103948: Generated random nowRad");
-					nowRad = stickMath_lib.randDouble( rMin, rMax);
-				}
-				else // in the case where we have old value
-				{
+			
 					nowRad = oriRad * radiusScale;
+				if(mmp.radProfileJuncFlag) {
+					mmp.radProfileJuncMagnitude.oldValue = oriRad;
+					nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
 				}
 
 				endPt[i].rad = nowRad;
@@ -1186,33 +1182,19 @@ public class AllenMatchStick extends MatchStick implements Serializable {
 
 		//set intermediate pt if not assigned yet
 		i = targetComp;
-		if ( comp[i].radInfo[1][1] == -10.0 ) // this component need a intermediate value
+		if ( mmp.radProfileMidFlag) // this component need a intermediate value
 		{
 			int branchPt = comp[i].mAxisInfo.branchPt;
 			u_value = ((double)branchPt-1.0) / (51.0 -1.0);
 
-			rMin = comp[i].mAxisInfo.arcLen / 10.0;
-			rMax = Math.min(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
+			//rMin = comp[i].mAxisInfo.arcLen / 10.0;
+			//rMax = Math.min(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
 			// select a value btw rMin and rMax
 
 			double oriRad = oriValue[1][1]; // the middle radius value
-			double range = rMax - rMin;
-			if ( oriRad < 0.0)
-			{
-				System.out.println("AC12380432: RANDOM RAD GENERATED");
-				nowRad = stickMath_lib.randDouble( rMin, rMax);
-			}
-			else // in the case where we have old value
-			{
-
-				nowRad = oriRad * radiusScale;
-				if ( showDebug)
-				{
-					System.out.println("In assign Rad, we have old value +" + oriRad);
-					System.out.println("and new vlaue is " + nowRad);
-				}
-			}
-
+			//double range = rMax - rMin;
+			mmp.radProfileMidMagnitude.oldValue = oriRad;
+			nowRad = mmp.radProfileMidMagnitude.calculateMagnitude();
 			comp[i].radInfo[1][0] = u_value;
 			comp[i].radInfo[1][1] = nowRad;
 		}
