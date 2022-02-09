@@ -3,6 +3,7 @@ package org.xper.allen.drawing.composition;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.stickMath_lib;
 
@@ -58,7 +59,7 @@ public class AllenMAxisArc extends MAxisArc {
 		if(mmp.curvatureFlag) {
 			double oldRad = inArc.rad;
 			mmp.curvatureMagnitude.oldValue = oldRad;
-			newRad = mmp.curvatureMagnitude.calculateMagnitude();
+			newRad = mmp.curvatureMagnitude.calculateMagnitude(inArc.arcLen);
 		}
 		
 		//4. rotation (along tangent axis)

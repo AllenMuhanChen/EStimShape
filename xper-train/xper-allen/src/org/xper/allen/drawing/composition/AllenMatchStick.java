@@ -11,6 +11,7 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -457,7 +458,7 @@ public class AllenMatchStick extends MatchStick {
 		qmp.middleChance = 1;
 		double endMagnitude = 1; qmp.endMagnitude = endMagnitude;
 		double middleMagnitude = 1; qmp.middleMagnitude = middleMagnitude;
-		
+
 
 		while (i<2) {
 			cleanData();
@@ -510,7 +511,7 @@ public class AllenMatchStick extends MatchStick {
 		double nowRad, u_value, tempX;
 		int i, j;
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1];
-		
+
 		// 0. Determine what radius points need to be morphed and what values to morph them to. 
 		double nowEndRad;
 		double oldEndRad;
@@ -631,7 +632,7 @@ public class AllenMatchStick extends MatchStick {
 		double rMinMid = comp[nowComp].mAxisInfo.arcLen / 10;
 		double rMaxMid = Math.min(comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
 		double exclusionLengthMid = magnitude * (1/2) * (rMaxMid - rMinMid);
-	
+
 		double differenceThreshold = 1000; //How much larger the 
 
 		//TODO: MANAGE MIN AND MAX BETTER!
@@ -664,7 +665,7 @@ public class AllenMatchStick extends MatchStick {
 		nowRads.nowMidRad = newMiddlePt;
 		return nowRads; 
 	}
-	
+
 	public class NowRads {
 		public double nowEndRad;
 		public double nowMidRad;
@@ -736,7 +737,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			centerShapeAtOrigin(-1);
+			//centerShapeAtOrigin(-1);
 			if(success){
 				boolean res;
 				try{
@@ -814,7 +815,7 @@ public class AllenMatchStick extends MatchStick {
 					copyFrom(old_MStick);
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
-//MAJOR STEP ONE
+					//MAJOR STEP ONE
 					nowArc.genMetricSimilarArc(this.comp[id].mAxisInfo, alignedPt, mmp);
 					// use this function to generate a similar arc
 
@@ -961,7 +962,7 @@ public class AllenMatchStick extends MatchStick {
 				Point3d newPos = new Point3d( comp[JuncPt[i].comp[1]].mAxisInfo.mPts[ JuncPt[i].uNdx[1]]);
 				JuncPt[i].pos.set(newPos);
 			}
-//MAJOR STEP TWO
+			//MAJOR STEP TWO
 			// now, we apply radius, and then check skin closeness
 			int radiusAssignChance = 5;
 			int now_radChance = 1;
@@ -1089,7 +1090,7 @@ public class AllenMatchStick extends MatchStick {
 		double nowRad= -100.0, u_value;
 		double radiusScale = 1;
 		if(mmp.sizeFlag){
-			mmp.sizeMagnitude.oldValue = 1;
+			mmp.sizeMagnitude.oldValue = radiusScale;
 			radiusScale = mmp.sizeMagnitude.calculateMagnitude();
 		}
 
@@ -1098,10 +1099,10 @@ public class AllenMatchStick extends MatchStick {
 			i = targetComp;
 			comp[i].radInfo[0][1] = -10.0; comp[i].radInfo[1][1] = -10.0; comp[i].radInfo[2][1] = -10.0;
 		}
-	    */
-		
-		
-		
+		 */
+
+
+
 		//set old value at JuncPt
 		for (i=1; i<=nJuncPt; i++)
 		{
@@ -1110,10 +1111,12 @@ public class AllenMatchStick extends MatchStick {
 				{
 					nowRad = JuncPt[i].rad * radiusScale;
 					if(mmp.radProfileJuncFlag) {
-						mmp.radProfileJuncMagnitude.oldValue = comp[JuncPt[i].comp[j]].radInfo[0][1];
+						mmp.radProfileJuncMagnitude.oldValue = nowRad;
+						mmp.radProfileJuncMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
+						mmp.radProfileEndMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
 						nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
 					}
-					
+
 					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
@@ -1157,10 +1160,12 @@ public class AllenMatchStick extends MatchStick {
 					oriRad = oriValue[0][1];
 				else  //endPt[i].uNdx == 51
 					oriRad = oriValue[2][1];
-			
-					nowRad = oriRad * radiusScale;
-				if(mmp.radProfileJuncFlag) {
-					mmp.radProfileJuncMagnitude.oldValue = oriRad;
+
+				nowRad = oriRad * radiusScale;
+				if(mmp.radProfileEndFlag) {
+					mmp.radProfileEndMagnitude.oldValue = nowRad;
+					mmp.radProfileEndMagnitude.min = 0.00001;
+					mmp.radProfileEndMagnitude.max = mmp.radProfileEndMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
 					nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
 				}
 
@@ -1182,22 +1187,19 @@ public class AllenMatchStick extends MatchStick {
 
 		//set intermediate pt if not assigned yet
 		i = targetComp;
+		double oriRad = oriValue[1][1]; // the middle radius value
+		nowRad = oriRad * radiusScale;
+		int branchPt = comp[i].mAxisInfo.branchPt;
+		u_value = ((double)branchPt-1.0) / (51.0 -1.0);
 		if ( mmp.radProfileMidFlag) // this component need a intermediate value
 		{
-			int branchPt = comp[i].mAxisInfo.branchPt;
-			u_value = ((double)branchPt-1.0) / (51.0 -1.0);
-
-			//rMin = comp[i].mAxisInfo.arcLen / 10.0;
-			//rMax = Math.min(comp[i].mAxisInfo.arcLen / 3.0, 0.5 * comp[i].mAxisInfo.rad);
-			// select a value btw rMin and rMax
-
-			double oriRad = oriValue[1][1]; // the middle radius value
-			//double range = rMax - rMin;
-			mmp.radProfileMidMagnitude.oldValue = oriRad;
+			mmp.radProfileMidMagnitude.oldValue = nowRad;
+			mmp.radProfileEndMagnitude.min = mmp.radProfileJuncMagnitude.min;
+			mmp.radProfileEndMagnitude.max = mmp.radProfileJuncMagnitude.max;
 			nowRad = mmp.radProfileMidMagnitude.calculateMagnitude();
-			comp[i].radInfo[1][0] = u_value;
-			comp[i].radInfo[1][1] = nowRad;
 		}
+		comp[i].radInfo[1][0] = u_value;
+		comp[i].radInfo[1][1] = nowRad;
 	}
 
 	public List<Integer> leafIndxToEndPts(int leafIndex, AllenMatchStick ams) {
