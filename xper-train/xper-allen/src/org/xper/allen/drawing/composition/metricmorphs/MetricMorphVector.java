@@ -1,4 +1,4 @@
-package org.xper.allen.drawing.composition;
+package org.xper.allen.drawing.composition.metricmorphs;
 
 import javax.vecmath.Vector3d;
 
@@ -9,7 +9,6 @@ public class MetricMorphVector {
 	public double percentChangeUpperBound;
 	public Vector3d oldVector;
 	public double range;
-	private double oldAngle = oldVector.angle(oldVector);
 	/**
 	 * outterLowerBound < innerUpperBound < innerLowerBound < outerUpperBound
 	 * A < B < C < D
@@ -18,14 +17,14 @@ public class MetricMorphVector {
 	 */
 	public Vector3d calculateVector() {
 		double oldAngle = oldVector.angle(oldVector);
-		double outerLowerBound = (oldAngle - percentChangeUpperBound*range)/2;
-		double outerUpperBound = (oldAngle + percentChangeUpperBound*range)/2;
-		double innerUpperBound = (oldAngle - percentChangeLowerBound*range)/2;
-		double innerLowerBound = (oldAngle + percentChangeLowerBound*range)/2;
+		double outerLowerBound = (oldAngle - percentChangeUpperBound*range);
+		double outerUpperBound = (oldAngle + percentChangeUpperBound*range);
+		double innerUpperBound = (oldAngle - percentChangeLowerBound*range);
+		double innerLowerBound = (oldAngle + percentChangeLowerBound*range);
 		Vector3d newVector;
 		while (true) {
 			newVector = stickMath_lib.randomUnitVec();
-			double newAngle = newVector.angle(newVector);
+			double newAngle = newVector.angle(oldVector);
 			if (newAngle > outerLowerBound && newAngle < outerUpperBound)
 				if(newAngle < innerUpperBound || newAngle > innerLowerBound)
 					break;
