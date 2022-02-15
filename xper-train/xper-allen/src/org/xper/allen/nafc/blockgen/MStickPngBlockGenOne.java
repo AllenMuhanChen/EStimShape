@@ -133,7 +133,7 @@ public class MStickPngBlockGenOne{
 		mmp.sizeMagnitude.percentChangeUpperBound = 0.3;
 		
 		//curvature
-		mmp.curvatureFlag = true;
+		mmp.curvatureFlag = false;
 		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude();
 		mmp.curvatureMagnitude.percentChangeLowerBound = 0.25;
 		//position
@@ -143,20 +143,20 @@ public class MStickPngBlockGenOne{
 		mmp.positionMagnitude.percentChangeUpperBound = 0.3;
 		mmp.positionMagnitude.range = 1; //TODO: TINKER WITH THIS VALUE
 		//radProfile - Junc
-		mmp.radProfileJuncFlag = false;
+		mmp.radProfileJuncFlag = true;
 		mmp.radProfileJuncMagnitude = new RadProfileMetricMorphMagnitude();
-		mmp.radProfileJuncMagnitude.percentChangeLowerBound = 0.15;
-		mmp.radProfileJuncMagnitude.percentChangeUpperBound = 0.3;
+		mmp.radProfileJuncMagnitude.percentChangeLowerBound = 0.05;
+		mmp.radProfileJuncMagnitude.percentChangeUpperBound = 0.15;
 		//radProfile - Mid
-		mmp.radProfileMidFlag = false;
+		mmp.radProfileMidFlag = true;
 		mmp.radProfileMidMagnitude = new RadProfileMetricMorphMagnitude();
-		mmp.radProfileMidMagnitude.percentChangeLowerBound = 0.15;
-		mmp.radProfileMidMagnitude.percentChangeUpperBound = 0.3;
+		mmp.radProfileMidMagnitude.percentChangeLowerBound = 0.05;
+		mmp.radProfileMidMagnitude.percentChangeUpperBound = 0.15;
 		//radProfile - End
 		mmp.radProfileEndMagnitude = new RadProfileMetricMorphMagnitude();
-		mmp.radProfileEndFlag = false;
-		mmp.radProfileEndMagnitude.percentChangeLowerBound = 0.15;
-		mmp.radProfileEndMagnitude.percentChangeUpperBound = 0.3;
+		mmp.radProfileEndFlag = true;
+		mmp.radProfileEndMagnitude.percentChangeLowerBound = 0.05;
+		mmp.radProfileEndMagnitude.percentChangeUpperBound = 0.15;
 		//
 		
 		
