@@ -1113,7 +1113,7 @@ public class AllenMatchStick extends MatchStick {
 					if(mmp.radProfileJuncFlag) {
 						mmp.radProfileJuncMagnitude.oldValue = nowRad;
 						mmp.radProfileJuncMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
-						mmp.radProfileEndMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+						mmp.radProfileJuncMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
 						nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
 					}
 
@@ -1165,8 +1165,8 @@ public class AllenMatchStick extends MatchStick {
 				if(mmp.radProfileEndFlag) {
 					mmp.radProfileEndMagnitude.oldValue = nowRad;
 					mmp.radProfileEndMagnitude.min = 0.00001;
-					mmp.radProfileEndMagnitude.max = mmp.radProfileEndMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
-					nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
+					mmp.radProfileEndMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+					nowRad = mmp.radProfileEndMagnitude.calculateMagnitude();
 				}
 
 				endPt[i].rad = nowRad;
@@ -1194,8 +1194,8 @@ public class AllenMatchStick extends MatchStick {
 		if ( mmp.radProfileMidFlag) // this component need a intermediate value
 		{
 			mmp.radProfileMidMagnitude.oldValue = nowRad;
-			mmp.radProfileEndMagnitude.min = mmp.radProfileJuncMagnitude.min;
-			mmp.radProfileEndMagnitude.max = mmp.radProfileJuncMagnitude.max;
+			mmp.radProfileMidMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
+			mmp.radProfileMidMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
 			nowRad = mmp.radProfileMidMagnitude.calculateMagnitude();
 		}
 		comp[i].radInfo[1][0] = u_value;
