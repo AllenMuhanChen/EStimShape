@@ -6,24 +6,23 @@ public class PositionMetricMorphMagnitude{
 	public double percentChangeLowerBound;
 	public double percentChangeUpperBound;
 	public double oldValue;
-	public double range;
-	public final static double min = 0;
-	
-	public PositionMetricMorphMagnitude(double range) {
-		this.range = range;
-	}
+	public final static double min = 1;
+	public final static double max = 51;
+	private final static double range = max-min;
 	/**
 	 * outterLowerBound < innerUpperBound < innerLowerBound < outerUpperBound
 	 * A < B < C < D
 	 * output can be between (A & B) or (C & D) but NOT (B & C) 
 	 * @return
 	 */
-	public double calculateMagnitude() {
+	public int calculateMagnitude() {
 		double newValue;
 		double outerLowerBound = (oldValue - percentChangeUpperBound*range);
 		if(outerLowerBound < min)
 			outerLowerBound = min;
 		double outerUpperBound = (oldValue + percentChangeUpperBound*range);
+		if(outerUpperBound < max)
+			outerUpperBound = max;
 		double innerUpperBound = (oldValue - percentChangeLowerBound*range);
 		double innerLowerBound = (oldValue + percentChangeLowerBound*range);
 		while (true) {
@@ -31,7 +30,7 @@ public class PositionMetricMorphMagnitude{
 			if (newValue < innerUpperBound || newValue > innerLowerBound)
 				break;
 		}
-		return newValue;
+		return (int) Math.round(newValue);
 	}
 	
 }
