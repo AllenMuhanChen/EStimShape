@@ -1258,7 +1258,7 @@ public class MatchStick implements Drawable {
 	 */
 	protected boolean checkSkeletonNearby(int firstNComp)
 	{
-		boolean showDebug = true;
+		boolean showDebug = false;
 		int nComp = firstNComp;
 		boolean[][] connect = new boolean[25][25]; //make it large enough for 8 component, not a large waste of space
 
@@ -2774,7 +2774,7 @@ public class MatchStick implements Drawable {
 		int i, j, k;
 		int TotalTrialTime=0;
 		int inner_totalTrialTime = 0; // for inner while loop
-		boolean showDebug = true;
+		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
 		int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
@@ -3342,7 +3342,7 @@ public class MatchStick implements Drawable {
 	{
 		int i, j;
 		int[] compMap = new int[20];
-		boolean showDebug = true;
+		boolean showDebug = false;
 		if ( showDebug)
 			System.out.println("In remove component sub.");
 		// 1. generate the mapping from old comp to new comp
