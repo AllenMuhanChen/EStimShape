@@ -1258,7 +1258,7 @@ public class MatchStick implements Drawable {
 	 */
 	protected boolean checkSkeletonNearby(int firstNComp)
 	{
-		boolean showDebug = false;
+		boolean showDebug = true;
 		int nComp = firstNComp;
 		boolean[][] connect = new boolean[25][25]; //make it large enough for 8 component, not a large waste of space
 
