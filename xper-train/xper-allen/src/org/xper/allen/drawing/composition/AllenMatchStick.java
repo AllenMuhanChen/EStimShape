@@ -823,7 +823,18 @@ public class AllenMatchStick extends MatchStick {
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							JuncPt[i].uNdx[baseJuncNdx] = nowPosition;
 							//Move our current junction point to a new location
+							//TEST//
+							
+							Point3d[] points = new Point3d[51];
+							points[0] = new Point3d(0,0,0);
+							for (int n = 1; n<51; n++) {
+								points[n] = comp[baseComp].mAxisInfo.mPts[n];
+								System.out.println(points[n].distance(points[n-1]));
+							}
+							////////
+							
 							JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
+					
 							//comp[baseComp].mAxisInfo.branchPt = nowPosition;
 							mmp.positionMagnitude.newPos = JuncPt[i].pos;
 						}
@@ -955,6 +966,7 @@ public class AllenMatchStick extends MatchStick {
 						}
 					//TODO: MANUAL ASSIGN HERE!?
 						JuncPt[i].pos = newPos;
+
 						//update the tangent information
 						boolean secondFlg = false; // determine if the first or second tanget
 						for ( j = 1; j <= JuncPt[i].nTangent; j++)
