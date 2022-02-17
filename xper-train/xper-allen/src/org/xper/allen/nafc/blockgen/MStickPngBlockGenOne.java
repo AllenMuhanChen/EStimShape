@@ -137,10 +137,10 @@ public class MStickPngBlockGenOne{
 		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude();
 		mmp.curvatureMagnitude.percentChangeLowerBound = 0.25;
 		//position
-		mmp.positionFlag = false;
+		mmp.positionFlag = true;
 		mmp.positionMagnitude = new PositionMetricMorphMagnitude();
-		mmp.positionMagnitude.percentChangeLowerBound = 0.05;
-		mmp.positionMagnitude.percentChangeUpperBound = 0.15;
+		mmp.positionMagnitude.percentChangeLowerBound = 0.02;
+		mmp.positionMagnitude.percentChangeUpperBound = 0.1;
 		//radProfile - Junc
 		mmp.radProfileJuncFlag = true;
 		mmp.radProfileJuncMagnitude = new RadProfileMetricMorphMagnitude();
@@ -212,6 +212,7 @@ public class MStickPngBlockGenOne{
 						setProperties(objs_match.get(i));
 						matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), mmp);
 					} catch(Exception e){
+						e.printStackTrace();
 						matchSuccess = false;
 					}
 					if(!matchSuccess){

@@ -75,7 +75,7 @@ public class MatchStick implements Drawable {
 	{
 		int i;
 
-		this.nComponent = in.nComponent;
+		nComponent = in.nComponent;
 
 		for (i=1; i<=nComponent; i++) {
 			comp[i] = new TubeComp();
