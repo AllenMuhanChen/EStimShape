@@ -29,7 +29,7 @@ public class AllenMAxisArc extends MAxisArc {
 		// Nov 20th, the orientation change seems to be too large
 		// since this is used to generate similar tube, we should make it more narrow
 		//double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
-		
+
 		int i;
 		//possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
 		// 0. Initialize all possible parameters to previous values
@@ -37,7 +37,7 @@ public class AllenMAxisArc extends MAxisArc {
 		double newArcLen = inArc.arcLen;
 		Vector3d newTangent = new Vector3d(inArc.mTangent[ inArc.transRotHis_rotCenter]);
 		double newDevAngle = inArc.transRotHis_devAngle;	
-	
+
 		// 1. ArcLen
 		/*
 		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
@@ -47,33 +47,39 @@ public class AllenMAxisArc extends MAxisArc {
 			mmp.lengthMagnitude.oldValue = oriArcLen;
 			newArcLen = mmp.lengthMagnitude.calculateMagnitude();
 		}
-			
+
 		// 2. orientation
 		if(mmp.orientationFlag) {
 			Vector3d oriTangent = new Vector3d( inArc.mTangent[inArc.transRotHis_rotCenter]);
 			mmp.orientationMagnitude.oldVector = oriTangent;
 			newTangent = mmp.orientationMagnitude.calculateVector();
 		}
-		
+
 		//3. curvature
 		if(mmp.curvatureFlag) {
 			double oldRad = inArc.rad;
 			mmp.curvatureMagnitude.oldValue = oldRad;
 			newRad = mmp.curvatureMagnitude.calculateMagnitude(inArc.arcLen);
 		}
-		
+
 		//4. rotation (along tangent axis)
 		if(mmp.rotationFlag) {
 			double oldDevAngle = inArc.transRotHis_devAngle;
 			mmp.rotationMagnitude.oldValue = oldDevAngle;
 			newDevAngle = mmp.rotationMagnitude.calculateMagnitude();	
 		}
-		
+
 		// use the new required vlaue to generate and transROt the mAxisArc
 
 		this.genArc(newRad, newArcLen); // the variable will be saved in this function
-
-		Point3d finalPos = new Point3d( inArc.mPts[alignedPt]);
+		
+		Point3d finalPos;
+		if(mmp.positionFlag) {
+			finalPos = mmp.positionMagnitude.newPos;
+		}
+		else {
+			finalPos = new Point3d( inArc.mPts[alignedPt]);
+		}
 		// 
 		this.transRotMAxis( alignedPt, finalPos, inArc.transRotHis_rotCenter, newTangent, newDevAngle);
 		//	Point3d finalPos = new Point3d(0.0,0.0,0.0);

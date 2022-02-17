@@ -1,5 +1,7 @@
 package org.xper.allen.drawing.composition.metricmorphs;
 
+import javax.vecmath.Point3d;
+
 import org.xper.drawing.stick.stickMath_lib;
 
 public class PositionMetricMorphMagnitude{
@@ -9,6 +11,7 @@ public class PositionMetricMorphMagnitude{
 	public final static double min = 1;
 	public final static double max = 51;
 	private final static double range = max-min;
+	public Point3d newPos;
 	/**
 	 * outterLowerBound < innerUpperBound < innerLowerBound < outerUpperBound
 	 * A < B < C < D
@@ -31,6 +34,7 @@ public class PositionMetricMorphMagnitude{
 				break;
 		}
 		return (int) Math.round(newValue);
+		//return (int) (oldValue + 1);
 	}
 	
 }
