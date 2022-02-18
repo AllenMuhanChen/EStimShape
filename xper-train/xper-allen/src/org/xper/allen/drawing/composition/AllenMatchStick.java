@@ -42,11 +42,11 @@ public class AllenMatchStick extends MatchStick {
 	protected final double[] finalRotation = new double[3];
 	protected double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
+	protected final double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0 };
 	protected final double TangentSaveZone = Math.PI/64;
 
-	int specialEnd=0;
-	int specialEndComp=0;
+	public int specialEnd=0;
+	public int specialEndComp=0;
 	public AllenMatchStick() {
 		super.finalRotation = this.finalRotation;
 	}
@@ -1091,8 +1091,7 @@ public class AllenMatchStick extends MatchStick {
 			int j=0; //Number of times tried to generate a comp. 
 			this.cleanData();
 			while (j<10) {
-				boolean onlyAddToJunc = true;
-				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf, onlyAddToJunc) == true){
+				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf) == true){
 					compSuccess = true;
 					break;
 				}
@@ -1290,10 +1289,9 @@ public class AllenMatchStick extends MatchStick {
 	 * specialEndComp: comp of the leaf that this end belongs to. 
 	 */
 
-	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf, boolean onlyAddToJunc){
+	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf){
 		boolean showDebug = true;
 		//nComp = 2;
-		onlyAddToJunc = true;
 		nComponent = nComp;
 		int i;
 		for (i=1; i<=nComponent; i++){
@@ -1303,7 +1301,7 @@ public class AllenMatchStick extends MatchStick {
 		//STARTING LEAF
 		comp[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 
-		double PROB_addBaseToEndNotBranch = 0;
+		double PROB_addToBaseEndNotBranch = 1;
 		int add_trial = 0;
 		int nowComp = 2;
 		//double randNdx;
@@ -1311,40 +1309,39 @@ public class AllenMatchStick extends MatchStick {
 		while (true)
 		{
 			//DEFINING END AND JUNCTION
-			if(onlyAddToJunc){
-				ArrayList<Integer> juncList= (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
-				ArrayList<Integer> endList= (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
+			ArrayList<Integer> juncList= (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
+			ArrayList<Integer> endList= (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
 
-				//DEFINE JUCTION TO BE A SPECIAL END FROM LEAF
-				JuncPt_struct in_junc = amsOfLeaf.getJuncPtStruct(juncList.get(0));
-				specialEnd = 1;
-				specialEndComp = 1;
-				endPt[specialEnd] = new EndPt_struct(specialEndComp, in_junc.uNdx[1], in_junc.pos, in_junc.tangent[1], in_junc.rad);
+			//DEFINE JUCTION TO BE A SPECIAL END FROM LEAF
+			JuncPt_struct in_junc = amsOfLeaf.getJuncPtStruct(juncList.get(0));
+			specialEnd = 1;
+			specialEndComp = 1;
+			endPt[specialEnd] = new EndPt_struct(specialEndComp, in_junc.uNdx[1], in_junc.pos, in_junc.tangent[1], in_junc.rad);
 
 
-				//DEFINE END POINT TO BE SAME END POINT AS IN LEAF
-				EndPt_struct in_end = amsOfLeaf.getEndPtStruct(endList.get(0));
-				int enComp = 1;
-				int euNdx = in_end.uNdx;
-				Point3d epos = in_end.pos;
-				Vector3d etangent = in_end.tangent;
-				double erad = in_end.rad;
-				endPt[2] = new EndPt_struct(enComp, euNdx, epos, etangent, erad);
+			//DEFINE END POINT TO BE SAME END POINT AS IN LEAF
+			EndPt_struct in_end = amsOfLeaf.getEndPtStruct(endList.get(0));
+			int enComp = 1;
+			int euNdx = in_end.uNdx;
+			Point3d epos = in_end.pos;
+			Vector3d etangent = in_end.tangent;
+			double erad = in_end.rad;
+			endPt[2] = new EndPt_struct(enComp, euNdx, epos, etangent, erad);
 
-				nJuncPt = 0;
-				nEndPt = 2;
-			}
-			else{
-				endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1] , 100.0);
-				endPt[2] = new EndPt_struct(1, 51, comp[1].mAxisInfo.mPts[51], comp[1].mAxisInfo.mTangent[51], 100.0);
-				nEndPt = 2;
-			}
+			nJuncPt = 0;
+			nEndPt = 2;
+
+
+			//				endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1] , 100.0);
+			//				endPt[2] = new EndPt_struct(1, 51, comp[1].mAxisInfo.mPts[51], comp[1].mAxisInfo.mTangent[51], 100.0);
+			//				nEndPt = 2;
+			//			
 
 			////////////////////////////////////////////
 			//ADD THE SECOND LIMB- FOLLOWS SPECIAL RULES
 			////////////////////////////////////////////
 			//Add E2J
-			if(stickMath_lib.rand01()<PROB_addBaseToEndNotBranch) {
+			if(stickMath_lib.rand01()<PROB_addToBaseEndNotBranch) {
 				addSuccess = Add_BaseMStick(nowComp, 1);
 			}
 			//Add B2J
@@ -1360,7 +1357,7 @@ public class AllenMatchStick extends MatchStick {
 				return false;
 		}
 		///////////////////////////////////////////////////////////////////////////
-		//ADD ANY OTHER LIMBS TO ANYWHERE EXCEPT SPECIAL END (END OF PARENT LEAF)//
+		//ADD ACCESSORY LIMBS - FOLLOWS SPECIAL RULES
 		/////////////////////////////////////////////////////////////////////////// 
 		add_trial = 0;
 		double randNdx;
@@ -1370,23 +1367,19 @@ public class AllenMatchStick extends MatchStick {
 			if ( showDebug)
 				System.out.println("adding new MAxis on, now # " +  nowComp);
 			randNdx = stickMath_lib.rand01();
-			if (nComp==2){
-				//addSuccess = Add_MStick(nowComp, 2);
-			}
-
-			else if (randNdx < PROB_addToEndorJunc)
+			if (randNdx < PROB_addToEndorJunc)
 			{
 				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
-					addSuccess = Add_MStick(nowComp, 1);
+					addSuccess = Add_AccessoryMStick(nowComp, 1);
 				else
-					addSuccess = Add_MStick(nowComp, 2);
+					addSuccess = Add_AccessoryMStick(nowComp, 2);
 			}
 			else
 			{
 				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
-					addSuccess = Add_MStick(nowComp, 3);
+					addSuccess = Add_AccessoryMStick(nowComp, 3);
 				else
-					addSuccess = Add_MStick(nowComp, 4);
+					addSuccess = Add_AccessoryMStick(nowComp, 4);
 			}
 			if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
 				nowComp ++;
@@ -1442,7 +1435,7 @@ public class AllenMatchStick extends MatchStick {
 		//point, either E2J or B2J. 
 		//Add a new component to an existing MStick (there should only be one MStick)
 		//1. type==1: E2J (Add end to end onto the end that used to be a junction)
-		//2. type==2: B2J (Add a branch pt on a new MStick onto the end that used to be a junction)
+		//2. type==2: B2J (Add a branch pt on the new BaseMStick and add the end that used to be a junction)
 
 		//shared variable Delcaration
 		//final double TangentSaveZone = Math.PI / 4.0;
@@ -1573,7 +1566,280 @@ public class AllenMatchStick extends MatchStick {
 		return true;
 		// call the check function to see if the newly added component violate the skeleton nearby safety zone.
 	}
+	/**
+	 * Used by genMatchStickFromLeaf_comp
+	 * For adding match sticks beyond the base match stick
+	 * Decides based on how many comps there are what kind of addition to do
+	 * @param nowComp
+	 * @param type
+	 * @return
+	 */
+	protected boolean Add_AccessoryMStick(int nowComp, int type) {
+		// Add new component to a existing partial MStick
+		// 4 types of addition are possible , specified by type
+		// 1. type == 1: E2E connection
+		// 2. type == 2: E2J connection
+		// 3. type == 3: E2B connection
+		// 4. type == 4: B2E conneciton
 
+		//shared variable Delcaration
+		boolean showDebug = false;
+		//final double TangentSaveZone = Math.PI / 4.0;
+		int i;
+		int trialCount = 1; // an indicator that if something try too many time, then just give up
+		if (showDebug)
+		{
+			System.out.println("In AddMStick: nowComp " + nowComp + " type: " + type);
+			System.out.println("now nEndPt " + nEndPt + " , and nJuncPt " + nJuncPt);
+		}
+		// random get a new MAxisArc
+		MAxisArc nowArc = new MAxisArc();
+		nowArc.genArcRand();
+
+
+
+		//debug
+		// if (nowComp != 2)
+		//  type = 2;
+		// else
+		//  type = 4;
+		if (type == 1) // Adding the new Comp end-to-end
+		{
+			// 1. pick an endPt
+
+			int nowPtNdx;
+			trialCount = 1;
+			while (true)
+			{
+				nowPtNdx = stickMath_lib.randInt(1, this.nEndPt);
+				if (endPt[nowPtNdx].rad > 0.2 && nowPtNdx!= specialEnd)
+					break; // we find a good endPt
+				trialCount++;
+				if (trialCount == 100)
+					return false; // can't find an eligible endPt
+			}
+			// 2. trnasRot the nowArc to the correction configuration
+			int alignedPt = 1;
+			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
+			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
+			Vector3d finalTangent = new Vector3d();
+			trialCount = 1;
+			while (true)
+			{
+				finalTangent = stickMath_lib.randomUnitVec();
+				if ( oriTangent.angle(finalTangent) > TangentSaveZone ) // angle btw the two tangent vector
+					break;
+				if ( trialCount++ == 300)
+					return false;
+			}
+			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
+			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
+
+
+			// 3. update the EndPT to JuncPt
+			nJuncPt++;
+			int[] compList = { endPt[nowPtNdx].comp, nowComp};
+			int[] uNdxList = { endPt[nowPtNdx].uNdx, 1};
+			Vector3d[] tangentList = { oriTangent, finalTangent};
+			JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, endPt[nowPtNdx].rad);
+			comp[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
+
+			// 2.5 call the function to check if this new arc is valid
+			if (this.checkSkeletonNearby(nowComp) == true)
+			{
+				JuncPt[nJuncPt] = null;
+				nJuncPt--;
+				return false;
+			}
+			// 4. generate new endPt
+			endPt[nowPtNdx].setValue(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+			// 5. save this new Comp
+
+		}
+		else if (type == 2) // end to Junction connection
+		{
+			//1. pick a Junction Pt
+
+			if (this.nJuncPt == 0)
+			{
+				System.out.println("ERROR, should not choose type 2 addition when nJuncPt = 0");
+				return false;
+			}
+			int nowPtNdx = stickMath_lib.randInt(1, nJuncPt);
+			//2. transRot the newComp
+			int alignedPt = 1;
+			Point3d finalPos = new Point3d(JuncPt[nowPtNdx].pos);
+			Vector3d finalTangent = new Vector3d();
+			trialCount = 1;
+			while (true)
+			{
+
+				finalTangent = stickMath_lib.randomUnitVec();
+				boolean flag = true;
+				for (i=1; i<= JuncPt[nowPtNdx].nTangent; i++)
+				{
+					if ( finalTangent.angle(JuncPt[nowPtNdx].tangent[i]) <= TangentSaveZone){
+						flag = false;
+					}
+
+				}
+				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
+					break;
+				if ( trialCount++ == 150) {
+					return false;
+				}
+
+
+			}
+			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
+			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
+
+
+			//3. update the JuncPt & endPt info and add the new Comp
+			JuncPt_struct old_JuncInfo = new JuncPt_struct();
+			old_JuncInfo.copyFrom(JuncPt[nowPtNdx]);
+			JuncPt[nowPtNdx].addComp(nowComp, 1, nowArc.mTangent[1]);
+			comp[nowComp].initSet(nowArc, false, 2);
+			// 2.5 call the function to check if this new arc is valid
+			if (this.checkSkeletonNearby(nowComp) == true)
+			{
+				JuncPt[nowPtNdx].copyFrom(old_JuncInfo);
+				return false;
+			}
+			nEndPt++;
+			endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+
+		}
+		else if (type == 3) //end-to-branch connection
+		{
+
+			// 1. select a existing comp, with free branch
+			int pickedComp;
+			int nTries=0;
+			while(true)
+			{
+				pickedComp = stickMath_lib.randInt(1, nowComp-1); // one of the existing component
+				if (pickedComp!=specialEndComp)
+					break;
+				nTries++;
+				if(nTries>100)
+					return false;
+			}
+			// 2. transrot the newComp
+			int alignedPt = 1;
+			int nowUNdx = comp[pickedComp].mAxisInfo.branchPt;
+			Point3d finalPos = new Point3d( comp[pickedComp].mAxisInfo.mPts[nowUNdx]);
+			Vector3d oriTangent1 = new Vector3d( comp[pickedComp].mAxisInfo.mTangent[nowUNdx]);
+			Vector3d oriTangent2 = new Vector3d();
+			Vector3d finalTangent = new Vector3d();
+			oriTangent2.negate(oriTangent1);
+			//System.out.println(oriTangent1);
+			//System.out.println(oriTangent2);
+			trialCount = 1;
+			while(true)
+			{
+				finalTangent = stickMath_lib.randomUnitVec();
+				if ( finalTangent.angle(oriTangent1) > TangentSaveZone &&
+						finalTangent.angle(oriTangent2) > TangentSaveZone    )
+					break;
+				if ( trialCount++ == 300)
+					return false;
+			}
+			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
+			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
+			// 2.5 check if newComp valid
+			// 3. update the JuncPt & endPt info
+			nJuncPt++;
+			int[] compList = { pickedComp, nowComp};
+			int[] uNdxList = { nowUNdx, 1};
+			Vector3d[] tangentList = { oriTangent1, oriTangent2, finalTangent};
+			int[] ownerList = { pickedComp, pickedComp, nowComp};
+			double rad = 100.0;
+			rad = comp[pickedComp].radInfo[1][1]; // if it is existing tube, then there will be a value
+			//otherwise, it should be initial value of 100.0
+			this.JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
+			//JuncPt[nJuncPt].showInfo();
+			// 2.5 call the function to check if this new arc is valid
+			comp[nowComp].initSet(nowArc, false, 3);
+			if (this.checkSkeletonNearby(nowComp) == true)
+			{
+				JuncPt[nJuncPt] = null;
+				nJuncPt--;
+				return false;
+			}
+			nEndPt++;
+			this.endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+			comp[pickedComp].branchUsed = true;
+
+
+		}
+		else if (type == 4) // add branch to the existing EndPt
+		{
+			// 1. pick an EndPt
+			trialCount = 1;
+			int nowPtNdx;
+			trialCount = 1;
+			while (true)
+			{
+				nowPtNdx = stickMath_lib.randInt(1, this.nEndPt);
+				if (endPt[nowPtNdx].rad > 0.2 && nowPtNdx != specialEnd)
+					break; // we find a good endPt
+				trialCount++;
+				if (trialCount == 100)
+					return false; // can't find an eligible endPt
+			}
+			// 2. transRot newComp
+			int nowUNdx = nowArc.branchPt;
+			int alignedPt = nowUNdx;
+			Vector3d rev_tangent = new Vector3d();
+			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
+			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
+			Vector3d finalTangent = new Vector3d();
+			trialCount = 1;
+			while(true)
+			{
+				finalTangent = stickMath_lib.randomUnitVec();
+
+				rev_tangent.negate(finalTangent);
+				if ( oriTangent.angle(finalTangent) > TangentSaveZone &&
+						oriTangent.angle(rev_tangent) > TangentSaveZone    )
+					break;
+				if ( trialCount++ == 300)
+					return false;
+			}
+			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
+			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
+			// 2.5 check Nearby Situtation
+			// 3. update JuncPt & endPt info
+			nJuncPt++;
+			int[] compList = { endPt[nowPtNdx].comp, nowComp};
+			int[] uNdxList = { endPt[nowPtNdx].uNdx, nowUNdx};
+			Vector3d[] tangentList = { oriTangent, finalTangent, rev_tangent};
+			int[] ownerList = {endPt[nowPtNdx].comp, nowComp, nowComp};
+			double rad;
+			rad = endPt[nowPtNdx].rad;
+			this.JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
+
+			// 2.5 call the function to check if this new arc is valid
+			comp[nowComp].initSet(nowArc, true, 4);
+			if (this.checkSkeletonNearby(nowComp) == true)
+			{
+				JuncPt[nJuncPt] = null;
+				nJuncPt--;
+				return false;
+			}
+			// 4. generate 2 new endPt
+			this.endPt[nowPtNdx].setValue(nowComp, 1, nowArc.mPts[1], nowArc.mTangent[1], 100.0);
+			nEndPt++;
+			this.endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+
+		}
+
+		if ( showDebug)
+			System.out.println("end of add tube func successfully");
+		return true;
+		// call the check function to see if the newly added component violate the skeleton nearby safety zone.
+	}
 	/**
     Assign the radius value to the Match Stick.
     The radius value will be randomly chosen in reasonable range
@@ -1956,282 +2222,6 @@ public class AllenMatchStick extends MatchStick {
 		scaleForMAxisShape = maxScale;
 	}
 
-	/**
-    Adding a new MAxisArc to a MatchStick
-    @param nowComp the index of the new added mAxis
-    @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
-    ALLEN CHEN : Do not do ANY addition to the SpecialEnd
-
-	 */
-	protected boolean Add_MStick(int nowComp, int type)
-	{
-		// Add new component to a existing partial MStick
-		// 4 types of addition are possible , specified by type
-		// 1. type == 1: E2E connection
-		// 2. type == 2: E2J connection
-		// 3. type == 3: E2B connection
-		// 4. type == 4: B2E conneciton
-
-		//shared variable Delcaration
-		boolean showDebug = false;
-		//final double TangentSaveZone = Math.PI / 4.0;
-		int i;
-		int trialCount = 1; // an indicator that if something try too many time, then just give up
-		if (showDebug)
-		{
-			System.out.println("In AddMStick: nowComp " + nowComp + " type: " + type);
-			System.out.println("now nEndPt " + nEndPt + " , and nJuncPt " + nJuncPt);
-		}
-		// random get a new MAxisArc
-		MAxisArc nowArc = new MAxisArc();
-		nowArc.genArcRand();
-
-
-
-		//debug
-		// if (nowComp != 2)
-		//  type = 2;
-		// else
-		//  type = 4;
-		if (type == 1) // Adding the new Comp end-to-end
-		{
-			// 1. pick an endPt
-
-			int nowPtNdx;
-			trialCount = 1;
-			while (true)
-			{
-				nowPtNdx = stickMath_lib.randInt(1, this.nEndPt);
-				if (endPt[nowPtNdx].rad > 0.2 && nowPtNdx!= specialEnd)
-					break; // we find a good endPt
-				trialCount++;
-				if (trialCount == 100)
-					return false; // can't find an eligible endPt
-			}
-			// 2. trnasRot the nowArc to the correction configuration
-			int alignedPt = 1;
-			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
-			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
-			Vector3d finalTangent = new Vector3d();
-			trialCount = 1;
-			while (true)
-			{
-				finalTangent = stickMath_lib.randomUnitVec();
-				if ( oriTangent.angle(finalTangent) > TangentSaveZone ) // angle btw the two tangent vector
-					break;
-				if ( trialCount++ == 300)
-					return false;
-			}
-			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
-			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
-
-
-			// 3. update the EndPT to JuncPt
-			nJuncPt++;
-			int[] compList = { endPt[nowPtNdx].comp, nowComp};
-			int[] uNdxList = { endPt[nowPtNdx].uNdx, 1};
-			Vector3d[] tangentList = { oriTangent, finalTangent};
-			JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, endPt[nowPtNdx].rad);
-			comp[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
-
-			// 2.5 call the function to check if this new arc is valid
-			if (this.checkSkeletonNearby(nowComp) == true)
-			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
-				return false;
-			}
-			// 4. generate new endPt
-			endPt[nowPtNdx].setValue(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
-			// 5. save this new Comp
-
-		}
-		else if (type == 2) // end to Junction connection
-		{
-			//1. pick a Junction Pt
-
-			if (this.nJuncPt == 0)
-			{
-				System.out.println("ERROR, should not choose type 2 addition when nJuncPt = 0");
-				return false;
-			}
-			int nowPtNdx = stickMath_lib.randInt(1, nJuncPt);
-			//2. transRot the newComp
-			int alignedPt = 1;
-			Point3d finalPos = new Point3d(JuncPt[nowPtNdx].pos);
-			Vector3d finalTangent = new Vector3d();
-			trialCount = 1;
-			while (true)
-			{
-
-				finalTangent = stickMath_lib.randomUnitVec();
-				boolean flag = true;
-				for (i=1; i<= JuncPt[nowPtNdx].nTangent; i++)
-				{
-					if ( finalTangent.angle(JuncPt[nowPtNdx].tangent[i]) <= TangentSaveZone){
-						flag = false;
-					}
-
-				}
-				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
-					break;
-				if ( trialCount++ == 150) {
-					return false;
-				}
-
-
-			}
-			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
-			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
-
-
-			//3. update the JuncPt & endPt info and add the new Comp
-			JuncPt_struct old_JuncInfo = new JuncPt_struct();
-			old_JuncInfo.copyFrom(JuncPt[nowPtNdx]);
-			JuncPt[nowPtNdx].addComp(nowComp, 1, nowArc.mTangent[1]);
-			comp[nowComp].initSet(nowArc, false, 2);
-			// 2.5 call the function to check if this new arc is valid
-			if (this.checkSkeletonNearby(nowComp) == true)
-			{
-				JuncPt[nowPtNdx].copyFrom(old_JuncInfo);
-				return false;
-			}
-			nEndPt++;
-			endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
-
-		}
-		else if (type == 3) //end-to-branch connection
-		{
-
-			// 1. select a existing comp, with free branch
-			int pickedComp;
-			int nTries=0;
-			while(true)
-			{
-				pickedComp = stickMath_lib.randInt(1, nowComp-1); // one of the existing component
-				if ( comp[pickedComp].branchUsed == false)
-					break;
-				if (showDebug)
-					System.out.println("pick tube with branch unused");
-				nTries++;
-				if(nTries>100)
-					return false;
-			}
-			// 2. transrot the newComp
-			int alignedPt = 1;
-			int nowUNdx = comp[pickedComp].mAxisInfo.branchPt;
-			Point3d finalPos = new Point3d( comp[pickedComp].mAxisInfo.mPts[nowUNdx]);
-			Vector3d oriTangent1 = new Vector3d( comp[pickedComp].mAxisInfo.mTangent[nowUNdx]);
-			Vector3d oriTangent2 = new Vector3d();
-			Vector3d finalTangent = new Vector3d();
-			oriTangent2.negate(oriTangent1);
-			//System.out.println(oriTangent1);
-			//System.out.println(oriTangent2);
-			trialCount = 1;
-			while(true)
-			{
-				finalTangent = stickMath_lib.randomUnitVec();
-				if ( finalTangent.angle(oriTangent1) > TangentSaveZone &&
-						finalTangent.angle(oriTangent2) > TangentSaveZone    )
-					break;
-				if ( trialCount++ == 300)
-					return false;
-			}
-			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
-			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
-			// 2.5 check if newComp valid
-			// 3. update the JuncPt & endPt info
-			nJuncPt++;
-			int[] compList = { pickedComp, nowComp};
-			int[] uNdxList = { nowUNdx, 1};
-			Vector3d[] tangentList = { oriTangent1, oriTangent2, finalTangent};
-			int[] ownerList = { pickedComp, pickedComp, nowComp};
-			double rad = 100.0;
-			rad = comp[pickedComp].radInfo[1][1]; // if it is existing tube, then there will be a value
-			//otherwise, it should be initial value of 100.0
-			this.JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
-			//JuncPt[nJuncPt].showInfo();
-			// 2.5 call the function to check if this new arc is valid
-			comp[nowComp].initSet(nowArc, false, 3);
-			if (this.checkSkeletonNearby(nowComp) == true)
-			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
-				return false;
-			}
-			nEndPt++;
-			this.endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
-			comp[pickedComp].branchUsed = true;
-
-
-		}
-		else if (type == 4) // add branch to the existing EndPt
-		{
-			// 1. pick an EndPt
-			trialCount = 1;
-			int nowPtNdx;
-			trialCount = 1;
-			while (true)
-			{
-				nowPtNdx = stickMath_lib.randInt(1, this.nEndPt);
-				if (endPt[nowPtNdx].rad > 0.2 && nowPtNdx != specialEnd)
-					break; // we find a good endPt
-				trialCount++;
-				if (trialCount == 100)
-					return false; // can't find an eligible endPt
-			}
-			// 2. transRot newComp
-			int nowUNdx = nowArc.branchPt;
-			int alignedPt = nowUNdx;
-			Vector3d rev_tangent = new Vector3d();
-			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
-			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
-			Vector3d finalTangent = new Vector3d();
-			trialCount = 1;
-			while(true)
-			{
-				finalTangent = stickMath_lib.randomUnitVec();
-
-				rev_tangent.negate(finalTangent);
-				if ( oriTangent.angle(finalTangent) > TangentSaveZone &&
-						oriTangent.angle(rev_tangent) > TangentSaveZone    )
-					break;
-				if ( trialCount++ == 300)
-					return false;
-			}
-			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
-			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
-			// 2.5 check Nearby Situtation
-			// 3. update JuncPt & endPt info
-			nJuncPt++;
-			int[] compList = { endPt[nowPtNdx].comp, nowComp};
-			int[] uNdxList = { endPt[nowPtNdx].uNdx, nowUNdx};
-			Vector3d[] tangentList = { oriTangent, finalTangent, rev_tangent};
-			int[] ownerList = {endPt[nowPtNdx].comp, nowComp, nowComp};
-			double rad;
-			rad = endPt[nowPtNdx].rad;
-			this.JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
-
-			// 2.5 call the function to check if this new arc is valid
-			comp[nowComp].initSet(nowArc, true, 4);
-			if (this.checkSkeletonNearby(nowComp) == true)
-			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
-				return false;
-			}
-			// 4. generate 2 new endPt
-			this.endPt[nowPtNdx].setValue(nowComp, 1, nowArc.mPts[1], nowArc.mTangent[1], 100.0);
-			nEndPt++;
-			this.endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
-
-		}
-
-		if ( showDebug)
-			System.out.println("end of add tube func successfully");
-		return true;
-		// call the check function to see if the newly added component violate the skeleton nearby safety zone.
-	}
 
 	/**
     copy the whole structure
