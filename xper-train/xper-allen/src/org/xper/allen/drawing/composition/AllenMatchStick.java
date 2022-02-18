@@ -770,7 +770,6 @@ public class AllenMatchStick extends MatchStick {
 		int i, j, k;
 		int inner_totalTrialTime = 0;
 		int TotalTrialTime = 0; // the # have tried, if too many, just terminate
-		final double volatileRate = 1;
 		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
 		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
@@ -786,7 +785,6 @@ public class AllenMatchStick extends MatchStick {
 		compLabel = MutationSUB_compRelation2Target(id);
 
 		//0. start picking new MAxisArc & POSITION MORPH
-		int specialJunc = 0;
 		for (i=1; i<= nJuncPt; i++)
 			for (j=1; j<= JuncPt[i].nComp; j++)
 			{
@@ -798,42 +796,56 @@ public class AllenMatchStick extends MatchStick {
 					if(mmp.positionFlag) { //TODO: WORKING ON THIS RIGHT NOW
 						//We need to find the Junc_index for the comp that the morphigng limb is attached to
 						int baseJuncNdx=0;
-
-						for(int l=1; l<=JuncPt[i].nComp; l++) {
-							if(JuncPt[i].comp[l] == baseComp) {
-								baseJuncNdx = l;
+						//If we've specified a comp to be the base that this limb moves along
+						if(baseComp!=0) {
+							for(int l=1; l<=JuncPt[i].nComp; l++) {
+								if(JuncPt[i].comp[l] == baseComp) {
+									baseJuncNdx = l;
+								}
 							}
+						}
+						//If not, choose a random comp that's attached to the target leaf
+						else {
+							LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
+							for(int l=1; l<=JuncPt[i].nComp; l++) {
+								if(JuncPt[i].comp[l]!=id) {
+									baseJuncNdxList.add(l);
+								}
+							}
+							Collections.shuffle(baseJuncNdxList);
+							baseJuncNdx = baseJuncNdxList.get(0);
 						}
 
 
 						int oriPosition = JuncPt[i].uNdx[baseJuncNdx];
 						mmp.positionMagnitude.oldValue = oriPosition;
 						int nowPosition = mmp.positionMagnitude.calculateMagnitude();
-						//TODO: DEBUGGING THIS RGIIHT NOW
-						//This junction point is an end point
+
+						//This junction point is an end point of the target leaf
 						if(JuncPt[i].uNdx[j] == 51 || JuncPt[i].uNdx[j] == 1) {
-							//JuncPt[i].showInfo();
 							//add this point as an end point, because it will no longer be a junction
 							nEndPt++;
 							endPt[nEndPt] = new EndPt_struct(id, JuncPt[i].uNdx[j],
 									JuncPt[i].pos, JuncPt[i].tangent[j], JuncPt[i].rad );
 
-							
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							JuncPt[i].uNdx[baseJuncNdx] = nowPosition;
 							//Move our current junction point to a new location	
-							JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
-					
-							//comp[baseComp].mAxisInfo.branchPt = nowPosition;
-							mmp.positionMagnitude.newPos = JuncPt[i].pos;
-						}
-						//This is a middle point
+							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
 
+							//We let the mAxis code know the new position through this mmp object
+							mmp.positionMagnitude.newPos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);;
+
+							//The endPt's pos is automatically updated later in the code by using the position of the mAxis.
+							//ALL we needed to do is update the info about the base comp since that is not updated later, and add any new juncs or end points
+						}
+						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point 
 						else {
 							//We can just change its position
 							JuncPt[i].uNdx[j] = nowPosition;
-							JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
-							mmp.positionMagnitude.newPos = JuncPt[i].pos;
+							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
+							mmp.positionMagnitude.newPos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
+							//Later code will handle assigning this JuncPt's pos 
 						}
 						targetUNdx[i] = JuncPt[i].uNdx[j];
 					}else {
@@ -953,7 +965,6 @@ public class AllenMatchStick extends MatchStick {
 										}
 								}
 						}
-					//TODO: MANUAL ASSIGN HERE!?
 						JuncPt[i].pos = newPos;
 
 						//update the tangent information
@@ -971,6 +982,7 @@ public class AllenMatchStick extends MatchStick {
 								JuncPt[i].tangent[j].set(finalTangent);
 							}
 						}
+
 					}
 				// now, we can check skeleton closeness
 
@@ -1012,6 +1024,8 @@ public class AllenMatchStick extends MatchStick {
 				Point3d newPos = new Point3d( comp[JuncPt[i].comp[1]].mAxisInfo.mPts[ JuncPt[i].uNdx[1]]);
 				JuncPt[i].pos.set(newPos);
 			}
+
+
 			//MAJOR STEP TWO
 			// now, we apply radius, and then check skin closeness
 			int radiusAssignChance = 5;
