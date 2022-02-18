@@ -1713,7 +1713,7 @@ public class AllenMatchStick extends MatchStick {
 		else if (type == 3) //end-to-branch connection
 		{
 
-			// 1. select a existing comp, with free branch
+			// 1. select a existing comp that is not the special comp. 
 			int pickedComp;
 			int nTries=0;
 			while(true)
