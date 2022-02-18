@@ -111,7 +111,7 @@ public class MStickPngBlockGenOne{
 		//LOAD METRIC MORPH PARAMETERS
 		MetricMorphParams mmp = new MetricMorphParams();
 		//orientation (along along mAxis)
-		mmp.orientationFlag = true;
+		mmp.orientationFlag = false;
 		mmp.orientationMagnitude = new MetricMorphVector();
 		mmp.orientationMagnitude.percentChangeLowerBound = 0.01;
 		mmp.orientationMagnitude.percentChangeUpperBound = 0.02;
@@ -122,7 +122,7 @@ public class MStickPngBlockGenOne{
 		mmp.rotationMagnitude.percentChangeLowerBound = 0.05;
 		mmp.rotationMagnitude.percentChangeUpperBound = 0.1;
 		//length (arcLength of mAxis Arc)
-		mmp.lengthFlag = false;
+		mmp.lengthFlag = true;
 		mmp.lengthMagnitude = new LengthMetricMorphMagnitude(sampleScaleUpperLim);
 		mmp.lengthMagnitude.percentChangeLowerBound = 0.15;
 		mmp.lengthMagnitude.percentChangeUpperBound = 0.3;
@@ -204,9 +204,10 @@ public class MStickPngBlockGenOne{
 				//MATCH: GENERATING MATCHSTICK
 				if(sampleSuccess){
 
-					int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
+					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					//boolean maintainTangent = true;
-
+					int leafToMorphIndx = objs_sample.get(i).specialEndComp;
+					
 					System.out.println("In Match");
 					try{
 						setProperties(objs_match.get(i));
