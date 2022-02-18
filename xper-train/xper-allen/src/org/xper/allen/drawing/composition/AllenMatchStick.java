@@ -802,7 +802,6 @@ public class AllenMatchStick extends MatchStick {
 						for(int l=1; l<=JuncPt[i].nComp; l++) {
 							if(JuncPt[i].comp[l] == baseComp) {
 								baseJuncNdx = l;
-								System.out.println("AC:8874732" + "I FOUND THE BASEINDEX");
 							}
 						}
 
@@ -822,17 +821,7 @@ public class AllenMatchStick extends MatchStick {
 							
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							JuncPt[i].uNdx[baseJuncNdx] = nowPosition;
-							//Move our current junction point to a new location
-							//TEST//
-							
-							Point3d[] points = new Point3d[51];
-							points[0] = new Point3d(0,0,0);
-							for (int n = 1; n<51; n++) {
-								points[n] = comp[baseComp].mAxisInfo.mPts[n];
-								System.out.println(points[n].distance(points[n-1]));
-							}
-							////////
-							
+							//Move our current junction point to a new location	
 							JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
 					
 							//comp[baseComp].mAxisInfo.branchPt = nowPosition;

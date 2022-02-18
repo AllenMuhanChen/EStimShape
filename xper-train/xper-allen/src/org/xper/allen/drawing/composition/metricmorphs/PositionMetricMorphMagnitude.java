@@ -24,7 +24,7 @@ public class PositionMetricMorphMagnitude{
 		if(outerLowerBound < min)
 			outerLowerBound = min;
 		double outerUpperBound = (oldValue + percentChangeUpperBound*range);
-		if(outerUpperBound < max)
+		if(outerUpperBound > max)
 			outerUpperBound = max;
 		double innerUpperBound = (oldValue - percentChangeLowerBound*range);
 		double innerLowerBound = (oldValue + percentChangeLowerBound*range);

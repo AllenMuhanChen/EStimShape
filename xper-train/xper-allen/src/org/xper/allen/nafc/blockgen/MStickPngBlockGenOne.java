@@ -139,8 +139,8 @@ public class MStickPngBlockGenOne{
 		//position
 		mmp.positionFlag = true;
 		mmp.positionMagnitude = new PositionMetricMorphMagnitude();
-		mmp.positionMagnitude.percentChangeLowerBound = 0.02;
-		mmp.positionMagnitude.percentChangeUpperBound = 0.021;
+		mmp.positionMagnitude.percentChangeLowerBound = 0.1;
+		mmp.positionMagnitude.percentChangeUpperBound = 0.2;
 		//radProfile - Junc
 		mmp.radProfileJuncFlag = true;
 		mmp.radProfileJuncMagnitude = new RadProfileMetricMorphMagnitude();

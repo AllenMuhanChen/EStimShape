@@ -24,7 +24,7 @@ public class AllenMAxisArc extends MAxisArc {
 	 * @param volatileRate
 	 */
 	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  MetricMorphParams mmp) {
-		boolean showDebug = true;
+		boolean showDebug = false;
 		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
 		// Nov 20th, the orientation change seems to be too large
 		// since this is used to generate similar tube, we should make it more narrow
@@ -88,10 +88,13 @@ public class AllenMAxisArc extends MAxisArc {
 
 		
 		//AC DEBUG
-		Point3d oriPos = inArc.mPts[alignedPt];
-		double actualDistance = oriPos.distance(finalPos);
-		double expectedDistance = newArcLen/51;
-		System.out.println("AC210484: " + "expected distance is " + expectedDistance + "whereas actual distance is " + actualDistance);
+		//Point3d oriPos = inArc.mPts[alignedPt];
+		//Point3d testPos = this.mPts[alignedPt];
+		//double actualDistance = oriPos.distance(finalPos);
+		//double expectedDistance = newArcLen/51;
+		//double testDistance = testPos.distance(finalPos);
+		//System.out.println("AC210484: " + "expected distance is " + expectedDistance + "whereas actual distance is " + actualDistance);
+		//System.out.println("AC210484: " + "the test distance is: " + testDistance);
 		//
 		if (showDebug)
 		{
