@@ -137,23 +137,23 @@ public class MStickPngBlockGenOne{
 		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude();
 		mmp.curvatureMagnitude.percentChangeLowerBound = 0.25;
 		//position
-		mmp.positionFlag = true;
+		mmp.positionFlag = false;
 		mmp.positionMagnitude = new PositionMetricMorphMagnitude();
-		mmp.positionMagnitude.percentChangeLowerBound = 0.1;
-		mmp.positionMagnitude.percentChangeUpperBound = 0.2;
+		mmp.positionMagnitude.percentChangeLowerBound = 0.05;
+		mmp.positionMagnitude.percentChangeUpperBound = 0.1;
 		//radProfile - Junc
-		mmp.radProfileJuncFlag = true;
+		mmp.radProfileJuncFlag = false;
 		mmp.radProfileJuncMagnitude = new RadProfileMetricMorphMagnitude();
 		mmp.radProfileJuncMagnitude.percentChangeLowerBound = 0.05;
 		mmp.radProfileJuncMagnitude.percentChangeUpperBound = 0.15;
 		//radProfile - Mid
-		mmp.radProfileMidFlag = true;
+		mmp.radProfileMidFlag = false;
 		mmp.radProfileMidMagnitude = new RadProfileMetricMorphMagnitude();
 		mmp.radProfileMidMagnitude.percentChangeLowerBound = 0.05;
 		mmp.radProfileMidMagnitude.percentChangeUpperBound = 0.15;
 		//radProfile - End
 		mmp.radProfileEndMagnitude = new RadProfileMetricMorphMagnitude();
-		mmp.radProfileEndFlag = true;
+		mmp.radProfileEndFlag = false;
 		mmp.radProfileEndMagnitude.percentChangeLowerBound = 0.05;
 		mmp.radProfileEndMagnitude.percentChangeUpperBound = 0.15;
 		//
