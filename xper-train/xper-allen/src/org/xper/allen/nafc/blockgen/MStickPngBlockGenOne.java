@@ -111,10 +111,10 @@ public class MStickPngBlockGenOne{
 		//LOAD METRIC MORPH PARAMETERS
 		MetricMorphParams mmp = new MetricMorphParams();
 		//orientation (along along mAxis)
-		mmp.orientationFlag = false;
+		mmp.orientationFlag = true;
 		mmp.orientationMagnitude = new MetricMorphVector();
-		mmp.orientationMagnitude.percentChangeLowerBound = 0.02;
-		mmp.orientationMagnitude.percentChangeUpperBound = 0.04;
+		mmp.orientationMagnitude.percentChangeLowerBound = 0.01;
+		mmp.orientationMagnitude.percentChangeUpperBound = 0.02;
 		mmp.orientationMagnitude.range = 2*Math.PI;
 		//rotation (rotation along tangent axis)
 		mmp.rotationFlag = false;
