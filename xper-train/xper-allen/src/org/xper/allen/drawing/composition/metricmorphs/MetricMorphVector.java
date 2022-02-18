@@ -16,11 +16,11 @@ public class MetricMorphVector {
 	 * @return
 	 */
 	public Vector3d calculateVector() {
-		double oldAngle = oldVector.angle(oldVector);
-		double outerLowerBound = (oldAngle - percentChangeUpperBound*range);
-		double outerUpperBound = (oldAngle + percentChangeUpperBound*range);
-		double innerUpperBound = (oldAngle - percentChangeLowerBound*range);
-		double innerLowerBound = (oldAngle + percentChangeLowerBound*range);
+		//The below is putting bounds on the angle difference between the old vector and new vector
+		double outerLowerBound = -percentChangeUpperBound*range;
+		double outerUpperBound = percentChangeUpperBound*range;
+		double innerUpperBound = -percentChangeLowerBound*range;
+		double innerLowerBound = percentChangeLowerBound*range;
 		Vector3d newVector;
 		while (true) {
 			newVector = stickMath_lib.randomUnitVec();
