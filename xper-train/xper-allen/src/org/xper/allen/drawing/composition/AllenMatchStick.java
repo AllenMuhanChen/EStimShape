@@ -12,6 +12,7 @@ import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
+import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -42,7 +43,7 @@ public class AllenMatchStick extends MatchStick {
 	protected final double[] finalRotation = new double[3];
 	protected double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0 };
+	protected final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
 	protected final double TangentSaveZone = Math.PI/64;
 
 	public int specialEnd=0;
@@ -451,29 +452,20 @@ public class AllenMatchStick extends MatchStick {
 	}
 	 */
 
-	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph) {
+
+
+	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, QualitativeMorphParams mmp) {
 		int i = 0;
-		boolean[] profileFlg = new boolean[3];
-		profileFlg[0] = true; profileFlg[1] = true; profileFlg[2] = true;
-
-		QualitativeMorphParams qmp = new QualitativeMorphParams();
-		qmp.endChance = 1;
-		qmp.middleChance = 1;
-		double endMagnitude = 1; qmp.endMagnitude = endMagnitude;
-		double middleMagnitude = 1; qmp.middleMagnitude = middleMagnitude;
-
-
 		while (i<2) {
-			cleanData();
+			this.cleanData();
 			// 0. Copy
 			copyFrom(amsToMorph);
-
 			// 1. DO THE MORPHING
 			int j = 0;
 			boolean success = false;
 			while (j<10){
-				success = morphLeafRadiusProfile(leafToMorphIndx, profileFlg, qmp)
-						& postProcessMatchStick();
+				success = qualitativeMorphComponent(leafToMorphIndx, mmp);
+				//success = metricMorph.morphLength();
 				if(success){
 					break;
 				} else{
@@ -482,8 +474,8 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
-
-			centerShapeAtOrigin(-1);
+			//MutateSUB_reAssignJunctionRadius();
+			//centerShapeAtOrigin(-1);
 			if(success){
 				boolean res;
 				try{
@@ -502,6 +494,469 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
+	protected boolean qualitativeMorphComponent(int id, QualitativeMorphParams qmp)
+	{
+		int i, j, k;
+		int inner_totalTrialTime = 0;
+		int TotalTrialTime = 0; // the # have tried, if too many, just terminate
+		boolean showDebug = false;
+		//final double TangentSaveZone = Math.PI / 4.0;
+		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
+		int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
+		double[][] old_radInfo = new double[3][2];
+
+
+		//0. Organizing morph parameters from QualitativeMorphParams
+		//POSITION & ORIENTATION
+		int newPosition=0;
+		boolean positionFlag=false;
+		int baseJuncNdx=0;
+		if(qmp.objectCenteredPositionFlag) {
+			//Go through Juncs
+			for(i=1; i<=nJuncPt;i++) {
+				for(j=1; j<= JuncPt[i].nComp;j++) {
+					if(JuncPt[i].comp[j]==id) {
+
+						//If we've specified a comp to be the base that this limb moves along
+						if(baseComp!=0) {
+							for(int l=1; l<=JuncPt[i].nComp; l++) {
+								if(JuncPt[i].comp[l] == baseComp) {
+									baseJuncNdx = l;
+								}
+							}
+						}
+						//If not, choose a random comp that's attached to the target leaf
+						else {
+							LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
+							for(int l=1; l<=JuncPt[i].nComp; l++) {
+								if(JuncPt[i].comp[l]!=id) {
+									baseJuncNdxList.add(l);
+								}
+							}
+							Collections.shuffle(baseJuncNdxList);
+							baseJuncNdx = baseJuncNdxList.get(0);
+						}
+						int oriPosition = JuncPt[i].uNdx[baseJuncNdx];
+						qmp.objCenteredPosQualMorph.setOldPosition(oriPosition);
+						Vector3d oriTangent = JuncPt[i].tangent[id];
+						qmp.objCenteredPosQualMorph.setOldTangent(oriTangent);
+					}
+				}
+			}
+			//POSITION
+			qmp.objCenteredPosQualMorph.calculateNewPosition();
+			newPosition = qmp.objCenteredPosQualMorph.getNewPosition();
+			positionFlag = qmp.objCenteredPosQualMorph.isPositionFlag();
+
+			//ORIENTATION
+			double devAngle =  this.comp[baseComp].mAxisInfo.transRotHis_devAngle;
+			Vector3d baseTangent = this.comp[baseComp].mAxisInfo.mTangent[newPosition];
+			qmp.objCenteredPosQualMorph.calculateNewTangent(baseTangent, devAngle);
+		} // Object Centered Position
+
+
+		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
+		int alignedPt;
+		alignedPt = MutationSUB_determineHinge(id);
+
+		int[] compLabel = new int[nComponent+1];
+		int tangentTrialTimes = 0;
+		compLabel = MutationSUB_compRelation2Target(id);
+
+		//0. start picking new MAxisArc & POSITION MORPH
+		for (i=1; i<= nJuncPt; i++)
+			for (j=1; j<= JuncPt[i].nComp; j++)
+			{
+				if ( JuncPt[i].comp[j] == id)
+				{
+
+					JuncPtFlg[i] = true;
+
+					if(positionFlag) { 
+
+
+						//This junction point is an end point of the target leaf
+						if(JuncPt[i].uNdx[j] == 51 || JuncPt[i].uNdx[j] == 1) {
+							//add this point as an end point, because it will no longer be a junction
+							nEndPt++;
+							endPt[nEndPt] = new EndPt_struct(id, JuncPt[i].uNdx[j],
+									JuncPt[i].pos, JuncPt[i].tangent[j], JuncPt[i].rad );
+
+							//We need to change the uNdx of the limb the morphed limb is attached to
+							JuncPt[i].uNdx[baseJuncNdx] = newPosition;
+							//Move our current junction point to a new location	
+							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
+
+							//We let the mAxis code know the new position through this qmp object
+							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(comp[baseComp].mAxisInfo.mPts[newPosition]));
+
+							//The endPt's pos is automatically updated later in the code by using the position of the mAxis.
+							//ALL we needed to do is update the info about the base comp since that is not updated later, and add any new juncs or end points
+						}
+						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point 
+						else {
+							//We can just change its position
+							JuncPt[i].uNdx[j] = newPosition;
+							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
+							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(comp[baseComp].mAxisInfo.mPts[newPosition]));
+							//Later code will handle assigning this JuncPt's pos 
+						}
+						targetUNdx[i] = JuncPt[i].uNdx[j];
+					}else {
+						targetUNdx[i] = JuncPt[i].uNdx[j];
+					}
+				}
+
+			}
+		for (i=0; i<3; i++)
+			for (j=0; j<2; j++)
+				old_radInfo[i][j] = comp[id].radInfo[i][j];
+
+
+
+		AllenMAxisArc nowArc;
+		AllenMatchStick old_MStick = new AllenMatchStick();
+		old_MStick.copyFrom(this);
+
+		while (true)
+		{
+			while(true)
+			{
+				//GENERATE A NEW ARC WITH NEW TANGENT (that is checked by TangentSaveZone)
+				while(true)
+				{
+					// RESET
+					tangentTrialTimes++;
+					copyFrom(old_MStick);
+					// random get a new MAxisArc
+					nowArc = new AllenMAxisArc();
+					//MAJOR STEP ONE
+					nowArc.genQualitativeMorphArc(this.comp[id].mAxisInfo, alignedPt, qmp);
+
+					//for loop, check through related JuncPt for tangentSaveZone
+					Vector3d finalTangent = new Vector3d();
+					boolean tangentFlg = true;
+					Vector3d nowTangent = new Vector3d();
+					for (i=1; i<=nJuncPt; i++)
+						if ( JuncPtFlg[i] == true)
+						{
+							int uNdx = targetUNdx[i];
+							boolean midBranchFlg = false;
+							if (uNdx == 1)
+								finalTangent.set(nowArc.mTangent[uNdx]);
+							else if (uNdx == 51)
+							{
+								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.negate();
+							}
+							else // middle branch Pt
+							{
+								midBranchFlg = true;
+								finalTangent.set( nowArc.mTangent[uNdx]);
+							}
+							// check the angle
+							for (j=1; j<= JuncPt[i].nTangent; j++)
+								if ( JuncPt[i].tangentOwner[j] != id) // don't need to check with the replaced self
+								{
+									nowTangent = JuncPt[i].tangent[j]; // soft copy is fine here
+									if ( nowTangent.angle(finalTangent) <= TangentSaveZone ) // angle btw the two tangent vector
+										tangentFlg = false;
+									if ( midBranchFlg == true)
+									{
+										finalTangent.negate();
+										if ( nowTangent.angle(finalTangent) <= TangentSaveZone ) //
+											tangentFlg = false;
+									}
+								}
+
+						}
+
+					// still valid after all tangent check
+					if (tangentFlg == true) 
+						break;
+					else
+					{
+
+						if ( showDebug)
+							System.out.println("didn't pass check tagent Zone in fine tune");
+					}
+					if (tangentTrialTimes > 100)
+						return false;
+				} // third while, will quit after tangent Save Zone check passed
+
+
+				//JUNCPT UPDATE!!!
+				//update the information of the related JuncPt
+				Vector3d finalTangent = new Vector3d();
+				for (i=1; i<= nJuncPt; i++)
+					if (JuncPtFlg[i] == true)
+					{
+						int nowUNdx = targetUNdx[i];
+						finalTangent.set(nowArc.mTangent[nowUNdx]);
+						if (targetUNdx[i] == 51)
+							finalTangent.negate();
+						Point3d newPos = nowArc.mPts[ nowUNdx];
+						Point3d shiftVec = new Point3d();
+						shiftVec.sub(newPos, JuncPt[i].pos);
+
+						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
+						{
+							for (j=1; j<= JuncPt[i].nComp; j++)
+								if ( JuncPt[i].comp[j] != id)
+								{
+									int nowCompNdx = JuncPt[i].comp[j];
+									for (k=1; k<= nComponent; k++)
+										if (compLabel[k] == nowCompNdx) // the one should move with nowCompNdx
+										{
+											int nowComp = k;
+											Point3d finalPos =new Point3d();
+											finalPos.add( comp[nowComp].mAxisInfo.transRotHis_finalPos, shiftVec);
+											if ( showDebug)
+												System.out.println("we have translate comp " + nowComp + "by " + shiftVec);
+											this.comp[nowComp].translateComp( finalPos);
+											// translate the component
+										}
+								}
+						}
+						JuncPt[i].pos = newPos;
+
+						//update the tangent information
+						boolean secondFlg = false; // determine if the first or second tanget
+						for ( j = 1; j <= JuncPt[i].nTangent; j++)
+						{
+							if (JuncPt[i].tangentOwner[j] == id && secondFlg == false)
+							{
+								JuncPt[i].tangent[j].set(finalTangent);
+								secondFlg = true;
+							}
+							else if ( JuncPt[i].tangentOwner[j] == id && secondFlg == true)
+							{
+								finalTangent.negate();
+								JuncPt[i].tangent[j].set(finalTangent);
+							}
+						}
+
+					}
+				// now, we can check skeleton closeness
+
+				//set the component to its new role
+				boolean branchUsed = this.comp[id].branchUsed;
+				int connectType = this.comp[id].connectType;
+				this.comp[id] = new TubeComp();
+				this.comp[id].initSet( nowArc, branchUsed, connectType);
+				if (showDebug)
+					System.out.println("In qualitative morph component: tube to modify # " +id +" now check skeleton");
+				boolean closeHit = this.checkSkeletonNearby(nComponent);
+				if (closeHit == false) // a safe skeleton
+				{
+					break;
+				}
+				else
+				{
+					if ( showDebug)
+						System.out.println("skeleton check fail");
+					// a debug check
+					//              this.copyFrom(old_MStick);
+					//              boolean newTest = this.checkSkeletonNearby(nComponent);
+					//              System.out.println("skeleton check result after recovery: " + newTest);
+				}
+				inner_totalTrialTime++;
+				if ( inner_totalTrialTime > 25)
+					return false;
+
+			} //SECOND WHILE
+
+			// update the info in end pt and JuncPt
+			for (i=1; i<=nEndPt; i++)
+			{
+				Point3d newPos = new Point3d(  comp[ endPt[i].comp].mAxisInfo.mPts[ endPt[i].uNdx]);
+				endPt[i].pos.set(newPos);
+			}
+			for (i=1; i<=nJuncPt; i++)
+			{
+				Point3d newPos = new Point3d( comp[JuncPt[i].comp[1]].mAxisInfo.mPts[ JuncPt[i].uNdx[1]]);
+				JuncPt[i].pos.set(newPos);
+			}
+
+
+			//MAJOR STEP TWO
+			// now, we apply radius, and then check skin closeness
+			int radiusAssignChance = 5;
+			int now_radChance = 1;
+			boolean success_process = false;
+			for (now_radChance = 1; now_radChance <= radiusAssignChance; now_radChance++)
+			{
+				// rad assign to new comp
+				success_process = true;
+				//show the radius value
+				//System.out.println("rad assign: ");
+				//comp[id].showRadiusInfo();
+				this.MutationSUB_radAssign2NewComp_Qualitative(id, old_radInfo, qmp);
+				//comp[id].showRadiusInfo();
+				if ( comp[id].RadApplied_Factory() == false)
+				{
+					success_process = false;
+					continue; // not a good radius, try another
+				}
+
+				if ( this.finalTubeCollisionCheck() == true)
+				{
+					if ( showDebug)
+						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
+					success_process = false;
+				}
+				if ( this.validMStickSize() ==  false)
+				{
+					if ( showDebug)
+						System.out.println("\n IN replace tube: FAIL the MStick size check ....\n\n");
+					success_process = false;
+				}
+
+
+				if ( success_process)
+					break;
+			}
+			TotalTrialTime++;
+			if ( TotalTrialTime >5)
+				return false;
+			if ( success_process) // not be here, because of 5 times try
+				break;
+
+		} //outer test while
+
+		if ( showDebug)
+			System.out.println("successfully fine tune a tube");
+		return true;
+	}
+
+
+	/**
+    subFunction of: (replaceComponent, fineTuneComponent) <BR>
+ Will determine the radius of the modified component
+ If there is value in [][] oriValue, it is the radius value of the original component
+	 */
+	protected void MutationSUB_radAssign2NewComp_Qualitative( int targetComp, double[][] oriValue, QualitativeMorphParams qmp)
+	{
+		boolean showDebug = false;
+		int i, j;
+		double rMin, rMax;
+		double nowRad= -100.0, u_value;
+		double radiusScale = 1;
+		/*
+	if(qmp.sizeFlag){
+		qmp.sizeMagnitude.oldValue = radiusScale;
+		radiusScale = qmp.sizeMagnitude.calculateMagnitude();
+	}
+		 */
+
+		/*
+	{
+		i = targetComp;
+		comp[i].radInfo[0][1] = -10.0; comp[i].radInfo[1][1] = -10.0; comp[i].radInfo[2][1] = -10.0;
+	}
+		 */
+
+
+
+		//set old value at JuncPt
+		for (i=1; i<=nJuncPt; i++)
+		{
+			for (j=1; j<= JuncPt[i].nComp; j++)
+				if ( JuncPt[i].comp[j] == targetComp)
+				{
+					nowRad = JuncPt[i].rad * radiusScale;
+
+					//				if(qmp.radProfileJuncFlag) {
+					//					qmp.radProfileJuncMagnitude.oldValue = nowRad;
+					//					qmp.radProfileJuncMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
+					//					qmp.radProfileJuncMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+					//					nowRad = qmp.radProfileJuncMagnitude.calculateMagnitude();
+					//				}
+
+					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
+					if ( Math.abs( u_value - 0.0) < 0.0001)
+					{
+						comp[JuncPt[i].comp[j]].radInfo[0][0] = 0.0;
+						comp[JuncPt[i].comp[j]].radInfo[0][1] = nowRad;
+					}
+					else if ( Math.abs(u_value - 1.0) < 0.0001)
+					{
+						comp[JuncPt[i].comp[j]].radInfo[2][0] = 1.0;
+						comp[JuncPt[i].comp[j]].radInfo[2][1] = nowRad;
+					}
+					else // middle u value
+					{
+						comp[JuncPt[i].comp[j]].radInfo[1][0] = u_value;
+						comp[JuncPt[i].comp[j]].radInfo[1][1] = nowRad;
+					}
+				}
+		}
+
+		//set new value at end Pt 
+		for (i=1; i<= nEndPt; i++)
+			if (endPt[i].comp == targetComp)
+			{
+				//update the information of this endPt, besides radius assignment
+				Point3d newPos = new Point3d( comp[targetComp].mAxisInfo.mPts[ endPt[i].uNdx]);
+				Vector3d newTangent = new Vector3d( comp[targetComp].mAxisInfo.mTangent[ endPt[i].uNdx]);
+				if ( endPt[i].uNdx == 51)
+					newTangent.negate();
+				endPt[i].pos.set(newPos);
+				endPt[i].tangent.set(newTangent);
+
+				//set radius
+				u_value = ((double)endPt[i].uNdx-1.0) / (51.0-1.0);
+				int nowComp = targetComp;
+				//rMin = 0.00001; // as small as you like
+				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
+				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims. 
+				// retrive the oriValue
+				double oriRad;
+				if ( endPt[i].uNdx == 1)
+					oriRad = oriValue[0][1];
+				else  //endPt[i].uNdx == 51
+					oriRad = oriValue[2][1];
+
+				nowRad = oriRad * radiusScale;
+				//			if(qmp.radProfileEndFlag) {
+				//				qmp.radProfileEndMagnitude.oldValue = nowRad;
+				//				qmp.radProfileEndMagnitude.min = 0.00001;
+				//				qmp.radProfileEndMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+				//				nowRad = qmp.radProfileEndMagnitude.calculateMagnitude();
+				//			}
+
+				endPt[i].rad = nowRad;
+
+				if ( Math.abs( u_value - 0.0) < 0.0001)
+				{
+					comp[nowComp].radInfo[0][0] = 0.0;
+					comp[nowComp].radInfo[0][1] = nowRad;
+				}
+				else if (Math.abs(u_value - 1.0) < 0.0001)
+				{
+					comp[nowComp].radInfo[2][0] = 1.0;
+					comp[nowComp].radInfo[2][1] = nowRad;
+				}
+				else // middle u value
+					System.out.println( "error in endPt radius assignment");
+			}
+
+		//set intermediate pt if not assigned yet
+		i = targetComp;
+		double oriRad = oriValue[1][1]; // the middle radius value
+		nowRad = oriRad * radiusScale;
+		int branchPt = comp[i].mAxisInfo.branchPt;
+		u_value = ((double)branchPt-1.0) / (51.0 -1.0);
+		//	if ( qmp.radProfileMidFlag) // this component need a intermediate value
+		//	{
+		//		qmp.radProfileMidMagnitude.oldValue = nowRad;
+		//		qmp.radProfileMidMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
+		//		qmp.radProfileMidMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+		//		nowRad = qmp.radProfileMidMagnitude.calculateMagnitude();
+		//	}
+		comp[i].radInfo[1][0] = u_value;
+		comp[i].radInfo[1][1] = nowRad;
+	}
 
 	/**
 	 * Apply radius, do tube collision check, center at origin, and smoothize. 
@@ -623,7 +1078,7 @@ public class AllenMatchStick extends MatchStick {
 
 					JuncPtFlg[i] = true;
 
-					if(mmp.positionFlag) { //TODO: WORKING ON THIS RIGHT NOW
+					if(mmp.positionFlag) { 
 						//We need to find the Junc_index for the comp that the morphigng limb is attached to
 						int baseJuncNdx=0;
 						//If we've specified a comp to be the base that this limb moves along
@@ -1670,7 +2125,7 @@ public class AllenMatchStick extends MatchStick {
 		return true;
 		// call the check function to see if the newly added component violate the skeleton nearby safety zone.
 	}
-	
+
 	// and one body, removes from that body but ignores the given limb.
 	public void genRemovedLeafMatchStick() {
 
