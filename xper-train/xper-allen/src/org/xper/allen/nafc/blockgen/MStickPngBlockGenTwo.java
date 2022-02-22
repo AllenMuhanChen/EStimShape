@@ -11,7 +11,18 @@ import java.util.stream.IntStream;
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.metricmorphs.CurvatureMetricMorphMagnitude;
+import org.xper.allen.drawing.composition.metricmorphs.LengthMetricMorphMagnitude;
+import org.xper.allen.drawing.composition.metricmorphs.MetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
+import org.xper.allen.drawing.composition.metricmorphs.MetricMorphVector;
+import org.xper.allen.drawing.composition.metricmorphs.PositionMetricMorphMagnitude;
+import org.xper.allen.drawing.composition.metricmorphs.RadProfileMetricMorphMagnitude;
+import org.xper.allen.drawing.composition.metricmorphs.RotationMetricMorphMagnitude;
+import org.xper.allen.drawing.composition.metricmorphs.SizeMetricMorphMagnitude;
+import org.xper.allen.drawing.composition.qualitativemorphs.Bin;
+import org.xper.allen.drawing.composition.qualitativemorphs.ObjectCenteredPositionQualitativeMorph;
+import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -49,13 +60,14 @@ public class MStickPngBlockGenTwo{
 	 * Selects visual stimuli randomly from stimTypes
 	 */
 	Random r = new Random();
+	
 	/**
 	 *  Generate trials where:
 	 *  Sample: Generated matchstick from a randomly generated limb
 	 *  Match:  Morphed version of sample where starter limb is slightly morphed (metric morph)
-	 *  Distractors: Some are qualitative morphed stimuli where starter limb is morphed to a completely different type of limb (qualitative difference)
-			Some are completely random stimuli. 
-	 */
+	 *  Distractors: completely random match sticks. 
+	 */	
+
 	public MStickPngBlockGenTwo() {
 	}
 
@@ -99,21 +111,73 @@ public class MStickPngBlockGenTwo{
 			}
 		}
 
-		//TODO: Load qualitative parameters?
-		//LOAD METRIC MORPH PARAMETERS 
-		/*
+		//LOAD METRIC MORPH PARAMETERS
 		MetricMorphParams mmp = new MetricMorphParams();
-		mmp.orientationChance = 1;
-		mmp.lengthChance = 1;
-		mmp.radiusChance = 1;
-		double[] lengthMagnitude = {metricMorphMagnitude*0.15, metricMorphMagnitude*0.30};
-		double[] radiusMagnitude = lengthMagnitude;
-		double[] orientationMagnitude = {metricMorphMagnitude*7.5*Math.PI/180, metricMorphMagnitude*15*Math.PI/180};
-		mmp.lengthMagnitude=lengthMagnitude;
-		mmp.radiusMagnitude=radiusMagnitude;
-		mmp.orientationMagnitude=orientationMagnitude;
-		*/
+		//orientation (along along mAxis)
+		mmp.orientationFlag = false;
+		mmp.orientationMagnitude = new MetricMorphVector();
+		mmp.orientationMagnitude.percentChangeLowerBound = 0.01;
+		mmp.orientationMagnitude.percentChangeUpperBound = 0.02;
+		mmp.orientationMagnitude.range = 2*Math.PI;
+		//rotation (rotation along tangent axis)
+		mmp.rotationFlag = false;
+		mmp.rotationMagnitude = new RotationMetricMorphMagnitude();
+		mmp.rotationMagnitude.percentChangeLowerBound = 0.05;
+		mmp.rotationMagnitude.percentChangeUpperBound = 0.1;
+		//length (arcLength of mAxis Arc)
+		mmp.lengthFlag = true;
+		mmp.lengthMagnitude = new LengthMetricMorphMagnitude(sampleScaleUpperLim);
+		mmp.lengthMagnitude.percentChangeLowerBound = 0.15;
+		mmp.lengthMagnitude.percentChangeUpperBound = 0.3;
+		//size (uniform scale of radProfile)
+		mmp.sizeFlag = false;
+		mmp.sizeMagnitude = new SizeMetricMorphMagnitude();
+		mmp.sizeMagnitude.percentChangeLowerBound = 0.15;
+		mmp.sizeMagnitude.percentChangeUpperBound = 0.3;
 		
+		//curvature
+		mmp.curvatureFlag = false;
+		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude();
+		mmp.curvatureMagnitude.percentChangeLowerBound = 0.25;
+		//position
+		mmp.positionFlag = false;
+		mmp.positionMagnitude = new PositionMetricMorphMagnitude();
+		mmp.positionMagnitude.percentChangeLowerBound = 0.05;
+		mmp.positionMagnitude.percentChangeUpperBound = 0.1;
+		//radProfile - Junc
+		mmp.radProfileJuncFlag = false;
+		mmp.radProfileJuncMagnitude = new RadProfileMetricMorphMagnitude();
+		mmp.radProfileJuncMagnitude.percentChangeLowerBound = 0.05;
+		mmp.radProfileJuncMagnitude.percentChangeUpperBound = 0.15;
+		//radProfile - Mid
+		mmp.radProfileMidFlag = false;
+		mmp.radProfileMidMagnitude = new RadProfileMetricMorphMagnitude();
+		mmp.radProfileMidMagnitude.percentChangeLowerBound = 0.05;
+		mmp.radProfileMidMagnitude.percentChangeUpperBound = 0.15;
+		//radProfile - End
+		mmp.radProfileEndMagnitude = new RadProfileMetricMorphMagnitude();
+		mmp.radProfileEndFlag = false;
+		mmp.radProfileEndMagnitude.percentChangeLowerBound = 0.05;
+		mmp.radProfileEndMagnitude.percentChangeUpperBound = 0.15;
+		//
+		
+		//LOAD QUALITATIVE MORPH PARAMS
+		QualitativeMorphParams qmp = new QualitativeMorphParams();
+		qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
+		qmp.objectCenteredPositionFlag = true;
+		List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
+		positionBins.add(new Bin<Integer>(1,1));
+		positionBins.add(new Bin<Integer>(20,32));
+		positionBins.add(new Bin<Integer>(51,51));
+		List<Bin<Double>> baseTangentAngleBins = qmp.objCenteredPosQualMorph.baseTangentAngleBins;
+		baseTangentAngleBins.add(new Bin<Double>(180*Math.PI/180,180*Math.PI/180));
+		baseTangentAngleBins.add(new Bin<Double>(90*Math.PI/180,90*Math.PI/180));
+		baseTangentAngleBins.add(new Bin<Double>(-85*Math.PI/180,-95*Math.PI/180));
+		List<Bin<Double>> perpendicularAngleBins = qmp.objCenteredPosQualMorph.perpendicularAngleBins;
+		perpendicularAngleBins.add(new Bin<Double>(-5*Math.PI/180,5*Math.PI/180));
+		perpendicularAngleBins.add(new Bin<Double>(90*Math.PI/180,90*Math.PI/180));
+		perpendicularAngleBins.add(new Bin<Double>(-85*Math.PI/180,-95*Math.PI/180));
+		perpendicularAngleBins.add(new Bin<Double>(180*Math.PI/180,180*Math.PI/180));
 		//GENERATION
 		try {
 			/**
@@ -157,14 +221,16 @@ public class MStickPngBlockGenTwo{
 				//MATCH: GENERATING MATCHSTICK
 				if(sampleSuccess){
 
-					int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
+					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					//boolean maintainTangent = true;
-
+					int leafToMorphIndx = objs_sample.get(i).specialEndComp;
+					
 					System.out.println("In Match");
 					try{
 						setProperties(objs_match.get(i));
-						matchSuccess = objs_match.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i));
+						matchSuccess = objs_match.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), qmp);
 					} catch(Exception e){
+						e.printStackTrace();
 						matchSuccess = false;
 					}
 					if(!matchSuccess){
@@ -195,8 +261,7 @@ public class MStickPngBlockGenTwo{
 
 			//GENERATING STIM-OBJ SPECS & WRITE TO DB
 			//Determine Ids
-			long sampleId = i*10; //TODO: REVERT!
-			//long sampleId = globalTimeUtil.currentTimeMicros();
+			long sampleId = globalTimeUtil.currentTimeMicros();
 			long matchId = sampleId + 1;
 			List<Long> distractorIds = new LinkedList<Long>();
 			for (int j=0; j<objs_distractor.get(i).size(); j++){
@@ -232,7 +297,7 @@ public class MStickPngBlockGenTwo{
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
 			sampleSpec.setImageDimensions(sampleDimensions);
-			//dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
+			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
 
 			//
 			long[] choiceIds = new long[numChoices];
@@ -244,7 +309,7 @@ public class MStickPngBlockGenTwo{
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
 			matchSpec.setImageDimensions(matchDimensions);
-			//dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
+			dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
 			choiceIds[0] = matchId;
 
 			//DISTRACTORS
@@ -256,7 +321,7 @@ public class MStickPngBlockGenTwo{
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
 				distractorSpec.get(j).setImageDimensions(distractorDimensions);
-				//dbUtil.writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "Distractor");
+				dbUtil.writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "Distractor");
 				choiceIds[j+1] = distractorIds.get(j);
 			}
 
@@ -280,12 +345,12 @@ public class MStickPngBlockGenTwo{
 			//WRITE SPEC
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 
-			//dbUtil.writeStimSpec(taskId, stimSpec.toXml());
-			//dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
+			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
+			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 
 
 		}
-		//dbUtil.updateReadyGenerationInfo(genId, numTrials);
+		dbUtil.updateReadyGenerationInfo(genId, numTrials);
 		System.out.println("Done Generating...");
 
 		return;
