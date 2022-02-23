@@ -145,12 +145,15 @@ public class ObjectCenteredPositionQualitativeMorph {
 
 			Vector3d axisOfRot = new Vector3d();
 			axisOfRot.cross(baseTangent, xAxis);
-			axisOfRot.absolute();
+			axisOfRot.negate();
 			double angle = baseTangent.angle(xAxis);
 			AxisAngle4d rotInfo = new AxisAngle4d(axisOfRot, angle);
 			Transform3D transMat = new Transform3D();
 			transMat.setRotation(rotInfo);
 			transMat.transform(newTangent);
+			System.out.println(baseTangent.angle(xAxis));
+			System.out.println(newTangent.angle(baseTangent));
+			System.out.println("");
 //			double shiftX = rad2deg*Math.acos(baseTangent.dot(xAxis)/ (baseTangent.length()*xAxis.length()));
 //			double shiftY = rad2deg*Math.acos(baseTangent.dot(yAxis)/ (baseTangent.length()*yAxis.length()));
 //			double shiftZ = rad2deg*Math.acos(baseTangent.dot(zAxis)/ (baseTangent.length()*zAxis.length()));
