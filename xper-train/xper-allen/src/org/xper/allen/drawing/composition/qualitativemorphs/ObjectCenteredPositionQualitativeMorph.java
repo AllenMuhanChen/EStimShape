@@ -9,8 +9,13 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.xper.drawing.stick.stickMath_lib;
-
-public class ObjectCenteredPositionQualitativeMorph {
+/**
+ * TODO: Some logic to randomly determine whether position, orientation or both is changed?
+ * Have this logic be based on some metric for severity 
+ * @author r2_allen
+ *
+ */
+public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 	private boolean positionFlag;
 	private boolean orientationFlag;
 
@@ -33,6 +38,9 @@ public class ObjectCenteredPositionQualitativeMorph {
 	private int assignedBaseTangentAngleBin;
 	private int assignedPerpendicularAngleBin;
 
+	
+	public final boolean rotateRelToBase = true;
+	
 	public ObjectCenteredPositionQualitativeMorph() {
 		positionBins = new ArrayList<>();
 		baseTangentAngleBins = new ArrayList<>();
@@ -40,35 +48,10 @@ public class ObjectCenteredPositionQualitativeMorph {
 	}
 
 
-
-
-
-
-	/*
-	public ObjectCenteredPositionQualitativeMorphMagnitude calculateNewValues() {
-		int newPosition;
-		Vector3d newTangent;
-
-
-
-
-
-		ObjectCenteredPositionQualitativeMorphMagnitude mag = new ObjectCenteredPositionQualitativeMorphMagnitude();
-		mag.position = newPosition;
-		mag.tangent = newTangent;
-		return mag;
-	}
-	 */
-
 	private void assignPositionBin() {
 		//Position
-		for(int i=0; i<positionBins.size(); i++) {
-			if(oldPosition<=positionBins.get(i).max && oldPosition>=positionBins.get(i).min) {
-				assignedPositionBin = i;
-				//TODO: this is not the proper assignedBin
-
-			}
-		}
+		int currentPositionBin = findClosestBin(positionBins, oldPosition);
+		assignedPositionBin = chooseDifferentBin(positionBins, currentPositionBin);
 		//TODO: logic to assign this flag
 		positionFlag = true;
 		
@@ -89,76 +72,98 @@ public class ObjectCenteredPositionQualitativeMorph {
 		this.newPosition = newPosition;
 	}
 	
-	private void assignAngleBins(Vector3d baseTangent, double devAngle) {
-		//Angles
-		//baseTangentAngle
-		for(int i=0; i<baseTangentAngleBins.size(); i++) {
-			double oldBaseTangentAngle = oldTangent.angle(baseTangent);
-			if(oldBaseTangentAngle<=baseTangentAngleBins.get(i).max && oldBaseTangentAngle>=baseTangentAngleBins.get(i).min) {
-				assignedBaseTangentAngleBin = i;
-			}
-		}
-		//perpendicularAngle
-		for(int i=0; i<perpendicularAngleBins.size(); i++) {
-			Vector3d oldPerpendicularVector = new Vector3d();
-			Vector3d crossProductVector = new Vector3d(0,1,0);
-			//stickMath_lib.rotateVectorAroundOrigin(devAngleVector, 0, 0, devAngle);
-			oldPerpendicularVector.cross(baseTangent, crossProductVector);
-			double oldPerpendicularAngle = oldTangent.angle(oldPerpendicularVector);
-			if(oldPerpendicularAngle<=perpendicularAngleBins.get(i).max && oldPerpendicularAngle>=perpendicularAngleBins.get(i).min) {
-				assignedPerpendicularAngleBin = i;
-			}
-		}
-		orientationFlag = true;
-
-	}
-	
-	public void calculateNewTangent(Vector3d baseTangent, double devAngle) {
-		assignAngleBins(baseTangent, devAngle);
-		
-		Vector3d newTangent;
-
-		double newBaseTangentAngle;
-		{//calc new baseTangentAngle (alpha/theta: angle on X-Y plane)
-			double min = baseTangentAngleBins.get(assignedBaseTangentAngleBin).min;
-			double max = baseTangentAngleBins.get(assignedBaseTangentAngleBin).max;
-			newBaseTangentAngle = stickMath_lib.randDouble(min, max);
-			newBaseTangentAngle = 180*Math.PI/180;
-		}
-
-		double newPerpendicularAngle;
-		{//calc new perpendicularAngle (beta/phi: angle on Z-whatever plane)
-			double min = perpendicularAngleBins.get(assignedPerpendicularAngleBin).min;
-			double max = perpendicularAngleBins.get(assignedPerpendicularAngleBin).max;
-			newPerpendicularAngle = stickMath_lib.randDouble(min,max);
-			newPerpendicularAngle = 90*Math.PI/180;
-		}
-
-		//Use new angles to calculate new tangent vector while pretending newBaseTangentAngle and newPerpendicularAngle are relative to X-Y axis and Z-Y axis respectively
-		newTangent = angles2UnitVector(newBaseTangentAngle, newPerpendicularAngle);
-		//newTangent = new Vector3d(1,0,0);
-		
+	private void assignAngleBins(Vector3d baseTangent) {
+		if(rotateRelToBase)
 		{//Rotate such that the x-axis is now the tangent of the base mAxis, the z-axis is now the perpendicular vector to the base tangent
 			//Before this newTangent assumes that newBaseTangentAngle and newPerpendicularAngle are relative to x and z axis.
 			//After this, they will be relative to the actual baseTangent and perpendicular to the baseTangent.	
 			Vector3d xAxis = new Vector3d(1,0,0);
-
 			Vector3d axisOfRot = new Vector3d();
 			axisOfRot.cross(baseTangent, xAxis);
-			axisOfRot.negate();
+			axisOfRot.negate(); //negate because we are rotating the baseTangent to the xAxis not the otherway around.
+			//https://www.geogebra.org/m/jcnba3fg use this to visualize this cross product. And note that the .angle() method only gives between 0 and pi.
+			double angle = baseTangent.angle(xAxis);
+			AxisAngle4d rotInfo = new AxisAngle4d(axisOfRot, angle);
+			Transform3D transMat = new Transform3D();
+			transMat.setRotation(rotInfo);
+			transMat.transform(oldTangent);
+		}
+		
+		//Angles
+		double[] oldAngles = vector2Angles(oldTangent);
+		double oldBaseTangentAngle = oldAngles[0];
+		double oldPerpendicularAngle = oldAngles[1];
+		//baseTangentAngle
+		{
+			int currentBaseTangentAngleBin = findClosestBin(baseTangentAngleBins, oldBaseTangentAngle);
+			assignedBaseTangentAngleBin = chooseDifferentBin(baseTangentAngleBins, currentBaseTangentAngleBin);
+		}
+		//perpendicularAngle
+		for(int i=0; i<perpendicularAngleBins.size(); i++) {
+			int currentPerpendicularAngleBin = findClosestBin(perpendicularAngleBins, oldPerpendicularAngle);
+			assignedPerpendicularAngleBin= chooseDifferentBin(perpendicularAngleBins, currentPerpendicularAngleBin);
+		}
+		
+		orientationFlag = true;
+
+	}
+	
+	public void calculateNewTangent(Vector3d baseTangent) {
+		assignAngleBins(baseTangent);
+		
+		Vector3d newTangent;
+
+		double newBaseTangentAngle; 
+		{//calc new baseTangentAngle (alpha/theta: angle on X-Y plane)
+		 //IF rotateRelToBase==false
+			//specifying up/down/left/right
+			//0: right
+			//90: up
+			//180: left
+			//270: down
+		 //IF rotateRelToBase==true
+			//pretend the tangent base is sitting on x-axis.
+			//then the same angles apply. 
+			//But baseTangent will be rotated like crazy so the absolute position of these limbs
+			//is impossible to predict, but we can guarantee 
+			double min = baseTangentAngleBins.get(assignedBaseTangentAngleBin).min;
+			double max = baseTangentAngleBins.get(assignedBaseTangentAngleBin).max;
+			newBaseTangentAngle = stickMath_lib.randDouble(min, max);
+			//newBaseTangentAngle = 90*Math.PI/180;
+		}
+
+		double newPerpendicularAngle; 
+		{//calc new perpendicularAngle (beta/phi: angle on Z-whatever plane)
+		 //IF rotateRelToBase==false
+			//specifying coming towards or away from viewer. Between 0 and 180!
+			//0:Towards viewer/out
+			//90: Flat/ in the plane
+			//180: Away from viewer/in
+			//270: Flat but INVERTS Left/Right. Only makes sense to specify this between 0 and 180. 
+			double min = perpendicularAngleBins.get(assignedPerpendicularAngleBin).min;
+			double max = perpendicularAngleBins.get(assignedPerpendicularAngleBin).max;
+			newPerpendicularAngle = stickMath_lib.randDouble(min,max);
+			//newPerpendicularAngle = 90*Math.PI/180;
+		}
+
+		//Use new angles to calculate new tangent vector while pretending newBaseTangentAngle and newPerpendicularAngle are relative to X-Y axis and Z-Y axis respectively
+		newTangent = angles2UnitVector(newBaseTangentAngle, newPerpendicularAngle);
+		
+		//We can specify rotateRelToBase to true if we want rotations to be relative to base tangent
+		if(rotateRelToBase)
+		{//Rotate such that the x-axis is now the tangent of the base mAxis, the z-axis is now the perpendicular vector to the base tangent
+			//Before this newTangent assumes that newBaseTangentAngle and newPerpendicularAngle are relative to x and z axis.
+			//After this, they will be relative to the actual baseTangent and perpendicular to the baseTangent.	
+			Vector3d xAxis = new Vector3d(1,0,0);
+			Vector3d axisOfRot = new Vector3d();
+			axisOfRot.cross(baseTangent, xAxis);
+			axisOfRot.negate(); //negate because we are rotating the baseTangent to the xAxis not the otherway around.
+			//https://www.geogebra.org/m/jcnba3fg use this to visualize this cross product. And note that the .angle() method only gives between 0 and pi.
 			double angle = baseTangent.angle(xAxis);
 			AxisAngle4d rotInfo = new AxisAngle4d(axisOfRot, angle);
 			Transform3D transMat = new Transform3D();
 			transMat.setRotation(rotInfo);
 			transMat.transform(newTangent);
-			System.out.println(baseTangent.angle(xAxis));
-			System.out.println(newTangent.angle(baseTangent));
-			System.out.println("");
-//			double shiftX = rad2deg*Math.acos(baseTangent.dot(xAxis)/ (baseTangent.length()*xAxis.length()));
-//			double shiftY = rad2deg*Math.acos(baseTangent.dot(yAxis)/ (baseTangent.length()*yAxis.length()));
-//			double shiftZ = rad2deg*Math.acos(baseTangent.dot(zAxis)/ (baseTangent.length()*zAxis.length()));
-//			stickMath_lib.rotateVectorAroundOrigin(newTangent, shiftX, shiftY, shiftZ);
-//			stickMath_lib.rotateVectorAroundOrigin(baseTangent, shiftX, shiftY, shiftZ);
 		}
 
 		this.newTangent = newTangent;
@@ -178,6 +183,14 @@ public class ObjectCenteredPositionQualitativeMorph {
 		double z = rho*Math.cos(beta);
 
 		return new Vector3d(x,y,z);
+	}
+	
+	private double[] vector2Angles(Vector3d vector) {
+		double rho = 1;
+		double beta = vector.z/rho;
+		double alpha = Math.atan(vector.y/vector.x);
+		double output[] = {alpha, beta};
+		return output;
 	}
 
 	public boolean isPositionFlag() {

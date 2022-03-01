@@ -55,7 +55,7 @@ public class AllenMAxisArc extends MAxisArc {
 		
 		// 2. orientation
 		if(qmp.objCenteredPosQualMorph.isOrientationFlag()) {
-			Vector3d oriTangent = new Vector3d( inArc.mTangent[inArc.transRotHis_rotCenter]);
+			//Vector3d oriTangent = new Vector3d( inArc.mTangent[inArc.transRotHis_rotCenter]);
 			newTangent = qmp.objCenteredPosQualMorph.getNewTangent();
 		}
 		
