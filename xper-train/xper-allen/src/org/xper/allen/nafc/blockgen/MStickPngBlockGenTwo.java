@@ -56,6 +56,8 @@ public class MStickPngBlockGenTwo{
 	double maxImageDimensionDegrees;
 	@Dependency
 	String experimentImageFolderPath;
+
+	
 	/**
 	 * Selects visual stimuli randomly from stimTypes
 	 */
@@ -170,14 +172,17 @@ public class MStickPngBlockGenTwo{
 		positionBins.add(new Bin<Integer>(20,32));
 		positionBins.add(new Bin<Integer>(51,51));
 		List<Bin<Double>> baseTangentAngleBins = qmp.objCenteredPosQualMorph.baseTangentAngleBins;
-		baseTangentAngleBins.add(new Bin<Double>(180*Math.PI/180,180*Math.PI/180));
-		baseTangentAngleBins.add(new Bin<Double>(90*Math.PI/180,90*Math.PI/180));
-		baseTangentAngleBins.add(new Bin<Double>(-85*Math.PI/180,-95*Math.PI/180));
+		double dev = 10;
+		baseTangentAngleBins.add(new Bin<Double>((-dev+0)*Math.PI/180,(dev+0)*Math.PI/180));
+		baseTangentAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
+		baseTangentAngleBins.add(new Bin<Double>((-dev+180)*Math.PI/180,(dev+180)*Math.PI/180));
+		baseTangentAngleBins.add(new Bin<Double>((-dev+270)*Math.PI/180,(dev+270)*Math.PI/180));
 		List<Bin<Double>> perpendicularAngleBins = qmp.objCenteredPosQualMorph.perpendicularAngleBins;
-		perpendicularAngleBins.add(new Bin<Double>(-5*Math.PI/180,5*Math.PI/180));
-		perpendicularAngleBins.add(new Bin<Double>(90*Math.PI/180,90*Math.PI/180));
-		perpendicularAngleBins.add(new Bin<Double>(-85*Math.PI/180,-95*Math.PI/180));
-		perpendicularAngleBins.add(new Bin<Double>(180*Math.PI/180,180*Math.PI/180));
+		perpendicularAngleBins.add(new Bin<Double>((-dev+45)*Math.PI/180,(dev+45)*Math.PI/180));
+		perpendicularAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
+		perpendicularAngleBins.add(new Bin<Double>((-dev+135)*Math.PI/180,(dev+135)*Math.PI/180));
+		
+		
 		//GENERATION
 		try {
 			/**

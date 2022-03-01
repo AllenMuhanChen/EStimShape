@@ -456,14 +456,16 @@ public class AllenMatchStick extends MatchStick {
 
 	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, QualitativeMorphParams mmp) {
 		int i = 0;
+		AllenMatchStick backup = new AllenMatchStick();
+		backup.copyFrom(amsToMorph);
 		while (i<2) {
-			this.cleanData();
-			// 0. Copy
-			copyFrom(amsToMorph);
 			// 1. DO THE MORPHING
 			int j = 0;
 			boolean success = false;
 			while (j<10){
+				// 0. Copy
+				this.cleanData();
+				copyFrom(backup);
 				success = qualitativeMorphComponent(leafToMorphIndx, mmp);
 				//success = metricMorph.morphLength();
 				if(success){
@@ -507,6 +509,7 @@ public class AllenMatchStick extends MatchStick {
 
 
 		//0. Organizing morph parameters from QualitativeMorphParams
+		//GETTING OLD VALUES
 		//POSITION & ORIENTATION
 		int newPosition=0;
 		boolean positionFlag=false;
@@ -549,11 +552,15 @@ public class AllenMatchStick extends MatchStick {
 			positionFlag = qmp.objCenteredPosQualMorph.isPositionFlag();
 
 			//ORIENTATION
-			double devAngle =  this.comp[baseComp].mAxisInfo.transRotHis_devAngle;
 			Vector3d baseTangent = this.comp[baseComp].mAxisInfo.mTangent[newPosition];
-			qmp.objCenteredPosQualMorph.calculateNewTangent(baseTangent, devAngle);
+			qmp.objCenteredPosQualMorph.calculateNewTangent(baseTangent);
 		} // Object Centered Position
-
+		
+		//CURVATURE AND ROTATION
+		if(qmp.curvatureRotationFlag) {
+			qmp.curvRotQualMorph.setOldCurvature(comp[id].mAxisInfo.rad);
+			qmp.curvRotQualMorph.setOldRotation(comp[id].mAxisInfo.transRotHis_devAngle);
+		} // Curvature Rotation 
 
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
 		int alignedPt;
@@ -573,20 +580,11 @@ public class AllenMatchStick extends MatchStick {
 					JuncPtFlg[i] = true;
 
 					if(positionFlag) { 
-
-
 						//This junction point is an end point of the target leaf
 						if(JuncPt[i].uNdx[j] == 51 || JuncPt[i].uNdx[j] == 1) {
-							//add this point as an end point, because it will no longer be a junction
-							nEndPt++;
-							endPt[nEndPt] = new EndPt_struct(id, JuncPt[i].uNdx[j],
-									JuncPt[i].pos, JuncPt[i].tangent[j], JuncPt[i].rad );
-
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							JuncPt[i].uNdx[baseJuncNdx] = newPosition;
-							//Move our current junction point to a new location	
-							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
-
+			
 							//We let the mAxis code know the new position through this qmp object
 							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(comp[baseComp].mAxisInfo.mPts[newPosition]));
 
