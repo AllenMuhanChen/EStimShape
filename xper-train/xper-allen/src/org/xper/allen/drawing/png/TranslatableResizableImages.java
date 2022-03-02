@@ -73,9 +73,6 @@ public class TranslatableResizableImages {
 		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
 		 */	
 
-
-
-
 		GL11.glBegin(GL11.GL_QUADS);
 		GL11.glTexCoord2f(0, 1);
 		GL11.glVertex2f(xOffset, yOffset);

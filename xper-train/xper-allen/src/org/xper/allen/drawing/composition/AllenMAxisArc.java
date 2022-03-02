@@ -60,23 +60,18 @@ public class AllenMAxisArc extends MAxisArc {
 		}
 		
 
-		/*
+		
 		//3. curvature
-		if(qmp.curvatureAndRotationFlag) {
-			double oldRad = inArc.rad;
-			//qmp.curvatureMagnitude.oldValue = oldRad;
-			//newRad = qmp.curvatureMagnitude.calculateMagnitude(inArc.arcLen);
-			newRad = oldRad;
+		if(qmp.curvatureRotationFlag) {
+			newRad = qmp.curvRotQualMorph.getNewCurvature();
 		}
-		 */
-		/*
+		 
+		
 		//4. rotation (along tangent axis)
-		if(qmp.rotationFlag) {
-			double oldDevAngle = inArc.transRotHis_devAngle;
-			qmp.rotationMagnitude.oldValue = oldDevAngle;
-			newDevAngle = qmp.rotationMagnitude.calculateMagnitude();	
+		if(qmp.curvatureRotationFlag) {
+			newDevAngle = qmp.curvRotQualMorph.getNewRotation();	
 		}
-		 */
+		 
 		// use the new required vlaue to generate and transROt the mAxisArc
 
 		this.genArc(newRad, newArcLen); // the variable will be saved in this function
