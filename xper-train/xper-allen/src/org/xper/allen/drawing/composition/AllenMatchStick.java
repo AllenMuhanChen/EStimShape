@@ -508,58 +508,67 @@ public class AllenMatchStick extends MatchStick {
 		double[][] old_radInfo = new double[3][2];
 
 
+
 		//0. Organizing morph parameters from QualitativeMorphParams
 		//GETTING OLD VALUES
+		Vector3d oriTangent = new Vector3d();
 		//POSITION & ORIENTATION
 		int newPosition=0;
 		boolean positionFlag=false;
 		int baseJuncNdx=0;
-		if(qmp.objectCenteredPositionFlag) {
-			//Go through Juncs
-			for(i=1; i<=nJuncPt;i++) {
-				for(j=1; j<= JuncPt[i].nComp;j++) {
-					if(JuncPt[i].comp[j]==id) {
 
-						//If we've specified a comp to be the base that this limb moves along
-						if(baseComp!=0) {
-							for(int l=1; l<=JuncPt[i].nComp; l++) {
-								if(JuncPt[i].comp[l] == baseComp) {
-									baseJuncNdx = l;
-								}
+		//Go through Juncs
+		for(i=1; i<=nJuncPt;i++) {
+			for(j=1; j<= JuncPt[i].nComp;j++) {
+				if(JuncPt[i].comp[j]==id) {
+
+					//If we've specified a comp to be the base that this limb moves along
+					if(baseComp!=0) {
+						for(int l=1; l<=JuncPt[i].nComp; l++) {
+							if(JuncPt[i].comp[l] == baseComp) {
+								baseJuncNdx = l;
 							}
 						}
-						//If not, choose a random comp that's attached to the target leaf
-						else {
-							LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
-							for(int l=1; l<=JuncPt[i].nComp; l++) {
-								if(JuncPt[i].comp[l]!=id) {
-									baseJuncNdxList.add(l);
-								}
-							}
-							Collections.shuffle(baseJuncNdxList);
-							baseJuncNdx = baseJuncNdxList.get(0);
-						}
-						int oriPosition = JuncPt[i].uNdx[baseJuncNdx];
-						qmp.objCenteredPosQualMorph.setOldPosition(oriPosition);
-						Vector3d oriTangent = JuncPt[i].tangent[id];
-						qmp.objCenteredPosQualMorph.setOldTangent(oriTangent);
 					}
+					//If not, choose a random comp that's attached to the target leaf
+					else {
+						LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
+						for(int l=1; l<=JuncPt[i].nComp; l++) {
+							if(JuncPt[i].comp[l]!=id) {
+								baseJuncNdxList.add(l);
+							}
+						}
+						Collections.shuffle(baseJuncNdxList);
+						baseJuncNdx = baseJuncNdxList.get(0);
+					}
+					int oriPosition = JuncPt[i].uNdx[baseJuncNdx];
+					qmp.objCenteredPosQualMorph.setOldPosition(oriPosition);
+					oriTangent = JuncPt[i].tangent[id];
+					qmp.objCenteredPosQualMorph.setOldTangent(oriTangent);
 				}
 			}
-			//POSITION
-			qmp.objCenteredPosQualMorph.calculateNewPosition();
-			newPosition = qmp.objCenteredPosQualMorph.getNewPosition();
-			positionFlag = qmp.objCenteredPosQualMorph.isPositionFlag();
 
-			//ORIENTATION
-			Vector3d baseTangent = this.comp[baseComp].mAxisInfo.mTangent[newPosition];
-			qmp.objCenteredPosQualMorph.calculateNewTangent(baseTangent);
+			//POSITION
+			if(qmp.objectCenteredPositionFlag) {
+				qmp.objCenteredPosQualMorph.calculateNewPosition();
+				newPosition = qmp.objCenteredPosQualMorph.getNewPosition();
+				positionFlag = qmp.objCenteredPosQualMorph.isPositionFlag();
+
+				//ORIENTATION
+				Vector3d baseTangent = this.comp[baseComp].mAxisInfo.mTangent[newPosition];
+				qmp.objCenteredPosQualMorph.calculateNewTangent(baseTangent);
+			}
 		} // Object Centered Position
-		
+
 		//CURVATURE AND ROTATION
 		if(qmp.curvatureRotationFlag) {
+//			Vector3d tangent = oriTangent;
+//			if(qmp.objectCenteredPositionFlag) {
+//				tangent = qmp.objCenteredPosQualMorph.getNewTangent();
+//			}
 			qmp.curvRotQualMorph.setOldCurvature(comp[id].mAxisInfo.rad);
 			qmp.curvRotQualMorph.setOldRotation(comp[id].mAxisInfo.transRotHis_devAngle);
+			qmp.curvRotQualMorph.calculate();
 		} // Curvature Rotation 
 
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
@@ -584,7 +593,7 @@ public class AllenMatchStick extends MatchStick {
 						if(JuncPt[i].uNdx[j] == 51 || JuncPt[i].uNdx[j] == 1) {
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							JuncPt[i].uNdx[baseJuncNdx] = newPosition;
-			
+
 							//We let the mAxis code know the new position through this qmp object
 							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(comp[baseComp].mAxisInfo.mPts[newPosition]));
 

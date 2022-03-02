@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.vecmath.Vector3d;
+
 import org.xper.drawing.stick.stickMath_lib;
 
 /**
@@ -92,4 +94,29 @@ public abstract class QualitativeMorph {
 		}
 		return newBin;
 	}
+	
+	protected double[] vector2Angles(Vector3d vector) {
+		double rho = 1;
+		double beta = vector.z/rho;
+		double alpha = Math.atan(vector.y/vector.x);
+		double output[] = {alpha, beta};
+		return output;
+	}
+	
+	/**
+	 * Two spherical coordinate angles to cartesian vector
+	 * @param alpha (or theta): angle on the X-Y plane between vector projection and X axis
+	 * @param beta (or phi): angle on the Z plane between Z-axis and vector
+	 * all angles should be in radians
+	 * @return
+	 */
+	protected Vector3d angles2UnitVector(double alpha, double beta) {
+		double rho = 1;
+		double x = rho*Math.sin(beta)*Math.cos(alpha);
+		double y = rho*Math.sin(beta)*Math.sin(alpha);
+		double z = rho*Math.cos(beta);
+
+		return new Vector3d(x,y,z);
+	}
+
 }

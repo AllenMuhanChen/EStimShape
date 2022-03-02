@@ -21,6 +21,7 @@ import org.xper.allen.drawing.composition.metricmorphs.RadProfileMetricMorphMagn
 import org.xper.allen.drawing.composition.metricmorphs.RotationMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.SizeMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.qualitativemorphs.Bin;
+import org.xper.allen.drawing.composition.qualitativemorphs.CurvatureRotationQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.ObjectCenteredPositionQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
@@ -165,8 +166,10 @@ public class MStickPngBlockGenTwo{
 		
 		//LOAD QUALITATIVE MORPH PARAMS
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
+		
+		{//Object Centered Position - Orientation and Position
 		qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
-		qmp.objectCenteredPositionFlag = true;
+		qmp.objectCenteredPositionFlag = false;
 		List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
 		positionBins.add(new Bin<Integer>(1,1));
 		positionBins.add(new Bin<Integer>(20,32));
@@ -181,8 +184,22 @@ public class MStickPngBlockGenTwo{
 		perpendicularAngleBins.add(new Bin<Double>((-dev+45)*Math.PI/180,(dev+45)*Math.PI/180));
 		perpendicularAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
 		perpendicularAngleBins.add(new Bin<Double>((-dev+135)*Math.PI/180,(dev+135)*Math.PI/180));
-		
-		
+		}
+		{//Curvature And Rotation
+		qmp.curvRotQualMorph = new CurvatureRotationQualitativeMorph();
+		qmp.curvatureRotationFlag = true;
+		List<Bin<Double>> curvatureBins = qmp.curvRotQualMorph.curvatureBins;
+		double radView = 10;
+		curvatureBins.add(new Bin<Double>(0.1 * radView, 0.2 * radView));
+		curvatureBins.add(new Bin<Double>(3.0 * radView , 6.0 * radView));
+		curvatureBins.add(new Bin<Double>(99999.99, 100000.0));
+//		List<Bin<Double>> rotationBins = qmp.curvRotQualMorph.rotationBins;
+//		double dev = 10;
+//		rotationBins.add(new Bin<Double>((-dev+0) * Math.PI/180, (dev+0)*Math.PI/180));
+//		rotationBins.add(new Bin<Double>((-dev+90) * Math.PI/180, (dev+90)*Math.PI/180));
+//		rotationBins.add(new Bin<Double>((-dev+180) * Math.PI/180, (dev+180)*Math.PI/180));
+//		rotationBins.add(new Bin<Double>((-dev+270) * Math.PI/180, (dev+270)*Math.PI/180));
+		}
 		//GENERATION
 		try {
 			/**
