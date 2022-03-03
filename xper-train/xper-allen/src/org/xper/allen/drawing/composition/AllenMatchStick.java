@@ -568,7 +568,7 @@ public class AllenMatchStick extends MatchStick {
 //			}
 			qmp.curvRotQualMorph.setOldCurvature(comp[id].mAxisInfo.rad);
 			qmp.curvRotQualMorph.setOldRotation(comp[id].mAxisInfo.transRotHis_devAngle);
-			qmp.curvRotQualMorph.calculate();
+			qmp.curvRotQualMorph.calculate(comp[id].mAxisInfo.arcLen,comp[id].mAxisInfo);
 		} // Curvature Rotation 
 
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
