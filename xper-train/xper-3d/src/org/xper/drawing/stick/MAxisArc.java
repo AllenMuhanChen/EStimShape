@@ -297,10 +297,10 @@ public class MAxisArc
  	   {
 		nowu = ((double)step-1) / ((double)MaxStep-1);
 		now_angle = nowu * angleExtend - 0.5 * angleExtend;
-	// System.out.println("step " + step+ " now u " + nowu + " angle " + now_angle);
-	// System.out.println(rad*Math.cos(now_angle));
-	// System.out.println(rad*Math.sin(now_angle));
-	// System.out.println(mAxis_pts.length);
+//	 System.out.println("step " + step+ " now u " + nowu + " angle " + now_angle);
+//	 System.out.println(rad*Math.cos(now_angle));
+//	 System.out.println(rad*Math.sin(now_angle));
+//	 System.out.println(mAxis_pts.length);
 		mPts[step].set(0, rad * Math.cos(now_angle), rad* Math.sin(now_angle));
 		mTangent[step].set(0, -angleExtend*rad*Math.sin(now_angle), angleExtend*rad*Math.cos(now_angle));
 	//System.out.println(mAxis_tangent[step]);

@@ -95,7 +95,7 @@ public abstract class QualitativeMorph {
 		return newBin;
 	}
 	
-	protected double[] vector2Angles(Vector3d vector) {
+	public double[] vector2Angles(Vector3d vector) {
 		double rho = 1;
 		double beta = vector.z/rho;
 		double alpha = Math.atan(vector.y/vector.x);
@@ -103,6 +103,13 @@ public abstract class QualitativeMorph {
 		return output;
 	}
 	
+	public static double[] Vector2Angles(Vector3d vector) {
+		double rho = vector.length();
+		double beta = vector.z/rho;
+		double alpha = Math.atan(vector.y/vector.x);
+		double output[] = {alpha, beta};
+		return output;
+	}
 	/**
 	 * Two spherical coordinate angles to cartesian vector
 	 * @param alpha (or theta): angle on the X-Y plane between vector projection and X axis

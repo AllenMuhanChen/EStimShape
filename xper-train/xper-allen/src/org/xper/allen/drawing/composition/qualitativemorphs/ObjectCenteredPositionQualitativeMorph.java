@@ -39,7 +39,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 	private int assignedPerpendicularAngleBin;
 
 	
-	public final boolean rotateRelToBase = true;
+	public final boolean rotateRelToBase =false;
 	
 	public ObjectCenteredPositionQualitativeMorph() {
 		positionBins = new ArrayList<>();
@@ -129,7 +129,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 			double min = baseTangentAngleBins.get(assignedBaseTangentAngleBin).min;
 			double max = baseTangentAngleBins.get(assignedBaseTangentAngleBin).max;
 			newBaseTangentAngle = stickMath_lib.randDouble(min, max);
-			//newBaseTangentAngle = 90*Math.PI/180;
+			newBaseTangentAngle = 180*Math.PI/180; //DEBUG
 		}
 
 		double newPerpendicularAngle; 
@@ -143,7 +143,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 			double min = perpendicularAngleBins.get(assignedPerpendicularAngleBin).min;
 			double max = perpendicularAngleBins.get(assignedPerpendicularAngleBin).max;
 			newPerpendicularAngle = stickMath_lib.randDouble(min,max);
-			//newPerpendicularAngle = 90*Math.PI/180;
+			newPerpendicularAngle = 90*Math.PI/180; //DEBUG
 		}
 
 		//Use new angles to calculate new tangent vector while pretending newBaseTangentAngle and newPerpendicularAngle are relative to X-Y axis and Z-Y axis respectively
@@ -159,6 +159,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 			axisOfRot.cross(baseTangent, xAxis);
 			axisOfRot.negate(); //negate because we are rotating the baseTangent to the xAxis not the otherway around.
 			//https://www.geogebra.org/m/jcnba3fg use this to visualize this cross product. And note that the .angle() method only gives between 0 and pi.
+			axisOfRot.normalize();
 			double angle = baseTangent.angle(xAxis);
 			AxisAngle4d rotInfo = new AxisAngle4d(axisOfRot, angle);
 			Transform3D transMat = new Transform3D();

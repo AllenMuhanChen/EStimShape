@@ -1,12 +1,14 @@
 package org.xper.allen.drawing.composition;
 
+import javax.media.j3d.Transform3D;
+import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
+import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.stick.MAxisArc;
-import org.xper.drawing.stick.stickMath_lib;
 
 /**
  * I created this class soley to be able to write a new genSiilarArc (genMetricSimilarArc) that
@@ -86,6 +88,29 @@ public class AllenMAxisArc extends MAxisArc {
 		}
 		// 
 		transRotMAxis(alignedPt, finalPos, inArc.transRotHis_rotCenter, newTangent, newDevAngle);
+		//AC DEBUG - Testing Rotation  metrics 
+		//FINDING THE NORMAL OF THE ROTATION (direction the curve is facing)
+		Vector3d normal = new Vector3d();
+		Vector3d tangent =  new Vector3d(this.mTangent[transRotHis_rotCenter]);
+		Vector3d perpTangent = new Vector3d();
+		perpTangent.cross(tangent, new Vector3d(0,1,0));
+		if(perpTangent.z < 0) {
+			perpTangent.negate();
+		}
+		Transform3D transMat = new Transform3D();
+		Vector3d rotAxis = new Vector3d(tangent);
+		AxisAngle4d rotationInfo = new AxisAngle4d(rotAxis, -newDevAngle);
+		transMat.set(rotationInfo);
+		normal = new Vector3d(perpTangent);
+		transMat.transform(normal);
+		//normal.normalize();
+		
+		//Rotate relative to Xaxis
+
+		
+		double[] normalAngles = QualitativeMorph.Vector2Angles(normal); //in spherical coords
+		System.out.println("AC50193: " + normalAngles[0] * 180 / Math.PI);
+		System.out.println("AC50194: " + normalAngles[1] * 180 / Math.PI);
 		//	Point3d finalPos = new Point3d(0.0,0.0,0.0);
 		//	this.transRotMAxis( 26, finalPos, inArc.transRotHis_rotCenter, newTangent, newDevAngle);
 
