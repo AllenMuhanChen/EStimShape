@@ -1,6 +1,5 @@
 package org.xper.allen.drawing.composition;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -10,20 +9,16 @@ import java.util.List;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
-import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.Coordinates2D;
+import org.xper.allen.drawing.composition.*;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.MAxisArc;
-import org.xper.drawing.stick.MStickObj4Smooth;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.stickMath_lib;
-import org.xper.utils.RGBColor;
-
-import com.thoughtworks.xstream.XStream;
 
 /**
  * MatchStick class with ability to make deep clones and manipulations of shapes
@@ -32,7 +27,6 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class AllenMatchStick extends MatchStick {
-
 	protected final double PROB_addToEndorJunc = 0.5; // 50% add to end or
 	// junction pt, 50% to the
 	// branch

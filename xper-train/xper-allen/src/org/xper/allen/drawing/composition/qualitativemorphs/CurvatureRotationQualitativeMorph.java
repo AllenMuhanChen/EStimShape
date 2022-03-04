@@ -9,6 +9,7 @@ import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Vector3d;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
+import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.stickMath_lib;
 
@@ -37,7 +38,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 		//scaledCurvatureBins = new ArrayList<>();
 	}
 
-	public void calculate(double arcLen, MAxisArc inArc) {
+	public void calculate(double arcLen, AllenMAxisArc inArc) {
 		assignBins(arcLen, inArc);
 	
 		curvatureFlag = false; //DEBUG
@@ -54,51 +55,21 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 		rotationFlag = true; //DEBUG
 		if(rotationFlag) {
 			//FINDING THE NORMAL OF THE ROTATION (direction the curve is facing)
-			Vector3d normal = new Vector3d();
-			Vector3d tangent = inArc.mTangent[inArc.transRotHis_rotCenter];
-			
-			
-			//Find vector perpendicular to the tangent of middle of the curve (ensure it faces up)
-			Vector3d perpTangent = new Vector3d();
-			perpTangent.cross(tangent, new Vector3d(0,1,0));
-			if(perpTangent.z < 0) {
-				perpTangent.negate();
-			}
-			
-//			//Rotate perp angle same amount required to rotate tangent to x-Axis. 
-//			Vector3d xAxis = new Vector3d(1,0,0);
-//			Transform3D relativeTransMat = new Transform3D();
-//			Vector3d relativeRotAxis = new Vector3d();
-//			relativeRotAxis.cross(tangent, xAxis);
-//			relativeRotAxis.negate();
-//			relativeRotAxis.normalize();
-//			double relativeAngle = tangent.angle(xAxis);
-//			AxisAngle4d relativeRotInfo = new AxisAngle4d(relativeRotAxis, relativeAngle);
-//			relativeTransMat.setRotation(relativeRotInfo);
-//			//Then rotate rotatedPerp by old rotation. 
-//			relativeTransMat.transform(perpTangent);
-
-			//Find the normal by rotating to counteract old rotation
-			Transform3D transMat = new Transform3D();
-			Vector3d rotAxis = new Vector3d();
-			rotAxis = tangent;
-			AxisAngle4d rotationInfo = new AxisAngle4d(rotAxis, -oldRotation);
-			transMat.set(rotationInfo);
-			normal = perpTangent;
-			transMat.transform(normal);
-			
+			Vector3d normal = inArc.normal;
 			double[] normalAngles = vector2Angles(normal); //in spherical coords
-			double normalAngle = normalAngles[1];
+			double zDirectionNormalAngle = normalAngles[1];
 			double[] normalAngleRange = {45/4, 135/4};
 			
 			//UNIT-TESTING
 //			System.out.println("AC50193: " + normalAngles[0] * 180 / Math.PI);
 //			System.out.println("AC50194: " + normalAngles[1] * 180 / Math.PI);
 			//TODO: This is the normal angle of the original limb. We need to figure out what to do with this. 
-			double desiredNormal = 0*Math.PI/180;
+			//double desiredNormal = 270*Math.PI/180;
 			
-			
-			newRotation = desiredNormal;
+			if(zDirectionNormalAngle > normalAngleRange[0] && zDirectionNormalAngle < normalAngleRange[1]) {
+				newRotation = oldRotation - 90; 
+			}
+			//newRotation = desiredNormal;
 //			
 //			if(oldRotation > 180*(Math.PI/180))
 //				newRotation = oldRotation - 180*(Math.PI/180);

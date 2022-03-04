@@ -96,8 +96,8 @@ public abstract class QualitativeMorph {
 	}
 	
 	public double[] vector2Angles(Vector3d vector) {
-		double rho = 1;
-		double beta = vector.z/rho;
+		double rho = vector.length();
+		double beta = Math.acos(vector.z/rho);
 		double alpha = Math.atan(vector.y/vector.x);
 		double output[] = {alpha, beta};
 		return output;
@@ -105,7 +105,7 @@ public abstract class QualitativeMorph {
 	
 	public static double[] Vector2Angles(Vector3d vector) {
 		double rho = vector.length();
-		double beta = vector.z/rho;
+		double beta = Math.acos(vector.z/rho);
 		double alpha = Math.atan(vector.y/vector.x);
 		double output[] = {alpha, beta};
 		return output;

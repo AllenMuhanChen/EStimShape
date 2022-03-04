@@ -19,20 +19,21 @@ public class MAxisArc
      public double arcLen, angleExtend;
      
      public int branchPt;
-     public Point3d[] mPts= new Point3d[MaxStep+1];
-     public Vector3d[] mTangent= new Vector3d[MaxStep+1];
-     public double[] localArcLen = new double[MaxStep+1];
+     public Point3d[] mPts= new Point3d[getMaxStep()+1];
+     public Vector3d[] mTangent= new Vector3d[getMaxStep()+1];
+     public double[] localArcLen = new double[getMaxStep()+1];
 
      public int transRotHis_alignedPt, transRotHis_rotCenter;
      public Point3d transRotHis_finalPos = new Point3d();
      public Vector3d transRotHis_finalTangent = new Vector3d();
      public double transRotHis_devAngle;
 
+  
 
      public MAxisArc() {
 		 rad = 100.0; //nothing, just debug
 		 int i;
-		 for (i=0; i<=MaxStep; i++) {
+		 for (i=0; i<=getMaxStep(); i++) {
 	           mPts[i] = new Point3d();
 		       mTangent[i] = new Vector3d();
 		 }
@@ -46,7 +47,7 @@ public class MAxisArc
 		arcLen = in.arcLen;
 		angleExtend = in.angleExtend;
 		branchPt = in.branchPt;
-		for (i=1; i<= MaxStep; i++) {
+		for (i=1; i<= getMaxStep(); i++) {
 			mPts[i].set( in.mPts[i]);
 			mTangent[i].set( in.mTangent[i]);
 			localArcLen[i] = in.localArcLen[i];
@@ -282,9 +283,9 @@ public class MAxisArc
 	double nowu, now_angle;
 	if ( rad >= 100000) //str8 line condition
 	{
-	   for (step=1; step <=MaxStep; step++)
+	   for (step=1; step <=getMaxStep(); step++)
 	   {
-		nowu = ((double)step-1) / ((double)MaxStep-1);
+		nowu = ((double)step-1) / ((double)getMaxStep()-1);
 		
 		mPts[step].set(0,0, nowu* arcLen);
 		mTangent[step].set(0,0,1);
@@ -293,9 +294,9 @@ public class MAxisArc
         }
 	else
  	{
-	   for (step = 1 ; step <=MaxStep; step++)
+	   for (step = 1 ; step <=getMaxStep(); step++)
  	   {
-		nowu = ((double)step-1) / ((double)MaxStep-1);
+		nowu = ((double)step-1) / ((double)getMaxStep()-1);
 		now_angle = nowu * angleExtend - 0.5 * angleExtend;
 //	 System.out.println("step " + step+ " now u " + nowu + " angle " + now_angle);
 //	 System.out.println(rad*Math.cos(now_angle));
@@ -380,7 +381,7 @@ public class MAxisArc
       		oriPt.set(mPts[rotCenter]);
 		AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
 		transMat.setRotation(axisInfo);
-       		for (i = 1 ; i <= MaxStep; i++)
+       		for (i = 1 ; i <= getMaxStep(); i++)
                 {
 			// rotate annd translate every mPts
              		nowvec.sub(mPts[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
@@ -426,7 +427,7 @@ public class MAxisArc
 		AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
 		transMat.setRotation(axisInfo);
   
-      		for (i = 1 ; i <= MaxStep; i++)
+      		for (i = 1 ; i <= getMaxStep(); i++)
                 {
 			// rotate annd translate every mPts
              		nowvec.sub(mPts[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
@@ -445,7 +446,7 @@ public class MAxisArc
    		oriPt.set(mPts[rotCenter]);
                 AxisAngle4d axisInfo = new AxisAngle4d( finalTangent, deviateAngle);   		
 		transMat.setRotation(axisInfo);
-   		for (i = 1 ; i <= MaxStep; i++)
+   		for (i = 1 ; i <= getMaxStep(); i++)
 		{
 			nowvec.sub(mPts[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
 			transMat.transform(nowvec); 
@@ -460,7 +461,7 @@ public class MAxisArc
 	   oriPt.set( mPts[alignedPt]);
 	   Vector3d transVec = new Vector3d(0,0,0);
 	   transVec.sub(finalPos, oriPt);
-	   for (i=1; i<=MaxStep; i++)
+	   for (i=1; i<=getMaxStep(); i++)
 	   {
 		mPts[i].add(transVec);
 	   }
@@ -540,7 +541,7 @@ public class MAxisArc
             		transMat = transMat2;
             }
             
-            for (i = 1 ; i <= MaxStep; i++)
+            for (i = 1 ; i <= getMaxStep(); i++)
             {
             	nowvec.sub(mPts[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
             	transMat.transform(nowvec); 
@@ -559,7 +560,7 @@ public class MAxisArc
            GL11.glColor3f(1.0f, 1.0f, 0.0f);
 	   GL11.glBegin(GL11.GL_LINE_STRIP);
 	   
- 	    for (i=1; i<=MaxStep; i++)
+ 	    for (i=1; i<=getMaxStep(); i++)
 		{
                   //GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
  	    		GL11.glVertex3d( mPts[i].x, mPts[i].y, mPts[i].z);
@@ -568,6 +569,11 @@ public class MAxisArc
            GL11.glEnd();
 
      }
+
+
+	public int getMaxStep() {
+		return MaxStep;
+	}
 
 
 }
