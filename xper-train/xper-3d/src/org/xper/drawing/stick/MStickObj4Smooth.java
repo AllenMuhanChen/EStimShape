@@ -247,23 +247,23 @@ public class MStickObj4Smooth {
 
         //hard copy the vect, normMat, fac info from first tube to the object
         int i, j;
-        this.nVect = in_comp.nVect;
-        this.nFac = in_comp.nFac;
+        this.nVect = in_comp.getnVect();
+        this.nFac = in_comp.getnFac();
         if (showDebug)
             System.out.println("the new obj with vec :" + nVect + " n face " + nFac);
-        for (i=1; i<= in_comp.nVect; i++)
+        for (i=1; i<= in_comp.getnVect(); i++)
         {
-            vect_info[i] = new Point3d( in_comp.vect_info[i]);
-            normMat_info[i] = new Vector3d( in_comp.normMat_info[i]);
+            vect_info[i] = new Point3d( in_comp.getVect_info()[i]);
+            normMat_info[i] = new Vector3d( in_comp.getNormMat_info()[i]);
 
             vectTag[i] = 1;
         }
-        for (i=0; i< in_comp.nFac; i++)
+        for (i=0; i< in_comp.getnFac(); i++)
             for (j=0; j<3; j++)
-                facInfo[i][j] = in_comp.facInfo[i][j];
+                facInfo[i][j] = in_comp.getFacInfo()[i][j];
 
-        this.maxXYZ = new Point3d( in_comp.maxXYZ);
-        this.minXYZ = new Point3d( in_comp.minXYZ);
+        this.maxXYZ = new Point3d( in_comp.getMaxXYZ());
+        this.minXYZ = new Point3d( in_comp.getMinXYZ());
     }
 
 
@@ -1236,7 +1236,7 @@ class MStickObj4Smooth_staticLib {
        //System.out.println("calc intersect");
        double threshold_1 = 0.95, threshold_2 = 1.03;
        //NOTE: obj2 should be a one component object
-       if (obj2.comp[1].connectType == 4 ) // use the branch to connect up
+       if (obj2.comp[1].getConnectType() == 4 ) // use the branch to connect up
         {
             threshold_1 = 1.03;
             threshold_2 = 0.95;
@@ -2015,7 +2015,7 @@ class MStickObj4Smooth_staticLib {
    private static double dist2Tube( Point3d nowPt, TubeComp tube, boolean specialTreat)
    {
 
-    int sampleStep = tube.maxStep;
+    int sampleStep = tube.getMaxStep();
     //System.out.println("sample step = " + sampleStep);
     specialTreat = false;
     int i;
@@ -2030,11 +2030,11 @@ class MStickObj4Smooth_staticLib {
     for (i=start; i<= endNdx; i++)
     //for (i=3; i<=sampleStep-2 ; i++) // ignore the first several tip a very tricky way to make a thing work (about N71's posthoc)
     {
-        double denom = tube.radiusAcross[i];
+        double denom = tube.getRadiusAcross()[i];
         if (specialTreat)
             denom = denom * 0.9;
         //nowdist = ( nowPt.distance( tube.mAxisInfo.mPts[i]) ) / tube.radiusAcross[i];
-        nowdist = ( nowPt.distance( tube.mAxisInfo.mPts[i]) ) / denom;
+        nowdist = ( nowPt.distance( tube.getmAxisInfo().getmPts()[i]) ) / denom;
 
         if ( nowdist < dist)
             dist = nowdist;

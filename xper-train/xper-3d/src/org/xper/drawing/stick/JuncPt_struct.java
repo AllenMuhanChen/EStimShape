@@ -9,41 +9,42 @@ import javax.vecmath.Vector3d;
  *
  */
 public class JuncPt_struct {
-      public int nComp, nTangent;
-      public int[] comp = new int[100];
-      public int[] uNdx = new int[100];
-      public Point3d pos = new Point3d();
-      public Vector3d[] tangent = new Vector3d[100];
-      public int[] tangentOwner = new int[100];
-      public double rad;
+      private int nComp;
+	private int nTangent;
+      private int[] comp = new int[100];
+      private int[] uNdx = new int[100];
+      private Point3d pos = new Point3d();
+      private Vector3d[] tangent = new Vector3d[100];
+      private int[] tangentOwner = new int[100];
+      private double rad;
 
       public JuncPt_struct()
       {
         int i;
         for (i=1; i<100; i++)
-            tangent[i] = new Vector3d();
+            getTangent()[i] = new Vector3d();
       }
       public JuncPt_struct(int in_nComp, int[] comp_list, int[] uNdx_list, Point3d in_pos, int in_nTangent, Vector3d[] tangent_list,
                 int[] tangentOwner_list, double in_rad)
       {
         int i;
-        nComp = in_nComp;
-        nTangent = in_nTangent;
-        for (i=1; i<=nComp; i++)
+        setnComp(in_nComp);
+        setnTangent(in_nTangent);
+        for (i=1; i<=getnComp(); i++)
         {
-            comp[i] = comp_list[i-1];
-            uNdx[i] = uNdx_list[i-1];
+            getComp()[i] = comp_list[i-1];
+            getuNdx()[i] = uNdx_list[i-1];
         }
-        pos.set( in_pos);
+        getPos().set( in_pos);
         // for convenice, create tangent vector entries totally
         for (i=1; i<100; i++)
-            tangent[i] = new Vector3d();
-        for (i=1; i<=nTangent; i++)
+            getTangent()[i] = new Vector3d();
+        for (i=1; i<=getnTangent(); i++)
         {
-            tangent[i].set(tangent_list[i-1]);
-            tangentOwner[i] = tangentOwner_list[i-1];
+            getTangent()[i].set(tangent_list[i-1]);
+            getTangentOwner()[i] = tangentOwner_list[i-1];
         }
-            rad = in_rad;
+            setRad(in_rad);
       }
 
       /**
@@ -52,79 +53,127 @@ public class JuncPt_struct {
       public void copyFrom( JuncPt_struct in)
       {
         int i;
-        this.nComp = in.nComp;
-        this.nTangent = in.nTangent;
-        for (i=1; i<=nComp; i++)
+        this.setnComp(in.getnComp());
+        this.setnTangent(in.getnTangent());
+        for (i=1; i<=getnComp(); i++)
         {
-            comp[i] = in.comp[i];
-            uNdx[i] = in.uNdx[i];
+            getComp()[i] = in.getComp()[i];
+            getuNdx()[i] = in.getuNdx()[i];
         }
-        for (i=1; i<=nTangent; i++)
+        for (i=1; i<=getnTangent(); i++)
         {
-            tangent[i] = new Vector3d( in.tangent[i]);
-            tangentOwner[i] = in.tangentOwner[i];
+            getTangent()[i] = new Vector3d( in.getTangent()[i]);
+            getTangentOwner()[i] = in.getTangentOwner()[i];
         }
-        pos.set( in.pos);
-        rad = in.rad;
+        getPos().set( in.getPos());
+        setRad(in.getRad());
       }
       public void addComp(int newComp, int new_uNdx, Vector3d new_Tangent)
       {
     	  // As we know the new comp will always only bring in one new tangent vector
-    	  nComp++;
-    	  comp[nComp] = newComp;
-    	  uNdx[nComp] = new_uNdx;
-    	  nTangent++;
-    	  tangent[nTangent].set( new_Tangent);
-    	  tangentOwner[nTangent] = newComp;
+    	  setnComp(getnComp() + 1);
+    	  getComp()[getnComp()] = newComp;
+    	  getuNdx()[getnComp()] = new_uNdx;
+    	  setnTangent(getnTangent() + 1);
+    	  getTangent()[getnTangent()].set( new_Tangent);
+    	  getTangentOwner()[getnTangent()] = newComp;
       }
 
       public void removeComp(boolean[] removeList)
       {
         int i, j, k;
-        for (j=1; j<= nComp; j++)
-           if ( removeList[ comp[j] ] == true)
+        for (j=1; j<= getnComp(); j++)
+           if ( removeList[ getComp()[j] ] == true)
             {
 //            System.out.println("at Junc:  the comp " + comp[j]  + " should be removed");
             // we just set the info to -1, the real clean will be done later
-            comp[j] = -1;
-            for (k=1; k<= nTangent; k++)
-              if ( tangentOwner[k] == comp[j])
+            getComp()[j] = -1;
+            for (k=1; k<= getnTangent(); k++)
+              if ( getTangentOwner()[k] == getComp()[j])
               {
-                tangentOwner[k] = -1;
+                getTangentOwner()[k] = -1;
               }
             }
 
         // remove all the entries with -1 label
         int counter = 1;
-        for (i=1; i<=nComp; i++)
-           if (comp[i] != -1)
+        for (i=1; i<=getnComp(); i++)
+           if (getComp()[i] != -1)
         {
-            comp[counter] = comp[i];
-            uNdx[counter] = uNdx[i];
+            getComp()[counter] = getComp()[i];
+            getuNdx()[counter] = getuNdx()[i];
             counter++;
         }
-        nComp = counter -1;
+        setnComp(counter -1);
 
         counter = 1;
-        for (i=1; i<=nTangent; i++)
-            if ( tangentOwner[i] != -1)
+        for (i=1; i<=getnTangent(); i++)
+            if ( getTangentOwner()[i] != -1)
         {
-            tangent[counter].set( tangent[i]);
-            tangentOwner[counter] = tangentOwner[i];
+            getTangent()[counter].set( getTangent()[i]);
+            getTangentOwner()[counter] = getTangentOwner()[i];
             counter++;
         }
-        nTangent = counter -1;
+        setnTangent(counter -1);
 
       }
       public void showInfo()
       {
      int i;
-     System.out.println("nComp : " + nComp +" with rad: "+ rad);
-     for ( i = 1; i<=nComp; i++)
-          System.out.println(" comp " + comp[i]  + " with uNdx " + uNdx[i]);
+     System.out.println("nComp : " + getnComp() +" with rad: "+ getRad());
+     for ( i = 1; i<=getnComp(); i++)
+          System.out.println(" comp " + getComp()[i]  + " with uNdx " + getuNdx()[i]);
 //   System.out.println("Pos at : " + pos);
 //   for ( i = 1 ; i<=nTangent; i++)
 //        System.out.println(" tangent : " + tangent[i] + " belongs to " + tangentOwner[i]);
 //   System.out.println("radius is " + rad +"\n----------------------------------\n\n");
       }
+	public int[] getComp() {
+		return comp;
+	}
+	public void setComp(int[] comp) {
+		this.comp = comp;
+	}
+	public int getnComp() {
+		return nComp;
+	}
+	public void setnComp(int nComp) {
+		this.nComp = nComp;
+	}
+	public int getnTangent() {
+		return nTangent;
+	}
+	public void setnTangent(int nTangent) {
+		this.nTangent = nTangent;
+	}
+	public int[] getuNdx() {
+		return uNdx;
+	}
+	public void setuNdx(int[] uNdx) {
+		this.uNdx = uNdx;
+	}
+	public Point3d getPos() {
+		return pos;
+	}
+	public void setPos(Point3d pos) {
+		this.pos = pos;
+	}
+	public Vector3d[] getTangent() {
+		return tangent;
+	}
+	public void setTangent(Vector3d[] tangent) {
+		this.tangent = tangent;
+	}
+	public int[] getTangentOwner() {
+		return tangentOwner;
+	}
+	public void setTangentOwner(int[] tangentOwner) {
+		this.tangentOwner = tangentOwner;
+	}
+	public double getRad() {
+		return rad;
+	}
+	public void setRad(double rad) {
+		this.rad = rad;
+	}
 }

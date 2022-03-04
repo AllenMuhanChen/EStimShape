@@ -95,7 +95,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 			sampleMStick.genMatchStickFromShapeSpec(sampleSpec, rotation);
 			sampleMStick.setScale(sampleSpec.getMinSize(), sampleSpec.getMaxSize());
 			sampleMStick.smoothizeMStick();
-			System.out.println("ncomp:" + sampleMStick.scaleForMAxisShape);
+			System.out.println("ncomp:" + sampleMStick.getScaleForMAxisShape());
 			numSamplePrepped++;
 		}
 		
