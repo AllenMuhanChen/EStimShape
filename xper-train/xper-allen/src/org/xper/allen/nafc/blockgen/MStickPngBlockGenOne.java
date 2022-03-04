@@ -206,7 +206,7 @@ public class MStickPngBlockGenOne{
 
 					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					//boolean maintainTangent = true;
-					int leafToMorphIndx = objs_sample.get(i).specialEndComp;
+					int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp();
 					
 					System.out.println("In Match");
 					try{

@@ -19,26 +19,27 @@ import org.lwjgl.opengl.GL11;
 public class TubeComp
 {
 	// we can set it to be true, to skip jacob_check
-	public boolean skipJacobInAnalysisPhase = false;
+	private boolean skipJacobInAnalysisPhase = false;
  	private int label;
-    public MAxisArc mAxisInfo = new MAxisArc();
-	public double[][] radInfo = new double[3][2];
-	public boolean branchUsed;
-	public double[] radiusAcross = new double[52]; // the radius value at each mPts point
-	public int connectType;
-	public Point3d maxXYZ, minXYZ;
-	boolean scaleOnce = true;
+    private MAxisArc mAxisInfo = new MAxisArc();
+	private double[][] radInfo = new double[3][2];
+	private boolean branchUsed;
+	private double[] radiusAcross = new double[52]; // the radius value at each mPts point
+	private int connectType;
+	private Point3d maxXYZ;
+	private Point3d minXYZ;
+	private boolean scaleOnce = true;
 	
-	public int maxStep = 51;
+	private int maxStep = 51;
 
 	
 
-	public Point3d[] vect_info = new Point3d[2000]; // 2000 should be large enough to contain all pts
-	public Vector3d[] normMat_info = new Vector3d[2000];
-	public int[][] facInfo = new int[2800][3];
+	private Point3d[] vect_info = new Point3d[2000]; // 2000 should be large enough to contain all pts
+	private Vector3d[] normMat_info = new Vector3d[2000];
+	private int[][] facInfo = new int[2800][3];
 	
-	public int nVect;
-	public final int nFac = 2760; // this will always be true
+	private int nVect;
+	private final int nFac = 2760; // this will always be true
 
 
 	private int ringSample = 20;
@@ -49,7 +50,7 @@ public class TubeComp
  	public TubeComp()
  	{
  		// init the facInfo
-		facInfo = sampleFaceInfo.getFacInfo();
+		setFacInfo(sampleFaceInfo.getFacInfo());
 		
         }
 
@@ -59,24 +60,24 @@ public class TubeComp
 	public void copyFrom( TubeComp in)
 	{
 		int i, j;
-		label = in.label;
-		mAxisInfo.copyFrom( in.mAxisInfo);
+		setLabel(in.getLabel());
+		getmAxisInfo().copyFrom( in.getmAxisInfo());
 		for (i=0; i<3; i++)
 			for (j=0; j<2; j++)
-				radInfo[i][j] = in.radInfo[i][j];
-		branchUsed = in.branchUsed;
+				getRadInfo()[i][j] = in.getRadInfo()[i][j];
+		setBranchUsed(in.isBranchUsed());
 		for (i=1; i<=51; i++)
-			radiusAcross[i] = in.radiusAcross[i];
-		connectType = in.connectType;
-		maxXYZ = new Point3d(in.maxXYZ);
-		minXYZ = new Point3d(in.minXYZ);
+			getRadiusAcross()[i] = in.getRadiusAcross()[i];
+		setConnectType(in.getConnectType());
+		setMaxXYZ(new Point3d(in.getMaxXYZ()));
+		setMinXYZ(new Point3d(in.getMinXYZ()));
 		
 		// about vect, fac
-		nVect = in.nVect;		
-		for (i=1; i<=nVect; i++)
+		setnVect(in.getnVect());		
+		for (i=1; i<=getnVect(); i++)
 		{
-			vect_info[i] = new Point3d( in.vect_info[i]);
-			normMat_info[i] = new Vector3d(in.normMat_info[i]);			
+			getVect_info()[i] = new Point3d( in.getVect_info()[i]);
+			getNormMat_info()[i] = new Vector3d(in.getNormMat_info()[i]);			
 		}
 		// Fac Info is always fix 
 		// seems not need to copy the ringPT, cap_poleNS , we'll see later
@@ -88,12 +89,12 @@ public class TubeComp
 	public void initSet(MAxisArc inArc, boolean b_used, int in_type)
 	{
 		int i, j;
-		mAxisInfo.copyFrom(inArc);
-		branchUsed = b_used;
-		connectType = in_type;
+		getmAxisInfo().copyFrom(inArc);
+		setBranchUsed(b_used);
+		setConnectType(in_type);
 		for (i=0; i<3; i++)
 			for (j=0; j<2; j++)
-				radInfo[i][j] = 100.0;
+				getRadInfo()[i][j] = 100.0;
 		
 	}
 
@@ -104,8 +105,8 @@ public class TubeComp
 		int step;
 		double nowu, now_angle, nextu, next_angle;
 		double smallStep = 0.01;
-		double angleExtend = mAxisInfo.angleExtend;
-		double rad = mAxisInfo.rad;
+		double angleExtend = getmAxisInfo().getAngleExtend();
+		double rad = getmAxisInfo().getRad();
 		double localArcLen, next_localArcLen;
 		double a_fac, b_fac, c_fac;
 		double now_rad, now_rad_du, next_rad, next_rad_du;
@@ -134,8 +135,8 @@ public class TubeComp
 		
 		// radius value calculation
 		{
-			double u = radInfo[1][0], m = radInfo[0][1];
-			double n = radInfo[1][1], q = radInfo[2][1];
+			double u = getRadInfo()[1][0], m = getRadInfo()[0][1];
+			double n = getRadInfo()[1][1], q = getRadInfo()[2][1];
 			double denom = u - u*u;
 			a_fac = (u*q - u*m - n + m) / denom;
 			b_fac = (n - m - u*u*q + u*u*m) / denom;
@@ -147,9 +148,9 @@ public class TubeComp
 		transMat.setRotation(axisInfo);
 		
 
-   	   for (step = 1 ; step <=maxStep; step++)
+   	   for (step = 1 ; step <=getMaxStep(); step++)
  	   {
-		nowu = ((double)step-1) / ((double)maxStep-1);
+		nowu = ((double)step-1) / ((double)getMaxStep()-1);
 		
 
 		now_angle = nowu * angleExtend - 0.5 * angleExtend;	
@@ -266,12 +267,12 @@ public class TubeComp
 		Vector3d boundNorm1_uEnd = new Vector3d();
 		boolean needCheckJacob = false;
 		double a_fac, b_fac, c_fac;
-		if ( mAxisInfo.rad < 10000)
+		if ( getmAxisInfo().getRad() < 10000)
 		{
 			needCheckJacob = true;
 			// this skipJacob will only be true, if we called in the main
 			// in this class
-			if ( this.skipJacobInAnalysisPhase == true)
+			if ( this.isSkipJacobInAnalysisPhase() == true)
 				needCheckJacob = false;
 			if (needCheckJacob == true)
 				if ( this.RadApplied_Factory_SUB_CheckJacob() == false)
@@ -281,8 +282,8 @@ public class TubeComp
 		// this are the result I calculated by hand,
 		// the main idea is that we know radius value at u= 0, u0, 1,-> we calcualte the quadratic function at all points
 		{
-			double u = radInfo[1][0], m = radInfo[0][1];
-			double n = radInfo[1][1], q = radInfo[2][1];
+			double u = getRadInfo()[1][0], m = getRadInfo()[0][1];
+			double n = getRadInfo()[1][1], q = getRadInfo()[2][1];
 			double denom = u - u*u;
 			a_fac = (u*q - u*m - n + m) / denom;
 			b_fac = (n - m - u*u*q + u*u*m) / denom;
@@ -292,11 +293,11 @@ public class TubeComp
 		}
 				
 	     // 2. apply the radius value along the samplePts ( main torso)
-		if (mAxisInfo.rad < 10000) //determine the rotAxis
+		if (getmAxisInfo().getRad() < 10000) //determine the rotAxis
 		{
 			Vector3d temp1, temp2;
-			temp1 = mAxisInfo.mTangent[1]; // it is ok to write =, since we didn't chg temp1, temp2 value
-			temp2 = mAxisInfo.mTangent[26]; // in theory, any two tangent will work
+			temp1 = getmAxisInfo().getmTangent()[1]; // it is ok to write =, since we didn't chg temp1, temp2 value
+			temp2 = getmAxisInfo().getmTangent()[26]; // in theory, any two tangent will work
 			rotAxis.cross(temp1, temp2);
 			rotAxis.normalize();		
 			AxisAngle4d axisInfo = new AxisAngle4d( rotAxis, Math.PI * 0.5);			
@@ -304,7 +305,7 @@ public class TubeComp
 		}
 		else
 		{			
-			Vector3d temp1 = mAxisInfo.mTangent[1];
+			Vector3d temp1 = getmAxisInfo().getmTangent()[1];
 			//if (temp1.getX() == 0.0)
 			//  	Normal_str8.set( 1.0, 0.0, 0.0);
 			if ( temp1.x == 0.0)
@@ -318,17 +319,17 @@ public class TubeComp
 			rotAxis.cross(Normal_str8, temp1);
 			rotAxis.normalize();
 		}
-		for (i=1; i<= maxStep; i++)
+		for (i=1; i<= getMaxStep(); i++)
 		{
-		   nowu = ( (double)(i-1)) / ( (double) (maxStep-1));
-		   mpos.set( mAxisInfo.mPts[i]);
-		   tangent.set( mAxisInfo.mTangent[i]);
-		   local_arcLen = mAxisInfo.localArcLen[i];
+		   nowu = ( (double)(i-1)) / ( (double) (getMaxStep()-1));
+		   mpos.set( getmAxisInfo().getmPts()[i]);
+		   tangent.set( getmAxisInfo().getmTangent()[i]);
+		   local_arcLen = getmAxisInfo().getLocalArcLen()[i];
 		   now_rad = a_fac * nowu * nowu + b_fac * nowu + c_fac;
 		   now_rad_du = a_fac * 2 * nowu + b_fac;
 		   
-		   this.radiusAcross[i] = now_rad;
-		   if (mAxisInfo.rad < 10000)
+		   this.getRadiusAcross()[i] = now_rad;
+		   if (getmAxisInfo().getRad() < 10000)
 		   {
 		       nowNormal.set( tangent);
 		       transMat.transform(nowNormal); // nowNormal is the 90 degree rotate from tangent ( rotate along plane normal)
@@ -358,18 +359,18 @@ public class TubeComp
 
 		   if (i == 1)
 			boundNorm1_uStart.set( boundNorm1);
-		   if ( i == maxStep)
+		   if ( i == getMaxStep())
 			boundNorm1_uEnd.set( boundNorm1);
 
 		   // draw the ring
-		   for (j=1; j<= ringSample; j++)
+		   for (j=1; j<= getRingSample(); j++)
 		   {
 			Vector3d nowvec = new Vector3d();
-			double nowrot_deg = ( (double)(j-1) / (double)ringSample ) * 2 * Math.PI;
+			double nowrot_deg = ( (double)(j-1) / (double)getRingSample() ) * 2 * Math.PI;
                         nowvec = stickMath_lib.rotVecArAxis(boundNorm1, tangent, nowrot_deg); // this is 1 degree in radian		
 			
-			ringPt[i][j] = new Point3d();
-			ringPt[i][j].scaleAdd( now_rad, nowvec, mpos);
+			getRingPt()[i][j] = new Point3d();
+			getRingPt()[i][j].scaleAdd( now_rad, nowvec, mpos);
 		   }
 		
 		}
@@ -381,7 +382,7 @@ public class TubeComp
 		// by calculating d1,d2,d3, determine which direction to rotate
 		double d1, d2, d3;
 		
-		tangent.negate(mAxisInfo.mTangent[1]);
+		tangent.negate(getmAxisInfo().getmTangent()[1]);
 
 		d1 = boundNorm1_uStart.angle(tangent);
 
@@ -404,24 +405,24 @@ public class TubeComp
 
 		double deg_span = d1;
 		double deg;
-		for ( j = 1 ; j <= capSample ; j++)
+		for ( j = 1 ; j <= getCapSample() ; j++)
 		{
-                   deg = ((double)(j-1)/ (double)capSample) *  deg_span * deg_sign;		   
+                   deg = ((double)(j-1)/ (double)getCapSample()) *  deg_span * deg_sign;		   
 		   nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uStart, rotAxis, deg);
 		  
 		//System.out.println( "now vec new_ " + nowvec);
                    Vector3d nowDirect = new Vector3d();
 		
-		   nowDirect.scale( radInfo[0][1], nowvec); // radInfo[0][1] is the rad at u == 0
+		   nowDirect.scale( getRadInfo()[0][1], nowvec); // radInfo[0][1] is the rad at u == 0
 	
-            	   for ( i = 1 ; i <= ringSample; i++)
+            	   for ( i = 1 ; i <= getRingSample(); i++)
 		   {
-               	      double nowrot_deg = ((double)(i-1) / (double)ringSample) * 2 * Math.PI; // In this formula, we don't eventually rotate to 2pi
-		      nowvec = stickMath_lib.rotVecArAxis(nowDirect, mAxisInfo.mTangent[1], nowrot_deg);                      
+               	      double nowrot_deg = ((double)(i-1) / (double)getRingSample()) * 2 * Math.PI; // In this formula, we don't eventually rotate to 2pi
+		      nowvec = stickMath_lib.rotVecArAxis(nowDirect, getmAxisInfo().getmTangent()[1], nowrot_deg);                      
                       
                       //DGdata(1).cap(j,i,:) = DGdata(1).mpos + nowvec; ( matlab format)
-		      cap_poleN[j][i] = new Point3d();
-		      cap_poleN[j][i].add( mAxisInfo.mPts[1], nowvec);
+		      getCap_poleN()[j][i] = new Point3d();
+		      getCap_poleN()[j][i].add( getmAxisInfo().getmPts()[1], nowvec);
                    }   
                 }
 	
@@ -430,7 +431,7 @@ public class TubeComp
 	     {
 		// by calculating d1,d2,d3, determine which direction to rotate
 		double d1, d2, d3;	
-		tangent.set(mAxisInfo.mTangent[51]);
+		tangent.set(getmAxisInfo().getmTangent()[51]);
 
 		d1 = boundNorm1_uEnd.angle(tangent);
 
@@ -454,24 +455,24 @@ public class TubeComp
 
 		double deg_span = d1;
 		double deg;
-		for ( j = 1 ; j <= capSample ; j++)
+		for ( j = 1 ; j <= getCapSample() ; j++)
 		{
-                   deg = ((double)(j-1)/ (double)capSample) *  deg_span * deg_sign;		   
+                   deg = ((double)(j-1)/ (double)getCapSample()) *  deg_span * deg_sign;		   
 		   nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uEnd, rotAxis, deg);
 		  
 		//System.out.println( "now vec new_ " + nowvec);
                    Vector3d nowDirect = new Vector3d();
 		
-		   nowDirect.scale( radInfo[2][1], nowvec); // radInfo[0][1] is the rad at u == 0
+		   nowDirect.scale( getRadInfo()[2][1], nowvec); // radInfo[0][1] is the rad at u == 0
 	
-            	   for ( i = 1 ; i <= ringSample; i++)
+            	   for ( i = 1 ; i <= getRingSample(); i++)
 		   {
-               	      double nowrot_deg = ((double)(i-1) / (double)ringSample) * 2 * Math.PI; // In this formula, we don't eventually rotate to 2pi
-		      nowvec = stickMath_lib.rotVecArAxis(nowDirect, mAxisInfo.mTangent[51], nowrot_deg);                      
+               	      double nowrot_deg = ((double)(i-1) / (double)getRingSample()) * 2 * Math.PI; // In this formula, we don't eventually rotate to 2pi
+		      nowvec = stickMath_lib.rotVecArAxis(nowDirect, getmAxisInfo().getmTangent()[51], nowrot_deg);                      
                       
                       //DGdata(1).cap(j,i,:) = DGdata(1).mpos + nowvec; ( matlab format)
-		      cap_poleS[j][i] = new Point3d();
-		      cap_poleS[j][i].add( mAxisInfo.mPts[51], nowvec);
+		      getCap_poleS()[j][i] = new Point3d();
+		      getCap_poleS()[j][i].add( getmAxisInfo().getmPts()[51], nowvec);
                    }   
                 }
 	
@@ -483,49 +484,49 @@ public class TubeComp
 		int nowVect=1;
 		// 1. tipNorth
 		  Point3d tip1 = new Point3d();
-		  tip1.scaleAdd( - radInfo[0][1], mAxisInfo.mTangent[1], mAxisInfo.mPts[1]);		
-		  vect_info[nowVect] = new Point3d(tip1);
-		  normMat_info[nowVect] = new Vector3d();
-		  normMat_info[nowVect].negate( mAxisInfo.mTangent[1]);
+		  tip1.scaleAdd( - getRadInfo()[0][1], getmAxisInfo().getmTangent()[1], getmAxisInfo().getmPts()[1]);		
+		  getVect_info()[nowVect] = new Point3d(tip1);
+		  getNormMat_info()[nowVect] = new Vector3d();
+		  getNormMat_info()[nowVect].negate( getmAxisInfo().getmTangent()[1]);
 		  nowVect++;
 		// 2. cap_North
-		  for (i= capSample; i>=1; i--)
-		    for (j=1; j<=ringSample; j++)
+		  for (i= getCapSample(); i>=1; i--)
+		    for (j=1; j<=getRingSample(); j++)
 		    {
-			vect_info[nowVect] = new Point3d( cap_poleN[i][j]);
-			normMat_info[nowVect] = new Vector3d();
-			normMat_info[nowVect].sub( cap_poleN[i][j], mAxisInfo.mPts[1]);
-			normMat_info[nowVect].normalize();
+			getVect_info()[nowVect] = new Point3d( getCap_poleN()[i][j]);
+			getNormMat_info()[nowVect] = new Vector3d();
+			getNormMat_info()[nowVect].sub( getCap_poleN()[i][j], getmAxisInfo().getmPts()[1]);
+			getNormMat_info()[nowVect].normalize();
 			nowVect++;
 		    }
 		// 3. torsoRing
-		   for (i=2; i <= maxStep-1; i++)
-		     for (j=1; j<=ringSample; j++)
+		   for (i=2; i <= getMaxStep()-1; i++)
+		     for (j=1; j<=getRingSample(); j++)
 		     {
-			vect_info[nowVect] = new Point3d( ringPt[i][j]);
-			normMat_info[nowVect] = new Vector3d();
-			normMat_info[nowVect].sub( ringPt[i][j], mAxisInfo.mPts[i]);
-			normMat_info[nowVect].normalize();
+			getVect_info()[nowVect] = new Point3d( getRingPt()[i][j]);
+			getNormMat_info()[nowVect] = new Vector3d();
+			getNormMat_info()[nowVect].sub( getRingPt()[i][j], getmAxisInfo().getmPts()[i]);
+			getNormMat_info()[nowVect].normalize();
 			nowVect++;
 		     }
 		// 4. cap_South
-		   for (i= 1; i<=capSample; i++)
-		    for (j=1; j<=ringSample; j++)
+		   for (i= 1; i<=getCapSample(); i++)
+		    for (j=1; j<=getRingSample(); j++)
 		    {
-			vect_info[nowVect] = new Point3d( cap_poleS[i][j]);
-			normMat_info[nowVect] = new Vector3d();
-			normMat_info[nowVect].sub( cap_poleS[i][j], mAxisInfo.mPts[51]);
-			normMat_info[nowVect].normalize();
+			getVect_info()[nowVect] = new Point3d( getCap_poleS()[i][j]);
+			getNormMat_info()[nowVect] = new Vector3d();
+			getNormMat_info()[nowVect].sub( getCap_poleS()[i][j], getmAxisInfo().getmPts()[51]);
+			getNormMat_info()[nowVect].normalize();
 			nowVect++;
 		    }
 		// 5. tipSouth
 		  Point3d tip2 = new Point3d();
-		  tip2.scaleAdd( radInfo[2][1], mAxisInfo.mTangent[51], mAxisInfo.mPts[51]);		
-		  vect_info[nowVect] = new Point3d(tip2);
-		  normMat_info[nowVect] = new Vector3d(mAxisInfo.mTangent[51]);
+		  tip2.scaleAdd( getRadInfo()[2][1], getmAxisInfo().getmTangent()[51], getmAxisInfo().getmPts()[51]);		
+		  getVect_info()[nowVect] = new Point3d(tip2);
+		  getNormMat_info()[nowVect] = new Vector3d(getmAxisInfo().getmTangent()[51]);
 		  
 		//System.out.println("NOw Vect " + nowVect);
-		  this.nVect = nowVect;
+		  this.setnVect(nowVect);
 		// The fac_info could be retrived from pre-calculated data
 		
 	     }
@@ -540,7 +541,7 @@ public class TubeComp
 		double maxX = -100.0, maxY = -100.0, maxZ = -100.0;
 		double minX = 100.0, minY = 100.0, minZ = 100.0;
 		
-		for (i=1; i<= nVect; i++)
+		for (i=1; i<= getnVect(); i++)
 		{
 		  /*
 			if (vect_info[i].getX() > maxX )
@@ -556,24 +557,24 @@ public class TubeComp
 			if (vect_info[i].getZ() < minZ )
 				minZ = vect_info[i].getZ();
 	     */
-			if (vect_info[i].x > maxX )
-				maxX = vect_info[i].x;
-			if (vect_info[i].y > maxY )
-				maxY = vect_info[i].y;
-			if (vect_info[i].z> maxZ )
-				maxZ = vect_info[i].z;
-			if (vect_info[i].x < minX )
-				minX = vect_info[i].x;
-			if (vect_info[i].y < minY )
-				minY = vect_info[i].y;
-			if (vect_info[i].z < minZ )
-				minZ = vect_info[i].z;
+			if (getVect_info()[i].x > maxX )
+				maxX = getVect_info()[i].x;
+			if (getVect_info()[i].y > maxY )
+				maxY = getVect_info()[i].y;
+			if (getVect_info()[i].z> maxZ )
+				maxZ = getVect_info()[i].z;
+			if (getVect_info()[i].x < minX )
+				minX = getVect_info()[i].x;
+			if (getVect_info()[i].y < minY )
+				minY = getVect_info()[i].y;
+			if (getVect_info()[i].z < minZ )
+				minZ = getVect_info()[i].z;
 	
 		}
 		
 
-		maxXYZ = new Point3d(maxX, maxY, maxZ);
-		minXYZ = new Point3d(minX, minY, minZ);
+		setMaxXYZ(new Point3d(maxX, maxY, maxZ));
+		setMinXYZ(new Point3d(minX, minY, minZ));
 	}
 
 	public void drawSurfPt(float[] colorCode, double scaleFactor)
@@ -582,9 +583,9 @@ public class TubeComp
 		/*int ringSample = 20;
 		  int capSample = 10;		
 		  int maxStep = 51;*/
-		if (scaleOnce) {
+		if (isScaleOnce()) {
 			scaleTheObj(scaleFactor);
-			scaleOnce = false;
+			setScaleOnce(false);
 		}
 		
 		boolean useLight = false;
@@ -612,8 +613,8 @@ public class TubeComp
 			// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
 			for (i=1; i<=50; i++)
 			{
-				Point3d p1 = this.mAxisInfo.mPts[i];
-				Point3d p2 = this.mAxisInfo.mPts[i+1];
+				Point3d p1 = this.getmAxisInfo().getmPts()[i];
+				Point3d p2 = this.getmAxisInfo().getmPts()[i+1];
 				GL11.glVertex3d( p1.x, p1.y, p1.z);
 				GL11.glVertex3d(p2.x, p2.y, p2.z);
 			}
@@ -625,16 +626,16 @@ public class TubeComp
 	     
 	   GL11.glBegin(GL11.GL_TRIANGLES);
  	//	GL11.glBegin(GL11.GL_POINTS);
-	   for (i=0; i< nFac; i++)
+	   for (i=0; i< getnFac(); i++)
 	   {
 		   	// 		System.out.println(i);
 		    // 		System.out.println("fac Info " + facInfo[i][0] +" " + facInfo[i][1] +" " + facInfo[i][2]);
-		Point3d p1 = vect_info[ facInfo[i][0]];
-		Point3d p2 = vect_info[ facInfo[i][1]];
-		Point3d p3 = vect_info[ facInfo[i][2]];
-		Vector3d v1 = normMat_info[ facInfo[i][0]];
-		Vector3d v2 = normMat_info[ facInfo[i][1]];
-		Vector3d v3 = normMat_info[ facInfo[i][2]];
+		Point3d p1 = getVect_info()[ getFacInfo()[i][0]];
+		Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
+		Point3d p3 = getVect_info()[ getFacInfo()[i][2]];
+		Vector3d v1 = getNormMat_info()[ getFacInfo()[i][0]];
+		Vector3d v2 = getNormMat_info()[ getFacInfo()[i][1]];
+		Vector3d v3 = getNormMat_info()[ getFacInfo()[i][2]];
 		
 		GL11.glNormal3d( v1.x, v1.y, v1.z);
 		GL11.glVertex3d( p1.x, p1.y, p1.z);
@@ -726,11 +727,11 @@ public class TubeComp
 	public void scaleTheObj(double scaleFactor)
 	{
 		int i;
-		for (i=1; i<=nVect; i++)
+		for (i=1; i<=getnVect(); i++)
 		{
-			vect_info[i].x *= scaleFactor;
-			vect_info[i].y *= scaleFactor;
-			vect_info[i].z *= scaleFactor;
+			getVect_info()[i].x *= scaleFactor;
+			getVect_info()[i].y *= scaleFactor;
+			getVect_info()[i].z *= scaleFactor;
 			
 		}
 	}
@@ -743,21 +744,21 @@ public class TubeComp
 			System.out.println("In translate components....");
 		// make this.mAxisInfo.transRotHis_finalPos to new finalPos
 		// 1. translate the mAxis arc related info
-		Point3d oriPt = new Point3d( this.mAxisInfo.transRotHis_finalPos);
+		Point3d oriPt = new Point3d( this.getmAxisInfo().getTransRotHis_finalPos());
 		Vector3d transVec = new Vector3d();
 		transVec.sub(finalPos, oriPt);
 
-		this.mAxisInfo.transRotHis_finalPos.set(finalPos);
-		for (i=1; i<= maxStep; i++)
+		this.getmAxisInfo().getTransRotHis_finalPos().set(finalPos);
+		for (i=1; i<= getMaxStep(); i++)
 		{
-			this.mAxisInfo.mPts[i].add(transVec);
+			this.getmAxisInfo().getmPts()[i].add(transVec);
 		}
 
 		// 2. translate the vect info
 		// June 15th 2008, I suppose we can translate the vect_info directly, without taking care of the ringPt or PolePt info
-		for (i=1; i <= nVect; i++)
+		for (i=1; i <= getnVect(); i++)
 		{
-			this.vect_info[i].add(transVec);
+			this.getVect_info()[i].add(transVec);
 		}
 		this.calcTubeRange(); // the AABB of the tube is changed
 	}
@@ -767,7 +768,7 @@ public class TubeComp
 		int i;
 		for (i=0; i<3; i++)			
 			{
-				System.out.println("	(u, r) = " + radInfo[i][0] + " " + radInfo[i][1]);
+				System.out.println("	(u, r) = " + getRadInfo()[i][0] + " " + getRadInfo()[i][1]);
 			}
 	}
 	
@@ -874,15 +875,15 @@ public class TubeComp
 				
 		
 				
-				nowComp[i].radInfo[0][0] = 0.0;
-				nowComp[i].radInfo[0][1] = r1;
-				nowComp[i].radInfo[1][0] = 0.5;
-				nowComp[i].radInfo[1][1] = r2;
-				nowComp[i].radInfo[2][0] = 1.0;
-				nowComp[i].radInfo[2][1] = r3;
+				nowComp[i].getRadInfo()[0][0] = 0.0;
+				nowComp[i].getRadInfo()[0][1] = r1;
+				nowComp[i].getRadInfo()[1][0] = 0.5;
+				nowComp[i].getRadInfo()[1][1] = r2;
+				nowComp[i].getRadInfo()[2][0] = 1.0;
+				nowComp[i].getRadInfo()[2][1] = r3;
 			
 				//put in the nowComp radInfo;
-				nowComp[i].skipJacobInAnalysisPhase = true;
+				nowComp[i].setSkipJacobInAnalysisPhase(true);
 				nowComp[i].RadApplied_Factory();
 			} //for loop
 				//then dump the vertex and fac info in nowComp 
@@ -896,24 +897,24 @@ public class TubeComp
 					for (i=0; i< nSegment; i++)
 					{
 						//write the component surface structure to out3
-						out.write( nowComp[i].nVect + "\n");								
+						out.write( nowComp[i].getnVect() + "\n");								
 						int it1, it2;
 				
-						for (it1 = 1; it1 <= nowComp[i].nVect; it1++)
+						for (it1 = 1; it1 <= nowComp[i].getnVect(); it1++)
 						{
 
-							out.write(nowComp[i].vect_info[it1].x + " " + nowComp[i].vect_info[it1].y + " " 
-								      + nowComp[i].vect_info[it1].z +" ");
+							out.write(nowComp[i].getVect_info()[it1].x + " " + nowComp[i].getVect_info()[it1].y + " " 
+								      + nowComp[i].getVect_info()[it1].z +" ");
 						
-							out.write(nowComp[i].normMat_info[it1].x + " " + nowComp[i].normMat_info[it1].y +  " "
-								     + nowComp[i].normMat_info[it1].z + " \n");
+							out.write(nowComp[i].getNormMat_info()[it1].x + " " + nowComp[i].getNormMat_info()[it1].y +  " "
+								     + nowComp[i].getNormMat_info()[it1].z + " \n");
 						}
-						out.write(nowComp[i].nFac +"\n");
-						for (it1 = 0 ; it1 <nowComp[i].nFac; it1++)
+						out.write(nowComp[i].getnFac() +"\n");
+						for (it1 = 0 ; it1 <nowComp[i].getnFac(); it1++)
 						{
 							for (it2 = 0; it2 <3; it2++)
 							{							
-								out.write(nowComp[i].facInfo[it1][it2] + " ");
+								out.write(nowComp[i].getFacInfo()[it1][it2] + " ");
 							}
 							out.write("\n");
 						}
@@ -928,6 +929,170 @@ public class TubeComp
 				System.out.println(e);
 			}
     }
+
+	public double[][] getRadInfo() {
+		return radInfo;
+	}
+
+	public void setRadInfo(double[][] radInfo) {
+		this.radInfo = radInfo;
+	}
+
+	public int getLabel() {
+		return label;
+	}
+
+	public void setLabel(int label) {
+		this.label = label;
+	}
+
+	public MAxisArc getmAxisInfo() {
+		return mAxisInfo;
+	}
+
+	public void setmAxisInfo(MAxisArc mAxisInfo) {
+		this.mAxisInfo = mAxisInfo;
+	}
+
+	public boolean isBranchUsed() {
+		return branchUsed;
+	}
+
+	public void setBranchUsed(boolean branchUsed) {
+		this.branchUsed = branchUsed;
+	}
+
+	public double[] getRadiusAcross() {
+		return radiusAcross;
+	}
+
+	public void setRadiusAcross(double[] radiusAcross) {
+		this.radiusAcross = radiusAcross;
+	}
+
+	public int getConnectType() {
+		return connectType;
+	}
+
+	public void setConnectType(int connectType) {
+		this.connectType = connectType;
+	}
+
+	public Point3d getMaxXYZ() {
+		return maxXYZ;
+	}
+
+	public void setMaxXYZ(Point3d maxXYZ) {
+		this.maxXYZ = maxXYZ;
+	}
+
+	public Point3d getMinXYZ() {
+		return minXYZ;
+	}
+
+	public void setMinXYZ(Point3d minXYZ) {
+		this.minXYZ = minXYZ;
+	}
+
+	public int getnVect() {
+		return nVect;
+	}
+
+	public void setnVect(int nVect) {
+		this.nVect = nVect;
+	}
+
+	public Point3d[] getVect_info() {
+		return vect_info;
+	}
+
+	public void setVect_info(Point3d[] vect_info) {
+		this.vect_info = vect_info;
+	}
+
+	public Vector3d[] getNormMat_info() {
+		return normMat_info;
+	}
+
+	public void setNormMat_info(Vector3d[] normMat_info) {
+		this.normMat_info = normMat_info;
+	}
+
+	public int getMaxStep() {
+		return maxStep;
+	}
+
+	public void setMaxStep(int maxStep) {
+		this.maxStep = maxStep;
+	}
+
+	public int getRingSample() {
+		return ringSample;
+	}
+
+	public void setRingSample(int ringSample) {
+		this.ringSample = ringSample;
+	}
+
+	public Point3d[][] getRingPt() {
+		return ringPt;
+	}
+
+	public void setRingPt(Point3d[][] ringPt) {
+		this.ringPt = ringPt;
+	}
+
+	public int getCapSample() {
+		return capSample;
+	}
+
+	public void setCapSample(int capSample) {
+		this.capSample = capSample;
+	}
+
+	public Point3d[][] getCap_poleN() {
+		return cap_poleN;
+	}
+
+	public void setCap_poleN(Point3d[][] cap_poleN) {
+		this.cap_poleN = cap_poleN;
+	}
+
+	public Point3d[][] getCap_poleS() {
+		return cap_poleS;
+	}
+
+	public void setCap_poleS(Point3d[][] cap_poleS) {
+		this.cap_poleS = cap_poleS;
+	}
+
+	public boolean isScaleOnce() {
+		return scaleOnce;
+	}
+
+	public void setScaleOnce(boolean scaleOnce) {
+		this.scaleOnce = scaleOnce;
+	}
+
+	public int[][] getFacInfo() {
+		return facInfo;
+	}
+
+	public void setFacInfo(int[][] facInfo) {
+		this.facInfo = facInfo;
+	}
+
+	public boolean isSkipJacobInAnalysisPhase() {
+		return skipJacobInAnalysisPhase;
+	}
+
+	public void setSkipJacobInAnalysisPhase(boolean skipJacobInAnalysisPhase) {
+		this.skipJacobInAnalysisPhase = skipJacobInAnalysisPhase;
+	}
+
+	public int getnFac() {
+		return nFac;
+	}
 	
 	
 }

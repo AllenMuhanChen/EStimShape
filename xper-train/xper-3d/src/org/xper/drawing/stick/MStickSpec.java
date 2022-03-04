@@ -23,7 +23,7 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class MStickSpec {
-    public MAxisInfo mAxis = new MAxisInfo();
+    private MAxisInfo mAxis = new MAxisInfo();
     public VertexInfo vertex = new VertexInfo();
     public boolean animation;
     public String compPosTanStr = "";
@@ -193,20 +193,20 @@ public class MStickSpec {
 
     public void setMStickInfo( MatchStick inStick)
     {
-		mAxis.setMAxisInfo(inStick);
+		getmAxis().setMAxisInfo(inStick);
 		vertex.setVertexInfo(inStick.getSmoothObj());
 
         TubeComp[] tubes = inStick.getComp();
         
         compPosTanStr = "";
         for (int i=1; i<=getNComponent(); i++) {
-            MAxisArc tempArc = tubes[i].mAxisInfo;
+            MAxisArc tempArc = tubes[i].getmAxisInfo();
             compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," + 
-                    tempArc.curvature + "," + tempArc.arcLen + "," + tempArc.rad + "\n";
+                    tempArc.curvature + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
             for (int j=1; j<=51; j++) {
-                compPosTanStr = compPosTanStr + tempArc.mPts[j].x + "," + tempArc.mPts[j].y + "," + 
-                        tempArc.mPts[j].z + "," + tempArc.mTangent[j].x + "," + 
-                        tempArc.mTangent[j].y + "," + tempArc.mTangent[j].z + "\n";
+                compPosTanStr = compPosTanStr + tempArc.getmPts()[j].x + "," + tempArc.getmPts()[j].y + "," + 
+                        tempArc.getmPts()[j].z + "," + tempArc.getmTangent()[j].x + "," + 
+                        tempArc.getmTangent()[j].y + "," + tempArc.getmTangent()[j].z + "\n";
                 
                 
             }
@@ -314,8 +314,16 @@ public class MStickSpec {
     }
 
     public int getNComponent(){
-        return this.mAxis.nComponent;
+        return this.getmAxis().getnComponent();
     }
+
+	public MAxisInfo getmAxis() {
+		return mAxis;
+	}
+
+	public void setmAxis(MAxisInfo mAxis) {
+		this.mAxis = mAxis;
+	}
 
 
 

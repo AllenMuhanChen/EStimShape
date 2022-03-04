@@ -64,11 +64,12 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 //			System.out.println("AC50193: " + normalAngles[0] * 180 / Math.PI);
 //			System.out.println("AC50194: " + normalAngles[1] * 180 / Math.PI);
 			//TODO: This is the normal angle of the original limb. We need to figure out what to do with this. 
-			//double desiredNormal = 270*Math.PI/180;
+			double desiredNormal = 270*Math.PI/180;
 			
 			if(zDirectionNormalAngle > normalAngleRange[0] && zDirectionNormalAngle < normalAngleRange[1]) {
 				newRotation = oldRotation - 90; 
 			}
+			newRotation = desiredNormal;
 			//newRotation = desiredNormal;
 //			
 //			if(oldRotation > 180*(Math.PI/180))

@@ -16,6 +16,7 @@ import org.xper.allen.drawing.composition.*;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.MAxisArc;
+import org.xper.drawing.stick.MStickObj4Smooth;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.stickMath_lib;
@@ -27,6 +28,15 @@ import org.xper.drawing.stick.stickMath_lib;
  *
  */
 public class AllenMatchStick extends MatchStick {
+	
+	private AllenTubeComp[] comp = new AllenTubeComp[9];
+	private int nEndPt;
+	private int nJuncPt;
+	protected EndPt_struct[] endPt = new EndPt_struct[50];
+	private JuncPt_struct[] JuncPt = new JuncPt_struct[50];
+	private MStickObj4Smooth obj1;
+	protected boolean[] LeafBranch = new boolean[10];
+	
 	protected final double PROB_addToEndorJunc = 0.5; // 50% add to end or
 	// junction pt, 50% to the
 	// branch
@@ -35,15 +45,15 @@ public class AllenMatchStick extends MatchStick {
 	// add to junc
 	protected final double PROB_addTiptoBranch = 0.5; 	// when "add new component to the branch is true"
 	protected final double[] finalRotation = new double[3];
-	protected double minScaleForMAxisShape;
+	private double minScaleForMAxisShape;
 
 	protected final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
-	protected final double TangentSaveZone = Math.PI/64;
+	private final double TangentSaveZone = Math.PI/64;
 
-	public int specialEnd=0;
-	public int specialEndComp=0;
+	private int specialEnd=0;
+	private int specialEndComp=0;
 	public AllenMatchStick() {
-		super.finalRotation = this.finalRotation;
+		setFinalRotation(this.finalRotation);
 	}
 
 	@Override
@@ -67,7 +77,7 @@ public class AllenMatchStick extends MatchStick {
 		int i;
 		boolean showComponents = false;
 		if (showComponents)
-			for (i=1; i<=nComponent; i++) {
+			for (i=1; i<=getnComponent(); i++) {
 				float[][] colorCode= {  
 						{1.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 0.0f},
@@ -80,7 +90,7 @@ public class AllenMatchStick extends MatchStick {
 				};
 
 
-				comp[i].drawSurfPt(colorCode[i-1],scaleForMAxisShape);
+				getComp()[i].drawSurfPt(colorCode[i-1],getScaleForMAxisShape());
 			}
 		else
 			getObj1().drawVect();
@@ -111,7 +121,7 @@ public class AllenMatchStick extends MatchStick {
 		// Point3d(comp[compToCenter].mAxisInfo.mPts[comp[compToCenter].mAxisInfo.branchPt]);
 		// Dec 26th, change .branchPt to .MiddlePT (i.e. always at middle)
 		int midPtIndex = 26;
-		Point3d nowComp1Center = new Point3d(comp[compToCenter].mAxisInfo.mPts[midPtIndex]);
+		Point3d nowComp1Center = new Point3d(getComp()[compToCenter].getmAxisInfo().getmPts()[midPtIndex]);
 		Vector3d shiftVec = new Vector3d();
 		shiftVec.sub(point, nowComp1Center);
 		// System.out.println("comp to center "+ compToCenter);
@@ -121,16 +131,16 @@ public class AllenMatchStick extends MatchStick {
 				System.out.println("shift to make it center at origin!");
 			Point3d finalPos = new Point3d();
 
-			for (i = 1; i <= nComponent; i++) {
-				finalPos.add(comp[i].mAxisInfo.transRotHis_finalPos, shiftVec);
-				this.comp[i].translateComp(finalPos);
+			for (i = 1; i <= getnComponent(); i++) {
+				finalPos.add(getComp()[i].getmAxisInfo().transRotHis_finalPos, shiftVec);
+				this.getComp()[i].translateComp(finalPos);
 			}
 			// also, all JuncPt and EndPt
-			for (i = 1; i <= nJuncPt; i++) {
-				JuncPt[i].pos.add(shiftVec);
+			for (i = 1; i <= getnJuncPt(); i++) {
+				getJuncPt()[i].getPos().add(shiftVec);
 			}
-			for (i = 1; i <= nEndPt; i++) {
-				endPt[i].pos.add(shiftVec);
+			for (i = 1; i <= getnEndPt(); i++) {
+				getEndPt()[i].getPos().add(shiftVec);
 			}
 			// I'll call this check seperately
 			// if ( this.validMStickSize() == false)
@@ -191,10 +201,10 @@ public class AllenMatchStick extends MatchStick {
 		int inner_totalTrialTime = 0; // for inner while loop
 		boolean showDebug = false;
 		// final double TangentSaveZone = Math.PI / 4.0;
-		boolean[] JuncPtFlg = new boolean[nJuncPt + 1]; // = true when this
+		boolean[] JuncPtFlg = new boolean[getnJuncPt() + 1]; // = true when this
 		// JuncPt is related to
 		// the (id) component
-		int[] targetUNdx = new int[nJuncPt + 1]; // to save the target uNdx in
+		int[] targetUNdx = new int[getnJuncPt() + 1]; // to save the target uNdx in
 		// particular Junc pt
 		if (showDebug)
 			System.out.println("In replace component (AllenMatchStick), will replace comp " + id);
@@ -204,9 +214,9 @@ public class AllenMatchStick extends MatchStick {
 		int alignedPt;
 		alignedPt = MutationSUB_determineHinge(id);
 		Point3d alignedPos = new Point3d();
-		alignedPos.set(comp[id].mAxisInfo.mPts[alignedPt]);
+		alignedPos.set(getComp()[id].getmAxisInfo().getmPts()[alignedPt]);
 
-		int[] compLabel = new int[nComponent + 1];
+		int[] compLabel = new int[getnComponent() + 1];
 		int TangentTryTimes = 1;
 		compLabel = MutationSUB_compRelation2Target(id);
 
@@ -217,11 +227,11 @@ public class AllenMatchStick extends MatchStick {
 		// System.out.println("Hinge Pt is " + alignedPt);
 
 		// 2. start picking new MAxisArc
-		for (i = 1; i <= nJuncPt; i++)
-			for (j = 1; j <= JuncPt[i].nComp; j++) {
-				if (JuncPt[i].comp[j] == id) {
+		for (i = 1; i <= getnJuncPt(); i++)
+			for (j = 1; j <= getJuncPt()[i].getnComp(); j++) {
+				if (getJuncPt()[i].getComp()[j] == id) {
 					JuncPtFlg[i] = true;
-					targetUNdx[i] = JuncPt[i].uNdx[j];
+					targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 				}
 			}
 
@@ -241,7 +251,7 @@ public class AllenMatchStick extends MatchStick {
 					Vector3d finalTangent = new Vector3d();
 
 					if (maintainTangent) {
-						finalTangent = old_MStick.getTubeComp(id).mAxisInfo.transRotHis_finalTangent;
+						finalTangent = old_MStick.getTubeComp(id).getmAxisInfo().getTransRotHis_finalTangent();
 					} else {
 						finalTangent = stickMath_lib.randomUnitVec();
 					}
@@ -250,23 +260,23 @@ public class AllenMatchStick extends MatchStick {
 					nowArc.transRotMAxis(alignedPt, alignedPos, alignedPt, finalTangent, devAngle);
 					boolean tangentFlg = true;
 					Vector3d nowTangent = new Vector3d();
-					for (i = 1; i <= nJuncPt; i++)
+					for (i = 1; i <= getnJuncPt(); i++)
 						if (JuncPtFlg[i] == true) {
 							int uNdx = targetUNdx[i];
 							boolean midBranchFlg = false;
 							if (uNdx == 1)
-								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.getmTangent()[uNdx]);
 							else if (uNdx == 51) {
-								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.getmTangent()[uNdx]);
 								finalTangent.negate();
 							} else // middle branch Pt
 							{
 								midBranchFlg = true;
-								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.getmTangent()[uNdx]);
 							}
 							// check the angle
-							for (j = 1; j <= JuncPt[i].nTangent; j++)
-								if (JuncPt[i].tangentOwner[j] != id) // don't
+							for (j = 1; j <= getJuncPt()[i].getnTangent(); j++)
+								if (getJuncPt()[i].getTangentOwner()[j] != id) // don't
 									// need
 									// to
 									// check
@@ -275,12 +285,12 @@ public class AllenMatchStick extends MatchStick {
 									// replaced
 									// self
 								{
-									nowTangent = JuncPt[i].tangent[j]; // soft
+									nowTangent = getJuncPt()[i].getTangent()[j]; // soft
 									// copy
 									// is
 									// fine
 									// here
-									if (nowTangent.angle(finalTangent) <= TangentSaveZone) // angle
+									if (nowTangent.angle(finalTangent) <= getTangentSaveZone()) // angle
 										// btw
 										// the
 										// two
@@ -289,7 +299,7 @@ public class AllenMatchStick extends MatchStick {
 										tangentFlg = false;
 									if (midBranchFlg == true) {
 										finalTangent.negate();
-										if (nowTangent.angle(finalTangent) <= TangentSaveZone) //
+										if (nowTangent.angle(finalTangent) <= getTangentSaveZone()) //
 											tangentFlg = false;
 									}
 								}
@@ -309,23 +319,23 @@ public class AllenMatchStick extends MatchStick {
 
 				// update the information of the related JuncPt
 				Vector3d finalTangent = new Vector3d();
-				for (i = 1; i <= nJuncPt; i++)
+				for (i = 1; i <= getnJuncPt(); i++)
 					if (JuncPtFlg[i] == true) {
 						int nowUNdx = targetUNdx[i];
-						finalTangent.set(nowArc.mTangent[nowUNdx]);
+						finalTangent.set(nowArc.getmTangent()[nowUNdx]);
 						if (targetUNdx[i] == 51)
 							finalTangent.negate();
-						Point3d newPos = nowArc.mPts[nowUNdx];
+						Point3d newPos = nowArc.getmPts()[nowUNdx];
 						Point3d shiftVec = new Point3d();
-						shiftVec.sub(newPos, JuncPt[i].pos);
+						shiftVec.sub(newPos, getJuncPt()[i].getPos());
 
 						if (nowUNdx != alignedPt) // not the aligned one, we
 							// need to translate
 						{
-							for (j = 1; j <= JuncPt[i].nComp; j++)
-								if (JuncPt[i].comp[j] != id) {
-									int nowCompNdx = JuncPt[i].comp[j];
-									for (k = 1; k <= nComponent; k++)
+							for (j = 1; j <= getJuncPt()[i].getnComp(); j++)
+								if (getJuncPt()[i].getComp()[j] != id) {
+									int nowCompNdx = getJuncPt()[i].getComp()[j];
+									for (k = 1; k <= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the
 											// one
 											// should
@@ -335,38 +345,38 @@ public class AllenMatchStick extends MatchStick {
 										{
 											int nowComp = k;
 											Point3d finalPos = new Point3d();
-											finalPos.add(comp[nowComp].mAxisInfo.transRotHis_finalPos, shiftVec);
+											finalPos.add(getComp()[nowComp].getmAxisInfo().transRotHis_finalPos, shiftVec);
 											if (showDebug)
 												System.out.println(
 														"we have translate comp " + nowComp + "by " + shiftVec);
-											this.comp[nowComp].translateComp(finalPos);
+											this.getComp()[nowComp].translateComp(finalPos);
 											// translate the component
 										}
 								}
 						}
 
-						JuncPt[i].pos = newPos;
+						getJuncPt()[i].setPos(newPos);
 						// update the tangent information
 						boolean secondFlg = false; // determine if the first or
 						// second tanget
-						for (j = 1; j <= JuncPt[i].nTangent; j++) {
-							if (JuncPt[i].tangentOwner[j] == id && secondFlg == false) {
-								JuncPt[i].tangent[j].set(finalTangent);
+						for (j = 1; j <= getJuncPt()[i].getnTangent(); j++) {
+							if (getJuncPt()[i].getTangentOwner()[j] == id && secondFlg == false) {
+								getJuncPt()[i].getTangent()[j].set(finalTangent);
 								secondFlg = true;
-							} else if (JuncPt[i].tangentOwner[j] == id && secondFlg == true) {
+							} else if (getJuncPt()[i].getTangentOwner()[j] == id && secondFlg == true) {
 								finalTangent.negate();
-								JuncPt[i].tangent[j].set(finalTangent);
+								getJuncPt()[i].getTangent()[j].set(finalTangent);
 							}
 						}
 					}
 				// now, we can check skeleton closeness
 
 				// set the component to its new role
-				boolean branchUsed = this.comp[id].branchUsed;
-				int connectType = this.comp[id].connectType;
-				this.comp[id] = new TubeComp();
-				this.comp[id].initSet(nowArc, branchUsed, connectType);
-				boolean closeHit = this.checkSkeletonNearby(nComponent);
+				boolean branchUsed = this.getComp()[id].isBranchUsed();
+				int connectType = this.getComp()[id].getConnectType();
+				this.getComp()[id] = new AllenTubeComp();
+				this.getComp()[id].initSet(nowArc, branchUsed, connectType);
+				boolean closeHit = this.checkSkeletonNearby(getnComponent());
 				if (closeHit == false) // a safe skeleton
 					break;
 
@@ -377,13 +387,13 @@ public class AllenMatchStick extends MatchStick {
 			} // second while
 
 			// update the info in end pt and JuncPt
-			for (i = 1; i <= nEndPt; i++) {
-				Point3d newPos = new Point3d(comp[endPt[i].comp].mAxisInfo.mPts[endPt[i].uNdx]);
-				endPt[i].pos.set(newPos);
+			for (i = 1; i <= getnEndPt(); i++) {
+				Point3d newPos = new Point3d(getComp()[getEndPt()[i].getComp()].getmAxisInfo().getmPts()[getEndPt()[i].getuNdx()]);
+				getEndPt()[i].getPos().set(newPos);
 			}
-			for (i = 1; i <= nJuncPt; i++) {
-				Point3d newPos = new Point3d(comp[JuncPt[i].comp[1]].mAxisInfo.mPts[JuncPt[i].uNdx[1]]);
-				JuncPt[i].pos.set(newPos);
+			for (i = 1; i <= getnJuncPt(); i++) {
+				Point3d newPos = new Point3d(getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[getJuncPt()[i].getuNdx()[1]]);
+				getJuncPt()[i].getPos().set(newPos);
 			}
 			// now, we apply radius, and then check skin closeness
 			int radiusAssignChance = 5;
@@ -398,7 +408,7 @@ public class AllenMatchStick extends MatchStick {
 				double[][] fakeRadInfo = { { -10.0, -10.0 }, { -10.0, -10.0 }, { -10.0, -10.0 } };
 				this.MutationSUB_radAssign2NewComp(id, fakeRadInfo);
 				// comp[id].showRadiusInfo();
-				if (comp[id].RadApplied_Factory() == false) {
+				if (getComp()[id].RadApplied_Factory() == false) {
 					success_process = false;
 					continue; // not a good radius, try another
 				}
@@ -497,8 +507,8 @@ public class AllenMatchStick extends MatchStick {
 		int TotalTrialTime = 0; // the # have tried, if too many, just terminate
 		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
-		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
-		int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
+		boolean[] JuncPtFlg = new boolean[getnJuncPt()+1]; // = true when this JuncPt is related to the (id) component
+		int[] targetUNdx = new int[getnJuncPt()+1]; // to save the target uNdx in particular Junc pt
 		double[][] old_radInfo = new double[3][2];
 
 
@@ -512,14 +522,14 @@ public class AllenMatchStick extends MatchStick {
 		int baseJuncNdx=0;
 
 		//Go through Juncs
-		for(i=1; i<=nJuncPt;i++) {
-			for(j=1; j<= JuncPt[i].nComp;j++) {
-				if(JuncPt[i].comp[j]==id) {
+		for(i=1; i<=getnJuncPt();i++) {
+			for(j=1; j<= getJuncPt()[i].getnComp();j++) {
+				if(getJuncPt()[i].getComp()[j]==id) {
 
 					//If we've specified a comp to be the base that this limb moves along
-					if(baseComp!=0) {
-						for(int l=1; l<=JuncPt[i].nComp; l++) {
-							if(JuncPt[i].comp[l] == baseComp) {
+					if(getBaseComp()!=0) {
+						for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
+							if(getJuncPt()[i].getComp()[l] == getBaseComp()) {
 								baseJuncNdx = l;
 							}
 						}
@@ -527,17 +537,17 @@ public class AllenMatchStick extends MatchStick {
 					//If not, choose a random comp that's attached to the target leaf
 					else {
 						LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
-						for(int l=1; l<=JuncPt[i].nComp; l++) {
-							if(JuncPt[i].comp[l]!=id) {
+						for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
+							if(getJuncPt()[i].getComp()[l]!=id) {
 								baseJuncNdxList.add(l);
 							}
 						}
 						Collections.shuffle(baseJuncNdxList);
 						baseJuncNdx = baseJuncNdxList.get(0);
 					}
-					int oriPosition = JuncPt[i].uNdx[baseJuncNdx];
+					int oriPosition = getJuncPt()[i].getuNdx()[baseJuncNdx];
 					qmp.objCenteredPosQualMorph.setOldPosition(oriPosition);
-					oriTangent = JuncPt[i].tangent[id];
+					oriTangent = getJuncPt()[i].getTangent()[id];
 					qmp.objCenteredPosQualMorph.setOldTangent(oriTangent);
 				}
 			}
@@ -549,7 +559,7 @@ public class AllenMatchStick extends MatchStick {
 				positionFlag = qmp.objCenteredPosQualMorph.isPositionFlag();
 
 				//ORIENTATION
-				Vector3d baseTangent = this.comp[baseComp].mAxisInfo.mTangent[newPosition];
+				Vector3d baseTangent = this.getComp()[getBaseComp()].getmAxisInfo().getmTangent()[newPosition];
 				qmp.objCenteredPosQualMorph.calculateNewTangent(baseTangent);
 			}
 		} // Object Centered Position
@@ -560,36 +570,36 @@ public class AllenMatchStick extends MatchStick {
 //			if(qmp.objectCenteredPositionFlag) {
 //				tangent = qmp.objCenteredPosQualMorph.getNewTangent();
 //			}
-			qmp.curvRotQualMorph.setOldCurvature(comp[id].mAxisInfo.rad);
-			qmp.curvRotQualMorph.setOldRotation(comp[id].mAxisInfo.transRotHis_devAngle);
-			qmp.curvRotQualMorph.calculate(comp[id].mAxisInfo.arcLen,comp[id].mAxisInfo);
+			qmp.curvRotQualMorph.setOldCurvature(getComp()[id].getmAxisInfo().getRad());
+			qmp.curvRotQualMorph.setOldRotation(getComp()[id].getmAxisInfo().transRotHis_devAngle);
+			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo().arcLen,getComp()[id].getmAxisInfo());
 		} // Curvature Rotation 
 
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
 		int alignedPt;
 		alignedPt = MutationSUB_determineHinge(id);
 
-		int[] compLabel = new int[nComponent+1];
+		int[] compLabel = new int[getnComponent()+1];
 		int tangentTrialTimes = 0;
 		compLabel = MutationSUB_compRelation2Target(id);
 
 		//0. start picking new MAxisArc & POSITION MORPH
-		for (i=1; i<= nJuncPt; i++)
-			for (j=1; j<= JuncPt[i].nComp; j++)
+		for (i=1; i<= getnJuncPt(); i++)
+			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				if ( JuncPt[i].comp[j] == id)
+				if ( getJuncPt()[i].getComp()[j] == id)
 				{
 
 					JuncPtFlg[i] = true;
 
 					if(positionFlag) { 
 						//This junction point is an end point of the target leaf
-						if(JuncPt[i].uNdx[j] == 51 || JuncPt[i].uNdx[j] == 1) {
+						if(getJuncPt()[i].getuNdx()[j] == 51 || getJuncPt()[i].getuNdx()[j] == 1) {
 							//We need to change the uNdx of the limb the morphed limb is attached to
-							JuncPt[i].uNdx[baseJuncNdx] = newPosition;
+							getJuncPt()[i].getuNdx()[baseJuncNdx] = newPosition;
 
 							//We let the mAxis code know the new position through this qmp object
-							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(comp[baseComp].mAxisInfo.mPts[newPosition]));
+							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[newPosition]));
 
 							//The endPt's pos is automatically updated later in the code by using the position of the mAxis.
 							//ALL we needed to do is update the info about the base comp since that is not updated later, and add any new juncs or end points
@@ -597,21 +607,21 @@ public class AllenMatchStick extends MatchStick {
 						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point 
 						else {
 							//We can just change its position
-							JuncPt[i].uNdx[j] = newPosition;
+							getJuncPt()[i].getuNdx()[j] = newPosition;
 							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
-							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(comp[baseComp].mAxisInfo.mPts[newPosition]));
+							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[newPosition]));
 							//Later code will handle assigning this JuncPt's pos 
 						}
-						targetUNdx[i] = JuncPt[i].uNdx[j];
+						targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 					}else {
-						targetUNdx[i] = JuncPt[i].uNdx[j];
+						targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 					}
 				}
 
 			}
 		for (i=0; i<3; i++)
 			for (j=0; j<2; j++)
-				old_radInfo[i][j] = comp[id].radInfo[i][j];
+				old_radInfo[i][j] = getComp()[id].getRadInfo()[i][j];
 
 
 
@@ -632,40 +642,40 @@ public class AllenMatchStick extends MatchStick {
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
 					//MAJOR STEP ONE
-					nowArc.genQualitativeMorphArc(this.comp[id].mAxisInfo, alignedPt, qmp);
+					nowArc.genQualitativeMorphArc(this.getComp()[id].getmAxisInfo(), alignedPt, qmp);
 
 					//for loop, check through related JuncPt for tangentSaveZone
 					Vector3d finalTangent = new Vector3d();
 					boolean tangentFlg = true;
 					Vector3d nowTangent = new Vector3d();
-					for (i=1; i<=nJuncPt; i++)
+					for (i=1; i<=getnJuncPt(); i++)
 						if ( JuncPtFlg[i] == true)
 						{
 							int uNdx = targetUNdx[i];
 							boolean midBranchFlg = false;
 							if (uNdx == 1)
-								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.getmTangent()[uNdx]);
 							else if (uNdx == 51)
 							{
-								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.getmTangent()[uNdx]);
 								finalTangent.negate();
 							}
 							else // middle branch Pt
 							{
 								midBranchFlg = true;
-								finalTangent.set( nowArc.mTangent[uNdx]);
+								finalTangent.set( nowArc.getmTangent()[uNdx]);
 							}
 							// check the angle
-							for (j=1; j<= JuncPt[i].nTangent; j++)
-								if ( JuncPt[i].tangentOwner[j] != id) // don't need to check with the replaced self
+							for (j=1; j<= getJuncPt()[i].getnTangent(); j++)
+								if ( getJuncPt()[i].getTangentOwner()[j] != id) // don't need to check with the replaced self
 								{
-									nowTangent = JuncPt[i].tangent[j]; // soft copy is fine here
-									if ( nowTangent.angle(finalTangent) <= TangentSaveZone ) // angle btw the two tangent vector
+									nowTangent = getJuncPt()[i].getTangent()[j]; // soft copy is fine here
+									if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) // angle btw the two tangent vector
 										tangentFlg = false;
 									if ( midBranchFlg == true)
 									{
 										finalTangent.negate();
-										if ( nowTangent.angle(finalTangent) <= TangentSaveZone ) //
+										if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) //
 											tangentFlg = false;
 									}
 								}
@@ -689,51 +699,51 @@ public class AllenMatchStick extends MatchStick {
 				//JUNCPT UPDATE!!!
 				//update the information of the related JuncPt
 				Vector3d finalTangent = new Vector3d();
-				for (i=1; i<= nJuncPt; i++)
+				for (i=1; i<= getnJuncPt(); i++)
 					if (JuncPtFlg[i] == true)
 					{
 						int nowUNdx = targetUNdx[i];
-						finalTangent.set(nowArc.mTangent[nowUNdx]);
+						finalTangent.set(nowArc.getmTangent()[nowUNdx]);
 						if (targetUNdx[i] == 51)
 							finalTangent.negate();
-						Point3d newPos = nowArc.mPts[ nowUNdx];
+						Point3d newPos = nowArc.getmPts()[ nowUNdx];
 						Point3d shiftVec = new Point3d();
-						shiftVec.sub(newPos, JuncPt[i].pos);
+						shiftVec.sub(newPos, getJuncPt()[i].getPos());
 
 						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
 						{
-							for (j=1; j<= JuncPt[i].nComp; j++)
-								if ( JuncPt[i].comp[j] != id)
+							for (j=1; j<= getJuncPt()[i].getnComp(); j++)
+								if ( getJuncPt()[i].getComp()[j] != id)
 								{
-									int nowCompNdx = JuncPt[i].comp[j];
-									for (k=1; k<= nComponent; k++)
+									int nowCompNdx = getJuncPt()[i].getComp()[j];
+									for (k=1; k<= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the one should move with nowCompNdx
 										{
 											int nowComp = k;
 											Point3d finalPos =new Point3d();
-											finalPos.add( comp[nowComp].mAxisInfo.transRotHis_finalPos, shiftVec);
+											finalPos.add( getComp()[nowComp].getmAxisInfo().transRotHis_finalPos, shiftVec);
 											if ( showDebug)
 												System.out.println("we have translate comp " + nowComp + "by " + shiftVec);
-											this.comp[nowComp].translateComp( finalPos);
+											this.getComp()[nowComp].translateComp( finalPos);
 											// translate the component
 										}
 								}
 						}
-						JuncPt[i].pos = newPos;
+						getJuncPt()[i].setPos(newPos);
 
 						//update the tangent information
 						boolean secondFlg = false; // determine if the first or second tanget
-						for ( j = 1; j <= JuncPt[i].nTangent; j++)
+						for ( j = 1; j <= getJuncPt()[i].getnTangent(); j++)
 						{
-							if (JuncPt[i].tangentOwner[j] == id && secondFlg == false)
+							if (getJuncPt()[i].getTangentOwner()[j] == id && secondFlg == false)
 							{
-								JuncPt[i].tangent[j].set(finalTangent);
+								getJuncPt()[i].getTangent()[j].set(finalTangent);
 								secondFlg = true;
 							}
-							else if ( JuncPt[i].tangentOwner[j] == id && secondFlg == true)
+							else if ( getJuncPt()[i].getTangentOwner()[j] == id && secondFlg == true)
 							{
 								finalTangent.negate();
-								JuncPt[i].tangent[j].set(finalTangent);
+								getJuncPt()[i].getTangent()[j].set(finalTangent);
 							}
 						}
 
@@ -741,13 +751,13 @@ public class AllenMatchStick extends MatchStick {
 				// now, we can check skeleton closeness
 
 				//set the component to its new role
-				boolean branchUsed = this.comp[id].branchUsed;
-				int connectType = this.comp[id].connectType;
-				this.comp[id] = new TubeComp();
-				this.comp[id].initSet( nowArc, branchUsed, connectType);
+				boolean branchUsed = this.getComp()[id].isBranchUsed();
+				int connectType = this.getComp()[id].getConnectType();
+				this.getComp()[id] = new AllenTubeComp();
+				this.getComp()[id].initSet( nowArc, branchUsed, connectType);
 				if (showDebug)
 					System.out.println("In qualitative morph component: tube to modify # " +id +" now check skeleton");
-				boolean closeHit = this.checkSkeletonNearby(nComponent);
+				boolean closeHit = this.checkSkeletonNearby(getnComponent());
 				if (closeHit == false) // a safe skeleton
 				{
 					break;
@@ -768,15 +778,15 @@ public class AllenMatchStick extends MatchStick {
 			} //SECOND WHILE
 
 			// update the info in end pt and JuncPt
-			for (i=1; i<=nEndPt; i++)
+			for (i=1; i<=getnEndPt(); i++)
 			{
-				Point3d newPos = new Point3d(  comp[ endPt[i].comp].mAxisInfo.mPts[ endPt[i].uNdx]);
-				endPt[i].pos.set(newPos);
+				Point3d newPos = new Point3d(  getComp()[ getEndPt()[i].getComp()].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
+				getEndPt()[i].getPos().set(newPos);
 			}
-			for (i=1; i<=nJuncPt; i++)
+			for (i=1; i<=getnJuncPt(); i++)
 			{
-				Point3d newPos = new Point3d( comp[JuncPt[i].comp[1]].mAxisInfo.mPts[ JuncPt[i].uNdx[1]]);
-				JuncPt[i].pos.set(newPos);
+				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
+				getJuncPt()[i].getPos().set(newPos);
 			}
 
 
@@ -794,7 +804,7 @@ public class AllenMatchStick extends MatchStick {
 				//comp[id].showRadiusInfo();
 				this.MutationSUB_radAssign2NewComp_Qualitative(id, old_radInfo, qmp);
 				//comp[id].showRadiusInfo();
-				if ( comp[id].RadApplied_Factory() == false)
+				if ( getComp()[id].RadApplied_Factory() == false)
 				{
 					success_process = false;
 					continue; // not a good radius, try another
@@ -860,12 +870,12 @@ public class AllenMatchStick extends MatchStick {
 
 
 		//set old value at JuncPt
-		for (i=1; i<=nJuncPt; i++)
+		for (i=1; i<=getnJuncPt(); i++)
 		{
-			for (j=1; j<= JuncPt[i].nComp; j++)
-				if ( JuncPt[i].comp[j] == targetComp)
+			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
+				if ( getJuncPt()[i].getComp()[j] == targetComp)
 				{
-					nowRad = JuncPt[i].rad * radiusScale;
+					nowRad = getJuncPt()[i].getRad() * radiusScale;
 
 					//				if(qmp.radProfileJuncFlag) {
 					//					qmp.radProfileJuncMagnitude.oldValue = nowRad;
@@ -874,46 +884,46 @@ public class AllenMatchStick extends MatchStick {
 					//					nowRad = qmp.radProfileJuncMagnitude.calculateMagnitude();
 					//				}
 
-					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
+					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
-						comp[JuncPt[i].comp[j]].radInfo[0][0] = 0.0;
-						comp[JuncPt[i].comp[j]].radInfo[0][1] = nowRad;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
 					}
 					else if ( Math.abs(u_value - 1.0) < 0.0001)
 					{
-						comp[JuncPt[i].comp[j]].radInfo[2][0] = 1.0;
-						comp[JuncPt[i].comp[j]].radInfo[2][1] = nowRad;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
 					}
 					else // middle u value
 					{
-						comp[JuncPt[i].comp[j]].radInfo[1][0] = u_value;
-						comp[JuncPt[i].comp[j]].radInfo[1][1] = nowRad;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
 					}
 				}
 		}
 
 		//set new value at end Pt 
-		for (i=1; i<= nEndPt; i++)
-			if (endPt[i].comp == targetComp)
+		for (i=1; i<= getnEndPt(); i++)
+			if (getEndPt()[i].getComp() == targetComp)
 			{
 				//update the information of this endPt, besides radius assignment
-				Point3d newPos = new Point3d( comp[targetComp].mAxisInfo.mPts[ endPt[i].uNdx]);
-				Vector3d newTangent = new Vector3d( comp[targetComp].mAxisInfo.mTangent[ endPt[i].uNdx]);
-				if ( endPt[i].uNdx == 51)
+				Point3d newPos = new Point3d( getComp()[targetComp].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
+				Vector3d newTangent = new Vector3d( getComp()[targetComp].getmAxisInfo().getmTangent()[ getEndPt()[i].getuNdx()]);
+				if ( getEndPt()[i].getuNdx() == 51)
 					newTangent.negate();
-				endPt[i].pos.set(newPos);
-				endPt[i].tangent.set(newTangent);
+				getEndPt()[i].getPos().set(newPos);
+				getEndPt()[i].getTangent().set(newTangent);
 
 				//set radius
-				u_value = ((double)endPt[i].uNdx-1.0) / (51.0-1.0);
+				u_value = ((double)getEndPt()[i].getuNdx()-1.0) / (51.0-1.0);
 				int nowComp = targetComp;
 				//rMin = 0.00001; // as small as you like
 				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
 				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims. 
 				// retrive the oriValue
 				double oriRad;
-				if ( endPt[i].uNdx == 1)
+				if ( getEndPt()[i].getuNdx() == 1)
 					oriRad = oriValue[0][1];
 				else  //endPt[i].uNdx == 51
 					oriRad = oriValue[2][1];
@@ -926,17 +936,17 @@ public class AllenMatchStick extends MatchStick {
 				//				nowRad = qmp.radProfileEndMagnitude.calculateMagnitude();
 				//			}
 
-				endPt[i].rad = nowRad;
+				getEndPt()[i].setRad(nowRad);
 
 				if ( Math.abs( u_value - 0.0) < 0.0001)
 				{
-					comp[nowComp].radInfo[0][0] = 0.0;
-					comp[nowComp].radInfo[0][1] = nowRad;
+					getComp()[nowComp].getRadInfo()[0][0] = 0.0;
+					getComp()[nowComp].getRadInfo()[0][1] = nowRad;
 				}
 				else if (Math.abs(u_value - 1.0) < 0.0001)
 				{
-					comp[nowComp].radInfo[2][0] = 1.0;
-					comp[nowComp].radInfo[2][1] = nowRad;
+					getComp()[nowComp].getRadInfo()[2][0] = 1.0;
+					getComp()[nowComp].getRadInfo()[2][1] = nowRad;
 				}
 				else // middle u value
 					System.out.println( "error in endPt radius assignment");
@@ -946,7 +956,7 @@ public class AllenMatchStick extends MatchStick {
 		i = targetComp;
 		double oriRad = oriValue[1][1]; // the middle radius value
 		nowRad = oriRad * radiusScale;
-		int branchPt = comp[i].mAxisInfo.branchPt;
+		int branchPt = getComp()[i].getmAxisInfo().getBranchPt();
 		u_value = ((double)branchPt-1.0) / (51.0 -1.0);
 		//	if ( qmp.radProfileMidFlag) // this component need a intermediate value
 		//	{
@@ -955,8 +965,8 @@ public class AllenMatchStick extends MatchStick {
 		//		qmp.radProfileMidMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
 		//		nowRad = qmp.radProfileMidMagnitude.calculateMagnitude();
 		//	}
-		comp[i].radInfo[1][0] = u_value;
-		comp[i].radInfo[1][1] = nowRad;
+		getComp()[i].getRadInfo()[1][0] = u_value;
+		getComp()[i].getRadInfo()[1][1] = nowRad;
 	}
 
 	/**
@@ -966,9 +976,9 @@ public class AllenMatchStick extends MatchStick {
 	public boolean postProcessMatchStick() {
 		boolean showDebug = false;
 		// 4. Apply the radius value onto each component
-		for (int i=1; i<=nComponent; i++)
+		for (int i=1; i<=getnComponent(); i++)
 		{
-			if( comp[i].RadApplied_Factory() == false) // a fail application
+			if( getComp()[i].RadApplied_Factory() == false) // a fail application
 			{
 				return false;
 			}
@@ -1058,23 +1068,23 @@ public class AllenMatchStick extends MatchStick {
 		int TotalTrialTime = 0; // the # have tried, if too many, just terminate
 		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
-		boolean[] JuncPtFlg = new boolean[nJuncPt+1]; // = true when this JuncPt is related to the (id) component
-		int[] targetUNdx = new int[nJuncPt+1]; // to save the target uNdx in particular Junc pt
+		boolean[] JuncPtFlg = new boolean[getnJuncPt()+1]; // = true when this JuncPt is related to the (id) component
+		int[] targetUNdx = new int[getnJuncPt()+1]; // to save the target uNdx in particular Junc pt
 		double[][] old_radInfo = new double[3][2];
 
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
 		int alignedPt;
 		alignedPt = MutationSUB_determineHinge(id);
 
-		int[] compLabel = new int[nComponent+1];
+		int[] compLabel = new int[getnComponent()+1];
 		int tangentTrialTimes = 0;
 		compLabel = MutationSUB_compRelation2Target(id);
 
 		//0. start picking new MAxisArc & POSITION MORPH
-		for (i=1; i<= nJuncPt; i++)
-			for (j=1; j<= JuncPt[i].nComp; j++)
+		for (i=1; i<= getnJuncPt(); i++)
+			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				if ( JuncPt[i].comp[j] == id)
+				if ( getJuncPt()[i].getComp()[j] == id)
 				{
 
 					JuncPtFlg[i] = true;
@@ -1083,9 +1093,9 @@ public class AllenMatchStick extends MatchStick {
 						//We need to find the Junc_index for the comp that the morphigng limb is attached to
 						int baseJuncNdx=0;
 						//If we've specified a comp to be the base that this limb moves along
-						if(baseComp!=0) {
-							for(int l=1; l<=JuncPt[i].nComp; l++) {
-								if(JuncPt[i].comp[l] == baseComp) {
+						if(getBaseComp()!=0) {
+							for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
+								if(getJuncPt()[i].getComp()[l] == getBaseComp()) {
 									baseJuncNdx = l;
 								}
 							}
@@ -1093,8 +1103,8 @@ public class AllenMatchStick extends MatchStick {
 						//If not, choose a random comp that's attached to the target leaf
 						else {
 							LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
-							for(int l=1; l<=JuncPt[i].nComp; l++) {
-								if(JuncPt[i].comp[l]!=id) {
+							for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
+								if(getJuncPt()[i].getComp()[l]!=id) {
 									baseJuncNdxList.add(l);
 								}
 							}
@@ -1103,24 +1113,24 @@ public class AllenMatchStick extends MatchStick {
 						}
 
 
-						int oriPosition = JuncPt[i].uNdx[baseJuncNdx];
+						int oriPosition = getJuncPt()[i].getuNdx()[baseJuncNdx];
 						mmp.positionMagnitude.oldValue = oriPosition;
 						int nowPosition = mmp.positionMagnitude.calculateMagnitude();
 
 						//This junction point is an end point of the target leaf
-						if(JuncPt[i].uNdx[j] == 51 || JuncPt[i].uNdx[j] == 1) {
+						if(getJuncPt()[i].getuNdx()[j] == 51 || getJuncPt()[i].getuNdx()[j] == 1) {
 							//add this point as an end point, because it will no longer be a junction
-							nEndPt++;
-							endPt[nEndPt] = new EndPt_struct(id, JuncPt[i].uNdx[j],
-									JuncPt[i].pos, JuncPt[i].tangent[j], JuncPt[i].rad );
+							setnEndPt(getnEndPt() + 1);
+							getEndPt()[getnEndPt()] = new EndPt_struct(id, getJuncPt()[i].getuNdx()[j],
+									getJuncPt()[i].getPos(), getJuncPt()[i].getTangent()[j], getJuncPt()[i].getRad() );
 
 							//We need to change the uNdx of the limb the morphed limb is attached to
-							JuncPt[i].uNdx[baseJuncNdx] = nowPosition;
+							getJuncPt()[i].getuNdx()[baseJuncNdx] = nowPosition;
 							//Move our current junction point to a new location	
 							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
 
 							//We let the mAxis code know the new position through this mmp object
-							mmp.positionMagnitude.newPos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);;
+							mmp.positionMagnitude.newPos = new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[nowPosition]);;
 
 							//The endPt's pos is automatically updated later in the code by using the position of the mAxis.
 							//ALL we needed to do is update the info about the base comp since that is not updated later, and add any new juncs or end points
@@ -1128,21 +1138,21 @@ public class AllenMatchStick extends MatchStick {
 						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point 
 						else {
 							//We can just change its position
-							JuncPt[i].uNdx[j] = nowPosition;
+							getJuncPt()[i].getuNdx()[j] = nowPosition;
 							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
-							mmp.positionMagnitude.newPos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
+							mmp.positionMagnitude.newPos = new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[nowPosition]);
 							//Later code will handle assigning this JuncPt's pos 
 						}
-						targetUNdx[i] = JuncPt[i].uNdx[j];
+						targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 					}else {
-						targetUNdx[i] = JuncPt[i].uNdx[j];
+						targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 					}
 				}
 
 			}
 		for (i=0; i<3; i++)
 			for (j=0; j<2; j++)
-				old_radInfo[i][j] = comp[id].radInfo[i][j];
+				old_radInfo[i][j] = getComp()[id].getRadInfo()[i][j];
 
 
 
@@ -1163,41 +1173,41 @@ public class AllenMatchStick extends MatchStick {
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
 					//MAJOR STEP ONE
-					nowArc.genMetricSimilarArc(this.comp[id].mAxisInfo, alignedPt, mmp);
+					nowArc.genMetricSimilarArc(this.getComp()[id].getmAxisInfo(), alignedPt, mmp);
 					// use this function to generate a similar arc
 
 					//for loop, check through related JuncPt for tangentSaveZone
 					Vector3d finalTangent = new Vector3d();
 					boolean tangentFlg = true;
 					Vector3d nowTangent = new Vector3d();
-					for (i=1; i<=nJuncPt; i++)
+					for (i=1; i<=getnJuncPt(); i++)
 						if ( JuncPtFlg[i] == true)
 						{
 							int uNdx = targetUNdx[i];
 							boolean midBranchFlg = false;
 							if (uNdx == 1)
-								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.getmTangent()[uNdx]);
 							else if (uNdx == 51)
 							{
-								finalTangent.set(nowArc.mTangent[uNdx]);
+								finalTangent.set(nowArc.getmTangent()[uNdx]);
 								finalTangent.negate();
 							}
 							else // middle branch Pt
 							{
 								midBranchFlg = true;
-								finalTangent.set( nowArc.mTangent[uNdx]);
+								finalTangent.set( nowArc.getmTangent()[uNdx]);
 							}
 							// check the angle
-							for (j=1; j<= JuncPt[i].nTangent; j++)
-								if ( JuncPt[i].tangentOwner[j] != id) // don't need to check with the replaced self
+							for (j=1; j<= getJuncPt()[i].getnTangent(); j++)
+								if ( getJuncPt()[i].getTangentOwner()[j] != id) // don't need to check with the replaced self
 								{
-									nowTangent = JuncPt[i].tangent[j]; // soft copy is fine here
-									if ( nowTangent.angle(finalTangent) <= TangentSaveZone ) // angle btw the two tangent vector
+									nowTangent = getJuncPt()[i].getTangent()[j]; // soft copy is fine here
+									if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) // angle btw the two tangent vector
 										tangentFlg = false;
 									if ( midBranchFlg == true)
 									{
 										finalTangent.negate();
-										if ( nowTangent.angle(finalTangent) <= TangentSaveZone ) //
+										if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) //
 											tangentFlg = false;
 									}
 								}
@@ -1221,51 +1231,51 @@ public class AllenMatchStick extends MatchStick {
 				//JUNCPT UPDATE!!!
 				//update the information of the related JuncPt
 				Vector3d finalTangent = new Vector3d();
-				for (i=1; i<= nJuncPt; i++)
+				for (i=1; i<= getnJuncPt(); i++)
 					if (JuncPtFlg[i] == true)
 					{
 						int nowUNdx = targetUNdx[i];
-						finalTangent.set(nowArc.mTangent[nowUNdx]);
+						finalTangent.set(nowArc.getmTangent()[nowUNdx]);
 						if (targetUNdx[i] == 51)
 							finalTangent.negate();
-						Point3d newPos = nowArc.mPts[ nowUNdx];
+						Point3d newPos = nowArc.getmPts()[ nowUNdx];
 						Point3d shiftVec = new Point3d();
-						shiftVec.sub(newPos, JuncPt[i].pos);
+						shiftVec.sub(newPos, getJuncPt()[i].getPos());
 
 						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
 						{
-							for (j=1; j<= JuncPt[i].nComp; j++)
-								if ( JuncPt[i].comp[j] != id)
+							for (j=1; j<= getJuncPt()[i].getnComp(); j++)
+								if ( getJuncPt()[i].getComp()[j] != id)
 								{
-									int nowCompNdx = JuncPt[i].comp[j];
-									for (k=1; k<= nComponent; k++)
+									int nowCompNdx = getJuncPt()[i].getComp()[j];
+									for (k=1; k<= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the one should move with nowCompNdx
 										{
 											int nowComp = k;
 											Point3d finalPos =new Point3d();
-											finalPos.add( comp[nowComp].mAxisInfo.transRotHis_finalPos, shiftVec);
+											finalPos.add( getComp()[nowComp].getmAxisInfo().transRotHis_finalPos, shiftVec);
 											if ( showDebug)
 												System.out.println("we have translate comp " + nowComp + "by " + shiftVec);
-											this.comp[nowComp].translateComp( finalPos);
+											this.getComp()[nowComp].translateComp( finalPos);
 											// translate the component
 										}
 								}
 						}
-						JuncPt[i].pos = newPos;
+						getJuncPt()[i].setPos(newPos);
 
 						//update the tangent information
 						boolean secondFlg = false; // determine if the first or second tanget
-						for ( j = 1; j <= JuncPt[i].nTangent; j++)
+						for ( j = 1; j <= getJuncPt()[i].getnTangent(); j++)
 						{
-							if (JuncPt[i].tangentOwner[j] == id && secondFlg == false)
+							if (getJuncPt()[i].getTangentOwner()[j] == id && secondFlg == false)
 							{
-								JuncPt[i].tangent[j].set(finalTangent);
+								getJuncPt()[i].getTangent()[j].set(finalTangent);
 								secondFlg = true;
 							}
-							else if ( JuncPt[i].tangentOwner[j] == id && secondFlg == true)
+							else if ( getJuncPt()[i].getTangentOwner()[j] == id && secondFlg == true)
 							{
 								finalTangent.negate();
-								JuncPt[i].tangent[j].set(finalTangent);
+								getJuncPt()[i].getTangent()[j].set(finalTangent);
 							}
 						}
 
@@ -1273,13 +1283,13 @@ public class AllenMatchStick extends MatchStick {
 				// now, we can check skeleton closeness
 
 				//set the component to its new role
-				boolean branchUsed = this.comp[id].branchUsed;
-				int connectType = this.comp[id].connectType;
-				this.comp[id] = new TubeComp();
-				this.comp[id].initSet( nowArc, branchUsed, connectType);
+				boolean branchUsed = this.getComp()[id].isBranchUsed();
+				int connectType = this.getComp()[id].getConnectType();
+				this.getComp()[id] = new AllenTubeComp();
+				this.getComp()[id].initSet( nowArc, branchUsed, connectType);
 				if (showDebug)
 					System.out.println("In fine tune: tube to modify # " +id +" now check skeleton");
-				boolean closeHit = this.checkSkeletonNearby(nComponent);
+				boolean closeHit = this.checkSkeletonNearby(getnComponent());
 				if (closeHit == false) // a safe skeleton
 				{
 					break;
@@ -1300,15 +1310,15 @@ public class AllenMatchStick extends MatchStick {
 			} //SECOND WHILE
 
 			// update the info in end pt and JuncPt
-			for (i=1; i<=nEndPt; i++)
+			for (i=1; i<=getnEndPt(); i++)
 			{
-				Point3d newPos = new Point3d(  comp[ endPt[i].comp].mAxisInfo.mPts[ endPt[i].uNdx]);
-				endPt[i].pos.set(newPos);
+				Point3d newPos = new Point3d(  getComp()[ getEndPt()[i].getComp()].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
+				getEndPt()[i].getPos().set(newPos);
 			}
-			for (i=1; i<=nJuncPt; i++)
+			for (i=1; i<=getnJuncPt(); i++)
 			{
-				Point3d newPos = new Point3d( comp[JuncPt[i].comp[1]].mAxisInfo.mPts[ JuncPt[i].uNdx[1]]);
-				JuncPt[i].pos.set(newPos);
+				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
+				getJuncPt()[i].getPos().set(newPos);
 			}
 
 
@@ -1326,7 +1336,7 @@ public class AllenMatchStick extends MatchStick {
 				//comp[id].showRadiusInfo();
 				this.MutationSUB_radAssign2NewComp_Metric(id, old_radInfo, mmp);
 				//comp[id].showRadiusInfo();
-				if ( comp[id].RadApplied_Factory() == false)
+				if ( getComp()[id].RadApplied_Factory() == false)
 				{
 					success_process = false;
 					continue; // not a good radius, try another
@@ -1453,59 +1463,59 @@ public class AllenMatchStick extends MatchStick {
 
 
 		//set old value at JuncPt
-		for (i=1; i<=nJuncPt; i++)
+		for (i=1; i<=getnJuncPt(); i++)
 		{
-			for (j=1; j<= JuncPt[i].nComp; j++)
-				if ( JuncPt[i].comp[j] == targetComp)
+			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
+				if ( getJuncPt()[i].getComp()[j] == targetComp)
 				{
-					nowRad = JuncPt[i].rad * radiusScale;
+					nowRad = getJuncPt()[i].getRad() * radiusScale;
 					if(mmp.radProfileJuncFlag) {
 						mmp.radProfileJuncMagnitude.oldValue = nowRad;
-						mmp.radProfileJuncMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
-						mmp.radProfileJuncMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+						mmp.radProfileJuncMagnitude.min = getComp()[targetComp].getmAxisInfo().arcLen / 10.0;
+						mmp.radProfileJuncMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().arcLen / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
 						nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
 					}
 
-					u_value = ((double)JuncPt[i].uNdx[j]-1.0) / (51.0-1.0);
+					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
-						comp[JuncPt[i].comp[j]].radInfo[0][0] = 0.0;
-						comp[JuncPt[i].comp[j]].radInfo[0][1] = nowRad;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
 					}
 					else if ( Math.abs(u_value - 1.0) < 0.0001)
 					{
-						comp[JuncPt[i].comp[j]].radInfo[2][0] = 1.0;
-						comp[JuncPt[i].comp[j]].radInfo[2][1] = nowRad;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
 					}
 					else // middle u value
 					{
-						comp[JuncPt[i].comp[j]].radInfo[1][0] = u_value;
-						comp[JuncPt[i].comp[j]].radInfo[1][1] = nowRad;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
+						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
 					}
 				}
 		}
 
 		//set new value at end Pt 
-		for (i=1; i<= nEndPt; i++)
-			if (endPt[i].comp == targetComp)
+		for (i=1; i<= getnEndPt(); i++)
+			if (getEndPt()[i].getComp() == targetComp)
 			{
 				//update the information of this endPt, besides radius assignment
-				Point3d newPos = new Point3d( comp[targetComp].mAxisInfo.mPts[ endPt[i].uNdx]);
-				Vector3d newTangent = new Vector3d( comp[targetComp].mAxisInfo.mTangent[ endPt[i].uNdx]);
-				if ( endPt[i].uNdx == 51)
+				Point3d newPos = new Point3d( getComp()[targetComp].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
+				Vector3d newTangent = new Vector3d( getComp()[targetComp].getmAxisInfo().getmTangent()[ getEndPt()[i].getuNdx()]);
+				if ( getEndPt()[i].getuNdx() == 51)
 					newTangent.negate();
-				endPt[i].pos.set(newPos);
-				endPt[i].tangent.set(newTangent);
+				getEndPt()[i].getPos().set(newPos);
+				getEndPt()[i].getTangent().set(newTangent);
 
 				//set radius
-				u_value = ((double)endPt[i].uNdx-1.0) / (51.0-1.0);
+				u_value = ((double)getEndPt()[i].getuNdx()-1.0) / (51.0-1.0);
 				int nowComp = targetComp;
 				//rMin = 0.00001; // as small as you like
 				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
 				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims. 
 				// retrive the oriValue
 				double oriRad;
-				if ( endPt[i].uNdx == 1)
+				if ( getEndPt()[i].getuNdx() == 1)
 					oriRad = oriValue[0][1];
 				else  //endPt[i].uNdx == 51
 					oriRad = oriValue[2][1];
@@ -1514,21 +1524,21 @@ public class AllenMatchStick extends MatchStick {
 				if(mmp.radProfileEndFlag) {
 					mmp.radProfileEndMagnitude.oldValue = nowRad;
 					mmp.radProfileEndMagnitude.min = 0.00001;
-					mmp.radProfileEndMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+					mmp.radProfileEndMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().arcLen / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
 					nowRad = mmp.radProfileEndMagnitude.calculateMagnitude();
 				}
 
-				endPt[i].rad = nowRad;
+				getEndPt()[i].setRad(nowRad);
 
 				if ( Math.abs( u_value - 0.0) < 0.0001)
 				{
-					comp[nowComp].radInfo[0][0] = 0.0;
-					comp[nowComp].radInfo[0][1] = nowRad;
+					getComp()[nowComp].getRadInfo()[0][0] = 0.0;
+					getComp()[nowComp].getRadInfo()[0][1] = nowRad;
 				}
 				else if (Math.abs(u_value - 1.0) < 0.0001)
 				{
-					comp[nowComp].radInfo[2][0] = 1.0;
-					comp[nowComp].radInfo[2][1] = nowRad;
+					getComp()[nowComp].getRadInfo()[2][0] = 1.0;
+					getComp()[nowComp].getRadInfo()[2][1] = nowRad;
 				}
 				else // middle u value
 					System.out.println( "error in endPt radius assignment");
@@ -1538,23 +1548,23 @@ public class AllenMatchStick extends MatchStick {
 		i = targetComp;
 		double oriRad = oriValue[1][1]; // the middle radius value
 		nowRad = oriRad * radiusScale;
-		int branchPt = comp[i].mAxisInfo.branchPt;
+		int branchPt = getComp()[i].getmAxisInfo().getBranchPt();
 		u_value = ((double)branchPt-1.0) / (51.0 -1.0);
 		if ( mmp.radProfileMidFlag) // this component need a intermediate value
 		{
 			mmp.radProfileMidMagnitude.oldValue = nowRad;
-			mmp.radProfileMidMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
-			mmp.radProfileMidMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
+			mmp.radProfileMidMagnitude.min = getComp()[targetComp].getmAxisInfo().arcLen / 10.0;
+			mmp.radProfileMidMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().arcLen / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
 			nowRad = mmp.radProfileMidMagnitude.calculateMagnitude();
 		}
-		comp[i].radInfo[1][0] = u_value;
-		comp[i].radInfo[1][1] = nowRad;
+		getComp()[i].getRadInfo()[1][0] = u_value;
+		getComp()[i].getRadInfo()[1][1] = nowRad;
 	}
 
 	public List<Integer> leafIndxToEndPts(int leafIndex, AllenMatchStick ams) {
 		ArrayList<Integer> output = new ArrayList<Integer>();
-		for (int j = 1; j <= ams.nEndPt; j++) {
-			if (ams.getEndPtStruct(j).comp == leafIndex)
+		for (int j = 1; j <= ams.getnEndPt(); j++) {
+			if (ams.getEndPtStruct(j).getComp() == leafIndex)
 				;
 			output.add(j);
 		}
@@ -1563,8 +1573,8 @@ public class AllenMatchStick extends MatchStick {
 
 	public List<Integer> leafIndxToJuncPts(int leafIndex, AllenMatchStick ams) {
 		ArrayList<Integer> output = new ArrayList<Integer>();
-		for (int j = 1; j <= ams.nJuncPt; j++) {
-			if (Arrays.asList(ams.getJuncPtStruct(j).comp).contains(leafIndex));
+		for (int j = 1; j <= ams.getnJuncPt(); j++) {
+			if (Arrays.asList(ams.getJuncPtStruct(j).getComp()).contains(leafIndex));
 			output.add(j);
 		}
 		return output;
@@ -1578,14 +1588,14 @@ public class AllenMatchStick extends MatchStick {
 	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf){
 		boolean showDebug = true;
 		//nComp = 2;
-		nComponent = nComp;
+		setnComponent(nComp);
 		int i;
-		for (i=1; i<=nComponent; i++){
-			comp[i] = new TubeComp();
+		for (i=1; i<=getnComponent(); i++){
+			getComp()[i] = new AllenTubeComp();
 		}
 
 		//STARTING LEAF
-		comp[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
+		getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 
 		double PROB_addToBaseEndNotBranch = 1;
 		int add_trial = 0;
@@ -1600,22 +1610,22 @@ public class AllenMatchStick extends MatchStick {
 
 			//DEFINE JUCTION TO BE A SPECIAL END FROM LEAF
 			JuncPt_struct in_junc = amsOfLeaf.getJuncPtStruct(juncList.get(0));
-			specialEnd = 1;
-			specialEndComp = 1;
-			endPt[specialEnd] = new EndPt_struct(specialEndComp, in_junc.uNdx[1], in_junc.pos, in_junc.tangent[1], in_junc.rad);
+			setSpecialEnd(1);
+			setSpecialEndComp(1);
+			getEndPt()[getSpecialEnd()] = new EndPt_struct(getSpecialEndComp(), in_junc.getuNdx()[1], in_junc.getPos(), in_junc.getTangent()[1], in_junc.getRad());
 
 
 			//DEFINE END POINT TO BE SAME END POINT AS IN LEAF
 			EndPt_struct in_end = amsOfLeaf.getEndPtStruct(endList.get(0));
 			int enComp = 1;
-			int euNdx = in_end.uNdx;
-			Point3d epos = in_end.pos;
-			Vector3d etangent = in_end.tangent;
-			double erad = in_end.rad;
-			endPt[2] = new EndPt_struct(enComp, euNdx, epos, etangent, erad);
+			int euNdx = in_end.getuNdx();
+			Point3d epos = in_end.getPos();
+			Vector3d etangent = in_end.getTangent();
+			double erad = in_end.getRad();
+			getEndPt()[2] = new EndPt_struct(enComp, euNdx, epos, etangent, erad);
 
-			nJuncPt = 0;
-			nEndPt = 2;
+			setnJuncPt(0);
+			setnEndPt(2);
 
 
 			//				endPt[1] = new EndPt_struct(1, 1, comp[1].mAxisInfo.mPts[1], comp[1].mAxisInfo.mTangent[1] , 100.0);
@@ -1655,7 +1665,7 @@ public class AllenMatchStick extends MatchStick {
 			randNdx = stickMath_lib.rand01();
 			if (randNdx < PROB_addToEndorJunc)
 			{
-				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
+				if (getnJuncPt() == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
 					addSuccess = Add_AccessoryMStick(nowComp, 1);
 				else
 					addSuccess = Add_AccessoryMStick(nowComp, 2);
@@ -1680,9 +1690,9 @@ public class AllenMatchStick extends MatchStick {
 		// 3. Assign the radius value
 		RadiusAssign(1); // KEEP FIRST ELEMENT SAME RADIUS
 		// 4. Apply the radius value onto each component
-		for (i=1; i<=nComponent; i++)
+		for (i=1; i<=getnComponent(); i++)
 		{
-			if( this.comp[i].RadApplied_Factory() == false) // a fail application
+			if( this.getComp()[i].RadApplied_Factory() == false) // a fail application
 			{
 				if(showDebug)
 					System.out.println("Failed RadApplied");
@@ -1714,7 +1724,7 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
-	int baseComp = 0;
+	private int baseComp = 0;
 	protected boolean Add_BaseMStick(int nowComp, int type) {
 		boolean showDebug = false;
 		//Base System: a single leaf is pre-defined to have one end and one juncion. The base is formed by adding to this junction
@@ -1741,21 +1751,21 @@ public class AllenMatchStick extends MatchStick {
 			trialCount = 1;
 
 			nowPtNdx = 2;
-			if(nowPtNdx==specialEnd) {
+			if(nowPtNdx==getSpecialEnd()) {
 				System.out.println("ERROR! We should not be adding to the special end");
 				return false;
 			}
 
 			// 2. trnasRot the nowArc to the correction configuration
 			int alignedPt = 1;
-			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
-			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
+			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
+			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				if ( oriTangent.angle(finalTangent) > TangentSaveZone ) // angle btw the two tangent vector
+				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
 					break;
 				if ( trialCount++ == 300)
 					return false;
@@ -1765,24 +1775,24 @@ public class AllenMatchStick extends MatchStick {
 
 
 			// 3. update the EndPT to JuncPt
-			nJuncPt++;
-			int[] compList = { endPt[nowPtNdx].comp, nowComp};
-			int[] uNdxList = { endPt[nowPtNdx].uNdx, 1};
+			setnJuncPt(getnJuncPt() + 1);
+			int[] compList = { getEndPt()[nowPtNdx].getComp(), nowComp};
+			int[] uNdxList = { getEndPt()[nowPtNdx].getuNdx(), 1};
 			Vector3d[] tangentList = { oriTangent, finalTangent};
-			JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, endPt[nowPtNdx].rad);
-			comp[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
+			getJuncPt()[getnJuncPt()] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, getEndPt()[nowPtNdx].getRad());
+			getComp()[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
 
 			// 2.5 call the function to check if this new arc is valid
 			if (this.checkSkeletonNearby(nowComp) == true)
 			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
+				getJuncPt()[getnJuncPt()] = null;
+				setnJuncPt(getnJuncPt() - 1);
 				return false;
 			}
 			// 4. generate new endPt
-			endPt[nowPtNdx].setValue(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+			getEndPt()[nowPtNdx].setValue(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100.0);
 			// 5. Update the baseComp
-			baseComp = nowComp;
+			setBaseComp(nowComp);
 		}
 		//2. type 2 base add
 		else if(type == 2) {
@@ -1792,19 +1802,19 @@ public class AllenMatchStick extends MatchStick {
 			trialCount = 1;
 			while (true)
 			{
-				nowPtNdx = stickMath_lib.randInt(1, this.nEndPt);
-				if (nowPtNdx != specialEnd)
+				nowPtNdx = stickMath_lib.randInt(1, this.getnEndPt());
+				if (nowPtNdx != getSpecialEnd())
 					break; // we find a good endPt
 				trialCount++;
 				if (trialCount == 100)
 					return false; // can't find an eligible endPt
 			}
 			// 2. transRot newComp
-			int nowUNdx = nowArc.branchPt;
+			int nowUNdx = nowArc.getBranchPt();
 			int alignedPt = nowUNdx;
 			Vector3d rev_tangent = new Vector3d();
-			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
-			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
+			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
+			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while(true)
@@ -1812,8 +1822,8 @@ public class AllenMatchStick extends MatchStick {
 				finalTangent = stickMath_lib.randomUnitVec();
 
 				rev_tangent.negate(finalTangent);
-				if ( oriTangent.angle(finalTangent) > TangentSaveZone &&
-						oriTangent.angle(rev_tangent) > TangentSaveZone    )
+				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() &&
+						oriTangent.angle(rev_tangent) > getTangentSaveZone()    )
 					break;
 				if ( trialCount++ == 300)
 					return false;
@@ -1822,29 +1832,29 @@ public class AllenMatchStick extends MatchStick {
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
 			// 2.5 check Nearby Situtation
 			// 3. update JuncPt & endPt info
-			nJuncPt++;
-			int[] compList = { endPt[nowPtNdx].comp, nowComp};
-			int[] uNdxList = { endPt[nowPtNdx].uNdx, nowUNdx};
+			setnJuncPt(getnJuncPt() + 1);
+			int[] compList = { getEndPt()[nowPtNdx].getComp(), nowComp};
+			int[] uNdxList = { getEndPt()[nowPtNdx].getuNdx(), nowUNdx};
 			Vector3d[] tangentList = { oriTangent, finalTangent, rev_tangent};
-			int[] ownerList = {endPt[nowPtNdx].comp, nowComp, nowComp};
+			int[] ownerList = {getEndPt()[nowPtNdx].getComp(), nowComp, nowComp};
 			double rad;
-			rad = endPt[nowPtNdx].rad;
-			this.JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
+			rad = getEndPt()[nowPtNdx].getRad();
+			this.getJuncPt()[getnJuncPt()] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
 
 			// 2.5 call the function to check if this new arc is valid
-			comp[nowComp].initSet(nowArc, true, 4);
+			getComp()[nowComp].initSet(nowArc, true, 4);
 			if (this.checkSkeletonNearby(nowComp) == true)
 			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
+				getJuncPt()[getnJuncPt()] = null;
+				setnJuncPt(getnJuncPt() - 1);
 				return false;
 			}
 			// 4. generate 2 new endPt
-			this.endPt[nowPtNdx].setValue(nowComp, 1, nowArc.mPts[1], nowArc.mTangent[1], 100.0);
-			nEndPt++;
-			this.endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+			this.getEndPt()[nowPtNdx].setValue(nowComp, 1, nowArc.getmPts()[1], nowArc.getmTangent()[1], 100.0);
+			setnEndPt(getnEndPt() + 1);
+			this.getEndPt()[getnEndPt()] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100.0);
 			//5. Update the baseComp
-			baseComp = nowComp;
+			setBaseComp(nowComp);
 		}
 
 		if ( showDebug)
@@ -1876,7 +1886,7 @@ public class AllenMatchStick extends MatchStick {
 		if (showDebug)
 		{
 			System.out.println("In AddMStick: nowComp " + nowComp + " type: " + type);
-			System.out.println("now nEndPt " + nEndPt + " , and nJuncPt " + nJuncPt);
+			System.out.println("now nEndPt " + getnEndPt() + " , and nJuncPt " + getnJuncPt());
 		}
 		// random get a new MAxisArc
 		MAxisArc nowArc = new MAxisArc();
@@ -1897,8 +1907,8 @@ public class AllenMatchStick extends MatchStick {
 			trialCount = 1;
 			while (true)
 			{
-				nowPtNdx = stickMath_lib.randInt(1, this.nEndPt);
-				if (endPt[nowPtNdx].rad > 0.2 && nowPtNdx!= specialEnd)
+				nowPtNdx = stickMath_lib.randInt(1, this.getnEndPt());
+				if (getEndPt()[nowPtNdx].getRad() > 0.2 && nowPtNdx!= getSpecialEnd())
 					break; // we find a good endPt
 				trialCount++;
 				if (trialCount == 100)
@@ -1906,14 +1916,14 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// 2. trnasRot the nowArc to the correction configuration
 			int alignedPt = 1;
-			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
-			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
+			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
+			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				if ( oriTangent.angle(finalTangent) > TangentSaveZone ) // angle btw the two tangent vector
+				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
 					break;
 				if ( trialCount++ == 300)
 					return false;
@@ -1923,22 +1933,22 @@ public class AllenMatchStick extends MatchStick {
 
 
 			// 3. update the EndPT to JuncPt
-			nJuncPt++;
-			int[] compList = { endPt[nowPtNdx].comp, nowComp};
-			int[] uNdxList = { endPt[nowPtNdx].uNdx, 1};
+			setnJuncPt(getnJuncPt() + 1);
+			int[] compList = { getEndPt()[nowPtNdx].getComp(), nowComp};
+			int[] uNdxList = { getEndPt()[nowPtNdx].getuNdx(), 1};
 			Vector3d[] tangentList = { oriTangent, finalTangent};
-			JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, endPt[nowPtNdx].rad);
-			comp[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
+			getJuncPt()[getnJuncPt()] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, getEndPt()[nowPtNdx].getRad());
+			getComp()[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
 
 			// 2.5 call the function to check if this new arc is valid
 			if (this.checkSkeletonNearby(nowComp) == true)
 			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
+				getJuncPt()[getnJuncPt()] = null;
+				setnJuncPt(getnJuncPt() - 1);
 				return false;
 			}
 			// 4. generate new endPt
-			endPt[nowPtNdx].setValue(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+			getEndPt()[nowPtNdx].setValue(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100.0);
 			// 5. save this new Comp
 
 		}
@@ -1946,15 +1956,15 @@ public class AllenMatchStick extends MatchStick {
 		{
 			//1. pick a Junction Pt
 
-			if (this.nJuncPt == 0)
+			if (this.getnJuncPt() == 0)
 			{
 				System.out.println("ERROR, should not choose type 2 addition when nJuncPt = 0");
 				return false;
 			}
-			int nowPtNdx = stickMath_lib.randInt(1, nJuncPt);
+			int nowPtNdx = stickMath_lib.randInt(1, getnJuncPt());
 			//2. transRot the newComp
 			int alignedPt = 1;
-			Point3d finalPos = new Point3d(JuncPt[nowPtNdx].pos);
+			Point3d finalPos = new Point3d(getJuncPt()[nowPtNdx].getPos());
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while (true)
@@ -1962,9 +1972,9 @@ public class AllenMatchStick extends MatchStick {
 
 				finalTangent = stickMath_lib.randomUnitVec();
 				boolean flag = true;
-				for (i=1; i<= JuncPt[nowPtNdx].nTangent; i++)
+				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
 				{
-					if ( finalTangent.angle(JuncPt[nowPtNdx].tangent[i]) <= TangentSaveZone){
+					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
 						flag = false;
 					}
 
@@ -1983,17 +1993,17 @@ public class AllenMatchStick extends MatchStick {
 
 			//3. update the JuncPt & endPt info and add the new Comp
 			JuncPt_struct old_JuncInfo = new JuncPt_struct();
-			old_JuncInfo.copyFrom(JuncPt[nowPtNdx]);
-			JuncPt[nowPtNdx].addComp(nowComp, 1, nowArc.mTangent[1]);
-			comp[nowComp].initSet(nowArc, false, 2);
+			old_JuncInfo.copyFrom(getJuncPt()[nowPtNdx]);
+			getJuncPt()[nowPtNdx].addComp(nowComp, 1, nowArc.getmTangent()[1]);
+			getComp()[nowComp].initSet(nowArc, false, 2);
 			// 2.5 call the function to check if this new arc is valid
 			if (this.checkSkeletonNearby(nowComp) == true)
 			{
-				JuncPt[nowPtNdx].copyFrom(old_JuncInfo);
+				getJuncPt()[nowPtNdx].copyFrom(old_JuncInfo);
 				return false;
 			}
-			nEndPt++;
-			endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+			setnEndPt(getnEndPt() + 1);
+			getEndPt()[getnEndPt()] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100.0);
 
 		}
 		else if (type == 3) //end-to-branch connection
@@ -2005,7 +2015,7 @@ public class AllenMatchStick extends MatchStick {
 			while(true)
 			{
 				pickedComp = stickMath_lib.randInt(1, nowComp-1); // one of the existing component
-				if (pickedComp!=specialEndComp)
+				if (pickedComp!=getSpecialEndComp())
 					break;
 				nTries++;
 				if(nTries>100)
@@ -2013,9 +2023,9 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// 2. transrot the newComp
 			int alignedPt = 1;
-			int nowUNdx = comp[pickedComp].mAxisInfo.branchPt;
-			Point3d finalPos = new Point3d( comp[pickedComp].mAxisInfo.mPts[nowUNdx]);
-			Vector3d oriTangent1 = new Vector3d( comp[pickedComp].mAxisInfo.mTangent[nowUNdx]);
+			int nowUNdx = getComp()[pickedComp].getmAxisInfo().getBranchPt();
+			Point3d finalPos = new Point3d( getComp()[pickedComp].getmAxisInfo().getmPts()[nowUNdx]);
+			Vector3d oriTangent1 = new Vector3d( getComp()[pickedComp].getmAxisInfo().getmTangent()[nowUNdx]);
 			Vector3d oriTangent2 = new Vector3d();
 			Vector3d finalTangent = new Vector3d();
 			oriTangent2.negate(oriTangent1);
@@ -2025,8 +2035,8 @@ public class AllenMatchStick extends MatchStick {
 			while(true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				if ( finalTangent.angle(oriTangent1) > TangentSaveZone &&
-						finalTangent.angle(oriTangent2) > TangentSaveZone    )
+				if ( finalTangent.angle(oriTangent1) > getTangentSaveZone() &&
+						finalTangent.angle(oriTangent2) > getTangentSaveZone()    )
 					break;
 				if ( trialCount++ == 300)
 					return false;
@@ -2035,27 +2045,27 @@ public class AllenMatchStick extends MatchStick {
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
 			// 2.5 check if newComp valid
 			// 3. update the JuncPt & endPt info
-			nJuncPt++;
+			setnJuncPt(getnJuncPt() + 1);
 			int[] compList = { pickedComp, nowComp};
 			int[] uNdxList = { nowUNdx, 1};
 			Vector3d[] tangentList = { oriTangent1, oriTangent2, finalTangent};
 			int[] ownerList = { pickedComp, pickedComp, nowComp};
 			double rad = 100.0;
-			rad = comp[pickedComp].radInfo[1][1]; // if it is existing tube, then there will be a value
+			rad = getComp()[pickedComp].getRadInfo()[1][1]; // if it is existing tube, then there will be a value
 			//otherwise, it should be initial value of 100.0
-			this.JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
+			this.getJuncPt()[getnJuncPt()] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
 			//JuncPt[nJuncPt].showInfo();
 			// 2.5 call the function to check if this new arc is valid
-			comp[nowComp].initSet(nowArc, false, 3);
+			getComp()[nowComp].initSet(nowArc, false, 3);
 			if (this.checkSkeletonNearby(nowComp) == true)
 			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
+				getJuncPt()[getnJuncPt()] = null;
+				setnJuncPt(getnJuncPt() - 1);
 				return false;
 			}
-			nEndPt++;
-			this.endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
-			comp[pickedComp].branchUsed = true;
+			setnEndPt(getnEndPt() + 1);
+			this.getEndPt()[getnEndPt()] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100.0);
+			getComp()[pickedComp].setBranchUsed(true);
 
 
 		}
@@ -2067,19 +2077,19 @@ public class AllenMatchStick extends MatchStick {
 			trialCount = 1;
 			while (true)
 			{
-				nowPtNdx = stickMath_lib.randInt(1, this.nEndPt);
-				if (endPt[nowPtNdx].rad > 0.2 && nowPtNdx != specialEnd)
+				nowPtNdx = stickMath_lib.randInt(1, this.getnEndPt());
+				if (getEndPt()[nowPtNdx].getRad() > 0.2 && nowPtNdx != getSpecialEnd())
 					break; // we find a good endPt
 				trialCount++;
 				if (trialCount == 100)
 					return false; // can't find an eligible endPt
 			}
 			// 2. transRot newComp
-			int nowUNdx = nowArc.branchPt;
+			int nowUNdx = nowArc.getBranchPt();
 			int alignedPt = nowUNdx;
 			Vector3d rev_tangent = new Vector3d();
-			Point3d finalPos = new Point3d(endPt[nowPtNdx].pos);
-			Vector3d oriTangent = new Vector3d(endPt[nowPtNdx].tangent);
+			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
+			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while(true)
@@ -2087,8 +2097,8 @@ public class AllenMatchStick extends MatchStick {
 				finalTangent = stickMath_lib.randomUnitVec();
 
 				rev_tangent.negate(finalTangent);
-				if ( oriTangent.angle(finalTangent) > TangentSaveZone &&
-						oriTangent.angle(rev_tangent) > TangentSaveZone    )
+				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() &&
+						oriTangent.angle(rev_tangent) > getTangentSaveZone()    )
 					break;
 				if ( trialCount++ == 300)
 					return false;
@@ -2097,27 +2107,27 @@ public class AllenMatchStick extends MatchStick {
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
 			// 2.5 check Nearby Situtation
 			// 3. update JuncPt & endPt info
-			nJuncPt++;
-			int[] compList = { endPt[nowPtNdx].comp, nowComp};
-			int[] uNdxList = { endPt[nowPtNdx].uNdx, nowUNdx};
+			setnJuncPt(getnJuncPt() + 1);
+			int[] compList = { getEndPt()[nowPtNdx].getComp(), nowComp};
+			int[] uNdxList = { getEndPt()[nowPtNdx].getuNdx(), nowUNdx};
 			Vector3d[] tangentList = { oriTangent, finalTangent, rev_tangent};
-			int[] ownerList = {endPt[nowPtNdx].comp, nowComp, nowComp};
+			int[] ownerList = {getEndPt()[nowPtNdx].getComp(), nowComp, nowComp};
 			double rad;
-			rad = endPt[nowPtNdx].rad;
-			this.JuncPt[nJuncPt] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
+			rad = getEndPt()[nowPtNdx].getRad();
+			this.getJuncPt()[getnJuncPt()] = new JuncPt_struct(2, compList, uNdxList, finalPos, 3, tangentList, ownerList, rad);
 
 			// 2.5 call the function to check if this new arc is valid
-			comp[nowComp].initSet(nowArc, true, 4);
+			getComp()[nowComp].initSet(nowArc, true, 4);
 			if (this.checkSkeletonNearby(nowComp) == true)
 			{
-				JuncPt[nJuncPt] = null;
-				nJuncPt--;
+				getJuncPt()[getnJuncPt()] = null;
+				setnJuncPt(getnJuncPt() - 1);
 				return false;
 			}
 			// 4. generate 2 new endPt
-			this.endPt[nowPtNdx].setValue(nowComp, 1, nowArc.mPts[1], nowArc.mTangent[1], 100.0);
-			nEndPt++;
-			this.endPt[nEndPt] = new EndPt_struct(nowComp, 51, nowArc.mPts[51], nowArc.mTangent[51], 100.0);
+			this.getEndPt()[nowPtNdx].setValue(nowComp, 1, nowArc.getmPts()[1], nowArc.getmTangent()[1], 100.0);
+			setnEndPt(getnEndPt() + 1);
+			this.getEndPt()[getnEndPt()] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100.0);
 
 		}
 
@@ -2132,7 +2142,7 @@ public class AllenMatchStick extends MatchStick {
 
 		while (true) {
 			// 1. PICK OUT A LEAF TO DELETE
-			boolean[] removeList = new boolean[comp.length];
+			boolean[] removeList = new boolean[getComp().length];
 			removeList[chooseRandLeaf()] = true;
 
 			// 2. DO THE REMOVING
@@ -2225,11 +2235,11 @@ public class AllenMatchStick extends MatchStick {
 		if ( showDebug)
 			System.out.println("Generate new random mStick, with " + nComp + " components");
 		int i;
-		nComponent= nComp;
+		setnComponent(nComp);
 		//comp = new TubeComp[nComp+1];
 
 		for (i=1; i<=nComp; i++)
-			comp[i] = new TubeComp();
+			getComp()[i] = new AllenTubeComp();
 		// 1. create first component at the center of the space.
 		createFirstComp();
 		// 2. sequentially adding new components
@@ -2244,7 +2254,7 @@ public class AllenMatchStick extends MatchStick {
 			randNdx = stickMath_lib.rand01();
 			if (randNdx < PROB_addToEndorJunc)
 			{
-				if (nJuncPt == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
+				if (getnJuncPt() == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
 					addSuccess = Add_MStick(nowComp, 1);
 				else
 					addSuccess = Add_MStick(nowComp, 2);
@@ -2266,9 +2276,9 @@ public class AllenMatchStick extends MatchStick {
 		// 3. Assign the radius value
 		RadiusAssign(0); // no component to preserve radius
 		// 4. Apply the radius value onto each component
-		for (i=1; i<=nComponent; i++)
+		for (i=1; i<=getnComponent(); i++)
 		{
-			if( comp[i].RadApplied_Factory() == false) // a fail application
+			if( getComp()[i].RadApplied_Factory() == false) // a fail application
 			{
 				return false;
 			}
@@ -2307,7 +2317,7 @@ public class AllenMatchStick extends MatchStick {
 	public int chooseRandLeaf() {
 		decideLeafBranch();
 		List<Integer> choosableList = new LinkedList<Integer>();
-		for (int i = 0; i < nComponent; i++) {
+		for (int i = 0; i < getnComponent(); i++) {
 			if (LeafBranch[i] == true) {
 				choosableList.add(i);
 			}
@@ -2325,9 +2335,9 @@ public class AllenMatchStick extends MatchStick {
 	 * using radius method. 
 	 */
 	protected boolean validMStickSize() {
-		double maxRadius = scaleForMAxisShape; // degree
+		double maxRadius = getScaleForMAxisShape(); // degree
 		double screenDist = 500;
-		double minRadius = minScaleForMAxisShape;
+		double minRadius = getMinScaleForMAxisShape();
 		double maxBoundInMm = screenDist * Math.tan(maxRadius * Math.PI / 180 / 2);
 		double minBoundInMm = screenDist * Math.tan(minRadius * Math.PI / 180 / 2);
 		int i, j;
@@ -2337,17 +2347,17 @@ public class AllenMatchStick extends MatchStick {
 		//double maxDis = 0;
 		double maxX=0;
 		double maxY=0;
-		for (i = 1; i <= nComponent; i++) {
-			for (j = 1; j <= comp[i].nVect; j++) {
-				double xLocation = scaleForMAxisShape * comp[i].vect_info[j].x;
-				double yLocation = scaleForMAxisShape * comp[i].vect_info[j].y;
+		for (i = 1; i <= getnComponent(); i++) {
+			for (j = 1; j <= getComp()[i].getnVect(); j++) {
+				double xLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].x;
+				double yLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].y;
 				//dis = comp[i].vect_info[j].distance(ori);
 
-				if(xLocation > maxBoundInMm || comp[i].vect_info[j].x < -maxBoundInMm){
+				if(xLocation > maxBoundInMm || getComp()[i].getVect_info()[j].x < -maxBoundInMm){
 					System.out.println("AC:71923: TOO BIG");
 					return false;
 				}
-				if(yLocation > maxBoundInMm || comp[i].vect_info[j].y < -maxBoundInMm){
+				if(yLocation > maxBoundInMm || getComp()[i].getVect_info()[j].y < -maxBoundInMm){
 					System.out.println("AC:71923: TOO BIG");
 					return false;
 				}
@@ -2369,8 +2379,8 @@ public class AllenMatchStick extends MatchStick {
 
 
 	public void setScale(double minScale, double maxScale) {
-		minScaleForMAxisShape = minScale;
-		scaleForMAxisShape = maxScale;
+		setMinScaleForMAxisShape(minScale);
+		setScaleForMAxisShape(maxScale);
 	}
 
 
@@ -2384,31 +2394,143 @@ public class AllenMatchStick extends MatchStick {
 	{
 		int i;
 
-		nComponent = in.nComponent;
+		setnComponent(in.getnComponent());
 
 		//AC ADDITIONS//
-		specialEnd = in.specialEnd;
-		specialEndComp = in.specialEndComp;
-		baseComp = in.baseComp;
+		setSpecialEnd(in.getSpecialEnd());
+		setSpecialEndComp(in.getSpecialEndComp());
+		setBaseComp(in.getBaseComp());
 		///////////////
 
-		for (i=1; i<=nComponent; i++) {
-			comp[i] = new TubeComp();
-			comp[i].copyFrom(in.comp[i]);
+		for (i=1; i<=getnComponent(); i++) {
+			getComp()[i] = new AllenTubeComp();
+			getComp()[i].copyFrom(in.getComp()[i]);
 		}
-		this.nEndPt = in.nEndPt;
-		for (i=1; i<=nEndPt; i++) {
-			endPt[i] = new EndPt_struct();
-			endPt[i].copyFrom(in.endPt[i]);
+		this.setnEndPt(in.getnEndPt());
+		for (i=1; i<=getnEndPt(); i++) {
+			getEndPt()[i] = new EndPt_struct();
+			getEndPt()[i].copyFrom(in.getEndPt()[i]);
 		}
-		this.nJuncPt = in.nJuncPt;
-		for (i=1; i<=nJuncPt; i++) {
-			JuncPt[i] = new JuncPt_struct();
-			JuncPt[i].copyFrom(in.JuncPt[i]);
+		this.setnJuncPt(in.getnJuncPt());
+		for (i=1; i<=getnJuncPt(); i++) {
+			getJuncPt()[i] = new JuncPt_struct();
+			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
 		this.setObj1(in.getObj1()); 
 
-		for (i=1; i<=nComponent; i++)
+		for (i=1; i<=getnComponent(); i++)
 			LeafBranch[i] = in.LeafBranch[i];
+	}
+
+	public AllenTubeComp[] getComp() {
+		return comp;
+	}
+
+	public EndPt_struct[] getEndPt() {
+		return endPt;
+	}
+
+	public void setEndPt(EndPt_struct[] endPt) {
+		this.endPt = endPt;
+	}
+
+	public int getnEndPt() {
+		return nEndPt;
+	}
+
+	public void setnEndPt(int nEndPt) {
+		this.nEndPt = nEndPt;
+	}
+
+	public int getnJuncPt() {
+		return nJuncPt;
+	}
+
+	public void setnJuncPt(int nJuncPt) {
+		this.nJuncPt = nJuncPt;
+	}
+
+	public JuncPt_struct[] getJuncPt() {
+		return JuncPt;
+	}
+
+	public void setJuncPt(JuncPt_struct[] juncPt) {
+		JuncPt = juncPt;
+	}
+
+	public MStickObj4Smooth getObj1() {
+		return obj1;
+	}
+
+	public void setObj1(MStickObj4Smooth obj1) {
+		this.obj1 = obj1;
+	}
+
+	public boolean[] getLeafBranch() {
+		return LeafBranch;
+	}
+
+	public void setLeafBranch(boolean[] leafBranch) {
+		LeafBranch = leafBranch;
+	}
+
+	public double getMinScaleForMAxisShape() {
+		return minScaleForMAxisShape;
+	}
+
+	public void setMinScaleForMAxisShape(double minScaleForMAxisShape) {
+		this.minScaleForMAxisShape = minScaleForMAxisShape;
+	}
+
+	public int getSpecialEnd() {
+		return specialEnd;
+	}
+
+	public void setSpecialEnd(int specialEnd) {
+		this.specialEnd = specialEnd;
+	}
+
+	public int getSpecialEndComp() {
+		return specialEndComp;
+	}
+
+	public void setSpecialEndComp(int specialEndComp) {
+		this.specialEndComp = specialEndComp;
+	}
+
+	public int getBaseComp() {
+		return baseComp;
+	}
+
+	public void setBaseComp(int baseComp) {
+		this.baseComp = baseComp;
+	}
+
+	public double getPROB_addToEndorJunc() {
+		return PROB_addToEndorJunc;
+	}
+
+	public double getPROB_addToEnd_notJunc() {
+		return PROB_addToEnd_notJunc;
+	}
+
+	public double getPROB_addTiptoBranch() {
+		return PROB_addTiptoBranch;
+	}
+
+	public double[] getFinalRotation() {
+		return finalRotation;
+	}
+
+	public double[] getPARAM_nCompDist() {
+		return PARAM_nCompDist;
+	}
+
+	public double getTangentSaveZone() {
+		return TangentSaveZone;
+	}
+
+	public void setComp(AllenTubeComp[] comp) {
+		this.comp = comp;
 	}
 }
