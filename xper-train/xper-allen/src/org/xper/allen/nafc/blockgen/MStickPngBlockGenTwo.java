@@ -187,7 +187,7 @@ public class MStickPngBlockGenTwo{
 		}
 		{//Curvature And Rotation
 		qmp.curvRotQualMorph = new CurvatureRotationQualitativeMorph();
-		qmp.curvatureRotationFlag = true;
+		qmp.curvatureRotationFlag = false;
 		List<Bin<Double>> curvatureBins = qmp.curvRotQualMorph.curvatureBins;
 //		double radView = 10;
 		curvatureBins.add(new Bin<Double>(0.01, 0.1));

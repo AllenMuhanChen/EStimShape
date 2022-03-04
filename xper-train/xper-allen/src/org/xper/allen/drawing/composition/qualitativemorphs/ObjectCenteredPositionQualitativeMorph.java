@@ -129,7 +129,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 			double min = baseTangentAngleBins.get(assignedBaseTangentAngleBin).min;
 			double max = baseTangentAngleBins.get(assignedBaseTangentAngleBin).max;
 			newBaseTangentAngle = stickMath_lib.randDouble(min, max);
-			newBaseTangentAngle = 180*Math.PI/180; //DEBUG
+			//newBaseTangentAngle = 270*Math.PI/180; //DEBUG
 		}
 
 		double newPerpendicularAngle; 
@@ -143,7 +143,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 			double min = perpendicularAngleBins.get(assignedPerpendicularAngleBin).min;
 			double max = perpendicularAngleBins.get(assignedPerpendicularAngleBin).max;
 			newPerpendicularAngle = stickMath_lib.randDouble(min,max);
-			newPerpendicularAngle = 90*Math.PI/180; //DEBUG
+			//newPerpendicularAngle = 90*Math.PI/180; //DEBUG
 		}
 
 		//Use new angles to calculate new tangent vector while pretending newBaseTangentAngle and newPerpendicularAngle are relative to X-Y axis and Z-Y axis respectively
