@@ -26,12 +26,14 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 	public List<Bin<Double>> curvatureBins;
 	public List<Bin<Double>> rotationBins;
 	public ArrayList<Bin<Double>> scaledCurvatureBins;
-	
+
 	private int assignedCurvatureBin;
 	private int assignedRotationBin;
 
-	public double CHANCE_TO_CHANGE_ROTATION_NOT_CURVATURE = 1;
-	
+	private boolean is180RotationOkay;
+
+	public double CHANCE_TO_CHANGE_ROTATION_NOT_CURVATURE = 0.5;
+
 	public CurvatureRotationQualitativeMorph() {
 		curvatureBins = new ArrayList<Bin<Double>>();
 		rotationBins = new ArrayList<Bin<Double>>();
@@ -39,9 +41,10 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 	}
 
 	public void calculate(double arcLen, AllenMAxisArc inArc) {
+		checkIf180RotationOkay(inArc);
 		assignBins(arcLen, inArc);
-	
-		curvatureFlag = false; //DEBUG
+
+		//curvatureFlag = false; //DEBUG
 		if(curvatureFlag) {
 			double min = scaledCurvatureBins.get(assignedCurvatureBin).min;
 			double max = scaledCurvatureBins.get(assignedCurvatureBin).max;
@@ -51,38 +54,46 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 		else {
 			newCurvature = oldCurvature;
 		}
-		newCurvature = 1;
-		rotationFlag = true; //DEBUG
+
+
+		//rotationFlag = true; //DEBUG
 		if(rotationFlag) {
-			//FINDING THE NORMAL OF THE ROTATION (direction the curve is facing)
-			Vector3d normal = inArc.normal;
-			double[] normalAngles = vector2Angles(normal); //in spherical coords
-			double zDirectionNormalAngle = normalAngles[1];
-			double[] normalAngleRange = {45/4, 135/4};
-			
-			//UNIT-TESTING
-//			System.out.println("AC50193: " + normalAngles[0] * 180 / Math.PI);
-//			System.out.println("AC50194: " + normalAngles[1] * 180 / Math.PI);
-			//TODO: This is the normal angle of the original limb. We need to figure out what to do with this. 
-			double desiredNormal = 270*Math.PI/180;
-			
-			if(zDirectionNormalAngle > normalAngleRange[0] && zDirectionNormalAngle < normalAngleRange[1]) {
-				newRotation = oldRotation - 90; 
+			//If the curvature is facing too much towards the viewer or away, rotate by 90 degrees
+			if(!is180RotationOkay) {
+				if(stickMath_lib.rand01()<0.5)
+					newRotation = oldRotation - 90 * Math.PI/180; 
+				else
+					newRotation = oldRotation + 90 * Math.PI/180;
+
 			}
-			newRotation = desiredNormal;
-			//newRotation = desiredNormal;
-//			
-//			if(oldRotation > 180*(Math.PI/180))
-//				newRotation = oldRotation - 180*(Math.PI/180);
-//			else 
-//				newRotation = oldRotation + 180*(Math.PI/180);
+			else { //The rotation should be salient with a 180 rotation
+				if(stickMath_lib.rand01()<0.5)
+					newRotation = oldRotation - 180 * Math.PI/180; 
+				else
+					newRotation = oldRotation + 180 * Math.PI/180;
+			}
 		}
 		else {
 			newRotation = oldRotation;
 		}
-
+		
 	}
 
+	private void checkIf180RotationOkay(AllenMAxisArc inArc) {
+		Vector3d normal = inArc.normal;
+		double[] normalAngles = vector2Angles(normal); //in spherical coords
+		double zDirectionNormalAngle = normalAngles[1];
+		double[] prohibitedNormalAngles= {-180 * Math.PI/180, 0, 180 * Math.PI/180, 360 * Math.PI/180};
+		double tolerance = 10 * Math.PI/180;
+
+		boolean isOkay = true;
+		for(int i=0; i<prohibitedNormalAngles.length; i++) {
+			if((zDirectionNormalAngle > prohibitedNormalAngles[i]-tolerance) && (zDirectionNormalAngle < prohibitedNormalAngles[i]+tolerance)) {
+				isOkay = false;
+			}
+		}
+	is180RotationOkay = isOkay;
+	}
 	/**
 	 * The bins need to be very specific for this morph.
 	 * There should be exactly 3 bins
@@ -93,9 +104,10 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 	 * Medium and straight are much closer to each other compared to sharp
 	 * 
 	 * Medium and Straight are morphed into Sharp
-	 * Sharp are either ROTATED ONLY or morphed into STRAIGHT (medium can be too close sometimes)
+	 * 	1. medium/straight should be rotated into sharps that are facing too much towards or away from viewer (looks straight)
 	 * 
-	 * Rotations should not cause direction of curvature to be facing towards or away from the viewer too much
+	 * Sharp are either ROTATED ONLY or morphed into STRAIGHT (medium can be too close sometimes)
+	 * 	1.Rotations should not cause direction of curvature to be facing towards or away from the viewer too much
 	 * 
 	 */
 	private void assignBins(double arcLen, MAxisArc inArc) {
@@ -105,42 +117,47 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 			Bin<Double> scaledBin = new Bin<Double>(bin.min*arcLen, bin.max*arcLen);
 			scaledCurvatureBins.add(scaledBin);
 		}
-		
-		curvatureFlag = true;
+
+		//curvatureFlag = true;
 
 		int closestCurvatureBin = findClosestCurvatureBin(scaledCurvatureBins, oldCurvature);
 
 		//If straight already
 		if(closestCurvatureBin==1 || closestCurvatureBin==2) {
-			rotationFlag = false;
+			rotationFlag = true;
 			curvatureFlag = true;
-			
+
 			assignedCurvatureBin = 0;
 
 		}
 		//If curved already
 		else {
-			//Change Rotation ONLY
-
-			//boolean isNormalInRange = normalAngle > normalAngleRange[0] && normalAngle < normalAngleRange[1];
-			boolean isRNGSuccess = stickMath_lib.rand01()<CHANCE_TO_CHANGE_ROTATION_NOT_CURVATURE;
-			if(isRNGSuccess) {
-				rotationFlag = true;
+			//if the curvature is bad (faces viewer or away too much) then we should rotate. 
+			if(!is180RotationOkay) {
+				rotationFlag = true; //this rotation will end up being a 90 deg rotation
 				curvatureFlag = false;
-//				assignedRotationBin = chooseDifferentBin(rotationBins, closestRotationBin);
 			}
-			//Change Curvature ONLY
-			else {
-				rotationFlag = false;
-				curvatureFlag = true;
-//				assignedCurvatureBin = stickMath_lib.randInt(1, 2);
-				assignedCurvatureBin = 2;
+			else { //curvature is good
+				//if curvature is good, then we only rotate a percentage of the time
+				boolean isRNGSuccess = stickMath_lib.rand01()<CHANCE_TO_CHANGE_ROTATION_NOT_CURVATURE;
+				if(isRNGSuccess) {
+					rotationFlag = true;
+					curvatureFlag = false;
+
+				}
+				//Change Curvature ONLY
+				else {
+					rotationFlag = false;
+					curvatureFlag = true;
+					assignedCurvatureBin = 2;
+				}
 			}
 		}
-		
-		
-
 	}
+
+
+
+
 
 	/**
 	 * Differs in findClosestBin from Qualitative morph in that the value must be inside bin 0 to be assigned to it. 
@@ -170,7 +187,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 			closestBin = closestMinDistanceNdx;
 		}
 		else{
-			
+
 			//Closer to Left than Right
 			if(minDistanceList.get(closestMinDistanceNdx) < maxDistanceList.get(closestMaxDistanceNdx)) {
 				closestBin = closestMinDistanceNdx;
@@ -178,7 +195,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 			else {
 				closestBin = closestMaxDistanceNdx;
 			}
-			
+
 			//MODIFICATION FOR CURVATURE
 			if(closestBin==0) {
 				closestBin = 1;

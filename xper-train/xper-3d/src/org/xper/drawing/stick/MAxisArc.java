@@ -37,7 +37,7 @@ public class MAxisArc
   
 
      public MAxisArc() {
-		 this.rad = 100.0; //nothing, just debug
+		// this.rad = 100.0; //nothing, just debug
 		 int i;
 		 for (i=0; i<=MaxStep; i++) {
 	           mPts[i] = new Point3d();
@@ -226,115 +226,115 @@ public class MAxisArc
 	
 	
 	
-     /**
+	/**
 	generate a new MAxis Arc, with radius and arcLen randomly chosen
-     */
-     public void genArcRand()
-     {
-    	 // randomly determine the rad and arcLen, and then call genArc
-    	 double RadView = 5.0;
-    	 // high curvature 0.2 ~ 0.6 R
-         // medium curvature 0.6 ~ 6 R
-         // no curvautre, let k = 0.000001;
-        double[] radDistribution = { .3333, .6666, 1}; // the cumulative prob for high, medium & no curvature
+	 */
+	public void genArcRand()
+	{
+		// randomly determine the rad and arcLen, and then call genArc
+		double RadView = 5.0;
+		// high curvature 0.2 ~ 0.6 R
+		// medium curvature 0.6 ~ 6 R
+		// no curvautre, let k = 0.000001;
+		double[] radDistribution = { .3333, .6666, 1}; // the cumulative prob for high, medium & no curvature
 
-        Random rand = new Random();	
-        double radRandNdx = rand.nextDouble();
+		Random rand = new Random();	
+		double radRandNdx = rand.nextDouble();
 
-        if (radRandNdx <= radDistribution[0] )
-        {
-      		setRad((rand.nextDouble() * 0.4 + 0.2) * RadView); // btw (0.2 ~0.6)R      
-      		//disp 'pick high curvature';
-        }
-        else if (radRandNdx <= radDistribution[1])
-        {
-      		setRad((rand.nextDouble() * 5.4 + 0.6) * RadView); // btw (0.6~6)R
-      		//disp 'pick medium curvature';
-        }	
-        else if (radRandNdx <= radDistribution[2])
-        {
-      		setRad(100000);
-      		//disp 'pick no curvature';
-        }
-  
+		if (radRandNdx <= radDistribution[0] )
+		{
+			setRad((rand.nextDouble() * 0.4 + 0.2) * RadView); // btw (0.2 ~0.6)R      
+			//disp 'pick high curvature';
+		}
+		else if (radRandNdx <= radDistribution[1])
+		{
+			setRad((rand.nextDouble() * 5.4 + 0.6) * RadView); // btw (0.6~6)R
+			//disp 'pick medium curvature';
+		}	
+		else if (radRandNdx <= radDistribution[2])
+		{
+			setRad(100000);
+			//disp 'pick no curvature';
+		}
 
-	//k = 1 / rad;
 
-        // 2. choose the length
-  	double length_lb = 1.5; //the lower bound of length
-  	double length_ub = Math.min( Math.PI * getRad(), RadView);
-        //pick a value btw length_lb & length_ub
-  	double arcLen = rand.nextDouble() * (length_ub - length_lb) + length_lb;
+		//k = 1 / rad;
 
-// 	System.out.println("rad is : " + rad);	
-// 	System.out.println("arcLen is : " + arcLen);
+		// 2. choose the length
+		double length_lb = 1.5; //the lower bound of length
+		double length_ub = Math.min( Math.PI * getRad(), RadView);
+		//pick a value btw length_lb & length_ub
+		double arcLen = rand.nextDouble() * (length_ub - length_lb) + length_lb;
 
-	this.genArc(getRad(), arcLen);
+		// 	System.out.println("rad is : " + rad);	
+		// 	System.out.println("arcLen is : " + arcLen);
 
-     }
-     /**
+		this.genArc(getRad(), arcLen);
+
+	}
+	/**
 	generate a new MAxis Arc, with radius and arcLen defined
 	@param in_rad the radius value wanted
 	@param in_arcLen the arcLen value wanted
-     */
-     public void genArc(double in_rad, double in_arcLen)
-     {
-	setRad(in_rad);
-	setArcLen(in_arcLen);
-	curvature = 1.0 / getRad();
-	setAngleExtend(getArcLen() / getRad());
-	
-//         System.out.println("in genArc  rad: "+ rad + " ArcLen: " + arcLen);
-	int step;
-	double nowu, now_angle;
-	if ( getRad() >= 100000) //str8 line condition
+	 */
+	public void genArc(double in_rad, double in_arcLen)
 	{
-	   for (step=1; step <=getMaxStep(); step++)
-	   {
-		nowu = ((double)step-1) / ((double)getMaxStep()-1);
-		
-		getmPts()[step].set(0,0, nowu* getArcLen());
-		getmTangent()[step].set(0,0,1);
-      		getLocalArcLen()[step] = getArcLen();      
-           }
-        }
-	else
- 	{
-	   for (step = 1 ; step <=getMaxStep(); step++)
- 	   {
-		nowu = ((double)step-1) / ((double)getMaxStep()-1);
-		now_angle = nowu * getAngleExtend() - 0.5 * getAngleExtend();
-//	 System.out.println("step " + step+ " now u " + nowu + " angle " + now_angle);
-//	 System.out.println(rad*Math.cos(now_angle));
-//	 System.out.println(rad*Math.sin(now_angle));
-//	 System.out.println(mAxis_pts.length);
-		getmPts()[step].set(0, getRad() * Math.cos(now_angle), getRad()* Math.sin(now_angle));
-		getmTangent()[step].set(0, -getAngleExtend()*getRad()*Math.sin(now_angle), getAngleExtend()*getRad()*Math.cos(now_angle));
-	//System.out.println(mAxis_tangent[step]);
-		getLocalArcLen()[step] = getmTangent()[step].length();
-		getmTangent()[step].normalize();
-	//System.out.println(mAxis_tangent[step] + "  len:  " + mAxis_arcLen[step]);
-	   }
+		setRad(in_rad);
+		setArcLen(in_arcLen);
+		curvature = 1.0 / getRad();
+		setAngleExtend(getArcLen() / getRad());
 
-        }
+		//         System.out.println("in genArc  rad: "+ rad + " ArcLen: " + arcLen);
+		int step;
+		double nowu, now_angle;
+		if ( getRad() >= 100000) //str8 line condition
+		{
+			for (step=1; step <=getMaxStep(); step++)
+			{
+				nowu = ((double)step-1) / ((double)getMaxStep()-1);
 
-         // randomly assign a branchPt value at the middle of the samplePts
-           // Matlab: resultArc.branchPt =  ceil( ( resultArc.nSamplePts-39) .* rand() ) + 20; % all the middle pts
-         this.setBranchPt(stickMath_lib.randInt(26-5 , 26+5));
-	
+				getmPts()[step].set(0,0, nowu* getArcLen());
+				getmTangent()[step].set(0,0,1);
+				getLocalArcLen()[step] = getArcLen();      
+			}
+		}
+		else
+		{
+			for (step = 1 ; step <=getMaxStep(); step++)
+			{
+				nowu = ((double)step-1) / ((double)getMaxStep()-1);
+				now_angle = nowu * getAngleExtend() - 0.5 * getAngleExtend();
+				//	 System.out.println("step " + step+ " now u " + nowu + " angle " + now_angle);
+				//	 System.out.println(rad*Math.cos(now_angle));
+				//	 System.out.println(rad*Math.sin(now_angle));
+				//	 System.out.println(mAxis_pts.length);
+				getmPts()[step].set(0, getRad() * Math.cos(now_angle), getRad()* Math.sin(now_angle));
+				getmTangent()[step].set(0, -getAngleExtend()*getRad()*Math.sin(now_angle), getAngleExtend()*getRad()*Math.cos(now_angle));
+				//System.out.println(mAxis_tangent[step]);
+				getLocalArcLen()[step] = getmTangent()[step].length();
+				getmTangent()[step].normalize();
+				//System.out.println(mAxis_tangent[step] + "  len:  " + mAxis_arcLen[step]);
+			}
 
-     }
-     public void showInfo()
-     {
-	System.out.println("Info about MAxisArc:");
-	System.out.println("rad : " + getRad());
-	//show the mAxis pts
-	System.out.println("transRot alignedPt :" + getTransRotHis_alignedPt());
-	System.out.println("mpts[1] is at : "+ getmPts()[1]);
-	System.out.println("tangent[1] is at : "+ getmTangent()[1]);
-     }
+		}
 
-     // An important routine that will rotate and translate the MAxis Pts and tangent to new location
+		// randomly assign a branchPt value at the middle of the samplePts
+		// Matlab: resultArc.branchPt =  ceil( ( resultArc.nSamplePts-39) .* rand() ) + 20; % all the middle pts
+		this.setBranchPt(stickMath_lib.randInt(26-5 , 26+5));
+
+
+	}
+	public void showInfo()
+	{
+		System.out.println("Info about MAxisArc:");
+		System.out.println("rad : " + getRad());
+		//show the mAxis pts
+		System.out.println("transRot alignedPt :" + getTransRotHis_alignedPt());
+		System.out.println("mpts[1] is at : "+ getmPts()[1]);
+		System.out.println("tangent[1] is at : "+ getmTangent()[1]);
+	}
+
+	// An important routine that will rotate and translate the MAxis Pts and tangent to new location
 	// More precisely,	
 	// seperate rotation of tangent into two step, first always rotate the rotCenter tangent to [1 0 0 ], 
 	// then rotate to the final tangent, the reason to do so is some tricky thing about deviateAngle

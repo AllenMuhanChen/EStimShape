@@ -169,7 +169,7 @@ public class MStickPngBlockGenTwo{
 		
 		{//Object Centered Position - Orientation and Position
 		qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
-		qmp.objectCenteredPositionFlag = true;
+		qmp.objectCenteredPositionFlag = false;
 		List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
 		positionBins.add(new Bin<Integer>(1,1));
 		positionBins.add(new Bin<Integer>(20,32));
@@ -187,7 +187,7 @@ public class MStickPngBlockGenTwo{
 		}
 		{//Curvature And Rotation
 		qmp.curvRotQualMorph = new CurvatureRotationQualitativeMorph();
-		qmp.curvatureRotationFlag = false;
+		qmp.curvatureRotationFlag = true;
 		List<Bin<Double>> curvatureBins = qmp.curvRotQualMorph.curvatureBins;
 //		double radView = 10;
 		curvatureBins.add(new Bin<Double>(0.01, 0.1));
