@@ -194,8 +194,7 @@ public class MStickPngBlockGenTwo{
 		}
 		{//Size: Length & Width
 		qmp.sizeFlag = true;
-		qmp.sizeQualMorph = new SizeQualitativeMorph();
-		qmp.sizeQualMorph.setRadView(maxImageDimensionDegrees);
+		qmp.sizeQualMorph = new SizeQualitativeMorph(maxImageDimensionDegrees);
 		//These bins will be scaled depending on the particular limb's arcLen and curvature 
 		List<Bin<Double>> lengthBins = qmp.sizeQualMorph.lengthBins;
 		lengthBins.add(new Bin<Double>(0.2, 0.3));

@@ -47,6 +47,10 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 		perpendicularAngleBins = new ArrayList<>();
 	}
 
+	public void loadParams(int oldPosition, Vector3d oldTangent) {
+		setOldPosition(oldPosition);
+		setOldTangent(oldTangent);
+	}
 
 	private void assignPositionBin() {
 		//Position
