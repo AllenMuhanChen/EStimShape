@@ -46,10 +46,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 
 		//curvatureFlag = false; //DEBUG
 		if(curvatureFlag) {
-			double min = scaledCurvatureBins.get(assignedCurvatureBin).min;
-			double max = scaledCurvatureBins.get(assignedCurvatureBin).max;
-
-			newCurvature = stickMath_lib.randDouble(min, max);
+			newCurvature = newValueFromBins(scaledCurvatureBins, assignedCurvatureBin);
 		}
 		else {
 			newCurvature = oldCurvature;
@@ -110,7 +107,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 	 * 	1.Rotations should not cause direction of curvature to be facing towards or away from the viewer too much
 	 * 
 	 */
-	private void assignBins(double arcLen, MAxisArc inArc) {
+	private void assignBins(double arcLen, AllenMAxisArc inArc) {
 		//Copy scaledCurvatureBins from curvatureBins and scale each bin's bounds
 		scaledCurvatureBins = new ArrayList<>();
 		for(Bin<Double> bin:curvatureBins) {

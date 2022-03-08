@@ -510,7 +510,7 @@ public class AllenMatchStick extends MatchStick {
 		boolean[] JuncPtFlg = new boolean[getnJuncPt()+1]; // = true when this JuncPt is related to the (id) component
 		int[] targetUNdx = new int[getnJuncPt()+1]; // to save the target uNdx in particular Junc pt
 		double[][] old_radInfo = new double[3][2];
-
+		double[][] old_normalizedRadInfo = new double[3][2];
 
 
 		//0. Organizing morph parameters from QualitativeMorphParams
@@ -566,15 +566,19 @@ public class AllenMatchStick extends MatchStick {
 
 		//CURVATURE AND ROTATION
 		if(qmp.curvatureRotationFlag) {
-			//			Vector3d tangent = oriTangent;
-			//			if(qmp.objectCenteredPositionFlag) {
-			//				tangent = qmp.objCenteredPosQualMorph.getNewTangent();
-			//			}
 			qmp.curvRotQualMorph.setOldCurvature(getComp()[id].getmAxisInfo().getRad());
-			qmp.curvRotQualMorph.setOldRotation(getComp()[id].getmAxisInfo().transRotHis_devAngle);
-			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo().arcLen,getComp()[id].getmAxisInfo());
+			qmp.curvRotQualMorph.setOldRotation(getComp()[id].getmAxisInfo().getTransRotHis_devAngle());
+			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo().getArcLen(),getComp()[id].getmAxisInfo());
 		} // Curvature Rotation 
 
+		//SIZE: LENGTH & THICKNESS
+		if(qmp.sizeFlag) {
+			qmp.sizeQualMorph.setOldLength(getComp()[id].getmAxisInfo().getArcLen());
+			getComp()[id].normalizeRadInfo();
+			qmp.sizeQualMorph.setOldThickness(getComp()[id].getScale());
+			qmp.sizeQualMorph.calculate(getComp()[id].getmAxisInfo());
+		}
+		
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
 		int alignedPt;
 		alignedPt = MutationSUB_determineHinge(id);
@@ -620,8 +624,10 @@ public class AllenMatchStick extends MatchStick {
 
 			}
 		for (i=0; i<3; i++)
-			for (j=0; j<2; j++)
+			for (j=0; j<2; j++) {
 				old_radInfo[i][j] = getComp()[id].getRadInfo()[i][j];
+				old_normalizedRadInfo[i][j] = getComp()[id].getNormalizedRadInfo()[i][j];
+			}
 
 
 
@@ -802,7 +808,8 @@ public class AllenMatchStick extends MatchStick {
 				//show the radius value
 				//System.out.println("rad assign: ");
 				//comp[id].showRadiusInfo();
-				this.MutationSUB_radAssign2NewComp_Qualitative(id, old_radInfo, qmp);
+//				getComp()[id].normalizeRadInfo();
+				this.MutationSUB_radAssign2NewComp_Qualitative(id, old_normalizedRadInfo, qmp);
 				//comp[id].showRadiusInfo();
 				if ( getComp()[id].RadApplied_Factory() == false)
 				{
@@ -846,13 +853,16 @@ public class AllenMatchStick extends MatchStick {
  Will determine the radius of the modified component
  If there is value in [][] oriValue, it is the radius value of the original component
 	 */
-	protected void MutationSUB_radAssign2NewComp_Qualitative( int targetComp, double[][] oriValue, QualitativeMorphParams qmp)
+	protected void MutationSUB_radAssign2NewComp_Qualitative( int targetComp, double[][] oriNormalizedValue, QualitativeMorphParams qmp)
 	{
 		boolean showDebug = false;
 		int i, j;
 		double rMin, rMax;
 		double nowRad= -100.0, u_value;
-		double radiusScale = 1;
+		double radiusScale = qmp.sizeQualMorph.getOldThickness();
+		
+
+		
 		/*
 	if(qmp.sizeFlag){
 		qmp.sizeMagnitude.oldValue = radiusScale;
@@ -866,8 +876,10 @@ public class AllenMatchStick extends MatchStick {
 		comp[i].radInfo[0][1] = -10.0; comp[i].radInfo[1][1] = -10.0; comp[i].radInfo[2][1] = -10.0;
 	}
 		 */
-
-
+		//TODO: 
+		if(qmp.sizeQualMorph.isThicknessFlag()) {
+			radiusScale = qmp.sizeQualMorph.getNewThickness();
+		}
 
 		//set old value at JuncPt
 		for (i=1; i<=getnJuncPt(); i++)
@@ -887,16 +899,19 @@ public class AllenMatchStick extends MatchStick {
 					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
+						nowRad = oriNormalizedValue[0][1] * radiusScale;
 						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
 						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
 					}
 					else if ( Math.abs(u_value - 1.0) < 0.0001)
 					{
+						nowRad = oriNormalizedValue[2][1] * radiusScale;
 						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
 						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
 					}
 					else // middle u value
 					{
+						nowRad = oriNormalizedValue[1][1] * radiusScale;
 						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
 						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
 					}
@@ -924,9 +939,9 @@ public class AllenMatchStick extends MatchStick {
 				// retrive the oriValue
 				double oriRad;
 				if ( getEndPt()[i].getuNdx() == 1)
-					oriRad = oriValue[0][1];
+					oriRad = oriNormalizedValue[0][1];
 				else  //endPt[i].uNdx == 51
-					oriRad = oriValue[2][1];
+					oriRad = oriNormalizedValue[2][1];
 
 				nowRad = oriRad * radiusScale;
 				//			if(qmp.radProfileEndFlag) {
@@ -954,7 +969,7 @@ public class AllenMatchStick extends MatchStick {
 
 		//set intermediate pt if not assigned yet
 		i = targetComp;
-		double oriRad = oriValue[1][1]; // the middle radius value
+		double oriRad = oriNormalizedValue[1][1]; // the middle radius value
 		nowRad = oriRad * radiusScale;
 		int branchPt = getComp()[i].getmAxisInfo().getBranchPt();
 		u_value = ((double)branchPt-1.0) / (51.0 -1.0);
@@ -1151,8 +1166,9 @@ public class AllenMatchStick extends MatchStick {
 
 			}
 		for (i=0; i<3; i++)
-			for (j=0; j<2; j++)
+			for (j=0; j<2; j++) {
 				old_radInfo[i][j] = getComp()[id].getRadInfo()[i][j];
+			}
 
 
 
@@ -1471,8 +1487,8 @@ public class AllenMatchStick extends MatchStick {
 					nowRad = getJuncPt()[i].getRad() * radiusScale;
 					if(mmp.radProfileJuncFlag) {
 						mmp.radProfileJuncMagnitude.oldValue = nowRad;
-						mmp.radProfileJuncMagnitude.min = getComp()[targetComp].getmAxisInfo().arcLen / 10.0;
-						mmp.radProfileJuncMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().arcLen / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
+						mmp.radProfileJuncMagnitude.min = getComp()[targetComp].getmAxisInfo().getArcLen() / 10.0;
+						mmp.radProfileJuncMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().getArcLen() / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
 						nowRad = mmp.radProfileJuncMagnitude.calculateMagnitude();
 					}
 
@@ -1524,7 +1540,7 @@ public class AllenMatchStick extends MatchStick {
 				if(mmp.radProfileEndFlag) {
 					mmp.radProfileEndMagnitude.oldValue = nowRad;
 					mmp.radProfileEndMagnitude.min = 0.00001;
-					mmp.radProfileEndMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().arcLen / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
+					mmp.radProfileEndMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().getArcLen() / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
 					nowRad = mmp.radProfileEndMagnitude.calculateMagnitude();
 				}
 
@@ -1553,8 +1569,8 @@ public class AllenMatchStick extends MatchStick {
 		if ( mmp.radProfileMidFlag) // this component need a intermediate value
 		{
 			mmp.radProfileMidMagnitude.oldValue = nowRad;
-			mmp.radProfileMidMagnitude.min = getComp()[targetComp].getmAxisInfo().arcLen / 10.0;
-			mmp.radProfileMidMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().arcLen / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
+			mmp.radProfileMidMagnitude.min = getComp()[targetComp].getmAxisInfo().getArcLen() / 10.0;
+			mmp.radProfileMidMagnitude.max = Math.min( getComp()[targetComp].getmAxisInfo().getArcLen() / 3.0, 0.5 * getComp()[targetComp].getmAxisInfo().getRad());
 			nowRad = mmp.radProfileMidMagnitude.calculateMagnitude();
 		}
 		getComp()[i].getRadInfo()[1][0] = u_value;

@@ -9,5 +9,6 @@ public class QualitativeMorphParams{
 	public boolean radProfileFlag;
 	public ObjectCenteredPositionQualitativeMorph objCenteredPosQualMorph;
 	public CurvatureRotationQualitativeMorph curvRotQualMorph;
+	public SizeQualitativeMorph sizeQualMorph;
 	
 }

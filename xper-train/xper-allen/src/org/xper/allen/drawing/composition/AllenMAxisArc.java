@@ -27,7 +27,8 @@ public class AllenMAxisArc extends MAxisArc {
 
 	private double rad;
 	private double curvature;
-	public double arcLen, angleExtend;
+	private double arcLen;
+	public double angleExtend;
 
 	private int branchPt;
 	private Point3d[] mPts= new Point3d[getMaxStep()+1];
@@ -37,7 +38,7 @@ public class AllenMAxisArc extends MAxisArc {
 	public int transRotHis_alignedPt, transRotHis_rotCenter;
 	public Point3d transRotHis_finalPos = new Point3d();
 	public Vector3d transRotHis_finalTangent = new Vector3d();
-	public double transRotHis_devAngle;
+	private double transRotHis_devAngle;
 
 	public AllenMAxisArc() {
 		//setRad(100.0); //nothing, just debug
@@ -94,6 +95,10 @@ public class AllenMAxisArc extends MAxisArc {
 		//TODO: Implement all of these parameters
 
 		// 1. ArcLen
+		if(qmp.sizeQualMorph.isLengthFlag()) {
+			newArcLen = qmp.sizeQualMorph.getNewLength();
+		}
+		
 		/*
 		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
 		 */
@@ -369,7 +374,7 @@ public class AllenMAxisArc extends MAxisArc {
 		{
 			oriPt.set(getmPts()[rotCenter]);
 
-			AxisAngle4d axisInfo = new AxisAngle4d( finalTangent, -transRotHis_devAngle);   		
+			AxisAngle4d axisInfo = new AxisAngle4d( finalTangent, -getTransRotHis_devAngle());   		
 			transMat.setRotation(axisInfo);
 			for (i = 1 ; i <= getMaxStep(); i++)
 			{
@@ -434,11 +439,11 @@ public class AllenMAxisArc extends MAxisArc {
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);      
 		//System.out.println("mPts[1] is at : "+ mPts[1]);
 		/// 3. rotate along the tangent axis by deviate Angle
-		double nowDeviateAngle = transRotHis_devAngle;
+		double nowDeviateAngle = getTransRotHis_devAngle();
 		if (  getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
 		{
 			oriPt.set(getmPts()[rotCenter]);
-			nowDeviateAngle = deviateAngle - transRotHis_devAngle;
+			nowDeviateAngle = deviateAngle - getTransRotHis_devAngle();
 			AxisAngle4d axisInfo = new AxisAngle4d( finalTangent, nowDeviateAngle);   		
 			transMat.setRotation(axisInfo);
 			for (i = 1 ; i <= getMaxStep(); i++)
@@ -473,7 +478,7 @@ public class AllenMAxisArc extends MAxisArc {
 		transRotHis_finalPos.set(finalPos);
 		//transRotHis_finalTangent = finalTangent;
 		transRotHis_finalTangent.set( finalTangent);
-		transRotHis_devAngle = nowDeviateAngle;
+		setTransRotHis_devAngle(nowDeviateAngle);
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 	}
 	

@@ -7,12 +7,23 @@ import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.sampleFaceInfo;
 
+/**
+ * AC Additions:
+ * AllenMAXisArc: keeps track of normal of devAngle along with new methods.
+ * Normalized RadInfo: has additional fields to keep track of normalized RadInfo (between 0 and 1) 
+ * and a scale that when multiplied with normalized RadInfo yields unnormalized radInfo. 
+ * Has methods for generating and utilizing normalized RadInfo
+ * @author r2_allen
+ *
+ */
 public class AllenTubeComp extends TubeComp{
-	
+
 	private AllenMAxisArc mAxisInfo = new AllenMAxisArc();
+	private double[][] normalizedRadInfo = new double[3][2];
+	private double scale;
 	// we can set it to be true, to skip jacob_check
 	public boolean skipJacobInAnalysisPhase = false;
- 	private int label;
+	private int label;
 	private double[][] radInfo = new double[3][2];
 	private boolean branchUsed;
 	private double[] radiusAcross = new double[52]; // the radius value at each mPts point
@@ -20,15 +31,15 @@ public class AllenTubeComp extends TubeComp{
 	private Point3d maxXYZ;
 	private Point3d minXYZ;
 	boolean scaleOnce = true;
-	
+
 	public int maxStep = 51;
 
-	
+
 
 	private Point3d[] vect_info = new Point3d[2000]; // 2000 should be large enough to contain all pts
 	private Vector3d[] normMat_info = new Vector3d[2000];
 	private int[][] facInfo = new int[2800][3];
-	
+
 	private int nVect;
 	public final int nFac = 2760; // this will always be true
 
@@ -45,6 +56,32 @@ public class AllenTubeComp extends TubeComp{
 
 	}
 
+	//TODO: Figure out what to do with this.
+	/**
+	 * calculates the normalized radInfo information based on current radInfo.
+	 */
+	public void normalizeRadInfo() {
+		double max = 0;
+		for (int i=0; i<3; i++) {
+			if (getRadInfo()[i][1] > max) {
+				max = getRadInfo()[i][1];
+			}
+		}
+
+		for (int i=0; i<3; i++) {
+			getNormalizedRadInfo()[i][0] = getRadInfo()[i][0];
+			getNormalizedRadInfo()[i][1] = getRadInfo()[i][1] / max;
+		}
+
+		setScale(max);
+	}
+
+	public void unnormalizeRadInfo() {
+		for (int i=0; i<3; i++) {
+			getRadInfo()[i][1] = getNormalizedRadInfo()[i][1] * scale;
+		}
+	}
+
 	/**
 	copy the whole class from an input class
 	 */
@@ -53,9 +90,12 @@ public class AllenTubeComp extends TubeComp{
 		int i, j;
 		setLabel(in.getLabel());
 		getmAxisInfo().copyFrom( in.getmAxisInfo());
+		setScale(in.getScale());
 		for (i=0; i<3; i++)
-			for (j=0; j<2; j++)
+			for (j=0; j<2; j++) {
 				getRadInfo()[i][j] = in.getRadInfo()[i][j];
+				getNormalizedRadInfo()[i][j] = in.getNormalizedRadInfo()[i][j];
+			}
 		setBranchUsed(in.isBranchUsed());
 		for (i=1; i<=51; i++)
 			getRadiusAcross()[i] = in.getRadiusAcross()[i];
@@ -73,21 +113,21 @@ public class AllenTubeComp extends TubeComp{
 		// Fac Info is always fix 
 		// seems not need to copy the ringPT, cap_poleNS , we'll see later
 	}
-	
+
 	/**
     Set the mAxisInfo it has, and if the branch is used or not.
-*/
-public void initSet(AllenMAxisArc inArc, boolean b_used, int in_type)
-{
-	int i, j;
-	getmAxisInfo().copyFrom(inArc);
-	setBranchUsed(b_used);
-	setConnectType(in_type);
-	for (i=0; i<3; i++)
-		for (j=0; j<2; j++)
-			getRadInfo()[i][j] = 100.0;
-	
-}
+	 */
+	public void initSet(AllenMAxisArc inArc, boolean b_used, int in_type)
+	{
+		int i, j;
+		getmAxisInfo().copyFrom(inArc);
+		setBranchUsed(b_used);
+		setConnectType(in_type);
+		for (i=0; i<3; i++)
+			for (j=0; j<2; j++)
+				getRadInfo()[i][j] = 100.0;
+
+	}
 
 	public AllenMAxisArc getmAxisInfo() {
 		return mAxisInfo;
@@ -251,6 +291,22 @@ public void initSet(AllenMAxisArc inArc, boolean b_used, int in_type)
 
 	public int getnFac() {
 		return nFac;
+	}
+
+	public double[][] getNormalizedRadInfo() {
+		return normalizedRadInfo;
+	}
+
+	public void setNormalizedRadInfo(double[][] normalizedRadInfo) {
+		this.normalizedRadInfo = normalizedRadInfo;
+	}
+
+	public double getScale() {
+		return scale;
+	}
+
+	public void setScale(double scale) {
+		this.scale = scale;
 	}
 
 }
