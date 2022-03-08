@@ -16,6 +16,13 @@ import org.xper.drawing.stick.stickMath_lib;
  */
 public abstract class QualitativeMorph {
 
+	protected double newValueFromBins(List<Bin<Double>> binList, int assignedBin){
+		double min = binList.get(assignedBin).min;
+		double max = binList.get(assignedBin).max;
+
+		return stickMath_lib.randDouble(min, max);
+	}
+
 	protected int findClosestBin(List<Bin<Integer>> binList, Integer value) {
 		int closestBin;
 		//Find distance of our value to all mins of bins 
@@ -94,7 +101,45 @@ public abstract class QualitativeMorph {
 		}
 		return newBin;
 	}
-	
+
+	/**
+	 * Cant choose the closest bin or a neighboring bin. 
+	 * @param <T>
+	 * @param binList
+	 * @param closestBin
+	 * @return
+	 */
+	protected <T> int chooseFurtherBin(List<Bin<T>> binList, int closestBin) {
+		int newBin;
+
+		if(binList.size()==2) {
+			return chooseDifferentBin(binList, closestBin);
+		}
+		else if (binList.size()==3) {
+			if(closestBin==1) { //middle bin, is adjacent to all bins. 
+				return chooseDifferentBin(binList, closestBin);
+			}
+			else {
+				while(true) {
+					newBin = stickMath_lib.randInt(0, binList.size()-1);
+					if(Math.abs(newBin - closestBin) > 1){
+						break;
+					}
+				}
+			}
+		}
+		else {
+			while(true) {
+				newBin = stickMath_lib.randInt(0, binList.size()-1);
+				if(Math.abs(newBin - closestBin) > 1){
+					break;
+				}
+			}
+		}
+
+		return newBin;
+	}
+
 	public double[] vector2Angles(Vector3d vector) {
 		double rho = vector.length();
 		double beta = Math.acos(vector.z/rho);
@@ -102,7 +147,7 @@ public abstract class QualitativeMorph {
 		double output[] = {alpha, beta};
 		return output;
 	}
-	
+
 	public static double[] Vector2Angles(Vector3d vector) {
 		double rho = vector.length();
 		double beta = Math.acos(vector.z/rho);
@@ -125,5 +170,7 @@ public abstract class QualitativeMorph {
 
 		return new Vector3d(x,y,z);
 	}
+
+
 
 }

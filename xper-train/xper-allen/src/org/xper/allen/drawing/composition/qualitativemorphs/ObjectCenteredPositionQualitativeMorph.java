@@ -126,9 +126,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 			//then the same angles apply. 
 			//But baseTangent will be rotated like crazy so the absolute position of these limbs
 			//is impossible to predict, but we can guarantee 
-			double min = baseTangentAngleBins.get(assignedBaseTangentAngleBin).min;
-			double max = baseTangentAngleBins.get(assignedBaseTangentAngleBin).max;
-			newBaseTangentAngle = stickMath_lib.randDouble(min, max);
+			newBaseTangentAngle = newValueFromBins(baseTangentAngleBins, assignedBaseTangentAngleBin);
 			//newBaseTangentAngle = 270*Math.PI/180; //DEBUG
 		}
 
@@ -140,9 +138,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 			//90: Flat/ in the plane
 			//180: Away from viewer/in
 			//270: Flat but INVERTS Left/Right. Only makes sense to specify this between 0 and 180. 
-			double min = perpendicularAngleBins.get(assignedPerpendicularAngleBin).min;
-			double max = perpendicularAngleBins.get(assignedPerpendicularAngleBin).max;
-			newPerpendicularAngle = stickMath_lib.randDouble(min,max);
+			newPerpendicularAngle = newValueFromBins(perpendicularAngleBins, assignedPerpendicularAngleBin);
 			//newPerpendicularAngle = 90*Math.PI/180; //DEBUG
 		}
 

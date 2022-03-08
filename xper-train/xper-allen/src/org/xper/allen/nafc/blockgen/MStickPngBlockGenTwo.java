@@ -13,7 +13,6 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.CurvatureMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.LengthMetricMorphMagnitude;
-import org.xper.allen.drawing.composition.metricmorphs.MetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphVector;
 import org.xper.allen.drawing.composition.metricmorphs.PositionMetricMorphMagnitude;
@@ -24,6 +23,7 @@ import org.xper.allen.drawing.composition.qualitativemorphs.Bin;
 import org.xper.allen.drawing.composition.qualitativemorphs.CurvatureRotationQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.ObjectCenteredPositionQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
+import org.xper.allen.drawing.composition.qualitativemorphs.SizeQualitativeMorph;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -166,7 +166,6 @@ public class MStickPngBlockGenTwo{
 		
 		//LOAD QUALITATIVE MORPH PARAMS
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
-		
 		{//Object Centered Position - Orientation and Position
 		qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
 		qmp.objectCenteredPositionFlag = false;
@@ -187,19 +186,26 @@ public class MStickPngBlockGenTwo{
 		}
 		{//Curvature And Rotation
 		qmp.curvRotQualMorph = new CurvatureRotationQualitativeMorph();
-		qmp.curvatureRotationFlag = true;
+		qmp.curvatureRotationFlag = false;
 		List<Bin<Double>> curvatureBins = qmp.curvRotQualMorph.curvatureBins;
-//		double radView = 10;
 		curvatureBins.add(new Bin<Double>(0.01, 0.1));
 		curvatureBins.add(new Bin<Double>(3.0, 6.0));
-		curvatureBins.add(new Bin<Double>(99999.99, 100000.0));
-//		List<Bin<Double>> rotationBins = qmp.curvRotQualMorph.rotationBins;
-//		double dev = 10;
-//		rotationBins.add(new Bin<Double>((-dev+0) * Math.PI/180, (dev+0)*Math.PI/180));
-//		rotationBins.add(new Bin<Double>((-dev+90) * Math.PI/180, (dev+90)*Math.PI/180));
-//		rotationBins.add(new Bin<Double>((-dev+180) * Math.PI/180, (dev+180)*Math.PI/180));
-//		rotationBins.add(new Bin<Double>((-dev+270) * Math.PI/180, (dev+270)*Math.PI/180));
+		curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
 		}
+		{//Size: Length & Width
+		qmp.sizeFlag = true;
+		qmp.sizeQualMorph = new SizeQualitativeMorph();
+		qmp.sizeQualMorph.setRadView(maxImageDimensionDegrees);
+		//These bins will be scaled depending on the particular limb's arcLen and curvature 
+		List<Bin<Double>> lengthBins = qmp.sizeQualMorph.lengthBins;
+		lengthBins.add(new Bin<Double>(0.2, 0.3));
+		lengthBins.add(new Bin<Double>(0.55, 0.65));
+		lengthBins.add(new Bin<Double>(0.90, 1.00));
+		}
+		List<Bin<Double>> thicknessBins = qmp.sizeQualMorph.thicknessBins;
+		thicknessBins.add(new Bin<Double>(0.25, 0.4));
+//		thicknessBins.add(new Bin<Double>(0.55, 0.65));
+		thicknessBins.add(new Bin<Double>(0.8, 1.0));
 		//GENERATION
 		try {
 			/**
