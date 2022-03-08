@@ -40,6 +40,11 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 		//scaledCurvatureBins = new ArrayList<>();
 	}
 
+	public void loadParams(double oldCurvature, double oldRotation) {
+		setOldCurvature(oldCurvature);
+		setOldRotation(oldRotation);
+	}
+	
 	public void calculate(double arcLen, AllenMAxisArc inArc) {
 		checkIf180RotationOkay(inArc);
 		assignBins(arcLen, inArc);

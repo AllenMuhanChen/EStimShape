@@ -546,9 +546,8 @@ public class AllenMatchStick extends MatchStick {
 						baseJuncNdx = baseJuncNdxList.get(0);
 					}
 					int oriPosition = getJuncPt()[i].getuNdx()[baseJuncNdx];
-					qmp.objCenteredPosQualMorph.setOldPosition(oriPosition);
 					oriTangent = getJuncPt()[i].getTangent()[id];
-					qmp.objCenteredPosQualMorph.setOldTangent(oriTangent);
+					qmp.objCenteredPosQualMorph.loadParams(oriPosition, oriTangent);
 				}
 			}
 
@@ -566,16 +565,13 @@ public class AllenMatchStick extends MatchStick {
 
 		//CURVATURE AND ROTATION
 		if(qmp.curvatureRotationFlag) {
-			qmp.curvRotQualMorph.setOldCurvature(getComp()[id].getmAxisInfo().getRad());
-			qmp.curvRotQualMorph.setOldRotation(getComp()[id].getmAxisInfo().getTransRotHis_devAngle());
+			qmp.curvRotQualMorph.loadParams(getComp()[id].getmAxisInfo().getRad(), getComp()[id].getmAxisInfo().getTransRotHis_devAngle());
 			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo().getArcLen(),getComp()[id].getmAxisInfo());
 		} // Curvature Rotation 
 
 		//SIZE: LENGTH & THICKNESS
 		if(qmp.sizeFlag) {
-			qmp.sizeQualMorph.setOldLength(getComp()[id].getmAxisInfo().getArcLen());
-			getComp()[id].normalizeRadInfo();
-			qmp.sizeQualMorph.setOldThickness(getComp()[id].getScale());
+			qmp.sizeQualMorph.loadParams(getComp()[id].getmAxisInfo().getArcLen(), getComp()[id].getScale());
 			qmp.sizeQualMorph.calculate(getComp()[id].getmAxisInfo());
 		}
 		

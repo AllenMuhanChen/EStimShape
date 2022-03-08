@@ -31,11 +31,25 @@ public class SizeQualitativeMorph extends QualitativeMorph{
 
 
 	
-	public SizeQualitativeMorph() {
+	public SizeQualitativeMorph(double radView) {
+		this.radView = radView;
 		lengthBins = new ArrayList<Bin<Double>>();
 		thicknessBins = new ArrayList<Bin<Double>>();
 	}
-
+	/**
+	 * This needs to be run first
+	 * @param oldLength
+	 * @param oldThickness
+	 */
+	public void loadParams(double oldLength, double oldThickness) {
+		setOldLength(oldLength);
+		setOldThickness(oldThickness);
+	}
+	
+	/**
+	 * Run sometime after loadParams
+	 * @param inArc
+	 */
 	public void calculate(AllenMAxisArc inArc) {
 		assignBins(inArc);
 		double minThickness = thicknessMax * (3/10);

@@ -15,7 +15,9 @@ import org.xper.drawing.stick.stickMath_lib;
  *
  */
 public abstract class QualitativeMorph {
-
+	
+	//public abstract void loadParams();
+	
 	protected double newValueFromBins(List<Bin<Double>> binList, int assignedBin){
 		double min = binList.get(assignedBin).min;
 		double max = binList.get(assignedBin).max;
