@@ -8,6 +8,8 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
+import javax.vecmath.Vector3d;
+
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
@@ -169,7 +171,7 @@ public class MStickPngBlockGenTwo{
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
 		{//Object Centered Position - Orientation and Position
 		qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
-		qmp.objectCenteredPositionFlag = true;
+		qmp.objectCenteredPositionFlag = false;
 		List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
 		positionBins.add(new Bin<Integer>(1,1));
 		positionBins.add(new Bin<Integer>(20,32));
@@ -207,7 +209,7 @@ public class MStickPngBlockGenTwo{
 		thicknessBins.add(new Bin<Double>(0.8, 1.0));
 		}
 		{//radProfile
-		qmp.radProfileFlag = false;
+		qmp.radProfileFlag = true;
 		qmp.radProfileQualMorph = new RadProfileQualitativeMorph();
 		List<Bin<Double>> juncBins = qmp.radProfileQualMorph.juncBins;
 		double dev=0.1;
@@ -215,15 +217,27 @@ public class MStickPngBlockGenTwo{
 		double fat = 1;
 		double tip = .1;
 		double tipDev = 0.09999;
-		juncBins.add(new Bin<Double>(mini-dev, mini+dev));
-		juncBins.add(new Bin<Double>(fat-dev, fat+dev));
-		List<Bin<Double>> midBins = qmp.radProfileQualMorph.midBins;
-		midBins.add(new Bin<Double>(mini-dev, mini+dev));
-		midBins.add(new Bin<Double>(fat-dev, fat+dev));
-		List<Bin<Double>> endBins = qmp.radProfileQualMorph.endBins;
-		endBins.add(new Bin<Double>(tip-tipDev,tip));
-		endBins.add(new Bin<Double>(mini-dev, mini+dev));
-		endBins.add(new Bin<Double>(fat-dev, fat+dev));
+//		juncBins.add(new Bin<Double>(mini-dev, mini+dev));
+//		juncBins.add(new Bin<Double>(fat-dev, fat+dev));
+//		List<Bin<Double>> midBins = qmp.radProfileQualMorph.midBins;
+//		midBins.add(new Bin<Double>(mini-dev, mini+dev));
+//		midBins.add(new Bin<Double>(fat-dev, fat+dev));
+//		List<Bin<Double>> endBins = qmp.radProfileQualMorph.endBins;
+//		endBins.add(new Bin<Double>(tip-tipDev,tip));
+//		endBins.add(new Bin<Double>(mini-dev, mini+dev));
+//		endBins.add(new Bin<Double>(fat-dev, fat+dev));
+		List<Vector3d> radProfileBins = qmp.radProfileQualMorph.radProfileBins;
+		tip = tip - tipDev;
+		radProfileBins.add(new Vector3d(fat, fat, fat));
+		radProfileBins.add(new Vector3d(mini, mini, fat));
+		radProfileBins.add(new Vector3d(mini, fat, mini));
+		radProfileBins.add(new Vector3d(fat, mini,mini));
+		radProfileBins.add(new Vector3d(mini, fat, fat));
+		radProfileBins.add(new Vector3d(fat, mini, fat));
+		radProfileBins.add(new Vector3d(fat, fat, mini));
+		radProfileBins.add(new Vector3d(fat, mini, tip));
+		radProfileBins.add(new Vector3d(fat, fat, tip));
+		radProfileBins.add(new Vector3d(mini, fat, tip));
 		}
 		//GENERATION
 		try {

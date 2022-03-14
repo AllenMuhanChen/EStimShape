@@ -5,64 +5,79 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.vecmath.Vector2d;
+import javax.vecmath.Vector3d;
+
 import org.xper.drawing.stick.stickMath_lib;
 
 public class RadProfileQualitativeMorph extends QualitativeMorph{
 	private boolean juncEnabled = false;
-	
+	private double binAngleDeviation = 5*Math.PI/180;
+
 	private boolean juncFlag;
 	private boolean midFlag;
 	private boolean endFlag;
-	
+
 	private double oldJunc;
 	private double oldMid;
 	private double oldEnd;
-	
+	private Vector3d oldRadProfile;
 	private double newJunc;
 	private double newMid;
 	private double newEnd;
-	
+
 	/*
 	 * These bins should contain normalized data
 	 */
 	public List<Bin<Double>> juncBins;
 	public List<Bin<Double>> midBins;
 	public List<Bin<Double>> endBins;
-	
-	private int assignedJuncBin;
-	private int assignedMidBin;
-	private int assignedEndBin;
-	
+
+	public List<Vector3d> radProfileBins;
+
+	//	private int assignedJuncBin;
+	//	private int assignedMidBin;
+	//	private int assignedEndBin;
+	private int assignedRadProfileBin;
+
+
 	public RadProfileQualitativeMorph() {
-		juncBins = new ArrayList<Bin<Double>>();
-		midBins = new ArrayList<Bin<Double>>();
-		endBins = new ArrayList<Bin<Double>>();
+		//		juncBins = new ArrayList<Bin<Double>>();
+		//		midBins = new ArrayList<Bin<Double>>();
+		//		endBins = new ArrayList<Bin<Double>>();
+		//		
+		radProfileBins = new ArrayList<Vector3d>();
 	}
-	
+
 	public void loadParams(double oldJunc, double oldMid, double oldEnd) {
 		setOldJunc(oldJunc);
 		setOldMid(oldMid);
 		setOldEnd(oldEnd);
+		setOldRadProfile(new Vector3d(oldJunc, oldMid, oldEnd));
 	}
-	
+
 	public void calculate() {
 		assignBins();
-		
-		if(juncFlag) {
-			newJunc = newValueFromBins(juncBins, assignedJuncBin);
+
+		if(isJuncEnabled()) {
+			Vector3d newRadProfile = newVectorFromBins(radProfileBins, assignedRadProfileBin);
+			setNewJunc(newRadProfile.getX());
+			setNewMid(newRadProfile.getY());
+			setNewEnd(newRadProfile.getZ());
 		}
-		if(midFlag) {
-			newMid = newValueFromBins(midBins, assignedMidBin);
-		}
-		if(endFlag) {
-			newEnd = newValueFromBins(endBins, assignedEndBin);
+		else {
+			Vector3d newRadProfile = newVectorFromBins(radProfileBins, assignedRadProfileBin);
+			setNewJunc(oldRadProfile.getX());
+			setNewMid(newRadProfile.getY());
+			setNewEnd(newRadProfile.getZ());
 		}
 	}
 
 	private void assignBins() {
-		int closestJuncBin = findClosestBin(juncBins, oldJunc);
-		int closestMidBin = findClosestBin(midBins, oldMid);
-		int closestEndBin = findClosestBin(endBins, oldEnd);
+		//		int closestJuncBin = findClosestBin(juncBins, oldJunc);
+		//		int closestMidBin = findClosestBin(midBins, oldMid);
+		//		int closestEndBin = findClosestBin(endBins, oldEnd);
+		int closestRadProfileBin = findClosestRadProfileBin(radProfileBins, oldRadProfile);
 		//Decide how many to change
 		int numToMorph = stickMath_lib.randInt(1, 2);
 		//Decide which to change
@@ -73,12 +88,12 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 		locList.add(2); 
 		locList.add(3);
 		Collections.shuffle(locList);
-		
+
 		List<Integer> toMorphList = new LinkedList<>();
 		for(int i=0; i<numToMorph; i++) {
 			toMorphList.add(locList.get(i));
 		}
-		
+
 		for(int loc : locList) {
 			if (loc==1)
 				juncFlag = true;
@@ -87,12 +102,98 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 			if (loc==3)
 				endFlag = true;
 		}
-		
-		assignedJuncBin = chooseDifferentBin(juncBins, closestJuncBin);
-		assignedMidBin = chooseDifferentBin(midBins, closestMidBin);
-		assignedEndBin = chooseDifferentBin(endBins, closestEndBin);
+
+		//		assignedJuncBin = chooseDifferentBin(juncBins, closestJuncBin);
+		//		assignedMidBin = chooseDifferentBin(midBins, closestMidBin);
+		//		assignedEndBin = chooseDifferentBin(endBins, closestEndBin);
+		assignedRadProfileBin = chooseFurtherRadProfileBin(radProfileBins, closestRadProfileBin);
+
 	}
-	
+
+	private Vector3d newVectorFromBins(List<Vector3d> binList, int assignedBin){
+		Vector3d newRadProfile = new Vector3d();
+		while(true) {
+			newRadProfile = stickMath_lib.randomUnitVec();
+
+			double angle = newRadProfile.angle(binList.get(assignedRadProfileBin));
+
+			if(angle<getBinAngleDeviation()) {
+				break;
+			}
+
+		}
+
+		return newRadProfile;
+	}
+
+	private int findClosestRadProfileBin(List<Vector3d> binList, Vector3d nowVec) {
+		int closestBin=-1;
+
+		double minAngle=100000;
+		for (int i=0; i<binList.size(); i++) {
+			double angle = nowVec.angle(binList.get(i));
+			if(angle<minAngle) {
+				minAngle = angle;
+				closestBin = i;
+			}
+		}
+
+		return closestBin;
+
+	}
+
+	private <T> int chooseFurtherRadProfileBin(List<Vector3d> binList, int closestBin) {
+		int newBin;
+		int nTries = 10;
+		int n=0;
+		int furthestBin=-1;
+		double maxAngle=0;
+		while(n<nTries) {
+			newBin = stickMath_lib.randInt(0, binList.size()-1);
+			if(!juncEnabled) {
+				Vector3d bin = binList.get(newBin);
+				Vector3d cBin = binList.get(closestBin);
+				Vector2d newBin2d = new Vector2d(bin.y, bin.z);
+				Vector2d closestBin2d = new Vector2d(cBin.y, cBin.z);
+				if(closestBin2d.angle(newBin2d) > maxAngle) {
+					maxAngle = closestBin2d.angle(newBin2d);
+					furthestBin = newBin;
+				}
+			}
+			else {
+				Vector3d closestBinVec = binList.get(closestBin);
+				Vector3d newBinVec = binList.get(newBin);
+				if (closestBinVec.angle(newBinVec) > maxAngle) {
+					maxAngle = closestBinVec.angle(newBinVec);
+					furthestBin = newBin;
+				}
+			}
+			n++;
+		}
+		return furthestBin;
+	}
+
+	private <T> int chooseDifferentRadProfileBin(List<Vector3d> binList, int closestBin) {
+		int newBin;
+		while(true) {
+			newBin = stickMath_lib.randInt(0, binList.size()-1);
+			if(newBin != closestBin) {
+				if(!juncEnabled) {
+					Vector3d bin = binList.get(newBin);
+					Vector3d cBin = binList.get(closestBin);
+					Vector2d newBin2d = new Vector2d(bin.y, bin.z);
+					Vector2d closestBin2d = new Vector2d(cBin.y, cBin.z);
+					if(!newBin2d.equals(closestBin2d)) {
+						break;
+					}
+				} else {
+					break;
+				}
+			}
+		}
+		return newBin;
+	}
+
 	public boolean isJuncFlag() {
 		return juncFlag;
 	}
@@ -189,29 +290,29 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 		this.endBins = endBins;
 	}
 
-	public int getAssignedJuncBin() {
-		return assignedJuncBin;
-	}
-
-	public void setAssignedJuncBin(int assignedJuncBin) {
-		this.assignedJuncBin = assignedJuncBin;
-	}
-
-	public int getAssignedMidBin() {
-		return assignedMidBin;
-	}
-
-	public void setAssignedMidBin(int assignedMidBin) {
-		this.assignedMidBin = assignedMidBin;
-	}
-
-	public int getAssignedEndBin() {
-		return assignedEndBin;
-	}
-
-	public void setAssignedEndBin(int assignedEndBin) {
-		this.assignedEndBin = assignedEndBin;
-	}
+	//	public int getAssignedJuncBin() {
+	//		return assignedJuncBin;
+	//	}
+	//
+	//	public void setAssignedJuncBin(int assignedJuncBin) {
+	//		this.assignedJuncBin = assignedJuncBin;
+	//	}
+	//
+	//	public int getAssignedMidBin() {
+	//		return assignedMidBin;
+	//	}
+	//
+	//	public void setAssignedMidBin(int assignedMidBin) {
+	//		this.assignedMidBin = assignedMidBin;
+	//	}
+	//
+	//	public int getAssignedEndBin() {
+	//		return assignedEndBin;
+	//	}
+	//
+	//	public void setAssignedEndBin(int assignedEndBin) {
+	//		this.assignedEndBin = assignedEndBin;
+	//	}
 
 	public boolean isMorphJunc() {
 		return isJuncEnabled();
@@ -228,5 +329,21 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 	private void setJuncEnabled(boolean juncEnabled) {
 		this.juncEnabled = juncEnabled;
 	}
-	
+
+	private Vector3d getOldRadProfile() {
+		return oldRadProfile;
+	}
+
+	private void setOldRadProfile(Vector3d oldRadProfile) {
+		this.oldRadProfile = oldRadProfile;
+	}
+
+	private double getBinAngleDeviation() {
+		return binAngleDeviation;
+	}
+
+	private void setBinAngleDeviation(double binAngleDeviation) {
+		this.binAngleDeviation = binAngleDeviation;
+	}
+
 }
