@@ -10,15 +10,14 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
+import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.Coordinates2D;
-import org.xper.allen.drawing.composition.*;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.MStickObj4Smooth;
 import org.xper.drawing.stick.MatchStick;
-import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.stickMath_lib;
 
 /**
@@ -2723,6 +2722,8 @@ Adding a new MAxisArc to a MatchStick
 		// call the check function to see if the newly added component violate the skeleton nearby safety zone.
 	}
 
+
+	
 	public int chooseRandLeaf() {
 		decideLeafBranch();
 		List<Integer> choosableList = new LinkedList<Integer>();
@@ -2733,6 +2734,30 @@ Adding a new MAxisArc to a MatchStick
 		}
 		Collections.shuffle(choosableList);
 		return choosableList.get(0);
+	}
+	
+	public boolean vetLeaf(int leafIndx) {
+		AllenTubeComp toVet = this.getComp()[leafIndx];
+		Vector3d orientation = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
+		double[] angles;
+		angles = QualitativeMorph.Vector2Angles(orientation);
+		double forbiddenAngle = 180 * Math.PI/180;
+		double deviation = 45 * Math.PI/180;
+		
+		double angleToCheck = angles[1];
+		while(angleToCheck < 0 * Math.PI/180) {
+			angleToCheck += 360 * Math.PI/180;
+		}
+		while(angleToCheck > 360 * Math.PI/180) {
+			angleToCheck -= 360 * Math.PI/180;
+		}
+		
+		if((angleToCheck > forbiddenAngle - deviation) && (angleToCheck < forbiddenAngle + deviation)) {
+			return false;
+		}
+		else {
+			return true;
+		}
 	}
 
 	/**
