@@ -31,7 +31,7 @@ public class AllenTubeComp extends TubeComp{
 	private Point3d maxXYZ;
 	private Point3d minXYZ;
 	boolean scaleOnce = true;
-
+	private boolean isNormalized = false;
 	public int maxStep = 51;
 
 
@@ -68,12 +68,15 @@ public class AllenTubeComp extends TubeComp{
 			}
 		}
 
-		for (int i=0; i<3; i++) {
-			getNormalizedRadInfo()[i][0] = getRadInfo()[i][0];
-			getNormalizedRadInfo()[i][1] = getRadInfo()[i][1] / max;
-		}
+		if(!isNormalized()) {
+			for (int i=0; i<3; i++) {
+				getNormalizedRadInfo()[i][0] = getRadInfo()[i][0];
+				getNormalizedRadInfo()[i][1] = getRadInfo()[i][1] / max;
+			}
 
-		setScale(max);
+			setScale(max);
+			setNormalized(true);
+		}
 	}
 
 	public void unnormalizeRadInfo() {
@@ -307,6 +310,14 @@ public class AllenTubeComp extends TubeComp{
 
 	public void setScale(double scale) {
 		this.scale = scale;
+	}
+
+	boolean isNormalized() {
+		return isNormalized;
+	}
+
+	void setNormalized(boolean isNormalized) {
+		this.isNormalized = isNormalized;
 	}
 
 }

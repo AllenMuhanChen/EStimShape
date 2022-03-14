@@ -1270,7 +1270,7 @@ public class MatchStick implements Drawable {
 				getJuncPt()[i].showInfo();
 		}
 
-		for (i = 1 ; i<=  this.getnJuncPt(); i++)
+		for (i = 1 ; i<=  getnJuncPt(); i++)
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				for (k=j+1; k<= getJuncPt()[i].getnComp(); k++)
 				{

@@ -23,6 +23,7 @@ import org.xper.allen.drawing.composition.qualitativemorphs.Bin;
 import org.xper.allen.drawing.composition.qualitativemorphs.CurvatureRotationQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.ObjectCenteredPositionQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
+import org.xper.allen.drawing.composition.qualitativemorphs.RadProfileQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.SizeQualitativeMorph;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
@@ -168,7 +169,7 @@ public class MStickPngBlockGenTwo{
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
 		{//Object Centered Position - Orientation and Position
 		qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
-		qmp.objectCenteredPositionFlag = false;
+		qmp.objectCenteredPositionFlag = true;
 		List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
 		positionBins.add(new Bin<Integer>(1,1));
 		positionBins.add(new Bin<Integer>(20,32));
@@ -193,18 +194,37 @@ public class MStickPngBlockGenTwo{
 		curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
 		}
 		{//Size: Length & Width
-		qmp.sizeFlag = true;
+		qmp.sizeFlag = false;
 		qmp.sizeQualMorph = new SizeQualitativeMorph(maxImageDimensionDegrees);
 		//These bins will be scaled depending on the particular limb's arcLen and curvature 
 		List<Bin<Double>> lengthBins = qmp.sizeQualMorph.lengthBins;
 		lengthBins.add(new Bin<Double>(0.2, 0.3));
 		lengthBins.add(new Bin<Double>(0.55, 0.65));
 		lengthBins.add(new Bin<Double>(0.90, 1.00));
-		}
 		List<Bin<Double>> thicknessBins = qmp.sizeQualMorph.thicknessBins;
 		thicknessBins.add(new Bin<Double>(0.25, 0.4));
 //		thicknessBins.add(new Bin<Double>(0.55, 0.65));
 		thicknessBins.add(new Bin<Double>(0.8, 1.0));
+		}
+		{//radProfile
+		qmp.radProfileFlag = false;
+		qmp.radProfileQualMorph = new RadProfileQualitativeMorph();
+		List<Bin<Double>> juncBins = qmp.radProfileQualMorph.juncBins;
+		double dev=0.1;
+		double mini = 0.5;
+		double fat = 1;
+		double tip = .1;
+		double tipDev = 0.09999;
+		juncBins.add(new Bin<Double>(mini-dev, mini+dev));
+		juncBins.add(new Bin<Double>(fat-dev, fat+dev));
+		List<Bin<Double>> midBins = qmp.radProfileQualMorph.midBins;
+		midBins.add(new Bin<Double>(mini-dev, mini+dev));
+		midBins.add(new Bin<Double>(fat-dev, fat+dev));
+		List<Bin<Double>> endBins = qmp.radProfileQualMorph.endBins;
+		endBins.add(new Bin<Double>(tip-tipDev,tip));
+		endBins.add(new Bin<Double>(mini-dev, mini+dev));
+		endBins.add(new Bin<Double>(fat-dev, fat+dev));
+		}
 		//GENERATION
 		try {
 			/**
