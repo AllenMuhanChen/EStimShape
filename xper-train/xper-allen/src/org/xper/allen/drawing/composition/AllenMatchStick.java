@@ -28,6 +28,7 @@ import org.xper.drawing.stick.stickMath_lib;
  */
 public class AllenMatchStick extends MatchStick {
 
+	public static final double MAX_LEAF_TO_BASE_AREA_RATIO = 0.66;
 	private AllenTubeComp[] comp = new AllenTubeComp[9];
 	private int nEndPt;
 	private int nJuncPt;
@@ -594,7 +595,7 @@ public class AllenMatchStick extends MatchStick {
 			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo().getArcLen(),getComp()[id].getmAxisInfo());
 		} // Curvature Rotation 
 
-		
+
 		//SIZE: LENGTH & THICKNESS
 		if(qmp.sizeFlag) {
 			qmp.sizeQualMorph.loadParams(getComp()[id].getmAxisInfo().getArcLen(), getComp()[id].getScale());
@@ -602,7 +603,7 @@ public class AllenMatchStick extends MatchStick {
 		}
 
 		//RADPROFILE
-		
+
 		if(qmp.radProfileFlag) {
 			double[][] normalizedRadInfo = getComp()[id].getNormalizedRadInfo();
 			double oldJunc = normalizedRadInfo[radProfileJuncIndx][1];
@@ -1466,28 +1467,76 @@ public class AllenMatchStick extends MatchStick {
 
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
+			
+			//TRY SMOOTHING THE SHAPE
 			centerShapeAtOrigin(-1);
+			boolean smoothSuccess = false;
 			if(compSuccess){
-				boolean res;
-				try {
-					res = this.smoothizeMStick();
-				} catch(Exception e){
-					res = false;
-				}
-				if (res == true){ // success to smooth
-					return true;
-				}
-				else{
-				}
 
-			}// else we need to gen another shape
-			// else
-			// System.out.println(" Fail to smooth combine the shape. try
-			// again.");
+				try {
+					smoothSuccess = this.smoothizeMStick();
+				} catch(Exception e){
+					smoothSuccess = false;
+				}
+			}
+			
+			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
+			boolean sizeVetSuccess = false;
+			if (smoothSuccess == true){ // success to smooth
+				int leafNVect = getComp()[leafIndx].getnVect();
+				Point3d[] leafVect_info = getComp()[leafIndx].getVect_info();
+				Point3d[] leafBox = getBoundingBox(leafNVect, leafVect_info);
+				double leafArea = findAreaOfBox(leafBox);
+				
+				int baseNVect = getComp()[getBaseComp()].getnVect(); //TODO: could extend this beyond base, and add accessories
+				Point3d[] baseVect_info = getComp()[getBaseComp()].getVect_info();
+				Point3d[] baseBox = getBoundingBox(baseNVect, baseVect_info);
+				double baseArea = findAreaOfBox(baseBox);
+				
+				if(leafArea < baseArea*MAX_LEAF_TO_BASE_AREA_RATIO) {
+					sizeVetSuccess = true;
+				}
+			}
+			
+			if(sizeVetSuccess) {
+				return true;
+			}
+			// else we need to gen another shape
 			i++;
 		}
 		return false;
 
+	}
+
+	public static double findAreaOfBox(Point3d[] box) {
+		LinkedList<Double> x = new LinkedList<>();
+		LinkedList<Double> y = new LinkedList<>();
+		for(int k=0; k<box.length; k++) {
+			x.add(box[k].getX());
+			y.add(box[k].getY());
+		}
+		double length = Collections.max(x) - Collections.min(x);
+		double width = Collections.max(y) - Collections.min(y);
+		double leafArea = length*width;
+		return leafArea;
+	}
+	private Point3d[] getBoundingBox(int nVect, Point3d[] vect_info) {
+		Point3d[] box = new Point3d[2];
+		box[0] = new Point3d(5000,5000,5000);
+		box[1] = new Point3d(-5000,-5000,-5000);
+
+		for (int i=1; i<= nVect; i++) {
+			Point3d p1 = vect_info[i];
+
+			box[1].x = Math.max(box[1].x, p1.x);
+			box[1].y = Math.max(box[1].y, p1.y);
+			box[1].z = Math.max(box[1].z, p1.z);
+
+			box[0].x = Math.min(box[0].x, p1.x);
+			box[0].y = Math.min(box[0].y, p1.y);
+			box[0].z = Math.min(box[0].z, p1.z);
+		}
+		return box;
 	}
 
 	/**
@@ -1675,19 +1724,19 @@ public class AllenMatchStick extends MatchStick {
 			for(int juncIndx : juncList) {
 				compIndx = amsOfLeaf.getJuncPt()[juncIndx].getIndexOfComp(leafIndx);
 				int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndx];
-				
-				
+
+
 				//JUNC IS AN END
 				if(junc_uNdx == 51 || junc_uNdx == 1) {
 					notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
-					
+
 					//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
 					compIndx = notSpecialJunc.getIndexOfComp(leafIndx);
 					nseUNdx = notSpecialJunc.getuNdx()[compIndx];
 					nsePos = notSpecialJunc.getPos();
 					nseTangent = notSpecialJunc.getTangent()[compIndx];
 					nseRad = notSpecialJunc.getRad();
-					
+
 					//DEFINE SPECIAL END TO BE THE OTHER END PT
 					specialEnd = new EndPt_struct();
 					for(int endIndx: endList) {
@@ -1717,21 +1766,21 @@ public class AllenMatchStick extends MatchStick {
 					nseRad = notSpecialEnd.getRad();
 				}
 			}
-			
+
 			//DEFINE SPECIAL END TO BE THE END THAT IS NOT PREVIOUSLY A JUNC
 			setSpecialEndComp(1);
 			setSpecialEnd(1);
-			
+
 			int seComp = getSpecialEndComp();
 			int seUNdx = specialEnd.getuNdx();
 			Point3d sePos = specialEnd.getPos();
 			Vector3d seTangent = specialEnd.getTangent();
 			double seRad = specialEnd.getRad();
-			
+
 			getEndPt()[getSpecialEnd()] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
 			getEndPt()[getSpecialEnd()+1] = new EndPt_struct(seComp, nseUNdx, nsePos, nseTangent, nseRad);
 
-			
+
 			setnJuncPt(0);
 			setnEndPt(2);
 
@@ -1887,15 +1936,15 @@ public class AllenMatchStick extends MatchStick {
 			// 4. replace old endPt with new endPt
 			getEndPt()[nowPtNdx] = null;
 			getEndPt()[nowPtNdx] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], nowArc.getRad());
-			
-//			 2.5 call the function to check if this new arc is valid
+
+			//			 2.5 call the function to check if this new arc is valid
 			if (checkSkeletonNearby(nowComp) == true)
 			{
 				getJuncPt()[getnJuncPt()] = null;
 				setnJuncPt(getnJuncPt() - 1);
 				return false;
 			}
-			
+
 			// 5. Update the baseComp
 			setBaseComp(nowComp);
 		}
@@ -2723,7 +2772,7 @@ Adding a new MAxisArc to a MatchStick
 	}
 
 
-	
+
 	public int chooseRandLeaf() {
 		decideLeafBranch();
 		List<Integer> choosableList = new LinkedList<Integer>();
@@ -2735,7 +2784,7 @@ Adding a new MAxisArc to a MatchStick
 		Collections.shuffle(choosableList);
 		return choosableList.get(0);
 	}
-	
+
 	public boolean vetLeaf(int leafIndx) {
 		AllenTubeComp toVet = this.getComp()[leafIndx];
 		Vector3d orientation = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
@@ -2743,7 +2792,7 @@ Adding a new MAxisArc to a MatchStick
 		angles = QualitativeMorph.Vector2Angles(orientation);
 		double forbiddenAngle = 180 * Math.PI/180;
 		double deviation = 45 * Math.PI/180;
-		
+
 		double angleToCheck = angles[1];
 		while(angleToCheck < 0 * Math.PI/180) {
 			angleToCheck += 360 * Math.PI/180;
@@ -2751,7 +2800,7 @@ Adding a new MAxisArc to a MatchStick
 		while(angleToCheck > 360 * Math.PI/180) {
 			angleToCheck -= 360 * Math.PI/180;
 		}
-		
+
 		if((angleToCheck > forbiddenAngle - deviation) && (angleToCheck < forbiddenAngle + deviation)) {
 			return false;
 		}
