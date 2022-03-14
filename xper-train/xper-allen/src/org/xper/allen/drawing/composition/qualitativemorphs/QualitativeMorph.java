@@ -11,6 +11,14 @@ import org.xper.drawing.stick.stickMath_lib;
 
 /**
  * Provides some useful methods using generics for Qualitative Morphs
+ * 
+ * Some basic architecture for QualitativeMorph subclass objects:
+ * 	1. QualitativeMorph objects are created once and used for the rest of the execution of stimuli generation
+ * 	2. The job of these objects are to store parameters and use them later to generate new parameters based on 
+ * 		both constant (bins) and constantly changing (current Arc params) parameters.
+ * 	3. Obviously stored params need to be data members
+ * 	4. However rapidly changing params should be passed in as function arguments for safety
+ * 		against not resetting them and readability. 
  * @author r2_allen
  *
  */

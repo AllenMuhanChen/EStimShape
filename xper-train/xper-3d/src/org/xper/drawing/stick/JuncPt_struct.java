@@ -48,6 +48,22 @@ public class JuncPt_struct {
       }
 
       /**
+       * AC: 
+       * Return the index in comp[100] associated with a certain comp  
+       * @param comp
+       * @return
+       */
+      public int getIndexOfComp(int compId) {
+    	  for(int i=1; i<=comp.length; i++) {
+    		  if(comp[i]==compId) {
+    			  return i;
+    		  }
+    	  }
+    	  System.out.println("getIndexOfComp(int compId) returned 0, this should means that compId is not a component in this Junc");
+    	  return 0;
+      }
+      
+      /**
         Copy any information from the structure in the paremeter
     */
       public void copyFrom( JuncPt_struct in)
