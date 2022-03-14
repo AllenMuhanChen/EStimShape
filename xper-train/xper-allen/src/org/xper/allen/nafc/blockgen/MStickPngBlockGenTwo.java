@@ -61,12 +61,12 @@ public class MStickPngBlockGenTwo{
 	@Dependency
 	String experimentImageFolderPath;
 
-	
+
 	/**
 	 * Selects visual stimuli randomly from stimTypes
 	 */
 	Random r = new Random();
-	
+
 	/**
 	 *  Generate trials where:
 	 *  Sample: Generated matchstick from a randomly generated limb
@@ -89,7 +89,7 @@ public class MStickPngBlockGenTwo{
 			double distractorScaleUpperLim, double metricMorphMagnitude) { //
 
 
-		
+
 		//INTERMIXING TYPES OF TRIALS
 		int numTrials = IntStream.of(trialNums).sum(); //Sum all elements of trialNums
 		List<Integer>trialTypeList = new ArrayList<Integer>(); //Type = number of choices
@@ -140,7 +140,7 @@ public class MStickPngBlockGenTwo{
 		mmp.sizeMagnitude = new SizeMetricMorphMagnitude();
 		mmp.sizeMagnitude.percentChangeLowerBound = 0.15;
 		mmp.sizeMagnitude.percentChangeUpperBound = 0.3;
-		
+
 		//curvature
 		mmp.curvatureFlag = false;
 		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude();
@@ -166,78 +166,78 @@ public class MStickPngBlockGenTwo{
 		mmp.radProfileEndMagnitude.percentChangeLowerBound = 0.05;
 		mmp.radProfileEndMagnitude.percentChangeUpperBound = 0.15;
 		//
-		
+
 		//LOAD QUALITATIVE MORPH PARAMS
 		QualitativeMorphParams qmp = new QualitativeMorphParams();
 		{//Object Centered Position - Orientation and Position
-		qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
-		qmp.objectCenteredPositionFlag = false;
-		List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
-		positionBins.add(new Bin<Integer>(1,1));
-		positionBins.add(new Bin<Integer>(20,32));
-		positionBins.add(new Bin<Integer>(51,51));
-		List<Bin<Double>> baseTangentAngleBins = qmp.objCenteredPosQualMorph.baseTangentAngleBins;
-		double dev = 10;
-		baseTangentAngleBins.add(new Bin<Double>((-dev+0)*Math.PI/180,(dev+0)*Math.PI/180));
-		baseTangentAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
-		baseTangentAngleBins.add(new Bin<Double>((-dev+180)*Math.PI/180,(dev+180)*Math.PI/180));
-		baseTangentAngleBins.add(new Bin<Double>((-dev+270)*Math.PI/180,(dev+270)*Math.PI/180));
-		List<Bin<Double>> perpendicularAngleBins = qmp.objCenteredPosQualMorph.perpendicularAngleBins;
-		perpendicularAngleBins.add(new Bin<Double>((-dev+45)*Math.PI/180,(dev+45)*Math.PI/180));
-		perpendicularAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
-		perpendicularAngleBins.add(new Bin<Double>((-dev+135)*Math.PI/180,(dev+135)*Math.PI/180));
+			qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
+			qmp.objectCenteredPositionFlag = false;
+			List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
+			positionBins.add(new Bin<Integer>(1,1));
+			positionBins.add(new Bin<Integer>(20,32));
+			positionBins.add(new Bin<Integer>(51,51));
+			List<Bin<Double>> baseTangentAngleBins = qmp.objCenteredPosQualMorph.baseTangentAngleBins;
+			double dev = 10;
+			baseTangentAngleBins.add(new Bin<Double>((-dev+0)*Math.PI/180,(dev+0)*Math.PI/180));
+			baseTangentAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
+			baseTangentAngleBins.add(new Bin<Double>((-dev+180)*Math.PI/180,(dev+180)*Math.PI/180));
+			baseTangentAngleBins.add(new Bin<Double>((-dev+270)*Math.PI/180,(dev+270)*Math.PI/180));
+			List<Bin<Double>> perpendicularAngleBins = qmp.objCenteredPosQualMorph.perpendicularAngleBins;
+			perpendicularAngleBins.add(new Bin<Double>((-dev+45)*Math.PI/180,(dev+45)*Math.PI/180));
+			perpendicularAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
+			perpendicularAngleBins.add(new Bin<Double>((-dev+135)*Math.PI/180,(dev+135)*Math.PI/180));
 		}
 		{//Curvature And Rotation
-		qmp.curvRotQualMorph = new CurvatureRotationQualitativeMorph();
-		qmp.curvatureRotationFlag = false;
-		List<Bin<Double>> curvatureBins = qmp.curvRotQualMorph.curvatureBins;
-		curvatureBins.add(new Bin<Double>(0.01, 0.1));
-		curvatureBins.add(new Bin<Double>(3.0, 6.0));
-		curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
+			qmp.curvRotQualMorph = new CurvatureRotationQualitativeMorph();
+			qmp.curvatureRotationFlag = false;
+			List<Bin<Double>> curvatureBins = qmp.curvRotQualMorph.curvatureBins;
+			curvatureBins.add(new Bin<Double>(0.01, 0.1));
+			curvatureBins.add(new Bin<Double>(3.0, 6.0));
+			curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
 		}
 		{//Size: Length & Width
-		qmp.sizeFlag = false;
-		qmp.sizeQualMorph = new SizeQualitativeMorph(maxImageDimensionDegrees);
-		//These bins will be scaled depending on the particular limb's arcLen and curvature 
-		List<Bin<Double>> lengthBins = qmp.sizeQualMorph.lengthBins;
-		lengthBins.add(new Bin<Double>(0.2, 0.3));
-		lengthBins.add(new Bin<Double>(0.55, 0.65));
-		lengthBins.add(new Bin<Double>(0.90, 1.00));
-		List<Bin<Double>> thicknessBins = qmp.sizeQualMorph.thicknessBins;
-		thicknessBins.add(new Bin<Double>(0.25, 0.4));
-//		thicknessBins.add(new Bin<Double>(0.55, 0.65));
-		thicknessBins.add(new Bin<Double>(0.8, 1.0));
+			qmp.sizeFlag = false;
+			qmp.sizeQualMorph = new SizeQualitativeMorph(maxImageDimensionDegrees);
+			//These bins will be scaled depending on the particular limb's arcLen and curvature 
+			List<Bin<Double>> lengthBins = qmp.sizeQualMorph.lengthBins;
+			lengthBins.add(new Bin<Double>(0.2, 0.3));
+			lengthBins.add(new Bin<Double>(0.55, 0.65));
+			lengthBins.add(new Bin<Double>(0.90, 1.00));
+			List<Bin<Double>> thicknessBins = qmp.sizeQualMorph.thicknessBins;
+			thicknessBins.add(new Bin<Double>(0.25, 0.4));
+			//		thicknessBins.add(new Bin<Double>(0.55, 0.65));
+			thicknessBins.add(new Bin<Double>(0.8, 1.0));
 		}
 		{//radProfile
-		qmp.radProfileFlag = true;
-		qmp.radProfileQualMorph = new RadProfileQualitativeMorph();
-		List<Bin<Double>> juncBins = qmp.radProfileQualMorph.juncBins;
-		double dev=0.1;
-		double mini = 0.5;
-		double fat = 1;
-		double tip = .1;
-		double tipDev = 0.09999;
-//		juncBins.add(new Bin<Double>(mini-dev, mini+dev));
-//		juncBins.add(new Bin<Double>(fat-dev, fat+dev));
-//		List<Bin<Double>> midBins = qmp.radProfileQualMorph.midBins;
-//		midBins.add(new Bin<Double>(mini-dev, mini+dev));
-//		midBins.add(new Bin<Double>(fat-dev, fat+dev));
-//		List<Bin<Double>> endBins = qmp.radProfileQualMorph.endBins;
-//		endBins.add(new Bin<Double>(tip-tipDev,tip));
-//		endBins.add(new Bin<Double>(mini-dev, mini+dev));
-//		endBins.add(new Bin<Double>(fat-dev, fat+dev));
-		List<Vector3d> radProfileBins = qmp.radProfileQualMorph.radProfileBins;
-		tip = tip - tipDev;
-		radProfileBins.add(new Vector3d(fat, fat, fat));
-		radProfileBins.add(new Vector3d(mini, mini, fat));
-		radProfileBins.add(new Vector3d(mini, fat, mini));
-		radProfileBins.add(new Vector3d(fat, mini,mini));
-		radProfileBins.add(new Vector3d(mini, fat, fat));
-		radProfileBins.add(new Vector3d(fat, mini, fat));
-		radProfileBins.add(new Vector3d(fat, fat, mini));
-		radProfileBins.add(new Vector3d(fat, mini, tip));
-		radProfileBins.add(new Vector3d(fat, fat, tip));
-		radProfileBins.add(new Vector3d(mini, fat, tip));
+			qmp.radProfileFlag = true;
+			qmp.radProfileQualMorph = new RadProfileQualitativeMorph();
+			List<Bin<Double>> juncBins = qmp.radProfileQualMorph.juncBins;
+			double dev=0.1;
+			double mini = 0.5;
+			double fat = 1;
+			double tip = .1;
+			double tipDev = 0.09999;
+			//		juncBins.add(new Bin<Double>(mini-dev, mini+dev));
+			//		juncBins.add(new Bin<Double>(fat-dev, fat+dev));
+			//		List<Bin<Double>> midBins = qmp.radProfileQualMorph.midBins;
+			//		midBins.add(new Bin<Double>(mini-dev, mini+dev));
+			//		midBins.add(new Bin<Double>(fat-dev, fat+dev));
+			//		List<Bin<Double>> endBins = qmp.radProfileQualMorph.endBins;
+			//		endBins.add(new Bin<Double>(tip-tipDev,tip));
+			//		endBins.add(new Bin<Double>(mini-dev, mini+dev));
+			//		endBins.add(new Bin<Double>(fat-dev, fat+dev));
+			List<Vector3d> radProfileBins = qmp.radProfileQualMorph.radProfileBins;
+			tip = tip - tipDev;
+			radProfileBins.add(new Vector3d(fat, fat, fat));
+			radProfileBins.add(new Vector3d(mini, mini, fat));
+			radProfileBins.add(new Vector3d(mini, fat, mini));
+			radProfileBins.add(new Vector3d(fat, mini,mini));
+			radProfileBins.add(new Vector3d(mini, fat, fat));
+			radProfileBins.add(new Vector3d(fat, mini, fat));
+			radProfileBins.add(new Vector3d(fat, fat, mini));
+			radProfileBins.add(new Vector3d(fat, mini, tip));
+			radProfileBins.add(new Vector3d(fat, fat, tip));
+			radProfileBins.add(new Vector3d(mini, fat, tip));
 		}
 		//GENERATION
 		try {
@@ -254,38 +254,47 @@ public class MStickPngBlockGenTwo{
 			int numChoices = trialTypeList.get(i);
 
 
-			//GENERATE BASE, SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
+			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
 			//GENERATE MATCH/SAMPLE FAILS, WE START OVER STARTING AT BASE
 			boolean tryagain = true;
 			int nTries = 0;
 			while (tryagain){
+				boolean leafSuccess = false;
 				boolean sampleSuccess = false;
 				boolean matchSuccess = false;
 
 				//BASE: GENERATING MATCHSTICK
 				setProperties(objs_base.get(i));
-				objs_base.get(i).genMatchStickRand();
-				int randomLeaf = objs_base.get(i).chooseRandLeaf();
-				
 
-				//SAMPLE: GENERATING MATCHSTICSK
-				System.out.println("In Sample");
-				//System.out.println("Trying to Generate Sample. Try: " + tries);
-				setProperties(objs_sample.get(i));
-				sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(i));
-				//tries++;
-				if(!sampleSuccess){
-					objs_sample.set(i, new AllenMatchStick());
+				//VETTING AND CHOOSING RANDOM LEAF
+				int randomLeaf;
+				{ 
+					System.out.println("In Leaf");
+					objs_base.get(i).genMatchStickRand();
+					randomLeaf = objs_base.get(i).chooseRandLeaf();
+					leafSuccess = objs_base.get(i).vetLeaf(randomLeaf);
+					if(!leafSuccess) {
+						objs_base.set(i, new AllenMatchStick());
+					}
 				}
 
-				
+				//SAMPLE: GENERATING MATCHSTICK FROM LEAF
+				if(leafSuccess){
+					System.out.println("In Sample");
+					//System.out.println("Trying to Generate Sample. Try: " + tries);
+					setProperties(objs_sample.get(i));
+					sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(i));
+					//tries++;
+					if(!sampleSuccess){
+						objs_sample.set(i, new AllenMatchStick());
+					}
+				}
+
 				//MATCH: GENERATING MATCHSTICK
 				if(sampleSuccess){
-
 					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					//boolean maintainTangent = true;
 					int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp();
-					
 					System.out.println("In Match");
 					try{
 						setProperties(objs_match.get(i));
@@ -297,12 +306,9 @@ public class MStickPngBlockGenTwo{
 					if(!matchSuccess){
 						objs_match.set(i, new AllenMatchStick());
 					}
-
 				}
 
-
-
-				if(sampleSuccess & matchSuccess){
+				if(matchSuccess){
 					tryagain = false;
 					nSuccess++;
 					System.out.println("SUCCESS!: " + nSuccess);
@@ -432,15 +438,15 @@ public class MStickPngBlockGenTwo{
 		double scale = maxImageDimensionDegrees/2;
 		double minScale = maxImageDimensionDegrees/4;
 		obj.setScale(minScale, scale);
-		
+
 		//CONTRAST
 		double contrast = 1;
 		obj.setContrast(contrast);
-		
+
 		//COLOR
 		RGBColor white = new RGBColor(1,1,1);
 		obj.setStimColor(white);
-		
+
 		//TEXTURE
 		obj.setTextureType("SHADE");
 
