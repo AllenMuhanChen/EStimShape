@@ -94,6 +94,7 @@ public class AllenTubeComp extends TubeComp{
 		setLabel(in.getLabel());
 		getmAxisInfo().copyFrom( in.getmAxisInfo());
 		setScale(in.getScale());
+		setNormalized(in.isNormalized());
 		for (i=0; i<3; i++)
 			for (j=0; j<2; j++) {
 				getRadInfo()[i][j] = in.getRadInfo()[i][j];

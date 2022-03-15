@@ -468,7 +468,8 @@ public class AllenMatchStick extends MatchStick {
 			boolean success = false;
 			while (j<10){
 				// 0. Copy
-				this.cleanData();
+				cleanData();
+				copyFrom(new AllenMatchStick());
 				copyFrom(backup);
 				//success = metricMorph.morphLength();
 				success = qualitativeMorphComponent(leafToMorphIndx, mmp);
@@ -682,7 +683,7 @@ public class AllenMatchStick extends MatchStick {
 					// random get a new MAxisArc
 					nowArc = new AllenMAxisArc();
 					//MAJOR STEP ONE
-					nowArc.genQualitativeMorphArc(this.getComp()[id].getmAxisInfo(), alignedPt, qmp);
+					nowArc.genQualitativeMorphArc(getComp()[id].getmAxisInfo(), alignedPt, qmp);
 
 					//for loop, check through related JuncPt for tangentSaveZone
 					Vector3d finalTangent = new Vector3d();
@@ -797,7 +798,7 @@ public class AllenMatchStick extends MatchStick {
 				this.getComp()[id].initSet( nowArc, branchUsed, connectType);
 				if (showDebug)
 					System.out.println("In qualitative morph component: tube to modify # " +id +" now check skeleton");
-				boolean closeHit = this.checkSkeletonNearby(getnComponent());
+				boolean closeHit = checkSkeletonNearby(getnComponent());
 				if (closeHit == false) // a safe skeleton
 				{
 					break;
@@ -820,7 +821,7 @@ public class AllenMatchStick extends MatchStick {
 			// update the info in end pt and JuncPt
 			for (i=1; i<=getnEndPt(); i++)
 			{
-				Point3d newPos = new Point3d(  getComp()[ getEndPt()[i].getComp()].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
+				Point3d newPos = new Point3d(getComp()[ getEndPt()[i].getComp()].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
 				getEndPt()[i].getPos().set(newPos);
 			}
 			for (i=1; i<=getnJuncPt(); i++)
@@ -845,13 +846,13 @@ public class AllenMatchStick extends MatchStick {
 				//				getComp()[id].normalizeRadInfo();
 				MutationSUB_radAssign2NewComp_Qualitative(id, old_normalizedRadInfo, qmp);
 				//comp[id].showRadiusInfo();
-				if ( getComp()[id].RadApplied_Factory() == false)
+				if (getComp()[id].RadApplied_Factory() == false)
 				{
 					success_process = false;
 					continue; // not a good radius, try another
 				}
 
-				if ( this.finalTubeCollisionCheck() == true)
+				if (finalTubeCollisionCheck() == true)
 				{
 					if ( showDebug)
 						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
@@ -895,7 +896,6 @@ public class AllenMatchStick extends MatchStick {
 		double nowRad= -100.0, u_value;
 		double radiusScale = getComp()[targetComp].getScale();
 
-		//TODO: 
 		if(qmp.sizeQualMorph.isThicknessFlag()) {
 			radiusScale = qmp.sizeQualMorph.getNewThickness();
 		}
@@ -1071,14 +1071,16 @@ public class AllenMatchStick extends MatchStick {
 
 	public boolean genMetricMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, MetricMorphParams mmp) {
 		int i = 0;
+		AllenMatchStick backup = new AllenMatchStick();
+		backup.copyFrom(amsToMorph);
 		while (i<2) {
-			this.cleanData();
-			// 0. Copy
-			copyFrom(amsToMorph);
 			// 1. DO THE MORPHING
 			int j = 0;
 			boolean success = false;
 			while (j<10){
+				cleanData();
+				copyFrom(new AllenMatchStick());
+				copyFrom(backup);
 				success = metricMorphComponent(leafToMorphIndx, mmp);
 				//success = metricMorph.morphLength();
 				if(success){
@@ -1690,7 +1692,7 @@ public class AllenMatchStick extends MatchStick {
 	 */
 
 	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf){
-		boolean showDebug = true;
+		boolean showDebug = false;
 		//nComp = 2;
 		setnComponent(nComp);
 		int i;
@@ -2365,7 +2367,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			this.centerShapeAtOrigin(-1);
+			centerShapeAtOrigin(-1);
 
 			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth
@@ -2817,7 +2819,9 @@ Adding a new MAxisArc to a MatchStick
 	 * Change detection to see if any of the vec points are outside the box rather than
 	 * using radius method. 
 	 */
+	
 	protected boolean validMStickSize() {
+		
 		double maxRadius = getScaleForMAxisShape(); // degree
 		double screenDist = 500;
 		double minRadius = getMinScaleForMAxisShape();
@@ -2834,14 +2838,17 @@ Adding a new MAxisArc to a MatchStick
 			for (j = 1; j <= getComp()[i].getnVect(); j++) {
 				double xLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].x;
 				double yLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].y;
+//				double xLocation = getComp()[i].getVect_info()[j].x;
+//				double yLocation = getComp()[i].getVect_info()[j].y;
+				
 				//dis = comp[i].vect_info[j].distance(ori);
 
-				if(xLocation > maxBoundInMm || getComp()[i].getVect_info()[j].x < -maxBoundInMm){
-					System.out.println("AC:71923: TOO BIG");
+				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
+//					System.out.println("AC:71923: TOO BIG");
 					return false;
 				}
-				if(yLocation > maxBoundInMm || getComp()[i].getVect_info()[j].y < -maxBoundInMm){
-					System.out.println("AC:71923: TOO BIG");
+				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
+//					System.out.println("AC:71923: TOO BIG");
 					return false;
 				}
 				if(Math.abs(xLocation)>maxX)

@@ -14,9 +14,9 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 	private boolean juncEnabled = false;
 	private double binAngleDeviation = 5*Math.PI/180;
 
-	private boolean juncFlag;
-	private boolean midFlag;
-	private boolean endFlag;
+	private boolean juncFlag = false;
+	private boolean midFlag = false;
+	private boolean endFlag = false;
 
 	private double oldJunc;
 	private double oldMid;

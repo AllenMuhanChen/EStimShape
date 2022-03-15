@@ -14,8 +14,8 @@ import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.stickMath_lib;
 
 public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
-	private boolean curvatureFlag;
-	private boolean rotationFlag;
+	private boolean curvatureFlag = false;
+	private boolean rotationFlag = false;
 
 	private double oldCurvature;
 	private double oldRotation;

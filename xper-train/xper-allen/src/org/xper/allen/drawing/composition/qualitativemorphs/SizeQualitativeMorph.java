@@ -6,8 +6,8 @@ import java.util.List;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 
 public class SizeQualitativeMorph extends QualitativeMorph{
-	private boolean lengthFlag;
-	private boolean thicknessFlag;
+	private boolean lengthFlag = false;
+	private boolean thicknessFlag = false;
 
 	private double oldLength;
 	private double oldThickness;

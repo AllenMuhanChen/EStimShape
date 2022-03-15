@@ -14,7 +14,6 @@ public class CurvatureMetricMorphMagnitude{
 	 * @return
 	 */
 	public double calculateMagnitude(double arcLen) {
-		System.out.println("AC6792482: " + oldValue);
 		range = arcLen;
 		double newValue;
 

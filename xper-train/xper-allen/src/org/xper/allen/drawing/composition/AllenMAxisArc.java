@@ -77,7 +77,7 @@ public class AllenMAxisArc extends MAxisArc {
 	 * @param alignedPt
 	 * @param volatileRate
 	 */
-	public void genQualitativeMorphArc( MAxisArc inArc,int alignedPt,  QualitativeMorphParams qmp) {
+	public void genQualitativeMorphArc( AllenMAxisArc inArc,int alignedPt,  QualitativeMorphParams qmp) {
 		boolean showDebug = false;
 		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
 		// Nov 20th, the orientation change seems to be too large
@@ -99,16 +99,6 @@ public class AllenMAxisArc extends MAxisArc {
 			newArcLen = qmp.sizeQualMorph.getNewLength();
 		}
 		
-		/*
-		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
-		 */
-		/*
-		if(qmp.lengthFlag) {
-			double oriArcLen = inArc.arcLen;
-			//qmp.lengthMagnitude.oldValue = oriArcLen;
-			newArcLen = oriArcLen;
-		}
-		 */
 
 		// 2. orientation
 		if(qmp.objCenteredPosQualMorph.isOrientationFlag()) {
@@ -119,19 +109,19 @@ public class AllenMAxisArc extends MAxisArc {
 
 
 		//3. curvature
-		if(qmp.curvatureRotationFlag) {
+		if(qmp.curvRotQualMorph.isCurvatureFlag()) {
 			newRad = qmp.curvRotQualMorph.getNewCurvature();
 		}
 
 
 		//4. rotation (along tangent axis)
-		if(qmp.curvatureRotationFlag) {
+		if(qmp.curvRotQualMorph.isRotationFlag()) {
 			newDevAngle = qmp.curvRotQualMorph.getNewRotation();	
 		}
 
 		// use the new required vlaue to generate and transROt the mAxisArc
 
-		this.genArc(newRad, newArcLen); // the variable will be saved in this function
+		genArc(newRad, newArcLen); // the variable will be saved in this function
 
 
 		Point3d finalPos;
