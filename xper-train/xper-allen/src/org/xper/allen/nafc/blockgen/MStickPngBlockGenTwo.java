@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.blockgen;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,26 +81,55 @@ public class MStickPngBlockGenTwo{
 	long genId = 1;
 	List<Long> ids = new ArrayList<Long>();
 
-	public void generate(int[] trialTypes, int[] trialNums,
+	public void generate(int[] numDistractors_types, int[] numDistractors_numTrials,
 			double sampleScaleUpperLim, double sampleRadiusLowerLim, 
 			double sampleRadiusUpperLim, double eyeWinSize, 
 			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
 			double distractorDistanceLowerLim, 
 			double distractorDistanceUpperLim,
-			double distractorScaleUpperLim, double metricMorphMagnitude) { //
+			double distractorScaleUpperLim, double metricMorphMagnitude,
+			int[] numQMDistractors_types, int[] numQMDistractors_numTrials,
+			int[] numCategoriesMorphed_types, int[] numCategoriesMorphed_numTrials) { //
 
 
 
 		//INTERMIXING TYPES OF TRIALS
-		int numTrials = IntStream.of(trialNums).sum(); //Sum all elements of trialNums
-		List<Integer>trialTypeList = new ArrayList<Integer>(); //Type = number of choices
-		int numTypes = trialTypes.length;
-		for (int i=0; i < numTypes; i++){ //For every type of trial
-			for (int j=0; j < trialNums[i]; j++){ //for every trial of that type
-				trialTypeList.add(trialTypes[i]); //add the number of choices to the list
+		//Distractor Num
+		int numTrials = IntStream.of(numDistractors_numTrials).sum(); //Sum all elements of trialNums
+		List<Integer>numDistractorsTrialList = new LinkedList<>(); //Type = number of choices
+		int numDistractorTypes = numDistractors_types.length;
+		for (int i=0; i < numDistractorTypes; i++){ //For every type of trial
+			for (int j=0; j < numDistractors_numTrials[i]; j++){ //for every trial of that type
+				numDistractorsTrialList.add(numDistractors_types[i]); //add the number of choices to the list
 			}
 		}
-		Collections.shuffle(trialTypeList);
+		Collections.shuffle(numDistractorsTrialList);
+
+		//Number of QM Distractors
+		if(IntStream.of(numQMDistractors_numTrials).sum() != numTrials) {
+			throw new IllegalArgumentException("Total numDistractors_trialNums should match Total numDistractors_trialNums");
+		}
+		List<Integer>numQMDistractorsTrialList = new LinkedList<>();
+		int numQMDistractorTypes = numQMDistractors_types.length;
+		for(int i=0; i< numQMDistractorTypes; i++) {
+			for(int j=0; j<numQMDistractors_numTrials[i]; j++) {
+				numQMDistractorsTrialList.add(numQMDistractors_types[i]);
+			}
+		}
+		Collections.shuffle(numQMDistractorsTrialList);
+
+		//Number of Categories Morphed in QM
+		if(IntStream.of(numCategoriesMorphed_numTrials).sum()!= numTrials) {
+			throw new IllegalArgumentException("Total numCategoriesMorphed_numTrials should equal total numDistractors_trialNums");
+		}
+		List<Integer> numCategoriesMorphedTrialList = new LinkedList<>();
+		int numCategoriesMorphedTypes = numCategoriesMorphed_types.length;
+		for(int i=0; i<numCategoriesMorphedTypes;i++) {
+			for(int j=0; j<numCategoriesMorphed_numTrials[i];j++) {
+				numCategoriesMorphedTrialList.add(numCategoriesMorphed_types[i]);
+			}
+		}
+		Collections.shuffle(numCategoriesMorphedTrialList);
 
 		//INITIALIZING LISTS TO HOLD MATCH STICK OBJECTS
 		List<AllenMatchStick> objs_base = new ArrayList<AllenMatchStick>();
@@ -107,7 +137,7 @@ public class MStickPngBlockGenTwo{
 		List<AllenMatchStick> objs_match = new ArrayList<AllenMatchStick>();
 		List<ArrayList<AllenMatchStick>> objs_distractor = new ArrayList<ArrayList<AllenMatchStick>>();
 		for(int i=0; i<numTrials; i++){
-			int numChoices = trialTypeList.get(i);
+			int numChoices = numDistractorsTrialList.get(i);
 			objs_base.add(new AllenMatchStick());
 			objs_sample.add(new AllenMatchStick());
 			objs_match.add(new AllenMatchStick());
@@ -211,21 +241,11 @@ public class MStickPngBlockGenTwo{
 		{//radProfile
 			qmp.radProfileFlag = true;
 			qmp.radProfileQualMorph = new RadProfileQualitativeMorph();
-			List<Bin<Double>> juncBins = qmp.radProfileQualMorph.juncBins;
-			double dev=0.1;
+			//double dev=0.1;
 			double mini = 0.5;
 			double fat = 1;
 			double tip = .1;
 			double tipDev = 0.09999;
-			//		juncBins.add(new Bin<Double>(mini-dev, mini+dev));
-			//		juncBins.add(new Bin<Double>(fat-dev, fat+dev));
-			//		List<Bin<Double>> midBins = qmp.radProfileQualMorph.midBins;
-			//		midBins.add(new Bin<Double>(mini-dev, mini+dev));
-			//		midBins.add(new Bin<Double>(fat-dev, fat+dev));
-			//		List<Bin<Double>> endBins = qmp.radProfileQualMorph.endBins;
-			//		endBins.add(new Bin<Double>(tip-tipDev,tip));
-			//		endBins.add(new Bin<Double>(mini-dev, mini+dev));
-			//		endBins.add(new Bin<Double>(fat-dev, fat+dev));
 			List<Vector3d> radProfileBins = qmp.radProfileQualMorph.radProfileBins;
 			tip = tip - tipDev;
 			radProfileBins.add(new Vector3d(fat, fat, fat));
@@ -251,7 +271,9 @@ public class MStickPngBlockGenTwo{
 
 		int nSuccess = 0;
 		for (int i = 0; i < numTrials; i++) {
-			int numChoices = trialTypeList.get(i);
+			int numQMDistractors = numQMDistractorsTrialList.get(i);
+			int numRandDistractors = numDistractorsTrialList.get(i);
+			int numCategoriesMorphed = numCategoriesMorphedTrialList.get(i);
 
 
 			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
@@ -291,14 +313,14 @@ public class MStickPngBlockGenTwo{
 				}
 
 				//MATCH: GENERATING MATCHSTICK
+				int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp();
 				if(sampleSuccess){
 					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					//boolean maintainTangent = true;
-					int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp();
 					System.out.println("In Match");
 					try{
 						setProperties(objs_match.get(i));
-						matchSuccess = objs_match.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), qmp);
+						matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), mmp);
 					} catch(Exception e){
 						e.printStackTrace();
 						matchSuccess = false;
@@ -320,10 +342,54 @@ public class MStickPngBlockGenTwo{
 				}
 			}
 
-			//GENERATING DISTRACTORS
-			for(int j=0; j<numChoices-1; j++){
-				setProperties(objs_distractor.get(i).get(j));
-				objs_distractor.get(i).get(j).genMatchStickRand();
+			//GENERATING DISTRACTORS (separate loop)
+			tryagain = true;
+			nTries = 0;
+			while (tryagain){
+				//GENERATING QM DISTRACTORS
+				boolean[] qmDistractorSuccess = new boolean[numQMDistractors];
+				for(int b=0; b<qmDistractorSuccess.length; b++) qmDistractorSuccess[b]=false;
+				int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp();
+				for(int j=0; j<numQMDistractors; j++){
+
+					try {
+						setProperties(objs_distractor.get(i).get(j));
+						//TODO: We need to manage qmp's here. 
+						qmDistractorSuccess[j] = objs_distractor.get(i).get(j).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), qmp);
+					} catch (Exception e) {
+						e.printStackTrace();
+						qmDistractorSuccess[j]=false;
+					}
+					if(!qmDistractorSuccess[j]) {
+						objs_distractor.get(i).set(j, new AllenMatchStick());
+					}
+				}
+
+				boolean qmDistractorsSuccess = Arrays.asList(qmDistractorSuccess).contains(false);
+				
+				
+				//GENERATING RAND DISTRACTORS
+				boolean randDistractorsSuccess = false;
+				if(qmDistractorsSuccess) {
+					boolean[] randDistractorSuccess = new boolean[numRandDistractors];
+					for(int b=0; b<randDistractorSuccess.length; b++) randDistractorSuccess[b]=false;
+					for(int j=0; j<numRandDistractors; j++) {
+						try {
+							setProperties(objs_distractor.get(i).get(j));
+							objs_distractor.get(i).get(j).genMatchStickRand();
+						} catch(Exception e) {
+							e.printStackTrace();
+							randDistractorSuccess[j] = false;
+						}
+						if(!randDistractorSuccess[j]) {
+							objs_distractor.get(i).set(j, new AllenMatchStick());
+						}
+					}
+					randDistractorsSuccess = Arrays.asList(randDistractorSuccess).contains(false);
+				}
+				if(randDistractorsSuccess) {
+					tryagain = false;
+				}
 			}
 
 			//GENERATING STIM-OBJ SPECS & WRITE TO DB
@@ -334,8 +400,7 @@ public class MStickPngBlockGenTwo{
 			for (int j=0; j<objs_distractor.get(i).size(); j++){
 				distractorIds.add(matchId + j + 1);
 			}
-
-
+			
 			//GENERATE PNGS
 			List<AllenMatchStick> objs = new LinkedList<AllenMatchStick>();
 			//objs.add(objs_base.get(i));
@@ -351,6 +416,7 @@ public class MStickPngBlockGenTwo{
 			pngMaker.createAndSavePNGsfromObjs(objs, ids);
 
 			//SPECIFYING LOCATION
+			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
 			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceRadiusLowerLim, choiceRadiusUpperLim, distractorDistanceLowerLim,  distractorDistanceUpperLim);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
