@@ -186,7 +186,7 @@ public class MStickObj4Smooth {
     }
     public void drawVect() {
 		GL11.glColor3d(stimColor.getRed(),stimColor.getGreen(),stimColor.getBlue());
-		if (doLighting)
+		if (isDoLighting())
 			GL11.glEnable(GL11.GL_LIGHTING);
 		else
 			GL11.glDisable(GL11.GL_LIGHTING);
@@ -1118,6 +1118,14 @@ public class MStickObj4Smooth {
 
         return true;
     }
+
+	boolean isDoLighting() {
+		return doLighting;
+	}
+
+	void setDoLighting(boolean doLighting) {
+		this.doLighting = doLighting;
+	}
     
 }
 

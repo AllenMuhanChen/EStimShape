@@ -25,19 +25,8 @@ public class MStickGeneratorTwo {
 		//int numDoubleChoiceTrials = Integer.parseInt(args[1]);
 		
 		//TRIAL TYPES
-		String[] trialStrArray = args[0].split(",");
-		
-		int numTrialTypes = trialStrArray.length;
-		int[] trialTypes = new int[numTrialTypes];
-		for(int i=0; i<numTrialTypes;i++){
-			trialTypes[i] = Integer.parseInt(trialStrArray[i]);
-		}
-		
-		String[] trialNumStrArray = args[1].split(",");
-		int[] trialTypeNums = new int[numTrialTypes];
-		for(int i=0; i<numTrialTypes;i++){
-			trialTypeNums[i] = Integer.parseInt(trialNumStrArray[i]);
-		}
+		int[] numDistractorTypes = stringToIntArray(args[0]);
+		int[] numDistractorNumTrials = stringToIntArray(args[1]);
 		double sampleScaleUpperLim = Double.parseDouble(args[2]);
 		double sampleRadiusLowerLim = Double.parseDouble(args[3]);
 		double sampleRadiusUpperLim = Double.parseDouble(args[4]);
@@ -48,6 +37,10 @@ public class MStickGeneratorTwo {
 		double distractorDistanceUpperLim = Double.parseDouble(args[9]);
 		double distractorScaleUpperLim = Double.parseDouble(args[10]);
 		double metricMorphMagnitude = Double.parseDouble(args[11]);
+		int[] numQMDistractorsTypes = stringToIntArray(args[12]);
+		int[] numQMDistractorsNumTrials = stringToIntArray(args[13]);
+		int[] numCategoriesMorphedTypes = stringToIntArray(args[14]);
+		int[] numCategoriesMorphedNumTrials = stringToIntArray(args[15]);
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
@@ -57,12 +50,13 @@ public class MStickGeneratorTwo {
 		try {
 			//target eye window size
 			gen.toString();
-			gen.generate(trialTypes, trialTypeNums,
+			gen.generate(numDistractorTypes, numDistractorNumTrials,
 					sampleScaleUpperLim, sampleRadiusLowerLim, sampleRadiusUpperLim, 
 					eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim, 
 					 distractorDistanceLowerLim,
 					distractorDistanceUpperLim,
-					distractorScaleUpperLim, metricMorphMagnitude);
+					distractorScaleUpperLim, metricMorphMagnitude, numQMDistractorsTypes, numQMDistractorsNumTrials,
+					numCategoriesMorphedTypes, numCategoriesMorphedNumTrials);
 			
 		}
 		catch(Exception e) {
@@ -71,5 +65,15 @@ public class MStickGeneratorTwo {
 		
 
 		}
+	}
+	
+	public static int[] stringToIntArray(String string) {
+		String[] strArr = string.split(",");
+		int length = strArr.length;
+		int[] intArr = new int[length];
+		for(int i=0; i<length; i++) {
+			intArr[i] = Integer.parseInt(strArr[i]);
+		}
+		return intArr;
 	}
 }

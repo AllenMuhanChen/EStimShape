@@ -4196,7 +4196,7 @@ public class MatchStick implements Drawable {
 		GL11.glEnable(GL11.GL_AUTO_NORMAL);   // Automatic normal generation when doing NURBS, if not enabled we have to provide the normals ourselves if we want to have a lighted image (which we do).
 		GL11.glEnable(GL11.GL_POLYGON_SMOOTH);
 
-		this.initLight();
+		initLight();
 	}
 	protected void initLight() {
 		if (textureType.compareTo("TWOD") == 0) { 

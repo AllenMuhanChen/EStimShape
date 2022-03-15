@@ -16,8 +16,8 @@ import org.xper.drawing.stick.stickMath_lib;
  *
  */
 public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
-	private boolean positionFlag;
-	private boolean orientationFlag;
+	private boolean positionFlag = false;
+	private boolean orientationFlag = false;
 
 	private int oldPosition;
 	private Vector3d oldTangent;

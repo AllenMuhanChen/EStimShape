@@ -16,6 +16,8 @@ import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
+import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.MStickPngBlockGenOne;
@@ -83,6 +85,8 @@ public class NAFCMStickPngAppConfig {
 		gen.setPngMaker(pngMaker());
 		gen.setMaxImageDimensionDegrees(xperMaxImageDimensionDegrees());
 		gen.setExperimentImageFolderPath(xperExperimentImageFolderName());
+		gen.setMmpGenerator(mmpGenerator());
+		gen.setQmpGenerator(qmpGenerator());
 		return gen;
 	}
 	
@@ -126,6 +130,18 @@ public class NAFCMStickPngAppConfig {
 		return dpiUtil;
 	}
 
+	@Bean
+	public MetricMorphParameterGenerator mmpGenerator() {
+		MetricMorphParameterGenerator mmpGenerator = new MetricMorphParameterGenerator(); 
+		return mmpGenerator;
+	}
+	
+	@Bean
+	public QualitativeMorphParameterGenerator qmpGenerator() {
+		QualitativeMorphParameterGenerator qmpGenerator = new QualitativeMorphParameterGenerator(xperMaxImageDimensionDegrees());
+		return qmpGenerator;
+	}
+	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double[] xperBackgroundColor() {
 		return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),
