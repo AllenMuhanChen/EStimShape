@@ -7,6 +7,7 @@ import java.util.List;
 import javax.vecmath.Vector3d;
 
 public class QualitativeMorphParameterGenerator {
+	private boolean manualMode = true;
 	private QualitativeMorphParams qmp;
 	private double maxImageDimensionDegrees;
 	public QualitativeMorphParameterGenerator(double maxImageDimensionDegrees) {
@@ -26,23 +27,32 @@ public class QualitativeMorphParameterGenerator {
 			int cat = categories.get(i);
 			if(cat==0) {
 				getQmp().objectCenteredPositionFlag = true;
-				System.out.println("Object Centered@@@@@@@@@@@");
+//				System.out.println("Object Centered@@@@@@@@@@@");
 			}
 			else if (cat==1) {
 				getQmp().curvatureRotationFlag = true;
-				System.out.println("Curvature Rotation!!!!!!!!!!!!");
+//				System.out.println("Curvature Rotation!!!!!!!!!!!!");
 			}
 			else if (cat==2) {
 				getQmp().sizeFlag = true;
-				System.out.println("Size##########");
+//				System.out.println("Size##########");
 			}
 			else if (cat==3) {
 				getQmp().radProfileFlag = true;
-				System.out.println("Rad Profile%%%%%%%%%%");
+//				System.out.println("Rad Profile%%%%%%%%%%");
 			}
 			else {
 				throw new IllegalArgumentException("There should only be 4 qualitative morph types");
 			}
+		}
+		
+		if(manualMode) {
+			getQmp().objectCenteredPositionFlag = false;
+			getQmp().curvatureRotationFlag = false;
+			getQmp().sizeFlag = false;
+			getQmp().radProfileFlag = false;
+			
+			getQmp().objectCenteredPositionFlag = true;
 		}
 	}
 	public QualitativeMorphParams getQMP(int numCategories) {
@@ -77,7 +87,7 @@ public class QualitativeMorphParameterGenerator {
 			//These bins will be scaled depending on the particular limb's arcLen and curvature 
 			List<Bin<Double>> lengthBins = getQmp().sizeQualMorph.lengthBins;
 			lengthBins.add(new Bin<Double>(0.2, 0.3));
-			lengthBins.add(new Bin<Double>(0.55, 0.65));
+//			lengthBins.add(new Bin<Double>(0.55, 0.65));
 			lengthBins.add(new Bin<Double>(0.90, 1.00));
 			List<Bin<Double>> thicknessBins = getQmp().sizeQualMorph.thicknessBins;
 			thicknessBins.add(new Bin<Double>(0.25, 0.4));
