@@ -10,6 +10,7 @@ public class EyeDeviceMessage {
 	Coordinates2D volt;
 	Coordinates2D degree;
 	
+	
 	public EyeDeviceMessage() {}
 	
 	public EyeDeviceMessage(long timestamp, String id, Coordinates2D volt, Coordinates2D degree) {

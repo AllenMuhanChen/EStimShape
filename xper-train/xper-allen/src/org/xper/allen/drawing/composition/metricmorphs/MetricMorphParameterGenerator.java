@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MetricMorphParameterGenerator {
+	private boolean manualMode = true;
 	MetricMorphParams mmp;
 	
 	public MetricMorphParameterGenerator() {
@@ -78,6 +79,22 @@ public class MetricMorphParameterGenerator {
 			if (cat==7) mmp.radProfileMidFlag=true;
 			if (cat==8) mmp.radProfileEndFlag=true;
 		}
+		
+		if(manualMode) {
+			mmp.orientationFlag = false;
+			mmp.rotationFlag = false;
+			mmp.lengthFlag = false;
+			mmp.sizeFlag = false;
+			mmp.curvatureFlag = false;
+			mmp.positionFlag = false;
+			mmp.radProfileJuncFlag = false;
+			mmp.radProfileMidFlag = false;
+			mmp.radProfileEndFlag = false;
+			
+			mmp.orientationFlag = true;
+			mmp.positionFlag = false;
+		}
+		
 		return mmp;
 	}
 }
