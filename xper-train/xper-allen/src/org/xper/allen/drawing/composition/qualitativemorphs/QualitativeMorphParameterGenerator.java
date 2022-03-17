@@ -64,16 +64,9 @@ public class QualitativeMorphParameterGenerator {
 			positionBins.add(new Bin<Integer>(1,1));
 			positionBins.add(new Bin<Integer>(20,32));
 			positionBins.add(new Bin<Integer>(51,51));
-			List<Bin<Double>> baseTangentAngleBins = getQmp().objCenteredPosQualMorph.baseTangentAngleBins;
-			double dev = 10;
-			baseTangentAngleBins.add(new Bin<Double>((-dev+0)*Math.PI/180,(dev+0)*Math.PI/180));
-			baseTangentAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
-			baseTangentAngleBins.add(new Bin<Double>((-dev+180)*Math.PI/180,(dev+180)*Math.PI/180));
-			baseTangentAngleBins.add(new Bin<Double>((-dev+270)*Math.PI/180,(dev+270)*Math.PI/180));
-			List<Bin<Double>> perpendicularAngleBins = getQmp().objCenteredPosQualMorph.perpendicularAngleBins;
-			perpendicularAngleBins.add(new Bin<Double>((-dev+45)*Math.PI/180,(dev+45)*Math.PI/180));
-			perpendicularAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
-			perpendicularAngleBins.add(new Bin<Double>((-dev+135)*Math.PI/180,(dev+135)*Math.PI/180));
+
+			getQmp().objCenteredPosQualMorph.setBaseTangentAngleSlideBounds(new Double[] {45 * Math.PI/180, 180 * Math.PI/180});
+			getQmp().objCenteredPosQualMorph.setPerpendicularAngleSlideBounds(new Double[] {45/2 * Math.PI/180, 45*Math.PI/180});
 		}
 		{//Curvature And Rotation
 			getQmp().curvRotQualMorph = new CurvatureRotationQualitativeMorph();
