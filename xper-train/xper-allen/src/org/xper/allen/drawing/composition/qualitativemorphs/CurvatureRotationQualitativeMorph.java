@@ -43,6 +43,9 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 	public void loadParams(double oldCurvature, double oldRotation) {
 		setOldCurvature(oldCurvature);
 		setOldRotation(oldRotation);
+		
+		curvatureFlag = false;
+		rotationFlag = false;
 	}
 	
 	public void calculate(double arcLen, AllenMAxisArc inArc) {
@@ -86,7 +89,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 		double[] normalAngles = vector2Angles(normal); //in spherical coords
 		double zDirectionNormalAngle = normalAngles[1];
 		double[] prohibitedNormalAngles= {-180 * Math.PI/180, 0, 180 * Math.PI/180, 360 * Math.PI/180};
-		double tolerance = 10 * Math.PI/180;
+		double tolerance = 25 * Math.PI/180;
 
 		boolean isOkay = true;
 		for(int i=0; i<prohibitedNormalAngles.length; i++) {
@@ -113,10 +116,12 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 	 * 
 	 */
 	private void assignBins(double arcLen, AllenMAxisArc inArc) {
+		double radView = 5;
 		//Copy scaledCurvatureBins from curvatureBins and scale each bin's bounds
 		scaledCurvatureBins = new ArrayList<>();
 		for(Bin<Double> bin:curvatureBins) {
-			Bin<Double> scaledBin = new Bin<Double>(bin.min*arcLen, bin.max*arcLen);
+//			Bin<Double> scaledBin = new Bin<Double>(bin.min*arcLen, bin.max*arcLen);
+			Bin<Double> scaledBin = new Bin<Double>(bin.min*1, bin.max*1);
 			scaledCurvatureBins.add(scaledBin);
 		}
 

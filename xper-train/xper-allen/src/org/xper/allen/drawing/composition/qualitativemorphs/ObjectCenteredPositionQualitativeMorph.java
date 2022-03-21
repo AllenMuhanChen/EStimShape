@@ -16,7 +16,7 @@ import org.xper.drawing.stick.stickMath_lib;
  *
  */
 public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
-	private double PERCENT_CHANGE_POSITION = 0;
+	private double PERCENT_CHANGE_POSITION = 1;
 
 	private boolean positionFlag = false;
 	private boolean orientationFlag = false;
@@ -38,7 +38,8 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 	private Double[] baseTangentAngleSlideBounds;
 	private Double[] perpendicularAngleSlideBounds;
 	
-	public final boolean rotateRelToBase =false;
+	private static final boolean rotateRelToBase =true;
+	private static final boolean juncEnabled = false;
 
 	public ObjectCenteredPositionQualitativeMorph() {
 		positionBins = new ArrayList<>();
@@ -47,6 +48,9 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 	public void loadParams(int oldPosition, Vector3d oldTangent) {
 		setOldPosition(oldPosition);
 		setOldTangent(oldTangent);
+		
+		positionFlag = false;
+		orientationFlag = false;
 	}
 
 	private void assignPositionBin() {
@@ -80,7 +84,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 
 	public void calculateNewTangent(Vector3d baseTangent) {
 //		assignAngleBins(baseTangent);
-
+		orientationFlag = true;
 		Vector3d newTangent;
 		
 		double[] oldAngles = vector2Angles(oldTangent);
@@ -109,12 +113,12 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 
 			double slidAngle = oldBaseTangentAngle + slideAmount;
 
-			while(slidAngle>360*Math.PI/180) {
-				slidAngle-=360*Math.PI/180;
-			}
-			while(slidAngle<0) {
-				slidAngle+=360*Math.PI/180;
-			}
+//			while(slidAngle>360*Math.PI/180) {
+//				slidAngle-=360*Math.PI/180;
+//			}
+//			while(slidAngle<0) {
+//				slidAngle+=360*Math.PI/180;
+//			}
 			newBaseTangentAngle = slidAngle;
 		}
 		
@@ -136,12 +140,12 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 
 			double slidAngle = oldPerpendicularAngle + slideAmount;
 
-			while(slidAngle>180*Math.PI/180) {
-				slidAngle-=180*Math.PI/180;
-			}
-			while(slidAngle<0) {
-				slidAngle+=180*Math.PI/180;
-			}
+//			while(slidAngle>180*Math.PI/180) {
+//				slidAngle-=180*Math.PI/180;
+//			}
+//			while(slidAngle<0) {
+//				slidAngle+=180*Math.PI/180;
+//			}
 			newPerpendicularAngle = slidAngle;
 		}
 
@@ -150,7 +154,7 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 
 
 		//We can specify rotateRelToBase to true if we want rotations to be relative to base tangent
-		if(rotateRelToBase)
+		if(isRotateRelToBase())
 		{//Rotate such that the x-axis is now the tangent of the base mAxis, the z-axis is now the perpendicular vector to the base tangent
 			//Before this newTangent assumes that newBaseTangentAngle and newPerpendicularAngle are relative to x and z axis.
 			//After this, they will be relative to the actual baseTangent and perpendicular to the baseTangent.	
@@ -258,6 +262,14 @@ public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
 
 	public void setPerpendicularAngleSlideBounds(Double[] perpendicularAngleSlideBounds) {
 		this.perpendicularAngleSlideBounds = perpendicularAngleSlideBounds;
+	}
+
+	public boolean isJuncEnabled() {
+		return juncEnabled;
+	}
+
+	public boolean isRotateRelToBase() {
+		return rotateRelToBase;
 	}
 
 }

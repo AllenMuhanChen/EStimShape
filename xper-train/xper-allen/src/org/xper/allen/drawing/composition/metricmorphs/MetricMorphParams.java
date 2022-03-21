@@ -21,5 +21,4 @@ public class MetricMorphParams{
 	public RadProfileMetricMorphMagnitude radProfileJuncMagnitude;
 	public RadProfileMetricMorphMagnitude radProfileMidMagnitude;
 	public RadProfileMetricMorphMagnitude radProfileEndMagnitude;
-	
 }

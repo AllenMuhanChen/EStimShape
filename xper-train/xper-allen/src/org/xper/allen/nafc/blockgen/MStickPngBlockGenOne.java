@@ -134,7 +134,7 @@ public class MStickPngBlockGenOne{
 		
 		//curvature
 		mmp.curvatureFlag = false;
-		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude();
+		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude(sampleScaleUpperLim);
 		mmp.curvatureMagnitude.percentChangeLowerBound = 0.25;
 		//position
 		mmp.positionFlag = false;

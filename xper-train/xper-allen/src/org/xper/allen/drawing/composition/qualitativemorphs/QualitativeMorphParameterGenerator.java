@@ -7,7 +7,7 @@ import java.util.List;
 import javax.vecmath.Vector3d;
 
 public class QualitativeMorphParameterGenerator {
-	private boolean manualMode = true;
+	private boolean manualMode = false;
 	private QualitativeMorphParams qmp;
 	private double maxImageDimensionDegrees;
 	public QualitativeMorphParameterGenerator(double maxImageDimensionDegrees) {
@@ -21,7 +21,7 @@ public class QualitativeMorphParameterGenerator {
 		getQmp().radProfileFlag = false;
 		
 		List<Integer> categories = new ArrayList<>();
-		categories.add(0); categories.add(1); categories.add(2); categories.add(3);
+		categories.add(0); categories.add(1); categories.add(2);// categories.add(3);
 		Collections.shuffle(categories);
 		for(int i=0; i<numCategories; i++) {
 			int cat = categories.get(i);
@@ -33,11 +33,11 @@ public class QualitativeMorphParameterGenerator {
 				getQmp().curvatureRotationFlag = true;
 //				System.out.println("Curvature Rotation!!!!!!!!!!!!");
 			}
+//			else if (cat==2) {
+//				getQmp().sizeFlag = true;
+////				System.out.println("Size##########");
+//			}
 			else if (cat==2) {
-				getQmp().sizeFlag = true;
-//				System.out.println("Size##########");
-			}
-			else if (cat==3) {
 				getQmp().radProfileFlag = true;
 //				System.out.println("Rad Profile%%%%%%%%%%");
 			}
@@ -52,7 +52,8 @@ public class QualitativeMorphParameterGenerator {
 			getQmp().sizeFlag = false;
 			getQmp().radProfileFlag = false;
 			
-			getQmp().objectCenteredPositionFlag = true;
+//			getQmp().curvatureRotationFlag = true;
+			getQmp().radProfileFlag = true;
 		}
 	}
 	public QualitativeMorphParams getQMP(int numCategories) {
@@ -65,22 +66,26 @@ public class QualitativeMorphParameterGenerator {
 			positionBins.add(new Bin<Integer>(20,32));
 			positionBins.add(new Bin<Integer>(51,51));
 
-			getQmp().objCenteredPosQualMorph.setBaseTangentAngleSlideBounds(new Double[] {45 * Math.PI/180, 180 * Math.PI/180});
-			getQmp().objCenteredPosQualMorph.setPerpendicularAngleSlideBounds(new Double[] {45/2 * Math.PI/180, 45*Math.PI/180});
+			getQmp().objCenteredPosQualMorph.setBaseTangentAngleSlideBounds(new Double[] {90 * Math.PI/180, 180 * Math.PI/180});
+			getQmp().objCenteredPosQualMorph.setPerpendicularAngleSlideBounds(new Double[] {0 * Math.PI/180, 90*Math.PI/180});
 		}
 		{//Curvature And Rotation
 			getQmp().curvRotQualMorph = new CurvatureRotationQualitativeMorph();
 			List<Bin<Double>> curvatureBins = getQmp().curvRotQualMorph.curvatureBins;
-			curvatureBins.add(new Bin<Double>(0.01, 0.1));
+			curvatureBins.add(new Bin<Double>(0.5, 1.0));
 			curvatureBins.add(new Bin<Double>(3.0, 6.0));
 			curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
+//			double radView = 5;
+//			curvatureBins.add(new Bin<Double>(0.1*radView, 0.2*radView));
+//			curvatureBins.add(new Bin<Double>(3.0*radView, 6.0*radView));
+//			curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
 		}
 		{//Size: Length & Width
 			getQmp().sizeQualMorph = new SizeQualitativeMorph(getMaxImageDimensionDegrees()/2);
 			//These bins will be scaled depending on the particular limb's arcLen and curvature 
 			List<Bin<Double>> lengthBins = getQmp().sizeQualMorph.lengthBins;
 			lengthBins.add(new Bin<Double>(0.2, 0.3));
-//			lengthBins.add(new Bin<Double>(0.55, 0.65));
+			lengthBins.add(new Bin<Double>(0.55, 0.65));
 			lengthBins.add(new Bin<Double>(0.90, 1.00));
 			List<Bin<Double>> thicknessBins = getQmp().sizeQualMorph.thicknessBins;
 			thicknessBins.add(new Bin<Double>(0.25, 0.4));
