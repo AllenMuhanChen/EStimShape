@@ -86,6 +86,7 @@ public class AllenDrawingManager implements Drawable {
 			renderer.draw(this);
 			pngMaker.saveImage(stimObjIds.get(stimCounter),height,width, imageFolderName);
 			window.swapBuffers();
+			double blob = 1;
 			try {
 				Thread.sleep(100); //neccessary for images to be saved properly. 
 			} catch (InterruptedException e) {

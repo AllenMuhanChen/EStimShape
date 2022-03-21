@@ -1,4 +1,4 @@
-package org.xper.drawing.stick;
+package org.xper.allen.drawing.composition;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
@@ -6,7 +6,7 @@ import javax.vecmath.Vector3d;
  *   class that store the information about a single tube
  *   The info include the MAxis and also the radius quadratic function.
  */
-public class TubeInfo
+public class AllenTubeInfo
 {
     private boolean branchUsed;
     private int connectType;
@@ -22,8 +22,10 @@ public class TubeInfo
     private Point3d transRotHis_finalPos;
     private Vector3d transRotHis_finalTangent;
     private double transRotHis_devAngle;
-
-    public void setTubeInfo(TubeComp inTube)
+    
+    private Vector3d curvatureNormal;
+    
+    public void setTubeInfo(AllenTubeComp inTube)
     {
         int i, j;
         this.setBranchUsed(inTube.isBranchUsed());
@@ -44,6 +46,8 @@ public class TubeInfo
         this.setTransRotHis_finalTangent(new Vector3d(inTube.getmAxisInfo().getTransRotHis_finalTangent()));
         this.setTransRotHis_devAngle(inTube.getmAxisInfo().getTransRotHis_devAngle());
 
+        //Added by AC
+        this.setCurvatureNormal(inTube.getmAxisInfo().getNormal());
     }
 
 	public boolean isBranchUsed() {
@@ -132,5 +136,13 @@ public class TubeInfo
 
 	public void setTransRotHis_devAngle(double transRotHis_devAngle) {
 		this.transRotHis_devAngle = transRotHis_devAngle;
+	}
+
+	private Vector3d getCurvatureNormal() {
+		return curvatureNormal;
+	}
+
+	private void setCurvatureNormal(Vector3d curvatureNormal) {
+		this.curvatureNormal = curvatureNormal;
 	}
 }

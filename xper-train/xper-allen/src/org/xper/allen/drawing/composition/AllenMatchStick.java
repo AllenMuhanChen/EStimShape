@@ -636,7 +636,7 @@ public class AllenMatchStick extends MatchStick {
 						if(getJuncPt()[i].getuNdx()[j] == 51 || getJuncPt()[i].getuNdx()[j] == 1) {
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							getJuncPt()[i].getuNdx()[baseJuncNdx] = newPosition;
-
+							
 							//We let the mAxis code know the new position through this qmp object
 							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[newPosition]));
 
@@ -772,6 +772,7 @@ public class AllenMatchStick extends MatchStick {
 						}
 						getJuncPt()[i].setPos(newPos);
 
+						
 						//update the tangent information
 						boolean secondFlg = false; // determine if the first or second tanget
 						for ( j = 1; j <= getJuncPt()[i].getnTangent(); j++)
@@ -908,42 +909,65 @@ public class AllenMatchStick extends MatchStick {
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				if ( getJuncPt()[i].getComp()[j] == targetComp)
 				{
-					//nowRad = getJuncPt()[i].getRad() * radiusScale;
-
-					//				if(qmp.radProfileJuncFlag) {
-					//					qmp.radProfileJuncMagnitude.oldValue = nowRad;
-					//					qmp.radProfileJuncMagnitude.min = comp[targetComp].mAxisInfo.arcLen / 10.0;
-					//					qmp.radProfileJuncMagnitude.max = Math.min( comp[targetComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[targetComp].mAxisInfo.rad);
-					//					nowRad = qmp.radProfileJuncMagnitude.calculateMagnitude();
-					//				}
 
 					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
-					if ( Math.abs( u_value - 0.0) < 0.0001)
-					{
-						if(qmp.radProfileQualMorph.isJuncFlag()) {
-							nowNormalizedValue[0][1] = qmp.radProfileQualMorph.getNewJunc();
+
+					if(qmp.objCenteredPosQualMorph.isJuncEnabled()) {
+						if ( Math.abs( u_value - 0.0) < 0.0001)
+						{
+							if(qmp.radProfileQualMorph.isJuncFlag()) {
+								nowNormalizedValue[0][1] = qmp.radProfileQualMorph.getNewJunc();
+							}
+							nowRad = nowNormalizedValue[0][1] * radiusScale;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
 						}
-						nowRad = nowNormalizedValue[0][1] * radiusScale;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
-					}
-					else if ( Math.abs(u_value - 1.0) < 0.0001)
-					{
-						if(qmp.radProfileQualMorph.isJuncFlag()) {
-							nowNormalizedValue[2][1] = qmp.radProfileQualMorph.getNewJunc(); 
+						else if ( Math.abs(u_value - 1.0) < 0.0001)
+						{
+							if(qmp.radProfileQualMorph.isJuncFlag()) {
+								nowNormalizedValue[2][1] = qmp.radProfileQualMorph.getNewJunc(); 
+							}
+							nowRad = nowNormalizedValue[2][1] * radiusScale;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
 						}
-						nowRad = nowNormalizedValue[2][1] * radiusScale;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
-					}
-					else // middle u value
-					{
-						if(qmp.radProfileQualMorph.isJuncFlag()) {
-							nowNormalizedValue[1][1] = qmp.radProfileQualMorph.getNewJunc(); 
+						else // middle u value
+						{
+							if(qmp.radProfileQualMorph.isJuncFlag()) {
+								nowNormalizedValue[1][1] = qmp.radProfileQualMorph.getNewJunc(); 
+							}
+							nowRad = nowNormalizedValue[1][1] * radiusScale;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
 						}
-						nowRad = nowNormalizedValue[1][1] * radiusScale;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+					} else { //if junc is disabled, that means we automatically set the junc radius to be what it was in the new location
+//						nowRad =  getJuncPt()[i].getRad();
+						double base_u_value = ((double)getJuncPt()[i].getuNdx()[getJuncPt()[i].getIndexOfComp(getBaseComp())]-1.0) / (51.0-1.0);
+						if ( Math.abs( base_u_value - 0.0) < 0.0001) {
+							nowRad = getComp()[getBaseComp()].getRadInfo()[0][1];
+						} else if (( Math.abs(base_u_value - 1.0) < 0.0001)){
+							nowRad = getComp()[getBaseComp()].getRadInfo()[2][1];
+						}
+						else {
+							nowRad = getComp()[getBaseComp()].getRadInfo()[1][1];
+						}
+						if ( Math.abs( u_value - 0.0) < 0.0001)
+						{
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+						}
+						else if ( Math.abs(u_value - 1.0) < 0.0001)
+						{
+//							nowRad = getComp()[getBaseComp()].getRadInfo()[2][1];
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+						}
+						else // middle u value
+						{
+//							nowRad = getComp()[getBaseComp()].getRadInfo()[1][1];
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+						}
 					}
 				}
 		}
@@ -1469,7 +1493,7 @@ public class AllenMatchStick extends MatchStick {
 
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
-			
+
 			//TRY SMOOTHING THE SHAPE
 			centerShapeAtOrigin(-1);
 			boolean smoothSuccess = false;
@@ -1481,7 +1505,7 @@ public class AllenMatchStick extends MatchStick {
 					smoothSuccess = false;
 				}
 			}
-			
+
 			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
 			boolean sizeVetSuccess = false;
 			if (smoothSuccess == true){ // success to smooth
@@ -1489,17 +1513,17 @@ public class AllenMatchStick extends MatchStick {
 				Point3d[] leafVect_info = getComp()[leafIndx].getVect_info();
 				Point3d[] leafBox = getBoundingBox(leafNVect, leafVect_info);
 				double leafArea = findAreaOfBox(leafBox);
-				
+
 				int baseNVect = getComp()[getBaseComp()].getnVect(); //TODO: could extend this beyond base, and add accessories
 				Point3d[] baseVect_info = getComp()[getBaseComp()].getVect_info();
 				Point3d[] baseBox = getBoundingBox(baseNVect, baseVect_info);
 				double baseArea = findAreaOfBox(baseBox);
-				
+
 				if(leafArea < baseArea*MAX_LEAF_TO_BASE_AREA_RATIO) {
 					sizeVetSuccess = true;
 				}
 			}
-			
+
 			if(sizeVetSuccess) {
 				return true;
 			}
@@ -2819,9 +2843,9 @@ Adding a new MAxisArc to a MatchStick
 	 * Change detection to see if any of the vec points are outside the box rather than
 	 * using radius method. 
 	 */
-	
+
 	protected boolean validMStickSize() {
-		
+
 		double maxRadius = getScaleForMAxisShape(); // degree
 		double screenDist = 500;
 		double minRadius = getMinScaleForMAxisShape();
@@ -2838,17 +2862,17 @@ Adding a new MAxisArc to a MatchStick
 			for (j = 1; j <= getComp()[i].getnVect(); j++) {
 				double xLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].x;
 				double yLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].y;
-//				double xLocation = getComp()[i].getVect_info()[j].x;
-//				double yLocation = getComp()[i].getVect_info()[j].y;
-				
+				//				double xLocation = getComp()[i].getVect_info()[j].x;
+				//				double yLocation = getComp()[i].getVect_info()[j].y;
+
 				//dis = comp[i].vect_info[j].distance(ori);
 
 				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
-//					System.out.println("AC:71923: TOO BIG");
+					//					System.out.println("AC:71923: TOO BIG");
 					return false;
 				}
 				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
-//					System.out.println("AC:71923: TOO BIG");
+					//					System.out.println("AC:71923: TOO BIG");
 					return false;
 				}
 				if(Math.abs(xLocation)>maxX)

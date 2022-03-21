@@ -14,22 +14,10 @@ import javax.vecmath.Vector3d;
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.metricmorphs.CurvatureMetricMorphMagnitude;
-import org.xper.allen.drawing.composition.metricmorphs.LengthMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
-import org.xper.allen.drawing.composition.metricmorphs.MetricMorphVector;
-import org.xper.allen.drawing.composition.metricmorphs.PositionMetricMorphMagnitude;
-import org.xper.allen.drawing.composition.metricmorphs.RadProfileMetricMorphMagnitude;
-import org.xper.allen.drawing.composition.metricmorphs.RotationMetricMorphMagnitude;
-import org.xper.allen.drawing.composition.metricmorphs.SizeMetricMorphMagnitude;
-import org.xper.allen.drawing.composition.qualitativemorphs.Bin;
-import org.xper.allen.drawing.composition.qualitativemorphs.CurvatureRotationQualitativeMorph;
-import org.xper.allen.drawing.composition.qualitativemorphs.ObjectCenteredPositionQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
-import org.xper.allen.drawing.composition.qualitativemorphs.RadProfileQualitativeMorph;
-import org.xper.allen.drawing.composition.qualitativemorphs.SizeQualitativeMorph;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -61,8 +49,6 @@ public class MStickPngBlockGenTwo{
 	AllenPNGMaker pngMaker;
 	@Dependency
 	double maxImageDimensionDegrees;
-	@Dependency
-	String experimentImageFolderPath;
 	@Dependency
 	QualitativeMorphParameterGenerator qmpGenerator;
 	@Dependency
@@ -100,8 +86,8 @@ public class MStickPngBlockGenTwo{
 
 		//INTERMIXING TYPES OF TRIALS
 		//Distractor Num
-		List<Integer>numDistractorsTrialList = new LinkedList<>(); //Type = number of choices
 		int numTrials = IntStream.of(numDistractors_numTrials).sum(); //Sum all elements of trialNums
+		List<Integer>numDistractorsTrialList = new LinkedList<>(); //Type = number of choices
 		int numDistractorTypes = numDistractors_types.length;
 		for (int i=0; i < numDistractorTypes; i++){ //For every type of trial
 			for (int j=0; j < numDistractors_numTrials[i]; j++){ //for every trial of that type
@@ -152,118 +138,6 @@ public class MStickPngBlockGenTwo{
 			}
 		}
 
-		//		//LOAD METRIC MORPH PARAMETERS
-		//		MetricMorphParams mmp = new MetricMorphParams();
-		//		//orientation (along along mAxis)
-		//		mmp.orientationFlag = false;
-		//		mmp.orientationMagnitude = new MetricMorphVector();
-		//		mmp.orientationMagnitude.percentChangeLowerBound = 0.01;
-		//		mmp.orientationMagnitude.percentChangeUpperBound = 0.02;
-		//		mmp.orientationMagnitude.range = 2*Math.PI;
-		//		//rotation (rotation along tangent axis)
-		//		mmp.rotationFlag = false;
-		//		mmp.rotationMagnitude = new RotationMetricMorphMagnitude();
-		//		mmp.rotationMagnitude.percentChangeLowerBound = 0.05;
-		//		mmp.rotationMagnitude.percentChangeUpperBound = 0.1;
-		//		//length (arcLength of mAxis Arc)
-		//		mmp.lengthFlag = true;
-		//		mmp.lengthMagnitude = new LengthMetricMorphMagnitude(sampleScaleUpperLim);
-		//		mmp.lengthMagnitude.percentChangeLowerBound = 0.15;
-		//		mmp.lengthMagnitude.percentChangeUpperBound = 0.3;
-		//		//size (uniform scale of radProfile)
-		//		mmp.sizeFlag = false;
-		//		mmp.sizeMagnitude = new SizeMetricMorphMagnitude();
-		//		mmp.sizeMagnitude.percentChangeLowerBound = 0.15;
-		//		mmp.sizeMagnitude.percentChangeUpperBound = 0.3;
-		//
-		//		//curvature
-		//		mmp.curvatureFlag = false;
-		//		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude();
-		//		mmp.curvatureMagnitude.percentChangeLowerBound = 0.25;
-		//		//position
-		//		mmp.positionFlag = false;
-		//		mmp.positionMagnitude = new PositionMetricMorphMagnitude();
-		//		mmp.positionMagnitude.percentChangeLowerBound = 0.05;
-		//		mmp.positionMagnitude.percentChangeUpperBound = 0.1;
-		//		//radProfile - Junc
-		//		mmp.radProfileJuncFlag = false;
-		//		mmp.radProfileJuncMagnitude = new RadProfileMetricMorphMagnitude();
-		//		mmp.radProfileJuncMagnitude.percentChangeLowerBound = 0.05;
-		//		mmp.radProfileJuncMagnitude.percentChangeUpperBound = 0.15;
-		//		//radProfile - Mid
-		//		mmp.radProfileMidFlag = false;
-		//		mmp.radProfileMidMagnitude = new RadProfileMetricMorphMagnitude();
-		//		mmp.radProfileMidMagnitude.percentChangeLowerBound = 0.05;
-		//		mmp.radProfileMidMagnitude.percentChangeUpperBound = 0.15;
-		//		//radProfile - End
-		//		mmp.radProfileEndMagnitude = new RadProfileMetricMorphMagnitude();
-		//		mmp.radProfileEndFlag = false;
-		//		mmp.radProfileEndMagnitude.percentChangeLowerBound = 0.05;
-		//		mmp.radProfileEndMagnitude.percentChangeUpperBound = 0.15;
-		//		//
-
-		//		//LOAD QUALITATIVE MORPH PARAMS
-		//		QualitativeMorphParams qmp = new QualitativeMorphParams();
-		//		{//Object Centered Position - Orientation and Position
-		//			qmp.objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
-		//			qmp.objectCenteredPositionFlag = false;
-		//			List<Bin<Integer>> positionBins = qmp.objCenteredPosQualMorph.positionBins;
-		//			positionBins.add(new Bin<Integer>(1,1));
-		//			positionBins.add(new Bin<Integer>(20,32));
-		//			positionBins.add(new Bin<Integer>(51,51));
-		//			List<Bin<Double>> baseTangentAngleBins = qmp.objCenteredPosQualMorph.baseTangentAngleBins;
-		//			double dev = 10;
-		//			baseTangentAngleBins.add(new Bin<Double>((-dev+0)*Math.PI/180,(dev+0)*Math.PI/180));
-		//			baseTangentAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
-		//			baseTangentAngleBins.add(new Bin<Double>((-dev+180)*Math.PI/180,(dev+180)*Math.PI/180));
-		//			baseTangentAngleBins.add(new Bin<Double>((-dev+270)*Math.PI/180,(dev+270)*Math.PI/180));
-		//			List<Bin<Double>> perpendicularAngleBins = qmp.objCenteredPosQualMorph.perpendicularAngleBins;
-		//			perpendicularAngleBins.add(new Bin<Double>((-dev+45)*Math.PI/180,(dev+45)*Math.PI/180));
-		//			perpendicularAngleBins.add(new Bin<Double>((-dev+90)*Math.PI/180,(dev+90)*Math.PI/180));
-		//			perpendicularAngleBins.add(new Bin<Double>((-dev+135)*Math.PI/180,(dev+135)*Math.PI/180));
-		//		}
-		//		{//Curvature And Rotation
-		//			qmp.curvRotQualMorph = new CurvatureRotationQualitativeMorph();
-		//			qmp.curvatureRotationFlag = false;
-		//			List<Bin<Double>> curvatureBins = qmp.curvRotQualMorph.curvatureBins;
-		//			curvatureBins.add(new Bin<Double>(0.01, 0.1));
-		//			curvatureBins.add(new Bin<Double>(3.0, 6.0));
-		//			curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
-		//		}
-		//		{//Size: Length & Width
-		//			qmp.sizeFlag = false;
-		//			qmp.sizeQualMorph = new SizeQualitativeMorph(maxImageDimensionDegrees);
-		//			//These bins will be scaled depending on the particular limb's arcLen and curvature 
-		//			List<Bin<Double>> lengthBins = qmp.sizeQualMorph.lengthBins;
-		//			lengthBins.add(new Bin<Double>(0.2, 0.3));
-		//			lengthBins.add(new Bin<Double>(0.55, 0.65));
-		//			lengthBins.add(new Bin<Double>(0.90, 1.00));
-		//			List<Bin<Double>> thicknessBins = qmp.sizeQualMorph.thicknessBins;
-		//			thicknessBins.add(new Bin<Double>(0.25, 0.4));
-		//			//		thicknessBins.add(new Bin<Double>(0.55, 0.65));
-		//			thicknessBins.add(new Bin<Double>(0.8, 1.0));
-		//		}
-		//		{//radProfile
-		//			qmp.radProfileFlag = true;
-		//			qmp.radProfileQualMorph = new RadProfileQualitativeMorph();
-		//			//double dev=0.1;
-		//			double mini = 0.5;
-		//			double fat = 1;
-		//			double tip = .1;
-		//			double tipDev = 0.09999;
-		//			List<Vector3d> radProfileBins = qmp.radProfileQualMorph.radProfileBins;
-		//			tip = tip - tipDev;
-		//			radProfileBins.add(new Vector3d(fat, fat, fat));
-		//			radProfileBins.add(new Vector3d(mini, mini, fat));
-		//			radProfileBins.add(new Vector3d(mini, fat, mini));
-		//			radProfileBins.add(new Vector3d(fat, mini,mini));
-		//			radProfileBins.add(new Vector3d(mini, fat, fat));
-		//			radProfileBins.add(new Vector3d(fat, mini, fat));
-		//			radProfileBins.add(new Vector3d(fat, fat, mini));
-		//			radProfileBins.add(new Vector3d(fat, mini, tip));
-		//			radProfileBins.add(new Vector3d(fat, fat, tip));
-		//			radProfileBins.add(new Vector3d(mini, fat, tip));
-		//		}
 		//GENERATION
 		try {
 			/**
@@ -287,6 +161,11 @@ public class MStickPngBlockGenTwo{
 			boolean tryagain = true;
 			int nTries = 0;
 
+
+			//SETTING MORPHS - we never want to change our morph because of a fail. Otherwise probability distribution of morph types will be skewed. 
+			QualitativeMorphParams qmp = qmpGenerator.getQMP(numCategoriesMorphed);
+			MetricMorphParams mmp = mmpGenerator.getMMP(sampleScaleUpperLim, metricMorphMagnitude);
+			
 			while (tryagain){
 				boolean leafSuccess = false;
 				boolean sampleSuccess = false;
@@ -340,7 +219,6 @@ public class MStickPngBlockGenTwo{
 					int nTries_match = 0;
 					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
 					//boolean maintainTangent = true;
-					MetricMorphParams mmp = mmpGenerator.getMMP(sampleScaleUpperLim, metricMorphMagnitude);
 					while(nTries_match<maxAttempts_match) {
 						System.out.println("In Match");
 						try{
@@ -368,7 +246,6 @@ public class MStickPngBlockGenTwo{
 					qmDistractorSuccess = new Boolean[numQMDistractors];
 					for(int b=0; b<qmDistractorSuccess.length; b++) qmDistractorSuccess[b]=false;
 					for(int j=0; j<numQMDistractors; j++){
-						QualitativeMorphParams qmp = qmpGenerator.getQMP(numCategoriesMorphed);
 						int maxAttempts_qm = 3;
 						int nTries_qm = 0;
 						while(nTries_qm < maxAttempts_qm) {
@@ -464,7 +341,7 @@ public class MStickPngBlockGenTwo{
 			//SAMPLE
 			long taskId = sampleId;
 			PngSpec sampleSpec = new PngSpec();
-			sampleSpec.setPath(experimentImageFolderPath+"/"+ids.get(0)+".png");
+			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
 			sampleSpec.setxCenter(sampleCoords.getX());
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -476,7 +353,7 @@ public class MStickPngBlockGenTwo{
 
 			//MATCH
 			PngSpec matchSpec = new PngSpec();
-			matchSpec.setPath(experimentImageFolderPath+"/"+ids.get(1)+".png");
+			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
 			matchSpec.setxCenter(matchCoords.getX());
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -488,7 +365,7 @@ public class MStickPngBlockGenTwo{
 			List<PngSpec> distractorSpec = new ArrayList<PngSpec>();
 			for(int j=0; j<numChoices-1; j++){
 				distractorSpec.add(j, new PngSpec());
-				distractorSpec.get(j).setPath(experimentImageFolderPath+"/"+ids.get(j+2)+".png");
+				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
@@ -753,14 +630,6 @@ public class MStickPngBlockGenTwo{
 
 	public void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {
 		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
-	}
-
-	public String getExperimentImageFolderPath() {
-		return experimentImageFolderPath;
-	}
-
-	public void setExperimentImageFolderPath(String experimentImageFolderPath) {
-		this.experimentImageFolderPath = experimentImageFolderPath;
 	}
 
 	public QualitativeMorphParameterGenerator getQmpGenerator() {

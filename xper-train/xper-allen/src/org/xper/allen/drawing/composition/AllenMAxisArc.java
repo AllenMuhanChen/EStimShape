@@ -184,7 +184,7 @@ public class AllenMAxisArc extends MAxisArc {
 	 * @param alignedPt
 	 * @param volatileRate
 	 */
-	public void genMetricSimilarArc( MAxisArc inArc,int alignedPt,  MetricMorphParams mmp) {
+	public void genMetricSimilarArc( AllenMAxisArc inArc,int alignedPt,  MetricMorphParams mmp) {
 		boolean showDebug = false;
 		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
 		// Nov 20th, the orientation change seems to be too large
@@ -220,7 +220,7 @@ public class AllenMAxisArc extends MAxisArc {
 		if(mmp.curvatureFlag) {
 			double oldRad = inArc.getRad();
 			mmp.curvatureMagnitude.oldValue = oldRad;
-			newRad = mmp.curvatureMagnitude.calculateMagnitude(inArc.getArcLen());
+			newRad = mmp.curvatureMagnitude.calculateMagnitude(inArc);
 		}
 
 		//4. rotation (along tangent axis)
