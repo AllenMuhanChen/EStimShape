@@ -15,9 +15,8 @@ public class MetricMorphParameterGenerator {
 	public MetricMorphParams getMMP(double sampleScaleUpperLim, double numberCategories) {
 		//orientation (along along mAxis)
 		mmp.orientationMagnitude = new MetricMorphVector();
-		mmp.orientationMagnitude.percentChangeLowerBound = (22/360);
-		mmp.orientationMagnitude.percentChangeUpperBound = (24/360);
-		mmp.orientationMagnitude.range = 2*Math.PI;
+		mmp.orientationMagnitude.angleChangeLowerBound = 20*Math.PI/180;
+		mmp.orientationMagnitude.angleChangeUpperBound = 30*Math.PI/180;
 		//rotation (rotation along tangent axis)
 		mmp.rotationMagnitude = new RotationMetricMorphMagnitude();
 		mmp.rotationMagnitude.percentChangeLowerBound = 0.025;

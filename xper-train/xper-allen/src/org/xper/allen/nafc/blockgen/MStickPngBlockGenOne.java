@@ -113,9 +113,8 @@ public class MStickPngBlockGenOne{
 		//orientation (along along mAxis)
 		mmp.orientationFlag = false;
 		mmp.orientationMagnitude = new MetricMorphVector();
-		mmp.orientationMagnitude.percentChangeLowerBound = 0.01;
-		mmp.orientationMagnitude.percentChangeUpperBound = 0.02;
-		mmp.orientationMagnitude.range = 2*Math.PI;
+		mmp.orientationMagnitude.angleChangeLowerBound = 0.01;
+		mmp.orientationMagnitude.angleChangeUpperBound = 0.02;
 		//rotation (rotation along tangent axis)
 		mmp.rotationFlag = false;
 		mmp.rotationMagnitude = new RotationMetricMorphMagnitude();
