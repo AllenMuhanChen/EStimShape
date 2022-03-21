@@ -57,6 +57,9 @@ public class NAFCMStickPngAppConfig {
 
 	@ExternalValue("experiment.png_path")
 	public String experimentPngPath;
+	
+	@ExternalValue("generator.spec_path")
+	public String generatorSpecPath;
 
 
 
@@ -82,6 +85,7 @@ public class NAFCMStickPngAppConfig {
 		gen.setXmlUtil(config.allenXMLUtil());
 		gen.setGeneratorPngPath(generatorPngPath);
 		gen.setExperimentPngPath(experimentPngPath);
+		gen.setGeneratorSpecPath(generatorSpecPath);
 		gen.setPngMaker(pngMaker());
 		gen.setMaxImageDimensionDegrees(xperMaxImageDimensionDegrees());
 		gen.setMmpGenerator(mmpGenerator());

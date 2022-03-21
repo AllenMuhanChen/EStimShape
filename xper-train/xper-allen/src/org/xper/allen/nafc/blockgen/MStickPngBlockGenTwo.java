@@ -12,6 +12,7 @@ import java.util.stream.IntStream;
 import javax.vecmath.Vector3d;
 
 import org.xper.Dependency;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
@@ -45,6 +46,8 @@ public class MStickPngBlockGenTwo{
 	String generatorPngPath;
 	@Dependency
 	String experimentPngPath;
+	@Dependency
+	String generatorSpecPath;
 	@Dependency
 	AllenPNGMaker pngMaker;
 	@Dependency
@@ -331,6 +334,12 @@ public class MStickPngBlockGenTwo{
 			ids.addAll(distractorIds);
 			pngMaker.createAndSavePNGsfromObjs(objs, ids);
 
+			for(int k=0; k<objs.size(); k++) {
+				AllenMStickSpec spec = new AllenMStickSpec();
+				spec.setMStickInfo(objs.get(k));
+				spec.writeInfo2File(generatorSpecPath + "/" + ids.get(k), true);
+			}
+			
 			//SPECIFYING LOCATION
 			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
 			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
@@ -646,6 +655,14 @@ public class MStickPngBlockGenTwo{
 
 	public void setMmpGenerator(MetricMorphParameterGenerator mmpGenerator) {
 		this.mmpGenerator = mmpGenerator;
+	}
+
+	public String getGeneratorSpecPath() {
+		return generatorSpecPath;
+	}
+
+	public void setGeneratorSpecPath(String generatorSpecPath) {
+		this.generatorSpecPath = generatorSpecPath;
 	}
 
 }

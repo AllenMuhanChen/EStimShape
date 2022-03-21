@@ -5,10 +5,9 @@ import javax.vecmath.Vector3d;
 import org.xper.drawing.stick.stickMath_lib;
 
 public class MetricMorphVector {
-	public double percentChangeLowerBound;
-	public double percentChangeUpperBound;
+	public double angleChangeLowerBound;
+	public double angleChangeUpperBound;
 	public Vector3d oldVector;
-	public double range;
 	/**
 	 * outterLowerBound < innerUpperBound < innerLowerBound < outerUpperBound
 	 * A < B < C < D
@@ -17,17 +16,14 @@ public class MetricMorphVector {
 	 */
 	public Vector3d calculateVector() {
 		//The below is putting bounds on the angle difference between the old vector and new vector
-		double outerLowerBound = -percentChangeUpperBound*range;
-		double outerUpperBound = percentChangeUpperBound*range;
-		double innerUpperBound = -percentChangeLowerBound*range;
-		double innerLowerBound = percentChangeLowerBound*range;
+		double outerLowerBound = angleChangeLowerBound;
+		double outerUpperBound = angleChangeUpperBound;
 		Vector3d newVector;
 		while (true) {
 			newVector = stickMath_lib.randomUnitVec();
-			double newAngle = newVector.angle(oldVector);
-			if (newAngle > outerLowerBound && newAngle < outerUpperBound)
-				if(newAngle < innerUpperBound || newAngle > innerLowerBound)
-					break;
+			double angleDiff = newVector.angle(oldVector);
+			if (angleDiff > outerLowerBound && angleDiff < outerUpperBound)
+				break;
 		}
 		return newVector;
 	}
