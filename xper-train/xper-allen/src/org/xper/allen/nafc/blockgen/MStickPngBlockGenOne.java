@@ -15,7 +15,7 @@ import org.xper.allen.drawing.composition.metricmorphs.CurvatureMetricMorphMagni
 import org.xper.allen.drawing.composition.metricmorphs.LengthMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
-import org.xper.allen.drawing.composition.metricmorphs.MetricMorphVector;
+import org.xper.allen.drawing.composition.metricmorphs.MetricMorphOrientation;
 import org.xper.allen.drawing.composition.metricmorphs.PositionMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.RadProfileMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.RotationMetricMorphMagnitude;
@@ -112,9 +112,9 @@ public class MStickPngBlockGenOne{
 		MetricMorphParams mmp = new MetricMorphParams();
 		//orientation (along along mAxis)
 		mmp.orientationFlag = false;
-		mmp.orientationMagnitude = new MetricMorphVector();
-		mmp.orientationMagnitude.angleChangeLowerBound = 0.01;
-		mmp.orientationMagnitude.angleChangeUpperBound = 0.02;
+		mmp.orientationMagnitude = new MetricMorphOrientation();
+		mmp.orientationMagnitude.setAngleChangeLowerBound(0.01);
+		mmp.orientationMagnitude.setAngleChangeUpperBound(0.02);
 		//rotation (rotation along tangent axis)
 		mmp.rotationFlag = false;
 		mmp.rotationMagnitude = new RotationMetricMorphMagnitude();
@@ -134,7 +134,7 @@ public class MStickPngBlockGenOne{
 		//curvature
 		mmp.curvatureFlag = false;
 		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude(sampleScaleUpperLim);
-		mmp.curvatureMagnitude.percentChangeLowerBound = 0.25;
+		mmp.curvatureMagnitude.setPercentChangeLowerBound(0.25);
 		//position
 		mmp.positionFlag = false;
 		mmp.positionMagnitude = new PositionMetricMorphMagnitude();

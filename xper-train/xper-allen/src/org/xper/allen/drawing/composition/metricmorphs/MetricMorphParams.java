@@ -12,7 +12,7 @@ public class MetricMorphParams{
 	public boolean radProfileJuncFlag;
 	public boolean radProfileMidFlag;
 	public boolean radProfileEndFlag;
-	public MetricMorphVector    orientationMagnitude;
+	public MetricMorphOrientation    orientationMagnitude;
 	public RotationMetricMorphMagnitude rotationMagnitude;
 	public LengthMetricMorphMagnitude lengthMagnitude;
 	public SizeMetricMorphMagnitude sizeMagnitude;

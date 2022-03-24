@@ -212,14 +212,14 @@ public class AllenMAxisArc extends MAxisArc {
 		// 2. orientation
 		if(mmp.orientationFlag) {
 			Vector3d oriTangent = new Vector3d( inArc.getmTangent()[inArc.getTransRotHis_rotCenter()]);
-			mmp.orientationMagnitude.oldVector = oriTangent;
+			mmp.orientationMagnitude.setOldVector(oriTangent);
 			newTangent = mmp.orientationMagnitude.calculateVector();
 		}
 
 		//3. curvature
 		if(mmp.curvatureFlag) {
 			double oldRad = inArc.getRad();
-			mmp.curvatureMagnitude.oldValue = oldRad;
+			mmp.curvatureMagnitude.setOldValue(oldRad);
 			newRad = mmp.curvatureMagnitude.calculateMagnitude(inArc);
 		}
 
