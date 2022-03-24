@@ -36,10 +36,10 @@ public class AllenMStickSpec {
 
     static {
         s = new XStream();
-        s.alias("MStickSpec", AllenMStickSpec.class);
+        s.alias("AllenMStickSpec", AllenMStickSpec.class);
         s.alias("EndPtInfo", EndPt_Info.class);
         s.alias("JuncPtInfo", JuncPt_Info.class);
-        s.alias("TubeInfo", AllenTubeInfo.class);
+        s.alias("AllenTubeInfo", AllenTubeInfo.class);
         
     }
 
@@ -162,7 +162,7 @@ public class AllenMStickSpec {
     	}
 
 	    this.vertex = null;
-	    String specStr = this.toXml();
+	    String specStr = toXml();
 	    try {
     		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_spec.xml"));
 	        out.write(specStr);

@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MetricMorphParameterGenerator {
-	private boolean manualMode = false;
+	private boolean manualMode = true;
 	MetricMorphParams mmp;
 	
 	public MetricMorphParameterGenerator() {
@@ -14,9 +14,9 @@ public class MetricMorphParameterGenerator {
 	
 	public MetricMorphParams getMMP(double sampleScaleUpperLim, double numberCategories) {
 		//orientation (along along mAxis)
-		mmp.orientationMagnitude = new MetricMorphVector();
-		mmp.orientationMagnitude.angleChangeLowerBound = 20*Math.PI/180;
-		mmp.orientationMagnitude.angleChangeUpperBound = 30*Math.PI/180;
+		mmp.orientationMagnitude = new MetricMorphOrientation();
+		mmp.orientationMagnitude.setAngleChangeLowerBound(20*Math.PI/180);
+		mmp.orientationMagnitude.setAngleChangeUpperBound(30*Math.PI/180);
 		//rotation (rotation along tangent axis)
 		mmp.rotationMagnitude = new RotationMetricMorphMagnitude();
 		mmp.rotationMagnitude.percentChangeLowerBound = 0.025;
@@ -31,7 +31,7 @@ public class MetricMorphParameterGenerator {
 		mmp.sizeMagnitude.percentChangeUpperBound = 0.24;
 		//curvature
 		mmp.curvatureMagnitude = new CurvatureMetricMorphMagnitude(sampleScaleUpperLim);
-		mmp.curvatureMagnitude.percentChangeLowerBound = 0.5;
+		mmp.curvatureMagnitude.setPercentChangeLowerBound(0.5);
 //		//position
 //		mmp.positionMagnitude = new PositionMetricMorphMagnitude();
 //		mmp.positionMagnitude.percentChangeLowerBound = 0.05;
@@ -60,7 +60,7 @@ public class MetricMorphParameterGenerator {
 		mmp.radProfileMidFlag = false;
 		mmp.radProfileEndFlag = false;
 		
-		int numCats = 8;
+		int numCats = 4;
 		List<Integer> categories = new ArrayList<>();
 		for(int i=0; i<numCats; i++) {
 			categories.add(i);
@@ -71,24 +71,24 @@ public class MetricMorphParameterGenerator {
 			if (cat==0) mmp.orientationFlag=true;
 			if (cat==1) mmp.rotationFlag=true;
 			if (cat==2) mmp.lengthFlag=true;
-			if (cat==3) mmp.sizeFlag=true;
 			if (cat==4) mmp.curvatureFlag=true;
+//			if (cat==3) mmp.sizeFlag=true;
 //			if (cat==5) mmp.positionFlag=true;
-			if (cat==5) mmp.radProfileJuncFlag=true;
-			if (cat==6) mmp.radProfileMidFlag=true;
-			if (cat==7) mmp.radProfileEndFlag=true;
+//			if (cat==5) mmp.radProfileJuncFlag=true;
+//			if (cat==6) mmp.radProfileMidFlag=true;
+//			if (cat==7) mmp.radProfileEndFlag=true;
 		}
 		
 		if(manualMode) {
-			mmp.orientationFlag   = false;
+			mmp.orientationFlag   = true;
 			mmp.rotationFlag      = false;
 			mmp.lengthFlag        = false;
 			mmp.sizeFlag          = false;
 			mmp.curvatureFlag     = false;
 			mmp.positionFlag 	  = false;
-			mmp.radProfileJuncFlag= true;
-			mmp.radProfileMidFlag = true;
-			mmp.radProfileEndFlag = true;
+//			mmp.radProfileJuncFlag= true;
+//			mmp.radProfileMidFlag = true;
+//			mmp.radProfileEndFlag = true;
 			
 			
 		}
