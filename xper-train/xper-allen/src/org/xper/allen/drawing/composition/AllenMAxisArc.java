@@ -35,9 +35,10 @@ public class AllenMAxisArc extends MAxisArc {
 	private Vector3d[] mTangent= new Vector3d[getMaxStep()+1];
 	public double[] localArcLen = new double[getMaxStep()+1];
 
-	public int transRotHis_alignedPt, transRotHis_rotCenter;
-	public Point3d transRotHis_finalPos = new Point3d();
-	public Vector3d transRotHis_finalTangent = new Vector3d();
+	private int transRotHis_alignedPt;
+	private int transRotHis_rotCenter;
+	private Point3d transRotHis_finalPos = new Point3d();
+	private Vector3d transRotHis_finalTangent = new Vector3d();
 	private double transRotHis_devAngle;
 
 	public AllenMAxisArc() {
@@ -211,6 +212,7 @@ public class AllenMAxisArc extends MAxisArc {
 
 		// 2. orientation
 		if(mmp.orientationFlag) {
+//			inArc.getmTangent()[inArc.get]
 			Vector3d oriTangent = new Vector3d( inArc.getmTangent()[inArc.getTransRotHis_rotCenter()]);
 			mmp.orientationMagnitude.setOldVector(oriTangent);
 			newTangent = mmp.orientationMagnitude.calculateVector();
@@ -387,6 +389,7 @@ public class AllenMAxisArc extends MAxisArc {
 		Angle = oriTangent.angle(finalTangent);
 		RotAxis.cross(oriTangent, finalTangent);
 		RotAxis.normalize();
+		
 
 		skipRotate = false;
 		// NOTE: 3/30/2010
@@ -410,7 +413,7 @@ public class AllenMAxisArc extends MAxisArc {
 		if (!skipRotate)
 		{
 			oriPt.set(getmPts()[rotCenter]);
-			AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
+			AxisAngle4d axisInfo = new AxisAngle4d(RotAxis, Angle);
 			transMat.setRotation(axisInfo);
 
 			for (i = 1 ; i <= getMaxStep(); i++)
@@ -458,16 +461,16 @@ public class AllenMAxisArc extends MAxisArc {
 			getmPts()[i].add(transVec);
 		}
 		/// 5. save the transrot history into recording data
-		transRotHis_alignedPt = alignedPt;
-		transRotHis_rotCenter = rotCenter;
+		setTransRotHis_alignedPt(alignedPt);
+		setTransRotHis_rotCenter(rotCenter);
 
 		// July 24 2009, this is the key point
 		// change from = to set in May , so we should not have the 
 		// wrongly finalTangent probblem in the future
 		//transRotHis_finalPos = finalPos;
-		transRotHis_finalPos.set(finalPos);
+		getTransRotHis_finalPos().set(finalPos);
 		//transRotHis_finalTangent = finalTangent;
-		transRotHis_finalTangent.set( finalTangent);
+		getTransRotHis_finalTangent().set(finalTangent);
 		setTransRotHis_devAngle(nowDeviateAngle);
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 	}

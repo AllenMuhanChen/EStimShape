@@ -36,6 +36,7 @@ public class MetricMorphOrientation {
 					break;
 			}
 		}
+//		newVector = new Vector3d(0,1,0); //sometimes up, sometimes down. Idk why.
 		return newVector;
 	}
 

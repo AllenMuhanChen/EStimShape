@@ -132,7 +132,7 @@ public class AllenMatchStick extends MatchStick {
 			Point3d finalPos = new Point3d();
 
 			for (i = 1; i <= getnComponent(); i++) {
-				finalPos.add(getComp()[i].getmAxisInfo().transRotHis_finalPos, shiftVec);
+				finalPos.add(getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
 				this.getComp()[i].translateComp(finalPos);
 			}
 			// also, all JuncPt and EndPt
@@ -345,7 +345,7 @@ public class AllenMatchStick extends MatchStick {
 										{
 											int nowComp = k;
 											Point3d finalPos = new Point3d();
-											finalPos.add(getComp()[nowComp].getmAxisInfo().transRotHis_finalPos, shiftVec);
+											finalPos.add(getComp()[nowComp].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
 											if (showDebug)
 												System.out.println(
 														"we have translate comp " + nowComp + "by " + shiftVec);
@@ -762,7 +762,7 @@ public class AllenMatchStick extends MatchStick {
 										{
 											int nowComp = k;
 											Point3d finalPos =new Point3d();
-											finalPos.add( getComp()[nowComp].getmAxisInfo().transRotHis_finalPos, shiftVec);
+											finalPos.add( getComp()[nowComp].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
 											if ( showDebug)
 												System.out.println("we have translate comp " + nowComp + "by " + shiftVec);
 											this.getComp()[nowComp].translateComp( finalPos);
@@ -1336,7 +1336,7 @@ public class AllenMatchStick extends MatchStick {
 										{
 											int nowComp = k;
 											Point3d finalPos =new Point3d();
-											finalPos.add( getComp()[nowComp].getmAxisInfo().transRotHis_finalPos, shiftVec);
+											finalPos.add( getComp()[nowComp].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
 											if ( showDebug)
 												System.out.println("we have translate comp " + nowComp + "by " + shiftVec);
 											this.getComp()[nowComp].translateComp( finalPos);
