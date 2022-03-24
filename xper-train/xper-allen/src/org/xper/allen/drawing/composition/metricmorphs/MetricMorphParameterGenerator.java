@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MetricMorphParameterGenerator {
-	private boolean manualMode = true;
+	private boolean manualMode = false;
 	MetricMorphParams mmp;
 	
 	public MetricMorphParameterGenerator() {
@@ -80,6 +80,7 @@ public class MetricMorphParameterGenerator {
 		}
 		
 		if(manualMode) {
+			System.out.println("WARNING: MANUAL MODE ON IN METRIC MORPH PARAMS!!");
 			mmp.orientationFlag   = true;
 			mmp.rotationFlag      = false;
 			mmp.lengthFlag        = false;
