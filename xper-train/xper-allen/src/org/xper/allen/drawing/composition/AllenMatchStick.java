@@ -2884,7 +2884,7 @@ Adding a new MAxisArc to a MatchStick
 		if (maxX < minBoundInMm || maxY < minBoundInMm) {
 			//System.out.println("AC:71923: " + maxX);
 			//System.out.println("AC:71923: " + maxY);
-			//return false;
+			return false;
 		}
 
 

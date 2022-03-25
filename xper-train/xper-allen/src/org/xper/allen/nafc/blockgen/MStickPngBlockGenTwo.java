@@ -427,7 +427,7 @@ public class MStickPngBlockGenTwo{
 		 * to be approx half the size. 
 		 */
 		double scale = maxImageDimensionDegrees/1.5;
-		double minScale = maxImageDimensionDegrees/4;
+		double minScale = maxImageDimensionDegrees/2.5;
 		obj.setScale(minScale, scale);
 
 		//CONTRAST
