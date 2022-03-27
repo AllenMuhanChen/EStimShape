@@ -82,6 +82,11 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 		}
 	}
 
+	/**
+	 * Edited by AC:
+	 * Modified so when a new generation is received, we append the remaining task lists to the new one.
+	 * Effect is that current generation is finished before moving onto stimuli of next generation. 
+	 */
 	public void run() {
 		try {
 			threadHelper.started();
@@ -102,6 +107,14 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 								+ taskToDo.size());
 					}
 					if (taskToDo.size() > 0) {
+						//AC Addition: Finish previous gen/block before moving to the next
+						LinkedList<NAFCExperimentTask> currentTaskToDo = currentGeneration.get();
+						try {
+							taskToDo.addAll(currentTaskToDo);
+						}catch (Exception e) {
+
+						}
+						/////////////////////////
 						currentGeneration.set(taskToDo);
 						currentGenId = info.getGenId();
 					}
