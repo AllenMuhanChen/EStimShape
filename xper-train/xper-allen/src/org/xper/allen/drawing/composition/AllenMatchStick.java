@@ -469,7 +469,6 @@ public class AllenMatchStick extends MatchStick {
 			while (j<10){
 				// 0. Copy
 				cleanData();
-				copyFrom(new AllenMatchStick());
 				copyFrom(backup);
 				//success = metricMorph.morphLength();
 				success = qualitativeMorphComponent(leafToMorphIndx, mmp);
@@ -503,6 +502,15 @@ public class AllenMatchStick extends MatchStick {
 
 	protected boolean qualitativeMorphComponent(int id, QualitativeMorphParams qmp)
 	{
+		
+		if(qmp.removalFlag) {
+			boolean[] removeList = new boolean[getComp().length];
+			removeList[id] = true;
+
+			// 2. DO THE REMOVING
+			removeComponent(removeList);
+			return true;
+		}
 		int i, j, k;
 		int inner_totalTrialTime = 0;
 		int TotalTrialTime = 0; // the # have tried, if too many, just terminate

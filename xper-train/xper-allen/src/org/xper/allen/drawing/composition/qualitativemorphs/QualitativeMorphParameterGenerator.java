@@ -6,6 +6,8 @@ import java.util.List;
 
 import javax.vecmath.Vector3d;
 
+import org.xper.drawing.stick.stickMath_lib;
+
 public class QualitativeMorphParameterGenerator {
 	private boolean manualMode = false;
 	private QualitativeMorphParams qmp;
@@ -19,46 +21,55 @@ public class QualitativeMorphParameterGenerator {
 		getQmp().curvatureRotationFlag = false;
 		getQmp().sizeFlag = false;
 		getQmp().radProfileFlag = false;
-		
+		getQmp().removalFlag = false;
+
 		List<Integer> categories = new ArrayList<>();
-		categories.add(0); categories.add(1); categories.add(2);// categories.add(3);
+		categories.add(0); categories.add(1); categories.add(2); //categories.add(3);
 		Collections.shuffle(categories);
-		for(int i=0; i<numCategories; i++) {
-			int cat = categories.get(i);
-			if(cat==0) {
-				getQmp().objectCenteredPositionFlag = true;
-//				System.out.println("Object Centered@@@@@@@@@@@");
-			}
-			else if (cat==1) {
-				getQmp().curvatureRotationFlag = true;
-//				System.out.println("Curvature Rotation!!!!!!!!!!!!");
-			}
-//			else if (cat==2) {
-//				getQmp().sizeFlag = true;
-////				System.out.println("Size##########");
-//			}
-			else if (cat==2) {
-				getQmp().radProfileFlag = true;
-//				System.out.println("Rad Profile%%%%%%%%%%");
-			}
-			else {
-				throw new IllegalArgumentException("There should only be 4 qualitative morph types");
+		if(stickMath_lib.rand01()<getQmp().CHANCE_TO_REMOVE) {
+			getQmp().removalFlag = true;
+		}
+		else {
+			for(int i=0; i<numCategories; i++) {
+				int cat = categories.get(i);
+				if(cat==0) {
+					getQmp().objectCenteredPositionFlag = true;
+					//				System.out.println("Object Centered@@@@@@@@@@@");
+				}
+				else if (cat==1) {
+					getQmp().curvatureRotationFlag = true;
+					//				System.out.println("Curvature Rotation!!!!!!!!!!!!");
+				}
+				//			else if (cat==2) {
+				//				getQmp().sizeFlag = true;
+				////				System.out.println("Size##########");
+				//			}
+				else if (cat==2) {
+					getQmp().radProfileFlag = true;
+					//				System.out.println("Rad Profile%%%%%%%%%%");
+				}
+				//			else if (cat==3) {
+				//				getQmp().removalFlag = true;
+				//			}
+				else {
+					throw new IllegalArgumentException("There should only be 4 qualitative morph types");
+				}
 			}
 		}
-		
+
 		if(manualMode) {
 			getQmp().objectCenteredPositionFlag = false;
 			getQmp().curvatureRotationFlag = false;
 			getQmp().sizeFlag = false;
 			getQmp().radProfileFlag = false;
-			
-//			getQmp().curvatureRotationFlag = true;
-			getQmp().radProfileFlag = true;
+			getQmp().removalFlag = true;
+			//			getQmp().curvatureRotationFlag = true;
+			getQmp().radProfileFlag = false;
 		}
 	}
 	public QualitativeMorphParams getQMP(int numCategories) {
 		chooseMorphs(numCategories);
-		
+
 		{//Object Centered Position - Orientation and Position
 			getQmp().objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
 			List<Bin<Integer>> positionBins = getQmp().objCenteredPosQualMorph.positionBins;
@@ -75,10 +86,10 @@ public class QualitativeMorphParameterGenerator {
 			curvatureBins.add(new Bin<Double>(0.5, 1.0));
 			curvatureBins.add(new Bin<Double>(3.0, 6.0));
 			curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
-//			double radView = 5;
-//			curvatureBins.add(new Bin<Double>(0.1*radView, 0.2*radView));
-//			curvatureBins.add(new Bin<Double>(3.0*radView, 6.0*radView));
-//			curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
+			//			double radView = 5;
+			//			curvatureBins.add(new Bin<Double>(0.1*radView, 0.2*radView));
+			//			curvatureBins.add(new Bin<Double>(3.0*radView, 6.0*radView));
+			//			curvatureBins.add(new Bin<Double>(100000.0, 100000.0001));
 		}
 		{//Size: Length & Width
 			getQmp().sizeQualMorph = new SizeQualitativeMorph(getMaxImageDimensionDegrees()/2);
