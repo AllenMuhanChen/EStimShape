@@ -6,9 +6,11 @@ public class QualitativeMorphParams{
 	public boolean curvatureRotationFlag; //only makes sense to morph rotation if curvature is high
 	public boolean sizeFlag;
 	public boolean radProfileFlag;
+	public boolean removalFlag;
 	public ObjectCenteredPositionQualitativeMorph objCenteredPosQualMorph;
 	public CurvatureRotationQualitativeMorph curvRotQualMorph;
 	public SizeQualitativeMorph sizeQualMorph;
 	public RadProfileQualitativeMorph radProfileQualMorph;
+	public double CHANCE_TO_REMOVE = 0.25;
 	
 }
