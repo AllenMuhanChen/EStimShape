@@ -93,7 +93,14 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			drawingController.eyeInHoldFail(currentContext);
 			NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
 					choiceEventListeners, currentContext);
-			return NAFCTrialResult.SAMPLE_EYE_IN_HOLD_FAIL;
+			 
+			drawingController.slideFinish(currentTask, currentContext);
+			long sampleOffLocalTime = timeUtil.currentTimeMicros();
+			currentContext.setSampleOffTime(sampleOffLocalTime);
+			NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
+			
+			//AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
+			return NAFCTrialResult.TRIAL_COMPLETE;
 		}
 		drawingController.slideFinish(currentTask, currentContext);
 		long sampleOffLocalTime = timeUtil.currentTimeMicros();
