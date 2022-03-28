@@ -1,7 +1,6 @@
 package org.xper.allen.config;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
@@ -10,21 +9,16 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.springframework.config.java.util.DefaultScopes;
-import org.xper.acq.mock.SocketSamplingDeviceServer;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
-import org.xper.allen.fixcal.RewardButtonExperimentConsole;
-import org.xper.allen.fixcal.RewardButtonExperimentConsoleModel;
-import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
-import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
+import org.xper.allen.fixcal.FixCalExperimentConsoleRenderer;
+import org.xper.classic.TrialExperimentConsoleRenderer;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.config.FixCalConfig;
-import org.xper.console.ExperimentMessageReceiver;
-import org.xper.experiment.ExperimentRunner;
-import org.xper.eye.mapping.MappingAlgorithm;
+import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.object.Circle;
+import org.xper.drawing.object.Square;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
 /**
@@ -50,7 +44,7 @@ public class AllenFixCalConfig {
 		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
 		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
-		renderer.setWidth(classicConfig.xperMonkeyScreenWidth()/2);
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}
@@ -64,6 +58,18 @@ public class AllenFixCalConfig {
 		eyeDevices.add(classicConfig.xperRightIscanId());
 		strategy.setEyeDevices(eyeDevices);
 		return strategy;
+	}
+	
+	@Bean
+	public FixCalExperimentConsoleRenderer consoleRenderer () {
+		FixCalExperimentConsoleRenderer renderer = new FixCalExperimentConsoleRenderer();
+		renderer.setMessageHandler(classicConfig.messageHandler());
+		renderer.setFixation(classicConfig.consoleFixationPoint());
+		renderer.setRenderer(consoleGLRenderer());
+		renderer.setBlankScreen(new BlankScreen());
+		renderer.setCircle(new Circle());
+		renderer.setSquare(new Square());
+		return renderer;
 	}
 	
 }

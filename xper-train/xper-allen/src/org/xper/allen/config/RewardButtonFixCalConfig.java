@@ -12,8 +12,12 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.object.Circle;
+import org.xper.drawing.object.Square;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.allen.fixcal.FixCalExperimentConsoleRenderer;
 import org.xper.allen.fixcal.RewardButtonExperimentConsole;
 import org.xper.allen.fixcal.RewardButtonExperimentConsoleModel;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
@@ -46,9 +50,8 @@ public class RewardButtonFixCalConfig {
 	@Bean
 	public RewardButtonExperimentConsole experimentConsole () {
 		RewardButtonExperimentConsole console = new RewardButtonExperimentConsole();
-		
 		console.setPaused(classicConfig.xperExperimentInitialPause());
-		console.setConsoleRenderer(config.consoleRenderer());
+		console.setConsoleRenderer(classicConfig.consoleRenderer());
 		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
 		console.setModel(experimentConsoleModel());
 		console.setCanvasScaleFactor(3);
@@ -59,6 +62,8 @@ public class RewardButtonFixCalConfig {
 		
 		return console;
 	}
+	
+	
 	@Bean
 	public RewardButtonExperimentConsoleModel experimentConsoleModel () {
 		RewardButtonExperimentConsoleModel model = new RewardButtonExperimentConsoleModel();

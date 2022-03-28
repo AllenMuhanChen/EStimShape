@@ -290,7 +290,7 @@ public class NAFCConfig {
 		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
 		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
-		renderer.setWidth(classicConfig.xperMonkeyScreenWidth()/2); //AC Change: divide xperMonkeyScreenWidth by 2 to account for two XScreen aspect ratio change. 
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth()); 
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}

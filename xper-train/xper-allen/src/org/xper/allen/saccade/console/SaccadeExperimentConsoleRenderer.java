@@ -24,12 +24,12 @@ public class SaccadeExperimentConsoleRenderer extends TrialExperimentConsoleRend
 	void drawTarget() {
 		if(messageHandler.isTargetOn()) {
 			Coordinates2D targetLocation = messageHandler.getTargetPosition();
-			double targetEyeWindowSize = renderer.deg2mm(messageHandler.getTargetEyeWindowSize());
-			double targetX = renderer.deg2mm(targetLocation.getX());
-			double targetY = renderer.deg2mm(targetLocation.getY());
+			double targetEyeWindowSize = getRenderer().deg2mm(messageHandler.getTargetEyeWindowSize());
+			double targetX = getRenderer().deg2mm(targetLocation.getX());
+			double targetY = getRenderer().deg2mm(targetLocation.getY());
 			
-			GLUtil.drawCircle(circle, targetEyeWindowSize, false, targetX, targetY, 0);
-			GLUtil.drawSquare(square, targetIndicatorSize, true, targetX, targetY, 0);
+			GLUtil.drawCircle(getCircle(), targetEyeWindowSize, false, targetX, targetY, 0);
+			GLUtil.drawSquare(getSquare(), targetIndicatorSize, true, targetX, targetY, 0);
 		}
 	}
 	
