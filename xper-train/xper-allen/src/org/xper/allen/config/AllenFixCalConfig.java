@@ -50,18 +50,11 @@ public class AllenFixCalConfig {
 		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
 		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
-		renderer.setWidth(xperMonkeyScreenWidth());
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth()/2);
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}
 	
-	
-	
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public Double xperMonkeyScreenWidth() {
-		//DIVIDE by two account for doubled monkey screen width. 
-		return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_monkey_screen_width", 0))/2;
-	}
 	
 	@Bean
 	public EyeInStrategy eyeInStrategy () {
