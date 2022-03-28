@@ -747,7 +747,7 @@ public class ExperimentConsole extends JFrame implements
 		this.monkeyScreenDimension.setX(this.monkeyScreenDimension.getX());
 	}
 
-	public TrialExperimentConsoleRenderer getConsoleRenderer() {
+	public ConsoleRenderer getConsoleRenderer() {
 		return consoleRenderer;
 	}
 

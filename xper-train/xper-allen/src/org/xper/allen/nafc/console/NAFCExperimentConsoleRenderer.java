@@ -22,7 +22,7 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 	}
 
 	public void drawCanvas(Context context, String devId) {
-		blankScreen.draw(null);
+		getBlankScreen().draw(null);
 
 		if(messageHandler.isInTrial()) {
 			drawEyeDeviceReading(devId);
@@ -42,8 +42,8 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 	protected void drawFixation() {
 		if (messageHandler.isFixationOn() || messageHandler.isSampleOn()) {
 			TrialContext context = new TrialContext();
-			context.setRenderer(renderer);
-			fixation.draw(context);
+			context.setRenderer(getRenderer());
+			getFixation().draw(context);
 		}
 	}
 
@@ -58,11 +58,11 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 				double[] targetY = new double[n];
 
 				for (int i = 0; i < n; i++) {
-					targetEyeWindowSize[i] = renderer.deg2mm(messageHandler.getTargetEyeWindowSize()[i]);
-					targetX[i] = renderer.deg2mm(choicesLocations[i].getX());
-					targetY[i] = renderer.deg2mm(choicesLocations[i].getY());
-					GLUtil.drawCircle(circle, targetEyeWindowSize[i], false, targetX[i], targetY[i], 0);
-					GLUtil.drawSquare(square, targetIndicatorSize, true, targetX[i], targetY[i], 0);
+					targetEyeWindowSize[i] = getRenderer().deg2mm(messageHandler.getTargetEyeWindowSize()[i]);
+					targetX[i] = getRenderer().deg2mm(choicesLocations[i].getX());
+					targetY[i] = getRenderer().deg2mm(choicesLocations[i].getY());
+					GLUtil.drawCircle(getCircle(), targetEyeWindowSize[i], false, targetX[i], targetY[i], 0);
+					GLUtil.drawSquare(getSquare(), targetIndicatorSize, true, targetX[i], targetY[i], 0);
 				}		
 			}
 		}

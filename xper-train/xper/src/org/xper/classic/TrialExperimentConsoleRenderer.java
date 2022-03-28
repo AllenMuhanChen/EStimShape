@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.xper.Dependency;
 import org.xper.classic.vo.TrialContext;
+import org.xper.console.ConsoleRenderer;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
@@ -14,33 +15,35 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
 
-public class TrialExperimentConsoleRenderer {
+public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 	@Dependency
-	protected AbstractRenderer renderer;
+	private AbstractRenderer renderer;
 	@Dependency
-	protected
+	private
 	Drawable fixation;
 	@Dependency
-	protected
+	private
 	Drawable blankScreen;
 	@Dependency
-	protected
+	private
 	Circle circle;
 	@Dependency
-	protected 
+	private 
 	Square square;
 	
-	double eyeIndicatorSize = 2.5;
-	double voltageIndicatorSize = 5;
-	double voltageMin = -10.0;
-	double voltageMax = 10.0;
+	private double eyeIndicatorSize = 2.5;
+	private double voltageIndicatorSize = 5;
+	private double voltageMin = -10.0;
+	private double voltageMax = 10.0;
 	
 	@Dependency
+	private
 	TrialExperimentMessageHandler messageHandler;
 	
+	@Override
 	public void drawCanvas(Context context, String devId) {
-		blankScreen.draw(null);
-		if (messageHandler.isInTrial()) {
+		getBlankScreen().draw(null);
+		if (getMessageHandler().isInTrial()) {
 			drawFixation();
 			drawEyeDevice(devId);
 		}
@@ -52,17 +55,17 @@ public class TrialExperimentConsoleRenderer {
 	}
 	
 	protected void drawEyeWindow() {
-		EyeWindow window = messageHandler.getEyeWindow();
+		EyeWindow window = getMessageHandler().getEyeWindow();
 		Coordinates2D eyeWindowCenter = window.getCenter();
-		double eyeWindowCenterX = renderer.deg2mm(eyeWindowCenter.getX());
-		double eyeWindowCenterY = renderer.deg2mm(eyeWindowCenter.getY());
-		double eyeWindowSize = renderer.deg2mm(window.getSize());
+		double eyeWindowCenterX = getRenderer().deg2mm(eyeWindowCenter.getX());
+		double eyeWindowCenterY = getRenderer().deg2mm(eyeWindowCenter.getY());
+		double eyeWindowSize = getRenderer().deg2mm(window.getSize());
 
-		GLUtil.drawCircle(circle, eyeWindowSize, false, eyeWindowCenterX, eyeWindowCenterY, 0.0);
+		GLUtil.drawCircle(getCircle(), eyeWindowSize, false, eyeWindowCenterX, eyeWindowCenterY, 0.0);
 	}
 	
 	protected void drawEyeDeviceReading(String devId) {
-		for (Map.Entry<String, EyeDeviceReading> ent : messageHandler
+		for (Map.Entry<String, EyeDeviceReading> ent : getMessageHandler()
 				.getEyeDeviceReadingEntries()) {
 			
 			String id = ent.getKey();
@@ -76,34 +79,34 @@ public class TrialExperimentConsoleRenderer {
 			Coordinates2D eyeDegree = reading.getDegree();
 			
 			boolean solid = false;
-			if (messageHandler.isEyeIn()) {
+			if (getMessageHandler().isEyeIn()) {
 				solid = true;
 			} 
-			GLUtil.drawCircle(circle, eyeIndicatorSize, solid, renderer.deg2mm(eyeDegree.getX()), renderer
+			GLUtil.drawCircle(getCircle(), getEyeIndicatorSize(), solid, getRenderer().deg2mm(eyeDegree.getX()), getRenderer()
 					.deg2mm(eyeDegree.getY()), 0.0);
 
 			// Eye Voltage
 			Coordinates2D eyeVolt = reading.getVolt();
-			double xmin = renderer.getXmin();
-			double xmax = renderer.getXmax();
+			double xmin = getRenderer().getXmin();
+			double xmax = getRenderer().getXmax();
 
-			double ymin = renderer.getYmin();
-			double ymax = renderer.getYmax();
+			double ymin = getRenderer().getYmin();
+			double ymax = getRenderer().getYmax();
 
-			float xmm = (float) ((eyeVolt.getX() - voltageMin) * (xmax - xmin)
-					/ (voltageMax - voltageMin) + xmin);
-			float ymm = (float) ((eyeVolt.getY() - voltageMin) * (ymax - ymin)
-					/ (voltageMax - voltageMin) + ymin);
+			float xmm = (float) ((eyeVolt.getX() - getVoltageMin()) * (xmax - xmin)
+					/ (getVoltageMax() - getVoltageMin()) + xmin);
+			float ymm = (float) ((eyeVolt.getY() - getVoltageMin()) * (ymax - ymin)
+					/ (getVoltageMax() - getVoltageMin()) + ymin);
 
-			GLUtil.drawSquare(square, voltageIndicatorSize, true, xmm, ymm, 0);
+			GLUtil.drawSquare(getSquare(), getVoltageIndicatorSize(), true, xmm, ymm, 0);
 		}
 	}
 	
 	protected void drawFixation() {
-		if (messageHandler.isFixationOn()) {
+		if (getMessageHandler().isFixationOn()) {
 			TrialContext context = new TrialContext();
-			context.setRenderer(renderer);
-			fixation.draw(context);
+			context.setRenderer(getRenderer());
+			getFixation().draw(context);
 		}
 	}
 	
@@ -153,5 +156,37 @@ public class TrialExperimentConsoleRenderer {
 
 	public void setRenderer(AbstractRenderer renderer) {
 		this.renderer = renderer;
+	}
+
+	double getVoltageMax() {
+		return voltageMax;
+	}
+
+	void setVoltageMax(double voltageMax) {
+		this.voltageMax = voltageMax;
+	}
+
+	double getVoltageMin() {
+		return voltageMin;
+	}
+
+	void setVoltageMin(double voltageMin) {
+		this.voltageMin = voltageMin;
+	}
+
+	double getEyeIndicatorSize() {
+		return eyeIndicatorSize;
+	}
+
+	void setEyeIndicatorSize(double eyeIndicatorSize) {
+		this.eyeIndicatorSize = eyeIndicatorSize;
+	}
+
+	double getVoltageIndicatorSize() {
+		return voltageIndicatorSize;
+	}
+
+	void setVoltageIndicatorSize(double voltageIndicatorSize) {
+		this.voltageIndicatorSize = voltageIndicatorSize;
 	}
 }

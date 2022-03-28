@@ -47,6 +47,7 @@ import org.xper.Dependency;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.classic.TrialExperimentConsoleRenderer;
 import org.xper.classic.vo.TrialStatistics;
+import org.xper.console.ConsoleRenderer;
 import org.xper.console.ExperimentConsoleModel;
 import org.xper.console.IConsolePlugin;
 import org.xper.console.MessageReceiverEventListener;
@@ -62,7 +63,7 @@ import org.xper.util.ThreadUtil;
 
 /**
  * 
- * @author John
+ * @author - Allen
  */
 public class RewardButtonExperimentConsole extends JFrame implements
 		MessageReceiverEventListener {
@@ -74,7 +75,8 @@ public class RewardButtonExperimentConsole extends JFrame implements
 	RewardButtonExperimentConsoleModel model;
 
 	@Dependency
-	TrialExperimentConsoleRenderer consoleRenderer;
+	private
+	ConsoleRenderer consoleRenderer;
 
 	@Dependency
 	Coordinates2D monkeyScreenDimension;
@@ -582,7 +584,7 @@ public class RewardButtonExperimentConsole extends JFrame implements
 			mouseXCanvas.setText(String.valueOf(x));
 			mouseYCanvas.setText(String.valueOf(y));
 	
-			AbstractRenderer renderer = consoleRenderer.getRenderer();
+			AbstractRenderer renderer = getConsoleRenderer().getRenderer();
 			Coordinates2D world = renderer.pixel2coord(new Coordinates2D(x, y));
 			Coordinates2D degree = new Coordinates2D(renderer.mm2deg(world.getX()),
 					renderer.mm2deg(world.getY()));
@@ -697,14 +699,14 @@ public class RewardButtonExperimentConsole extends JFrame implements
 				protected void initGL() {
 					int x = (int)(monkeyScreenDimension.getX() / canvasScaleFactor);
 					int y = (int)(monkeyScreenDimension.getY() / canvasScaleFactor);
-					consoleRenderer.getRenderer().init(x, y);
+					getConsoleRenderer().getRenderer().init(x, y);
 				}
 
 				protected void paintGL() {
 					Context context = new Context();
-					consoleRenderer.getRenderer().draw(new Drawable() {
+					getConsoleRenderer().getRenderer().draw(new Drawable() {
 						public void draw(Context context) {
-							consoleRenderer.drawCanvas(context, currentDeviceId.get());
+							getConsoleRenderer().drawCanvas(context, currentDeviceId.get());
 							if (!isMonitorMode()) {
 								currentPlugin.drawCanvas(context, currentDeviceId.get());
 							}
@@ -785,11 +787,11 @@ public class RewardButtonExperimentConsole extends JFrame implements
 		this.monkeyScreenDimension.setX(this.monkeyScreenDimension.getX());
 	}
 
-	public TrialExperimentConsoleRenderer getConsoleRenderer() {
+	public ConsoleRenderer getConsoleRenderer() {
 		return consoleRenderer;
 	}
 
-	public void setConsoleRenderer(TrialExperimentConsoleRenderer consoleRenderer) {
+	public void setConsoleRenderer(ConsoleRenderer consoleRenderer) {
 		this.consoleRenderer = consoleRenderer;
 	}
 
