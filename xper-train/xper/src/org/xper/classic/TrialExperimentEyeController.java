@@ -32,7 +32,7 @@ public class TrialExperimentEyeController implements EyeController,
 	AtomicInteger progress = new AtomicInteger(-1);
 	static final int INITIAL_EYE_IN = 1;
 	static final int EYE_IN_AND_HOLD = 2;
-	AtomicInteger mostRecentEyeEvent = new AtomicInteger(-1);
+	private AtomicInteger mostRecentEyeEvent = new AtomicInteger(-1);
 	static final int EYE_IN = 1;
 	static final int EYE_OUT = 2;
 
@@ -44,13 +44,13 @@ public class TrialExperimentEyeController implements EyeController,
 	 * @return true if eye in before timeout.
 	 */
 	public boolean waitInitialEyeIn(long target) {
-		mostRecentEyeEvent.set(-1);
+		getMostRecentEyeEvent().set(-1);
 		
 		progress.set(INITIAL_EYE_IN);
 		
 		long current = localTimeUtil.currentTimeMicros();
 
-		while (mostRecentEyeEvent.get() != EYE_IN) {
+		while (getMostRecentEyeEvent().get() != EYE_IN) {
 			if (current >= target)
 				return false;
 			try {
@@ -73,7 +73,7 @@ public class TrialExperimentEyeController implements EyeController,
 
 		long current = localTimeUtil.currentTimeMicros();
 
-		while (mostRecentEyeEvent.get() == EYE_IN) {
+		while (getMostRecentEyeEvent().get() == EYE_IN) {
 			if (current >= target)
 				return true;
 			try {
@@ -90,7 +90,7 @@ public class TrialExperimentEyeController implements EyeController,
 	 * This runs in experiment thread.
 	 */
 	public boolean isEyeIn() {
-		return (mostRecentEyeEvent.get() == EYE_IN);
+		return (getMostRecentEyeEvent().get() == EYE_IN);
 	}
 
 	/**
@@ -98,7 +98,7 @@ public class TrialExperimentEyeController implements EyeController,
 	 */
 	public void eyeIn(EyePosition eyePos, long timestamp) {
 		if (progress.get() <= INITIAL_EYE_IN) {
-			mostRecentEyeEvent.set(EYE_IN);
+			getMostRecentEyeEvent().set(EYE_IN);
 		}
 	}
 
@@ -106,7 +106,7 @@ public class TrialExperimentEyeController implements EyeController,
 	 * This runs in EyeSampler thread.
 	 */
 	public void eyeOut(EyePosition eyePos, long timestamp) {
-		mostRecentEyeEvent.set(EYE_OUT);
+		getMostRecentEyeEvent().set(EYE_OUT);
 	}
 
 	public int getCheckInterval() {
@@ -123,5 +123,13 @@ public class TrialExperimentEyeController implements EyeController,
 
 	public void setLocalTimeUtil(TimeUtil localTimeUtil) {
 		this.localTimeUtil = localTimeUtil;
+	}
+
+	public AtomicInteger getMostRecentEyeEvent() {
+		return mostRecentEyeEvent;
+	}
+
+	public void setMostRecentEyeEvent(AtomicInteger mostRecentEyeEvent) {
+		this.mostRecentEyeEvent = mostRecentEyeEvent;
 	}
 }
