@@ -35,12 +35,14 @@ import org.xper.allen.nafc.experiment.NAFCTrialDrawingController;
 import org.xper.allen.nafc.experiment.NAFCTrialExperiment;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
+import org.xper.allen.nafc.eye.FreeHeadNAFCEyeMonitorController;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCExperimentMessageDispatcher;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
 import org.xper.allen.nafc.message.NAFCJuiceController;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
+import org.xper.classic.EyeMonitorController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -379,7 +381,7 @@ public class NAFCConfig {
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
-		trialEventListener.add(classicConfig.eyeMonitorController());
+		trialEventListener.add(eyeMonitorController());
 		trialEventListener.add(classicConfig.trialEventLogger());
 		trialEventListener.add(classicConfig.experimentProfiler());
 		trialEventListener.add(messageDispatcher());
@@ -392,6 +394,20 @@ public class NAFCConfig {
 		}
 		
 		return trialEventListener;
+	}
+	
+	/**
+	 * Important to change this in an NAFC task, because we don't want the eye zero updater to use 
+	 * eye data from when the animal is choosing a target. And we want to 
+	 * @return
+	 */
+	@Bean
+	public FreeHeadNAFCEyeMonitorController eyeMonitorController() {
+		FreeHeadNAFCEyeMonitorController controller = new FreeHeadNAFCEyeMonitorController();
+		controller.setEyeSampler(classicConfig.eyeSampler());
+		controller.setEyeWindowAdjustable(classicConfig.eyeWindowAdjustables());
+		controller.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
+		return controller;
 	}
 /*
 	//TODO

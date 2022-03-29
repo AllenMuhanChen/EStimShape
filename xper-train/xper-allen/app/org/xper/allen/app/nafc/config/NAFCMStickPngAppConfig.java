@@ -27,6 +27,7 @@ import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
+import org.xper.eye.IscanDevice;
 import org.xper.utils.RGBColor;
 
 
@@ -143,7 +144,7 @@ public class NAFCMStickPngAppConfig {
 		QualitativeMorphParameterGenerator qmpGenerator = new QualitativeMorphParameterGenerator(xperMaxImageDimensionDegrees());
 		return qmpGenerator;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double[] xperBackgroundColor() {
 		return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),

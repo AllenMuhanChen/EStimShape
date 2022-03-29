@@ -14,13 +14,17 @@ import org.xper.eye.zero.EyeZeroAdjustable;
  * 
  * @author Zhihong Wang
  * 
+ * Refractored for inheritance by @author Allen Chen
+ * 
  */
 public class EyeMonitorController implements TrialEventListener {
 	@Dependency
+	private
 	EyeSampler eyeSampler;
 	@Dependency
 	List<EyeWindowAdjustable> eyeWindowAdjustable;
 	@Dependency
+	private
 	List<EyeZeroAdjustable> eyeDeviceWithAdjustableZero;
 
 	public EyeSampler getEyeSampler() {
@@ -32,24 +36,24 @@ public class EyeMonitorController implements TrialEventListener {
 	}
 
 	public void fixationPointOn(long timestamp, TrialContext context) {
-		eyeSampler.start();
-		for (EyeZeroAdjustable dev : eyeDeviceWithAdjustableZero) {
+		getEyeSampler().start();
+		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
 			dev.startEyeZeroSignalCollection();
 		}
 	}
 	
-	void stopEyeZeroSignalCollection() {
-		for (EyeZeroAdjustable dev : eyeDeviceWithAdjustableZero) {
+	protected void stopEyeZeroSignalCollection() {
+		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
 			dev.stopEyeZeroSignalCollection();
 		}
 	}
 
 	public void trialStop(long timestamp, TrialContext context) {
-		if (eyeSampler.isRunning()) {
-			eyeSampler.stop();
+		if (getEyeSampler().isRunning()) {
+			getEyeSampler().stop();
 		}
 		
-		for (EyeZeroAdjustable dev : eyeDeviceWithAdjustableZero) {
+		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
 			dev.calculateNewEyeZero();
 		}
 	}

@@ -512,8 +512,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				trialEventListeners, currentContext);
 
 		// wait for delay after trial complete
-		if (state.getDelayAfterTrialComplete() > 0) {
 			long current = timeUtil.currentTimeMicros();
+			if (state.getDelayAfterTrialComplete() > 0) {
 			ThreadUtil.sleepOrPinUtil(current
 					+ state.getDelayAfterTrialComplete() * 1000, state,
 					threadHelper);
