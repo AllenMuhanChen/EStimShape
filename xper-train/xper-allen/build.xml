@@ -241,5 +241,35 @@
 			</manifest>
 		</jar>
 		
+		<jar jarfile="${allen.home}/fixationPngGen.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/fixation/FixationPngGenerator.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.fixation.FixationPngGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${allen.home}/fixationConsole.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/fixation/Console.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.fixation.Console" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+
+		<jar jarfile="${allen.home}/fixationExperiment.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/fixation/Experiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.fixation.Experiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		
 	</target>
 </project>

@@ -1,4 +1,4 @@
-package org.xper.allen.specs;
+package org.xper.allen.app.fixation;
 
 import java.awt.Dimension;
 
@@ -6,7 +6,7 @@ import org.xper.allen.drawing.png.ImageDimensions;
 
 import com.thoughtworks.xstream.XStream;
 
-public class PngSpec {
+public class PngStimSpec {
 	double xCenter;
 	double yCenter;
 	ImageDimensions dimensions;
@@ -21,7 +21,7 @@ public class PngSpec {
 	 * @param path
 	 * @param alpha
 	 */
-	public PngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path, double alpha) {
+	public PngStimSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path, double alpha) {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
@@ -36,7 +36,7 @@ public class PngSpec {
 	 * @param dimensions
 	 * @param path
 	 */
-	public PngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path) {
+	public PngStimSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path) {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
@@ -44,7 +44,7 @@ public class PngSpec {
 		this.alpha = 1;
 	}
 	
-	public PngSpec() {
+	public PngStimSpec() {
 
 	}
 	
@@ -52,16 +52,16 @@ public class PngSpec {
 	
 	static {
 		s = new XStream();
-		s.alias("StimSpec", PngSpec.class);
+		s.alias("StimSpec", PngStimSpec.class);
 	}
 	
 	public String toXml () {
 		return s.toXML(this);
 	}
 	
-	public static PngSpec fromXml (String xml) {
+	public static PngStimSpec fromXml (String xml) {
 		System.out.println(xml);
-		PngSpec p = (PngSpec)s.fromXML(xml);
+		PngStimSpec p = (PngStimSpec)s.fromXML(xml);
 		return p;
 	}
 
