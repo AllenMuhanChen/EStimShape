@@ -5,6 +5,5 @@ import org.xper.drawing.Context;
 
 public interface NAFCTrialDrawingController extends TrialDrawingController{
 	public void prepareSample(NAFCExperimentTask task, Context context);
-	
 	public void prepareChoice(NAFCExperimentTask task, Context context);
 }

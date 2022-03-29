@@ -161,7 +161,7 @@ public class PngBlockGenOne{
 
 	}
 	
-	private static Coordinates2D randomWithinRadius(double lowerLim, double upperLim) {
+	public static Coordinates2D randomWithinRadius(double lowerLim, double upperLim) {
 		
 		double r = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * (upperLim-lowerLim) + lowerLim;
 		double theta = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
