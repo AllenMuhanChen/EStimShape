@@ -36,6 +36,7 @@ import org.xper.allen.nafc.experiment.NAFCTrialExperiment;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
 import org.xper.allen.nafc.eye.FreeHeadNAFCEyeMonitorController;
+import org.xper.allen.nafc.eye.LaggingMovingAverageEyeZeroAlgorithm;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCExperimentMessageDispatcher;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
@@ -409,6 +410,25 @@ public class NAFCConfig {
 		controller.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
 		return controller;
 	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public LaggingMovingAverageEyeZeroAlgorithm leftIscanMovingAverageEyeZeroAlgorithm() {
+		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperLeftIscanEyeZeroAlgorithmSpan());
+		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperLeftIscanEyeZeroAlgorithmEyeWindowThreshold());
+		algo.setEyeZeroUpdateMinSample(classicConfig.xperLeftIscanEyeZeroAlgorithmMinSample());
+		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+		return algo;
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public LaggingMovingAverageEyeZeroAlgorithm rightIscanMovingAverageEyeZeroAlgorithm() {
+		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperRightIscanEyeZeroAlgorithmSpan());
+		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperRightIscanEyeZeroAlgorithmEyeWindowThreshold());
+		algo.setEyeZeroUpdateMinSample(classicConfig.xperRightIscanEyeZeroAlgorithmMinSample());
+		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+		return algo;
+	}
+	
 /*
 	//TODO
 	@Bean(scope = DefaultScopes.PROTOTYPE)

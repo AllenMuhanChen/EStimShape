@@ -18,6 +18,8 @@ import org.xper.allen.fixcal.RewardButtonExperimentConsole;
 import org.xper.allen.fixcal.RewardButtonExperimentConsoleModel;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
 import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
+import org.xper.allen.nafc.eye.FreeHeadNAFCEyeMonitorController;
+import org.xper.allen.nafc.eye.LaggingMovingAverageEyeZeroAlgorithm;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.config.AcqConfig;
@@ -28,6 +30,7 @@ import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.eye.mapping.MappingAlgorithm;
+import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -82,6 +85,20 @@ public class FixationPngAppConfig {
 		gen.setGeneratorPngPath(generatorPngPath);
 		gen.setExperimentPngPath(experimentPngPath);
 		return gen;
+	}
+	
+	/**
+	 * It's fine to use this for Fixation rather than NAFC, since we still want the eye-zero update
+	 * to happen right after fixation. 
+	 * @return
+	 */
+	@Bean
+	public FreeHeadNAFCEyeMonitorController eyeMonitorController() {
+		FreeHeadNAFCEyeMonitorController controller = new FreeHeadNAFCEyeMonitorController();
+		controller.setEyeSampler(classicConfig.eyeSampler());
+		controller.setEyeWindowAdjustable(classicConfig.eyeWindowAdjustables());
+		controller.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
+		return controller;
 	}
 	
 	@Bean
@@ -166,4 +183,23 @@ public class FixationPngAppConfig {
 		RewardButtonExperimentRunnerClient client = new RewardButtonExperimentRunnerClient(classicConfig.experimentHost);
 		return client;
 	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public LaggingMovingAverageEyeZeroAlgorithm leftIscanMovingAverageEyeZeroAlgorithm() {
+		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperLeftIscanEyeZeroAlgorithmSpan());
+		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperLeftIscanEyeZeroAlgorithmEyeWindowThreshold());
+		algo.setEyeZeroUpdateMinSample(classicConfig.xperLeftIscanEyeZeroAlgorithmMinSample());
+		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+		return algo;
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public LaggingMovingAverageEyeZeroAlgorithm rightIscanMovingAverageEyeZeroAlgorithm() {
+		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperRightIscanEyeZeroAlgorithmSpan());
+		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperRightIscanEyeZeroAlgorithmEyeWindowThreshold());
+		algo.setEyeZeroUpdateMinSample(classicConfig.xperRightIscanEyeZeroAlgorithmMinSample());
+		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+		return algo;
+	}
+
 }
