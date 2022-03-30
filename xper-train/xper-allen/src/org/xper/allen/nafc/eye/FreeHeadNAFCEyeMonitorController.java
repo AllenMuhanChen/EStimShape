@@ -13,6 +13,14 @@ import org.xper.eye.zero.EyeZeroAdjustable;
  *
  */
 public class FreeHeadNAFCEyeMonitorController extends NAFCEyeMonitorController {
+	
+	public void fixationPointOn(long timestamp, TrialContext context) {
+		getEyeSampler().start();
+		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
+			dev.startEyeZeroSignalCollection();
+		}
+	}
+	
 	/**
 	 * Adjust zeros if this happens, because this is precisely one scenario in which we want 
 	 * to adjust in a head-free scenario. Animal tries to fixate, but is slightly off, we can 
@@ -24,9 +32,10 @@ public class FreeHeadNAFCEyeMonitorController extends NAFCEyeMonitorController {
 		stopEyeZeroSignalCollection();
 	}
 
+	/**
+	 * NAFC doesn't use this, but TrialExperimentUtil does. 
+	 */
 	public void eyeInBreak(long timestamp, TrialContext context) {
-		updateEyeWindow();
-		updateEyeZero();
 		stopEyeZeroSignalCollection();
 	}
 	

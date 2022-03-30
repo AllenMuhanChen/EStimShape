@@ -20,31 +20,32 @@ public class MovingAverageEyeZeroAlgorithm implements EyeZeroAlgorithm {
 	 * Only update eye zero when more samples are obtained than this number.
 	 */
 	@Dependency
+	private
 	int eyeZeroUpdateMinSample;
 
-	Coordinates2D eyeZeroSampleSum = new Coordinates2D();
-	int eyeZeroSampleCount;
-	boolean collectingEyeZeroSignal = false;
-	Coordinates2D[] eyeZero;
-	int eyeZeroIndex = 0;
+	private Coordinates2D eyeZeroSampleSum = new Coordinates2D();
+	private int eyeZeroSampleCount;
+	private boolean collectingEyeZeroSignal = false;
+	private Coordinates2D[] eyeZero;
+	private int eyeZeroIndex = 0;
 
 	public MovingAverageEyeZeroAlgorithm(int span) {
-		eyeZero = new Coordinates2D[span];
+		setEyeZero(new Coordinates2D[span]);
 		for (int i = 0; i < span; i++) {
-			eyeZero[i] = new Coordinates2D();
+			getEyeZero()[i] = new Coordinates2D();
 		}
 	}
 
 	public Coordinates2D getNewEyeZero() {
-		if (eyeZeroIndex == 0)
+		if (getEyeZeroIndex() == 0)
 			return null;
 
 		Coordinates2D average = new Coordinates2D();
-		int n = eyeZeroIndex > eyeZero.length ? eyeZero.length : eyeZeroIndex;
+		int n = getEyeZeroIndex() > getEyeZero().length ? getEyeZero().length : getEyeZeroIndex();
 
 		for (int i = 0; i < n; i++) {
-			average.setX(average.getX() + eyeZero[i].getX());
-			average.setY(average.getY() + eyeZero[i].getY());
+			average.setX(average.getX() + getEyeZero()[i].getX());
+			average.setY(average.getY() + getEyeZero()[i].getY());
 		}
 
 		average.setX(average.getX() / n);
@@ -58,32 +59,32 @@ public class MovingAverageEyeZeroAlgorithm implements EyeZeroAlgorithm {
 	}
 
 	public void startEyeZeroSignalCollection() {
-		eyeZeroSampleCount = 0;
-		eyeZeroSampleSum.setX(0);
-		eyeZeroSampleSum.setY(0);
-		collectingEyeZeroSignal = true;
+		setEyeZeroSampleCount(0);
+		getEyeZeroSampleSum().setX(0);
+		getEyeZeroSampleSum().setY(0);
+		setCollectingEyeZeroSignal(true);
 	}
 
 	public void stopEyeZeroSignalCollection() {
-		collectingEyeZeroSignal = false;
-		if (eyeZeroSampleCount >= eyeZeroUpdateMinSample) {
-			int i = eyeZeroIndex % eyeZero.length;
-			eyeZero[i].setX(eyeZeroSampleSum.getX() / eyeZeroSampleCount);
-			eyeZero[i].setY(eyeZeroSampleSum.getY() / eyeZeroSampleCount);
+		setCollectingEyeZeroSignal(false);
+		if (getEyeZeroSampleCount() >= getEyeZeroUpdateMinSample()) {
+			int i = getEyeZeroIndex() % getEyeZero().length;
+			getEyeZero()[i].setX(getEyeZeroSampleSum().getX() / getEyeZeroSampleCount());
+			getEyeZero()[i].setY(getEyeZeroSampleSum().getY() / getEyeZeroSampleCount());
 
 			if (logger.isDebugEnabled()) {
-				logger.debug("i: " + i + " index: " + eyeZeroIndex + " zero: "
-						+ eyeZero[i].getX() + " " + eyeZero[i].getY());
+				logger.debug("i: " + i + " index: " + getEyeZeroIndex() + " zero: "
+						+ getEyeZero()[i].getX() + " " + getEyeZero()[i].getY());
 			}
-			eyeZeroIndex++;
+			setEyeZeroIndex(getEyeZeroIndex() + 1);
 		}
 	}
 
 	public void collectEyeZeroSignal(Coordinates2D voltage) {
-		if (collectingEyeZeroSignal) {
-			eyeZeroSampleCount++;
-			eyeZeroSampleSum.setX(eyeZeroSampleSum.getX() + voltage.getX());
-			eyeZeroSampleSum.setY(eyeZeroSampleSum.getY() + voltage.getY());
+		if (isCollectingEyeZeroSignal()) {
+			setEyeZeroSampleCount(getEyeZeroSampleCount() + 1);
+			getEyeZeroSampleSum().setX(getEyeZeroSampleSum().getX() + voltage.getX());
+			getEyeZeroSampleSum().setY(getEyeZeroSampleSum().getY() + voltage.getY());
 		}
 		/*if (logger.isDebugEnabled()) {
 			logger
@@ -117,6 +118,46 @@ public class MovingAverageEyeZeroAlgorithm implements EyeZeroAlgorithm {
 
 	public void setEyeZeroUpdateEyeWinCenter(Coordinates2D eyeZeroUpdateEyeWinCenter) {
 		this.eyeZeroUpdateEyeWinCenter = eyeZeroUpdateEyeWinCenter;
+	}
+
+	protected int getEyeZeroSampleCount() {
+		return eyeZeroSampleCount;
+	}
+
+	protected void setEyeZeroSampleCount(int eyeZeroSampleCount) {
+		this.eyeZeroSampleCount = eyeZeroSampleCount;
+	}
+
+	public Coordinates2D getEyeZeroSampleSum() {
+		return eyeZeroSampleSum;
+	}
+
+	public void setEyeZeroSampleSum(Coordinates2D eyeZeroSampleSum) {
+		this.eyeZeroSampleSum = eyeZeroSampleSum;
+	}
+
+	public boolean isCollectingEyeZeroSignal() {
+		return collectingEyeZeroSignal;
+	}
+
+	public void setCollectingEyeZeroSignal(boolean collectingEyeZeroSignal) {
+		this.collectingEyeZeroSignal = collectingEyeZeroSignal;
+	}
+
+	protected int getEyeZeroIndex() {
+		return eyeZeroIndex;
+	}
+
+	public void setEyeZeroIndex(int eyeZeroIndex) {
+		this.eyeZeroIndex = eyeZeroIndex;
+	}
+
+	protected Coordinates2D[] getEyeZero() {
+		return eyeZero;
+	}
+
+	void setEyeZero(Coordinates2D[] eyeZero) {
+		this.eyeZero = eyeZero;
 	}
 
 }
