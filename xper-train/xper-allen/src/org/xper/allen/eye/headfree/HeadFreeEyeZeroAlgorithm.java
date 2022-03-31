@@ -58,9 +58,13 @@ public class HeadFreeEyeZeroAlgorithm extends MovingAverageEyeZeroAlgorithm{
 			return null;
 
 		if(inInnerState) {
+			if(getEyeZeroInnerIndex()==0) {
+				return null;
+			}
 			Coordinates2D average = new Coordinates2D();
 			int n = getEyeZeroInnerIndex() > getEyeInnerZero().length ? getEyeInnerZero().length : getEyeZeroInnerIndex();
 			System.out.println("AC908450345843: Inner n: " + n);
+			if(n>0)
 			for (int i = 0; i < n; i++) {
 				average.setX(average.getX() + getEyeInnerZero()[i].getX());
 				average.setY(average.getY() + getEyeInnerZero()[i].getY());
