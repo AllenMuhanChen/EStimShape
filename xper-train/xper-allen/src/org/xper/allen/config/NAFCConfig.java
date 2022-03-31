@@ -382,7 +382,7 @@ public class NAFCConfig {
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
-		trialEventListener.add(eyeMonitorController());
+		trialEventListener.add(classicConfig.eyeMonitorController());
 		trialEventListener.add(classicConfig.trialEventLogger());
 		trialEventListener.add(classicConfig.experimentProfiler());
 		trialEventListener.add(messageDispatcher());
@@ -397,38 +397,7 @@ public class NAFCConfig {
 		return trialEventListener;
 	}
 	
-	/**
-	 * Important to change this in an NAFC task, because we don't want the eye zero updater to use 
-	 * eye data from when the animal is choosing a target. And we want to 
-	 * @return
-	 */
-	@Bean
-	public FreeHeadNAFCEyeMonitorController eyeMonitorController() {
-		FreeHeadNAFCEyeMonitorController controller = new FreeHeadNAFCEyeMonitorController();
-		controller.setEyeSampler(classicConfig.eyeSampler());
-		controller.setEyeWindowAdjustable(classicConfig.eyeWindowAdjustables());
-		controller.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
-		return controller;
-	}
-	
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public LaggingMovingAverageEyeZeroAlgorithm leftIscanMovingAverageEyeZeroAlgorithm() {
-		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperLeftIscanEyeZeroAlgorithmSpan());
-		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperLeftIscanEyeZeroAlgorithmEyeWindowThreshold());
-		algo.setEyeZeroUpdateMinSample(classicConfig.xperLeftIscanEyeZeroAlgorithmMinSample());
-		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
-		return algo;
-	}
 
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public LaggingMovingAverageEyeZeroAlgorithm rightIscanMovingAverageEyeZeroAlgorithm() {
-		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperRightIscanEyeZeroAlgorithmSpan());
-		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperRightIscanEyeZeroAlgorithmEyeWindowThreshold());
-		algo.setEyeZeroUpdateMinSample(classicConfig.xperRightIscanEyeZeroAlgorithmMinSample());
-		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
-		return algo;
-	}
-	
 /*
 	//TODO
 	@Bean(scope = DefaultScopes.PROTOTYPE)
