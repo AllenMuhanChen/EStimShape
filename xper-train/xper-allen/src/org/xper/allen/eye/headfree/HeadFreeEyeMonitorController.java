@@ -20,7 +20,7 @@ public class HeadFreeEyeMonitorController extends EyeMonitorController{
 	protected void startEyeZeroSignalCollection() {
 		for (HeadFreeEyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
 			dev.startEyeZeroSignalCollection();
-		}
+	 	}
 	}
 	
 	protected void stopEyeZeroSignalCollection() {
@@ -38,6 +38,13 @@ public class HeadFreeEyeMonitorController extends EyeMonitorController{
 		startInnerEyeZeroSignalCollection();
 	}
 	
+	public void initialEyeInFail(long timestamp, TrialContext context) {
+		stopEyeZeroSignalCollection();
+		for (EyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
+			dev.calculateNewEyeZero();
+		}
+	}
+	
 	public void eyeInHoldFail(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();
 		for (EyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
@@ -45,14 +52,15 @@ public class HeadFreeEyeMonitorController extends EyeMonitorController{
 		}
 	}
 	
+	
 	public void fixationSucceed(long timestamp, TrialContext context) {
+		stopEyeZeroSignalCollection();
 		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
 			adj.updateEyeWindow();
 		}
 		for (EyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
 			dev.calculateNewEyeZero();
 		}
-		stopEyeZeroSignalCollection();
 	}
 	
 	/**
