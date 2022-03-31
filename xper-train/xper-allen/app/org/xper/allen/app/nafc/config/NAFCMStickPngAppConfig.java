@@ -1,5 +1,8 @@
 package org.xper.allen.app.nafc.config;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.config.java.annotation.Bean;
@@ -19,15 +22,23 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.allen.eye.headfree.HeadFreeEyeMonitorController;
+import org.xper.allen.eye.headfree.HeadFreeEyeZeroAdjustable;
+import org.xper.allen.eye.headfree.HeadFreeEyeZeroAlgorithm;
+import org.xper.allen.eye.headfree.HeadFreeIscanDevice;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.MStickPngBlockGenOne;
 import org.xper.allen.nafc.blockgen.MStickPngBlockGenTwo;
+import org.xper.allen.nafc.eye.FreeHeadNAFCEyeMonitorController;
+import org.xper.allen.nafc.eye.LaggingMovingAverageEyeZeroAlgorithm;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.eye.IscanDevice;
+import org.xper.eye.zero.EyeZeroAdjustable;
+import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
 import org.xper.utils.RGBColor;
 
 
@@ -152,6 +163,98 @@ public class NAFCMStickPngAppConfig {
 				Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 2))};
 	}
 
+	/**
+	 * Important to change this in an NAFC task, because we don't want the eye zero updater to use 
+	 * eye data from when the animal is choosing a target. And we want to 
+	 * @return
+	 */
+	@Bean
+	public HeadFreeEyeMonitorController eyeMonitorController() {
+		HeadFreeEyeMonitorController controller = new HeadFreeEyeMonitorController();
+		controller.setEyeSampler(classicConfig.eyeSampler());
+		controller.setEyeWindowAdjustable(classicConfig.eyeWindowAdjustables());
+		controller.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
+		return controller;
+	}
+	
+	@Bean (scope = DefaultScopes.PROTOTYPE)
+	public List<HeadFreeEyeZeroAdjustable> eyeZeroAdjustables () {
+		List<HeadFreeEyeZeroAdjustable> adjustables = new LinkedList<HeadFreeEyeZeroAdjustable>();
+		adjustables.add(leftIscan());
+		adjustables.add(rightIscan());
+		return adjustables;
+	}
+	
+	@Bean
+	public HeadFreeIscanDevice leftIscan() {
+		HeadFreeIscanDevice iscan = new HeadFreeIscanDevice();
+		iscan.setEyeDeviceMessageListener(classicConfig.eyeDeviceMessageListeners());
+		iscan.setEyeZeroMessageListener(classicConfig.eyeZeroMessageListeners());
+		iscan.setId(classicConfig.xperLeftIscanId());
+		iscan.setChannel(classicConfig.xperLeftIscanChannelSpec());
+		iscan.setEyeZero(classicConfig.xperLeftIscanEyeZero());
+		iscan.setEyeZeroAlgorithm(leftIscanMovingAverageEyeZeroAlgorithm());
+		iscan.setEyeZeroUpdateEnabled(classicConfig.xperLeftIscanEyeZeroUpdateEnabled());
+		iscan.setMappingAlgorithm(classicConfig.leftIscanMappingAlgorithm());
+		iscan.setLocalTimeUtil(baseConfig.localTimeUtil());
+		return iscan;
+	}
+	
+	@Bean
+	public HeadFreeIscanDevice rightIscan() {
+		HeadFreeIscanDevice iscan = new HeadFreeIscanDevice();
+		iscan.setEyeDeviceMessageListener(classicConfig.eyeDeviceMessageListeners());
+		iscan.setEyeZeroMessageListener(classicConfig.eyeZeroMessageListeners());
+		iscan.setId(classicConfig.xperRightIscanId());
+		iscan.setChannel(classicConfig.xperRightIscanChannelSpec());
+		iscan.setEyeZero(classicConfig.xperRightIscanEyeZero());
+		iscan.setEyeZeroAlgorithm(rightIscanMovingAverageEyeZeroAlgorithm());
+		iscan.setEyeZeroUpdateEnabled(classicConfig.xperRightIscanEyeZeroUpdateEnabled());
+		iscan.setMappingAlgorithm(classicConfig.rightIscanMappingAlgorithm());
+		iscan.setLocalTimeUtil(baseConfig.localTimeUtil());
+		return iscan;
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public HeadFreeEyeZeroAlgorithm leftIscanMovingAverageEyeZeroAlgorithm() {
+		HeadFreeEyeZeroAlgorithm algo = new HeadFreeEyeZeroAlgorithm(classicConfig.xperLeftIscanEyeZeroAlgorithmSpan(), xperEyeZeroAlgorithmInnerSpan());
+		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperLeftIscanEyeZeroAlgorithmEyeWindowThreshold());
+		algo.setEyeZeroUpdateMinSample(classicConfig.xperLeftIscanEyeZeroAlgorithmMinSample());
+		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+		algo.setEyeZeroInnerThreshold(classicConfig.xperEyeWindowAlgorithmBaseWindowSize());
+		algo.setEyeZeroInnerUpdateMinSample(xperEyeZeroAlgorithmInnerUpdateMinSample());
+		return algo;
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public HeadFreeEyeZeroAlgorithm rightIscanMovingAverageEyeZeroAlgorithm() {
+		HeadFreeEyeZeroAlgorithm algo = new HeadFreeEyeZeroAlgorithm(classicConfig.xperRightIscanEyeZeroAlgorithmSpan(), xperEyeZeroAlgorithmInnerSpan());
+		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperRightIscanEyeZeroAlgorithmEyeWindowThreshold());
+		algo.setEyeZeroUpdateMinSample(classicConfig.xperRightIscanEyeZeroAlgorithmMinSample());
+		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+		algo.setEyeZeroInnerThreshold(classicConfig.xperEyeWindowAlgorithmBaseWindowSize());
+		algo.setEyeZeroInnerUpdateMinSample(xperEyeZeroAlgorithmInnerUpdateMinSample());
+		return algo;
+	}
+	
+//	@Bean(scope = DefaultScopes.PROTOTYPE)
+//	public LaggingMovingAverageEyeZeroAlgorithm leftIscanMovingAverageEyeZeroAlgorithm() {
+//		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperLeftIscanEyeZeroAlgorithmSpan());
+//		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperLeftIscanEyeZeroAlgorithmEyeWindowThreshold());
+//		algo.setEyeZeroUpdateMinSample(classicConfig.xperLeftIscanEyeZeroAlgorithmMinSample());
+//		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+//		return algo;
+//	}
+//
+//	@Bean(scope = DefaultScopes.PROTOTYPE)
+//	public LaggingMovingAverageEyeZeroAlgorithm rightIscanMovingAverageEyeZeroAlgorithm() {
+//		LaggingMovingAverageEyeZeroAlgorithm algo = new LaggingMovingAverageEyeZeroAlgorithm(classicConfig.xperRightIscanEyeZeroAlgorithmSpan());
+//		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperRightIscanEyeZeroAlgorithmEyeWindowThreshold());
+//		algo.setEyeZeroUpdateMinSample(classicConfig.xperRightIscanEyeZeroAlgorithmMinSample());
+//		algo.setEyeZeroUpdateEyeWinCenter(classicConfig.xperEyeWindowCenter());
+//		return algo;
+//	}
+	
 //	@Bean(scope = DefaultScopes.PROTOTYPE)
 //	public String xperExperimentImageFolderName(){
 //		return baseConfig.systemVariableContainer().get("xper_experiment_image_folder_name", 0);
@@ -162,6 +265,15 @@ public class NAFCMStickPngAppConfig {
 //		return baseConfig.systemVariableContainer().get("xper_generator_image_folder_name", 0);
 //	}
 
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public int xperEyeZeroAlgorithmInnerUpdateMinSample() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_eye_zero_algorithm_inner_update_min_sample", 0));
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public int xperEyeZeroAlgorithmInnerSpan() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_eye_zero_algorithm_inner_span", 0));
+	}
 	//For DPIUtil
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public double xperMonkeyScreenDPI(){
