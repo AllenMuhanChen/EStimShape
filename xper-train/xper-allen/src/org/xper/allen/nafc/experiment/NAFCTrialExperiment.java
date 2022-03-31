@@ -23,21 +23,10 @@ import org.xper.util.TrialExperimentUtil;
 
 import jssc.SerialPortException;
 
-/**
- * Format of StimSpec:
- * 
- * <StimSpec animation="true"> ... </StimSpec>
- * 
- * If attribute animation is false or missing, the stimulus is treated as a
- * static slide.
- * 
- * @author wang
- * 
- */
 public class NAFCTrialExperiment implements Experiment {
 	static Logger logger = Logger.getLogger(NAFCTrialExperiment.class);
 
-	ThreadHelper threadHelper = new ThreadHelper("SaccadeTrialExperiment", this);
+	ThreadHelper threadHelper = new ThreadHelper("NAFCTrialExperiment", this);
 	@Dependency
 	EyeMonitor eyeMonitor;
 	@Dependency

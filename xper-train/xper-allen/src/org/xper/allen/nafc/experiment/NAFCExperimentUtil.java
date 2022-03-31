@@ -38,7 +38,7 @@ import org.xper.util.IntanUtil;
 
 public class NAFCExperimentUtil extends TrialExperimentUtil{
 	
-	static int punishmentDelayTime = 0;
+	static int punishmentDelayTime = 0; //Gets initialized to 0, if punishment should be applied, it's incremented, reset to zero after trial interval. 
 	
 	@SuppressWarnings("incomplete-switch")
 	public static NAFCTrialResult doSlide(int i, NAFCExperimentState stateObject) {
