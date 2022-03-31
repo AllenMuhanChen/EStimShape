@@ -10,6 +10,7 @@ import org.xper.eye.zero.EyeZeroAdjustable;
 public class HeadFreeEyeMonitorController extends EyeMonitorController{
 	private
 	List<HeadFreeEyeZeroAdjustable> eyeDeviceWithHeadFreeAdjustableZero;
+	
 	protected void startInnerEyeZeroSignalCollection() {
 		for (HeadFreeEyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
 			dev.startEyeZeroInnerSignalCollection();
@@ -39,6 +40,9 @@ public class HeadFreeEyeMonitorController extends EyeMonitorController{
 	
 	public void eyeInHoldFail(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();
+		for (EyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
+			dev.calculateNewEyeZero();
+		}
 	}
 	
 	public void fixationSucceed(long timestamp, TrialContext context) {

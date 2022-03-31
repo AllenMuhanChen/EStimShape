@@ -174,6 +174,7 @@ public class NAFCMStickPngAppConfig {
 		controller.setEyeSampler(classicConfig.eyeSampler());
 		controller.setEyeWindowAdjustable(classicConfig.eyeWindowAdjustables());
 		controller.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
+		controller.setEyeDeviceWithHeadFreeAdjustableZero(eyeZeroAdjustables());
 		return controller;
 	}
 	
@@ -193,7 +194,7 @@ public class NAFCMStickPngAppConfig {
 		iscan.setId(classicConfig.xperLeftIscanId());
 		iscan.setChannel(classicConfig.xperLeftIscanChannelSpec());
 		iscan.setEyeZero(classicConfig.xperLeftIscanEyeZero());
-		iscan.setEyeZeroAlgorithm(leftIscanMovingAverageEyeZeroAlgorithm());
+		iscan.setEyeZeroAlgorithm(leftIscanHeadFreeEyeZeroAlgorithm());
 		iscan.setEyeZeroUpdateEnabled(classicConfig.xperLeftIscanEyeZeroUpdateEnabled());
 		iscan.setMappingAlgorithm(classicConfig.leftIscanMappingAlgorithm());
 		iscan.setLocalTimeUtil(baseConfig.localTimeUtil());
@@ -208,7 +209,7 @@ public class NAFCMStickPngAppConfig {
 		iscan.setId(classicConfig.xperRightIscanId());
 		iscan.setChannel(classicConfig.xperRightIscanChannelSpec());
 		iscan.setEyeZero(classicConfig.xperRightIscanEyeZero());
-		iscan.setEyeZeroAlgorithm(rightIscanMovingAverageEyeZeroAlgorithm());
+		iscan.setEyeZeroAlgorithm(rightIscanHeadFreeEyeZeroAlgorithm());
 		iscan.setEyeZeroUpdateEnabled(classicConfig.xperRightIscanEyeZeroUpdateEnabled());
 		iscan.setMappingAlgorithm(classicConfig.rightIscanMappingAlgorithm());
 		iscan.setLocalTimeUtil(baseConfig.localTimeUtil());
@@ -216,7 +217,7 @@ public class NAFCMStickPngAppConfig {
 	}
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public HeadFreeEyeZeroAlgorithm leftIscanMovingAverageEyeZeroAlgorithm() {
+	public HeadFreeEyeZeroAlgorithm leftIscanHeadFreeEyeZeroAlgorithm() {
 		HeadFreeEyeZeroAlgorithm algo = new HeadFreeEyeZeroAlgorithm(classicConfig.xperLeftIscanEyeZeroAlgorithmSpan(), xperEyeZeroAlgorithmInnerSpan());
 		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperLeftIscanEyeZeroAlgorithmEyeWindowThreshold());
 		algo.setEyeZeroUpdateMinSample(classicConfig.xperLeftIscanEyeZeroAlgorithmMinSample());
@@ -227,7 +228,7 @@ public class NAFCMStickPngAppConfig {
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public HeadFreeEyeZeroAlgorithm rightIscanMovingAverageEyeZeroAlgorithm() {
+	public HeadFreeEyeZeroAlgorithm rightIscanHeadFreeEyeZeroAlgorithm() {
 		HeadFreeEyeZeroAlgorithm algo = new HeadFreeEyeZeroAlgorithm(classicConfig.xperRightIscanEyeZeroAlgorithmSpan(), xperEyeZeroAlgorithmInnerSpan());
 		algo.setEyeZeroUpdateEyeWinThreshold(classicConfig.xperRightIscanEyeZeroAlgorithmEyeWindowThreshold());
 		algo.setEyeZeroUpdateMinSample(classicConfig.xperRightIscanEyeZeroAlgorithmMinSample());

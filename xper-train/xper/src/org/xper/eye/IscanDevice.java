@@ -42,6 +42,7 @@ public class IscanDevice implements EyeDevice, EyeZeroAdjustable {
 	@Dependency
 	List<EyeDeviceMessageListener> eyeDeviceMessageListener;
 	@Dependency
+	protected
 	List<EyeZeroMessageListener> eyeZeroMessageListener;
 	@Dependency
 	TimeUtil localTimeUtil;
