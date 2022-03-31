@@ -106,8 +106,10 @@ public class IscanDevice implements EyeDevice, EyeZeroAdjustable {
 
 	public void calculateNewEyeZero() {
 		Coordinates2D z = eyeZeroAlgorithm.getNewEyeZero();
+
 		if (z != null) {
 			eyeZero = z;	
+			System.out.println("AC8484932: newEyeZero = "+z.getX() + ", "+z.getY());
 		}
 		if (eyeZeroMessageListener != null) {
 			for (EyeZeroMessageListener listener : eyeZeroMessageListener) {
