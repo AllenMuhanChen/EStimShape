@@ -1,4 +1,4 @@
-package org.xper.allen.nafc.eye;
+package org.xper.allen.eye.headfree;
 
 import org.xper.allen.nafc.experiment.NAFCExperimentState;
 import org.xper.allen.nafc.experiment.NAFCExperimentUtil;
@@ -11,6 +11,9 @@ public class HeadFreeExperimentUtil{
 		int maxFixationAttempts = 5;
 		
 		while(fixationAttempts < maxFixationAttempts) {
+			/**
+			 * Can swap out NAFCExperimentUtil for whatever is necessary in your experiment. 
+			 */
 			NAFCTrialResult res = NAFCExperimentUtil.getMonkeyFixation(state, threadHelper); 
 			if(res==NAFCTrialResult.FIXATION_SUCCESS) {
 				return res;
