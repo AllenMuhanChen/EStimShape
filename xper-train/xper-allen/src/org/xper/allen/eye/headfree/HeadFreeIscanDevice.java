@@ -54,10 +54,6 @@ public class HeadFreeIscanDevice extends IscanDevice implements HeadFreeEyeZeroA
 		eyeZeroAlgorithm.startInnerEyeZeroSignalCollection();
 	}
 
-	public void stopEyeZeroInnerSignalCollection() {
-		eyeZeroAlgorithm.stopEyeZeroSignalCollection();
-	}
-
 
 	public HeadFreeEyeZeroAlgorithm getEyeZeroAlgorithm() {
 		return eyeZeroAlgorithm;

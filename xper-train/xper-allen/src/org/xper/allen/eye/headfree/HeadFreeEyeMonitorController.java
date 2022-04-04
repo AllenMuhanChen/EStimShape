@@ -26,7 +26,6 @@ public class HeadFreeEyeMonitorController extends EyeMonitorController{
 	protected void stopEyeZeroSignalCollection() {
 		for (HeadFreeEyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
 			dev.stopEyeZeroSignalCollection();
-			dev.stopEyeZeroInnerSignalCollection();
 		}
 	}
 	
@@ -43,12 +42,18 @@ public class HeadFreeEyeMonitorController extends EyeMonitorController{
 		for (EyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
 			dev.calculateNewEyeZero();
 		}
+		if (getEyeSampler().isRunning()) {
+			getEyeSampler().stop();
+		}
 	}
 	
 	public void eyeInHoldFail(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();
 		for (EyeZeroAdjustable dev : getEyeDeviceWithHeadFreeAdjustableZero()) {
 			dev.calculateNewEyeZero();
+		}
+		if (getEyeSampler().isRunning()) {
+			getEyeSampler().stop();
 		}
 	}
 	

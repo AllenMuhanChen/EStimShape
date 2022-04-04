@@ -35,13 +35,13 @@ public class RewardButtonExperimentRunner extends ExperimentRunner{
 			int command = is.readInt();
 			switch (command) {
 			case PAUSE:
-				experiment.setPause(true);
+				getExperiment().setPause(true);
 				break;
 			case RESUME:
-				experiment.setPause(false);
+				getExperiment().setPause(false);
 				break;
 			case STOP:
-				experiment.stop();
+				getExperiment().stop();
 				done = true;
 				break;
 			case REWARD:
@@ -68,8 +68,8 @@ public class RewardButtonExperimentRunner extends ExperimentRunner{
 				handleCommand();
 			}
 		} catch (Exception e) {
-			if (experiment.isRunning()) {
-				experiment.stop();
+			if (getExperiment().isRunning()) {
+				getExperiment().stop();
 			}
 			throw new RemoteException(e);
 		} finally {

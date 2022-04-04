@@ -15,7 +15,7 @@ public class ExperimentRunner {
 	protected static Logger logger = Logger.getLogger(ExperimentRunner.class);
 	
 	@Dependency
-	protected
+	private
 	Experiment experiment;
 	@Dependency
 	protected
@@ -67,13 +67,13 @@ public class ExperimentRunner {
 			int command = is.readInt();
 			switch (command) {
 			case PAUSE:
-				experiment.setPause(true);
+				getExperiment().setPause(true);
 				break;
 			case RESUME:
-				experiment.setPause(false);
+				getExperiment().setPause(false);
 				break;
 			case STOP:
-				experiment.stop();
+				getExperiment().stop();
 				done = true;
 				break;
 			}
@@ -97,8 +97,8 @@ public class ExperimentRunner {
 				handleCommand();
 			}
 		} catch (Exception e) {
-			if (experiment.isRunning()) {
-				experiment.stop();
+			if (getExperiment().isRunning()) {
+				getExperiment().stop();
 			}
 			throw new RemoteException(e);
 		} finally {
@@ -113,13 +113,13 @@ public class ExperimentRunner {
 
 	public void run() {
 		done = false;
-		experiment.start();
+		getExperiment().start();
 		listen();
 	}
 
 	public void stop() {
-		if (experiment.isRunning()) {
-			experiment.stop();
+		if (getExperiment().isRunning()) {
+			getExperiment().stop();
 		}
 	}
 
