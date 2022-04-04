@@ -82,30 +82,57 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
 
 		//HOLD FIXATION DURING SAMPLE
-		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
-				+ stateObject.getSampleLength() * 1000 );
+		do {
+			if(!eyeController.isEyeIn()) {
+				long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
+				currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
+				drawingController.eyeInHoldFail(currentContext);
+				NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
+						choiceEventListeners, currentContext);
+				 
+				drawingController.slideFinish(currentTask, currentContext);
+				long sampleOffLocalTime = timeUtil.currentTimeMicros();
+				currentContext.setSampleOffTime(sampleOffLocalTime);
+				NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
+				
+				//AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
+				return NAFCTrialResult.TRIAL_COMPLETE;
+			}
+			System.out.println("AC93480293432: " + stateObject.isAnimation());
+//			if(stateObject.isAnimation()) {
+			if(true) {
+				currentContext.setAnimationFrameIndex(currentContext.getAnimationFrameIndex()+1);
+				drawingController.animateSample(currentTask, currentContext);
+			}
+		} while (timeUtil.currentTimeMicros() < sampleOnLocalTime
+				+ stateObject.getSampleLength() * 1000);
 
-		if (!fixationSuccess) {
-			// eye fail to hold
-			long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
-			currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
-			drawingController.eyeInHoldFail(currentContext);
-			NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
-					choiceEventListeners, currentContext);
-			 
-			drawingController.slideFinish(currentTask, currentContext);
-			long sampleOffLocalTime = timeUtil.currentTimeMicros();
-			currentContext.setSampleOffTime(sampleOffLocalTime);
-			NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
-			
-			//AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
-			return NAFCTrialResult.TRIAL_COMPLETE;
-		}
+		
+		//		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
+//				+ stateObject.getSampleLength() * 1000 );
+
+//		if (!fixationSuccess) {
+//			// eye fail to hold
+//			long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
+//			currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
+//			drawingController.eyeInHoldFail(currentContext);
+//			NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
+//					choiceEventListeners, currentContext);
+//			 
+//			drawingController.slideFinish(currentTask, currentContext);
+//			long sampleOffLocalTime = timeUtil.currentTimeMicros();
+//			currentContext.setSampleOffTime(sampleOffLocalTime);
+//			NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
+//			
+//			//AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
+//			return NAFCTrialResult.TRIAL_COMPLETE;
+//		}
 		drawingController.slideFinish(currentTask, currentContext);
 		long sampleOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setSampleOffTime(sampleOffLocalTime);
 		NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
-
+		currentContext.setAnimationFrameIndex(0);
+		
 
 		//SHOW CHOICES
 		drawingController.prepareChoice(currentTask, currentContext);

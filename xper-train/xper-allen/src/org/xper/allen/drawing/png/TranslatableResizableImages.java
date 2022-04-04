@@ -7,6 +7,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -28,20 +31,22 @@ import org.xper.drawing.Coordinates2D;
  *
  */
 public class TranslatableResizableImages {
-	IntBuffer textureIds; 
-	int NumFrames;
-	int imgWidth;
-	int imgHeight;
+	private IntBuffer textureIds; 
+	protected int NumFrames;
+	private List<Integer> imgWidth;
+	private List<Integer> imgHeight;
 	public TranslatableResizableImages(int numFrames) {
 		this.NumFrames = numFrames;
-		this.textureIds = BufferUtils.createIntBuffer(NumFrames);
+		this.setTextureIds(BufferUtils.createIntBuffer(NumFrames));
+		this.imgWidth = new ArrayList<>(numFrames);
+		this.imgHeight = new ArrayList<>(numFrames);
 	}
 
 	/**
 	 * Call this sometime before you load the textures. i.e in trialStart() in the Scene
 	 */
 	public void initTextures(){
-		GL11.glGenTextures(textureIds); 
+		GL11.glGenTextures(getTextureIds()); 
 	}
 
 	public void draw(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
@@ -64,7 +69,7 @@ public class TranslatableResizableImages {
 		GL11.glColor3d(1.0, 1.0, 1.0);
 
 		GL11.glEnable(GL11.GL_TEXTURE_2D);  	
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIds.get(textureIndex));
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(textureIndex));
 		/*	
 		// from http://wiki.lwjgl.org/index.php?title=Multi-Texturing_with_GLSL
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
@@ -103,8 +108,8 @@ public class TranslatableResizableImages {
 		try {
 			File imageFile = new File(pathname);
 			BufferedImage img = ImageIO.read(imageFile);
-			imgWidth = img.getWidth();
-			imgHeight = img.getHeight();
+			getImgWidth().add(textureIndex, img.getWidth());
+			getImgHeight().add(textureIndex, img.getWidth());
 			//			System.out.println("loaded image : " + imgWidth + ", " + imgHeight);
 			byte[] src = ((DataBufferByte)img.getRaster().getDataBuffer()).getData();
 			
@@ -125,7 +130,7 @@ public class TranslatableResizableImages {
 			ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
 
 			
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIds.get(textureIndex));
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(textureIndex));
 
 			// from http://wiki.lwjgl.org/index.php?title=Multi-Texturing_with_GLSL
 			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
@@ -144,7 +149,7 @@ public class TranslatableResizableImages {
 			//System.out.println("JK 5353 ImageStack:loadTexture() " + imageFile + " : " + textureIndex + 
 			//	    				" textureIds = " + textureIds.get(textureIndex));    		
 
-			return textureIds.get(textureIndex);
+			return getTextureIds().get(textureIndex);
 
 			//return 0; 
 
@@ -159,11 +164,11 @@ public class TranslatableResizableImages {
 		try {
 			File imageFile = new File(pathname);
 			BufferedImage img = ImageIO.read(imageFile);
-			imgWidth = img.getWidth();
-			imgHeight = img.getHeight();
+			getImgWidth().add(textureIndex, img.getWidth());
+			getImgHeight().add(textureIndex, img.getHeight());
 			//			System.out.println("loaded image : " + imgWidth + ", " + imgHeight);
 			byte[] src = ((DataBufferByte)img.getRaster().getDataBuffer()).getData();
-			
+//			System.out.println("AC0101010: " + Arrays.toString(src));
 			//CHANGING ALPHA
 			GL11.glEnable(GL11.GL_BLEND);
 			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -179,7 +184,7 @@ public class TranslatableResizableImages {
 			ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
 
 			
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureIds.get(textureIndex));
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(textureIndex));
 
 			// from http://wiki.lwjgl.org/index.php?title=Multi-Texturing_with_GLSL
 			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
@@ -198,7 +203,7 @@ public class TranslatableResizableImages {
 			//System.out.println("JK 5353 ImageStack:loadTexture() " + imageFile + " : " + textureIndex + 
 			//	    				" textureIds = " + textureIds.get(textureIndex));    		
 
-			return textureIds.get(textureIndex);
+			return getTextureIds().get(textureIndex);
 
 			//return 0; 
 
@@ -209,16 +214,16 @@ public class TranslatableResizableImages {
 	}
 	
 	public void cleanUpImage(int textureIndex){
-		GL11.glDeleteTextures(textureIds.get(textureIndex));
+		GL11.glDeleteTextures(getTextureIds().get(textureIndex));
 		//textureIds.clear(); //Technically not needed since IntBuffer.get(int) does not step buffer?
 	}
 
 	public void cleanUpTrial(){
-		textureIds.clear();
+		getTextureIds().clear();
 
 	}
 
-	void abgr2rgba(byte[] target) {
+	protected void abgr2rgba(byte[] target) {
 		byte tmpAlphaVal;
 		byte tmpBlueVal;
 
@@ -239,7 +244,7 @@ public class TranslatableResizableImages {
 		}
 	}
 	
-	void changeAlpha(byte[] target, byte alpha) {
+	protected void changeAlpha(byte[] target, byte alpha) {
 
 		for(int i=0x00000000; i<target.length; i+=0x00000004) {
 			double currentAlpha = target[i+0x00000003]; 
@@ -274,6 +279,39 @@ public class TranslatableResizableImages {
 		return min;
 		
 	}
+
+	protected IntBuffer getTextureIds() {
+		return textureIds;
+	}
+
+	protected void setTextureIds(IntBuffer textureIds) {
+		this.textureIds = textureIds;
+	}
+
+	protected List<Integer> getImgHeight() {
+		return imgHeight;
+	}
+
+	protected void setImgHeight(List<Integer> imgHeight) {
+		this.imgHeight = imgHeight;
+	}
+
+	protected List<Integer> getImgWidth() {
+		return imgWidth;
+	}
+
+	protected void setImgWidth(List<Integer> imgWidth) {
+		this.imgWidth = imgWidth;
+	}
+	
+	protected void setImgWidth(int imgWidth) {
+		this.imgWidth.add(imgWidth);
+	}
+	
+	protected void setImgHeight(int imgHeight) {
+		this.imgWidth.add(imgHeight);
+	}
+
 
 
 }

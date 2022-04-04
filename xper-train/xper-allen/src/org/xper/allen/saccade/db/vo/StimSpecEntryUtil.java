@@ -38,6 +38,11 @@ public class StimSpecEntryUtil{
 		return ss;
 	}
 	
+//	public NoisyNAFCStimSpecSpec NoisyNAFCStimSpecSpecFromXmlSpec() {
+//		NoisyNAFCStimSpecSpec ss = NoisyNAFCStimSpecSpec.fromXml(stimSpecEntry.getSpec());
+//		return ss;
+//	}
+//	
 	
 	transient static XStream s;
 
