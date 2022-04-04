@@ -20,6 +20,7 @@ import org.xper.time.TimeUtil;
 import org.xper.util.IntanUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
+import org.xper.util.XmlUtil;
 
 import jssc.SerialPortException;
 

@@ -33,6 +33,7 @@ public class NAFCStimSpecSpec {
 	static {
 		s = new XStream();
 		s.alias("StimSpec", NAFCStimSpecSpec.class);
+		s.useAttributeFor("animation", boolean.class);
 	}
 	
 	public NAFCStimSpecSpec(Coordinates2D[] targetEyeWinCoords, double targetEyeWinSize[], long sampleObjData, 
@@ -44,8 +45,8 @@ public class NAFCStimSpecSpec {
 		this.eStimObjData = eStimObjData;
 		this.rewardPolicy = rewardPolicy;
 		this.rewardList = rewardList;
-		
 	}
+	
 /*	
 	public TwoACStimSpecSpec(Coordinates2D targetEyeWinCoords, double targetEyeWinSize, double duration, long stimObjData,
 			 long eStimObjData) {

@@ -62,5 +62,15 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		}
 	}
 
-	
+	public void animateSample(NAFCExperimentTask task, Context context) {
+		if(task!=null) {
+			taskScene.drawSample(context, true);
+			System.out.println("ANIMATE SAMPLE CALLED!");
+			
+		} else {
+			taskScene.drawBlank(context, fixationOnWithStimuli, true);
+		}
+		window.swapBuffers();
+	}
+
 }

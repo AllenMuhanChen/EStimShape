@@ -66,7 +66,7 @@ public class MStickPngBlockGenTwo{
 	 *  Generate trials where:
 	 *  Sample: Generated matchstick from a randomly generated limb
 	 *  Match:  Morphed version of sample where starter limb is slightly morphed (metric morph)
-	 *  Distractors: completely random match sticks. 
+	 *  Distractors: completely random match sticks or QM match sticks
 	 */	
 
 	public MStickPngBlockGenTwo() {

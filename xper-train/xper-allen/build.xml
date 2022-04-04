@@ -271,5 +271,14 @@
 			</manifest>
 		</jar>
 		
+		<jar jarfile="${allen.home}/noisyMStickPngGen.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/nafc/MStickGeneratorTwo.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.MStickGeneratorTwo" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
 	</target>
 </project>
