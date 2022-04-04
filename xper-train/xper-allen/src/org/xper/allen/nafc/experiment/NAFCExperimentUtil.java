@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.xper.allen.eye.headfree.HeadFreeExperimentUtil;
 import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
@@ -32,8 +33,6 @@ import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.ThreadUtil;
 import org.xper.util.TrialExperimentUtil;
-import org.xper.allen.nafc.eye.HeadFreeExperimentUtil;
-
 import org.xper.util.IntanUtil;
 
 public class NAFCExperimentUtil extends TrialExperimentUtil{
