@@ -15,7 +15,8 @@ import org.xper.eye.zero.EyeZeroAdjustable;
 public class FreeHeadNAFCEyeMonitorController extends NAFCEyeMonitorController {
 	
 	public void fixationPointOn(long timestamp, TrialContext context) {
-		getEyeSampler().start();
+		if(!getEyeSampler().isRunning())
+			getEyeSampler().start();
 		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
 			dev.startEyeZeroSignalCollection();
 		}

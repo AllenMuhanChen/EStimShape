@@ -4,5 +4,4 @@ import org.xper.eye.zero.EyeZeroAdjustable;
 
 public interface HeadFreeEyeZeroAdjustable extends EyeZeroAdjustable{
 	public void startEyeZeroInnerSignalCollection();
-	public void stopEyeZeroInnerSignalCollection();
 }

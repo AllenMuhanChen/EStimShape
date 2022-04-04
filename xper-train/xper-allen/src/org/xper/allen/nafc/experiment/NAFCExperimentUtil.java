@@ -32,7 +32,7 @@ import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.ThreadUtil;
 import org.xper.util.TrialExperimentUtil;
-
+import org.xper.allen.nafc.eye.HeadFreeExperimentUtil;
 
 import org.xper.util.IntanUtil;
 
@@ -230,7 +230,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 	}
 
 	public static NAFCTrialResult runTrial (NAFCExperimentState stateObject, ThreadHelper threadHelper, NAFCSlideRunner runner){
-		NAFCTrialResult result = NAFCExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+	
+		NAFCTrialResult result = HeadFreeExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
