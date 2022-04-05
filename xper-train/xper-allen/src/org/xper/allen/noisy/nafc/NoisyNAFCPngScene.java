@@ -59,12 +59,13 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	}
 
 	public void trialStart(NAFCTrialContext context) {
-		System.out.println("AC 23948902342: " + frameRate);
+//		System.out.println("AC 23948902342: " + frameRate);
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
 		int numFrames = (int) (context.getSampleLength()/1000 * frameRate);
 		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
 		images.initTextures();
+
 	}
 	
 	@Override
@@ -72,8 +73,9 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		PngSpec sampleSpec = PngSpec.fromXml(task.getSampleSpec());
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
 		sampleDimensions = sampleSpec.getImageDimensions();
-		System.out.println(images);
+//		System.out.println(images);
 		images.loadTexture(sampleSpec.getPath(), 0);
+		images.loadNoise(0);
 	}
 
 	@Override
