@@ -9,13 +9,13 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
-import org.xper.allen.nafc.NAFCPngScene;
-import org.xper.allen.nafc.blockgen.MStickPngBlockGenTwo;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -41,5 +41,20 @@ public class NoisyNAFCMStickPngAppConfig {
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		scene.setBackgroundColor(appConfig.xperBackgroundColor());
 		return scene;
+	}
+	
+	/**
+	 * When switching to Perspective Renderer from  
+	 * @return
+	 */
+	@Bean
+	public AbstractRenderer experimentGLRenderer () {
+		PerspectiveRenderer renderer = new PerspectiveRenderer();
+		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
+		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
+		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
+		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
+		return renderer;
 	}
 }

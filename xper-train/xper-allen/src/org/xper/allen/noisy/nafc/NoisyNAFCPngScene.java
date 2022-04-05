@@ -44,14 +44,15 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		super.initGL(w, h);
 		//System.out.println("JK 32838 w = " + screenWidth + ", h = " + screenHeight);
 		
-		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);          
-		GL11.glViewport(0,0,w,h);
-        GL11.glMatrixMode(GL11.GL_MODELVIEW); 
-        GL11.glMatrixMode(GL11.GL_PROJECTION);
-        GL11.glLoadIdentity();
+		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);
+		//The below is unncessary stuff that gets overidden later
+//		GL11.glViewport(0,0,w,h);
+//        GL11.glMatrixMode(GL11.GL_PROJECTION);
+//        GL11.glLoadIdentity();
+//		
+//        GL11.glOrtho(0, w, h, 0, 1, -1);
+//        GL11.glMatrixMode(GL11.GL_MODELVIEW);
 		
-        GL11.glOrtho(0, w, h, 0, 1, -1);
-        GL11.glMatrixMode(GL11.GL_MODELVIEW);
 	}
 
 	public void trialStart(TrialContext context) {
