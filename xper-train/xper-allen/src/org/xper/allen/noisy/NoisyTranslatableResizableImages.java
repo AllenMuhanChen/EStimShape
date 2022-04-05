@@ -1,15 +1,10 @@
 package org.xper.allen.noisy;
 
-import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import java.util.SplittableRandom;
 
 import javax.imageio.ImageIO;
@@ -20,6 +15,8 @@ import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.drawing.png.TranslatableResizableImages;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.time.DefaultTimeUtil;
+import org.xper.time.TimeUtil;
 
 /**
  * Strategy for noise:
@@ -37,6 +34,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	private int srcLength;
 	private Context context;
 	static SplittableRandom r = new SplittableRandom();
+	TimeUtil timeUtil = new DefaultTimeUtil();
 	public NoisyTranslatableResizableImages(int numFrames) {
 		super(numFrames);
 		setTextureIds(BufferUtils.createIntBuffer(numFrames+1));
@@ -51,11 +49,17 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	
 	public void draw(boolean isNoised, Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
 		GL11.glPushMatrix();
+		long textureStartTime = timeUtil.currentTimeMicros();
 		drawTexture(context, textureIndex, location, dimensions);
+		System.out.println("AC TIME TO DRAW TEXTURE: " + (timeUtil.currentTimeMicros() - textureStartTime));
 		if(isNoised) {
 //			System.out.println("DRAW CALLED");
+			long noiseGenerateStartTime = timeUtil.currentTimeMicros();
 			byte[] noise = generateNoise(textureIndex);
+			System.out.println("AC TIME TO GEN NOISE: " + (timeUtil.currentTimeMicros()-noiseGenerateStartTime));
+			long noiseDrawStartTime = timeUtil.currentTimeMicros();
 			drawNoise(noise, context, textureIndex, location, dimensions);
+			System.out.println("AC TIME TO DRAW NOISE: " + (timeUtil.currentTimeMicros()-noiseDrawStartTime));
 		}
 		GL11.glPopMatrix();
 		

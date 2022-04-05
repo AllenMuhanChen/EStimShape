@@ -98,7 +98,6 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				//AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
 				return NAFCTrialResult.TRIAL_COMPLETE;
 			}
-			System.out.println("AC93480293432: " + stateObject.isAnimation());
 //			if(stateObject.isAnimation()) {
 			if(true) {
 				currentContext.setAnimationFrameIndex(currentContext.getAnimationFrameIndex()+1);

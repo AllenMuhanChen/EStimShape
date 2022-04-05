@@ -7,14 +7,18 @@ import org.xper.classic.TrialDrawingController;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
+import org.xper.time.DefaultTimeUtil;
+import org.xper.time.TimeUtil;
+import org.xper.util.ThreadUtil;
 
 public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingController implements NAFCTrialDrawingController{
 
 	@Dependency
 	protected NAFCTaskScene taskScene;
-	
 	boolean initialized = false;
 	
+	TimeUtil timeUtil = new DefaultTimeUtil();
+	private long lastTime = timeUtil.currentTimeMicros();
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		taskScene.nextMarker();
@@ -64,13 +68,18 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void animateSample(NAFCExperimentTask task, Context context) {
 		if(task!=null) {
+			long startTime = timeUtil.currentTimeMicros();
 			taskScene.drawSample(context, true);
-			System.out.println("ANIMATE SAMPLE CALLED!");
+			System.out.println("AC TIME TO DRAW SAMPLE: " + (timeUtil.currentTimeMicros() - startTime));
+//			System.out.println("ANIMATE SAMPLE CALLED!");
 			
 		} else {
 			taskScene.drawBlank(context, fixationOnWithStimuli, true);
 		}
 		window.swapBuffers();
+		long nowTime = timeUtil.currentTimeMicros();
+		System.out.println("AC MICROS SINCE LAST BUFFER SWAP: " + (nowTime-lastTime));
+		lastTime = nowTime;
 	}
 
 }
