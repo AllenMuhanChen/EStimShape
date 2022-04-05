@@ -17,14 +17,19 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	protected NAFCTaskScene taskScene;
 	boolean initialized = false;
 
+	//TIMING ANALYSIS
 	TimeUtil timeUtil = new DefaultTimeUtil();
 	private long lastTime = 0;
 	private int skippedFrames = 0;
+	private long startTime=0;
+
+	/////////////////
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, false);
 		window.swapBuffers();
+		startTime=0;
 	}
 
 	public void prepareSample(NAFCExperimentTask task, Context context) {
@@ -79,6 +84,9 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		}
 		window.swapBuffers();
 		long nowTime = timeUtil.currentTimeMicros();
+		if(startTime==0) {
+			startTime = nowTime;
+		}
 		long frameTime=0;
 		if(lastTime!=0) {
 			frameTime = nowTime-lastTime;
@@ -91,6 +99,8 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 			skippedFrames = skippedFrames + temp;
 		}
 		System.out.println("AC TOTAL SKIPPED FRAMES: " + skippedFrames);
+		long timeElapsed = nowTime - startTime;
+		System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
 	}
 
 }
