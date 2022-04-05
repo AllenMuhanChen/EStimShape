@@ -11,75 +11,77 @@ public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDr
 
 	public void prepareSample(NAFCExperimentTask task, Context context) {
 		if (task != null) {
-			taskScene.setSample(task);
-			taskScene.drawSample(context, true);
+			System.out.println(task);
+			System.out.println(getTaskScene());
+			getTaskScene().setSample(task);
+//			getTaskScene().drawSample(context, true);
 		} else {
-			taskScene.drawBlank(context, false, false);
+			getTaskScene().drawBlank(context, false, false);
 		}
 	}
 	
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, true);
 		window.swapBuffers();
 	}
 	
 	public void prepareChoice(NAFCExperimentTask task, Context context) {
 		if (task != null) {
-			taskScene.setChoice(task);
-			taskScene.drawChoice(context, false);
+			getTaskScene().setChoice(task);
+//			getTaskScene().drawChoice(context, false);
 		} else {
-			taskScene.drawBlank(context, false, false);
+			getTaskScene().drawBlank(context, false, false);
 		}
 	}
 
 	//From MarkEveryStepTrialDrawingController
 	
 	public void trialStart(TrialContext context) {
-		taskScene.trialStart(context);
+		getTaskScene().trialStart(context);
 		
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, true);
 		window.swapBuffers();
 	}
 	
 	public void prepareFixationOn(TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, true, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, true, true);
 	}
 	
 	public void initialEyeInFail(TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, true);
 		window.swapBuffers();
 	}
 	
 	public void eyeInHoldFail(TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, true);
 		window.swapBuffers();
 	}
 	
 
 	public void eyeInBreak(TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, true);
 		window.swapBuffers();
 	}
 
 	public void trialComplete(TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, true);
 		window.swapBuffers();
 	}
 
 	public void trialStop(TrialContext context) {
 		// show no markers during inter trial interval
-		taskScene.drawBlank(context, false, false);
+		getTaskScene().drawBlank(context, false, false);
 		window.swapBuffers();
 		
-		taskScene.trialStop(context);
+		getTaskScene().trialStop(context);
 	}
 	
 

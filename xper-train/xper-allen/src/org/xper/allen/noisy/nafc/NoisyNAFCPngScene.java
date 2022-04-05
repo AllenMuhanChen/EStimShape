@@ -67,6 +67,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		PngSpec sampleSpec = PngSpec.fromXml(task.getSampleSpec());
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
 		sampleDimensions = sampleSpec.getImageDimensions();
+		System.out.println(images);
 		images.loadTexture(sampleSpec.getPath(), 0);
 	}
 

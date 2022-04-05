@@ -75,8 +75,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		}while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
 
 		//SHOW SAMPLE
-		drawingController.prepareSample(currentTask, currentContext); //THIS is called by prepare fixation
-		drawingController.showSlide(currentTask, currentContext);
+		drawingController.showSample(currentTask, currentContext); //THIS is called by prepare fixation
 		long sampleOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
 		NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
@@ -134,8 +133,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		
 
 		//SHOW CHOICES
-		drawingController.prepareChoice(currentTask, currentContext);
-		drawingController.showSlide(currentTask, currentContext);
+//		drawingController.prepareChoice(currentTask, currentContext);
+		drawingController.showChoice(currentTask, currentContext);
 		long choicesOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setChoicesOnTime(choicesOnLocalTime);
 		NAFCEventUtil.fireChoicesOnEvent(choicesOnLocalTime, choiceEventListeners,currentContext);
@@ -255,7 +254,9 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 	}
 
 	public static NAFCTrialResult runTrial (NAFCExperimentState stateObject, ThreadHelper threadHelper, NAFCSlideRunner runner){
-	
+		NAFCTrialDrawingController drawingController = stateObject.getDrawingController();
+		NAFCExperimentTask currentTask = stateObject.getCurrentTask();
+		TrialContext currentContext = stateObject.getCurrentContext();
 		NAFCTrialResult result = HeadFreeExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
 			return result;
@@ -411,6 +412,10 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
 				currentContext);
 
+		//PREPARING SAMPLE & CHOICE!
+		drawingController.prepareSample(currentTask, currentContext); 
+		drawingController.prepareChoice(currentTask, currentContext);
+		
 		// prepare fixation point
 		drawingController.prepareFixationOn(currentContext);
 

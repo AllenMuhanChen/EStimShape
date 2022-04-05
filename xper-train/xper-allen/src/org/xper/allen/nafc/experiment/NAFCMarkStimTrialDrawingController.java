@@ -14,7 +14,7 @@ import org.xper.util.ThreadUtil;
 public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingController implements NAFCTrialDrawingController{
 
 	@Dependency
-	protected NAFCTaskScene taskScene;
+	private NAFCTaskScene taskScene;
 	boolean initialized = false;
 
 	//TIMING ANALYSIS
@@ -26,32 +26,46 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	/////////////////
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, false);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, false);
 		window.swapBuffers();
 		startTime=0;
 	}
 
 	public void prepareSample(NAFCExperimentTask task, Context context) {
 		if (task != null) {
-			taskScene.setSample(task);
-			taskScene.drawSample(context, true);
-		} else {
-			taskScene.drawBlank(context, false, false);
+			getTaskScene().setSample(task);
 		}
 	}
+	
+	public void showSample(NAFCExperimentTask task, Context context) {
+		if(task != null) {
+			getTaskScene().drawSample(context, true);
+		} else {
+			getTaskScene().drawBlank(context, false, false);
+		}
+		window.swapBuffers();
+	}
+	
+	
 
 	public void prepareChoice(NAFCExperimentTask task, Context context) {
 		if (task != null) {
-			taskScene.setChoice(task);
-			taskScene.drawChoice(context, false);
-		} else {
-			taskScene.drawBlank(context, false, false);
+			getTaskScene().setChoice(task);
 		}
+	}
+	
+	public void showChoice(NAFCExperimentTask task, Context context) {
+		if(task != null) {
+			getTaskScene().drawChoice(context, true);
+		} else {
+			getTaskScene().drawBlank(context, false, false);
+		}
+		window.swapBuffers();
 	}
 
 	public NAFCTaskScene getNAFCTaskScene() {
-		return taskScene;
+		return getTaskScene();
 	}
 
 	public void setTaskScene(NAFCTaskScene taskScene) {
@@ -61,7 +75,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	// not sure if below needed. 
 	public void init() {
 		window.create();
-		taskScene.initGL(window.getWidth(), window.getHeight());
+		getTaskScene().initGL(window.getWidth(), window.getHeight());
 		initialized = true;
 	}
 
@@ -75,12 +89,12 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	public void animateSample(NAFCExperimentTask task, Context context) {
 		if(task!=null) {
 			long startTime = timeUtil.currentTimeMicros();
-			taskScene.drawSample(context, true);
+			getTaskScene().drawSample(context, true);
 			System.out.println("AC TIME TO DRAW SAMPLE: " + (timeUtil.currentTimeMicros() - startTime));
 			//			System.out.println("ANIMATE SAMPLE CALLED!");
 
 		} else {
-			taskScene.drawBlank(context, fixationOnWithStimuli, true);
+			getTaskScene().drawBlank(context, fixationOnWithStimuli, true);
 		}
 		window.swapBuffers();
 		long nowTime = timeUtil.currentTimeMicros();
@@ -101,6 +115,10 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		System.out.println("AC TOTAL SKIPPED FRAMES: " + skippedFrames);
 		long timeElapsed = nowTime - startTime;
 		System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
+	}
+
+	public NAFCTaskScene getTaskScene() {
+		return taskScene;
 	}
 
 }
