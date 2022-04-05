@@ -1,12 +1,16 @@
 package org.xper.allen.nafc;
 
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 
 public class BlankNAFCTaskScene extends AbstractTaskScene implements NAFCTaskScene{
-
+	public void trialStart(NAFCTrialContext context) {
+		
+	}
+	
 	public void drawStimulus(Context context) {
 	}
 

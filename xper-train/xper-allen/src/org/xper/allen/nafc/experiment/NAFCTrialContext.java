@@ -10,6 +10,9 @@ public class NAFCTrialContext extends TrialContext {
 	long choicesOnTime;
 	long choicesOffTime;
 	
+	//Added 04/05/2022 for helping preallocate space for random noise
+	long sampleLength;
+	
 	//long targetOnTime;
 	long targetInitialSelectionTime;
 	long targetSelectionSuccessTime;
@@ -117,6 +120,14 @@ public class NAFCTrialContext extends TrialContext {
 
 	public void setSelectorResult(NAFCTargetSelectorResult selectorResult) {
 		this.selectorResult = selectorResult;
+	}
+
+	public long getSampleLength() {
+		return sampleLength;
+	}
+
+	public void setSampleLength(long sampleLength) {
+		this.sampleLength = sampleLength;
 	}
 
 

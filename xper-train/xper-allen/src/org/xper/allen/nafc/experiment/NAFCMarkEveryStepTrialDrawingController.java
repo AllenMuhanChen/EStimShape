@@ -38,7 +38,7 @@ public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDr
 
 	//From MarkEveryStepTrialDrawingController
 	
-	public void trialStart(TrialContext context) {
+	public void trialStart(NAFCTrialContext context) {
 		getTaskScene().trialStart(context);
 		
 		getTaskScene().nextMarker();

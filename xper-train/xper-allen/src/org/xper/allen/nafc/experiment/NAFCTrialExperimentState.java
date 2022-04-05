@@ -115,7 +115,8 @@ public class NAFCTrialExperimentState extends TrialExperimentState {
 	public void setTargetSelector(EyeTargetSelector targetController) {
 		this.targetSelector = targetController;
 	}
-	public TrialContext getCurrentContext() {
+	
+	public NAFCTrialContext getCurrentContext() {
 		return currentContext;
 	}
 
