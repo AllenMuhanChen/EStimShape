@@ -5,6 +5,8 @@ import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.SplittableRandom;
 
 import javax.imageio.ImageIO;
@@ -31,20 +33,38 @@ import org.xper.time.TimeUtil;
  */
 public class NoisyTranslatableResizableImages extends TranslatableResizableImages{
 //	
+	private int numNoiseFrames;
+	private int numImageTextures;
 	private int srcLength;
 	private Context context;
 	static SplittableRandom r = new SplittableRandom();
+	private int currentNoiseIndx;
 	TimeUtil timeUtil = new DefaultTimeUtil();
 	public NoisyTranslatableResizableImages(int numNoiseFrames, int numImageTextures) {
 		super(numNoiseFrames);
+		this.numNoiseFrames = numNoiseFrames;
+		this.numImageTextures = numImageTextures;
+		this.currentNoiseIndx = numImageTextures;
 		setTextureIds(BufferUtils.createIntBuffer(numNoiseFrames+numImageTextures));
 //		pixelsList = new ArrayList<>(numFrames);
 		// TODO Auto-generated constructor stub
 	}
 	
+	public void loadNoise(int textureIndex) {
+		for(int i=0; i<numNoiseFrames;i++) {
+			byte[] noise = generateNoise(textureIndex);
+			ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(noise.length).put(noise, 0x00000000, noise.length).flip();
+			GL11.glEnable(GL11.GL_TEXTURE_2D);
+			GL11.glBindTexture(GL11.GL_TEXTURE_2D, numImageTextures+i);
+			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+			GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
+			GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, getImgWidth().get(textureIndex), getImgHeight().get(textureIndex), 0,  GL11.GL_RGBA,  GL11.GL_BYTE, pixels);
+		}
+	}
 	
 	public void loadNoise(String pathname, int textureIndex) {
-		
+		//TODO: 
 	}
 	
 	public void draw(boolean isNoised, Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
@@ -54,17 +74,30 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		System.out.println("AC TIME TO DRAW TEXTURE: " + (timeUtil.currentTimeMicros() - textureStartTime));
 		if(isNoised) {
 //			System.out.println("DRAW CALLED");
-			long noiseGenerateStartTime = timeUtil.currentTimeMicros();
-			byte[] noise = generateNoise(textureIndex);
-			System.out.println("AC TIME TO GEN NOISE: " + (timeUtil.currentTimeMicros()-noiseGenerateStartTime));
 			long noiseDrawStartTime = timeUtil.currentTimeMicros();
-			drawNoise(noise, context, textureIndex, location, dimensions);
+			drawNoise(context, textureIndex, location, dimensions);
 			System.out.println("AC TIME TO DRAW NOISE: " + (timeUtil.currentTimeMicros()-noiseDrawStartTime));
 		}
 		GL11.glPopMatrix();
-		
-		
 	}
+
+//	//Not preload drawing. 
+//	public void draw(boolean isNoised, Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
+//		GL11.glPushMatrix();
+//		long textureStartTime = timeUtil.currentTimeMicros();
+//		drawTexture(context, textureIndex, location, dimensions);
+//		System.out.println("AC TIME TO DRAW TEXTURE: " + (timeUtil.currentTimeMicros() - textureStartTime));
+//		if(isNoised) {
+////			System.out.println("DRAW CALLED");
+//			long noiseGenerateStartTime = timeUtil.currentTimeMicros();
+//			byte[] noise = generateNoise(textureIndex);
+//			System.out.println("AC TIME TO GEN NOISE: " + (timeUtil.currentTimeMicros()-noiseGenerateStartTime));
+//			long noiseDrawStartTime = timeUtil.currentTimeMicros();
+//			drawNoise(noise, context, textureIndex, location, dimensions);
+//			System.out.println("AC TIME TO DRAW NOISE: " + (timeUtil.currentTimeMicros()-noiseDrawStartTime));
+//		}
+//		GL11.glPopMatrix();
+//	}
 
 	
 	private void drawTexture(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
@@ -107,16 +140,11 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 //		GL11.glPopMatrix();
 	}
-	private void drawNoise(byte[] noise, Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
-		ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(noise.length).put(noise, 0x00000000, noise.length).flip();
-//		GL11.glPushMatrix();
-		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		GL11.glBindTexture(GL11.GL_TEXTURE_2D, NumFrames+1);
-		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
-		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, getImgWidth().get(textureIndex), getImgHeight().get(textureIndex), 0,  GL11.GL_RGBA,  GL11.GL_BYTE, pixels);
+	private void drawNoise(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
 		
+//		GL11.glPushMatrix();
+		GL11.glEnable(GL11.GL_TEXTURE_2D);  	
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(currentNoiseIndx));
 		Coordinates2D centermm = new Coordinates2D(context.getRenderer().deg2mm(location.getX()), context.getRenderer().deg2mm(location.getY()));
 
 		float width = (float) context.getRenderer().deg2mm((float)dimensions.getWidth()); // texture.getImageWidth();
@@ -141,6 +169,9 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		GL11.glEnd();
 		
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		currentNoiseIndx++;
+		System.out.println(currentNoiseIndx);
+		System.out.println(getTextureIds().capacity());
 //		GL11.glPopMatrix();
 	}
 	
