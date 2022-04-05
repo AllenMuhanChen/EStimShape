@@ -16,16 +16,17 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	@Dependency
 	protected NAFCTaskScene taskScene;
 	boolean initialized = false;
-	
+
 	TimeUtil timeUtil = new DefaultTimeUtil();
-	private long lastTime = timeUtil.currentTimeMicros();
+	private long lastTime = 0;
+	private int skippedFrames = 0;
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, false);
 		window.swapBuffers();
 	}
-	
+
 	public void prepareSample(NAFCExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setSample(task);
@@ -34,7 +35,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 			taskScene.drawBlank(context, false, false);
 		}
 	}
-	
+
 	public void prepareChoice(NAFCExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.setChoice(task);
@@ -43,7 +44,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 			taskScene.drawBlank(context, false, false);
 		}
 	}
-	
+
 	public NAFCTaskScene getNAFCTaskScene() {
 		return taskScene;
 	}
@@ -51,14 +52,14 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	public void setTaskScene(NAFCTaskScene taskScene) {
 		this.taskScene = taskScene;
 	}
-	
+
 	// not sure if below needed. 
 	public void init() {
 		window.create();
 		taskScene.initGL(window.getWidth(), window.getHeight());
 		initialized = true;
 	}
-	
+
 	public void destroy() {
 		if (initialized) {
 			window.destroy();
@@ -71,15 +72,25 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 			long startTime = timeUtil.currentTimeMicros();
 			taskScene.drawSample(context, true);
 			System.out.println("AC TIME TO DRAW SAMPLE: " + (timeUtil.currentTimeMicros() - startTime));
-//			System.out.println("ANIMATE SAMPLE CALLED!");
-			
+			//			System.out.println("ANIMATE SAMPLE CALLED!");
+
 		} else {
 			taskScene.drawBlank(context, fixationOnWithStimuli, true);
 		}
 		window.swapBuffers();
 		long nowTime = timeUtil.currentTimeMicros();
-		System.out.println("AC MICROS SINCE LAST BUFFER SWAP: " + (nowTime-lastTime));
+		long frameTime=0;
+		if(lastTime!=0) {
+			frameTime = nowTime-lastTime;
+		}
+
+		System.out.println("AC MICROS SINCE LAST BUFFER SWAP: " + frameTime);
 		lastTime = nowTime;
+		if(frameTime>18000) {
+			int temp = Math.round(frameTime/16666);
+			skippedFrames = skippedFrames + temp;
+		}
+		System.out.println("AC TOTAL SKIPPED FRAMES: " + skippedFrames);
 	}
 
 }
