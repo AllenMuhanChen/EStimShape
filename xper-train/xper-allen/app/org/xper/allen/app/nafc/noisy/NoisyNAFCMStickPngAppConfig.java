@@ -44,7 +44,8 @@ public class NoisyNAFCMStickPngAppConfig {
 	}
 	
 	/**
-	 * When switching to Perspective Renderer from  
+	 * When switching to Perspective Renderer we need to make sure the xper-monkey-screen-length is precisely
+	 * the same width as the actual screen. 
 	 * @return
 	 */
 	@Bean

@@ -154,19 +154,20 @@ public class NAFCConfig {
 		}
 		return juice;
 	}
+	
 	/**
-	 * Use PerspectiveStereoRenderer for mono and stereo, only changing the xper screen width accordingly. 
+	 * When switching to Perspective Renderer we need to make sure the xper-window-length is precisely
+	 * the same width as the actual screen. 
 	 * @return
 	 */
 	@Bean
 	public AbstractRenderer experimentGLRenderer () {
-		PerspectiveStereoRenderer renderer = new PerspectiveStereoRenderer();
+		PerspectiveRenderer renderer = new PerspectiveRenderer();
 		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
 		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
 		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
-		renderer.setInverted(classicConfig.xperMonkeyScreenInverted());
 		return renderer;
 	}
 	
