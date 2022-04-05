@@ -10,6 +10,7 @@ import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.specs.AllenMStickSpec;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
@@ -66,8 +67,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 		GL11.glMatrixMode(GL11.GL_MODELVIEW);
 	}
 
-	@Override
-	public void trialStart(TrialContext context) {
+	public void trialStart(NAFCTrialContext context) {
 		numSamplePrepped = 0;
 		numChoicePrepped = 0;
 		/*

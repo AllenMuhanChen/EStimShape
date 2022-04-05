@@ -7,6 +7,7 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
@@ -40,6 +41,7 @@ public class NoisyNAFCMStickPngAppConfig {
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		scene.setBackgroundColor(appConfig.xperBackgroundColor());
+//		scene.setFrameRate(xperMonkeyScreenFrameRate());
 		return scene;
 	}
 	
@@ -57,5 +59,10 @@ public class NoisyNAFCMStickPngAppConfig {
 		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
+	}
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Integer xperNoiseRate() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_noise_rate", 0));
 	}
 }

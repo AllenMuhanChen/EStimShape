@@ -35,9 +35,9 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	private Context context;
 	static SplittableRandom r = new SplittableRandom();
 	TimeUtil timeUtil = new DefaultTimeUtil();
-	public NoisyTranslatableResizableImages(int numFrames) {
-		super(numFrames);
-		setTextureIds(BufferUtils.createIntBuffer(numFrames+1));
+	public NoisyTranslatableResizableImages(int numNoiseFrames, int numImageTextures) {
+		super(numNoiseFrames);
+		setTextureIds(BufferUtils.createIntBuffer(numNoiseFrames+numImageTextures));
 //		pixelsList = new ArrayList<>(numFrames);
 		// TODO Auto-generated constructor stub
 	}

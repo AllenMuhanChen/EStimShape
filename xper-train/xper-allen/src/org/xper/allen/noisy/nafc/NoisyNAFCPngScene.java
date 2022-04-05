@@ -1,13 +1,14 @@
 package org.xper.allen.noisy.nafc;
 
+import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
 import org.xper.allen.specs.PngSpec;
-import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
@@ -25,6 +26,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	double screenHeight;
 	@Dependency
 	double[] backgroundColor;
+	@Dependency
+	int frameRate = Display.getDisplayMode().getFrequency();
 	/**
 	 * We keep this just one images object rather than one for choices and one for sample
 	 * because OpenGL binds textures to integer IDs when we preload images. So if
@@ -39,7 +42,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	double[] choiceAlphas;
 	
 	public void initGL(int w, int h) {
-
+		
 		super.setUseStencil(true);
 		super.initGL(w, h);
 		//System.out.println("JK 32838 w = " + screenWidth + ", h = " + screenHeight);
@@ -55,10 +58,12 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		
 	}
 
-	public void trialStart(TrialContext context) {
+	public void trialStart(NAFCTrialContext context) {
+		System.out.println("AC 23948902342: " + frameRate);
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
-		images = new NoisyTranslatableResizableImages(numChoices + 1);
+		int numFrames = (int) (context.getSampleLength()/1000 * frameRate);
+		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
 		images.initTextures();
 	}
 	
@@ -213,6 +218,14 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	public void setBackgroundColor(double[] backgroundColor) {
 		this.backgroundColor = backgroundColor;
+	}
+
+	public int getFrameRate() {
+		return frameRate;
+	}
+
+	public void setFrameRate(int frameRate) {
+		this.frameRate = frameRate;
 	}
 	
 }

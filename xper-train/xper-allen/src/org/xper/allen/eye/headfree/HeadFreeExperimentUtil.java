@@ -6,6 +6,9 @@ import org.xper.allen.nafc.experiment.NAFCExperimentState;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCExperimentUtil;
 import org.xper.allen.nafc.experiment.NAFCMarkEveryStepTrialDrawingController;
+import org.xper.allen.nafc.experiment.NAFCMarkStimTrialDrawingController;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
+import org.xper.allen.nafc.experiment.NAFCTrialDrawingController;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
@@ -20,9 +23,8 @@ public class HeadFreeExperimentUtil{
 		int fixationAttempt = 0;
 		int maxFixationAttempts = 5;
 
-		NAFCMarkEveryStepTrialDrawingController drawingController = (NAFCMarkEveryStepTrialDrawingController) state.getDrawingController();
-
-		TrialContext currentContext = state.getCurrentContext();
+		NAFCTrialDrawingController drawingController = state.getDrawingController();
+		NAFCTrialContext currentContext = state.getCurrentContext();
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		List<? extends TrialEventListener> trialEventListeners = state
 				.getTrialEventListeners();
@@ -55,7 +57,7 @@ public class HeadFreeExperimentUtil{
 				System.out.println("AC HeadFreeExperimentUtil: FixationAttempt " + fixationAttempt + ". Result: " + res.toString() );
 			}
 		}
-		return NAFCExperimentUtil.getMonkeyFixation(state, threadHelper);
+		return HeadFreeExperimentUtil.getFixationOnly(state, threadHelper, trialStartLocalTime);
 	}
 
 	private static NAFCTrialResult getFixationOnly(NAFCExperimentState state, ThreadHelper threadHelper, long trialStartLocalTime) {

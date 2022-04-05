@@ -256,7 +256,12 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 	public static NAFCTrialResult runTrial (NAFCExperimentState stateObject, ThreadHelper threadHelper, NAFCSlideRunner runner){
 		NAFCTrialDrawingController drawingController = stateObject.getDrawingController();
 		NAFCExperimentTask currentTask = stateObject.getCurrentTask();
-		TrialContext currentContext = stateObject.getCurrentContext();
+		NAFCTrialContext currentContext = stateObject.getCurrentContext();
+		currentContext.setSampleLength(stateObject.getSampleLength());
+		
+		/**
+		 * If switch out HeadFreeUtil then make sure the new version has prepareSample & prepareChoice
+		 */
 		NAFCTrialResult result = HeadFreeExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
 			return result;
@@ -412,7 +417,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
 				currentContext);
 
-		//PREPARING SAMPLE & CHOICE!
+		//Prepare Sample & Choice!
 		drawingController.prepareSample(currentTask, currentContext); 
 		drawingController.prepareChoice(currentTask, currentContext);
 		

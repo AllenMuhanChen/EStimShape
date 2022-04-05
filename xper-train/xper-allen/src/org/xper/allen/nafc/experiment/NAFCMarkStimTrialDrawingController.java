@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.experiment;
 
+import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.classic.MarkStimTrialDrawingController;
@@ -23,22 +24,29 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	private int skippedFrames = 0;
 	private long startTime=0;
 
+	public void trialStart(NAFCTrialContext context) {
+		getTaskScene().trialStart(context);
+
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, false);
+		window.swapBuffers();
+	}
+	
 	/////////////////
-	@Override
-	public void slideFinish(ExperimentTask task, TrialContext context) {
+	public void slideFinish(ExperimentTask task, NAFCTrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, false);
 		window.swapBuffers();
 		startTime=0;
 	}
 
-	public void prepareSample(NAFCExperimentTask task, Context context) {
+	public void prepareSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if (task != null) {
 			getTaskScene().setSample(task);
 		}
 	}
 	
-	public void showSample(NAFCExperimentTask task, Context context) {
+	public void showSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
 			getTaskScene().drawSample(context, true);
 		} else {
@@ -49,13 +57,13 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	
 	
 
-	public void prepareChoice(NAFCExperimentTask task, Context context) {
+	public void prepareChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if (task != null) {
 			getTaskScene().setChoice(task);
 		}
 	}
 	
-	public void showChoice(NAFCExperimentTask task, Context context) {
+	public void showChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
 			getTaskScene().drawChoice(context, true);
 		} else {
@@ -86,7 +94,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		}
 	}
 
-	public void animateSample(NAFCExperimentTask task, Context context) {
+	public void animateSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task!=null) {
 			long startTime = timeUtil.currentTimeMicros();
 			getTaskScene().drawSample(context, true);
@@ -115,6 +123,8 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		System.out.println("AC TOTAL SKIPPED FRAMES: " + skippedFrames);
 		long timeElapsed = nowTime - startTime;
 		System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
+		
+		System.out.println("MAX TEXTURES: " + GL11.GL_MAX_TEXTURE_STACK_DEPTH);
 	}
 
 	public NAFCTaskScene getTaskScene() {

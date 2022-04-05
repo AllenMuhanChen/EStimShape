@@ -4,6 +4,8 @@ import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.drawing.RFPlotGaussianObject;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
+import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Drawable;
@@ -120,6 +122,9 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void drawStimulus(Context context) {
 		// TODO Auto-generated method stub
 		
+	}
+	
+	public void trialStart(NAFCTrialContext context) {
 	}
 
 	
