@@ -20,7 +20,7 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	@Dependency
 	IntanUtil intanUtil;
 	@Dependency
-	TrialDrawingController drawingController;
+	NAFCTrialDrawingController drawingController;
 	
 	int blankTargetScreenDisplayTime;
 	int punishmentDelayTime;
@@ -38,11 +38,11 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 		return (NAFCExperimentTask) currentTask;
 	}
 	
-	public TrialDrawingController getDrawingController() {
+	public NAFCTrialDrawingController getDrawingController() {
 		return drawingController;
 	}
 
-	public void setDrawingController(TrialDrawingController drawingController) {
+	public void setDrawingController(NAFCTrialDrawingController drawingController) {
 		this.drawingController = drawingController;
 	}
 
