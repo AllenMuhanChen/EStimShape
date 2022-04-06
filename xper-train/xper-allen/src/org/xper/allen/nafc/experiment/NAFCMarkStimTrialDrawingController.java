@@ -124,7 +124,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		long timeElapsed = nowTime - startTime;
 		System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
 		
-		System.out.println("MAX TEXTURES: " + GL11.GL_MAX_TEXTURE_STACK_DEPTH);
+//		System.out.println("MAX TEXTURES: " + GL11.GL_MAX_TEXTURE_STACK_DEPTH);
 	}
 
 	public NAFCTaskScene getTaskScene() {

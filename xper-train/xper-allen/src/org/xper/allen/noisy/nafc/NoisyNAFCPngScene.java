@@ -27,7 +27,9 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	@Dependency
 	double[] backgroundColor;
 	@Dependency
-	int frameRate = Display.getDisplayMode().getFrequency();
+//	int frameRate = Display.getDisplayMode().getFrequency();
+	int frameRate;
+	private int noiseIndx=0;
 	/**
 	 * We keep this just one images object rather than one for choices and one for sample
 	 * because OpenGL binds textures to integer IDs when we preload images. So if
@@ -62,9 +64,13 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 //		System.out.println("AC 23948902342: " + frameRate);
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
-		int numFrames = (int) (context.getSampleLength()/1000 * frameRate);
+		System.out.println("AC FRAMERATE: " + frameRate);
+		long duration = context.getSampleLength()+100; //100 ms buffer
+		double durationSeconds = duration/1000.0;
+		int numFrames = (int) Math.ceil((durationSeconds*frameRate));
 		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
 		images.initTextures();
+		noiseIndx=0;
 
 	}
 	
@@ -110,7 +116,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
 				int index = 0; //Should be zero, the sample is assigned index of zero. 
-				images.draw(true, context, index, sampleLocation, sampleDimensions);
+				images.draw(noiseIndx, context, index, sampleLocation, sampleDimensions);
+				nextNoise();
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
@@ -140,7 +147,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 				}
 				for (int i = 0; i < numChoices; i++){
 					//System.out.println();
-					images.draw(false, context,i+1, choiceLocations[i], choiceDimensions[i]);
+					images.draw(context,i+1, choiceLocations[i], choiceDimensions[i]);
 				}
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
@@ -157,12 +164,13 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 				}
 			}}, context);
 	}
-
+	
+	public void nextNoise() {
+		this.noiseIndx++;
+	}
 
 	public void trialStop(Context context) {
-		for (int i=0; i<numChoices+1; i++) {
-			images.cleanUpImage(i);
-		}
+		images.cleanUpImage();
 		
 	}
 	
