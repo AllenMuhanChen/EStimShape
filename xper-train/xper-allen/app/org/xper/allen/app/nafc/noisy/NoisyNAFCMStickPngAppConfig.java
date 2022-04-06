@@ -41,7 +41,7 @@ public class NoisyNAFCMStickPngAppConfig {
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		scene.setBackgroundColor(appConfig.xperBackgroundColor());
-//		scene.setFrameRate(xperMonkeyScreenFrameRate());
+		scene.setFrameRate(xperNoiseRate());
 		return scene;
 	}
 	
