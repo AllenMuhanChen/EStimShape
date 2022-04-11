@@ -1,11 +1,15 @@
 package org.xper.allen.drawing.composition;
 
+import java.util.Random;
+
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.lwjgl.opengl.GL11;
 import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.sampleFaceInfo;
+import org.xper.util.ThreadUtil;
 
 /**
  * AC Additions:
@@ -116,6 +120,11 @@ public class AllenTubeComp extends TubeComp{
 		}
 		// Fac Info is always fix 
 		// seems not need to copy the ringPT, cap_poleNS , we'll see later
+		setRingPt(in.getRingPt());
+		setCap_poleN(in.getCap_poleN());
+		setCap_poleS(in.getCap_poleS());
+		setRingSample(in.getRingSample());
+		setCapSample(in.getCapSample());
 	}
 
 	/**
@@ -132,7 +141,193 @@ public class AllenTubeComp extends TubeComp{
 				getRadInfo()[i][j] = 100.0;
 
 	}
+	
+	public void scaleTheRing(double scaleFactor) {
+		//AC
+		System.out.println("AC MAXSTEP: " + getMaxStep());
+		for(int i=1; i<=getMaxStep(); i++) {
+			for(int j=1; j<getRingSample(); j++) {
+				System.out.println("i: " + i + " j: " + j);
+				getRingPt()[i][j].x *= scaleFactor;
+				getRingPt()[i][j].y *= scaleFactor;
+				getRingPt()[i][j].z *= scaleFactor;
+			}
+		}
+		
+		for (int i=1 ; i<= getCapSample(); i++)
+		{
+			for (int j=1; j<= getRingSample(); j++)
+			{
+				getCap_poleN()[i][j].x *= scaleFactor;
+				getCap_poleN()[i][j].y *= scaleFactor;
+				getCap_poleN()[i][j].z *= scaleFactor;
+				
+				getCap_poleS()[i][j].x *= scaleFactor;
+				getCap_poleS()[i][j].y *= scaleFactor;
+				getCap_poleS()[i][j].z *= scaleFactor;
+			}
+			 
+		}
+	}
+	
+	public void drawSurfPt(float[] colorCode, double scaleFactor)
+	{
+		//use the oGL draw line function to draw out the mAxisArc
+		/*int ringSample = 20;
+		  int capSample = 10;		
+		  int maxStep = 51;*/
+		if (isScaleOnce()) {
+			scaleTheObj(scaleFactor);
+			setScaleOnce(false);
+		}
+//		if (isScaleOnce()) {
+//			scaleTheRing(scaleFactor);
+//			setScaleOnce(false);
+//		}
+		
+		
+		boolean useLight = false;
 
+		int i;
+		GL11.glColor3f(0.0f, 1.0f, 0.0f);		    
+		GL11.glPointSize(3.0f);	
+
+
+		// draw the surface triangle
+		if (useLight == false)
+		{
+			GL11.glDisable(GL11.GL_LIGHTING);
+			GL11.glColor3f( colorCode[0], colorCode[1], colorCode[2]);
+		}
+
+		boolean drawMAxis = false;
+
+		if (drawMAxis == true)
+		{
+			GL11.glLineWidth(5.0f);
+			//GL11.gllin
+			GL11.glBegin(GL11.GL_LINES);
+			//GL11.glBegin(GL11.GL_POINTS);
+			// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
+			for (i=1; i<=50; i++)
+			{
+				Point3d p1 = this.getmAxisInfo().getmPts()[i];
+				Point3d p2 = this.getmAxisInfo().getmPts()[i+1];
+				GL11.glVertex3d( p1.x, p1.y, p1.z);
+				GL11.glVertex3d(p2.x, p2.y, p2.z);
+			}
+			GL11.glEnd();
+			GL11.glEnable(GL11.GL_LIGHTING);
+			return;
+
+		}
+
+		GL11.glBegin(GL11.GL_TRIANGLES);
+		//	GL11.glBegin(GL11.GL_POINTS);
+		for (i=0; i< getnFac(); i++)
+		{
+			// 		System.out.println(i);
+			// 		System.out.println("fac Info " + facInfo[i][0] +" " + facInfo[i][1] +" " + facInfo[i][2]);
+
+			//AC TESTING
+			Random r = new Random();
+			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
+			Point3d p1 = getVect_info()[ getFacInfo()[i][0]];
+			Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
+			Point3d p3 = getVect_info()[ getFacInfo()[i][2]];
+			Vector3d v1 = getNormMat_info()[ getFacInfo()[i][0]];
+			Vector3d v2 = getNormMat_info()[ getFacInfo()[i][1]];
+			Vector3d v3 = getNormMat_info()[ getFacInfo()[i][2]];
+
+			GL11.glNormal3d( v1.x, v1.y, v1.z);
+			GL11.glVertex3d( p1.x, p1.y, p1.z);
+			GL11.glNormal3d( v2.x, v2.y, v2.z);
+			GL11.glVertex3d( p2.x, p2.y, p2.z);
+			GL11.glNormal3d( v3.x, v3.y, v3.z);
+			GL11.glVertex3d( p3.x, p3.y, p3.z);
+
+
+		}
+
+		GL11.glEnd();
+		if ( useLight == false)
+			GL11.glEnable(GL11.GL_LIGHTING);
+//		ThreadUtil.sleep(1000);
+
+//		int glMode = GL11.GL_POLYGON;
+//		Random r = new Random();
+////		GL11.glColor3f(0.0f, 1.0f, 0.0f);	
+//		for (i=1 ; i<= getMaxStep(); i++)
+//		{
+//			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
+//			GL11.glBegin(glMode);
+//			for (int j=1; j<= getRingSample(); j++)
+//			{
+//				Point3d nowPt = getRingPt()[i][j];
+//				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
+//
+//			}
+//			GL11.glEnd();  
+//		}
+//
+////		GL11.glColor3f(0.0f, 1.0f, 1.0f);		
+//		
+//		for (i=1 ; i<= getCapSample(); i++)
+//		{
+//			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
+//			GL11.glBegin(glMode);
+//			for (int j=1; j<= getRingSample(); j++)
+//			{
+//
+//				Point3d nowPt = getCap_poleN()[i][j];
+//				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
+//
+//			}
+//			GL11.glEnd();  
+//		}
+//
+////		GL11.glColor3f(0.0f, 0.0f, 1.0f);	
+//		
+//		for (i=1 ; i<= getCapSample(); i++)
+//		{
+//			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
+//			GL11.glBegin(glMode);
+//			for (int j=1; j<= getRingSample(); j++)
+//			{
+//
+//				Point3d nowPt = getCap_poleS()[i][j];
+//				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
+//
+//			}
+//			GL11.glEnd();  
+//		}
+
+//
+//		GL11.glPointSize(3.0f);	
+//		GL11.glBegin(GL11.GL_POINTS);
+//		for (i=1 ; i<= maxStep; i++)
+//			for (int j=1; j<= ringSample; j++)
+//			{
+//				Point3d nowPt = ringPt[i][j];
+//				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
+//			}  
+//
+//		for (i=1; i<=capSample; i++)
+//			for (int j=1; j<=ringSample; j++)
+//			{
+//				GL11.glColor3f(0.0f, 1.0f, 1.0f);
+//				Point3d nowPt = cap_poleN[i][j];
+//
+//				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
+//				GL11.glColor3f(0.0f, 0.0f, 1.0f);
+//				Point3d nowPt2 = cap_poleS[i][j];
+//				GL11.glVertex3d(nowPt2.getX(), nowPt2.getY(), nowPt2.getZ());
+//			}
+//
+//		GL11.glEnd();
+
+	}
+	
 	public AllenMAxisArc getmAxisInfo() {
 		return mAxisInfo;
 	}

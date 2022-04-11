@@ -333,6 +333,7 @@ public class MStickPngBlockGenTwo{
 			ids.add(matchId);
 			ids.addAll(distractorIds);
 			pngMaker.createAndSavePNGsfromObjs(objs, ids);
+			pngMaker.createAndSaveNoiseMapfromObjs(objs, ids);
 
 			for(int k=0; k<objs.size(); k++) {
 				AllenMStickSpec spec = new AllenMStickSpec();
