@@ -847,7 +847,7 @@ public class MatchStick implements Drawable {
 
 		//up to here, the eligible skeleton should be ready
 		// 3. Assign the radius value
-		RadiusAssign( 0); // no component to preserve radius
+		RadiusAssign(0); // no component to preserve radius
 		// 4. Apply the radius value onto each component
 		for (i=1; i<=getnComponent(); i++)
 		{

@@ -102,7 +102,7 @@ public class VertexInfo
             for (i=0; i<nFac; i++)
                 for (j=0; j<3; j++)
                 {
-                    dos3.writeInt( inObj.facInfo[i][j]);
+                    dos3.writeInt( inObj.getFacInfo()[i][j]);
                 }
             dos3.flush();
             fac_bArray = bos3.toByteArray();

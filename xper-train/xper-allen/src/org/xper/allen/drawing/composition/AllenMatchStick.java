@@ -52,10 +52,17 @@ public class AllenMatchStick extends MatchStick {
 
 	private int specialEnd=0;
 	private int specialEndComp=0;
+	
+	private double specialEndNoiseChance = 0.8;
+	private double defaultNoiseChance = 0.5;
 	public AllenMatchStick() {
 		setFinalRotation(this.finalRotation);
 	}
 
+	public AllenMatchStick(AllenMatchStick in) {
+		this.copyFrom(in);
+		setFinalRotation(this.finalRotation);
+	}
 	@Override
 	public void draw() {
 		init();
@@ -72,7 +79,32 @@ public class AllenMatchStick extends MatchStick {
 		}
 		drawSkeleton();
 	}
+	
+	public void drawNoiseMap() {
+		setTextureType("2D");
+		init();
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		drawNoiseMapSkeleton();
 
+	}
+
+	public void drawNoiseMapSkeleton() {
+		for(int i=1; i<=getnComponent(); i++) {
+			if(i==getSpecialEndComp()) {
+				float[] colorCode = {(float) specialEndNoiseChance,0.0f,0.0f};
+				getComp()[i].drawSurfPt(colorCode, getScaleForMAxisShape());
+			}
+			else {
+				float[] colorCode = {(float) defaultNoiseChance, 0.0f, 0.0f};
+				getComp()[i].drawSurfPt(colorCode,getScaleForMAxisShape());
+			}
+		}
+	}
+	
 	public void drawSkeleton() {
 		int i;
 		boolean showComponents = false;

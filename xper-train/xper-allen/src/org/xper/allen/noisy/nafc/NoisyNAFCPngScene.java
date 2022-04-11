@@ -81,7 +81,14 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		sampleDimensions = sampleSpec.getImageDimensions();
 //		System.out.println(images);
 		images.loadTexture(sampleSpec.getPath(), 0);
-		images.loadNoise(0);
+		
+		//TODO: MODIFY THIS
+		String noiseMapPath = sampleSpec.getPath();
+		noiseMapPath = noiseMapPath.replaceAll("\\.png", "_noisemap.png");
+		System.out.println("AC NOISEMAP PATH: " + noiseMapPath);
+		//
+		
+		images.loadNoise(noiseMapPath, 0);
 	}
 
 	@Override

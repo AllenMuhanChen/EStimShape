@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.SplittableRandom;
 
@@ -41,6 +42,8 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	private int currentNoiseIndx;
 	TimeUtil timeUtil = new DefaultTimeUtil();
 
+	private final static double RANGE = Byte.MAX_VALUE - Byte.MIN_VALUE;
+
 	public NoisyTranslatableResizableImages(int numNoiseFrames, int numImageTextures) {
 		super(numNoiseFrames);
 		this.numNoiseFrames = numNoiseFrames;
@@ -66,12 +69,78 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		}
 	}
 	/**
-	 * Load noise percentages from bitmap. 
+	 * Load noise percentages from png. 
 	 * @param pathname
 	 * @param textureIndex
 	 */
 	public void loadNoise(String pathname, int textureIndex) {
-		//TODO: 
+		try {
+			File imageFile = new File(pathname);
+			BufferedImage img = ImageIO.read(imageFile);
+			byte[] src = ((DataBufferByte)img.getRaster().getDataBuffer()).getData();
+
+			abgr2rgba(src);
+			List<Double> noiseMap = new ArrayList<Double>(src.length/4);
+
+			
+			for(int i=0x00000000; i<src.length; i+=0x00000004) {
+				double probability;
+				int red;
+				if(src[i]<0) {
+					red = (int)src[i]+256;
+					probability = (double)red/256.0;
+				} else {
+					red = (int)src[i];
+					probability = (double) red/256.0;
+				}
+				System.out.println("AC RED: " + red);
+				System.out.println("AC PROB: " + probability);
+				noiseMap.add(probability);
+			}
+			
+
+
+			for(int i=0; i<numNoiseFrames;i++) {
+				byte[] noise = generateNoise(textureIndex, noiseMap);
+				ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(noise.length).put(noise, 0x00000000, noise.length).flip();
+				GL11.glEnable(GL11.GL_TEXTURE_2D);
+				GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(numImageTextures+i));
+				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+				GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
+				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, getImgWidth().get(textureIndex), getImgHeight().get(textureIndex), 0,  GL11.GL_RGBA,  GL11.GL_BYTE, pixels);
+			}
+
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	private byte[] generateNoise(int textureIndex, List<Double> noiseMap) {
+		//		int width = getImgWidth().get(textureIndex);
+		//		int height = getImgHeight().get(textureIndex);
+		byte pixels[] = new byte[srcLength];
+
+		for(int i=0x00000000; i<pixels.length; i+=0x00000004) {
+			if(r.nextDouble()<noiseMap.get((int) Math.floor(i/4))) { //TODO: defer to map here.
+				byte newByte = (byte) r.nextInt(256);
+
+
+				//				System.out.println("AC99484893: " + newByte[0]);
+				pixels[i+0x00000000] = newByte;    //R
+				pixels[i+0x00000001] = newByte;    //G
+				pixels[i+0x00000002] = newByte;    //B
+				pixels[i+0x00000003] = Byte.MAX_VALUE;//A
+
+			}else { //set to all black, with zero alpha
+				pixels[i+0x00000000] = Byte.MIN_VALUE; //R
+				pixels[i+0x00000001] = Byte.MIN_VALUE; //G
+				pixels[i+0x00000002] = Byte.MIN_VALUE; //B
+				pixels[i+0x00000003] = Byte.MIN_VALUE; //A
+			}
+		}
+		return pixels;
 	}
 
 	public void draw(int noiseIndx, Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
@@ -291,9 +360,9 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 	public void cleanUpImage(){
 		GL11.glDeleteTextures(getTextureIds());
-//		for(int i=0; i<getTextureIds().capacity(); i++) {
-//			GL11.glDeleteTextures(getTextureIds().get(i));
-//		}
+		//		for(int i=0; i<getTextureIds().capacity(); i++) {
+		//			GL11.glDeleteTextures(getTextureIds().get(i));
+		//		}
 		//textureIds.clear(); //Technically not needed since IntBuffer.get(int) does not step buffer?
 	}
 
