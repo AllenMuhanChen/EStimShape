@@ -1,15 +1,12 @@
 package org.xper.allen.drawing.composition;
 
-import java.util.Random;
-
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.drawing.stick.MAxisArc;
+import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.sampleFaceInfo;
-import org.xper.util.ThreadUtil;
 
 /**
  * AC Additions:
@@ -170,7 +167,7 @@ public class AllenTubeComp extends TubeComp{
 		}
 	}
 	
-	public void drawSurfPt(float[] colorCode, double scaleFactor)
+	public void drawSurfPt(double scaleFactor, NoiseMapCalculation noiseMap)
 	{
 		//use the oGL draw line function to draw out the mAxisArc
 		/*int ringSample = 20;
@@ -197,7 +194,6 @@ public class AllenTubeComp extends TubeComp{
 		if (useLight == false)
 		{
 			GL11.glDisable(GL11.GL_LIGHTING);
-			GL11.glColor3f( colorCode[0], colorCode[1], colorCode[2]);
 		}
 
 		boolean drawMAxis = false;
@@ -221,7 +217,9 @@ public class AllenTubeComp extends TubeComp{
 			return;
 
 		}
-
+		
+	
+		
 		GL11.glBegin(GL11.GL_TRIANGLES);
 		//	GL11.glBegin(GL11.GL_POINTS);
 		for (i=0; i< getnFac(); i++)
@@ -230,11 +228,16 @@ public class AllenTubeComp extends TubeComp{
 			// 		System.out.println("fac Info " + facInfo[i][0] +" " + facInfo[i][1] +" " + facInfo[i][2]);
 
 			//AC TESTING
-			Random r = new Random();
-			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
+//			Random r = new Random();
+			
+			
+			
 			Point3d p1 = getVect_info()[ getFacInfo()[i][0]];
 			Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
 			Point3d p3 = getVect_info()[ getFacInfo()[i][2]];
+			Point3d[] triangleVertices = new Point3d[]{p1, p2, p3};
+			float noiseChance = noiseMap.calculateNoiseChanceForTriangle(triangleVertices);
+			GL11.glColor3f(noiseChance, 0.f, 0.f);
 			Vector3d v1 = getNormMat_info()[ getFacInfo()[i][0]];
 			Vector3d v2 = getNormMat_info()[ getFacInfo()[i][1]];
 			Vector3d v3 = getNormMat_info()[ getFacInfo()[i][2]];
