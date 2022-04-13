@@ -10,6 +10,7 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
+import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.Coordinates2D;
@@ -93,15 +94,9 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public void drawNoiseMapSkeleton() {
+		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, 0.8, new double[]{0.5, 0});
 		for(int i=1; i<=getnComponent(); i++) {
-			if(i==getSpecialEndComp()) {
-				float[] colorCode = {(float) specialEndNoiseChance,0.0f,0.0f};
-				getComp()[i].drawSurfPt(colorCode, getScaleForMAxisShape());
-			}
-			else {
-				float[] colorCode = {(float) defaultNoiseChance, 0.0f, 0.0f};
-				getComp()[i].drawSurfPt(colorCode,getScaleForMAxisShape());
-			}
+			getComp()[i].drawSurfPt(getScaleForMAxisShape(), noiseMap);
 		}
 	}
 	
