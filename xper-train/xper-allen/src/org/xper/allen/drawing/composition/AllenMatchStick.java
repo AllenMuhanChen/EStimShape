@@ -53,7 +53,7 @@ public class AllenMatchStick extends MatchStick {
 
 	private int specialEnd=0;
 	private int specialEndComp=0;
-	
+
 	private double specialEndNoiseChance = 0.8;
 	private double defaultNoiseChance = 0.5;
 	public AllenMatchStick() {
@@ -80,7 +80,7 @@ public class AllenMatchStick extends MatchStick {
 		}
 		drawSkeleton();
 	}
-	
+
 	public void drawNoiseMap() {
 		setTextureType("2D");
 		init();
@@ -94,12 +94,20 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public void drawNoiseMapSkeleton() {
-		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, 0.8, new double[]{0.5, 0});
-		for(int i=1; i<=getnComponent(); i++) {
-			getComp()[i].drawSurfPt(getScaleForMAxisShape(), noiseMap);
-		}
+		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, new double[]{0.5, 1}, new double[] {0.5, 0.8});
+//		for(int i=1; i<=getnComponent(); i++) {
+//			getComp()[i].setLabel(i);
+////			if(i==1)
+//			getComp()[i].drawSurfPt(getScaleForMAxisShape(), noiseMap);
+//		}
+		
+		getComp()[2].setLabel(2);
+		getComp()[2].drawSurfPt(getScaleForMAxisShape(), noiseMap);
+		
+		getComp()[1].setLabel(1);
+		getComp()[1].drawSurfPt(getScaleForMAxisShape(), noiseMap);
 	}
-	
+
 	public void drawSkeleton() {
 		int i;
 		boolean showComponents = false;
@@ -483,7 +491,9 @@ public class AllenMatchStick extends MatchStick {
 	}
 	 */
 
-
+	public Point3d[] constructUpSampledMpts(int numSamples) {
+		
+	}
 
 	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, QualitativeMorphParams mmp) {
 		int i = 0;
@@ -529,7 +539,7 @@ public class AllenMatchStick extends MatchStick {
 
 	protected boolean qualitativeMorphComponent(int id, QualitativeMorphParams qmp)
 	{
-		
+
 		if(qmp.removalFlag) {
 			boolean[] removeList = new boolean[getComp().length];
 			removeList[id] = true;
@@ -671,7 +681,7 @@ public class AllenMatchStick extends MatchStick {
 						if(getJuncPt()[i].getuNdx()[j] == 51 || getJuncPt()[i].getuNdx()[j] == 1) {
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							getJuncPt()[i].getuNdx()[baseJuncNdx] = newPosition;
-							
+
 							//We let the mAxis code know the new position through this qmp object
 							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[newPosition]));
 
@@ -807,7 +817,7 @@ public class AllenMatchStick extends MatchStick {
 						}
 						getJuncPt()[i].setPos(newPos);
 
-						
+
 						//update the tangent information
 						boolean secondFlg = false; // determine if the first or second tanget
 						for ( j = 1; j <= getJuncPt()[i].getnTangent(); j++)
@@ -976,7 +986,7 @@ public class AllenMatchStick extends MatchStick {
 							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
 						}
 					} else { //if junc is disabled, that means we automatically set the junc radius to be what it was in the new location
-//						nowRad =  getJuncPt()[i].getRad();
+						//						nowRad =  getJuncPt()[i].getRad();
 						double base_u_value = ((double)getJuncPt()[i].getuNdx()[getJuncPt()[i].getIndexOfComp(getBaseComp())]-1.0) / (51.0-1.0);
 						if ( Math.abs( base_u_value - 0.0) < 0.0001) {
 							nowRad = getComp()[getBaseComp()].getRadInfo()[0][1];
@@ -993,13 +1003,13 @@ public class AllenMatchStick extends MatchStick {
 						}
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
-//							nowRad = getComp()[getBaseComp()].getRadInfo()[2][1];
+							//							nowRad = getComp()[getBaseComp()].getRadInfo()[2][1];
 							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
 							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
 						}
 						else // middle u value
 						{
-//							nowRad = getComp()[getBaseComp()].getRadInfo()[1][1];
+							//							nowRad = getComp()[getBaseComp()].getRadInfo()[1][1];
 							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
 							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
 						}
@@ -2624,6 +2634,7 @@ Adding a new MAxisArc to a MatchStick
 					break;
 				if ( trialCount++ == 300)
 					return false;
+				trialCount++;
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);

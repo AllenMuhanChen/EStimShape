@@ -34,7 +34,7 @@ public class GaussSpec {
 		return g;
 	}
 
-
+	
 	public double getXCenter() {
 		return xCenter;
 	}

@@ -476,6 +476,51 @@ public class AllenMAxisArc extends MAxisArc {
 	}
 	
 	
+	public Point3d[] constructUpSampledMpts(int numSamples) {
+		int step;
+		double nowu, now_angle;
+		Point3d[] upSampledMpts = new Point3d[numSamples+1];
+		double[] upSampledLocalArcLen = new double[numSamples+1];
+		Vector3d[] upSampledMTangent = new Vector3d[numSamples+1];
+		setAngleExtend(getArcLen() / getRad());
+
+		System.out.println("I'm Called");
+		if ( getRad() >= 100000) //str8 line condition
+		{
+			for (step=1; step <=numSamples; step++)
+			{
+				nowu = ((double)step-1) / ((double)numSamples-1);
+
+				upSampledMpts[step]= new Point3d(0,0, nowu* getArcLen());
+				upSampledMTangent[step]= new Vector3d(0,0,1);
+				upSampledLocalArcLen[step] = getArcLen();      
+				System.out.println(upSampledMpts[step]);
+			}
+		}
+		else
+		{
+			for (step = 1 ; step <=numSamples; step++)
+			{
+				nowu = ((double)step-1) / ((double)numSamples-1);
+				now_angle = nowu * getAngleExtend() - 0.5 * getAngleExtend();
+				//	 System.out.println("step " + step+ " now u " + nowu + " angle " + now_angle);
+				//	 System.out.println(rad*Math.cos(now_angle));
+				//	 System.out.println(rad*Math.sin(now_angle));
+				//	 System.out.println(mAxis_pts.length);
+				upSampledMpts[step] = new Point3d(0, getRad() * Math.cos(now_angle), getRad()* Math.sin(now_angle));
+				upSampledMTangent[step] = new Vector3d(0, -getAngleExtend()*getRad()*Math.sin(now_angle), getAngleExtend()*getRad()*Math.cos(now_angle));
+				//System.out.println(mAxis_tangent[step]);
+				upSampledLocalArcLen[step] = upSampledMTangent[step].length();
+				upSampledMTangent[step].normalize();
+				//System.out.println(mAxis_tangent[step] + "  len:  " + mAxis_arcLen[step]);
+				System.out.println(upSampledMpts[step]);
+			}
+
+		}
+		
+		return upSampledMpts;
+	}
+	
 	public Vector3d getNormal() {
 		return normal;
 	}
