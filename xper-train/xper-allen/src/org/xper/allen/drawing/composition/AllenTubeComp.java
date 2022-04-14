@@ -1,5 +1,7 @@
 package org.xper.allen.drawing.composition;
 
+import java.util.Random;
+
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
@@ -196,27 +198,7 @@ public class AllenTubeComp extends TubeComp{
 			GL11.glDisable(GL11.GL_LIGHTING);
 		}
 
-		boolean drawMAxis = false;
 
-		if (drawMAxis == true)
-		{
-			GL11.glLineWidth(5.0f);
-			//GL11.gllin
-			GL11.glBegin(GL11.GL_LINES);
-			//GL11.glBegin(GL11.GL_POINTS);
-			// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
-			for (i=1; i<=50; i++)
-			{
-				Point3d p1 = this.getmAxisInfo().getmPts()[i];
-				Point3d p2 = this.getmAxisInfo().getmPts()[i+1];
-				GL11.glVertex3d( p1.x, p1.y, p1.z);
-				GL11.glVertex3d(p2.x, p2.y, p2.z);
-			}
-			GL11.glEnd();
-			GL11.glEnable(GL11.GL_LIGHTING);
-			return;
-
-		}
 		
 	
 		
@@ -231,13 +213,13 @@ public class AllenTubeComp extends TubeComp{
 //			Random r = new Random();
 			
 			
-			
 			Point3d p1 = getVect_info()[ getFacInfo()[i][0]];
 			Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
 			Point3d p3 = getVect_info()[ getFacInfo()[i][2]];
 			Point3d[] triangleVertices = new Point3d[]{p1, p2, p3};
-			float noiseChance = noiseMap.calculateNoiseChanceForTriangle(triangleVertices);
-			GL11.glColor3f(noiseChance, 0.f, 0.f);
+			float noiseChance = noiseMap.calculateNoiseChanceForTriangle(triangleVertices, this.getLabel(), scaleFactor);
+			GL11.glColor3f(noiseChance, 0.0f, 0.f);
+//			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
 			Vector3d v1 = getNormMat_info()[ getFacInfo()[i][0]];
 			Vector3d v2 = getNormMat_info()[ getFacInfo()[i][1]];
 			Vector3d v3 = getNormMat_info()[ getFacInfo()[i][2]];
@@ -248,13 +230,33 @@ public class AllenTubeComp extends TubeComp{
 			GL11.glVertex3d( p2.x, p2.y, p2.z);
 			GL11.glNormal3d( v3.x, v3.y, v3.z);
 			GL11.glVertex3d( p3.x, p3.y, p3.z);
-
-
 		}
 
 		GL11.glEnd();
 		if ( useLight == false)
 			GL11.glEnable(GL11.GL_LIGHTING);
+		
+//		boolean drawMAxis = true;
+//
+//		if (drawMAxis == true)
+//		{
+//			GL11.glLineWidth(5.0f);
+//			//GL11.gllin
+//			GL11.glBegin(GL11.GL_LINES);
+//			//GL11.glBegin(GL11.GL_POINTS);
+//			// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
+//			for (i=1; i<=50; i++)
+//			{
+//				Point3d p1 = this.getmAxisInfo().getmPts()[i];
+//				Point3d p2 = this.getmAxisInfo().getmPts()[i+1];
+//				GL11.glVertex3d( p1.x*scaleFactor, p1.y*scaleFactor, p1.z*scaleFactor);
+//				GL11.glVertex3d(p2.x*scaleFactor, p2.y*scaleFactor, p2.z*scaleFactor);
+//			}
+//			GL11.glEnd();
+//			GL11.glEnable(GL11.GL_LIGHTING);
+////			return;
+//
+//		}
 //		ThreadUtil.sleep(1000);
 
 //		int glMode = GL11.GL_POLYGON;
@@ -329,6 +331,17 @@ public class AllenTubeComp extends TubeComp{
 //
 //		GL11.glEnd();
 
+	}
+	
+	public void scaleTheObj(double scaleFactor)
+	{
+		int i;
+		for (i=1; i<=getnVect(); i++)
+		{
+			getVect_info()[i].x *= scaleFactor;
+			getVect_info()[i].y *= scaleFactor;
+			getVect_info()[i].z *= scaleFactor;
+		}
 	}
 	
 	public AllenMAxisArc getmAxisInfo() {

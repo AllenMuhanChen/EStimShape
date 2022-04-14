@@ -322,18 +322,22 @@ public class MStickPngBlockGenTwo{
 
 			//GENERATE PNGS
 			List<AllenMatchStick> objs = new LinkedList<AllenMatchStick>();
+			List<AllenMatchStick> objs_noise = new LinkedList<AllenMatchStick>();
 			//objs.add(objs_base.get(i));
-			objs.add(objs_sample.get(i));
+			objs.add(objs_sample.get(i)); 
+			objs_noise.add(objs_sample.get(i));
 			objs.add(objs_match.get(i));
 			objs.addAll(objs_distractor.get(i));
 
 			List<Long> ids = new LinkedList<Long>();
+			List<Long> ids_noise = new LinkedList<Long>();
 			//ids.add(sampleId-1);
 			ids.add(sampleId);
+			ids_noise.add(sampleId);
 			ids.add(matchId);
 			ids.addAll(distractorIds);
 			pngMaker.createAndSavePNGsfromObjs(objs, ids);
-			pngMaker.createAndSaveNoiseMapfromObjs(objs, ids);
+			pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise);
 
 			for(int k=0; k<objs.size(); k++) {
 				AllenMStickSpec spec = new AllenMStickSpec();
