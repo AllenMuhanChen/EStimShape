@@ -741,28 +741,29 @@ public class TubeComp
 	public void translateComp(Point3d finalPos)
 	{
 		int i;
+//		System.out.println("AC 9958494: Im translating Comp");
 		boolean showDebug = false;
 		if ( showDebug)
 			System.out.println("In translate components....");
 		// make this.mAxisInfo.transRotHis_finalPos to new finalPos
 		// 1. translate the mAxis arc related info
-		Point3d oriPt = new Point3d( this.getmAxisInfo().getTransRotHis_finalPos());
+		Point3d oriPt = new Point3d(getmAxisInfo().getTransRotHis_finalPos());
 		Vector3d transVec = new Vector3d();
 		transVec.sub(finalPos, oriPt);
 
-		this.getmAxisInfo().getTransRotHis_finalPos().set(finalPos);
+		getmAxisInfo().getTransRotHis_finalPos().set(finalPos);
 		for (i=1; i<= getMaxStep(); i++)
 		{
-			this.getmAxisInfo().getmPts()[i].add(transVec);
+			getmAxisInfo().getmPts()[i].add(transVec);
 		}
 
 		// 2. translate the vect info
 		// June 15th 2008, I suppose we can translate the vect_info directly, without taking care of the ringPt or PolePt info
 		for (i=1; i <= getnVect(); i++)
 		{
-			this.getVect_info()[i].add(transVec);
+			getVect_info()[i].add(transVec);
 		}
-		this.calcTubeRange(); // the AABB of the tube is changed
+		calcTubeRange(); // the AABB of the tube is changed
 	}
 
 	public void showRadiusInfo()

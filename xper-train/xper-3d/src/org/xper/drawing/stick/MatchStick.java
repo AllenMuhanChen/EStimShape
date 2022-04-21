@@ -43,7 +43,7 @@ public class MatchStick implements Drawable {
 	// the prob. of chg the final rot angle after a GA mutate
 	private double TangentSaveZone = Math.PI / 6.0;
 
-	protected int nowCenterTube;
+	private int nowCenterTube;
 
 	protected String textureType = "SHADE";
 	protected double contrast = 0.5;
@@ -173,6 +173,7 @@ public class MatchStick implements Drawable {
 	{
 		// i can't see how inSpec is changed by this function
 		//but it seems to be the case........
+		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos. 
 		cleanData();
 
 		// 1. general info
@@ -201,10 +202,12 @@ public class MatchStick implements Drawable {
 			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());
 			//System.out.println("branchPt " + comp[i].mAxisInfo.branchPt);
 
-			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt());
+			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt()); 
 			getComp()[i].getmAxisInfo().setTransRotHis_rotCenter(inSpec.getmAxis().getTube()[i].getTransRotHis_rotCenter());
-			getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
-			getComp()[i].getmAxisInfo().setTransRotHis_finalTangent(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
+			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().set(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
+			//getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
+			getComp()[i].getmAxisInfo().getTransRotHis_finalTangent().set(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
+			//getComp()[i].getmAxisInfo().setTransRotHis_finalTangent(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
 			getComp()[i].getmAxisInfo().setTransRotHis_devAngle(inSpec.getmAxis().getTube()[i].getTransRotHis_devAngle());
 
 		}
@@ -2335,7 +2338,7 @@ public class MatchStick implements Drawable {
 		}
 		Point3d origin = new Point3d(0.0, 0.0, 0.0);
 
-		this.nowCenterTube = compToCenter;
+		setNowCenterTube(compToCenter);
 		//Point3d nowComp1Center =   new Point3d(comp[compToCenter].mAxisInfo.mPts[comp[compToCenter].mAxisInfo.branchPt]);
 		// Dec 26th, change .branchPt to .MiddlePT (i.e. always at middle)
 		int midPtIndex = 26;
@@ -2352,8 +2355,8 @@ public class MatchStick implements Drawable {
 
 			for (i=1; i<= getnComponent(); i++)
 			{
-				finalPos.add( getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
-				this.getComp()[i].translateComp( finalPos);
+				finalPos.add(getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
+				getComp()[i].translateComp( finalPos);
 			}
 			//also, all JuncPt and EndPt
 			for (i=1; i<=getnJuncPt(); i++)
@@ -3762,7 +3765,7 @@ public class MatchStick implements Drawable {
 
 	public void switchToWantedCenterTube()
 	{
-		int toCenter = this.nowCenterTube+1;
+		int toCenter = this.getNowCenterTube()+1;
 		if (toCenter > this.getnComponent())
 			toCenter = 1;
 		System.out.println("new center tube: "+ toCenter);

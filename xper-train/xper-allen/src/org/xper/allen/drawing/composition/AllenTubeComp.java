@@ -1,11 +1,13 @@
 package org.xper.allen.drawing.composition;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.sampleFaceInfo;
@@ -58,7 +60,25 @@ public class AllenTubeComp extends TubeComp{
 		setFacInfo(sampleFaceInfo.getFacInfo());
 
 	}
-
+//
+//	public Point3d[] constructUpSampledMpts(int numSamples) {
+//
+//		AllenMAxisArc upSampledArc = new AllenMAxisArc(numSamples);
+//		upSampledArc.copyParamsForUpscale(getmAxisInfo());
+//		upSampledArc.genArc();
+////		System.out.println("AC ALIGNED PT: " + getTransRotHis_alignedPt());
+//		int alignedPt = upSampledArc.getTransRotHis_alignedPt();
+//		Point3d finalPos = getmPts()[alignedPt];
+//		int rotCenter = getTransRotHis_rotCenter();
+////		Vector3d finalTangent = getmTangent()[rotCenter];
+//		Vector3d finalTangent = upSampledArc.getTransRotHis_finalTangent();
+//		double devAngle = getTransRotHis_devAngle();
+//		
+//		upSampledArc.transRotMAxis(alignedPt, finalPos, rotCenter, finalTangent, devAngle);
+//		
+//		return upSampledArc.getmPts();
+//	}
+	
 	//TODO: Figure out what to do with this.
 	/**
 	 * calculates the normalized radInfo information based on current radInfo.
@@ -200,7 +220,40 @@ public class AllenTubeComp extends TubeComp{
 
 
 		
+		boolean drawMAxis = false;
+
+		if (drawMAxis == true)
+		{
+			GL11.glLineWidth(5.0f);
+			//GL11.gllin
+			GL11.glBegin(GL11.GL_LINES);
+			//GL11.glBegin(GL11.GL_POINTS);
+			// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
+			Point3d[] upSampledMAxis = getmAxisInfo().constructUpSampledMpts(255);
+			for (i=1; i<=254; i++)
+			{
+				Point3d p1 = upSampledMAxis[i];
+				Point3d p2 = upSampledMAxis[i+1];
+				GL11.glVertex3d( p1.x*scaleFactor, p1.y*scaleFactor, 0);
+				GL11.glVertex3d(p2.x*scaleFactor, p2.y*scaleFactor, 0);
+			}
+//			GL11.glColor3f(0.f,0.f, 1.f);
+//			for (i=1; i<=50; i++)
+//			{
+//				Point3d p1 = getmAxisInfo().getmPts()[i];
+//				Point3d p2 = getmAxisInfo().getmPts()[i+1];
+//				GL11.glVertex3d( p1.x*scaleFactor, p1.y*scaleFactor, p1.z*scaleFactor);
+//				GL11.glVertex3d(p2.x*scaleFactor, p2.y*scaleFactor, p2.z*scaleFactor);
+//			}
+			GL11.glEnd();
+			GL11.glEnable(GL11.GL_LIGHTING);
+			return;
+
+		}
 	
+		
+
+		
 		
 		GL11.glBegin(GL11.GL_TRIANGLES);
 		//	GL11.glBegin(GL11.GL_POINTS);
@@ -217,7 +270,7 @@ public class AllenTubeComp extends TubeComp{
 			Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
 			Point3d p3 = getVect_info()[ getFacInfo()[i][2]];
 			Point3d[] triangleVertices = new Point3d[]{p1, p2, p3};
-			float noiseChance = noiseMap.calculateNoiseChanceForTriangle(triangleVertices, this.getLabel(), scaleFactor);
+			float noiseChance = noiseMap.calculateNoiseChanceForTriangle(triangleVertices, getLabel(), scaleFactor);
 			GL11.glColor3f(noiseChance, 0.0f, 0.f);
 //			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
 			Vector3d v1 = getNormMat_info()[ getFacInfo()[i][0]];
@@ -235,28 +288,9 @@ public class AllenTubeComp extends TubeComp{
 		GL11.glEnd();
 		if ( useLight == false)
 			GL11.glEnable(GL11.GL_LIGHTING);
+
 		
-//		boolean drawMAxis = true;
-//
-//		if (drawMAxis == true)
-//		{
-//			GL11.glLineWidth(5.0f);
-//			//GL11.gllin
-//			GL11.glBegin(GL11.GL_LINES);
-//			//GL11.glBegin(GL11.GL_POINTS);
-//			// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
-//			for (i=1; i<=50; i++)
-//			{
-//				Point3d p1 = this.getmAxisInfo().getmPts()[i];
-//				Point3d p2 = this.getmAxisInfo().getmPts()[i+1];
-//				GL11.glVertex3d( p1.x*scaleFactor, p1.y*scaleFactor, p1.z*scaleFactor);
-//				GL11.glVertex3d(p2.x*scaleFactor, p2.y*scaleFactor, p2.z*scaleFactor);
-//			}
-//			GL11.glEnd();
-//			GL11.glEnable(GL11.GL_LIGHTING);
-////			return;
-//
-//		}
+
 //		ThreadUtil.sleep(1000);
 
 //		int glMode = GL11.GL_POLYGON;

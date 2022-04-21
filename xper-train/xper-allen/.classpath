@@ -40,17 +40,18 @@
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lwjgl-debug.jar"/>
 	<classpathentry kind="lib" path="/xper-3d/lib/lwjgl/lwjgl.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/lwjgl/lzma.jar"/>
-	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2.jar"/>
-	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/IntanUtilFiles/jssc-2.9.2-javadoc.jar"/>
-	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
 	<classpathentry kind="lib" path="/xper-3d/lib/jzy3d-api-0.9.1.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper-3d">
 		<attributes>
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="xper-3d/lib/lwjgl/linux"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper-3d/lib/java3d/j3dcore.jar"/>
-	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper-3d/lib/java3d/j3dutils.jar"/>
-	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper-3d/lib/java3d/vecmath.jar"/>
+	<classpathentry kind="lib" path="lib/quickhull3d.jar"/>
+	<classpathentry kind="lib" path="lib/jssc-2.9.2.jar"/>
+	<classpathentry kind="lib" path="lib/jssc-2.9.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="/xper-3d/lib/java3d/j3dcore.jar"/>
+	<classpathentry kind="lib" path="/xper-3d/lib/java3d/j3dutils.jar"/>
+	<classpathentry kind="lib" path="/xper-3d/lib/java3d/vecmath.jar"/>
+	<classpathentry kind="lib" path="/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>

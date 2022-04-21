@@ -19,6 +19,9 @@
 		<fileset dir="${3d.home}/lib">
 			<include name="**/*.jar" />
 		</fileset>
+		<fileset dir="${basedir}/../xper-allen/lib">
+			<include name="**/*.jar" />
+		</fileset>
 		<fileset file="${dist.home}/xper.jar" />
 		<fileset file="${dist.home}/3d/xper_3d.jar" />
 	</path>
