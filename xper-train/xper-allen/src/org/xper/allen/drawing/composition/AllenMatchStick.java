@@ -9,8 +9,10 @@ import java.util.List;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
+import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.Coordinates2D;
@@ -44,7 +46,7 @@ public class AllenMatchStick extends MatchStick {
 	protected final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
 	// 50% add to end, 50%
 	// add to junc
-	protected final double PROB_addTiptoBranch = 0.5; 	// when "add new component to the branch is true"
+	protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
 	protected final double[] finalRotation = new double[3];
 	private double minScaleForMAxisShape;
 
@@ -94,18 +96,56 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public void drawNoiseMapSkeleton() {
-		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, new double[]{0.5, 1}, new double[] {0.5, 0.8});
-//		for(int i=1; i<=getnComponent(); i++) {
-//			getComp()[i].setLabel(i);
-////			if(i==1)
-//			getComp()[i].drawSurfPt(getScaleForMAxisShape(), noiseMap);
-//		}
-		
+		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, new double[]{0.5, 1}, new double[] {1.05, 1.4});
+		//		for(int i=1; i<=getnComponent(); i++) {
+		//			getComp()[i].setLabel(i);
+		////			if(i==1)
+		//			getComp()[i].drawSurfPt(getScaleForMAxisShape(), noiseMap);
+		//		}
+
 		getComp()[2].setLabel(2);
 		getComp()[2].drawSurfPt(getScaleForMAxisShape(), noiseMap);
-		
+
 		getComp()[1].setLabel(1);
 		getComp()[1].drawSurfPt(getScaleForMAxisShape(), noiseMap);
+
+		boolean drawHull = false;
+		if(drawHull) {
+			drawHull(noiseMap, getScaleForMAxisShape());
+		}
+	}
+
+	private void drawHull(NoiseMapCalculation noiseMap, double scaleFactor) {
+		GL11.glDisable(GL11.GL_DEPTH_TEST);
+		GL11.glLineWidth(2.0f);
+		//GL11.gllin
+		GL11.glColor3f(0.0f, 1.0f, 1.0f);
+		GL11.glBegin(GL11.GL_LINES);
+		//GL11.glBegin(GL11.GL_POINTS);
+		// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
+		ArrayList<Point> hullPoints = noiseMap.hull;
+
+//		GL11.glPolygonOffset(1, 1);
+		for (int i=0; i<=hullPoints.size()-2; i++)
+		{
+			Point p1 = hullPoints.get(i);
+			Point p2 = hullPoints.get(i+1);
+			GL11.glVertex3d( p1.getX()*scaleFactor, p1.getY()*scaleFactor, 0);
+			GL11.glVertex3d(p2.getX()*scaleFactor, p2.getY()*scaleFactor, 0);
+		}
+		//			GL11.glColor3f(0.f,0.f, 1.f);
+		//			for (i=1; i<=50; i++)
+		//			{
+		//				Point3d p1 = getmAxisInfo().getmPts()[i];
+		//				Point3d p2 = getmAxisInfo().getmPts()[i+1];
+		//				GL11.glVertex3d( p1.x*scaleFactor, p1.y*scaleFactor, p1.z*scaleFactor);
+		//				GL11.glVertex3d(p2.x*scaleFactor, p2.y*scaleFactor, p2.z*scaleFactor);
+		//			}
+		GL11.glEnd();
+		GL11.glEnable(GL11.GL_LIGHTING);
+		return;
+
+
 	}
 
 	public void drawSkeleton() {
@@ -151,7 +191,7 @@ public class AllenMatchStick extends MatchStick {
 		if (compToCenter == -1) // no preference
 			compToCenter = findBestTubeToCenter();
 
-		this.nowCenterTube = compToCenter;
+		this.setNowCenterTube(compToCenter);
 		// Point3d nowComp1Center = new
 		// Point3d(comp[compToCenter].mAxisInfo.mPts[comp[compToCenter].mAxisInfo.branchPt]);
 		// Dec 26th, change .branchPt to .MiddlePT (i.e. always at middle)
@@ -491,9 +531,6 @@ public class AllenMatchStick extends MatchStick {
 	}
 	 */
 
-	public Point3d[] constructUpSampledMpts(int numSamples) {
-		
-	}
 
 	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, QualitativeMorphParams mmp) {
 		int i = 0;
@@ -1855,6 +1892,14 @@ public class AllenMatchStick extends MatchStick {
 			setnJuncPt(0);
 			setnEndPt(2);
 
+			//ROTATION INFORMATION
+			AllenMAxisArc specialMAxis = getComp()[getSpecialEndComp()].getmAxisInfo();
+			//			specialMAxis.setTransRotHis_alignedPt(getComp());
+			//			getComp()[1].getmAxisInfo().setTransRotHis_alignedPt(nseUNdx);
+			//			getComp()[1].getmAxisInfo().setTransRotHis_finalPos(getComp()[1].getmAxisInfo().getmPts()[nseUNdx]);
+			//			getComp()[1].getmAxisInfo().setTransRotHis_rotCenter(nseUNdx);
+			//			getComp()[1].getmAxisInfo().setTransRotHis_finalTangent(getComp()[1].getmAxisInfo().getmTangent()[nseUNdx]);
+			//			getComp()[1].getmAxisInfo().setTransRotHis_devAngle(transRotHis_devAngle);
 
 			////////////////////////////////////////////
 			//ADD THE SECOND LIMB- FOLLOWS SPECIAL RULES
@@ -2555,10 +2600,10 @@ public class AllenMatchStick extends MatchStick {
 		finalTangent = stickMath_lib.randomUnitVec();
 		// System.out.println("random final tangent is : " + finalTangent);
 		double devAngle = stickMath_lib.randDouble(0.0, Math.PI * 2);
-		int alignedPt = 26; // make it always the center of the mAxis curve
+		int alignedPt = 26;// make it always the center of the mAxis curve
 		AllenMAxisArc nowArc = new AllenMAxisArc();
 		nowArc.genArcRand();
-		nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
+		nowArc.transRotMAxis(alignedPt, finalPos, 1, finalTangent, devAngle);
 
 		getComp()[1].initSet( nowArc, false, 0); // the MAxisInfo, and the branchUsed
 		//update the endPt and JuncPt information
@@ -2981,6 +3026,8 @@ Adding a new MAxisArc to a MatchStick
 		for (i=1; i<=getnComponent(); i++)
 			LeafBranch[i] = in.LeafBranch[i];
 	}
+
+
 
 	public AllenTubeComp[] getComp() {
 		return comp;

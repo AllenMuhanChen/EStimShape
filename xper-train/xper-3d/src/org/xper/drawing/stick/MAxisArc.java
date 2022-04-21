@@ -23,9 +23,9 @@ public class MAxisArc
 	private double angleExtend;
      
      private int branchPt;
-     private Point3d[] mPts= new Point3d[getMaxStep()+1];
-     private Vector3d[] mTangent= new Vector3d[getMaxStep()+1];
-     private double[] localArcLen = new double[getMaxStep()+1];
+     private Point3d[] mPts= new Point3d[MaxStep+1];
+     private Vector3d[] mTangent= new Vector3d[MaxStep+1];
+     private double[] localArcLen = new double[MaxStep+1];
 
      private int transRotHis_alignedPt;
 
@@ -44,6 +44,7 @@ public class MAxisArc
 		       mTangent[i] = new Vector3d();
 		 }
  	}
+     
 
      
 	public void copyFrom( MAxisArc in) {
