@@ -1,6 +1,5 @@
 package org.xper.allen.noisy.nafc;
 
-import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.drawing.png.ImageDimensions;
@@ -8,6 +7,7 @@ import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
+import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.allen.specs.PngSpec;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
@@ -47,24 +47,14 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		
 		super.setUseStencil(true);
 		super.initGL(w, h);
-		//System.out.println("JK 32838 w = " + screenWidth + ", h = " + screenHeight);
 		
 		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);
-		//The below is unncessary stuff that gets overidden later
-//		GL11.glViewport(0,0,w,h);
-//        GL11.glMatrixMode(GL11.GL_PROJECTION);
-//        GL11.glLoadIdentity();
-//		
-//        GL11.glOrtho(0, w, h, 0, 1, -1);
-//        GL11.glMatrixMode(GL11.GL_MODELVIEW);
 		
 	}
 
 	public void trialStart(NAFCTrialContext context) {
-//		System.out.println("AC 23948902342: " + frameRate);
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
-		System.out.println("AC FRAMERATE: " + frameRate);
 		long duration = context.getSampleLength()+100; //100 ms buffer
 		double durationSeconds = duration/1000.0;
 		int numFrames = (int) Math.ceil((durationSeconds*frameRate));
@@ -76,16 +66,16 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	
 	@Override
 	public void setSample(NAFCExperimentTask task) {
-		PngSpec sampleSpec = PngSpec.fromXml(task.getSampleSpec());
+		NoisyPngSpec sampleSpec = NoisyPngSpec.fromXml(task.getSampleSpec());
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
 		sampleDimensions = sampleSpec.getImageDimensions();
 //		System.out.println(images);
 		images.loadTexture(sampleSpec.getPath(), 0);
 		
 		//TODO: MODIFY THIS
-		String noiseMapPath = sampleSpec.getPath();
-		noiseMapPath = noiseMapPath.replaceAll("\\.png", "_noisemap.png");
-		System.out.println("AC NOISEMAP PATH: " + noiseMapPath);
+		String noiseMapPath = sampleSpec.getNoiseMapPath();
+//		noiseMapPath = noiseMapPath.replaceAll("\\.png", "_noisemap.png");
+//		System.out.println("AC NOISEMAP PATH: " + noiseMapPath);
 		//
 		
 		images.loadNoise(noiseMapPath, 0);

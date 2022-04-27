@@ -6,6 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.jzy3d.plot3d.rendering.image.GLImage;
@@ -14,7 +16,6 @@ import org.xper.Dependency;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.util.DPIUtil;
-import org.xper.drawing.stick.MatchStick;
 import org.xper.utils.RGBColor;
 
 public class AllenPNGMaker{
@@ -53,7 +54,7 @@ public class AllenPNGMaker{
 	
 	public AllenPNGMaker() {}
 
-	public void createAndSavePNGsfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds) {
+	public List<String> createAndSavePNGsfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds, List<List<String>> labels) {
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
 		testWindow.setPngMaker(this);
@@ -63,10 +64,51 @@ public class AllenPNGMaker{
 		testWindow.setStimObjs(objs);
 		testWindow.setStimObjIds(stimObjIds);
 		
-		testWindow.drawStimuli();				// draw object
+		List<String> paths = testWindow.drawStimuli(labels);				// draw object
 		testWindow.close();
 		System.out.println("...done saving PNGs");
+		return paths;
+	
 	}
+	
+	public List<String> createAndSavePNGsfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds) {
+		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
+		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
+		testWindow.setPngMaker(this);
+		testWindow.setImageFolderName(generatorImageFolderName);
+		System.out.println("creating and saving PNGs...");
+
+		testWindow.setStimObjs(objs);
+		testWindow.setStimObjIds(stimObjIds);
+		
+		List<String> paths = testWindow.drawStimuli();				// draw object
+		testWindow.close();
+		System.out.println("...done saving PNGs");
+		return paths;
+	
+	}
+	public List<String> createAndSaveNoiseMapfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds, List<List<String>> additionalLabels) {
+		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
+		testWindow.setBackgroundColor(1.0f, 0,0);
+		testWindow.setPngMaker(this);
+		testWindow.setImageFolderName(generatorImageFolderName);
+		System.out.println("creating and Noise Map saving PNGs...");
+
+		testWindow.setStimObjs(objs);
+		testWindow.setStimObjIds(stimObjIds);
+		
+		for(List<String> labels : additionalLabels) {
+			List<String> newLabels = new ArrayList<>(labels);
+			newLabels.add(0, "noisemap");
+			additionalLabels.set(additionalLabels.indexOf(labels),newLabels);
+		}
+		
+		List<String> paths = testWindow.drawNoiseMaps(additionalLabels);				// draw object
+		testWindow.close();
+		System.out.println("...done saving PNGs");
+		return paths;
+	}
+	
 	
 	public void createAndSaveNoiseMapfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds) {
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
@@ -78,42 +120,55 @@ public class AllenPNGMaker{
 		testWindow.setStimObjs(objs);
 		testWindow.setStimObjIds(stimObjIds);
 		
+		LinkedList<String> labels = new LinkedList<>();
+		labels.add("noisemap");
 		testWindow.drawNoiseMaps();				// draw object
 		testWindow.close();
 		System.out.println("...done saving PNGs");
 	}
 	
-	public void saveImage(long stimObjId, int height, int width,String imageFolderName) {
+	public String saveImage(long stimObjId, int height, int width,String imageFolderName) {
 		byte[] data = screenShotBinary(width,height);  
 
+		String path = imageFolderName + "/" + stimObjId + ".png";
 		try {
 			// new File(imageFolderName + "/" + stimObjId).mkdirs();
-			FileOutputStream fos = new FileOutputStream(imageFolderName + "/" + stimObjId + ".png");
-		    fos.write(data);
-		    fos.close();
-		} 
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void saveImage(long stimObjId, List<String> labels, int height, int width,String imageFolderName) {
-		byte[] data = screenShotBinary(width,height);  
-
-		try {
-			// new File(imageFolderName + "/" + stimObjId).mkdirs();
-			String path = imageFolderName + "/" + stimObjId;
-			for (String str:labels) {
-				path=path+"_"+str;
-			}
-			path=path+".png";
+			
 			FileOutputStream fos = new FileOutputStream(path);
 		    fos.write(data);
 		    fos.close();
+		    return path;
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
+			return "Error: No Path";
 		}
+		
+		
+	}
+	
+	public String saveImage(long stimObjId, List<String> labels, int height, int width,String imageFolderName) {
+		byte[] data = screenShotBinary(width,height);  
+
+		String path = imageFolderName + "/" + stimObjId;
+		for (String str:labels) {
+			path=path+"_"+str;
+		}
+		path=path+".png";
+		
+		try {
+			// new File(imageFolderName + "/" + stimObjId).mkdirs();
+			FileOutputStream fos = new FileOutputStream(path);
+		    fos.write(data);
+		    fos.close();
+		    
+		    return path;
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			return "Error: No Path";
+		}
+		
 	}
 
 	private byte[] screenShotBinaryRGB(int width, int height) 
