@@ -9,8 +9,6 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
-import javax.vecmath.Vector3d;
-
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
@@ -22,6 +20,7 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphPara
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
+import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
@@ -240,7 +239,8 @@ public class MStickPngBlockGenTwo{
 						nTries_match++;
 					}
 				}
-
+				
+				//DISTRACTORS: QUALITATIVE MORPHS
 				boolean qmDistractorsSuccess = false;
 				if(matchSuccess) {
 					System.out.println("Trying to Generate QM Distractors");
@@ -284,8 +284,6 @@ public class MStickPngBlockGenTwo{
 
 			}
 
-
-
 			//GENERATING RAND DISTRACTORS
 			System.out.println("Trying to Generate Rand Distractor");
 			boolean randDistractorsSuccess = false;
@@ -323,22 +321,42 @@ public class MStickPngBlockGenTwo{
 			//GENERATE PNGS
 			List<AllenMatchStick> objs = new LinkedList<AllenMatchStick>();
 			List<AllenMatchStick> objs_noise = new LinkedList<AllenMatchStick>();
-			//objs.add(objs_base.get(i));
+			List<List<String>> labels = new LinkedList<>();
+			List<List<String>> noiseLabels = new LinkedList<>();
+			//SAMPLE
 			objs.add(objs_sample.get(i)); 
 			objs_noise.add(objs_sample.get(i));
+			List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
+			labels.add(sampleLabels);
+			noiseLabels.add(sampleLabels);
+			//MATCH
 			objs.add(objs_match.get(i));
+			List<String> matchLabels = Arrays.asList(new String[] {"match"});
+			labels.add(matchLabels);
+			//DISTRACTORS
 			objs.addAll(objs_distractor.get(i));
-
+			for(int k=0; k<numQMDistractors; k++) {
+				List<String> distractorLabels = Arrays.asList(new String[] {"distractor", "qualitativeMorph"});
+				labels.add(distractorLabels);
+			}
+			for(int k=0; k<numRandDistractors; k++) {
+				List<String> distractorLabels = Arrays.asList(new String[] {"distractor", "rand"});
+				labels.add(distractorLabels);
+			}
+			
+			
+			//TODO: Include what kind of distractor in filename?
+			
+			
 			List<Long> ids = new LinkedList<Long>();
 			List<Long> ids_noise = new LinkedList<Long>();
-			//ids.add(sampleId-1);
 			ids.add(sampleId);
 			ids_noise.add(sampleId);
 			ids.add(matchId);
 			ids.addAll(distractorIds);
-			pngMaker.createAndSavePNGsfromObjs(objs, ids);
-			pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise);
-
+			List<String> stimPaths = pngMaker.createAndSavePNGsfromObjs(objs, ids, labels);
+			List<String> noiseMapPaths = pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise, noiseLabels);
+			
 			for(int k=0; k<objs.size(); k++) {
 				AllenMStickSpec spec = new AllenMStickSpec();
 				spec.setMStickInfo(objs.get(k));
@@ -354,8 +372,10 @@ public class MStickPngBlockGenTwo{
 
 			//SAMPLE
 			long taskId = sampleId;
-			PngSpec sampleSpec = new PngSpec();
-			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
+			NoisyPngSpec sampleSpec = new NoisyPngSpec();
+//			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
+			sampleSpec.setPath(stimPaths.get(0));
+			sampleSpec.setNoiseMapPath(noiseMapPaths.get(0));
 			sampleSpec.setxCenter(sampleCoords.getX());
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -366,8 +386,9 @@ public class MStickPngBlockGenTwo{
 			long[] choiceIds = new long[numChoices];
 
 			//MATCH
-			PngSpec matchSpec = new PngSpec();
-			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
+			NoisyPngSpec matchSpec = new NoisyPngSpec();
+//			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
+			matchSpec.setPath(stimPaths.get(1));
 			matchSpec.setxCenter(matchCoords.getX());
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -376,10 +397,11 @@ public class MStickPngBlockGenTwo{
 			choiceIds[0] = matchId;
 
 			//DISTRACTORS
-			List<PngSpec> distractorSpec = new ArrayList<PngSpec>();
+			List<NoisyPngSpec> distractorSpec = new ArrayList<NoisyPngSpec>();
 			for(int j=0; j<numChoices-1; j++){
-				distractorSpec.add(j, new PngSpec());
-				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
+				distractorSpec.add(j, new NoisyPngSpec());
+//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
+				distractorSpec.get(j).setPath(stimPaths.get(j+2));
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);

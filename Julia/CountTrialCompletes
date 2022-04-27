@@ -1,0 +1,51 @@
+using Pkg
+Pkg.add("MySQL")
+Pkg.add("DBInterface")
+Pkg.add("EzXML")
+Pkg.add("XMLDict")
+Pkg.add("DataFrames")
+Pkg.add("TimesDates")
+Pkg.add("Dates")
+Pkg.add("DataFramesMeta")
+
+using MySQL
+using DBInterface
+using EzXML
+using XMLDict
+using DataFrames
+using DataFramesMeta
+using TimesDates
+using Dates
+
+
+include("./DBUtil.jl")
+
+datetime2epoch(x::DateTime) = (Dates.value(x) - Dates.UNIXEPOCH)*1_000
+
+"""
+Counts the number of trial completes on specified date in specified database schema. If no database schema is provided, default is DBUtil.defaultSchema
+"""
+function countTrialCompletes(Date, schema::String)
+    dayInMicros = datetime2epoch(DateTime(Date))
+    nextDayInMicros = dayInMicros+24*60*60*1_000_000
+    global conn = DbUtil.connect(schema)
+   
+    behMsg = DbUtil.getBehMsg((dayInMicros,nextDayInMicros));
+
+    trialCompletes = @subset(behMsg, :type .== "TrialComplete")
+   return nrow(trialCompletes)
+end 
+
+"""
+Counts the number of trial completes today within DBUtil.defaultSchema
+"""
+function countTrialCompletes()
+    return countTrialCompletes(DateTime(Dates.today()))
+end 
+
+
+
+#countTrialCompletes(Date(Dates.Year(2022), Dates.Month(4), Dates.Day(5)))
+numRows = countTrialCompletes(Date(2022, 4, 5))
+#numRows = countTrialCompletes(Date(2022, 4, 1), "allen_estimshape_train_220328")
+println(numRows)

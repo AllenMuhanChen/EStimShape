@@ -462,5 +462,4 @@ public class NoiseMapCalculation {
 		return normalizedPosition;
 
 	}
-
 }

@@ -54,6 +54,34 @@ public class AllenDbUtil extends DbUtil {
 	//AC
 	
 	
+	/**
+	 * Write StimSpec.
+	 * 
+	 * @param id
+	 * @param spec
+	 * @param thumbnail
+	 */
+
+	public void writeStimSpec(long id, String spec, String data) {
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.update("insert into StimSpec (id, spec, data) values (?, ?, ?)", 
+				new Object[] { id, spec, data });
+	}
+	
+	/**
+	 * Update existing StimSpec row with data
+	 * 
+	 * @param id
+	 * @param spec
+	 * @param thumbnail
+	 */
+
+	public void updateStimSpecData(long id, String data) {
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.update("UPDATE StimSpec SET data=? WHERE id=?", 
+				new Object[] { data, id});
+	}
+	
 	
 	public DataSource getDataSource() {
 		return dataSource;

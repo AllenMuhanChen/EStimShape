@@ -112,7 +112,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 			}
 
 		}catch(Exception e) {
-			e.printStackTrace();
+			System.out.println("No NoiseMap found. Will present stimulus without noise");
 		}
 
 	}
