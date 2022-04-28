@@ -1,4 +1,4 @@
-package org.xper.allen.app.nafc.noisy;
+package org.xper.allen.app.nafc.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
@@ -8,8 +8,8 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
-import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
+import org.xper.allen.nafc.blockgen.NoisyMStickPngBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -59,6 +59,22 @@ public class NoisyNAFCMStickPngAppConfig {
 		renderer.setWidth(classicConfig.xperMonkeyScreenWidth());
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
+	}
+	
+	@Bean
+	public NoisyMStickPngBlockGen generator() {
+		NoisyMStickPngBlockGen gen = new NoisyMStickPngBlockGen();
+		gen.setDbUtil(config.allenDbUtil());
+		gen.setGlobalTimeUtil(acqConfig.timeClient());
+		gen.setXmlUtil(config.allenXMLUtil());
+		gen.setGeneratorPngPath(appConfig.generatorPngPath);
+		gen.setExperimentPngPath(appConfig.experimentPngPath);
+		gen.setGeneratorSpecPath(appConfig.generatorSpecPath);
+		gen.setPngMaker(appConfig.pngMaker());
+		gen.setMaxImageDimensionDegrees(appConfig.xperMaxImageDimensionDegrees());
+		gen.setMmpGenerator(appConfig.mmpGenerator());
+		gen.setQmpGenerator(appConfig.qmpGenerator());
+		return gen;
 	}
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)

@@ -4,7 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.config.java.annotation.Bean;
 import org.springframework.config.java.annotation.Configuration;
 import org.springframework.config.java.annotation.ExternalValue;
@@ -13,31 +12,21 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
-import org.springframework.context.annotation.Scope;
-import org.xper.alden.drawing.renderer.AbstractRenderer;
-import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.config.NAFCConfig;
-import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
-import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.eye.headfree.HeadFreeEyeMonitorController;
 import org.xper.allen.eye.headfree.HeadFreeEyeZeroAdjustable;
 import org.xper.allen.eye.headfree.HeadFreeEyeZeroAlgorithm;
 import org.xper.allen.eye.headfree.HeadFreeIscanDevice;
 import org.xper.allen.nafc.NAFCPngScene;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngBlockGen;
-import org.xper.allen.nafc.eye.FreeHeadNAFCEyeMonitorController;
-import org.xper.allen.nafc.eye.LaggingMovingAverageEyeZeroAlgorithm;
+import org.xper.allen.nafc.blockgen.MStickPngBlockGen;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
-import org.xper.eye.IscanDevice;
-import org.xper.eye.zero.EyeZeroAdjustable;
-import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
 import org.xper.utils.RGBColor;
 
 
@@ -89,8 +78,8 @@ public class NAFCMStickPngAppConfig {
 	}
 
 	@Bean
-	public NoisyMStickPngBlockGen generator() {
-		NoisyMStickPngBlockGen gen = new NoisyMStickPngBlockGen();
+	public MStickPngBlockGen generator() {
+		MStickPngBlockGen gen = new MStickPngBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
