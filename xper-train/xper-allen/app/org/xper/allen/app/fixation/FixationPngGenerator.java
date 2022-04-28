@@ -1,7 +1,6 @@
 package org.xper.allen.app.fixation;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.PngBlockGenOne;
 import org.xper.util.FileUtil;
 
 public class FixationPngGenerator {

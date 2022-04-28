@@ -11,10 +11,12 @@ import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
-import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
+import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
+import org.xper.allen.nafc.vo.NoiseData;
+import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -56,8 +58,9 @@ public class AllenMatchStick extends MatchStick {
 	private int specialEnd=0;
 	private int specialEndComp=0;
 
-	private double specialEndNoiseChance = 0.8;
-	private double defaultNoiseChance = 0.5;
+	private NoiseType noiseType;
+	private double[] noiseChanceBounds;
+	private double[] noiseNormalizedPositions;
 	public AllenMatchStick() {
 		setFinalRotation(this.finalRotation);
 	}
@@ -94,9 +97,25 @@ public class AllenMatchStick extends MatchStick {
 		drawNoiseMapSkeleton();
 
 	}
+	
+	public NoiseData setNoiseParameters(NoiseType noiseType, double[] noiseChanceBounds) {
+		if(noiseType == NoiseType.NONE) {
+			this.noiseChanceBounds = new double[]{0,0};
+			this.noiseNormalizedPositions = new double[] {0,0};
+		} else if(noiseType == NoiseType.PRE_JUNC) {
+			//TODO
+		} else if(noiseType == NoiseType.POST_JUNC) {
+			//TODO
+		}
+		 
+		return new NoiseData(noiseType, this.noiseNormalizedPositions, this.noiseChanceBounds);
+	}
 
 	public void drawNoiseMapSkeleton() {
-		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, new double[]{0.5, 1}, new double[] {1.05, 1.4});
+		if(this.noiseType==NoiseType.NONE) {
+			return;
+		}
+		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, noiseChanceBounds, noiseNormalizedPositions);
 		//		for(int i=1; i<=getnComponent(); i++) {
 		//			getComp()[i].setLabel(i);
 		////			if(i==1)

@@ -7,7 +7,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
+
+import javax.vecmath.Tuple2d;
 
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
@@ -19,6 +22,10 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphPara
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
+import org.xper.allen.nafc.vo.NoiseData;
+import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.allen.nafc.vo.NoisyMStickNAFCTrialData;
+import org.xper.allen.nafc.vo.NoisyMStickNAFCTrialGenData;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.allen.specs.PngSpec;
@@ -34,7 +41,7 @@ import org.xper.utils.RGBColor;
  * @author r2_allen
  *
  */
-public class MStickPngBlockGenTwo{
+public class NoisyMStickPngBlockGen{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
@@ -68,7 +75,7 @@ public class MStickPngBlockGenTwo{
 	 *  Distractors: completely random match sticks or QM match sticks
 	 */	
 
-	public MStickPngBlockGenTwo() {
+	public NoisyMStickPngBlockGen() {
 	}
 
 	long genId = 1;
@@ -80,50 +87,52 @@ public class MStickPngBlockGenTwo{
 			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
 			double distractorDistanceLowerLim, 
 			double distractorDistanceUpperLim,
-			double distractorScaleUpperLim, double metricMorphMagnitude,
-			int[] numQMDistractors_types, int[] numQMDistractors_numTrials,
-			int[] numCategoriesMorphed_types, int[] numCategoriesMorphed_numTrials) { //
+			double distractorScaleUpperLim, int numMMCategories,
+			int[] numQMDistractorsTypes, double[] numQMDistractorsFrequencies,
+			Integer[] numQMCategoriesTypes, double[] numQMCategoriesFrequencies,
+			NoiseType[] noiseTypes, double[] noiseTypesFrequencies,
+			double[][] noiseChances, double[] noiseChancesFrequencies) { //
+		
+		//TODO: calculate numTrials here and then call generate with numTrials.
+		//TODO: add logic for frequencies when there some no QM and no Noise?
+	}
+	
+	public void generate(Integer[] numDistractorsTypes, int[] numDistractorsNumTrials,
+			double sampleScaleUpperLim, double sampleRadiusLowerLim, 
+			double sampleRadiusUpperLim, double eyeWinSize, 
+			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
+			double distractorDistanceLowerLim, double distractorDistanceUpperLim,
+			double distractorScaleUpperLim, 
+			int numMMCategories,
+			Integer[] numQMDistractorsTypes, int[] numQMDistractorsNumTrials,
+			Integer[] numQMCategoriesTypes, int[] numQMCategoriesNumTrials,
+			NoiseType[] noiseTypes, int[] noiseTypesNumTrials,
+			double[][] noiseChances, int[] noiseChancesNumTrials) { //
 
 
 
 		//INTERMIXING TYPES OF TRIALS
 		//Distractor Num
-		int numTrials = IntStream.of(numDistractors_numTrials).sum(); //Sum all elements of trialNums
-		List<Integer>numDistractorsTrialList = new LinkedList<>(); //Type = number of choices
-		int numDistractorTypes = numDistractors_types.length;
-		for (int i=0; i < numDistractorTypes; i++){ //For every type of trial
-			for (int j=0; j < numDistractors_numTrials[i]; j++){ //for every trial of that type
-				numDistractorsTrialList.add(numDistractors_types[i]); //add the number of choices to the list
-			}
-		}
+		int numTrials = IntStream.of(numDistractorsNumTrials).sum(); //Sum all elements of trialNums
+		List<Integer> numDistractorsTrialList = populateTrials(numTrials, numDistractorsTypes, numDistractorsNumTrials);
 		Collections.shuffle(numDistractorsTrialList);
 
 		//Number of QM Distractors
-		if(IntStream.of(numQMDistractors_numTrials).sum() != numTrials) {
-			throw new IllegalArgumentException("Total numDistractors_trialNums should match Total numDistractors_trialNums");
-		}
-		List<Integer>numQMDistractorsTrialList = new LinkedList<>();
-		int numQMDistractorTypes = numQMDistractors_types.length;
-		for(int i=0; i< numQMDistractorTypes; i++) {
-			for(int j=0; j<numQMDistractors_numTrials[i]; j++) {
-				numQMDistractorsTrialList.add(numQMDistractors_types[i]);
-			}
-		}
+		List<Integer> numQMDistractorsTrialList = populateTrials(numTrials, numQMDistractorsTypes, numQMDistractorsNumTrials);
 		Collections.shuffle(numQMDistractorsTrialList);
 
 		//Number of Categories Morphed in QM
-		if(IntStream.of(numCategoriesMorphed_numTrials).sum()!= numTrials) {
-			throw new IllegalArgumentException("Total numCategoriesMorphed_numTrials should equal total numDistractors_trialNums");
-		}
-		List<Integer> numCategoriesMorphedTrialList = new LinkedList<>();
-		int numCategoriesMorphedTypes = numCategoriesMorphed_types.length;
-		for(int i=0; i<numCategoriesMorphedTypes;i++) {
-			for(int j=0; j<numCategoriesMorphed_numTrials[i];j++) {
-				numCategoriesMorphedTrialList.add(numCategoriesMorphed_types[i]);
-			}
-		}
+		List<Integer> numCategoriesMorphedTrialList = populateTrials(numTrials, numQMCategoriesTypes, numQMCategoriesNumTrials);
 		Collections.shuffle(numCategoriesMorphedTrialList);
 
+		//NoiseTypes
+		List<NoiseType> noiseTypesTrialList = populateTrials(numTrials, noiseTypes, noiseChancesNumTrials);
+		Collections.shuffle(noiseTypesTrialList);
+		
+		//NoiseChances
+		List<double[]> noiseChancesTrialList = populateTrials(numTrials, noiseChances, noiseChancesNumTrials);
+		Collections.shuffle(noiseChancesTrialList);
+		
 		//INITIALIZING LISTS TO HOLD MATCH STICK OBJECTS
 		List<AllenMatchStick> objs_base = new ArrayList<AllenMatchStick>();
 		List<AllenMatchStick> objs_sample = new ArrayList<AllenMatchStick>();
@@ -155,9 +164,11 @@ public class MStickPngBlockGenTwo{
 			int numQMDistractors = numQMDistractorsTrialList.get(i);
 			int numRandDistractors = numDistractorsTrialList.get(i)-numQMDistractors;
 			if(numRandDistractors<0) throw new IllegalArgumentException("There should not be less than 0 randDistractors");
-			int numCategoriesMorphed = numCategoriesMorphedTrialList.get(i);
-
-
+			int numQMCategories = numCategoriesMorphedTrialList.get(i);
+			NoiseType noiseType = noiseTypesTrialList.get(i);
+			double[] noiseChance = noiseChancesTrialList.get(i);
+			
+			
 			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
 			//GENERATE MATCH/SAMPLE FAILS, WE START OVER STARTING AT BASE
 			boolean tryagain = true;
@@ -165,8 +176,8 @@ public class MStickPngBlockGenTwo{
 
 
 			//SETTING MORPHS - we never want to change our morph because of a fail. Otherwise probability distribution of morph types will be skewed. 
-			QualitativeMorphParams qmp = qmpGenerator.getQMP(numCategoriesMorphed);
-			MetricMorphParams mmp = mmpGenerator.getMMP(sampleScaleUpperLim, metricMorphMagnitude);
+			QualitativeMorphParams qmp = qmpGenerator.getQMP(numQMCategories);
+			MetricMorphParams mmp = mmpGenerator.getMMP(sampleScaleUpperLim, numMMCategories);
 			
 			while (tryagain){
 				boolean leafSuccess = false;
@@ -344,10 +355,6 @@ public class MStickPngBlockGenTwo{
 				labels.add(distractorLabels);
 			}
 			
-			
-			//TODO: Include what kind of distractor in filename?
-			
-			
 			List<Long> ids = new LinkedList<Long>();
 			List<Long> ids_noise = new LinkedList<Long>();
 			ids.add(sampleId);
@@ -355,22 +362,30 @@ public class MStickPngBlockGenTwo{
 			ids.add(matchId);
 			ids.addAll(distractorIds);
 			List<String> stimPaths = pngMaker.createAndSavePNGsfromObjs(objs, ids, labels);
-			List<String> noiseMapPaths = pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise, noiseLabels);
 			
+			//NOISE MAP
+			NoiseData noiseData = objs_sample.get(i).setNoiseParameters(noiseType, noiseChance);
+			List<String> noiseMapPaths = new ArrayList<String>();
+			noiseMapPaths.add("");
+			if(noiseType!=NoiseType.NONE) {
+				noiseMapPaths = pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise, noiseLabels);
+			} 
+
+			//SAVE SPECS.TXT
 			for(int k=0; k<objs.size(); k++) {
 				AllenMStickSpec spec = new AllenMStickSpec();
 				spec.setMStickInfo(objs.get(k));
 				spec.writeInfo2File(generatorSpecPath + "/" + ids.get(k), true);
 			}
 			
-			//SPECIFYING LOCATION
+			//PREPARING WRITE TO DB SPECIFYING LOCATION
 			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
 			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceRadiusLowerLim, choiceRadiusUpperLim, distractorDistanceLowerLim,  distractorDistanceUpperLim);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
 			Coordinates2D matchCoords = ddUtil.getMatchCoords();
 
-			//SAMPLE
+			//SAMPLE SPEC
 			long taskId = sampleId;
 			NoisyPngSpec sampleSpec = new NoisyPngSpec();
 //			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
@@ -385,7 +400,7 @@ public class MStickPngBlockGenTwo{
 			//
 			long[] choiceIds = new long[numChoices];
 
-			//MATCH
+			//MATCH SPEC
 			NoisyPngSpec matchSpec = new NoisyPngSpec();
 //			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
 			matchSpec.setPath(stimPaths.get(1));
@@ -396,7 +411,7 @@ public class MStickPngBlockGenTwo{
 			dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
 			choiceIds[0] = matchId;
 
-			//DISTRACTORS
+			//DISTRACTORS SPECS
 			List<NoisyPngSpec> distractorSpec = new ArrayList<NoisyPngSpec>();
 			for(int j=0; j<numChoices-1; j++){
 				distractorSpec.add(j, new NoisyPngSpec());
@@ -410,7 +425,7 @@ public class MStickPngBlockGenTwo{
 				choiceIds[j+1] = distractorIds.get(j);
 			}
 
-			//GENERATING & WRITING STIM-SPEC TO DB
+			//PREPARING WRITING STIM-SPEC TO DB
 			//targetEyeWinCoords
 			List<Coordinates2D> targetEyeWinCoords = new LinkedList<Coordinates2D>();
 			targetEyeWinCoords.add(matchCoords);
@@ -427,10 +442,20 @@ public class MStickPngBlockGenTwo{
 			//rewardList - Correct answer should always be 0 (the first choice)
 			int[] rewardList = {0};
 
-			//WRITE SPEC
+			//WRITE STIM-SPEC
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 
-			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
+			//WRITE TRIAL DATA
+			NoisyMStickNAFCTrialGenData genData = new NoisyMStickNAFCTrialGenData(numQMDistractors+numRandDistractors, 
+					numQMDistractors, numRandDistractors, numQMCategories, numMMCategories, 
+					sampleScaleUpperLim, distractorScaleUpperLim, new double[] {sampleRadiusLowerLim, sampleRadiusUpperLim}, eyeWinSize, 
+					new double[] {choiceRadiusLowerLim, choiceRadiusUpperLim}, new double[] {distractorDistanceLowerLim, distractorDistanceUpperLim});
+			
+		
+			NoisyMStickNAFCTrialData trialData = new NoisyMStickNAFCTrialData(genData, noiseData);
+			
+	
+			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 
 
@@ -441,6 +466,51 @@ public class MStickPngBlockGenTwo{
 		return;
 	}
 
+	/**
+	 * generic method for returning a list of trials<K> 
+	 * @param <K>
+	 * @param numTrials: totla number of trials in block being generated. Used to double check input is correct
+	 * @param types: array of types <K>
+	 * @param typesNumTrials: number of trials for each type
+	 * @return
+	 */
+	private <K> List<K> populateTrials(int numTrials, K[] types, int[] typesNumTrials) {
+		if(IntStream.of(typesNumTrials).sum()!= numTrials) {
+			throw new IllegalArgumentException("Total typesNumTrials should equal total numTrials");
+		}
+		List<K> trialList = new LinkedList<>();
+		int numTypes = types.length;
+		for(int i=0; i<numTypes; i++) {
+			for (int j=0; j<typesNumTrials[i]; j++) {
+				trialList.add(types[i]);
+			}
+		}
+		return trialList;
+	}
+
+
+	private <K> List<K> populateTrials(int numTrials, K[] types, double[] typesFrequency) {
+		if(DoubleStream.of(typesFrequency).sum()!= 1.0) {
+			throw new IllegalArgumentException("Total Frequencies should add to 1");
+		}
+		int[] typesNumTrials = new int[types.length];
+		for(int i=0; i<types.length; i++) {
+			typesNumTrials[i] = (int) Math.round(typesFrequency[i]* (double) numTrials);
+		}
+		if(IntStream.of(typesNumTrials).sum()!= numTrials) {
+			throw new IllegalArgumentException("Total number of trials rounded from frequencies does not equal correct total num of trials");
+		}
+		
+		List<K> trialList = new LinkedList<>();
+		int numTypes = types.length;
+		for(int i=0; i<numTypes; i++) {
+			for (int j=0; j<typesNumTrials[i]; j++) {
+				trialList.add(types[i]);
+			}
+		}
+		return trialList;
+	}
+	
 	/**
 	 * It is imperative that these properties are set before the object is generated/is smoothized.
 	 * @param obj

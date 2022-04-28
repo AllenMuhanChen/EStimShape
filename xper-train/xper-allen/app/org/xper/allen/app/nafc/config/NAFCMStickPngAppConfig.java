@@ -27,8 +27,7 @@ import org.xper.allen.eye.headfree.HeadFreeEyeZeroAdjustable;
 import org.xper.allen.eye.headfree.HeadFreeEyeZeroAlgorithm;
 import org.xper.allen.eye.headfree.HeadFreeIscanDevice;
 import org.xper.allen.nafc.NAFCPngScene;
-import org.xper.allen.nafc.blockgen.MStickPngBlockGenOne;
-import org.xper.allen.nafc.blockgen.MStickPngBlockGenTwo;
+import org.xper.allen.nafc.blockgen.NoisyMStickPngBlockGen;
 import org.xper.allen.nafc.eye.FreeHeadNAFCEyeMonitorController;
 import org.xper.allen.nafc.eye.LaggingMovingAverageEyeZeroAlgorithm;
 import org.xper.allen.util.DPIUtil;
@@ -90,8 +89,8 @@ public class NAFCMStickPngAppConfig {
 	}
 
 	@Bean
-	public MStickPngBlockGenTwo generator2() {
-		MStickPngBlockGenTwo gen = new MStickPngBlockGenTwo();
+	public NoisyMStickPngBlockGen generator() {
+		NoisyMStickPngBlockGen gen = new NoisyMStickPngBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
@@ -105,19 +104,6 @@ public class NAFCMStickPngAppConfig {
 		return gen;
 	}
 	
-	@Bean
-	public MStickPngBlockGenOne generator() {
-		MStickPngBlockGenOne gen = new MStickPngBlockGenOne();
-		gen.setDbUtil(config.allenDbUtil());
-		gen.setGlobalTimeUtil(acqConfig.timeClient());
-		gen.setXmlUtil(config.allenXMLUtil());
-		gen.setGeneratorPngPath(generatorPngPath);
-		gen.setExperimentPngPath(experimentPngPath);
-		gen.setPngMaker(pngMaker());
-		gen.setMaxImageDimensionDegrees(xperMaxImageDimensionDegrees());
-		return gen;
-	}
-
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public AllenPNGMaker pngMaker(){
 		AllenPNGMaker pngMaker = new AllenPNGMaker();

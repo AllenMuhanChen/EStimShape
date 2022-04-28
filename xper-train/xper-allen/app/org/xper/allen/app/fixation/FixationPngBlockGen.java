@@ -5,7 +5,7 @@ import java.util.Random;
 
 import org.xper.Dependency;
 import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.nafc.blockgen.PngBlockGenOne;
+import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
@@ -44,7 +44,7 @@ public class FixationPngBlockGen {
 		for (int i=0; i<numTrials; i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
 			int randomPngIndex = r.nextInt(fileArray.length);
-			Coordinates2D pngLocation = PngBlockGenOne.randomWithinRadius(radiusLowerLim, radiusUpperLim);
+			Coordinates2D pngLocation = PngBlockGen.randomWithinRadius(radiusLowerLim, radiusUpperLim);
 			String experimentPath = experimentPngPath+fileArray[randomPngIndex].getName();
 			PngSpec pngSpec = new PngSpec(pngLocation.getX(), pngLocation.getY(), pngDimensions, experimentPath);
 			dbUtil.writeStimObjData(taskId, pngSpec.toXml(), "");
