@@ -1,9 +1,8 @@
 package org.xper.allen.app.nafc;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
-
-import javax.vecmath.Tuple2d;
+import java.util.List;
+import java.util.ListIterator;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngBlockGen;
@@ -11,52 +10,97 @@ import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.util.FileUtil;
 
 /**
- * Main function for reading an XML file of stimuli specifications and inputs them into the database. 
- * @param file path for xml file
+ * Generates trials for a noisy mstick png training block. 
+ * Parameters such as number of distractors, number of QM vs rand distractors,
+ * noise parameters, etc...
+ * are all specified as pairs of types and frequency/numTrials.
+ * 
+ * i.e for number of distractors:
+ * types: {1,2,3} # of distractors per trial
+ * frequency: {0.3, 0.5, 0.2} #frequency 
+ * @author r2_allen
+ *
  */
 public class NoisyMStickPngGenerator {
 	public static void main(String[] args) {
-		// args 0     Trial Types (number of choices) in a comma delimited list
-		// args 1     Number of Trial types in a comma delimited list. 
-		// args 2-3   image size limits: minimum, maximum in degrees (diameter of bounding circle)
-		// args 4-5   radius limits for sample
-		// args 6     eyeWinSize
-		// args 7-8   radius limits for choice
-		// args 9-10  alpha for distractors (lower-upper limit)
-		// args 11-12 extra distance distractors are from their default location (lower-upper limit)
-		// args 13-14 distractor size scale (lower-upper limit)
-		
-		//int numSingleChoiceTrials = Integer.parseInt(args[0]);
-		//int numDoubleChoiceTrials = Integer.parseInt(args[1]);
-		
-		//TRIAL TYPES
-		Integer[] numDistractorTypes = stringToIntegerArray(args[0]);
-		int[] numDistractorNumTrials = stringToIntArray(args[1]);
-		double sampleScaleUpperLim = Double.parseDouble(args[2]);
-		double sampleRadiusLowerLim = Double.parseDouble(args[3]);
-		double sampleRadiusUpperLim = Double.parseDouble(args[4]);
-		double eyeWinSize = Double.parseDouble(args[5]);
-		double choiceRadiusLowerLim = Double.parseDouble(args[6]);
-		double choiceRadiusUpperLim = Double.parseDouble(args[7]);
-		double distractorDistanceLowerLim = Double.parseDouble(args[8]);
-		double distractorDistanceUpperLim = Double.parseDouble(args[9]);
-		double distractorScaleUpperLim = Double.parseDouble(args[10]);
-		int numMMCategories = Integer.parseInt(args[11]);
-		Integer[] numQMDistractorsTypes = stringToIntegerArray(args[12]);
-		int[] numQMDistractorsNumTrials = stringToIntArray(args[13]);
-		Integer[] numQMCategoriesTypes = stringToIntegerArray(args[14]);
-		int[] numCategoriesMorphedNumTrials = stringToIntArray(args[15]);
-		NoiseType[] noiseTypes = stringToNoiseTypeArray(args[16]);
-		int[] noiseTypeNumTrials = stringToIntArray(args[17]);
-		double[][] noiseChancesTypes = stringToTupleArray(args[18]);
-		int[] noiseChancesNumTrials = stringToIntArray(args[19]);
 		
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
 		NoisyMStickPngBlockGen gen = context.getBean(NoisyMStickPngBlockGen.class);
 		
-		try {
+		try { //try to generate trials with type-frequency pair inputs
+			//Convert String[] args to List and use iterator to go through elements
+			//using iterator allows for easily adding / rearranging elements without having to
+			//	manually update every single index. 
+			List<String> argsList = Arrays.asList(args);
+			ListIterator<String> iterator = argsList.listIterator();
+			
+			int numTrials = Integer.parseInt(iterator.next());
+			Integer[] numDistractorTypes = stringToIntegerArray(iterator.next());
+			double[] numDistractorNumFrequencies= stringToDoubleArray(iterator.next());
+			double sampleScaleUpperLim = Double.parseDouble(iterator.next());
+			double sampleRadiusLowerLim = Double.parseDouble(iterator.next());
+			double sampleRadiusUpperLim = Double.parseDouble(iterator.next());
+			double eyeWinSize = Double.parseDouble(iterator.next());
+			double choiceRadiusLowerLim = Double.parseDouble(iterator.next());
+			double choiceRadiusUpperLim = Double.parseDouble(iterator.next());
+			double distractorDistanceLowerLim = Double.parseDouble(iterator.next());
+			double distractorDistanceUpperLim = Double.parseDouble(iterator.next());
+			double distractorScaleUpperLim = Double.parseDouble(iterator.next());
+			int numMMCategories = Integer.parseInt(iterator.next());
+			Integer[] numQMDistractorsTypes = stringToIntegerArray(iterator.next());
+			double[] numQMDistractorsFrequencies= stringToDoubleArray(iterator.next());
+			Integer[] numQMCategoriesTypes = stringToIntegerArray(iterator.next());
+			double[] numCategoriesMorphedFrequencies = stringToDoubleArray(iterator.next());
+			NoiseType[] noiseTypes = stringToNoiseTypeArray(iterator.next());
+			double[] noiseTypeFrequencies= stringToDoubleArray(iterator.next());
+			double[][] noiseChancesTypes = stringToTupleArray(iterator.next());
+			double[] noiseChancesFrequencies = stringToDoubleArray(iterator.next());
+			
+
+			//target eye window size
+			gen.toString();
+			gen.generate(numTrials, numDistractorTypes, numDistractorNumFrequencies,
+					sampleScaleUpperLim, sampleRadiusLowerLim, sampleRadiusUpperLim, 
+					eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim, 
+					 distractorDistanceLowerLim,
+					distractorDistanceUpperLim,
+					distractorScaleUpperLim, numMMCategories, numQMDistractorsTypes, numQMDistractorsFrequencies,
+					numQMCategoriesTypes, numCategoriesMorphedFrequencies,
+					noiseTypes, noiseTypeFrequencies,
+					noiseChancesTypes, noiseChancesFrequencies);
+			return;
+		} catch (Exception e) {
+			System.out.println("Failed to load parameters for Noisy MStick PNG experiment with frequency specification.");
+		}
+		try { //try to generate trials with type-numTrials pair input
+			//Convert String[] args to List as use iterator to go through elements
+			List<String> argsList = Arrays.asList(args);
+			ListIterator<String> iterator = argsList.listIterator();
+			
+			Integer[] numDistractorTypes = stringToIntegerArray(iterator.next());
+			int[] numDistractorNumTrials = stringToIntArray(iterator.next());
+			double sampleScaleUpperLim = Double.parseDouble(iterator.next());
+			double sampleRadiusLowerLim = Double.parseDouble(iterator.next());
+			double sampleRadiusUpperLim = Double.parseDouble(iterator.next());
+			double eyeWinSize = Double.parseDouble(iterator.next());
+			double choiceRadiusLowerLim = Double.parseDouble(iterator.next());
+			double choiceRadiusUpperLim = Double.parseDouble(iterator.next());
+			double distractorDistanceLowerLim = Double.parseDouble(iterator.next());
+			double distractorDistanceUpperLim = Double.parseDouble(iterator.next());
+			double distractorScaleUpperLim = Double.parseDouble(iterator.next());
+			int numMMCategories = Integer.parseInt(iterator.next());
+			Integer[] numQMDistractorsTypes = stringToIntegerArray(iterator.next());
+			int[] numQMDistractorsNumTrials = stringToIntArray(iterator.next());
+			Integer[] numQMCategoriesTypes = stringToIntegerArray(iterator.next());
+			int[] numCategoriesMorphedNumTrials = stringToIntArray(iterator.next());
+			NoiseType[] noiseTypes = stringToNoiseTypeArray(iterator.next());
+			int[] noiseTypeNumTrials = stringToIntArray(iterator.next());
+			double[][] noiseChancesTypes = stringToTupleArray(iterator.next());
+			int[] noiseChancesNumTrials = stringToIntArray(iterator.next());
+			
+
 			//target eye window size
 			gen.toString();
 			gen.generate(numDistractorTypes, numDistractorNumTrials,
@@ -68,15 +112,13 @@ public class NoisyMStickPngGenerator {
 					numQMCategoriesTypes, numCategoriesMorphedNumTrials,
 					noiseTypes, noiseTypeNumTrials,
 					noiseChancesTypes, noiseChancesNumTrials);
-			
+			return;
 		}
 		catch(Exception e) {
-			System.out.println("Something went wrong");
-			e.printStackTrace();
-		
-
+			System.out.println("Failed to load parameters for Noisy MStick PNG NAFC with numTrials specification");
 		}
 	}
+	
 	
 	public static Integer[] stringToIntegerArray(String string) {
 		String[] strArr = string.split(",");
