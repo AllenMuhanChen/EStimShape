@@ -5,6 +5,7 @@ import java.util.Random;
 
 import org.xper.Dependency;
 import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.allen.nafc.blockgen.NAFCBlockGen;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
@@ -12,7 +13,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 
-public class FixationPngBlockGen {
+public class FixationPngBlockGen extends NAFCBlockGen{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
