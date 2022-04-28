@@ -3,17 +3,14 @@ package org.xper.allen.app.nafc;
 import java.util.Arrays;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.PngBlockGenFour;
-import org.xper.allen.nafc.blockgen.PngBlockGenOne;
-import org.xper.allen.nafc.blockgen.PngBlockGenThree;
-import org.xper.allen.nafc.blockgen.PngBlockGenTwo;
+import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.util.FileUtil;
 
 /**
  * Main function for reading an XML file of stimuli specifications and inputs them into the database. 
  * @param file path for xml file
  */
-public class PngGeneratorFour {
+public class PngGenerator {
 	public static void main(String[] args) {
 		// args 0     Trial Types (number of choices) in a comma delimited list
 		// args 1     Number of Trial types in a comma delimited list. 
@@ -59,7 +56,7 @@ public class PngGeneratorFour {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		PngBlockGenFour gen = context.getBean(PngBlockGenFour.class);
+		PngBlockGen gen = context.getBean(PngBlockGen.class);
 		
 		try {
 			//target eye window size

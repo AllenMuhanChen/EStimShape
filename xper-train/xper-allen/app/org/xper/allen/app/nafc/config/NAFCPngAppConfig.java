@@ -14,10 +14,7 @@ import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
-import org.xper.allen.nafc.blockgen.PngBlockGenFour;
-import org.xper.allen.nafc.blockgen.PngBlockGenOne;
-import org.xper.allen.nafc.blockgen.PngBlockGenThree;
-import org.xper.allen.nafc.blockgen.PngBlockGenTwo;
+import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
@@ -72,8 +69,8 @@ public class NAFCPngAppConfig {
 	
 	
 	@Bean
-	public PngBlockGenFour generator4() {
-		PngBlockGenFour gen = new PngBlockGenFour();
+	public PngBlockGen generator4() {
+		PngBlockGen gen = new PngBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
@@ -83,8 +80,8 @@ public class NAFCPngAppConfig {
 	}
 	
 	@Bean
-	public PngBlockGenTwo generator2() {
-		PngBlockGenTwo gen = new PngBlockGenTwo();
+	public PngBlockGen generator2() {
+		PngBlockGen gen = new PngBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
