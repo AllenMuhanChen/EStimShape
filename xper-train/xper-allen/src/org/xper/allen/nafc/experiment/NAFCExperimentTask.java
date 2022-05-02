@@ -24,6 +24,7 @@ public class NAFCExperimentTask extends ExperimentTask {
 	RewardPolicy rewardPolicy;
 	int[] rewardList;
 	
+	
 	public String getSampleSpec() {
 		return sampleSpec;
 	}

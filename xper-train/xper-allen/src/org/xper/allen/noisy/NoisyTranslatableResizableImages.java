@@ -22,17 +22,25 @@ import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
 
 /**
- * Strategy for noise:
- * 1. LoadTexture should just load as pixels byte buffer. Process (i.e agbr2rgba, changing alpha). 
- * 2. Draw should
- * 	a. Generate noise pattern
- *  b. Draw saved pixels byte buffer
+ * Loads a noiseMap as a png, where the red value of each pixel represents 
+ * the percentage chance a corresponding pixel should be random noise. 
+ * 
+ * Intended usage is to pre-generate all of the noise before stimulus presentation.
+ * Storage of the noise is handled within OpenGL's BindTexture feature.
+ * 
+ * noiseIndx (which noise tex is drawn) is specified as a arguement to draw()
+ * This is to give more control over when exactly noise is stepped 
+ * (for the ability to slow down noise if for some reason is wanted) 
  *
+ * One can easily make a new draw() method that steps through currentNoiseIndx
+ * automatically if they wish. 
+ * 
  * 
  * @author Allen Chen
  *
  */
 public class NoisyTranslatableResizableImages extends TranslatableResizableImages{
+	public boolean showTiming = false;
 	//	
 	private int numNoiseFrames;
 	private int numImageTextures;
@@ -43,6 +51,9 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	TimeUtil timeUtil = new DefaultTimeUtil();
 
 	private final static double RANGE = Byte.MAX_VALUE - Byte.MIN_VALUE;
+
+	private boolean drawNoise = true;
+
 
 	public NoisyTranslatableResizableImages(int numNoiseFrames, int numImageTextures) {
 		super(numNoiseFrames);
@@ -74,6 +85,8 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	 * @param textureIndex
 	 */
 	public void loadNoise(String pathname, int textureIndex) {
+		drawNoise = true;
+		System.out.println("AC4747823: noisepathname: " + pathname);
 		try {
 			File imageFile = new File(pathname);
 			BufferedImage img = ImageIO.read(imageFile);
@@ -82,7 +95,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 			abgr2rgba(src);
 			List<Double> noiseMap = new ArrayList<Double>(src.length/4);
 
-			
+
 			for(int i=0x00000000; i<src.length; i+=0x00000004) {
 				double probability;
 				int red;
@@ -93,11 +106,9 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 					red = (int)src[i];
 					probability = (double) red/256.0;
 				}
-				System.out.println("AC RED: " + red);
-				System.out.println("AC PROB: " + probability);
 				noiseMap.add(probability);
 			}
-			
+
 
 
 			for(int i=0; i<numNoiseFrames;i++) {
@@ -113,6 +124,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 		}catch(Exception e) {
 			System.out.println("No NoiseMap found. Will present stimulus without noise");
+			drawNoise = false;
 		}
 
 	}
@@ -143,27 +155,37 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		return pixels;
 	}
 
+	/**
+	 * Draw from pre-loaded noise textures. 
+	 * @param noiseIndx
+	 * @param context
+	 * @param textureIndex
+	 * @param location
+	 * @param dimensions
+	 */
 	public void draw(int noiseIndx, Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
 		GL11.glPushMatrix();
 		long textureStartTime = timeUtil.currentTimeMicros();
 		drawTexture(context, textureIndex, location, dimensions);
 
 		//			System.out.println("DRAW CALLED");
-		long noiseDrawStartTime = timeUtil.currentTimeMicros();
-		drawNoise(noiseIndx, context, textureIndex, location, dimensions);
-		System.out.println("AC TIME TO DRAW NOISE: " + (timeUtil.currentTimeMicros()-noiseDrawStartTime));
-
+		if(drawNoise) {
+			long noiseDrawStartTime = timeUtil.currentTimeMicros();
+			drawNoise(noiseIndx, context, textureIndex, location, dimensions);
+			if(showTiming)
+				System.out.println("AC TIME TO DRAW NOISE: " + (timeUtil.currentTimeMicros()-noiseDrawStartTime));
+		}
 		GL11.glPopMatrix();
 	}
 
-	//	//Not preload drawing. 
-	public void draw(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
-		GL11.glPushMatrix();
-		long textureStartTime = timeUtil.currentTimeMicros();
-		drawTexture(context, textureIndex, location, dimensions);
-		System.out.println("AC TIME TO DRAW TEXTURE: " + (timeUtil.currentTimeMicros() - textureStartTime));
-		GL11.glPopMatrix();
-	}
+	//	//Not preload drawing. Depricated
+	//	public void draw(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
+	//		GL11.glPushMatrix();
+	//		long textureStartTime = timeUtil.currentTimeMicros();
+	//		drawTexture(context, textureIndex, location, dimensions);
+	//		System.out.println("AC TIME TO DRAW TEXTURE: " + (timeUtil.currentTimeMicros() - textureStartTime));
+	//		GL11.glPopMatrix();
+	//	}
 
 
 	private void drawTexture(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
@@ -210,7 +232,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	private void drawNoise(int currentNoiseIndx, Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
 		//		GL11.glPushMatrix();
 		GL11.glEnable(GL11.GL_TEXTURE_2D);  	
-		System.out.println("AC:NOWREADING: " + (currentNoiseIndx+numImageTextures));
+		//		System.out.println("AC:NOWREADING: " + (currentNoiseIndx+numImageTextures));
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(currentNoiseIndx+numImageTextures));
 		Coordinates2D centermm = new Coordinates2D(context.getRenderer().deg2mm(location.getX()), context.getRenderer().deg2mm(location.getY()));
 
@@ -306,6 +328,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	public int loadTexture(String pathname, int textureIndex) {
 		try {
 			File imageFile = new File(pathname);
+			System.out.println("AC 12389021: " + imageFile.getAbsolutePath());
 			BufferedImage img = ImageIO.read(imageFile);
 			getImgWidth().add(textureIndex, img.getWidth());
 			getImgHeight().add(textureIndex, img.getHeight());

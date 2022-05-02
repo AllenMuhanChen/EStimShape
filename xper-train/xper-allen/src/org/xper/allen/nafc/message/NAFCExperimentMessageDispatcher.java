@@ -33,6 +33,15 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 		trialStat.reset();
 	}
 
+	public void trialStart(long timestamp, TrialContext context) {
+		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
+		long stimSpecId = task.getStimId();
+		TrialMessage msg = new TrialMessage(stimSpecId);
+		enqueue(timestamp, "TrialStart", msg.toXml());
+	}
+	
+	
+	
 	public void initialEyeInFail(long timestamp, TrialContext context) {
 		enqueue(timestamp, "InitialEyeInFail", "");
 		trialStat.setFixationEyeInFail(trialStat.getFixationEyeInFail()+1);
@@ -156,7 +165,10 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	}
 
 	public void trialStop(long timestamp, TrialContext context) {
-		enqueue(timestamp, "TrialStop", "");
+		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
+		long stimSpecId = task.getStimId();
+		TrialMessage msg = new TrialMessage(stimSpecId);
+		enqueue(timestamp, "TrialStop", msg.toXml());
 		enqueue(timestamp, "TrialStatistics",
 				NAFCTrialStatistics.toXml(trialStat));
 	}

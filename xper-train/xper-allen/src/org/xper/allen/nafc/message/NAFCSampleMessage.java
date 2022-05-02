@@ -25,7 +25,7 @@ public class NAFCSampleMessage {
 	transient static XStream s = new XStream();
 	
 	static {
-		s.alias("TwoACSampleMessage", SaccadeTargetMessage.class);
+		s.alias("TwoACSampleMessage", NAFCSampleMessage.class);
 		s.alias("Coordinates2D", Coordinates2D.class);
 	}
 	
