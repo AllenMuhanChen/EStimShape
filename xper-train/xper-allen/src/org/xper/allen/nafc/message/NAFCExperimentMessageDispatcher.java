@@ -160,7 +160,10 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	}
 
 	public void trialComplete(long timestamp, TrialContext context) {
-		enqueue(timestamp, "TrialComplete", "");
+		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
+		long stimSpecId = task.getStimId();
+		TrialMessage msg = new TrialMessage(stimSpecId);
+		enqueue(timestamp, "TrialComplete", msg.toXml());
 		trialStat.setCompleteTrials(trialStat.getCompleteTrials() + 1);
 	}
 

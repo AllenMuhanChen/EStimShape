@@ -20,7 +20,7 @@ using DataFramesMeta
 include("./DBUtil.jl")
 
 global conn = DbUtil.connect()
-date = Date(2022,04,28)
+date = Date(2022,05,02)
 
 #behMsg = DbUtil.getBehMsg(DbUtil.today)
 behMsg = DbUtil.getBehMsg(date)
@@ -31,10 +31,8 @@ trialStarts = behMsg[behMsg.type .== "TrialStart", :tstamp]
 trialStops = behMsg[behMsg.type .== "TrialStop", :tstamp]
 
 #BALANCE trialStart and trialStop 
-if length(trialStarts) == length(trialStops)
-    df.trialStarts = trialStarts
-    df.trialStops = trialStarts
-else
+if length(trialStarts) != length(trialStops)
+
     #the first trialStop is before the first trialStop
     if first(trialStops) < first(trialStarts)
         popfirst!(trialStops);
@@ -49,8 +47,8 @@ end
 Given a trialStart and trialStop time in microseconds, check if there are any tstamps in between trialStart and trialStop. return true if yes. return false if no. 
 """
 function checkForMsgType(trialStart::Int64, trialStop::Int64, msgTypeTstamps::Vector{Int64})::Bool
-    for trialComplete in msgTypeTstamps
-        if trialComplete > trialStart && trialComplete < trialStop
+    for msgTypeTstamp in msgTypeTstamps
+        if msgTypeTstamp >= trialStart && msgTypeTstamp <= trialStop
             return true
         end
     end 
@@ -66,8 +64,32 @@ trialCompletes = behMsg[behMsg.type .== "TrialComplete", :tstamp]
 df = filter([:trialStart, :trialStop] => (x,y)->checkForMsgType(x,y,trialCompletes), df)
 df.trialCompletes = trialCompletes
 
-stimSpecs = stimSpec[:, :id]
-filter([:trialStart, :trialStop] => (x,y)->checkForMsgType(x,y,stimSpecs), df)
+#Filter for ChoiceSelectionSuccess
+choiceSelectionSuccesses = behMsg[behMsg.type .== "ChoiceSelectionSuccess", :tstamp]
+df = filter([:trialStart, :trialStop] => (x,y)->checkForMsgType(x,y,choiceSelectionSuccesses), df)
+df.choiceSelectionSuccess = choiceSelectionSuccesses
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#TODO: Have to get stimSpec Id somehow
 ## DEMO SUBSET into xml of spec
 stimObjData = DbUtil.getStimObjData(date)
 getWidth = DbUtil.makeXMLParser(["dimensions","width"])
