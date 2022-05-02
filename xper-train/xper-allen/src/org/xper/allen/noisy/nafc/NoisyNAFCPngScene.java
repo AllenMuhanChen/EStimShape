@@ -27,7 +27,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	@Dependency
 	double[] backgroundColor;
 	@Dependency
-//	int frameRate = Display.getDisplayMode().getFrequency();
+//	int frameRate = Display.getDisplayMode().getFrequency(); //this is wrong
 	int frameRate;
 	private int noiseIndx=0;
 	/**
@@ -74,8 +74,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		
 		//TODO: MODIFY THIS
 		String noiseMapPath = sampleSpec.getNoiseMapPath();
-//		noiseMapPath = noiseMapPath.replaceAll("\\.png", "_noisemap.png");
-//		System.out.println("AC NOISEMAP PATH: " + noiseMapPath);
+//		
 		//
 		
 		images.loadNoise(noiseMapPath, 0);
@@ -85,12 +84,12 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	public void setChoice(NAFCExperimentTask task) {
 		String[] choiceSpecXml = task.getChoiceSpec();
 		numChoices = choiceSpecXml.length;
-		PngSpec[] choiceSpec = new PngSpec[numChoices];
+		NoisyPngSpec[] choiceSpec = new NoisyPngSpec[numChoices];
 		choiceLocations = new Coordinates2D[numChoices];
 		choiceDimensions = new ImageDimensions[numChoices];
 		choiceAlphas= new double[numChoices];
 		for (int i=0; i < numChoices; i++) {
-			choiceSpec[i] = PngSpec.fromXml(choiceSpecXml[i]);
+			choiceSpec[i] = NoisyPngSpec.fromXml(choiceSpecXml[i]);
 			choiceLocations[i] = new Coordinates2D(choiceSpec[i].getxCenter(), choiceSpec[i].getyCenter());
 			choiceDimensions[i] = choiceSpec[i].getImageDimensions();
 			choiceAlphas[i] = choiceSpec[i].getAlpha();
@@ -112,8 +111,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 					// 0 will pass for stimulus region
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
-				int index = 0; //Should be zero, the sample is assigned index of zero. 
-				images.draw(noiseIndx, context, index, sampleLocation, sampleDimensions);
+				int pngIndex = 0; //Should be zero, the sample is assigned index of zero. 
+				images.draw(noiseIndx, context, pngIndex, sampleLocation, sampleDimensions);
 				nextNoise();
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions

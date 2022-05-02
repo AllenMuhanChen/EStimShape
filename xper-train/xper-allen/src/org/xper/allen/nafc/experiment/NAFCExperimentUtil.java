@@ -77,7 +77,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		//SHOW SAMPLE
 		drawingController.showSample(currentTask, currentContext); //THIS is called by prepare fixation
 		long sampleOnLocalTime = timeUtil.currentTimeMicros();
-		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
+		currentContext.setSampleOnTime(sampleOnLocalTime);
+//		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
 		NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
 
 		//HOLD FIXATION DURING SAMPLE
@@ -143,7 +144,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		//Eye on Target Logic
 		//eye selector
 		NAFCEyeTargetSelectorConcurrentDriver selectorDriver = new NAFCEyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
-		currentContext.setChoicesOnTime(currentContext.getCurrentSlideOnTime()); 
+		currentContext.setChoicesOnTime(currentContext.getChoicesOnTime()); 
 
 
 		//SELECTOR START

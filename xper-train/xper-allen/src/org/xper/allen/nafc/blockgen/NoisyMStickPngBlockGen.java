@@ -6,11 +6,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
-
-import javax.vecmath.Tuple2d;
 
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
@@ -28,7 +24,6 @@ import org.xper.allen.nafc.vo.NoisyMStickNAFCTrialData;
 import org.xper.allen.nafc.vo.NoisyMStickNAFCTrialGenData;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
-import org.xper.allen.specs.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
@@ -190,7 +185,7 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 		Collections.shuffle(numCategoriesMorphedTrialList);
 
 		//NoiseTypes
-		List<NoiseType> noiseTypesTrialList = populateTrials(numTrials, noiseTypes, noiseChancesNumTrials);
+		List<NoiseType> noiseTypesTrialList = populateTrials(numTrials, noiseTypes, noiseTypesNumTrials);
 		Collections.shuffle(noiseTypesTrialList);
 		
 		//NoiseChances
@@ -426,14 +421,16 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 			ids.add(matchId);
 			ids.addAll(distractorIds);
 			List<String> stimPaths = pngMaker.createAndSavePNGsfromObjs(objs, ids, labels);
+			stimPaths = convertPathsToExperiment(stimPaths);
 			
 			//NOISE MAP
-			NoiseData noiseData = objs_sample.get(i).setNoiseParameters(noiseType, noiseChance);
+			NoiseData noiseData = objs_noise.get(0).setNoiseParameters(noiseType, noiseChance);
 			List<String> noiseMapPaths = new ArrayList<String>();
 			noiseMapPaths.add("");
 			if(noiseType!=NoiseType.NONE) {
 				noiseMapPaths = pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise, noiseLabels);
 			} 
+			noiseMapPaths = convertPathsToExperiment(noiseMapPaths);
 
 			//SAVE SPECS.TXT
 			for(int k=0; k<objs.size(); k++) {
@@ -561,6 +558,14 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 	}
 
 
+	public List<String> convertPathsToExperiment(List<String> generatorPaths) {
+		LinkedList<String> expPaths = new LinkedList<String>();
+		for(int s=0; s<generatorPaths.size(); s++) {
+			String newPath = generatorPaths.get(s).replace(getGeneratorPngPath(), getExperimentPngPath());
+			expPaths.add(s, newPath);
+		}
+		return expPaths;
+	}
 
 	
 

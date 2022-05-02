@@ -19,6 +19,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	boolean initialized = false;
 
 	//TIMING ANALYSIS
+	boolean showTiming = false;
 	TimeUtil timeUtil = new DefaultTimeUtil();
 	private long lastTime = 0;
 	private int skippedFrames = 0;
@@ -31,7 +32,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		getTaskScene().drawBlank(context, false, false);
 		window.swapBuffers();
 	}
-	
+
 	/////////////////
 	public void slideFinish(ExperimentTask task, NAFCTrialContext context) {
 		getTaskScene().nextMarker();
@@ -45,7 +46,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 			getTaskScene().setSample(task);
 		}
 	}
-	
+
 	public void showSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
 			getTaskScene().drawSample(context, true);
@@ -54,15 +55,15 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		}
 		window.swapBuffers();
 	}
-	
-	
+
+
 
 	public void prepareChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if (task != null) {
 			getTaskScene().setChoice(task);
 		}
 	}
-	
+
 	public void showChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
 			getTaskScene().drawChoice(context, true);
@@ -98,34 +99,39 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		if(task!=null) {
 			long startTime = timeUtil.currentTimeMicros();
 			getTaskScene().drawSample(context, true);
-			System.out.println("AC TIME TO DRAW SAMPLE: " + (timeUtil.currentTimeMicros() - startTime));
+			if(showTiming)
+				System.out.println("AC TIME TO DRAW SAMPLE: " + (timeUtil.currentTimeMicros() - startTime));
 			//			System.out.println("ANIMATE SAMPLE CALLED!");
 
 		} else {
 			getTaskScene().drawBlank(context, fixationOnWithStimuli, true);
 		}
 		window.swapBuffers();
-		long nowTime = timeUtil.currentTimeMicros();
-		if(startTime==0) {
-			startTime = nowTime;
-		}
-		long frameTime=0;
-		if(lastTime!=0) {
-			frameTime = nowTime-lastTime;
-		}
+		if(showTiming) {
+			long nowTime = timeUtil.currentTimeMicros();
+			if(startTime==0) {
+				startTime = nowTime;
+			}
+			long frameTime=0;
+			if(lastTime!=0) {
+				frameTime = nowTime-lastTime;
+			}
 
-		System.out.println("AC MICROS SINCE LAST BUFFER SWAP: " + frameTime);
-		lastTime = nowTime;
-		if(frameTime>18000) {
-			int temp = Math.round(frameTime/16666);
-			skippedFrames = skippedFrames + temp;
+			System.out.println("AC MICROS SINCE LAST BUFFER SWAP: " + frameTime);
+			lastTime = nowTime;
+			if(frameTime>18000) {
+				int temp = Math.round(frameTime/16666);
+				skippedFrames = skippedFrames + temp;
+			}
+
+			System.out.println("AC TOTAL SKIPPED FRAMES: " + skippedFrames);
+			long timeElapsed = nowTime - startTime;
+
+			System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
 		}
-		System.out.println("AC TOTAL SKIPPED FRAMES: " + skippedFrames);
-		long timeElapsed = nowTime - startTime;
-		System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
-		
-//		System.out.println("MAX TEXTURES: " + GL11.GL_MAX_TEXTURE_STACK_DEPTH);
 	}
+	//		System.out.println("MAX TEXTURES: " + GL11.GL_MAX_TEXTURE_STACK_DEPTH);
+
 
 	public NAFCTaskScene getTaskScene() {
 		return taskScene;

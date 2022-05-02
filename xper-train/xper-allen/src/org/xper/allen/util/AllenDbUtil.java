@@ -285,6 +285,8 @@ public class AllenDbUtil extends DbUtil {
 						task.setSampleSpecId(ss.getSampleObjData());
 						task.setChoiceSpecId(ss.getChoiceObjData());
 						task.setSampleSpec(readStimObjData(ss.getSampleObjData()).getSpec());	
+						task.setStimSpec(sse.getSpec());
+						task.setStimId(sse.getStimId());
 						
 						int n = ss.getChoiceObjData().length;
 						String[] choiceSpec = new String[n];

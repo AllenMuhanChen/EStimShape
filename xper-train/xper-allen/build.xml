@@ -174,72 +174,22 @@
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/nafcGenOne.jar">
+		<jar jarfile="${allen.home}/PngGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/PngGeneratorOne.class" />
+				<include name="org/xper/allen/app/nafc/PngGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGeneratorOne" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/nafcGenTwo.jar">
+		<jar jarfile="${allen.home}/MStickPngGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/PngGeneratorTwo.class" />
+				<include name="org/xper/allen/app/nafc/MStickPngGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGeneratorTwo" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/nafcGenThree.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/PngGeneratorThree.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGeneratorThree" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/nafcGenFour.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/PngGeneratorFour.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PngGeneratorFour" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/Test.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/drawing/composition/Test.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.drawing.composition.Test" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/nafcMStickGenOne.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/MStickGeneratorOne.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.MStickGeneratorOne" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/nafcMStickGenTwo.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/MStickGeneratorTwo.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.MStickGeneratorTwo" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.MStickPngGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
@@ -274,12 +224,12 @@
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/noisyMStickPngGen.jar">
+		<jar jarfile="${allen.home}/NoisyMStickPngGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/MStickGeneratorTwo.class" />
+				<include name="org/xper/allen/app/nafc/NoisyMStickPngGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.MStickGeneratorTwo" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.NoisyMStickPngGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>

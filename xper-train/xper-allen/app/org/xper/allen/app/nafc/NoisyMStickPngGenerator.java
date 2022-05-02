@@ -35,10 +35,10 @@ public class NoisyMStickPngGenerator {
 			//	manually update every single index. 
 			List<String> argsList = Arrays.asList(args);
 			ListIterator<String> iterator = argsList.listIterator();
-
+			
 			int numTrials = Integer.parseInt(iterator.next());
 			Integer[] numDistractorTypes = stringToIntegerArray(iterator.next());
-			double[] numDistractorNumFrequencies= stringToDoubleArray(iterator.next());
+			double[] numDistractorFrequencies= stringToDoubleArray(iterator.next());
 			double sampleScaleUpperLim = Double.parseDouble(iterator.next());
 			double sampleRadiusLowerLim = Double.parseDouble(iterator.next());
 			double sampleRadiusUpperLim = Double.parseDouble(iterator.next());
@@ -52,7 +52,7 @@ public class NoisyMStickPngGenerator {
 			Integer[] numQMDistractorsTypes = stringToIntegerArray(iterator.next());
 			double[] numQMDistractorsFrequencies= stringToDoubleArray(iterator.next());
 			Integer[] numQMCategoriesTypes = stringToIntegerArray(iterator.next());
-			double[] numCategoriesMorphedFrequencies = stringToDoubleArray(iterator.next());
+			double[] numQMCategoriesFrequencies = stringToDoubleArray(iterator.next());
 			NoiseType[] noiseTypes = stringToNoiseTypeArray(iterator.next());
 			double[] noiseTypeFrequencies= stringToDoubleArray(iterator.next());
 			double[][] noiseChancesTypes = stringToTupleArray(iterator.next());
@@ -61,17 +61,18 @@ public class NoisyMStickPngGenerator {
 
 			//target eye window size
 			gen.toString();
-			gen.generate(numTrials, numDistractorTypes, numDistractorNumFrequencies,
+			gen.generate(numTrials, numDistractorTypes, numDistractorFrequencies,
 					sampleScaleUpperLim, sampleRadiusLowerLim, sampleRadiusUpperLim, 
 					eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim, 
 					distractorDistanceLowerLim,
 					distractorDistanceUpperLim,
 					distractorScaleUpperLim, numMMCategories, numQMDistractorsTypes, numQMDistractorsFrequencies,
-					numQMCategoriesTypes, numCategoriesMorphedFrequencies,
+					numQMCategoriesTypes, numQMCategoriesFrequencies,
 					noiseTypes, noiseTypeFrequencies,
 					noiseChancesTypes, noiseChancesFrequencies);
 			return;
 		} catch (Exception e) {
+			e.printStackTrace();
 			System.out.println("Failed to load parameters for Noisy MStick PNG experiment with frequency specification.");
 		}
 		try { //try to generate trials with type-numTrials pair input
@@ -127,6 +128,7 @@ public class NoisyMStickPngGenerator {
 		for(int i=0; i<length; i++) {
 			intArr[i] = Integer.parseInt(strArr[i]);
 		}
+		
 		return intArr;
 	}
 
@@ -155,6 +157,7 @@ public class NoisyMStickPngGenerator {
 		int length = strArr.length;
 		NoiseType[] noiseTypeArr = new NoiseType[length];
 		for(int i=0; i<length; i++) {
+			System.out.println("ACkjlfjds " + strArr[i]);
 			noiseTypeArr[i] = NoiseType.valueOf(strArr[i]);
 		}
 		return noiseTypeArr;

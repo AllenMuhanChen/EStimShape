@@ -103,9 +103,11 @@ public class AllenMatchStick extends MatchStick {
 			this.noiseChanceBounds = new double[]{0,0};
 			this.noiseNormalizedPositions = new double[] {0,0};
 		} else if(noiseType == NoiseType.PRE_JUNC) {
-			//TODO
+			this.noiseChanceBounds = noiseChanceBounds;
+			this.noiseNormalizedPositions = new double[] {0.5, 0.8};
 		} else if(noiseType == NoiseType.POST_JUNC) {
-			//TODO
+			this.noiseChanceBounds = noiseChanceBounds;
+			this.noiseNormalizedPositions = new double[] {1, 1.3};
 		}
 		 
 		return new NoiseData(noiseType, this.noiseNormalizedPositions, this.noiseChanceBounds);
