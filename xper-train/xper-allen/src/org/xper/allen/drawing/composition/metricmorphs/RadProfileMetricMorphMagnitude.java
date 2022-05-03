@@ -6,6 +6,7 @@ public class RadProfileMetricMorphMagnitude{
 	public double percentChangeLowerBound;
 	public double percentChangeUpperBound;
 	public double oldValue;
+	public double newValue;
 	public double min;
 	public double max;
 	/**
@@ -16,7 +17,6 @@ public class RadProfileMetricMorphMagnitude{
 	 */
 	public double calculateMagnitude() {
 		double range = max-min;
-		double newValue;
 		double outerLowerBound = (oldValue - percentChangeUpperBound*range);
 		if(outerLowerBound<min)
 			outerLowerBound=min;

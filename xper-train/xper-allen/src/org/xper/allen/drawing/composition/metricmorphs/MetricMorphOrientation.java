@@ -9,10 +9,10 @@ import org.xper.drawing.stick.stickMath_lib;
 
 public class MetricMorphOrientation {
 	public static final double RAD = Math.PI/180;
-	private double angleChangeLowerBound;
-	private double angleChangeUpperBound;
-	private Vector3d oldVector;
-
+	public double angleChangeLowerBound;
+	public double angleChangeUpperBound;
+	public Vector3d oldVector;
+	public Vector3d newVector;
 
 	public MetricMorphOrientation() {
 
@@ -37,6 +37,7 @@ public class MetricMorphOrientation {
 			}
 		}
 //		newVector = new Vector3d(0,1,0); //sometimes up, sometimes down. Idk why.
+		this.newVector = newVector;
 		return newVector;
 	}
 
@@ -137,6 +138,14 @@ public class MetricMorphOrientation {
 
 	public void setAngleChangeLowerBound(double angleChangeLowerBound) {
 		this.angleChangeLowerBound = angleChangeLowerBound;
+	}
+
+	public Vector3d getNewVector() {
+		return newVector;
+	}
+
+	public void setNewVector(Vector3d newVector) {
+		this.newVector = newVector;
 	}
 
 }

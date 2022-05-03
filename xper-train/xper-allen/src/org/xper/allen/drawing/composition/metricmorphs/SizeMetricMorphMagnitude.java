@@ -6,6 +6,7 @@ public class SizeMetricMorphMagnitude{
 	public double percentChangeLowerBound;
 	public double percentChangeUpperBound;
 	public double oldValue;
+	public double newValue;
 	public final static double range = 1;
 	public final static double min = 0.1;
 	
@@ -28,6 +29,7 @@ public class SizeMetricMorphMagnitude{
 			if (newValue < innerUpperBound || newValue > innerLowerBound)
 				break;
 		}
+		this.newValue = newValue;
 		return newValue;
 	}
 	

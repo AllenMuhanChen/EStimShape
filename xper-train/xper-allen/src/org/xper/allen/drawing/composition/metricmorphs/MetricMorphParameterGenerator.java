@@ -23,8 +23,8 @@ public class MetricMorphParameterGenerator {
 		mmp.rotationMagnitude.percentChangeUpperBound = 0.05;
 		//length (arcLength of mAxis Arc)
 		mmp.lengthMagnitude = new LengthMetricMorphMagnitude(sampleScaleUpperLim/2);
-		mmp.lengthMagnitude.percentChangeLowerBound = 0.22;
-		mmp.lengthMagnitude.percentChangeUpperBound = 0.24;
+		mmp.lengthMagnitude.percentChangeLowerBound = 0.10;
+		mmp.lengthMagnitude.percentChangeUpperBound = 0.15;
 		//size (uniform scale of radProfile)
 		mmp.sizeMagnitude = new SizeMetricMorphMagnitude();
 		mmp.sizeMagnitude.percentChangeLowerBound = 0.22;

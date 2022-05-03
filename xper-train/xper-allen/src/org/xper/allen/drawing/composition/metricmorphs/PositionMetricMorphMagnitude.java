@@ -8,9 +8,10 @@ public class PositionMetricMorphMagnitude{
 	public double percentChangeLowerBound;
 	public double percentChangeUpperBound;
 	public double oldValue;
+	public double newValue;
 	public final static double min = 1;
 	public final static double max = 51;
-	private final static double range = max-min;
+	public final static double range = max-min;
 	public Point3d newPos;
 	/**
 	 * outterLowerBound < innerUpperBound < innerLowerBound < outerUpperBound
@@ -19,7 +20,7 @@ public class PositionMetricMorphMagnitude{
 	 * @return
 	 */
 	public int calculateMagnitude() {
-		double newValue;
+
 		double outerLowerBound = (oldValue - percentChangeUpperBound*range);
 		if(outerLowerBound < min)
 			outerLowerBound = min;

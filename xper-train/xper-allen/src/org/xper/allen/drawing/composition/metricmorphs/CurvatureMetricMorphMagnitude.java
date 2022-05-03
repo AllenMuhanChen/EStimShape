@@ -7,17 +7,18 @@ import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.drawing.stick.stickMath_lib;
 
 public class CurvatureMetricMorphMagnitude{
-	private double percentChangeLowerBound;
-	private double oldValue;
-	private double range;
-	private double radView;
+	public double percentChangeLowerBound;
+	public double oldValue;
+	public double newValue;
+	public double range;
+	public double radView;
 	public CurvatureMetricMorphMagnitude(double radView) {
 		this.radView = radView;
 	}
 
 
 	public double calculateMagnitude(AllenMAxisArc inArc) {
-		double newValue;
+
 		double oldCurvature = 1/oldValue;
 
 		while (true) {
