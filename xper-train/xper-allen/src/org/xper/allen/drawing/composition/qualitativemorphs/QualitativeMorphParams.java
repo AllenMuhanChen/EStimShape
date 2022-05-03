@@ -11,6 +11,6 @@ public class QualitativeMorphParams{
 	public CurvatureRotationQualitativeMorph curvRotQualMorph;
 	public SizeQualitativeMorph sizeQualMorph;
 	public RadProfileQualitativeMorph radProfileQualMorph;
-	public double CHANCE_TO_REMOVE = 0.25;
+	public double CHANCE_TO_REMOVE = 0;
 	
 }

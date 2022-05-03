@@ -6,8 +6,9 @@ public class LengthMetricMorphMagnitude{
 	public double percentChangeLowerBound;
 	public double percentChangeUpperBound;
 	public double oldValue;
+	public double newValue;
 	public double range;
-	private final static double min = 0.25;
+	public final static double min = 0.25;
 	
 	public LengthMetricMorphMagnitude(double range) {
 		this.range = range;
@@ -32,6 +33,7 @@ public class LengthMetricMorphMagnitude{
 			if (newValue < innerUpperBound || newValue > innerLowerBound)
 				break;
 		}
+		this.newValue = newValue;
 		return newValue;
 	}
 	

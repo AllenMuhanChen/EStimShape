@@ -6,7 +6,8 @@ public class RotationMetricMorphMagnitude{
 	public double percentChangeLowerBound;
 	public double percentChangeUpperBound;
 	public double oldValue;
-	private final static double range = 2*Math.PI;
+	public double newValue;
+	public final static double range = 2*Math.PI;
 	
 	
 	/**
@@ -26,6 +27,7 @@ public class RotationMetricMorphMagnitude{
 			if (newValue < innerUpperBound || newValue > innerLowerBound)
 				break;
 		}
+		this.newValue = newValue;
 		return newValue;
 	}
 	
