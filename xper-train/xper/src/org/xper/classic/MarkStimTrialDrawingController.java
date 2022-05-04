@@ -9,7 +9,7 @@ import org.xper.experiment.ExperimentTask;
 
 public class MarkStimTrialDrawingController implements TrialDrawingController {
 	@Dependency
-	protected Window window;
+	private Window window;
 	@Dependency
 	protected TaskScene taskScene;
 	@Dependency
@@ -35,15 +35,15 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 	}
 
 	public void init() {
-		window.create();
-		taskScene.initGL(window.getWidth(), window.getHeight());
+		getWindow().create();
+		taskScene.initGL(getWindow().getWidth(), getWindow().getHeight());
 
 		initialized = true;
 	}
 
 	public void destroy() {
 		if (initialized) {
-			window.destroy();
+			getWindow().destroy();
 			initialized = false;
 		}
 	}
@@ -56,13 +56,13 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 		taskScene.drawBlank(context, true, false);
 	}
 
-	public void fixationOn(TrialContext context) {
-		window.swapBuffers();
+	public void fixationOn(TrialContext context) {;
+		getWindow().swapBuffers();
 	}
 
 	public void initialEyeInFail(TrialContext context) {
 		taskScene.drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void prepareFirstSlide(ExperimentTask task, TrialContext context) {
@@ -72,21 +72,21 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 
 	public void eyeInHoldFail(TrialContext context) {
 		taskScene.drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void showSlide(ExperimentTask task, TrialContext context) {
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void animateSlide(ExperimentTask task, TrialContext context) {
 		animateTaskScene(task, context);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		taskScene.drawBlank(context, true, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void prepareNextSlide(ExperimentTask task, TrialContext context) {
@@ -96,7 +96,7 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 
 	public void eyeInBreak(TrialContext context) {
 		taskScene.drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public Window getWindow() {
@@ -117,7 +117,7 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 
 	public void trialComplete(TrialContext context) {
 		taskScene.drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void trialStop(TrialContext context) {

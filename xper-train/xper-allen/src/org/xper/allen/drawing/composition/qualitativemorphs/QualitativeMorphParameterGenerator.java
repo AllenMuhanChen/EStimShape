@@ -77,8 +77,8 @@ public class QualitativeMorphParameterGenerator {
 			positionBins.add(new Bin<Integer>(20,32));
 			positionBins.add(new Bin<Integer>(51,51));
 
-			getQmp().objCenteredPosQualMorph.setBaseTangentAngleSlideBounds(new Double[] {90 * Math.PI/180, 180 * Math.PI/180});
-			getQmp().objCenteredPosQualMorph.setPerpendicularAngleSlideBounds(new Double[] {0 * Math.PI/180, 90*Math.PI/180});
+			getQmp().objCenteredPosQualMorph.setAngleDifferenceBounds(new Double[] {90 * Math.PI/180, 270 * Math.PI/180});
+			
 		}
 		{//Curvature And Rotation
 			getQmp().curvRotQualMorph = new CurvatureRotationQualitativeMorph();

@@ -28,7 +28,6 @@ public class FixationPoint implements Drawable {
 		double x = renderer.deg2mm(fixationPosition.getX());
 		double y = renderer.deg2mm(fixationPosition.getY());
 		Coordinates2D posInMm = new Coordinates2D(x,y);
-		
 		drawVertexes(posInMm);
 	}
 

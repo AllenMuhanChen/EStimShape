@@ -91,12 +91,13 @@ public class MetricMorphOrientation {
 	private boolean checkInCanonicalBoundary(Vector3d vector) {
 		final double DEVIATION = 25*RAD;
 		List<Vector3d>canonicalBoundaries = new ArrayList<Vector3d>();
-		canonicalBoundaries.add(new Vector3d(1,0,0));
-		canonicalBoundaries.add(new Vector3d(-1,0,0));
-		canonicalBoundaries.add(new Vector3d(0,1,0));
-		canonicalBoundaries.add(new Vector3d(0,-1,0));
-		canonicalBoundaries.add(new Vector3d(0,0,1));
-		canonicalBoundaries.add(new Vector3d(0,0,-1));
+		double length = vector.length();
+		canonicalBoundaries.add(new Vector3d(length,0,0));
+		canonicalBoundaries.add(new Vector3d(-length,0,0));
+		canonicalBoundaries.add(new Vector3d(0,length,0));
+		canonicalBoundaries.add(new Vector3d(0,-length,0));
+		canonicalBoundaries.add(new Vector3d(0,0,length));
+		canonicalBoundaries.add(new Vector3d(0,0,-length));
 
 		for(int i=0; i<canonicalBoundaries.size(); i++) {
 			double angleDiff = vector.angle(canonicalBoundaries.get(i));

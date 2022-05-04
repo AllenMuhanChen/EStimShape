@@ -24,7 +24,7 @@ public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDr
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 	
 	public void prepareChoice(NAFCExperimentTask task, Context context) {
@@ -39,50 +39,48 @@ public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDr
 	//From MarkEveryStepTrialDrawingController
 	
 	public void trialStart(NAFCTrialContext context) {
-		getTaskScene().trialStart(context);
-		
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
-		window.swapBuffers();
-	}
-	
-	public void prepareFixationOn(TrialContext context) {
-		getTaskScene().nextMarker();
-		getTaskScene().drawBlank(context, true, true);
+		getWindow().swapBuffers();
+		
+		getTaskScene().trialStart(context);
 	}
 	
 	public void initialEyeInFail(TrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 	
 	public void eyeInHoldFail(TrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 	
+	public void prepareFixationOn(TrialContext context) {
+		getTaskScene().nextMarker();
+//		getWindow().swapBuffers();
+		getTaskScene().drawBlank(context, true, true);
+	}
 
 	public void eyeInBreak(TrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void trialComplete(TrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void trialStop(TrialContext context) {
 		// show no markers during inter trial interval
 		getTaskScene().drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 		
 		getTaskScene().trialStop(context);
 	}
-	
-
 }

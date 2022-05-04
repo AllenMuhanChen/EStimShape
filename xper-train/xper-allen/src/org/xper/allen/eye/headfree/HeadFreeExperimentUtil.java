@@ -43,11 +43,25 @@ public class HeadFreeExperimentUtil{
 		EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
 				currentContext);
 
-		//PREPARING SAMPLE & CHOICE!
+		// prepare fixation point: this needs to be called before prepareSample and prepareChoice or it doesn't get drawn
+		// NO idea why. Some GL call in prepareSample & Choice throws off the stencil writing. 
+		drawingController.prepareFixationOn(currentContext);
+		//PREPARING SAMPLE & CHOICE! 
 		drawingController.prepareSample(currentTask, currentContext); 
 		drawingController.prepareChoice(currentTask, currentContext);
 
+		//time before fixation point on
+		ThreadUtil.sleepOrPinUtil(trialStartLocalTime
+				+ state.getTimeBeforeFixationPointOn() * 1000, state,
+				threadHelper);
 
+		// fixation point on
+		drawingController.fixationOn(currentContext);
+		long fixationPointOnLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setFixationPointOnTime(fixationPointOnLocalTime);
+		EventUtil.fireFixationPointOnEvent(fixationPointOnLocalTime,
+				trialEventListeners, currentContext);
+		
 		while(fixationAttempt < maxFixationAttempts-1) {
 			fixationAttempt++;
 			NAFCTrialResult res = getFixationOnly(state, threadHelper, trialStartLocalTime);
@@ -61,32 +75,19 @@ public class HeadFreeExperimentUtil{
 	}
 
 	private static NAFCTrialResult getFixationOnly(NAFCExperimentState state, ThreadHelper threadHelper, long trialStartLocalTime) {
-		NAFCMarkEveryStepTrialDrawingController drawingController = (NAFCMarkEveryStepTrialDrawingController) state.getDrawingController();
-		TrialContext currentContext = state.getCurrentContext();
+		NAFCTrialDrawingController drawingController = (NAFCTrialDrawingController) state.getDrawingController();
+		NAFCTrialContext currentContext = state.getCurrentContext();
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		List<? extends TrialEventListener> trialEventListeners = state
 				.getTrialEventListeners();
 		EyeController eyeController = state.getEyeController();
 		NAFCExperimentTask currentTask = state.getCurrentTask();
 		
-		// prepare fixation point
-		drawingController.prepareFixationOn(currentContext);
 
-		// time before fixation point on
-		ThreadUtil.sleepOrPinUtil(trialStartLocalTime
-				+ state.getTimeBeforeFixationPointOn() * 1000, state,
-				threadHelper);
-
-		// fixation point on
-		drawingController.fixationOn(currentContext);
-		long fixationPointOnLocalTime = timeUtil.currentTimeMicros();
-		currentContext.setFixationPointOnTime(fixationPointOnLocalTime);
-		EventUtil.fireFixationPointOnEvent(fixationPointOnLocalTime,
-				trialEventListeners, currentContext);
 
 		// wait for initial eye in
 		boolean success = eyeController
-				.waitInitialEyeIn(fixationPointOnLocalTime
+				.waitInitialEyeIn(currentContext.getFixationPointOnTime()
 						+ state.getTimeAllowedForInitialEyeIn() * 1000);
 
 		if (!success) {

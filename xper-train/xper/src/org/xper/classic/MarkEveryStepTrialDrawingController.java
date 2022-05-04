@@ -11,7 +11,7 @@ public class MarkEveryStepTrialDrawingController extends
 		
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 	
 	public void prepareFixationOn(TrialContext context) {
@@ -22,37 +22,37 @@ public class MarkEveryStepTrialDrawingController extends
 	public void initialEyeInFail(TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 	
 	public void eyeInHoldFail(TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 	
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, true, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void eyeInBreak(TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void trialComplete(TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public void trialStop(TrialContext context) {
 		// show no markers during inter trial interval
 		taskScene.drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 		
 		taskScene.trialStop(context);
 	}

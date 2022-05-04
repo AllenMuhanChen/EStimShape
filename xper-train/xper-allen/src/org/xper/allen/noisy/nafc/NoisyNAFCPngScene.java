@@ -13,6 +13,7 @@ import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
+import org.xper.drawing.object.FixationPoint;
 import org.xper.experiment.ExperimentTask;
 
 public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
@@ -45,10 +46,11 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	
 	public void initGL(int w, int h) {
 		
-		super.setUseStencil(true);
+		setUseStencil(true);
 		super.initGL(w, h);
 		
 		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);
+		GL11.glViewport(0,0,w,h);
 		
 	}
 
@@ -120,13 +122,39 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 				}
 				
 				if (fixationOn) {
-					 fixation.draw(context);
+					 getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {
 					// 0 will pass for stimulus region
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
+			}}, context);
+	}
+	
+	public void drawBlank(Context context, final boolean fixationOn, final boolean markerOn) {
+		
+		
+		blankScreen.draw(null);
+		renderer.draw(new Drawable() {
+			public void draw(Context context) {		
+				if (useStencil) {
+					// 1 will pass for fixation and marker regions
+					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
+				}
+				if (fixationOn) {
+					getFixation().draw(context);
+				}
+				if (markerOn) {
+					marker.draw(context);
+				} else {
+					marker.drawAllOff(context);
+				}
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+//				drawCustomBlank(context);
 			}}, context);
 	}
 	
@@ -151,7 +179,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 				}
 				
 				if (fixationOn) {
-					 fixation.draw(context);
+					 getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {
@@ -160,6 +188,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 				}
 			}}, context);
 	}
+	
 	
 	public void nextNoise() {
 		this.noiseIndx++;
