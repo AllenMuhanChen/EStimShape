@@ -87,7 +87,6 @@ public class NAFCTrialExperiment implements Experiment {
 							try {
 								try {
 									//target info -AC
-
 									Coordinates2D[] targetPosition = context.getCurrentTask().getTargetEyeWinCoords();
 									double[] targetEyeWinSize = context.getCurrentTask().getTargetEyeWinSize();
 									context.setTargetPos(targetPosition);

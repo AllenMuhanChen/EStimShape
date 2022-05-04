@@ -137,7 +137,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 
 				if (fixationOn) {
-					fixation.draw(context);
+					getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {
@@ -172,7 +172,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 
 				if (fixationOn) {
-					fixation.draw(context);
+					getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {
@@ -223,7 +223,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 
 				if (fixationOn) {
-					fixation.draw(context);
+					getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {

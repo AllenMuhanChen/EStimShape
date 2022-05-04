@@ -86,7 +86,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	 */
 	public void loadNoise(String pathname, int textureIndex) {
 		drawNoise = true;
-		System.out.println("AC4747823: noisepathname: " + pathname);
+//		System.out.println("AC4747823: noisepathname: " + pathname);
 		try {
 			File imageFile = new File(pathname);
 			BufferedImage img = ImageIO.read(imageFile);
@@ -259,8 +259,8 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		//		currentNoiseIndx++;
-		System.out.println(currentNoiseIndx);
-		System.out.println(getTextureIds().capacity());
+//		System.out.println(currentNoiseIndx);
+//		System.out.println(getTextureIds().capacity());
 		//		GL11.glPopMatrix();
 	}
 	//	
@@ -328,7 +328,6 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	public int loadTexture(String pathname, int textureIndex) {
 		try {
 			File imageFile = new File(pathname);
-			System.out.println("AC 12389021: " + imageFile.getAbsolutePath());
 			BufferedImage img = ImageIO.read(imageFile);
 			getImgWidth().add(textureIndex, img.getWidth());
 			getImgHeight().add(textureIndex, img.getHeight());

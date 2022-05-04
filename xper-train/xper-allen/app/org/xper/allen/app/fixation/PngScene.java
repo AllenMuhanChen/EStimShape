@@ -76,7 +76,7 @@ public class PngScene extends AbstractTaskScene{
 				}
 				
 				if (true) {
-					 fixation.draw(context);
+					 getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {

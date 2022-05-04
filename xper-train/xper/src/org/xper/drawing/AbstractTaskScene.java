@@ -10,7 +10,7 @@ public abstract class AbstractTaskScene implements TaskScene {
 	@Dependency
 	protected Renderer renderer;
 	@Dependency
-	protected Drawable fixation;
+	private Drawable fixation;
 	@Dependency
 	protected Drawable blankScreen;
 	@Dependency
@@ -32,7 +32,7 @@ public abstract class AbstractTaskScene implements TaskScene {
 			GL11.glStencilOp(GL11.GL_REPLACE, GL11.GL_KEEP, GL11.GL_KEEP);
 			renderer.draw(new Drawable() {
 				public void draw(Context context) {	
-					fixation.draw(context);
+					getFixation().draw(context);
 					marker.draw(context);
 				}
 			}, new Context());
@@ -56,7 +56,7 @@ public abstract class AbstractTaskScene implements TaskScene {
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
 				if (fixationOn) {
-					fixation.draw(context);
+					getFixation().draw(context);
 				}
 				if (markerOn) {
 					marker.draw(context);
@@ -89,7 +89,7 @@ public abstract class AbstractTaskScene implements TaskScene {
 				}
 				
 				if (fixationOn) {
-					 fixation.draw(context);
+					 getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {

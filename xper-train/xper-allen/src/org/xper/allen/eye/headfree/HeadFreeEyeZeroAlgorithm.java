@@ -63,7 +63,6 @@ public class HeadFreeEyeZeroAlgorithm extends MovingAverageEyeZeroAlgorithm{
 			}
 			Coordinates2D average = new Coordinates2D();
 			int n = getEyeZeroInnerIndex() > getEyeInnerZero().length ? getEyeInnerZero().length : getEyeZeroInnerIndex();
-			System.out.println("AC908450345843: Inner n: " + n);
 			if(n>0)
 			for (int i = 0; i < n; i++) {
 				average.setX(average.getX() + getEyeInnerZero()[i].getX());
@@ -72,7 +71,6 @@ public class HeadFreeEyeZeroAlgorithm extends MovingAverageEyeZeroAlgorithm{
 
 			average.setX(average.getX() / n);
 			average.setY(average.getY() / n);
-			System.out.println("AC000000: INNER Average: " + average);
 			return average;
 		}
 		else {
@@ -86,7 +84,7 @@ public class HeadFreeEyeZeroAlgorithm extends MovingAverageEyeZeroAlgorithm{
 
 			average.setX(average.getX() / n);
 			average.setY(average.getY() / n);
-			System.out.println("AC000000: TOTAL Average: " + average);
+//			System.out.println("AC000000: TOTAL Average: " + average);
 
 			//Reset Inner Data
 			setEyeInnerZero(new Coordinates2D[innerSpan]);
@@ -95,7 +93,7 @@ public class HeadFreeEyeZeroAlgorithm extends MovingAverageEyeZeroAlgorithm{
 				getEyeInnerZero()[i] = new Coordinates2D();
 			}
 			eyeZeroInnerIndex=0;
-			System.out.println("AC222222: Resetting InnerEyeZero");
+//			System.out.println("AC222222: Resetting InnerEyeZero");
 			return average;
 
 		}

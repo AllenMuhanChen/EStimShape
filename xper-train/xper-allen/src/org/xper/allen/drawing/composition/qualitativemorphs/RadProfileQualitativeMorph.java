@@ -113,8 +113,8 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 	private Vector3d newVectorFromBins(List<Vector3d> binList, int assignedBin){
 		Vector3d newRadProfile = new Vector3d();
 		while(true) {
-			newRadProfile = stickMath_lib.randomUnitVec();
-
+//			newRadProfile = stickMath_lib.randomUnitVec();
+			newRadProfile = new Vector3d(stickMath_lib.rand01(),stickMath_lib.rand01(),stickMath_lib.rand01());
 			double angle = newRadProfile.angle(binList.get(assignedRadProfileBin));
 
 			if(angle<getBinAngleDeviation()) {
@@ -142,6 +142,13 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 
 	}
 
+	/**
+	 * Chooses the furthest bin within 10 random pulls from the binList. 
+	 * @param <T>
+	 * @param binList
+	 * @param closestBin
+	 * @return
+	 */
 	private <T> int chooseFurtherRadProfileBin(List<Vector3d> binList, int closestBin) {
 		int newBin;
 		int nTries = 10;
@@ -322,7 +329,7 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 		this.setJuncEnabled(morphJunc);
 	}
 
-	private boolean isJuncEnabled() {
+	public boolean isJuncEnabled() {
 		return juncEnabled;
 	}
 
@@ -338,6 +345,11 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 		this.oldRadProfile = oldRadProfile;
 	}
 
+	/**
+	 * binAngleDeviation: max angles in rad a newVector should be from 
+	 * from specified vector in the bin. 
+	 * @return
+	 */
 	private double getBinAngleDeviation() {
 		return binAngleDeviation;
 	}

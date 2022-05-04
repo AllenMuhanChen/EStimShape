@@ -9,7 +9,7 @@ public class SaccadeMarkEveryStepTrialDrawingController extends MarkEveryStepTri
 	public void slideFinish(ExperimentTask task, TrialContext context) {
 		taskScene.nextMarker();
 		taskScene.drawBlank(context, false, true);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 	
 }

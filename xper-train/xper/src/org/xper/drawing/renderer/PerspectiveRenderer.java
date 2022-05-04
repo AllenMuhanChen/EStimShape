@@ -43,12 +43,10 @@ public class PerspectiveRenderer extends AbstractRenderer {
 	 * AC: modified to call setup() right before draw. pushMatrix and popMatrix are added just in case. 
 	 */
 	public void draw(Drawable scene, Context context) {		
-		GL11.glPushMatrix();
 		context.setViewportIndex(0);
 		context.setRenderer(this);
 		setup();
 		scene.draw(context);
-		GL11.glPopMatrix();
 	}
 	
 }

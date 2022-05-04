@@ -30,14 +30,14 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	/////////////////
 	public void slideFinish(ExperimentTask task, NAFCTrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, false);
-		window.swapBuffers();
+		getWindow().swapBuffers();
 		startTime=0;
 	}
 
@@ -53,7 +53,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		} else {
 			getTaskScene().drawBlank(context, false, false);
 		}
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 
@@ -70,7 +70,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		} else {
 			getTaskScene().drawBlank(context, false, false);
 		}
-		window.swapBuffers();
+		getWindow().swapBuffers();
 	}
 
 	public NAFCTaskScene getNAFCTaskScene() {
@@ -83,18 +83,49 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	// not sure if below needed. 
 	public void init() {
-		window.create();
-		getTaskScene().initGL(window.getWidth(), window.getHeight());
+		getWindow().create();
+		getTaskScene().initGL(getWindow().getWidth(), getWindow().getHeight());
 		initialized = true;
 	}
 
 	public void destroy() {
 		if (initialized) {
-			window.destroy();
+			getWindow().destroy();
 			initialized = false;
 		}
 	}
 
+//	public void animateSample(NAFCExperimentTask task, NAFCTrialContext context) {
+//		if(task!=null) {
+//			getTaskScene().drawBlank(context, fixationOnWithStimuli, true);
+//		} else {
+//			
+//		}
+//		getWindow().swapBuffers();
+//		if(showTiming) {
+//			long nowTime = timeUtil.currentTimeMicros();
+//			if(startTime==0) {
+//				startTime = nowTime;
+//			}
+//			long frameTime=0;
+//			if(lastTime!=0) {
+//				frameTime = nowTime-lastTime;
+//			}
+//
+//			System.out.println("AC MICROS SINCE LAST BUFFER SWAP: " + frameTime);
+//			lastTime = nowTime;
+//			if(frameTime>18000) {
+//				int temp = Math.round(frameTime/16666);
+//				skippedFrames = skippedFrames + temp;
+//			}
+//
+//			System.out.println("AC TOTAL SKIPPED FRAMES: " + skippedFrames);
+//			long timeElapsed = nowTime - startTime;
+//
+//			System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
+//		}
+//	}
+//	
 	public void animateSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task!=null) {
 			long startTime = timeUtil.currentTimeMicros();
@@ -106,7 +137,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		} else {
 			getTaskScene().drawBlank(context, fixationOnWithStimuli, true);
 		}
-		window.swapBuffers();
+		getWindow().swapBuffers();
 		if(showTiming) {
 			long nowTime = timeUtil.currentTimeMicros();
 			if(startTime==0) {
@@ -131,7 +162,6 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		}
 	}
 	//		System.out.println("MAX TEXTURES: " + GL11.GL_MAX_TEXTURE_STACK_DEPTH);
-
 
 	public NAFCTaskScene getTaskScene() {
 		return taskScene;

@@ -103,7 +103,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 				
 				if (fixationOn) {
-					 fixation.draw(context);
+					 getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {
@@ -135,7 +135,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 				
 				if (fixationOn) {
-					 fixation.draw(context);
+					 getFixation().draw(context);
 				}
 				marker.draw(context);
 				if (useStencil) {

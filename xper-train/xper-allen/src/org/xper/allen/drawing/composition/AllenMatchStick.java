@@ -1015,7 +1015,7 @@ public class AllenMatchStick extends MatchStick {
 
 					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 
-					if(qmp.objCenteredPosQualMorph.isJuncEnabled()) {
+					if(qmp.radProfileQualMorph.isJuncEnabled()) {
 						if ( Math.abs( u_value - 0.0) < 0.0001)
 						{
 							if(qmp.radProfileQualMorph.isJuncFlag()) {

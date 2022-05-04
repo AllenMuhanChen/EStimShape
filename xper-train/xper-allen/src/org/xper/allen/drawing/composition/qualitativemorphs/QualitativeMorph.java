@@ -172,8 +172,17 @@ public abstract class QualitativeMorph {
 	 * all angles should be in radians
 	 * @return
 	 */
-	protected Vector3d angles2UnitVector(double alpha, double beta) {
-		double rho = 1;
+	public static Vector3d angles2UnitVector(double alpha, double beta) {
+		double rho = 1.0;
+		double x = rho*Math.sin(beta)*Math.cos(alpha);
+		double y = rho*Math.sin(beta)*Math.sin(alpha);
+		double z = rho*Math.cos(beta);
+
+		return new Vector3d(x,y,z);
+	}
+	
+	public static Vector3d angles2Vector(double alpha, double beta, double length) {
+		double rho = length;
 		double x = rho*Math.sin(beta)*Math.cos(alpha);
 		double y = rho*Math.sin(beta)*Math.sin(alpha);
 		double z = rho*Math.cos(beta);
