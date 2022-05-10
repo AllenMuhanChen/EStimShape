@@ -114,12 +114,13 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 			for(int i=0; i<numNoiseFrames;i++) {
 				byte[] noise = generateNoise(textureIndex, noiseMap);
 				ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(noise.length).put(noise, 0x00000000, noise.length).flip();
-				GL11.glEnable(GL11.GL_TEXTURE_2D);
+//				GL11.glEnable(GL11.GL_TEXTURE_2D);
 				GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(numImageTextures+i));
 				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
 				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
 				GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
 				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, getImgWidth().get(textureIndex), getImgHeight().get(textureIndex), 0,  GL11.GL_RGBA,  GL11.GL_BYTE, pixels);
+//				GL11.glDisable(GL11.GL_TEXTURE_2D);
 			}
 
 		}catch(Exception e) {

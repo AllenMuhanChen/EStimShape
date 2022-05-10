@@ -2925,9 +2925,33 @@ Adding a new MAxisArc to a MatchStick
 
 	public boolean vetLeaf(int leafIndx) {
 		AllenTubeComp toVet = this.getComp()[leafIndx];
-		Vector3d orientation = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
+		Vector3d tangent = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
+		
+		boolean orientationCheck = vetLeafOrientation(tangent);
+		return orientationCheck;
+	}
+	
+	/**
+	 * @param tangent
+	 * @return
+	 */
+	private boolean vetLeafOrientation(Vector3d tangent) {
 		double[] angles;
-		angles = QualitativeMorph.Vector2Angles(orientation);
+		angles = QualitativeMorph.Vector2Angles(tangent);
+		
+		boolean isLeafTooBackFacing = isLeafTooBackFacing(angles);
+		
+		return isLeafTooBackFacing;
+	}
+	
+	/**
+	 * 
+	 * @param angles: angles[0]: alpha/theta; angles[1]: beta/phi in spherical coordinates
+	 * alpha/theta: angle of projection to x-y plane. Angle from x axis to y-axis
+	 * beta/psi: angle between vector and z-axis. 
+	 * @return
+	 */
+	private boolean isLeafTooBackFacing(double[] angles) {
 		double forbiddenAngle = 180 * Math.PI/180;
 		double deviation = 45 * Math.PI/180;
 
@@ -2938,7 +2962,6 @@ Adding a new MAxisArc to a MatchStick
 		while(angleToCheck > 360 * Math.PI/180) {
 			angleToCheck -= 360 * Math.PI/180;
 		}
-
 		if((angleToCheck > forbiddenAngle - deviation) && (angleToCheck < forbiddenAngle + deviation)) {
 			return false;
 		}

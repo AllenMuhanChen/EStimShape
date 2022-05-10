@@ -43,24 +43,11 @@ public class HeadFreeExperimentUtil{
 		EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
 				currentContext);
 
-		// prepare fixation point: this needs to be called before prepareSample and prepareChoice or it doesn't get drawn
-		// NO idea why. Some GL call in prepareSample & Choice throws off the stencil writing. 
-		drawingController.prepareFixationOn(currentContext);
 		//PREPARING SAMPLE & CHOICE! 
 		drawingController.prepareSample(currentTask, currentContext); 
 		drawingController.prepareChoice(currentTask, currentContext);
 
-		//time before fixation point on
-		ThreadUtil.sleepOrPinUtil(trialStartLocalTime
-				+ state.getTimeBeforeFixationPointOn() * 1000, state,
-				threadHelper);
 
-		// fixation point on
-		drawingController.fixationOn(currentContext);
-		long fixationPointOnLocalTime = timeUtil.currentTimeMicros();
-		currentContext.setFixationPointOnTime(fixationPointOnLocalTime);
-		EventUtil.fireFixationPointOnEvent(fixationPointOnLocalTime,
-				trialEventListeners, currentContext);
 		
 		while(fixationAttempt < maxFixationAttempts-1) {
 			fixationAttempt++;
@@ -83,11 +70,20 @@ public class HeadFreeExperimentUtil{
 		EyeController eyeController = state.getEyeController();
 		NAFCExperimentTask currentTask = state.getCurrentTask();
 		
-
-
+		
+		drawingController.prepareFixationOn(currentContext);
+		//time before fixation point on
+		ThreadUtil.sleepOrPinUtil(trialStartLocalTime
+				+ state.getTimeBeforeFixationPointOn() * 1000, state,
+				threadHelper);
+		drawingController.fixationOn(currentContext);
+		long fixationPointOnLocalTime = timeUtil.currentTimeMicros();
+		currentContext.setFixationPointOnTime(fixationPointOnLocalTime);
+		EventUtil.fireFixationPointOnEvent(fixationPointOnLocalTime,
+				trialEventListeners, currentContext);
 		// wait for initial eye in
 		boolean success = eyeController
-				.waitInitialEyeIn(currentContext.getFixationPointOnTime()
+				.waitInitialEyeIn(fixationPointOnLocalTime
 						+ state.getTimeAllowedForInitialEyeIn() * 1000);
 
 		if (!success) {
