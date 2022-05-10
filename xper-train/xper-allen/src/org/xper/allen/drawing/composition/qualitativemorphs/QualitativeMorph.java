@@ -168,7 +168,7 @@ public abstract class QualitativeMorph {
 	/**
 	 * Two spherical coordinate angles to cartesian vector
 	 * @param alpha (or theta): angle on the X-Y plane between vector projection and X axis
-	 * @param beta (or phi): angle on the Z plane between Z-axis and vector
+	 * @param beta (or phi): angle between Z-axis and vector
 	 * all angles should be in radians
 	 * @return
 	 */

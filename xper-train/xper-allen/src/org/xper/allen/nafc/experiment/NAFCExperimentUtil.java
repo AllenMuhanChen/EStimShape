@@ -89,6 +89,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				drawingController.eyeInHoldFail(currentContext);
 				NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
 						choiceEventListeners, currentContext);
+				punishmentDelayTime += stateObject.getPunishmentDelayTime();
 				 
 				drawingController.slideFinish(currentTask, currentContext);
 				long sampleOffLocalTime = timeUtil.currentTimeMicros();

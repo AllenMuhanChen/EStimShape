@@ -66,7 +66,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void showChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
-			getTaskScene().drawChoice(context, true);
+			getTaskScene().drawChoice(context, false);
 		} else {
 			getTaskScene().drawBlank(context, false, false);
 		}
