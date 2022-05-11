@@ -110,20 +110,39 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 
 	}
 
+	/**
+	 * 
+	 * 05/11/22 Update to use JuncEnabled logic. 
+	 * @param binList
+	 * @param assignedBin
+	 * @return
+	 */
 	private Vector3d newVectorFromBins(List<Vector3d> binList, int assignedBin){
-		Vector3d newRadProfile = new Vector3d();
-		while(true) {
-//			newRadProfile = stickMath_lib.randomUnitVec();
-			newRadProfile = new Vector3d(stickMath_lib.rand01(),stickMath_lib.rand01(),stickMath_lib.rand01());
-			double angle = newRadProfile.angle(binList.get(assignedRadProfileBin));
-
-			if(angle<getBinAngleDeviation()) {
-				break;
+		if (isJuncEnabled()) {
+			Vector3d newRadProfile = new Vector3d();
+			while(true) {
+				newRadProfile = new Vector3d(stickMath_lib.rand01(),stickMath_lib.rand01(),stickMath_lib.rand01());
+				double angle = newRadProfile.angle(binList.get(assignedRadProfileBin));
+				
+				if(angle<getBinAngleDeviation()) {
+					break;
+				}
+			}
+			return newRadProfile;
+		}
+		else {
+			Vector2d newRadProfile = new Vector2d();
+			Vector2d bin = new Vector2d(binList.get(assignedRadProfileBin).getY(), binList.get(assignedRadProfileBin).getZ());
+			while(true) {
+				newRadProfile = new Vector2d(stickMath_lib.rand01(),stickMath_lib.rand01());
+				double angle = newRadProfile.angle(bin);
+				if(angle<getBinAngleDeviation()) {
+					break;
+				}
 			}
 
+			return new Vector3d(0, newRadProfile.getX(), newRadProfile.getY());
 		}
-
-		return newRadProfile;
 	}
 
 	private int findClosestRadProfileBin(List<Vector3d> binList, Vector3d nowVec) {

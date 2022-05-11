@@ -21,7 +21,7 @@ using TimesDates
 using Dates
 
 defaultHost =  "mysql://172.30.6.80"
-defaultSchema = "allen_estimshape_dev_220404"
+defaultSchema = "allen_estimshape_train_220503"
 username = "xper_rw"
 password = "up2nite"
 

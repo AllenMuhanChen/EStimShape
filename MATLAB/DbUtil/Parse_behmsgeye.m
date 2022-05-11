@@ -3,11 +3,11 @@ function [xs_left, ys_left, xs_right, ys_right] = Parse_behmsgeye(trialInit_tsta
 %out the x-y eye data from each eye between targetOn and targetOff. 
 global conn;
 %% Get tstamp of "TargetOff"/"TargetOn" between inputs
-targetOn_tstamp = TStampBetween(trialInit_tstamp, trialStop_tstamp, "TargetOff");
-targetOff_tstamp = TStampBetween(trialInit_tstamp, trialStop_tstamp, "TargetOn");
+targetOn_tstamp = TStampBetween(trialInit_tstamp, trialStop_tstamp, "TrialStart");
+targetOff_tstamp = TStampBetween(trialInit_tstamp, trialStop_tstamp, "ChoicesOff");
 %% Read begmsgeye between TargetOn and TargetOff
 disp("Starting MySQL Query")
-sqlQuery = "SELECT msg FROM behmsgeye WHERE tstamp<"+num2str(targetOn_tstamp)+" AND tstamp>"+num2str(targetOff_tstamp);
+sqlQuery = "SELECT msg FROM BehMsgEye WHERE tstamp<"+num2str(targetOn_tstamp)+" AND tstamp>"+num2str(targetOff_tstamp);
 behmsgeye_msgs = fetch(conn,sqlQuery);
 disp("Finished MySQL Query")
 
