@@ -2,7 +2,7 @@
 
 function ParseTrial(trialInit_tstamp, trialStop_tstamp, fig)
 global conn;
-conn = DBConnect(); %outside of function
+conn = getDbConn(); %outside of function
 global screen_width_deg; global screen_height_deg; global fixation_color; global fixation_size;
 
 %% Parsing

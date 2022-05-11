@@ -20,7 +20,7 @@ using DataFramesMeta
 include("./DBUtil.jl")
 
 global conn = DbUtil.connect()
-date = Date(2022,05,03)
+date = Date(2022,05,10)
 
 #behMsg = DbUtil.getBehMsg(DbUtil.today)
 behMsg = DbUtil.getBehMsg(date)
@@ -32,17 +32,45 @@ trialStarts = behMsg[behMsg.type .== "TrialStart", :tstamp]
 trialStops = behMsg[behMsg.type .== "TrialStop", :tstamp]
 
 #BALANCE trialStart and trialStop 
-if length(trialStarts) != length(trialStops)
 
-    #the first trialStop is before the first trialStop
-    if first(trialStops) < first(trialStarts)
-        popfirst!(trialStops);
+#the first trialStop is before the first trialStart
+if first(trialStops) < first(trialStarts)
+    popfirst!(trialStops);
     
-    #the last trialStart is after the last trialStop
-    elseif last(trialStart) > last(trialStops)
-        pop!(trialStarts);
+    # the last trialStart is after the last trialStop
+elseif last(trialStarts) > last(trialStops)
+    pop!(trialStarts);
+end 
+# end 
+# elseif (last(trialStarts) > trialStops[end-1])
+#     pop!(trialStops)
+# end 
+
+
+newTrialStarts = deepcopy(trialStarts)
+newTrialStops = deepcopy(trialStops)
+if length(trialStarts) > length(trialStops)
+    
+    for i in 1:size(trialStops,1)
+        if !(trialStarts[i] < trialStops[i])
+            deleteat!(newTrialStarts,i)
+            break
+            
+        end 
+    end
+    
+else 
+    
+    for i in 1:size(trialStarts,1)
+        if !(trialStops[i]>trialStarts[i])
+            deleteat!(newTrialStops,i)
+            break
+        end
     end 
-end
+end 
+
+trialStarts =  copy(newTrialStarts)
+trialStops = copy(newTrialStops)
 
 """
 Given a trialStart and trialStop time in microseconds, check if there are any tstamps in between trialStart and trialStop. return true if yes. return false if no. 
@@ -60,6 +88,8 @@ df = DataFrame();
 df.trialStart = trialStarts
 df.trialStop = trialStops
 
+
+
 #trialComplete tstamps from behMsg. Filter down to where there is only trialCompletes between trialStarts and trialStops
 trialCompletes = behMsg[behMsg.type .== "TrialComplete", :tstamp]
 df = filter([:trialStart, :trialStop] => (x,y)->checkForMsgType(x,y,trialCompletes), df)
@@ -73,7 +103,7 @@ df.choiceSelectionSuccess = choiceSelectionSuccesses;
 #stimSpecIds from behMsg trialCompletes
 trialCompleteXml = filter([:tstamp] => x -> issubset(x,df.trialComplete), behMsg)
 getStimSpecId = DbUtil.makeXMLParser(["stimSpecId"]);
-stimSpecIds = parse.(Int64,getStimSpecId.(stimSpecsXml))
+stimSpecIds = parse.(Int64,getStimSpecId.(trialCompleteXml[:,:msg]))
 df.stimSpecId = stimSpecIds;
 
 #StimSpec spec XML strings from stimSpecIds & stimSpec
@@ -115,18 +145,35 @@ getQmp = DbUtil.makeXMLParser(["qualitativeMorphParameters","org.xper.allen.draw
 
 
 
+## SAMPLE PLOTTING
 
+using Plots
+function plotChoices(data::DataFrame, title::String)
+    numTrials = size(data,1) 
+    numMatches = size(filter(x -> x=="Match", data.choice),1)
+    numQM = size(filter(x -> x=="QM", data.choice),1)
+    numRand = size(filter(x -> x=="RAND", data.choice),1)
+    percentMatches = numMatches / numTrials;
+    percentQM = numQM / numTrials;
+    percentRand = numRand / numTrials;
+    
+    
+    # y = [percentMatches, percentQM, percentRand]
+    n = [numMatches, numQM, numRand]
+    y = n./numTrials * 100
+    p = plot(y, st=:bar, texts=[@sprintf("%.2f%%, n=%d", y[i],n[i]) for i in 1:size(y,1)])
+    plot!(title=title)
+    plot!(xticks=(1:3, ["Match","QM Distractor","Rand Distractor"]))
+    plot!(label="% Chosen")
+    return p
+end 
 
+#Choices: ALL
+plotChoices(data, "Choice Percentage: ALL")
 
-
-
-
-
-
-
-
-
-
+#Choices: Noisy
+noisy = filter([:noiseType] => x->x!="NONE", data)
+plotChoices(noisy, "Choice Percentage: Noisy Only")
 
 
 
@@ -136,7 +183,7 @@ getQmp = DbUtil.makeXMLParser(["qualitativeMorphParameters","org.xper.allen.draw
 stimObjData = DbUtil.getStimObjData(date)
 getWidth = DbUtil.makeXMLParser(["dimensions","width"])
 widthChecker = DbUtil.makeXMLChecker(getWidth, "8.0")
- 
+
 filter(:spec => widthChecker, stimObjData) #subset into where dimensions.width="8.0" in spec
 
 ## DEMO RETURN DATA FROM XML spec

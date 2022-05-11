@@ -4,7 +4,7 @@ close all;
 
 global conn;
 global screen_width_deg; global screen_height_deg; global fixation_color; global fixation_size;
-conn = DBConnect(); %outside of function
+conn = getDbConn(); %outside of function
 
 %% Set-up for Saving Data
 home_path = "C:\Users\a1_allen\Documents\Saccade Training Eye Traces";
@@ -46,9 +46,9 @@ while ~programStop
             ParseTrial(previousTrialStop, recentTrialStop, fig);
             figure(fig);
             filename = [datestr(now, 'HH-MM-SS') '.fig'];
-            savefig(fullfile(path,filename));
+           % savefig(fullfile(path,filename));
             filename = [datestr(now, 'HH-MM-SS') '.png'];
-            saveas(fig, fullfile(path,filename));
+            %saveas(fig, fullfile(path,filename));
             
             catch E
                 warning('Problematic Loading... Skipping')

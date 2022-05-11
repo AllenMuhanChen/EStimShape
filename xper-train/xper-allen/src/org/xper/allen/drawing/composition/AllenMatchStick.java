@@ -34,6 +34,7 @@ import org.xper.drawing.stick.stickMath_lib;
 public class AllenMatchStick extends MatchStick {
 
 	public static final double MAX_LEAF_TO_BASE_AREA_RATIO = 0.66;
+	public static final double MIN_LEAF_TO_BASE_AREA_RATIO = 0.2;
 	private AllenTubeComp[] comp = new AllenTubeComp[9];
 	private int nEndPt;
 	private int nJuncPt;
@@ -97,7 +98,7 @@ public class AllenMatchStick extends MatchStick {
 		drawNoiseMapSkeleton();
 
 	}
-	
+
 	public NoiseData setNoiseParameters(NoiseType noiseType, double[] noiseChanceBounds) {
 		if(noiseType == NoiseType.NONE) {
 			this.noiseChanceBounds = new double[]{0,0};
@@ -109,7 +110,7 @@ public class AllenMatchStick extends MatchStick {
 			this.noiseChanceBounds = noiseChanceBounds;
 			this.noiseNormalizedPositions = new double[] {1, 1.3};
 		}
-		 
+
 		return new NoiseData(noiseType, this.noiseNormalizedPositions, this.noiseChanceBounds);
 	}
 
@@ -146,7 +147,7 @@ public class AllenMatchStick extends MatchStick {
 		// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
 		ArrayList<Point> hullPoints = noiseMap.hull;
 
-//		GL11.glPolygonOffset(1, 1);
+		//		GL11.glPolygonOffset(1, 1);
 		for (int i=0; i<=hullPoints.size()-2; i++)
 		{
 			Point p1 = hullPoints.get(i);
@@ -1612,29 +1613,34 @@ public class AllenMatchStick extends MatchStick {
 			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
 			boolean sizeVetSuccess = false;
 			if (smoothSuccess == true){ // success to smooth
-				int leafNVect = getComp()[leafIndx].getnVect();
-				Point3d[] leafVect_info = getComp()[leafIndx].getVect_info();
-				Point3d[] leafBox = getBoundingBox(leafNVect, leafVect_info);
-				double leafArea = findAreaOfBox(leafBox);
-
-				int baseNVect = getComp()[getBaseComp()].getnVect(); //TODO: could extend this beyond base, and add accessories
-				Point3d[] baseVect_info = getComp()[getBaseComp()].getVect_info();
-				Point3d[] baseBox = getBoundingBox(baseNVect, baseVect_info);
-				double baseArea = findAreaOfBox(baseBox);
-
-				if(leafArea < baseArea*MAX_LEAF_TO_BASE_AREA_RATIO) {
-					sizeVetSuccess = true;
+				sizeVetSuccess = vetLeafBaseSize(leafIndx);
+				if(sizeVetSuccess) {
+					return true;
 				}
 			}
 
-			if(sizeVetSuccess) {
-				return true;
-			}
 			// else we need to gen another shape
 			i++;
 		}
 		return false;
+	}
+	private boolean vetLeafBaseSize(int leafIndx) {
+		int leafNVect = getComp()[leafIndx].getnVect();
+		Point3d[] leafVect_info = getComp()[leafIndx].getVect_info();
+		Point3d[] leafBox = getBoundingBox(leafNVect, leafVect_info);
+		double leafArea = findAreaOfBox(leafBox);
 
+		int baseNVect = getComp()[getBaseComp()].getnVect(); //TODO: could extend this beyond base, and add accessories
+		Point3d[] baseVect_info = getComp()[getBaseComp()].getVect_info();
+		Point3d[] baseBox = getBoundingBox(baseNVect, baseVect_info);
+		double baseArea = findAreaOfBox(baseBox);
+
+		
+		if(leafArea < baseArea*MAX_LEAF_TO_BASE_AREA_RATIO && leafArea > baseArea*MIN_LEAF_TO_BASE_AREA_RATIO) {
+			return true;
+		}else {
+			return false;
+		}
 	}
 
 	public static double findAreaOfBox(Point3d[] box) {
@@ -2926,11 +2932,11 @@ Adding a new MAxisArc to a MatchStick
 	public boolean vetLeaf(int leafIndx) {
 		AllenTubeComp toVet = this.getComp()[leafIndx];
 		Vector3d tangent = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
-		
+
 		boolean orientationCheck = vetLeafOrientation(tangent);
 		return orientationCheck;
 	}
-	
+
 	/**
 	 * @param tangent
 	 * @return
@@ -2938,12 +2944,12 @@ Adding a new MAxisArc to a MatchStick
 	private boolean vetLeafOrientation(Vector3d tangent) {
 		double[] angles;
 		angles = QualitativeMorph.Vector2Angles(tangent);
-		
+
 		boolean isLeafTooBackFacing = isLeafTooBackFacing(angles);
-		
+
 		return isLeafTooBackFacing;
 	}
-	
+
 	/**
 	 * 
 	 * @param angles: angles[0]: alpha/theta; angles[1]: beta/phi in spherical coordinates
