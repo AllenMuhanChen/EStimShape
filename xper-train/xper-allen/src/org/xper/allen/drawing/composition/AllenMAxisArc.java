@@ -413,21 +413,21 @@ public class AllenMAxisArc extends MAxisArc {
 		}
 
 		// 1.5 AC. Counter current deviate angle
-//		if (  getRad() < 999999 ) // if the mAxisArc is a str8 line, no need to do this part
-//		{
-//			oriPt.set(getmPts()[rotCenter]);
-//
-//			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -getTransRotHis_devAngle());   		
-//			transMat.setRotation(axisInfo);
-//			for (i = 1 ; i <= getMaxStep(); i++)
-//			{
-//				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-//				transMat.transform(nowvec); 
-//				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt		
-//
-//				transMat.transform(getmTangent()[i]);             	             				
-//			}
-//		}
+		if (  getRad() < 999999 ) // if the mAxisArc is a str8 line, no need to do this part
+		{
+			oriPt.set(getmPts()[rotCenter]);
+
+			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -getTransRotHis_devAngle());   		
+			transMat.setRotation(axisInfo);
+			for (i = 1 ; i <= getMaxStep(); i++)
+			{
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec); 
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt		
+
+				transMat.transform(getmTangent()[i]);             	             				
+			}
+		}
 
 		//1.6 AC Define our normal angle
 		normal = new Vector3d(0,1,0);

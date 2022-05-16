@@ -690,8 +690,8 @@ public class AllenMatchStick extends MatchStick {
 				positionFlag = qmp.objCenteredPosQualMorph.isPositionFlag();
 
 				//ORIENTATION
-				Vector3d baseTangent = this.getComp()[getBaseComp()].getmAxisInfo().getmTangent()[newPosition];
-				qmp.objCenteredPosQualMorph.calculateNewTangent(baseTangent);
+				//Vector3d baseTangent = this.getComp()[getBaseComp()].getmAxisInfo().getmTangent()[newPosition];
+				qmp.objCenteredPosQualMorph.calculateNewTangent();
 			}
 		} // Object Centered Position
 		//CURVATURE AND ROTATION
