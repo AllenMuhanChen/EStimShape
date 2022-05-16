@@ -4,7 +4,7 @@ if isempty(varargin)
 else
     arr_ind = varargin{1};
 end 
-sqlQuery = 'SELECT val FROM systemvar WHERE name="'+name+'" AND arr_ind='+ num2str(arr_ind);
+sqlQuery = 'SELECT val FROM SystemVar WHERE name="'+name+'" AND arr_ind='+ num2str(arr_ind);
 val = fetch(conn,sqlQuery);
 val = table2array(val); 
 
