@@ -29,6 +29,9 @@ public class AllenPNGMaker{
 	@Dependency
 	String generatorImageFolderName;
 	@Dependency
+	private
+	String generatorNoiseMapFolderName;
+	@Dependency
 	double distance;
 	@Dependency
 	double pupilDistance;
@@ -91,16 +94,18 @@ public class AllenPNGMaker{
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(1.0f, 0,0);
 		testWindow.setPngMaker(this);
-		testWindow.setImageFolderName(generatorImageFolderName);
+		testWindow.setImageFolderName(generatorNoiseMapFolderName);
 		System.out.println("creating and Noise Map saving PNGs...");
 
 		testWindow.setStimObjs(objs);
 		testWindow.setStimObjIds(stimObjIds);
 		
+		int i=0;
 		for(List<String> labels : additionalLabels) {
 			List<String> newLabels = new ArrayList<>(labels);
 			newLabels.add(0, "noisemap");
-			additionalLabels.set(additionalLabels.indexOf(labels),newLabels);
+			additionalLabels.set(i,newLabels);
+			i++;
 		}
 		
 		List<String> paths = testWindow.drawNoiseMaps(additionalLabels);				// draw object
@@ -114,7 +119,7 @@ public class AllenPNGMaker{
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(1.0f, 0,0);
 		testWindow.setPngMaker(this);
-		testWindow.setImageFolderName(generatorImageFolderName);
+		testWindow.setImageFolderName(generatorNoiseMapFolderName);
 		System.out.println("creating and Noise Map saving PNGs...");
 
 		testWindow.setStimObjs(objs);
@@ -324,5 +329,13 @@ public class AllenPNGMaker{
 
 	public void setGeneratorImageFolderName(String generatorImageFolderName) {
 		this.generatorImageFolderName = generatorImageFolderName;
+	}
+
+	public String getGeneratorNoiseMapFolderName() {
+		return generatorNoiseMapFolderName;
+	}
+
+	public void setGeneratorNoiseMapFolderName(String generatorNoiseMapFolderName) {
+		this.generatorNoiseMapFolderName = generatorNoiseMapFolderName;
 	}
 }

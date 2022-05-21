@@ -185,9 +185,9 @@ public class AllenMAxisArc extends MAxisArc {
 			finalPos = new Point3d(inArc.getmPts()[alignedPt]);
 		}
 		// 
-		transRotMAxis(alignedPt, finalPos, inArc.getTransRotHis_rotCenter(), newTangent, newDevAngle);
-
-
+//		transRotMAxis(alignedPt, finalPos, inArc.getTransRotHis_rotCenter(), newTangent, newDevAngle);
+		transRotMAxis(alignedPt, finalPos, alignedPt, newTangent, newDevAngle);
+		
 
 		//		//AC DEBUG - Testing Rotation  metrics
 		//		System.out.println("AC858913: " + normal.x + ", " + normal.y + ", " + normal.z);
@@ -366,12 +366,14 @@ public class AllenMAxisArc extends MAxisArc {
 
 		//	 	System.out.println("transRot mAxis procedure:");
 		//	 	System.out.println("final pos: "+finalPos + "final tangent: "+finalTangent);
-		/// 1. rotate to [0 0 1]
+
 		int i;
 		Point3d oriPt = new Point3d();
 		Vector3d nowvec = new Vector3d(0,0,0);
-		Transform3D transMat = new Transform3D(); 	  
+		Transform3D transMat = new Transform3D(); 	
 		Vector3d oriTangent = getmTangent()[rotCenter];
+
+		/// 1. rotate to [0 0 1]
 		Vector3d interTangent = new Vector3d(0,0,1);
 		double Angle = oriTangent.angle(interTangent);
 		Vector3d RotAxis = new Vector3d(0,0,0);
@@ -412,22 +414,7 @@ public class AllenMAxisArc extends MAxisArc {
 			}
 		}
 
-		// 1.5 AC. Counter current deviate angle
-		if (  getRad() < 999999 ) // if the mAxisArc is a str8 line, no need to do this part
-		{
-			oriPt.set(getmPts()[rotCenter]);
 
-			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -getTransRotHis_devAngle());   		
-			transMat.setRotation(axisInfo);
-			for (i = 1 ; i <= getMaxStep(); i++)
-			{
-				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec); 
-				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt		
-
-				transMat.transform(getmTangent()[i]);             	             				
-			}
-		}
 
 		//1.6 AC Define our normal angle
 		normal = new Vector3d(0,1,0);
@@ -501,7 +488,7 @@ public class AllenMAxisArc extends MAxisArc {
 			//AC ADDITION:
 			transMat.transform(normal);
 		} else {
-			nowDeviateAngle = 0;
+			nowDeviateAngle = getTransRotHis_devAngle();
 		}
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 		//System.out.println("mPts[1] is at : "+ mPts[1]);

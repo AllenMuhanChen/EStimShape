@@ -15,7 +15,7 @@ import org.xper.drawing.stick.stickMath_lib;
  *
  */
 public class ObjectCenteredPositionQualitativeMorph extends QualitativeMorph{
-	private double PERCENT_CHANGE_POSITION = 0.5;
+	public double PERCENT_CHANGE_POSITION = 0.5;
 
 	private boolean positionFlag = false;
 	private boolean orientationFlag = false;

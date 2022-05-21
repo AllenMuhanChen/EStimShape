@@ -12,71 +12,24 @@ public class QualitativeMorphParameterGenerator {
 	private boolean manualMode = false;
 	private QualitativeMorphParams qmp;
 	private double maxImageDimensionDegrees;
+	
+	
 	public QualitativeMorphParameterGenerator(double maxImageDimensionDegrees) {
 		this.setMaxImageDimensionDegrees(maxImageDimensionDegrees);
 		this.setQmp(new QualitativeMorphParams());
 	}
-	public void chooseMorphs(int numCategories) {
-		getQmp().objectCenteredPositionFlag = false;
-		getQmp().curvatureRotationFlag = false;
-		getQmp().sizeFlag = false;
-		getQmp().radProfileFlag = false;
-		getQmp().removalFlag = false;
-
-		List<Integer> categories = new ArrayList<>();
-		categories.add(0); categories.add(1); categories.add(2); //categories.add(3);
-		Collections.shuffle(categories);
-		if(stickMath_lib.rand01()<getQmp().CHANCE_TO_REMOVE) {
-			getQmp().removalFlag = true;
-		}
-		else {
-			for(int i=0; i<numCategories; i++) {
-				int cat = categories.get(i);
-				if(cat==0) {
-					getQmp().objectCenteredPositionFlag = true;
-					//				System.out.println("Object Centered@@@@@@@@@@@");
-				}
-				else if (cat==1) {
-					getQmp().curvatureRotationFlag = true;
-					//				System.out.println("Curvature Rotation!!!!!!!!!!!!");
-				}
-				//			else if (cat==2) {
-				//				getQmp().sizeFlag = true;
-				////				System.out.println("Size##########");
-				//			}
-				else if (cat==2) {
-					getQmp().radProfileFlag = true;
-					//				System.out.println("Rad Profile%%%%%%%%%%");
-				}
-				//			else if (cat==3) {
-				//				getQmp().removalFlag = true;
-				//			}
-				else {
-					throw new IllegalArgumentException("There should only be 4 qualitative morph types");
-				}
-			}
-		}
-
-		if(manualMode) {
-			getQmp().objectCenteredPositionFlag = false;
-			getQmp().curvatureRotationFlag = false;
-			getQmp().sizeFlag = false;
-			getQmp().radProfileFlag = false;
-			getQmp().removalFlag = true;
-			//			getQmp().curvatureRotationFlag = true;
-			getQmp().radProfileFlag = false;
-		}
-	}
+	
 	public QualitativeMorphParams getQMP(int numCategories) {
 		chooseMorphs(numCategories);
 
 		{//Object Centered Position - Orientation and Position
 			getQmp().objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
+			getQmp().objCenteredPosQualMorph.PERCENT_CHANGE_POSITION = 0.5;
 			List<Bin<Integer>> positionBins = getQmp().objCenteredPosQualMorph.positionBins;
 			positionBins.add(new Bin<Integer>(1,1));
 			positionBins.add(new Bin<Integer>(20,32));
 			positionBins.add(new Bin<Integer>(51,51));
-
+			
 			getQmp().objCenteredPosQualMorph.setAngleDifferenceBounds(new Double[] {90 * Math.PI/180, 270 * Math.PI/180});
 			
 		}
@@ -125,20 +78,85 @@ public class QualitativeMorphParameterGenerator {
 		}
 		return getQmp();
 	}
+	
+	/**
+	 * Chooses Morphs randomly. Give only numCategories. 
+	 * @param numCategories
+	 */
+	protected void chooseMorphs(int numCategories) {
+		getQmp().objectCenteredPositionFlag = false;
+		getQmp().curvatureRotationFlag = false;
+		getQmp().sizeFlag = false;
+		getQmp().radProfileFlag = false;
+		getQmp().removalFlag = false;
 
-	private QualitativeMorphParams getQmp() {
+		List<Integer> categories = new ArrayList<>();
+		categories.add(0); categories.add(1); categories.add(2); //categories.add(3);
+		Collections.shuffle(categories);
+		if(stickMath_lib.rand01()<getQmp().getCHANCE_TO_REMOVE()) {
+			getQmp().removalFlag = true;
+		}
+		else {
+			for(int i=0; i<numCategories; i++) {
+				int cat = categories.get(i);
+				if(cat==0) {
+					getQmp().objectCenteredPositionFlag = true;
+					//				System.out.println("Object Centered@@@@@@@@@@@");
+				}
+				else if (cat==1) {
+					getQmp().curvatureRotationFlag = true;
+					//				System.out.println("Curvature Rotation!!!!!!!!!!!!");
+				}
+				//			else if (cat==2) {
+				//				getQmp().sizeFlag = true;
+				////				System.out.println("Size##########");
+				//			}
+				else if (cat==2) {
+					getQmp().radProfileFlag = true;
+					//				System.out.println("Rad Profile%%%%%%%%%%");
+				}
+				//			else if (cat==3) {
+				//				getQmp().removalFlag = true;
+				//			}
+				else {
+					throw new IllegalArgumentException("There should only be 4 qualitative morph types");
+				}
+			}
+		}
+
+		if(isManualMode()) {
+			getQmp().objectCenteredPositionFlag = false;
+			getQmp().curvatureRotationFlag = false;
+			getQmp().sizeFlag = false;
+			getQmp().radProfileFlag = false;
+			getQmp().removalFlag = true;
+			//			getQmp().curvatureRotationFlag = true;
+			getQmp().radProfileFlag = false;
+		}
+	}
+
+
+	protected QualitativeMorphParams getQmp() {
 		return qmp;
 	}
 
-	private void setQmp(QualitativeMorphParams qmp) {
+	protected void setQmp(QualitativeMorphParams qmp) {
 		this.qmp = qmp;
 	}
 
-	private double getMaxImageDimensionDegrees() {
+	protected double getMaxImageDimensionDegrees() {
 		return maxImageDimensionDegrees;
 	}
 
-	private void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {
+	protected void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {
 		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
+	}
+
+	public boolean isManualMode() {
+		return manualMode;
+	}
+
+	public void setManualMode(boolean manualMode) {
+		this.manualMode = manualMode;
 	}
 }

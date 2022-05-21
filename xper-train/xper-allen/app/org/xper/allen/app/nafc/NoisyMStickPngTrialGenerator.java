@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngBlockGen;
+import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.util.FileUtil;
 
@@ -21,13 +21,13 @@ import org.xper.util.FileUtil;
  * @author r2_allen
  *
  */
-public class NoisyMStickPngGenerator {
+public class NoisyMStickPngTrialGenerator extends TrialGenerator{
 	public static void main(String[] args) {
 
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		NoisyMStickPngBlockGen gen = context.getBean(NoisyMStickPngBlockGen.class);
+		NoisyMStickPngRandBlockGen gen = context.getBean(NoisyMStickPngRandBlockGen.class);
 
 		try { //try to generate trials with type-frequency pair inputs
 			//Convert String[] args to List and use iterator to go through elements
@@ -121,68 +121,5 @@ public class NoisyMStickPngGenerator {
 	}
 
 
-	public static Integer[] stringToIntegerArray(String string) {
-		String[] strArr = string.split(",");
-		int length = strArr.length;
-		Integer[] intArr = new Integer[length];
-		for(int i=0; i<length; i++) {
-			intArr[i] = Integer.parseInt(strArr[i]);
-		}
-		
-		return intArr;
-	}
-
-	public static int[] stringToIntArray(String string) {
-		String[] strArr = string.split(",");
-		int length = strArr.length;
-		int[] intArr = new int[length];
-		for(int i=0; i<length; i++) {
-			intArr[i] = Integer.parseInt(strArr[i]);
-		}
-		return intArr;
-	}
-
-	public static double[] stringToDoubleArray(String string) {
-		String[] strArr = string.split(",");
-		int length = strArr.length;
-		double[] doubleArr = new double[length];
-		for(int i=0; i<length; i++) {
-			doubleArr[i] = Double.parseDouble(strArr[i]);
-		}
-		return doubleArr;
-	}
-
-	public static NoiseType[] stringToNoiseTypeArray(String string) {
-		String[] strArr = string.split(",");
-		int length = strArr.length;
-		NoiseType[] noiseTypeArr = new NoiseType[length];
-		for(int i=0; i<length; i++) {
-			System.out.println("ACkjlfjds " + strArr[i]);
-			noiseTypeArr[i] = NoiseType.valueOf(strArr[i]);
-		}
-		return noiseTypeArr;
-	}
-
-	/**
-	 * "(0.5,1),(0.25,0.5),(0.75,1)" --> double[3][2] 
-	 * 								 --> [0.5][1]
-	 * 									 [0.25][0.5]
-	 * 									 [0.75][1]
-	 * @param string
-	 * @return
-	 */
-	public static double[][] stringToTupleArray(String string) {
-		String[] strArr = string.split("\\),");
-
-		int length = strArr.length;
-		double[][] noiseTypeArr = new double[length][2];
-		for(int i=0; i<length; i++) {
-			String removedParenthesis = strArr[i].replaceAll("\\(", "").replaceAll("\\)", "");
-
-			String[] split = removedParenthesis.split(",");
-			noiseTypeArr[i][0] = Double.parseDouble(split[0]);
-			noiseTypeArr[i][1] = Double.parseDouble(split[1]);
-		}
-		return noiseTypeArr;
-	}
+	
 }

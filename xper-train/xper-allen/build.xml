@@ -184,9 +184,9 @@
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/MStickPngGen.jar">
+		<jar jarfile="${allen.home}/MStickPngTrialGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/MStickPngGenerator.class" />
+				<include name="org/xper/allen/app/nafc/MStickPngTrialGenerator.class" />
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.nafc.MStickPngGenerator" />
@@ -224,9 +224,9 @@
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/NoisyMStickPngGen.jar">
+		<jar jarfile="${allen.home}/NoisyMStickPngTrialGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/NoisyMStickPngGenerator.class" />
+				<include name="org/xper/allen/app/nafc/NoisyMStickPngTrialGenerator.class" />
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.nafc.NoisyMStickPngGenerator" />

@@ -13,16 +13,18 @@ public class AllenMAxisInfo {
 	private double[] finalShiftInDepth = new double[3];
 	private EndPt_Info[] EndPt;
 	private JuncPt_Info[] JuncPt;
-    private TubeInfo[] Tube;
+    private AllenTubeInfo[] Tube;
     
     private int specialEndComp;
     private int specialEnd;
+    private int baseComp;
 
 
 	public void setAllenMAxisInfo(AllenMatchStick inStick) {
 		//Added by AC
 		setSpecialEndComp(inStick.getSpecialEndComp());
 		setSpecialEnd(inStick.getSpecialEnd());
+		setBaseComp(inStick.getBaseComp());
 		/////////////
 		setnComponent(inStick.getNComponent());
 		setnEndPt(inStick.getNEndPt());
@@ -30,7 +32,7 @@ public class AllenMAxisInfo {
 		
 		setJuncPt(new JuncPt_Info[getnJuncPt()+1]);
 		setEndPt(new EndPt_Info[getnEndPt()+1]);
-		setTube(new TubeInfo[getnComponent()+1]);
+		setTube(new AllenTubeInfo[getnComponent()+1]);
 		
 		for (int i=1; i<= getnEndPt(); i++) {
 			getEndPt()[i] = new EndPt_Info();
@@ -41,7 +43,7 @@ public class AllenMAxisInfo {
 			getJuncPt()[i].setJuncPtInfo( inStick.getJuncPtStruct(i));
 		}
 		for (int i=1; i<= getnComponent(); i++) {
-			getTube()[i] = new TubeInfo();
+			getTube()[i] = new AllenTubeInfo();
 			getTube()[i].setTubeInfo(inStick.getTubeComp(i));
 		}
 		
@@ -84,11 +86,11 @@ public class AllenMAxisInfo {
 		this.nComponent = nComponent;
 	}
 
-	public TubeInfo[] getTube() {
+	public AllenTubeInfo[] getTube() {
 		return Tube;
 	}
 
-	public void setTube(TubeInfo[] tube) {
+	public void setTube(AllenTubeInfo[] tube) {
 		Tube = tube;
 	}
 
@@ -108,19 +110,19 @@ public class AllenMAxisInfo {
 		this.finalRotation = finalRotation;
 	}
 
-	private int getSpecialEndComp() {
+	public int getSpecialEndComp() {
 		return specialEndComp;
 	}
 
-	private void setSpecialEndComp(int specialEndComp) {
+	public void setSpecialEndComp(int specialEndComp) {
 		this.specialEndComp = specialEndComp;
 	}
 
-	private int getSpecialEnd() {
+	public int getSpecialEnd() {
 		return specialEnd;
 	}
 
-	private void setSpecialEnd(int specialEnd) {
+	public void setSpecialEnd(int specialEnd) {
 		this.specialEnd = specialEnd;
 	}
 
@@ -130,5 +132,13 @@ public class AllenMAxisInfo {
 
 	public void setnJuncPt(int nJuncPt) {
 		this.nJuncPt = nJuncPt;
+	}
+
+	public int getBaseComp() {
+		return baseComp;
+	}
+
+	public void setBaseComp(int baseComp) {
+		this.baseComp = baseComp;
 	}
 }

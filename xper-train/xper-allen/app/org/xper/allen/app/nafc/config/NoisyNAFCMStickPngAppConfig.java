@@ -3,13 +3,17 @@ package org.xper.allen.app.nafc.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
 import org.springframework.config.java.annotation.Configuration;
+import org.springframework.config.java.annotation.ExternalValue;
 import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.config.NAFCConfig;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngBlockGen;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
+import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricBlockGen;
+import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -17,6 +21,7 @@ import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.utils.RGBColor;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -61,9 +66,70 @@ public class NoisyNAFCMStickPngAppConfig {
 		return renderer;
 	}
 	
+	/**
+	 * NoisyMStickPngBlockGen has been upgraded to have generateSet
+	 * @return
+	 */
 	@Bean
-	public NoisyMStickPngBlockGen generator() {
-		NoisyMStickPngBlockGen gen = new NoisyMStickPngBlockGen();
+	public NoisyMStickPngPsychometricBlockGen psychometricPngGenerator() {
+		NoisyMStickPngPsychometricBlockGen gen = new NoisyMStickPngPsychometricBlockGen();
+		gen.setDbUtil(config.allenDbUtil());
+		gen.setGlobalTimeUtil(acqConfig.timeClient());
+		gen.setXmlUtil(config.allenXMLUtil());
+		gen.setGeneratorPngPath(generatorPsychometricPngPath);
+		gen.setExperimentPngPath(experimentPsychometricPngPath);
+		gen.setGeneratorSpecPath(generatorPsychometricSpecPath);
+		gen.setGeneratorPsychometricNoiseMapPath(generatorPsychometricNoiseMapPath);
+		gen.setExperimentPsychometricNoiseMapPath(experimentPsychometricNoiseMapPath);
+		gen.setPngMaker(psychometricPngMaker());
+		gen.setMaxImageDimensionDegrees(appConfig.xperMaxImageDimensionDegrees());
+		gen.setMmpGenerator(appConfig.mmpGenerator());
+		gen.setQmpGenerator(appConfig.qmpGenerator());
+		gen.setPsychometricQmpGenerator(psychometricQmpGenerator());
+		return gen;
+	}
+	
+	
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public AllenPNGMaker psychometricPngMaker(){
+		AllenPNGMaker pngMaker = new AllenPNGMaker();
+		pngMaker.setWidth(appConfig.dpiUtil().calculateMinResolution());
+		pngMaker.setHeight(appConfig.dpiUtil().calculateMinResolution());
+		pngMaker.setDpiUtil(appConfig.dpiUtil());
+		RGBColor backColor = new RGBColor(0,0,0);
+		pngMaker.setBackColor(backColor);
+		pngMaker.setGeneratorImageFolderName(generatorPsychometricPngPath);
+		pngMaker.setGeneratorNoiseMapFolderName(generatorPsychometricNoiseMapPath);
+		pngMaker.setDepth(6000);
+		pngMaker.setDistance(500);
+		pngMaker.setPupilDistance(50);
+		return pngMaker;
+	}
+	
+	@ExternalValue("generator.psychometric.noisemap_path")
+	public String generatorPsychometricNoiseMapPath;
+
+	@ExternalValue("generator.psychometric.png_path")
+	public String generatorPsychometricPngPath;
+
+	@ExternalValue("experiment.psychometric.noisemap_path")
+	public String experimentPsychometricNoiseMapPath;
+	
+	@ExternalValue("experiment.psychometric.png_path")
+	public String experimentPsychometricPngPath;
+	
+	@ExternalValue("generator.psychometric.spec_path")
+	public String generatorPsychometricSpecPath;
+
+	
+	
+	/**
+	 * NoisyMStickPngBlockGen has been upgraded to have generateSet
+	 * @return
+	 */
+	@Bean
+	public NoisyMStickPngRandBlockGen randBlockGenerator() {
+		NoisyMStickPngRandBlockGen gen = new NoisyMStickPngRandBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setXmlUtil(config.allenXMLUtil());
@@ -75,6 +141,12 @@ public class NoisyNAFCMStickPngAppConfig {
 		gen.setMmpGenerator(appConfig.mmpGenerator());
 		gen.setQmpGenerator(appConfig.qmpGenerator());
 		return gen;
+	}
+	
+	@Bean
+	public PsychometricQualitativeMorphParameterGenerator psychometricQmpGenerator() {
+		PsychometricQualitativeMorphParameterGenerator qmpGenerator = new PsychometricQualitativeMorphParameterGenerator(appConfig.xperMaxImageDimensionDegrees());
+		return qmpGenerator;
 	}
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)

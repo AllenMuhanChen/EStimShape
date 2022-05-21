@@ -169,7 +169,7 @@ public class MatchStick implements Drawable {
 	 *    genMatchStickFrom spec data
 	 *    Read in a spec structure, and dump those info into this MAxis structure
 	 */
-	public void genMatchStickFromShapeSpec( MStickSpec inSpec, double[] rotation)
+	public void genMatchStickFromShapeSpec(MStickSpec inSpec, double[] rotation)
 	{
 		// i can't see how inSpec is changed by this function
 		//but it seems to be the case........
