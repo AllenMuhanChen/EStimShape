@@ -32,6 +32,7 @@ public class AllenMStickSpec {
     public boolean animation;
     public String compPosTanStr = "";
 
+    
     transient static XStream s;
 
     static {
@@ -198,6 +199,9 @@ public class AllenMStickSpec {
     public void setMStickInfo(AllenMatchStick inStick)
     {
 		getmAxis().setAllenMAxisInfo(inStick);
+		
+//		setSpecialEnd(inStick.getSpecialEnd());
+//		setSpecialEndComp(inStick.getSpecialEndComp());
 		vertex.setVertexInfo(inStick.getSmoothObj());
 
         AllenTubeComp[] tubes = inStick.getComp();

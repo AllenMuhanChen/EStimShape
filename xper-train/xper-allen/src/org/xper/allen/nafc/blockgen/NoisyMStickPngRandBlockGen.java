@@ -14,6 +14,7 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
+import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
@@ -36,7 +37,7 @@ import org.xper.utils.RGBColor;
  * @author r2_allen
  *
  */
-public class NoisyMStickPngBlockGen extends NAFCBlockGen{
+public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
@@ -44,10 +45,13 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 	@Dependency
 	AllenXMLUtil xmlUtil;
 	@Dependency
+	protected
 	String generatorPngPath;
 	@Dependency
+	protected
 	String experimentPngPath;
 	@Dependency
+	protected
 	String generatorSpecPath;
 	@Dependency
 	AllenPNGMaker pngMaker;
@@ -70,7 +74,7 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 	 *  Distractors: completely random match sticks or QM match sticks
 	 */	
 
-	public NoisyMStickPngBlockGen() {
+	public NoisyMStickPngRandBlockGen() {
 	}
 
 	long genId = 1;
@@ -439,7 +443,7 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 			for(int k=0; k<objs.size(); k++) {
 				AllenMStickSpec spec = new AllenMStickSpec();
 				spec.setMStickInfo(objs.get(k));
-				spec.writeInfo2File(generatorSpecPath + "/" + ids.get(k), true);
+				spec.writeInfo2File(getGeneratorSpecPath() + "/" + ids.get(k), true);
 			}
 			
 			//PREPARING WRITE TO DB SPECIFYING LOCATION
@@ -542,12 +546,13 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 		return;
 	}
 
+
 	
 	/**
 	 * It is imperative that these properties are set before the object is generated/is smoothized.
 	 * @param obj
 	 */
-	private void setProperties(AllenMatchStick obj) {
+	protected void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
 		//SETTING SIZES 
 		/**
@@ -662,5 +667,8 @@ public class NoisyMStickPngBlockGen extends NAFCBlockGen{
 	public void setGeneratorSpecPath(String generatorSpecPath) {
 		this.generatorSpecPath = generatorSpecPath;
 	}
+
+
+
 
 }

@@ -243,7 +243,7 @@ public class AllenDrawingManager implements Drawable {
 				}
 			});
 			List<String> labels = new LinkedList<>();
-			labels.add("noisemap");
+//			labels.add("noisemap");
 			labels.addAll(additionalLabels.get(stimCounter));
 			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter), labels, height,width, imageFolderName));
 			window.swapBuffers();

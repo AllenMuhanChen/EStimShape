@@ -14,7 +14,7 @@ include("./DbUtil.jl")
 
 export compileTrainingData, checkForMsgType
 
-    
+
 """
 Given a trialStart and trialStop time in microseconds, check if there are any tstamps in between trialStart and trialStop. return true if yes. return false if no. 
 """
@@ -31,12 +31,12 @@ end
 1. Collects all trialStarts and trialStops from behMsg
 2. Corrects for misaligned trialStart-trialStop by: 
 A) first making sure the first trialStart is before the first
-    trialStop and the last trialStart is before the last trialStop.
+trialStop and the last trialStart is before the last trialStop.
 B) Finding the first pair of misaligned trialStart-trialStop 
-    and depending on whether there are excess trialStarts or trialStops
-    removes the appropiate one
+and depending on whether there are excess trialStarts or trialStops
+removes the appropiate one
 3. Parses through SQL msg and specs to get the wanted data and puts
-    it in a data frame. 
+it in a data frame. 
 """
 function compileTrainingData(behMsg, stimSpec, stimObjData)
     trialStarts = behMsg[behMsg.type .== "TrialStart", :tstamp]
@@ -48,7 +48,7 @@ function compileTrainingData(behMsg, stimSpec, stimObjData)
     while first(trialStops) < first(trialStarts)
         popfirst!(trialStops);
     end 
-        # the last trialStart is after the last trialStop
+    # the last trialStart is after the last trialStop
     while last(trialStarts) > last(trialStops)
         pop!(trialStarts);
     end 
@@ -87,6 +87,7 @@ function compileTrainingData(behMsg, stimSpec, stimObjData)
     df = filter([:trialStart, :trialStop] => (x,y)->checkForMsgType(x,y,choiceSelectionSuccesses), df)
     df.choiceSelectionSuccess = choiceSelectionSuccesses;
     
+
     #stimSpecIds from behMsg trialCompletes
     trialCompleteXml = filter([:tstamp] => x -> issubset(x,df.trialComplete), behMsg)
     getStimSpecId = DbUtil.makeXMLParser(["stimSpecId"]);
@@ -106,19 +107,20 @@ function compileTrainingData(behMsg, stimSpec, stimObjData)
     sampleObjDataIds = getSampleObjDataId.(df.stimSpec)
     sampleObjDataIds = parse.(Int64, sampleObjDataIds)
     df.sampleObjDataId = sampleObjDataIds
-
+    
     #sampleObjData_SPEC
     sampleObjDataDf = filter([:id]=>x->issubset(x,df.sampleObjDataId), stimObjData)
     sampleObjDataSpec = sampleObjDataDf[:, :spec]
     df.sampleObjDataSpec = sampleObjDataSpec
-
-
+    
+    
     #choiceObjIds parsed from stimSpec xml 
     getChoiceObjDataId = DbUtil.makeXMLParser(["choiceObjData", "long"])
     choiceObjDataIds = getChoiceObjDataId.(df.stimSpec); #vector of vector of strings!
     choiceObjDataIds = ((list) -> parse.(Int64, list)).(choiceObjDataIds); #broadcast anonymous function here to iterate over elements twice to parse this out.
     df.choiceObjDataId = choiceObjDataIds
     
+
     #choiceObjData_DATA
     function getChoiceData(stimObjDataIds::Vector{Int64})
         choiceObjDataDf = filter([:id]=>x->issubset(x,stimObjDataIds),stimObjData) 
@@ -128,8 +130,22 @@ function compileTrainingData(behMsg, stimSpec, stimObjData)
     choiceObjDataData = getChoiceData.(df.choiceObjDataId)
     df.choiceObjDataData = choiceObjDataData
     
+    #choiceObjData_SPEC
+    function getChoiceSpec(stimObjDataIds::Vector{Int64})
+        choiceObjDataDf = filter([:id]=>x->issubset(x,stimObjDataIds),stimObjData) 
+        choiceObjDataSpec = choiceObjDataDf[:,:spec]
+        return choiceObjDataSpec
+    end 
+    choiceObjDataSpec = getChoiceSpec.(df.choiceObjDataId)
+    df.choiceObjDataSpec = choiceObjDataSpec
     
-
+    #Choices
+    choicesAsIndcs = parse.(Int64,filter([:tstamp,:type]=> (x,y)->issubset(x, df.choiceSelectionSuccess)&&y=="ChoiceSelectionSuccess", behMsg)[: ,:msg]).+ 1
+    choicesStimObjIds =getindex.(df.choiceObjDataId, choicesAsIndcs); #getindex is basically List.get(index) 
+    choicesStimObjDataDf = filter([:id]=> x->issubset(x,choicesStimObjIds), stimObjData)
+    choices = choicesStimObjDataDf[:, :data]
+    df.choice = choices;
+    
     return df
 end 
 

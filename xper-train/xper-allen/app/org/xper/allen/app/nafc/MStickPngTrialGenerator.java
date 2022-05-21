@@ -13,7 +13,7 @@ import org.xper.util.FileUtil;
  * Main function for reading an XML file of stimuli specifications and inputs them into the database. 
  * @param file path for xml file
  */
-public class MStickPngGenerator {
+public class MStickPngTrialGenerator {
 	public static void main(String[] args) {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));

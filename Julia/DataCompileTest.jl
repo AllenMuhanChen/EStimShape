@@ -31,18 +31,13 @@ dates = (date1,date2)
 behMsg = DbUtil.getBehMsg(dates)
 stimSpec = DbUtil.getStimSpec(dates)
 stimObjData = DbUtil.getStimObjData(dates)
-## DEMO Find all TrialStarts & TrialStops to find trials 
+##Compile Data 
 df = DataCompileUtil.compileTrainingData(behMsg, stimSpec, stimObjData)
 
 
 data = DataFrame()
 #Choices
-choicesAsIndcs = parse.(Int64,filter([:tstamp,:type]=> (x,y)->issubset(x, df.choiceSelectionSuccess)&&y=="ChoiceSelectionSuccess", behMsg)[: ,:msg]).+ 1
-#choicesAsIndcs = parse.(Int64,behMsg[behMsg.type .== "ChoiceSelectionSuccess", :msg]) .+1 #convert from 0-index to 1-index
-choicesStimObjIds =getindex.(df.choiceObjDataId, choicesAsIndcs); #getindex is basically List.get(index) 
-choicesStimObjDataDf = filter([:id]=> x->issubset(x,choicesStimObjIds), stimObjData)
-choices = choicesStimObjDataDf[:, :data]
-data.choice = choices;
+data.choice = df.choice;
 
 #Noise
 #NoiseType
