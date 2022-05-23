@@ -250,7 +250,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 					for (int remainingStimId:stimIdsRemaining) {
 						int index = stimIdsRemaining.indexOf(remainingStimId);
-						trial.distractorsIds.add(index, trial.matchId + 1 + index);
+						trial.distractorsIds.add(trial.matchId + 1 + index);
 						trial.distractorsPngPaths.add(generatorPngPath + "/" + setId + "_" + remainingStimId + ".png");
 					}
 
@@ -260,8 +260,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 				}
 			}
 		}
-
-
 
 		// LOADING OBJECTS FOR GENERATING NOISEMAPS
 		// 		AND LOADING MSTICKSPECS FOR STIMOBJDATA
@@ -293,7 +291,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 				distractorMStickSpec.setMStickInfo(distractorObj);
 				trial.distractorsMStickSpecs.add(distractorMStickSpec);
 			}
-
 		}
 
 		//GENERATING NOISEMAPS
@@ -374,8 +371,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			}
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, trial.sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 			
-			
-			
 			//TODO: WRITE TRIAL DATA
 			
 	
@@ -419,9 +414,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		Long matchId;
 		AllenMStickSpec matchMStickSpec;
 
-		List<String> distractorsPngPaths;
-		List<Long> distractorsIds;
-		List<AllenMStickSpec> distractorsMStickSpecs;
+		List<String> distractorsPngPaths = new LinkedList<String>();
+		List<Long> distractorsIds = new LinkedList<Long>();
+		List<AllenMStickSpec> distractorsMStickSpecs = new LinkedList<AllenMStickSpec>();
 
 
 		public AllenMatchStick fetchSample() {

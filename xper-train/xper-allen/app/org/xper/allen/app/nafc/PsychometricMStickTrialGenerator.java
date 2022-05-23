@@ -23,9 +23,21 @@ public class PsychometricMStickTrialGenerator extends TrialGenerator{
 			int trialsPerStim = Integer.parseInt(iterator.next());
 			double[][] noiseChances = stringToTupleArray(iterator.next());
 			double[] noiseChancesFrequencies = stringToDoubleArray(iterator.next());
+			double sampleDistanceLowerLim = Double.parseDouble(iterator.next());
+			double sampleDistanceUpperLim = Double.parseDouble(iterator.next());
+			double choiceDistanceLowerLim = Double.parseDouble(iterator.next());
+			double choiceDistanceUpperLim = Double.parseDouble(iterator.next());
+			double sampleScale = Double.parseDouble(iterator.next());
+			double eyeWinSize = Double.parseDouble(iterator.next());
 			
-			gen.generateTrials(trialsPerStim, noiseChances, noiseChancesFrequencies);
+			
+			gen.generateTrials(trialsPerStim, noiseChances, noiseChancesFrequencies,
+					sampleDistanceLowerLim, sampleDistanceUpperLim, 
+					choiceDistanceLowerLim, choiceDistanceUpperLim,
+					sampleScale,
+					eyeWinSize);
 		}
+		
 		catch(Exception e) {
 			e.printStackTrace();
 			System.out.println("Failed to generate trials");
