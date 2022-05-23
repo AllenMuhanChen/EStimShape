@@ -414,8 +414,6 @@ public class AllenMAxisArc extends MAxisArc {
 			}
 		}
 
-
-
 		//1.6 AC Define our normal angle
 		normal = new Vector3d(0,1,0);
 

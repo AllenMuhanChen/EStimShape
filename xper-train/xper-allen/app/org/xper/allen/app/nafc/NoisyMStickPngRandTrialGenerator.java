@@ -21,7 +21,7 @@ import org.xper.util.FileUtil;
  * @author r2_allen
  *
  */
-public class NoisyMStickPngTrialGenerator extends TrialGenerator{
+public class NoisyMStickPngRandTrialGenerator extends TrialGenerator{
 	public static void main(String[] args) {
 
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(

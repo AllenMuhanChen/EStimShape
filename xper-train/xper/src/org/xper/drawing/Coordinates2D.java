@@ -23,4 +23,8 @@ public class Coordinates2D {
 	}
 	public Coordinates2D() {	
 	}
+	
+	public String toString() {
+		return "("+x+","+y+")";
+	}
 }
