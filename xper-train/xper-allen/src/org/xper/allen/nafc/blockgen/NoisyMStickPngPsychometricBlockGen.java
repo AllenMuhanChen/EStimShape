@@ -231,7 +231,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 					trial.sampleId = currentTime;
 					trial.sampleSetId = setId;
 					trial.sampleStimNum = stimId;
-					trial.samplePngPath = generatorPngPath + "/" + setId + "_" + stimId + ".png";
+					trial.samplePngPath = convertPathToExperiment(generatorPngPath + "/" + setId + "_" + stimId + ".png");
 					NoiseData noiseData = new NoiseData(NoiseType.PRE_JUNC, noiseNormalizedPosition_PRE_JUNC, noiseChanceTrialList.get(i));
 					trial.noiseData = noiseData;
 
@@ -251,7 +251,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 					for (int remainingStimId:stimIdsRemaining) {
 						int index = stimIdsRemaining.indexOf(remainingStimId);
 						trial.distractorsIds.add(trial.matchId + 1 + index);
-						trial.distractorsPngPaths.add(generatorPngPath + "/" + setId + "_" + remainingStimId + ".png");
+						trial.distractorsPngPaths.add(convertPathToExperiment(generatorPngPath + "/" + setId + "_" + remainingStimId + ".png"));
 					}
 
 
@@ -295,7 +295,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 		//GENERATING NOISEMAPS
 		List<String> noiseMapPathsGenerator = pngMaker.createAndSaveNoiseMapfromObjs(objs, noiseMapIds, labels);
-		List<String> noiseMapPaths = convertPathsToExperiment(noiseMapPathsGenerator);
+		List<String> noiseMapPaths = convertNoiseMapPathsToExperiment(noiseMapPathsGenerator);
 		//Adding Paths
 		for (int i=0; i<noiseMapPaths.size(); i++) {
 			trials.get(i).noiseMapPath = noiseMapPaths.get(i);
@@ -308,7 +308,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			Coordinates2D sampleCoords = randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceDistanceLowerLim, choiceDistanceUpperLim, 0, 0);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
+			System.out.println("AC000: distractorCoordS: " + distractorsCoords.toString() );
 			Coordinates2D matchCoords = ddUtil.getMatchCoords();
+			System.out.println("AC111: matchCoords" + matchCoords.toString());
 
 			//SAMPLE SPEC
 			NoisyPngSpec sampleSpec = new NoisyPngSpec();
@@ -337,7 +339,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 				NoisyPngSpec distractorSpec = new NoisyPngSpec();
 				distractorSpec.setPath(trial.distractorsPngPaths.get(indx));
 				distractorSpec.setxCenter(distractorsCoords.get(indx).getX());
-				distractorSpec.setxCenter(distractorsCoords.get(indx).getY());
+				distractorSpec.setyCenter(distractorsCoords.get(indx).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(sampleScale, sampleScale);
 				distractorSpec.setImageDimensions(distractorDimensions);
 				MStickStimObjData distractorMStickObjData = new MStickStimObjData("Distractor", trial.matchMStickSpec);
@@ -372,11 +374,15 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, trial.sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 			
 			//TODO: WRITE TRIAL DATA
+			NoisyMStickPngPsychometricTrialGenData trialGenData = new NoisyMStickPngPsychometricTrialGenData(sampleDistanceLowerLim, sampleDistanceUpperLim, choiceDistanceLowerLim, choiceDistanceUpperLim, sampleScale, eyeWinSize);
 			
-	
+			NoiseData noiseData = trial.noiseData;
+			
+			
+			NoisyMStickPngPsychometricTrialData trialData = new NoisyMStickPngPsychometricTrialData(noiseData, trialGenData);
 			
 			long taskId = trial.sampleId;
-			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), "");
+			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
 		dbUtil.updateReadyGenerationInfo(genId, trials.size());
@@ -385,7 +391,14 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 	}
 	
 	
-
+	public List<String> convertNoiseMapPathsToExperiment(List<String> generatorPaths) {
+		LinkedList<String> expPaths = new LinkedList<String>();
+		for(int s=0; s<generatorPaths.size(); s++) {
+			String newPath = generatorPaths.get(s).replace(getGeneratorPsychometricNoiseMapPath(), getExperimentPsychometricNoiseMapPath());
+			expPaths.add(s, newPath);
+		}
+		return expPaths;
+	}
 	/**
 	 * private class to organize information about each trial. 
 	 * @author r2_allen
@@ -528,4 +541,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 	public void setExperimentPsychometricNoiseMapPath(String experimentPsychometricNoiseMapPath) {
 		this.experimentPsychometricNoiseMapPath = experimentPsychometricNoiseMapPath;
 	}
+	
+
 }

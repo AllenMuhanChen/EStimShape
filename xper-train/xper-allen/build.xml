@@ -226,12 +226,33 @@
 		
 		<jar jarfile="${allen.home}/NoisyMStickPngTrialGen.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/NoisyMStickPngTrialGenerator.class" />
+				<include name="org/xper/allen/app/nafc/NoisyMStickPngRandTrialGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.NoisyMStickPngGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.NoisyMStickPngRandTrialGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
+		
+		<jar jarfile="${allen.home}/PsychometricMStickPngGenerator.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/nafc/PsychometricMStickPngGenerator.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricMStickPngGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${allen.home}/PsychometricMStickTrialGenerator.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/nafc/PsychometricMStickTrialGenerator.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricMStickTrialGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		
 	</target>
 </project>

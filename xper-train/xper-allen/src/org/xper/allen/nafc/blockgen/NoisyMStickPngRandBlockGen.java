@@ -14,7 +14,6 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
-import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
@@ -29,8 +28,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 import org.xper.utils.RGBColor;
-
-import com.thoughtworks.xstream.XStream;
 
 /**
  * Generate MSticks, convert to Png. 
@@ -117,26 +114,26 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			Integer[] numQMCategoriesTypes, double[] numQMCategoriesFrequencies,
 			NoiseType[] noiseTypes, double[] noiseTypesFrequencies,
 			double[][] noiseChances, double[] noiseChancesFrequencies) { //
-		
+
 		int[] numDistractorsNumTrials = frequencyToNumTrials(numDistractorsFrequencies, numTrials);
 		int[] numQMDistractorsNumTrials = frequencyToNumTrials(numQMDistractorsFrequencies, numTrials);
 		int[] numQMCategoriesNumTrials = frequencyToNumTrials(numQMCategoriesFrequencies, numTrials);
 		int[] noiseTypesNumTrials = frequencyToNumTrials(noiseTypesFrequencies, numTrials);
 		int[] noiseChancesNumTrials = frequencyToNumTrials(noiseChancesFrequencies, numTrials);
-		
+
 		generate(numDistractorsTypes, numDistractorsNumTrials,
 				sampleScaleUpperLim, sampleRadiusLowerLim, sampleRadiusUpperLim, 
 				eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim, 
-				 distractorDistanceLowerLim,
+				distractorDistanceLowerLim,
 				distractorDistanceUpperLim,
 				distractorScaleUpperLim, numMMCategories, numQMDistractorsTypes, numQMDistractorsNumTrials,
 				numQMCategoriesTypes, numQMCategoriesNumTrials,
 				noiseTypes, noiseTypesNumTrials,
 				noiseChances, noiseChancesNumTrials);
 	}
-	
 
-	
+
+
 	/**
 	 * using numTrials
 	 * @param numDistractorsTypes
@@ -191,11 +188,11 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 		//NoiseTypes
 		List<NoiseType> noiseTypesTrialList = populateTrials(numTrials, noiseTypes, noiseTypesNumTrials);
 		Collections.shuffle(noiseTypesTrialList);
-		
+
 		//NoiseChances
 		List<double[]> noiseChancesTrialList = populateTrials(numTrials, noiseChances, noiseChancesNumTrials);
 		Collections.shuffle(noiseChancesTrialList);
-		
+
 		//INITIALIZING LISTS TO HOLD MATCH STICK OBJECTS
 		List<AllenMatchStick> objs_base = new ArrayList<AllenMatchStick>();
 		List<AllenMatchStick> objs_sample = new ArrayList<AllenMatchStick>();
@@ -230,8 +227,8 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			int numQMCategories = numCategoriesMorphedTrialList.get(i);
 			NoiseType noiseType = noiseTypesTrialList.get(i);
 			double[] noiseChance = noiseChancesTrialList.get(i);
-			
-			
+
+
 			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
 			//GENERATE MATCH/SAMPLE FAILS, WE START OVER STARTING AT BASE
 			boolean tryagain = true;
@@ -240,7 +237,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 
 			//SETTING MORPHS - we never want to change our morph because of a fail. Otherwise probability distribution of morph types will be skewed.
 			MetricMorphParams mmp = mmpGenerator.getMMP(sampleScaleUpperLim, numMMCategories);
-			
+
 			List<QualitativeMorphParams> qmps = new LinkedList<>();
 			for(int qmIndx = 0; qmIndx<numQMDistractors; qmIndx++) {
 				qmps.add(qmpGenerator.getQMP(numQMCategories));
@@ -316,7 +313,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 						nTries_match++;
 					}
 				}
-				
+
 				//DISTRACTORS: QUALITATIVE MORPHS
 				boolean qmDistractorsSuccess = false;
 				if(matchSuccess) {
@@ -420,7 +417,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 				List<String> distractorLabels = Arrays.asList(new String[] {"distractor", "rand"});
 				labels.add(distractorLabels);
 			}
-			
+
 			List<Long> ids = new LinkedList<Long>();
 			List<Long> ids_noise = new LinkedList<Long>();
 			ids.add(sampleId);
@@ -429,7 +426,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			ids.addAll(distractorIds);
 			List<String> stimPaths = pngMaker.createAndSavePNGsfromObjs(objs, ids, labels);
 			stimPaths = convertPathsToExperiment(stimPaths);
-			
+
 			//NOISE MAP
 			NoiseData noiseData = objs_noise.get(0).setNoiseParameters(noiseType, noiseChance);
 			List<String> noiseMapPaths = new ArrayList<String>();
@@ -445,7 +442,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 				spec.setMStickInfo(objs.get(k));
 				spec.writeInfo2File(getGeneratorSpecPath() + "/" + ids.get(k), true);
 			}
-			
+
 			//PREPARING WRITE TO DB SPECIFYING LOCATION
 			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
 			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
@@ -456,7 +453,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			//SAMPLE SPEC
 			long taskId = sampleId;
 			NoisyPngSpec sampleSpec = new NoisyPngSpec();
-//			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
+			//			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
 			sampleSpec.setPath(stimPaths.get(0));
 			sampleSpec.setNoiseMapPath(noiseMapPaths.get(0));
 			sampleSpec.setxCenter(sampleCoords.getX());
@@ -470,7 +467,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 
 			//MATCH SPEC
 			NoisyPngSpec matchSpec = new NoisyPngSpec();
-//			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
+			//			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
 			matchSpec.setPath(stimPaths.get(1));
 			matchSpec.setxCenter(matchCoords.getX());
 			matchSpec.setyCenter(matchCoords.getY());
@@ -483,19 +480,19 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			List<NoisyPngSpec> distractorSpec = new ArrayList<NoisyPngSpec>();
 			for(int j=0; j<numQMDistractors; j++){
 				distractorSpec.add(j, new NoisyPngSpec());
-//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
+				//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
 				distractorSpec.get(j).setPath(stimPaths.get(j+2));
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
 				distractorSpec.get(j).setImageDimensions(distractorDimensions);
-				
+
 				dbUtil.writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "QM");
 				choiceIds[j+1] = distractorIds.get(j);
 			}
 			for(int j=numQMDistractors; j<numChoices-1; j++){
 				distractorSpec.add(j, new NoisyPngSpec());
-//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
+				//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
 				distractorSpec.get(j).setPath(stimPaths.get(j+2));
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
@@ -530,11 +527,11 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 					numQMDistractors, numRandDistractors, numQMCategories, numMMCategories, 
 					sampleScaleUpperLim, distractorScaleUpperLim, new double[] {sampleRadiusLowerLim, sampleRadiusUpperLim}, eyeWinSize, 
 					new double[] {choiceRadiusLowerLim, choiceRadiusUpperLim}, new double[] {distractorDistanceLowerLim, distractorDistanceUpperLim});
-			
-		
+
+
 			NoisyMStickNAFCRandTrialData trialData = new NoisyMStickNAFCRandTrialData(genData, noiseData, qmps, mmp);
-			
-	
+
+
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 
@@ -547,7 +544,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 	}
 
 
-	
+
 	/**
 	 * It is imperative that these properties are set before the object is generated/is smoothized.
 	 * @param obj
@@ -586,11 +583,19 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 		}
 		return expPaths;
 	}
-
-	
 	
 
-	
+
+	public String convertPathToExperiment(String generatorPath) {
+
+		String newPath = generatorPath.replace(getGeneratorPngPath(), getExperimentPngPath());
+
+		return newPath;
+	}
+
+
+
+
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;
 	}
@@ -669,165 +674,5 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 	public void setGeneratorSpecPath(String generatorSpecPath) {
 		this.generatorSpecPath = generatorSpecPath;
 	}
-
-	public class NoisyMStickNAFCRandTrialGenData {
-		int numDistractors;
-		int numQMDistractors;
-		int numRandDistractors;
-		int numQMCategories;
-		int numMMCategories;
-		double sampleScaleUpperLim;
-		double distractorScaleUpperLim;
-		double[] sampleRadiusLim;
-		double eyeWinSize;
-		double[] choiceRadiusLim;
-		double[] distractorDistanceLim;
-		
-		public NoisyMStickNAFCRandTrialGenData(int numDistractors, int numQMDistractors, int numRandDistractors,
-				int numQMCategories, int numMMCategories, double sampleScaleUpperLim, double distractorScaleUpperLim,
-				double[] sampleRadiusLim, double eyeWinSize, double[] choiceRadiusLim, double[] distractorDistanceLim) {
-			super();
-			this.numDistractors = numDistractors;
-			this.numQMDistractors = numQMDistractors;
-			this.numRandDistractors = numRandDistractors;
-			this.numQMCategories = numQMCategories;
-			this.numMMCategories = numMMCategories;
-			this.sampleScaleUpperLim = sampleScaleUpperLim;
-			this.distractorScaleUpperLim = distractorScaleUpperLim;
-			this.sampleRadiusLim = sampleRadiusLim;
-			this.eyeWinSize = eyeWinSize;
-			this.choiceRadiusLim = choiceRadiusLim;
-			this.distractorDistanceLim = distractorDistanceLim;
-		}
-		//TODO: noise specification
-		public int getNumDistractors() {
-			return numDistractors;
-		}
-		public void setNumDistractors(int numDistractors) {
-			this.numDistractors = numDistractors;
-		}
-		public int getNumQMDistractors() {
-			return numQMDistractors;
-		}
-		public void setNumQMDistractors(int numQMDistractors) {
-			this.numQMDistractors = numQMDistractors;
-		}
-		public int getNumRandDistractors() {
-			return numRandDistractors;
-		}
-		public void setNumRandDistractors(int numRandDistractors) {
-			this.numRandDistractors = numRandDistractors;
-		}
-		public int getNumQMCategories() {
-			return numQMCategories;
-		}
-		public void setNumQMCategories(int numQMCategories) {
-			this.numQMCategories = numQMCategories;
-		}
-		public int getNumMMCategories() {
-			return numMMCategories;
-		}
-		public void setNumMMCategories(int numMMCategories) {
-			this.numMMCategories = numMMCategories;
-		}
-		public double getSampleScaleUpperLim() {
-			return sampleScaleUpperLim;
-		}
-		public void setSampleScaleUpperLim(double sampleScaleUpperLim) {
-			this.sampleScaleUpperLim = sampleScaleUpperLim;
-		}
-		public double getDistractorScaleUpperLim() {
-			return distractorScaleUpperLim;
-		}
-		public void setDistractorScaleUpperLim(double distractorScaleUpperLim) {
-			this.distractorScaleUpperLim = distractorScaleUpperLim;
-		}
-		public double[] getSampleRadiusLim() {
-			return sampleRadiusLim;
-		}
-		public void setSampleRadiusLim(double[] sampleRadiusLim) {
-			this.sampleRadiusLim = sampleRadiusLim;
-		}
-		public double getEyeWinSize() {
-			return eyeWinSize;
-		}
-		public void setEyeWinSize(double eyeWinSize) {
-			this.eyeWinSize = eyeWinSize;
-		}
-		public double[] getChoiceRadiusLim() {
-			return choiceRadiusLim;
-		}
-		public void setChoiceRadiusLim(double[] choiceRadiusLim) {
-			this.choiceRadiusLim = choiceRadiusLim;
-		}
-		public double[] getDistractorDistanceLim() {
-			return distractorDistanceLim;
-		}
-		public void setDistractorDistanceLim(double[] distractorDistanceLim) {
-			this.distractorDistanceLim = distractorDistanceLim;
-		}
-	}
-	
-	
-	public class NoisyMStickNAFCRandTrialData {
-		
-		NoisyMStickNAFCRandTrialGenData trialGenData;
-		NoiseData noiseData;
-		List<QualitativeMorphParams> qualitativeMorphParameters;
-		MetricMorphParams metricMorphParameters;
-		XStream s = new XStream();
-		
-		public NoisyMStickNAFCRandTrialData(NoisyMStickNAFCRandTrialGenData trialGenData, NoiseData noiseData,
-				List<QualitativeMorphParams> qualitativeMorphParameters, MetricMorphParams metricMorphParameters) {
-			super();
-			this.trialGenData = trialGenData;
-			this.noiseData = noiseData;
-			this.qualitativeMorphParameters = qualitativeMorphParameters;
-			this.metricMorphParameters = metricMorphParameters;
-			
-			s.alias("NoisyMStickNAFCTrialData", NoisyMStickNAFCRandTrialData.class);
-		}
-
-		public NoisyMStickNAFCRandTrialData() {
-		}
-		
-		public String toXml(NoisyMStickNAFCRandTrialData data) {
-			return s.toXML(data);
-		}
-		
-		public String toXml() {
-			return toXml(this);
-		}
-		
-		public NoisyMStickNAFCRandTrialGenData getTrialGenData() {
-			return trialGenData;
-		}
-		public void setTrialGenData(NoisyMStickNAFCRandTrialGenData trialGenData) {
-			this.trialGenData = trialGenData;
-		}
-		public NoiseData getNoiseData() {
-			return noiseData;
-		}
-		public void setNoiseData(NoiseData noiseData) {
-			this.noiseData = noiseData;
-		}
-
-		public List<QualitativeMorphParams> getQualitativeMorphParameters() {
-			return qualitativeMorphParameters;
-		}
-
-		public void setQualitativeMorphParameters(List<QualitativeMorphParams> qualitativeMorphParameters) {
-			this.qualitativeMorphParameters = qualitativeMorphParameters;
-		}
-
-		public MetricMorphParams getMetricMorphParameters() {
-			return metricMorphParameters;
-		}
-
-		public void setMetricMorphParameters(MetricMorphParams metricMorphParameters) {
-			this.metricMorphParameters = metricMorphParameters;
-		}
-	}
-
 
 }

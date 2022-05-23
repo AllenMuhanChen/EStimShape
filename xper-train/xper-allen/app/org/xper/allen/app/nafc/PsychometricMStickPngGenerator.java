@@ -34,15 +34,9 @@ public class PsychometricMStickPngGenerator {
 			List<String> argsList = Arrays.asList(args);
 			ListIterator<String> iterator = argsList.listIterator();
 			
-//			int numSets = Integer.parseInt(iterator.next());
-//			int numPerSet = Integer.parseInt(iterator.next());
-//			int numQMCats = Integer.parseInt(iterator.next());
-//			double size = Double.parseDouble(iterator.next());
-
-			int numSets = 1;
-			int numPerSet = 3;
-			int numQMCats = 1;
-			int size = 10;
+			int numSets = Integer.parseInt(iterator.next());
+			int numPerSet = Integer.parseInt(iterator.next());
+			double size = Double.parseDouble(iterator.next());
 		
 			
 			for(int set=0; set<numSets; set++) {
