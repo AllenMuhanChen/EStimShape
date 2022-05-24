@@ -244,7 +244,7 @@ public class MStickPngBlockGen extends NAFCBlockGen{
 				}
 
 				//MATCH: GENERATING MATCHSTICK
-				int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp();
+				int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp().get(0);
 				if(sampleSuccess){
 					int maxAttempts_match = 3;
 					int nTries_match = 0;

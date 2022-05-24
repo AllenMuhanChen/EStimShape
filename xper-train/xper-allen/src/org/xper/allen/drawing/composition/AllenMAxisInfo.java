@@ -1,9 +1,9 @@
 package org.xper.allen.drawing.composition;
 
+import java.util.List;
+
 import org.xper.drawing.stick.EndPt_Info;
 import org.xper.drawing.stick.JuncPt_Info;
-import org.xper.drawing.stick.MatchStick;
-import org.xper.drawing.stick.TubeInfo;
 
 public class AllenMAxisInfo {
 	private int nComponent;        
@@ -15,8 +15,8 @@ public class AllenMAxisInfo {
 	private JuncPt_Info[] JuncPt;
     private AllenTubeInfo[] Tube;
     
-    private int specialEndComp;
-    private int specialEnd;
+    private List<Integer> specialEndComp;
+    private List<Integer> specialEnd;
     private int baseComp;
 
 
@@ -110,22 +110,6 @@ public class AllenMAxisInfo {
 		this.finalRotation = finalRotation;
 	}
 
-	public int getSpecialEndComp() {
-		return specialEndComp;
-	}
-
-	public void setSpecialEndComp(int specialEndComp) {
-		this.specialEndComp = specialEndComp;
-	}
-
-	public int getSpecialEnd() {
-		return specialEnd;
-	}
-
-	public void setSpecialEnd(int specialEnd) {
-		this.specialEnd = specialEnd;
-	}
-
 	public int getnJuncPt() {
 		return nJuncPt;
 	}
@@ -140,5 +124,21 @@ public class AllenMAxisInfo {
 
 	public void setBaseComp(int baseComp) {
 		this.baseComp = baseComp;
+	}
+
+	public List<Integer> getSpecialEndComp() {
+		return specialEndComp;
+	}
+
+	public void setSpecialEndComp(List<Integer> specialEndComp) {
+		this.specialEndComp = specialEndComp;
+	}
+
+	public List<Integer> getSpecialEnd() {
+		return specialEnd;
+	}
+
+	public void setSpecialEnd(List<Integer> specialEnd) {
+		this.specialEnd = specialEnd;
 	}
 }
