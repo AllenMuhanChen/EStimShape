@@ -13,6 +13,7 @@ public class MetricMorphParameterGenerator {
 	}
 	
 	public MetricMorphParams getMMP(double sampleScaleUpperLim, double numberCategories) {
+		this.mmp = new MetricMorphParams();
 		//orientation (along along mAxis)
 		mmp.orientationMagnitude = new MetricMorphOrientation();
 		mmp.orientationMagnitude.setAngleChangeLowerBound(20*Math.PI/180);
