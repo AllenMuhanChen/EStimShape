@@ -242,6 +242,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			mmps.add(mmp);
 			
 			for(int qmIndx = 0; qmIndx<numQMDistractors; qmIndx++) {
+				qmps.add(new LinkedList<QualitativeMorphParams>());
 				qmps.get(i).add(qmpGenerator.getQMP(numQMCategories));
 			}
 
@@ -398,6 +399,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 		List<Long> sampleIds = new LinkedList<Long>();
 		List<Long> matchIds = new LinkedList<Long>();
 		List<List<Long>> distractorIds = new LinkedList<>();
+		
 		for (int i = 0; i < numTrials; i++) {
 			int numQMDistractors = numQMDistractorsTrialList.get(i);
 			int numRandDistractors = numDistractorsTrialList.get(i)-numQMDistractors;
@@ -451,22 +453,33 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 		stimPaths = convertPathsToExperiment(stimPaths);
 		List<String> noiseMapPaths = pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise, noiseLabels);
 		noiseMapPaths = convertPathsToExperiment(noiseMapPaths);
+		
+		//SAVE SPECS.TXT
+		for(int k=0; k<objs.size(); k++) {
+			AllenMStickSpec spec = new AllenMStickSpec();
+			spec.setMStickInfo(objs.get(k));
+			spec.writeInfo2File(getGeneratorSpecPath() + "/" + ids.get(k), true);
+			System.out.println("SAVING SPEC " + k + " out of " + objs.size());
+		}
+		
 		for (int i = 0; i < numTrials; i++) {
+			
+			
 			int numQMDistractors = numQMDistractorsTrialList.get(i);
 			int numRandDistractors = numDistractorsTrialList.get(i)-numQMDistractors;
 			if(numRandDistractors<0) throw new IllegalArgumentException("There should not be less than 0 randDistractors");
 			int numQMCategories = numCategoriesMorphedTrialList.get(i);
-
-
-			//SAVE SPECS.TXT
-			for(int k=0; k<objs.size(); k++) {
-				AllenMStickSpec spec = new AllenMStickSpec();
-				spec.setMStickInfo(objs.get(k));
-				spec.writeInfo2File(getGeneratorSpecPath() + "/" + ids.get(k), true);
+			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
+			int numStimuli = numChoices + 1; //choices + sample
+			List<String> trialStimPaths = new LinkedList<String>();
+			for(int j=0; j<numStimuli; j++) {
+				trialStimPaths.add(stimPaths.get(numStimuli*i+j));
 			}
 
+
+
 			//PREPARING WRITE TO DB SPECIFYING LOCATION
-			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
+			
 			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceRadiusLowerLim, choiceRadiusUpperLim, distractorDistanceLowerLim,  distractorDistanceUpperLim);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
@@ -476,8 +489,8 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			long taskId = sampleIds.get(i);
 			NoisyPngSpec sampleSpec = new NoisyPngSpec();
 			//			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
-			sampleSpec.setPath(stimPaths.get(0));
-			sampleSpec.setNoiseMapPath(noiseMapPaths.get(0));
+			sampleSpec.setPath(trialStimPaths.get(0));
+			sampleSpec.setNoiseMapPath(noiseMapPaths.get(i));
 			sampleSpec.setxCenter(sampleCoords.getX());
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -490,7 +503,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			//MATCH SPEC
 			NoisyPngSpec matchSpec = new NoisyPngSpec();
 			//			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
-			matchSpec.setPath(stimPaths.get(1));
+			matchSpec.setPath(trialStimPaths.get(1));
 			matchSpec.setxCenter(matchCoords.getX());
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -503,7 +516,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			for(int j=0; j<numQMDistractors; j++){
 				distractorSpec.add(j, new NoisyPngSpec());
 				//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
-				distractorSpec.get(j).setPath(stimPaths.get(j+2));
+				distractorSpec.get(j).setPath(trialStimPaths.get(j+2));
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
@@ -515,7 +528,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			for(int j=numQMDistractors; j<numChoices-1; j++){
 				distractorSpec.add(j, new NoisyPngSpec());
 				//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
-				distractorSpec.get(j).setPath(stimPaths.get(j+2));
+				distractorSpec.get(j).setPath(trialStimPaths.get(j+2));
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
@@ -556,7 +569,8 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
-
+			
+			System.out.println("Wrote Task " + i + " to DB out of " + numTrials);
 
 		}
 		dbUtil.updateReadyGenerationInfo(genId, numTrials);
