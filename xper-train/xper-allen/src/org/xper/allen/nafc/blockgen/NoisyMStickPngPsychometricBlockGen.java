@@ -36,7 +36,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 	private static double[] noiseNormalizedPosition_PRE_JUNC = new double[] {0.5, 0.8};
 
-	public void generateSet(int numPerSet, double size) {	
+	public void generateSet(int numPerSet, double size, double percentChangePosition) {	
 		//Preallocation & Set-up
 		boolean tryagain = true;
 		int nTries = 0;
@@ -48,7 +48,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 		int numQMMorphs = numPerSet-1;
 		List<QualitativeMorphParams> qmps = new LinkedList<>();
-		qmps = psychometricQmpGenerator.getQMP(numPerSet-1);
+		qmps = psychometricQmpGenerator.getQMP(numPerSet-1, percentChangePosition);
 
 		//VETTING AND CHOOSING LEAF
 		while (tryagain){
@@ -139,7 +139,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			AllenTubeComp specialCompTube = obj.getComp()[specialComp];
 			AllenMAxisArc specialCompMAxis = specialCompTube.getmAxisInfo();
 			int rotCenter = specialCompMAxis.getTransRotHis_rotCenter();
-			System.out.println("AC0000: " + specialCompMAxis.getmTangent()[rotCenter]);
+//			System.out.println("AC0000: " + specialCompMAxis.getmTangent()[rotCenter]);
 		}
 
 		//DRAWING AND SAVING
@@ -227,8 +227,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 					PsychometricTrial trial = new PsychometricTrial();
 
 					//SAMPLE
-					Long currentTime = globalTimeUtil.currentTimeMicros();
-					trial.sampleId = currentTime;
 					trial.sampleSetId = setId;
 					trial.sampleStimNum = stimId;
 					trial.samplePngPath = convertPathToExperiment(generatorPngPath + "/" + setId + "_" + stimId + ".png");
@@ -240,7 +238,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 					trial.matchSetId = setId;
 					trial.matchStimId = stimId;
 					trial.matchPngPath = trial.samplePngPath;
-					trial.matchId = trial.sampleId + 1;
+
 
 					//DISTRACTORS
 					List<Integer> stimIdsRemaining = new LinkedList<>(stimIds);
@@ -250,7 +248,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 					for (int remainingStimId:stimIdsRemaining) {
 						int index = stimIdsRemaining.indexOf(remainingStimId);
-						trial.distractorsIds.add(trial.matchId + 1 + index);
 						trial.distractorsPngPaths.add(convertPathToExperiment(generatorPngPath + "/" + setId + "_" + remainingStimId + ".png"));
 					}
 
@@ -260,6 +257,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 				}
 			}
 		}
+		
+		//SHUFFLING
+		Collections.shuffle(trials);
 
 		// LOADING OBJECTS FOR GENERATING NOISEMAPS
 		// 		AND LOADING MSTICKSPECS FOR STIMOBJDATA
@@ -267,8 +267,11 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		List<Long> noiseMapIds = new LinkedList<Long>();
 		List<List<String>> labels = new LinkedList<List<String>>();
 		for (PsychometricTrial trial: trials) {
+			Long currentTime = globalTimeUtil.currentTimeMicros();
+			trial.sampleId = currentTime;
+			
 			AllenMatchStick obj = trial.fetchSample();
-
+			
 			AllenMStickSpec sampleMStickSpec = new AllenMStickSpec();
 			sampleMStickSpec.setMStickInfo(obj);
 			trial.sampleMStickSpec = sampleMStickSpec;
@@ -300,17 +303,24 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		for (int i=0; i<noiseMapPaths.size(); i++) {
 			trials.get(i).noiseMapPath = noiseMapPaths.get(i);
 		}
+		
+
 
 		//POPULATING DATABASES
 		for (PsychometricTrial trial:trials) {
+			//IDS
+			trial.matchId = trial.sampleId + 1;
+			for (int j=0; j<trial.distractorsStimIds.size();j++) {
+				trial.distractorsIds.add(trial.matchId + 1 + j);
+			}
 			//LOCATIONS
 			int numChoices = numStimPerSet;
 			Coordinates2D sampleCoords = randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceDistanceLowerLim, choiceDistanceUpperLim, 0, 0);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
-			System.out.println("AC000: distractorCoordS: " + distractorsCoords.toString() );
+//			System.out.println("AC000: distractorCoordS: " + distractorsCoords.toString() );
 			Coordinates2D matchCoords = ddUtil.getMatchCoords();
-			System.out.println("AC111: matchCoords" + matchCoords.toString());
+//			System.out.println("AC111: matchCoords" + matchCoords.toString());
 
 			//SAMPLE SPEC
 			NoisyPngSpec sampleSpec = new NoisyPngSpec();

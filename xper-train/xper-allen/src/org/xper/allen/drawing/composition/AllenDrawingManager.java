@@ -84,11 +84,11 @@ public class AllenDrawingManager implements Drawable {
 			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter),height,width, imageFolderName));
 			window.swapBuffers();
 			double blob = 1;
-			try {
-				Thread.sleep(100); //neccessary for images to be saved properly. 
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+//			try {
+//				Thread.sleep(100); //neccessary for images to be saved properly. 
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
 			stimCounter++;
 		}
 		window.destroy();
@@ -235,11 +235,6 @@ public class AllenDrawingManager implements Drawable {
 				public void draw() {
 					// TODO Auto-generated method stub
 					drawNoiseMap();
-//					try {
-//						Thread.sleep(5000); //neccessary for images to be saved properly. 
-//					} catch (InterruptedException e) {
-//						e.printStackTrace();
-//					}
 				}
 			});
 			List<String> labels = new LinkedList<>();
@@ -247,11 +242,11 @@ public class AllenDrawingManager implements Drawable {
 			labels.addAll(additionalLabels.get(stimCounter));
 			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter), labels, height,width, imageFolderName));
 			window.swapBuffers();
-			try {
-				Thread.sleep(100); //neccessary for images to be saved properly. 
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+//			try {
+//				Thread.sleep(100); //neccessary for images to be saved properly. 
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
 			stimCounter++;
 		}
 		window.destroy();

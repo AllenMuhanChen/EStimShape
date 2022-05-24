@@ -196,7 +196,7 @@ public class NoiseMapCalculation {
 		this.hull = hullVertices;
 		int firstIndxOutsideHull = findFirstIndxOutsideHull(hullVertices);
 		int numIndcsOutsideHull = sorted2dMAxis.size() - firstIndxOutsideHull;
-		System.out.println("AC1111: " + firstIndxOutsideHull);
+//		System.out.println("AC1111: " + firstIndxOutsideHull);
 		for(int i=0; i<sorted2dMAxis.size(); i++) {
 			if(i<firstIndxOutsideHull) {
 				normalizedPosition.add((double) i/ (double) firstIndxOutsideHull);
@@ -316,7 +316,7 @@ public class NoiseMapCalculation {
 		List<Point2d> axis1Ends = new LinkedList<Point2d>();
 		List<Point2d> axis2Ends = new LinkedList<Point2d>();
 
-		System.out.println("AC: segment length = " + (MAxes.get(0).length));
+//		System.out.println("AC: segment length = " + (MAxes.get(0).length));
 		axis1Ends.add(MAxes.get(0)[0]);
 		axis1Ends.add(MAxes.get(0)[MAxes.get(0).length-1]);
 		axis2Ends.add(MAxes.get(1)[0]);
@@ -349,7 +349,7 @@ public class NoiseMapCalculation {
 //		System.out.println("AC:15151" + alignedPt2);
 		if(MAxes.get(0)[0].epsilonEquals(alignedPt1, epsilon)
 				|| (MAxes.get(0)[0].epsilonEquals(alignedPt2, epsilon))) {
-			System.out.println("FIRST REVERSE CALLED");
+//			System.out.println("FIRST REVERSE CALLED");
 			orientedMAxes.add(reversePointsArray(MAxes.get(0)));
 		}
 		else {
@@ -358,7 +358,7 @@ public class NoiseMapCalculation {
 
 		if((!MAxes.get(1)[0].epsilonEquals(alignedPt1, epsilon))
 				&& (!MAxes.get(1)[0].epsilonEquals(alignedPt2, epsilon))) {
-			System.out.println("SECOND REVERSE CALLEd");
+//			System.out.println("SECOND REVERSE CALLEd");
 			orientedMAxes.add(reversePointsArray(MAxes.get(1)));
 			//			System.out.println("AC:191919"+reversePointsArray(MAxes.get(1))[50]);
 		} else {
