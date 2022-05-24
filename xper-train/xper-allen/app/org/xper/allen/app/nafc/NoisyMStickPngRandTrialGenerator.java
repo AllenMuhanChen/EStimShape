@@ -27,8 +27,8 @@ public class NoisyMStickPngRandTrialGenerator extends TrialGenerator{
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		NoisyMStickPngRandBlockGen gen = context.getBean(NoisyMStickPngRandBlockGen.class);
-
+		NoisyMStickPngRandBlockGen gen = context.getBean(NoisyMStickPngRandBlockGen.class, "randBlockGenerator");
+		
 		try { //try to generate trials with type-frequency pair inputs
 			//Convert String[] args to List and use iterator to go through elements
 			//using iterator allows for easily adding / rearranging elements without having to

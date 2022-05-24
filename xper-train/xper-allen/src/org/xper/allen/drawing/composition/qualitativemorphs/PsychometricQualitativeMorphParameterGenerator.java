@@ -18,7 +18,7 @@ public class PsychometricQualitativeMorphParameterGenerator {
 		this.setMaxImageDimensionDegrees(maxImageDimensionDegrees);
 	}
 
-	public List<QualitativeMorphParams> getQMP(int numStim) {
+	public List<QualitativeMorphParams> getQMP(int numStim, double percentChangePosition) {
 		this.qmps = new ArrayList<QualitativeMorphParams>();
 		for(int i=0; i<numStim; i++) {
 			qmps.add(i, new QualitativeMorphParams());
@@ -26,7 +26,7 @@ public class PsychometricQualitativeMorphParameterGenerator {
 
 			{//Object Centered Position - Orientation and Position
 				qmps.get(i).objCenteredPosQualMorph = new ObjectCenteredPositionQualitativeMorph();
-				qmps.get(i).objCenteredPosQualMorph.PERCENT_CHANGE_POSITION = 0;
+				qmps.get(i).objCenteredPosQualMorph.PERCENT_CHANGE_POSITION = percentChangePosition;
 				List<Bin<Integer>> positionBins = qmps.get(i).objCenteredPosQualMorph.positionBins;
 				positionBins.add(new Bin<Integer>(1,1));
 				positionBins.add(new Bin<Integer>(20,32));
