@@ -36,15 +36,12 @@ public class NoiseMapCalculation {
 
 	public NoiseMapCalculation(AllenMatchStick ams, double[] noiseChanceBounds, double[] noiseChanceBoundPositions) {
 		this.ams = ams;
-		if(ams.getnComponent()>2) {
-			throw new IllegalArgumentException("This NoiseMapCalculation can"
-					+ "only handle match sticks with 2 components");
-		}
 		this.n = ams.getnComponent();
-
-		setup();
-		//noiseChanceMAxisMap
-		noiseChanceMAxisMap = generateLinearMAxisNoiseMap(noiseChanceBounds, noiseChanceBoundPositions, normalizedPositions);
+		if(n==2) {
+			setup();
+			//noiseChanceMAxisMap
+			noiseChanceMAxisMap = generateLinearMAxisNoiseMap(noiseChanceBounds, noiseChanceBoundPositions, normalizedPositions);
+		}
 	}
 
 	public float calculateNoiseChanceForTriangle(Point3d[] triangleVertices, int tubeId, double scale) {
@@ -181,11 +178,20 @@ public class NoiseMapCalculation {
 	private void normalizePositionsAlongMAxis(List<Point2d[]> sortedSegmented2dMAxis){
 		Integer k = 10;
 		List<Double> normalizedPosition = new LinkedList<>();
-		Point3d[] specialCompPoints = ams.getComp()[ams.getBaseComp()].getVect_info();
+		Point3d[] baseCompPoints;
+		try {
+			baseCompPoints = ams.getComp()[ams.getBaseComp()].getVect_info();
+		} catch (NullPointerException e) {
+			System.out.println("This AllenMatchStick doesn't have a specified base comp. Choosing & Assigning random leaf to be BaseComp");
+			int randLeaf = ams.chooseRandLeaf();
+			baseCompPoints = ams.getComp()[randLeaf].getVect_info();
+			
+			
+		}
 		ArrayList<Point> concaveHullPoints = new ArrayList<>(); 
-		for(int i=0; i<specialCompPoints.length; i++) {
-			if(specialCompPoints[i]!=null) {
-				concaveHullPoints.add(new Point(specialCompPoints[i].getX(), specialCompPoints[i].getY()));
+		for(int i=0; i<baseCompPoints.length; i++) {
+			if(baseCompPoints[i]!=null) {
+				concaveHullPoints.add(new Point(baseCompPoints[i].getX(), baseCompPoints[i].getY()));
 			}
 		}
 
@@ -196,7 +202,7 @@ public class NoiseMapCalculation {
 		this.hull = hullVertices;
 		int firstIndxOutsideHull = findFirstIndxOutsideHull(hullVertices);
 		int numIndcsOutsideHull = sorted2dMAxis.size() - firstIndxOutsideHull;
-//		System.out.println("AC1111: " + firstIndxOutsideHull);
+		//		System.out.println("AC1111: " + firstIndxOutsideHull);
 		for(int i=0; i<sorted2dMAxis.size(); i++) {
 			if(i<firstIndxOutsideHull) {
 				normalizedPosition.add((double) i/ (double) firstIndxOutsideHull);
@@ -276,7 +282,7 @@ public class NoiseMapCalculation {
 		List<Integer> sortedSegmentIds = new ArrayList<>(2);
 		int firstSegment = -1;
 		int lastSegment = -1;
-		if(ams.getSpecialEndComp()==1) {
+		if(ams.getSpecialEndComp().get(0)==1) {
 			firstSegment=1;
 			lastSegment=0;
 		} else {
@@ -316,16 +322,16 @@ public class NoiseMapCalculation {
 		List<Point2d> axis1Ends = new LinkedList<Point2d>();
 		List<Point2d> axis2Ends = new LinkedList<Point2d>();
 
-//		System.out.println("AC: segment length = " + (MAxes.get(0).length));
+		//		System.out.println("AC: segment length = " + (MAxes.get(0).length));
 		axis1Ends.add(MAxes.get(0)[0]);
 		axis1Ends.add(MAxes.get(0)[MAxes.get(0).length-1]);
 		axis2Ends.add(MAxes.get(1)[0]);
 		axis2Ends.add(MAxes.get(1)[MAxes.get(1).length-1]);
 
-//		System.out.println("AC:00000" + axis1Ends.get(0));
-//		System.out.println("AC:00000" + axis1Ends.get(1));
-//		System.out.println("AC:11111" + axis2Ends.get(0));
-//		System.out.println("AC:11111" + axis2Ends.get(1));
+		//		System.out.println("AC:00000" + axis1Ends.get(0));
+		//		System.out.println("AC:00000" + axis1Ends.get(1));
+		//		System.out.println("AC:11111" + axis2Ends.get(0));
+		//		System.out.println("AC:11111" + axis2Ends.get(1));
 
 		List<Double> endDistances = new LinkedList<Double>();
 		List<Point2d> end1s = new LinkedList<>();
@@ -345,11 +351,11 @@ public class NoiseMapCalculation {
 		Point2d alignedPt1 = end1s.get(alignedPtIndx);
 		Point2d alignedPt2 = end2s.get(alignedPtIndx);
 
-//		System.out.println("AC:15151" + alignedPt1);
-//		System.out.println("AC:15151" + alignedPt2);
+		//		System.out.println("AC:15151" + alignedPt1);
+		//		System.out.println("AC:15151" + alignedPt2);
 		if(MAxes.get(0)[0].epsilonEquals(alignedPt1, epsilon)
 				|| (MAxes.get(0)[0].epsilonEquals(alignedPt2, epsilon))) {
-//			System.out.println("FIRST REVERSE CALLED");
+			//			System.out.println("FIRST REVERSE CALLED");
 			orientedMAxes.add(reversePointsArray(MAxes.get(0)));
 		}
 		else {
@@ -358,7 +364,7 @@ public class NoiseMapCalculation {
 
 		if((!MAxes.get(1)[0].epsilonEquals(alignedPt1, epsilon))
 				&& (!MAxes.get(1)[0].epsilonEquals(alignedPt2, epsilon))) {
-//			System.out.println("SECOND REVERSE CALLEd");
+			//			System.out.println("SECOND REVERSE CALLEd");
 			orientedMAxes.add(reversePointsArray(MAxes.get(1)));
 			//			System.out.println("AC:191919"+reversePointsArray(MAxes.get(1))[50]);
 		} else {

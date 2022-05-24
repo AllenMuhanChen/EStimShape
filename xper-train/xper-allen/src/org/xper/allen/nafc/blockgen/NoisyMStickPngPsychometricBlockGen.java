@@ -36,25 +36,39 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 	private static double[] noiseNormalizedPosition_PRE_JUNC = new double[] {0.5, 0.8};
 
-	public void generateSet(int numPerSet, double size, double percentChangePosition) {	
+	public void generateSet(int numPerSet, double size, double percentChangePosition, int numRand) {	
+		if(numRand>numPerSet) {
+			throw new IllegalArgumentException("numRand should not be greater than numPerSet");
+		}
+
 		//Preallocation & Set-up
+		List<StimType> stimTypes = new LinkedList<>();
 		boolean tryagain = true;
 		int nTries = 0;
 		AllenMatchStick objs_base = new AllenMatchStick();
 		List<AllenMatchStick> objs = new ArrayList<>();
 		for(int i=0; i<numPerSet; i++) {
 			objs.add(new AllenMatchStick());
+
+			if(i==0) {
+				stimTypes.add(StimType.BASE);
+			} 
+			else if (i>0 && i<numPerSet-numRand) {
+				stimTypes.add(StimType.QM);
+			} else {
+				stimTypes.add(StimType.RAND);
+			}
 		}
 
 		int numQMMorphs = numPerSet-1;
 		List<QualitativeMorphParams> qmps = new LinkedList<>();
-		qmps = psychometricQmpGenerator.getQMP(numPerSet-1, percentChangePosition);
+		qmps = psychometricQmpGenerator.getQMP(numPerSet-1-numRand, percentChangePosition);
 
 		//VETTING AND CHOOSING LEAF
 		while (tryagain){
 			boolean firstObjSuccess = false;
-			Boolean[] qmObjSuccess = new Boolean[numQMMorphs];
-			for(int b=0; b<qmObjSuccess.length; b++) qmObjSuccess[b]=false;
+			Boolean[] restObjSuccess = new Boolean[numPerSet-1];
+			for(int b=0; b<restObjSuccess.length; b++) restObjSuccess[b]=false;
 			boolean restOfObjsSuccess = false;
 
 			setProperties(objs_base);
@@ -66,7 +80,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 				int nTries_leaf=0;
 
 				while(true) {
-					System.out.println("In Leaf: Attempt " + nTries_leaf+1);
+					System.out.println("In Leaf: Attempt " + (nTries_leaf+1));
 					objs_base.genMatchStickRand();
 					randomLeaf = objs_base.chooseRandLeaf();
 					boolean leafSuccess = objs_base.vetLeaf(randomLeaf);
@@ -98,20 +112,29 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			}
 
 			//REST OF THE OBJS
-			int leafToMorphIndx = objs.get(0).getSpecialEndComp();
 			if(firstObjSuccess) {
+				int leafToMorphIndx = objs.get(0).getSpecialEndComp().get(0);
 				for (int i=1; i<numPerSet; i++) {
 					nTries_obj = 0;
 					while(nTries_obj<maxAttemptsPerObj) {
 						//						System.out.println("In Obj " + i + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
 						try {
 							setProperties(objs.get(i));
-							qmObjSuccess[i-1] = objs.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs.get(0), qmps.get(i-1));
+							if(stimTypes.get(i)==StimType.QM)
+								restObjSuccess[i-1] = objs.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs.get(0), qmps.get(i-1));
+							else {
+								try {
+								objs.get(i).genMatchStickRand();
+								restObjSuccess[i-1] = true;
+								} catch (Exception e) {
+									restObjSuccess[i-1] = false;
+								}
+							}
 						} catch (Exception e) {
 							e.printStackTrace();
-							qmObjSuccess[i-1] = false;
+							restObjSuccess[i-1] = false;
 						}
-						if(!qmObjSuccess[i-1]){
+						if(!restObjSuccess[i-1]){
 							objs.set(i, new AllenMatchStick());
 						}
 						else {
@@ -121,7 +144,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 					}
 
 				}
-				restOfObjsSuccess = !Arrays.asList(qmObjSuccess).contains(false);
+				restOfObjsSuccess = !Arrays.asList(restObjSuccess).contains(false);
 			}
 			if(restOfObjsSuccess) {
 				tryagain = false;
@@ -133,14 +156,14 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			}
 		}
 
-		//DEBUG
-		for (AllenMatchStick obj : objs) {
-			int specialComp = obj.getSpecialEndComp();
-			AllenTubeComp specialCompTube = obj.getComp()[specialComp];
-			AllenMAxisArc specialCompMAxis = specialCompTube.getmAxisInfo();
-			int rotCenter = specialCompMAxis.getTransRotHis_rotCenter();
-//			System.out.println("AC0000: " + specialCompMAxis.getmTangent()[rotCenter]);
-		}
+//		//DEBUG
+//		for (AllenMatchStick obj : objs) {
+//			int specialComp = obj.getSpecialEndComp();
+//			AllenTubeComp specialCompTube = obj.getComp()[specialComp];
+//			AllenMAxisArc specialCompMAxis = specialCompTube.getmAxisInfo();
+//			int rotCenter = specialCompMAxis.getTransRotHis_rotCenter();
+//			//			System.out.println("AC0000: " + specialCompMAxis.getmTangent()[rotCenter]);
+//		}
 
 		//DRAWING AND SAVING
 		List<List<String>> labels = new LinkedList<List<String>>();
@@ -257,7 +280,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 				}
 			}
 		}
-		
+
 		//SHUFFLING
 		Collections.shuffle(trials);
 
@@ -269,9 +292,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		for (PsychometricTrial trial: trials) {
 			Long currentTime = globalTimeUtil.currentTimeMicros();
 			trial.sampleId = currentTime;
-			
+
 			AllenMatchStick obj = trial.fetchSample();
-			
+
 			AllenMStickSpec sampleMStickSpec = new AllenMStickSpec();
 			sampleMStickSpec.setMStickInfo(obj);
 			trial.sampleMStickSpec = sampleMStickSpec;
@@ -303,7 +326,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		for (int i=0; i<noiseMapPaths.size(); i++) {
 			trials.get(i).noiseMapPath = noiseMapPaths.get(i);
 		}
-		
+
 
 
 		//POPULATING DATABASES
@@ -318,9 +341,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			Coordinates2D sampleCoords = randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceDistanceLowerLim, choiceDistanceUpperLim, 0, 0);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
-//			System.out.println("AC000: distractorCoordS: " + distractorsCoords.toString() );
+			//			System.out.println("AC000: distractorCoordS: " + distractorsCoords.toString() );
 			Coordinates2D matchCoords = ddUtil.getMatchCoords();
-//			System.out.println("AC111: matchCoords" + matchCoords.toString());
+			//			System.out.println("AC111: matchCoords" + matchCoords.toString());
 
 			//SAMPLE SPEC
 			NoisyPngSpec sampleSpec = new NoisyPngSpec();
@@ -382,15 +405,15 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 				choiceIds[distractorIdIndx+1] = trial.distractorsIds.get(distractorIdIndx);
 			}
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, trial.sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
-			
+
 			//TODO: WRITE TRIAL DATA
 			NoisyMStickPngPsychometricTrialGenData trialGenData = new NoisyMStickPngPsychometricTrialGenData(sampleDistanceLowerLim, sampleDistanceUpperLim, choiceDistanceLowerLim, choiceDistanceUpperLim, sampleScale, eyeWinSize);
-			
+
 			NoiseData noiseData = trial.noiseData;
-			
-			
+
+
 			NoisyMStickPngPsychometricTrialData trialData = new NoisyMStickPngPsychometricTrialData(noiseData, trialGenData);
-			
+
 			long taskId = trial.sampleId;
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
@@ -399,8 +422,11 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		System.out.println("Done Generating...");
 		return;
 	}
-	
-	
+
+	private enum StimType{
+		QM, RAND, BASE;
+	}
+
 	public List<String> convertNoiseMapPathsToExperiment(List<String> generatorPaths) {
 		LinkedList<String> expPaths = new LinkedList<String>();
 		for(int s=0; s<generatorPaths.size(); s++) {
@@ -551,6 +577,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 	public void setExperimentPsychometricNoiseMapPath(String experimentPsychometricNoiseMapPath) {
 		this.experimentPsychometricNoiseMapPath = experimentPsychometricNoiseMapPath;
 	}
-	
+
 
 }

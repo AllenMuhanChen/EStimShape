@@ -61,16 +61,16 @@ public class AllenMatchStick extends MatchStick {
 	private final double TangentSaveZone = Math.PI/64;
 
 	//AC ADDITIONS
-	private int specialEnd=0;
-	private int specialEndComp=0;
+	private List<Integer> specialEnd = new ArrayList<Integer>();
+	private List<Integer> specialEndComp= new ArrayList<Integer>();
 
-	
+
 	// VARIABLES FOR CONTRUCTING NOISE MAPS
-	private NoiseType noiseType;
 	private double[] noiseChanceBounds;
+	private NoiseType noiseType;
 	private double[] noiseNormalizedPositions;
-	
-	
+
+
 	public AllenMatchStick() {
 		setFinalRotation(this.finalRotation);
 	}
@@ -122,7 +122,7 @@ public class AllenMatchStick extends MatchStick {
 
 		return new NoiseData(noiseType, this.noiseNormalizedPositions, this.noiseChanceBounds);
 	}
-	
+
 	public void setNoiseParameters(NoiseData noiseData) {
 		this.noiseChanceBounds = noiseData.getNoiseChanceBounds();
 		this.noiseNormalizedPositions = noiseData.getNormalizedPositionBounds();
@@ -732,7 +732,7 @@ public class AllenMatchStick extends MatchStick {
 			qmp.radProfileQualMorph.calculate();
 		}
 
-	
+
 		// 1. determine alignedPt ( 3 possibilities, 2 ends and the branchPt)
 		int alignedPt;
 		alignedPt = MutationSUB_determineHinge(id);
@@ -996,7 +996,7 @@ public class AllenMatchStick extends MatchStick {
 				break;
 
 		} //outer test while
-//		System.out.println("AC0000: " + getComp()[id].getmAxisInfo().getmTangent()[alignedPt].toString());
+		//		System.out.println("AC0000: " + getComp()[id].getmAxisInfo().getmTangent()[alignedPt].toString());
 		if ( showDebug)
 			System.out.println("successfully fine tune a tube");
 		return true;
@@ -1650,7 +1650,7 @@ public class AllenMatchStick extends MatchStick {
 		Point3d[] baseBox = getBoundingBox(baseNVect, baseVect_info);
 		double baseArea = findAreaOfBox(baseBox);
 
-		
+
 		if(leafArea < baseArea*MAX_LEAF_TO_BASE_AREA_RATIO && leafArea > baseArea*MIN_LEAF_TO_BASE_AREA_RATIO) {
 			return true;
 		}else {
@@ -1918,24 +1918,26 @@ public class AllenMatchStick extends MatchStick {
 			}
 
 			//DEFINE SPECIAL END TO BE THE END THAT IS NOT PREVIOUSLY A JUNC
-			setSpecialEndComp(1);
-			setSpecialEnd(1);
+			if(getSpecialEndComp().isEmpty())
+				getSpecialEndComp().add(1);
+			if(getSpecialEnd().isEmpty());
+			getSpecialEnd().add(1);
 
-			int seComp = getSpecialEndComp();
+			int seComp = getSpecialEndComp().get(0);
 			int seUNdx = specialEnd.getuNdx();
 			Point3d sePos = specialEnd.getPos();
 			Vector3d seTangent = specialEnd.getTangent();
 			double seRad = specialEnd.getRad();
 
-			getEndPt()[getSpecialEnd()] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
-			getEndPt()[getSpecialEnd()+1] = new EndPt_struct(seComp, nseUNdx, nsePos, nseTangent, nseRad);
+			getEndPt()[getSpecialEnd().get(0)] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
+			getEndPt()[getSpecialEnd().get(0)+1] = new EndPt_struct(seComp, nseUNdx, nsePos, nseTangent, nseRad);
 
 
 			setnJuncPt(0);
 			setnEndPt(2);
 
 			//ROTATION INFORMATION
-			AllenMAxisArc specialMAxis = getComp()[getSpecialEndComp()].getmAxisInfo();
+			AllenMAxisArc specialMAxis = getComp()[getSpecialEndComp().get(0)].getmAxisInfo();
 			//			specialMAxis.setTransRotHis_alignedPt(getComp());
 			//			getComp()[1].getmAxisInfo().setTransRotHis_alignedPt(nseUNdx);
 			//			getComp()[1].getmAxisInfo().setTransRotHis_finalPos(getComp()[1].getmAxisInfo().getmPts()[nseUNdx]);
@@ -2060,7 +2062,7 @@ public class AllenMatchStick extends MatchStick {
 			trialCount = 1;
 
 			nowPtNdx = 2;
-			if(nowPtNdx==getSpecialEnd()) {
+			if(nowPtNdx==getSpecialEnd().get(0)) {
 				System.out.println("ERROR! We should not be adding to the special end");
 				return false;
 			}
@@ -2115,7 +2117,7 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				nowPtNdx = stickMath_lib.randInt(1, getnEndPt());
-				if (nowPtNdx != getSpecialEnd())
+				if (nowPtNdx != getSpecialEnd().get(0))
 					break; // we find a good endPt
 				trialCount++;
 				if (trialCount == 100)
@@ -2220,7 +2222,7 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				nowPtNdx = stickMath_lib.randInt(1, this.getnEndPt());
-				if (getEndPt()[nowPtNdx].getRad() > 0.2 && nowPtNdx!= getSpecialEnd())
+				if (getEndPt()[nowPtNdx].getRad() > 0.2 && nowPtNdx!= getSpecialEnd().get(0))
 					break; // we find a good endPt
 				trialCount++;
 				if (trialCount == 100)
@@ -2327,7 +2329,7 @@ public class AllenMatchStick extends MatchStick {
 			while(true)
 			{
 				pickedComp = stickMath_lib.randInt(1, nowComp-1); // one of the existing component
-				if (pickedComp!=getSpecialEndComp())
+				if (pickedComp!=getSpecialEndComp().get(0))
 					break;
 				nTries++;
 				if(nTries>100)
@@ -2390,7 +2392,7 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				nowPtNdx = stickMath_lib.randInt(1, this.getnEndPt());
-				if (getEndPt()[nowPtNdx].getRad() > 0.2 && nowPtNdx != getSpecialEnd())
+				if (getEndPt()[nowPtNdx].getRad() > 0.2 && nowPtNdx != getSpecialEnd().get(0))
 					break; // we find a good endPt
 				trialCount++;
 				if (trialCount == 100)
@@ -2539,6 +2541,8 @@ public class AllenMatchStick extends MatchStick {
 
 	/**
     genMatchStick with nComp components
+    The first component generated is set as the baseComp
+    The rest of the components are all set as special ends. 
 	 */
 	public boolean genMatchStick_comp(int nComp)
 	{
@@ -2554,8 +2558,8 @@ public class AllenMatchStick extends MatchStick {
 			getComp()[i] = new AllenTubeComp();
 		// 1. create first component at the center of the space.
 		createFirstComp();
+		setBaseComp(1);
 		// 2. sequentially adding new components
-
 		int nowComp = 2;
 		double randNdx;
 		boolean addSuccess;
@@ -2578,8 +2582,10 @@ public class AllenMatchStick extends MatchStick {
 				else
 					addSuccess = Add_MStick(nowComp, 4);
 			}
-			if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
+			if (addSuccess == true) { // otherwise, we'll run this while loop again, and re-generate this component
+				getSpecialEndComp().add(nowComp); //we add this as specialEndComp so we can create a noisemap for it. 
 				nowComp ++;
+			}
 			if (nowComp == nComp+1)
 				break;
 		}
@@ -3126,7 +3132,7 @@ Adding a new MAxisArc to a MatchStick
 
 
 	}
-	
+
 	public void genMatchStickFromFile(String fname) {
 		String in_specStr;
 		StringBuffer fileData = new StringBuffer(100000);
@@ -3159,7 +3165,7 @@ Adding a new MAxisArc to a MatchStick
 		genMatchStickFromShapeSpec(inSpec, new double[] {0,0,0});
 	}
 
-	
+
 	/**
 	 *    genMatchStickFrom spec data
 	 *    Read in a spec structure, and dump those info into this MAxis structure
@@ -3175,7 +3181,7 @@ Adding a new MAxisArc to a MatchStick
 		int nComp = inSpec.getmAxis().getnComponent();
 		setnComponent(nComp);
 		int i, j, k;
-		
+
 		// 1.5 AC Info
 		setSpecialEnd(inSpec.getmAxis().getSpecialEnd());
 		setSpecialEndComp(inSpec.getmAxis().getSpecialEndComp());
@@ -3699,21 +3705,7 @@ Adding a new MAxisArc to a MatchStick
 		this.minScaleForMAxisShape = minScaleForMAxisShape;
 	}
 
-	public int getSpecialEnd() {
-		return specialEnd;
-	}
 
-	public void setSpecialEnd(int specialEnd) {
-		this.specialEnd = specialEnd;
-	}
-
-	public int getSpecialEndComp() {
-		return specialEndComp;
-	}
-
-	public void setSpecialEndComp(int specialEndComp) {
-		this.specialEndComp = specialEndComp;
-	}
 
 	public int getBaseComp() {
 		return baseComp;
@@ -3753,5 +3745,21 @@ Adding a new MAxisArc to a MatchStick
 
 	public AllenTubeComp getTubeComp(int i) {
 		return getComp()[i];
+	}
+
+	public List<Integer> getSpecialEnd() {
+		return specialEnd;
+	}
+
+	public void setSpecialEnd(List<Integer> specialEnd) {
+		this.specialEnd = specialEnd;
+	}
+
+	public List<Integer> getSpecialEndComp() {
+		return specialEndComp;
+	}
+
+	public void setSpecialEndComp(List<Integer> specialEndComp) {
+		this.specialEndComp = specialEndComp;
 	}
 }

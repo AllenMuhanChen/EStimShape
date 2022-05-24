@@ -38,9 +38,10 @@ public class PsychometricMStickPngGenerator {
 			int numPerSet = Integer.parseInt(iterator.next());
 			double size = Double.parseDouble(iterator.next());
 			double percentChangePosition = Double.parseDouble(iterator.next());
+			int numRand = Integer.parseInt(iterator.next());
 			
 			for(int set=0; set<numSets; set++) {
-				gen.generateSet(numPerSet, size, percentChangePosition);
+				gen.generateSet(numPerSet, size, percentChangePosition, numRand);
 			}
 			
 		} catch (Exception e) {
