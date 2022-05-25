@@ -293,8 +293,9 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 				}
 
 				//MATCH: GENERATING MATCHSTICK
-				int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp().get(0);
+				int leafToMorphIndx = -1;
 				if(sampleSuccess){
+					leafToMorphIndx = objs_sample.get(i).getSpecialEndComp().get(0);
 					int maxAttempts_match = 3;
 					int nTries_match = 0;
 					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
