@@ -29,7 +29,7 @@ public class PsychometricQualitativeMorphParameterGenerator {
 				qmps.get(i).objCenteredPosQualMorph.PERCENT_CHANGE_POSITION = percentChangePosition;
 				List<Bin<Integer>> positionBins = qmps.get(i).objCenteredPosQualMorph.positionBins;
 				positionBins.add(new Bin<Integer>(1,1));
-				positionBins.add(new Bin<Integer>(20,32));
+//				positionBins.add(new Bin<Integer>(20,32));
 				positionBins.add(new Bin<Integer>(51,51));
 
 				qmps.get(i).objCenteredPosQualMorph.setAngleDifferenceBounds(new Double[] {90 * Math.PI/180, 270 * Math.PI/180});
