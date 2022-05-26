@@ -47,7 +47,7 @@ public class AllenMatchStick extends MatchStick {
 	private MStickObj4Smooth obj1;
 	protected boolean[] LeafBranch = new boolean[10];
 
-	protected final double PROB_addToEndorJunc = 0.5; // 50% add to end or
+	protected final double PROB_addToEndorJunc = 1; // 50% add to end or
 	// junction pt, 50% to the
 	// branch
 	protected final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
@@ -591,7 +591,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			//centerShapeAtOrigin(-1);
+			centerShapeAtOrigin(getSpecialEndComp().get(0));
 			if(success){
 				boolean res;
 				try{
@@ -978,6 +978,7 @@ public class AllenMatchStick extends MatchStick {
 						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
 					success_process = false;
 				}
+				centerShapeAtOrigin(getSpecialEndComp().get(0));
 				if ( this.validMStickSize() ==  false)
 				{
 					if ( showDebug)
@@ -1197,7 +1198,7 @@ public class AllenMatchStick extends MatchStick {
 
 		// Dec 24th 2008
 		// re-center the shape before do the validMStickSize check!
-		this.centerShapeAtOrigin(-1);
+		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 		// this.normalizeMStickSize();
 
 		//   System.out.println("after centering");
@@ -1235,7 +1236,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			//centerShapeAtOrigin(-1);
+			centerShapeAtOrigin(getSpecialEndComp().get(0));
 			if(success){
 				boolean res;
 				try{
@@ -1614,7 +1615,8 @@ public class AllenMatchStick extends MatchStick {
 			// finalRotation[2]);
 
 			//TRY SMOOTHING THE SHAPE
-			centerShapeAtOrigin(-1);
+			
+			centerShapeAtOrigin(getSpecialEndComp().get(0));
 			boolean smoothSuccess = false;
 			if(compSuccess){
 
@@ -2020,7 +2022,7 @@ public class AllenMatchStick extends MatchStick {
 		}
 
 		// 5. check if the final shape is not working ( collide after skin application)
-		this.centerShapeAtOrigin(-1);
+		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 
 		if ( this.validMStickSize() ==  false)
 		{
@@ -2525,7 +2527,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			centerShapeAtOrigin(-1);
+			centerShapeAtOrigin(getSpecialEndComp().get(0));
 
 			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth
@@ -2616,7 +2618,7 @@ public class AllenMatchStick extends MatchStick {
 
 		// Dec 24th 2008
 		// re-center the shape before do the validMStickSize check!
-		this.centerShapeAtOrigin(-1);
+		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 		// this.normalizeMStickSize();
 
 		//   System.out.println("after centering");

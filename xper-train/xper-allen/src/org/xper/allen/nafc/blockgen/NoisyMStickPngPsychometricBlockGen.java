@@ -24,6 +24,7 @@ import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
+import org.xper.exception.VariableNotFoundException;
 
 public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockGen{
 	@Dependency
@@ -234,6 +235,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		}
 
 		//Removing non-distinct setIds and stimNums
+
 		removeNonDistinct(setIds);
 		removeNonDistinct(stimIds);
 
@@ -330,6 +332,14 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 
 		//POPULATING DATABASES
+		try {
+			/**
+			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked. 
+			 */
+			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
+		} catch (VariableNotFoundException e) {
+			dbUtil.writeReadyGenerationInfo(genId, 0);
+		}
 		for (PsychometricTrial trial:trials) {
 			//IDS
 			trial.matchId = trial.sampleId + 1;
@@ -505,7 +515,8 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		int n = list.size();
 		// First sort the array so that all
 		// occurrences become consecutive
-		list.sort(null);;
+		list.sort(null);
+
 		List<Integer> removeList = new ArrayList<Integer>();
 		// Traverse the sorted array
 		for (int i = 0; i < n; i++)
@@ -514,20 +525,21 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			// Move the index ahead while
 			// there are duplicates
 			while (i < n - 1 &&
-					list.get(i) == list.get(i+1))
+					list.get(i).equals(list.get(i+1)))
 			{
 				removeList.add(i+1);
 				i++;
 			}
 
 		}
+	
 		//Remove in reverse order to avoid indcs to remove changing every removal. 
 		//We can't copy a generic List easily so we have to do it this way. 
 		Collections.reverse(removeList);
 		for(int removeIndx : removeList) {
 			list.remove(removeIndx);
 		}
-
+	
 	}
 
 
