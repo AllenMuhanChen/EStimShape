@@ -241,8 +241,8 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			mmp = mmpGenerator.getMMP(sampleScaleUpperLim, numMMCategories);
 			mmps.add(mmp);
 			
+			qmps.add(new LinkedList<QualitativeMorphParams>());
 			for(int qmIndx = 0; qmIndx<numQMDistractors; qmIndx++) {
-				qmps.add(new LinkedList<QualitativeMorphParams>());
 				qmps.get(i).add(qmpGenerator.getQMP(numQMCategories));
 			}
 
@@ -463,21 +463,31 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 			System.out.println("SAVING SPEC " + k + " out of " + objs.size());
 		}
 		
+		int prevIndx=0;
 		for (int i = 0; i < numTrials; i++) {
-			
-			
+			int tmpIndx=0;
 			int numQMDistractors = numQMDistractorsTrialList.get(i);
 			int numRandDistractors = numDistractorsTrialList.get(i)-numQMDistractors;
 			if(numRandDistractors<0) throw new IllegalArgumentException("There should not be less than 0 randDistractors");
 			int numQMCategories = numCategoriesMorphedTrialList.get(i);
 			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
 			int numStimuli = numChoices + 1; //choices + sample
+			
 			List<String> trialStimPaths = new LinkedList<String>();
-			for(int j=0; j<numStimuli; j++) {
-				trialStimPaths.add(stimPaths.get(numStimuli*i+j));
+			trialStimPaths.add(stimPaths.get(prevIndx+0)); //sample
+			tmpIndx++;
+			trialStimPaths.add(stimPaths.get(prevIndx+1)); //match
+			tmpIndx++;
+			for(int j=0; j<numQMDistractors; j++) {
+				trialStimPaths.add(stimPaths.get(prevIndx+j+2));
+				tmpIndx++;
 			}
-
-
+			for(int j=numQMDistractors; j<numChoices-1; j++) {
+				trialStimPaths.add(stimPaths.get(prevIndx+j+2));
+				tmpIndx++;
+			}
+			prevIndx = prevIndx+tmpIndx;
+			
 
 			//PREPARING WRITE TO DB SPECIFYING LOCATION
 			
