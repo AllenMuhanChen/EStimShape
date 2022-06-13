@@ -53,5 +53,6 @@
 	<classpathentry kind="lib" path="/xper-3d/lib/java3d/j3dutils.jar"/>
 	<classpathentry kind="lib" path="/xper-3d/lib/java3d/vecmath.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
+	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper-allen/lib/junit-vintage-engine-5.8.2.jar"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>
