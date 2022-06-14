@@ -27,33 +27,13 @@ import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
-import org.xper.utils.RGBColor;
 
 /**
  * Generate MSticks, convert to Png. 
  * @author r2_allen
  *
  */
-public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
-	@Dependency
-	AllenDbUtil dbUtil;
-	@Dependency
-	TimeUtil globalTimeUtil;
-	@Dependency
-	AllenXMLUtil xmlUtil;
-	@Dependency
-	protected
-	String generatorPngPath;
-	@Dependency
-	protected
-	String experimentPngPath;
-	@Dependency
-	protected
-	String generatorSpecPath;
-	@Dependency
-	AllenPNGMaker pngMaker;
-	@Dependency
-	double maxImageDimensionDegrees;
+public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 	@Dependency
 	QualitativeMorphParameterGenerator qmpGenerator;
 	@Dependency
@@ -452,7 +432,7 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 		
 		List<String> stimPaths = pngMaker.createAndSavePNGsfromObjs(objs, ids, labels);
 		stimPaths = convertPathsToExperiment(stimPaths);
-		List<String> noiseMapPaths = pngMaker.createAndSaveNoiseMapfromObjs(objs_noise, ids_noise, noiseLabels);
+		List<String> noiseMapPaths = pngMaker.createAndSaveNoiseMapsfromObjs(objs_noise, ids_noise, noiseLabels);
 		noiseMapPaths = convertPathsToExperiment(noiseMapPaths);
 		
 		//SAVE SPECS.TXT
@@ -592,57 +572,6 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 
 
 
-	/**
-	 * It is imperative that these properties are set before the object is generated/is smoothized.
-	 * @param obj
-	 */
-	protected void setProperties(AllenMatchStick obj) {
-		//OBJECT PROPERTIES
-		//SETTING SIZES 
-		/**
-		 * With this strategy of scale setting, we set our maxImageDimensionDegrees to
-		 * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
-		 * to be approx half the size. 
-		 */
-		double scale = maxImageDimensionDegrees/1.5;
-		double minScale = maxImageDimensionDegrees/2.5;
-		obj.setScale(minScale, scale);
-
-		//CONTRAST
-		double contrast = 1;
-		obj.setContrast(contrast);
-
-		//COLOR
-		RGBColor white = new RGBColor(1,1,1);
-		obj.setStimColor(white);
-
-		//TEXTURE
-		obj.setTextureType("SHADE");
-
-	}
-
-
-	public List<String> convertPathsToExperiment(List<String> generatorPaths) {
-		LinkedList<String> expPaths = new LinkedList<String>();
-		for(int s=0; s<generatorPaths.size(); s++) {
-			String newPath = generatorPaths.get(s).replace(getGeneratorPngPath(), getExperimentPngPath());
-			expPaths.add(s, newPath);
-		}
-		return expPaths;
-	}
-	
-
-
-	public String convertPathToExperiment(String generatorPath) {
-
-		String newPath = generatorPath.replace(getGeneratorPngPath(), getExperimentPngPath());
-
-		return newPath;
-	}
-
-
-
-
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;
 	}
@@ -658,13 +587,6 @@ public class NoisyMStickPngRandBlockGen extends NAFCBlockGen{
 		this.globalTimeUtil = globalTimeUtil;
 	}
 
-	public AllenXMLUtil getXmlUtil() {
-		return xmlUtil;
-	}
-
-	public void setXmlUtil(AllenXMLUtil xmlUtil) {
-		this.xmlUtil = xmlUtil;
-	}
 
 	public String getGeneratorPngPath() {
 		return generatorPngPath;

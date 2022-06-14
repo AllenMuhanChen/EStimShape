@@ -12,6 +12,7 @@ import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
+import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
@@ -75,7 +76,6 @@ public class NoisyNAFCMStickPngAppConfig {
 		NoisyMStickPngPsychometricBlockGen gen = new NoisyMStickPngPsychometricBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
-		gen.setXmlUtil(config.allenXMLUtil());
 		gen.setGeneratorPngPath(generatorPsychometricPngPath);
 		gen.setExperimentPngPath(experimentPsychometricPngPath);
 		gen.setGeneratorSpecPath(generatorPsychometricSpecPath);
@@ -128,11 +128,10 @@ public class NoisyNAFCMStickPngAppConfig {
 	 * @return
 	 */
 	@Bean
-	public NoisyMStickPngRandBlockGen randBlockGenerator() {
+	public AbstractMStickPngTrialGenerator randBlockGenerator() {
 		NoisyMStickPngRandBlockGen gen = new NoisyMStickPngRandBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
-		gen.setXmlUtil(config.allenXMLUtil());
 		gen.setGeneratorPngPath(appConfig.generatorPngPath);
 		gen.setExperimentPngPath(appConfig.experimentPngPath);
 		gen.setGeneratorSpecPath(appConfig.generatorSpecPath);

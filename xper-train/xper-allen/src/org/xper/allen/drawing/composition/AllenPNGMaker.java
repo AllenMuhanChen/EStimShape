@@ -39,6 +39,7 @@ public class AllenPNGMaker{
 	double depth;
 	AbstractRenderer pngRenderer;
 	
+	AllenDrawingManager window;
 	int height = 1024;
 	int width = 1024;
 	
@@ -57,6 +58,29 @@ public class AllenPNGMaker{
 	
 	public AllenPNGMaker() {}
 
+	public void createDrawerWindow() {
+		window = new AllenDrawingManager(height,width);
+		window.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
+		window.setPngMaker(this);
+		window.init();
+	}
+	
+	public void close() {
+		window.close();
+	}
+	
+	public String createAndSavePNGMapFromObj(AllenMatchStick obj, Long stimObjId, List<String> labels) {
+		window.setImageFolderName(generatorImageFolderName);
+		System.out.println("creating and saving PNG...");
+		return window.drawNoiseMap(obj, stimObjId,labels);
+	}
+	public String createAndSaveNoiseMapFromObj(AllenMatchStick obj, Long stimObjId, List<String> labels) {
+		window.setImageFolderName(generatorNoiseMapFolderName);
+		System.out.println("creating and saving NoiseMap PNG...");
+		return window.drawNoiseMap(obj, stimObjId,labels);
+	}
+	
+	
 	public List<String> createAndSavePNGsfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds, List<List<String>> labels) {
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
@@ -90,7 +114,7 @@ public class AllenPNGMaker{
 		return paths;
 	
 	}
-	public List<String> createAndSaveNoiseMapfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds, List<List<String>> additionalLabels) {
+	public List<String> createAndSaveNoiseMapsfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds, List<List<String>> additionalLabels) {
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(1.0f, 0,0);
 		testWindow.setPngMaker(this);
@@ -115,7 +139,7 @@ public class AllenPNGMaker{
 	}
 	
 	
-	public void createAndSaveNoiseMapfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds) {
+	public void createAndSaveNoiseMapsfromObjs(List<AllenMatchStick> objs,List<Long> stimObjIds) {
 		AllenDrawingManager testWindow = new AllenDrawingManager(height,width);
 		testWindow.setBackgroundColor(1.0f, 0,0);
 		testWindow.setPngMaker(this);
