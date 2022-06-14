@@ -1,7 +1,7 @@
 package org.xper.allen.nafc.blockgen;
 
 
-import static org.xper.allen.nafc.blockgen.NAFCBlockGen.randomWithinRadius;
+import static org.xper.allen.nafc.blockgen.AbstractTrialGenerator.randomWithinRadius;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -11,7 +11,7 @@ import java.util.stream.IntStream;
 
 import org.xper.drawing.Coordinates2D;
 
-public abstract class NAFCBlockGen {
+public abstract class AbstractTrialGenerator {
 	
 	protected static int[] frequencyToNumTrials(double[] typesFrequencies, int numTrials) {
 		int[] typesNumTrials = new int[typesFrequencies.length];

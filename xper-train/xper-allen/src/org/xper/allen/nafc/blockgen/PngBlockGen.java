@@ -23,7 +23,7 @@ import org.xper.time.TimeUtil;
 
 
 
-public class PngBlockGen extends NAFCBlockGen{
+public class PngBlockGen extends AbstractTrialGenerator{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency

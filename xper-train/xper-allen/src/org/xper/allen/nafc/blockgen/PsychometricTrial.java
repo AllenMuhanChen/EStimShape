@@ -7,8 +7,15 @@ import java.util.List;
 
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.allen.nafc.blockgen.AbstractTrialGenerator.DistancedDistractorsUtil;
+import org.xper.allen.nafc.experiment.RewardPolicy;
+import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.nafc.vo.NoiseData;
 import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.allen.specs.NAFCStimSpecSpec;
+import org.xper.allen.specs.NoisyPngSpec;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
 /**
@@ -17,23 +24,16 @@ import org.xper.drawing.Coordinates2D;
  * @author r2_allen
  *
  */
-class PsychometricTrial implements NAFCTrial{
+class PsychometricTrial implements Trial{
 	/**
 	 * 
 	 */
-	private NoisyMStickPngPsychometricBlockGen gen;
+	private AbstractPsychometricNoiseMapGenerator gen;
+	private AllenDbUtil dbUtil;
 
-
-	/**
-	 * @param noisyMStickPngPsychometricBlockGen
-	 */
-	PsychometricTrial(NoisyMStickPngPsychometricBlockGen noisyMStickPngPsychometricBlockGen) {
-		this.gen = noisyMStickPngPsychometricBlockGen;
-		
-	}
 	
 	//Fields to help with calculations and not directly written to db
-	String specPath = gen.generatorSpecPath;
+	String specPath;
 	long sampleSetId;
 	int sampleStimId;
 	NoiseData noiseData;
@@ -43,7 +43,17 @@ class PsychometricTrial implements NAFCTrial{
 	List<Integer> distractorsStimIds;
 	int numPsychometricDistractors;
 	int numRandDistractors;
+	int numDistractors;
+	int numChoices;
 	AllenMatchStick sampleObj;
+	
+	//Parameter Fields
+	double sampleDistanceLowerLim;
+	double sampleDistanceUpperLim; 
+	double choiceDistanceLowerLim;
+	double choiceDistanceUpperLim;
+	double sampleScale;
+	double eyeWinSize;
 
 	//fields that are written to the db 
 		//stimObjData
@@ -63,33 +73,133 @@ class PsychometricTrial implements NAFCTrial{
 	Coordinates2D sampleCoords;
 	Coordinates2D matchCoords;
 	ArrayList<Coordinates2D> distractorsCoords;
+	private long[] eStimObjData;
+	private RewardPolicy rewardPolicy;
+	private int[] rewardList;
+	private List<Coordinates2D> targetEyeWinCoords;
+	private double[] targetEyeWinSizes;
+	private NoisyMStickPngPsychometricTrialData trialData;
 
+
+	/**
+	 * @param noisyMStickPngPsychometricBlockGen
+	 * @param numPsychometricDistractors TODO
+	 * @param numRandDistractors TODO
+	 */
+	PsychometricTrial(AbstractPsychometricNoiseMapGenerator noisyMStickPngPsychometricBlockGen, int numPsychometricDistractors, int numRandDistractors) {
+		this.gen = noisyMStickPngPsychometricBlockGen;
+		dbUtil = gen.getDbUtil();
+		specPath = gen.generatorSpecPath;
+		this.numPsychometricDistractors = numPsychometricDistractors;
+		this.numRandDistractors = numRandDistractors;
+		this.numDistractors = numPsychometricDistractors + numRandDistractors;
+		this.numChoices = numDistractors+1;
+	}
 
 	/**
 	 * Called before db writing to assign necessary parameters. (order doesn't matter)
 	 * @param setId
 	 * @param stimId
 	 * @param stimIds
-	 * @param numPsychometricDistractors
 	 * @param noiseChance
 	 */
-	public void prepareStimObjData(long setId, int stimId, List<Integer> stimIds, int numPsychometricDistractors,double[] noiseChance) {
-		assignPsychometricStimuli(setId, stimId, stimIds, numPsychometricDistractors);
+	public void prepareWrite(long setId, int stimId, List<Integer> stimIds, double[] noiseChance) {
+		assignPsychometricStimuli(setId, stimId, stimIds);
 		loadMSticks();
 		assignParamsForNoiseMapGen(noiseChance);
 	}
 
 	/**
 	 * To be called when writing trial to the db. (order matters: only call this when the necessary
-	 * shuffling and ordering has been done, since this assigns the id, ids need to be in descending order in the database.
-	 * )
+	 * shuffling and ordering has been done, since this assigns the id, ids need to be in descending/chronological order in the database.
+	 * to be properly loaded into xper. 
+	 * @return the taskId of this particular trial. 
 	 */
 	@Override
-	public void write() {
+	public Long write() {
 		assignDbIds();
+		prepareNoiseMap(); //noisemap needs proper ID. 
+		//TODO: RAND DISTRACTORS
+		writeStimObjId();
+		writeStimSpec();
+		return taskId;
+	}
+	
+	private void prepareNoiseMap() {
 		String generatorNoiseMapPath = generateNoiseMap();
 		noiseMapPath = gen.convertNoiseMapPathToExperiment(generatorNoiseMapPath);
-		//TODO: RAND DISTRACTORS
+	}
+	
+	private void writeStimObjId() {
+		//COORDS
+		sampleCoords = AbstractPsychometricNoiseMapGenerator.randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
+		DistancedDistractorsUtil ddUtil = gen.new DistancedDistractorsUtil(numChoices, choiceDistanceLowerLim, choiceDistanceUpperLim, 0, 0);
+		ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
+		matchCoords = ddUtil.getMatchCoords();
+		
+		//SAMPLE SPEC
+		NoisyPngSpec sampleSpec = new NoisyPngSpec();
+		sampleSpec.setPath(samplePngPath);
+		sampleSpec.setNoiseMapPath(noiseMapPath);
+		sampleSpec.setxCenter(sampleCoords.getX());
+		sampleSpec.setyCenter(sampleCoords.getY());
+		ImageDimensions sampleDimensions = new ImageDimensions(sampleScale, sampleScale);
+		sampleSpec.setImageDimensions(sampleDimensions);
+		MStickStimObjData sampleMStickObjData = new MStickStimObjData("Sample", sampleMStickSpec);
+		dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), sampleMStickObjData.toXml());
+		
+		//MATCH SPEC
+		NoisyPngSpec matchSpec = new NoisyPngSpec();
+		matchSpec.setPath(matchPngPath);
+		matchSpec.setxCenter(matchCoords.getX());
+		matchSpec.setyCenter(matchCoords.getY());
+		ImageDimensions matchDimensiosn = new ImageDimensions(sampleScale, sampleScale);
+		matchSpec.setImageDimensions(matchDimensiosn);
+		MStickStimObjData matchMStickObjData = new MStickStimObjData("Match", matchMStickSpec);
+		dbUtil.writeStimObjData(matchId, matchSpec.toXml(), matchMStickObjData.toXml());
+
+		//DISTRACTORS SPECS
+		for (Long distractorId:distractorsIds) {
+			int indx = distractorsIds.indexOf(distractorId);
+			NoisyPngSpec distractorSpec = new NoisyPngSpec();
+			distractorSpec.setPath(distractorsPngPaths.get(indx));
+			distractorSpec.setxCenter(distractorsCoords.get(indx).getX());
+			distractorSpec.setyCenter(distractorsCoords.get(indx).getY());
+			ImageDimensions distractorDimensions = new ImageDimensions(sampleScale, sampleScale);
+			distractorSpec.setImageDimensions(distractorDimensions);
+			MStickStimObjData distractorMStickObjData = new MStickStimObjData("Distractor", matchMStickSpec);
+			dbUtil.writeStimObjData(distractorsIds.get(indx), distractorSpec.toXml(), distractorMStickObjData.toXml());
+		}
+	}
+	
+	private void writeStimSpec() {
+		targetEyeWinCoords = new LinkedList<Coordinates2D>();
+		targetEyeWinCoords.add(matchCoords);
+		targetEyeWinCoords.addAll(distractorsCoords);
+		targetEyeWinSizes = new double[numChoices];
+		for(int j=0; j < numChoices; j++) {
+			targetEyeWinSizes[j] = eyeWinSize;
+		}
+		writeEStimObjData();
+		long[] choiceIds = new long[numChoices];
+		choiceIds[0] = matchId;
+		for (int distractorIdIndx=0; distractorIdIndx<distractorsIds.size(); distractorIdIndx++) {
+			choiceIds[distractorIdIndx+1] = distractorsIds.get(distractorIdIndx);
+		}
+		NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizes, sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
+		writeTrialData();
+		dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());
+	}
+	
+	private void writeTrialData() {
+		NoisyMStickPngPsychometricTrialGenData trialGenData = new NoisyMStickPngPsychometricTrialGenData(sampleDistanceLowerLim, sampleDistanceUpperLim, choiceDistanceLowerLim, choiceDistanceUpperLim, sampleScale, eyeWinSize);
+		trialData = new NoisyMStickPngPsychometricTrialData(noiseData, trialGenData);
+	}
+	
+	private void writeEStimObjData() {
+		eStimObjData = new long[] {1};
+		rewardPolicy = RewardPolicy.LIST;
+		rewardList = new int[] {0};
 	}
 	
 	private String generateNoiseMap() {
@@ -105,10 +215,9 @@ class PsychometricTrial implements NAFCTrial{
 	 * @param setId
 	 * @param stimId
 	 * @param stimIds
-	 * @param numPsychometricDistractors
 	 */
-	private void assignPsychometricStimuli(long setId, int stimId, List<Integer> stimIds, int numPsychometricDistractors) {
-		assignPsychometricIds(setId, stimId, stimIds, numPsychometricDistractors);
+	private void assignPsychometricStimuli(long setId, int stimId, List<Integer> stimIds) {
+		assignPsychometricIds(setId, stimId, stimIds);
 		assignPsychometricPaths(setId, stimId);
 	}
 
@@ -117,11 +226,8 @@ class PsychometricTrial implements NAFCTrial{
 	 * @param setId
 	 * @param stimId
 	 * @param stimIds
-	 * @param numPsychometricDistractors
 	 */
-	private void assignPsychometricIds(long setId, int stimId, List<Integer> stimIds, int numPsychometricDistractors) {
-		this.numPsychometricDistractors = numPsychometricDistractors;
-
+	private void assignPsychometricIds(long setId, int stimId, List<Integer> stimIds) {
 		sampleSetId = setId;
 		sampleStimId = stimId;
 
@@ -216,6 +322,14 @@ class PsychometricTrial implements NAFCTrial{
 		}
 
 		return amss;
+	}
+
+	public Long getTaskId() {
+		return taskId;
+	}
+
+	public void setTaskId(Long taskId) {
+		this.taskId = taskId;
 	}
 
 
