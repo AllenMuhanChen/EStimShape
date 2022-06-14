@@ -26,15 +26,12 @@ import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 
-public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockGen{
+public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNoiseMapGenerator{
 	@Dependency
 	PsychometricQualitativeMorphParameterGenerator psychometricQmpGenerator;
-	@Dependency
-	String generatorPsychometricNoiseMapPath;
-	@Dependency
-	String experimentPsychometricNoiseMapPath;
-
-
+	
+	Long genId;
+	
 	static double[] noiseNormalizedPosition_PRE_JUNC = new double[] {0.5, 0.8};
 
 	public void generateSet(int numPerSet, double size, double percentChangePosition, int numRand) {	
@@ -245,14 +242,15 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 		//Generate Trials - Assign samples, matches (identical), and distractors
 		//assign Ids, setIds, stimIds, Png Paths, Noise Data/Path for sample
-		List<NAFCTrial> trials = new LinkedList<>();
+		List<Trial> trials = new LinkedList<>();
 		//assigning the samples in a balanced way. (# of times a specific stimulus is the sample is identical for e/a stimulus)
 		for(long setId:setIds) {
 			for(int stimId:stimIds) {
 				for(int i=0;i<trialsPerStim;i++) {
-					PsychometricTrial trial = new PsychometricTrial(this);
 					int numPsychometricDistractors = stimIds.size()-1;
-					trial.prepareStimObjData(setId, stimId, stimIds, numPsychometricDistractors, noiseChancesProportions);
+					PsychometricTrial trial = new PsychometricTrial(this, numPsychometricDistractors, null);
+					
+					trial.prepareWrite(setId, stimId, stimIds, noiseChancesProportions);
 
 					trials.add(trial);
 				}
@@ -272,89 +270,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
-		for (NAFCTrial trial:trials) {
+		for (Trial trial:trials) {
 			
-			trial.write();
-			//LOCATIONS
-			int numChoices = numStimPerSet;
-			Coordinates2D sampleCoords = randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
-			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceDistanceLowerLim, choiceDistanceUpperLim, 0, 0);
-			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
-			//			System.out.println("AC000: distractorCoordS: " + distractorsCoords.toString() );
-			Coordinates2D matchCoords = ddUtil.getMatchCoords();
-			//			System.out.println("AC111: matchCoords" + matchCoords.toString());
-
-			//SAMPLE SPEC
-			NoisyPngSpec sampleSpec = new NoisyPngSpec();
-			sampleSpec.setPath(trial.samplePngPath);
-			sampleSpec.setNoiseMapPath(trial.noiseMapPath);
-			sampleSpec.setxCenter(sampleCoords.getX());
-			sampleSpec.setyCenter(sampleCoords.getY());
-			ImageDimensions sampleDimensions = new ImageDimensions(sampleScale, sampleScale);
-			sampleSpec.setImageDimensions(sampleDimensions);
-			MStickStimObjData sampleMStickObjData = new MStickStimObjData("Sample", trial.sampleMStickSpec);
-			dbUtil.writeStimObjData(trial.sampleId, sampleSpec.toXml(), sampleMStickObjData.toXml());
-
-			//MATCH SPEC
-			NoisyPngSpec matchSpec = new NoisyPngSpec();
-			matchSpec.setPath(trial.matchPngPath);
-			matchSpec.setxCenter(matchCoords.getX());
-			matchSpec.setyCenter(matchCoords.getY());
-			ImageDimensions matchDimensiosn = new ImageDimensions(sampleScale, sampleScale);
-			matchSpec.setImageDimensions(matchDimensiosn);
-			MStickStimObjData matchMStickObjData = new MStickStimObjData("Match", trial.matchMStickSpec);
-			dbUtil.writeStimObjData(trial.matchId, matchSpec.toXml(), matchMStickObjData.toXml());
-
-			//DISTRACTORS SPECS
-			for (Long distractorId:trial.distractorsIds) {
-				int indx = trial.distractorsIds.indexOf(distractorId);
-				NoisyPngSpec distractorSpec = new NoisyPngSpec();
-				distractorSpec.setPath(trial.distractorsPngPaths.get(indx));
-				distractorSpec.setxCenter(distractorsCoords.get(indx).getX());
-				distractorSpec.setyCenter(distractorsCoords.get(indx).getY());
-				ImageDimensions distractorDimensions = new ImageDimensions(sampleScale, sampleScale);
-				distractorSpec.setImageDimensions(distractorDimensions);
-				MStickStimObjData distractorMStickObjData = new MStickStimObjData("Distractor", trial.matchMStickSpec);
-				dbUtil.writeStimObjData(trial.distractorsIds.get(indx), distractorSpec.toXml(), distractorMStickObjData.toXml());
-
-			}
-
-			//STIMSPEC
-			//targetEyeWinCoords
-			List<Coordinates2D> targetEyeWinCoords = new LinkedList<Coordinates2D>();
-			targetEyeWinCoords.add(matchCoords);
-			targetEyeWinCoords.addAll(distractorsCoords);
-			//targetEyeWinSize
-			double[] targetEyeWinSizeArray = new double[numChoices];
-			for(int j=0; j < numChoices; j++) {
-				targetEyeWinSizeArray[j] = eyeWinSize;
-			}
-
-			//eStimObjData
-			long[] eStimObjData = {1};
-			//rewardPolicy
-			RewardPolicy rewardPolicy = RewardPolicy.LIST;
-			//rewardList - Correct answer should always be 0 (the first choice)
-			int[] rewardList = {0};
-
-			//WRITE STIM-SPEC
-			long[] choiceIds = new long[numStimPerSet];
-			choiceIds[0] = trial.matchId;
-			for (int distractorIdIndx=0; distractorIdIndx<trial.distractorsIds.size(); distractorIdIndx++) {
-				choiceIds[distractorIdIndx+1] = trial.distractorsIds.get(distractorIdIndx);
-			}
-			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, trial.sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
-
-			//TODO: WRITE TRIAL DATA
-			NoisyMStickPngPsychometricTrialGenData trialGenData = new NoisyMStickPngPsychometricTrialGenData(sampleDistanceLowerLim, sampleDistanceUpperLim, choiceDistanceLowerLim, choiceDistanceUpperLim, sampleScale, eyeWinSize);
-
-			NoiseData noiseData = trial.noiseData;
-
-
-			NoisyMStickPngPsychometricTrialData trialData = new NoisyMStickPngPsychometricTrialData(noiseData, trialGenData);
-
-			long taskId = trial.sampleId;
-			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());
+			Long taskId = trial.write();
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
 		dbUtil.updateReadyGenerationInfo(genId, trials.size());
@@ -367,19 +285,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		QM, RAND, BASE;
 	}
 
-	public List<String> convertNoiseMapPathsToExperiment(List<String> generatorPaths) {
-		LinkedList<String> expPaths = new LinkedList<String>();
-		for(int s=0; s<generatorPaths.size(); s++) {
-			String newPath = convertNoiseMapPathToExperiment(generatorPaths.get(s));
-			expPaths.add(s, newPath);
-		}
-		return expPaths;
-	}
-	
-	public String convertNoiseMapPathToExperiment(String generatorPath) {
-		return generatorPath.replace(getGeneratorPsychometricNoiseMapPath(), getExperimentPsychometricNoiseMapPath());
-	}
-	
 	public static void removeNonDistinct(List<? extends Comparable<?>> list)
 	{
 		int n = list.size();
@@ -442,22 +347,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 	public void setExperimentPngPath(String experimentPngPath) {
 		this.experimentPngPath = experimentPngPath;
-	}
-
-	public String getGeneratorPsychometricNoiseMapPath() {
-		return generatorPsychometricNoiseMapPath;
-	}
-
-	public void setGeneratorPsychometricNoiseMapPath(String generatorPsychometricNoiseMapPath) {
-		this.generatorPsychometricNoiseMapPath = generatorPsychometricNoiseMapPath;
-	}
-
-	public String getExperimentPsychometricNoiseMapPath() {
-		return experimentPsychometricNoiseMapPath;
-	}
-
-	public void setExperimentPsychometricNoiseMapPath(String experimentPsychometricNoiseMapPath) {
-		this.experimentPsychometricNoiseMapPath = experimentPsychometricNoiseMapPath;
 	}
 
 

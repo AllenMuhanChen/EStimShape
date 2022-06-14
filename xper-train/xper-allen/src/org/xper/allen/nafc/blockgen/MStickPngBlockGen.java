@@ -36,7 +36,7 @@ import org.xper.utils.RGBColor;
  * @author r2_allen
  *
  */
-public class MStickPngBlockGen extends NAFCBlockGen{
+public class MStickPngBlockGen extends AbstractTrialGenerator{
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency

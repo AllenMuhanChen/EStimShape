@@ -6,11 +6,13 @@ import java.util.List;
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
+import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
 import org.xper.utils.RGBColor;
 
-public abstract class AbstractMStickPngTrialGenerator extends NAFCBlockGen {
+public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGenerator {
 
 	@Dependency
 	protected AllenDbUtil dbUtil;
@@ -26,7 +28,11 @@ public abstract class AbstractMStickPngTrialGenerator extends NAFCBlockGen {
 	protected AllenPNGMaker pngMaker;
 	@Dependency
 	protected double maxImageDimensionDegrees;
-
+	@Dependency
+	QualitativeMorphParameterGenerator qmpGenerator;
+	@Dependency
+	MetricMorphParameterGenerator mmpGenerator;
+	
 	public AbstractMStickPngTrialGenerator() {
 		super();
 	}
@@ -130,6 +136,22 @@ public abstract class AbstractMStickPngTrialGenerator extends NAFCBlockGen {
 
 	public void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {
 		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
+	}
+
+	public QualitativeMorphParameterGenerator getQmpGenerator() {
+		return qmpGenerator;
+	}
+
+	public void setQmpGenerator(QualitativeMorphParameterGenerator qmpGenerator) {
+		this.qmpGenerator = qmpGenerator;
+	}
+
+	public MetricMorphParameterGenerator getMmpGenerator() {
+		return mmpGenerator;
+	}
+
+	public void setMmpGenerator(MetricMorphParameterGenerator mmpGenerator) {
+		this.mmpGenerator = mmpGenerator;
 	}
 
 }

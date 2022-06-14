@@ -34,10 +34,7 @@ import org.xper.time.TimeUtil;
  *
  */
 public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
-	@Dependency
-	QualitativeMorphParameterGenerator qmpGenerator;
-	@Dependency
-	MetricMorphParameterGenerator mmpGenerator;
+
 
 	/**
 	 * Selects visual stimuli randomly from stimTypes

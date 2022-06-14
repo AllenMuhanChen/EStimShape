@@ -58,6 +58,9 @@ public class AllenPNGMaker{
 	
 	public AllenPNGMaker() {}
 
+	/**
+	 * 
+	 */
 	public void createDrawerWindow() {
 		window = new AllenDrawingManager(height,width);
 		window.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
@@ -74,6 +77,13 @@ public class AllenPNGMaker{
 		System.out.println("creating and saving PNG...");
 		return window.drawNoiseMap(obj, stimObjId,labels);
 	}
+	/**
+	 * Uses single window instance. 
+	 * @param obj
+	 * @param stimObjId
+	 * @param labels
+	 * @return
+	 */
 	public String createAndSaveNoiseMapFromObj(AllenMatchStick obj, Long stimObjId, List<String> labels) {
 		window.setImageFolderName(generatorNoiseMapFolderName);
 		System.out.println("creating and saving NoiseMap PNG...");
