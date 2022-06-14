@@ -195,6 +195,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 			double sampleScale,
 			double eyeWinSize){
 
+		//Start a Drawing Window
+		pngMaker.createDrawerWindow();
+		
 		//Noise chance per each trial per set. 
 		List<double[]> noiseChanceTrialList = populateTrials(trialsPerStim,  noiseChances, noiseChancesProportions);
 
@@ -242,42 +245,14 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 		//Generate Trials - Assign samples, matches (identical), and distractors
 		//assign Ids, setIds, stimIds, Png Paths, Noise Data/Path for sample
-		List<PsychometricTrial> trials = new LinkedList<>();
+		List<NAFCTrial> trials = new LinkedList<>();
 		//assigning the samples in a balanced way. (# of times a specific stimulus is the sample is identical for e/a stimulus)
 		for(long setId:setIds) {
 			for(int stimId:stimIds) {
 				for(int i=0;i<trialsPerStim;i++) {
 					PsychometricTrial trial = new PsychometricTrial(this);
-
 					int numPsychometricDistractors = stimIds.size()-1;
-					trial.assignPsychometricStimuli(setId, stimId, stimIds, numPsychometricDistractors);
-//					trial.assignParamsForNoiseMapGen(setId, stimId, noiseChanceTrialList.get(i));
-					//SAMPLE
-//					trial.sampleSetId = setId;
-//					trial.sampleStimId = stimId;
-//					trial.samplePngPath = convertPathToExperiment(generatorPngPath + "/" + setId + "_" + stimId + ".png");
-//					NoiseData noiseData = new NoiseData(NoiseType.PRE_JUNC, noiseNormalizedPosition_PRE_JUNC, noiseChanceTrialList.get(i));
-//					trial.noiseData = noiseData;
-
-
-					//MATCH
-//					trial.matchSetId = setId;
-//					trial.matchStimId = stimId;
-//					trial.matchPngPath = trial.samplePngPath;
-
-
-					//DISTRACTORS
-//					List<Integer> stimIdsRemaining = new LinkedList<>(stimIds);
-//					stimIdsRemaining.remove(stimIds.indexOf(stimId));
-//					trial.distractorsSetId = setId;
-//					trial.distractorsStimIds = stimIdsRemaining;
-
-//					for (int remainingStimId:stimIdsRemaining) {
-//						int index = stimIdsRemaining.indexOf(remainingStimId);
-//						trial.distractorsPngPaths.add(convertPathToExperiment(generatorPngPath + "/" + setId + "_" + remainingStimId + ".png"));
-//					}
-
-
+					trial.prepareStimObjData(setId, stimId, stimIds, numPsychometricDistractors, noiseChancesProportions);
 
 					trials.add(trial);
 				}
@@ -286,50 +261,6 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 
 		//SHUFFLING
 		Collections.shuffle(trials);
-
-		// LOADING OBJECTS FOR GENERATING NOISEMAPS
-		// 		AND LOADING MSTICKSPECS FOR STIMOBJDATA
-		List<AllenMatchStick> objs = new LinkedList<AllenMatchStick>();
-		List<Long> noiseMapIds = new LinkedList<Long>();
-		List<List<String>> labels = new LinkedList<List<String>>();
-		for (PsychometricTrial trial: trials) {
-			Long currentTime = globalTimeUtil.currentTimeMicros();
-			trial.sampleId = currentTime;
-
-			AllenMatchStick obj = trial.fetchSample();
-
-			AllenMStickSpec sampleMStickSpec = new AllenMStickSpec();
-			sampleMStickSpec.setMStickInfo(obj);
-			trial.sampleMStickSpec = sampleMStickSpec;
-
-			obj.setNoiseParameters(trial.noiseData);
-			objs.add(obj);
-			noiseMapIds.add(trial.sampleId);
-			List<String> noiseMapLabels = new LinkedList<String>();
-			noiseMapLabels.add(Long.toString(trial.sampleSetId));
-			noiseMapLabels.add(Integer.toString(trial.sampleStimId));
-			labels.add(noiseMapLabels);
-
-			AllenMStickSpec matchMStickSpec = new AllenMStickSpec();
-			matchMStickSpec.setMStickInfo(trial.fetchMatch());
-			trial.matchMStickSpec = matchMStickSpec;
-
-
-			for(AllenMatchStick distractorObj:trial.fetchDistractors()) {
-				AllenMStickSpec distractorMStickSpec = new AllenMStickSpec();
-				distractorMStickSpec.setMStickInfo(distractorObj);
-				trial.distractorsMStickSpecs.add(distractorMStickSpec);
-			}
-		}
-
-		//GENERATING NOISEMAPS
-		List<String> noiseMapPathsGenerator = pngMaker.createAndSaveNoiseMapfromObjs(objs, noiseMapIds, labels);
-		List<String> noiseMapPaths = convertNoiseMapPathsToExperiment(noiseMapPathsGenerator);
-		//Adding Paths
-		for (int i=0; i<noiseMapPaths.size(); i++) {
-			trials.get(i).noiseMapPath = noiseMapPaths.get(i);
-		}
-
 
 
 		//POPULATING DATABASES
@@ -341,12 +272,9 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		} catch (VariableNotFoundException e) {
 			dbUtil.writeReadyGenerationInfo(genId, 0);
 		}
-		for (PsychometricTrial trial:trials) {
-			//IDS
-			trial.matchId = trial.sampleId + 1;
-			for (int j=0; j<trial.distractorsStimIds.size();j++) {
-				trial.distractorsIds.add(trial.matchId + 1 + j);
-			}
+		for (NAFCTrial trial:trials) {
+			
+			trial.write();
 			//LOCATIONS
 			int numChoices = numStimPerSet;
 			Coordinates2D sampleCoords = randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
@@ -431,6 +359,7 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 		}
 		dbUtil.updateReadyGenerationInfo(genId, trials.size());
 		System.out.println("Done Generating...");
+		pngMaker.close();
 		return;
 	}
 
@@ -441,11 +370,16 @@ public class NoisyMStickPngPsychometricBlockGen extends NoisyMStickPngRandBlockG
 	public List<String> convertNoiseMapPathsToExperiment(List<String> generatorPaths) {
 		LinkedList<String> expPaths = new LinkedList<String>();
 		for(int s=0; s<generatorPaths.size(); s++) {
-			String newPath = generatorPaths.get(s).replace(getGeneratorPsychometricNoiseMapPath(), getExperimentPsychometricNoiseMapPath());
+			String newPath = convertNoiseMapPathToExperiment(generatorPaths.get(s));
 			expPaths.add(s, newPath);
 		}
 		return expPaths;
 	}
+	
+	public String convertNoiseMapPathToExperiment(String generatorPath) {
+		return generatorPath.replace(getGeneratorPsychometricNoiseMapPath(), getExperimentPsychometricNoiseMapPath());
+	}
+	
 	public static void removeNonDistinct(List<? extends Comparable<?>> list)
 	{
 		int n = list.size();

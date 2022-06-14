@@ -16,7 +16,7 @@ import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 
 public class AllenDrawingManager implements Drawable {
 	Drawable stimObj;
-	
+
 	List<AllenMatchStick> stimObjs = new ArrayList<>();
 	List<Long> stimObjIds = new ArrayList<Long>();
 	List<List<String>> labels = new ArrayList<>();
@@ -25,7 +25,7 @@ public class AllenDrawingManager implements Drawable {
 	float r_bkgrd;
 	float g_bkgrd;
 	float b_bkgrd;
-	
+
 	String imageFolderName = "";
 
 	int height;
@@ -42,7 +42,7 @@ public class AllenDrawingManager implements Drawable {
 		DisplayMode mode = Display.getDisplayMode();
 		width = mode.getWidth() / 2;
 		height = mode.getHeight() / 2;
-		
+
 	}
 
 	public AllenDrawingManager(int height, int width) {
@@ -51,16 +51,86 @@ public class AllenDrawingManager implements Drawable {
 		this.width = width;
 	}
 
-	
+	/**
+	 * Initializes a window to draw in. 
+	 */
+	public void init() {
+		window = new BaseWindow(width,height);
+		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
+		window.setPixelFormat(pixelFormat);
+		window.create();
+
+		renderer = new PerspectiveRenderer();
+		//renderer = new OrthographicRenderer();
+		renderer.setDepth(pngMaker.getDepth());
+		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
+		renderer.setPupilDistance(pngMaker.getPupilDistance());
+		//renderer.setHeight(height);
+		//renderer.setWidth(width);
+		renderer.setHeight(pngMaker.dpiUtil.calculateMmForRenderer());
+		renderer.setWidth(pngMaker.dpiUtil.calculateMmForRenderer());
+		renderer.init(window.getWidth(), window.getHeight());
+		GL11.glShadeModel(GL11.GL_SMOOTH);
+		GL11.glDisable(GL11.GL_DEPTH_TEST);
+
+		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
+	}
+
+	/**
+	 * Draw single noise map using window that is already open. 
+	 * @param obj
+	 * @param stimObjId
+	 * @param additionalLabels
+	 * @return
+	 */
+	public String drawNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> additionalLabels) {
+		LinkedList<String> labels = new LinkedList<>();
+		labels.add("noisemap");
+		labels.addAll(additionalLabels);
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
+		renderer.draw(new Drawable() {
+			@Override
+			public void draw() {
+				// TODO Auto-generated method stub
+				drawNoiseMap(obj);
+			}
+		});
+
+		window.swapBuffers();
+		return pngMaker.saveImage(stimObjId,labels,height,width, imageFolderName);
+	}
+
+	/**
+	 * Draws single png of obj using window that is already open. 
+	 * @param obj
+	 * @param stimObjId
+	 * @param labels
+	 * @return
+	 */
+	public String drawStimulus(AllenMatchStick obj, Long stimObjId, List<String> labels) {
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
+		renderer.draw(new Drawable() {
+			@Override
+			public void draw() {
+				drawObj(obj);
+			}
+		});
+
+		window.swapBuffers();
+		return pngMaker.saveImage(stimObjId, labels, height, width, imageFolderName);
+	}
+
 	public List<String> drawStimuli() {
 		List<String> paths = new ArrayList<String>();
-		window = new BaseWindow(height,width);
+		window = new BaseWindow(width, height);
 
 		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
 		window.setPixelFormat(pixelFormat);
 		window.create();
-		
-		
+
+
 		renderer = new PerspectiveRenderer();
 		//renderer = new OrthographicRenderer();
 		renderer.setDepth(pngMaker.getDepth());
@@ -84,17 +154,17 @@ public class AllenDrawingManager implements Drawable {
 			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter),height,width, imageFolderName));
 			window.swapBuffers();
 			double blob = 1;
-//			try {
-//				Thread.sleep(100); //neccessary for images to be saved properly. 
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
+			//			try {
+			//				Thread.sleep(100); //neccessary for images to be saved properly. 
+			//			} catch (InterruptedException e) {
+			//				e.printStackTrace();
+			//			}
 			stimCounter++;
 		}
 		window.destroy();
 		return paths;
 	}
-	
+
 	public List<String> drawStimuli(List<List<String>> labels) {
 		List<String> paths = new ArrayList<>();
 		window = new BaseWindow(height,width);
@@ -102,8 +172,8 @@ public class AllenDrawingManager implements Drawable {
 		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
 		window.setPixelFormat(pixelFormat);
 		window.create();
-		
-		
+
+
 		renderer = new PerspectiveRenderer();
 		//renderer = new OrthographicRenderer();
 		renderer.setDepth(pngMaker.getDepth());
@@ -136,13 +206,17 @@ public class AllenDrawingManager implements Drawable {
 		window.destroy();
 		return paths;
 	}
-	
+
 	public void draw() {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-
 		if (nStim > 0) {
 			stimObjs.get(stimCounter).draw();
 		}
+	}
+
+	public void drawObj(AllenMatchStick obj) {
+		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
+		obj.draw();
 	}
 
 	public List<String> drawNoiseMaps() {
@@ -154,8 +228,8 @@ public class AllenDrawingManager implements Drawable {
 		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
 		window.setPixelFormat(pixelFormat);
 		window.create();
-		
-		
+
+
 		renderer = new PerspectiveRenderer();
 		//renderer = new OrthographicRenderer();
 		renderer.setDepth(pngMaker.getDepth());
@@ -180,11 +254,11 @@ public class AllenDrawingManager implements Drawable {
 				public void draw() {
 					// TODO Auto-generated method stub
 					drawNoiseMap();
-//					try {
-//						Thread.sleep(5000); //neccessary for images to be saved properly. 
-//					} catch (InterruptedException e) {
-//						e.printStackTrace();
-//					}
+					//					try {
+					//						Thread.sleep(5000); //neccessary for images to be saved properly. 
+					//					} catch (InterruptedException e) {
+					//						e.printStackTrace();
+					//					}
 				}
 			});
 			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter), labels, height,width, imageFolderName));
@@ -199,7 +273,9 @@ public class AllenDrawingManager implements Drawable {
 		window.destroy();
 		return paths;
 	}
-	
+
+
+
 	public List<String> drawNoiseMaps(List<List<String>> additionalLabels) {
 		List<String> paths = new LinkedList<String>();
 
@@ -209,8 +285,8 @@ public class AllenDrawingManager implements Drawable {
 		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
 		window.setPixelFormat(pixelFormat);
 		window.create();
-		
-		
+
+
 		renderer = new PerspectiveRenderer();
 		//renderer = new OrthographicRenderer();
 		renderer.setDepth(pngMaker.getDepth());
@@ -238,22 +314,26 @@ public class AllenDrawingManager implements Drawable {
 				}
 			});
 			List<String> labels = new LinkedList<>();
-//			labels.add("noisemap");
+			//			labels.add("noisemap");
 			labels.addAll(additionalLabels.get(stimCounter));
 			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter), labels, height,width, imageFolderName));
 			window.swapBuffers();
-//			try {
-//				Thread.sleep(100); //neccessary for images to be saved properly. 
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//			}
+			//			try {
+			//				Thread.sleep(100); //neccessary for images to be saved properly. 
+			//			} catch (InterruptedException e) {
+			//				e.printStackTrace();
+			//			}
 			stimCounter++;
 		}
 		window.destroy();
 		return paths;
 	}
 
-	
+	public void drawNoiseMap(AllenMatchStick obj) {
+		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
+		obj.drawNoiseMap();
+	}
+
 	public void drawNoiseMap() {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
 
@@ -301,6 +381,6 @@ public class AllenDrawingManager implements Drawable {
 		this.r_bkgrd = (float) d;
 		this.g_bkgrd = (float) e;
 		this.b_bkgrd = (float) f;
-		
+
 	}
 }
