@@ -2,6 +2,7 @@
 <classpath>
 	<classpathentry excluding="org/xper/allen/config/AllenAcqConfig.java|org/xper/allen/config/AllenClassicConfig.java|org/xper/allen/drawing/png/preview/PNGmaker.java|org/xper/allen/drawing/png/preview/DrawingManager.java|org/xper/allen/drawing/png/PngGAParams.java|org/xper/allen/drawing/png/ImageStack.java|org/xper/allen/nafc/blockgen/MStickBlockGenOne.java" kind="src" path="src"/>
 	<classpathentry excluding="org/xper/allen/app/stimInserters/InsertEStimSpec.java|org/xper/allen/app/classic/|org/xper/allen/app/nafc/config/NAFCMStickAppConfig.java" kind="src" path="app"/>
+	<classpathentry kind="src" path="test"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xper">
 		<attributes>
 			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="xper-3d/lib/lwjgl/linux"/>
@@ -54,5 +55,6 @@
 	<classpathentry kind="lib" path="/xper-3d/lib/java3d/vecmath.jar"/>
 	<classpathentry kind="lib" path="/xper/lib/mysql-connector-java-5.1.44-bin.jar"/>
 	<classpathentry kind="lib" path="/home/r2_allen/git/EStimShape/xper-train/xper-allen/lib/junit-vintage-engine-5.8.2.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="class"/>
 </classpath>
