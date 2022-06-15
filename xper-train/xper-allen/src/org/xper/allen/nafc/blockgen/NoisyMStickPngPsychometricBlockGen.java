@@ -186,17 +186,19 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 	}
 
 
-	public void generateTrials(int trialsPerStim, double[][] noiseChances, double[] noiseChancesProportions, 
-			double sampleDistanceLowerLim, double sampleDistanceUpperLim, 
-			double choiceDistanceLowerLim, double choiceDistanceUpperLim,
-			double sampleScale,
-			double eyeWinSize){
+	public void generateTrials(
+			int numPsychometricTrialsPerImage, 
+			int numRandTrials, 
+			NoiseChances noiseChances, 
+			SampleDistance sampleDistance,
+			ChoiceDistance choiceDistance, 
+			double sampleScale, double eyeWinSize){
 
 		//Start a Drawing Window
 		pngMaker.createDrawerWindow();
 		
 		//Noise chance per each trial per set. 
-		List<double[]> noiseChanceTrialList = populateTrials(trialsPerStim,  noiseChances, noiseChancesProportions);
+		List<double[]> noiseChanceTrialList = populateTrials(numPsychometricTrialsPerImage,  noiseChances.noiseChances, noiseChances.noiseChancesProportions);
 
 		int numSets;
 		int numStimPerSet;
@@ -246,11 +248,11 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 		//assigning the samples in a balanced way. (# of times a specific stimulus is the sample is identical for e/a stimulus)
 		for(long setId:setIds) {
 			for(int stimId:stimIds) {
-				for(int i=0;i<trialsPerStim;i++) {
+				for(int i=0;i<numPsychometricTrialsPerImage;i++) {
 					int numPsychometricDistractors = stimIds.size()-1;
-					PsychometricTrial trial = new PsychometricTrial(this, numPsychometricDistractors, null);
+					PsychometricTrial trial = new PsychometricTrial(this, numPsychometricDistractors, numRandTrials);
 					
-					trial.prepareWrite(setId, stimId, stimIds, noiseChancesProportions);
+					trial.prepareWrite(setId, stimId, stimIds, noiseChances.noiseChancesProportions);
 
 					trials.add(trial);
 				}

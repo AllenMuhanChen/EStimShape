@@ -72,10 +72,10 @@ public class AllenPNGMaker{
 		window.close();
 	}
 	
-	public String createAndSavePNGMapFromObj(AllenMatchStick obj, Long stimObjId, List<String> labels) {
+	public String createAndSavePNGFromObj(AllenMatchStick obj, Long stimObjId, List<String> labels) {
 		window.setImageFolderName(generatorImageFolderName);
 		System.out.println("creating and saving PNG...");
-		return window.drawNoiseMap(obj, stimObjId,labels);
+		return window.drawStimulus(obj, stimObjId, labels);
 	}
 	/**
 	 * Uses single window instance. 

@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.nafc.blockgen.ChoiceDistance;
+import org.xper.allen.nafc.blockgen.NoiseChances;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
+import org.xper.allen.nafc.blockgen.SampleDistance;
 import org.xper.util.FileUtil;
 
 public class PsychometricMStickTrialGenerator extends TrialGenerator{
@@ -15,12 +18,13 @@ public class PsychometricMStickTrialGenerator extends TrialGenerator{
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
 		NoisyMStickPngPsychometricBlockGen gen = context.getBean(NoisyMStickPngPsychometricBlockGen.class);
-
+		
 		try {
 			List<String> argsList = Arrays.asList(args);
 			ListIterator<String> iterator = argsList.listIterator();
 			
-			int trialsPerStim = Integer.parseInt(iterator.next());
+			int numPsychometricTrialsPerImage = Integer.parseInt(iterator.next());
+			int numRandTrials = Integer.parseInt(iterator.next());
 			double[][] noiseChances = stringToTupleArray(iterator.next());
 			double[] noiseChancesFrequencies = stringToDoubleArray(iterator.next());
 			double sampleDistanceLowerLim = Double.parseDouble(iterator.next());
@@ -31,11 +35,9 @@ public class PsychometricMStickTrialGenerator extends TrialGenerator{
 			double eyeWinSize = Double.parseDouble(iterator.next());
 			
 			
-			gen.generateTrials(trialsPerStim, noiseChances, noiseChancesFrequencies,
-					sampleDistanceLowerLim, sampleDistanceUpperLim, 
-					choiceDistanceLowerLim, choiceDistanceUpperLim,
-					sampleScale,
-					eyeWinSize);
+			gen.generateTrials(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies),
+					new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new ChoiceDistance(choiceDistanceLowerLim, choiceDistanceUpperLim), 
+					sampleScale, eyeWinSize);
 		}
 		
 		catch(Exception e) {
