@@ -1,4 +1,4 @@
-package org.xper.allen.nafc.blockgen.test;
+package org.xper.allen.nafc.blockgen;
 
 import static org.junit.Assert.*;
 

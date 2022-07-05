@@ -39,9 +39,6 @@ public class RandNoisyMStickPngTrial extends NAFCTrial{
 		this.gen = gen;
 		this.dbUtil = gen.getDbUtil();
 		this.genData = trialGenData;
-		
-		
-		
 	}
 	
 	
