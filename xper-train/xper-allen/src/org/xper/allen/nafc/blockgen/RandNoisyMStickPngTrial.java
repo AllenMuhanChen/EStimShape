@@ -6,7 +6,7 @@ import java.util.List;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.util.AllenDbUtil;
 
-public class RandNoisyMStickPngTrial extends NAFCTrial{
+public class RandNoisyMStickPngTrial extends NAFCTrialWriter{
 	private AbstractMStickPngTrialGenerator gen;
 	private AllenDbUtil dbUtil;
 	
