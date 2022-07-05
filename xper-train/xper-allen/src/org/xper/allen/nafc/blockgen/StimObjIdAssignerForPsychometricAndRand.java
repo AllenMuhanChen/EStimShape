@@ -9,13 +9,10 @@ public class StimObjIdAssignerForPsychometricAndRand implements StimObjIdAssigne
 	private static TimeUtil globalTimeUtil;
 	private NumberOfDistractors numDistractors;
 	
-	private Long sampleId;
-	private Long matchId;
-	private List<Long> allDistractorsIds = new LinkedList<Long>();
-	private List<Long> psychometricDistractorsIds = new LinkedList<Long>();
-	private List<Long> randDistractorsIds = new LinkedList<Long>();
-	
-	
+	private StimObjIdsForMixedPsychometricAndRand stimObjIds = new StimObjIdsForMixedPsychometricAndRand(new LinkedList<Long>(),
+			new LinkedList<Long>(), new LinkedList<Long>());
+
+
 	public StimObjIdAssignerForPsychometricAndRand(TimeUtil globalTimeUtil, NumberOfDistractors numDistractors) {
 		StimObjIdAssignerForPsychometricAndRand.globalTimeUtil = globalTimeUtil;
 		this.numDistractors = numDistractors;
@@ -27,44 +24,44 @@ public class StimObjIdAssignerForPsychometricAndRand implements StimObjIdAssigne
 	 * @param psychometricNoisyMStickPngTrial TODO
 	 */
 	public void assignStimObjIds() {
-		sampleId = globalTimeUtil.currentTimeMicros();
-		matchId = sampleId+1;
-		long prevId = matchId;
+		stimObjIds.sampleId = globalTimeUtil.currentTimeMicros();
+		stimObjIds.matchId = stimObjIds.sampleId+1;
+		long prevId = stimObjIds.matchId;
 		for (int j=0; j<numDistractors.numPsychometricDistractors;j++) {
-			allDistractorsIds.add(prevId+1);
-			psychometricDistractorsIds.add(prevId+1);
+			stimObjIds.allDistractorsIds.add(prevId+1);
+			stimObjIds.psychometricDistractorsIds.add(prevId+1);
 			prevId++;
 		}
 		for (int j=0; j<numDistractors.numRandDistractors;j++) {
-			allDistractorsIds.add(prevId+1);
-			randDistractorsIds.add(prevId+1);
+			stimObjIds.allDistractorsIds.add(prevId+1);
+			stimObjIds.randDistractorsIds.add(prevId+1);
 			prevId++;
 		}
 		
 	}
 
 	public Long getSampleId() {
-		return sampleId;
+		return stimObjIds.sampleId;
 	}
 
 	public void setSampleId(Long sampleId) {
-		this.sampleId = sampleId;
+		this.stimObjIds.sampleId = sampleId;
 	}
 
 	public Long getMatchId() {
-		return matchId;
+		return stimObjIds.matchId;
 	}
 
 	public List<Long> getAllDistractorsIds() {
-		return allDistractorsIds;
+		return stimObjIds.allDistractorsIds;
 	}
 
 	public List<Long> getPsychometricDistractorsIds() {
-		return psychometricDistractorsIds;
+		return stimObjIds.psychometricDistractorsIds;
 	}
 
 	public List<Long> getRandDistractorsIds() {
-		return randDistractorsIds;
+		return stimObjIds.randDistractorsIds;
 	}
 	
 	

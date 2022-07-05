@@ -6,7 +6,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import org.xper.drawing.Coordinates2D;
 
-public abstract class NAFCTrial implements Trial{
+public abstract class NAFCTrialWriter{
 	
 	protected static double inclusiveRandomDouble(double val1, double val2) {
 		if (val2>val1){
