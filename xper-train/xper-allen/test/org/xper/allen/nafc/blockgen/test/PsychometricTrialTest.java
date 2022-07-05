@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
@@ -15,7 +14,9 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.nafc.blockgen.AbstractPsychometricNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricBlockGen;
-import org.xper.allen.nafc.blockgen.PsychometricTrial;
+import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricTrialGenData;
+import org.xper.allen.nafc.blockgen.PsychometricNoisyMStickPngTrial;
+import org.xper.db.vo.StimSpecEntry;
 import org.xper.util.FileUtil;
 
 public class PsychometricTrialTest {
@@ -25,7 +26,7 @@ public class PsychometricTrialTest {
 	NoisyMStickPngPsychometricBlockGen gen = (NoisyMStickPngPsychometricBlockGen) context.getBean(AbstractPsychometricNoiseMapGenerator.class);
 	int numPsychometricDistractors = 2;
 	int numRandDistractors = 1;
-	PsychometricTrial testTrial = new PsychometricTrial(gen, numPsychometricDistractors, numRandDistractors);
+	PsychometricNoisyMStickPngTrial testTrial = new PsychometricNoisyMStickPngTrial(gen, numPsychometricDistractors, numRandDistractors);
 	
 	@Test
 	public void gotGenBean() {
@@ -47,8 +48,10 @@ public class PsychometricTrialTest {
 		int stimId = 0;
 		List<Integer> stimIds = Arrays.asList(0,1,2);
 		double[] noiseChance = new double[] {1,1};
+		NoisyMStickPngPsychometricTrialGenData trialGenData = 
+		new NoisyMStickPngPsychometricTrialGenData(0, 1, 10, 10, 8, 10);
 		
-		testTrial.prepareWrite(setId, stimId, stimIds, noiseChance);
+		testTrial.prepareWrite(setId, stimId, stimIds, noiseChance, trialGenData);
 		assertNotNull("NoiseData is null, prepareWrite() did not finish execution", testTrial.getNoiseData());
 		
 		idsMatch(setId, stimId);
@@ -78,8 +81,8 @@ public class PsychometricTrialTest {
 	 */
 	public void dBUpdated(long expectedTaskTodo) {
 		//Test stimSpec
-		assertEquals(expectedTaskTodo, gen.getDbUtil().readStimSpecMaxId());
-	
+		long maxStimSpecId = gen.getDbUtil().readStimSpecMaxId();
+		assertEquals(expectedTaskTodo, maxStimSpecId);
 		//Test stimObjData
 		List<Long> expectedStimObjIds = new ArrayList<Long>();
 		expectedStimObjIds.add(testTrial.getSampleId());
@@ -91,6 +94,7 @@ public class PsychometricTrialTest {
 		for (Long expectedStimObjId: expectedStimObjIds) {
 			assertNotNull("Expected StimObjId does not exist in db!", testTrial.getDbUtil().readStimObjData(expectedStimObjId));
 		}
+		
 	}
 	
 	public void idsMatch(long setId, int stimId) {

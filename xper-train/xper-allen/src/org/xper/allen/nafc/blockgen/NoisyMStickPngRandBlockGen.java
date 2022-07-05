@@ -197,6 +197,8 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 		}
 		List<List<QualitativeMorphParams>> qmps = new LinkedList<>();
 		List<MetricMorphParams> mmps = new LinkedList<>();
+		
+		List<RandNoisyMStickPngTrial> trials = new LinkedList<>();
 		int nSuccess = 0;
 		for (int i = 0; i < numTrials; i++) {
 			int numQMDistractors = numQMDistractorsTrialList.get(i);
@@ -206,7 +208,10 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			NoiseType noiseType = noiseTypesTrialList.get(i);
 			double[] noiseChance = noiseChancesTrialList.get(i);
 
-
+			
+			//
+			trials.add(new RandNoisyMStickPngTrial(this, numQMDistractors, numRandDistractors, numQMCategories, noiseType, noiseChance));
+			
 			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
 			//GENERATE MATCH/SAMPLE FAILS, WE START OVER STARTING AT BASE
 			boolean tryagain = true;

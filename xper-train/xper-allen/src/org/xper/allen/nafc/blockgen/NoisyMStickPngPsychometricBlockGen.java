@@ -250,9 +250,10 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 			for(int stimId:stimIds) {
 				for(int i=0;i<numPsychometricTrialsPerImage;i++) {
 					int numPsychometricDistractors = stimIds.size()-1;
-					PsychometricTrial trial = new PsychometricTrial(this, numPsychometricDistractors, numRandTrials);
-					
-					trial.prepareWrite(setId, stimId, stimIds, noiseChances.noiseChancesProportions);
+					PsychometricNoisyMStickPngTrial trial = new PsychometricNoisyMStickPngTrial(this, numPsychometricDistractors, numRandTrials);
+					NoisyMStickPngPsychometricTrialGenData trialGenData
+					= new NoisyMStickPngPsychometricTrialGenData(sampleDistance.getSampleDistanceLowerLim(), sampleDistance.getSampleDistanceLowerLim(), choiceDistance.getChoiceDistanceLowerLim(), choiceDistance.getChoiceDistanceUpperLim(), sampleScale, eyeWinSize);
+					trial.prepareWrite(setId, stimId, stimIds, noiseChances.noiseChancesProportions, null);
 
 					trials.add(trial);
 				}

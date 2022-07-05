@@ -9,7 +9,7 @@ import java.util.List;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.nafc.blockgen.AbstractTrialGenerator.DistancedDistractorsUtil;
+import org.xper.allen.nafc.blockgen.NAFCTrial.DistancedDistractorsUtil;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.nafc.vo.NoiseData;
@@ -25,7 +25,7 @@ import org.xper.drawing.Coordinates2D;
  * @author r2_allen
  *
  */
-public class PsychometricTrial implements Trial{
+public class PsychometricNoisyMStickPngTrial extends NAFCTrial{
 	/**
 	 * 
 	 */
@@ -50,6 +50,7 @@ public class PsychometricTrial implements Trial{
 	List<AllenMatchStick> objs_randDistractor = new ArrayList<AllenMatchStick>();
 
 	//Parameter Fields
+	NoisyMStickPngPsychometricTrialGenData trialGenData;
 	double sampleDistanceLowerLim;
 	double sampleDistanceUpperLim; 
 	double choiceDistanceLowerLim;
@@ -90,7 +91,7 @@ public class PsychometricTrial implements Trial{
 	 * @param numPsychometricDistractors TODO
 	 * @param numRandDistractors TODO
 	 */
-	public PsychometricTrial(AbstractPsychometricNoiseMapGenerator noisyMStickPngPsychometricBlockGen,
+	public PsychometricNoisyMStickPngTrial(AbstractPsychometricNoiseMapGenerator noisyMStickPngPsychometricBlockGen,
 			int numPsychometricDistractors, int numRandDistractors) {
 		this.gen = noisyMStickPngPsychometricBlockGen;
 		dbUtil = gen.getDbUtil();
@@ -108,10 +109,11 @@ public class PsychometricTrial implements Trial{
 	 * @param stimIds
 	 * @param noiseChance
 	 */
-	public void prepareWrite(long setId, int stimId, List<Integer> stimIds, double[] noiseChance) {
+	public void prepareWrite(long setId, int stimId, List<Integer> stimIds, double[] noiseChance, NoisyMStickPngPsychometricTrialGenData trialGenData) {
 		assignPsychometricStimuli(setId, stimId, stimIds);
 		loadMSticks();
 		assignParamsForNoiseMapGen(noiseChance);
+		assignGenParams(trialGenData);
 	}
 
 	/**
@@ -130,6 +132,16 @@ public class PsychometricTrial implements Trial{
 		return taskId;
 	}
 
+	private void assignGenParams(NoisyMStickPngPsychometricTrialGenData trialGenData) {
+		this.trialGenData = trialGenData;
+		sampleDistanceLowerLim = trialGenData.getSampleDistanceLowerLim();
+		sampleDistanceUpperLim = trialGenData.getSampleDistanceUpperLim();
+		choiceDistanceLowerLim = trialGenData.getChoiceDistanceLowerLim();
+		choiceDistanceUpperLim = trialGenData.getChoiceDistanceUpperLim();
+		sampleScale = trialGenData.getSampleScale();
+		eyeWinSize = trialGenData.getEyeWinSize();
+	}
+	
 	private void prepareNoiseMap() {
 		String generatorNoiseMapPath = generateNoiseMap();
 		noiseMapPath = gen.convertNoiseMapPathToExperiment(generatorNoiseMapPath);
@@ -185,8 +197,8 @@ public class PsychometricTrial implements Trial{
 
 	private void writeStimObjId() {
 		//COORDS
-		sampleCoords = AbstractPsychometricNoiseMapGenerator.randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
-		DistancedDistractorsUtil ddUtil = gen.new DistancedDistractorsUtil(numChoices, choiceDistanceLowerLim, choiceDistanceUpperLim, 0, 0);
+		sampleCoords = randomWithinRadius(sampleDistanceLowerLim, sampleDistanceUpperLim);
+		DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceDistanceLowerLim, choiceDistanceUpperLim, 0, 0);
 		distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
 		matchCoords = ddUtil.getMatchCoords();
 
