@@ -101,7 +101,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 			long sampleId = globalTimeUtil.currentTimeMicros();
 			long taskId = sampleId;
 			int randomSampleIndex = r.nextInt(fileArray.length);
-			Coordinates2D sampleLocation = randomWithinRadius(sampleRadiusLims[0], sampleRadiusLims[1]);
+			Coordinates2D sampleLocation = randomCoordsWithinRadii(sampleRadiusLims[0], sampleRadiusLims[1]);
 			String experimentPath = experimentPngPath + fileArray[randomSampleIndex].getName();
 			PngSpec sampleSpec = new PngSpec(sampleLocation.getX(), sampleLocation.getY(), sampleDimensions, experimentPngPath + fileArray[randomSampleIndex].getName());
 			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");

@@ -83,7 +83,7 @@ public class NoisyPngSpec {
 		return pngPath;
 	}
 
-	public void setPath(String path) {
+	public void setPngPath(String path) {
 		this.pngPath = path;
 	}
 	public ImageDimensions getImageDimensions() {

@@ -191,7 +191,7 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 			int numRandTrials, 
 			NoiseChances noiseChances, 
 			SampleDistance sampleDistance,
-			ChoiceDistance choiceDistance, 
+			DistanceLims choiceDistance, 
 			double sampleScale, double eyeWinSize){
 
 		//Start a Drawing Window
@@ -252,7 +252,7 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 					int numPsychometricDistractors = stimIds.size()-1;
 					PsychometricNoisyMStickPngTrial trial = new PsychometricNoisyMStickPngTrial(this,  numPsychometricDistractors, numRandTrials);
 					NoisyMStickPngPsychometricTrialGenData trialGenData
-					= new NoisyMStickPngPsychometricTrialGenData(sampleDistance.getSampleDistanceLowerLim(), sampleDistance.getSampleDistanceLowerLim(), choiceDistance.getChoiceDistanceLowerLim(), choiceDistance.getChoiceDistanceUpperLim(), sampleScale, eyeWinSize);
+					= new NoisyMStickPngPsychometricTrialGenData(sampleDistance.getSampleDistanceLowerLim(), sampleDistance.getSampleDistanceLowerLim(), choiceDistance.getDistanceLowerLim(), choiceDistance.getDistanceUpperLim(), sampleScale, eyeWinSize);
 					trial.prepareWrite(setId, stimId, stimIds, null);
 
 					trials.add(trial);

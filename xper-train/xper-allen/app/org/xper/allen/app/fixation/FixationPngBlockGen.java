@@ -45,7 +45,7 @@ public class FixationPngBlockGen extends AbstractTrialGenerator{
 		for (int i=0; i<numTrials; i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
 			int randomPngIndex = r.nextInt(fileArray.length);
-			Coordinates2D pngLocation = PngBlockGen.randomWithinRadius(radiusLowerLim, radiusUpperLim);
+			Coordinates2D pngLocation = PngBlockGen.randomCoordsWithinRadii(radiusLowerLim, radiusUpperLim);
 			String experimentPath = experimentPngPath+fileArray[randomPngIndex].getName();
 			PngSpec pngSpec = new PngSpec(pngLocation.getX(), pngLocation.getY(), pngDimensions, experimentPath);
 			dbUtil.writeStimObjData(taskId, pngSpec.toXml(), "");

@@ -2,7 +2,7 @@ package org.xper.allen.nafc.blockgen;
 
 import java.util.List;
 
-public class StimObjIdsForMixedPsychometricAndRand {
+public class StimObjIdsForMixedPsychometricAndRand implements StimObjIds {
 	public Long sampleId;
 	public Long matchId;
 	public List<Long> allDistractorsIds;

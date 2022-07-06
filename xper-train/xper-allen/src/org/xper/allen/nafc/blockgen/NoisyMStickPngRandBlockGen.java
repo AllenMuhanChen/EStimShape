@@ -473,7 +473,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 
 			//PREPARING WRITE TO DB SPECIFYING LOCATION
 			
-			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
+			Coordinates2D sampleCoords = randomCoordsWithinRadii(sampleRadiusLowerLim, sampleRadiusUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceRadiusLowerLim, choiceRadiusUpperLim, distractorDistanceLowerLim,  distractorDistanceUpperLim);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
 			Coordinates2D matchCoords = ddUtil.getMatchCoords();
@@ -482,7 +482,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			long taskId = sampleIds.get(i);
 			NoisyPngSpec sampleSpec = new NoisyPngSpec();
 			//			sampleSpec.setPath(experimentPngPath+"/"+ids.get(0)+".png");
-			sampleSpec.setPath(trialStimPaths.get(0));
+			sampleSpec.setPngPath(trialStimPaths.get(0));
 			sampleSpec.setNoiseMapPath(noiseMapPaths.get(i));
 			sampleSpec.setxCenter(sampleCoords.getX());
 			sampleSpec.setyCenter(sampleCoords.getY());
@@ -496,7 +496,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			//MATCH SPEC
 			NoisyPngSpec matchSpec = new NoisyPngSpec();
 			//			matchSpec.setPath(experimentPngPath+"/"+ids.get(1)+".png");
-			matchSpec.setPath(trialStimPaths.get(1));
+			matchSpec.setPngPath(trialStimPaths.get(1));
 			matchSpec.setxCenter(matchCoords.getX());
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
@@ -509,7 +509,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			for(int j=0; j<numQMDistractors; j++){
 				distractorSpec.add(j, new NoisyPngSpec());
 				//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
-				distractorSpec.get(j).setPath(trialStimPaths.get(j+2));
+				distractorSpec.get(j).setPngPath(trialStimPaths.get(j+2));
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
@@ -521,7 +521,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			for(int j=numQMDistractors; j<numChoices-1; j++){
 				distractorSpec.add(j, new NoisyPngSpec());
 				//				distractorSpec.get(j).setPath(experimentPngPath+"/"+ids.get(j+2)+".png");
-				distractorSpec.get(j).setPath(trialStimPaths.get(j+2));
+				distractorSpec.get(j).setPngPath(trialStimPaths.get(j+2));
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);

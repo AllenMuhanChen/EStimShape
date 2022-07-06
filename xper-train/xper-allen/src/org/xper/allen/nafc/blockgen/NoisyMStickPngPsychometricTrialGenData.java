@@ -1,46 +1,20 @@
 package org.xper.allen.nafc.blockgen;
 
 public class NoisyMStickPngPsychometricTrialGenData{
-	public NoisyMStickPngPsychometricTrialGenData(double sampleDistanceLowerLim, double sampleDistanceUpperLim,
-			double choiceDistanceLowerLim, double choiceDistanceUpperLim, double sampleScale, double eyeWinSize) {
-		super();
-		this.sampleDistanceLowerLim = sampleDistanceLowerLim;
-		this.sampleDistanceUpperLim = sampleDistanceUpperLim;
-		this.choiceDistanceLowerLim = choiceDistanceLowerLim;
-		this.choiceDistanceUpperLim = choiceDistanceUpperLim;
-		this.sampleScale = sampleScale;
-		this.eyeWinSize = eyeWinSize;
-	}
-	double sampleDistanceLowerLim;
-	double sampleDistanceUpperLim;
-	double choiceDistanceLowerLim;
-	double choiceDistanceUpperLim;
+
+	DistanceLims sampleDistanceLims;
+	DistanceLims choiceDistanceLims;
 	double sampleScale;
 	double eyeWinSize;
 	
-	public double getSampleDistanceLowerLim() {
-		return sampleDistanceLowerLim;
-	}
-	public void setSampleDistanceLowerLim(double sampleDistanceLowerLim) {
-		this.sampleDistanceLowerLim = sampleDistanceLowerLim;
-	}
-	public double getSampleDistanceUpperLim() {
-		return sampleDistanceUpperLim;
-	}
-	public void setSampleDistanceUpperLim(double sampleDistanceUpperLim) {
-		this.sampleDistanceUpperLim = sampleDistanceUpperLim;
-	}
-	public double getChoiceDistanceLowerLim() {
-		return choiceDistanceLowerLim;
-	}
-	public void setChoiceDistanceLowerLim(double choiceDistanceLowerLim) {
-		this.choiceDistanceLowerLim = choiceDistanceLowerLim;
-	}
-	public double getChoiceDistanceUpperLim() {
-		return choiceDistanceUpperLim;
-	}
-	public void setChoiceDistanceUpperLim(double choiceDistanceUpperLim) {
-		this.choiceDistanceUpperLim = choiceDistanceUpperLim;
+
+	public NoisyMStickPngPsychometricTrialGenData(DistanceLims sampleDistanceLims, DistanceLims choiceDistanceLims,
+			double sampleScale, double eyeWinSize) {
+		super();
+		this.sampleDistanceLims = sampleDistanceLims;
+		this.choiceDistanceLims = choiceDistanceLims;
+		this.sampleScale = sampleScale;
+		this.eyeWinSize = eyeWinSize;
 	}
 	public double getSampleScale() {
 		return sampleScale;
@@ -53,5 +27,17 @@ public class NoisyMStickPngPsychometricTrialGenData{
 	}
 	public void setEyeWinSize(double eyeWinSize) {
 		this.eyeWinSize = eyeWinSize;
+	}
+	public DistanceLims getSampleDistanceLims() {
+		return sampleDistanceLims;
+	}
+	public void setSampleDistanceLims(DistanceLims sampleDistanceLims) {
+		this.sampleDistanceLims = sampleDistanceLims;
+	}
+	public DistanceLims getChoiceDistanceLims() {
+		return choiceDistanceLims;
+	}
+	public void setChoiceDistanceLims(DistanceLims choiceDistanceLims) {
+		this.choiceDistanceLims = choiceDistanceLims;
 	}
 }

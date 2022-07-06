@@ -12,6 +12,7 @@ import java.util.List;
  */
 public class PsychometricPathAssigner{
 
+
 	PsychometricIds psychometricIds;
 	int numPsychometricDistractors;
 	PngBasePaths basePaths;
@@ -20,8 +21,8 @@ public class PsychometricPathAssigner{
 		return new PsychometricPathAssigner(psychometricIds, numPsychometricDistractors, basePaths);
 	}
 	
-	NAFCPngPaths pngPaths;
-	static public PsychometricPathAssigner createWithExistingNAFCPngPathsObj(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, NAFCPngPaths pngPaths) {
+	NAFCPaths pngPaths;
+	static public PsychometricPathAssigner createWithExistingNAFCPngPathsObj(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, NAFCPaths pngPaths) {
 		return new PsychometricPathAssigner(psychometricIds, numPsychometricDistractors, basePaths, pngPaths);
 	}
 	
@@ -29,10 +30,10 @@ public class PsychometricPathAssigner{
 		this.psychometricIds = psychometricIds;
 		this.numPsychometricDistractors = numPsychometricDistractors;
 		this.basePaths = basePaths;
-		this.pngPaths = new NAFCPngPaths();
+		this.pngPaths = new NAFCPaths();
 	}
 	
-	private PsychometricPathAssigner(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, NAFCPngPaths pngPaths) {
+	private PsychometricPathAssigner(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, NAFCPaths pngPaths) {
 		this.psychometricIds = psychometricIds;
 		this.numPsychometricDistractors = numPsychometricDistractors;
 		this.basePaths = basePaths;
@@ -70,11 +71,11 @@ public class PsychometricPathAssigner{
 	
 
 	private void assignPngPaths() {
-		pngPaths.samplePngPath = convertPathToExperiment(basePaths.generatorPngPath + "/" + sampleSetId + "_" + sampleStimId + ".png");
-		pngPaths.matchPngPath = pngPaths.samplePngPath;
+		pngPaths.samplePath = convertPathToExperiment(basePaths.generatorPngPath + "/" + sampleSetId + "_" + sampleStimId + ".png");
+		pngPaths.matchPath = pngPaths.samplePath;
 		for (int remainingStimId:distractorsStimIds) {
 			int index = distractorsStimIds.indexOf(remainingStimId);
-			pngPaths.distractorsPngPaths.add(convertPathToExperiment(basePaths.generatorPngPath + "/" + distractorsSetId+ "_" + remainingStimId + ".png"));
+			pngPaths.distractorsPaths.add(convertPathToExperiment(basePaths.generatorPngPath + "/" + distractorsSetId+ "_" + remainingStimId + ".png"));
 		}
 	}
 	
@@ -85,59 +86,29 @@ public class PsychometricPathAssigner{
 		return newPath;
 	}
 
-	String sampleSpecPath;
-	String matchSpecPath;
-	List<String> distractorsSpecPaths = new LinkedList<String>();
-	
+	NAFCPaths specPaths = new NAFCPaths();
+
 	private void assignSpecPaths() {
-		sampleSpecPath = basePaths.specPath + "/" + sampleSetId + "_" + sampleStimId + "_spec.xml";
-		matchSpecPath = basePaths.specPath + "/" + matchSetId + "_" + matchStimId + "_spec.xml";
+		specPaths.setSamplePath(basePaths.specPath + "/" + sampleSetId + "_" + sampleStimId + "_spec.xml");
+		specPaths.setMatchPath(basePaths.specPath + "/" + matchSetId + "_" + matchStimId + "_spec.xml");
 		for (Integer stimId : distractorsStimIds) {
 			String pathOfDistractorWithStimId = basePaths.specPath + "/" + distractorsSetId + "_" + stimId + "_spec.xml";
-			distractorsSpecPaths.add(pathOfDistractorWithStimId);
+			specPaths.getDistractorsPaths().add(pathOfDistractorWithStimId);
 		}
 	}
 	
-	public String getSamplePngPath() {
-		return pngPaths.samplePngPath;
-	}
-
-	public String getMatchPngPath() {
-		return pngPaths.matchPngPath;
-	}
-
-	public List<String> getDistractorsPngPaths() {
-		return pngPaths.distractorsPngPaths;
-	}
 
 
-	public String getGeneratorPngPath() {
-		return basePaths.generatorPngPath;
-	}
-
-
-	public String getSpecPath() {
-		return sampleSpecPath;
-	}
-
-
-	public String getMatchSpecPath() {
-		return matchSpecPath;
-	}
-
-
-	public List<String> getDistractorsSpecPaths() {
-		return distractorsSpecPaths;
-	}
-
-
-	public String getSampleSpecPath() {
-		return sampleSpecPath;
-	}
-
-
-	public NAFCPngPaths getPngPaths() {
+	public NAFCPaths getPngPaths() {
 		return pngPaths;
+	}
+
+	public NAFCPaths getSpecPaths() {
+		return specPaths;
+	}
+
+	public void setSpecPaths(NAFCPaths specPaths) {
+		this.specPaths = specPaths;
 	}
 
 
