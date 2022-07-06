@@ -64,7 +64,7 @@ public class PsychometricTrialTest {
 		}
 		
 		//Testing .pngs
-		for (String path: testTrial.psychometricPathAssigner.getDistractorsPngPaths()) {
+		for (String path: testTrial.psychometricPathAssigner.getDistractorsPaths()) {
 			assertNotNull("distractor .png with path " + path + " does not exist",
 					new File(path).exists());
 		}

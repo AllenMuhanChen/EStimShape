@@ -3,8 +3,8 @@ package org.xper.allen.nafc.blockgen;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.nafc.blockgen.NAFCTrialWriter.DistancedDistractorsUtil;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.specs.NoisyPngSpec;
@@ -16,15 +16,15 @@ import org.xper.drawing.Coordinates2D;
  * @author r2_allen
  *
  */
-public class NoisyMStickPngPsychometricDBWriter extends NAFCTrialWriter{
-	
+public class NoisyMStickPngPsychometricDBWriter{
+
 	NoisyMStickPngPsychometricTrialGenData trialGenData;
 	int numChoices;
-	NAFCPngPaths pngPaths;
+	NAFCPaths pngPaths;
 	StimObjIdsForMixedPsychometricAndRand stimObjIds;
 	String noiseMapPath;
 	AllenDbUtil dbUtil;
-	
+
 	Coordinates2D sampleCoords;
 	Coordinates2D matchCoords;
 	ArrayList<Coordinates2D> distractorsCoords;
@@ -35,64 +35,76 @@ public class NoisyMStickPngPsychometricDBWriter extends NAFCTrialWriter{
 	private double[] targetEyeWinSizes;
 	private NoisyMStickPngPsychometricTrialData trialData;
 	double[] noiseChance;
+	NAFCAllenMStickSpecs mStickSpecs = new NAFCAllenMStickSpecs();
 
-	private void loadMStickSpecs() {
-		
+
+
+	public void writeStimObjId() {
+		DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, trialGenData.getChoiceDistanceLims().getDistanceLowerLim(), trialGenData.choiceDistanceLims.getDistanceUpperLim(), 0, 0);
+		Coordinates2D matchCoords = ddUtil.getMatchCoords();
+		List<Coordinates2D> distractorCoords = ddUtil.getDistractorCoordsAsList();
+		writeSampleSpec();
+		writeMatchSpec(matchCoords);
+		writeDistractorSpecs(distractorCoords);
 	}
-	
-	private void writeStimObjId() {
-		//COORDS
-		sampleCoords = randomWithinRadius(trialGenData.sampleDistanceLowerLim, trialGenData.sampleDistanceUpperLim);
-		DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, trialGenData.choiceDistanceLowerLim, trialGenData.choiceDistanceUpperLim, 0, 0);
-		distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
-		matchCoords = ddUtil.getMatchCoords();
 
-		//SAMPLE SPEC
-		NoisyPngSpec sampleSpec = new NoisyPngSpec();
-		sampleSpec.setPath(pngPaths.samplePngPath);
-		sampleSpec.setNoiseMapPath(noiseMapPath);
-		sampleSpec.setxCenter(sampleCoords.getX());
-		sampleSpec.setyCenter(sampleCoords.getY());
-		ImageDimensions sampleDimensions = new ImageDimensions(trialGenData.sampleScale, trialGenData.sampleScale);
-		sampleSpec.setImageDimensions(sampleDimensions);
-		MStickStimObjData sampleMStickObjData = new MStickStimObjData("Sample", sampleMStickSpec);
+	private void writeSampleSpec() {
+		SampleSpecWriter sampleSpecWriter = new SampleSpecWriter(
+				trialGenData.getSampleDistanceLims(),
+				pngPaths.getSamplePath(), noiseMapPath,
+				trialGenData.getSampleScale());
+
+		sampleSpecWriter.buildSpec();
+		NoisyPngSpec sampleSpec = sampleSpecWriter.getSpec();
+
+		MStickStimObjData sampleMStickObjData = new MStickStimObjData("Sample", mStickSpecs.getSampleMStickSpec());
 		dbUtil.writeStimObjData(stimObjIds.getSampleId(), sampleSpec.toXml(), sampleMStickObjData.toXml());
+	}
 
-		//MATCH SPEC
-		NoisyPngSpec matchSpec = new NoisyPngSpec();
-		matchSpec.setPath(pngPaths.matchPngPath);
-		matchSpec.setxCenter(matchCoords.getX());
-		matchSpec.setyCenter(matchCoords.getY());
-		ImageDimensions matchDimensiosn = new ImageDimensions(trialGenData.sampleScale, trialGenData.sampleScale);
-		matchSpec.setImageDimensions(matchDimensiosn);
-		MStickStimObjData matchMStickObjData = new MStickStimObjData("Match", matchMStickSpec);
+	private void writeMatchSpec(Coordinates2D matchCoords) {
+
+		NoisyPngSpecWriter matchSpecWriter = NoisyPngSpecWriter.createWithoutNoiseMap(
+				matchCoords,
+				pngPaths.getMatchPath(),
+				trialGenData.getSampleScale());
+		matchSpecWriter.buildSpec();
+		NoisyPngSpec matchSpec = matchSpecWriter.getSpec();
+
+		MStickStimObjData matchMStickObjData = new MStickStimObjData("Match", mStickSpecs.getMatchMStickSpec());
 		dbUtil.writeStimObjData(stimObjIds.getMatchId(), matchSpec.toXml(), matchMStickObjData.toXml());
+	}
 
-		//DISTRACTORS SPECS
+	private void writeDistractorSpecs(List<Coordinates2D> distractorCoords) {
 		int indx=0;
-		for(String psychometricPngPath : pngPaths.getDistractorsPngPaths()) {
-			NoisyPngSpec distractorSpec = new NoisyPngSpec();
-			distractorSpec.setPath(pngPaths.distractorsPngPaths.get(indx));
-			distractorSpec.setxCenter(distractorsCoords.get(indx).getX());
-			distractorSpec.setyCenter(distractorsCoords.get(indx).getY());
-			ImageDimensions distractorDimensions = new ImageDimensions(trialGenData.sampleScale, trialGenData.sampleScale);
-			distractorSpec.setImageDimensions(distractorDimensions);
-			MStickStimObjData distractorMStickObjData = new MStickStimObjData("Distractor", matchMStickSpec);
+		for(Coordinates2D coord:distractorCoords) {
+			NoisyPngSpecWriter distractorSpecWriter = NoisyPngSpecWriter.createWithoutNoiseMap(
+					coord, pngPaths.getDistractorsPaths().get(indx),trialGenData.getSampleScale());
+			distractorSpecWriter.buildSpec();
+			NoisyPngSpec distractorSpec = distractorSpecWriter.getSpec();
+			MStickStimObjData distractorMStickObjData = new MStickStimObjData("Distractor", mStickSpecs.getMatchMStickSpec());
 			dbUtil.writeStimObjData(stimObjIds.getPsychometricDistractorsIds().get(indx), distractorSpec.toXml(), distractorMStickObjData.toXml());
 			indx++;
 		}
-		indx=0;
-		//TODO: Add rand distractor logic here
-		for (Long distractorId:stimObjIds.getRandDistractorsIds()) {
-			NoisyPngSpec distractorSpec = new NoisyPngSpec();
-			distractorSpec.setPath(pngPaths.getRandDistractorsPngPaths().get(indx));
-			distractorSpec.setxCenter(distractorsCoords.get(indx).getX());
-			distractorSpec.setyCenter(distractorsCoords.get(indx).getY());
-			ImageDimensions distractorDimensions = new ImageDimensions(trialGenData.sampleScale, trialGenData.sampleScale);
-			distractorSpec.setImageDimensions(distractorDimensions);
-			MStickStimObjData distractorMStickObjData = new MStickStimObjData("Distractor", matchMStickSpec);
-			dbUtil.writeStimObjData(stimObjIds.getRandDistractorsIds().get(indx), distractorSpec.toXml(), distractorMStickObjData.toXml());
-			indx++;
+	}
+
+	private class SampleSpecWriter extends NoisyPngSpecWriter {
+		DistanceLims distance;
+		public SampleSpecWriter(DistanceLims distance, String pngPath, String noiseMapPath,
+				double  pngDimension) {
+			this.pngPath = pngPath;
+			this.noiseMapPath = noiseMapPath;
+			this.pngDimensions = new ImageDimensions(pngDimension, pngDimension);
+			this.distance = distance;
+		}
+
+		@Override
+		protected void setCoords() {
+			Coordinates2D coords = randomCoordsWithinRadii(distance.getDistanceLowerLim(), distance.getDistanceUpperLim());
+			spec.setxCenter(coords.getX());
+			spec.setyCenter(coords.getY());
 		}
 	}
+
+
 }
+

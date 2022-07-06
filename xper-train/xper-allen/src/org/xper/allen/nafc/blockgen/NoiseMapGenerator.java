@@ -13,16 +13,15 @@ public class NoiseMapGenerator {
 	
 	private String noiseMapPath;
 	
-	String specPath;
 	long id;
 	AbstractPsychometricNoiseMapGenerator gen;
 	AllenMatchStick obj;
 	AllenMStickSpec mStickSpec;
 	PsychometricIds psychometricIds;
-	public NoiseMapGenerator(String specPath, PsychometricIds psychometricIds, AbstractPsychometricNoiseMapGenerator gen, double[] noiseChance,
+	public NoiseMapGenerator(AllenMatchStick mStick, PsychometricIds psychometricIds, AbstractPsychometricNoiseMapGenerator gen, double[] noiseChance,
 			 long id) {
 		super();
-		this.specPath = specPath;
+		this.obj = mStick;
 		this.id = id;
 		this.gen = gen;
 		this.noiseChance = noiseChance;
@@ -31,26 +30,18 @@ public class NoiseMapGenerator {
 
 	
 	public void generate() {
-		loadMStick();
+//		fetchObj();
 		assignParamsForNoiseMapGen();
 		prepareNoiseMap();
 	}
 	
-	/**
-	 * Loads the MStick objs from specs of psychometric stimuli. 
-	 */
-	private void loadMStick() {
-		fetchObj();
-		mStickSpec = new AllenMStickSpec();
-		mStickSpec.setMStickInfo(obj);
-	}
-	
-	private void fetchObj() {
-		AllenMatchStick ams = new AllenMatchStick();
-		gen.setProperties(ams);
-		ams.genMatchStickFromFile(specPath);
-		obj = ams;
-	}
+
+//	private void fetchObj() {
+//		AllenMatchStick ams = new AllenMatchStick();
+//		gen.setProperties(ams);
+//		ams.genMatchStickFromFile(specPath);
+//		obj = ams;
+//	}
 	
 	NoiseData noiseData;
 	double[] noiseChance;

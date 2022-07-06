@@ -370,7 +370,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			
 			//SPECIFYING LOCATION
 			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
-			Coordinates2D sampleCoords = randomWithinRadius(sampleRadiusLowerLim, sampleRadiusUpperLim);
+			Coordinates2D sampleCoords = randomCoordsWithinRadii(sampleRadiusLowerLim, sampleRadiusUpperLim);
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceRadiusLowerLim, choiceRadiusUpperLim, distractorDistanceLowerLim,  distractorDistanceUpperLim);
 			ArrayList<Coordinates2D> distractorsCoords = (ArrayList<Coordinates2D>) ddUtil.getDistractorCoordsAsList();
 			Coordinates2D matchCoords = ddUtil.getMatchCoords();

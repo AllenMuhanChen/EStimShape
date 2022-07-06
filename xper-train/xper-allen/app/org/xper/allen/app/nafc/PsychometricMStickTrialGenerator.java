@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.ChoiceDistance;
+import org.xper.allen.nafc.blockgen.DistanceLims;
 import org.xper.allen.nafc.blockgen.NoiseChances;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
@@ -36,7 +36,7 @@ public class PsychometricMStickTrialGenerator extends TrialGenerator{
 			
 			
 			gen.generateTrials(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies),
-					new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new ChoiceDistance(choiceDistanceLowerLim, choiceDistanceUpperLim), 
+					new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new DistanceLims(choiceDistanceLowerLim, choiceDistanceUpperLim), 
 					sampleScale, eyeWinSize);
 		}
 		

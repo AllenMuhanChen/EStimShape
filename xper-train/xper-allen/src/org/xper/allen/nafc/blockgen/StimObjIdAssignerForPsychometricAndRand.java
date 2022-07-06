@@ -40,29 +40,7 @@ public class StimObjIdAssignerForPsychometricAndRand implements StimObjIdAssigne
 		
 	}
 
-	public Long getSampleId() {
-		return stimObjIds.sampleId;
+	public StimObjIdsForMixedPsychometricAndRand getStimObjIds() {
+		return stimObjIds;
 	}
-
-	public void setSampleId(Long sampleId) {
-		this.stimObjIds.sampleId = sampleId;
-	}
-
-	public Long getMatchId() {
-		return stimObjIds.matchId;
-	}
-
-	public List<Long> getAllDistractorsIds() {
-		return stimObjIds.allDistractorsIds;
-	}
-
-	public List<Long> getPsychometricDistractorsIds() {
-		return stimObjIds.psychometricDistractorsIds;
-	}
-
-	public List<Long> getRandDistractorsIds() {
-		return stimObjIds.randDistractorsIds;
-	}
-	
-	
 }
