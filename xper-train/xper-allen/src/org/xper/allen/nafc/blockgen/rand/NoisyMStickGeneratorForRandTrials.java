@@ -3,6 +3,7 @@ package org.xper.allen.nafc.blockgen.rand;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.xper.allen.drawing.composition.AbstractMStickGenerator;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.FromRandLeafMStickGenerator;
 import org.xper.allen.drawing.composition.MStickGenerationException;
@@ -42,7 +43,6 @@ public class NoisyMStickGeneratorForRandTrials {
 			try {
 				tryGenerateSample();
 			} catch (Exception e) {
-//				e.printStackTrace();
 				continue;
 			}
 
@@ -55,7 +55,6 @@ public class NoisyMStickGeneratorForRandTrials {
 			try {
 				tryGenerateQualitativeMorphDistractors();
 			} catch (Exception e) {
-//				e.printStackTrace();
 				continue;
 			}
 
@@ -70,19 +69,19 @@ public class NoisyMStickGeneratorForRandTrials {
 	}
 
 	private void tryGenerateSample() {
-		FromRandLeafMStickGenerator sampleGenerator = new FromRandLeafMStickGenerator(generator);
-		sample = sampleGenerator.tryGenerate();
+		AbstractMStickGenerator sampleGenerator = new FromRandLeafMStickGenerator(generator);
+		sample = sampleGenerator.getMStick();
 	}
 
 	private void tryGenerateMatch() {
-		MetricMorphMStickGenerator matchGenerator = new MetricMorphMStickGenerator(generator, sample, mmp);
-		match = matchGenerator.tryGenerate();
+		AbstractMStickGenerator matchGenerator = new MetricMorphMStickGenerator(generator, sample, mmp);
+		match = matchGenerator.getMStick();
 	}
 
 	private void tryGenerateQualitativeMorphDistractors() {
 		for (QualitativeMorphParams qmp:qmps) {
-			QualitativeMorphMStickGenerator qmGenerator = new QualitativeMorphMStickGenerator(generator, sample, qmp);
-			qualitativeMorphDistractors.add(qmGenerator.tryGenerate());
+			AbstractMStickGenerator qmGenerator = new QualitativeMorphMStickGenerator(generator, sample, qmp);
+			qualitativeMorphDistractors.add(qmGenerator.getMStick());
 		}
 	}
 

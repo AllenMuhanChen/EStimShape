@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.xper.allen.drawing.composition.AbstractMStickGenerator;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.FromRandLeafMStickGenerator;
 import org.xper.allen.drawing.composition.MStickGenerator;
@@ -41,9 +42,9 @@ public class RandDistractorPNGGenerator {
 			
 			for(int j=0; j<numDistractors.numPsychometricDistractors; j++) {
 				try {
-					MStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen);
-					objGenerator.attemptGenerate();
-					objs_randDistractor.add(objGenerator.getmStick());
+					AbstractMStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen);
+					objGenerator.getMStick();
+					objs_randDistractor.add(objGenerator.getMStick());
 					if(objGenerator.isSuccessful()) {
 						tryagain = false;
 					}
