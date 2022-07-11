@@ -1,9 +1,10 @@
-package org.xper.allen.nafc.blockgen;
+package org.xper.allen.nafc.blockgen.psychometric;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 /**
  * AbstractNoiseMapTrialGenerator IS a MStickPngTrialGenerator as well. 

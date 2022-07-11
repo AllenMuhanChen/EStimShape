@@ -13,9 +13,9 @@ import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.AbstractPsychometricNoiseMapGenerator;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricNoiseMapGenerator;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -74,7 +74,7 @@ public class NoisyNAFCMStickPngAppConfig {
 	 */
 	@Bean
 	public AbstractPsychometricNoiseMapGenerator psychometricPngGenerator() {
-		NoisyMStickPngPsychometricBlockGen gen = new NoisyMStickPngPsychometricBlockGen();
+		PsychometricBlockGen gen = new PsychometricBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setGeneratorPngPath(generatorPsychometricPngPath);

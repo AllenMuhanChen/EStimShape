@@ -1,16 +1,17 @@
 package org.xper.allen.nafc.blockgen;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 
-public class NAFCAllenMStickSpecs {
+public class NAFCMStickSpecs {
 	private AllenMStickSpec sampleMStickSpec;
 	private AllenMStickSpec matchMStickSpec;
-	private List<AllenMStickSpec> distractorsMStickSpecs;
+	private List<AllenMStickSpec> distractorsMStickSpecs = new ArrayList<AllenMStickSpec>();
 
-	public NAFCAllenMStickSpecs() {
+	public NAFCMStickSpecs() {
 		this.distractorsMStickSpecs = new LinkedList<AllenMStickSpec>();
 	}
 

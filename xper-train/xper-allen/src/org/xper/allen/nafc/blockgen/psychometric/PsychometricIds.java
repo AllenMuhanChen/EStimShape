@@ -1,4 +1,4 @@
-package org.xper.allen.nafc.blockgen;
+package org.xper.allen.nafc.blockgen.psychometric;
 
 import java.util.List;
 

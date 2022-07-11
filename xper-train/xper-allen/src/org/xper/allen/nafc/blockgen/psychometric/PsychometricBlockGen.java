@@ -1,4 +1,4 @@
-package org.xper.allen.nafc.blockgen;
+package org.xper.allen.nafc.blockgen.psychometric;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,16 +17,21 @@ import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.nafc.blockgen.NoiseChances;
+import org.xper.allen.nafc.blockgen.SampleDistance;
+import org.xper.allen.nafc.blockgen.Trial;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
-import org.xper.allen.nafc.vo.NoiseData;
+import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 
-public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNoiseMapGenerator{
+public class PsychometricBlockGen extends AbstractPsychometricNoiseMapGenerator{
+	
 	@Dependency
 	PsychometricQualitativeMorphParameterGenerator psychometricQmpGenerator;
 	
@@ -34,7 +39,7 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 	
 	static double[] noiseNormalizedPosition_PRE_JUNC = new double[] {0.5, 0.8};
 
-	public void generateSet(int numPerSet, double size, double percentChangePosition, int numRand) {	
+	public void generateImageSet(int numPerSet, double size, double percentChangePosition, int numRand) {	
 		if(numRand>numPerSet) {
 			throw new IllegalArgumentException("numRand should not be greater than numPerSet");
 		}
@@ -191,7 +196,7 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 			int numRandTrials, 
 			NoiseChances noiseChances, 
 			SampleDistance sampleDistance,
-			DistanceLims choiceDistance, 
+			Lims choiceDistance, 
 			double sampleScale, double eyeWinSize){
 
 		//Start a Drawing Window
@@ -250,9 +255,18 @@ public class NoisyMStickPngPsychometricBlockGen extends AbstractPsychometricNois
 			for(int stimId:stimIds) {
 				for(int i=0;i<numPsychometricTrialsPerImage;i++) {
 					int numPsychometricDistractors = stimIds.size()-1;
-					PsychometricNoisyMStickPngTrial trial = new PsychometricNoisyMStickPngTrial(this,  numPsychometricDistractors, numRandTrials);
-					NoisyMStickPngPsychometricTrialGenData trialGenData
-					= new NoisyMStickPngPsychometricTrialGenData(sampleDistance.getSampleDistanceLowerLim(), sampleDistance.getSampleDistanceLowerLim(), choiceDistance.getDistanceLowerLim(), choiceDistance.getDistanceUpperLim(), sampleScale, eyeWinSize);
+					
+					
+					PsychometricTrial trial = new PsychometricTrial(
+						this,
+						numDistractors,
+						psychometricIds,
+						noiseChance,
+						trialParameters);
+					
+					PsychometricTrial trial = new PsychometricTrial(this,  numPsychometricDistractors, numRandTrials);
+					NoisyTrialParameters trialGenData
+					= new NoisyTrialParameters(sampleDistance.getSampleDistanceLowerLim(), sampleDistance.getSampleDistanceLowerLim(), choiceDistance.getLowerLim(), choiceDistance.getUpperLim(), sampleScale, eyeWinSize);
 					trial.prepareWrite(setId, stimId, stimIds, null);
 
 					trials.add(trial);

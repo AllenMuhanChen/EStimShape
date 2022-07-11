@@ -1,15 +1,24 @@
 package org.xper.allen.nafc.vo;
 
-public class NoiseData {
-	public NoiseData(NoiseType noiseType, double[] normalizedPositionBounds, double[] noiseChanceBounds) {
+public class NoiseParameters {
+	
+	NoiseType noiseType;
+	double[] normalizedPositionBounds; 
+	double[] noiseChanceBounds;
+	
+	
+	public NoiseParameters(NoiseType noiseType, double[] normalizedPositionBounds, double[] noiseChanceBounds) {
 		super();
 		this.noiseType = noiseType;
 		this.normalizedPositionBounds = normalizedPositionBounds;
 		this.noiseChanceBounds = noiseChanceBounds;
 	}
-	NoiseType noiseType;
-	double[] normalizedPositionBounds; 
-	double[] noiseChanceBounds;
+	
+	public NoiseParameters(NoiseType noiseType, double[] noiseChanceBounds) {
+		super();
+		this.noiseType = noiseType;
+		this.noiseChanceBounds = noiseChanceBounds;
+	}
 	
 	public NoiseType getNoiseType() {
 		return noiseType;

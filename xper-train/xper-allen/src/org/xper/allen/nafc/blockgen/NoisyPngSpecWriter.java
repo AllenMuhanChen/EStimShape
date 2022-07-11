@@ -4,7 +4,7 @@ import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 
-public class NoisyPngSpecWriter extends NAFCSpecWriter{
+public class NoisyPngSpecWriter{
 
 	static public NoisyPngSpecWriter createWithNoiseMap(
 			Coordinates2D coords,
@@ -55,20 +55,17 @@ public class NoisyPngSpecWriter extends NAFCSpecWriter{
 		this.pngDimensions = pngDimensions;
 	}
 
-
-
-
+	
 	public NoisyPngSpecWriter() {}
 
 	NoisyPngSpec spec = new NoisyPngSpec();
 
-	public void buildSpec() {
+	public void writeSpec() {
 		setCoords();
 		setPngPath();
 		setNoiseMapPath();
 		setImageDimensions();
 	}
-
 
 	Coordinates2D coords;
 	protected void setCoords() {

@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.config.java.annotation.Configuration;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngPsychometricBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.util.FileUtil;
 
 public class NoisyMStickPngPsychometricBlockGenTest {

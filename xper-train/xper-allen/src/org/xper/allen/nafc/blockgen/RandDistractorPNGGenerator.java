@@ -6,14 +6,17 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.FromRandLeafMStickGenerator;
+import org.xper.allen.drawing.composition.MStickGenerator;
+import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricNoiseMapGenerator;
 
-public class RandDistractorGenerator {
+public class RandDistractorPNGGenerator {
 
 	NumberOfDistractors numDistractors;
 	AbstractPsychometricNoiseMapGenerator gen;
 	private List<Long> randDistractorsIds = new LinkedList<Long>();
 	
-	public RandDistractorGenerator(NumberOfDistractors numDistractors, AbstractPsychometricNoiseMapGenerator gen,
+	public RandDistractorPNGGenerator(NumberOfDistractors numDistractors, AbstractPsychometricNoiseMapGenerator gen,
 			List<Long> randDistractorsIds, List<String> randDistractorsPngPaths) {
 		super();
 		this.numDistractors = numDistractors;
@@ -29,42 +32,31 @@ public class RandDistractorGenerator {
 		drawRandDistractors();
 		
 	}
-
+	
 	private void genRandDistractors_obj() {
-		System.out.println("Trying to Generate Rand Distractor");
-		objs_randDistractor = new ArrayList<>();
+
 		boolean tryagain = true;
 		while(tryagain) {
-			objs_randDistractor = new ArrayList<>();
-			for(int i=0; i<numDistractors.numPsychometricDistractors; i++) {
-				objs_randDistractor.add(new AllenMatchStick());
-			}
-			boolean randDistractorsSuccess = false;
-			Boolean[] randDistractorSuccess = new Boolean[numDistractors.numPsychometricDistractors];
-			for(int b=0; b<randDistractorSuccess.length; b++) randDistractorSuccess[b]=false;
+			objs_randDistractor = new ArrayList<AllenMatchStick>();
+			
 			for(int j=0; j<numDistractors.numPsychometricDistractors; j++) {
 				try {
-					gen.setProperties(objs_randDistractor.get(j));
-					objs_randDistractor.get(j).genMatchStickRand();
-					randDistractorSuccess[j] = true;
+					MStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen);
+					objGenerator.attemptGenerate();
+					objs_randDistractor.add(objGenerator.getmStick());
+					if(objGenerator.isSuccessful()) {
+						tryagain = false;
+					}
 				} catch(Exception e) {
 					e.printStackTrace();
-					randDistractorSuccess[j] = false;
-				}
-				if(!randDistractorSuccess[j]) {
 					objs_randDistractor.set(j, new AllenMatchStick());
+					tryagain = true;
 				}
-			}
-			randDistractorsSuccess = !Arrays.asList(randDistractorSuccess).contains(false);
-
-			if(randDistractorsSuccess) {
-				tryagain = false;
 			}
 		}
 	}
 
 	List<String> randDistractorsPngPaths = new LinkedList<String>();
-	
 	private void drawRandDistractors() {
 		List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
 		int indx=0;

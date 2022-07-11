@@ -17,16 +17,14 @@ import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
-import org.xper.allen.nafc.vo.NoiseData;
+import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.MStickObj4Smooth;
-import org.xper.drawing.stick.MStickSpec;
 import org.xper.drawing.stick.MatchStick;
-import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.stickMath_lib;
 
 /**
@@ -108,7 +106,7 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
-	public NoiseData setNoiseParameters(NoiseType noiseType, double[] noiseChanceBounds) {
+	public NoiseParameters setNoiseParameters(NoiseType noiseType, double[] noiseChanceBounds) {
 		if(noiseType == NoiseType.NONE) {
 			this.noiseChanceBounds = new double[]{0,0};
 			this.noiseNormalizedPositions = new double[] {0,0};
@@ -120,12 +118,12 @@ public class AllenMatchStick extends MatchStick {
 			this.noiseNormalizedPositions = new double[] {1, 1.3};
 		}
 
-		return new NoiseData(noiseType, this.noiseNormalizedPositions, this.noiseChanceBounds);
+		return new NoiseParameters(noiseType, this.noiseNormalizedPositions, this.noiseChanceBounds);
 	}
 
-	public void setNoiseParameters(NoiseData noiseData) {
-		this.noiseChanceBounds = noiseData.getNoiseChanceBounds();
-		this.noiseNormalizedPositions = noiseData.getNormalizedPositionBounds();
+	public void setNoiseParameters(NoiseParameters noiseParameters) {
+		this.noiseChanceBounds = noiseParameters.getNoiseChanceBounds();
+		this.noiseNormalizedPositions = noiseParameters.getNormalizedPositionBounds();
 	}
 
 	public void drawNoiseMapSkeleton() {
@@ -568,7 +566,7 @@ public class AllenMatchStick extends MatchStick {
 	 */
 
 
-	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, QualitativeMorphParams mmp) {
+	public boolean genQualitativeMorphedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, QualitativeMorphParams qmp) {
 		int i = 0;
 		AllenMatchStick backup = new AllenMatchStick();
 		backup.copyFrom(amsToMorph);
@@ -580,8 +578,7 @@ public class AllenMatchStick extends MatchStick {
 				// 0. Copy
 				cleanData();
 				copyFrom(backup);
-				//success = metricMorph.morphLength();
-				success = qualitativeMorphComponent(leafToMorphIndx, mmp);
+				success = qualitativeMorphComponent(leafToMorphIndx, qmp);
 				if(success){
 					break;
 				} else{
@@ -590,7 +587,6 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
-			//MutateSUB_reAssignJunctionRadius();
 			centerShapeAtOrigin(getSpecialEndComp().get(0));
 			if(success){
 				boolean res;
@@ -1615,7 +1611,7 @@ public class AllenMatchStick extends MatchStick {
 			// finalRotation[2]);
 
 			//TRY SMOOTHING THE SHAPE
-			
+
 			centerShapeAtOrigin(getSpecialEndComp().get(0));
 			boolean smoothSuccess = false;
 			if(compSuccess){
@@ -2953,11 +2949,16 @@ Adding a new MAxisArc to a MatchStick
 	}
 
 	public boolean vetLeaf(int leafIndx) {
-		AllenTubeComp toVet = this.getComp()[leafIndx];
-		Vector3d tangent = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
-
-		boolean orientationCheck = vetLeafOrientation(tangent);
-		return orientationCheck;
+		try {
+			
+			AllenTubeComp toVet = this.getComp()[leafIndx];
+			Vector3d tangent = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
+			boolean orientationCheck = vetLeafOrientation(tangent);
+			return orientationCheck;
+			
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -3009,14 +3010,14 @@ Adding a new MAxisArc to a MatchStick
 	 */
 
 	protected boolean validMStickSize() {
-
+		
 		double maxRadius = getScaleForMAxisShape(); // degree
 		double screenDist = 500;
 		double minRadius = getMinScaleForMAxisShape();
 		double maxBoundInMm = screenDist * Math.tan(maxRadius * Math.PI / 180 / 2);
 		double minBoundInMm = screenDist * Math.tan(minRadius * Math.PI / 180 / 2);
 		int i, j;
-
+		
 		//Point3d ori = new Point3d(0.0, 0.0, 0.0);
 		//double dis;
 		//double maxDis = 0;
@@ -3032,11 +3033,13 @@ Adding a new MAxisArc to a MatchStick
 				//dis = comp[i].vect_info[j].distance(ori);
 
 				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
-					//					System.out.println("AC:71923: TOO BIG");
+					System.err.println("AC:71923: TOO BIG");
+					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
 				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
-					//					System.out.println("AC:71923: TOO BIG");
+					System.err.println("AC:71923: TOO BIG");
+					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
 				if(Math.abs(xLocation)>maxX)
@@ -3046,8 +3049,8 @@ Adding a new MAxisArc to a MatchStick
 			}
 		}
 		if (maxX < minBoundInMm || maxY < minBoundInMm) {
-			//System.out.println("AC:71923: " + maxX);
-			//System.out.println("AC:71923: " + maxY);
+			System.out.println("AC:71923: " + maxX);
+			System.out.println("AC:71923: " + maxY);
 			return false;
 		}
 

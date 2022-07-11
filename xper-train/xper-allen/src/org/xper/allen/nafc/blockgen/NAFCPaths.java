@@ -1,11 +1,12 @@
 package org.xper.allen.nafc.blockgen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class NAFCPaths {
 	public String samplePath;
 	public String matchPath;
-	public List<String> distractorsPaths;
+	public List<String> distractorsPaths = new ArrayList<String>();
 
 	public NAFCPaths(String samplePngPath, String matchPngPath, List<String> distractorsPngPaths) {
 		super();

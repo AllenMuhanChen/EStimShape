@@ -41,7 +41,7 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 	 * It is imperative that these properties are set before the object is generated/is smoothized.
 	 * @param obj
 	 */
-	protected void setProperties(AllenMatchStick obj) {
+	public void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
 		//SETTING SIZES 
 		/**

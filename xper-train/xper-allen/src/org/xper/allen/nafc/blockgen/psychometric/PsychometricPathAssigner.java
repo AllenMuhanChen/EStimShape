@@ -1,9 +1,12 @@
-package org.xper.allen.nafc.blockgen;
+package org.xper.allen.nafc.blockgen.psychometric;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.xper.allen.nafc.blockgen.NAFCPaths;
+import org.xper.allen.nafc.blockgen.PngBasePaths;
 
 /**
  * Assigns paths for sample, match and distractors given setId and stimId, and number of distractors

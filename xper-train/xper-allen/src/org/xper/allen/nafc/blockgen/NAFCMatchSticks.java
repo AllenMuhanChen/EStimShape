@@ -1,15 +1,16 @@
 package org.xper.allen.nafc.blockgen;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.xper.allen.drawing.composition.AllenMatchStick;
 
-public class NAFCAllenMatchSticks {
+public class NAFCMatchSticks {
 	private AllenMatchStick sampleMStick;
 	private AllenMatchStick matchMStick;
-	private List<AllenMatchStick> distractorMSticks;
+	private List<AllenMatchStick> distractorMSticks = new ArrayList<AllenMatchStick>();
 
-	public NAFCAllenMatchSticks() {
+	public NAFCMatchSticks() {
 	}
 
 	public void addDistractorMStick(AllenMatchStick mStick) {
