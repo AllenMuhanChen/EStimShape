@@ -8,7 +8,7 @@ import org.xper.allen.drawing.composition.MStickVettingException;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
-	private static final int maxAttemptsToGenerateQualitativeMorph = 5;
+	public static final int maxAttemptsToGenerateQualitativeMorph = 5;
 
 	private AbstractMStickPngTrialGenerator generator;
 	private AllenMatchStick mStickToMorph;
@@ -20,32 +20,16 @@ public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
 		this.generator = generator;
 		this.mStickToMorph = mStickToMorph;
 		this.qmp = qmp;
+		makeAttemptsToGenerate();
 	}
 
 	private int leafToMorph;
 
-	@Override
-	public void attemptGenerate() {
-		int nTries = 0;
-
-		while (nTries<maxAttemptsToGenerateQualitativeMorph) {
-			try {
-				trySetLeafToMorph();
-				tryGenerateQualitativeMorph();
-				successful = true;
-				break;
-			} catch (Exception e) {
-				nTries++;
-				successful=false;
-			}
-		}
-
-		if (nTries>=maxAttemptsToGenerateQualitativeMorph) {
-			fail("Qualitative Morph generation", nTries);
-		}
-
+	protected void attemptToGenerate() {
+		trySetLeafToMorph();
+		tryGenerateQualitativeMorph();
 	}
-
+	
 	private void trySetLeafToMorph() {
 		leafToMorph = mStickToMorph.getSpecialEndComp().get(0);
 		if(leafToMorph<1) {

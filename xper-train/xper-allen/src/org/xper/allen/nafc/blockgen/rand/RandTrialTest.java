@@ -71,25 +71,25 @@ public class RandTrialTest {
 	}
 
 
-//	@Test
-//	public void stimObj_ids_are_in_ascending_order() {
-//		//Assign
-//		StimObjIdAssignerForRandTrials stimObjIdAssigner = new StimObjIdAssignerForRandTrials(generator.getGlobalTimeUtil(), numDistractors);
-//
-//		//Act
-//		StimObjIdsForRandTrial stimObjIds = stimObjIdAssigner.getStimObjIds();
-//
-//		//Assert
-//		assertTrue(stimObjIds.getSampleId() < stimObjIds.getMatchId());
-//		assertTrue(stimObjIds.getMatchId()< stimObjIds.getAllDistractorIds().get(0));
-//
-//		int indx=0;
-//		for(int i=0; i<stimObjIds.getAllDistractorIds().size()-1;i++) {
-//			Long firstId = stimObjIds.getAllDistractorIds().get(i);
-//			Long nextId = stimObjIds.getAllDistractorIds().get(indx+1);
-//			assertTrue(firstId < nextId); 
-//		}
-//	}
+	@Test
+	public void stimObj_ids_are_in_ascending_order() {
+		//Assign
+		StimObjIdAssignerForRandTrials stimObjIdAssigner = new StimObjIdAssignerForRandTrials(generator.getGlobalTimeUtil(), numDistractors);
+
+		//Act
+		StimObjIdsForRandTrial stimObjIds = stimObjIdAssigner.getStimObjIds();
+
+		//Assert
+		assertTrue(stimObjIds.getSampleId() < stimObjIds.getMatchId());
+		assertTrue(stimObjIds.getMatchId()< stimObjIds.getAllDistractorIds().get(0));
+
+		int indx=0;
+		for(int i=0; i<stimObjIds.getAllDistractorIds().size()-1;i++) {
+			Long firstId = stimObjIds.getAllDistractorIds().get(i);
+			Long nextId = stimObjIds.getAllDistractorIds().get(indx+1);
+			assertTrue(firstId < nextId); 
+		}
+	}
 
 
 	@Test
@@ -136,42 +136,14 @@ public class RandTrialTest {
 
 
 		List<AllenMatchStick> qmDistractors = mStickGenerator.getQualitativeMorphDistractors();
-		
+		assertTrue(qmDistractors.size()>0);
 		for (AllenMatchStick mStick: qmDistractors) {
-			System.err.println("AC1111" + mStick.getComp().length);
 			mStick_has_legal_component_numbers(mStick);
 		}
-		if(qmDistractors.size()<1) {
-			fail();
-		}
+	
 	}
 	
-//	@Test public void test_single_qm() {
-//		//Arrange
-//		AllenMatchStick sample;
-//		FromRandLeafMStickGenerator sampleGenerator = new FromRandLeafMStickGenerator(generator);
-//		QualitativeMorphParameterGenerator qmpGenerator = generator.getQmpGenerator();
-//		QualitativeMorphParams qmp = qmpGenerator.getQMP(1);
-//		
-//		//Act
-//		boolean tryagain = true;
-//		while (tryagain) {
-//			try {
-//				sampleGenerator.attemptGenerate();
-//				break;
-//			} catch (Exception e) {
-////				e.printStackTrace();
-//				continue;
-//			}
-//		}
-//		sample = sampleGenerator.getmStick();
-//		QualitativeMorphMStickGenerator qmGenerator = new QualitativeMorphMStickGenerator(generator, sample, qmp);
-//		qmGenerator.attemptGenerate();
-//		
-//		
-//		//Assert
-//		mStick_has_legal_component_numbers(qmGenerator.getmStick());
-//		
-//	}
+	
+
 
 }

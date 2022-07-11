@@ -8,7 +8,6 @@ import org.xper.allen.drawing.composition.MStickVettingException;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 public class MetricMorphMStickGenerator extends AbstractMStickGenerator{
-	private static final int maxAttemptsToGenerateMetricMorph = 5;
 
 	private AbstractMStickPngTrialGenerator generator;
 	private AllenMatchStick mStickToMorph;
@@ -22,28 +21,16 @@ public class MetricMorphMStickGenerator extends AbstractMStickGenerator{
 		this.generator = generator;
 		this.mStickToMorph = targetMStick;
 		this.mmp = mmp;
+		makeAttemptsToGenerate();
 	}
 
 	private int leafToMorph;
 
-	public void attemptGenerate() {
-		int nTries=0;
-		while(nTries<maxAttemptsToGenerateMetricMorph) {
-			try {
-				trySetLeafToMorph();
-				tryGenerateMetricMorph();
-				successful=true;
-				break;
-			} catch (Exception e) {
-				nTries++;
-				successful=false;
-			}
-		}
-
-		if(nTries>maxAttemptsToGenerateMetricMorph) {
-			fail("MetricMorph Generation", nTries);
-		}
+	protected void attemptToGenerate() {
+		trySetLeafToMorph();
+		tryGenerateMetricMorph();
 	}
+	
 
 	private void trySetLeafToMorph() {
 		leafToMorph = mStickToMorph.getSpecialEndComp().get(0);
@@ -61,5 +48,7 @@ public class MetricMorphMStickGenerator extends AbstractMStickGenerator{
 			throw new MStickGenerationException();
 		}
 	}
+
+
 
 }
