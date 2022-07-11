@@ -476,7 +476,8 @@ public class TubeComp
 			}
 
 		}
-
+		
+		
 
 		// 4. summarize the result into vect, normMat, fac format
 		{
@@ -622,7 +623,7 @@ public class TubeComp
 			return;
 
 		}
-
+		
 		GL11.glBegin(GL11.GL_TRIANGLES);
 		//	GL11.glBegin(GL11.GL_POINTS);
 		for (i=0; i< getnFac(); i++)

@@ -1,14 +1,14 @@
-package org.xper.allen.nafc.blockgen;
+package org.xper.allen.nafc.blockgen.psychometric;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.nafc.vo.NoiseData;
+import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 
-public class NoiseMapGenerator {
+public class PsychometricNoiseMapGenerator {
 
 	
 	private String noiseMapPath;
@@ -18,7 +18,7 @@ public class NoiseMapGenerator {
 	AllenMatchStick obj;
 	AllenMStickSpec mStickSpec;
 	PsychometricIds psychometricIds;
-	public NoiseMapGenerator(AllenMatchStick mStick, PsychometricIds psychometricIds, AbstractPsychometricNoiseMapGenerator gen, double[] noiseChance,
+	public PsychometricNoiseMapGenerator(AllenMatchStick mStick, PsychometricIds psychometricIds, AbstractPsychometricNoiseMapGenerator gen, double[] noiseChance,
 			 long id) {
 		super();
 		this.obj = mStick;
@@ -43,7 +43,7 @@ public class NoiseMapGenerator {
 //		obj = ams;
 //	}
 	
-	NoiseData noiseData;
+	NoiseParameters noiseParameters;
 	double[] noiseChance;
 	/**
 	 * Assign parameters required to generate a noise map from the sample
@@ -51,8 +51,8 @@ public class NoiseMapGenerator {
 	 * @param psychometricIds.getStimId()
 	 */
 	private void assignParamsForNoiseMapGen() {
-		noiseData = new NoiseData(NoiseType.PRE_JUNC, NoisyMStickPngPsychometricBlockGen.noiseNormalizedPosition_PRE_JUNC, noiseChance);
-		obj.setNoiseParameters(noiseData);
+		noiseParameters = new NoiseParameters(NoiseType.PRE_JUNC, PsychometricBlockGen.noiseNormalizedPosition_PRE_JUNC, noiseChance);
+		obj.setNoiseParameters(noiseParameters);
 	}
 	
 	private void prepareNoiseMap() {
@@ -65,7 +65,7 @@ public class NoiseMapGenerator {
 		List<String> noiseMapLabels = new LinkedList<String>();
 		noiseMapLabels.add(Long.toString(psychometricIds.setId));
 		noiseMapLabels.add(Integer.toString(psychometricIds.stimId));
-		return gen.pngMaker.createAndSaveNoiseMapFromObj(obj, id, noiseMapLabels);
+		return gen.getPngMaker().createAndSaveNoiseMapFromObj(obj, id, noiseMapLabels);
 	}
 
 

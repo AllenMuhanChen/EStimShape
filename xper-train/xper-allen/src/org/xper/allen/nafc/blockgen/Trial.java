@@ -10,6 +10,7 @@ import org.xper.allen.util.AllenDbUtil;
  */
 public interface Trial {
 	void preWrite();
-	Long write();
+	void write();
+	Long getTaskId();
 	
 }

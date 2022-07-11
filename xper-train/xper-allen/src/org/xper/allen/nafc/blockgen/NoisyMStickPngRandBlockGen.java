@@ -17,8 +17,11 @@ import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.allen.nafc.blockgen.rand.RandTrial;
+import org.xper.allen.nafc.blockgen.rand.RandNoisyMStickTrialMessage;
+import org.xper.allen.nafc.blockgen.rand.RandNoisyTrialParameters;
 import org.xper.allen.nafc.experiment.RewardPolicy;
-import org.xper.allen.nafc.vo.NoiseData;
+import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
@@ -198,7 +201,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 		List<List<QualitativeMorphParams>> qmps = new LinkedList<>();
 		List<MetricMorphParams> mmps = new LinkedList<>();
 		
-		List<RandNoisyMStickPngTrial> trials = new LinkedList<>();
+		List<RandTrial> trials = new LinkedList<>();
 		int nSuccess = 0;
 		for (int i = 0; i < numTrials; i++) {
 			int numQMDistractors = numQMDistractorsTrialList.get(i);
@@ -210,7 +213,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 
 			
 			//
-			trials.add(new RandNoisyMStickPngTrial(this, numQMDistractors, numRandDistractors, numQMCategories, noiseType, noiseChance));
+			trials.add(new RandTrial(this, numQMDistractors, numRandDistractors, numQMCategories, noiseType, noiseChance));
 			
 			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
 			//GENERATE MATCH/SAMPLE FAILS, WE START OVER STARTING AT BASE
@@ -344,8 +347,6 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 
 			}
 		
-
-		
 			//GENERATING RAND DISTRACTORS
 			System.out.println("Trying to Generate Rand Distractor");
 			boolean randDistractorsSuccess = false;
@@ -378,7 +379,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 		List<List<String>> noiseLabels = new LinkedList<>();
 		List<Long> ids = new LinkedList<Long>();
 		List<Long> ids_noise = new LinkedList<Long>();
-		List<NoiseData> noiseData= new LinkedList<NoiseData>();
+		List<NoiseParameters> noiseParameters= new LinkedList<NoiseParameters>();
 		List<Long> sampleIds = new LinkedList<Long>();
 		List<Long> matchIds = new LinkedList<Long>();
 		List<List<Long>> distractorIds = new LinkedList<>();
@@ -428,7 +429,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			//SETTING NOISE DATA
 			NoiseType noiseType = noiseTypesTrialList.get(i);
 			double[] noiseChance = noiseChancesTrialList.get(i);
-			noiseData.add(objs_noise.get(i).setNoiseParameters(noiseType, noiseChance));
+			noiseParameters.add(objs_noise.get(i).setNoiseParameters(noiseType, noiseChance));
 		}
 		
 		
@@ -551,13 +552,13 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, sampleIds.get(i), choiceIds, eStimObjData, rewardPolicy, rewardList);
 
 			//WRITE TRIAL DATA
-			NoisyMStickNAFCRandTrialGenData genData = new NoisyMStickNAFCRandTrialGenData(numQMDistractors+numRandDistractors, 
+			RandNoisyTrialParameters genData = new RandNoisyTrialParameters(numQMDistractors+numRandDistractors, 
 					numQMDistractors, numRandDistractors, numQMCategories, numMMCategories, 
 					sampleScaleUpperLim, distractorScaleUpperLim, new double[] {sampleRadiusLowerLim, sampleRadiusUpperLim}, eyeWinSize, 
 					new double[] {choiceRadiusLowerLim, choiceRadiusUpperLim}, new double[] {distractorDistanceLowerLim, distractorDistanceUpperLim});
 
 
-			NoisyMStickNAFCRandTrialData trialData = new NoisyMStickNAFCRandTrialData(genData, noiseData.get(i), qmps.get(i), mmps.get(i));
+			RandNoisyMStickTrialMessage trialData = new RandNoisyMStickTrialMessage(genData, noiseParameters.get(i), qmps.get(i), mmps.get(i));
 
 
 			dbUtil.writeStimSpec(taskId, stimSpec.toXml(), trialData.toXml());

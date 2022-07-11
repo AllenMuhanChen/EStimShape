@@ -5,19 +5,20 @@ import java.util.List;
 
 import org.xper.time.TimeUtil;
 
-public class StimObjIdAssignerForPsychometricAndRand implements StimObjIdAssigner {
+public class StimObjIdAssignerForPsychometricTrials{
 	private static TimeUtil globalTimeUtil;
 	private NumberOfDistractors numDistractors;
+	
+
+
+	public StimObjIdAssignerForPsychometricTrials(TimeUtil globalTimeUtil, NumberOfDistractors numDistractors) {
+		StimObjIdAssignerForPsychometricTrials.globalTimeUtil = globalTimeUtil;
+		this.numDistractors = numDistractors;
+	}
 	
 	private StimObjIdsForMixedPsychometricAndRand stimObjIds = new StimObjIdsForMixedPsychometricAndRand(new LinkedList<Long>(),
 			new LinkedList<Long>(), new LinkedList<Long>());
 
-
-	public StimObjIdAssignerForPsychometricAndRand(TimeUtil globalTimeUtil, NumberOfDistractors numDistractors) {
-		StimObjIdAssignerForPsychometricAndRand.globalTimeUtil = globalTimeUtil;
-		this.numDistractors = numDistractors;
-	}
-	
 	/**
 	 * assigns sample, match and distractor Ids that will be written to the DB. sampleId is required
 	 * for generating noisemaps!

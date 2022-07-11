@@ -10,17 +10,19 @@ public class NAFCAllenMatchStickFetcher {
 	
 	AbstractMStickPngTrialGenerator gen;
 	
-	NAFCAllenMStickSpecs mStickSpecs = new NAFCAllenMStickSpecs();
-	NAFCAllenMatchSticks matchSticks = new NAFCAllenMatchSticks();
+	NAFCMStickSpecs mStickSpecs = new NAFCMStickSpecs();
+	NAFCMatchSticks matchSticks = new NAFCMatchSticks();
 	NAFCPaths specPaths;
 	
 	public NAFCAllenMatchStickFetcher(AbstractMStickPngTrialGenerator gen, NAFCPaths specPaths) {
 		super();
 		this.gen = gen;
 		this.specPaths = specPaths;
+		
+		fetchMSticksAndSpecs();
 	}
 
-	public void fetchMSticksAndSpecs() {
+	private void fetchMSticksAndSpecs() {
 		matchSticks.setSampleMStick(fetchMStick(specPaths.getSamplePath()));
 		mStickSpecs.setSampleMStickSpec(fetchMStickSpec(matchSticks.getSampleMStick()));
 		
@@ -47,11 +49,11 @@ public class NAFCAllenMatchStickFetcher {
 		return mStickSpec;
 	}
 
-	public NAFCAllenMStickSpecs getmStickSpecs() {
+	public NAFCMStickSpecs getmStickSpecs() {
 		return mStickSpecs;
 	}
 
-	public NAFCAllenMatchSticks getMatchSticks() {
+	public NAFCMatchSticks getMatchSticks() {
 		return matchSticks;
 	}
 

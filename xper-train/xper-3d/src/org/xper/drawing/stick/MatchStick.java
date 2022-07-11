@@ -3740,7 +3740,7 @@ public class MatchStick implements Drawable {
 		nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
 
 		// for debug
-		this.setObj1(new MStickObj4Smooth());
+//		this.setObj1(new MStickObj4Smooth());
 		this.setObj1(MObj[1]);
 
 		this.getObj1().rotateMesh(getFinalRotation());
