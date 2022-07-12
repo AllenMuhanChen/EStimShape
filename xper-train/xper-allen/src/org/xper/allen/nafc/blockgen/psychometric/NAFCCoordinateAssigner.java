@@ -2,26 +2,28 @@ package org.xper.allen.nafc.blockgen.psychometric;
 
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.DistancedDistractorsUtil;
-import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
+import org.xper.allen.nafc.blockgen.ChoiceCoordinateAssigner;
 import org.xper.allen.nafc.blockgen.NAFCCoordinates;
 import org.xper.drawing.Coordinates2D;
 
-public class PsychometricCoordinateAssigner extends NAFCCoordinateAssigner{
+public class NAFCCoordinateAssigner extends ChoiceCoordinateAssigner{
 	
 	
 	Lims sampleDistanceLims;
 	int numChoices;
 	
-	public PsychometricCoordinateAssigner(Lims sampleDistanceLims, int numChoices) {
+	public NAFCCoordinateAssigner(Lims sampleDistanceLims, int numChoices) {
 		super();
 		this.sampleDistanceLims = sampleDistanceLims;
 		this.numChoices = numChoices;
+		
+		assignCoords();
 	}
 
 	private DistancedDistractorsUtil ddUtil;
 	
 	NAFCCoordinates coords = new NAFCCoordinates();
-	public void assignCoords() {
+	private void assignCoords() {
 		assignSampleCoords();
 		setUpDDUtil();
 		assignMatchCoords();

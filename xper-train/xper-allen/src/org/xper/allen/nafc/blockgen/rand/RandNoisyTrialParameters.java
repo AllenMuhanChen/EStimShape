@@ -11,7 +11,7 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 
 	NumberOfDistractorsByMorphType numDistractors;
 	NumberOfMorphCategories numMorphCategories;
-
+	
 	
 	public RandNoisyTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize,
 			NoiseParameters noiseParameters, NumberOfDistractorsByMorphType numDistractors,
@@ -19,8 +19,11 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 		super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize, noiseParameters);
 		this.numDistractors = numDistractors;
 		this.numMorphCategories = numMorphCategories;
+		this.numChoices = numDistractors.getTotalNumDistractors()+1;
 	}
 
+	private int numChoices;
+	
 	static XStream s = new XStream();
 
 	static {
@@ -51,6 +54,10 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 
 	public void setNumMorphCategories(NumberOfMorphCategories numMorphCategories) {
 		this.numMorphCategories = numMorphCategories;
+	}
+
+	public int getNumChoices() {
+		return numChoices;
 	}
 
 

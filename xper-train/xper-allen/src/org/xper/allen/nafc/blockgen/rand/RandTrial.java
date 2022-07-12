@@ -2,11 +2,13 @@ package org.xper.allen.nafc.blockgen.rand;
 
 import java.util.List;
 
+import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.NAFCMatchSticks;
 import org.xper.allen.nafc.blockgen.NAFCCoordinates;
 import org.xper.allen.nafc.blockgen.NAFCPaths;
 import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.nafc.blockgen.psychometric.NAFCCoordinateAssigner;
 import org.xper.allen.util.AllenDbUtil;
 
 public class RandTrial implements Trial{
@@ -62,6 +64,19 @@ public class RandTrial implements Trial{
 		mSticks = mStickGenerator.getNAFCMatchSticks();
 	}
 	
+	private void generateNoiseMap() {
+		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(stimObjIds.getSampleId(), mSticks.getSampleMStick(), trialParameters.getNoiseParameters(), generator);
+		noiseMapGenerator.getNoiseMapPath();
+	}
+	
+	private void assignCoords() {
+		NAFCCoordinateAssigner coordAssigner = new NAFCCoordinateAssigner(
+				trialParameters.getSampleDistanceLims(),
+				trialParameters.getNumChoices());
+		
+
+		coords = coordAssigner.getCoords();
+	}
 	@Override
 	public Long getTaskId() {
 		// TODO Auto-generated method stub

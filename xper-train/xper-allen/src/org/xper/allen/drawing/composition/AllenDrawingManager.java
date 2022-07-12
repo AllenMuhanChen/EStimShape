@@ -37,13 +37,6 @@ public class AllenDrawingManager implements Drawable {
 	@Dependency
 	AbstractRenderer renderer;
 
-	public AllenDrawingManager() {
-		super();
-		DisplayMode mode = Display.getDisplayMode();
-		width = mode.getWidth() / 2;
-		height = mode.getHeight() / 2;
-
-	}
 
 	public AllenDrawingManager(int height, int width) {
 		super();
@@ -67,8 +60,8 @@ public class AllenDrawingManager implements Drawable {
 		renderer.setPupilDistance(pngMaker.getPupilDistance());
 		//renderer.setHeight(height);
 		//renderer.setWidth(width);
-		renderer.setHeight(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.setWidth(pngMaker.dpiUtil.calculateMmForRenderer());
+		renderer.setHeight(pngMaker.getDpiUtil().calculateMmForRenderer());
+		renderer.setWidth(pngMaker.getDpiUtil().calculateMmForRenderer());
 		renderer.init(window.getWidth(), window.getHeight());
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -122,90 +115,6 @@ public class AllenDrawingManager implements Drawable {
 		return pngMaker.saveImage(stimObjId, labels, height, width, imageFolderName);
 	}
 
-	public List<String> drawStimuli() {
-		List<String> paths = new ArrayList<String>();
-		window = new BaseWindow(width, height);
-
-		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
-		window.setPixelFormat(pixelFormat);
-		window.create();
-
-
-		renderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
-		renderer.setDepth(pngMaker.getDepth());
-		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
-		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		//renderer.setHeight(height);
-		//renderer.setWidth(width);
-		renderer.setHeight(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.setWidth(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.init(window.getWidth(), window.getHeight());
-
-		GL11.glShadeModel(GL11.GL_SMOOTH);
-		GL11.glDisable(GL11.GL_DEPTH_TEST);
-
-		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-
-		while(stimCounter < nStim) {
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
-			GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-			renderer.draw(this);
-			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter),height,width, imageFolderName));
-			window.swapBuffers();
-			double blob = 1;
-			//			try {
-			//				Thread.sleep(100); //neccessary for images to be saved properly. 
-			//			} catch (InterruptedException e) {
-			//				e.printStackTrace();
-			//			}
-			stimCounter++;
-		}
-		window.destroy();
-		return paths;
-	}
-
-	public List<String> drawStimuli(List<List<String>> labels) {
-		List<String> paths = new ArrayList<>();
-		window = new BaseWindow(height,width);
-
-		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
-		window.setPixelFormat(pixelFormat);
-		window.create();
-
-
-		renderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
-		renderer.setDepth(pngMaker.getDepth());
-		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
-		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		//renderer.setHeight(height);
-		//renderer.setWidth(width);
-		renderer.setHeight(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.setWidth(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.init(window.getWidth(), window.getHeight());
-
-		GL11.glShadeModel(GL11.GL_SMOOTH);
-		GL11.glDisable(GL11.GL_DEPTH_TEST);
-
-		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-
-		while(stimCounter < nStim) {
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
-			GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-			renderer.draw(this);
-			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter),labels.get(stimCounter), height,width, imageFolderName));
-			window.swapBuffers();
-			try {
-				Thread.sleep(100); //neccessary for images to be saved properly. 
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			stimCounter++;
-		}
-		window.destroy();
-		return paths;
-	}
 
 	public void draw() {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
@@ -219,115 +128,7 @@ public class AllenDrawingManager implements Drawable {
 		obj.draw();
 	}
 
-	public List<String> drawNoiseMaps() {
-		List<String> paths = new ArrayList<>();
-		LinkedList<String> labels = new LinkedList<>();
-		labels.add("noisemap");
-		window = new BaseWindow(height,width);
 
-		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
-		window.setPixelFormat(pixelFormat);
-		window.create();
-
-
-		renderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
-		renderer.setDepth(pngMaker.getDepth());
-		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
-		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		//renderer.setHeight(height);
-		//renderer.setWidth(width);
-		renderer.setHeight(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.setWidth(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.init(window.getWidth(), window.getHeight());
-
-		GL11.glShadeModel(GL11.GL_SMOOTH);
-		GL11.glDisable(GL11.GL_DEPTH_TEST);
-
-		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-
-		while(stimCounter < nStim) {
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
-			GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-			renderer.draw(new Drawable() {
-				@Override
-				public void draw() {
-					// TODO Auto-generated method stub
-					drawNoiseMap();
-					//					try {
-					//						Thread.sleep(5000); //neccessary for images to be saved properly. 
-					//					} catch (InterruptedException e) {
-					//						e.printStackTrace();
-					//					}
-				}
-			});
-			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter), labels, height,width, imageFolderName));
-			window.swapBuffers();
-			try {
-				Thread.sleep(100); //neccessary for images to be saved properly. 
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			stimCounter++;
-		}
-		window.destroy();
-		return paths;
-	}
-
-
-
-	public List<String> drawNoiseMaps(List<List<String>> additionalLabels) {
-		List<String> paths = new LinkedList<String>();
-
-
-		window = new BaseWindow(height,width);
-
-		PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
-		window.setPixelFormat(pixelFormat);
-		window.create();
-
-
-		renderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
-		renderer.setDepth(pngMaker.getDepth());
-		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
-		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		//renderer.setHeight(height);
-		//renderer.setWidth(width);
-		renderer.setHeight(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.setWidth(pngMaker.dpiUtil.calculateMmForRenderer());
-		renderer.init(window.getWidth(), window.getHeight());
-
-		GL11.glShadeModel(GL11.GL_SMOOTH);
-		GL11.glDisable(GL11.GL_DEPTH_TEST);
-
-		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-
-		while(stimCounter < nStim) {
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
-			GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
-			renderer.draw(new Drawable() {
-				@Override
-				public void draw() {
-					// TODO Auto-generated method stub
-					drawNoiseMap();
-				}
-			});
-			List<String> labels = new LinkedList<>();
-			//			labels.add("noisemap");
-			labels.addAll(additionalLabels.get(stimCounter));
-			paths.add(pngMaker.saveImage(stimObjIds.get(stimCounter), labels, height,width, imageFolderName));
-			window.swapBuffers();
-			//			try {
-			//				Thread.sleep(100); //neccessary for images to be saved properly. 
-			//			} catch (InterruptedException e) {
-			//				e.printStackTrace();
-			//			}
-			stimCounter++;
-		}
-		window.destroy();
-		return paths;
-	}
 
 	public void drawNoiseMap(AllenMatchStick obj) {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);

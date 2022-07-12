@@ -14,7 +14,7 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricNoiseMapGenerator;
+import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
@@ -30,7 +30,7 @@ import org.xper.utils.RGBColor;
 @AnnotationDrivenConfig
 
 @Import(NAFCMStickPngAppConfig.class)
-public class NoisyNAFCMStickPngAppConfig {
+public class PsychometricAppConfig {
 	@Autowired NAFCMStickPngAppConfig appConfig;
 	@Autowired NAFCConfig config;
 	@Autowired ClassicConfig classicConfig;
@@ -73,15 +73,18 @@ public class NoisyNAFCMStickPngAppConfig {
 	 * @return
 	 */
 	@Bean
-	public AbstractPsychometricNoiseMapGenerator psychometricPngGenerator() {
+	public AbstractPsychometricTrialGenerator psychometricPngGenerator() {
 		PsychometricBlockGen gen = new PsychometricBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
-		gen.setGeneratorPngPath(generatorPsychometricPngPath);
-		gen.setExperimentPngPath(experimentPsychometricPngPath);
-		gen.setGeneratorSpecPath(generatorPsychometricSpecPath);
+		gen.setGeneratorPngPath(appConfig.generatorPngPath);
+		gen.setExperimentPngPath(appConfig.experimentPngPath);
+		gen.setGeneratorSpecPath(appConfig.generatorSpecPath);
+		gen.setGeneratorPsychometricPngPath(generatorPsychometricPngPath);
+		gen.setExperimentPsychometricPngPath(experimentPsychometricPngPath);
 		gen.setGeneratorPsychometricNoiseMapPath(generatorPsychometricNoiseMapPath);
 		gen.setExperimentPsychometricNoiseMapPath(experimentPsychometricNoiseMapPath);
+		gen.setGeneratorPsychometricSpecPath(generatorPsychometricSpecPath);
 		gen.setPngMaker(psychometricPngMaker());
 		gen.setMaxImageDimensionDegrees(appConfig.xperMaxImageDimensionDegrees());
 		gen.setMmpGenerator(appConfig.mmpGenerator());
@@ -99,8 +102,6 @@ public class NoisyNAFCMStickPngAppConfig {
 		pngMaker.setDpiUtil(appConfig.dpiUtil());
 		RGBColor backColor = new RGBColor(0,0,0);
 		pngMaker.setBackColor(backColor);
-		pngMaker.setGeneratorImageFolderName(generatorPsychometricPngPath);
-		pngMaker.setGeneratorNoiseMapFolderName(generatorPsychometricNoiseMapPath);
 		pngMaker.setDepth(6000);
 		pngMaker.setDistance(500);
 		pngMaker.setPupilDistance(50);

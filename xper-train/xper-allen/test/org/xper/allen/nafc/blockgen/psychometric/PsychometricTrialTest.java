@@ -15,7 +15,7 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NumberOfDistractors;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricNoiseMapGenerator;
+import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricIds;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrial;
@@ -55,7 +55,7 @@ public class PsychometricTrialTest {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricNoiseMapGenerator.class);
+		generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
 
 		numPsychometricDistractors = 2;
 		numRandDistractors = 1;
@@ -107,21 +107,21 @@ public class PsychometricTrialTest {
 
 	private void thenSamplePngPathIsCorrect() {
 		String path = trial.pngPaths.samplePath;
-		String expectedSamplePath = generator.getExperimentPngPath()+"/"+setId+"_"+stimId+".png";
+		String expectedSamplePath = generator.getExperimentPsychometricPngPath()+"/"+setId+"_"+stimId+".png";
 
 		assertEquals(expectedSamplePath, path);
 		fileExists(path);
 	}
 	private void thenMatchPngPathIsCorrect() {
 		String path = trial.pngPaths.matchPath;
-		String expectedMatchPath = generator.getExperimentPngPath()+"/"+setId+"_"+stimId+".png";
+		String expectedMatchPath = generator.getExperimentPsychometricPngPath()+"/"+setId+"_"+stimId+".png";
 		assertEquals(expectedMatchPath, path);
 		fileExists(path);
 	}
 	private void thenDistractorPngPathsAreCorrect() {
 		List<String> expectedDistractorPaths = new ArrayList<String>();
 		for(int i=1;i<stimIds.size();i++) {
-			expectedDistractorPaths.add(generator.getExperimentPngPath()+"/"+setId+"_"+stimIds.get(i)+".png");
+			expectedDistractorPaths.add(generator.getExperimentPsychometricPngPath()+"/"+setId+"_"+stimIds.get(i)+".png");
 		}
 		for(String actualPath : trial.pngPaths.distractorsPaths) {
 			assertTrue(expectedDistractorPaths.contains(actualPath));

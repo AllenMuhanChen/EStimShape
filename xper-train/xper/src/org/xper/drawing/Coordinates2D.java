@@ -27,4 +27,8 @@ public class Coordinates2D {
 	public String toString() {
 		return "("+x+","+y+")";
 	}
+	
+	public double distance(Coordinates2D point) {
+		return Math.hypot(x-point.x, y-point.y);
+	}
 }

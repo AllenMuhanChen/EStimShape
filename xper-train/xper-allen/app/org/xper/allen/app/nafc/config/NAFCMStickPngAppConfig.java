@@ -101,8 +101,6 @@ public class NAFCMStickPngAppConfig {
 		pngMaker.setDpiUtil(dpiUtil());
 		RGBColor backColor = new RGBColor(0,0,0);
 		pngMaker.setBackColor(backColor);
-		pngMaker.setGeneratorImageFolderName(generatorPngPath);
-		pngMaker.setGeneratorNoiseMapFolderName(generatorPngPath);
 		pngMaker.setDepth(6000);
 		pngMaker.setDistance(500);
 		pngMaker.setPupilDistance(50);

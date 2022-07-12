@@ -3033,13 +3033,13 @@ Adding a new MAxisArc to a MatchStick
 				//dis = comp[i].vect_info[j].distance(ori);
 
 				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
-					System.err.println("AC:71923: TOO BIG");
-					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
+//					System.err.println("AC:71923: TOO BIG");
+//					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
 				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
-					System.err.println("AC:71923: TOO BIG");
-					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
+//					System.err.println("AC:71923: TOO BIG");
+//					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
 				if(Math.abs(xLocation)>maxX)
@@ -3049,8 +3049,8 @@ Adding a new MAxisArc to a MatchStick
 			}
 		}
 		if (maxX < minBoundInMm || maxY < minBoundInMm) {
-			System.out.println("AC:71923: " + maxX);
-			System.out.println("AC:71923: " + maxY);
+//			System.out.println("AC:71923: " + maxX);
+//			System.out.println("AC:71923: " + maxY);
 			return false;
 		}
 

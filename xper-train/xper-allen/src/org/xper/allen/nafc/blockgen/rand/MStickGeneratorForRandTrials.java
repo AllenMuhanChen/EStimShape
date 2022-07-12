@@ -41,6 +41,10 @@ public class MStickGeneratorForRandTrials {
 	private void generate() {
 		assignMetricMorphParameters();
 		assignQualitativeMorphParameters();
+		
+		//a qualitative Morph distractor or metric morph match can fail
+		//due to poor sample generation, so if we fail downstream, let's
+		//restart at the beginning. 
 		while (tryagain) {
 			try {
 				tryGenerateSample();
@@ -60,11 +64,20 @@ public class MStickGeneratorForRandTrials {
 				continue;
 			}
 
+			tryagain = false;
+		}
+		
+		//We shouldn't restart from the beginning if random distractors fail because
+		//it doesn't rely on previous generation at all. 
+		tryagain = true;
+		while(tryagain) {
+
 			try {
 				tryGenerateRandomDistractors();
 			} catch (Exception e) {
 				continue;
 			}
+			
 			tryagain = false;
 		}
 	}
