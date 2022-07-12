@@ -37,12 +37,12 @@ public class DistancedDistractorsUtil {
 		distractor_radii = new Double[numChoices-1];
 		distractor_coords = new ArrayList<Coordinates2D>();
 
-		double distractorDistance = NAFCCoordinateAssigner.inclusiveRandomDouble(distractorDistanceLowerLim, distractorDistanceUpperLim);
+		double distractorDistance = ChoiceCoordinateAssigner.inclusiveRandomDouble(distractorDistanceLowerLim, distractorDistanceUpperLim);
 
 		match_angle = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
 		double baseRadii = Math.sqrt(ThreadLocalRandom.current().nextDouble()) * (upperRadiusLim-lowerRadiusLim) + lowerRadiusLim;
 		match_radii = baseRadii;
-		match_coords = NAFCCoordinateAssigner.polarToCart(match_radii, match_angle);
+		match_coords = ChoiceCoordinateAssigner.polarToCart(match_radii, match_angle);
 
 		double step = 2 * Math.PI / numChoices;
 		for (int i=0; i < numChoices-1; i++){
@@ -53,7 +53,7 @@ public class DistancedDistractorsUtil {
 				distractor_angles[i] = distractor_angles[i-1] + step;
 			}
 			distractor_radii[i] = baseRadii + distractorDistance; //keep radius the same
-			distractor_coords.add(NAFCCoordinateAssigner.polarToCart(distractor_radii[i], distractor_angles[i])); //polar to cartesian
+			distractor_coords.add(ChoiceCoordinateAssigner.polarToCart(distractor_radii[i], distractor_angles[i])); //polar to cartesian
 		}
 	}
 

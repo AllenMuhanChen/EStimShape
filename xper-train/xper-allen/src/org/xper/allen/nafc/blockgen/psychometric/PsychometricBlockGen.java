@@ -30,14 +30,14 @@ import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 
-public class PsychometricBlockGen extends AbstractPsychometricNoiseMapGenerator{
+public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 	
 	@Dependency
 	PsychometricQualitativeMorphParameterGenerator psychometricQmpGenerator;
 	
 	Long genId;
 	
-	static double[] noiseNormalizedPosition_PRE_JUNC = new double[] {0.5, 0.8};
+	
 
 	public void generateImageSet(int numPerSet, double size, double percentChangePosition, int numRand) {	
 		if(numRand>numPerSet) {
@@ -180,7 +180,7 @@ public class PsychometricBlockGen extends AbstractPsychometricNoiseMapGenerator{
 			ids.add(setId);
 		}
 
-		List<String> stimPaths = pngMaker.createAndSavePNGsfromObjs(objs, ids, labels);
+		List<String> stimPaths = pngMaker.createAndSaveBatchOfPNGs(objs, ids, labels, null);
 
 		//SAVE SPECS.TXT
 		for(int k=0; k<objs.size(); k++) {
@@ -191,7 +191,7 @@ public class PsychometricBlockGen extends AbstractPsychometricNoiseMapGenerator{
 	}
 
 
-	public void generateTrials(
+	public void generate(
 			int numPsychometricTrialsPerImage, 
 			int numRandTrials, 
 			NoiseChances noiseChances, 

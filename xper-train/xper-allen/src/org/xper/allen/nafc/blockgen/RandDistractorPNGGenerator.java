@@ -9,15 +9,15 @@ import org.xper.allen.drawing.composition.AbstractMStickGenerator;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.FromRandLeafMStickGenerator;
 import org.xper.allen.drawing.composition.MStickGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricNoiseMapGenerator;
+import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 
 public class RandDistractorPNGGenerator {
 
 	NumberOfDistractors numDistractors;
-	AbstractPsychometricNoiseMapGenerator gen;
+	AbstractMStickPngTrialGenerator gen;
 	private List<Long> randDistractorsIds = new LinkedList<Long>();
 	
-	public RandDistractorPNGGenerator(NumberOfDistractors numDistractors, AbstractPsychometricNoiseMapGenerator gen,
+	public RandDistractorPNGGenerator(NumberOfDistractors numDistractors, AbstractPsychometricTrialGenerator gen,
 			List<Long> randDistractorsIds, List<String> randDistractorsPngPaths) {
 		super();
 		this.numDistractors = numDistractors;
@@ -40,7 +40,7 @@ public class RandDistractorPNGGenerator {
 		while(tryagain) {
 			objs_randDistractor = new ArrayList<AllenMatchStick>();
 			
-			for(int j=0; j<numDistractors.numPsychometricDistractors; j++) {
+			for(int j=0; j<numDistractors.numRandDistractors; j++) {
 				try {
 					AbstractMStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen);
 					objGenerator.getMStick();
@@ -62,7 +62,8 @@ public class RandDistractorPNGGenerator {
 		List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
 		int indx=0;
 		for (AllenMatchStick obj: objs_randDistractor) {
-			String path = gen.pngMaker.createAndSavePNGFromObj(obj, randDistractorsIds.get(indx), sampleLabels);
+			String path = gen.pngMaker.createAndSavePNG(obj, randDistractorsIds.get(indx), sampleLabels, gen.getGeneratorPngPath());
+			gen.convertPathToExperiment(path);
 			randDistractorsPngPaths.add(path);
 		}
 	}

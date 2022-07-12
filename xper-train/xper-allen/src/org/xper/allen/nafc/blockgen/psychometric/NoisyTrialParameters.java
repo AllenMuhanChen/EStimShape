@@ -33,7 +33,7 @@ public class NoisyTrialParameters extends NAFCTrialParameters{
 		return toXml(this);
 	}
 
-	public NoiseParameters getNoiseData() {
+	public NoiseParameters getNoiseParameters() {
 		return noiseParameters;
 	}
 

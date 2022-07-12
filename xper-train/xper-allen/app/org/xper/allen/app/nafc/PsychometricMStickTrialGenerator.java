@@ -35,7 +35,7 @@ public class PsychometricMStickTrialGenerator extends TrialGenerator{
 			double eyeWinSize = Double.parseDouble(iterator.next());
 			
 			
-			gen.generateTrials(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies),
+			gen.generate(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies),
 					new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new Lims(choiceDistanceLowerLim, choiceDistanceUpperLim), 
 					sampleScale, eyeWinSize);
 		}

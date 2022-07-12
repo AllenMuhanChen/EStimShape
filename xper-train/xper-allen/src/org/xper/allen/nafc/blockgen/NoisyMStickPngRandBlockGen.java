@@ -433,9 +433,9 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 		}
 		
 		
-		List<String> stimPaths = pngMaker.createAndSavePNGsfromObjs(objs, ids, labels);
+		List<String> stimPaths = pngMaker.createAndSaveBatchOfPNGs(objs, ids, labels, null);
 		stimPaths = convertPathsToExperiment(stimPaths);
-		List<String> noiseMapPaths = pngMaker.createAndSaveNoiseMapsfromObjs(objs_noise, ids_noise, noiseLabels);
+		List<String> noiseMapPaths = pngMaker.createAndSaveBatchOfNoiseMaps(objs_noise, ids_noise, noiseLabels, null);
 		noiseMapPaths = convertPathsToExperiment(noiseMapPaths);
 		
 		//SAVE SPECS.TXT

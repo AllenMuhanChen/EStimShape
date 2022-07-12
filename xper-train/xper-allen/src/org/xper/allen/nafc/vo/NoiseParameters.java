@@ -1,36 +1,37 @@
 package org.xper.allen.nafc.vo;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class NoiseParameters {
-	
-	NoiseType noiseType;
-	double[] normalizedPositionBounds; 
+
+	NoiseForm noiseForm = new NoiseForm();
 	double[] noiseChanceBounds;
 	
 	
 	public NoiseParameters(NoiseType noiseType, double[] normalizedPositionBounds, double[] noiseChanceBounds) {
 		super();
-		this.noiseType = noiseType;
-		this.normalizedPositionBounds = normalizedPositionBounds;
 		this.noiseChanceBounds = noiseChanceBounds;
+		this.noiseForm = new NoiseForm(noiseType, normalizedPositionBounds);
 	}
 	
-	public NoiseParameters(NoiseType noiseType, double[] noiseChanceBounds) {
+	public NoiseParameters(NoiseForm noiseForm, double[] noiseChanceBounds) {
 		super();
-		this.noiseType = noiseType;
+		this.noiseForm = noiseForm;
 		this.noiseChanceBounds = noiseChanceBounds;
 	}
-	
+
 	public NoiseType getNoiseType() {
-		return noiseType;
+		return noiseForm.getNoiseType();
 	}
 	public void setNoiseType(NoiseType noiseType) {
-		this.noiseType = noiseType;
+		this.noiseForm.setNoiseType(noiseType);
 	}
 	public double[] getNormalizedPositionBounds() {
-		return normalizedPositionBounds;
+		return noiseForm.getNormalizedPositionBounds();
 	}
 	public void setNormalizedPositionBounds(double[] normalizedPositionBounds) {
-		this.normalizedPositionBounds = normalizedPositionBounds;
+		this.noiseForm.setNormalizedPositionBounds(normalizedPositionBounds);
 	}
 	public double[] getNoiseChanceBounds() {
 		return noiseChanceBounds;

@@ -36,14 +36,14 @@ public class PsychometricTrial implements Trial{
 	/**
 	 * Inputs
 	 */
-	AbstractPsychometricNoiseMapGenerator generator;
+	AbstractPsychometricTrialGenerator generator;
 	NumberOfDistractors numDistractors;
 	PsychometricIds psychometricIds;
 	double[] noiseChance;
 	NoisyTrialParameters trialParameters;
 	
 	public PsychometricTrial(
-			AbstractPsychometricNoiseMapGenerator noisyMStickPngPsychometricBlockGen,
+			AbstractPsychometricTrialGenerator noisyMStickPngPsychometricBlockGen,
 			NumberOfDistractors numDistractors, 
 			PsychometricIds psychometricIds,
 			double[] noiseChance,
@@ -84,8 +84,8 @@ public class PsychometricTrial implements Trial{
 	}
 
 	private void assignPsychometricPaths() {
-		PngBasePaths basePaths = new PngBasePaths(generator.getGeneratorPngPath(), generator.getExperimentPngPath(), generator.getGeneratorSpecPath());
-		PsychometricPathAssigner psychometricPathAssigner = PsychometricPathAssigner.createWithNewNAFCPngPathsObj(psychometricIds, numDistractors.numPsychometricDistractors, basePaths);
+		PngBasePaths psychometricBasePaths = new PngBasePaths(generator.getGeneratorPsychometricPngPath(), generator.getExperimentPsychometricPngPath(), generator.getGeneratorPsychometricSpecPath());
+		PsychometricPathAssigner psychometricPathAssigner = PsychometricPathAssigner.createWithNewNAFCPngPathsObj(psychometricIds, numDistractors.numPsychometricDistractors, psychometricBasePaths);
 		psychometricPathAssigner.assign();
 		pngPaths = psychometricPathAssigner.getPngPaths();
 		specPaths = psychometricPathAssigner.getSpecPaths();
@@ -123,8 +123,8 @@ public class PsychometricTrial implements Trial{
 						psychometricIds,
 						generator,
 						noiseChance,
-						stimObjIds.getSampleId());
-		psychometricNoiseMapGenerator.generate();
+						stimObjIds.getSampleId(),
+						trialParameters.getNoiseParameters());
 		noiseMapPath = psychometricNoiseMapGenerator.getNoiseMapPath();
 	}
 
@@ -141,11 +141,11 @@ public class PsychometricTrial implements Trial{
 	}
 
 	private void assignCoords() {
-		PsychometricCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
+		NAFCCoordinateAssigner coordAssigner = new NAFCCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
 				numChoices);
 		
-		coordAssigner.assignCoords();
+
 		coords = coordAssigner.getCoords();
 	}
 
@@ -187,11 +187,11 @@ public class PsychometricTrial implements Trial{
 		this.taskId = taskId;
 	}
 
-	public AbstractPsychometricNoiseMapGenerator getGen() {
+	public AbstractPsychometricTrialGenerator getGen() {
 		return generator;
 	}
 
-	public void setGen(AbstractPsychometricNoiseMapGenerator gen) {
+	public void setGen(AbstractPsychometricTrialGenerator gen) {
 		this.generator = gen;
 	}
 

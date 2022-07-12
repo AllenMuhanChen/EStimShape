@@ -2,24 +2,27 @@ package org.xper.allen.nafc.blockgen.rand;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.composition.FromRandLeafMStickGenerator;
-import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphMStickGenerator;
-import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
-import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
+import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.Lims;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricNoiseMapGenerator;
+import org.xper.allen.nafc.blockgen.NAFCCoordinates;
+import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
+import org.xper.allen.nafc.blockgen.psychometric.NAFCCoordinateAssigner;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.nafc.vo.NoiseForm;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.drawing.Coordinates2D;
 import org.xper.util.FileUtil;
 
 public class RandTrialTest {
@@ -39,7 +42,7 @@ public class RandTrialTest {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-		generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricNoiseMapGenerator.class);
+		generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
 		int numQMDistractors = 1;
 		int numRandDistractors = 1;
 		numDistractors = new NumberOfDistractorsByMorphType(numQMDistractors, numRandDistractors);
@@ -132,7 +135,47 @@ public class RandTrialTest {
 		assertTrue(mStick.getSpecialEnd().size()>0);
 	}
 
-	
+	@Test 
+	public void mSticks_generate_noiseMaps() {
+		//Arrange
+		long id = 1L;
+		generator.getPngMaker().createDrawerWindow();
+		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(
+				generator,
+				trialParameters);
+		AllenMatchStick mStick = mStickGenerator.getSample();
+		NoiseParameters noiseParameters = new NoiseParameters(new NoiseForm(noiseType, new double[] {0,0.8}), noiseChance);
+		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(id, mStick, noiseParameters, generator);
+		
+		
+		//Act
+		String path = noiseMapGenerator.getNoiseMapPath();
+		
+		//Assert
+		File file = new File(path);
+		assertTrue(file.exists());
+	}
 
+	@Test
+	public void coords_are_radially_spaced() {
+		NAFCCoordinateAssigner coordAssigner = new NAFCCoordinateAssigner(trialParameters.getSampleDistanceLims(), trialParameters.getNumChoices());
+	
+		
+		NAFCCoordinates coords = coordAssigner.getCoords();
+		
+		
+		Coordinates2D origin = new Coordinates2D(0,0);
+		List<Coordinates2D> choices = new LinkedList<Coordinates2D>();
+		choices.add(coords.getMatchCoords());
+		choices.addAll(coords.getDistractorCoords());
+		
+		List<Long> radii = new LinkedList<Long>(); 
+		for(Coordinates2D choice: choices) {
+			radii.add(Math.round(choice.distance(origin)*100)/100);
+		}
+		
+		assertTrue(Collections.frequency(radii, radii.get(0)) == radii.size());
+
+	}
 
 }
