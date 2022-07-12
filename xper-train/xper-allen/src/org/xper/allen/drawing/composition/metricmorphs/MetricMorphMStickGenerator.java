@@ -9,9 +9,7 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 public class MetricMorphMStickGenerator extends AbstractMStickGenerator{
 
-	private AbstractMStickPngTrialGenerator generator;
 	private AllenMatchStick mStickToMorph;
-
 	private MetricMorphParams mmp;
 
 
@@ -26,6 +24,7 @@ public class MetricMorphMStickGenerator extends AbstractMStickGenerator{
 
 	private int leafToMorph;
 
+	@Override
 	protected void attemptToGenerate() {
 		trySetLeafToMorph();
 		tryGenerateMetricMorph();

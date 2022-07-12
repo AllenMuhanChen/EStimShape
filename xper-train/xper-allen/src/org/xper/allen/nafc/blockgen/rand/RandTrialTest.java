@@ -93,16 +93,30 @@ public class RandTrialTest {
 
 
 	@Test
-	public void samples_have_correct_component_numbers() {
-		NoisyMStickGeneratorForRandTrials mStickGenerator = new NoisyMStickGeneratorForRandTrials(
+	public void msticks_have_correct_component_numbers() {
+		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(
 				generator,
 				trialParameters);
 
+		
 		AllenMatchStick sample = mStickGenerator.getSample();
-
+		AllenMatchStick match = mStickGenerator.getMatch();
+		List<AllenMatchStick> qmDistractors = mStickGenerator.getQualitativeMorphDistractors();
+		List<AllenMatchStick> randDistractors = mStickGenerator.getRandDistractors();
+		
 		assertNotNull(mStickGenerator.getSample());
-
 		mStick_has_legal_component_numbers(sample);
+		mStick_has_special_end(sample);
+		mStick_has_legal_component_numbers(match);
+		mStick_has_special_end(match);
+		assertTrue(qmDistractors.size()>0);
+		for (AllenMatchStick qmDistractor: qmDistractors) {
+			mStick_has_legal_component_numbers(qmDistractor);
+			mStick_has_special_end(qmDistractor);
+		}
+		for (AllenMatchStick randDistractor: randDistractors) {
+			mStick_has_legal_component_numbers(randDistractor);
+		}
 	}
 
 	private void mStick_has_legal_component_numbers(AllenMatchStick mStick) {
@@ -111,38 +125,13 @@ public class RandTrialTest {
 		assertTrue(mStick.getnJuncPt() >=1);
 		assertNotNull(mStick.getObj1());
 		assertTrue(mStick.getBaseComp()>0);
-		assertTrue(mStick.getSpecialEnd().size()>0);
 		assertTrue(mStick.getSpecialEndComp().size()>0);
 	}
 
-
-	@Test
-	public void matches_have_correct_component_numbers() {
-		NoisyMStickGeneratorForRandTrials mStickGenerator = new NoisyMStickGeneratorForRandTrials(
-				generator,
-				trialParameters);
-
-
-		AllenMatchStick match = mStickGenerator.getMatch();
-
-		mStick_has_legal_component_numbers(match);
+	private void mStick_has_special_end(AllenMatchStick mStick) {
+		assertTrue(mStick.getSpecialEnd().size()>0);
 	}
 
-	@Test
-	public void qualitative_morph_distractors_have_correct_component_numbers() {
-		NoisyMStickGeneratorForRandTrials mStickGenerator = new NoisyMStickGeneratorForRandTrials(
-				generator,
-				trialParameters);
-
-
-		List<AllenMatchStick> qmDistractors = mStickGenerator.getQualitativeMorphDistractors();
-		assertTrue(qmDistractors.size()>0);
-		for (AllenMatchStick mStick: qmDistractors) {
-			mStick_has_legal_component_numbers(mStick);
-		}
-	
-	}
-	
 	
 
 

@@ -10,7 +10,6 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
 	public static final int maxAttemptsToGenerateQualitativeMorph = 5;
 
-	private AbstractMStickPngTrialGenerator generator;
 	private AllenMatchStick mStickToMorph;
 	private QualitativeMorphParams qmp;
 
@@ -25,6 +24,7 @@ public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
 
 	private int leafToMorph;
 
+	@Override
 	protected void attemptToGenerate() {
 		trySetLeafToMorph();
 		tryGenerateQualitativeMorph();

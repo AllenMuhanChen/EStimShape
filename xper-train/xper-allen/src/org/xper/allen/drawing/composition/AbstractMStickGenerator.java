@@ -1,15 +1,25 @@
 package org.xper.allen.drawing.composition;
 
+import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
+
 public abstract class AbstractMStickGenerator{
 
 	private static int maxAttempts = 5;
 	
+	protected AbstractMStickPngTrialGenerator generator;
+	
 	protected boolean successful;
 	protected AllenMatchStick mStick = new AllenMatchStick();
+
 
 	public AbstractMStickGenerator() {
 		super();
 		
+	}
+
+	public AbstractMStickGenerator(AbstractMStickPngTrialGenerator generator) {
+		super();
+		this.generator = generator;
 	}
 
 	protected void makeAttemptsToGenerate() {
