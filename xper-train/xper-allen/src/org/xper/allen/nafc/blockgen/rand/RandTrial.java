@@ -58,8 +58,8 @@ public class RandTrial implements Trial{
 	}
 	
 	private void generateMatchSticks() {
-		NoisyMStickGeneratorForRandTrials trialGenerator = new NoisyMStickGeneratorForRandTrials(generator, trialParameters);
-		mSticks = new NAFCMatchSticks(trialGenerator.getSample(), trialGenerator.getMatch());
+		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator, trialParameters);
+		mSticks = mStickGenerator.getNAFCMatchSticks();
 	}
 	
 	@Override

@@ -8,6 +8,7 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.FromRandLeafMStickGenerator;
 import org.xper.allen.drawing.composition.MStickGenerationException;
 import org.xper.allen.drawing.composition.MStickGenerator;
+import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphMStickGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
@@ -15,13 +16,14 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphMSti
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
+import org.xper.allen.nafc.blockgen.NAFCMatchSticks;
 
-public class NoisyMStickGeneratorForRandTrials {
+public class MStickGeneratorForRandTrials {
 	private AbstractMStickPngTrialGenerator generator;
 	private RandNoisyTrialParameters trialParameters;
 
 
-	public NoisyMStickGeneratorForRandTrials(AbstractMStickPngTrialGenerator generator,
+	public MStickGeneratorForRandTrials(AbstractMStickPngTrialGenerator generator,
 			RandNoisyTrialParameters trialParameters) {
 		super();
 		this.generator = generator;
@@ -34,7 +36,7 @@ public class NoisyMStickGeneratorForRandTrials {
 	private AllenMatchStick sample;
 	private AllenMatchStick match;
 	private List<AllenMatchStick> qualitativeMorphDistractors = new LinkedList<AllenMatchStick>();
-
+	private List<AllenMatchStick> randDistractors = new LinkedList<AllenMatchStick>();
 
 	private void generate() {
 		assignMetricMorphParameters();
@@ -58,14 +60,29 @@ public class NoisyMStickGeneratorForRandTrials {
 				continue;
 			}
 
+			try {
+				tryGenerateRandomDistractors();
+			} catch (Exception e) {
+				continue;
+			}
 			tryagain = false;
 		}
 	}
+	
+	MetricMorphParams mmp;
+	private void assignMetricMorphParameters() {
+		MetricMorphParameterGenerator mmpGenerator = generator.getMmpGenerator();
+		mmp = new MetricMorphParams();
+		mmp = mmpGenerator.getMMP(trialParameters.getSize(), trialParameters.numMorphCategories.getNumMMCategories());
+	}
 
-	private void reset() {
-		sample = new AllenMatchStick();
-		match = new AllenMatchStick();
-		qualitativeMorphDistractors = new LinkedList<AllenMatchStick>();
+	List<QualitativeMorphParams> qmps;
+	private void assignQualitativeMorphParameters() {
+		QualitativeMorphParameterGenerator qmpGenerator = generator.getQmpGenerator();
+		qmps = new LinkedList<QualitativeMorphParams>();
+		for(int qmIndx = 0; qmIndx<trialParameters.numDistractors.getNumQMDistractors(); qmIndx++) {
+			qmps.add(qmpGenerator.getQMP(trialParameters.numMorphCategories.getNumQMCategories()));
+		}
 	}
 
 	private void tryGenerateSample() {
@@ -85,19 +102,10 @@ public class NoisyMStickGeneratorForRandTrials {
 		}
 	}
 
-	MetricMorphParams mmp;
-	private void assignMetricMorphParameters() {
-		MetricMorphParameterGenerator mmpGenerator = generator.getMmpGenerator();
-		mmp = new MetricMorphParams();
-		mmp = mmpGenerator.getMMP(trialParameters.getSize(), trialParameters.numMorphCategories.getNumMMCategories());
-	}
-
-	List<QualitativeMorphParams> qmps;
-	private void assignQualitativeMorphParameters() {
-		QualitativeMorphParameterGenerator qmpGenerator = generator.getQmpGenerator();
-		qmps = new LinkedList<QualitativeMorphParams>();
-		for(int qmIndx = 0; qmIndx<trialParameters.numDistractors.getNumQMDistractors(); qmIndx++) {
-			qmps.add(qmpGenerator.getQMP(trialParameters.numMorphCategories.getNumQMCategories()));
+	private void tryGenerateRandomDistractors() {
+		for(int i=0; i<trialParameters.getNumDistractors().getNumRandDistractors(); i++) {
+			AbstractMStickGenerator randGenerator = new RandMStickGenerator(generator);
+			randDistractors.add(randGenerator.getMStick());
 		}
 	}
 
@@ -113,6 +121,21 @@ public class NoisyMStickGeneratorForRandTrials {
 		return qualitativeMorphDistractors;
 	}
 
+	public List<AllenMatchStick> getRandDistractors() {
+		return randDistractors;
+	}
+
+	
+	public NAFCMatchSticks getNAFCMatchSticks() {
+		NAFCMatchSticks matchSticks = new NAFCMatchSticks();
+		matchSticks.setSampleMStick(sample);
+		matchSticks.setMatchMStick(match);
+		List<AllenMatchStick> distractors = new LinkedList<AllenMatchStick>();
+		distractors.addAll(qualitativeMorphDistractors);
+		distractors.addAll(randDistractors);
+		return matchSticks;
+		
+	}
 
 
 

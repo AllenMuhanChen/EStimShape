@@ -5,7 +5,6 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 	private static final int maxAttemptsToGenerateMStickFromLeaf = 5;
 
-	private AbstractMStickPngTrialGenerator generator;
 
 	private AllenMatchStick seedMStick;
 	public FromRandLeafMStickGenerator(AbstractMStickPngTrialGenerator generator) {
