@@ -2,9 +2,11 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <option name="DEFAULT_COMPILER" value="Eclipse" />
+    <option name="USE_RELEASE_OPTION" value="false" />
     <excludeFromCompile>
       <file url="file://$PROJECT_DIR$/xper/app/org/xper/app/mock/MockExperiment.java" />
       <file url="file://$PROJECT_DIR$/xper/app/org/xper/app/mock/MockAppConfig.java" />
+      <file url="file://$PROJECT_DIR$/xper-allen/app/org/xper/allen/app/fixation/FixationPngBlockGen.java" />
     </excludeFromCompile>
   </component>
 </project>
