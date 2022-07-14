@@ -1,19 +1,15 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
-import java.util.LinkedList;
-import java.util.List;
-
-import org.xper.allen.nafc.blockgen.NumberOfDistractors;
-import org.xper.allen.nafc.blockgen.StimObjIdsForMixedPsychometricAndRand;
+import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.time.TimeUtil;
 
 public class StimObjIdAssignerForPsychometricTrials{
 	private static TimeUtil globalTimeUtil;
-	private NumberOfDistractors numDistractors;
+	private NumberOfDistractorsForPsychometricTrial numDistractors;
 	
 
 
-	public StimObjIdAssignerForPsychometricTrials(TimeUtil globalTimeUtil, NumberOfDistractors numDistractors) {
+	public StimObjIdAssignerForPsychometricTrials(TimeUtil globalTimeUtil, NumberOfDistractorsForPsychometricTrial numDistractors) {
 		StimObjIdAssignerForPsychometricTrials.globalTimeUtil = globalTimeUtil;
 		this.numDistractors = numDistractors;
 	}

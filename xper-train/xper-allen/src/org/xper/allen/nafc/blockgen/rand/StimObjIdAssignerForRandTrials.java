@@ -4,10 +4,10 @@ import org.xper.time.TimeUtil;
 
 public class StimObjIdAssignerForRandTrials{
 	private TimeUtil globalTimeUtil;
-	private NumberOfDistractorsByMorphType numDistractors;
+	private NumberOfDistractorsForRandTrial numDistractors;
 	
 	
-	public StimObjIdAssignerForRandTrials(TimeUtil globalTimeUtil, NumberOfDistractorsByMorphType numDistractors) {
+	public StimObjIdAssignerForRandTrials(TimeUtil globalTimeUtil, NumberOfDistractorsForRandTrial numDistractors) {
 		super();
 		this.globalTimeUtil = globalTimeUtil;
 		this.numDistractors = numDistractors;
@@ -15,25 +15,25 @@ public class StimObjIdAssignerForRandTrials{
 		assignStimObjIds();
 	}
 	
-	private StimObjIdsForRandTrial stimObjIds = new StimObjIdsForRandTrial(); 
+	private Rand<Long> stimObjIds = new Rand<Long>();
 	
 	private void assignStimObjIds() {
-		stimObjIds.setSampleId(globalTimeUtil.currentTimeMicros());
-		stimObjIds.setMatchId(stimObjIds.getSampleId()+1);
-		long prevId = stimObjIds.getMatchId();
+		stimObjIds.setSample(globalTimeUtil.currentTimeMicros());
+		stimObjIds.setMatch(stimObjIds.getSample()+1);
+		long prevId = stimObjIds.getMatch();
 		for (int j=0; j<numDistractors.getNumQMDistractors();j++) {
-			stimObjIds.getAllDistractorIds().add(prevId+1);
-			stimObjIds.getQmDistractorIds().add(prevId+1);
+			stimObjIds.getAllDistractors().add(prevId+1);
+			stimObjIds.getQualitativeMorphDistractors().add(prevId+1);
 			prevId++;
 		}
 		for (int j=0; j<numDistractors.getNumRandDistractors();j++) {
-			stimObjIds.getAllDistractorIds().add(prevId+1);
-			stimObjIds.getRandDistractorIds().add(prevId+1);
+			stimObjIds.getAllDistractors().add(prevId+1);
+			stimObjIds.getRandDistractors().add(prevId+1);
 			prevId++;
 		}
 	}
 
-	public StimObjIdsForRandTrial getStimObjIds() {
+	public Rand<Long> getStimObjIds() {
 		return stimObjIds;
 	}
 	

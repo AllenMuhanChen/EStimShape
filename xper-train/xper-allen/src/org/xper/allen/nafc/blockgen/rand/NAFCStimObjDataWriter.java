@@ -1,11 +1,7 @@
 package org.xper.allen.nafc.blockgen.rand;
 
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.nafc.blockgen.NAFCCoordinates;
-import org.xper.allen.nafc.blockgen.NAFCMStickSpecs;
-import org.xper.allen.nafc.blockgen.NAFCPaths;
-import org.xper.allen.nafc.blockgen.NoisyPngSpecWriter;
-import org.xper.allen.nafc.blockgen.StimObjIds;
+import org.xper.allen.nafc.blockgen.*;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
 import org.xper.allen.nafc.blockgen.psychometric.Psychometric;
 import org.xper.allen.nafc.vo.MStickStimObjData;
@@ -15,31 +11,16 @@ import org.xper.drawing.Coordinates2D;
 
 public abstract class NAFCStimObjDataWriter {
 
-	
-
-	public NAFCStimObjDataWriter(int numChoices, Psychometric<String> pngPaths, String noiseMapPath, AllenDbUtil dbUtil,
-			Psychometric<AllenMStickSpec> mStickSpecs, NoisyTrialParameters trialParameters, Psychometric<Coordinates2D> coords, Psychometric<Long> stimObjIds) {
-		super();
-		this.numChoices = numChoices;
-		this.pngPaths = pngPaths;
-		this.noiseMapPath = noiseMapPath;
-		this.dbUtil = dbUtil;
-		this.mStickSpecs = mStickSpecs;
-		this.trialParameters = trialParameters;
-		this.coords = coords;
-		this.stimObjIds = stimObjIds;
-	}
-
-	protected int numChoices;
-	protected Psychometric<String> pngPaths;
 	protected String noiseMapPath;
 	protected AllenDbUtil dbUtil;
-	protected Psychometric<AllenMStickSpec> mStickSpecs = new Psychometric<AllenMStickSpec>();
 	protected NoisyTrialParameters trialParameters;
-	protected Psychometric<Coordinates2D> coords;
-	protected Psychometric<Long> stimObjIds;
-	
-	
+
+	public NAFCStimObjDataWriter(String noiseMapPath, AllenDbUtil dbUtil, NoisyTrialParameters trialParameters) {
+		this.noiseMapPath = noiseMapPath;
+		this.dbUtil = dbUtil;
+		this.trialParameters = trialParameters;
+	}
+
 	public void writeStimObjId() {
 		writeSampleSpec();
 		writeMatchSpec();
@@ -48,34 +29,38 @@ public abstract class NAFCStimObjDataWriter {
 
 	private void writeSampleSpec() {
 		NoisyPngSpecWriter sampleSpecWriter = NoisyPngSpecWriter.createWithNoiseMap(
-				coords.getSample(),
-				pngPaths.getSample(), noiseMapPath,
+				getCoords().getSample(),
+				getPngPaths().getSample(), noiseMapPath,
 				trialParameters.getSize());
 	
 		sampleSpecWriter.writeSpec();
 		NoisyPngSpec sampleSpec = sampleSpecWriter.getSpec();
 		
 		
-		MStickStimObjData sampleMStickObjData = new MStickStimObjData("Sample", mStickSpecs.getSample());
-		dbUtil.writeStimObjData(stimObjIds.getSample(), sampleSpec.toXml(), sampleMStickObjData.toXml());
+		MStickStimObjData sampleMStickObjData = new MStickStimObjData("Sample", getmStickSpecs().getSample());
+		dbUtil.writeStimObjData(getStimObjIds().getSample(), sampleSpec.toXml(), sampleMStickObjData.toXml());
 	}
 
 	private void writeMatchSpec() {
 		NoisyPngSpecWriter matchSpecWriter = NoisyPngSpecWriter.createWithoutNoiseMap(
-				coords.getMatch(),
-				pngPaths.getMatch(),
+				getCoords().getMatch(),
+				getPngPaths().getMatch(),
 				trialParameters.getSize());
 		matchSpecWriter.writeSpec();
 		NoisyPngSpec matchSpec = matchSpecWriter.getSpec();
 	
-		MStickStimObjData matchMStickObjData = new MStickStimObjData("Match", mStickSpecs.getMatch());
-		dbUtil.writeStimObjData(stimObjIds.getMatch(), matchSpec.toXml(), matchMStickObjData.toXml());
+		MStickStimObjData matchMStickObjData = new MStickStimObjData("Match", getmStickSpecs().getMatch());
+		dbUtil.writeStimObjData(getStimObjIds().getMatch(), matchSpec.toXml(), matchMStickObjData.toXml());
 	}
 	
 	protected abstract void writeDistractorSpecs();
-	
-	protected void setStimObjIds(Psychometric<Long> stimObjIds) {
-		this.stimObjIds = stimObjIds;
-	}
+
+	protected abstract NAFC<String> getPngPaths();
+
+	protected abstract NAFC<AllenMStickSpec> getmStickSpecs();
+
+	protected abstract NAFC<Coordinates2D> getCoords();
+
+	protected abstract NAFC<Long> getStimObjIds();
 
 }

@@ -1,18 +1,18 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-public class NumberOfDistractorsByMorphType {
+public class NumberOfDistractorsForRandTrial {
 	private int numQMDistractors;
 	private int numRandDistractors;
 
 
-	public NumberOfDistractorsByMorphType() {
+	public NumberOfDistractorsForRandTrial() {
 	}
 
 	public int getNumQMDistractors() {
 		return numQMDistractors;
 	}
 
-	public NumberOfDistractorsByMorphType(int numQMDistractors, int numRandDistractors) {
+	public NumberOfDistractorsForRandTrial(int numQMDistractors, int numRandDistractors) {
 		super();
 		this.numQMDistractors = numQMDistractors;
 		this.numRandDistractors = numRandDistractors;

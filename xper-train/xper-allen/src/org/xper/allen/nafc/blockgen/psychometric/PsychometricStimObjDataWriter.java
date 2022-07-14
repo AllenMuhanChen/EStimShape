@@ -1,16 +1,8 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.nafc.blockgen.NAFCMStickSpecs;
 import org.xper.allen.nafc.blockgen.NoisyPngSpecWriter;
-import org.xper.allen.nafc.blockgen.StimObjIdsForMixedPsychometricAndRand;
 import org.xper.allen.nafc.blockgen.rand.NAFCStimObjDataWriter;
-import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.allen.util.AllenDbUtil;
@@ -23,17 +15,17 @@ import org.xper.drawing.Coordinates2D;
  */
 public class PsychometricStimObjDataWriter extends NAFCStimObjDataWriter{
 
-
-
+	private Psychometric<String> pngPaths;
 	private Psychometric<Long> stimObjIds;
 	private Psychometric<AllenMStickSpec> mStickSpecs;
-	
-	public PsychometricStimObjDataWriter(int numChoices, Psychometric<String> pngPaths, String noiseMapPath, AllenDbUtil dbUtil,
-			Psychometric<AllenMStickSpec> mStickSpecs, NoisyTrialParameters trialParameters, Psychometric<Coordinates2D> coords,
-			Psychometric<Long> stimObjIds) {
-		super(numChoices, pngPaths, noiseMapPath, dbUtil, mStickSpecs, trialParameters, coords, stimObjIds);
+	private Psychometric<Coordinates2D> coords;
+
+	public PsychometricStimObjDataWriter(String noiseMapPath, AllenDbUtil dbUtil, NoisyTrialParameters trialParameters, Psychometric<String> pngPaths, Psychometric<Long> stimObjIds, Psychometric<AllenMStickSpec> mStickSpecs, Psychometric<Coordinates2D> coords) {
+		super(noiseMapPath, dbUtil, trialParameters);
+		this.pngPaths = pngPaths;
 		this.stimObjIds = stimObjIds;
 		this.mStickSpecs = mStickSpecs;
+		this.coords = coords;
 	}
 
 	@Override
@@ -47,7 +39,7 @@ public class PsychometricStimObjDataWriter extends NAFCStimObjDataWriter{
 		int indx=0;
 		for(Long stimObjId : stimObjIds.getPsychometricDistractors()) {
 			NoisyPngSpecWriter distractorSpecWriter = NoisyPngSpecWriter.createWithoutNoiseMap(
-					coords.getPsychometricDistractors().get(indx), pngPaths.getPsychometricDistractors().get(indx),trialParameters.getSize());
+					getCoords().getPsychometricDistractors().get(indx), getPngPaths().getPsychometricDistractors().get(indx),trialParameters.getSize());
 			distractorSpecWriter.writeSpec();
 			NoisyPngSpec distractorSpec = distractorSpecWriter.getSpec();
 			MStickStimObjData distractorMStickObjData = new MStickStimObjData("Psychometric Distractor", mStickSpecs.getPsychometricDistractors().get(indx));
@@ -61,7 +53,7 @@ public class PsychometricStimObjDataWriter extends NAFCStimObjDataWriter{
 		indx=0;
 		for(Long stimObjId : stimObjIds.getRandDistractors()) {
 			NoisyPngSpecWriter distractorSpecWriter = NoisyPngSpecWriter.createWithoutNoiseMap(
-					coords.getRandDistractors().get(indx), pngPaths.getRandDistractors().get(indx),trialParameters.getSize());
+					getCoords().getRandDistractors().get(indx), getPngPaths().getRandDistractors().get(indx),trialParameters.getSize());
 			distractorSpecWriter.writeSpec();
 			NoisyPngSpec distractorSpec = distractorSpecWriter.getSpec();
 			MStickStimObjData distractorMStickObjData = new MStickStimObjData("Rand Distractor", mStickSpecs.getRandDistractors().get(indx));
@@ -74,6 +66,27 @@ public class PsychometricStimObjDataWriter extends NAFCStimObjDataWriter{
 	protected void setStimObjIds(Psychometric<Long> stimObjIds) {
 		this.stimObjIds = stimObjIds;
 	}
+
+	@Override
+	protected Psychometric<String> getPngPaths(){
+		return pngPaths;
+	}
+
+	@Override
+	protected Psychometric<AllenMStickSpec> getmStickSpecs(){
+		return mStickSpecs;
+	}
+
+	@Override
+	protected Psychometric<Coordinates2D> getCoords(){
+		return coords;
+	}
+
+	@Override
+	protected Psychometric<Long> getStimObjIds(){
+		return stimObjIds;
+	}
+
 
 }
 

@@ -14,12 +14,7 @@ import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.nafc.blockgen.Lims;
-import org.xper.allen.nafc.blockgen.NumberOfDistractors;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricIds;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrial;
-import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
+import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.util.FileUtil;
@@ -28,7 +23,7 @@ public class PsychometricTrialTest {
 	PsychometricBlockGen generator;
 	int numPsychometricDistractors;
 	int numRandDistractors;
-	NumberOfDistractors numDistractors;
+	NumberOfDistractorsForPsychometricTrial numDistractors;
 	long setId;
 	int stimId;
 	List<Integer> stimIds;
@@ -59,7 +54,7 @@ public class PsychometricTrialTest {
 
 		numPsychometricDistractors = 2;
 		numRandDistractors = 1;
-		NumberOfDistractors numDistractors = new NumberOfDistractors(numPsychometricDistractors, numRandDistractors);
+		NumberOfDistractorsForPsychometricTrial numDistractors = new NumberOfDistractorsForPsychometricTrial(numPsychometricDistractors, numRandDistractors);
 
 		stimIds = Arrays.asList(0,1,2);
 		psychometricIds = new PsychometricIds(setId, stimId, stimIds);

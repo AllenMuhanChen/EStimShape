@@ -3,23 +3,24 @@ package org.xper.allen.nafc.blockgen.psychometric;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.xper.allen.nafc.blockgen.NAFC;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
-public class PsychometricStimSpecWriter {
+public class NAFCStimSpecWriter {
 
 	Long taskId;
 	AllenDbUtil dbUtil;
 	NoisyTrialParameters trialParameters; //input
-	Psychometric<Coordinates2D> coords;
+	NAFC<Coordinates2D> coords;
 	int numChoices;
-	Psychometric<Long> stimObjIds;
+	NAFC<Long> stimObjIds;
 
-	public PsychometricStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
-			NoisyTrialParameters trialParameters, Psychometric<Coordinates2D> coords, int numChoices,
-			Psychometric<Long> stimObjIds) {
+	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
+							  NoisyTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+							  NAFC<Long> stimObjIds) {
 		super();
 		this.taskId = taskId;
 		this.dbUtil = dbUtil;

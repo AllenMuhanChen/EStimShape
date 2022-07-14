@@ -1,34 +1,16 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.xper.allen.drawing.composition.AbstractMStickGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
-import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.nafc.blockgen.NAFCMStickSpecs;
 import org.xper.allen.nafc.blockgen.PsychometricMStickFetcher;
-import org.xper.allen.nafc.blockgen.NAFCMSticks;
-import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
-import org.xper.allen.nafc.blockgen.NAFCCoordinates;
-import org.xper.allen.nafc.blockgen.NAFCPaths;
-import org.xper.allen.nafc.blockgen.NumberOfDistractors;
+import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.allen.nafc.blockgen.PngBasePaths;
-import org.xper.allen.nafc.blockgen.PNGDrawer;
-import org.xper.allen.nafc.blockgen.StimObjIdsForMixedPsychometricAndRand;
 import org.xper.allen.nafc.blockgen.Trial;
-import org.xper.allen.nafc.blockgen.rand.NAFCStimObjDataWriter;
-import org.xper.allen.nafc.experiment.RewardPolicy;
-import org.xper.allen.nafc.vo.MStickStimObjData;
-import org.xper.allen.nafc.vo.NoiseParameters;
-import org.xper.allen.nafc.vo.NoiseType;
-import org.xper.allen.specs.NAFCStimSpecSpec;
-import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
@@ -40,14 +22,14 @@ public class PsychometricTrial implements Trial{
 	 * Inputs
 	 */
 	private AbstractPsychometricTrialGenerator generator;
-	private NumberOfDistractors numDistractors;
+	private NumberOfDistractorsForPsychometricTrial numDistractors;
 	private PsychometricIds psychometricIds;
 	private double[] noiseChance;
 	private NoisyTrialParameters trialParameters;
 	
 	public PsychometricTrial(
 			AbstractPsychometricTrialGenerator noisyMStickPngPsychometricBlockGen,
-			NumberOfDistractors numDistractors, 
+			NumberOfDistractorsForPsychometricTrial numDistractors,
 			PsychometricIds psychometricIds,
 			double[] noiseChance,
 			NoisyTrialParameters trialParameters) {
@@ -156,7 +138,7 @@ public class PsychometricTrial implements Trial{
 	}
 
 	private void assignCoords() {
-		NAFCCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
+		PsychometricCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
 				numDistractors);
 		
@@ -166,14 +148,14 @@ public class PsychometricTrial implements Trial{
 
 	private void writeStimObjDataSpecs() {
 		PsychometricStimObjDataWriter stimObjDataWriter = new PsychometricStimObjDataWriter(
-				numChoices,
-				pngPaths,
 				noiseMapPath,
 				dbUtil,
-				mStickSpecs,
 				trialParameters,
-				coords,
-				stimObjIds);
+				pngPaths,
+				stimObjIds,
+				mStickSpecs,
+				coords
+		);
 
 		stimObjDataWriter.writeStimObjId();
 	}
@@ -183,7 +165,7 @@ public class PsychometricTrial implements Trial{
 	}
 	
 	private void writeStimSpec() {
-		PsychometricStimSpecWriter stimSpecWriter = new PsychometricStimSpecWriter(
+		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
 				getTaskId(), 
 				dbUtil,
 				trialParameters,
@@ -207,7 +189,7 @@ public class PsychometricTrial implements Trial{
 	}
 
 
-	public NumberOfDistractors getNumDistractors() {
+	public NumberOfDistractorsForPsychometricTrial getNumDistractors() {
 		return numDistractors;
 	}
 

@@ -29,12 +29,7 @@ public class Psychometric<Type> extends NAFC<Type>{
 		psychometricDistractors.add(psychometricDistractor);
 		addToAllDistractors(psychometricDistractor);
 	}
-	
-	private void addToAllDistractors(Type distractor) {
-		if(!getAllDistractors().contains(distractor))
-			getAllDistractors().add(distractor);
-	}
-	
+
 	public List<Type> getPsychometricDistractors() {
 		return psychometricDistractors;
 	}

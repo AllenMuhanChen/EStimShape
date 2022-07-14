@@ -5,18 +5,17 @@ import org.xper.allen.nafc.blockgen.Lims;
 import java.util.List;
 
 import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
-import org.xper.allen.nafc.blockgen.NAFCCoordinates;
-import org.xper.allen.nafc.blockgen.NumberOfDistractors;
+import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.drawing.Coordinates2D;
 
 public class PsychometricCoordinateAssigner extends NAFCCoordinateAssigner{
 
-	NumberOfDistractors numDistractors; 
-	
-	public PsychometricCoordinateAssigner(Lims sampleDistanceLims, NumberOfDistractors numDistractors) {
+	NumberOfDistractorsForPsychometricTrial numDistractors;
+	private Psychometric<Coordinates2D> coords = new Psychometric<>();
+
+	public PsychometricCoordinateAssigner(Lims sampleDistanceLims, NumberOfDistractorsForPsychometricTrial numDistractors) {
 		super(numDistractors.numTotal+1, sampleDistanceLims);
 		this.numDistractors = numDistractors;
-		
 		assignCoords();
 	}
 
@@ -24,10 +23,16 @@ public class PsychometricCoordinateAssigner extends NAFCCoordinateAssigner{
 	protected void assignDistractorCoords() {
 		List<Coordinates2D> allDistractors = ddUtil.getDistractorCoordsAsList();
 		for(int i=0; i<numDistractors.numPsychometricDistractors; i++) {
-			coords.addPsychometricDistractor(allDistractors.get(i));
+			getCoords().addPsychometricDistractor(allDistractors.get(i));
 		}
 		for(int i=0; i<numDistractors.numRandDistractors; i++) {
-			coords.addRandDistractor(allDistractors.get(numDistractors.numPsychometricDistractors+i));
+			getCoords().addRandDistractor(allDistractors.get(numDistractors.numPsychometricDistractors+i));
 		}
 	}
+
+	@Override
+	public Psychometric<Coordinates2D> getCoords() {
+		return coords;
+	}
+
 }

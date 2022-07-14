@@ -1,6 +1,5 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-import org.xper.allen.nafc.blockgen.HandicappedNAFCTrialParameters;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
 import org.xper.allen.nafc.vo.NoiseParameters;
@@ -9,12 +8,12 @@ import com.thoughtworks.xstream.XStream;
 
 public class RandNoisyTrialParameters extends NoisyTrialParameters {
 
-	NumberOfDistractorsByMorphType numDistractors;
+	NumberOfDistractorsForRandTrial numDistractors;
 	NumberOfMorphCategories numMorphCategories;
 	
 	
 	public RandNoisyTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize,
-			NoiseParameters noiseParameters, NumberOfDistractorsByMorphType numDistractors,
+			NoiseParameters noiseParameters, NumberOfDistractorsForRandTrial numDistractors,
 			NumberOfMorphCategories numMorphCategories) {
 		super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize, noiseParameters);
 		this.numDistractors = numDistractors;
@@ -40,11 +39,11 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 	}
 
 	
-	public NumberOfDistractorsByMorphType getNumDistractors() {
+	public NumberOfDistractorsForRandTrial getNumDistractors() {
 		return numDistractors;
 	}
 
-	public void setNumDistractors(NumberOfDistractorsByMorphType numDistractors) {
+	public void setNumDistractors(NumberOfDistractorsForRandTrial numDistractors) {
 		this.numDistractors = numDistractors;
 	}
 
