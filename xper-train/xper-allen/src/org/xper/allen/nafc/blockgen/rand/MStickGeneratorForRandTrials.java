@@ -15,8 +15,6 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphMSti
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.NAFCMStickSpecs;
-import org.xper.allen.nafc.blockgen.NAFCMSticks;
 
 public class MStickGeneratorForRandTrials {
 	private AbstractMStickPngTrialGenerator generator;
@@ -139,26 +137,29 @@ public class MStickGeneratorForRandTrials {
 	}
 
 	
-	public NAFCMSticks getNAFCMSticks() {
-		NAFCMSticks matchSticks = new NAFCMSticks();
-		matchSticks.setSampleMStick(sample);
-		matchSticks.setMatchMStick(match);
-		List<AllenMatchStick> distractors = new LinkedList<AllenMatchStick>();
-		distractors.addAll(qualitativeMorphDistractors);
-		distractors.addAll(randDistractors);
+	public Rand<AllenMatchStick> getmSticks() {
+		Rand<AllenMatchStick> matchSticks = new Rand<AllenMatchStick>();
+		matchSticks.setSample(sample);
+		matchSticks.setMatch(match);
+		for(AllenMatchStick randDistractor:randDistractors){
+			matchSticks.addRandDistractor(randDistractor);
+		}
+		for(AllenMatchStick qmDistractor:qualitativeMorphDistractors){
+			matchSticks.addQualitativeMorphDistractor(qmDistractor);
+		}
 		return matchSticks;
 		
 	}
 	
-	public NAFCMStickSpecs getNAFCMStickSpecs() {
-		NAFCMStickSpecs specs = new NAFCMStickSpecs();
-		specs.setSampleMStickSpec(mStickToSpec(sample));
-		specs.setMatchMStickSpec(mStickToSpec(match));
+	public Rand<AllenMStickSpec> getmStickSpecs() {
+		Rand<AllenMStickSpec> specs = new Rand<AllenMStickSpec>();
+		specs.setSample(mStickToSpec(sample));
+		specs.setMatch(mStickToSpec(match));
 		for (AllenMatchStick qmDistractor: qualitativeMorphDistractors) {
-			specs.getDistractorsMStickSpecs().add(mStickToSpec(qmDistractor));
+			specs.getQualitativeMorphDistractors().add(mStickToSpec(qmDistractor));
 		}
 		for (AllenMatchStick randDistractor: randDistractors) {
-			specs.getDistractorsMStickSpecs().add(mStickToSpec(randDistractor));
+			specs.getRandDistractors().add(mStickToSpec(randDistractor));
 		}
 		return specs;
 	}

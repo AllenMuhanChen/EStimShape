@@ -8,6 +8,7 @@ import org.xper.drawing.Coordinates2D;
 public abstract class NAFCCoordinateAssigner{
 	
 	int numChoices;
+//	private NAFC<Coordinates2D> coords;
 
 	public NAFCCoordinateAssigner(int numChoices, Lims sampleDistanceLims) {
 		super();
@@ -81,7 +82,8 @@ public abstract class NAFCCoordinateAssigner{
 
 	protected Lims sampleDistanceLims;
 	protected DistancedDistractorsUtil ddUtil;
-	protected Psychometric<Coordinates2D> coords = new Psychometric<Coordinates2D>();
+
+
 
 	protected void assignCoords() {
 		assignSampleCoords();
@@ -92,7 +94,7 @@ public abstract class NAFCCoordinateAssigner{
 
 	private void assignSampleCoords() {
 		Coordinates2D sampleCoords = randomCoordsWithinRadii(sampleDistanceLims.getLowerLim(), sampleDistanceLims.getUpperLim());
-		coords.setSample(sampleCoords);
+		getCoords().setSample(sampleCoords);
 	}
 
 	private void setUpDDUtil() {
@@ -107,13 +109,10 @@ public abstract class NAFCCoordinateAssigner{
 	}
 
 	private void assignMatchCoords() {
-		coords.setMatch(ddUtil.getMatchCoords());
+		getCoords().setMatch(ddUtil.getMatchCoords());
 	}
 
-	public Psychometric<Coordinates2D> getCoords() {
-		return coords;
-	}
 
-	
-	
+	public abstract NAFC<Coordinates2D> getCoords();
+
 }

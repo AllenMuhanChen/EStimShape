@@ -6,17 +6,13 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
-import org.xper.allen.nafc.blockgen.NAFCCoordinates;
-import org.xper.allen.nafc.blockgen.NAFCPaths;
 import org.xper.allen.nafc.blockgen.Trial;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricCoordinateAssigner;
-import org.xper.allen.nafc.blockgen.psychometric.Psychometric;
+import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
 public class RandTrial implements Trial{
-	
+
 	//INput Fields
 	private AbstractMStickPngTrialGenerator generator;
 	private RandNoisyTrialParameters trialParameters;
@@ -31,21 +27,18 @@ public class RandTrial implements Trial{
 
 	//Private instance fields
 	private AllenDbUtil dbUtil;
-	private Psychometric<AllenMatchStick> mSticks = new Psychometric<AllenMatchStick>();
-	private Psychometric<AllenMStickSpec> mStickSpecs = new Psychometric<AllenMStickSpec>();
-	private Psychometric<Coordinates2D> coords;
-	private Psychometric<String> pngPaths;
+	private Rand<AllenMatchStick> mSticks = new Rand<>();
+	private Rand<AllenMStickSpec> mStickSpecs = new Rand<AllenMStickSpec>();
+	private Rand<Coordinates2D> coords;
+	private Rand<String> pngPaths;
 	private Long taskId;
 	private String noiseMapPath;
 	private List<String> noiseMapLabels;
-	private Psychometric<Long> stimObjIds = new Psychometric<Long>();
+	private Rand<Long> stimObjIds = new Rand<Long>();
 	
 	
 	@Override
-	public void preWrite() {
-
-		
-	}
+	public void preWrite() {}
 	
 	@Override
 	public void write() {
@@ -61,25 +54,35 @@ public class RandTrial implements Trial{
 
 	private void assignStimObjIds() {
 		StimObjIdAssignerForRandTrials stimObjIdAssigner = new StimObjIdAssignerForRandTrials(generator.getGlobalTimeUtil(), trialParameters.getNumDistractors());
-		stimObjIdAssigner.getStimObjIds();
 		stimObjIds = stimObjIdAssigner.getStimObjIds();
 	}
 	
 	private void generateMatchSticks() {
 		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator, trialParameters);
-		mSticks = mStickGenerator.getNAFCMSticks();
-		mStickSpecs = mStickGenerator.getNAFCMStickSpecs();
+		mSticks = mStickGenerator.getmSticks();
+		mStickSpecs = mStickGenerator.getmStickSpecs();
 	}
-	
+
+	private void drawPNGs(){
+		PNGDrawerForRandTrial drawer = new PNGDrawerForRandTrial(
+				generator,
+				mSticks,
+				stimObjIds
+		);
+		pngPaths = drawer.getPngPaths();
+	}
+
+
+
 	private void generateNoiseMap() {
-		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(stimObjIds.getSampleId(), mSticks.getSampleMStick(), trialParameters.getNoiseParameters(), generator);
+		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(stimObjIds.getSample(), mSticks.getSample(), trialParameters.getNoiseParameters(), generator);
 		noiseMapGenerator.getNoiseMapPath();
 	}
 	
 	private void assignCoords() {
-		NAFCCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
+		RandTrialCoordinateAssigner coordAssigner = new RandTrialCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
-				trialParameters.getNumChoices());
+				trialParameters.getNumDistractors());
 		
 
 		coords = coordAssigner.getCoords();
@@ -87,21 +90,32 @@ public class RandTrial implements Trial{
 	
 	private void writeStimObjDataSpecs() {
 		RandTrialStimObjDataWriter stimObjDataWriter = new RandTrialStimObjDataWriter(
-				trialParameters.getNumChoices(),
-				pngPaths,
 				noiseMapPath,
 				dbUtil,
-				mStickSpecs,
 				trialParameters,
-				coords,
-				stimObjIds);
+				pngPaths,
+				stimObjIds,
+				mStickSpecs,
+				coords
+		);
 		stimObjDataWriter.writeStimObjId();
 	}
 	
 	private void assignTaskId() {
-		setTaskId(stimObjIds.getSampleId());
+		setTaskId(stimObjIds.getSample());
 	}
-	
+
+	private void writeStimSpec(){
+		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+				getTaskId(),
+				dbUtil,
+				trialParameters,
+				coords,
+				trialParameters.getNumChoices(),
+				stimObjIds);
+
+		stimSpecWriter.writeStimSpec();
+	}
 	@Override
 	public Long getTaskId() {
 		// TODO Auto-generated method stub

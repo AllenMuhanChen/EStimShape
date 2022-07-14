@@ -42,6 +42,10 @@ public class NAFC<Type> {
 	public void setAllDistractors(List<Type> distractors) {
 		this.allDistractors = distractors;
 	}
-	
-	
+
+
+    protected void addToAllDistractors(Type distractor) {
+        if(!getAllDistractors().contains(distractor))
+            getAllDistractors().add(distractor);
+    }
 }

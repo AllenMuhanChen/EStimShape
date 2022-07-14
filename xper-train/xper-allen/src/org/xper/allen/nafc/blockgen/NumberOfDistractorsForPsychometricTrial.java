@@ -1,15 +1,15 @@
 package org.xper.allen.nafc.blockgen;
 
-public class NumberOfDistractors {
+public class NumberOfDistractorsForPsychometricTrial {
 	public int numPsychometricDistractors;
 	public int numRandDistractors;
 	public int numTotal;
 
-	public NumberOfDistractors() {
+	public NumberOfDistractorsForPsychometricTrial() {
 	}
 
 
-	public NumberOfDistractors(int numPsychometricDistractors, int numRandDistractors) {
+	public NumberOfDistractorsForPsychometricTrial(int numPsychometricDistractors, int numRandDistractors) {
 		super();
 		this.numPsychometricDistractors = numPsychometricDistractors;
 		this.numRandDistractors = numRandDistractors;
