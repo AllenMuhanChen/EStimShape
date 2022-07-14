@@ -6,20 +6,23 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.xper.allen.drawing.composition.AbstractMStickGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.blockgen.NAFCMStickSpecs;
-import org.xper.allen.nafc.blockgen.NAFCAllenMatchStickFetcher;
-import org.xper.allen.nafc.blockgen.NAFCMatchSticks;
+import org.xper.allen.nafc.blockgen.PsychometricMStickFetcher;
+import org.xper.allen.nafc.blockgen.NAFCMSticks;
+import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
 import org.xper.allen.nafc.blockgen.NAFCCoordinates;
 import org.xper.allen.nafc.blockgen.NAFCPaths;
 import org.xper.allen.nafc.blockgen.NumberOfDistractors;
 import org.xper.allen.nafc.blockgen.PngBasePaths;
-import org.xper.allen.nafc.blockgen.RandDistractorPNGGenerator;
-import org.xper.allen.nafc.blockgen.StimObjIdAssignerForPsychometricTrials;
+import org.xper.allen.nafc.blockgen.PNGDrawer;
 import org.xper.allen.nafc.blockgen.StimObjIdsForMixedPsychometricAndRand;
 import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.nafc.blockgen.rand.NAFCStimObjDataWriter;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.nafc.vo.NoiseParameters;
@@ -36,11 +39,11 @@ public class PsychometricTrial implements Trial{
 	/**
 	 * Inputs
 	 */
-	AbstractPsychometricTrialGenerator generator;
-	NumberOfDistractors numDistractors;
-	PsychometricIds psychometricIds;
-	double[] noiseChance;
-	NoisyTrialParameters trialParameters;
+	private AbstractPsychometricTrialGenerator generator;
+	private NumberOfDistractors numDistractors;
+	private PsychometricIds psychometricIds;
+	private double[] noiseChance;
+	private NoisyTrialParameters trialParameters;
 	
 	public PsychometricTrial(
 			AbstractPsychometricTrialGenerator noisyMStickPngPsychometricBlockGen,
@@ -63,15 +66,15 @@ public class PsychometricTrial implements Trial{
 	 * Private instance vars
 	 */
 	private AllenDbUtil dbUtil;
-	int numChoices;
-	String noiseMapPath;
+	private int numChoices;
+	private String noiseMapPath;
 	private Long taskId;
-	NAFCCoordinates coords;
-	NAFCPaths pngPaths;
-	NAFCPaths specPaths;
-	NAFCMStickSpecs mStickSpecs = new NAFCMStickSpecs();
-	NAFCMatchSticks matchSticks = new NAFCMatchSticks();
-	StimObjIdsForMixedPsychometricAndRand stimObjIds;
+	private Psychometric<Coordinates2D> coords;
+	private Psychometric<String> pngPaths;
+	private Psychometric<String> specPaths;
+	private Psychometric<AllenMStickSpec> mStickSpecs = new Psychometric<AllenMStickSpec>();
+	private Psychometric<AllenMatchStick> matchSticks = new Psychometric<AllenMatchStick>();;
+	private Psychometric<Long> stimObjIds;
 
 	
 	/**
@@ -97,6 +100,7 @@ public class PsychometricTrial implements Trial{
 		loadMSticks();
 		generateNoiseMap();
 		generateRandDistractors();
+		drawRandDistractorsPNGs();
 		assignCoords();
 		writeStimObjDataSpecs();
 		assignTaskId();
@@ -111,60 +115,71 @@ public class PsychometricTrial implements Trial{
 	}
 
 	private void loadMSticks() {
-		NAFCAllenMatchStickFetcher fetcher = new NAFCAllenMatchStickFetcher(generator, specPaths);
+		PsychometricMStickFetcher fetcher = new PsychometricMStickFetcher(generator, specPaths);
 		mStickSpecs = fetcher.getmStickSpecs();
-		matchSticks = fetcher.getMatchSticks();
+		this.matchSticks = fetcher.getMatchSticks();
 	}
 
 	private void generateNoiseMap() {
 		PsychometricNoiseMapGenerator psychometricNoiseMapGenerator = 
 				new PsychometricNoiseMapGenerator(
-						matchSticks.getSampleMStick(),
+						matchSticks.getSample(),
 						psychometricIds,
 						generator,
 						noiseChance,
-						stimObjIds.getSampleId(),
+						stimObjIds.getSample(),
 						trialParameters.getNoiseParameters());
 		noiseMapPath = psychometricNoiseMapGenerator.getNoiseMapPath();
 	}
 
-	List<String> randDistractorsPngPaths;
-	List<AllenMatchStick> objs_randDistractors;
+	
+	List<AllenMatchStick> objs_randDistractors = new LinkedList<AllenMatchStick>();
 
 	private void generateRandDistractors() {
-		RandDistractorPNGGenerator randDistractorPNGGenerator = new RandDistractorPNGGenerator(numDistractors, generator, stimObjIds.getRandDistractorsIds(), pngPaths.distractorsPaths);
-		randDistractorPNGGenerator.genRandDistractors();
-		randDistractorsPngPaths = randDistractorPNGGenerator.getRandDistractorsPngPaths();
+		for(int i=0; i<numDistractors.numRandDistractors; i++) {
+			RandMStickGenerator randGenerator = new RandMStickGenerator(generator);
+			matchSticks.addRandDistractor(randGenerator.getMStick());
+			mStickSpecs.addRandDistractor(randGenerator.getMStickSpec());
+		}
+	}
+	
 
-		pngPaths.addToDistractors(randDistractorsPngPaths);
-		objs_randDistractors = randDistractorPNGGenerator.getObjs_randDistractor();
+	private void drawRandDistractorsPNGs() {
+		List<String> randDistractorLabels = Arrays.asList(new String[] {"Rand Distractor"});
+		int indx=0;
+		for (AllenMatchStick obj: matchSticks.getRandDistractors()) {
+			String path = generator.getPngMaker().createAndSavePNG(obj, stimObjIds.getRandDistractors().get(indx), randDistractorLabels, generator.getGeneratorPngPath());
+			generator.convertPathToExperiment(path);
+			pngPaths.addRandDistractor(path);
+			
+		}
 	}
 
 	private void assignCoords() {
-		NAFCCoordinateAssigner coordAssigner = new NAFCCoordinateAssigner(
+		NAFCCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
-				numChoices);
+				numDistractors);
 		
 
 		coords = coordAssigner.getCoords();
 	}
 
 	private void writeStimObjDataSpecs() {
-		PsychometricStimObjSpecWriter stimObjSpecWriter = new PsychometricStimObjSpecWriter(
+		PsychometricStimObjDataWriter stimObjDataWriter = new PsychometricStimObjDataWriter(
 				numChoices,
 				pngPaths,
-				stimObjIds,
 				noiseMapPath,
 				dbUtil,
 				mStickSpecs,
 				trialParameters,
-				coords);
+				coords,
+				stimObjIds);
 
-		stimObjSpecWriter.writeStimObjId();
+		stimObjDataWriter.writeStimObjId();
 	}
 
 	private void assignTaskId() {
-		setTaskId(stimObjIds.getSampleId());
+		setTaskId(stimObjIds.getSample());
 	}
 	
 	private void writeStimSpec() {
@@ -183,32 +198,40 @@ public class PsychometricTrial implements Trial{
 		return taskId;
 	}
 
-	public void setTaskId(Long taskId) {
+	private void setTaskId(Long taskId) {
 		this.taskId = taskId;
 	}
 
-	public AbstractPsychometricTrialGenerator getGen() {
+	public AbstractPsychometricTrialGenerator getGenerator() {
 		return generator;
 	}
 
-	public void setGen(AbstractPsychometricTrialGenerator gen) {
-		this.generator = gen;
+
+	public NumberOfDistractors getNumDistractors() {
+		return numDistractors;
+	}
+
+
+	public PsychometricIds getPsychometricIds() {
+		return psychometricIds;
+	}
+
+	public double[] getNoiseChance() {
+		return noiseChance;
+	}
+
+
+	public NoisyTrialParameters getTrialParameters() {
+		return trialParameters;
 	}
 
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;
 	}
 
-	public void setDbUtil(AllenDbUtil dbUtil) {
-		this.dbUtil = dbUtil;
-	}
 
 	public int getNumChoices() {
 		return numChoices;
-	}
-
-	public void setNumChoices(int numChoices) {
-		this.numChoices = numChoices;
 	}
 
 
@@ -216,33 +239,29 @@ public class PsychometricTrial implements Trial{
 		return noiseMapPath;
 	}
 
-	public void setNoiseMapPath(String noiseMapPath) {
-		this.noiseMapPath = noiseMapPath;
+
+	public Psychometric<Coordinates2D> getCoords() {
+		return coords;
 	}
 
-	public AllenMStickSpec getSampleMStickSpec() {
-		return mStickSpecs.getSampleMStickSpec();
+	public Psychometric<String> getPngPaths() {
+		return pngPaths;
 	}
 
-	public void setSampleMStickSpec(AllenMStickSpec sampleMStickSpec) {
-		this.mStickSpecs.setSampleMStickSpec(sampleMStickSpec);
+
+	public Psychometric<String> getSpecPaths() {
+		return specPaths;
 	}
 
-	public AllenMStickSpec getMatchMStickSpec() {
-		return mStickSpecs.getMatchMStickSpec();
+
+
+	public Psychometric<Long> getStimObjIds() {
+		return stimObjIds;
 	}
 
-	public void setMatchMStickSpec(AllenMStickSpec matchMStickSpec) {
-		this.mStickSpecs.setMatchMStickSpec(matchMStickSpec);
-	}
 
-	public List<AllenMStickSpec> getDistractorsMStickSpecs() {
-		return mStickSpecs.getDistractorsMStickSpecs();
-	}
 
-	public void setDistractorsMStickSpecs(List<AllenMStickSpec> distractorsMStickSpecs) {
-		this.mStickSpecs.setDistractorsMStickSpecs(distractorsMStickSpecs);
-	}
+
 
 
 

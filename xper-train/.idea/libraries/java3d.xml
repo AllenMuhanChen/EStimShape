@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="java3d">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/xper-3d/lib/java3d" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://$PROJECT_DIR$/xper-3d/lib/java3d" recursive="false" />
+  </library>
+</component>

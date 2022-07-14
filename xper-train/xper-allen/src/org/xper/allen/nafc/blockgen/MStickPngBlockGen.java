@@ -31,6 +31,8 @@ import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 import org.xper.utils.RGBColor;
 
+import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWithinRadii;
+
 /**
  * Generate MSticks, convert to Png. 
  * @author r2_allen

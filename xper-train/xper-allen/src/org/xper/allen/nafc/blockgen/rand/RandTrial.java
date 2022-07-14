@@ -2,14 +2,18 @@ package org.xper.allen.nafc.blockgen.rand;
 
 import java.util.List;
 
+import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.NAFCMatchSticks;
+import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
 import org.xper.allen.nafc.blockgen.NAFCCoordinates;
 import org.xper.allen.nafc.blockgen.NAFCPaths;
 import org.xper.allen.nafc.blockgen.Trial;
-import org.xper.allen.nafc.blockgen.psychometric.NAFCCoordinateAssigner;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricCoordinateAssigner;
+import org.xper.allen.nafc.blockgen.psychometric.Psychometric;
 import org.xper.allen.util.AllenDbUtil;
+import org.xper.drawing.Coordinates2D;
 
 public class RandTrial implements Trial{
 	
@@ -27,13 +31,14 @@ public class RandTrial implements Trial{
 
 	//Private instance fields
 	private AllenDbUtil dbUtil;
-	private NAFCMatchSticks mSticks = new NAFCMatchSticks();
-	private NAFCCoordinates coords;
-	private NAFCPaths pngPaths;
+	private Psychometric<AllenMatchStick> mSticks = new Psychometric<AllenMatchStick>();
+	private Psychometric<AllenMStickSpec> mStickSpecs = new Psychometric<AllenMStickSpec>();
+	private Psychometric<Coordinates2D> coords;
+	private Psychometric<String> pngPaths;
 	private Long taskId;
 	private String noiseMapPath;
 	private List<String> noiseMapLabels;
-	private StimObjIdsForRandTrial stimObjIds = new StimObjIdsForRandTrial();
+	private Psychometric<Long> stimObjIds = new Psychometric<Long>();
 	
 	
 	@Override
@@ -46,6 +51,7 @@ public class RandTrial implements Trial{
 	public void write() {
 		assignStimObjIds();
 		generateMatchSticks();
+		drawPNGs();
 		generateNoiseMap();
 		assignCoords();
 		writeStimObjDataSpecs();
@@ -61,7 +67,8 @@ public class RandTrial implements Trial{
 	
 	private void generateMatchSticks() {
 		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator, trialParameters);
-		mSticks = mStickGenerator.getNAFCMatchSticks();
+		mSticks = mStickGenerator.getNAFCMSticks();
+		mStickSpecs = mStickGenerator.getNAFCMStickSpecs();
 	}
 	
 	private void generateNoiseMap() {
@@ -70,16 +77,38 @@ public class RandTrial implements Trial{
 	}
 	
 	private void assignCoords() {
-		NAFCCoordinateAssigner coordAssigner = new NAFCCoordinateAssigner(
+		NAFCCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
 				trialParameters.getNumChoices());
 		
 
 		coords = coordAssigner.getCoords();
 	}
+	
+	private void writeStimObjDataSpecs() {
+		RandTrialStimObjDataWriter stimObjDataWriter = new RandTrialStimObjDataWriter(
+				trialParameters.getNumChoices(),
+				pngPaths,
+				noiseMapPath,
+				dbUtil,
+				mStickSpecs,
+				trialParameters,
+				coords,
+				stimObjIds);
+		stimObjDataWriter.writeStimObjId();
+	}
+	
+	private void assignTaskId() {
+		setTaskId(stimObjIds.getSampleId());
+	}
+	
 	@Override
 	public Long getTaskId() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	public void setTaskId(Long taskId) {
+		this.taskId = taskId;
 	}
 }

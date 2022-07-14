@@ -35,6 +35,47 @@ import org.xper.drawing.stick.stickMath_lib;
  */
 public class AllenMatchStick extends MatchStick {
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		AllenMatchStick other = (AllenMatchStick) obj;
+		if (!Arrays.equals(JuncPt, other.JuncPt))
+			return false;
+		if (!Arrays.equals(LeafBranch, other.LeafBranch))
+			return false;
+		if (baseComp != other.baseComp)
+			return false;
+		if (!Arrays.equals(comp, other.comp))
+			return false;
+		if (!Arrays.equals(endPt, other.endPt))
+			return false;
+		if (nEndPt != other.nEndPt)
+			return false;
+		if (nJuncPt != other.nJuncPt)
+			return false;
+		if (obj1 == null) {
+			if (other.obj1 != null)
+				return false;
+		} else if (!obj1.equals(other.obj1))
+			return false;
+		if (specialEnd == null) {
+			if (other.specialEnd != null)
+				return false;
+		} else if (!specialEnd.equals(other.specialEnd))
+			return false;
+		if (specialEndComp == null) {
+			if (other.specialEndComp != null)
+				return false;
+		} else if (!specialEndComp.equals(other.specialEndComp))
+			return false;
+		return true;
+	}
+
 	public static final double MAX_LEAF_TO_BASE_AREA_RATIO = 0.66;
 	public static final double MIN_LEAF_TO_BASE_AREA_RATIO = 0.2;
 	private AllenTubeComp[] comp = new AllenTubeComp[9];
@@ -3102,6 +3143,8 @@ Adding a new MAxisArc to a MatchStick
 		for (i=1; i<=getnComponent(); i++)
 			LeafBranch[i] = in.LeafBranch[i];
 	}
+	
+
 
 	public void genMatchStickFromFile(String fname, double[] rotation) {
 		String in_specStr;

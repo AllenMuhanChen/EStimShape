@@ -19,7 +19,6 @@ public class NAFCMStickSpecs {
 		this.distractorsMStickSpecs.add(spec);
 	}
 
-
 	public AllenMStickSpec getSampleMStickSpec() {
 		return sampleMStickSpec;
 	}

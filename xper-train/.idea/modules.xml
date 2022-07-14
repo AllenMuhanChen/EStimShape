@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/xper/xper.iml" filepath="$PROJECT_DIR$/xper/xper.iml" />
+      <module fileurl="file://$PROJECT_DIR$/xper-3d/xper-3d.iml" filepath="$PROJECT_DIR$/xper-3d/xper-3d.iml" />
+      <module fileurl="file://$PROJECT_DIR$/xper-allen/xper-allen.iml" filepath="$PROJECT_DIR$/xper-allen/xper-allen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/xper-example/xper-example.iml" filepath="$PROJECT_DIR$/xper-example/xper-example.iml" />
+      <module fileurl="file://$PROJECT_DIR$/xper-native/xper-native.iml" filepath="$PROJECT_DIR$/xper-native/xper-native.iml" />
+    </modules>
+  </component>
+</project>
