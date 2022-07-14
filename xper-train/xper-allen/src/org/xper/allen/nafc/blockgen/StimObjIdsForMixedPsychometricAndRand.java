@@ -16,6 +16,7 @@ public class StimObjIdsForMixedPsychometricAndRand implements StimObjIds {
 		this.randDistractorsIds = randDistractorsIds;
 	}
 
+	@Override
 	public Long getSampleId() {
 		return sampleId;
 	}
@@ -24,6 +25,7 @@ public class StimObjIdsForMixedPsychometricAndRand implements StimObjIds {
 		this.sampleId = sampleId;
 	}
 
+	@Override
 	public Long getMatchId() {
 		return matchId;
 	}
@@ -32,6 +34,7 @@ public class StimObjIdsForMixedPsychometricAndRand implements StimObjIds {
 		this.matchId = matchId;
 	}
 
+	@Override
 	public List<Long> getAllDistractorsIds() {
 		return allDistractorsIds;
 	}

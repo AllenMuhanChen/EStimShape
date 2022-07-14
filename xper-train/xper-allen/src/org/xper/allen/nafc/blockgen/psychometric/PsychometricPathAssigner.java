@@ -24,8 +24,8 @@ public class PsychometricPathAssigner{
 		return new PsychometricPathAssigner(psychometricIds, numPsychometricDistractors, basePaths);
 	}
 	
-	NAFCPaths pngPaths;
-	static public PsychometricPathAssigner createWithExistingNAFCPngPathsObj(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, NAFCPaths pngPaths) {
+	Psychometric<String> pngPaths;
+	static public PsychometricPathAssigner createWithExistingNAFCPngPathsObj(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, Psychometric<String> pngPaths) {
 		return new PsychometricPathAssigner(psychometricIds, numPsychometricDistractors, basePaths, pngPaths);
 	}
 	
@@ -33,10 +33,10 @@ public class PsychometricPathAssigner{
 		this.psychometricIds = psychometricIds;
 		this.numPsychometricDistractors = numPsychometricDistractors;
 		this.basePaths = basePaths;
-		this.pngPaths = new NAFCPaths();
+		this.pngPaths = new Psychometric<String>();
 	}
 	
-	private PsychometricPathAssigner(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, NAFCPaths pngPaths) {
+	private PsychometricPathAssigner(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, Psychometric<String> pngPaths) {
 		this.psychometricIds = psychometricIds;
 		this.numPsychometricDistractors = numPsychometricDistractors;
 		this.basePaths = basePaths;
@@ -74,11 +74,11 @@ public class PsychometricPathAssigner{
 	
 
 	private void assignPngPaths() {
-		pngPaths.samplePath = convertPathToExperiment(basePaths.generatorPngPath + "/" + sampleSetId + "_" + sampleStimId + ".png");
-		pngPaths.matchPath = pngPaths.samplePath;
+		pngPaths.setSample(convertPathToExperiment(basePaths.generatorPngPath + "/" + sampleSetId + "_" + sampleStimId + ".png"));
+		pngPaths.setMatch(pngPaths.getSample());
 		for (int remainingStimId:distractorsStimIds) {
 			int index = distractorsStimIds.indexOf(remainingStimId);
-			pngPaths.distractorsPaths.add(convertPathToExperiment(basePaths.generatorPngPath + "/" + distractorsSetId+ "_" + remainingStimId + ".png"));
+			pngPaths.addPsychometricDistractor(convertPathToExperiment(basePaths.generatorPngPath + "/" + distractorsSetId+ "_" + remainingStimId + ".png"));
 		}
 	}
 	
@@ -89,30 +89,26 @@ public class PsychometricPathAssigner{
 		return newPath;
 	}
 
-	NAFCPaths specPaths = new NAFCPaths();
+	Psychometric<String> specPaths = new Psychometric<String>();
 
 	private void assignSpecPaths() {
-		specPaths.setSamplePath(basePaths.specPath + "/" + sampleSetId + "_" + sampleStimId + "_spec.xml");
-		specPaths.setMatchPath(basePaths.specPath + "/" + matchSetId + "_" + matchStimId + "_spec.xml");
+		specPaths.setSample(basePaths.specPath + "/" + sampleSetId + "_" + sampleStimId + "_spec.xml");
+		specPaths.setMatch(basePaths.specPath + "/" + matchSetId + "_" + matchStimId + "_spec.xml");
 		for (Integer stimId : distractorsStimIds) {
 			String pathOfDistractorWithStimId = basePaths.specPath + "/" + distractorsSetId + "_" + stimId + "_spec.xml";
-			specPaths.getDistractorsPaths().add(pathOfDistractorWithStimId);
+			specPaths.addPsychometricDistractor(pathOfDistractorWithStimId);
 		}
 	}
 	
 
-
-	public NAFCPaths getPngPaths() {
+	public Psychometric<String> getPngPaths() {
 		return pngPaths;
 	}
 
-	public NAFCPaths getSpecPaths() {
+	public Psychometric<String> getSpecPaths() {
 		return specPaths;
 	}
 
-	public void setSpecPaths(NAFCPaths specPaths) {
-		this.specPaths = specPaths;
-	}
 
 
 

@@ -111,10 +111,6 @@ public class NoisyPngSpec {
 		return pngPath;
 	}
 
-	public void setPngPath(String pngPath) {
-		this.pngPath = pngPath;
-	}
-
 	public String getNoiseMapPath() {
 		return noiseMapPath;
 	}

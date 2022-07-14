@@ -1,23 +1,23 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NAFCCoordinates;
+import org.xper.allen.nafc.blockgen.NAFCMStickSpecs;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.NAFCCoordinateAssigner;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.nafc.vo.NoiseForm;
 import org.xper.allen.nafc.vo.NoiseParameters;
@@ -135,6 +135,25 @@ public class RandTrialTest {
 		assertTrue(mStick.getSpecialEnd().size()>0);
 	}
 
+	@Test
+	public void mSticks_have_specs_generated() { //TODO: needs to be improved
+		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(
+				generator,
+				trialParameters);
+
+		NAFCMStickSpecs mStickSpecs = mStickGenerator.getNAFCMStickSpecs();
+		
+		AllenMStickSpec sampleSpec = mStickSpecs.getSampleMStickSpec();
+		AllenMStickSpec testSpec = AllenMStickSpec.fromXml(sampleSpec.toXml());
+		assertNotNull(testSpec);
+//		AllenMatchStick mStick = new AllenMatchStick();
+//		generator.setProperties(mStick);
+//		mStick.genMatchStickFromShapeSpec(sampleSpec, new double[] {0,0});
+//		
+//		assertEquals(mStick, mStickGenerator.getSample());
+		
+	}
+	
 	@Test 
 	public void mSticks_generate_noiseMaps() {
 		//Arrange
@@ -146,7 +165,7 @@ public class RandTrialTest {
 		AllenMatchStick mStick = mStickGenerator.getSample();
 		NoiseParameters noiseParameters = new NoiseParameters(new NoiseForm(noiseType, new double[] {0,0.8}), noiseChance);
 		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(id, mStick, noiseParameters, generator);
-		
+		generator.getPngMaker().close();
 		
 		//Act
 		String path = noiseMapGenerator.getNoiseMapPath();
@@ -159,11 +178,15 @@ public class RandTrialTest {
 	@Test
 	public void coords_are_radially_spaced() {
 		NAFCCoordinateAssigner coordAssigner = new NAFCCoordinateAssigner(trialParameters.getSampleDistanceLims(), trialParameters.getNumChoices());
-	
 		
 		NAFCCoordinates coords = coordAssigner.getCoords();
 		
-		
+		coords_have_same_distance_from_origin(coords);
+
+	}
+
+
+	private void coords_have_same_distance_from_origin(NAFCCoordinates coords) {
 		Coordinates2D origin = new Coordinates2D(0,0);
 		List<Coordinates2D> choices = new LinkedList<Coordinates2D>();
 		choices.add(coords.getMatchCoords());
@@ -175,7 +198,23 @@ public class RandTrialTest {
 		}
 		
 		assertTrue(Collections.frequency(radii, radii.get(0)) == radii.size());
-
 	}
+	
+	
+//	@Test
+//	public void
+//	@Test
+//	public void stim_obj_data() {
+//		RandTrialStimObjDataWriter stimObjDataWriter = new RandTrialStimObjDataWriter(
+//				trialParameters.getNumChoices(),
+//				pngPaths,
+//				noiseMapPath,
+//				dbUtil,
+//				mStickSpecs,
+//				trialParameters,
+//				coords,
+//				stimObjIds);
+//		stimObjDataWriter.writeStimObjId();
+//	}
 
 }

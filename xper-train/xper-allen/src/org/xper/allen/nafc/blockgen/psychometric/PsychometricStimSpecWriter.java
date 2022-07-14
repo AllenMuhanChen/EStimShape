@@ -3,8 +3,6 @@ package org.xper.allen.nafc.blockgen.psychometric;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.xper.allen.nafc.blockgen.NAFCCoordinates;
-import org.xper.allen.nafc.blockgen.StimObjIdsForMixedPsychometricAndRand;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
@@ -15,13 +13,13 @@ public class PsychometricStimSpecWriter {
 	Long taskId;
 	AllenDbUtil dbUtil;
 	NoisyTrialParameters trialParameters; //input
-	NAFCCoordinates coords;
+	Psychometric<Coordinates2D> coords;
 	int numChoices;
-	StimObjIdsForMixedPsychometricAndRand stimObjIds;
+	Psychometric<Long> stimObjIds;
 
 	public PsychometricStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
-			NoisyTrialParameters trialParameters, NAFCCoordinates coords, int numChoices,
-			StimObjIdsForMixedPsychometricAndRand stimObjIds) {
+			NoisyTrialParameters trialParameters, Psychometric<Coordinates2D> coords, int numChoices,
+			Psychometric<Long> stimObjIds) {
 		super();
 		this.taskId = taskId;
 		this.dbUtil = dbUtil;
@@ -47,8 +45,8 @@ public class PsychometricStimSpecWriter {
 	}
 
 	private void assignEyeWindowCoordinates() {
-		targetEyeWinCoords.add(coords.getMatchCoords());
-		targetEyeWinCoords.addAll(coords.getDistractorCoords());
+		targetEyeWinCoords.add(coords.getMatch());
+		targetEyeWinCoords.addAll(coords.getAllDistractors());
 	}
 
 	private void assignTargetEyeWindowSizes() {
@@ -70,9 +68,9 @@ public class PsychometricStimSpecWriter {
 	 */
 	private void assignChoiceIds() {
 		choiceIds = new long[numChoices];
-		choiceIds[0] = stimObjIds.getMatchId();
-		for (int distractorIdIndx=0; distractorIdIndx<stimObjIds.getAllDistractorsIds().size(); distractorIdIndx++) {
-			choiceIds[distractorIdIndx+1] = stimObjIds.getAllDistractorsIds().get(distractorIdIndx);
+		choiceIds[0] = stimObjIds.getMatch();
+		for (int distractorIdIndx=0; distractorIdIndx<stimObjIds.getAllDistractors().size(); distractorIdIndx++) {
+			choiceIds[distractorIdIndx+1] = stimObjIds.getAllDistractors().get(distractorIdIndx);
 		}
 	}
 	
@@ -80,7 +78,7 @@ public class PsychometricStimSpecWriter {
 		NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(
 				targetEyeWinCoords.toArray(new Coordinates2D[0]),
 				targetEyeWinSizes,
-				stimObjIds.getSampleId(),
+				stimObjIds.getSample(),
 				choiceIds,
 				eStimObjData,
 				rewardPolicy,

@@ -4,10 +4,9 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.allen.drawing.composition.AbstractMStickGenerator;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.FromRandLeafMStickGenerator;
-import org.xper.allen.drawing.composition.MStickGenerationException;
-import org.xper.allen.drawing.composition.MStickGenerator;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphMStickGenerator;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
@@ -16,7 +15,8 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphMSti
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.NAFCMatchSticks;
+import org.xper.allen.nafc.blockgen.NAFCMStickSpecs;
+import org.xper.allen.nafc.blockgen.NAFCMSticks;
 
 public class MStickGeneratorForRandTrials {
 	private AbstractMStickPngTrialGenerator generator;
@@ -139,8 +139,8 @@ public class MStickGeneratorForRandTrials {
 	}
 
 	
-	public NAFCMatchSticks getNAFCMatchSticks() {
-		NAFCMatchSticks matchSticks = new NAFCMatchSticks();
+	public NAFCMSticks getNAFCMSticks() {
+		NAFCMSticks matchSticks = new NAFCMSticks();
 		matchSticks.setSampleMStick(sample);
 		matchSticks.setMatchMStick(match);
 		List<AllenMatchStick> distractors = new LinkedList<AllenMatchStick>();
@@ -148,6 +148,25 @@ public class MStickGeneratorForRandTrials {
 		distractors.addAll(randDistractors);
 		return matchSticks;
 		
+	}
+	
+	public NAFCMStickSpecs getNAFCMStickSpecs() {
+		NAFCMStickSpecs specs = new NAFCMStickSpecs();
+		specs.setSampleMStickSpec(mStickToSpec(sample));
+		specs.setMatchMStickSpec(mStickToSpec(match));
+		for (AllenMatchStick qmDistractor: qualitativeMorphDistractors) {
+			specs.getDistractorsMStickSpecs().add(mStickToSpec(qmDistractor));
+		}
+		for (AllenMatchStick randDistractor: randDistractors) {
+			specs.getDistractorsMStickSpecs().add(mStickToSpec(randDistractor));
+		}
+		return specs;
+	}
+	
+	private AllenMStickSpec mStickToSpec(AllenMatchStick mStick) {
+		AllenMStickSpec spec = new AllenMStickSpec();
+		spec.setMStickInfo(mStick);
+		return spec;
 	}
 
 

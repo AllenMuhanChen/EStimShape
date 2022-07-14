@@ -4,8 +4,10 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 public class RandMStickGenerator extends AbstractMStickGenerator{
 
+
 	public RandMStickGenerator(AbstractMStickPngTrialGenerator generator) {
 		super(generator);
+		setMaxAttempts(100);
 		makeAttemptsToGenerate();
 	}
 
