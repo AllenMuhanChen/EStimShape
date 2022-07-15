@@ -1,5 +1,7 @@
 package org.xper.drawing;
 
+import java.util.Objects;
+
 public class Coordinates2D {
 	double x;
 	double y;
@@ -21,7 +23,21 @@ public class Coordinates2D {
 		this.x = x;
 		this.y = y;
 	}
-	public Coordinates2D() {	
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		Coordinates2D that = (Coordinates2D) o;
+		return Double.compare(that.getX(), getX()) == 0 && Double.compare(that.getY(), getY()) == 0;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getX(), getY());
+	}
+
+	public Coordinates2D() {
 	}
 	
 	public String toString() {

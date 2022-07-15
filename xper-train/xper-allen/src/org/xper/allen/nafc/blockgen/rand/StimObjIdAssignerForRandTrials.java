@@ -22,13 +22,11 @@ public class StimObjIdAssignerForRandTrials{
 		stimObjIds.setMatch(stimObjIds.getSample()+1);
 		long prevId = stimObjIds.getMatch();
 		for (int j=0; j<numDistractors.getNumQMDistractors();j++) {
-			stimObjIds.getAllDistractors().add(prevId+1);
-			stimObjIds.getQualitativeMorphDistractors().add(prevId+1);
+			stimObjIds.addQualitativeMorphDistractor(prevId+1);
 			prevId++;
 		}
 		for (int j=0; j<numDistractors.getNumRandDistractors();j++) {
-			stimObjIds.getAllDistractors().add(prevId+1);
-			stimObjIds.getRandDistractors().add(prevId+1);
+			stimObjIds.addRandDistractor(prevId+1);
 			prevId++;
 		}
 	}

@@ -5,8 +5,8 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 public class RandMStickGenerator extends AbstractMStickGenerator{
 
 
-	public RandMStickGenerator(AbstractMStickPngTrialGenerator generator) {
-		super(generator);
+	public RandMStickGenerator(double maxImageDimensinDegrees) {
+		super(maxImageDimensinDegrees);
 		setMaxAttempts(100);
 		makeAttemptsToGenerate();
 	}
@@ -14,7 +14,7 @@ public class RandMStickGenerator extends AbstractMStickGenerator{
 	@Override
 	protected void attemptToGenerate() {
 		mStick = new AllenMatchStick();
-		generator.setProperties(mStick);
+		mStick.setProperties(maxImageDimensionDegrees);
 		mStick.genMatchStickRand();
 	}
 

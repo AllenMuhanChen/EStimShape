@@ -23,6 +23,7 @@ public class RandTrial implements Trial{
 		super();
 		this.generator = generator;
 		this.trialParameters = trialParameters;
+		this.dbUtil = generator.getDbUtil();
 	}
 
 	//Private instance fields
@@ -58,7 +59,7 @@ public class RandTrial implements Trial{
 	}
 	
 	private void generateMatchSticks() {
-		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator, trialParameters);
+		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator.getMaxImageDimensionDegrees(), trialParameters, generator.getMmpGenerator(), generator.getQmpGenerator());
 		mSticks = mStickGenerator.getmSticks();
 		mStickSpecs = mStickGenerator.getmStickSpecs();
 	}
@@ -76,14 +77,14 @@ public class RandTrial implements Trial{
 
 	private void generateNoiseMap() {
 		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(stimObjIds.getSample(), mSticks.getSample(), trialParameters.getNoiseParameters(), generator);
-		noiseMapGenerator.getNoiseMapPath();
+		noiseMapPath = noiseMapGenerator.getNoiseMapPath();
 	}
 	
 	private void assignCoords() {
 		RandTrialCoordinateAssigner coordAssigner = new RandTrialCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
-				trialParameters.getNumDistractors());
-		
+				trialParameters.getNumDistractors(),
+				trialParameters.getChoiceDistanceLims());
 
 		coords = coordAssigner.getCoords();
 	}
@@ -118,8 +119,7 @@ public class RandTrial implements Trial{
 	}
 	@Override
 	public Long getTaskId() {
-		// TODO Auto-generated method stub
-		return null;
+		return taskId;
 	}
 	
 	public void setTaskId(Long taskId) {

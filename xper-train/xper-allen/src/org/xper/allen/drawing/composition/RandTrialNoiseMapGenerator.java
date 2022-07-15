@@ -34,7 +34,9 @@ public class RandTrialNoiseMapGenerator extends NoiseMapGenerator {
 	protected void generateNoiseMap() {
 		List<String> noiseMapLabels = new LinkedList<String>();
 		noiseMapLabels.add("sample");
+		generator.getPngMaker().createDrawerWindow();
 		String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPngPath());
+		generator.getPngMaker().close();
 		noiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
 	}
 }

@@ -4,13 +4,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.Dependency;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
-import org.xper.utils.RGBColor;
 
 public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGenerator {
 
@@ -27,7 +25,7 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 	@Dependency
 	protected AllenPNGMaker pngMaker;
 	@Dependency
-	protected double maxImageDimensionDegrees;
+	private double maxImageDimensionDegrees;
 	@Dependency
 	QualitativeMorphParameterGenerator qmpGenerator;
 	@Dependency
@@ -35,35 +33,6 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 	
 	public AbstractMStickPngTrialGenerator() {
 		super();
-	}
-
-	/**
-	 * It is imperative that these properties are set before the object is generated/is smoothized.
-	 * @param obj
-	 */
-	public void setProperties(AllenMatchStick obj) {
-		//OBJECT PROPERTIES
-		//SETTING SIZES 
-		/**
-		 * With this strategy of scale setting, we set our maxImageDimensionDegrees to
-		 * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
-		 * to be approx half the size. 
-		 */
-		double scale = maxImageDimensionDegrees/1.5;
-		double minScale = maxImageDimensionDegrees/2.5;
-		obj.setScale(minScale, scale);
-	
-		//CONTRAST
-		double contrast = 1;
-		obj.setContrast(contrast);
-	
-		//COLOR
-		RGBColor white = new RGBColor(1,1,1);
-		obj.setStimColor(white);
-	
-		//TEXTURE
-		obj.setTextureType("SHADE");
-	
 	}
 
 	public List<String> convertPathsToExperiment(List<String> generatorPaths) {

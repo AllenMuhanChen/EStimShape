@@ -1,25 +1,21 @@
 package org.xper.allen.drawing.composition;
 
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-
 public abstract class AbstractMStickGenerator{
 
 	private static int maxAttempts = 5;
-	
-	protected AbstractMStickPngTrialGenerator generator;
-	
+
 	protected boolean successful;
 	protected AllenMatchStick mStick = new AllenMatchStick();
 	protected AllenMStickSpec mStickSpec = new AllenMStickSpec();
+	protected double maxImageDimensionDegrees;
+
+	public AbstractMStickGenerator(double maxImageDimensionDegrees) {
+		super();
+		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
+	}
 
 	public AbstractMStickGenerator() {
 		super();
-		
-	}
-
-	public AbstractMStickGenerator(AbstractMStickPngTrialGenerator generator) {
-		super();
-		this.generator = generator;
 	}
 
 	protected void makeAttemptsToGenerate() {

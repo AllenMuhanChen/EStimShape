@@ -10,24 +10,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.xper.Dependency;
-import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
-import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseChances;
 import org.xper.allen.nafc.blockgen.SampleDistance;
 import org.xper.allen.nafc.blockgen.Trial;
-import org.xper.allen.nafc.experiment.RewardPolicy;
-import org.xper.allen.nafc.vo.MStickStimObjData;
-import org.xper.allen.nafc.vo.NoiseParameters;
-import org.xper.allen.nafc.vo.NoiseType;
-import org.xper.allen.specs.NAFCStimSpecSpec;
-import org.xper.allen.specs.NoisyPngSpec;
-import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 
 public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
@@ -74,7 +64,7 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 			for(int b=0; b<restObjSuccess.length; b++) restObjSuccess[b]=false;
 			boolean restOfObjsSuccess = false;
 
-			setProperties(objs_base);
+			objs_base.setProperties(this.getMaxImageDimensionDegrees());
 
 			//LEAF
 			int randomLeaf=-1;
@@ -103,7 +93,7 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 			int nTries_obj = 0;
 			while(nTries_obj<maxAttemptsPerObj) {
 				//				System.out.println("In Obj " + 0 + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
-				setProperties(objs.get(0));
+				objs.get(0).setProperties(this.getMaxImageDimensionDegrees());
 				firstObjSuccess = objs.get(0).genMatchStickFromLeaf(randomLeaf, objs_base);
 				if(!firstObjSuccess){
 					objs.set(0, new AllenMatchStick());
@@ -122,7 +112,7 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 					while(nTries_obj<maxAttemptsPerObj) {
 						//						System.out.println("In Obj " + i + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
 						try {
-							setProperties(objs.get(i));
+							objs.get(i).setProperties(this.getMaxImageDimensionDegrees());
 							if(stimTypes.get(i)==StimType.QM)
 								restObjSuccess[i-1] = objs.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs.get(0), qmps.get(i-1));
 							else {

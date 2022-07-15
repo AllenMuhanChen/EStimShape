@@ -119,7 +119,7 @@ public class PsychometricTrial implements Trial{
 
 	private void generateRandDistractors() {
 		for(int i=0; i<numDistractors.numRandDistractors; i++) {
-			RandMStickGenerator randGenerator = new RandMStickGenerator(generator);
+			RandMStickGenerator randGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
 			matchSticks.addRandDistractor(randGenerator.getMStick());
 			mStickSpecs.addRandDistractor(randGenerator.getMStickSpec());
 		}
@@ -140,7 +140,7 @@ public class PsychometricTrial implements Trial{
 	private void assignCoords() {
 		PsychometricCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
-				numDistractors);
+				numDistractors, trialParameters.getChoiceDistanceLims());
 		
 
 		coords = coordAssigner.getCoords();

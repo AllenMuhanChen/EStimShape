@@ -2,18 +2,22 @@ package org.xper.allen.nafc.blockgen;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.xper.allen.nafc.blockgen.psychometric.Psychometric;
 import org.xper.drawing.Coordinates2D;
 
 public abstract class NAFCCoordinateAssigner{
 	
 	int numChoices;
 //	private NAFC<Coordinates2D> coords;
+protected Lims sampleDistanceLims;
+	protected DistancedDistractorsUtil ddUtil;
+	protected Lims choiceDistanceLims;
 
-	public NAFCCoordinateAssigner(int numChoices, Lims sampleDistanceLims) {
+	public NAFCCoordinateAssigner(int numChoices, Lims sampleDistanceLims, Lims choiceDistanceLims) {
 		super();
 		this.numChoices = numChoices;
 		this.sampleDistanceLims = sampleDistanceLims;
+		this.choiceDistanceLims = choiceDistanceLims;
+
 	}
 
 	protected static double inclusiveRandomDouble(double val1, double val2) {
@@ -80,10 +84,6 @@ public abstract class NAFCCoordinateAssigner{
 
 	protected abstract void assignDistractorCoords();
 
-	protected Lims sampleDistanceLims;
-	protected DistancedDistractorsUtil ddUtil;
-
-
 
 	protected void assignCoords() {
 		assignSampleCoords();
@@ -102,8 +102,8 @@ public abstract class NAFCCoordinateAssigner{
 		int distractorDistanceUpperLim = 0;
 		ddUtil = new DistancedDistractorsUtil(
 				numChoices,
-				sampleDistanceLims.getLowerLim(),
-				sampleDistanceLims.getUpperLim(),
+				choiceDistanceLims.getLowerLim(),
+				choiceDistanceLims.getUpperLim(),
 				distractorDistanceLowerLim,
 				distractorDistanceUpperLim);
 	}
