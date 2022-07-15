@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 
-import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
@@ -26,7 +25,6 @@ import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.allen.util.AllenDbUtil;
-import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
@@ -237,7 +235,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 				boolean matchSuccess = false;
 
 				//BASE: GENERATING MATCHSTICK
-				setProperties(objs_base.get(i));
+				objs_base.get(i).setProperties(NoisyMStickPngRandBlockGen.this.getMaxImageDimensionDegrees());
 
 				//VETTING AND CHOOSING RANDOM LEAF
 				int randomLeaf=-1;
@@ -265,7 +263,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 					while(nTries_sample<maxAttempts_sample) {
 						System.out.println("In Sample: attempt " + nTries_sample + " out of " + maxAttempts_sample);
 						//System.out.println("Trying to Generate Sample. Try: " + tries);
-						setProperties(objs_sample.get(i));
+						objs_sample.get(i).setProperties(NoisyMStickPngRandBlockGen.this.getMaxImageDimensionDegrees());
 						sampleSuccess = objs_sample.get(i).genMatchStickFromLeaf(randomLeaf, objs_base.get(i));
 						if(!sampleSuccess){
 							objs_sample.set(i, new AllenMatchStick());
@@ -288,7 +286,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 					while(nTries_match<maxAttempts_match) {
 						System.out.println("In Match");
 						try{
-							setProperties(objs_match.get(i));
+							objs_match.get(i).setProperties(NoisyMStickPngRandBlockGen.this.getMaxImageDimensionDegrees());
 							matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), mmp);
 						} catch(Exception e){
 							e.printStackTrace();
@@ -316,7 +314,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 						int nTries_qm = 0;
 						while(nTries_qm < maxAttempts_qm) {
 							try {
-								setProperties(objs_distractor.get(i).get(j));
+								objs_distractor.get(i).get(j).setProperties(NoisyMStickPngRandBlockGen.this.getMaxImageDimensionDegrees());
 								qmDistractorSuccess[j] = objs_distractor.get(i).get(j).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), qmps.get(i).get(j));
 							} catch (Exception e) {
 								e.printStackTrace();
@@ -354,7 +352,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			for(int b=0; b<randDistractorSuccess.length; b++) randDistractorSuccess[b]=false;
 			for(int j=0; j<numRandDistractors; j++) {
 				try {
-					setProperties(objs_distractor.get(i).get(j+numQMDistractors));
+					objs_distractor.get(i).get(j+numQMDistractors).setProperties(NoisyMStickPngRandBlockGen.this.getMaxImageDimensionDegrees());
 					objs_distractor.get(i).get(j+numQMDistractors).genMatchStickRand();
 					randDistractorSuccess[j] = true;
 				} catch(Exception e) {
@@ -616,7 +614,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 	}
 
 	public double getMaxImageDimensionDegrees() {
-		return maxImageDimensionDegrees;
+		return super.getMaxImageDimensionDegrees();
 	}
 
 	public void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {

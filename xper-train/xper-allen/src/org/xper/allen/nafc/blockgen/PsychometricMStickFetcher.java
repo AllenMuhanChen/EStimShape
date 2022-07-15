@@ -1,13 +1,8 @@
 package org.xper.allen.nafc.blockgen;
 
-import java.util.LinkedList;
-
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.Psychometric;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricMStickSpecs;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricMSticks;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricPaths;
 
 
 public class PsychometricMStickFetcher {
@@ -42,7 +37,7 @@ public class PsychometricMStickFetcher {
 	
 	private AllenMatchStick fetchMStick(String specPath) {
 		AllenMatchStick ams = new AllenMatchStick();
-		gen.setProperties(ams);
+		ams.setProperties(gen.getMaxImageDimensionDegrees());
 		ams.genMatchStickFromFile(specPath);
 		return ams;
 	}

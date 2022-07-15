@@ -3,20 +3,18 @@ package org.xper.allen.drawing.composition.qualitativemorphs;
 import org.xper.allen.drawing.composition.AbstractMStickGenerator;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.MStickGenerationException;
-import org.xper.allen.drawing.composition.MStickGenerator;
 import org.xper.allen.drawing.composition.MStickVettingException;
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
 	private AllenMatchStick mStickToMorph;
 	private QualitativeMorphParams qmp;
 
-	public QualitativeMorphMStickGenerator(AbstractMStickPngTrialGenerator generator, AllenMatchStick mStickToMorph,
-			QualitativeMorphParams qmp) {
-		super();
-		this.generator = generator;
+
+	public QualitativeMorphMStickGenerator(double maxImageDimensionDegrees, AllenMatchStick mStickToMorph, QualitativeMorphParams qmp) {
+		super(maxImageDimensionDegrees);
 		this.mStickToMorph = mStickToMorph;
 		this.qmp = qmp;
+
 		makeAttemptsToGenerate();
 	}
 
@@ -37,7 +35,7 @@ public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
 
 	private void tryGenerateQualitativeMorph() {
 		mStick = new AllenMatchStick();
-		generator.setProperties(mStick);
+		mStick.setProperties(maxImageDimensionDegrees);
 		boolean success = false;
 		try {
 			success = mStick.genQualitativeMorphedLeafMatchStick(leafToMorph, mStickToMorph, qmp);

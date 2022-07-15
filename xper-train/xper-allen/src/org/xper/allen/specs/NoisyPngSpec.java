@@ -1,6 +1,7 @@
 package org.xper.allen.specs;
 
 import java.awt.Dimension;
+import java.util.Objects;
 
 import org.xper.allen.drawing.png.ImageDimensions;
 
@@ -13,7 +14,20 @@ public class NoisyPngSpec {
 	String pngPath;
 	String noiseMapPath;
 	double alpha = 1;
-	
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		NoisyPngSpec that = (NoisyPngSpec) o;
+		return Double.compare(that.getxCenter(), getxCenter()) == 0 && Double.compare(that.getyCenter(), getyCenter()) == 0 && Double.compare(that.getAlpha(), getAlpha()) == 0 && getDimensions().equals(that.getDimensions()) && getPngPath().equals(that.getPngPath()) && getNoiseMapPath().equals(that.getNoiseMapPath());
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getxCenter(), getyCenter(), getDimensions(), getPngPath(), getNoiseMapPath(), getAlpha());
+	}
+
 	/**
 	 * NoiseMap is specified
 	 */

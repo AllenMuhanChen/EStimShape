@@ -37,7 +37,7 @@ public abstract class NAFCStimObjDataWriter {
 		NoisyPngSpec sampleSpec = sampleSpecWriter.getSpec();
 		
 		
-		MStickStimObjData sampleMStickObjData = new MStickStimObjData("Sample", getmStickSpecs().getSample());
+		MStickStimObjData sampleMStickObjData = new MStickStimObjData("sample", getmStickSpecs().getSample());
 		dbUtil.writeStimObjData(getStimObjIds().getSample(), sampleSpec.toXml(), sampleMStickObjData.toXml());
 	}
 

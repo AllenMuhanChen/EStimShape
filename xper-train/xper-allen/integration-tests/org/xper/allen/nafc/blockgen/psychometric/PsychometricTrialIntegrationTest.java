@@ -19,7 +19,7 @@ import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.util.FileUtil;
 
-public class PsychometricTrialTest {
+public class PsychometricTrialIntegrationTest {
 	PsychometricBlockGen generator;
 	int numPsychometricDistractors;
 	int numRandDistractors;
@@ -187,19 +187,6 @@ public class PsychometricTrialTest {
 			assertNotNull("Expected StimObjId does not exist in db!", trial.getDbUtil().readStimObjData(expectedStimObjId));
 		}
 	}
-	//	
-	//	
-	//	public void specFileExists(){
-	//		String path = testTrial.psychometricPathAssigner.getMatchSpecPath();
-	//			File file = new File(path);
-	//			
-	//			assertTrue("specFile does not exist. Looking for " + path,file.exists());
-	//	}
-	//	
-	//
-	//	public void sampleObjExists() {
-	//		assertNotNull("SampleObj doesn't exist", testTrial.getSampleObj());
-	//	}
 
 
 

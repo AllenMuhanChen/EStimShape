@@ -36,7 +36,7 @@ public class PNGDrawerForRandTrial {
     }
     private void drawRandDistractorPNGs(AllenPNGMaker pngMaker, String generatorPngPath) {
         int index;
-        List<String> randDistractorLabels = Arrays.asList(new String[]{"Rand Distractor"});
+        List<String> randDistractorLabels = Arrays.asList(new String[]{"randDistractor"});
         index=0;
         for(AllenMatchStick mStick:mSticks.getRandDistractors()){
             String randDistractorPath = pngMaker.createAndSavePNG(mStick, stimObjIds.getRandDistractors().get(index), randDistractorLabels, generatorPngPath);
@@ -46,7 +46,7 @@ public class PNGDrawerForRandTrial {
     }
 
     private void drawQMDistractorPNGs(AllenPNGMaker pngMaker, String generatorPngPath) {
-        List<String> qmDistractorLabels = Arrays.asList(new String[]{"QM Distractor"});
+        List<String> qmDistractorLabels = Arrays.asList(new String[]{"qmDistractor"});
         int index=0;
         for(AllenMatchStick mStick:mSticks.getQualitativeMorphDistractors()){
             String qmDistractorPath = pngMaker.createAndSavePNG(mStick, stimObjIds.getQualitativeMorphDistractors().get(index), qmDistractorLabels, generatorPngPath);
@@ -56,13 +56,13 @@ public class PNGDrawerForRandTrial {
     }
 
     private void drawMatchPNG(AllenPNGMaker pngMaker, String generatorPngPath) {
-        List<String> matchLabels =  Arrays.asList(new String[] {"Match"});
+        List<String> matchLabels =  Arrays.asList(new String[] {"match"});
         String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), matchLabels, generatorPngPath);
         pngPaths.setMatch(matchPath);
     }
 
     private void drawSamplePNG(AllenPNGMaker pngMaker, String generatorPngPath) {
-        List<String> sampleLabels = Arrays.asList(new String[] {"Sample"});
+        List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
         pngPaths.setSample(samplePath);
     }

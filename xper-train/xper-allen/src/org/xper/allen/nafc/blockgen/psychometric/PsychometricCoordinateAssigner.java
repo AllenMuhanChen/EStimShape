@@ -13,8 +13,8 @@ public class PsychometricCoordinateAssigner extends NAFCCoordinateAssigner{
 	NumberOfDistractorsForPsychometricTrial numDistractors;
 	private Psychometric<Coordinates2D> coords = new Psychometric<>();
 
-	public PsychometricCoordinateAssigner(Lims sampleDistanceLims, NumberOfDistractorsForPsychometricTrial numDistractors) {
-		super(numDistractors.numTotal+1, sampleDistanceLims);
+	public PsychometricCoordinateAssigner(Lims sampleDistanceLims, NumberOfDistractorsForPsychometricTrial numDistractors, Lims choiceDistanceLims) {
+		super(numDistractors.numTotal+1, sampleDistanceLims, choiceDistanceLims);
 		this.numDistractors = numDistractors;
 		assignCoords();
 	}

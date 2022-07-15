@@ -12,8 +12,8 @@ public class RandTrialCoordinateAssigner extends NAFCCoordinateAssigner {
     private NumberOfDistractorsForRandTrial numDistractors;
     private Rand<Coordinates2D> coords = new Rand<>();
 
-    public RandTrialCoordinateAssigner(Lims sampleDistanceLims, NumberOfDistractorsForRandTrial numDistractors) {
-        super(numDistractors.getTotalNumDistractors()+1, sampleDistanceLims);
+    public RandTrialCoordinateAssigner(Lims sampleDistanceLims, NumberOfDistractorsForRandTrial numDistractors, Lims choiceDistanceLims) {
+        super(numDistractors.getTotalNumDistractors()+1, sampleDistanceLims, choiceDistanceLims);
         this.numDistractors = numDistractors;
         assignCoords();
     }

@@ -26,6 +26,7 @@ import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.MStickObj4Smooth;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.drawing.stick.stickMath_lib;
+import org.xper.utils.RGBColor;
 
 /**
  * MatchStick class with ability to make deep clones and manipulations of shapes
@@ -3810,4 +3811,34 @@ Adding a new MAxisArc to a MatchStick
 	public void setSpecialEndComp(List<Integer> specialEndComp) {
 		this.specialEndComp = specialEndComp;
 	}
+
+    /**
+     * It is imperative that these properties are set before the object is generated/is smoothized.
+     *
+	 * @param maxImageDimensionDegrees
+	 */
+    public void setProperties(double maxImageDimensionDegrees) {
+        //OBJECT PROPERTIES
+        //SETTING SIZES
+        /**
+         * With this strategy of scale setting, we set our maxImageDimensionDegrees to
+         * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
+         * to be approx half the size.
+         */
+        double scale = maxImageDimensionDegrees /1.5;
+        double minScale = maxImageDimensionDegrees /2.5;
+        setScale(minScale, scale);
+
+        //CONTRAST
+        double contrast = 1;
+        setContrast(contrast);
+
+        //COLOR
+        RGBColor white = new RGBColor(1,1,1);
+        setStimColor(white);
+
+        //TEXTURE
+        setTextureType("SHADE");
+
+    }
 }

@@ -1,15 +1,15 @@
 package org.xper.allen.drawing.composition;
 
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-
 public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 	private static final int maxAttemptsToGenerateMStickFromLeaf = 5;
 
 
 	private AllenMatchStick seedMStick;
-	public FromRandLeafMStickGenerator(AbstractMStickPngTrialGenerator generator) {
+
+
+	public FromRandLeafMStickGenerator(double maxImageDimensionDegrees) {
 		super();
-		this.generator = generator;
+		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
 		this.makeAttemptsToGenerate();
 	}
 
@@ -23,7 +23,7 @@ public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 
 	private void attemptGenerateSeedMatchStick() {
 		seedMStick = new AllenMatchStick();
-		generator.setProperties(seedMStick);
+		seedMStick.setProperties(maxImageDimensionDegrees);
 		try {
 			seedMStick.genMatchStickRand();
 		} catch(Exception e) {
@@ -71,7 +71,7 @@ public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 
 	private void generateMStickFromLeaf() {
 		mStick = new AllenMatchStick();
-		generator.setProperties(mStick);
+		mStick.setProperties(maxImageDimensionDegrees);
 		boolean success = mStick.genMatchStickFromLeaf(seedLeaf, seedMStick);
 
 		if(!success) {
