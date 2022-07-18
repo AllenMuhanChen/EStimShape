@@ -55,30 +55,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 	long genId = 1;
 	List<Long> ids = new ArrayList<Long>();
 
-	/**
-	 * Using frequencies
-	 * @param numTrials
-	 * @param numDistractorsTypes
-	 * @param numDistractorsFrequencies
-	 * @param sampleScaleUpperLim
-	 * @param sampleRadiusLowerLim
-	 * @param sampleRadiusUpperLim
-	 * @param eyeWinSize
-	 * @param choiceRadiusLowerLim
-	 * @param choiceRadiusUpperLim
-	 * @param distractorDistanceLowerLim
-	 * @param distractorDistanceUpperLim
-	 * @param distractorScaleUpperLim
-	 * @param numMMCategories
-	 * @param numQMDistractorsTypes
-	 * @param numQMDistractorsFrequencies
-	 * @param numQMCategoriesTypes
-	 * @param numQMCategoriesFrequencies
-	 * @param noiseTypes
-	 * @param noiseTypesFrequencies
-	 * @param noiseChances
-	 * @param noiseChancesFrequencies
-	 */
+
 	public void generate(int numTrials,
 			Integer[] numDistractorsTypes, double[] numDistractorsFrequencies,
 			double sampleScaleUpperLim, double sampleRadiusLowerLim, 
@@ -111,30 +88,6 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 	}
 
 
-
-	/**
-	 * using numTrials
-	 * @param numDistractorsTypes
-	 * @param numDistractorsNumTrials
-	 * @param sampleScaleUpperLim
-	 * @param sampleRadiusLowerLim
-	 * @param sampleRadiusUpperLim
-	 * @param eyeWinSize
-	 * @param choiceRadiusLowerLim
-	 * @param choiceRadiusUpperLim
-	 * @param distractorDistanceLowerLim
-	 * @param distractorDistanceUpperLim
-	 * @param distractorScaleUpperLim
-	 * @param numMMCategories
-	 * @param numQMDistractorsTypes
-	 * @param numQMDistractorsNumTrials
-	 * @param numQMCategoriesTypes
-	 * @param numQMCategoriesNumTrials
-	 * @param noiseTypes
-	 * @param noiseTypesNumTrials
-	 * @param noiseChances
-	 * @param noiseChancesNumTrials
-	 */
 	public void generate(Integer[] numDistractorsTypes, int[] numDistractorsNumTrials,
 			double sampleScaleUpperLim, double sampleRadiusLowerLim, 
 			double sampleRadiusUpperLim, double eyeWinSize, 
