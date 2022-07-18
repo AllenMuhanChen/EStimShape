@@ -52,7 +52,7 @@ public class PsychometricTrialListFactoryTest {
                         Arrays.asList(0.3, 0.7)
                 );
 
-        PsychometricBlockGenParameters psychometricBlockGenParameters = new PsychometricBlockGenParameters(
+        PsychometricFactoryParameters psychometricFactoryParameters = new PsychometricFactoryParameters(
                 1,
                 numDistractorsTypeFrequency,
                 trialParametersTypeFrequency
@@ -60,9 +60,9 @@ public class PsychometricTrialListFactoryTest {
 
         PsychometricTrialListFactory psychometricFactory = new PsychometricTrialListFactory(
                 generator,
-                psychometricBlockGenParameters.getNumTrialsPerImage(),
-                psychometricBlockGenParameters.getNumDistractorsTypeFrequency(),
-                psychometricBlockGenParameters.getTrialParametersTypeFrequency()
+                psychometricFactoryParameters.getNumTrialsPerImage(),
+                psychometricFactoryParameters.getNumDistractorsTypeFrequency(),
+                psychometricFactoryParameters.getTrialParametersTypeFrequency()
         );
 
 

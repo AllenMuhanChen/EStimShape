@@ -9,7 +9,7 @@ import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseChances;
 import org.xper.allen.nafc.blockgen.SampleDistance;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGenParameters;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricFactoryParameters;
 import org.xper.util.FileUtil;
 
 public class PsychometricMStickTrialGenerator extends TrialGenerator{
@@ -36,7 +36,7 @@ public class PsychometricMStickTrialGenerator extends TrialGenerator{
 			
 			
 			gen.generate(
-					new PsychometricBlockGenParameters(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies), new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new Lims(choiceDistanceLowerLim, choiceDistanceUpperLim), sampleScale, eyeWinSize));
+					new PsychometricFactoryParameters(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies), new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new Lims(choiceDistanceLowerLim, choiceDistanceUpperLim), sampleScale, eyeWinSize));
 		}
 		
 		catch(Exception e) {

@@ -13,6 +13,8 @@ import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitat
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.allen.nafc.blockgen.PsychometricTrialListFactory;
 import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
+import org.xper.allen.nafc.blockgen.rand.RandTrialListFactory;
 import org.xper.exception.VariableNotFoundException;
 
 public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
@@ -173,16 +175,28 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     }
 
 
-    public void generate(PsychometricBlockGenParameters psychometricBlockGenParameters) {
+    public void generate(PsychometricFactoryParameters psychometricFactoryParameters,
+                         RandFactoryParameters randFactoryParameters) {
         PsychometricTrialListFactory psychometricFactory = new PsychometricTrialListFactory(
                 this,
-                psychometricBlockGenParameters.getNumTrialsPerImage(),
-                psychometricBlockGenParameters.getNumDistractorsTypeFrequency(),
-                psychometricBlockGenParameters.getTrialParametersTypeFrequency()
+                psychometricFactoryParameters.getNumTrialsPerImage(),
+                psychometricFactoryParameters.getNumDistractorsTypeFrequency(),
+                psychometricFactoryParameters.getTrialParametersTypeFrequency()
         );
+
 
 		trials.addAll(psychometricFactory.createTrials());
 
+        RandTrialListFactory randFactory = new RandTrialListFactory(
+        this,
+                randFactoryParameters.getNumTrials(),
+                randFactoryParameters.getNumDistractorsTypeFrequency(),
+                randFactoryParameters.getNumMorphsTypeFrequency(),
+                randFactoryParameters.getTrialParametersTypeFrequency());
+
+        trials.addAll(randFactory.createTrials());
+
+        
         //SHUFFLING
         Collections.shuffle(trials);
 

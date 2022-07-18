@@ -16,8 +16,6 @@ public class RandTrial implements Trial{
 	//INput Fields
 	private AbstractMStickPngTrialGenerator generator;
 	private RandNoisyTrialParameters trialParameters;
-	
-
 
 	public RandTrial(AbstractMStickPngTrialGenerator generator, RandNoisyTrialParameters trialParameters) {
 		super();
