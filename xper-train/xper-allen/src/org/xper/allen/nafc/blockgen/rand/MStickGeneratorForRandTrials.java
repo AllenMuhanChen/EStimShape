@@ -18,15 +18,11 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphPara
 public class MStickGeneratorForRandTrials {
 	private final double maxImageDimensionDegrees;
 	private RandNoisyTrialParameters trialParameters;
-	private MetricMorphParameterGenerator mmpGenerator;
-	private QualitativeMorphParameterGenerator qmpGenerator;
 
-
-	public MStickGeneratorForRandTrials(double maxImageDimensionDegrees, RandNoisyTrialParameters trialParameters, MetricMorphParameterGenerator mmpGenerator, QualitativeMorphParameterGenerator qmpGenerator) {
+	public MStickGeneratorForRandTrials(double maxImageDimensionDegrees, RandNoisyTrialParameters trialParameters) {
 		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
 		this.trialParameters = trialParameters;
-		this.mmpGenerator = mmpGenerator;
-		this.qmpGenerator = qmpGenerator;
+
 
 		generate();
 	}
@@ -83,13 +79,14 @@ public class MStickGeneratorForRandTrials {
 	
 	MetricMorphParams mmp;
 	private void assignMetricMorphParameters() {
-		MetricMorphParameterGenerator mmpGenerator = this.mmpGenerator;
+		MetricMorphParameterGenerator mmpGenerator = new MetricMorphParameterGenerator();
 		mmp = new MetricMorphParams();
 		mmp = mmpGenerator.getMMP(trialParameters.getSize(), trialParameters.numMorphCategories.getNumMMCategories());
 	}
 
 	List<QualitativeMorphParams> qmps;
 	private void assignQualitativeMorphParameters() {
+		QualitativeMorphParameterGenerator qmpGenerator = new QualitativeMorphParameterGenerator(maxImageDimensionDegrees);
 		qmps = new LinkedList<QualitativeMorphParams>();
 		for(int qmIndx = 0; qmIndx<trialParameters.numDistractors.getNumQMDistractors(); qmIndx++) {
 			qmps.add(qmpGenerator.getQMP(trialParameters.numMorphCategories.getNumQMCategories()));

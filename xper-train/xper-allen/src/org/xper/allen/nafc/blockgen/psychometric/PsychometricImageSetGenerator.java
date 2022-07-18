@@ -2,6 +2,8 @@ package org.xper.allen.nafc.blockgen.psychometric;
 
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
+import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 
 import java.util.ArrayList;
@@ -41,7 +43,8 @@ public class PsychometricImageSetGenerator {
 
         int numQMMorphs = numPerSet - 1;
         List<QualitativeMorphParams> qmps = new LinkedList<QualitativeMorphParams>();
-        qmps = psychometricBlockGen.getPsychometricQmpGenerator().getQMP(numPerSet - 1 - numRand, percentChangePosition);
+        PsychometricQualitativeMorphParameterGenerator qmpGenerator = new PsychometricQualitativeMorphParameterGenerator(psychometricBlockGen.getMaxImageDimensionDegrees());
+        qmps = qmpGenerator.getQMP(numPerSet - 1 - numRand, percentChangePosition);
 
         //VETTING AND CHOOSING LEAF
         while (tryagain) {

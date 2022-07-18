@@ -101,7 +101,7 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     public void setExperimentPngPath(String experimentPngPath) {
         this.experimentPngPath = experimentPngPath;
     }
-    
+
     public String getGeneratorSpecPath() {
         return generatorSpecPath;
     }

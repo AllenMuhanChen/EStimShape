@@ -2,7 +2,6 @@ package org.xper.allen.nafc.blockgen.rand;
 
 
 import java.io.File;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -274,7 +273,7 @@ public class RandTrialIntegrationTest {
         generator.getPngMaker().createDrawerWindow();
         MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(
                 generator.getMaxImageDimensionDegrees(),
-                trialParameters, generator.getMmpGenerator(), generator.getQmpGenerator());
+                trialParameters);
         AllenMatchStick mStick = mStickGenerator.getSample();
         NoiseParameters noiseParameters = new NoiseParameters(new NoiseForm(noiseType, new double[]{0, 0.8}), noiseChance);
         RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(id, mStick, noiseParameters, generator);
