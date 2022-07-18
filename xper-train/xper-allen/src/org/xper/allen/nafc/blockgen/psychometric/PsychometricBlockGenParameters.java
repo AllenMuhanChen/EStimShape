@@ -1,53 +1,39 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
-import org.xper.allen.nafc.blockgen.Lims;
-import org.xper.allen.nafc.blockgen.NoiseChances;
-import org.xper.allen.nafc.blockgen.SampleDistance;
+import org.xper.allen.nafc.blockgen.*;
 
 public class PsychometricBlockGenParameters {
-    private final int numPsychometricTrialsPerImage;
-    private final int numRandTrials;
-    private final NoiseChances noiseChances;
-    private final SampleDistance sampleDistance;
-    private final Lims choiceDistance;
-    private final double sampleScale;
-    private final double eyeWinSize;
+   int numTrialsPerImage;
+   TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency;
+   TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
 
-    public PsychometricBlockGenParameters(int numPsychometricTrialsPerImage, int numRandTrials, NoiseChances noiseChances, SampleDistance sampleDistance, Lims choiceDistance, double sampleScale, double eyeWinSize) {
-        this.numPsychometricTrialsPerImage = numPsychometricTrialsPerImage;
-        this.numRandTrials = numRandTrials;
-        this.noiseChances = noiseChances;
-        this.sampleDistance = sampleDistance;
-        this.choiceDistance = choiceDistance;
-        this.sampleScale = sampleScale;
-        this.eyeWinSize = eyeWinSize;
-    }
+   public PsychometricBlockGenParameters(int numTrialsPerImage, TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency, TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
+      this.numTrialsPerImage = numTrialsPerImage;
+      this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
+      this.trialParametersTypeFrequency = trialParametersTypeFrequency;
+   }
 
-    public int getNumPsychometricTrialsPerImage() {
-        return numPsychometricTrialsPerImage;
-    }
+   public int getNumTrialsPerImage() {
+      return numTrialsPerImage;
+   }
 
-    public int getNumRandTrials() {
-        return numRandTrials;
-    }
+   public void setNumTrialsPerImage(int numTrialsPerImage) {
+      this.numTrialsPerImage = numTrialsPerImage;
+   }
 
-    public NoiseChances getNoiseChances() {
-        return noiseChances;
-    }
+   public TypeFrequency<NumberOfDistractorsForPsychometricTrial> getNumDistractorsTypeFrequency() {
+      return numDistractorsTypeFrequency;
+   }
 
-    public SampleDistance getSampleDistance() {
-        return sampleDistance;
-    }
+   public void setNumDistractorsTypeFrequency(TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency) {
+      this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
+   }
 
-    public Lims getChoiceDistance() {
-        return choiceDistance;
-    }
+   public TypeFrequency<NoisyTrialParameters> getTrialParametersTypeFrequency() {
+      return trialParametersTypeFrequency;
+   }
 
-    public double getSampleScale() {
-        return sampleScale;
-    }
-
-    public double getEyeWinSize() {
-        return eyeWinSize;
-    }
+   public void setTrialParametersTypeFrequency(TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
+      this.trialParametersTypeFrequency = trialParametersTypeFrequency;
+   }
 }

@@ -23,9 +23,8 @@ public class TypeFrequencyTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void error_when_split_odd_into_two() {
+    public void error_when_division_has_remainder() {
         TypeFrequency<String> typeFrequency = buildBlockParam(0.5, 0.5);
-
 
         List<String> trialList = typeFrequency.getTrialList(11);
     }
