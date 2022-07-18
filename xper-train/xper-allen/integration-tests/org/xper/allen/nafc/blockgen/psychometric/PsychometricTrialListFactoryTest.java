@@ -60,9 +60,7 @@ public class PsychometricTrialListFactoryTest {
 
         PsychometricTrialListFactory psychometricFactory = new PsychometricTrialListFactory(
                 generator,
-                psychometricFactoryParameters.getNumTrialsPerImage(),
-                psychometricFactoryParameters.getNumDistractorsTypeFrequency(),
-                psychometricFactoryParameters.getTrialParametersTypeFrequency()
+                psychometricFactoryParameters
         );
 
 

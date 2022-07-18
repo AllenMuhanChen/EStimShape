@@ -26,11 +26,7 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 	protected AllenPNGMaker pngMaker;
 	@Dependency
 	private double maxImageDimensionDegrees;
-	@Dependency
-	QualitativeMorphParameterGenerator qmpGenerator;
-	@Dependency
-	MetricMorphParameterGenerator mmpGenerator;
-	
+
 	public AbstractMStickPngTrialGenerator() {
 		super();
 	}
@@ -105,22 +101,6 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 
 	public void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {
 		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
-	}
-
-	public QualitativeMorphParameterGenerator getQmpGenerator() {
-		return qmpGenerator;
-	}
-
-	public void setQmpGenerator(QualitativeMorphParameterGenerator qmpGenerator) {
-		this.qmpGenerator = qmpGenerator;
-	}
-
-	public MetricMorphParameterGenerator getMmpGenerator() {
-		return mmpGenerator;
-	}
-
-	public void setMmpGenerator(MetricMorphParameterGenerator mmpGenerator) {
-		this.mmpGenerator = mmpGenerator;
 	}
 
 }
