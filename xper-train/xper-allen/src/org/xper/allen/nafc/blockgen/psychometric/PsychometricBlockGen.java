@@ -173,33 +173,46 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
             spec.writeInfo2File(getGeneratorSpecPath() + "/" + ids.get(k) + "_" + labels.get(k).get(0), true);
         }
     }
-
-
+    
     public void generate(PsychometricFactoryParameters psychometricFactoryParameters,
                          RandFactoryParameters randFactoryParameters) {
+        addPsychometricTrials(psychometricFactoryParameters);
+        addRandTrials(randFactoryParameters);
+        preWriteTrials();
+        shuffleTrials();
+        updateGenId();
+        writeTrials();
+        dbUtil.updateReadyGenerationInfo(genId, trials.size());
+        System.out.println("Done Generating...");
+        pngMaker.close();
+    }
+
+    private void addPsychometricTrials(PsychometricFactoryParameters psychometricFactoryParameters) {
         PsychometricTrialListFactory psychometricFactory = new PsychometricTrialListFactory(
                 this, psychometricFactoryParameters
         );
+        trials.addAll(psychometricFactory.createTrials());
+    }
 
-
-		trials.addAll(psychometricFactory.createTrials());
-
+    private void addRandTrials(RandFactoryParameters randFactoryParameters) {
         RandTrialListFactory randFactory = new RandTrialListFactory(
         this, randFactoryParameters);
-
         trials.addAll(randFactory.createTrials());
+    }
 
-
+    private void preWriteTrials() {
         //PRE-WRITING
         for(Trial trial:trials){
             trial.preWrite();
         }
+    }
 
-
+    private void shuffleTrials() {
         //SHUFFLING
         Collections.shuffle(trials);
+    }
 
-
+    private void updateGenId() {
         //WRITING
         try {
             /**
@@ -209,21 +222,15 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
         } catch (VariableNotFoundException e) {
             dbUtil.writeReadyGenerationInfo(0, 0);
         }
+    }
 
+    private void writeTrials() {
         for (Trial trial : trials) {
             trial.write();
             Long taskId = trial.getTaskId();
             dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
         }
-        dbUtil.updateReadyGenerationInfo(genId, trials.size());
-        System.out.println("Done Generating...");
-        pngMaker.close();
     }
-
-    private enum StimType {
-        QM, RAND, BASE;
-    }
-
 
     public PsychometricQualitativeMorphParameterGenerator getPsychometricQmpGenerator() {
         return psychometricQmpGenerator;
@@ -231,14 +238,6 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
 
     public void setPsychometricQmpGenerator(PsychometricQualitativeMorphParameterGenerator psychometricQmpGenerator) {
         this.psychometricQmpGenerator = psychometricQmpGenerator;
-    }
-
-    public String getGeneratorSpecPath() {
-        return generatorSpecPath;
-    }
-
-    public void setGeneratorSpecPath(String generatorSpecPath) {
-        this.generatorSpecPath = generatorSpecPath;
     }
 
     public String getGeneratorPngPath() {
@@ -255,6 +254,17 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
 
     public void setExperimentPngPath(String experimentPngPath) {
         this.experimentPngPath = experimentPngPath;
+    }
+    public String getGeneratorSpecPath() {
+        return generatorSpecPath;
+    }
+
+    public void setGeneratorSpecPath(String generatorSpecPath) {
+        this.generatorSpecPath = generatorSpecPath;
+    }
+
+    private enum StimType {
+        QM, RAND, BASE;
     }
 
 
