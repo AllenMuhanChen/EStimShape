@@ -7,9 +7,9 @@ import java.util.ListIterator;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseChances;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
 import org.xper.allen.nafc.blockgen.SampleDistance;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGenParameters;
 import org.xper.util.FileUtil;
 
 public class PsychometricMStickTrialGenerator extends TrialGenerator{
@@ -35,9 +35,8 @@ public class PsychometricMStickTrialGenerator extends TrialGenerator{
 			double eyeWinSize = Double.parseDouble(iterator.next());
 			
 			
-			gen.generate(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies),
-					new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new Lims(choiceDistanceLowerLim, choiceDistanceUpperLim), 
-					sampleScale, eyeWinSize);
+			gen.generate(
+					new PsychometricBlockGenParameters(numPsychometricTrialsPerImage, numRandTrials, new NoiseChances(noiseChances, noiseChancesFrequencies), new SampleDistance(sampleDistanceLowerLim, sampleDistanceUpperLim), new Lims(choiceDistanceLowerLim, choiceDistanceUpperLim), sampleScale, eyeWinSize));
 		}
 		
 		catch(Exception e) {
