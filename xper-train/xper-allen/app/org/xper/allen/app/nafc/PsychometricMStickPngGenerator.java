@@ -7,6 +7,7 @@ import java.util.ListIterator;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricImageSetGenerator;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.util.FileUtil;
 
@@ -41,7 +42,8 @@ public class PsychometricMStickPngGenerator {
 			int numRand = Integer.parseInt(iterator.next());
 			
 			for(int set=0; set<numSets; set++) {
-				gen.generateImageSet(numPerSet, size, percentChangePosition, numRand);
+				PsychometricImageSetGenerator imageSetGenerator = new PsychometricImageSetGenerator(gen);
+				imageSetGenerator.generateImageSet(numPerSet, size, percentChangePosition, numRand);
 			}
 			
 		} catch (Exception e) {
