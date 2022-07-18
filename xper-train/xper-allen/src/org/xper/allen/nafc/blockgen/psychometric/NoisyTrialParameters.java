@@ -17,7 +17,6 @@ public class NoisyTrialParameters extends NAFCTrialParameters{
 		this.noiseParameters = noiseParameters;
 	}
 
-	
 	static XStream s = new XStream();
 
 	static {

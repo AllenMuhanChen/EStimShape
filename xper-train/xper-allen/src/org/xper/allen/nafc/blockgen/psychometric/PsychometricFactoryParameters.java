@@ -2,12 +2,12 @@ package org.xper.allen.nafc.blockgen.psychometric;
 
 import org.xper.allen.nafc.blockgen.*;
 
-public class PsychometricBlockGenParameters {
+public class PsychometricFactoryParameters {
    int numTrialsPerImage;
    TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency;
    TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
 
-   public PsychometricBlockGenParameters(int numTrialsPerImage, TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency, TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
+   public PsychometricFactoryParameters(int numTrialsPerImage, TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency, TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
       this.numTrialsPerImage = numTrialsPerImage;
       this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
       this.trialParametersTypeFrequency = trialParametersTypeFrequency;

@@ -10,11 +10,16 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 
 	NumberOfDistractorsForRandTrial numDistractors;
 	NumberOfMorphCategories numMorphCategories;
-	
-	
+
+	public RandNoisyTrialParameters(NumberOfDistractorsForRandTrial numDistractors, NumberOfMorphCategories numMorphCategories, NoisyTrialParameters noisyTrialParameters) {
+		super(noisyTrialParameters.getSampleDistanceLims(), noisyTrialParameters.getChoiceDistanceLims(), noisyTrialParameters.getSize(), noisyTrialParameters.getEyeWinSize(), noisyTrialParameters.getNoiseParameters());
+		this.numDistractors = numDistractors;
+		this.numMorphCategories = numMorphCategories;
+	}
+
 	public RandNoisyTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize,
-			NoiseParameters noiseParameters, NumberOfDistractorsForRandTrial numDistractors,
-			NumberOfMorphCategories numMorphCategories) {
+									NoiseParameters noiseParameters, NumberOfDistractorsForRandTrial numDistractors,
+									NumberOfMorphCategories numMorphCategories) {
 		super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize, noiseParameters);
 		this.numDistractors = numDistractors;
 		this.numMorphCategories = numMorphCategories;
