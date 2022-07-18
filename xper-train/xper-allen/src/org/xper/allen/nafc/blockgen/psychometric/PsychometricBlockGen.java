@@ -14,9 +14,6 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
-import org.xper.allen.nafc.blockgen.Lims;
-import org.xper.allen.nafc.blockgen.NoiseChances;
-import org.xper.allen.nafc.blockgen.SampleDistance;
 import org.xper.allen.nafc.blockgen.Trial;
 import org.xper.exception.VariableNotFoundException;
 
@@ -181,19 +178,13 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 	}
 
 
-	public void generate(
-			int numPsychometricTrialsPerImage, 
-			int numRandTrials, 
-			NoiseChances noiseChances, 
-			SampleDistance sampleDistance,
-			Lims choiceDistance, 
-			double sampleScale, double eyeWinSize){
+	public void generate(PsychometricBlockGenParameters psychometricBlockGenParameters){
 
 		//Start a Drawing Window
 		pngMaker.createDrawerWindow();
 		
 		//Noise chance per each trial per set. 
-		List<double[]> noiseChanceTrialList = populateTrials(numPsychometricTrialsPerImage,  noiseChances.noiseChances, noiseChances.noiseChancesProportions);
+		List<double[]> noiseChanceTrialList = populateTrials(psychometricBlockGenParameters.getNumPsychometricTrialsPerImage(), psychometricBlockGenParameters.getNoiseChances().noiseChances, psychometricBlockGenParameters.getNoiseChances().noiseChancesProportions);
 
 		int numSets;
 		int numStimPerSet;
@@ -243,7 +234,7 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 		//assigning the samples in a balanced way. (# of times a specific stimulus is the sample is identical for e/a stimulus)
 		for(long setId:setIds) {
 			for(int stimId:stimIds) {
-				for(int i=0;i<numPsychometricTrialsPerImage;i++) {
+				for(int i = 0; i< psychometricBlockGenParameters.getNumPsychometricTrialsPerImage(); i++) {
 					int numPsychometricDistractors = stimIds.size()-1;
 					
 					
@@ -254,9 +245,9 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 						noiseChance,
 						trialParameters);
 					
-					PsychometricTrial trial = new PsychometricTrial(this,  numPsychometricDistractors, numRandTrials);
+					PsychometricTrial trial = new PsychometricTrial(this,  numPsychometricDistractors, psychometricBlockGenParameters.getNumRandTrials());
 					NoisyTrialParameters trialGenData
-					= new NoisyTrialParameters(sampleDistance.getSampleDistanceLowerLim(), sampleDistance.getSampleDistanceLowerLim(), choiceDistance.getLowerLim(), choiceDistance.getUpperLim(), sampleScale, eyeWinSize);
+					= new NoisyTrialParameters(psychometricBlockGenParameters.getSampleDistance().getSampleDistanceLowerLim(), psychometricBlockGenParameters.getSampleDistance().getSampleDistanceLowerLim(), psychometricBlockGenParameters.getChoiceDistance().getLowerLim(), psychometricBlockGenParameters.getChoiceDistance().getUpperLim(), psychometricBlockGenParameters.getSampleScale(), psychometricBlockGenParameters.getEyeWinSize());
 					trial.prepareWrite(setId, stimId, stimIds, null);
 
 					trials.add(trial);
