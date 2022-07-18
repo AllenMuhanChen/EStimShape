@@ -178,47 +178,46 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     public void generate(PsychometricFactoryParameters psychometricFactoryParameters,
                          RandFactoryParameters randFactoryParameters) {
         PsychometricTrialListFactory psychometricFactory = new PsychometricTrialListFactory(
-                this,
-                psychometricFactoryParameters.getNumTrialsPerImage(),
-                psychometricFactoryParameters.getNumDistractorsTypeFrequency(),
-                psychometricFactoryParameters.getTrialParametersTypeFrequency()
+                this, psychometricFactoryParameters
         );
 
 
 		trials.addAll(psychometricFactory.createTrials());
 
         RandTrialListFactory randFactory = new RandTrialListFactory(
-        this,
-                randFactoryParameters.getNumTrials(),
-                randFactoryParameters.getNumDistractorsTypeFrequency(),
-                randFactoryParameters.getNumMorphsTypeFrequency(),
-                randFactoryParameters.getTrialParametersTypeFrequency());
+        this, randFactoryParameters);
 
         trials.addAll(randFactory.createTrials());
 
-        
+
+        //PRE-WRITING
+        for(Trial trial:trials){
+            trial.preWrite();
+        }
+
+
         //SHUFFLING
         Collections.shuffle(trials);
 
 
-        //POPULATING DATABASES
+        //WRITING
         try {
             /**
              * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
              */
             genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
         } catch (VariableNotFoundException e) {
-            dbUtil.writeReadyGenerationInfo(genId, 0);
+            dbUtil.writeReadyGenerationInfo(0, 0);
         }
-        for (Trial trial : trials) {
 
-            Long taskId = trial.write();
+        for (Trial trial : trials) {
+            trial.write();
+            Long taskId = trial.getTaskId();
             dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
         }
         dbUtil.updateReadyGenerationInfo(genId, trials.size());
         System.out.println("Done Generating...");
         pngMaker.close();
-        return;
     }
 
     private enum StimType {

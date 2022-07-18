@@ -1,9 +1,6 @@
 package org.xper.allen.nafc.blockgen;
 
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricIds;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrial;
+import org.xper.allen.nafc.blockgen.psychometric.*;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -15,19 +12,23 @@ import java.util.regex.Pattern;
 
 public class PsychometricTrialListFactory implements TrialListFactory {
 
+    private final TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTrialTypeFrequency;
+    private final int numTrialsPerImage;
+    private final TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
     AbstractPsychometricTrialGenerator generator;
-    int numTrialsPerImage;
-    TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTrialTypeFrequency;
-    TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
+    PsychometricFactoryParameters parameters;
+
+    public PsychometricTrialListFactory(AbstractPsychometricTrialGenerator generator, PsychometricFactoryParameters parameters) {
+        this.generator = generator;
+        this.parameters = parameters;
+        numDistractorsTrialTypeFrequency = parameters.getNumDistractorsTypeFrequency();
+        numTrialsPerImage = parameters.getNumTrialsPerImage();
+        trialParametersTypeFrequency = parameters.getTrialParametersTypeFrequency();
+    }
+
     private List<Long> setIds;
     private List<Integer> stimIds;
 
-    public PsychometricTrialListFactory(AbstractPsychometricTrialGenerator generator, int numTrialsPerImage, TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTrialTypeFrequency, TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
-        this.generator = generator;
-        this.numTrialsPerImage = numTrialsPerImage;
-        this.numDistractorsTrialTypeFrequency = numDistractorsTrialTypeFrequency;
-        this.trialParametersTypeFrequency = trialParametersTypeFrequency;
-    }
 
     @Override
     public List<Trial> createTrials() {

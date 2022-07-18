@@ -12,18 +12,23 @@ import java.util.List;
 public class RandTrialListFactory implements TrialListFactory {
 
     AbstractPsychometricTrialGenerator generator;
+    RandFactoryParameters parameters;
+
+
+    public RandTrialListFactory(AbstractPsychometricTrialGenerator generator, RandFactoryParameters parameters) {
+        this.generator = generator;
+        this.parameters = parameters;
+        numTrials = parameters.numTrials;
+        numDistractorsTypeFrequency = parameters.getNumDistractorsTypeFrequency();
+        trialParametersTypeFrequency = parameters.getTrialParametersTypeFrequency();
+    }
+
     int numTrials;
     TypeFrequency<NumberOfDistractorsForRandTrial> numDistractorsTypeFrequency;
     TypeFrequency<NumberOfMorphCategories> numMorphCategoriesTypeFrequency;
     TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
 
-    public RandTrialListFactory(AbstractPsychometricTrialGenerator generator, int numTrials, TypeFrequency<NumberOfDistractorsForRandTrial> numDistractorsTypeFrequency, TypeFrequency<NumberOfMorphCategories> numMorphCategoriesTypeFrequency, TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
-        this.generator = generator;
-        this.numTrials = numTrials;
-        this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
-        this.numMorphCategoriesTypeFrequency = numMorphCategoriesTypeFrequency;
-        this.trialParametersTypeFrequency = trialParametersTypeFrequency;
-    }
+
 
     @Override
     public List<Trial> createTrials() {
