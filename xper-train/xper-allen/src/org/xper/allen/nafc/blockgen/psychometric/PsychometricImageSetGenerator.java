@@ -136,15 +136,6 @@ public class PsychometricImageSetGenerator {
             }
         }
 
-//		//DEBUG
-//		for (AllenMatchStick obj : objs) {
-//			int specialComp = obj.getSpecialEndComp();
-//			AllenTubeComp specialCompTube = obj.getComp()[specialComp];
-//			AllenMAxisArc specialCompMAxis = specialCompTube.getmAxisInfo();
-//			int rotCenter = specialCompMAxis.getTransRotHis_rotCenter();
-//			//			System.out.println("AC0000: " + specialCompMAxis.getmTangent()[rotCenter]);
-//		}
-
         //DRAWING AND SAVING
         List<List<String>> labels = new LinkedList<List<String>>();
         List<Long> ids = new LinkedList<Long>();

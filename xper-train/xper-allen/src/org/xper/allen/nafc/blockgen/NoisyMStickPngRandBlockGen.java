@@ -574,20 +574,10 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
 	}
 
-	public QualitativeMorphParameterGenerator getQmpGenerator() {
-		return qmpGenerator;
-	}
-
 	public void setQmpGenerator(QualitativeMorphParameterGenerator qmpGenerator) {
-		this.qmpGenerator = qmpGenerator;
-	}
-
-	public MetricMorphParameterGenerator getMmpGenerator() {
-		return mmpGenerator;
 	}
 
 	public void setMmpGenerator(MetricMorphParameterGenerator mmpGenerator) {
-		this.mmpGenerator = mmpGenerator;
 	}
 
 	public String getGeneratorSpecPath() {

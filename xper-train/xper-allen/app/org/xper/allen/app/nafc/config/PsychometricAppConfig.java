@@ -87,9 +87,6 @@ public class PsychometricAppConfig {
 		gen.setGeneratorPsychometricSpecPath(generatorPsychometricSpecPath);
 		gen.setPngMaker(psychometricPngMaker());
 		gen.setMaxImageDimensionDegrees(appConfig.xperMaxImageDimensionDegrees());
-		gen.setMmpGenerator(appConfig.mmpGenerator());
-		gen.setQmpGenerator(appConfig.qmpGenerator());
-		gen.setPsychometricQmpGenerator(psychometricQmpGenerator());
 		return gen;
 	}
 	
