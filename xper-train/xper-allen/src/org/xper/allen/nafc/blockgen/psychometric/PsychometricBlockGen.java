@@ -180,9 +180,6 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 
 	public void generate(PsychometricBlockGenParameters psychometricBlockGenParameters){
 
-		//Start a Drawing Window
-		pngMaker.createDrawerWindow();
-		
 		//Noise chance per each trial per set. 
 		List<double[]> noiseChanceTrialList = populateTrials(psychometricBlockGenParameters.getNumPsychometricTrialsPerImage(), psychometricBlockGenParameters.getNoiseChances().noiseChances, psychometricBlockGenParameters.getNoiseChances().noiseChancesProportions);
 
@@ -242,8 +239,7 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator{
 						this,
 						numDistractors,
 						psychometricIds,
-						noiseChance,
-						trialParameters);
+							trialParameters);
 					
 					PsychometricTrial trial = new PsychometricTrial(this,  numPsychometricDistractors, psychometricBlockGenParameters.getNumRandTrials());
 					NoisyTrialParameters trialGenData

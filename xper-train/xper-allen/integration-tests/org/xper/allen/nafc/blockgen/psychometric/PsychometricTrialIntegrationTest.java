@@ -75,7 +75,7 @@ public class PsychometricTrialIntegrationTest {
 						eyeWinSize,
 						noiseParameters);
 
-		trial = new PsychometricTrial(generator, numDistractors, psychometricIds, noiseChance, trialParameters);
+		trial = new PsychometricTrial(generator, numDistractors, psychometricIds, trialParameters);
 	}
 
 

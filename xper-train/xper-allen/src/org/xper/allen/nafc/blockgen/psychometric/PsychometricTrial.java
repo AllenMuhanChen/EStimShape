@@ -24,20 +24,17 @@ public class PsychometricTrial implements Trial{
 	private AbstractPsychometricTrialGenerator generator;
 	private NumberOfDistractorsForPsychometricTrial numDistractors;
 	private PsychometricIds psychometricIds;
-	private double[] noiseChance;
 	private NoisyTrialParameters trialParameters;
 	
 	public PsychometricTrial(
 			AbstractPsychometricTrialGenerator noisyMStickPngPsychometricBlockGen,
 			NumberOfDistractorsForPsychometricTrial numDistractors,
 			PsychometricIds psychometricIds,
-			double[] noiseChance,
 			NoisyTrialParameters trialParameters) {
 
 		this.generator = noisyMStickPngPsychometricBlockGen;
 		this.numDistractors = numDistractors;
 		this.psychometricIds = psychometricIds;
-		this.noiseChance = noiseChance;
 		this.trialParameters = trialParameters;
 
 		dbUtil = generator.getDbUtil();
@@ -108,8 +105,6 @@ public class PsychometricTrial implements Trial{
 						matchSticks.getSample(),
 						psychometricIds,
 						generator,
-						noiseChance,
-						stimObjIds.getSample(),
 						trialParameters.getNoiseParameters());
 		noiseMapPath = psychometricNoiseMapGenerator.getNoiseMapPath();
 	}
@@ -196,10 +191,6 @@ public class PsychometricTrial implements Trial{
 
 	public PsychometricIds getPsychometricIds() {
 		return psychometricIds;
-	}
-
-	public double[] getNoiseChance() {
-		return noiseChance;
 	}
 
 
