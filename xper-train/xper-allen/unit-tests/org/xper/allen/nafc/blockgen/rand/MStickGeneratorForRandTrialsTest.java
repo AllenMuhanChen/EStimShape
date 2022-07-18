@@ -1,6 +1,5 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
@@ -48,9 +47,7 @@ public class MStickGeneratorForRandTrialsTest {
         //ACT
         MStickGeneratorForRandTrials generator = new MStickGeneratorForRandTrials(
                 this.maxImageDimensionDegrees,
-                trialParameters,
-                mmp,
-                qmp
+                trialParameters
         );
 
         //ASSERT
@@ -73,9 +70,7 @@ public class MStickGeneratorForRandTrialsTest {
         //ACT
         MStickGeneratorForRandTrials generator = new MStickGeneratorForRandTrials(
                 this.maxImageDimensionDegrees,
-                trialParameters,
-                mmp,
-                qmp
+                trialParameters
         );
 
         //ASSERT
@@ -98,9 +93,7 @@ public class MStickGeneratorForRandTrialsTest {
         //ACT
         MStickGeneratorForRandTrials generator = new MStickGeneratorForRandTrials(
                 this.maxImageDimensionDegrees,
-                trialParameters,
-                mmp,
-                qmp
+                trialParameters
         );
 
         //ASSERT
@@ -123,9 +116,7 @@ public class MStickGeneratorForRandTrialsTest {
         //ACT
         MStickGeneratorForRandTrials generator = new MStickGeneratorForRandTrials(
                 this.maxImageDimensionDegrees,
-                trialParameters,
-                mmp,
-                qmp
+                trialParameters
         );
 
         //ASSERT

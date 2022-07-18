@@ -57,7 +57,7 @@ public class RandTrial implements Trial{
 	}
 	
 	private void generateMatchSticks() {
-		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator.getMaxImageDimensionDegrees(), trialParameters, generator.getMmpGenerator(), generator.getQmpGenerator());
+		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator.getMaxImageDimensionDegrees(), trialParameters);
 		mSticks = mStickGenerator.getmSticks();
 		mStickSpecs = mStickGenerator.getmStickSpecs();
 	}
