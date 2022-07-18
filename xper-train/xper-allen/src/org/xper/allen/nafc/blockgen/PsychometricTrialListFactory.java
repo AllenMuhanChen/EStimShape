@@ -8,23 +8,23 @@ import java.util.List;
 public class PsychometricTrialListFactory implements TrialListFactory {
 
     int numTrialsPerImage;
-    BlockParam<Lims> noiseChanceBlockParam;
-
-    public PsychometricTrialListFactory(int numTrialsPerImage, BlockParam<Lims> noiseChanceBlockParam) {
+    TypeFrequency<Lims> noiseChanceTypeFrequency;
+    
+    public PsychometricTrialListFactory(int numTrialsPerImage, TypeFrequency<Lims> noiseChanceTypeFrequency) {
         this.numTrialsPerImage = numTrialsPerImage;
-        this.noiseChanceBlockParam = noiseChanceBlockParam;
+        this.noiseChanceTypeFrequency = noiseChanceTypeFrequency;
     }
 
     @Override
     public List<Trial> createTrials() {
-        List<Lims> noiseChances = noiseChanceBlockParam.getTrialList(numTrialsPerImage);
+        List<Lims> noiseChances = noiseChanceTypeFrequency.getTrialList(numTrialsPerImage);
 
 
         List<Trial> trials = new LinkedList<>();
 
         trials.add(new PsychometricTrial(
                 generator,
-                nuDistractors,
+                numDistractors,
                 psychometricIds,
                 trialParameters
         ));

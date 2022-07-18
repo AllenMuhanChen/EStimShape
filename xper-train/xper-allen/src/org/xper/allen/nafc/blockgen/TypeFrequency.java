@@ -4,12 +4,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-public class BlockParam <Type> {
+public class TypeFrequency<Type> {
 
     private List<Type> types;
     private List<Double> typesFrequency;
 
-    public BlockParam(List<Type> types, List<Double> typesFrequency) {
+    public TypeFrequency(List<Type> types, List<Double> typesFrequency) {
         this.types = types;
         this.typesFrequency = typesFrequency;
     }
