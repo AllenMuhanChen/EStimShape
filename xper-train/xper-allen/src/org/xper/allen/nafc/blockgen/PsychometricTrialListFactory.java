@@ -53,7 +53,7 @@ public class PsychometricTrialListFactory implements TrialListFactory {
     private void fetchSetInfo(){
 
         //Getting all files in path
-        File folder = new File(generator.generatorPngPath);
+        File folder = new File(generator.getGeneratorPsychometricPngPath());
         File[] fileArray = folder.listFiles();
         List<File> pngs = new ArrayList<>();
         List<String> generatorPngs = new ArrayList<>();
