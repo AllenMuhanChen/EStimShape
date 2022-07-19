@@ -307,7 +307,7 @@ public class RandTrialIntegrationTest {
         generator.getPngMaker().close();
 
         //Act
-        String path = noiseMapGenerator.getNoiseMapPath();
+        String path = noiseMapGenerator.getExperimentNoiseMapPath();
 
         //Assert
         assertFileExists(path);

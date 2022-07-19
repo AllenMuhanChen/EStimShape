@@ -4,10 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.nafc.vo.NoiseParameters;
-import org.xper.allen.nafc.vo.NoiseType;
 
 public class RandTrialNoiseMapGenerator extends NoiseMapGenerator {
 	
@@ -37,6 +34,6 @@ public class RandTrialNoiseMapGenerator extends NoiseMapGenerator {
 		generator.getPngMaker().createDrawerWindow();
 		String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPngPath());
 		generator.getPngMaker().close();
-		noiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
+		experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
 	}
 }
