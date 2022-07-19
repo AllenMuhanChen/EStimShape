@@ -2,7 +2,6 @@ package org.xper.allen.nafc.blockgen.rand;
 
 import org.xper.allen.nafc.blockgen.Trial;
 import org.xper.allen.nafc.blockgen.TrialListFactory;
-import org.xper.allen.nafc.blockgen.TypeFrequency;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
 
@@ -18,23 +17,23 @@ public class RandTrialListFactory implements TrialListFactory {
     public RandTrialListFactory(AbstractPsychometricTrialGenerator generator, RandFactoryParameters parameters) {
         this.generator = generator;
         this.parameters = parameters;
-        numTrials = parameters.numTrials;
-        numDistractorsTypeFrequency = parameters.getNumDistractorsTypeFrequency();
-        trialParametersTypeFrequency = parameters.getTrialParametersTypeFrequency();
+        numDistractors = parameters.getNumDistractors();
+        numMorphCategories = parameters.getNumMorphs();
+        trialParameters = parameters.getTrialParameters();
     }
 
     int numTrials;
-    TypeFrequency<NumberOfDistractorsForRandTrial> numDistractorsTypeFrequency;
-    TypeFrequency<NumberOfMorphCategories> numMorphCategoriesTypeFrequency;
-    TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
+    List<NumberOfDistractorsForRandTrial> numDistractors;
+    List<NumberOfMorphCategories> numMorphCategories;
+    List<NoisyTrialParameters> trialParameters;
 
 
 
     @Override
     public List<Trial> createTrials() {
-        List<NumberOfDistractorsForRandTrial> numDistractors = numDistractorsTypeFrequency.getTrialList(numTrials);
-        List<NumberOfMorphCategories> numMorphCategories = numMorphCategoriesTypeFrequency.getTrialList(numTrials);
-        List<NoisyTrialParameters> trialParameters = trialParametersTypeFrequency.getTrialList(numTrials);
+        List<NumberOfDistractorsForRandTrial> numDistractors = this.numDistractors;
+        List<NumberOfMorphCategories> numMorphCategories = this.numMorphCategories;
+        List<NoisyTrialParameters> trialParameters = this.trialParameters;
 
         List<Trial> trials = new LinkedList<>();
         for(int i=0; i<numTrials; i++){

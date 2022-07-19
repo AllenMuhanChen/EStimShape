@@ -1,6 +1,8 @@
 package org.xper.allen.nafc.blockgen;
 
 import javax.media.j3d.Link;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -33,6 +35,12 @@ public class TypeFrequency<Type> {
                 trialList.add(types.get(i));
             }
         }
+        return trialList;
+    }
+
+    public List<Type> getShuffledTrialList(int numTrials){
+        List<Type> trialList = getTrialList(numTrials);
+        Collections.shuffle(trialList);
         return trialList;
     }
 

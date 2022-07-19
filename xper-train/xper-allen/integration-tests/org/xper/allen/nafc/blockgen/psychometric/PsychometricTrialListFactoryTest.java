@@ -55,7 +55,7 @@ public class PsychometricTrialListFactoryTest {
                         Arrays.asList(0.3, 0.7)
                 );
 
-        PsychometricFactoryParameters psychometricFactoryParameters = new PsychometricFactoryParameters(
+        PsychometricFactoryParameters psychometricFactoryParameters = PsychometricFactoryParameters.create(
                 1,
                 numDistractorsTypeFrequency,
                 trialParametersTypeFrequency

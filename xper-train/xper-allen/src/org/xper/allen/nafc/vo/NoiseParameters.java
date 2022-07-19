@@ -1,9 +1,7 @@
 package org.xper.allen.nafc.vo;
 
+import org.xper.allen.drawing.composition.noisy.NoisePositions;
 import org.xper.allen.nafc.blockgen.Lims;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class NoiseParameters {
 
@@ -11,7 +9,7 @@ public class NoiseParameters {
 	Lims noiseChanceBounds;
 	
 	
-	public NoiseParameters(NoiseType noiseType, double[] normalizedPositionBounds, Lims noiseChanceBounds) {
+	public NoiseParameters(NoiseType noiseType, NoisePositions normalizedPositionBounds, Lims noiseChanceBounds) {
 		super();
 		this.noiseChanceBounds = noiseChanceBounds;
 		this.noiseForm = new NoiseForm(noiseType, normalizedPositionBounds);
@@ -29,10 +27,10 @@ public class NoiseParameters {
 	public void setNoiseType(NoiseType noiseType) {
 		this.noiseForm.setNoiseType(noiseType);
 	}
-	public double[] getNormalizedPositionBounds() {
+	public NoisePositions getNormalizedPositionBounds() {
 		return noiseForm.getNormalizedPositionBounds();
 	}
-	public void setNormalizedPositionBounds(double[] normalizedPositionBounds) {
+	public void setNormalizedPositionBounds(NoisePositions normalizedPositionBounds) {
 		this.noiseForm.setNormalizedPositionBounds(normalizedPositionBounds);
 	}
 	public Lims getNoiseChanceBounds() {

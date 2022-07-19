@@ -13,7 +13,6 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 
 import org.xper.allen.nafc.blockgen.Lims;
-import quickhull3d.QuickHull3D;
 
 public class NoiseMapCalculation {
 	private static final int NUM_UPSAMPLED_POINTS = 2550;
@@ -35,7 +34,7 @@ public class NoiseMapCalculation {
 	//TEMP
 	public ArrayList<Point> hull;
 
-	public NoiseMapCalculation(AllenMatchStick ams, Lims noiseChanceBounds, double[] noiseChanceBoundPositions) {
+	public NoiseMapCalculation(AllenMatchStick ams, Lims noiseChanceBounds, NoisePositions noiseChanceBoundPositions) {
 		this.ams = ams;
 		this.n = ams.getnComponent();
 		if(n==2) {
@@ -81,22 +80,20 @@ public class NoiseMapCalculation {
 	/**Generates noise map to map positions along MAXis to percentage change of noising. 
 	 * Linear: From onset position to end of limb, probability decreases linearally from starting point to zero. 
 	 * 
-	 * @param noiseOnsetPosition: normalized between 0-n, with each integer value 
-	 * referring to the start of limb n.
-	 * @param noiseBounds: from 0 to 1, indx 0: lowest percentage chance, indx 1: highest perc chc 
+
 	 */
-	private List<Double> generateLinearMAxisNoiseMap(Lims noiseChanceBounds, double[] noiseChanceBoundPositions, List<Double> normalizedPositions) {
+	private List<Double> generateLinearMAxisNoiseMap(Lims noiseChanceBounds, NoisePositions noiseChanceBoundPositions, List<Double> normalizedPositions) {
 		List<Double> noiseChanceMAxisMap = new LinkedList<>();
-		double linearRampLength = (double) noiseChanceBoundPositions[1]- (double) noiseChanceBoundPositions[0];
+		double linearRampLength = (double) noiseChanceBoundPositions.getEnd()- noiseChanceBoundPositions.getStart();
 		for(double normPos:normalizedPositions) {
 			//Not yet in noised zone
-			if(normPos < noiseChanceBoundPositions[0]) {
-				noiseChanceMAxisMap.add(noiseChanceBounds[0]);
+			if(normPos < noiseChanceBoundPositions.getStart()) {
+				noiseChanceMAxisMap.add(noiseChanceBounds.getLowerLim());
 			}
 			//Enter noise ramp zone
-			else if (normPos >= noiseChanceBoundPositions[0] && normPos<=noiseChanceBoundPositions[1]){
-				double length = (double) normPos - noiseChanceBoundPositions[0];
-				double noiseChance = (length/linearRampLength)*(noiseChanceBounds[1] - noiseChanceBounds[0]) + noiseChanceBounds[0];
+			else if (normPos >= noiseChanceBoundPositions.getStart() && normPos<=noiseChanceBoundPositions.getEnd()){
+				double length = (double) normPos - noiseChanceBoundPositions.getStart();
+				double noiseChance = (length/linearRampLength)*(noiseChanceBounds.getUpperLim() - noiseChanceBounds.getLowerLim()) + noiseChanceBounds.getLowerLim();
 				//				System.out.println("AC938455943: NOISE CHANCE" + noiseChance);
 				//				System.out.println("AC938455943: NORM POS" + normPos);
 				noiseChanceMAxisMap.add(noiseChance);
@@ -104,7 +101,7 @@ public class NoiseMapCalculation {
 			//Leave noise ramp zone.
 			else {
 				//				System.out.println("AC: WE'VE ADDED HIGHEST");
-				noiseChanceMAxisMap.add(noiseChanceBounds[1]);
+				noiseChanceMAxisMap.add(noiseChanceBounds.getUpperLim());
 			}
 		}
 
