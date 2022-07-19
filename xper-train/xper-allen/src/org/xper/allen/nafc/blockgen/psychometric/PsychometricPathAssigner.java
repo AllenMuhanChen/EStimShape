@@ -1,12 +1,8 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.xper.allen.nafc.blockgen.NAFCPaths;
-import org.xper.allen.nafc.blockgen.PngBasePaths;
 
 /**
  * Assigns paths for sample, match and distractors given setId and stimId, and number of distractors
@@ -14,34 +10,13 @@ import org.xper.allen.nafc.blockgen.PngBasePaths;
  *
  */
 public class PsychometricPathAssigner{
-
-
 	PsychometricIds psychometricIds;
 	int numPsychometricDistractors;
-	PngBasePaths basePaths;
+	AbstractPsychometricTrialGenerator generator;
 
-	static public PsychometricPathAssigner createWithNewNAFCPngPathsObj(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths) {
-		return new PsychometricPathAssigner(psychometricIds, numPsychometricDistractors, basePaths);
-	}
-	
-	Psychometric<String> pngPaths;
-	static public PsychometricPathAssigner createWithExistingNAFCPngPathsObj(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, Psychometric<String> pngPaths) {
-		return new PsychometricPathAssigner(psychometricIds, numPsychometricDistractors, basePaths, pngPaths);
-	}
-	
-	private PsychometricPathAssigner(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths) {
-		this.psychometricIds = psychometricIds;
-		this.numPsychometricDistractors = numPsychometricDistractors;
-		this.basePaths = basePaths;
-		this.pngPaths = new Psychometric<String>();
-	}
-	
-	private PsychometricPathAssigner(PsychometricIds psychometricIds, int numPsychometricDistractors, PngBasePaths basePaths, Psychometric<String> pngPaths) {
-		this.psychometricIds = psychometricIds;
-		this.numPsychometricDistractors = numPsychometricDistractors;
-		this.basePaths = basePaths;
-		this.pngPaths = pngPaths;
-	}
+
+	Psychometric<String> experimentPngPaths;
+
 
 
 	public void assign() {
@@ -74,35 +49,28 @@ public class PsychometricPathAssigner{
 	
 
 	private void assignPngPaths() {
-		pngPaths.setSample(convertPathToExperiment(basePaths.generatorPngPath + "/" + sampleSetId + "_" + sampleStimId + ".png"));
-		pngPaths.setMatch(pngPaths.getSample());
+		experimentPngPaths.setSample(generator.experimentPsychometricPngPath + "/" + sampleSetId + "_" + sampleStimId + ".png");
+		experimentPngPaths.setMatch(experimentPngPaths.getSample());
 		for (int remainingStimId:distractorsStimIds) {
 			int index = distractorsStimIds.indexOf(remainingStimId);
-			pngPaths.addPsychometricDistractor(convertPathToExperiment(basePaths.generatorPngPath + "/" + distractorsSetId+ "_" + remainingStimId + ".png"));
+			experimentPngPaths.addPsychometricDistractor(generator.experimentPsychometricPngPath + "/" + distractorsSetId+ "_" + remainingStimId + ".png");
 		}
-	}
-	
-	private String convertPathToExperiment(String generatorPath) {
-		
-		String newPath = generatorPath.replace(basePaths.generatorPngPath, basePaths.experimentPngPath);
-	
-		return newPath;
 	}
 
 	Psychometric<String> specPaths = new Psychometric<String>();
 
 	private void assignSpecPaths() {
-		specPaths.setSample(basePaths.specPath + "/" + sampleSetId + "_" + sampleStimId + "_spec.xml");
-		specPaths.setMatch(basePaths.specPath + "/" + matchSetId + "_" + matchStimId + "_spec.xml");
+		specPaths.setSample(generator.getGeneratorPsychometricSpecPath() + "/" + sampleSetId + "_" + sampleStimId + "_spec.xml");
+		specPaths.setMatch(generator.getGeneratorPsychometricSpecPath() + "/" + matchSetId + "_" + matchStimId + "_spec.xml");
 		for (Integer stimId : distractorsStimIds) {
-			String pathOfDistractorWithStimId = basePaths.specPath + "/" + distractorsSetId + "_" + stimId + "_spec.xml";
+			String pathOfDistractorWithStimId = generator.getGeneratorPsychometricSpecPath() + "/" + distractorsSetId + "_" + stimId + "_spec.xml";
 			specPaths.addPsychometricDistractor(pathOfDistractorWithStimId);
 		}
 	}
 	
 
-	public Psychometric<String> getPngPaths() {
-		return pngPaths;
+	public Psychometric<String> getExperimentPngPaths() {
+		return experimentPngPaths;
 	}
 
 	public Psychometric<String> getSpecPaths() {

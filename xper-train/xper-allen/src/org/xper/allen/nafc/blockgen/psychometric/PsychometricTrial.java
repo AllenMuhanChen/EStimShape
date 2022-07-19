@@ -69,7 +69,7 @@ public class PsychometricTrial implements Trial{
 		PngBasePaths psychometricBasePaths = new PngBasePaths(generator.getGeneratorPsychometricPngPath(), generator.getExperimentPsychometricPngPath(), generator.getGeneratorPsychometricSpecPath());
 		PsychometricPathAssigner psychometricPathAssigner = PsychometricPathAssigner.createWithNewNAFCPngPathsObj(psychometricIds, numDistractors.numPsychometricDistractors, psychometricBasePaths);
 		psychometricPathAssigner.assign();
-		pngPaths = psychometricPathAssigner.getPngPaths();
+		pngPaths = psychometricPathAssigner.getExperimentPngPaths();
 		specPaths = psychometricPathAssigner.getSpecPaths();
 	}
 

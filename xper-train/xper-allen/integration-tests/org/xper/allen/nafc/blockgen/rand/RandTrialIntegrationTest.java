@@ -128,10 +128,10 @@ public class RandTrialIntegrationTest {
 
     private void draws_pngs() {
 
-        String samplePath = getSamplePath();
-        String matchPath = getMatchPath();
-        List<String> qmDistractorPaths = getQmDistractorPaths();
-        List<String> randDistractorPaths = getRandDistractorPaths();
+        String samplePath = getGeneratorSamplePath();
+        String matchPath = getGeneratorMatchPath();
+        List<String> qmDistractorPaths = getGeneratorQmDistractorPaths();
+        List<String> randDistractorPaths = getGeneratorRandDistractorPaths();
 
         assertFileExists(samplePath);
         assertFileExists(matchPath);
@@ -139,16 +139,25 @@ public class RandTrialIntegrationTest {
         assertFilesExist(randDistractorPaths);
     }
 
-    private String getSamplePath() {
+    private String getGeneratorSamplePath() {
         String samplePath = generator.getGeneratorPngPath() + "/" + Long.toString(sampleId) + "_sample.png";
         return samplePath;
     }
 
-    private String getMatchPath() {
+    private String getExperimentSamplePath() {
+        String samplePath = generator.getExperimentPngPath() + "/" + Long.toString(sampleId) + "_sample.png";
+        return samplePath;
+    }
+
+    private String getGeneratorMatchPath() {
         return generator.getGeneratorPngPath() + "/" + Long.toString(matchId) + "_match.png";
     }
 
-    private List<String> getQmDistractorPaths() {
+    private String getExperimentMatchPath() {
+        return generator.getExperimentPngPath() + "/" + Long.toString(matchId) + "_match.png";
+    }
+
+    private List<String> getGeneratorQmDistractorPaths() {
         List<String> qmDistractorPaths = new LinkedList<>();
         for (int i = 0; i < numQMDistractors; i++) {
             String path = generator.getGeneratorPngPath() + "/" + Long.toString(matchId + 1 + i) + "_qmDistractor.png";
@@ -157,10 +166,28 @@ public class RandTrialIntegrationTest {
         return qmDistractorPaths;
     }
 
-    private List<String> getRandDistractorPaths() {
+    private List<String> getExperimentQmDistractorPaths() {
+        List<String> qmDistractorPaths = new LinkedList<>();
+        for (int i = 0; i < numQMDistractors; i++) {
+            String path = generator.getExperimentPngPath() + "/" + Long.toString(matchId + 1 + i) + "_qmDistractor.png";
+            qmDistractorPaths.add(path);
+        }
+        return qmDistractorPaths;
+    }
+
+    private List<String> getGeneratorRandDistractorPaths() {
         List<String> randDistractorPaths = new LinkedList<>();
         for (int i = 0; i < numRandDistractors; i++) {
             String path = generator.getGeneratorPngPath() + "/" + Long.toString(matchId + 1 + numQMDistractors + i) + "_randDistractor.png";
+            randDistractorPaths.add(path);
+        }
+        return randDistractorPaths;
+    }
+
+    private List<String> getExperimentRandDistractorPaths() {
+        List<String> randDistractorPaths = new LinkedList<>();
+        for (int i = 0; i < numRandDistractors; i++) {
+            String path = generator.getExperimentPngPath() + "/" + Long.toString(matchId + 1 + numQMDistractors + i) + "_randDistractor.png";
             randDistractorPaths.add(path);
         }
         return randDistractorPaths;
@@ -172,18 +199,18 @@ public class RandTrialIntegrationTest {
         qmDistractorSpecs = getPngSpecs(qmDistractorIds);
         randDistractorSpecs = getPngSpecs(randDistractorIds);
 
-        assertPngDetails(sampleSpec, sampleDistanceLims, getSamplePath());
+        assertPngDetails(sampleSpec, sampleDistanceLims, getExperimentSamplePath());
         assertTrue(!sampleSpec.getNoiseMapPath().isEmpty());
 
-        assertPngDetails(matchSpec, choiceDistanceLims, getMatchPath());
+        assertPngDetails(matchSpec, choiceDistanceLims, getExperimentMatchPath());
         int i = 0;
         for (NoisyPngSpec spec : qmDistractorSpecs) {
-            assertPngDetails(spec, choiceDistanceLims, getQmDistractorPaths().get(i));
+            assertPngDetails(spec, choiceDistanceLims, getExperimentQmDistractorPaths().get(i));
             i++;
         }
         i = 0;
         for (NoisyPngSpec spec : randDistractorSpecs) {
-            assertPngDetails(spec, choiceDistanceLims, getRandDistractorPaths().get(i));
+            assertPngDetails(spec, choiceDistanceLims, getExperimentRandDistractorPaths().get(i));
             i++;
         }
     }
@@ -262,7 +289,7 @@ public class RandTrialIntegrationTest {
                 mSticks,
                 stimObjIds
         );
-        Rand<String> pngPaths = drawer.getPngPaths();
+        Rand<String> pngPaths = drawer.getExperimentPngPaths();
         return pngPaths;
     }
 

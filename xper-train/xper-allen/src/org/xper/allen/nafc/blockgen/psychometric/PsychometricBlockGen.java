@@ -14,8 +14,6 @@ import org.xper.exception.VariableNotFoundException;
 
 public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
 
-    private final PsychometricImageSetGenerator psychometricImageSetGenerator = new PsychometricImageSetGenerator(this);
-
     Long genId;
 	private List<Trial> trials = new LinkedList<>();
     private PsychometricFactoryParameters psychometricFactoryParameters;
@@ -55,19 +53,16 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     }
 
     private void preWriteTrials() {
-        //PRE-WRITING
         for(Trial trial:trials){
             trial.preWrite();
         }
     }
 
     private void shuffleTrials() {
-        //SHUFFLING
         Collections.shuffle(trials);
     }
 
     private void updateGenId() {
-        //WRITING
         try {
             /**
              * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
