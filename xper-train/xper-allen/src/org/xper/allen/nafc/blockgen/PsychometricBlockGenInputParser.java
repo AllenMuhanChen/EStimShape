@@ -12,25 +12,26 @@ import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
 public class PsychometricBlockGenInputParser extends TrialGenerator {
 
-    private static final NoiseForm defaultPsychometricNoiseForm = new NoiseForm(NoiseType.PRE_JUNC, new double[]{0.5, 0.9});
+    private static final NoiseForm defaultPsychometricNoiseForm = NoiseFormer.getNoiseForm(NoiseType.PRE_JUNC);
     private static ListIterator<String> iterator;
     private final PsychometricBlockGen generator;
     private int numPsychometricTrialsPerImage;
     private int numRandTrials;
-    private TypeFrequency<Integer> numPsychometricDistractors;
-    private TypeFrequency<Integer> numRandDisractors;
+    private TypeFrequency<Integer> numPsychometricDistractorsTF;
+    private TypeFrequency<Integer> numRandDisractorsTF;
     private TypeFrequency<Lims> psychometricNoiseChances;
-    private TypeFrequency<Integer> numQMDistractors;
-    private TypeFrequency<Integer> numRandDistractors;
-    private TypeFrequency<Integer> numMMCategories;
-    private TypeFrequency<Integer> numQMCategories;
-    private TypeFrequency<Lims> randNoiseChances;
-    private TypeFrequency<NoiseType> noiseTypes;
+    private TypeFrequency<Integer> numQMDistractorsTF;
+    private TypeFrequency<Integer> numRandDistractorsTF;
+    private TypeFrequency<Integer> numMMCategoriesTF;
+    private TypeFrequency<Integer> numQMCategoriesTF;
+    private TypeFrequency<Lims> randNoiseChancesTF;
+    private TypeFrequency<NoiseType> noiseTypesTF;
     private Lims sampleDistanceLims;
     private Lims choiceDistanceLims;
     private double size;
@@ -50,18 +51,18 @@ public class PsychometricBlockGenInputParser extends TrialGenerator {
         numRandTrials = Integer.parseInt(iterator.next());
 
         //PSYCHOMETRIC TRIALS
-        numPsychometricDistractors = new TypeFrequency<>(nextIntegerType(), nextFrequency());
-        numRandDisractors = new TypeFrequency<>(nextIntegerType(), nextFrequency());
+        numPsychometricDistractorsTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
+        numRandDisractorsTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
         psychometricNoiseChances = new TypeFrequency<>(nextLimsType(), nextFrequency());
 
 
         //RAND TRIALS
-        numQMDistractors = new TypeFrequency<>(nextIntegerType(), nextFrequency());
-        numRandDistractors = new TypeFrequency<>(nextIntegerType(), nextFrequency());
-        numMMCategories = new TypeFrequency<>(nextIntegerType(), nextFrequency());
-        numQMCategories = new TypeFrequency<>(nextIntegerType(), nextFrequency());
-        randNoiseChances = new TypeFrequency<>(nextLimsType(), nextFrequency());
-        noiseTypes = new TypeFrequency<>(stringToNoiseTypes(iterator.next()), nextFrequency());
+        numQMDistractorsTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
+        numRandDistractorsTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
+        numMMCategoriesTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
+        numQMCategoriesTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
+        randNoiseChancesTF = new TypeFrequency<>(nextLimsType(), nextFrequency());
+        noiseTypesTF = new TypeFrequency<>(stringToNoiseTypes(iterator.next()), nextFrequency());
 
 
         //ALL TRIALS
@@ -75,60 +76,96 @@ public class PsychometricBlockGenInputParser extends TrialGenerator {
 
         readArgs(args);
 
-        nafcTrialParameters = new NAFCTrialParameters(
-                sampleDistanceLims,
-                choiceDistanceLims,
-                size,
-                eyeWinSize
-        );
+        createSharedParameters();
 
-        PsychometricFactoryParameters psychometricFactorParameters = createPsychometricFactoryParameters();
+        PsychometricFactoryParameters psychometricFactorParameters
+                = createPsychometricFactoryParameters();
 
-        TypeFrequency<NumberOfDistractorsForRandTrial> numDistractors
-                = getNumDistractorsMixedTypeFrequency(numQMDistractors, numRandDistractors);
-        TypeFrequency<NumberOfMorphCategories> numMorphs
-                = getNumMorphMixedTypeFrequency(numMMCategories, numQMCategories);
-
-        TypeFrequency<NoiseParameters> noiseParameters = new TypeFrequency<>();
-        TypeFrequency<Lims> randNoiseChances1 = this.randNoiseChances;
-        noiseParameters.add();
-
-        TypeFrequency<NoisyTrialParameters> trialParameters
-                = getNumNoisyTrialParametersTypeFrequency(noiseParameters, nafcTrialParameters);
-
-        RandFactoryParameters randFactoryParameters =
-                new RandFactoryParameters(
-                        numRandTrials,
-                        numDistractors,
-                        numMorphs,
-                        trialParametersTypeFrequency
-                );
-
+        RandFactoryParameters randFactoryParameters
+                = createRandFactoryParameters();
 
         generator.setUp(
                 psychometricFactorParameters,
                 randFactoryParameters);
     }
 
+    private void createSharedParameters() {
+        nafcTrialParameters = new NAFCTrialParameters(
+                sampleDistanceLims,
+                choiceDistanceLims,
+                size,
+                eyeWinSize
+        );
+    }
+
     private PsychometricFactoryParameters createPsychometricFactoryParameters() {
-        TypeFrequency<NoisyTrialParameters> trialParameters = new TypeFrequency<>();
-        for(Lims noiseChance: randNoiseChances.getTypes()){
+
+
+        //TRIAL PARAMETERS
+        List<Lims> psychometricNoiseChances = this.psychometricNoiseChances.getShuffledTrialList(numPsychometricTrialsPerImage);
+        List<NoisyTrialParameters> trialParameters = new LinkedList<>();
+        for(Lims noiseChance: psychometricNoiseChances){
             NoiseParameters noiseParameters = new NoiseParameters(defaultPsychometricNoiseForm, noiseChance);
-            trialParameters.getTypes().add(new NoisyTrialParameters(noiseParameters, nafcTrialParameters));
+            trialParameters.add(new NoisyTrialParameters(noiseParameters, nafcTrialParameters));
         }
-        trialParameters.setFrequencies(randNoiseChances.getFrequencies());
+
+        //DISTRACTORS
+        List<Integer> numRandDistractors = numRandDisractorsTF.getShuffledTrialList(numPsychometricTrialsPerImage);
+        List<Integer> numPsychometricDistractors = numPsychometricDistractorsTF.getShuffledTrialList(numPsychometricTrialsPerImage);
+        List<NumberOfDistractorsForPsychometricTrial> numDistractors = new LinkedList<>();
+        for(int i=0; i<numPsychometricTrialsPerImage; i++){
+            numDistractors.add(new NumberOfDistractorsForPsychometricTrial(numPsychometricDistractors.get(i),numRandDistractors.get(i)));
+        }
 
 
         PsychometricFactoryParameters psychometricFactorParameters =
-                new PsychometricFactoryParameters(
-                        numPsychometricTrialsPerImage,
-                        numPsychometricDistractors,
-                        numRandDisractors,
-                        trialParameters
-                );
+                PsychometricFactoryParameters.create(
+                        numPsychometricTrialsPerImage, trialParameters, numDistractors);
         return psychometricFactorParameters;
     }
 
+    private RandFactoryParameters createRandFactoryParameters(){
+        //NUM DISTRACTORS
+        List<Integer> numQMDistractors = numQMDistractorsTF.getShuffledTrialList(numRandTrials);
+        List<Integer> numRandDistractors = numRandDistractorsTF.getShuffledTrialList(numRandTrials);
+        List<NumberOfDistractorsForRandTrial> numDistractors = new LinkedList<>();
+        for (int i=0; i<numRandTrials; i++){
+            numDistractors.add(new NumberOfDistractorsForRandTrial(numQMDistractors.get(i),numRandDistractors.get(i)));
+        }
+
+        //NUM MORPHS
+        List<Integer> numMMCategories = numMMCategoriesTF.getShuffledTrialList(numRandTrials);
+        List<Integer> numQMCategories = numQMCategoriesTF.getShuffledTrialList(numRandTrials);
+        List<NumberOfMorphCategories> numMorphs = new LinkedList<>();
+        for(int i=0; i<numRandTrials; i++){
+            numMorphs.add(new NumberOfMorphCategories(numMMCategories.get(i), numQMCategories.get(i)));
+        }
+
+        //TRIAL PARAMETERS
+        List<Lims> noiseChances = randNoiseChancesTF.getShuffledTrialList(numRandTrials);
+        List<NoiseType> noiseTypes = noiseTypesTF.getShuffledTrialList(numRandTrials);
+        List<NoiseParameters> noiseParameters = new LinkedList<>();
+        for(int i=0; i<numRandTrials; i++){
+            noiseParameters.add(
+                    new NoiseParameters(NoiseFormer.getNoiseForm(noiseTypes.get(i)),
+                            noiseChances.get(i)));
+        }
+        List<NoisyTrialParameters> trialParameters = new LinkedList<>();
+        for(int i=0; i<numRandTrials; i++){
+            trialParameters.add(new NoisyTrialParameters(noiseParameters.get(i), nafcTrialParameters));
+        }
+
+        RandFactoryParameters randFactoryParameters =
+                new RandFactoryParameters(
+                        numRandTrials,
+                        numDistractors,
+                        numMorphs,
+                        trialParameters
+                );
+
+        return randFactoryParameters;
+
+    }
 
     private static List<Double> nextFrequency() {
         return stringToDoubles(iterator.next());
@@ -140,63 +177,6 @@ public class PsychometricBlockGenInputParser extends TrialGenerator {
 
     private static List<Lims> nextLimsType(){
         return stringToLims(iterator.next());
-    }
-
-    private static TypeFrequency<NumberOfDistractorsForRandTrial> getNumDistractorsMixedTypeFrequency(TypeFrequency<Integer> numQMDistractorsTF, TypeFrequency<Integer> numRandDistractorsTF){
-        TypeFrequency<NumberOfDistractorsForRandTrial> output = new TypeFrequency<>();
-        for(Integer numQMDistractorsType:numQMDistractorsTF.getTypes()){
-            for(Integer numRandDistractorsType :numRandDistractorsTF.getTypes()){
-                NumberOfDistractorsForRandTrial compositeType = new NumberOfDistractorsForRandTrial(numQMDistractorsType, numRandDistractorsType);
-                output.getTypes().add(compositeType);
-            }
-        }
-
-        for(Double numQMDistractorsFrequency:numQMDistractorsTF.getFrequencies()){
-            for(Double numRandDistractorsFrequency :numRandDistractorsTF.getFrequencies()){
-                Double compositeFrequency = numQMDistractorsFrequency * numRandDistractorsFrequency;
-                output.getFrequencies().add(compositeFrequency);
-            }
-        }
-
-        return output;
-    }
-
-    private static TypeFrequency<NumberOfMorphCategories> getNumMorphMixedTypeFrequency(TypeFrequency<Integer> numMMCategoriesTF, TypeFrequency<Integer> numQMCategoriesTF){
-        TypeFrequency<NumberOfMorphCategories> output = new TypeFrequency<>();
-        for(Integer numMMCategoriesType:numMMCategoriesTF.getTypes()){
-            for(Integer numQMCategoriesType :numQMCategoriesTF.getTypes()){
-                NumberOfMorphCategories compositeType = new NumberOfMorphCategories(numMMCategoriesType, numQMCategoriesType);
-                output.getTypes().add(compositeType);
-            }
-        }
-
-        for(Double numMMDistractorsFrequency:numMMCategoriesTF.getFrequencies()){
-            for(Double numQMCategoriesFrequency :numQMCategoriesTF.getFrequencies()){
-                Double compositeFrequency = numMMDistractorsFrequency * numQMCategoriesFrequency;
-                output.getFrequencies().add(compositeFrequency);
-            }
-        }
-
-        return output;
-    }
-
-    private static TypeFrequency<NoisyTrialParameters> getNumNoisyTrialParametersTypeFrequency(TypeFrequency<NoiseParameters> noiseParameters, TypeFrequency<NAFCTrialParameters> nafcTrialParameters){
-        TypeFrequency<NoisyTrialParameters> output = new TypeFrequency<>();
-        for(NoiseParameters noiseParametersType:noiseParameters.getTypes()){
-            for(NAFCTrialParameters nafcTrialParametersType :nafcTrialParameters.getTypes()){
-                NoisyTrialParameters compositeType = new NoisyTrialParameters(noiseParametersType, nafcTrialParametersType);
-                output.getTypes().add(compositeType);
-            }
-        }
-
-        for(Double noiseParametersFrequency:noiseParameters.getFrequencies()){
-            for(Double nafcTrialParametersFrequency :nafcTrialParameters.getFrequencies()){
-                Double compositeFrequency = noiseParametersFrequency * nafcTrialParametersFrequency;
-                output.getFrequencies().add(compositeFrequency);
-            }
-        }
-
-        return output;
     }
 
 

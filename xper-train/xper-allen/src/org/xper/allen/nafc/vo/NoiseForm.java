@@ -1,13 +1,15 @@
 package org.xper.allen.nafc.vo;
 
+import org.xper.allen.drawing.composition.noisy.NoisePositions;
+
 public class NoiseForm {
 	private NoiseType noiseType;
-	private double[] normalizedPositionBounds;
+	private NoisePositions normalizedPositionBounds;
 
 	public NoiseForm() {
 	}
 
-	public NoiseForm(NoiseType noiseType, double[] normalizedPositionBounds) {
+	public NoiseForm(NoiseType noiseType, NoisePositions normalizedPositionBounds) {
 		super();
 		this.noiseType = noiseType;
 		this.normalizedPositionBounds = normalizedPositionBounds;
@@ -21,11 +23,11 @@ public class NoiseForm {
 		this.noiseType = noiseType;
 	}
 
-	public double[] getNormalizedPositionBounds() {
+	public NoisePositions getNormalizedPositionBounds() {
 		return normalizedPositionBounds;
 	}
 
-	public void setNormalizedPositionBounds(double[] normalizedPositionBounds) {
+	public void setNormalizedPositionBounds(NoisePositions normalizedPositionBounds) {
 		this.normalizedPositionBounds = normalizedPositionBounds;
 	}
 }

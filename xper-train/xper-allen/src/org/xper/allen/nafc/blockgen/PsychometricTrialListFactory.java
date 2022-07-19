@@ -12,16 +12,16 @@ import java.util.regex.Pattern;
 
 public class PsychometricTrialListFactory implements TrialListFactory {
 
-    private final TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTrialTypeFrequency;
+    private final List<NumberOfDistractorsForPsychometricTrial> numDistractors;
     private final int numTrialsPerImage;
-    private final TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
+    private final List<NoisyTrialParameters> trialParametersTypeFrequency;
     AbstractPsychometricTrialGenerator generator;
     PsychometricFactoryParameters parameters;
 
     public PsychometricTrialListFactory(AbstractPsychometricTrialGenerator generator, PsychometricFactoryParameters parameters) {
         this.generator = generator;
         this.parameters = parameters;
-        numDistractorsTrialTypeFrequency = parameters.getNum;
+        numDistractors = parameters.getNumDistractors();
         numTrialsPerImage = parameters.getNumTrialsPerImage();
         trialParametersTypeFrequency = parameters.getTrialParameters();
     }
@@ -32,8 +32,8 @@ public class PsychometricTrialListFactory implements TrialListFactory {
 
     @Override
     public List<Trial> createTrials() {
-        List<NumberOfDistractorsForPsychometricTrial> numDistractors = numDistractorsTrialTypeFrequency.getTrialList(numTrialsPerImage);
-        List<NoisyTrialParameters> trialParameters = trialParametersTypeFrequency.getTrialList(numTrialsPerImage);
+        List<NumberOfDistractorsForPsychometricTrial> numDistractors = this.numDistractors;
+        List<NoisyTrialParameters> trialParameters = trialParametersTypeFrequency;
         fetchSetInfo();
 
         List<Trial> trials = new LinkedList<>();

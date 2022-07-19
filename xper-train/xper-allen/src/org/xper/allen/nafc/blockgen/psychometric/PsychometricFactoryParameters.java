@@ -2,36 +2,32 @@ package org.xper.allen.nafc.blockgen.psychometric;
 
 import org.xper.allen.nafc.blockgen.*;
 
+import java.util.List;
+
 public class PsychometricFactoryParameters {
    int numTrialsPerImage;
-   TypeFrequency<NoisyTrialParameters> trialParameters;
-   TypeFrequency<Integer> numPsychometricDistractors;
-   TypeFrequency<Integer> numRandDistractors;
+   List<NoisyTrialParameters> trialParameters;
+   List<NumberOfDistractorsForPsychometricTrial> numPsychometricDistractors;
 
-   public PsychometricFactoryParameters(int numTrialsPerImage, TypeFrequency<Integer> numPsychometricDistractors, TypeFrequency<Integer> numRandDistractors, TypeFrequency<NoisyTrialParameters> trialParameters) {
+   private PsychometricFactoryParameters(int numTrialsPerImage, List<NoisyTrialParameters> trialParameters, List<NumberOfDistractorsForPsychometricTrial> numPsychometricDistractors) {
       this.numTrialsPerImage = numTrialsPerImage;
       this.trialParameters = trialParameters;
       this.numPsychometricDistractors = numPsychometricDistractors;
-      this.numRandDistractors = numRandDistractors;
+   }
+
+   public static PsychometricFactoryParameters create(int numTrialsPerImage, List<NoisyTrialParameters> trialParameters, List<NumberOfDistractorsForPsychometricTrial> numPsychometricDistractors) {
+      return new PsychometricFactoryParameters(numTrialsPerImage, trialParameters, numPsychometricDistractors);
    }
 
    public int getNumTrialsPerImage() {
       return numTrialsPerImage;
    }
 
-   public TypeFrequency<Integer> getNumPsychometricDistractors() {
-      return numPsychometricDistractors;
-   }
-
-   public TypeFrequency<Integer> getNumRandDistractors() {
-      return numRandDistractors;
-   }
-
-   public TypeFrequency<NoisyTrialParameters> getTrialParameters() {
+   public List<NoisyTrialParameters> getTrialParameters() {
       return trialParameters;
    }
 
-   public void setTrialParameters(TypeFrequency<NoisyTrialParameters> trialParameters) {
-      this.trialParameters = trialParameters;
+   public List<NumberOfDistractorsForPsychometricTrial> getNumDistractors() {
+      return numPsychometricDistractors;
    }
 }

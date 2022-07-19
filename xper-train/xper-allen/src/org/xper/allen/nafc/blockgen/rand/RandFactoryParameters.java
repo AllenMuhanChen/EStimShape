@@ -1,20 +1,21 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-import org.xper.allen.nafc.blockgen.TypeFrequency;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
+
+import java.util.List;
 
 public class RandFactoryParameters {
 
     int numTrials;
-    TypeFrequency<NumberOfDistractorsForRandTrial> numDistractorsTypeFrequency;
-    TypeFrequency<NumberOfMorphCategories> numMorphsTypeFrequency;
-    TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
+    List<NumberOfDistractorsForRandTrial> numDistractors;
+    List<NumberOfMorphCategories> numMorphs;
+    List<NoisyTrialParameters> trialParameters;
 
-    public RandFactoryParameters(int numTrials, TypeFrequency<NumberOfDistractorsForRandTrial> numDistractorsTypeFrequency, TypeFrequency<NumberOfMorphCategories> numMorphsTypeFrequency, TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
+    public RandFactoryParameters(int numTrials, List<NumberOfDistractorsForRandTrial> numDistractors, List<NumberOfMorphCategories> numMorphs, List<NoisyTrialParameters> trialParameters) {
         this.numTrials = numTrials;
-        this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
-        this.numMorphsTypeFrequency = numMorphsTypeFrequency;
-        this.trialParametersTypeFrequency = trialParametersTypeFrequency;
+        this.numDistractors = numDistractors;
+        this.numMorphs = numMorphs;
+        this.trialParameters = trialParameters;
     }
 
     public int getNumTrials() {
@@ -25,27 +26,27 @@ public class RandFactoryParameters {
         this.numTrials = numTrials;
     }
 
-    public TypeFrequency<NumberOfDistractorsForRandTrial> getNumDistractorsTypeFrequency() {
-        return numDistractorsTypeFrequency;
+    public List<NumberOfDistractorsForRandTrial> getNumDistractors() {
+        return numDistractors;
     }
 
-    public void setNumDistractorsTypeFrequency(TypeFrequency<NumberOfDistractorsForRandTrial> numDistractorsTypeFrequency) {
-        this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
+    public void setNumDistractors(List<NumberOfDistractorsForRandTrial> numDistractors) {
+        this.numDistractors = numDistractors;
     }
 
-    public TypeFrequency<NumberOfMorphCategories> getNumMorphsTypeFrequency() {
-        return numMorphsTypeFrequency;
+    public List<NumberOfMorphCategories> getNumMorphs() {
+        return numMorphs;
     }
 
-    public void setNumMorphsTypeFrequency(TypeFrequency<NumberOfMorphCategories> numMorphsTypeFrequency) {
-        this.numMorphsTypeFrequency = numMorphsTypeFrequency;
+    public void setNumMorphs(List<NumberOfMorphCategories> numMorphs) {
+        this.numMorphs = numMorphs;
     }
 
-    public TypeFrequency<NoisyTrialParameters> getTrialParametersTypeFrequency() {
-        return trialParametersTypeFrequency;
+    public List<NoisyTrialParameters> getTrialParameters() {
+        return trialParameters;
     }
 
-    public void setTrialParametersTypeFrequency(TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
-        this.trialParametersTypeFrequency = trialParametersTypeFrequency;
+    public void setTrialParameters(List<NoisyTrialParameters> trialParameters) {
+        this.trialParameters = trialParameters;
     }
 }
