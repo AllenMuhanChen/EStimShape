@@ -31,7 +31,7 @@ public class RandTrial implements Trial{
 	private Rand<Coordinates2D> coords;
 	private Rand<String> experimentPngPaths;
 	private Long taskId;
-	private String noiseMapPath;
+	private String experimentNoiseMapPath;
 	private List<String> noiseMapLabels;
 	private Rand<Long> stimObjIds = new Rand<Long>();
 	
@@ -75,7 +75,7 @@ public class RandTrial implements Trial{
 
 	private void generateNoiseMap() {
 		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(stimObjIds.getSample(), mSticks.getSample(), trialParameters.getNoiseParameters(), generator);
-		noiseMapPath = noiseMapGenerator.getNoiseMapPath();
+		experimentNoiseMapPath = noiseMapGenerator.getExperimentNoiseMapPath();
 	}
 	
 	private void assignCoords() {
@@ -89,7 +89,7 @@ public class RandTrial implements Trial{
 	
 	private void writeStimObjDataSpecs() {
 		RandTrialStimObjDataWriter stimObjDataWriter = new RandTrialStimObjDataWriter(
-				noiseMapPath,
+				experimentNoiseMapPath,
 				dbUtil,
 				trialParameters,
 				experimentPngPaths,

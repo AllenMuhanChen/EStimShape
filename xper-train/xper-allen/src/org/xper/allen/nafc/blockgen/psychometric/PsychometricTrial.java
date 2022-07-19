@@ -106,7 +106,7 @@ public class PsychometricTrial implements Trial{
 						psychometricIds,
 						generator,
 						trialParameters.getNoiseParameters());
-		noiseMapPath = psychometricNoiseMapGenerator.getNoiseMapPath();
+		noiseMapPath = psychometricNoiseMapGenerator.getExperimentNoiseMapPath();
 	}
 
 	

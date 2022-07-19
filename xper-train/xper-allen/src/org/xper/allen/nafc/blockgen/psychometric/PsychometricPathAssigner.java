@@ -14,7 +14,6 @@ public class PsychometricPathAssigner{
 	int numPsychometricDistractors;
 	AbstractPsychometricTrialGenerator generator;
 
-
 	Psychometric<String> experimentPngPaths;
 
 

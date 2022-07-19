@@ -1,6 +1,5 @@
 package org.xper.allen.drawing.composition;
 
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.vo.NoiseParameters;
 
 public abstract class NoiseMapGenerator {
@@ -23,7 +22,7 @@ public abstract class NoiseMapGenerator {
 	}
 
 	protected NoiseParameters noiseParameters;
-	protected String noiseMapPath;
+	protected String experimentNoiseMapPath;
 
 	protected void generate() {
 		assignParamsForNoiseMapGen();
@@ -33,8 +32,8 @@ public abstract class NoiseMapGenerator {
 	protected abstract void assignParamsForNoiseMapGen();
 	protected abstract void generateNoiseMap();
 
-	public String getNoiseMapPath() {
-		return noiseMapPath;
+	public String getExperimentNoiseMapPath() {
+		return experimentNoiseMapPath;
 	}
 
 	public static double[] getNoiseNormalizedPosition_PRE_JUNC() {
