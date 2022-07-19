@@ -4,36 +4,34 @@ import org.xper.allen.nafc.blockgen.*;
 
 public class PsychometricFactoryParameters {
    int numTrialsPerImage;
-   TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency;
-   TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency;
+   TypeFrequency<NoisyTrialParameters> trialParameters;
+   TypeFrequency<Integer> numPsychometricDistractors;
+   TypeFrequency<Integer> numRandDistractors;
 
-   public PsychometricFactoryParameters(int numTrialsPerImage, TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency, TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
+   public PsychometricFactoryParameters(int numTrialsPerImage, TypeFrequency<Integer> numPsychometricDistractors, TypeFrequency<Integer> numRandDistractors, TypeFrequency<NoisyTrialParameters> trialParameters) {
       this.numTrialsPerImage = numTrialsPerImage;
-      this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
-      this.trialParametersTypeFrequency = trialParametersTypeFrequency;
+      this.trialParameters = trialParameters;
+      this.numPsychometricDistractors = numPsychometricDistractors;
+      this.numRandDistractors = numRandDistractors;
    }
 
    public int getNumTrialsPerImage() {
       return numTrialsPerImage;
    }
 
-   public void setNumTrialsPerImage(int numTrialsPerImage) {
-      this.numTrialsPerImage = numTrialsPerImage;
+   public TypeFrequency<Integer> getNumPsychometricDistractors() {
+      return numPsychometricDistractors;
    }
 
-   public TypeFrequency<NumberOfDistractorsForPsychometricTrial> getNumDistractorsTypeFrequency() {
-      return numDistractorsTypeFrequency;
+   public TypeFrequency<Integer> getNumRandDistractors() {
+      return numRandDistractors;
    }
 
-   public void setNumDistractorsTypeFrequency(TypeFrequency<NumberOfDistractorsForPsychometricTrial> numDistractorsTypeFrequency) {
-      this.numDistractorsTypeFrequency = numDistractorsTypeFrequency;
+   public TypeFrequency<NoisyTrialParameters> getTrialParameters() {
+      return trialParameters;
    }
 
-   public TypeFrequency<NoisyTrialParameters> getTrialParametersTypeFrequency() {
-      return trialParametersTypeFrequency;
-   }
-
-   public void setTrialParametersTypeFrequency(TypeFrequency<NoisyTrialParameters> trialParametersTypeFrequency) {
-      this.trialParametersTypeFrequency = trialParametersTypeFrequency;
+   public void setTrialParameters(TypeFrequency<NoisyTrialParameters> trialParameters) {
+      this.trialParameters = trialParameters;
    }
 }

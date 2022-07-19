@@ -90,7 +90,6 @@ public class PsychometricQualitativeMorphParameterGenerator {
 	 * Chooses Morphs based on noiseType: PRE_JUNC OR POST_JUNC
 	 * PRE_JUNC: Orientation & (Limb Removal? - needs more development to develop NoiseMaps)
 	 * POST_JUNC: RadProfile, Curvature & Rotation
-	 * @param numCategories
 	 */
 	protected void chooseMorphs(List<QualitativeMorphParams> qmps) {
 

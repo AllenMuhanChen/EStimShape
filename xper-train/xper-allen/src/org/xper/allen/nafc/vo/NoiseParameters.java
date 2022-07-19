@@ -1,21 +1,23 @@
 package org.xper.allen.nafc.vo;
 
+import org.xper.allen.nafc.blockgen.Lims;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class NoiseParameters {
 
 	NoiseForm noiseForm = new NoiseForm();
-	double[] noiseChanceBounds;
+	Lims noiseChanceBounds;
 	
 	
-	public NoiseParameters(NoiseType noiseType, double[] normalizedPositionBounds, double[] noiseChanceBounds) {
+	public NoiseParameters(NoiseType noiseType, double[] normalizedPositionBounds, Lims noiseChanceBounds) {
 		super();
 		this.noiseChanceBounds = noiseChanceBounds;
 		this.noiseForm = new NoiseForm(noiseType, normalizedPositionBounds);
 	}
 	
-	public NoiseParameters(NoiseForm noiseForm, double[] noiseChanceBounds) {
+	public NoiseParameters(NoiseForm noiseForm, Lims noiseChanceBounds) {
 		super();
 		this.noiseForm = noiseForm;
 		this.noiseChanceBounds = noiseChanceBounds;
@@ -33,10 +35,10 @@ public class NoiseParameters {
 	public void setNormalizedPositionBounds(double[] normalizedPositionBounds) {
 		this.noiseForm.setNormalizedPositionBounds(normalizedPositionBounds);
 	}
-	public double[] getNoiseChanceBounds() {
+	public Lims getNoiseChanceBounds() {
 		return noiseChanceBounds;
 	}
-	public void setNoiseChanceBounds(double[] noiseChanceBounds) {
+	public void setNoiseChanceBounds(Lims noiseChanceBounds) {
 		this.noiseChanceBounds = noiseChanceBounds;
 	}
 }

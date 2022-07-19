@@ -6,6 +6,13 @@ public class NAFCTrialParameters {
 	private double size;
 	private double eyeWinSize;
 
+	public NAFCTrialParameters(NAFCTrialParameters other) {
+		this.sampleDistanceLims = other.sampleDistanceLims;
+		this.choiceDistanceLims = other.choiceDistanceLims;
+		this.size = other.size;
+		this.eyeWinSize = other.eyeWinSize;
+	}
+
 	public NAFCTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize) {
 		super();
 		this.sampleDistanceLims = sampleDistanceLims;

@@ -1,9 +1,14 @@
 package org.xper.allen.app.nafc;
 
+import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.vo.NoiseType;
 
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+
 public abstract class TrialGenerator {
-	public static Integer[] stringToIntegerArray(String string) {
+	public static List<Integer> stringToIntegers(String string) {
 		String[] strArr = string.split(",");
 		int length = strArr.length;
 		Integer[] intArr = new Integer[length];
@@ -11,7 +16,7 @@ public abstract class TrialGenerator {
 			intArr[i] = Integer.parseInt(strArr[i]);
 		}
 		
-		return intArr;
+		return Arrays.asList(intArr);
 	}
 
 	public static int[] stringToIntArray(String string) {
@@ -24,24 +29,24 @@ public abstract class TrialGenerator {
 		return intArr;
 	}
 
-	public static double[] stringToDoubleArray(String string) {
+	public static List<Double> stringToDoubles(String string) {
 		String[] strArr = string.split(",");
 		int length = strArr.length;
-		double[] doubleArr = new double[length];
+		Double[] doubleArr = new Double[length];
 		for(int i=0; i<length; i++) {
 			doubleArr[i] = Double.parseDouble(strArr[i]);
 		}
-		return doubleArr;
+		return Arrays.asList(doubleArr);
 	}
 
-	public static NoiseType[] stringToNoiseTypeArray(String string) {
+	public static List<NoiseType> stringToNoiseTypes(String string) {
 		String[] strArr = string.split(",");
 		int length = strArr.length;
-		NoiseType[] noiseTypeArr = new NoiseType[length];
+		List<NoiseType> noiseTypes = new LinkedList<>();
 		for(int i=0; i<length; i++) {
-			noiseTypeArr[i] = NoiseType.valueOf(strArr[i]);
+			noiseTypes.set(i, NoiseType.valueOf(strArr[i]));
 		}
-		return noiseTypeArr;
+		return noiseTypes;
 	}
 
 	/**
@@ -52,18 +57,25 @@ public abstract class TrialGenerator {
 	 * @param string
 	 * @return
 	 */
-	public static double[][] stringToTupleArray(String string) {
+	public static List<Lims> stringToLims(String string) {
 		String[] strArr = string.split("\\),");
 
 		int length = strArr.length;
-		double[][] noiseTypeArr = new double[length][2];
+		List<Lims> lims = new LinkedList<>();
 		for(int i=0; i<length; i++) {
-			String removedParenthesis = strArr[i].replaceAll("\\(", "").replaceAll("\\)", "");
-
-			String[] split = removedParenthesis.split(",");
-			noiseTypeArr[i][0] = Double.parseDouble(split[0]);
-			noiseTypeArr[i][1] = Double.parseDouble(split[1]);
+			String toParse = strArr[i];
+			Lims lim = stringToLim(toParse);
+			lims.add(lim);
 		}
-		return noiseTypeArr;
+		return lims;
+	}
+
+	public static Lims stringToLim(String toParse) {
+		String removedParenthesis = toParse.replaceAll("\\(", "").replaceAll("\\)", "");
+		String[] split = removedParenthesis.split(",");
+		Lims lim = new Lims();
+		lim.setLowerLim(Double.parseDouble(split[0]));
+		lim.setUpperLim(Double.parseDouble(split[1]));
+		return lim;
 	}
 }

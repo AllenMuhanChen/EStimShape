@@ -37,8 +37,8 @@ public class NoisyMStickPngRandTrialGenerator extends TrialGenerator{
 			ListIterator<String> iterator = argsList.listIterator();
 			
 			int numTrials = Integer.parseInt(iterator.next());
-			Integer[] numDistractorTypes = stringToIntegerArray(iterator.next());
-			double[] numDistractorFrequencies= stringToDoubleArray(iterator.next());
+			Integer[] numDistractorTypes = stringToIntegers(iterator.next());
+			double[] numDistractorFrequencies= stringToDoubles(iterator.next());
 			double sampleScaleUpperLim = Double.parseDouble(iterator.next());
 			double sampleRadiusLowerLim = Double.parseDouble(iterator.next());
 			double sampleRadiusUpperLim = Double.parseDouble(iterator.next());
@@ -49,14 +49,14 @@ public class NoisyMStickPngRandTrialGenerator extends TrialGenerator{
 			double distractorDistanceUpperLim = Double.parseDouble(iterator.next());
 			double distractorScaleUpperLim = Double.parseDouble(iterator.next());
 			int numMMCategories = Integer.parseInt(iterator.next());
-			Integer[] numQMDistractorsTypes = stringToIntegerArray(iterator.next());
-			double[] numQMDistractorsFrequencies= stringToDoubleArray(iterator.next());
-			Integer[] numQMCategoriesTypes = stringToIntegerArray(iterator.next());
-			double[] numQMCategoriesFrequencies = stringToDoubleArray(iterator.next());
-			NoiseType[] noiseTypes = stringToNoiseTypeArray(iterator.next());
-			double[] noiseTypeFrequencies= stringToDoubleArray(iterator.next());
-			double[][] noiseChancesTypes = stringToTupleArray(iterator.next());
-			double[] noiseChancesFrequencies = stringToDoubleArray(iterator.next());
+			Integer[] numQMDistractorsTypes = stringToIntegers(iterator.next());
+			double[] numQMDistractorsFrequencies= stringToDoubles(iterator.next());
+			Integer[] numQMCategoriesTypes = stringToIntegers(iterator.next());
+			double[] numQMCategoriesFrequencies = stringToDoubles(iterator.next());
+			NoiseType[] noiseTypes = stringToNoiseTypes(iterator.next());
+			double[] noiseTypeFrequencies= stringToDoubles(iterator.next());
+			double[][] noiseChancesTypes = stringToLims(iterator.next());
+			double[] noiseChancesFrequencies = stringToDoubles(iterator.next());
 
 
 			//target eye window size
@@ -80,7 +80,7 @@ public class NoisyMStickPngRandTrialGenerator extends TrialGenerator{
 			List<String> argsList = Arrays.asList(args);
 			ListIterator<String> iterator = argsList.listIterator();
 
-			Integer[] numDistractorTypes = stringToIntegerArray(iterator.next());
+			Integer[] numDistractorTypes = stringToIntegers(iterator.next());
 			int[] numDistractorNumTrials = stringToIntArray(iterator.next());
 			double sampleScaleUpperLim = Double.parseDouble(iterator.next());
 			double sampleRadiusLowerLim = Double.parseDouble(iterator.next());
@@ -92,13 +92,13 @@ public class NoisyMStickPngRandTrialGenerator extends TrialGenerator{
 			double distractorDistanceUpperLim = Double.parseDouble(iterator.next());
 			double distractorScaleUpperLim = Double.parseDouble(iterator.next());
 			int numMMCategories = Integer.parseInt(iterator.next());
-			Integer[] numQMDistractorsTypes = stringToIntegerArray(iterator.next());
+			Integer[] numQMDistractorsTypes = stringToIntegers(iterator.next());
 			int[] numQMDistractorsNumTrials = stringToIntArray(iterator.next());
-			Integer[] numQMCategoriesTypes = stringToIntegerArray(iterator.next());
+			Integer[] numQMCategoriesTypes = stringToIntegers(iterator.next());
 			int[] numCategoriesMorphedNumTrials = stringToIntArray(iterator.next());
-			NoiseType[] noiseTypes = stringToNoiseTypeArray(iterator.next());
+			NoiseType[] noiseTypes = stringToNoiseTypes(iterator.next());
 			int[] noiseTypeNumTrials = stringToIntArray(iterator.next());
-			double[][] noiseChancesTypes = stringToTupleArray(iterator.next());
+			double[][] noiseChancesTypes = stringToLims(iterator.next());
 			int[] noiseChancesNumTrials = stringToIntArray(iterator.next());
 
 

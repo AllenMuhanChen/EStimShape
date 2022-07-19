@@ -13,6 +13,7 @@ public class NumberOfMorphCategories {
 	public NumberOfMorphCategories() {
 	}
 
+
 	public int getNumMMCategories() {
 		return numMMCategories;
 	}

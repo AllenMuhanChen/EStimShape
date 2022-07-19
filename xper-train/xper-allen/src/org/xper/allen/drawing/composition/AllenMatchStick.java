@@ -17,6 +17,7 @@ import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
+import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.drawing.Coordinates2D;
@@ -106,7 +107,7 @@ public class AllenMatchStick extends MatchStick {
 
 
 	// VARIABLES FOR CONTRUCTING NOISE MAPS
-	private double[] noiseChanceBounds;
+	private Lims noiseChanceBounds;
 	private NoiseType noiseType;
 	private double[] noiseNormalizedPositions;
 
@@ -148,7 +149,7 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
-	public NoiseParameters setNoiseParameters(NoiseType noiseType, double[] noiseChanceBounds) {
+	public NoiseParameters setNoiseParameters(NoiseType noiseType, Lims noiseChanceBounds) {
 		if(noiseType == NoiseType.NONE) {
 			this.noiseChanceBounds = new double[]{0,0};
 			this.noiseNormalizedPositions = new double[] {0,0};
