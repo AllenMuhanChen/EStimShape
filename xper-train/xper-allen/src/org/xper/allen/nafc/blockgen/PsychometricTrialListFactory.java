@@ -51,8 +51,8 @@ public class PsychometricTrialListFactory implements TrialListFactory {
 
     int numSets;
     int numStimPerSet;
-    private void fetchSetInfo(){
 
+    private void fetchSetInfo(){
         //Getting all files in path
         File folder = new File(generator.getGeneratorPsychometricPngPath());
         File[] fileArray = folder.listFiles();

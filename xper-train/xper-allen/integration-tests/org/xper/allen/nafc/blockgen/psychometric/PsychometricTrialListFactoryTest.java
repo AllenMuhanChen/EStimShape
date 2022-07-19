@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.*;
@@ -13,6 +14,8 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
+@Deprecated
+@Ignore
 public class PsychometricTrialListFactoryTest {
 
     @Test

@@ -29,7 +29,7 @@ public class RandTrial implements Trial{
 	private Rand<AllenMatchStick> mSticks = new Rand<>();
 	private Rand<AllenMStickSpec> mStickSpecs = new Rand<AllenMStickSpec>();
 	private Rand<Coordinates2D> coords;
-	private Rand<String> pngPaths;
+	private Rand<String> experimentPngPaths;
 	private Long taskId;
 	private String noiseMapPath;
 	private List<String> noiseMapLabels;
@@ -68,7 +68,7 @@ public class RandTrial implements Trial{
 				mSticks,
 				stimObjIds
 		);
-		pngPaths = drawer.getPngPaths();
+		experimentPngPaths = drawer.getExperimentPngPaths();
 	}
 
 
@@ -92,7 +92,7 @@ public class RandTrial implements Trial{
 				noiseMapPath,
 				dbUtil,
 				trialParameters,
-				pngPaths,
+				experimentPngPaths,
 				stimObjIds,
 				mStickSpecs,
 				coords

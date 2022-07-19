@@ -1,6 +1,5 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
@@ -21,7 +20,7 @@ public class PNGDrawerForRandTrial {
         drawPNGs();
     }
 
-    Rand<String> pngPaths = new Rand<>();
+    Rand<String> experimentPngPaths = new Rand<>();
 
     private void drawPNGs(){
         AllenPNGMaker pngMaker = generator.getPngMaker();
@@ -40,7 +39,7 @@ public class PNGDrawerForRandTrial {
         index=0;
         for(AllenMatchStick mStick:mSticks.getRandDistractors()){
             String randDistractorPath = pngMaker.createAndSavePNG(mStick, stimObjIds.getRandDistractors().get(index), randDistractorLabels, generatorPngPath);
-            pngPaths.addRandDistractor(randDistractorPath);
+            experimentPngPaths.addRandDistractor(generator.convertPathToExperiment(randDistractorPath));
             index++;
         }
     }
@@ -50,7 +49,7 @@ public class PNGDrawerForRandTrial {
         int index=0;
         for(AllenMatchStick mStick:mSticks.getQualitativeMorphDistractors()){
             String qmDistractorPath = pngMaker.createAndSavePNG(mStick, stimObjIds.getQualitativeMorphDistractors().get(index), qmDistractorLabels, generatorPngPath);
-            pngPaths.addQualitativeMorphDistractor(qmDistractorPath);
+            experimentPngPaths.addQualitativeMorphDistractor(generator.convertPathToExperiment(qmDistractorPath));
             index++;
         }
     }
@@ -58,17 +57,17 @@ public class PNGDrawerForRandTrial {
     private void drawMatchPNG(AllenPNGMaker pngMaker, String generatorPngPath) {
         List<String> matchLabels =  Arrays.asList(new String[] {"match"});
         String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), matchLabels, generatorPngPath);
-        pngPaths.setMatch(matchPath);
+        experimentPngPaths.setMatch(generator.convertPathToExperiment(matchPath));
     }
 
     private void drawSamplePNG(AllenPNGMaker pngMaker, String generatorPngPath) {
         List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
-        pngPaths.setSample(samplePath);
+        experimentPngPaths.setSample(samplePath);
     }
 
-    public Rand<String> getPngPaths() {
-        return pngPaths;
+    public Rand<String> getExperimentPngPaths() {
+        return experimentPngPaths;
     }
 
 
