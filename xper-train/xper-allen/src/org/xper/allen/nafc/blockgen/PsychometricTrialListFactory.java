@@ -21,9 +21,9 @@ public class PsychometricTrialListFactory implements TrialListFactory {
     public PsychometricTrialListFactory(AbstractPsychometricTrialGenerator generator, PsychometricFactoryParameters parameters) {
         this.generator = generator;
         this.parameters = parameters;
-        numDistractorsTrialTypeFrequency = parameters.getNumDistractorsTypeFrequency();
+        numDistractorsTrialTypeFrequency = parameters.getNum;
         numTrialsPerImage = parameters.getNumTrialsPerImage();
-        trialParametersTypeFrequency = parameters.getTrialParametersTypeFrequency();
+        trialParametersTypeFrequency = parameters.getTrialParameters();
     }
 
     private List<Long> setIds;

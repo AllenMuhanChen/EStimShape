@@ -11,8 +11,17 @@ public class NoisyTrialParameters extends NAFCTrialParameters{
 
 	NoiseParameters noiseParameters;
 
+	public NoisyTrialParameters(NoiseParameters noiseParameters, NAFCTrialParameters nafcTrialParameters){
+		super(nafcTrialParameters);
+		this.noiseParameters = noiseParameters;
+	}
+
+	public NoisyTrialParameters(NoisyTrialParameters other) {
+		this.noiseParameters = other.noiseParameters;
+	}
+
 	public NoisyTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize,
-			NoiseParameters noiseParameters) {
+								NoiseParameters noiseParameters) {
 		super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize);
 		this.noiseParameters = noiseParameters;
 	}

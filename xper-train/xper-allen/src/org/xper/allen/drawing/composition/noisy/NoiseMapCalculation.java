@@ -12,6 +12,7 @@ import javax.vecmath.Point3d;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 
+import org.xper.allen.nafc.blockgen.Lims;
 import quickhull3d.QuickHull3D;
 
 public class NoiseMapCalculation {
@@ -34,7 +35,7 @@ public class NoiseMapCalculation {
 	//TEMP
 	public ArrayList<Point> hull;
 
-	public NoiseMapCalculation(AllenMatchStick ams, double[] noiseChanceBounds, double[] noiseChanceBoundPositions) {
+	public NoiseMapCalculation(AllenMatchStick ams, Lims noiseChanceBounds, double[] noiseChanceBoundPositions) {
 		this.ams = ams;
 		this.n = ams.getnComponent();
 		if(n==2) {
@@ -84,7 +85,7 @@ public class NoiseMapCalculation {
 	 * referring to the start of limb n.
 	 * @param noiseBounds: from 0 to 1, indx 0: lowest percentage chance, indx 1: highest perc chc 
 	 */
-	private List<Double> generateLinearMAxisNoiseMap(double[] noiseChanceBounds, double[] noiseChanceBoundPositions, List<Double> normalizedPositions) {
+	private List<Double> generateLinearMAxisNoiseMap(Lims noiseChanceBounds, double[] noiseChanceBoundPositions, List<Double> normalizedPositions) {
 		List<Double> noiseChanceMAxisMap = new LinkedList<>();
 		double linearRampLength = (double) noiseChanceBoundPositions[1]- (double) noiseChanceBoundPositions[0];
 		for(double normPos:normalizedPositions) {

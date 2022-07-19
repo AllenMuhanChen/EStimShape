@@ -379,7 +379,7 @@ public class NoisyMStickPngRandBlockGen extends AbstractMStickPngTrialGenerator{
 			
 			//SETTING NOISE DATA
 			NoiseType noiseType = noiseTypesTrialList.get(i);
-			double[] noiseChance = noiseChancesTrialList.get(i);
+			Lims noiseChance = noiseChancesTrialList.get(i);
 			noiseParameters.add(objs_noise.get(i).setNoiseParameters(noiseType, noiseChance));
 		}
 		

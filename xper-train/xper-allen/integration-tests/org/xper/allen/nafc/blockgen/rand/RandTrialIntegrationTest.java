@@ -36,7 +36,7 @@ public class RandTrialIntegrationTest {
     NumberOfDistractorsForRandTrial numDistractors;
     NumberOfMorphCategories numMorphCategories;
     NoiseType noiseType;
-    double[] noiseChance;
+    Lims noiseChance;
 
     RandNoisyTrialParameters trialParameters;
     RandTrial trial;

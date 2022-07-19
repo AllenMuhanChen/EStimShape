@@ -4,7 +4,6 @@ public class NumberOfDistractorsForRandTrial {
 	private int numQMDistractors;
 	private int numRandDistractors;
 
-
 	public NumberOfDistractorsForRandTrial() {
 	}
 

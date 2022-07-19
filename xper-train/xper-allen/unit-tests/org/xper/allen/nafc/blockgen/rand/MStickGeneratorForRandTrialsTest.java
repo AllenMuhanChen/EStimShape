@@ -21,7 +21,7 @@ public class MStickGeneratorForRandTrialsTest {
     private int size;
     private int eyeWinSize;
     private NoiseParameters noiseParameters;
-    private double[] noiseChance;
+    private Lims noiseChance;
     private NoiseType noiseType;
     private int numQMDistractors;
     private int numRandDistractors;

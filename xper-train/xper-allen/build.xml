@@ -249,7 +249,7 @@
 				<include name="org/xper/allen/app/nafc/PsychometricMStickTrialGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricMStickTrialGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricBlockGeneratorMain" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>

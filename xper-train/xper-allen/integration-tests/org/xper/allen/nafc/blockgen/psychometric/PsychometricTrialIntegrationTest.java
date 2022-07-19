@@ -28,7 +28,7 @@ public class PsychometricTrialIntegrationTest {
 	int stimId;
 	List<Integer> stimIds;
 	PsychometricIds psychometricIds;
-	double[] noiseChance;
+	Lims noiseChance;
 	NoiseParameters noiseParameters;
 	Lims sampleDistanceLims;
 	Lims choiceDistanceLims;

@@ -9,6 +9,10 @@ public class Lims {
 		this.upperLim = distanceUpperLim;
 	}
 
+    public Lims() {
+
+    }
+
 	public double getLowerLim() {
 		return lowerLim;
 	}

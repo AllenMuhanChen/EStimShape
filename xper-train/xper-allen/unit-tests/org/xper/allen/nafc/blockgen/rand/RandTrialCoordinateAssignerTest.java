@@ -19,7 +19,7 @@ public class RandTrialCoordinateAssignerTest {
     private int size;
     private int eyeWinSize;
     private NoiseType noiseType;
-    private double[] noiseChance;
+    private Lims noiseChance;
     private NoiseParameters noiseParameters;
     private RandNoisyTrialParameters trialParameters;
     private NumberOfDistractorsForRandTrial numDistractors;
