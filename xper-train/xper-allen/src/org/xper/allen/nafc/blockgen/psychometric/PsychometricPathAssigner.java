@@ -14,7 +14,13 @@ public class PsychometricPathAssigner{
 	int numPsychometricDistractors;
 	AbstractPsychometricTrialGenerator generator;
 
-	Psychometric<String> experimentPngPaths;
+	public PsychometricPathAssigner(PsychometricIds psychometricIds, int numPsychometricDistractors, AbstractPsychometricTrialGenerator generator) {
+		this.psychometricIds = psychometricIds;
+		this.numPsychometricDistractors = numPsychometricDistractors;
+		this.generator = generator;
+	}
+
+	Psychometric<String> experimentPngPaths = new Psychometric<>();
 
 
 
