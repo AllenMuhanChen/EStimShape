@@ -63,7 +63,7 @@ public class PNGDrawerForRandTrial {
     private void drawSamplePNG(AllenPNGMaker pngMaker, String generatorPngPath) {
         List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
-        experimentPngPaths.setSample(samplePath);
+        experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
     }
 
     public Rand<String> getExperimentPngPaths() {
