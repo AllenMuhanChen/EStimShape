@@ -137,6 +137,15 @@ public class RandTrialIntegrationTest {
         assertFileExists(matchPath);
         assertFilesExist(qmDistractorPaths);
         assertFilesExist(randDistractorPaths);
+        assertFileExists(getGeneratorNoiseMapPath());
+    }
+
+    private String getGeneratorNoiseMapPath(){
+        return generator.getGeneratorPngPath() + "/" + Long.toString(sampleId) + "_noisemap_sample.png";
+    }
+
+    private String getExperimentNoiseMapPath(){
+        return generator.getExperimentPngPath() + "/" + Long.toString(sampleId) + "_noisemap_sample.png";
     }
 
     private String getGeneratorSamplePath() {
@@ -199,18 +208,18 @@ public class RandTrialIntegrationTest {
         qmDistractorSpecs = getPngSpecs(qmDistractorIds);
         randDistractorSpecs = getPngSpecs(randDistractorIds);
 
-        assertPngDetails(sampleSpec, sampleDistanceLims, getExperimentSamplePath());
-        assertTrue(!sampleSpec.getNoiseMapPath().isEmpty());
+        assertSpecDetails(sampleSpec, sampleDistanceLims, getExperimentSamplePath());
+        assertEquals(sampleSpec.getNoiseMapPath(), getExperimentNoiseMapPath());
 
-        assertPngDetails(matchSpec, choiceDistanceLims, getExperimentMatchPath());
+        assertSpecDetails(matchSpec, choiceDistanceLims, getExperimentMatchPath());
         int i = 0;
         for (NoisyPngSpec spec : qmDistractorSpecs) {
-            assertPngDetails(spec, choiceDistanceLims, getExperimentQmDistractorPaths().get(i));
+            assertSpecDetails(spec, choiceDistanceLims, getExperimentQmDistractorPaths().get(i));
             i++;
         }
         i = 0;
         for (NoisyPngSpec spec : randDistractorSpecs) {
-            assertPngDetails(spec, choiceDistanceLims, getExperimentRandDistractorPaths().get(i));
+            assertSpecDetails(spec, choiceDistanceLims, getExperimentRandDistractorPaths().get(i));
             i++;
         }
     }
@@ -229,7 +238,7 @@ public class RandTrialIntegrationTest {
         return spec;
     }
 
-    private void assertPngDetails(NoisyPngSpec spec, Lims distanceLims, String expectedPath) {
+    private void assertSpecDetails(NoisyPngSpec spec, Lims distanceLims, String expectedPath) {
         assertLocationWithinBounds(spec, distanceLims);
         assertTrue(spec.getDimensions().getWidth() == size);
         assertTrue(spec.getPngPath().equals(expectedPath));

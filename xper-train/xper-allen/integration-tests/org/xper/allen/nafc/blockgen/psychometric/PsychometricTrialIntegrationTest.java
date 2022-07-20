@@ -64,8 +64,9 @@ public class PsychometricTrialIntegrationTest {
 
 		//Assert
 		thenPsychometricFilesFound();
-		thenDrawsRandDistractors();
+		thenDrawsPngs();
 		thenWritesStimObj();
+		thenWritesStimSpec();
 	}
 
 	private void givenTestSet() {
@@ -138,9 +139,10 @@ public class PsychometricTrialIntegrationTest {
 		thenDistractorPngPathsAreCorrect();
 	}
 
-	private void thenDrawsRandDistractors(){
+	private void thenDrawsPngs(){
 		List<String> randDistractorsPaths = getGeneratorRandDistractorPaths();
 		assertFilesExist(randDistractorsPaths);
+		assertFileExists(getPsychometricGeneratorNoiseMapPath());
 	}
 
 	private void thenWritesStimObj(){
@@ -150,7 +152,7 @@ public class PsychometricTrialIntegrationTest {
 		randDistractorSpecs = getPngSpecs(randDistractorIds);
 
 		assertSpecDetails(sampleSpec, sampleDistanceLims, getPsychometricExperimentSamplePath());
-		Assert.assertTrue(!sampleSpec.getNoiseMapPath().isEmpty());
+		assertEquals(sampleSpec.getNoiseMapPath(), getPsychometricExperimentNoiseMapPath());
 
 		assertSpecDetails(matchSpec, choiceDistanceLims, getPsychometricExperimentMatchPath());
 		int i = 0;
@@ -179,11 +181,12 @@ public class PsychometricTrialIntegrationTest {
 		return spec;
 	}
 
-	private void assertSpecDetails(NoisyPngSpec spec, Lims distanceLims, String expectedPath) {
+	private void assertSpecDetails(NoisyPngSpec spec, Lims distanceLims, String expectedPngPath) {
 		assertLocationWithinBounds(spec, distanceLims);
 		Assert.assertTrue(spec.getDimensions().getWidth() == size);
-		Assert.assertTrue(spec.getPngPath().equals(expectedPath));
+		Assert.assertTrue(spec.getPngPath().equals(expectedPngPath));
 		Assert.assertTrue(spec.getAlpha() == 1);
+
 	}
 
 	private void assertSpecDetails(NoisyPngSpec spec, Lims distanceLims, List<String> possiblePaths) {
@@ -205,9 +208,9 @@ public class PsychometricTrialIntegrationTest {
 		Coordinates2D matchCoords = new Coordinates2D(matchSpec.getxCenter(), matchSpec.getyCenter());
 		Assert.assertTrue(stimSpec.getTargetEyeWinCoords()[0].equals(matchCoords));
 		for(int i=1; i<numPsychometricDistractors; i++){
-			NoisyPngSpec qmDistractorSpec = qmDistractorSpecs.get(i - 1);
-			Coordinates2D qmDistractorCoords = new Coordinates2D(qmDistractorSpec.getxCenter(), qmDistractorSpec.getyCenter());
-			Assert.assertTrue(stimSpec.getTargetEyeWinCoords()[i].equals(qmDistractorCoords));
+			NoisyPngSpec psychometricDistractorSpec = qmDistractorSpecs.get(i - 1);
+			Coordinates2D psychometricDistractorCoords = new Coordinates2D(psychometricDistractorSpec.getxCenter(), psychometricDistractorSpec.getyCenter());
+			Assert.assertTrue(stimSpec.getTargetEyeWinCoords()[i].equals(psychometricDistractorCoords));
 		}
 		for(int i=2+numPsychometricDistractors; i<numRandDistractors; i++){
 			NoisyPngSpec randDistractorSpec = randDistractorSpecs.get(i - (2+numPsychometricDistractors));
@@ -226,6 +229,14 @@ public class PsychometricTrialIntegrationTest {
 		double radius = location.distance(new Point2d(0, 0));
 		Assert.assertTrue((double) radius <= distanceLims.getUpperLim());
 		Assert.assertTrue((double) radius >= distanceLims.getLowerLim());
+	}
+
+	private String getPsychometricGeneratorNoiseMapPath(){
+		return generator.getGeneratorPsychometricNoiseMapPath() + "/" + Long.toString(sampleId) + "_noisemap_" + Long.toString(setId) + "_" + Integer.toString(stimId) +".png";
+	}
+
+	private String getPsychometricExperimentNoiseMapPath(){
+		return generator.getExperimentPsychometricNoiseMapPath() + "/" + Long.toString(sampleId) + "_noisemap_" + Long.toString(setId) + "_" + Integer.toString(stimId) +".png";
 	}
 
 
