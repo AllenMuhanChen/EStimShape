@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.nafc.blockgen.PsychometricMStickFetcher;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
@@ -66,7 +67,6 @@ public class PsychometricTrial implements Trial{
 	}
 
 	private void assignPsychometricPaths() {
-		PngBasePaths psychometricBasePaths = new PngBasePaths(generator.getGeneratorPsychometricPngPath(), generator.getExperimentPsychometricPngPath(), generator.getGeneratorPsychometricSpecPath());
 		PsychometricPathAssigner psychometricPathAssigner = new PsychometricPathAssigner(psychometricIds, numDistractors.numPsychometricDistractors, generator);
 		psychometricPathAssigner.assign();
 		pngPaths = psychometricPathAssigner.getExperimentPngPaths();
@@ -123,14 +123,16 @@ public class PsychometricTrial implements Trial{
 	
 
 	private void drawRandDistractorsPNGs() {
-		List<String> randDistractorLabels = Arrays.asList(new String[] {"Rand Distractor"});
+		AllenPNGMaker pngMaker = generator.getPngMaker();
+		pngMaker.createDrawerWindow();
+		List<String> randDistractorLabels = Arrays.asList(new String[] {"randDistractor"});
 		int indx=0;
 		for (AllenMatchStick obj: matchSticks.getRandDistractors()) {
-			String path = generator.getPngMaker().createAndSavePNG(obj, stimObjIds.getRandDistractors().get(indx), randDistractorLabels, generator.getGeneratorPngPath());
-			generator.convertPathToExperiment(path);
-			pngPaths.addRandDistractor(path);
-			
+			String path = pngMaker.createAndSavePNG(obj, stimObjIds.getRandDistractors().get(indx), randDistractorLabels, generator.getGeneratorPngPath());
+			pngPaths.addRandDistractor(generator.convertPathToExperiment(path));
+			indx++;
 		}
+		pngMaker.close();
 	}
 
 	private void assignCoords() {

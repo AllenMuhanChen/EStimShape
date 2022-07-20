@@ -5,20 +5,24 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
-import org.junit.Before;
+import junit.framework.Assert;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.allen.specs.NAFCStimSpecSpec;
+import org.xper.allen.specs.NoisyPngSpec;
+import org.xper.db.vo.StimSpecEntry;
+import org.xper.drawing.Coordinates2D;
+import org.xper.time.TestTimeUtil;
 import org.xper.util.FileUtil;
+
+import javax.vecmath.Point2d;
 
 public class PsychometricTrialIntegrationTest {
 	PsychometricBlockGen generator;
@@ -33,57 +37,96 @@ public class PsychometricTrialIntegrationTest {
 	NoiseParameters noiseParameters;
 	Lims sampleDistanceLims;
 	Lims choiceDistanceLims;
-	double sampleScale;
+	double size;
 	double eyeWinSize;
 	NoisyTrialParameters trialParameters;
 
 	PsychometricTrial trial;
+	private Long sampleId;
+	private Long matchId;
+	private List<Long> psychometricDistractorIds;
+	private List<Long> randDistractorIds;
 
+	private NoisyPngSpec matchSpec;
+	private NoisyPngSpec sampleSpec;
+	private List<NoisyPngSpec> qmDistractorSpecs;
+	private List<NoisyPngSpec> randDistractorSpecs;
+	private List<Integer> distractorsStimIds;
 
-	@Before
-	public void givenTestTrial() {
+	@Test
+	public void generates_psychometric_trials_from_filesystem(){
+		//Arrange
+		givenTestSet();
+
+		//Act
+		trial.preWrite();
+		trial.write();
+
+		//Assert
+		thenPsychometricFilesFound();
+		thenDrawsRandDistractors();
+		thenWritesStimObj();
+	}
+
+	private void givenTestSet() {
+
 
 		//THESE MUST EXIST IN FILE SYSTEM FOR TEST TO WORK
 		setId = 1653428280110274L;
 		stimId = 0;
 		//LOOK ABOVE
 
+		numPsychometricDistractors = 2;
+		numRandDistractors = 1;
+
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
 		generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
+		TestTimeUtil timeUtil = new TestTimeUtil();
+		generator.setGlobalTimeUtil(timeUtil);
+		sampleId = timeUtil.getTestTime();
+		matchId = sampleId + 1;
+		psychometricDistractorIds = new LinkedList<>();
+		for (int i = 0; i < numPsychometricDistractors; i++) {
+			psychometricDistractorIds.add(matchId + 1 + i);
+		}
+		randDistractorIds = new LinkedList<>();
+		for (int i = 0; i < numRandDistractors; i++) {
+			randDistractorIds.add(matchId + 1 + numPsychometricDistractors + i);
+		}
 
-		numPsychometricDistractors = 2;
-		numRandDistractors = 1;
+
 		NumberOfDistractorsForPsychometricTrial numDistractors = new NumberOfDistractorsForPsychometricTrial(numPsychometricDistractors, numRandDistractors);
 
 		stimIds = Arrays.asList(0,1,2);
 		psychometricIds = new PsychometricIds(setId, stimId, stimIds);
 
+		List<Integer> stimIdsRemaining = new LinkedList<>(psychometricIds.allStimIds);
+		stimIdsRemaining.remove(psychometricIds.allStimIds.indexOf(psychometricIds.stimId));
+		distractorsStimIds = stimIdsRemaining.subList(0, numPsychometricDistractors);
+
+
 
 		noiseChance = new Lims(0.5 ,0.8);
 		noiseParameters = new NoiseParameters(NoiseFormer.getNoiseForm(NoiseType.PRE_JUNC), noiseChance);
 
-		sampleDistanceLims = new Lims(10, 10);
-		choiceDistanceLims = new Lims(5, 5);
-		sampleScale = 8;
+		sampleDistanceLims = new Lims(9, 10);
+		choiceDistanceLims = new Lims(4, 5);
+		size = 8;
 		eyeWinSize = 12;
 		trialParameters =
 				new NoisyTrialParameters(
 						sampleDistanceLims,
 						choiceDistanceLims,
-						sampleScale,
+						size,
 						eyeWinSize,
 						noiseParameters);
 
 		trial = new PsychometricTrial(generator, numDistractors, psychometricIds, trialParameters);
 	}
 
-
-	@Test
-	public void testPreWrite() {
-		trial.preWrite();
-
+	private void thenPsychometricFilesFound() {
 		thenPngPathsAreCorrect();
 		thenSpecFilesExist();
 	}
@@ -95,6 +138,135 @@ public class PsychometricTrialIntegrationTest {
 		thenDistractorPngPathsAreCorrect();
 	}
 
+	private void thenDrawsRandDistractors(){
+		List<String> randDistractorsPaths = getGeneratorRandDistractorPaths();
+		assertFilesExist(randDistractorsPaths);
+	}
+
+	private void thenWritesStimObj(){
+		sampleSpec = getPngSpec(sampleId);
+		matchSpec = getPngSpec(matchId);
+		qmDistractorSpecs = getPngSpecs(psychometricDistractorIds);
+		randDistractorSpecs = getPngSpecs(randDistractorIds);
+
+		assertSpecDetails(sampleSpec, sampleDistanceLims, getPsychometricExperimentSamplePath());
+		Assert.assertTrue(!sampleSpec.getNoiseMapPath().isEmpty());
+
+		assertSpecDetails(matchSpec, choiceDistanceLims, getPsychometricExperimentMatchPath());
+		int i = 0;
+		for (NoisyPngSpec spec : qmDistractorSpecs) {
+			assertSpecDetails(spec, choiceDistanceLims, getPsychometricExperimentPsychometricDistractorPaths());
+			i++;
+		}
+		i = 0;
+		for (NoisyPngSpec spec : randDistractorSpecs) {
+			assertSpecDetails(spec, choiceDistanceLims, getExperimentRandDistractorPaths().get(i));
+			i++;
+		}
+	}
+
+	private List<NoisyPngSpec> getPngSpecs(List<Long> ids) {
+		List<NoisyPngSpec> specs = new LinkedList<>();
+		for (Long id : ids) {
+			specs.add(getPngSpec(id));
+		}
+		return specs;
+	}
+
+	private NoisyPngSpec getPngSpec(long id) {
+		StimSpecEntry entry = generator.getDbUtil().readStimObjData(id);
+		NoisyPngSpec spec = NoisyPngSpec.fromXml(entry.getSpec());
+		return spec;
+	}
+
+	private void assertSpecDetails(NoisyPngSpec spec, Lims distanceLims, String expectedPath) {
+		assertLocationWithinBounds(spec, distanceLims);
+		Assert.assertTrue(spec.getDimensions().getWidth() == size);
+		Assert.assertTrue(spec.getPngPath().equals(expectedPath));
+		Assert.assertTrue(spec.getAlpha() == 1);
+	}
+
+	private void assertSpecDetails(NoisyPngSpec spec, Lims distanceLims, List<String> possiblePaths) {
+		assertLocationWithinBounds(spec, distanceLims);
+		Assert.assertTrue(spec.getDimensions().getWidth() == size);
+		Assert.assertTrue(possiblePaths.contains(spec.getPath()));
+		Assert.assertTrue(spec.getAlpha() == 1);
+	}
+
+
+	private void thenWritesStimSpec(){
+		StimSpecEntry sse = generator.getDbUtil().readStimSpec(sampleId);
+		NAFCStimSpecSpec stimSpec = NAFCStimSpecSpec.fromXml(sse.getSpec());
+		target_eye_window_coords_match_with_stimuli(stimSpec);
+		rewarded_trial_is_match(stimSpec);
+	}
+
+	private void target_eye_window_coords_match_with_stimuli(NAFCStimSpecSpec stimSpec) {
+		Coordinates2D matchCoords = new Coordinates2D(matchSpec.getxCenter(), matchSpec.getyCenter());
+		Assert.assertTrue(stimSpec.getTargetEyeWinCoords()[0].equals(matchCoords));
+		for(int i=1; i<numPsychometricDistractors; i++){
+			NoisyPngSpec qmDistractorSpec = qmDistractorSpecs.get(i - 1);
+			Coordinates2D qmDistractorCoords = new Coordinates2D(qmDistractorSpec.getxCenter(), qmDistractorSpec.getyCenter());
+			Assert.assertTrue(stimSpec.getTargetEyeWinCoords()[i].equals(qmDistractorCoords));
+		}
+		for(int i=2+numPsychometricDistractors; i<numRandDistractors; i++){
+			NoisyPngSpec randDistractorSpec = randDistractorSpecs.get(i - (2+numPsychometricDistractors));
+			Coordinates2D randDistractorCoords = new Coordinates2D(randDistractorSpec.getxCenter(), randDistractorSpec.getyCenter());
+			Assert.assertTrue(stimSpec.getTargetEyeWinCoords()[i].equals(randDistractorCoords));
+		}
+	}
+
+	private void rewarded_trial_is_match(NAFCStimSpecSpec stimSpec) {
+		int rewarded = stimSpec.getRewardList()[0];
+		Assert.assertTrue(stimSpec.getChoiceObjData()[rewarded]==matchId);
+	}
+
+	private static void assertLocationWithinBounds(NoisyPngSpec actualSpec, Lims distanceLims) {
+		Point2d location = new Point2d(actualSpec.getxCenter(), actualSpec.getyCenter());
+		double radius = location.distance(new Point2d(0, 0));
+		Assert.assertTrue((double) radius <= distanceLims.getUpperLim());
+		Assert.assertTrue((double) radius >= distanceLims.getLowerLim());
+	}
+
+
+	private List<String> getPsychometricExperimentPsychometricDistractorPaths() {
+		List<String> qmDistractorPaths = new LinkedList<>();
+		for (Integer stId: distractorsStimIds) {
+			String path = generator.getExperimentPsychometricPngPath() + "/" + Long.toString(setId) + "_" + Integer.toString(stId) + ".png";
+			qmDistractorPaths.add(path);
+		}
+		return qmDistractorPaths;
+	}
+
+	private String getPsychometricExperimentSamplePath() {
+		String samplePath = generator.getExperimentPsychometricPngPath() + "/" + Long.toString(setId) + "_" + Integer.toString(stimId) + ".png";
+		return samplePath;
+	}
+
+	private String getPsychometricExperimentMatchPath() {
+		return generator.getExperimentPsychometricPngPath() + "/" + Long.toString(setId) + "_" + Integer.toString(stimId) + ".png";
+	}
+
+
+
+	private List<String> getGeneratorRandDistractorPaths() {
+		List<String> randDistractorPaths = new LinkedList<>();
+		for (int i = 0; i < numRandDistractors; i++) {
+			String path = generator.getGeneratorPngPath() + "/" + Long.toString(randDistractorIds.get(i)) + "_randDistractor.png";
+			randDistractorPaths.add(path);
+		}
+		return randDistractorPaths;
+	}
+
+	private List<String> getExperimentRandDistractorPaths() {
+		List<String> randDistractorPaths = new LinkedList<>();
+		for (int i = 0; i < numRandDistractors; i++) {
+			String path = generator.getExperimentPngPath() + "/" + Long.toString(randDistractorIds.get(i)) + "_randDistractor.png";
+			randDistractorPaths.add(path);
+		}
+		return randDistractorPaths;
+	}
+
 	private void thenSamplePngPathIsCorrect() {
 		String path = trial.getPngPaths().getSample();
 		String expectedSamplePath = generator.getExperimentPsychometricPngPath()+"/"+setId+"_"+stimId+".png";
@@ -102,6 +274,7 @@ public class PsychometricTrialIntegrationTest {
 		assertEquals(expectedSamplePath, path);
 		fileExists(path);
 	}
+
 	private void thenMatchPngPathIsCorrect() {
 		String path = trial.getPngPaths().getMatch();
 		String expectedMatchPath = generator.getExperimentPsychometricPngPath()+"/"+setId+"_"+stimId+".png";
@@ -113,7 +286,7 @@ public class PsychometricTrialIntegrationTest {
 		for(int i=1;i<stimIds.size();i++) {
 			expectedDistractorPaths.add(generator.getExperimentPsychometricPngPath()+"/"+setId+"_"+stimIds.get(i)+".png");
 		}
-		for(String actualPath : trial.getPngPaths().getAllDistractors()) {
+		for(String actualPath : trial.getPngPaths().getPsychometricDistractors()) {
 			assertTrue(expectedDistractorPaths.contains(actualPath));
 			fileExists(actualPath);
 		}
@@ -134,53 +307,16 @@ public class PsychometricTrialIntegrationTest {
 	}
 
 
-
-	@Test
-	public void testWriteExecutesAndSavesToDb() {
-		generator.getPngMaker().createDrawerWindow();
-		trial.preWrite();
-		trial.write();
-		long taskTodo = trial.getTaskId();
-		randDistractorsGenerated();
-		dBUpdated(taskTodo);
-	}
-
-
-
-	private void randDistractorsGenerated() {
-		//Testing Objs
-		List<AllenMatchStick> objs = trial.objs_randDistractors;
-		for (AllenMatchStick obj:objs) {
-			assertNotNull(obj.getComp()[1]);
-		}
-
-		//Testing .pngs
-		for (String path: trial.getPngPaths().getAllDistractors()) {
-			assertNotNull("distractor .png with path " + path + " does not exist",
-					new File(path).exists());
+	private void assertFilesExist(List<String> paths) {
+		for (String path : paths) {
+			assertFileExists(path);
 		}
 	}
 
-	/**
-	 * write()
-	 * writes StimObjData and StimSpec
-	 * @param expectedTaskTodo
-	 */
-	public void dBUpdated(long expectedTaskTodo) {
-		//Test stimSpec
-		long maxStimSpecId = generator.getDbUtil().readStimSpecMaxId();
-		assertEquals(expectedTaskTodo, maxStimSpecId);
-		//Test stimObjData
-		List<Long> expectedStimObjIds = new ArrayList<Long>();
-		expectedStimObjIds.add(trial.getStimObjIds().getSample());
-		expectedStimObjIds.add(trial.getStimObjIds().getMatch());
-		expectedStimObjIds.addAll(trial.getStimObjIds().getAllDistractors());
 
-		assertEquals("The number of esxpected stimObjIds does not match the number generated by the class",
-				2 + numRandDistractors+numPsychometricDistractors,expectedStimObjIds.size());
-		for (Long expectedStimObjId: expectedStimObjIds) {
-			assertNotNull("Expected StimObjId does not exist in db!", trial.getDbUtil().readStimObjData(expectedStimObjId));
-		}
+	private void assertFileExists(String pngPaths) {
+		File sample = new File(pngPaths);
+		Assert.assertTrue(sample.exists());
 	}
 
 
