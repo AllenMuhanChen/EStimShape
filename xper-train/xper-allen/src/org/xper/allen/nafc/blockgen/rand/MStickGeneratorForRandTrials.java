@@ -42,19 +42,25 @@ public class MStickGeneratorForRandTrials {
 		//restart at the beginning. 
 		while (tryagain) {
 			try {
+				long start = System.nanoTime();
 				tryGenerateSample();
+				System.err.println("Sample: " + Long.toString(elapsedMs(start)));
 			} catch (Exception e) {
 				continue;
 			}
 
 			try {
+				long start = System.nanoTime();
 				tryGenerateMatch();
+				System.err.println("Match: " + Long.toString(elapsedMs(start)));
 			} catch (Exception e) {
 				continue;
 			}
 
 			try {
+				long start = System.nanoTime();
 				tryGenerateQualitativeMorphDistractors();
+				System.err.println("QM Distractors: " + Long.toString(elapsedMs(start)));
 			} catch (Exception e) {
 				continue;
 			}
@@ -68,7 +74,9 @@ public class MStickGeneratorForRandTrials {
 		while(tryagain) {
 
 			try {
+				long start = System.nanoTime();
 				tryGenerateRandomDistractors();
+				System.err.println("Rand Distractors: " + Long.toString(elapsedMs(start)));
 			} catch (Exception e) {
 				continue;
 			}
@@ -76,7 +84,11 @@ public class MStickGeneratorForRandTrials {
 			tryagain = false;
 		}
 	}
-	
+
+	private long elapsedMs(long start) {
+		return (System.nanoTime() - start)/1000000;
+	}
+
 	MetricMorphParams mmp;
 	private void assignMetricMorphParameters() {
 		MetricMorphParameterGenerator mmpGenerator = new MetricMorphParameterGenerator();

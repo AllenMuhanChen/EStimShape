@@ -10,6 +10,7 @@ import org.xper.allen.nafc.blockgen.Trial;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.time.TicToc;
 
 public class RandTrial implements Trial{
 
@@ -70,8 +71,6 @@ public class RandTrial implements Trial{
 		);
 		experimentPngPaths = drawer.getExperimentPngPaths();
 	}
-
-
 
 	private void generateNoiseMap() {
 		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(stimObjIds.getSample(), mSticks.getSample(), trialParameters.getNoiseParameters(), generator);

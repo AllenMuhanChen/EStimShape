@@ -150,6 +150,10 @@ public class AllenDrawingManager implements Drawable {
 		window.destroy();
 	}
 
+	public boolean isOpen(){
+		return window.isOpen();
+	}
+
 	public AbstractRenderer getRenderer() {
 		return renderer;
 	}

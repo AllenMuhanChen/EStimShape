@@ -43,7 +43,6 @@ public class PsychometricNoiseMapGenerator extends NoiseMapGenerator {
 		String generatorNoiseMapPath = pngMaker.createAndSaveNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPsychometricNoiseMapPath());
 		
 		experimentNoiseMapPath = generator.convertPsychometricToExperiment(generatorNoiseMapPath);
-		pngMaker.close();
 	}
 
 

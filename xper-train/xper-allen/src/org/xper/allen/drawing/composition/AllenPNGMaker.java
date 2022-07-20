@@ -32,7 +32,7 @@ public class AllenPNGMaker{
 
 	private AbstractRenderer pngRenderer;
 
-	AllenDrawingManager window;
+	AllenDrawingManager window = null;
 	int height = 1024;
 	int width = 1024;
 
@@ -53,11 +53,13 @@ public class AllenPNGMaker{
 
 	public AllenPNGMaker() {}
 
-
 	public void createDrawerWindow() {
-		window = new AllenDrawingManager(height,width);
-		window.setPngMaker(this);
-		window.init();
+		if(window == null) {
+			window = new AllenDrawingManager(height, width);
+			window.setPngMaker(this);
+			window.init();
+		}
+
 	}
 
 	public String createAndSavePNG(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {

@@ -132,7 +132,6 @@ public class PsychometricTrial implements Trial{
 			pngPaths.addRandDistractor(generator.convertPathToExperiment(path));
 			indx++;
 		}
-		pngMaker.close();
 	}
 
 	private void assignCoords() {
