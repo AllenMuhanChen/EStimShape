@@ -13,7 +13,7 @@ public class PsychometricNoiseMapGenerator extends NoiseMapGenerator {
 	PsychometricIds psychometricIds;
 	NoiseParameters noiseParameters;
 
-	public PsychometricNoiseMapGenerator(AllenMatchStick mStick, PsychometricIds psychometricIds, AbstractPsychometricTrialGenerator gen,
+	public PsychometricNoiseMapGenerator(AllenMatchStick mStick, Long id, PsychometricIds psychometricIds, AbstractPsychometricTrialGenerator gen,
 										 NoiseParameters noiseParameters) {
 		super();
 		this.generator = gen;

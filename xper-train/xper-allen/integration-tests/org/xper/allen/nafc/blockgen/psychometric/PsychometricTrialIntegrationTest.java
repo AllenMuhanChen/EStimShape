@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
@@ -60,28 +61,22 @@ public class PsychometricTrialIntegrationTest {
 		psychometricIds = new PsychometricIds(setId, stimId, stimIds);
 
 
-		noiseChance = new double[] {1,1};
-		noiseParameters = new NoiseParameters(NoiseType.NONE, new double[] {0.5,1}, noiseChance);
+		noiseChance = new Lims(0.5 ,0.8);
+		noiseParameters = new NoiseParameters(NoiseFormer.getNoiseForm(NoiseType.PRE_JUNC), noiseChance);
 
 		sampleDistanceLims = new Lims(10, 10);
 		choiceDistanceLims = new Lims(5, 5);
 		sampleScale = 8;
 		eyeWinSize = 12;
-		trialParameters = 
+		trialParameters =
 				new NoisyTrialParameters(
-						sampleDistanceLims, 
+						sampleDistanceLims,
 						choiceDistanceLims,
 						sampleScale,
 						eyeWinSize,
 						noiseParameters);
 
 		trial = new PsychometricTrial(generator, numDistractors, psychometricIds, trialParameters);
-	}
-
-
-	@Test
-	public void testGeneratorBeanGot() {
-		assertEquals(PsychometricBlockGen.class, generator.getClass());
 	}
 
 
@@ -134,7 +129,7 @@ public class PsychometricTrialIntegrationTest {
 
 	private void fileExists(String path) {
 
-		File file = new File(path);	
+		File file = new File(path);
 		assertTrue("specFile does not exist. Looking for " + path,file.exists());
 	}
 

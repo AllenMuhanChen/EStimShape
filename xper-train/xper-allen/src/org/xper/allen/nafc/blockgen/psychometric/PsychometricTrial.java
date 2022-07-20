@@ -103,6 +103,7 @@ public class PsychometricTrial implements Trial{
 		PsychometricNoiseMapGenerator psychometricNoiseMapGenerator = 
 				new PsychometricNoiseMapGenerator(
 						matchSticks.getSample(),
+						stimObjIds.getSample(),
 						psychometricIds,
 						generator,
 						trialParameters.getNoiseParameters());
