@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.blockgen.rand;
 
 import org.junit.Test;
+import org.xper.allen.drawing.composition.noisy.NoisePositions;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
@@ -35,8 +36,8 @@ public class RandTrialCoordinateAssignerTest {
         size = 10;
         eyeWinSize = 10;
         noiseType = NoiseType.NONE;
-        noiseChance = new double[]{0.5, 0.5};
-        noiseParameters = new NoiseParameters(noiseType, new double[]{0, 0}, noiseChance);
+        noiseChance = new Lims(0.5,0.5);
+        noiseParameters = new NoiseParameters(noiseType, new NoisePositions(0.0,0.0), noiseChance);
         int numMMCategories = 1;
         int numQMCategories = 1;
         numMorphCategories = new NumberOfMorphCategories(numMMCategories, numQMCategories);

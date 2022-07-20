@@ -7,7 +7,7 @@ import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.util.FileUtil;
 
 /**
- * Main function for reading an XML file of stimuli specifications and inputs them into the database. 
+ * callMain function for reading an XML file of stimuli specifications and inputs them into the database.
  * @param file path for xml file
  */
 public class PngGenerator {

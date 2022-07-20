@@ -44,7 +44,7 @@ public abstract class TrialGenerator {
 		int length = strArr.length;
 		List<NoiseType> noiseTypes = new LinkedList<>();
 		for(int i=0; i<length; i++) {
-			noiseTypes.set(i, NoiseType.valueOf(strArr[i]));
+			noiseTypes.add(NoiseType.valueOf(strArr[i]));
 		}
 		return noiseTypes;
 	}

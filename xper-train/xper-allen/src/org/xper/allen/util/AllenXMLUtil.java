@@ -36,7 +36,7 @@ public class AllenXMLUtil {
 			File file = new File(filepath);
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			DocumentBuilder db = dbf.newDocumentBuilder();
-			Document doc = db.parse(file);
+			Document doc = db.translate(file);
 			doc.getDocumentElement().normalize();
 			System.out.println(doc.toString());
 			return doc;
