@@ -31,7 +31,6 @@ public class PNGDrawerForRandTrial {
         drawMatchPNG(pngMaker, generatorPngPath);
         drawQMDistractorPNGs(pngMaker, generatorPngPath);
         drawRandDistractorPNGs(pngMaker, generatorPngPath);
-        pngMaker.close();
     }
     private void drawRandDistractorPNGs(AllenPNGMaker pngMaker, String generatorPngPath) {
         int index;

@@ -7,7 +7,7 @@ public class RandMStickGenerator extends AbstractMStickGenerator{
 
 	public RandMStickGenerator(double maxImageDimensinDegrees) {
 		super(maxImageDimensinDegrees);
-		setMaxAttempts(100);
+		setMaxAttempts(5);
 		makeAttemptsToGenerate();
 	}
 

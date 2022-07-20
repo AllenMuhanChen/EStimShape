@@ -25,6 +25,7 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
 
     @Override
     public void generate() {
+        pngMaker.createDrawerWindow();
         addPsychometricTrials(psychometricFactoryParameters);
         addRandTrials(randFactoryParameters);
         preWriteTrials();

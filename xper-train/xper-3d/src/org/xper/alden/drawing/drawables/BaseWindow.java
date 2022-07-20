@@ -48,6 +48,10 @@ public class BaseWindow implements Window {
 		Display.destroy();
 	}
 
+	public boolean isOpen(){
+		return Display.isCreated();
+	}
+
 	public int getHeight() {
 		return Display.getDisplayMode().getHeight();
 	}
