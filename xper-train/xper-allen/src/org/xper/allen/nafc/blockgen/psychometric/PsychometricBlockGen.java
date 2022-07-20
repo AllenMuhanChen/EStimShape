@@ -4,8 +4,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.xper.Dependency;
-import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.nafc.blockgen.PsychometricTrialListFactory;
 import org.xper.allen.nafc.blockgen.Trial;
 import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
@@ -20,10 +18,9 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     private RandFactoryParameters randFactoryParameters;
 
 
-    public void setUp(PsychometricFactoryParameters psychometricFactoryParameters,
-                      RandFactoryParameters randFactoryParameters){
-        this.psychometricFactoryParameters = psychometricFactoryParameters;
-        this.randFactoryParameters = randFactoryParameters;
+    public void setUp(PsychometricBlockGenSetUpParameters psychometricBlockGenSetUpParameters){
+        this.psychometricFactoryParameters = psychometricBlockGenSetUpParameters.getPsychometricFactoryParameters();
+        this.randFactoryParameters = psychometricBlockGenSetUpParameters.getRandFactoryParameters();
     }
 
     @Override

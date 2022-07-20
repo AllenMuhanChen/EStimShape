@@ -16,7 +16,7 @@ import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
 /**
- * Main Class to write a PsychometricTrial to the database.
+ * callMain Class to write a PsychometricTrial to the database.
  */
 public class PsychometricTrial implements Trial{
 	/**

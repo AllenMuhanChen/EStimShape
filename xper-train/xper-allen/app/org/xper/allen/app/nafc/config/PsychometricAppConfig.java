@@ -73,7 +73,7 @@ public class PsychometricAppConfig {
 	 * @return
 	 */
 	@Bean
-	public AbstractPsychometricTrialGenerator psychometricPngGenerator() {
+	public PsychometricBlockGen psychometricPngGenerator() {
 		PsychometricBlockGen gen = new PsychometricBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());

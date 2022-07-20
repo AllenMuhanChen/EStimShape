@@ -3,6 +3,7 @@ package org.xper.allen.nafc.blockgen;
 import org.xper.allen.app.nafc.TrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGenSetUpParameters;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricFactoryParameters;
 import org.xper.allen.nafc.blockgen.rand.NumberOfDistractorsForRandTrial;
 import org.xper.allen.nafc.blockgen.rand.NumberOfMorphCategories;
@@ -16,7 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 
-public class PsychometricBlockGenInputParser extends TrialGenerator {
+public class PsychometricBlockGenInputTranslator extends TrialGenerator {
 
     private static final NoiseForm defaultPsychometricNoiseForm = NoiseFormer.getNoiseForm(NoiseType.PRE_JUNC);
     private static ListIterator<String> iterator;
@@ -38,7 +39,7 @@ public class PsychometricBlockGenInputParser extends TrialGenerator {
     private double eyeWinSize;
     private NAFCTrialParameters nafcTrialParameters;
 
-    public PsychometricBlockGenInputParser(PsychometricBlockGen generator) {
+    public PsychometricBlockGenInputTranslator(PsychometricBlockGen generator) {
         this.generator = generator;
     }
 
@@ -72,21 +73,16 @@ public class PsychometricBlockGenInputParser extends TrialGenerator {
         eyeWinSize = Double.parseDouble(iterator.next());
     }
 
-    public void parse(String[] args){
+    public PsychometricBlockGenSetUpParameters translate(String[] args){
 
         readArgs(args);
-
         createSharedParameters();
-
         PsychometricFactoryParameters psychometricFactorParameters
                 = createPsychometricFactoryParameters();
-
         RandFactoryParameters randFactoryParameters
                 = createRandFactoryParameters();
 
-        generator.setUp(
-                psychometricFactorParameters,
-                randFactoryParameters);
+        return new PsychometricBlockGenSetUpParameters(psychometricFactorParameters, randFactoryParameters);
     }
 
     private void createSharedParameters() {
@@ -99,8 +95,6 @@ public class PsychometricBlockGenInputParser extends TrialGenerator {
     }
 
     private PsychometricFactoryParameters createPsychometricFactoryParameters() {
-
-
         //TRIAL PARAMETERS
         List<Lims> psychometricNoiseChances = this.psychometricNoiseChances.getShuffledTrialList(numPsychometricTrialsPerImage);
         List<NoisyTrialParameters> trialParameters = new LinkedList<>();
@@ -116,7 +110,6 @@ public class PsychometricBlockGenInputParser extends TrialGenerator {
         for(int i=0; i<numPsychometricTrialsPerImage; i++){
             numDistractors.add(new NumberOfDistractorsForPsychometricTrial(numPsychometricDistractors.get(i),numRandDistractors.get(i)));
         }
-
 
         PsychometricFactoryParameters psychometricFactorParameters =
                 PsychometricFactoryParameters.create(

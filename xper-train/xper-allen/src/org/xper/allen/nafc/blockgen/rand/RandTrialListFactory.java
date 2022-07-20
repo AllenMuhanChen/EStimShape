@@ -17,6 +17,7 @@ public class RandTrialListFactory implements TrialListFactory {
     public RandTrialListFactory(AbstractPsychometricTrialGenerator generator, RandFactoryParameters parameters) {
         this.generator = generator;
         this.parameters = parameters;
+        numTrials = parameters.numTrials;
         numDistractors = parameters.getNumDistractors();
         numMorphCategories = parameters.getNumMorphs();
         trialParameters = parameters.getTrialParameters();

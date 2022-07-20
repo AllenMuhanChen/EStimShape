@@ -4,9 +4,9 @@ public class Lims {
 	private double lowerLim;
 	private double upperLim;
 
-	public Lims(double distanceLowerLim, double distanceUpperLim) {
-		this.lowerLim = distanceLowerLim;
-		this.upperLim = distanceUpperLim;
+	public Lims(double lowerLim, double upperLim) {
+		this.lowerLim = lowerLim;
+		this.upperLim = upperLim;
 	}
 
     public Lims() {
@@ -17,15 +17,15 @@ public class Lims {
 		return lowerLim;
 	}
 
-	public void setLowerLim(double distanceLowerLim) {
-		this.lowerLim = distanceLowerLim;
+	public void setLowerLim(double lowerLim) {
+		this.lowerLim = lowerLim;
 	}
 
 	public double getUpperLim() {
 		return upperLim;
 	}
 
-	public void setUpperLim(double distanceUpperLim) {
-		this.upperLim = distanceUpperLim;
+	public void setUpperLim(double upperLim) {
+		this.upperLim = upperLim;
 	}
 }
