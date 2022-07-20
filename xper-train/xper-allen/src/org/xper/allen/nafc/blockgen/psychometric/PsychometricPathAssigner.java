@@ -57,7 +57,6 @@ public class PsychometricPathAssigner{
 		experimentPngPaths.setSample(generator.experimentPsychometricPngPath + "/" + sampleSetId + "_" + sampleStimId + ".png");
 		experimentPngPaths.setMatch(experimentPngPaths.getSample());
 		for (int remainingStimId:distractorsStimIds) {
-			int index = distractorsStimIds.indexOf(remainingStimId);
 			experimentPngPaths.addPsychometricDistractor(generator.experimentPsychometricPngPath + "/" + distractorsSetId+ "_" + remainingStimId + ".png");
 		}
 	}

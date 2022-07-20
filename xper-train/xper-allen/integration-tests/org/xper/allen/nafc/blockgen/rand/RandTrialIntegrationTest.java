@@ -16,7 +16,6 @@ import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.time.TestTimeUtil;
-import org.xper.allen.nafc.vo.NoiseForm;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -121,13 +120,13 @@ public class RandTrialIntegrationTest {
         randTrial.write();
 
         //Assert
-        draws_pngs();
-        writesStimObjData();
-		writesStimSpec();
+        thenDrawsPngs();
+        thenWritesStimObjData();
+		thenWritesStimSpec();
 
     }
 
-    private void draws_pngs() {
+    private void thenDrawsPngs() {
 
         String samplePath = getGeneratorSamplePath();
         String matchPath = getGeneratorMatchPath();
@@ -194,7 +193,7 @@ public class RandTrialIntegrationTest {
         return randDistractorPaths;
     }
 
-    private void writesStimObjData() {
+    private void thenWritesStimObjData() {
         sampleSpec = getPngSpec(sampleId);
         matchSpec = getPngSpec(matchId);
         qmDistractorSpecs = getPngSpecs(qmDistractorIds);
@@ -245,7 +244,7 @@ public class RandTrialIntegrationTest {
     }
 
 
-    private void writesStimSpec(){
+    private void thenWritesStimSpec(){
         StimSpecEntry sse = generator.getDbUtil().readStimSpec(sampleId);
         NAFCStimSpecSpec stimSpec = NAFCStimSpecSpec.fromXml(sse.getSpec());
         target_eye_window_coords_match_with_stimuli(stimSpec);
@@ -303,7 +302,7 @@ public class RandTrialIntegrationTest {
                 generator.getMaxImageDimensionDegrees(),
                 trialParameters);
         AllenMatchStick mStick = mStickGenerator.getSample();
-        NoiseParameters noiseParameters = new NoiseParameters(new NoiseForm(noiseType, new double[]{0, 0.8}), noiseChance);
+        NoiseParameters noiseParameters = new NoiseParameters(NoiseFormer.getNoiseForm(noiseType), noiseChance);
         RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(id, mStick, noiseParameters, generator);
         generator.getPngMaker().close();
 

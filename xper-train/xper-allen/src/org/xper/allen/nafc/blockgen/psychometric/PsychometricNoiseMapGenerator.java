@@ -4,6 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.NoiseMapGenerator;
 import org.xper.allen.nafc.vo.NoiseParameters;
 
@@ -34,14 +35,15 @@ public class PsychometricNoiseMapGenerator extends NoiseMapGenerator {
 	
 	@Override
 	protected void generateNoiseMap() {
-		
+		AllenPNGMaker pngMaker = generator.getPngMaker();
+		pngMaker.createDrawerWindow();
 		List<String> noiseMapLabels = new LinkedList<String>();
 		noiseMapLabels.add(Long.toString(psychometricIds.setId));
 		noiseMapLabels.add(Integer.toString(psychometricIds.stimId));
-		String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPsychometricNoiseMapPath());
+		String generatorNoiseMapPath = pngMaker.createAndSaveNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPsychometricNoiseMapPath());
 		
 		experimentNoiseMapPath = generator.convertPsychometricToExperiment(generatorNoiseMapPath);
-		
+		pngMaker.close();
 	}
 
 

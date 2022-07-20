@@ -16,11 +16,7 @@ public class StimObjIdAssignerForPsychometricTrials{
 	
 	private Psychometric<Long> stimObjIds = new Psychometric<Long>();
 
-	/**
-	 * assigns sample, match and distractor Ids that will be written to the DB. sampleId is required
-	 * for generating noisemaps!
-	 * @param psychometricNoisyMStickPngTrial TODO
-	 */
+
 	public void assignStimObjIds() {
 		stimObjIds.setSample(globalTimeUtil.currentTimeMicros());
 		stimObjIds.setMatch(stimObjIds.getSample()+1);
