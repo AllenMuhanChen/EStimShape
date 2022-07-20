@@ -12,6 +12,7 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.time.TestTimeUtil;
@@ -85,14 +86,14 @@ public class RandTrialIntegrationTest {
         numMMCategories = 1;
         numQMCategories = 1;
         numMorphCategories = new NumberOfMorphCategories(numMMCategories, numQMCategories);
-        noiseType = NoiseType.NONE;
-        noiseChance = new double[]{0.5, 0.5};
+        noiseType = NoiseType.PRE_JUNC;
+        noiseChance = new Lims(0.5,1);
 
         sampleDistanceLims = new Lims(0, 5);
         choiceDistanceLims = new Lims(9, 10);
         size = 10;
         eyeWinSize = 10;
-        noiseParameters = new NoiseParameters(noiseType, new double[]{0, 0}, noiseChance);
+        noiseParameters = new NoiseParameters(NoiseFormer.getNoiseForm(noiseType), noiseChance);
 
         trialParameters = new RandNoisyTrialParameters(
                 sampleDistanceLims,

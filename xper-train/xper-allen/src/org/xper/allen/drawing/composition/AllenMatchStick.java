@@ -150,21 +150,6 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
-	public NoiseParameters setNoiseParameters(NoiseType noiseType, Lims noiseChanceBounds) {
-		if(noiseType == NoiseType.NONE) {
-			this.noiseChanceBounds = new Lims(0,0);
-			this.noiseNormalizedPositions = new double[] {0,0};
-		} else if(noiseType == NoiseType.PRE_JUNC) {
-			this.noiseChanceBounds = noiseChanceBounds;
-			this.noiseNormalizedPositions = new double[] {0.5, 0.8};
-		} else if(noiseType == NoiseType.POST_JUNC) {
-			this.noiseChanceBounds = noiseChanceBounds;
-			this.noiseNormalizedPositions = new double[] {1, 1.3};
-		}
-
-		return new NoiseParameters(noiseType, this.noiseNormalizedPositions, this.noiseChanceBounds);
-	}
-
 	public void setNoiseParameters(NoiseParameters noiseParameters) {
 		this.noiseChanceBounds = noiseParameters.getNoiseChanceBounds();
 		this.noiseNormalizedPositions = noiseParameters.getNormalizedPositionBounds();
@@ -180,6 +165,7 @@ public class AllenMatchStick extends MatchStick {
 		////			if(i==1)
 		//			getComp()[i].drawSurfPt(getScaleForMAxisShape(), noiseMap);
 		//		}
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
 
 		getComp()[2].setLabel(2);
 		getComp()[2].drawSurfPt(getScaleForMAxisShape(), noiseMap);

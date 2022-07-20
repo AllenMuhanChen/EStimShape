@@ -56,19 +56,20 @@ public class AllenPNGMaker{
 
 	public void createDrawerWindow() {
 		window = new AllenDrawingManager(height,width);
-		window.setBackgroundColor(backColor.getRed(),backColor.getGreen(),backColor.getBlue());
 		window.setPngMaker(this);
 		window.init();
 	}
 
 	public String createAndSavePNG(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
 		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
 		System.out.println("creating and saving PNG...");
 		return window.drawStimulus(obj, stimObjId, labels);
 	}
 
 	public String createAndSaveNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
 		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
 		System.out.println("creating and saving NoiseMap PNG...");
 		return window.drawNoiseMap(obj, stimObjId,labels);
 	}
