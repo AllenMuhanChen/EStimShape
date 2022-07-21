@@ -61,7 +61,7 @@ public class PsychometricTrial implements Trial{
 	}
 
 	private void assignPsychometricPaths() {
-		PsychometricPathAssigner psychometricPathAssigner = new PsychometricPathAssigner(trialParameters.getPsychometricIds(), trialParameters.getNumDistractors().numPsychometricDistractors, generator);
+		PsychometricPathAssigner psychometricPathAssigner = new PsychometricPathAssigner(trialParameters.getPsychometricIds(), trialParameters.getNumDistractors().getNumPsychometricDistractors(), generator);
 		psychometricPathAssigner.assign();
 		pngPaths = psychometricPathAssigner.getExperimentPngPaths();
 		specPaths = psychometricPathAssigner.getSpecPaths();
@@ -108,7 +108,7 @@ public class PsychometricTrial implements Trial{
 	List<AllenMatchStick> objs_randDistractors = new LinkedList<AllenMatchStick>();
 
 	private void generateRandDistractors() {
-		for(int i = 0; i< trialParameters.getNumDistractors().numRandDistractors; i++) {
+		for(int i = 0; i< trialParameters.getNumDistractors().getNumRandDistractors(); i++) {
 			RandMStickGenerator randGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
 			matchSticks.addRandDistractor(randGenerator.getMStick());
 			mStickSpecs.addRandDistractor(randGenerator.getMStickSpec());

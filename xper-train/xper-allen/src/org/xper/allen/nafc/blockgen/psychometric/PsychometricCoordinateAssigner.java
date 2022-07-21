@@ -22,11 +22,11 @@ public class PsychometricCoordinateAssigner extends NAFCCoordinateAssigner{
 	@Override
 	protected void assignDistractorCoords() {
 		List<Coordinates2D> allDistractors = ddUtil.getDistractorCoordsAsList();
-		for(int i=0; i<numDistractors.numPsychometricDistractors; i++) {
+		for(int i = 0; i< numDistractors.getNumPsychometricDistractors(); i++) {
 			getCoords().addPsychometricDistractor(allDistractors.get(i));
 		}
-		for(int i=0; i<numDistractors.numRandDistractors; i++) {
-			getCoords().addRandDistractor(allDistractors.get(numDistractors.numPsychometricDistractors+i));
+		for(int i = 0; i< numDistractors.getNumRandDistractors(); i++) {
+			getCoords().addRandDistractor(allDistractors.get(numDistractors.getNumPsychometricDistractors() +i));
 		}
 	}
 

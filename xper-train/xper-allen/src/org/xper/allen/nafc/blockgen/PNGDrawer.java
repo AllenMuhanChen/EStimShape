@@ -39,7 +39,7 @@ public class PNGDrawer {
 		while(tryagain) {
 			objs_randDistractor = new ArrayList<AllenMatchStick>();
 			
-			for(int j=0; j<numDistractors.numRandDistractors; j++) {
+			for(int j = 0; j< numDistractors.getNumRandDistractors(); j++) {
 				try {
 					AbstractMStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen.getMaxImageDimensionDegrees());
 					objGenerator.getMStick();

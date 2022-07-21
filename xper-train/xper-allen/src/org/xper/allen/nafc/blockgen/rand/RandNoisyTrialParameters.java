@@ -35,7 +35,6 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 		s.alias("RandNoisyTrialParameters", RandNoisyTrialParameters.class);
 	}
 
-
 	public String toXml(RandNoisyTrialParameters data) {
 		return s.toXML(data);
 	}

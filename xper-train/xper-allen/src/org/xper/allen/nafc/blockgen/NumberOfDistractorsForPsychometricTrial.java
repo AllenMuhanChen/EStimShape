@@ -1,11 +1,8 @@
 package org.xper.allen.nafc.blockgen;
 
-import java.util.LinkedList;
-import java.util.List;
-
 public class NumberOfDistractorsForPsychometricTrial {
-	public int numPsychometricDistractors;
-	public int numRandDistractors;
+	private int numPsychometricDistractors;
+	private int numRandDistractors;
 	public int numTotal;
 
 	public NumberOfDistractorsForPsychometricTrial() {
@@ -13,9 +10,30 @@ public class NumberOfDistractorsForPsychometricTrial {
 
 	public NumberOfDistractorsForPsychometricTrial(int numPsychometricDistractors, int numRandDistractors) {
 		super();
-		this.numPsychometricDistractors = numPsychometricDistractors;
-		this.numRandDistractors = numRandDistractors;
-		this.numTotal = numPsychometricDistractors + numRandDistractors;
+		this.setNumPsychometricDistractors(numPsychometricDistractors);
+		this.setNumRandDistractors(numRandDistractors);
+		updateNumTotal();
 	}
 
+	private void updateNumTotal() {
+		this.numTotal = this.getNumPsychometricDistractors() + this.getNumRandDistractors();
+	}
+
+	public int getNumPsychometricDistractors() {
+		return numPsychometricDistractors;
+	}
+
+	public int getNumRandDistractors() {
+		return numRandDistractors;
+	}
+
+	public void setNumPsychometricDistractors(int numPsychometricDistractors) {
+		this.numPsychometricDistractors = numPsychometricDistractors;
+		updateNumTotal();
+	}
+
+	public void setNumRandDistractors(int numRandDistractors) {
+		this.numRandDistractors = numRandDistractors;
+		updateNumTotal();
+	}
 }
