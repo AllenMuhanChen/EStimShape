@@ -16,6 +16,10 @@ public class PsychometricTrialParameters extends NoisyTrialParameters{
         this.psychometricIds = psychometricIds;
     }
 
+    static{
+        s.alias("PsychometricTrialParameters", PsychometricTrialParameters.class);
+    }
+
     public NumberOfDistractorsForPsychometricTrial getNumDistractors() {
         return numDistractors;
     }

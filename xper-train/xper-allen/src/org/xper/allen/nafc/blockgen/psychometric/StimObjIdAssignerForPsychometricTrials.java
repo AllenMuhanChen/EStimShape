@@ -21,11 +21,11 @@ public class StimObjIdAssignerForPsychometricTrials{
 		stimObjIds.setSample(globalTimeUtil.currentTimeMicros());
 		stimObjIds.setMatch(stimObjIds.getSample()+1);
 		long prevId = stimObjIds.getMatch();
-		for (int j=0; j<numDistractors.numPsychometricDistractors;j++) {
+		for (int j = 0; j< numDistractors.getNumPsychometricDistractors(); j++) {
 			stimObjIds.addPsychometricDistractor(prevId+1);
 			prevId++;
 		}
-		for (int j=0; j<numDistractors.numRandDistractors;j++) {
+		for (int j = 0; j< numDistractors.getNumRandDistractors(); j++) {
 			stimObjIds.addRandDistractor(prevId+1);
 			prevId++;
 		}
