@@ -14,7 +14,7 @@ public class PsychometricTrialListFactory implements TrialListFactory {
 
     private final List<NumberOfDistractorsForPsychometricTrial> numDistractors;
     private final int numTrialsPerImage;
-    private final List<NoisyTrialParameters> trialParametersTypeFrequency;
+    private final List<NoisyTrialParameters> trialParameters;
     AbstractPsychometricTrialGenerator generator;
     PsychometricFactoryParameters parameters;
 
@@ -22,8 +22,9 @@ public class PsychometricTrialListFactory implements TrialListFactory {
         this.generator = generator;
         this.parameters = parameters;
         numDistractors = parameters.getNumDistractors();
+
         numTrialsPerImage = parameters.getNumTrialsPerImage();
-        trialParametersTypeFrequency = parameters.getTrialParameters();
+        trialParameters = parameters.getTrialParameters();
     }
 
     private List<Long> setIds;
@@ -33,18 +34,21 @@ public class PsychometricTrialListFactory implements TrialListFactory {
     @Override
     public List<Trial> createTrials() {
         List<NumberOfDistractorsForPsychometricTrial> numDistractors = this.numDistractors;
-        List<NoisyTrialParameters> trialParameters = trialParametersTypeFrequency;
+
         fetchSetInfo();
 
         List<Trial> trials = new LinkedList<>();
         for(long setId:setIds)
             for(int stimId:stimIds)
                 for(int i=0; i<numTrialsPerImage; i++){
+                    PsychometricTrialParameters psychometricTrialParameters = new PsychometricTrialParameters(
+                            trialParameters.get(i),
+                            numDistractors.get(i),
+                            new PsychometricIds(setId, stimId, stimIds)
+                    );
                     trials.add(new PsychometricTrial(
                             generator,
-                            numDistractors.get(i),
-                            new PsychometricIds(setId, stimId, stimIds),
-                            trialParameters.get(i)));
+                            psychometricTrialParameters));
                 }
         return trials;
     }

@@ -17,6 +17,7 @@ public class NoisyTrialParameters extends NAFCTrialParameters{
 	}
 
 	public NoisyTrialParameters(NoisyTrialParameters other) {
+		super(other.getSampleDistanceLims(), other.getChoiceDistanceLims(), other.getSize(), other.getEyeWinSize());
 		this.noiseParameters = other.noiseParameters;
 	}
 

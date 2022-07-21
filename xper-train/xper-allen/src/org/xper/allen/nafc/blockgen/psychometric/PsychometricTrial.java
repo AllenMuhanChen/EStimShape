@@ -10,7 +10,6 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.nafc.blockgen.PsychometricMStickFetcher;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
-import org.xper.allen.nafc.blockgen.PngBasePaths;
 import org.xper.allen.nafc.blockgen.Trial;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
@@ -23,23 +22,18 @@ public class PsychometricTrial implements Trial{
 	 * Inputs
 	 */
 	private AbstractPsychometricTrialGenerator generator;
-	private NumberOfDistractorsForPsychometricTrial numDistractors;
-	private PsychometricIds psychometricIds;
-	private NoisyTrialParameters trialParameters;
-	
+	private PsychometricTrialParameters trialParameters;
+
 	public PsychometricTrial(
 			AbstractPsychometricTrialGenerator noisyMStickPngPsychometricBlockGen,
-			NumberOfDistractorsForPsychometricTrial numDistractors,
-			PsychometricIds psychometricIds,
-			NoisyTrialParameters trialParameters) {
+			PsychometricTrialParameters trialParameters) {
 
 		this.generator = noisyMStickPngPsychometricBlockGen;
-		this.numDistractors = numDistractors;
-		this.psychometricIds = psychometricIds;
 		this.trialParameters = trialParameters;
 
 		dbUtil = generator.getDbUtil();
-		this.numChoices = numDistractors.numTotal+1;
+		this.numChoices = trialParameters.getNumDistractors().numTotal+1;
+
 	}
 
 	/**
@@ -67,7 +61,7 @@ public class PsychometricTrial implements Trial{
 	}
 
 	private void assignPsychometricPaths() {
-		PsychometricPathAssigner psychometricPathAssigner = new PsychometricPathAssigner(psychometricIds, numDistractors.numPsychometricDistractors, generator);
+		PsychometricPathAssigner psychometricPathAssigner = new PsychometricPathAssigner(trialParameters.getPsychometricIds(), trialParameters.getNumDistractors().numPsychometricDistractors, generator);
 		psychometricPathAssigner.assign();
 		pngPaths = psychometricPathAssigner.getExperimentPngPaths();
 		specPaths = psychometricPathAssigner.getSpecPaths();
@@ -88,7 +82,7 @@ public class PsychometricTrial implements Trial{
 
 
 	private void assignStimObjIds() {
-		StimObjIdAssignerForPsychometricTrials stimObjIdAssigner = new StimObjIdAssignerForPsychometricTrials(generator.getGlobalTimeUtil(), numDistractors);
+		StimObjIdAssignerForPsychometricTrials stimObjIdAssigner = new StimObjIdAssignerForPsychometricTrials(generator.getGlobalTimeUtil(), trialParameters.getNumDistractors());
 		stimObjIdAssigner.assignStimObjIds();
 		stimObjIds = stimObjIdAssigner.getStimObjIds();
 	}
@@ -104,7 +98,7 @@ public class PsychometricTrial implements Trial{
 				new PsychometricNoiseMapGenerator(
 						matchSticks.getSample(),
 						stimObjIds.getSample(),
-						psychometricIds,
+						trialParameters.getPsychometricIds(),
 						generator,
 						trialParameters.getNoiseParameters());
 		noiseMapPath = psychometricNoiseMapGenerator.getExperimentNoiseMapPath();
@@ -114,7 +108,7 @@ public class PsychometricTrial implements Trial{
 	List<AllenMatchStick> objs_randDistractors = new LinkedList<AllenMatchStick>();
 
 	private void generateRandDistractors() {
-		for(int i=0; i<numDistractors.numRandDistractors; i++) {
+		for(int i = 0; i< trialParameters.getNumDistractors().numRandDistractors; i++) {
 			RandMStickGenerator randGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
 			matchSticks.addRandDistractor(randGenerator.getMStick());
 			mStickSpecs.addRandDistractor(randGenerator.getMStickSpec());
@@ -137,7 +131,8 @@ public class PsychometricTrial implements Trial{
 	private void assignCoords() {
 		PsychometricCoordinateAssigner coordAssigner = new PsychometricCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
-				numDistractors, trialParameters.getChoiceDistanceLims());
+				trialParameters.getNumDistractors(),
+				trialParameters.getChoiceDistanceLims());
 		
 
 		coords = coordAssigner.getCoords();
@@ -187,12 +182,12 @@ public class PsychometricTrial implements Trial{
 
 
 	public NumberOfDistractorsForPsychometricTrial getNumDistractors() {
-		return numDistractors;
+		return trialParameters.getNumDistractors();
 	}
 
 
 	public PsychometricIds getPsychometricIds() {
-		return psychometricIds;
+		return trialParameters.getPsychometricIds();
 	}
 
 

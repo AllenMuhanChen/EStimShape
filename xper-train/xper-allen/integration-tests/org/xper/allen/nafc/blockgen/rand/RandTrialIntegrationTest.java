@@ -302,25 +302,4 @@ public class RandTrialIntegrationTest {
         return pngPaths;
     }
 
-    @Test
-    public void mSticks_generate_noiseMaps() {
-        //Arrange
-        long id = 1L;
-        generator.getPngMaker().createDrawerWindow();
-        MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(
-                generator.getMaxImageDimensionDegrees(),
-                trialParameters);
-        AllenMatchStick mStick = mStickGenerator.getSample();
-        NoiseParameters noiseParameters = new NoiseParameters(NoiseFormer.getNoiseForm(noiseType), noiseChance);
-        RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(id, mStick, noiseParameters, generator);
-        generator.getPngMaker().close();
-
-        //Act
-        String path = noiseMapGenerator.getExperimentNoiseMapPath();
-
-        //Assert
-        assertFileExists(path);
-    }
-
-
 }
