@@ -123,8 +123,8 @@ public class PsychometricTrialIntegrationTest {
 						size,
 						eyeWinSize,
 						noiseParameters);
-
-		trial = new PsychometricTrial(generator, numDistractors, psychometricIds, trialParameters);
+		PsychometricTrialParameters psychometricTrialParameters = new PsychometricTrialParameters(trialParameters, numDistractors, psychometricIds);
+		trial = new PsychometricTrial(generator, psychometricTrialParameters);
 	}
 
 	private void thenPsychometricFilesFound() {
