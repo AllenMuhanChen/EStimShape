@@ -21,13 +21,13 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
 
     //PSYCHOMETRIC
     String numPsychometricDistractors = "1,2"; String numPsychometricDistractorsFreqs = half;
-    String numPsychometricRandDistractors = "1,2"; String numRandDistractorsFreqs = half;
+    String numPsychometricRandDistractors = "1,2"; String numPyschometricRandDistractorsFreqs = half;
     String psychometricNoiseChances = "(0.5,0.1),(0.8,0.1)"; String psychometricNoiseChancesFreqs = half;
 
 
     //RAND
     String numQMDistractors = "1,2"; String numQMDistractorsFreqs = half;
-    String numRandDistractors = "1,2"; String numRandTrialsFreqs = half;
+    String numRandDistractors = "1,2"; String numRandDistractorsFreqs = half;
     String numMMCategories = "1,2"; String numMMCategoriesFreqs = half;
     String numQMCategories = "1,2"; String numQMCategoriesFreqs = half;
     String randNoiseChances = psychometricNoiseChances; String randNoiseChancesFreqs = half;
@@ -47,6 +47,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
     private Long endTime;
     private String numRandTrials;
     private String numPsychometricTrialsPerImage;
+    private String[] singleMemberListArgs;
 
 
     @Test
@@ -80,6 +81,29 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
 
         //ACT
         PsychometricBlockGeneratorMain.main(randOnlyArgs());
+
+        //ASSERTs
+        //Test Number of Trials in Database
+        endTime = System.currentTimeMillis()*1000;
+        dbUtil = generator.getDbUtil();
+        generates_correct_total_amount_of_trials();
+        generates_correct_distribution_of_trials();
+    }
+
+    @Test
+    public void generates_single_in_list_use_case_trials(){
+        startTime = System.currentTimeMillis()*1000;
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(
+                FileUtil.loadConfigClass("experiment.ga.config_class"));
+
+        generator = context.getBean(PsychometricBlockGen.class);
+        this.numRandTrials = "2";
+        this.numPsychometricTrialsPerImage = "2";
+        this.numRandDistractors="2";
+        this.numRandDistractorsFreqs="1";
+        //ACT
+        singleMemberListArgs = getArgs();
+        PsychometricBlockGeneratorMain.main(singleMemberListArgs);
 
         //ASSERTs
         //Test Number of Trials in Database
@@ -147,7 +171,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
                 numRandTrials,
                 //PSYCHOMETRIC
                 numPsychometricDistractors, numPsychometricDistractorsFreqs,
-                numPsychometricRandDistractors, numRandDistractorsFreqs,
+                numPsychometricRandDistractors, numPyschometricRandDistractorsFreqs,
                 psychometricNoiseChances, psychometricNoiseChancesFreqs,
                 //RAND
                 numQMDistractors, numQMDistractorsFreqs,
@@ -165,4 +189,5 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
 
         return args;
     }
+
 }

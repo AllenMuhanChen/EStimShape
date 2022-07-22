@@ -223,7 +223,7 @@
 		</jar>
 		<jar jarfile="${allen.home}/PsychometricMStickPngGenerator.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/PsychometricMStickPngGenerator.class" />
+				<include name="org/xper/allen/app/nafc/PsychometricPngGeneratorMain.class" />
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricPngGeneratorMain" />
@@ -239,7 +239,5 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
-
-		
 	</target>
 </project>
