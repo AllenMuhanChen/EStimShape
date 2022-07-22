@@ -25,7 +25,7 @@ public class PsychometricBlockGenInputTranslator extends TrialGenerator {
     private int numPsychometricTrialsPerImage;
     private int numRandTrials;
     private TypeFrequency<Integer> numPsychometricDistractorsTF;
-    private TypeFrequency<Integer> numRandDisractorsTF;
+    private TypeFrequency<Integer> numPsychometricRandDisractorsTF;
     private TypeFrequency<Lims> psychometricNoiseChances;
     private TypeFrequency<Integer> numQMDistractorsTF;
     private TypeFrequency<Integer> numRandDistractorsTF;
@@ -53,7 +53,7 @@ public class PsychometricBlockGenInputTranslator extends TrialGenerator {
 
         //PSYCHOMETRIC TRIALS
         numPsychometricDistractorsTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
-        numRandDisractorsTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
+        numPsychometricRandDisractorsTF = new TypeFrequency<>(nextIntegerType(), nextFrequency());
         psychometricNoiseChances = new TypeFrequency<>(nextLimsType(), nextFrequency());
 
 
@@ -104,7 +104,7 @@ public class PsychometricBlockGenInputTranslator extends TrialGenerator {
         }
 
         //DISTRACTORS
-        List<Integer> numRandDistractors = numRandDisractorsTF.getShuffledTrialList(numPsychometricTrialsPerImage);
+        List<Integer> numRandDistractors = numPsychometricRandDisractorsTF.getShuffledTrialList(numPsychometricTrialsPerImage);
         List<Integer> numPsychometricDistractors = numPsychometricDistractorsTF.getShuffledTrialList(numPsychometricTrialsPerImage);
         List<NumberOfDistractorsForPsychometricTrial> numDistractors = new LinkedList<>();
         for(int i=0; i<numPsychometricTrialsPerImage; i++){

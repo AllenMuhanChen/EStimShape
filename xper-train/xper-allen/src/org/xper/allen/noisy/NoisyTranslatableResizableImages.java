@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.SplittableRandom;
 
+import javax.imageio.IIOException;
 import javax.imageio.ImageIO;
 
 import org.lwjgl.BufferUtils;
@@ -329,7 +330,12 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	public int loadTexture(String pathname, int textureIndex) {
 		try {
 			File imageFile = new File(pathname);
-			BufferedImage img = ImageIO.read(imageFile);
+			BufferedImage img = null;
+			try {
+				img = ImageIO.read(imageFile);
+			} catch(IIOException e){
+				System.err.println("Could not read image: " + imageFile.getAbsolutePath().toString());
+			}
 			getImgWidth().add(textureIndex, img.getWidth());
 			getImgHeight().add(textureIndex, img.getHeight());
 			//			System.out.println("loaded image : " + imgWidth + ", " + imgHeight);
