@@ -13,6 +13,8 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 
+import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWithinRadii;
+
 public class FixationPngBlockGen extends AbstractTrialGenerator{
 	@Dependency
 	AllenDbUtil dbUtil;

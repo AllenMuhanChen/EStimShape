@@ -1,4 +1,4 @@
-<project name="xper" default="dist" basedir=".">
+<project name="xper-allen" default="dist" basedir=".">
 	<property name="build.home" location="${basedir}/class" />
 	<property name="xper.home" location="${basedir}/../xper" />
 	<property name="3d.home" location="${basedir}/../xper-3d" />
@@ -60,8 +60,6 @@
 
 	
 	<target name="dist" depends="compile" >
-		
-
 		<jar jarfile="${allen.home}/xper_allen.jar" basedir="${build.home}">
 		</jar>
 		
@@ -223,36 +221,25 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
-		
-		<jar jarfile="${allen.home}/NoisyMStickPngTrialGen.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/NoisyMStickPngRandTrialGenerator.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.NoisyMStickPngRandTrialGenerator" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
-			</manifest>
-		</jar>
-		
 		<jar jarfile="${allen.home}/PsychometricMStickPngGenerator.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/nafc/PsychometricMStickPngGenerator.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricMStickPngGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricPngGeneratorMain" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
-		
-		<jar jarfile="${allen.home}/PsychometricMStickTrialGenerator.jar">
+		<jar jarfile="${allen.home}/PsychometricBlockGeneratorMain.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/PsychometricMStickTrialGenerator.class" />
+				<include name="org/xper/allen/app/nafc/PsychometricBlockGeneratorMain.class" />
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricBlockGeneratorMain" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
+
 		
 	</target>
 </project>

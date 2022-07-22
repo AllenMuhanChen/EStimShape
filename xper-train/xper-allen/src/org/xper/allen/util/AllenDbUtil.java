@@ -2,8 +2,9 @@ package org.xper.allen.util;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.Random;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
@@ -17,11 +18,9 @@ import org.xper.allen.saccade.SaccadeExperimentTask;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.allen.saccade.db.vo.StimSpecEntryUtil;
 import org.xper.allen.specs.BlockSpec;
-import org.xper.allen.specs.EStimObjData;
 import org.xper.allen.specs.SaccadeStimSpecSpec;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.db.vo.StimSpecEntry;
-import org.xper.experiment.ExperimentTask;
 
 //AC
 public class AllenDbUtil extends DbUtil {
@@ -52,14 +51,37 @@ public class AllenDbUtil extends DbUtil {
 	}
 	*/
 	//AC
-	
-	
+
+
+	/**
+	 * Read StimSpec given a stimulus id range.
+	 *
+	 * @param startId
+	 * @param stopId
+	 * @return Map from stimulus id to {@link StimSpecEntry}
+	 */
+	public Map<Long, String> readStimSpecDataByIdRangeAsMap(long startId, long stopId) {
+		final HashMap<Long, String> result = new HashMap<Long, String>();
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.query(
+				" select id, data " +
+						" from StimSpec " +
+						" where id >= ? and id <= ? ",
+				new Object[] {startId, stopId },
+				new RowCallbackHandler(){
+					public void processRow(ResultSet rs) throws SQLException {
+						result.put(
+								rs.getLong("id"),
+								rs.getString("data"));
+					}});
+		return result;
+	}
+
 	/**
 	 * Write StimSpec.
 	 * 
 	 * @param id
 	 * @param spec
-	 * @param thumbnail
 	 */
 
 	public void writeStimSpec(long id, String spec, String data) {
@@ -72,8 +94,6 @@ public class AllenDbUtil extends DbUtil {
 	 * Update existing StimSpec row with data
 	 * 
 	 * @param id
-	 * @param spec
-	 * @param thumbnail
 	 */
 
 	public void updateStimSpecData(long id, String data) {

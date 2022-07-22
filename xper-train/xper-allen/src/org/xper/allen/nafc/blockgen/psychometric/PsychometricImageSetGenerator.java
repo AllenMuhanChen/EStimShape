@@ -47,6 +47,8 @@ public class PsychometricImageSetGenerator {
         qmps = qmpGenerator.getQMP(numPerSet - 1 - numRand, percentChangePosition);
 
         //VETTING AND CHOOSING LEAF
+        psychometricBlockGen.getPngMaker().createDrawerWindow();
+
         while (tryagain) {
             boolean firstObjSuccess = false;
             Boolean[] restObjSuccess = new Boolean[numPerSet - 1];
@@ -148,14 +150,15 @@ public class PsychometricImageSetGenerator {
             ids.add(setId);
         }
 
-        List<String> stimPaths = psychometricBlockGen.getPngMaker().createAndSaveBatchOfPNGs(objs, ids, labels, null);
+        List<String> stimPaths = psychometricBlockGen.getPngMaker().createAndSaveBatchOfPNGs(objs, ids, labels, psychometricBlockGen.getGeneratorPsychometricPngPath());
 
         //SAVE SPECS.TXT
         for (int k = 0; k < objs.size(); k++) {
             AllenMStickSpec spec = new AllenMStickSpec();
             spec.setMStickInfo(objs.get(k));
-            spec.writeInfo2File(psychometricBlockGen.getGeneratorSpecPath() + "/" + ids.get(k) + "_" + labels.get(k).get(0), true);
+            spec.writeInfo2File(psychometricBlockGen.getGeneratorPsychometricSpecPath() + "/" + ids.get(k) + "_" + labels.get(k).get(0), true);
         }
+        psychometricBlockGen.getPngMaker().close();
     }
 
     private enum StimType {

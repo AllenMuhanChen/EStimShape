@@ -54,7 +54,7 @@ public class AllenPNGMaker{
 	public AllenPNGMaker() {}
 
 	public void createDrawerWindow() {
-		if(window == null) {
+		if(window == null || !window.isOpen()) {
 			window = new AllenDrawingManager(height, width);
 			window.setPngMaker(this);
 			window.init();
