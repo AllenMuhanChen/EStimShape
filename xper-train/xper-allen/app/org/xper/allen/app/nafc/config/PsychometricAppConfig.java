@@ -13,8 +13,6 @@ import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
@@ -120,15 +118,15 @@ public class PsychometricAppConfig {
 	@ExternalValue("generator.psychometric.spec_path")
 	public String generatorPsychometricSpecPath;
 
-	
-	
+
+
 	/**
 	 * NoisyMStickPngBlockGen has been upgraded to have generateSet
 	 * @return
 	 */
 	@Bean
 	public AbstractMStickPngTrialGenerator randBlockGenerator() {
-		NoisyMStickPngRandBlockGen gen = new NoisyMStickPngRandBlockGen();
+		PsychometricBlockGen gen = new PsychometricBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setGeneratorPngPath(appConfig.generatorPngPath);
@@ -136,8 +134,6 @@ public class PsychometricAppConfig {
 		gen.setGeneratorSpecPath(appConfig.generatorSpecPath);
 		gen.setPngMaker(appConfig.pngMaker());
 		gen.setMaxImageDimensionDegrees(appConfig.xperMaxImageDimensionDegrees());
-		gen.setMmpGenerator(appConfig.mmpGenerator());
-		gen.setQmpGenerator(appConfig.qmpGenerator());
 		return gen;
 	}
 	

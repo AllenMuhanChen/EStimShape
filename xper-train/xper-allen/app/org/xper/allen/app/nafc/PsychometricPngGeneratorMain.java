@@ -5,10 +5,8 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.NoisyMStickPngRandBlockGen;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricImageSetGenerator;
-import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.util.FileUtil;
 
 /**
@@ -20,7 +18,7 @@ import org.xper.util.FileUtil;
  * @author r2_allen
  *
  */
-public class PsychometricMStickPngGenerator {
+public class PsychometricPngGeneratorMain {
 	
 	
 

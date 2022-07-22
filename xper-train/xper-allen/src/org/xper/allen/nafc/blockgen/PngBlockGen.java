@@ -1,15 +1,5 @@
 package org.xper.allen.nafc.blockgen;
 
-import java.awt.Dimension;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.IntStream;
-
 import org.xper.Dependency;
 import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
@@ -21,6 +11,11 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
 
+import java.io.File;
+import java.util.*;
+import java.util.stream.IntStream;
+
+import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.inclusiveRandomDouble;
 import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWithinRadii;
 
 
