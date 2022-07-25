@@ -5,6 +5,7 @@ import java.util.Random;
 
 import org.xper.Dependency;
 import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
 import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.allen.specs.PngSpec;
@@ -15,7 +16,7 @@ import org.xper.time.TimeUtil;
 
 import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWithinRadii;
 
-public class FixationPngBlockGen extends AbstractTrialGenerator{
+public class FixationPngBlockGen extends AbstractMStickPngTrialGenerator {
 	@Dependency
 	AllenDbUtil dbUtil;
 	@Dependency
