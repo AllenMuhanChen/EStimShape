@@ -1,6 +1,6 @@
-import pandas as pd
-import timeutil
 from collections import OrderedDict
+import pandas as pd
+
 
 class Field:
     def __init__(self):
