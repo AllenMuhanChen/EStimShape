@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import pandas as pd
 
-import trial
+import trial_field
 import timeutil
 
 class DuckField:
@@ -28,18 +28,18 @@ class WhenField(trial.Field):
 class TestField(TestCase):
     def test(self):
         trialList = []
-        trialList.append(trial.Trial(timeutil.When(1, 2)))
-        trialList.append(trial.Trial(timeutil.When(3, 4)))
+        trialList.append(trial_field.Trial(timeutil.When(1, 2)))
+        trialList.append(trial_field.Trial(timeutil.When(3, 4)))
 
         ## Interface for defining fields
-        f = trial.Field()
+        f = trial_field.Field()
         start1 = StartField()
         when1 = WhenField()
         d1 = DuckField("duck1")
         s1 = SubField()
 
         ## Interface for adding fields to a trial
-        fieldList = trial.FieldList()
+        fieldList = trial_field.FieldList()
         fieldList.append(when1)
         fieldList.append(start1)
         fieldList.append(d1)
