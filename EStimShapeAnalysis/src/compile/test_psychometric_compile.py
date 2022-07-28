@@ -9,6 +9,6 @@ from src.data import reader
 class TestTrialTypeField(TestCase):
     def test_get_value(self):
         beh_msg = reader.get_beh_msg()
-        trial = pc.TrialTypeField(beh_msg)
+        trial = pc.IsCorrectField(beh_msg)
         isCorrect = trial.getValue(time.When(1659038500125354,1659038504610070))
         self.assertEqual(True, isCorrect)

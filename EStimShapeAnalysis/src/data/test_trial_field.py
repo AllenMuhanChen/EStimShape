@@ -12,14 +12,14 @@ class DuckField:
     def getValue(self, when):
         self.value = self.quack
 
-class SubField(trial.Field):
+class SubField(trial_field.Field):
     pass
 
-class StartField(trial.Field):
+class StartField(trial_field.Field):
     def getValue(self, when):
         self.value = when.start
 
-class WhenField(trial.Field):
+class WhenField(trial_field.Field):
     def __init__(self):
         self.name = "tstamps"
     def getValue(self, when):
