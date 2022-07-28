@@ -101,7 +101,7 @@ function compileTrainingData(behMsg, stimSpec, stimObjData)
     #StimSpec data XML string from stimSpecIds % stimSpec
     stimSpecDataDf = stimSpecsDf[:,:data]
     df.stimSpecData = stimSpecDataDf
-    
+
     #sampleObjId parsed from stimSpecXml
     getSampleObjDataId = DbUtil.makeXMLParser(["sampleObjData"])
     sampleObjDataIds = getSampleObjDataId.(df.stimSpec)

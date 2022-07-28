@@ -1,6 +1,6 @@
 module DbUtil
 
-export makeXMLParser, connect, conn, today, yesterday
+export makeXMLParser, connect, conn, today, yesterday, foo
 using Pkg
 Pkg.add("MySQL")
 Pkg.add("DBInterface")
@@ -26,6 +26,8 @@ username = "xper_rw"
 password = "up2nite"
 
 today = DateTime(Dates.today());
+foo = 1;
+
 ## CONNECT
 function connect()
     return global conn = DBInterface.connect(MySQL.Connection, defaultHost, username, password, db= defaultSchema)
