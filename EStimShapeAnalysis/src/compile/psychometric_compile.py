@@ -6,6 +6,13 @@ import pandas as pd
 import numpy as np
 from src.data import trial_field as tf, timeutil, table_util, reader, trialcollector
 
+class TrialTypeField(tf.Field):
+    def __init__(self, beh_msg:pd.DataFrame, stim_spec:pd.DataFrame):
+        self.name = "TrialType"
+        self.beh_msg = beh_msg
+
+    def getValue(self, when):
+        pass
 
 class IsCorrectField(tf.Field):
     def __init__(self, beh_msg: pd.DataFrame):
@@ -23,8 +30,6 @@ class IsCorrectField(tf.Field):
         elif correct > 1 or incorrect > 1:
             raise ValueError("There's more than one choice in this trial!")
         else:
-            print(correct)
-            print(incorrect)
             raise ValueError("There's no choice in this trial!")
 
 

@@ -3,7 +3,7 @@ import pandas as pd
 from src.data import reader, timeutil, table_util
 
 beh_msg = reader.get_beh_msg()
-
+stim_spec = reader.get_stim_sec()
 def collect_choice_trials():
     all_trial_whens = collect_trials()
     choice_trial_whens = []
