@@ -1,7 +1,6 @@
-import pandas as pd
 import numpy as np
-from src.database import reader
-from src.when import timeutil
+from src.data import reader, timeutil
+
 
 def collect_trials():
     beh_msg = reader.get_beh_msg()
