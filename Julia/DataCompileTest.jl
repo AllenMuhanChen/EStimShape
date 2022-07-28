@@ -21,8 +21,8 @@ using DataFramesMeta
 using Printf
 include("./DbUtil.jl")
 include("./DataCompileUtil.jl")
-
-global conn = DbUtil.connect()
+using .DbUtil
+global conn = connect()
 date1 = Date(2022,05,9)
 date2 = Date(2022,05,13)
 dates = (date1,date2)
