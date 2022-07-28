@@ -1,6 +1,6 @@
 import mysql.connector
 import pandas as pd
-from src.when import timeutil
+from src.data import timeutil
 
 mydb = mysql.connector.connect(
     host="172.30.6.80",
