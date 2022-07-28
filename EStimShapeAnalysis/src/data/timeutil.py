@@ -6,7 +6,8 @@ class When:
     def __init__(self, start, stop):
         self.start = start
         self.stop = stop
-
+    def tuple(self):
+        return (self.start, self.stop)
 
 def today():
     today = __unix(datetime.date.today())
