@@ -1,0 +1,160 @@
+<project name="xper" default="dist" basedir=".">
+	<property name="build.home" location="${basedir}/class" />
+	<property name="xper.home" location="${basedir}/../xper" />
+	<property name="native.home" location="${basedir}/../xper-native" />
+	<property name="dist.home" location="${basedir}/../dist" />
+	<property name="sach.home" location="${dist.home}/sach" />
+	
+	<target name="clean">
+		<delete dir="${build.home}" />
+		<delete dir="${sach.home}" />
+	</target>
+
+	<path id="classpath">
+		<fileset dir="${xper.home}/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset file="${dist.home}/xper.jar" />
+	</path>
+	
+	<pathconvert property="manifest.classpath" dirsep="/" pathsep=" ">
+		<path refid="classpath">
+		</path>
+		<map from="${xper.home}${file.separator}lib" to="../lib" />
+		<map from="${dist.home}${file.separator}" to="../" />
+	</pathconvert>
+	
+	<echo message="Manifest classpath is ${manifest.classpath}" />
+	
+	
+	<target name="prepare">
+		<mkdir dir="${build.home}" />
+		<mkdir dir="${dist.home}" />
+		<mkdir dir="${dist.home}/sach" />		
+		
+		<copy todir="${dist.home}" includeEmptyDirs="false">
+			<fileset dir="src" excludes="**/*.java" />
+			<fileset dir="app" excludes="**/*.java" />
+		</copy>
+	</target>
+
+	
+	<target name="compile" depends="prepare">
+		<javac srcdir="src" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
+			<!-- for building on windows C:\Program Files\Java\jre1.6.0_38\lib\rt.jar -->
+			<classpath refid="classpath" />
+		</javac>
+		<javac srcdir="app" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
+			<classpath refid="classpath" />
+		</javac>
+	</target>
+
+	
+	<target name="dist" depends="compile">
+		
+		<jar jarfile="${sach.home}/xper_sach.jar" basedir="${build.home}">
+		</jar>
+		
+		<jar jarfile="${sach.home}/beh_sachrandgen.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/beh/BehSachRandGen.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.beh.BehSachRandGen" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_sach.jar" />
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${sach.home}/beh_analysis.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/beh/BehAnalysis.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.beh.BehAnalysis" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} " />
+			</manifest>
+		</jar>	
+		
+		<jar jarfile="${sach.home}/beh_experiment.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/beh/BehExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.beh.BehExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${sach.home}/beh_console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/beh/BehConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.beh.BehConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+		
+		
+		<jar jarfile="${sach.home}/ga_sachrandgen.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/ga/GASachRandGen.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.ga.GASachRandGen" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${sach.home}/ga_analysis.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/ga/GAAnalysis.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.ga.GAAnalysis" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>	
+		
+		<jar jarfile="${sach.home}/ga_experiment.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/ga/GAExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.ga.GAExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${sach.home}/ga_console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/ga/GAConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.ga.GAConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+		
+		<jar jarfile="${sach.home}/sach_fixcal.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/fixcal/SachFixCalExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.fixcal.SachFixCalExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${sach.home}/sach_fixcal_console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/sach/app/fixcal/SachFixCalConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.sach.app.fixcal.SachFixCalConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath}" />
+			</manifest>
+		</jar>
+				
+	</target>
+</project>
