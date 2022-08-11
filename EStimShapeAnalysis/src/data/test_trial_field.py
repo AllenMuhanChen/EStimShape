@@ -9,20 +9,32 @@ class DuckField:
     def __init__(self, quack):
         self.quack = quack
         self.name = "Duck"
+<<<<<<< HEAD
     def retrieveValue(self, when):
+=======
+    def getValue(self, when):
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
         self.value = self.quack
 
 class SubField(trial_field.Field):
     pass
 
 class StartField(trial_field.Field):
+<<<<<<< HEAD
     def retrieveValue(self, when):
+=======
+    def getValue(self, when):
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
         self.value = when.start
 
 class WhenField(trial_field.Field):
     def __init__(self):
         self.name = "tstamps"
+<<<<<<< HEAD
     def retrieveValue(self, when):
+=======
+    def getValue(self, when):
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
         self.value = when.tuple()
 
 class TestField(TestCase):

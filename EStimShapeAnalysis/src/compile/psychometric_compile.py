@@ -1,6 +1,7 @@
 # This is a sample Python scri
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+<<<<<<< HEAD
 import datetime
 
 import pandas as pd
@@ -40,14 +41,33 @@ class TrialTypeField(StimSpecDataField):
             print(stim_spec_data)
             return "Unknown"
 
+=======
+
+import pandas as pd
+import numpy as np
+from src.data import trial_field as tf, timeutil, table_util, reader, trialcollector
+
+class TrialTypeField(tf.Field):
+    def __init__(self, beh_msg:pd.DataFrame, stim_spec:pd.DataFrame):
+        self.name = "TrialType"
+        self.beh_msg = beh_msg
+
+    def getValue(self, when):
+        pass
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
 
 class IsCorrectField(tf.Field):
     def __init__(self, beh_msg: pd.DataFrame):
         self.beh_msg = beh_msg
         self.name = "IsCorrect"
 
+<<<<<<< HEAD
     def retrieveValue(self, when: timeutil.When):
         time_cond = table_util.get_during_trial(self.beh_msg, when)
+=======
+    def getValue(self, when: timeutil.When):
+        time_cond = table_util.get_within_tstamps(self.beh_msg, when)
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
         correct = self.__get_num_corrects(time_cond)
         incorrect = self.__get_num_incorrects(time_cond)
         if correct == 1 and incorrect == 0:
@@ -59,6 +79,10 @@ class IsCorrectField(tf.Field):
         else:
             raise ValueError("There's no choice in this trial!")
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
     def __get_num_incorrects(self, time_cond):
         incorrect_trials = self.beh_msg['type'] == "ChoiceSelectionIncorect"
         incorrect = sum(np.logical_and(incorrect_trials, time_cond))
@@ -70,6 +94,7 @@ class IsCorrectField(tf.Field):
         return correct
 
 
+<<<<<<< HEAD
 
 class NoiseChanceField(StimSpecDataField):
     def __init__(self, beh_msg, stim_spec):
@@ -125,11 +150,25 @@ if __name__ == '__main__':
     fieldList.append(IsCorrectField(today_beh_msg))
     fieldList.append(PsychometricIdField(today_beh_msg, today_stim_spec))
     fieldList.append(NoiseChanceField(today_beh_msg, today_stim_spec))
+=======
+# Press the green button in the gutter to run the script.
+if __name__ == '__main__':
+    beh_msg = trialcollector.beh_msg
+    trial_whens = trialcollector.collect_choice_trials()
+    trialList = []
+    for when in trial_whens:
+        trialList.append(tf.Trial(when))
+
+    fieldList = tf.FieldList()
+    fieldList.append(IsCorrectField(beh_msg))
+
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
     for t in trialList:
         t.set_fields(fieldList)
 
     data = []
 
+<<<<<<< HEAD
     for i, t in enumerate(trialList):
         print("working on " + str(i) + " out of " + str(len(trialList)))
         data = t.append_to_data(data)
@@ -144,3 +183,11 @@ if __name__ == '__main__':
 
     df.to_csv(path)
 
+=======
+    for t in trialList:
+        data = t.append_to_data(data)
+
+    df = pd.DataFrame(data)
+    print(sum(df["IsCorrect"])/len(df.index))
+# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
