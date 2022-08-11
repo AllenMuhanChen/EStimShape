@@ -6,11 +6,8 @@ class Field:
     def __init__(self):
         self.name = type(self).__name__
 
-<<<<<<< HEAD
+
     def retrieveValue(self, when):
-=======
-    def getValue(self, when):
->>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
         self.value = self.name
 
 
@@ -42,8 +39,5 @@ class Trial:
 
     def __get_field_values(self):
         for field in self.fields:
-<<<<<<< HEAD
             field.retrieveValue(self.when)
-=======
-            field.getValue(self.when)
->>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
+
