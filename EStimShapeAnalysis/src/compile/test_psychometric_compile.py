@@ -1,0 +1,37 @@
+from unittest import TestCase
+
+
+from src.compile import psychometric_compile as pc
+from src.data import trial_field as tf
+from src.data import timeutil as time
+
+PSYCHOMETRIC = time.When(1659208461019365, 1659208471171128)
+
+RANDOM_CORRECT = time.When(1659126605490042, 1659126611270426)
+from src.data import trialcollector
+from src.data.connection import Connection
+
+class TestFields(TestCase):
+    reader = Connection("allen_estimshape_test_220729", when=time.all())
+    beh_msg = reader.beh_msg
+    stim_spec = reader.stim_spec
+    def test_IsCorrect_field_retrieve_value(self):
+        trial = pc.IsCorrectField(self.beh_msg)
+        trial.retrieveValue(RANDOM_CORRECT)
+        isCorrect = trial.value
+        self.assertEqual(True, isCorrect)
+
+    def test_trial_type_field_retrieve_value(self):
+        trial = pc.TrialTypeField(self.beh_msg, self.stim_spec)
+        trial.retrieveValue(RANDOM_CORRECT)
+        self.assertEqual("Rand", trial.value)
+
+    def test_noise_retrieve_value(self):
+        trial = pc.NoiseChanceField(self.beh_msg, self.stim_spec)
+        trial.retrieveValue(RANDOM_CORRECT)
+        print(trial.value)
+
+    def test_psychometric_id_retrieve_value(self):
+        trial = pc.PsychometricIdField(self.beh_msg, self.stim_spec)
+        trial.retrieveValue(PSYCHOMETRIC)
+        print(trial.value)

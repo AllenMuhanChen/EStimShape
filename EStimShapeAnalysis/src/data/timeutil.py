@@ -6,7 +6,8 @@ class When:
     def __init__(self, start, stop):
         self.start = start
         self.stop = stop
-
+    def tuple(self):
+        return (self.start, self.stop)
 
 def today():
     today = __unix(datetime.date.today())
@@ -15,6 +16,9 @@ def today():
     return when
 
 
+def all():
+    when = When(0, __unix(datetime.date.fromisoformat('3022-01-01')))
+    return when
 def __now():
     return round(time.time() * 1000000)
 
