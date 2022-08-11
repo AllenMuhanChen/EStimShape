@@ -12,8 +12,11 @@ class TestTrialCollectorMethods(TestCase):
         self.assertEqual(expectedNumCorrect, actualNumCorrect)
 
     def test_collect_choices_trials(self):
+<<<<<<< HEAD
         conn = Connection("allen_estimshape_train_220725")
         trialcollector = TrialCollector(conn)
+=======
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
         trial_whens = trialcollector.collect_choice_trials()
         actualNumCorrect = sum([True for i in trial_whens if (i.start<i.stop)])
         expectedNumCorrect = len(trial_whens)

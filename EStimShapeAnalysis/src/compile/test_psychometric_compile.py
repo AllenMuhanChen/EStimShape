@@ -4,6 +4,7 @@ from unittest import TestCase
 from src.compile import psychometric_compile as pc
 from src.data import trial_field as tf
 from src.data import timeutil as time
+<<<<<<< HEAD
 
 PSYCHOMETRIC = time.When(1659208461019365, 1659208471171128)
 
@@ -35,3 +36,13 @@ class TestFields(TestCase):
         trial = pc.PsychometricIdField(self.beh_msg, self.stim_spec)
         trial.retrieveValue(PSYCHOMETRIC)
         print(trial.value)
+=======
+from src.data import trialcollector
+from src.data import reader
+class TestTrialTypeField(TestCase):
+    def test_get_value(self):
+        beh_msg = reader.get_beh_msg()
+        trial = pc.IsCorrectField(beh_msg)
+        isCorrect = trial.getValue(time.When(1659038500125354,1659038504610070))
+        self.assertEqual(True, isCorrect)
+>>>>>>> 56d5c669cd40f00458aeb689625709c0bf48ea12
