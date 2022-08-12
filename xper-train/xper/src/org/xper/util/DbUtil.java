@@ -490,7 +490,6 @@ public class DbUtil {
 	 * InternalState table.
 	 * 
 	 * @param genId
-	 * @param count
 	 */
 
 	public void writeReadyGenerationInfo(long genId, int taskCount) {
@@ -508,7 +507,6 @@ public class DbUtil {
 	 * value.
 	 * 
 	 * @param genId
-	 * @param count
 	 */
 	public void updateReadyGenerationInfo(long genId, int taskCount) {
 		GenerationInfo info = new GenerationInfo();
