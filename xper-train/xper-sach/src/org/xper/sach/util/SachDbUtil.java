@@ -585,6 +585,18 @@ public class SachDbUtil extends DbUtil {
 		long tstamp = jt.queryForLong("SELECT max(tstamp) FROM DescriptiveInfo");		
 		return jt.queryForInt("SELECT containsAnimation FROM DescriptiveInfo WHERE tstamp = ? ", new Object[] { new Long(tstamp) }) > 0;
 	}
+
+
+	public boolean isRealExpt() {
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		boolean returnable = false;
+		long tstamp = jt.queryForLong("select max(tstamp) from DescriptiveInfo");
+		int isRealExpt = jt.queryForInt("select isRealExpt from DescriptiveInfo where tstamp = ? ",new Object[]{new Long(tstamp)});
+		if (isRealExpt == 1) returnable = true;
+
+		return returnable;
+	}
+
 	
 //	public int isRealExpt() {
 //		JdbcTemplate jt = new JdbcTemplate(dataSource);
