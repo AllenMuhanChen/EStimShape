@@ -18,14 +18,14 @@ public class SachGenerationInfo extends GenerationInfo{
 	
 	static {
 		s = new XStream();
-		s.alias("GenerationInfo", GenerationInfo.class);
+		s.alias("GenerationInfo", SachGenerationInfo.class);
 	}
 	
 	public String toXml () {
-		return GenerationInfo.toXml(this);
+		return SachGenerationInfo.toXml(this);
 	}
 	
-	public static String toXml (GenerationInfo genInfo) {
+	public static String toXml (SachGenerationInfo genInfo) {
 		return s.toXML(genInfo);
 	}
 	
