@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beansProjectDescription>
+	<version>1</version>
+	<pluginVersion><![CDATA[2.0.3.v200802061800]]></pluginVersion>
+	<configSuffixes>
+		<configSuffix><![CDATA[xml]]></configSuffix>
+	</configSuffixes>
+	<enableImports><![CDATA[false]]></enableImports>
+	<configs>
+		<config>src/database_objects.xml</config>
+		<config>src/device_objects.xml</config>
+		<config>src/experiment_objects.xml</config>
+		<config>src/eye_objects.xml</config>
+		<config>src/render_objects.xml</config>
+		<config>src/system_variables.xml</config>
+		<config>src/time_objects.xml</config>
+		<config>class/database_objects.xml</config>
+		<config>class/device_objects.xml</config>
+		<config>class/experiment_objects.xml</config>
+		<config>class/eye_objects.xml</config>
+		<config>class/render_objects.xml</config>
+		<config>class/system_variables.xml</config>
+		<config>class/time_objects.xml</config>
+	</configs>
+	<configSets>
+		<configSet>
+			<name><![CDATA[xper]]></name>
+			<allowBeanDefinitionOverriding>true</allowBeanDefinitionOverriding>
+			<incomplete>false</incomplete>
+			<configs>
+				<config>src/database_objects.xml</config>
+				<config>src/device_objects.xml</config>
+				<config>src/experiment_objects.xml</config>
+				<config>src/eye_objects.xml</config>
+				<config>src/render_objects.xml</config>
+				<config>src/system_variables.xml</config>
+				<config>src/time_objects.xml</config>
+			</configs>
+		</configSet>
+	</configSets>
+</beansProjectDescription>
