@@ -59,6 +59,26 @@ public class SachDbUtil extends DbUtil {
 
 
 	/**
+	 * Update <code>task_to_do_gen_ready</code> with new genId and count
+	 * value.
+	 *
+	 */
+	public void updateReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
+										  int repsPerStim, boolean doStereo) {
+		SachGenerationInfo info = new SachGenerationInfo();
+		info.setGenId(genId);
+		info.setTaskCount(taskCount);
+		info.setStimPerLinCount(stimPerLinCount);
+		info.setStimPerTrial(stimPerTrial);
+		info.setRepsPerStim(repsPerStim);
+		info.setUseStereoRenderer(doStereo);
+
+		String xml = info.toXml();
+
+		updateInternalState("task_to_do_gen_ready", 0, xml);
+	}
+
+	/**
 	 * Before DbUtil can be used. DataSource must be set.
 	 * 
 	 * See createXperDbUtil in MATLAB directory for how to create data source.
