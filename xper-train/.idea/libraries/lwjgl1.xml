@@ -1,0 +1,17 @@
+<component name="libraryTable">
+  <library name="lwjgl1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/lzma.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/lwjgl-debug.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/lwjgl_util.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/lwjgl_util_applet.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/lwjgl.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/AppleJavaExtensions.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/lwjgl_test.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/asm-debug-all.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/lwjgl/jinput.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="jmatio">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/JMatIO/library/jmatio.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

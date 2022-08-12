@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry excluding="org/xper/acq/filterOld/" kind="src" path="src"/>
+	<classpathentry kind="src" path="unit_test"/>
+	<classpathentry kind="src" path="app"/>
+	<classpathentry kind="lib" path="lib/c3p0-0.9.0.2.jar"/>
+	<classpathentry kind="lib" path="lib/cglib-nodep-2.1_3.jar"/>
+	<classpathentry kind="lib" path="lib/commons-logging-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/commons-math-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/dom4j-1.6.1.jar"/>
+	<classpathentry kind="lib" path="lib/jaxen-1.1.jar"/>
+	<classpathentry kind="lib" path="lib/junit-3.8.1.jar"/>
+	<classpathentry kind="lib" path="lib/ledatastream-1.7.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-1.2.9.jar"/>
+	<classpathentry kind="lib" path="lib/swing-layout-1.0.jar" sourcepath="E:/Source/swing-layout-1.0.3"/>
+	<classpathentry kind="lib" path="lib/xpp3_min-1.1.3.4.O.jar"/>
+	<classpathentry kind="lib" path="lib/xstream-1.2.1.jar"/>
+	<classpathentry kind="lib" path="lib/jmatlink/jmatlink.jar"/>
+	<classpathentry kind="lib" path="lib/spring-framework/spring-beans.jar"/>
+	<classpathentry kind="lib" path="lib/spring-framework/spring-context.jar"/>
+	<classpathentry kind="lib" path="lib/spring-framework/spring-context-support.jar"/>
+	<classpathentry kind="lib" path="lib/spring-framework/spring-core.jar"/>
+	<classpathentry kind="lib" path="lib/spring-framework/spring-javaconfig.jar" sourcepath="/media/sda5/Source/spring-javaconfig"/>
+	<classpathentry kind="lib" path="lib/spring-framework/spring-jdbc.jar" sourcepath="/media/sda5/Source/spring-framework-2.5.6.SEC01"/>
+	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.7-bin.jar"/>
+	<classpathentry kind="lib" path="lib/spring-framework/spring-tx.jar"/>
+	<classpathentry kind="lib" path="lib/log5j-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/swing-worker-1.2.jar"/>
+	<classpathentry kind="lib" path="lib/spring-framework/com.springsource.javax.annotation-1.0.0.jar"/>
+	<classpathentry kind="lib" path="lib/guava-14.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/jzy3d-api-0.9.1.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl/jinput.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl/lwjgl_test.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl/lwjgl_util_applet.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl/lwjgl_util.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl/lwjgl-debug.jar"/>
+	<classpathentry kind="lib" path="lib/lwjgl/lwjgl.jar"/>
+	<classpathentry kind="lib" path="lib/JMatIO/library/jmatio.jar"/>
+	<classpathentry kind="lib" path="lib/slick-util.jar"/>
+	<classpathentry kind="output" path="class"/>
+</classpath>

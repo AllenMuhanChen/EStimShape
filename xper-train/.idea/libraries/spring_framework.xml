@@ -1,0 +1,24 @@
+<component name="libraryTable">
+  <library name="spring-framework">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-beans.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-context.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-jdbc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-core.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-javaconfig.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-webmvc-struts.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-orm.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-context-support.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-aop.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/com.springsource.javax.annotation-1.0.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-webmvc.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-tx.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-webmvc-portlet.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-web.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-test.jar!/" />
+      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/spring-framework/spring-jms.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
