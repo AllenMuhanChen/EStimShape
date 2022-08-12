@@ -79,6 +79,27 @@ public class SachDbUtil extends DbUtil {
 	}
 
 	/**
+	 * Write ready generation in InternalState table. This is used to initialize
+	 * the <code>task_to_do_gen_ready</code> variable when none is in
+	 * InternalState table.
+	 *
+	 */
+
+	public void writeReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
+										 int repsPerStim) {
+		SachGenerationInfo info = new SachGenerationInfo();
+		info.setGenId(genId);
+		info.setTaskCount(taskCount);
+		info.setStimPerLinCount(stimPerLinCount);
+		info.setStimPerTrial(stimPerTrial);
+		info.setRepsPerStim(repsPerStim);
+
+		String xml = info.toXml();
+
+		writeInternalState("task_to_do_gen_ready", 0, xml);
+	}
+
+	/**
 	 * Before DbUtil can be used. DataSource must be set.
 	 * 
 	 * See createXperDbUtil in MATLAB directory for how to create data source.
