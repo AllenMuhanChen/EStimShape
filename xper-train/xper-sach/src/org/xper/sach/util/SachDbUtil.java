@@ -15,10 +15,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.xper.db.vo.BehMsgEntry;
-import org.xper.db.vo.GenerationTaskDoneList;
-import org.xper.db.vo.StimSpecEntry;
-import org.xper.db.vo.TaskDoneEntry;
+import org.xper.db.vo.*;
+import org.xper.exception.VariableNotFoundException;
+import org.xper.sach.vo.SachGenerationInfo;
 import org.xper.sach.vo.SachTrialOutcomeMessage;
 import org.xper.util.DbUtil;
 
@@ -35,6 +34,29 @@ public class SachDbUtil extends DbUtil {
 		super();
 		this.dataSource = dataSource;
 	}
+
+
+	/**
+	 * Get current generation ready in database.
+	 Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
+	 * @return throws exception if no <code>task_to_do_gen_ready</code>
+	 *         variable defined or if the format of the string value is not
+	 *         correct.
+	 */
+
+	public SachGenerationInfo readReadyGenerationInfo() {
+		String name = "task_to_do_gen_ready";
+		Map<String, InternalStateVariable> result = readInternalState(name);
+		InternalStateVariable var = result.get(name);
+		if (var == null) {
+			throw new VariableNotFoundException("Internal state variable '"
+					+ name + "' not found.");
+		}
+		String genInfoXml = var.getValue(0);
+
+		return SachGenerationInfo.fromXml(genInfoXml);
+	}
+
 
 	/**
 	 * Before DbUtil can be used. DataSource must be set.
@@ -346,7 +368,7 @@ public class SachDbUtil extends DbUtil {
 	/**
 	 * Read particular StimSpec.
 	 * 
-	 * @param stimId
+	 * @param stimObjId
 	 * @return {@link StimSpecEntry}
 	 */
 	public StimSpecEntry readStimSpecFromStimObjId(long stimObjId) {

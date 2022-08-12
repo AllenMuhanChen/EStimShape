@@ -39,6 +39,7 @@ import org.xper.sach.renderer.SachPerspectiveStereoRenderer;
 import org.xper.sach.util.CreateDbDataSource;
 import org.xper.sach.util.Lighting;
 import org.xper.sach.util.SachDbUtil;
+import org.xper.sach.vo.SachGenerationInfo;
 import org.xper.sach.vo.SachTrialContext;
 
 public class BsplineObject implements Drawable {
@@ -503,7 +504,7 @@ public class BsplineObject implements Drawable {
 		CreateDbDataSource dataSourceMaker = new CreateDbDataSource();
 		SachDbUtil dbUtil = new SachDbUtil(dataSourceMaker.getDataSource());
 		String prefix = dbUtil.readCurrentDescriptivePrefix();
-		GenerationInfo info = dbUtil.readReadyGenerationInfo();
+		SachGenerationInfo info = dbUtil.readReadyGenerationInfo();
 		long genNum = info.getGenId();
 		int nStim = info.getStimPerLinCount();
 		List<Long> ids = new ArrayList<Long>();
