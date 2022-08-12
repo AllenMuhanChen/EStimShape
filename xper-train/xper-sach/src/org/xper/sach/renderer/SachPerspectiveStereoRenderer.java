@@ -28,59 +28,59 @@ public class SachPerspectiveStereoRenderer extends StereoRenderer {
 	
 	@Override
 	public void setupLeft() {
-		GL11.glViewport (0, 0, vpWidth, vpHeight);
+		GL11.glViewport (0, 0, getVpWidth(), getVpHeight());
 
 		GL11.glMatrixMode (GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
 
-		double bottom = ymin * PROJECTION_NEAR / distance;
-		double top = (ymax + vunit) * PROJECTION_NEAR / distance;
-		if (inverted) {
-			double left = xmax * PROJECTION_NEAR / distance;
-			double right = (xmin - hunit) * PROJECTION_NEAR / distance;
-			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, distance + depth);
+		double bottom = getYmin() * PROJECTION_NEAR / getDistance();
+		double top = (getYmax() + getVunit()) * PROJECTION_NEAR / getDistance();
+		if (isInverted()) {
+			double left = getXmax() * PROJECTION_NEAR / getDistance();
+			double right = (getXmin() - getHunit()) * PROJECTION_NEAR / getDistance();
+			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, getDistance() + getDepth());
 //			System.out.println("leftport: " + left + ", " + right + ", " + bottom + ", " + top + ", " + PROJECTION_NEAR + ", " + distance + ", " + depth);
 		} else {
-			double left = xmin * PROJECTION_NEAR / distance;
-			double right = (xmax + hunit) * PROJECTION_NEAR / distance;
-			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, distance + depth);
+			double left = getXmin() * PROJECTION_NEAR / getDistance();
+			double right = (getXmax() + getHunit()) * PROJECTION_NEAR / getDistance();
+			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, getDistance() + getDepth());
 		}
 
 		GL11.glMatrixMode (GL11.GL_MODELVIEW);
 		GL11.glLoadIdentity();
 		if (doStereo)
-			GLU.gluLookAt ((float)le_pos, 0, (float)distance, 0, 0, 0, 0, 1, 0);
+			GLU.gluLookAt ((float)le_pos, 0, (float) getDistance(), 0, 0, 0, 0, 1, 0);
 		else
-			GLU.gluLookAt (0, 0, (float)distance, 0, 0, 0, 0, 1, 0);
+			GLU.gluLookAt (0, 0, (float) getDistance(), 0, 0, 0, 0, 1, 0);
 
 	}
 
 	@Override
 	public void setupRight() {
-		GL11.glViewport(vpWidth, 0, vpWidth, vpHeight);
+		GL11.glViewport(getVpWidth(), 0, getVpWidth(), getVpHeight());
 
 		GL11.glMatrixMode (GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
 
-		double bottom = ymin * PROJECTION_NEAR / distance;
-		double top = (ymax + vunit) * PROJECTION_NEAR / distance;
-		if (inverted) {
-			double left = xmax * PROJECTION_NEAR / distance;
-			double right = (xmin - hunit) * PROJECTION_NEAR / distance;
-			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, distance + depth);
+		double bottom = getYmin() * PROJECTION_NEAR / getDistance();
+		double top = (getYmax() + getVunit()) * PROJECTION_NEAR / getDistance();
+		if (isInverted()) {
+			double left = getXmax() * PROJECTION_NEAR / getDistance();
+			double right = (getXmin() - getHunit()) * PROJECTION_NEAR / getDistance();
+			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, getDistance() + getDepth());
 //			System.out.println("rightport: " + left + ", " + right + ", " + bottom + ", " + top + ", " + PROJECTION_NEAR + ", " + distance + ", " + depth);
 		} else {
-			double left = xmin * PROJECTION_NEAR / distance;
-			double right = (xmax + hunit) * PROJECTION_NEAR / distance;
-			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, distance + depth);
+			double left = getXmin() * PROJECTION_NEAR / getDistance();
+			double right = (getXmax() + getHunit()) * PROJECTION_NEAR / getDistance();
+			GL11.glFrustum (left, right, bottom, top, PROJECTION_NEAR, getDistance() + getDepth());
 		}
 
 		GL11.glMatrixMode (GL11.GL_MODELVIEW);
 		GL11.glLoadIdentity();
 		if (doStereo)
-			GLU.gluLookAt ((float)re_pos, 0, (float)distance, 0, 0, 0, 0, 1, 0);
+			GLU.gluLookAt ((float)re_pos, 0, (float) getDistance(), 0, 0, 0, 0, 1, 0);
 		else
-			GLU.gluLookAt (0, 0, (float)distance, 0, 0, 0, 0, 1, 0);
+			GLU.gluLookAt (0, 0, (float) getDistance(), 0, 0, 0, 0, 1, 0);
 	}
 	
 	public void setDoStereo(boolean doStereo) {

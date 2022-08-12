@@ -10,8 +10,8 @@ public abstract class StereoRenderer extends AbstractRenderer {
 	@Dependency
 	boolean inverted;
 	
-	double le_pos;
-	double re_pos;
+	protected double le_pos;
+	protected double re_pos;
 
 	protected void calculateCoordinates() {
 		super.calculateCoordinates();

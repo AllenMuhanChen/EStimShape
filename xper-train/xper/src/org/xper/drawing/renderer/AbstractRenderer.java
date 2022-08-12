@@ -42,7 +42,7 @@ public abstract class AbstractRenderer implements Renderer {
 	 * horiz and vert unit in mm/pixel
 	 */ 
 	double hunit, vunit;
-	static final double PROJECTION_NEAR = 10.0;
+	protected static final double PROJECTION_NEAR = 10.0;
 
 	/**
 	 * Convert distance in mm to angle in degree.
