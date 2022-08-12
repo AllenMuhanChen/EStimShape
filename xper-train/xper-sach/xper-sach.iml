@@ -25,5 +25,15 @@
     </orderEntry>
     <orderEntry type="module" module-name="xper" />
     <orderEntry type="library" name="java3d" level="project" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="file://$MODULE_DIR$/lib/jmatlink" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+        <jarDirectory url="file://$MODULE_DIR$/lib/jmatlink" recursive="false" />
+      </library>
+    </orderEntry>
   </component>
 </module>
