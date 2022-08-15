@@ -112,7 +112,11 @@ public class SachGAConfig {
 		state.setPause(classicConfig.xperExperimentInitialPause());
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		state.setRepeatTrialIfEyeBreak(true);
-		state.setAnimation(sachConfig.containsAnimation());
+		try {
+			state.setAnimation(sachConfig.containsAnimation());
+		} catch (Exception e){
+			state.setAnimation(false);
+		}
 		state.setMinJuice(classicConfig.xperJuiceRewardLength());
 		state.setTimeoutBaseDelay(sachConfig.timeoutBaseDelay());
 		
