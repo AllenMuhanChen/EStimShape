@@ -45,6 +45,7 @@ import org.xper.sach.SachTrialEventLogger;
 import org.xper.sach.SachTrialExperiment;
 import org.xper.sach.analysis.BehavAnalysisFrame;
 import org.xper.sach.analysis.GAAnalysisFrame;
+import org.xper.sach.expt.SachDatabaseTaskDataSource;
 import org.xper.sach.renderer.SachPerspectiveStereoRenderer;
 import org.xper.sach.util.SachDbUtil;
 import org.xper.sach.vo.SachExperimentState;
@@ -180,8 +181,8 @@ public class SachConfig {
 	}
 	
 	@Bean
-	public DatabaseTaskDataSource databaseTaskDataSource () {
-		DatabaseTaskDataSource source = new DatabaseTaskDataSource();
+	public SachDatabaseTaskDataSource databaseTaskDataSource () {
+		SachDatabaseTaskDataSource source = new SachDatabaseTaskDataSource();
 		source.setDbUtil(baseConfig.dbUtil());
 		source.setQueryInterval(1000);
 //		source.setUngetBehavior(UngetPolicy.TAIL);
