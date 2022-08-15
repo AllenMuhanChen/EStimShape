@@ -11,24 +11,24 @@ import org.xper.util.DbUtil;
 import org.xper.util.ThreadHelper;
 
 public class DatabaseTaskDataSource implements TaskDataSource, Threadable {
-	static Logger logger = Logger.getLogger(DatabaseTaskDataSource.class);
+	protected  static Logger logger = Logger.getLogger(DatabaseTaskDataSource.class);
 
 	public enum UngetPolicy {
 		HEAD, TAIL
 	};
-	static final int DEFAULT_QUERY_INTERVAL = 1000;
+	protected  static final int DEFAULT_QUERY_INTERVAL = 1000;
 
 	@Dependency
-	DbUtil dbUtil;
+	protected DbUtil dbUtil;
 	@Dependency
-	long queryInterval = DEFAULT_QUERY_INTERVAL;
+	protected  long queryInterval = DEFAULT_QUERY_INTERVAL;
 	@Dependency
-	UngetPolicy ungetBehavior = UngetPolicy.HEAD;
+	protected  UngetPolicy ungetBehavior = UngetPolicy.HEAD;
 
-	AtomicReference<LinkedList<ExperimentTask>> currentGeneration = new AtomicReference<LinkedList<ExperimentTask>>();
-	ThreadHelper threadHelper = new ThreadHelper("DatabaseTaskDataSource", this);
-	long currentGenId = -1;
-	long lastDoneTaskId = -1;
+	protected  AtomicReference<LinkedList<ExperimentTask>> currentGeneration = new AtomicReference<LinkedList<ExperimentTask>>();
+	protected  ThreadHelper threadHelper = new ThreadHelper("DatabaseTaskDataSource", this);
+	protected  long currentGenId = -1;
+	protected  long lastDoneTaskId = -1;
 
 	public boolean isRunning() {
 		return threadHelper.isRunning();
