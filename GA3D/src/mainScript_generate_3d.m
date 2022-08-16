@@ -33,9 +33,9 @@ function mainScript_generate_3d
     close(conn); clearvars conn ans;
     save([rootPath '/currState.mat']);
     
-    system('java -jar /Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectXper/3dma/xper_sach7/dist/sach/ga_sachrandgen.jar');
-    mkdir(['/Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectXper/3dma/xper_sach7/xper-sach/images/' fullFolderPath]);
-    copyfile(['images/' fullFolderPath '/*'],['/Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectXper/3dma/xper_sach7/xper-sach/images/' fullFolderPath '/.']);
+    system('java -jar /home/r2_allen/git/EStimShape/xper-train/dist/sach/ga_sachrandgen.jar');
+    mkdir(['/home/r2_allen/git/EStimShape/xper-train/xper-sach/images' fullFolderPath]);
+    copyfile(['images/' fullFolderPath '/*'],['/home/r2_allen/git/EStimShape/xper-train/xper-sach/images' fullFolderPath '/.']);
     
     mainScript_proliferate_3d
 end
@@ -97,7 +97,7 @@ function randStim = getRandStim(gaInfo,screen,folderName,conn)
         'mm; screen.dist = ' num2str(screen.dist) '; occluderColor = ' num2str(randStim.occluderColor) ...
         '; bColor = ' num2str(randStim.bColor) ''];
     disp(messageToLog);
-    logger(mfilename,folderName,messageToLog,conn);
+%    logger(mfilename,folderName,messageToLog,conn);
 end
 
 function mm = deg2mm(deg,screen)
