@@ -4,6 +4,7 @@ function logger(from,exptId,message,conn)
     str = [num2str(tstamp) ': ' from ': ' message '\n'];
 
     fileID = fopen([logPath '/' exptId '.txt'],'a');
+    fileID
     fprintf(fileID,str);
     fclose(fileID);
     

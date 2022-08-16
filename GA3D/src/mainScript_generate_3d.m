@@ -105,8 +105,8 @@ function mm = deg2mm(deg,screen)
 end
 
 function copyEyeCoordinates(conn3d)
-    databaseName = 'ram_161030_maskedstim';
-    serverAddress = '172.30.6.27';
+    databaseName = 'allen_estimshape_ga_dev_220812';
+    serverAddress = '172.30.6.80';
     conn2d = database(databaseName,'xper_rw','up2nite','Vendor','MySQL','Server',serverAddress);
 
     eyeData = fetch(conn2d,'SELECT a.name,arr_ind,a.tstamp,val FROM SystemVar a INNER JOIN (SELECT name, MAX(tstamp) tstamp FROM SystemVar GROUP BY name) b ON a.tstamp = b.tstamp AND a.name = b.name WHERE b.name=''xper_right_iscan_mapping_algorithm_parameter'' OR b.name=''xper_left_iscan_mapping_algorithm_parameter'' OR b.name=''xper_right_iscan_eye_zero'' OR b.name=''xper_left_iscan_eye_zero''');
