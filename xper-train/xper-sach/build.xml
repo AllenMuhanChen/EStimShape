@@ -1,4 +1,4 @@
-<project name="xper" default="dist" basedir=".">
+<project name="xper-sach" default="dist" basedir=".">
 	<property name="build.home" location="${basedir}/class" />
 	<property name="xper.home" location="${basedir}/../xper" />
 	<property name="native.home" location="${basedir}/../xper-native" />
@@ -12,6 +12,9 @@
 
 	<path id="classpath">
 		<fileset dir="${xper.home}/lib">
+			<include name="**/*.jar" />
+		</fileset>
+		<fileset dir="${basedir}/../xper-sach/lib">
 			<include name="**/*.jar" />
 		</fileset>
 		<fileset file="${dist.home}/xper.jar" />
@@ -40,11 +43,11 @@
 
 	
 	<target name="compile" depends="prepare">
-		<javac srcdir="src" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
+		<javac srcdir="src" destdir="${build.home}" debug="true" debuglevel="lines,vars,source">
 			<!-- for building on windows C:\Program Files\Java\jre1.6.0_38\lib\rt.jar -->
 			<classpath refid="classpath" />
 		</javac>
-		<javac srcdir="app" destdir="${build.home}" target="1.6" source="1.6" bootclasspath='/Library/Java/JavaVirtualMachines/1.6.0.jdk/Contents/Classes/classes.jar' includeantruntime="false">
+		<javac srcdir="app" destdir="${build.home}" debug="true" debuglevel="lines,vars,source">
 			<classpath refid="classpath" />
 		</javac>
 	</target>
