@@ -1,5 +1,6 @@
 package org.xper.sach.expt;
 
+import org.xper.Dependency;
 import org.xper.db.vo.GenerationInfo;
 import org.xper.experiment.DatabaseTaskDataSource;
 import org.xper.experiment.ExperimentTask;
@@ -13,6 +14,7 @@ import java.util.LinkedList;
  */
 public class SachDatabaseTaskDataSource extends DatabaseTaskDataSource {
 
+    @Dependency
     protected SachDbUtil dbUtil;
 
     public void run() {
