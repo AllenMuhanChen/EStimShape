@@ -97,7 +97,7 @@ function randStim = getRandStim(gaInfo,screen,folderName,conn)
         'mm; screen.dist = ' num2str(screen.dist) '; occluderColor = ' num2str(randStim.occluderColor) ...
         '; bColor = ' num2str(randStim.bColor) ''];
     disp(messageToLog);
-%    logger(mfilename,folderName,messageToLog,conn);
+    logger(mfilename,folderName,messageToLog,conn);
 end
 
 function mm = deg2mm(deg,screen)
