@@ -4,6 +4,6 @@ function conn = getDBconn(folderName)
 %     serverAddress = 'localhost';
     conn = database(databaseName,'xper_rw','up2nite','Vendor','MySQL','Server',serverAddress);
     if exist('folderName','var')
-        %logger(mfilename,folderName,['Connected to MySQL database: ' databaseName ' on ' serverAddress '.'],conn);
+        logger(mfilename,folderName,['Connected to MySQL database: ' databaseName ' on ' serverAddress '.'],conn);
     end
 end
