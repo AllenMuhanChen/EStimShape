@@ -93,7 +93,7 @@ public class PNGmaker {
 			// dbUtil.updateJavaSpec(stimObjIds.get(i), bsoSpec.toXml());
 		}
 		
-//		 createAndSavePNGsfromObjs(stimObjIds,objs,imageFolderName);
+		 createAndSavePNGsfromObjs(stimObjIds,objs,imageFolderName);
 	}
 	
 	private List<BsplineObjectSpec> id2spec(List<Long> stimObjIds) {

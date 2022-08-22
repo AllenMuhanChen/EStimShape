@@ -61,7 +61,7 @@ public class TestingWindow implements Window {
 			Display.makeCurrent();
 			
 		} catch (LWJGLException e) {
-			throw new XGLException(e);
+//			throw new XGLException(e);
 		}
 	}
 
