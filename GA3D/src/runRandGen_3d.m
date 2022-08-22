@@ -101,9 +101,13 @@ function message = runRandGen_3d(folderName,gaInfo,randStim,conn)
     save([stimPath '/' fullFolderPath '/stimParams.mat'], 'stimuli','blank');
     save([stimPath '/' fullFolderPath '/stimIds.mat'], 'currStimIds', 'parentIds');
 
-    save([secondaryPath '/stim/' fullFolderPath '/stimParams.mat'], 'stimuli','blank');
-    save([secondaryPath '/stim/' fullFolderPath '/stimIds.mat'], 'currStimIds', 'parentIds');
-
+    try 
+        save([secondaryPath '/stim/' fullFolderPath '/stimParams.mat'], 'stimuli','blank');
+        save([secondaryPath '/stim/' fullFolderPath '/stimIds.mat'], 'currStimIds', 'parentIds');
+    catch
+        disp("Couldn't save to secondary path");
+    end
+    
     fprintf('\n');
     message = ['Generated ' fullFolderPath '.'];
     logger(mfilename,folderName,['RandGen finished. ' message],conn);

@@ -7,11 +7,12 @@ function logger(from,exptId,message,conn)
     try
         fprintf(fileID,str);
         fclose(fileID);
+        insertIntoSqlTable({tstamp [exptId ': ' from ': ' message]},{'tstamp','memo'},'ExpLog',conn);
     catch e
         disp("Warning, couldn't save log")
     end 
     
     
-    insertIntoSqlTable({tstamp [exptId ': ' from ': ' message]},{'tstamp','memo'},'ExpLog',conn);
+   
 end
 
