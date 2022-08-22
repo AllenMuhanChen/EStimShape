@@ -51,8 +51,7 @@ function message = selectParents(gaInfo,conn)
     try
         save([secondaryPath '/stim/' fullFolderPath '/stimIds.mat'],'currStimIds','parentIdsMorph','parentIdsControl');
     catch
-        disp("Could not save to Secondary Path")
-    end
+        
     message = ['Parents saved for gen ' num2str(genNum)];
     logger(mfilename,folderName,message,conn);
 end

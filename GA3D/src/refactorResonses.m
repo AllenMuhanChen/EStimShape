@@ -29,9 +29,13 @@ function message = refactorResonses(gaInfo,conn)
     save([stimPath '/' folderName '_g-' num2str(genNum) '/stimParams.mat'],'stimuli','-append');
     save([respPath '/' folderName '_g-' num2str(genNum) '/resp.mat'], 'resp','blankResp','fullResp','fullBlankResp','unitStat','-append');
     
-    save([secondaryPath '/stim/' folderName '_g-' num2str(genNum) '/stimParams.mat'],'stimuli','-append');
-    save([secondaryPath '/resp/' folderName '_g-' num2str(genNum) '/resp.mat'], 'resp','blankResp','fullResp','fullBlankResp','unitStat','-append');
-
+    try
+        save([secondaryPath '/stim/' folderName '_g-' num2str(genNum) '/stimParams.mat'],'stimuli','-append');
+        save([secondaryPath '/resp/' folderName '_g-' num2str(genNum) '/resp.mat'], 'resp','blankResp','fullResp','fullBlankResp','unitStat','-append');
+    catch
+        disp("Could not save to Secondary Path");
+    end 
+    
     if exist([stimPath '/' folderName '_tempColFit.mat'], 'file')
         load([stimPath '/' folderName '_tempColFit.mat']);
     else
@@ -60,8 +64,11 @@ function message = refactorResonses(gaInfo,conn)
     collatedStimIds = horzcat(collatedStimIds,currStimIds);
     
     save([stimPath '/' folderName '_tempColFit.mat'],'collatedRespLin1','collatedRespLin2','collatedStimIds','collatedZRespLin1','collatedZRespLin2');
-    save([secondaryPath '/stim/' folderName '_tempColFit.mat'],'collatedRespLin1','collatedRespLin2','collatedStimIds','collatedZRespLin1','collatedZRespLin2');
-    
+    try
+        save([secondaryPath '/stim/' folderName '_tempColFit.mat'],'collatedRespLin1','collatedRespLin2','collatedStimIds','collatedZRespLin1','collatedZRespLin2');
+    catch
+        disp("Could not save to Secondary Path");
+    end 
     message = 'Saved refactored resp.';
     logger(mfilename,folderName,['Responses saved and collated for genNum ' num2str(genNum) '.'],conn);
 end
