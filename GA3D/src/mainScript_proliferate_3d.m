@@ -51,7 +51,10 @@ function checkResponses(gaInfo,conn)
             nSimulatedCells = 1;
             [resp,blankResp,unitStat] = getResp_fake(gaInfo.stimAndTrial.nStim*2,nSimulatedCells,gaInfo.stimAndTrial.nReps,gaInfo.stimAndTrial.nStimPerChunk,0); %#ok<ASGLU>
             save([respPath '/' fullFolderPath '/resp.mat'], 'resp','blankResp','unitStat');
-            save([secondaryPath '/resp/' fullFolderPath '/resp.mat'], 'resp','blankResp','unitStat');
+            try
+                save([secondaryPath '/resp/' fullFolderPath '/resp.mat'], 'resp','blankResp','unitStat');
+            catch
+            end 
         end
     end
 end

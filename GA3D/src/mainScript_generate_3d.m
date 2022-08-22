@@ -35,8 +35,11 @@ function mainScript_generate_3d
     
     system('java -jar /home/r2_allen/git/EStimShape/xper-train/dist/sach/ga_sachrandgen.jar');
     mkdir(['/home/r2_allen/git/EStimShape/xper-train/xper-sach/images/' fullFolderPath]);
-    copyfile(['images/' fullFolderPath '/*'],['/home/r2_allen/git/EStimShape/xper-train/xper-sach/images' fullFolderPath '/.']);
-    
+    try
+        copyfile(['images/' fullFolderPath '/*'],['/home/r2_allen/git/EStimShape/xper-train/xper-sach/images/' fullFolderPath '/.']);
+    catch
+        
+    end 
     mainScript_proliferate_3d
 end
 
