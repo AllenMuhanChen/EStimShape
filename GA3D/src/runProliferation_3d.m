@@ -184,10 +184,14 @@ function message = runProliferation_3d(folderName,gaInfo,randStim,conn)
 
     save([stimPath '/' fullFolderPath '/stimParams.mat'], 'stimuli','blank');
     save([stimPath '/' fullFolderPath '/stimIds.mat'],'parentIdsMorph','currStimIds','-append');
-
-    save([secondaryPath '/stim/' fullFolderPath '/stimParams.mat'], 'stimuli','blank');
-    save([secondaryPath '/stim/' fullFolderPath '/stimIds.mat'],'parentIdsMorph','currStimIds','-append');
-
+    
+    try
+        save([secondaryPath '/stim/' fullFolderPath '/stimParams.mat'], 'stimuli','blank');
+        save([secondaryPath '/stim/' fullFolderPath '/stimIds.mat'],'parentIdsMorph','currStimIds','-append');
+    catch
+        disp("Couldn't save to Secondary Path");
+    end 
+    
     fprintf('\n');
     message = ['Generated ' fullFolderPath '.'];
     logger(mfilename,folderName,['Proliferation finished. ' message],conn);

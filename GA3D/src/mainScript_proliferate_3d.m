@@ -29,10 +29,13 @@ function mainScript_proliferate_3d
     close(conn); clearvars conn ans;
     save([rootPath '/currState.mat']);
     
-    system('java -jar /Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectXper/3dma/xper_sach7/dist/sach/ga_sachrandgen.jar');
-    mkdir(['/Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectXper/3dma/xper_sach7/xper-sach/images/' fullFolderPath]);
-    copyfile(['images/' fullFolderPath '/*'],['/Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectXper/3dma/xper_sach7/xper-sach/images/' fullFolderPath '/.']);
-    
+    system('java -jar /home/r2_allen/git/EStimShape/xper-train/dist/sach/ga_sachrandgen.jar');
+    mkdir(['/home/r2_allen/git/EStimShape/xper-train/xper-sach/images/' fullFolderPath]);
+    try
+        copyfile(['images/' fullFolderPath '/*'],['/home/r2_allen/git/EStimShape/xper-train/xper-sach/images/' fullFolderPath '/.']);
+    catch
+        disp("Could not copy images folder")
+    end 
     if exist([respPath '/' folderName '_g-' num2str(gaInfo.genNum-1) '/acqData.mat'],'file')
         cd(analysisPath);
         mainScript_AnalyzeGen_3d(gaInfo.currentExptPrefix,gaInfo.gaRun,gaInfo.genNum-1,gaInfo.genNum-1,2,gaInfo.stimAndTrial.nStim,20,false,true);
