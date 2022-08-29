@@ -7,7 +7,6 @@
       <module fileurl="file://$PROJECT_DIR$/xper-allen/xper-allen.iml" filepath="$PROJECT_DIR$/xper-allen/xper-allen.iml" />
       <module fileurl="file://$PROJECT_DIR$/xper-native/xper-native.iml" filepath="$PROJECT_DIR$/xper-native/xper-native.iml" />
       <module fileurl="file://$PROJECT_DIR$/xper-sach/xper-sach.iml" filepath="$PROJECT_DIR$/xper-sach/xper-sach.iml" />
-      <module fileurl="file://$PROJECT_DIR$/xper-sach-xper/xper-sach-xper.iml" filepath="$PROJECT_DIR$/xper-sach-xper/xper-sach-xper.iml" />
     </modules>
   </component>
 </project>

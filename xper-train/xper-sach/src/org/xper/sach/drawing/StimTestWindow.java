@@ -97,6 +97,11 @@ public class StimTestWindow implements CommandListener, Drawable {
 		renderer.setPupilDistance(34.925);
 		renderer.setHeight(height/magLevel);
 		renderer.setWidth(width/magLevel);
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 		renderer.init(window.getWidth(), window.getHeight());
 		Context context = new Context();
 
