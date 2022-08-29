@@ -10,7 +10,11 @@ public class StimSpecEntry {
 	 */
 	String spec;
 	public String getSpec() {
-		return spec;
+		if (spec == null){
+			return "";
+		} else {
+			return spec;
+		}
 	}
 	public void setSpec(String spec) {
 		this.spec = spec;
