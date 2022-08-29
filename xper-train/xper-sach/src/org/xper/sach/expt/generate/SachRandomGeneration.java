@@ -156,7 +156,7 @@ public class SachRandomGeneration {
 				GA_numRepsPerStim, GA_doStereo);
 		
 		Collections.sort(stimObjIds);
-		pngMaker.lateSave(stimObjIds, prefix + "_g-" + thisGenId);
+//		pngMaker.lateSave(stimObjIds, prefix + "_g-" + thisGenId);
 		
 		// get acq info and put into db:
 //		if (dbUtil.isRealExpt())

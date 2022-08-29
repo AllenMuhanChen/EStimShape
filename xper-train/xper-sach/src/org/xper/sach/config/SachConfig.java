@@ -183,7 +183,7 @@ public class SachConfig {
 	@Bean
 	public SachDatabaseTaskDataSource databaseTaskDataSource () {
 		SachDatabaseTaskDataSource source = new SachDatabaseTaskDataSource();
-		source.setDbUtil(baseConfig.dbUtil());
+		source.setDbUtil(sachDbUtil());
 		source.setQueryInterval(1000);
 //		source.setUngetBehavior(UngetPolicy.TAIL);
 		source.setUngetBehavior(UngetPolicy.HEAD);
@@ -251,7 +251,7 @@ public class SachConfig {
 	public SachExperimentMessageDispatcher messageDispatcher() {
 		SachExperimentMessageDispatcher dispatcher = new SachExperimentMessageDispatcher();
 		dispatcher.setHost(classicConfig.experimentHost);
-		dispatcher.setDbUtil(baseConfig.dbUtil());
+		dispatcher.setDbUtil(sachDbUtil());
 		return dispatcher;
 	}
 	

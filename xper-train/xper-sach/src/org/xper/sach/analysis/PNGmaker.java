@@ -86,14 +86,22 @@ public class PNGmaker {
 //				String normSpec = normToStr(obj.getMsShape().obj1.normMat_info, obj.getMsShape().obj1.nVect); // new String(); //
 //				dbUtil.writeVertSpec(stimObjIds.get(i),descId, vertSpec,faceSpec,normSpec);
 //			} else
-				dbUtil.writeVertSpec(stimObjIds.get(i),descId, "","","");
-			
+			try {
+				dbUtil.writeVertSpec(stimObjIds.get(i), descId, "", "", "");
+			} catch (Exception e) {
+				System.out.println("Vert Spec already exists in DB");
+			}
 			
 			//BsplineObjectSpec bsoSpec = obj.getSpec();
 			// dbUtil.updateJavaSpec(stimObjIds.get(i), bsoSpec.toXml());
 		}
-		
-		 createAndSavePNGsfromObjs(stimObjIds,objs,imageFolderName);
+
+		 try {
+			 createAndSavePNGsfromObjs(stimObjIds, objs, imageFolderName);
+		 }
+		 catch (Exception e){
+			 System.out.println("Couldn't create thumbnails");
+		 }
 	}
 	
 	private List<BsplineObjectSpec> id2spec(List<Long> stimObjIds) {
@@ -207,7 +215,7 @@ public class PNGmaker {
 				drapeRunner.run();
 			}
 		}
-		createAndSavePNGsfromObjs(stimObjIds,objs,imageFolderName);
+		//createAndSavePNGsfromObjs(stimObjIds,objs,imageFolderName);
 		
 //		BlenderRunnable photoRunner = new BlenderRunnable();
 //		List<String> args = new ArrayList<String>();

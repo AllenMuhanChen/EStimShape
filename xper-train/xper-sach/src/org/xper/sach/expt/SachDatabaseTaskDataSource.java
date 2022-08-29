@@ -14,6 +14,10 @@ import java.util.LinkedList;
  */
 public class SachDatabaseTaskDataSource extends DatabaseTaskDataSource {
 
+    public void setDbUtil(SachDbUtil dbUtil) {
+        this.dbUtil = dbUtil;
+    }
+
     @Dependency
     protected SachDbUtil dbUtil;
 
