@@ -1,36 +1,34 @@
-package org.xper.sach.vo;
+package org.xper.db.vo;
 
 import com.thoughtworks.xstream.XStream;
-import org.xper.db.vo.GenerationInfo;
 
 /**
  * Copied into org.xper.sach.vo from org.xper.db.vo by Allen Chen
  */
-public class SachGenerationInfo extends GenerationInfo{
+public class MultiLineageGenerationInfo extends GenerationInfo{
 	long genId;
 	int taskCount;
 	int stimPerLinCount;
 	int repsPerStim;
 	int stimPerTrial;
 	boolean useStereoRenderer = false;
-	
 	transient static XStream s;
 	
 	static {
 		s = new XStream();
-		s.alias("GenerationInfo", SachGenerationInfo.class);
+		s.alias("GenerationInfo", MultiLineageGenerationInfo.class);
 	}
 	
 	public String toXml () {
-		return SachGenerationInfo.toXml(this);
+		return MultiLineageGenerationInfo.toXml(this);
 	}
 	
-	public static String toXml (SachGenerationInfo genInfo) {
+	public static String toXml (MultiLineageGenerationInfo genInfo) {
 		return s.toXML(genInfo);
 	}
 	
-	public static SachGenerationInfo fromXml (String xml) {
-		SachGenerationInfo g = (SachGenerationInfo)s.fromXML(xml);
+	public static MultiLineageGenerationInfo fromXml (String xml) {
+		MultiLineageGenerationInfo g = (MultiLineageGenerationInfo)s.fromXML(xml);
 		return g;
 	}
 
