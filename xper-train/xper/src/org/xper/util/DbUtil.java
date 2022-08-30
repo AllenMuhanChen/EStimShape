@@ -24,21 +24,7 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.Dependency;
-import org.xper.db.vo.AcqDataEntry;
-import org.xper.db.vo.AcqSessionEntry;
-import org.xper.db.vo.BehMsgEntry;
-import org.xper.db.vo.ExpLogEntry;
-import org.xper.db.vo.GenerationInfo;
-import org.xper.db.vo.GenerationTaskDoneList;
-import org.xper.db.vo.GenerationTaskToDoList;
-import org.xper.db.vo.InternalStateVariable;
-import org.xper.db.vo.RFInfoEntry;
-import org.xper.db.vo.RFStimSpecEntry;
-import org.xper.db.vo.StimSpecEntry;
-import org.xper.db.vo.SystemVariable;
-import org.xper.db.vo.TaskDoneEntry;
-import org.xper.db.vo.TaskToDoEntry;
-import org.xper.db.vo.XfmSpecEntry;
+import org.xper.db.vo.*;
 import org.xper.exception.DbException;
 import org.xper.exception.InvalidAcqDataException;
 import org.xper.exception.VariableNotFoundException;
@@ -471,7 +457,7 @@ public class DbUtil {
 	 *         correct.
 	 */
 
-	public GenerationInfo readReadyGenerationInfo() {
+	public MultiLineageGenerationInfo readReadyGenerationInfo() {
 		String name = "task_to_do_gen_ready"; 
 		Map<String, InternalStateVariable> result = readInternalState(name);
 		InternalStateVariable var = result.get(name);
@@ -481,7 +467,7 @@ public class DbUtil {
 		}
 		String genInfoXml = var.getValue(0);
 
-		return GenerationInfo.fromXml(genInfoXml);
+		return MultiLineageGenerationInfo.fromXml(genInfoXml);
 	}
 
 	/**
@@ -492,26 +478,30 @@ public class DbUtil {
 	 * @param genId
 	 */
 
-	public void writeReadyGenerationInfo(long genId, int taskCount) {
-		GenerationInfo info = new GenerationInfo();
+	public void writeReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
+										 int repsPerStim) {
+		MultiLineageGenerationInfo info = new MultiLineageGenerationInfo();
 		info.setGenId(genId);
 		info.setTaskCount(taskCount);
+		info.setStimPerLinCount(stimPerLinCount);
+		info.setStimPerTrial(stimPerTrial);
+		info.setRepsPerStim(repsPerStim);
 
 		String xml = info.toXml();
 
 		writeInternalState("task_to_do_gen_ready", 0, xml);
 	}
 
-	/**
-	 * Update <code>task_to_do_gen_ready</code> with new genId and count
-	 * value.
-	 * 
-	 * @param genId
-	 */
-	public void updateReadyGenerationInfo(long genId, int taskCount) {
-		GenerationInfo info = new GenerationInfo();
+
+	public void updateReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
+										  int repsPerStim, boolean doStereo) {
+		MultiLineageGenerationInfo info = new MultiLineageGenerationInfo();
 		info.setGenId(genId);
 		info.setTaskCount(taskCount);
+		info.setStimPerLinCount(stimPerLinCount);
+		info.setStimPerTrial(stimPerTrial);
+		info.setRepsPerStim(repsPerStim);
+		info.setUseStereoRenderer(doStereo);
 
 		String xml = info.toXml();
 

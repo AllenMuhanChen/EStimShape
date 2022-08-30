@@ -1,11 +1,10 @@
 package org.xper.sach.expt;
 
 import org.xper.Dependency;
-import org.xper.db.vo.GenerationInfo;
 import org.xper.experiment.DatabaseTaskDataSource;
 import org.xper.experiment.ExperimentTask;
 import org.xper.sach.util.SachDbUtil;
-import org.xper.sach.vo.SachGenerationInfo;
+import org.xper.db.vo.MultiLineageGenerationInfo;
 
 import java.util.LinkedList;
 
@@ -29,7 +28,7 @@ public class SachDatabaseTaskDataSource extends DatabaseTaskDataSource {
                 if (lastDoneTaskId < 0) {
                     lastDoneTaskId = dbUtil.readTaskDoneCompleteMaxId();
                 }
-                SachGenerationInfo info = (SachGenerationInfo) dbUtil.readReadyGenerationInfo();
+                MultiLineageGenerationInfo info = (MultiLineageGenerationInfo) dbUtil.readReadyGenerationInfo();
                 if (info.getGenId() > currentGenId) {
                     // new generation found
                     LinkedList<ExperimentTask> taskToDo = dbUtil

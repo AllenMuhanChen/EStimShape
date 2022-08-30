@@ -19,7 +19,6 @@ import org.lwjgl.opengl.ARBShaderObjects;
 import org.lwjgl.opengl.ARBVertexShader;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
-import org.xper.db.vo.GenerationInfo;
 import org.xper.db.vo.StimSpecEntry;
 
 import org.xper.drawing.Context;
@@ -39,7 +38,7 @@ import org.xper.sach.renderer.SachPerspectiveStereoRenderer;
 import org.xper.sach.util.CreateDbDataSource;
 import org.xper.sach.util.Lighting;
 import org.xper.sach.util.SachDbUtil;
-import org.xper.sach.vo.SachGenerationInfo;
+import org.xper.db.vo.MultiLineageGenerationInfo;
 import org.xper.sach.vo.SachTrialContext;
 
 public class BsplineObject implements Drawable {
@@ -504,7 +503,7 @@ public class BsplineObject implements Drawable {
 		CreateDbDataSource dataSourceMaker = new CreateDbDataSource();
 		SachDbUtil dbUtil = new SachDbUtil(dataSourceMaker.getDataSource());
 		String prefix = dbUtil.readCurrentDescriptivePrefix();
-		SachGenerationInfo info = dbUtil.readReadyGenerationInfo();
+		MultiLineageGenerationInfo info = dbUtil.readReadyGenerationInfo();
 		long genNum = info.getGenId();
 		int nStim = info.getStimPerLinCount();
 		List<Long> ids = new ArrayList<Long>();

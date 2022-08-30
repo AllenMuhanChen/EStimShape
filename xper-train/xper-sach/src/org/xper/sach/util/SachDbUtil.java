@@ -17,7 +17,7 @@ import org.springframework.jdbc.core.simple.ParameterizedRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.xper.db.vo.*;
 import org.xper.exception.VariableNotFoundException;
-import org.xper.sach.vo.SachGenerationInfo;
+import org.xper.db.vo.MultiLineageGenerationInfo;
 import org.xper.sach.vo.SachTrialOutcomeMessage;
 import org.xper.util.DbUtil;
 
@@ -44,7 +44,7 @@ public class SachDbUtil extends DbUtil {
 	 *         correct.
 	 */
 
-	public SachGenerationInfo readReadyGenerationInfo() {
+	public MultiLineageGenerationInfo readReadyGenerationInfo() {
 		String name = "task_to_do_gen_ready";
 		Map<String, InternalStateVariable> result = readInternalState(name);
 		InternalStateVariable var = result.get(name);
@@ -54,7 +54,7 @@ public class SachDbUtil extends DbUtil {
 		}
 		String genInfoXml = var.getValue(0);
 
-		return SachGenerationInfo.fromXml(genInfoXml);
+		return MultiLineageGenerationInfo.fromXml(genInfoXml);
 	}
 
 
@@ -65,7 +65,7 @@ public class SachDbUtil extends DbUtil {
 	 */
 	public void updateReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
 										  int repsPerStim, boolean doStereo) {
-		SachGenerationInfo info = new SachGenerationInfo();
+		MultiLineageGenerationInfo info = new MultiLineageGenerationInfo();
 		info.setGenId(genId);
 		info.setTaskCount(taskCount);
 		info.setStimPerLinCount(stimPerLinCount);
@@ -87,7 +87,7 @@ public class SachDbUtil extends DbUtil {
 
 	public void writeReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
 										 int repsPerStim) {
-		SachGenerationInfo info = new SachGenerationInfo();
+		MultiLineageGenerationInfo info = new MultiLineageGenerationInfo();
 		info.setGenId(genId);
 		info.setTaskCount(taskCount);
 		info.setStimPerLinCount(stimPerLinCount);
