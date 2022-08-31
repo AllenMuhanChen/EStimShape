@@ -6,6 +6,7 @@ import java.util.Map;
 
 import junit.framework.TestCase;
 
+import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.xper.XperConfig;
@@ -26,15 +27,17 @@ public class DbUtilTest extends TestCase {
 		libs.add("xper");
 		new XperConfig("", libs);
 
-		dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://192.168.1.1/sach_ecpc48_2014_04_25_testing");
-		dataSource.setUsername("xper_rw");
-		dataSource.setPassword("up2nite");
+//		dataSource = new DriverManagerDataSource();
+//		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
+//		dataSource.setUrl("jdbc:mysql://192.168.1.1/sach_ecpc48_2014_04_25_testing");
+//		dataSource.setUsername("xper_rw");
+//		dataSource.setPassword("up2nite");
 
-		dbUtil = new DbUtil();
-		dbUtil.setDataSource(dataSource);
+//		dbUtil = new DbUtil();
+//		dbUtil.setDataSource(dataSource);
 
+		JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
+		dbUtil = context.getBean(DbUtil.class);
 		timeUtil = new DefaultTimeUtil();
 	}
 

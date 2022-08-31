@@ -1,9 +1,8 @@
 #############################################################################
 # test database
 #############################################################################
-
 test.jdbc.driver=com.mysql.jdbc.Driver
-test.jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_dev_220404
+test.jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_test_220729
 
 
 test.jdbc.username=xper_rw
@@ -12,4 +11,4 @@ test.jdbc.password=up2nite
 #############################################################################
 # test configuration classes
 #############################################################################
-test.experiment.config_class=org.xper.TestAppConfig
+test.experiment.config_class=org.xper.config.TestConfig
