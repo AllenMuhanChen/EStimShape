@@ -3,8 +3,6 @@
 #############################################################################
 test.jdbc.driver=com.mysql.jdbc.Driver
 test.jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_test_220729
-
-
 test.jdbc.username=xper_rw
 test.jdbc.password=up2nite
 
