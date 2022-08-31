@@ -3,6 +3,7 @@ package org.xper.acq;
 import java.util.ArrayList;
 import java.util.List;
 
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import junit.framework.TestCase;
 
 import org.xper.XperConfig;
@@ -13,6 +14,7 @@ import org.xper.juice.AnalogJuice;
 import org.xper.time.DefaultTimeUtil;
 
 @NiTest
+@Ignore
 public class NiJuiceTest extends TestCase {
 	public void test () {
 		if (System.getProperty("ni_device") == null) {

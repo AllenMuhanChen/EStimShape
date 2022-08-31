@@ -3,11 +3,13 @@ package org.xper.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.xper.ManualTest;
 import org.xper.XperConfig;
 import org.xper.time.DefaultTimeUtil;
 
 import junit.framework.TestCase;
 
+@ManualTest
 public class MacOsTimeUtilTest extends TestCase {
 	public void test () {
 		List<String> libs = new ArrayList<String>();

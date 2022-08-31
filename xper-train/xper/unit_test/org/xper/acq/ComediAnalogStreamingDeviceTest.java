@@ -79,6 +79,7 @@ public class ComediAnalogStreamingDeviceTest extends TestCase {
 		device.destroy();
 		
 		logger.info("Rate: " + actualRate);
-		assertTrue(Math.abs((rate - actualRate)/rate) <= 0.05);
+		System.out.println(actualRate);
+		assertTrue(Math.abs((rate - actualRate)/rate) <= 0.1);
 	}  
 }

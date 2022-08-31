@@ -3,6 +3,7 @@ package org.xper.acq;
 import java.util.ArrayList;
 import java.util.List;
 
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import junit.framework.TestCase;
 
 import org.xper.XperConfig;
@@ -11,6 +12,7 @@ import org.xper.acq.ni.NiDigitalPortOutDevice;
 import org.xper.juice.DigitalPortJuice;
 
 @NiTest
+@Ignore
 public class NiDigitalPortJuiceTest extends TestCase {
 	public void test () {
 		if (System.getProperty("ni_device") == null) {

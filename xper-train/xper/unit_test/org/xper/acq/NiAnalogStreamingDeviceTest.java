@@ -3,6 +3,7 @@ package org.xper.acq;
 import java.util.ArrayList;
 import java.util.List;
 
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import junit.framework.TestCase;
 
 import org.apache.log4j.Logger;
@@ -14,6 +15,7 @@ import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
 
 @NiTest
+@Ignore
 public class NiAnalogStreamingDeviceTest extends TestCase {
 	static Logger logger = Logger.getLogger(NiAnalogStreamingDeviceTest.class);
 	
