@@ -20,6 +20,9 @@ public class FileUtil {
 	static {
 		loadSystemProperties();
 		configClassPath();
+		try {
+			loadSystemTestProperties();
+		} catch(ExperimentSetupException e){}
 	}
 	
 	public interface FileVisitor {
@@ -117,6 +120,16 @@ public class FileUtil {
 			props.load(XperConfig.class.getResourceAsStream("/xper.properties"));
 		} catch (IOException e) {
 			throw new ExperimentSetupException("Cannot find xper.properties file.", e);
+		}
+		System.setProperties(props);
+	}
+
+	public static void loadSystemTestProperties () {
+		Properties props = new Properties(System.getProperties());
+		try {
+			props.load(XperConfig.class.getResourceAsStream("/xper.properties.test"));
+		} catch (IOException e) {
+			throw new ExperimentSetupException("Cannot find xper.properties.test file.", e);
 		}
 		System.setProperties(props);
 	}
