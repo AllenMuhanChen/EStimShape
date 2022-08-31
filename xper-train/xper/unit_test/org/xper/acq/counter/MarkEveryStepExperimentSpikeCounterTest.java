@@ -7,6 +7,7 @@ import java.util.SortedMap;
 
 import junit.framework.TestCase;
 
+import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.xper.XperConfig;
 import org.xper.acq.vo.DigitalChannel;
@@ -16,14 +17,21 @@ import org.xper.db.vo.TaskDoneEntry;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
+import org.xper.util.FileUtil;
 
 public class MarkEveryStepExperimentSpikeCounterTest extends TestCase {
+
+	private DbUtil dbUtil;
+
 	protected void setUp() throws Exception {
 		super.setUp();
 		
 		List<String> libs = new ArrayList<String>();
 		libs.add("xper");
 		new XperConfig("", libs);
+
+		JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
+		dbUtil = context.getBean(DbUtil.class);
 	}
 	
 	protected void tearDown() throws Exception {
@@ -31,14 +39,7 @@ public class MarkEveryStepExperimentSpikeCounterTest extends TestCase {
 	}
 	
 	public void testSingleUpEdgeAtTheEnd() {
-		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://192.168.1.1/sach_ecpc48_2014_04_25_testing");
-		dataSource.setUsername("xper_rw");
-		dataSource.setPassword("up2nite");
 
-		DbUtil dbUtil = new DbUtil();
-		dbUtil.setDataSource(dataSource);
 		
 		TimeUtil timeUtil = new DefaultTimeUtil();
 		
@@ -109,15 +110,6 @@ public class MarkEveryStepExperimentSpikeCounterTest extends TestCase {
 	}
 	
 	public void testNoDownEdgeAtTheEnd() {
-		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://192.168.1.1/sach_ecpc48_2014_04_25_testing");
-		dataSource.setUsername("xper_rw");
-		dataSource.setPassword("up2nite");
-
-		DbUtil dbUtil = new DbUtil();
-		dbUtil.setDataSource(dataSource);
-		
 		TimeUtil timeUtil = new DefaultTimeUtil();
 		
 		Map<String,SystemVariable> vars = dbUtil.readSystemVar("%");
@@ -216,15 +208,6 @@ public class MarkEveryStepExperimentSpikeCounterTest extends TestCase {
 	}
 	
 	public void testImcompleteSpikes() {
-		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://192.168.1.1/sach_ecpc48_2014_04_25_testing");
-		dataSource.setUsername("xper_rw");
-		dataSource.setPassword("up2nite");
-
-		DbUtil dbUtil = new DbUtil();
-		dbUtil.setDataSource(dataSource);
-		
 		TimeUtil timeUtil = new DefaultTimeUtil();
 		
 		Map<String,SystemVariable> vars = dbUtil.readSystemVar("%");
@@ -317,15 +300,6 @@ public class MarkEveryStepExperimentSpikeCounterTest extends TestCase {
 	}
 	
 	public void testNoDownEdgeAtTheEndWithMoreNonMarkerSamples() {
-		DriverManagerDataSource dataSource = new DriverManagerDataSource();
-		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://192.168.1.1/sach_ecpc48_2014_04_25_testing");
-		dataSource.setUsername("xper_rw");
-		dataSource.setPassword("up2nite");
-
-		DbUtil dbUtil = new DbUtil();
-		dbUtil.setDataSource(dataSource);
-		
 		TimeUtil timeUtil = new DefaultTimeUtil();
 		
 		Map<String,SystemVariable> vars = dbUtil.readSystemVar("%");
