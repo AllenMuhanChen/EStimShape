@@ -7,6 +7,7 @@ import junit.framework.TestCase;
 
 import org.apache.log4j.Logger;
 
+
 public class ManagementTest extends TestCase {
 	static Logger logger = Logger.getLogger(ManagementTest.class);
 	
