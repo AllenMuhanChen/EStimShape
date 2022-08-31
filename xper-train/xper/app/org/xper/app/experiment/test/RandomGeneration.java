@@ -30,7 +30,7 @@ public class RandomGeneration {
 		try {
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
-			dbUtil.writeReadyGenerationInfo(genId, 0);
+			dbUtil.writeReadyGenerationInfo(genId, 0, 0, 0, 0);
 		}
 		for (int i = 0; i < taskCount; i++) {
 			if (i % 10 == 0) {
@@ -41,7 +41,7 @@ public class RandomGeneration {
 			dbUtil.writeStimSpec(taskId, spec);
 			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
 		}
-		dbUtil.updateReadyGenerationInfo(genId, taskCount);
+		dbUtil.updateReadyGenerationInfo(genId, taskCount, 0, 0, 0, false);
 		System.out.println("done.");
 	}
 
