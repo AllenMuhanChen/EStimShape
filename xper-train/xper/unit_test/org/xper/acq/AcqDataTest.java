@@ -15,16 +15,7 @@ import org.xper.util.FileUtil;
 
 public class AcqDataTest extends TestCase {
 	public void testReadAcqData () {
-//		DriverManagerDataSource dataSource;
-//		dataSource = new DriverManagerDataSource();
-//		dataSource.setDriverClassName("com.mysql.jdbc.Driver");
-////		dataSource.setUrl("jdbc:mysql://localhost/wang");
-//		dataSource.setUrl("jdbc:mysql://localhost/ram_160321_stim");
-//		dataSource.setUsername("xper_rw");
-//		dataSource.setPassword("up2nite");
-//
-//		dbUtil = new DbUtil();
-//		dbUtil.setDataSource(dataSource);
+
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
 		DbUtil dbUtil = context.getBean(DbUtil.class);
 
