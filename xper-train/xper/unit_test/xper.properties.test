@@ -2,20 +2,14 @@
 # test database
 #############################################################################
 
-jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_dev_220404
+test.jdbc.driver=com.mysql.jdbc.Driver
+test.jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_dev_220404
 
 
-jdbc.username=xper_rw
-jdbc.password=up2nite
+test.jdbc.username=xper_rw
+test.jdbc.password=up2nite
 
 #############################################################################
 # test configuration classes
 #############################################################################
-# if not specified, the default is org.xper.config.AcqConfig
-acq.config_class= 
-
-# JK
-#  
-experiment.config_class=org.xper.allen.app.fixation.config.FixationPngAppConfig
-experiment.ga.config_class=org.xper.allen.app.nafc.config.PsychometricAppConfig
+test.experiment.config_class=org.xper.TestAppConfig
