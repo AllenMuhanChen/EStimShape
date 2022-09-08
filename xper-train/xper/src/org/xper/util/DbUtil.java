@@ -492,6 +492,19 @@ public class DbUtil {
 		writeInternalState("task_to_do_gen_ready", 0, xml);
 	}
 
+	public void writeReadyGenerationInfo(long genId, int taskCount) {
+		MultiLineageGenerationInfo info = new MultiLineageGenerationInfo();
+		info.setGenId(genId);
+		info.setTaskCount(taskCount);
+		info.setStimPerLinCount(taskCount);
+		info.setStimPerTrial(1);
+		info.setRepsPerStim(1);
+
+		String xml = info.toXml();
+
+		writeInternalState("task_to_do_gen_ready", 0, xml);
+	}
+
 
 	public void updateReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
 										  int repsPerStim, boolean doStereo) {
@@ -502,6 +515,20 @@ public class DbUtil {
 		info.setStimPerTrial(stimPerTrial);
 		info.setRepsPerStim(repsPerStim);
 		info.setUseStereoRenderer(doStereo);
+
+		String xml = info.toXml();
+
+		updateInternalState("task_to_do_gen_ready", 0, xml);
+	}
+
+	public void updateReadyGenerationInfo(long genId, int taskCount) {
+		MultiLineageGenerationInfo info = new MultiLineageGenerationInfo();
+		info.setGenId(genId);
+		info.setTaskCount(taskCount);
+		info.setStimPerLinCount(taskCount);
+		info.setStimPerTrial(1);
+		info.setRepsPerStim(1);
+		info.setUseStereoRenderer(false);
 
 		String xml = info.toXml();
 
