@@ -43,7 +43,7 @@ public class FixationPngBlockGen extends AbstractMStickPngTrialGenerator {
 		try {
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch(VariableNotFoundException e) {
-			dbUtil.writeReadyGenerationInfo(genId, 0);
+			dbUtil.writeReadyGenerationInfo(genId, 0, 0, 0, 0);
 		}
 		for (int i=0; i<numTrials; i++) {
 			long taskId = globalTimeUtil.currentTimeMicros();
@@ -56,7 +56,7 @@ public class FixationPngBlockGen extends AbstractMStickPngTrialGenerator {
 			dbUtil.writeStimSpec(taskId, pngSpec.toXml());
 			dbUtil.writeTaskToDo(taskId,taskId, -1, genId);
 		}
-		dbUtil.updateReadyGenerationInfo(genId, numTrials);
+		dbUtil.updateReadyGenerationInfo(genId, numTrials, 0, 0, 0, false);
 		System.out.println("Done Generating...");
 		return;
 	}
