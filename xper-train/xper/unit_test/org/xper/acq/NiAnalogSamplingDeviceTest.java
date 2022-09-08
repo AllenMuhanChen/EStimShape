@@ -3,9 +3,10 @@ package org.xper.acq;
 import java.util.ArrayList;
 import java.util.List;
 
-import jdk.nashorn.internal.ir.annotations.Ignore;
+
 import junit.framework.TestCase;
 
+import org.junit.Ignore;
 import org.xper.XperConfig;
 import org.xper.NiTest;
 import org.xper.acq.ni.NiAnalogSamplingDevice;

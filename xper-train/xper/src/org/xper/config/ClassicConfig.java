@@ -144,7 +144,8 @@ public class ClassicConfig {
 		scene.setBlankScreen(new BlankScreen());
 		return scene;
 	}
-	
+
+
 	@Bean
 	public ExperimentConsole experimentConsole () {
 		ExperimentConsole console = new ExperimentConsole();
@@ -161,7 +162,8 @@ public class ClassicConfig {
 		
 		return console;
 	}
-	
+
+
 	@Bean
 	public ExperimentMessageReceiver messageReceiver () {
 		ExperimentMessageReceiver receiver = new ExperimentMessageReceiver();

@@ -26,8 +26,10 @@ import junit.runner.ClassPathTestCollector;
 import junit.runner.TestCollector;
 
 import org.apache.log4j.Logger;
+import org.junit.Ignore;
 import org.xper.util.GuiUtil;
 
+@Ignore
 public class AllTests {
 
 	static Logger logger = Logger.getLogger(AllTests.class);

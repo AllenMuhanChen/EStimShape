@@ -27,7 +27,7 @@ import org.xper.utils.RGBColor;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 
-@Import(NAFCMStickPngAppConfig.class)
+@Import({NAFCMStickPngAppConfig.class})
 public class PsychometricAppConfig {
 	@Autowired NAFCMStickPngAppConfig appConfig;
 	@Autowired NAFCConfig config;
