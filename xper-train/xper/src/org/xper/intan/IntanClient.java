@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.nio.CharBuffer;
 
@@ -21,13 +22,25 @@ public class IntanClient {
             client = new Socket(host,port);
             out = new PrintWriter(client.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-        } catch (Exception e) {
+        } catch (ConnectException ce) {
+            if (client.isConnected()){
+                System.err.println("Connection Already Established");
+            } else{
+                throw new RemoteException(ce);
+            }
+        } catch (Exception e){
             throw new RemoteException(e);
         }
     }
 
-    public String sendMessage(String msg){
+
+    public void set(String parameter, String value) {
+        String msg = "set " + parameter + " " + value;
         out.println(msg);
+    }
+
+    public String get(String parameter){
+        out.println("get " + parameter);
 //
         try {
             while (true){
@@ -48,6 +61,14 @@ public class IntanClient {
         }
 
         return null;
+    }
+
+    public void execute(String action, String parameter) {
+        out.println("execute " + action + " " + parameter);
+    }
+
+    public void execute(String action){
+        out.println("execute " + action);
     }
 
     public void stopConnection(){
