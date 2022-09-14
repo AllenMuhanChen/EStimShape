@@ -2,6 +2,7 @@ package org.xper.intan;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.xper.time.TestingTimeUtil;
 import org.xper.util.ThreadUtil;
 
 import static org.junit.Assert.assertEquals;
@@ -12,6 +13,7 @@ public class IntanTest {
     private static IntanClient intanClient;
     private static IntanController intanController;
 
+    private static final TestingTimeUtil timeUtil = new TestingTimeUtil();
     /**
      * Before all of these tests will pass:
      * 1. The Intan Box needs to be turned ON
@@ -31,16 +33,19 @@ public class IntanTest {
 
     @Test
     public void intan_controller_starts_and_stops_recording(){
+        timeUtil.tic();
         intanController.startRecording();
+        timeUtil.toc();
         String runmode = intanClient.get("runmode");
-        System.err.println(runmode);
         assertTrue(intanController.isRecording());
+        System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
-        ThreadUtil.sleep(5000);
-
+        timeUtil.tic();
         intanController.stopRecording();
+        timeUtil.toc();
         runmode = intanClient.get("runmode");
         assertTrue(!intanController.isRecording());
+        System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
     }
 
     @Test
