@@ -10,6 +10,9 @@ import java.net.ConnectException;
 import java.net.Socket;
 import java.nio.CharBuffer;
 
+/**
+ * Provides base-level tcp communication with Intan, like connecting, get, set and executing commands
+ */
 public class IntanClient {
     String host = "172.30.9.78";
     int port = 5000;
@@ -71,7 +74,7 @@ public class IntanClient {
         out.println("execute " + action);
     }
 
-    public void stopConnection(){
+    public void disconnect(){
         try {
             in.close();
             out.close();
@@ -80,5 +83,10 @@ public class IntanClient {
             throw new RuntimeException(e);
         }
     }
+
+
+//    public boolean isRunning(){
+//        return client.isConnected();
+//    }
 
 }
