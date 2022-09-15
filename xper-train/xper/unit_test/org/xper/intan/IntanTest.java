@@ -1,8 +1,8 @@
 package org.xper.intan;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.xper.Dependency;
 import org.xper.time.TestingTimeUtil;
 
 import static org.junit.Assert.assertEquals;
@@ -17,6 +17,9 @@ public class IntanTest {
     private static IntanController intanController;
 
     private static final TestingTimeUtil timeUtil = new TestingTimeUtil();
+
+    @Dependency
+    static String intanPath = "/home/i2_allen/Documents/Test";
     /**
      * Before all of these tests will pass:
      * 1. The Intan Box needs to be turned ON
@@ -30,6 +33,7 @@ public class IntanTest {
         intanClient = new IntanClient();
         intanController = new IntanController();
         intanController.setIntanClient(intanClient);
+        intanController.setDefaultPath(intanPath);
 
         intanController.connect();
     }
@@ -48,23 +52,33 @@ public class IntanTest {
         assertEquals(basename, intanClient.get("Filename.BaseFilename"));
     }
 
-    @Ignore("intanController's setRunMode methods already ensure" +
-            "that the runmode isTrue set before terminating. Run this manually " +
-            "to test timing.")
     @Test
-    public void test_intan_controller_runModeRun_timing(){
-        timeUtil.tic();
-        intanController.runMode("Run");
-        timeUtil.toc();
-        assertTrue(intanController.isRunMode("Run"));
-        System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
-
-        timeUtil.tic();
-        intanController.runMode("Stop");
-        timeUtil.toc();
-        assertTrue(intanController.isRunMode("Stop"));
-        System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
+    public void test_empty(){
+        System.out.println(intanClient.get("Filename.BaseFilename"));
     }
+
+    @Test
+    public void test_record_defaults(){
+        intanController.record();
+    }
+
+//    @Ignore("intanController's setRunMode methods already ensure" +
+//            "that the runmode isTrue set before terminating. Run this manually " +
+//            "to test timing.")
+//    @Test
+//    public void test_intan_controller_runModeRun_timing(){
+//        timeUtil.tic();
+//        intanController.runMode("Run");
+//        timeUtil.toc();
+//        assertTrue(intanController.isRunMode("Run"));
+//        System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
+//
+//        timeUtil.tic();
+//        intanController.runMode("Stop");
+//        timeUtil.toc();
+//        assertTrue(intanController.isRunMode("Stop"));
+//        System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
+//    }
 
 
     @Test
