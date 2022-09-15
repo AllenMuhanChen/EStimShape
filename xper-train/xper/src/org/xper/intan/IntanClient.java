@@ -1,6 +1,7 @@
 package org.xper.intan;
 
 import org.xper.exception.RemoteException;
+import org.xper.util.ThreadUtil;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,6 +17,7 @@ import java.nio.CharBuffer;
  * Provides base-level tcp communication with Intan, like connecting, get, set and executing commands
  */
 public class IntanClient {
+    static final int QUERY_INTERVAL = 10;
     String host = "172.30.9.78";
     int port = 5000;
     private PrintWriter out;
@@ -42,6 +44,17 @@ public class IntanClient {
     public void set(String parameter, String value) {
         String msg = "set " + parameter + " " + value;
         out.println(msg);
+
+        waitFor(()->{
+            return get(parameter).equalsIgnoreCase(value);
+        });
+    }
+
+    private void waitFor(BooleanOperator condition) {
+        ThreadUtil.sleep(QUERY_INTERVAL);
+        while (!condition.isTrue()) {
+            ThreadUtil.sleep(QUERY_INTERVAL);
+        }
     }
 
     public String get(String parameter){
@@ -68,6 +81,12 @@ public class IntanClient {
         return null;
     }
 
+    /**
+     * Intan Server gives response in form "Return: ParameterName Value"
+     * This method parses the last word to get the Value
+     * @param response
+     * @return
+     */
     private String parseResponse(String response){
         String[] words = response.split((" "));
         return words[words.length-1];
@@ -90,6 +109,8 @@ public class IntanClient {
             throw new RuntimeException(e);
         }
     }
+
+
 
 
 //    public boolean isRunMode(){
