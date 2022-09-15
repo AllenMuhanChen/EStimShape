@@ -10,8 +10,6 @@ import org.xper.util.ThreadUtil;
  */
 public class IntanController {
 
-    private static final int QUERY_INTERVAL = 10;
-
     @Dependency
     private IntanClient intanClient;
 
@@ -26,20 +24,10 @@ public class IntanController {
     public void setPath(String path) {
         runMode("Stop"); //runMode needs to be Stop before Path can be changed
         intanClient.set("Filename.Path", path);
-        waitFor(() -> {
-            return getPath().equals(path);
-        });
     }
 
     public String getPath() {
         return intanClient.get("Filename.Path");
-    }
-
-    private void waitFor(BooleanOperator condition) {
-        ThreadUtil.sleep(QUERY_INTERVAL);
-        while (!condition.isTrue()) {
-            ThreadUtil.sleep(QUERY_INTERVAL);
-        }
     }
 
     public void runMode(String mode) {
@@ -49,8 +37,6 @@ public class IntanController {
         } else {
             System.err.println("Intan RunMode is already " + mode + ", did not set runmode");
         }
-
-        waitFor(() -> isRunMode(mode));
     }
 
 
@@ -75,7 +61,7 @@ public class IntanController {
     private void waitForUpload() {
         while (isUploadInProgress()) {
             System.out.println("Waiting for Upload");
-            ThreadUtil.sleep(QUERY_INTERVAL);
+            ThreadUtil.sleep(IntanClient.QUERY_INTERVAL);
         }
     }
 
