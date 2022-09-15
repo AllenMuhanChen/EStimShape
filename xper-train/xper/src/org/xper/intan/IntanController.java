@@ -13,6 +13,13 @@ public class IntanController {
     @Dependency
     private IntanClient intanClient;
 
+
+
+    @Dependency
+    private String defaultPath;
+    @Dependency
+    private String defaultBaseFileName = "Recording";
+
     public void connect() {
         intanClient.connect();
     }
@@ -21,9 +28,33 @@ public class IntanController {
         intanClient.disconnect();
     }
 
-    public void setPath(String path) {
+    public void record(){
+        //path has not been set yet in the Intan software
+        if(isEmpty("Filename.Path")){
+            setPath(defaultPath);
+        }
+        //baseFileName has not been set yet in the Intan software
+        if(isEmpty("Filename.BaseFilename")){
+            setBaseFilename(defaultBaseFileName);
+        }
+        runMode("Record");
+    }
+
+    /**
+     * @param parameter
+     * @return  true if the specified parameter is not set in the Intan Software
+     */
+    private boolean isEmpty(String parameter) {
+        return intanClient.get(parameter).equalsIgnoreCase(parameter);
+    }
+
+    public void stop(){
+        runMode("Stop");
+    }
+
+    public void setPath(String defaultPath) {
         runMode("Stop"); //runMode needs to be Stop before Path can be changed
-        intanClient.set("Filename.Path", path);
+        intanClient.set("Filename.Path", defaultPath);
     }
 
     public void setBaseFilename(String baseFilename){
@@ -31,7 +62,10 @@ public class IntanController {
         intanClient.set("Filename.BaseFilename", baseFilename);
     }
 
-    public void runMode(String mode) {
+    /**
+     * @param mode: "Run", "Stop", "Record", or "Trigger"
+     */
+    private void runMode(String mode) {
         if (!isRunMode(mode)) {
             waitForUpload();
             intanClient.set("runmode", mode);
@@ -43,7 +77,7 @@ public class IntanController {
     /**
      * @param mode: "Run", "Stop", "Record", or "Trigger"
      */
-    public boolean isRunMode(String mode) {
+    private boolean isRunMode(String mode) {
         String runmode = intanClient.get("runmode");
         if (runmode.equalsIgnoreCase(mode)) {
             return true;
@@ -77,4 +111,11 @@ public class IntanController {
         this.intanClient = intanClient;
     }
 
+    public String getDefaultPath() {
+        return defaultPath;
+    }
+
+    public void setDefaultPath(String defaultPath) {
+        this.defaultPath = defaultPath;
+    }
 }

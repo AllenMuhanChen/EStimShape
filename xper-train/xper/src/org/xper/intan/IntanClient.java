@@ -45,6 +45,7 @@ public class IntanClient {
         String msg = "set " + parameter + " " + value;
         out.println(msg);
 
+        //Wait until the correct value has been set
         waitFor(()->{
             return get(parameter).equalsIgnoreCase(value);
         });
@@ -65,7 +66,6 @@ public class IntanClient {
 
     public String get(String parameter){
         out.println("get " + parameter);
-//
         try {
             while (true){
                 if (in.ready()){
