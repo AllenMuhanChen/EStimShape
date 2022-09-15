@@ -26,8 +26,9 @@ public class IntanController {
         intanClient.set("Filename.Path", path);
     }
 
-    public String getPath() {
-        return intanClient.get("Filename.Path");
+    public void setBaseFilename(String baseFilename){
+        runMode("Stop");
+        intanClient.set("Filename.BaseFilename", baseFilename);
     }
 
     public void runMode(String mode) {
@@ -39,10 +40,8 @@ public class IntanController {
         }
     }
 
-
     /**
      * @param mode: "Run", "Stop", "Record", or "Trigger"
-     * @return whether the current runmode is equal to Mode
      */
     public boolean isRunMode(String mode) {
         String runmode = intanClient.get("runmode");
@@ -60,23 +59,19 @@ public class IntanController {
      */
     private void waitForUpload() {
         while (isUploadInProgress()) {
-            System.out.println("Waiting for Upload");
+            System.err.println("Upload In Progress: Waiting");
             ThreadUtil.sleep(IntanClient.QUERY_INTERVAL);
         }
     }
 
     private boolean isUploadInProgress() {
         String uploadInProgress = intanClient.get("uploadinprogress");
-        System.err.println("Upload In Progress: Waiting");
         if (uploadInProgress.equalsIgnoreCase("True"))
             return true;
         else
             return false;
     }
 
-    public IntanClient getIntanClient() {
-        return intanClient;
-    }
 
     public void setIntanClient(IntanClient intanClient) {
         this.intanClient = intanClient;

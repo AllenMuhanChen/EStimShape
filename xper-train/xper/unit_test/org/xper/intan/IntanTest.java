@@ -35,10 +35,17 @@ public class IntanTest {
     }
 
     @Test
-    public void test_intan_controller_change_filename(){
-        String path = "blah";
+    public void test_intan_controller_change_path(){
+        String path = "fooPath";
         intanController.setPath(path);
-        assertEquals(path, intanController.getPath());
+        assertEquals(path, intanClient.get("Filename.Path"));
+    }
+
+    @Test
+    public void test_intan_controller_change_filebasename(){
+        String basename = "barBase";
+        intanController.setBaseFilename(basename);
+        assertEquals(basename, intanClient.get("Filename.BaseFilename"));
     }
 
     @Ignore("intanController's setRunMode methods already ensure" +

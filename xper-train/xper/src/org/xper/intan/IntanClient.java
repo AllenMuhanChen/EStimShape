@@ -14,7 +14,7 @@ import java.nio.CharBuffer;
 /**
  * @author Allen Chen
  *
- * Provides base-level tcp communication with Intan, like connecting, get, set and executing commands
+ * Provides basic tcp communication with Intan, like connecting, get, set and executing commands
  */
 public class IntanClient {
     static final int QUERY_INTERVAL = 10;
@@ -50,6 +50,12 @@ public class IntanClient {
         });
     }
 
+    /**
+     * @param condition - given as a lambda function
+     *
+     * This is used to verify a set operation changes the value successfuly before
+     * moving on because there is latency with setting operations.
+     */
     private void waitFor(BooleanOperator condition) {
         ThreadUtil.sleep(QUERY_INTERVAL);
         while (!condition.isTrue()) {
