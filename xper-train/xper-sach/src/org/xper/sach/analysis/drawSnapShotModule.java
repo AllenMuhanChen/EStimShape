@@ -93,7 +93,7 @@ public class drawSnapShotModule {
 
 
 	/**
-	 * Starts processing. Initializes OpenGL and calls the run() method. Before exiting, cleanup()
+	 * Starts processing. Initializes OpenGL and calls the runModeRun() method. Before exiting, cleanup()
 	 * is called.
 	 */
 	private void ShapeGeneration()

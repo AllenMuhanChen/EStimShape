@@ -67,7 +67,7 @@
 //		thread.start();
 //	}
 //	//---------------------------------------------------------------------------------
-//	public void stop()
+//	public void runModeStop()
 //	{
 //		//Stop the animating thread.
 //		thread = null;
@@ -117,7 +117,7 @@
 //		return true;
 //	}
 //	//---------------------------------------------------------------------------------
-//	public void run()
+//	public void runModeRun()
 //	{
 //		//Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
 //		long startTime = System.currentTimeMillis();

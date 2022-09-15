@@ -350,7 +350,7 @@ public class stickMath_lib
 		try{
 			
 		    	System.out.println("Input any key with enter to continue...");			
-		    	System.in.read(); // a way to halt the program to not stop
+		    	System.in.read(); // a way to halt the program to not runModeStop
 		}
 		catch (Exception e) {}	
     }

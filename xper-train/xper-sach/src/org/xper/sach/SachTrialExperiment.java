@@ -136,7 +136,7 @@ public class SachTrialExperiment implements Experiment {
 
 //					SachExperimentUtil.playSingleNote(50,100);
 //					SachExperimentUtil.playSingleNote(50,100);
-					// run task
+					// runModeRun task
 					ret = TrialExperimentUtil.runTrial(stateObject,
 							threadHelper, new SlideRunner() {
 
@@ -274,7 +274,7 @@ public class SachTrialExperiment implements Experiment {
 								}
 							}
 						}
-					});		// end 'run task'
+					});		// end 'runModeRun task'
 					
 					return ret;
 					

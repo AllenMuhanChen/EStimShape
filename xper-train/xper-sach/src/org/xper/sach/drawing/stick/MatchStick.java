@@ -1463,7 +1463,7 @@ public class MatchStick
                 else
                     addSuccess = this.Add_MStick(nowComp, 4);
             }
-            if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
+            if (addSuccess == true) // otherwise, we'll runModeRun this while loop again, and re-generate this component
                 nowComp ++;
             if (nowComp == nComp+1)
                 break;
@@ -3799,7 +3799,7 @@ public class MatchStick
                 else
                     addSuccess = this.Add_MStick(nowComp, 4);
             }
-            if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
+            if (addSuccess == true) // otherwise, we'll runModeRun this while loop again, and re-generate this component
                 nowComp ++;
             if (nowComp == this.nComponent+1)
                 break;
@@ -4088,8 +4088,8 @@ public class MatchStick
         // rotate, scale, and translateinZ for the components
         // (so, then, I have the correct 'final' (x,y,z) (tangent) info)
 
-        // this change will only be applied, and then run data analysis
-        // it should not run on shapes that we want to generate offsprings
+        // this change will only be applied, and then runModeRun data analysis
+        // it should not runModeRun on shapes that we want to generate offsprings
 
         //we need to change (x,y,z) (tx,ty,tz) (r1,r2,r3)
         //  k and length, and the 'deviate angle'? (deviate angle no change?)

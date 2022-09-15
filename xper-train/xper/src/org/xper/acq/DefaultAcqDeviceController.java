@@ -126,7 +126,7 @@ public class DefaultAcqDeviceController implements AcqDeviceController {
 	public void stop() {
 		stopping.set(true);
 		if (logger.isDebugEnabled()) {
-			logger.debug("Trying to stop AcqServer... " + stopping.get());
+			logger.debug("Trying to runModeStop AcqServer... " + stopping.get());
 		}
 		if (acqThread != null) {
 			try {

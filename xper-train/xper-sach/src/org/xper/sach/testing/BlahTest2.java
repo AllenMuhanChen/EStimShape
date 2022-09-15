@@ -83,18 +83,18 @@ public class BlahTest2 {
 		
 		// -- create and write to text file:
 	char c = SachIOUtil.prompt("Which Behavioral task is this?" + 
-			"\n  (t) training run" + 					// then ask which morph line level (0 to 1)
-			"\n  (m) morph line experimental run" +		// then ask which morph line level (using SD of exp, gamma, Gaussian distribution?), and ask which group of 4 categories to run
+			"\n  (t) training runModeRun" + 					// then ask which morph line level (0 to 1)
+			"\n  (m) morph line experimental runModeRun" +		// then ask which morph line level (using SD of exp, gamma, Gaussian distribution?), and ask which group of 4 categories to runModeRun
 			"\n  (q) quick characterization of category preference" +
 			"\n");
 	
 	switch (c) {
-	case 't':	// training run
+	case 't':	// training runModeRun
 		System.out.println(c);
 
 		break;
 		
-	case 'm':	// morph line experimental run
+	case 'm':	// morph line experimental runModeRun
 		System.out.println(c);
 
 		break;

@@ -5,7 +5,7 @@ import org.xper.sach.util.SachIOUtil;
 import com.thoughtworks.xstream.XStream;
 
 public class SachExpLogMessage {
-	String status;		// start, stop, gen_done, ... ?
+	String status;		// start, runModeStop, gen_done, ... ?
 	String trialType;	// which trial type (ga, beh, etc) ?
 	long genNum;		// which generation?
 	long globalGenId;	// this is the genId in TaskToDo db table

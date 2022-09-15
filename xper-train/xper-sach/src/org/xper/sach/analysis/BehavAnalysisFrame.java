@@ -46,7 +46,7 @@ public class BehavAnalysisFrame extends JFrame {
 //	private JPanel contentPane;
 
     private JLabel behPercCorrLabels[][] = new JLabel[8][8];		// 8 by 8 matrix to hold the behavioral performance (percent correct) values for each stimulus combination
-    private JLabel behCountLabels[][] = new JLabel[8][8];	// number of times each stim combo has been run
+    private JLabel behCountLabels[][] = new JLabel[8][8];	// number of times each stim combo has been runModeRun
     private JLabel behTotLabels[][] = new JLabel[8][3];		// count totals (match,non-match,n)
     
     private int behPass[][]  = new int[8][8];				// num pass for each stim pairing
@@ -76,7 +76,7 @@ public class BehavAnalysisFrame extends JFrame {
 	}
 	
 	/**
-	 * Display/run the frame.
+	 * Display/runModeRun the frame.
 	 */
 	public void showBehavAnalysisFrame() {
 				
@@ -212,7 +212,7 @@ public class BehavAnalysisFrame extends JFrame {
 	
 	void updateStats(long taskId) {
 		// this runs when a new trial is finished (while loop above looks for when nowTaskDoneMaxID != lastTaskDoneMaxID)
-		// -- it checks which stimuli were run, what the outcome was, and updates the appropriate numbers and labels
+		// -- it checks which stimuli were runModeRun, what the outcome was, and updates the appropriate numbers and labels
 				
 		// get stimulus info: (categories of 1st and 2nd stimuli)
 		String spec = dbUtil.getSpecByTaskId(taskId).getSpec();

@@ -27,7 +27,7 @@ public class AcqClient {
 			client.connect();
 		} else if (args[0].equalsIgnoreCase("start")) {
 			client.start();
-		} else if (args[0].equalsIgnoreCase("stop")) {
+		} else if (args[0].equalsIgnoreCase("runModeStop")) {
 			client.stop();
 		} else if (args[0].equalsIgnoreCase("disconnect")) {
 			client.disconnect();
@@ -41,6 +41,6 @@ public class AcqClient {
 	}
 	
 	static void printUsage () {
-		System.out.println ("Please specify command: connect, start, stop, disconnect, shutdown.");
+		System.out.println ("Please specify command: connect, start, runModeStop, disconnect, shutdown.");
 	}
 }

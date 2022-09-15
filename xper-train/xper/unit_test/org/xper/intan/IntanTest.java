@@ -3,11 +3,13 @@ package org.xper.intan;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xper.time.TestingTimeUtil;
-import org.xper.util.ThreadUtil;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * @author Allen Chen
+ */
 public class IntanTest {
 
     private static IntanClient intanClient;
@@ -32,19 +34,19 @@ public class IntanTest {
     }
 
     @Test
-    public void intan_controller_starts_and_stops_recording(){
+    public void intan_controller_starts_and_stops_playback(){
         timeUtil.tic();
-        intanController.startRecording();
+        intanController.runModeRun();
         timeUtil.toc();
         String runmode = intanClient.get("runmode");
-        assertTrue(intanController.isRecording());
+        assertTrue(intanController.isRunModeRun());
         System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         timeUtil.tic();
-        intanController.stopRecording();
+        intanController.runModeStop();
         timeUtil.toc();
         runmode = intanClient.get("runmode");
-        assertTrue(!intanController.isRecording());
+        assertTrue(intanController.isRunModeStop());
         System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
     }
 
@@ -53,7 +55,6 @@ public class IntanTest {
         String msg = intanClient.get("type");
 
         assertTrue(msg, msg.contains("Controller"));
-
     }
 
     @Test

@@ -8,7 +8,7 @@ import org.xper.eye.zero.EyeZeroAdjustable;
 
 /**
  * In a NAFC trial, we want to start collecting eye info for eye zero update when fixation point
- * comes on, and stop when fixation succeeds or fails (not end of Trial). We also don't want to collect info from sample, incase
+ * comes on, and runModeStop when fixation succeeds or fails (not end of Trial). We also don't want to collect info from sample, incase
  * animal makes microsaccades as a response. 
  * @author r2_allen
  *

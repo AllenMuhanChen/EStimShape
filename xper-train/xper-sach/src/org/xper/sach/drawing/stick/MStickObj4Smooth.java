@@ -689,7 +689,7 @@ public class MStickObj4Smooth {
         for (i=4; i<=400; i++)
             sfactorMap[i] = 1.0/(double)i * (5.0/8.0 - (3.0/8.0 + 1.0/4.0 * Math.cos(2.0*Math.PI/(double)i) *
                                                 Math.cos(2.0*Math.PI/(double)i))) ;
-        // Now, after generation the edge relation, we can run the local vertex average
+        // Now, after generation the edge relation, we can runModeRun the local vertex average
           {
         Point3d[] newVertex = new Point3d[nVect+1];
         Point3d nowVertex = new Point3d();
@@ -2337,7 +2337,7 @@ class MStickObj4Smooth_staticLib
             validCondition = true;
         if ( ! validCondition)
             continue;
-        // if run till here,this is a face that near boundary
+        // if runModeRun till here,this is a face that near boundary
 
         // rename p1, p2, p3;
         if ( vect_type[xp1] == 3 && vect_type[xp2] == 3)

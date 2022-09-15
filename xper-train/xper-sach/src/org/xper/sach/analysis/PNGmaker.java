@@ -206,7 +206,7 @@ public class PNGmaker {
 //				scriptPath = "/Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectMakePhoto/dbExchange.py";
 //				args.set(3, scriptPath);
 //				photoRunner.setArgs(args);
-//				photoRunner.run();
+//				photoRunner.runModeRun();
 				
 				BlenderRunnable drapeRunner = new BlenderRunnable();
 				scriptPath = "/Users/ramanujan/Dropbox/Documents/Hopkins/NHP2PV4/projectDrape/dbExchange.py";
@@ -224,7 +224,7 @@ public class PNGmaker {
 //		args.add("\"/home/ram/projectMakePhoto/masterSubmitScript.sh " + imageFolderName + "\"");
 //		photoRunner.setArgs(args);
 //		photoRunner.setDoWaitFor(false);
-//		photoRunner.run();
+//		photoRunner.runModeRun();
 	}
 	
 	

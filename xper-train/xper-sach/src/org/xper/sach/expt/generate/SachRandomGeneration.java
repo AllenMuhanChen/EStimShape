@@ -62,7 +62,7 @@ public class SachRandomGeneration {
 
 	
 	// ---- global variables for GA:
-	int GA_maxNumGens = 10;									// maximum # of generations to run
+	int GA_maxNumGens = 10;									// maximum # of generations to runModeRun
 	int GA_numNonBlankStimsPerLin = 50;//40; 				// # non-blank simuli per generation per lineage	
 	int GA_numStimsPerLin = GA_numNonBlankStimsPerLin + 1;	// # random shapes (or offspring) + 1 blank, per lineage
 	int GA_numRepsPerStim = 5;//5;							// # repetitions of each stimulus			
@@ -86,7 +86,7 @@ public class SachRandomGeneration {
 	
 	public void generateGA() {	
 				
-		System.out.println("Generating GA run... ");
+		System.out.println("Generating GA runModeRun... ");
 		trialType = TrialType.GA3D;
 		generator.setTrialType(trialType);	// set trialType in generator
 				
@@ -407,7 +407,7 @@ public class SachRandomGeneration {
 		// : save thumbnail with FR to file for quick eye check of results?
 		// or, better, write results to an analysis window
 		
-		// loop. find a new taskdone, get data, run stuff, save data,...
+		// loop. find a new taskdone, get data, runModeRun stuff, save data,...
 		
 		int counter = 0;
 		while (true)

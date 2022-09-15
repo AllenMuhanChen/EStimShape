@@ -108,7 +108,7 @@ public class AcqUtil {
 		odd_marker_player = AcqUtil.getDigitalPlayer (acq_data, oddMarkerChan, oddMarkerChannelType);
 		if (!even_marker_player.hasUp() || !odd_marker_player.hasUp() ||
 				!even_marker_player.hasDown() || !odd_marker_player.hasDown()) {
-			throw new InvalidAcqDataException("Even and odd marker channels must record up and down edge.");
+			throw new InvalidAcqDataException("Even and odd marker channels must runModeRecord up and down edge.");
 		}
 		DigitalChannelPlayer [] player = new DigitalChannelPlayer[] {even_marker_player, odd_marker_player};
 	
@@ -138,10 +138,10 @@ public class AcqUtil {
 	}
 	
 	/**
-	 * Advance one task, get back the start and stop positions of the stimulus.
+	 * Advance one task, get back the start and runModeStop positions of the stimulus.
 	 *  
 	 * @param player player[0] is the current player, player[1] is the next player
-	 * @param pos pos[0] is start position, pos[1] is stop position
+	 * @param pos pos[0] is start position, pos[1] is runModeStop position
 	 * 
 	 * @return true if this session is done, pos[] returned specifies the last phase.
 	 */
@@ -189,15 +189,15 @@ public class AcqUtil {
 		   player[0].seekEndWith((next_start+next_down)/2);
 		   pos[1] = player[0].prevPulse(DigitalChannel.EdgeType.Down, pos[0]);
 		   if (pos[1] == -1 || pos[0] >= pos[1]) {
-			   // This could happen if the some program crashes leaving one of the AcqSessions unclosed (with stop time as Maximum Long Integer Value).
-			   throw new InvalidAcqDataException ("AcqData corrupted or one of the AcqSessions is not closed: start " + pos[0] + " stop " + pos[1]);
+			   // This could happen if the some program crashes leaving one of the AcqSessions unclosed (with runModeStop time as Maximum Long Integer Value).
+			   throw new InvalidAcqDataException ("AcqData corrupted or one of the AcqSessions is not closed: start " + pos[0] + " runModeStop " + pos[1]);
 		   }
 	   }
 	   
 	   /*if (pos[0] >= pos[1]) {
 		   if (!lastPhase) {
-			   // This could happen if the some program crashes leaving one of the AcqSessions unclosed (with stop time as Maximum Long Integer Value).
-			   throw new InvalidAcqDataException ("AcqData corrupted or one of the AcqSessions is not closed: start " + pos[0] + " stop " + pos[1]);
+			   // This could happen if the some program crashes leaving one of the AcqSessions unclosed (with runModeStop time as Maximum Long Integer Value).
+			   throw new InvalidAcqDataException ("AcqData corrupted or one of the AcqSessions is not closed: start " + pos[0] + " runModeStop " + pos[1]);
 		   } else {
 			   // Last phase could possible missing the down edge, use end sample index instead of the down edge index.
 			   pos[1] = next_start;

@@ -76,7 +76,7 @@ public class MockXper implements Stoppable {
 	 * AcqSession and AcqData tables appropriately.
 	 * 
 	 * @param taskSpikeRate
-	 *            List of {@link TaskSpikeRate} of all the tasks to run.
+	 *            List of {@link TaskSpikeRate} of all the tasks to runModeRun.
 	 * 
 	 * 
 	 */

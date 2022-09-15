@@ -207,7 +207,7 @@ public class AllTests {
 		TestSuite suite = new TestSuite(AllTests.class.getName());
 		addTestsToSuite(new ClassFileDetector(), suite);
 		if (suite.countTestCases() == 0) {
-			throw new Error("There are no test cases to run");
+			throw new Error("There are no test cases to runModeRun");
 		} else {
 			return suite;
 		}

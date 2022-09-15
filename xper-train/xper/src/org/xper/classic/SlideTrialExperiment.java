@@ -60,7 +60,7 @@ public class SlideTrialExperiment implements Experiment {
 					stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
 					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
 
-					// run trial
+					// runModeRun trial
 					return TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public TrialResult runSlide() {

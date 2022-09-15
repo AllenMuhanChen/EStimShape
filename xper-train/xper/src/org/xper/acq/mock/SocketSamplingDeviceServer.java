@@ -76,7 +76,7 @@ public class SocketSamplingDeviceServer implements Threadable {
 	}
 
 	/**
-	 * This will stop until next request when stop method is called.
+	 * This will runModeStop until next request when runModeStop method is called.
 	 * @throws IOException
 	 */
 	private void handleRequest() throws IOException {
