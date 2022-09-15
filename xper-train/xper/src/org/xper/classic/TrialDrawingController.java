@@ -11,7 +11,7 @@ public interface TrialDrawingController {
 	public void init();
 
 	/**
-	 * When the experiment is done, after experiment stop event is fired. 
+	 * When the experiment is done, after experiment runModeStop event is fired.
 	 *
 	 */
 	public void destroy();
@@ -44,7 +44,7 @@ public interface TrialDrawingController {
 	public void trialComplete(TrialContext context);
 	
 	/**
-	 * Before trial stop event is fired. This happens no matter whether the trial succeeds, breaks, or fails.
+	 * Before trial runModeStop event is fired. This happens no matter whether the trial succeeds, breaks, or fails.
 	 * @param context
 	 */
 	public void trialStop (TrialContext context);

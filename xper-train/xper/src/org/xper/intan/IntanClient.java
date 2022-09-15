@@ -11,6 +11,8 @@ import java.net.Socket;
 import java.nio.CharBuffer;
 
 /**
+ * @author Allen Chen
+ *
  * Provides base-level tcp communication with Intan, like connecting, get, set and executing commands
  */
 public class IntanClient {
@@ -85,7 +87,7 @@ public class IntanClient {
     }
 
 
-//    public boolean isRunning(){
+//    public boolean isRunModeRun(){
 //        return client.isConnected();
 //    }
 

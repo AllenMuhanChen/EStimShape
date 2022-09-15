@@ -259,7 +259,7 @@ public class SaccadeExperimentConsole extends JFrame implements
         eyePanel.add(eyeWinPanel);
         
         pauseResumeButton = new JButton();
-        pauseResumeButton.setToolTipText("run/pause experiment");
+        pauseResumeButton.setToolTipText("runModeRun/pause experiment");
         Action action = new AbstractAction() {
 			private static final long serialVersionUID = 1L;
 			
@@ -299,7 +299,7 @@ public class SaccadeExperimentConsole extends JFrame implements
         	commandPanel.add(pLabel);
 		}
         
-        JLabel rpLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(pauseResumeKey.getKeyCode()) + "</strong>: run/pause </html>");
+        JLabel rpLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(pauseResumeKey.getKeyCode()) + "</strong>: runModeRun/pause </html>");
         commandPanel.add(rpLabel);
         
         JLabel exitLabel = new JLabel("<html><strong> ESC</strong>: exit </html>");

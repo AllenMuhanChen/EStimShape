@@ -72,7 +72,7 @@ public class NAFCTrialExperiment implements Experiment {
 
 
 
-					// run trial
+					// runModeRun trial
 					return NAFCExperimentUtil.runTrial(stateObject, threadHelper, new NAFCSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public NAFCTrialResult runSlide() {

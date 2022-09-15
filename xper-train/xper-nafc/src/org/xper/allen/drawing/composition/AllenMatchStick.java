@@ -1984,7 +1984,7 @@ public class AllenMatchStick extends MatchStick {
 			else {
 				addSuccess = Add_BaseMStick(nowComp, 2);
 			}
-			if (addSuccess == true) { // otherwise, we'll run this while loop again, and re-generate this component
+			if (addSuccess == true) { // otherwise, we'll runModeRun this while loop again, and re-generate this component
 				nowComp=3;
 				break;
 			}
@@ -2017,7 +2017,7 @@ public class AllenMatchStick extends MatchStick {
 				else
 					addSuccess = Add_AccessoryMStick(nowComp, 4);
 			}
-			if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
+			if (addSuccess == true) // otherwise, we'll runModeRun this while loop again, and re-generate this component
 				nowComp ++;
 			if (nowComp == nComp+1)
 				break;
@@ -2610,7 +2610,7 @@ public class AllenMatchStick extends MatchStick {
 				else
 					addSuccess = Add_MStick(nowComp, 4);
 			}
-			if (addSuccess == true) { // otherwise, we'll run this while loop again, and re-generate this component
+			if (addSuccess == true) { // otherwise, we'll runModeRun this while loop again, and re-generate this component
 				getSpecialEndComp().add(nowComp); //we add this as specialEndComp so we can create a noisemap for it. 
 				nowComp ++;
 			}

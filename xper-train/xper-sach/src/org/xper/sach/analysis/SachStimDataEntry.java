@@ -20,7 +20,7 @@ public class SachStimDataEntry {
 	 * GA and firing rate information for a single stimulus object, for Beh objects we ignore parentage stuff
 	 */
 	
-	// pre-run info:
+	// pre-runModeRun info:
 	String trialType;									// "BEH" or "GA"
 	int lineage = -1;									// for GA stim, the lineage in which it arose (prob 0 or 1)
 	long birthGen = -1;									// for GA stim, the generation in which it first arose
@@ -31,7 +31,7 @@ public class SachStimDataEntry {
 //	List<Long> stimSpecIds = new ArrayList<Long>();		// array of trials (indexed by StimSpec id) in which stim obj can be found
 //	List<Long> taskToDoIds = new ArrayList<Long>();		// array of tasks (indexed by TaskToDo id) in which stim obj can be found
 	
-	// post-run info:
+	// post-runModeRun info:
 	List<Long> taskDoneIds = new ArrayList<Long>();							// array of tasks (indexed by TaskDone id) in which stim obj was presented
 
 	Map<Integer, List<TrialStageData>> trialStageData = new HashMap<Integer,List<TrialStageData>>();
@@ -41,7 +41,7 @@ public class SachStimDataEntry {
 	Map<Integer,Double> avgFR = new HashMap<Integer,Double>();
 	Map<Integer,Double> stdFR = new HashMap<Integer,Double>();
 	
-//	double avgBkgdFR = 0;	// this is calculated from any blank stimuli run in the same generation
+//	double avgBkgdFR = 0;	// this is calculated from any blank stimuli runModeRun in the same generation
 //	double stdBkgdFR;
 	
 //	List<BsplineObjectSpec> stimObjSpecs = new ArrayList<BsplineObjectSpec>();	// stimulus details for each stimulus presentation (useful for Beh stimuli when morphing or randomizing limb lengths)

@@ -8,7 +8,7 @@ public class BehAnalysis {
 	public static void main(String[] args) {
 		System.out.println("Start Data analysis frame:");
 		
-		// trying to separate analysis from other stuff so it can be run on mac (no comedi/ni drivers)
+		// trying to separate analysis from other stuff so it can be runModeRun on mac (no comedi/ni drivers)
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.beh.anal_config_class"));
 		

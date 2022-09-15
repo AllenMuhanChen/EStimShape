@@ -10,7 +10,7 @@ public class ThreadHelper {
 
 	/**
 	 * We need two signals because, when done is set we need to wait until the
-	 * thread stops by testing isRunning.
+	 * thread stops by testing isRunModeRun.
 	 */
 	AtomicBoolean done = new AtomicBoolean(false);
 	AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -31,7 +31,7 @@ public class ThreadHelper {
 
 	public void stop() {
 		if (!isRunning()) {
-			throw new ThreadException("Cannot stop thread. " + name
+			throw new ThreadException("Cannot runModeStop thread. " + name
 					+ " is not running.");
 		}
 		done.set(true);

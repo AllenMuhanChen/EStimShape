@@ -179,7 +179,7 @@ public class SachExptSpecGenerator implements SachStimSpecGenerator {	// ugh, ju
 //		dbUtil.writeStimObjData(stimObjId, ss.toXml(), d.toXml());
 //		
 //		
-//		// *** -- for now I am just creating a brand new stimulus each time this is run (even if the same stimulus is created again) 
+//		// *** -- for now I am just creating a brand new stimulus each time this is runModeRun (even if the same stimulus is created again)
 //		//	  I can sort by category later for analysis (also by morphLim)
 //		
 //		

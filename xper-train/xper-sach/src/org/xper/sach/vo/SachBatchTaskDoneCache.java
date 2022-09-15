@@ -18,7 +18,7 @@ public class SachBatchTaskDoneCache extends BatchTaskDoneCache {
 	}
 	
 	public void put(ExperimentTask task, long timestamp, boolean partial) {
-		// finsih this. need to record local timestamp and also extend TaskDoneEntry to handle this
+		// finsih this. need to runModeRecord local timestamp and also extend TaskDoneEntry to handle this
 		// then need to add to the config file(s!
 		// also need to change/addto SachTrialExperimentUtil, SachDbUtil... ugh!
 		// --> if I don't want to change TaskDoneCache interface, then I need access to 
