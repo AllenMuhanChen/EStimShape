@@ -15,110 +15,77 @@ public class IntanController {
     @Dependency
     private IntanClient intanClient;
 
-    public void connect(){
+    public void connect() {
         intanClient.connect();
     }
 
-    public void disconnect(){
+    public void disconnect() {
         intanClient.disconnect();
     }
 
-    /**
-     * Controller acquires data, which is only displayed graphically and not saved to disk
-     */
-    public void runModeRun(){
-        if(!isRunModeRun()) {
-            intanClient.set("runmode", "run");
-        } else{
-            System.err.println("Intan already running, did not set runmode to runModeRun");
-        }
+    public void setPath(String path) {
+        runMode("Stop"); //runMode needs to be Stop before Path can be changed
+        intanClient.set("Filename.Path", path);
+        waitFor(() -> {
+            return getPath().equals(path);
+        });
+    }
+
+    public String getPath() {
+        return intanClient.get("Filename.Path");
+    }
+
+    private void waitFor(BooleanOperator condition) {
         ThreadUtil.sleep(QUERY_INTERVAL);
-        while(!isRunModeRun()){
+        while (!condition.isTrue()) {
             ThreadUtil.sleep(QUERY_INTERVAL);
         }
     }
 
-    /**
-     * Controller acquires data, which is displayed graphically and saved to disk
-     */
-    public void runModeRecord(){
-        if(!isRunModeRecord()) {
-            intanClient.set("runmode", "record");
-        } else{
-            System.err.println("Intan already recording, did not set runmode to runModeRecord");
+    public void runMode(String mode) {
+        if (!isRunMode(mode)) {
+            waitForUpload();
+            intanClient.set("runmode", mode);
+        } else {
+            System.err.println("Intan RunMode is already " + mode + ", did not set runmode");
         }
-        ThreadUtil.sleep(QUERY_INTERVAL);
-        while(!isRunModeRecord()){
-            ThreadUtil.sleep(QUERY_INTERVAL);
-        }
+
+        waitFor(() -> isRunMode(mode));
     }
 
+
     /**
-     * Controller acquires data, which is displayed graphically, and waits for a trigger event
-     * to begin saving to disk
+     * @param mode: "Run", "Stop", "Record", or "Trigger"
+     * @return whether the current runmode is equal to Mode
      */
-    public void runModeRTrigger(){
-        if(!isRunModeTrigger()) {
-            intanClient.set("runmode", "trigger");
-        } else{
-            System.err.println("Intan already recording, did not set runmode to runModeRecord");
-        }
-        ThreadUtil.sleep(QUERY_INTERVAL);
-        while(!isRunModeRecord()){
-            ThreadUtil.sleep(QUERY_INTERVAL);
+    public boolean isRunMode(String mode) {
+        String runmode = intanClient.get("runmode");
+        if (runmode.equalsIgnoreCase(mode)) {
+            return true;
+        } else {
+            return false;
         }
     }
 
     /**
-     * Controller does not acquire data
+     * Setting Run Mode will fail when an upload isTrue in progress, so it's
+     * necessary to wait for any uploads to finish first before running any set run mode
+     * commands
      */
-    public void runModeStop(){
-        if(!isRunModeStop()) {
-            intanClient.set("runmode", "stop");
-        } else{
-            System.err.println("Intan already stopped recording, did not set runmode to runModeStop");
-        }
-
-        ThreadUtil.sleep(QUERY_INTERVAL);
-        while(!isRunModeStop()){
+    private void waitForUpload() {
+        while (isUploadInProgress()) {
+            System.out.println("Waiting for Upload");
             ThreadUtil.sleep(QUERY_INTERVAL);
         }
     }
 
-    public boolean isRunModeRun(){
-        String runmode = intanClient.get("runmode");
-        if(runmode.contains("RunMode Run")){
+    private boolean isUploadInProgress() {
+        String uploadInProgress = intanClient.get("uploadinprogress");
+        System.err.println("Upload In Progress: Waiting");
+        if (uploadInProgress.equalsIgnoreCase("True"))
             return true;
-        } else{
+        else
             return false;
-        }
-    }
-
-    public boolean isRunModeRecord(){
-        String runmode = intanClient.get("runmode");
-        if(runmode.contains("RunMode Record")){
-            return true;
-        } else{
-            return false;
-        }
-    }
-
-    public boolean isRunModeTrigger(){
-        String runmode = intanClient.get("runmode");
-        if(runmode.contains("RunMode Trigger")){
-            return true;
-        } else{
-            return false;
-        }
-    }
-
-    public boolean isRunModeStop(){
-        String runmode = intanClient.get("runmode");
-        if(runmode.contains("RunMode Stop")){
-            return true;
-        } else{
-            return false;
-        }
     }
 
     public IntanClient getIntanClient() {
