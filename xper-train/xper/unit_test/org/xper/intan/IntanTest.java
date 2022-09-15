@@ -1,6 +1,7 @@
 package org.xper.intan;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.time.TestingTimeUtil;
 
@@ -34,31 +35,33 @@ public class IntanTest {
     }
 
     @Test
-    public void intan_controller_starts_and_stops_playback(){
+    public void test_intan_controller_change_filename(){
+        String path = "blah";
+        intanController.setPath(path);
+        assertEquals(path, intanController.getPath());
+    }
+
+    @Ignore("intanController's setRunMode methods already ensure" +
+            "that the runmode isTrue set before terminating. Run this manually " +
+            "to test timing.")
+    @Test
+    public void test_intan_controller_runModeRun_timing(){
         timeUtil.tic();
-        intanController.runModeRun();
+        intanController.runMode("Run");
         timeUtil.toc();
-        String runmode = intanClient.get("runmode");
-        assertTrue(intanController.isRunModeRun());
+        assertTrue(intanController.isRunMode("Run"));
         System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         timeUtil.tic();
-        intanController.runModeStop();
+        intanController.runMode("Stop");
         timeUtil.toc();
-        runmode = intanClient.get("runmode");
-        assertTrue(intanController.isRunModeStop());
+        assertTrue(intanController.isRunMode("Stop"));
         System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
     }
 
-    @Test
-    public void intan_client_test_get(){
-        String msg = intanClient.get("type");
-
-        assertTrue(msg, msg.contains("Controller"));
-    }
 
     @Test
-    public void intan_client_test_set(){
+    public void intan_client_test_get_set(){
         intanClient.set("fileformat", "onefilepersignaltype");
 
         String fileformat = intanClient.get("fileformat");

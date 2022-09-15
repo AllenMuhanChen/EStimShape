@@ -57,7 +57,7 @@ public class IntanClient {
                     if (resp == null) {
                         break;
                     }
-                    return resp;
+                    return parseResponse(resp);
                 }
             }
 
@@ -66,6 +66,11 @@ public class IntanClient {
         }
 
         return null;
+    }
+
+    private String parseResponse(String response){
+        String[] words = response.split((" "));
+        return words[words.length-1];
     }
 
     public void execute(String action, String parameter) {
@@ -87,7 +92,7 @@ public class IntanClient {
     }
 
 
-//    public boolean isRunModeRun(){
+//    public boolean isRunMode(){
 //        return client.isConnected();
 //    }
 
