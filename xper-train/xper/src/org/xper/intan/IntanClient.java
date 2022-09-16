@@ -51,6 +51,13 @@ public class IntanClient {
         });
     }
 
+
+    public void clear(String parameter) {
+        String msg = "set " + parameter;
+        out.println(msg);
+    }
+
+
     /**
      * @param condition - given as a lambda function
      *
@@ -64,6 +71,7 @@ public class IntanClient {
         }
     }
 
+
     public String get(String parameter){
         out.println("get " + parameter);
         try {
@@ -76,7 +84,11 @@ public class IntanClient {
                     if (resp == null) {
                         break;
                     }
-                    return parseResponse(resp);
+                    if(parseResponse(resp).equalsIgnoreCase(parameter)){
+                        return "";
+                    } else {
+                        return parseResponse(resp);
+                    }
                 }
             }
 
