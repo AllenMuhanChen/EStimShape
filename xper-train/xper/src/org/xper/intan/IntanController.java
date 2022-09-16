@@ -47,7 +47,7 @@ public class IntanController {
      * @return  true if the specified parameter is not set in the Intan Software
      */
     private boolean isEmpty(String parameter) {
-        return intanClient.get(parameter).equalsIgnoreCase(parameter);
+        return intanClient.get(parameter).isEmpty();
     }
 
     public void stop(){
