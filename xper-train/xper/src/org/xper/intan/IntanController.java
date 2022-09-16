@@ -17,8 +17,10 @@ public class IntanController {
 
     @Dependency
     private String defaultPath;
+
+
     @Dependency
-    private String defaultBaseFileName = "Recording";
+    private String defaultBaseFileName;
 
     public void connect() {
         intanClient.connect();
@@ -117,5 +119,14 @@ public class IntanController {
 
     public void setDefaultPath(String defaultPath) {
         this.defaultPath = defaultPath;
+    }
+
+
+    public String getDefaultBaseFileName() {
+        return defaultBaseFileName;
+    }
+
+    public void setDefaultBaseFileName(String defaultBaseFileName) {
+        this.defaultBaseFileName = defaultBaseFileName;
     }
 }
