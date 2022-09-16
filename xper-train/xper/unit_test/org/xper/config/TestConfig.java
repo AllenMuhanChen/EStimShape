@@ -6,6 +6,8 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.exception.DbException;
+import org.xper.intan.IntanClient;
+import org.xper.intan.IntanController;
 import org.xper.util.DbUtil;
 
 import javax.sql.DataSource;
@@ -29,6 +31,18 @@ public class TestConfig {
     @ExternalValue("test.jdbc.password")
     public String jdbcPassword;
 
+    @ExternalValue("test.intan.host")
+    public String intanHost;
+
+    @ExternalValue("test.intan.port.command")
+    public String intanCommandPort;
+
+    @ExternalValue("test.intan.default_save_path")
+    public String intanDefaultSavePath;
+
+    @ExternalValue("test.intan.default_base_filename")
+    public String intanDefaultBaseFilename;
+
     @Bean
     public DbUtil dbUtil() {
         DbUtil util = new DbUtil();
@@ -48,6 +62,23 @@ public class TestConfig {
         source.setUser(jdbcUserName);
         source.setPassword(jdbcPassword);
         return source;
+    }
+
+    @Bean
+    public IntanController intanController() {
+        IntanController intanController = new IntanController();
+        intanController.setIntanClient(intanClient());
+        intanController.setDefaultSavePath(intanDefaultSavePath);
+        intanController.setDefaultBaseFileName(intanDefaultBaseFilename);
+        return intanController;
+    }
+
+    @Bean
+    public IntanClient intanClient(){
+        IntanClient intanClient = new IntanClient();
+        intanClient.setHost(intanHost);
+        intanClient.setPort(Integer.parseInt(intanCommandPort));
+        return intanClient;
     }
 
 

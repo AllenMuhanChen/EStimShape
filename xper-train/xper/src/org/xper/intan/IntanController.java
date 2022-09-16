@@ -13,11 +13,8 @@ public class IntanController {
     @Dependency
     private IntanClient intanClient;
 
-
-
     @Dependency
-    private String defaultPath;
-
+    private String defaultSavePath;
 
     @Dependency
     private String defaultBaseFileName;
@@ -33,7 +30,7 @@ public class IntanController {
     public void record(){
         //path has not been set yet in the Intan software
         if(intanClient.isEmpty("Filename.Path")){
-            setPath(defaultPath);
+            setPath(defaultSavePath);
         }
         //baseFileName has not been set yet in the Intan software
         if(intanClient.isEmpty("Filename.BaseFilename")){
@@ -105,12 +102,12 @@ public class IntanController {
         this.intanClient = intanClient;
     }
 
-    public String getDefaultPath() {
-        return defaultPath;
+    public String getDefaultSavePath() {
+        return defaultSavePath;
     }
 
-    public void setDefaultPath(String defaultPath) {
-        this.defaultPath = defaultPath;
+    public void setDefaultSavePath(String defaultPath) {
+        this.defaultSavePath = defaultPath;
     }
 
 

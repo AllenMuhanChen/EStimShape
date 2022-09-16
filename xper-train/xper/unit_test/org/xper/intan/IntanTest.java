@@ -2,8 +2,10 @@ package org.xper.intan;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.time.TestingTimeUtil;
+import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
 
 import static org.junit.Assert.assertEquals;
@@ -20,9 +22,9 @@ public class IntanTest {
     private static final TestingTimeUtil timeUtil = new TestingTimeUtil();
 
     @Dependency
-    static String savePath = "/home/i2_allen/Documents/Test";
+    static String defaultSavePath;
     @Dependency
-    static String baseFilename = "TestRecording";
+    static String defaultBaseFilename;
     /**
      * Before all of these tests will pass:
      * 1. The Intan Box needs to be turned ON
@@ -33,11 +35,15 @@ public class IntanTest {
      */
     @BeforeClass
     public static void set_up(){
-        intanClient = new IntanClient();
-        intanController = new IntanController();
-        intanController.setIntanClient(intanClient);
-        intanController.setDefaultPath(savePath);
-        intanController.setDefaultBaseFileName(baseFilename);
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
+        intanClient = context.getBean(IntanClient.class);
+        intanController = context.getBean(IntanController.class);
+
+//        intanClient = new IntanClient();
+//        intanController = new IntanController();
+//        intanController.setIntanClient(intanClient);
+//        intanController.setDefaultSavePath(defaultSavePath);
+//        intanController.setDefaultBaseFileName(defaultBaseFilename);
 
         intanController.connect();
     }
@@ -78,8 +84,8 @@ public class IntanTest {
         System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         //TODO: assert that the file(s) were created?
-        assertEquals(savePath, intanClient.get("Filename.Path"));
-        assertEquals(baseFilename, intanClient.get("Filename.BaseFilename"));
+        assertEquals(defaultSavePath, intanClient.get("Filename.Path"));
+        assertEquals(defaultBaseFilename, intanClient.get("Filename.BaseFilename"));
     }
 
 //    @Ignore("intanController's setRunMode methods already ensure" +
@@ -100,7 +106,6 @@ public class IntanTest {
 //        System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 //    }
 
-
     @Test
     public void intan_client_gets_and_sets(){
         intanClient.set("fileformat", "onefilepersignaltype");
@@ -117,6 +122,21 @@ public class IntanTest {
         intanClient.connect();
     }
 
+    public static String getDefaultSavePath() {
+        return defaultSavePath;
+    }
+
+    public static void setDefaultSavePath(String defaultSavePath) {
+        IntanTest.defaultSavePath = defaultSavePath;
+    }
+
+    public static String getDefaultBaseFilename() {
+        return defaultBaseFilename;
+    }
+
+    public static void setDefaultBaseFilename(String defaultBaseFilename) {
+        IntanTest.defaultBaseFilename = defaultBaseFilename;
+    }
 
 
 
