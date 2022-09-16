@@ -10,3 +10,11 @@ test.jdbc.password=up2nite
 # test configuration classes
 #############################################################################
 test.experiment.config_class=org.xper.config.TestConfig
+
+#############################################################################
+# intan
+#############################################################################
+test.intan.host=172.30.9.78
+test.intan.port.command=5000
+test.intan.default_save_path=/home/i2_allen/Documents/Test
+test.intan.default_base_filename=TestRecording

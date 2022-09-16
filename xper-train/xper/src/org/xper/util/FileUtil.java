@@ -22,7 +22,7 @@ public class FileUtil {
 		configClassPath();
 		try {
 			loadSystemTestProperties();
-		} catch(ExperimentSetupException e){}
+		} catch(ExperimentSetupException e){e.printStackTrace();}
 	}
 	
 	public interface FileVisitor {

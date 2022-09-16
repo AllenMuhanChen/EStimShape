@@ -22,6 +22,7 @@ public class IntanClient {
 
     @Dependency
     String host = "172.30.9.78";
+
     @Dependency
     int port = 5000;
 
@@ -108,7 +109,6 @@ public class IntanClient {
         return null;
     }
 
-
     /**
      * Intan Server gives response in form "Return: ParameterName Value"
      * This method parses the last word to get the Value
@@ -138,11 +138,19 @@ public class IntanClient {
         }
     }
 
+    public String getHost() {
+        return host;
+    }
 
+    public void setHost(String host) {
+        this.host = host;
+    }
 
+    public int getPort() {
+        return port;
+    }
 
-//    public boolean isRunMode(){
-//        return client.isConnected();
-//    }
-
+    public void setPort(int port) {
+        this.port = port;
+    }
 }
