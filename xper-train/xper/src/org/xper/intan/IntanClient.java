@@ -1,5 +1,6 @@
 package org.xper.intan;
 
+import org.xper.Dependency;
 import org.xper.exception.RemoteException;
 import org.xper.util.ThreadUtil;
 
@@ -18,8 +19,12 @@ import java.nio.CharBuffer;
  */
 public class IntanClient {
     static final int QUERY_INTERVAL = 10;
+
+    @Dependency
     String host = "172.30.9.78";
+    @Dependency
     int port = 5000;
+
     private PrintWriter out;
     private BufferedReader in;
     private Socket client;
@@ -40,7 +45,6 @@ public class IntanClient {
         }
     }
 
-
     public void set(String parameter, String value) {
         String msg = "set " + parameter + " " + value;
         out.println(msg);
@@ -51,26 +55,31 @@ public class IntanClient {
         });
     }
 
-
-    public void clear(String parameter) {
-        String msg = "set " + parameter;
-        out.println(msg);
-    }
-
-
     /**
      * @param condition - given as a lambda function
      *
      * This is used to verify a set operation changes the value successfuly before
      * moving on because there is latency with setting operations.
      */
-    private void waitFor(BooleanOperator condition) {
+    public void waitFor(BooleanOperator condition) {
         ThreadUtil.sleep(QUERY_INTERVAL);
         while (!condition.isTrue()) {
             ThreadUtil.sleep(QUERY_INTERVAL);
         }
     }
 
+    public void clear(String parameter) {
+        String msg = "set " + parameter;
+        out.println(msg);
+    }
+
+    /**
+     * @param parameter
+     * @return true if the specified parameter is not set in the Intan Software
+     */
+    public boolean isEmpty(String parameter) {
+        return get(parameter).isEmpty();
+    }
 
     public String get(String parameter){
         out.println("get " + parameter);
@@ -98,6 +107,7 @@ public class IntanClient {
 
         return null;
     }
+
 
     /**
      * Intan Server gives response in form "Return: ParameterName Value"
@@ -128,13 +138,7 @@ public class IntanClient {
         }
     }
 
-    /**
-     * @param parameter
-     * @return true if the specified parameter is not set in the Intan Software
-     */
-    boolean isEmpty(String parameter) {
-        return get(parameter).isEmpty();
-    }
+
 
 
 //    public boolean isRunMode(){
