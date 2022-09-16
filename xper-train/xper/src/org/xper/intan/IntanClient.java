@@ -128,7 +128,13 @@ public class IntanClient {
         }
     }
 
-
+    /**
+     * @param parameter
+     * @return true if the specified parameter is not set in the Intan Software
+     */
+    boolean isEmpty(String parameter) {
+        return get(parameter).isEmpty();
+    }
 
 
 //    public boolean isRunMode(){

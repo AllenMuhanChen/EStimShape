@@ -32,22 +32,14 @@ public class IntanController {
 
     public void record(){
         //path has not been set yet in the Intan software
-        if(isEmpty("Filename.Path")){
+        if(intanClient.isEmpty("Filename.Path")){
             setPath(defaultPath);
         }
         //baseFileName has not been set yet in the Intan software
-        if(isEmpty("Filename.BaseFilename")){
+        if(intanClient.isEmpty("Filename.BaseFilename")){
             setBaseFilename(defaultBaseFileName);
         }
         runMode("Record");
-    }
-
-    /**
-     * @param parameter
-     * @return  true if the specified parameter is not set in the Intan Software
-     */
-    private boolean isEmpty(String parameter) {
-        return intanClient.get(parameter).isEmpty();
     }
 
     public void stop(){
