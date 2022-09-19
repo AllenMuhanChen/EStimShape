@@ -26,6 +26,7 @@ public class IntanEventListener implements TrialEventListener, ExperimentEventLi
     public void experimentStop(long timestamp) {
         if (connected)
             intanController.disconnect();
+        connected = false;
     }
 
     @Override
