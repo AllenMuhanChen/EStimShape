@@ -1,71 +1,31 @@
 package org.xper.config;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.exception.DbException;
 import org.xper.intan.IntanClient;
 import org.xper.intan.IntanController;
-import org.xper.util.DbUtil;
-
-import javax.sql.DataSource;
-import java.beans.PropertyVetoException;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(ClassicConfig.class)
-public class TestConfig {
+public class IntanConfig {
 
     @Autowired
     BaseConfig baseConfig;
 
-    @ExternalValue("test.jdbc.driver")
-    public String jdbcDriver;
-
-    @ExternalValue("test.jdbc.url")
-    public String jdbcUrl;
-
-    @ExternalValue("test.jdbc.username")
-    public String jdbcUserName;
-
-    @ExternalValue("test.jdbc.password")
-    public String jdbcPassword;
-
-    @ExternalValue("test.intan.host")
+    @ExternalValue("intan.host")
     public String intanHost;
 
-    @ExternalValue("test.intan.port.command")
+    @ExternalValue("intan.port.command")
     public String intanCommandPort;
 
-    @ExternalValue("test.intan.default_save_path")
+    @ExternalValue("intan.default_save_path")
     public String intanDefaultSavePath;
 
-    @ExternalValue("test.intan.default_base_filename")
+    @ExternalValue("intan.default_base_filename")
     public String intanDefaultBaseFilename;
-
-    @Bean
-    public DbUtil dbUtil() {
-        DbUtil util = new DbUtil();
-        util.setDataSource(dataSource());
-        return util;
-    }
-
-    @Bean
-    public DataSource dataSource() {
-        ComboPooledDataSource source = new ComboPooledDataSource();
-        try {
-            source.setDriverClass(jdbcDriver);
-        } catch (PropertyVetoException e) {
-            throw new DbException(e);
-        }
-        source.setJdbcUrl(jdbcUrl);
-        source.setUser(jdbcUserName);
-        source.setPassword(jdbcPassword);
-        return source;
-    }
 
     @Bean
     public IntanController intanController() {
