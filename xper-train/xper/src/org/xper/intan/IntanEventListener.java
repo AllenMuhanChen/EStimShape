@@ -3,15 +3,30 @@ package org.xper.intan;
 import org.xper.Dependency;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
+import org.xper.experiment.listener.ExperimentEventListener;
 
-public class IntanEventListener implements TrialEventListener {
+public class IntanEventListener implements TrialEventListener, ExperimentEventListener {
     @Dependency
     IntanController intanController;
 
     @Override
-    public void trialInit(long timestamp, TrialContext context) {
+    public void experimentStart(long timestamp) {
         intanController.connect();
+    }
 
+    @Override
+    public void experimentStop(long timestamp) {
+        intanController.stop();
+    }
+
+    @Override
+    public void trialInit(long timestamp, TrialContext context) {
+        intanController.record();
+    }
+
+    @Override
+    public void trialStop(long timestamp, TrialContext context) {
+        intanController.stop();
     }
 
     @Override
@@ -54,8 +69,6 @@ public class IntanEventListener implements TrialEventListener {
 
     }
 
-    @Override
-    public void trialStop(long timestamp, TrialContext context) {
-        intanController.disconnect();
-    }
+
+
 }
