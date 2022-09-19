@@ -3,7 +3,6 @@ package org.xper.intan;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.Dependency;
 import org.xper.time.TestingTimeUtil;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
@@ -40,7 +39,7 @@ public class IntanTest {
     @Test
     public void test_intan_controller_change_filename(){
         String path = "fooPath";
-        intanController.setPath(path);
+        intanController.setSavePath(path);
         assertEquals(path, intanClient.get("Filename.Path"));
 
         String basename = "barBase";
