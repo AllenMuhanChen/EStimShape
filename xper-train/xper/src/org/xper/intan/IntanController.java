@@ -60,8 +60,6 @@ public class IntanController {
         if (!isRunMode(mode)) {
             waitForUpload();
             intanClient.set("runmode", mode);
-        } else {
-            System.err.println("Intan RunMode is already in runmode " + mode + ", did not set runmode");
         }
     }
 
@@ -84,7 +82,7 @@ public class IntanController {
      */
     private void waitForUpload() {
         while (isUploadInProgress()) {
-            System.err.println("Upload In Progress: Waiting");
+            System.out.println("Upload In Progress: Waiting");
             ThreadUtil.sleep(IntanClient.QUERY_INTERVAL_MS);
         }
     }

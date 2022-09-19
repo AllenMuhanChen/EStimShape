@@ -58,7 +58,6 @@ public class IntanClient {
         waitFor(new Condition() {
             @Override
             public boolean check() {
-                System.out.println("Waiting for value set on " + parameter + " to " + value);
                 return get(parameter).equalsIgnoreCase(value);
             }
         });
