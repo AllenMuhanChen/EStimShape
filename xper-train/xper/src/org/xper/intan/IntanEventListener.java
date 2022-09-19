@@ -9,24 +9,35 @@ public class IntanEventListener implements TrialEventListener, ExperimentEventLi
     @Dependency
     IntanController intanController;
 
+    private boolean connected = false;
+
     @Override
     public void experimentStart(long timestamp) {
-        intanController.connect();
+        try {
+            intanController.connect();
+            connected = true;
+        } catch (Exception e){
+            System.err.println("Could not connect to Intan");
+            connected = false;
+        }
     }
 
     @Override
     public void experimentStop(long timestamp) {
-        intanController.stop();
+        if (connected)
+            intanController.disconnect();
     }
 
     @Override
     public void trialInit(long timestamp, TrialContext context) {
-        intanController.record();
+        if (connected)
+            intanController.record();
     }
 
     @Override
     public void trialStop(long timestamp, TrialContext context) {
-        intanController.stop();
+        if (connected)
+            intanController.stop();
     }
 
     @Override
