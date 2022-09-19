@@ -100,6 +100,7 @@ import org.xper.eye.win.RampEyeWindowAlgorithm;
 import org.xper.eye.zero.EyeZeroAdjustable;
 import org.xper.eye.zero.EyeZeroMessageListener;
 import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
+import org.xper.intan.IntanMessageDispatcher;
 import org.xper.juice.AnalogJuice;
 import org.xper.juice.DynamicJuice;
 import org.xper.juice.mock.NullDynamicJuice;
@@ -113,7 +114,8 @@ import org.xper.trialsync.mock.NullTrialSync;
 public class ClassicConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired BaseConfig baseConfig;
-	
+	@Autowired IntanConfig intanConfig;
+
 	@ExternalValue("console.eye_simulation")
 	public boolean consoleEyeSimulation;
 	
@@ -288,6 +290,7 @@ public class ClassicConfig {
 		listeners.add(dataAcqController());
 		listeners.add(eyeZeroLogger());
 		listeners.add(experimentCpuBinder());
+		listeners.add(intanConfig.intanMessageDispatcher());
 		return listeners;
 	}
 	
@@ -314,6 +317,7 @@ public class ClassicConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(dynamicJuiceUpdater());
 		}
+		trialEventListener.add(intanConfig.intanMessageDispatcher());
 		
 		return trialEventListener;
 	}
