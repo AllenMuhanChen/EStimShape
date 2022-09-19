@@ -55,9 +55,9 @@ public class IntanClient {
         out.println(msg);
 
         //Wait until the correct value has been set
-        waitFor(new BooleanOperator() {
+        waitFor(new Condition() {
             @Override
-            public boolean isTrue() {
+            public boolean check() {
                 System.out.println("Waiting for value set on " + parameter + " to " + value);
                 return get(parameter).equalsIgnoreCase(value);
             }
@@ -70,9 +70,9 @@ public class IntanClient {
      * This is used to verify a set operation changes the value successfuly before
      * moving on because there is latency with setting operations.
      */
-    public void waitFor(BooleanOperator condition) {
+    public void waitFor(Condition condition) {
         ThreadUtil.sleep(QUERY_INTERVAL_MS);
-        while (!condition.isTrue()) {
+        while (!condition.check()) {
             ThreadUtil.sleep(QUERY_INTERVAL_MS);
         }
     }
@@ -80,9 +80,9 @@ public class IntanClient {
     public void clear(String parameter) {
         String msg = "set " + parameter;
         out.println(msg);
-        waitFor(new BooleanOperator() {
+        waitFor(new Condition() {
             @Override
-            public boolean isTrue() {
+            public boolean check() {
                 return isBlank(parameter);
             }
         });
