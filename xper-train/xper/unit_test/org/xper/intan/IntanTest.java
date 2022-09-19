@@ -4,6 +4,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.classic.vo.TrialContext;
 import org.xper.time.TestingTimeUtil;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
@@ -41,23 +42,6 @@ public class IntanTest {
     }
 
     @Test
-    public void test_intan_controller_change_filename(){
-        String path = intanController.getDefaultSavePath();
-        intanController.setSavePath(path);
-        assertEquals(path, intanClient.get("Filename.Path"));
-
-        String basename = "fooBase";
-        intanController.setBaseFilename(basename);
-        assertEquals(basename, intanClient.get("Filename.BaseFilename"));
-    }
-
-    @Test
-    public void get_on_empty_parameter_returns_empty_string(){
-        intanClient.clear("Filename.BaseFilename");
-        assertTrue(intanClient.get("Filename.BaseFilename").isEmpty());
-    }
-
-    @Test
     public void record_uses_default_path_and_basefilename(){
         intanClient.clear("Filename.BaseFilename");
         intanClient.clear("Filename.Path");
@@ -80,13 +64,11 @@ public class IntanTest {
     }
 
     @Test
-    public void intan_client_gets_and_sets(){
-        intanClient.set("fileformat", "onefilepersignaltype");
-
-        String fileformat = intanClient.get("fileformat");
-
-        assertTrue(fileformat, fileformat.contains("OneFilePerSignalType"));
+    public void get_on_empty_parameter_returns_empty_string(){
+        intanClient.clear("Filename.BaseFilename");
+        assertTrue(intanClient.get("Filename.BaseFilename").isEmpty());
     }
+
 
     @Test
     public void intan_client_handles_opening_conection_while_connection_already_open(){

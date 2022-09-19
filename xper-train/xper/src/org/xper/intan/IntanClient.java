@@ -32,7 +32,7 @@ public class IntanClient {
 
     private PrintWriter out;
     private BufferedReader in;
-    private Socket client;
+    private Socket client = new Socket();
 
     public void connect(){
         try {
