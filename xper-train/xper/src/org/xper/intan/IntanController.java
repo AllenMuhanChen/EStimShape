@@ -30,7 +30,7 @@ public class IntanController {
     public void record(){
         //path has not been set yet in the Intan software
         if(intanClient.isEmpty("Filename.Path")){
-            setPath(defaultSavePath);
+            setSavePath(defaultSavePath);
         }
         //baseFileName has not been set yet in the Intan software
         if(intanClient.isEmpty("Filename.BaseFilename")){
@@ -43,7 +43,7 @@ public class IntanController {
         runMode("Stop");
     }
 
-    public void setPath(String path) {
+    public void setSavePath(String path) {
         runMode("Stop"); //runMode needs to be Stop before Path can be changed
         intanClient.set("Filename.Path", path);
     }
