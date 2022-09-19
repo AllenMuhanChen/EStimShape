@@ -43,9 +43,9 @@ public class IntanController {
         runMode("Stop");
     }
 
-    public void setPath(String defaultPath) {
+    public void setPath(String path) {
         runMode("Stop"); //runMode needs to be Stop before Path can be changed
-        intanClient.set("Filename.Path", defaultPath);
+        intanClient.set("Filename.Path", path);
     }
 
     public void setBaseFilename(String baseFilename){

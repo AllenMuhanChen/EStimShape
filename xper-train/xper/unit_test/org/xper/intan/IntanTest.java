@@ -21,10 +21,6 @@ public class IntanTest {
 
     private static final TestingTimeUtil timeUtil = new TestingTimeUtil();
 
-    @Dependency
-    static String defaultSavePath;
-    @Dependency
-    static String defaultBaseFilename;
     /**
      * Before all of these tests will pass:
      * 1. The Intan Box needs to be turned ON
@@ -38,13 +34,6 @@ public class IntanTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
         intanClient = context.getBean(IntanClient.class);
         intanController = context.getBean(IntanController.class);
-
-//        intanClient = new IntanClient();
-//        intanController = new IntanController();
-//        intanController.setIntanClient(intanClient);
-//        intanController.setDefaultSavePath(defaultSavePath);
-//        intanController.setDefaultBaseFileName(defaultBaseFilename);
-
         intanController.connect();
     }
 
@@ -63,7 +52,6 @@ public class IntanTest {
     public void get_on_empty_parameter_returns_empty_string(){
         intanClient.clear("Filename.BaseFilename");
         assertTrue(intanClient.get("Filename.BaseFilename").isEmpty());
-
     }
 
     @Test
@@ -84,8 +72,8 @@ public class IntanTest {
         System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         //TODO: assert that the file(s) were created?
-        assertEquals(defaultSavePath, intanClient.get("Filename.Path"));
-        assertEquals(defaultBaseFilename, intanClient.get("Filename.BaseFilename"));
+        assertEquals(intanController.getDefaultSavePath(), intanClient.get("Filename.Path"));
+        assertEquals(intanController.getDefaultBaseFileName(), intanClient.get("Filename.BaseFilename"));
     }
 
 //    @Ignore("intanController's setRunMode methods already ensure" +
@@ -121,23 +109,4 @@ public class IntanTest {
         intanClient.connect();
         intanClient.connect();
     }
-
-    public static String getDefaultSavePath() {
-        return defaultSavePath;
-    }
-
-    public static void setDefaultSavePath(String defaultSavePath) {
-        IntanTest.defaultSavePath = defaultSavePath;
-    }
-
-    public static String getDefaultBaseFilename() {
-        return defaultBaseFilename;
-    }
-
-    public static void setDefaultBaseFilename(String defaultBaseFilename) {
-        IntanTest.defaultBaseFilename = defaultBaseFilename;
-    }
-
-
-
 }
