@@ -99,31 +99,35 @@ public class IntanClient {
     public String get(String parameter){
         out.println("get " + parameter);
         try {
-            long startTime = timeUtil.currentTimeMicros();
-            while (timeUtil.currentTimeMicros() < startTime + TIME_OUT_MS*1000){
-                in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                if (in.ready()){
-                    CharBuffer cb = CharBuffer.allocate(1000);
-                    in.read(cb);
-                    cb.flip();
-                    String resp = cb.toString();
-                    if (resp == null) {
-                        break;
-                    }
-                    if(parseResponse(resp).equalsIgnoreCase(parameter)){
-                        return "";
-                    } else {
-                        return parseResponse(resp);
-                    }
-                }
-            }
-            System.err.println("Could not get " + parameter + ". Timed out after " + TIME_OUT_MS + "ms.");
-            return null;
+            return readResponse(parameter);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
 
+    }
+
+    private String readResponse(String parameter) throws IOException {
+        long startTime = timeUtil.currentTimeMicros();
+        while (timeUtil.currentTimeMicros() < startTime + TIME_OUT_MS*1000){
+            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            if (in.ready()){
+                CharBuffer cb = CharBuffer.allocate(1000);
+                in.read(cb);
+                cb.flip();
+                String resp = cb.toString();
+                if (resp == null) {
+                    break;
+                }
+                if(parseResponse(resp).equalsIgnoreCase(parameter)){
+                    return "";
+                } else {
+                    return parseResponse(resp);
+                }
+            }
+        }
+        System.err.println("Could not get " + parameter + ". Timed out after " + TIME_OUT_MS + "ms.");
+        return null;
     }
 
     /**
