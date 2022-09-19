@@ -1,6 +1,7 @@
 package org.xper.intan;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.time.TestingTimeUtil;
@@ -24,9 +25,12 @@ public class IntanTest {
      * Before all of these tests will pass:
      * 1. The Intan Box needs to be turned ON
      * 2. The Intan Software needs to be open
-     * 3. The Intan TCP server needs to be listening for new connections.
+     * 3. There NEEDS to be a headstage plugged in or the Intan Software will occaisonally crash
+     *    with segmentation fault errors when setting runmode
+     * 4. The Intan TCP server needs to be listening for new connections.
      *    Do this by pressing the "Connect" button, found under "Network"
      *    in the tool bar.
+     * 4.5. Change the "Host" ip from 127.0.0.1 to the local ip4 address of the computer
      */
     @BeforeClass
     public static void set_up(){
@@ -38,11 +42,11 @@ public class IntanTest {
 
     @Test
     public void test_intan_controller_change_filename(){
-        String path = "fooPath";
+        String path = intanController.getDefaultSavePath();
         intanController.setSavePath(path);
         assertEquals(path, intanClient.get("Filename.Path"));
 
-        String basename = "barBase";
+        String basename = "fooBase";
         intanController.setBaseFilename(basename);
         assertEquals(basename, intanClient.get("Filename.BaseFilename"));
     }
@@ -74,24 +78,6 @@ public class IntanTest {
         assertEquals(intanController.getDefaultSavePath(), intanClient.get("Filename.Path"));
         assertEquals(intanController.getDefaultBaseFileName(), intanClient.get("Filename.BaseFilename"));
     }
-
-//    @Ignore("intanController's setRunMode methods already ensure" +
-//            "that the runmode isTrue set before terminating. Run this manually " +
-//            "to test timing.")
-//    @Test
-//    public void test_intan_controller_runModeRun_timing(){
-//        timeUtil.tic();
-//        intanController.runMode("Run");
-//        timeUtil.toc();
-//        assertTrue(intanController.isRunMode("Run"));
-//        System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
-//
-//        timeUtil.tic();
-//        intanController.runMode("Stop");
-//        timeUtil.toc();
-//        assertTrue(intanController.isRunMode("Stop"));
-//        System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
-//    }
 
     @Test
     public void intan_client_gets_and_sets(){
