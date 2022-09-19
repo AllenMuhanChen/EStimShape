@@ -81,6 +81,11 @@ public class IntanEventListener implements TrialEventListener, ExperimentEventLi
 
     }
 
+    public IntanController getIntanController() {
+        return intanController;
+    }
 
-
+    public void setIntanController(IntanController intanController) {
+        this.intanController = intanController;
+    }
 }
