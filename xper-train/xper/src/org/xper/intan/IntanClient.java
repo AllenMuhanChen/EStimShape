@@ -22,10 +22,10 @@ public class IntanClient {
     static final int QUERY_INTERVAL_MS = 10;
     static final int TIME_OUT_MS = 1000;
     @Dependency
-    String host = "172.30.9.78";
+    String host;
 
     @Dependency
-    int port = 5000;
+    int port;
 
     @Dependency
     TimeUtil timeUtil;
@@ -102,8 +102,6 @@ public class IntanClient {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-
     }
 
     private String readResponse(String parameter) throws IOException {
