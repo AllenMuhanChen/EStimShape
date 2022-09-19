@@ -2,6 +2,7 @@ package org.xper.intan;
 
 import org.xper.Dependency;
 import org.xper.exception.RemoteException;
+import org.xper.time.TimeUtil;
 import org.xper.util.ThreadUtil;
 
 import java.io.BufferedReader;
@@ -18,13 +19,16 @@ import java.nio.CharBuffer;
  * Provides basic tcp communication with Intan, like connecting, get, set and executing commands
  */
 public class IntanClient {
-    static final int QUERY_INTERVAL = 10;
-
+    static final int QUERY_INTERVAL_MS = 10;
+    static final int TIME_OUT_MS = 1000;
     @Dependency
     String host = "172.30.9.78";
 
     @Dependency
     int port = 5000;
+
+    @Dependency
+    TimeUtil timeUtil;
 
     private PrintWriter out;
     private BufferedReader in;
@@ -54,6 +58,7 @@ public class IntanClient {
         waitFor(new BooleanOperator() {
             @Override
             public boolean isTrue() {
+                System.out.println("Waiting for value set on " + parameter + " to " + value);
                 return get(parameter).equalsIgnoreCase(value);
             }
         });
@@ -66,9 +71,9 @@ public class IntanClient {
      * moving on because there is latency with setting operations.
      */
     public void waitFor(BooleanOperator condition) {
-        ThreadUtil.sleep(QUERY_INTERVAL);
+        ThreadUtil.sleep(QUERY_INTERVAL_MS);
         while (!condition.isTrue()) {
-            ThreadUtil.sleep(QUERY_INTERVAL);
+            ThreadUtil.sleep(QUERY_INTERVAL_MS);
         }
     }
 
@@ -94,7 +99,9 @@ public class IntanClient {
     public String get(String parameter){
         out.println("get " + parameter);
         try {
-            while (true){
+            long startTime = timeUtil.currentTimeMicros();
+            while (timeUtil.currentTimeMicros() < startTime + TIME_OUT_MS*1000){
+                in = new BufferedReader(new InputStreamReader(client.getInputStream()));
                 if (in.ready()){
                     CharBuffer cb = CharBuffer.allocate(1000);
                     in.read(cb);
@@ -110,12 +117,13 @@ public class IntanClient {
                     }
                 }
             }
-
+            System.err.println("Could not get " + parameter + ". Timed out after " + TIME_OUT_MS + "ms.");
+            return null;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        return null;
+
     }
 
     /**
@@ -162,4 +170,14 @@ public class IntanClient {
     public void setPort(int port) {
         this.port = port;
     }
+
+    public TimeUtil getTimeUtil() {
+        return timeUtil;
+    }
+
+    public void setTimeUtil(TimeUtil timeUtil) {
+        this.timeUtil = timeUtil;
+    }
+
+
 }

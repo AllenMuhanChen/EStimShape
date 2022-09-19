@@ -19,6 +19,9 @@ import java.beans.PropertyVetoException;
 @Import(ClassicConfig.class)
 public class TestConfig {
 
+    @Autowired
+    BaseConfig baseConfig;
+
     @ExternalValue("test.jdbc.driver")
     public String jdbcDriver;
 
@@ -78,6 +81,7 @@ public class TestConfig {
         IntanClient intanClient = new IntanClient();
         intanClient.setHost(intanHost);
         intanClient.setPort(Integer.parseInt(intanCommandPort));
+        intanClient.setTimeUtil(baseConfig.localTimeUtil());
         return intanClient;
     }
 
