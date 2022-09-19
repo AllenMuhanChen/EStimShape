@@ -51,13 +51,16 @@ public class IntanClient {
         out.println(msg);
 
         //Wait until the correct value has been set
-        waitFor(()->{
-            return get(parameter).equalsIgnoreCase(value);
+        waitFor(new BooleanOperator() {
+            @Override
+            public boolean isTrue() {
+                return get(parameter).equalsIgnoreCase(value);
+            }
         });
     }
 
     /**
-     * @param condition - given as a lambda function
+     * @param condition - given as a Boolean Operator - a function that returns a bool
      *
      * This is used to verify a set operation changes the value successfuly before
      * moving on because there is latency with setting operations.
@@ -72,6 +75,12 @@ public class IntanClient {
     public void clear(String parameter) {
         String msg = "set " + parameter;
         out.println(msg);
+        waitFor(new BooleanOperator() {
+            @Override
+            public boolean isTrue() {
+                return isEmpty(parameter);
+            }
+        });
     }
 
     /**
