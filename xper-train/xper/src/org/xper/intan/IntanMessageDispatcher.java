@@ -5,7 +5,7 @@ import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
 import org.xper.experiment.listener.ExperimentEventListener;
 
-public class IntanEventListener implements TrialEventListener, ExperimentEventListener {
+public class IntanMessageDispatcher implements TrialEventListener, ExperimentEventListener {
     @Dependency
     IntanController intanController;
 
@@ -17,7 +17,7 @@ public class IntanEventListener implements TrialEventListener, ExperimentEventLi
             intanController.connect();
             connected = true;
         } catch (Exception e){
-            System.err.println("Could not connect to Intan");
+            System.err.println("Could not connect to Intan, disabling Intan functionality");
             connected = false;
         }
     }
