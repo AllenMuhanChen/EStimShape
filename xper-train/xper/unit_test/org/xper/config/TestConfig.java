@@ -8,7 +8,7 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.exception.DbException;
 import org.xper.intan.IntanClient;
 import org.xper.intan.IntanController;
-import org.xper.intan.IntanEventListener;
+import org.xper.intan.IntanMessageDispatcher;
 import org.xper.util.DbUtil;
 
 import javax.sql.DataSource;
@@ -69,10 +69,10 @@ public class TestConfig {
     }
 
     @Bean
-    public IntanEventListener intanEventListener(){
-        IntanEventListener intanEventListener = new IntanEventListener();
-        intanEventListener.setIntanController(intanController());
-        return intanEventListener;
+    public IntanMessageDispatcher intanEventListener(){
+        IntanMessageDispatcher intanMessageDispatcher = new IntanMessageDispatcher();
+        intanMessageDispatcher.setIntanController(intanController());
+        return intanMessageDispatcher;
     }
 
     @Bean
