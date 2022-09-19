@@ -78,7 +78,7 @@ public class IntanClient {
         waitFor(new BooleanOperator() {
             @Override
             public boolean isTrue() {
-                return isEmpty(parameter);
+                return isBlank(parameter);
             }
         });
     }
@@ -87,7 +87,7 @@ public class IntanClient {
      * @param parameter
      * @return true if the specified parameter is not set in the Intan Software
      */
-    public boolean isEmpty(String parameter) {
+    public boolean isBlank(String parameter) {
         return get(parameter).isEmpty();
     }
 

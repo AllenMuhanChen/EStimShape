@@ -29,11 +29,11 @@ public class IntanController {
 
     public void record(){
         //path has not been set yet in the Intan software
-        if(intanClient.isEmpty("Filename.Path")){
+        if(intanClient.isBlank("Filename.Path")){
             setSavePath(defaultSavePath);
         }
         //baseFileName has not been set yet in the Intan software
-        if(intanClient.isEmpty("Filename.BaseFilename")){
+        if(intanClient.isBlank("Filename.BaseFilename")){
             setBaseFilename(defaultBaseFileName);
         }
         runMode("Record");
