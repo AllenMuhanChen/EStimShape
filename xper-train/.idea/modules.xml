@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/xper/xper.iml" filepath="$PROJECT_DIR$/xper/xper.iml" />
       <module fileurl="file://$PROJECT_DIR$/xper-3d/xper-3d.iml" filepath="$PROJECT_DIR$/xper-3d/xper-3d.iml" />
+      <module fileurl="file://$PROJECT_DIR$/xper-example/xper-example.iml" filepath="$PROJECT_DIR$/xper-example/xper-example.iml" />
       <module fileurl="file://$PROJECT_DIR$/xper/xper-intan/xper-intan.iml" filepath="$PROJECT_DIR$/xper/xper-intan/xper-intan.iml" />
       <module fileurl="file://$PROJECT_DIR$/xper-nafc/xper-nafc.iml" filepath="$PROJECT_DIR$/xper-nafc/xper-nafc.iml" />
       <module fileurl="file://$PROJECT_DIR$/xper-native/xper-native.iml" filepath="$PROJECT_DIR$/xper-native/xper-native.iml" />

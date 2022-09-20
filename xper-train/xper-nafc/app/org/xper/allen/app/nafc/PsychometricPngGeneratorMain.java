@@ -19,8 +19,6 @@ import org.xper.util.FileUtil;
  *
  */
 public class PsychometricPngGeneratorMain {
-	
-	
 
 	public static void main(String[] args) {
 		

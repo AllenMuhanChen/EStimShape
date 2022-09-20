@@ -1,4 +1,4 @@
-<project name="xper" default="dist" basedir=".">
+<project name="xper-example" default="dist" basedir=".">
 	<property name="build.home" location="${basedir}/class" />
 	<property name="xper.home" location="${basedir}/../xper" />
 	<property name="dist.home" location="${basedir}/../dist" />
