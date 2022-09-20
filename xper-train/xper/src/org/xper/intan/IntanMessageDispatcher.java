@@ -3,11 +3,16 @@ package org.xper.intan;
 import org.xper.Dependency;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.experiment.listener.ExperimentEventListener;
 
-public class IntanMessageDispatcher implements TrialEventListener, ExperimentEventListener {
+public class IntanMessageDispatcher implements TrialEventListener, ExperimentEventListener{
+
     @Dependency
     IntanController intanController;
+
+    @Dependency
+    IntanFileNamingStrategy fileNamingStrategy;
 
     private boolean connected = false;
 
@@ -31,8 +36,11 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
 
     @Override
     public void trialInit(long timestamp, TrialContext context) {
-        if (connected)
+        if (connected) {
+            fileNamingStrategy.rename();
+
             intanController.record();
+        }
     }
 
     @Override

@@ -18,6 +18,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.config.IntanConfig;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.intan.SimpleEStimEventListener;
@@ -80,7 +81,7 @@ public class NAFCConfig {
 	@Autowired BaseConfig baseConfig;
 	@Autowired ClassicConfig classicConfig;	
 	@Autowired AcqConfig acqConfig;
-	
+	@Autowired IntanConfig intanConfig;
 	
 	@ExternalValue("jdbc.driver")
 	public String jdbcDriver;
@@ -394,7 +395,7 @@ public class NAFCConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
-		
+		trialEventListener.add(intanConfig.intanMessageDispatcher());
 		return trialEventListener;
 	}
 	

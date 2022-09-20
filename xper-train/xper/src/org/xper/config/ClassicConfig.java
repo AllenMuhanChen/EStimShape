@@ -110,7 +110,7 @@ import org.xper.trialsync.mock.NullTrialSync;
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(AcqConfig.class)
+@Import({AcqConfig.class, IntanConfig.class})
 public class ClassicConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired BaseConfig baseConfig;
