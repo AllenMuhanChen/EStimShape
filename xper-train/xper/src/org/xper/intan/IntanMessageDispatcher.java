@@ -18,6 +18,10 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
 
     @Override
     public void experimentStart(long timestamp) {
+        tryConnection();
+    }
+
+    private void tryConnection() {
         try {
             intanController.connect();
             connected = true;
@@ -39,6 +43,8 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
         if (connected) {
             fileNamingStrategy.rename(context);
             intanController.record();
+        } else{
+            tryConnection();
         }
     }
 
