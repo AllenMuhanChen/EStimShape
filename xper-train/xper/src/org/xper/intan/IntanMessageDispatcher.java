@@ -37,8 +37,7 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
     @Override
     public void trialInit(long timestamp, TrialContext context) {
         if (connected) {
-            fileNamingStrategy.rename();
-
+            fileNamingStrategy.rename(context);
             intanController.record();
         }
     }
@@ -95,5 +94,13 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
 
     public void setIntanController(IntanController intanController) {
         this.intanController = intanController;
+    }
+
+    public IntanFileNamingStrategy getFileNamingStrategy() {
+        return fileNamingStrategy;
+    }
+
+    public void setFileNamingStrategy(IntanFileNamingStrategy fileNamingStrategy) {
+        this.fileNamingStrategy = fileNamingStrategy;
     }
 }

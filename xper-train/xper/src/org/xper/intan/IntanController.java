@@ -95,6 +95,13 @@ public class IntanController {
             return false;
     }
 
+    public String getSavePath(){
+        return intanClient.get("Filename.Path");
+    }
+
+    public String getBaseFilename(){
+        return intanClient.get("Filename.Path");
+    }
 
     public void setIntanClient(IntanClient intanClient) {
         this.intanClient = intanClient;
@@ -108,7 +115,6 @@ public class IntanController {
         this.defaultSavePath = defaultPath;
     }
 
-
     public String getDefaultBaseFileName() {
         return defaultBaseFileName;
     }
@@ -116,4 +122,6 @@ public class IntanController {
     public void setDefaultBaseFileName(String defaultBaseFileName) {
         this.defaultBaseFileName = defaultBaseFileName;
     }
+
+
 }

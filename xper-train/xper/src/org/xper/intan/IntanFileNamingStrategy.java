@@ -7,18 +7,13 @@ public abstract class IntanFileNamingStrategy {
     @Dependency
     IntanController intanController;
 
-    private String savePath;
-    private String baseFilename;
+    public abstract void rename(TrialContext context);
 
-    protected abstract void generatePath(TrialContext context);
-    protected abstract void generateBaseFilename(TrialContext context);
-
-    public void rename(TrialContext context){
-        generatePath(context);
-        generateBaseFilename(context);
-
-        intanController.setSavePath(savePath);
-        intanController.setBaseFilename(baseFilename);
+    public IntanController getIntanController() {
+        return intanController;
     }
 
+    public void setIntanController(IntanController intanController) {
+        this.intanController = intanController;
+    }
 }
