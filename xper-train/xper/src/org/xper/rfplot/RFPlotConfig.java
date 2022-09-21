@@ -16,6 +16,7 @@ import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.TaskScene;
+import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.experiment.listener.ExperimentEventListener;
@@ -47,6 +48,10 @@ public class RFPlotConfig {
 		HashMap<String, RFPlotDrawable> refObjMap = new HashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
 		scene.setRfObjectMap(refObjMap);
+		scene.setRenderer(rfRenderer());
+		scene.setFixation(classicConfig.experimentFixationPoint());
+		scene.setBlankScreen(new BlankScreen());
+		scene.setMarker(classicConfig.screenMarker());
 		return scene;
 	}
 	
