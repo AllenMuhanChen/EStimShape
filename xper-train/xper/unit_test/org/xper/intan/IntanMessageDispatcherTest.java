@@ -4,12 +4,11 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.classic.vo.TrialContext;
+import org.xper.experiment.ExperimentTask;
 import org.xper.util.FileUtil;
 
 /**
  * @author Allen Chen
- *
- * Run these tests without Intan running / listening for connections.
  *
  */
 public class IntanMessageDispatcherTest {
@@ -22,8 +21,16 @@ public class IntanMessageDispatcherTest {
         intanMessageDispatcher = context.getBean(IntanMessageDispatcher.class);
     }
 
+    /**
+     * Run this test with intan disconnected
+     */
     @Test
     public void do_not_crash_when_intan_not_connected(){
+        TrialContext testContext = new TrialContext();
+        ExperimentTask testTask = new ExperimentTask();
+        testTask.setTaskId(1);
+        testContext.setCurrentTask(testTask);
+
         intanMessageDispatcher.experimentStop(0);
         intanMessageDispatcher.trialInit(0, new TrialContext());
         intanMessageDispatcher.trialStop(0, new TrialContext());

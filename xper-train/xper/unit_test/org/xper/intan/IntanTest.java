@@ -72,8 +72,19 @@ public class IntanTest {
 
     @Test
     public void intan_client_handles_opening_conection_while_connection_already_open(){
+        timeUtil.tic();
         intanClient.connect();
+        timeUtil.toc();
+        System.out.println("Took " + timeUtil.elapsedTimeMillis() + "ms to check and maintain connection");
+
+        timeUtil.tic();
         intanClient.connect();
+        timeUtil.toc();
+        System.out.println("Took " + timeUtil.elapsedTimeMillis() + "ms to check and maintain connection");
+
+        timeUtil.tic();
         intanClient.connect();
+        timeUtil.toc();
+        System.out.println("Took " + timeUtil.elapsedTimeMillis() + "ms to check and maintain connection");
     }
 }

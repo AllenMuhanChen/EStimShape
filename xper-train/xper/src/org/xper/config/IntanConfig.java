@@ -6,9 +6,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.experiment.listener.ExperimentEventListener;
-import org.xper.intan.IntanClient;
-import org.xper.intan.IntanController;
-import org.xper.intan.IntanMessageDispatcher;
+import org.xper.intan.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,6 +34,7 @@ public class IntanConfig {
     @Bean
     public IntanMessageDispatcher intanMessageDispatcher(){
         IntanMessageDispatcher intanMessageDispatcher = new IntanMessageDispatcher();
+        intanMessageDispatcher.setFileNamingStrategy(intanFileNamingStrategy());
         intanMessageDispatcher.setIntanController(intanController());
         return intanMessageDispatcher;
     }
@@ -56,6 +55,13 @@ public class IntanConfig {
         intanClient.setPort(Integer.parseInt(intanCommandPort));
         intanClient.setTimeUtil(baseConfig.localTimeUtil());
         return intanClient;
+    }
+
+    @Bean
+    public IntanFileNamingStrategy intanFileNamingStrategy(){
+        TaskIdFileNamingStrategy strategy = new TaskIdFileNamingStrategy();
+        strategy.setIntanController(intanController());
+        return strategy;
     }
 
 

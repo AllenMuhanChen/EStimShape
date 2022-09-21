@@ -6,9 +6,7 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.exception.DbException;
-import org.xper.intan.IntanClient;
-import org.xper.intan.IntanController;
-import org.xper.intan.IntanMessageDispatcher;
+import org.xper.intan.*;
 import org.xper.util.DbUtil;
 
 import javax.sql.DataSource;
@@ -69,13 +67,6 @@ public class TestConfig {
     }
 
     @Bean
-    public IntanMessageDispatcher intanEventListener(){
-        IntanMessageDispatcher intanMessageDispatcher = new IntanMessageDispatcher();
-        intanMessageDispatcher.setIntanController(intanController());
-        return intanMessageDispatcher;
-    }
-
-    @Bean
     public IntanController intanController() {
         IntanController intanController = new IntanController();
         intanController.setIntanClient(intanClient());
@@ -92,4 +83,5 @@ public class TestConfig {
         intanClient.setTimeUtil(baseConfig.localTimeUtil());
         return intanClient;
     }
+
 }
