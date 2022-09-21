@@ -1,0 +1,184 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>configPstate_DualGrater</title><meta name="generator" content="MATLAB 7.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2014-03-07"><meta name="DC.source" content="configPstate_DualGrater.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="keyword">function</span> configPstate_DualGrater
+
+<span class="keyword">global</span> Pstate
+
+Pstate = struct; <span class="comment">%clear it</span>
+
+Pstate.param{1} = {<span class="string">'predelay'</span>  <span class="string">'float'</span>      2       0                <span class="string">'sec'</span>};
+Pstate.param{2} = {<span class="string">'postdelay'</span>  <span class="string">'float'</span>     2       0                <span class="string">'sec'</span>};
+Pstate.param{3} = {<span class="string">'stim_time'</span>  <span class="string">'float'</span>     1       0                <span class="string">'sec'</span>};
+
+Pstate.param{4} = {<span class="string">'x_pos'</span>       <span class="string">'int'</span>      600       0                <span class="string">'pixels'</span>};
+Pstate.param{5} = {<span class="string">'y_pos'</span>       <span class="string">'int'</span>      400       0                <span class="string">'pixels'</span>};
+Pstate.param{6} = {<span class="string">'x_size'</span>      <span class="string">'float'</span>      3       1                <span class="string">'deg'</span>};
+Pstate.param{7} = {<span class="string">'y_size'</span>      <span class="string">'float'</span>      3       1                <span class="string">'deg'</span>};
+Pstate.param{8} = {<span class="string">'mask_type'</span>   <span class="string">'string'</span>   <span class="string">'none'</span>       0                <span class="string">''</span>};
+Pstate.param{9} = {<span class="string">'mask_radius'</span> <span class="string">'float'</span>      6       1                <span class="string">'deg'</span>};
+Pstate.param{10} = {<span class="string">'x_zoom'</span>      <span class="string">'int'</span>   1       0                <span class="string">''</span>};
+Pstate.param{11} = {<span class="string">'y_zoom'</span>      <span class="string">'int'</span>   1       0                <span class="string">''</span>};
+
+Pstate.param{12} = {<span class="string">'background'</span>      <span class="string">'int'</span>   128       0                <span class="string">''</span>};
+Pstate.param{13} = {<span class="string">'contrast'</span>    <span class="string">'float'</span>     100       0                <span class="string">'%'</span>};
+
+Pstate.param{14} = {<span class="string">'ori'</span>         <span class="string">'int'</span>        0       0                <span class="string">'deg'</span>};
+
+Pstate.param{15} = {<span class="string">'h_per'</span>      <span class="string">'int'</span>   3       0                <span class="string">'frames'</span>};
+Pstate.param{16} = {<span class="string">'n_ori'</span>    <span class="string">'int'</span>   8       0                <span class="string">''</span>};
+Pstate.param{17} = {<span class="string">'n_phase'</span> <span class="string">'int'</span>   4       0             <span class="string">''</span>};
+
+Pstate.param{18} = {<span class="string">'min_sf'</span>   <span class="string">'float'</span>   1       0                <span class="string">''</span>};
+Pstate.param{19} = {<span class="string">'max_sf'</span>   <span class="string">'float'</span>   1       0                <span class="string">''</span>};
+Pstate.param{20} = {<span class="string">'n_sfreq'</span> <span class="string">'int'</span>   1       0             <span class="string">''</span>};
+Pstate.param{21} = {<span class="string">'sf_domain'</span>   <span class="string">'string'</span>   <span class="string">'log'</span>       0                <span class="string">''</span>};
+
+Pstate.param{22} = {<span class="string">'separable'</span>   <span class="string">'int'</span>     0       0                <span class="string">'bit'</span>};
+Pstate.param{23} = {<span class="string">'st_profile'</span>  <span class="string">'string'</span>   <span class="string">'sin'</span>       0                <span class="string">''</span>};
+Pstate.param{24} = {<span class="string">'s_profile'</span>   <span class="string">'string'</span>   <span class="string">'sin'</span>       0                <span class="string">''</span>};
+Pstate.param{25} = {<span class="string">'s_duty'</span>      <span class="string">'float'</span>   0.5       0                <span class="string">''</span>};
+Pstate.param{26} = {<span class="string">'t_profile'</span>   <span class="string">'string'</span>   <span class="string">'sin'</span>       0                <span class="string">''</span>};
+Pstate.param{27} = {<span class="string">'t_duty'</span>      <span class="string">'float'</span>   0.5       0                <span class="string">''</span>};
+Pstate.param{28} = {<span class="string">'t_period'</span>    <span class="string">'int'</span>       20       0                <span class="string">'frames'</span>};
+
+Pstate.param{29} = {<span class="string">'redgain'</span> <span class="string">'float'</span>   1       0             <span class="string">''</span>};
+Pstate.param{30} = {<span class="string">'greengain'</span> <span class="string">'float'</span>   1       0             <span class="string">''</span>};
+Pstate.param{31} = {<span class="string">'bluegain'</span> <span class="string">'float'</span>   1       0             <span class="string">''</span>};
+
+Pstate.param{32} = {<span class="string">'redbase'</span> <span class="string">'float'</span>   .5       0             <span class="string">''</span>};
+Pstate.param{33} = {<span class="string">'greenbase'</span> <span class="string">'float'</span>   .5       0             <span class="string">''</span>};
+Pstate.param{34} = {<span class="string">'bluebase'</span> <span class="string">'float'</span>   .5       0             <span class="string">''</span>};
+
+Pstate.param{35} = {<span class="string">'colorspace'</span> <span class="string">'string'</span>   <span class="string">'gray'</span>       0             <span class="string">''</span>};
+
+Pstate.param{36} = {<span class="string">'FourierBit'</span>   <span class="string">'int'</span>   0       0                <span class="string">''</span>};
+
+Pstate.param{37} = {<span class="string">'rseed'</span>    <span class="string">'int'</span>   1       0                <span class="string">''</span>};
+
+Pstate.param{38} = {<span class="string">'blankProb'</span>    <span class="string">'float'</span>   0       0                <span class="string">''</span>};
+
+Pstate.param{39} = {<span class="string">'stim_mon'</span>    <span class="string">'int'</span>   0       0                <span class="string">''</span>};
+Pstate.param{40} = {<span class="string">'mask_bit'</span> <span class="string">'int'</span>   0       0                <span class="string">''</span>};
+Pstate.param{41} = {<span class="string">'mask_type'</span>
+</pre><pre class="codeoutput">Error: File: /Stimulator_slave/configure/configPstate_DualGrater.m Line: 60 Column: 33
+This statement is incomplete.
+</pre><p class="footer"><br>
+      Published with MATLAB&reg; 7.14<br></p></div><!--
+##### SOURCE BEGIN #####
+function configPstate_DualGrater
+
+global Pstate
+
+Pstate = struct; %clear it
+
+Pstate.param{1} = {'predelay'  'float'      2       0                'sec'};
+Pstate.param{2} = {'postdelay'  'float'     2       0                'sec'};
+Pstate.param{3} = {'stim_time'  'float'     1       0                'sec'};
+
+Pstate.param{4} = {'x_pos'       'int'      600       0                'pixels'};
+Pstate.param{5} = {'y_pos'       'int'      400       0                'pixels'};
+Pstate.param{6} = {'x_size'      'float'      3       1                'deg'};
+Pstate.param{7} = {'y_size'      'float'      3       1                'deg'};
+Pstate.param{8} = {'mask_type'   'string'   'none'       0                ''};
+Pstate.param{9} = {'mask_radius' 'float'      6       1                'deg'};
+Pstate.param{10} = {'x_zoom'      'int'   1       0                ''};
+Pstate.param{11} = {'y_zoom'      'int'   1       0                ''};
+
+Pstate.param{12} = {'background'      'int'   128       0                ''};
+Pstate.param{13} = {'contrast'    'float'     100       0                '%'};
+
+Pstate.param{14} = {'ori'         'int'        0       0                'deg'};
+
+Pstate.param{15} = {'h_per'      'int'   3       0                'frames'};
+Pstate.param{16} = {'n_ori'    'int'   8       0                ''};
+Pstate.param{17} = {'n_phase' 'int'   4       0             ''};
+
+Pstate.param{18} = {'min_sf'   'float'   1       0                ''};
+Pstate.param{19} = {'max_sf'   'float'   1       0                ''};
+Pstate.param{20} = {'n_sfreq' 'int'   1       0             ''};
+Pstate.param{21} = {'sf_domain'   'string'   'log'       0                ''};
+
+Pstate.param{22} = {'separable'   'int'     0       0                'bit'};
+Pstate.param{23} = {'st_profile'  'string'   'sin'       0                ''};
+Pstate.param{24} = {'s_profile'   'string'   'sin'       0                ''};
+Pstate.param{25} = {'s_duty'      'float'   0.5       0                ''};
+Pstate.param{26} = {'t_profile'   'string'   'sin'       0                ''};
+Pstate.param{27} = {'t_duty'      'float'   0.5       0                ''};
+Pstate.param{28} = {'t_period'    'int'       20       0                'frames'};
+
+Pstate.param{29} = {'redgain' 'float'   1       0             ''};
+Pstate.param{30} = {'greengain' 'float'   1       0             ''};
+Pstate.param{31} = {'bluegain' 'float'   1       0             ''};
+
+Pstate.param{32} = {'redbase' 'float'   .5       0             ''};
+Pstate.param{33} = {'greenbase' 'float'   .5       0             ''};
+Pstate.param{34} = {'bluebase' 'float'   .5       0             ''};
+
+Pstate.param{35} = {'colorspace' 'string'   'gray'       0             ''};
+
+Pstate.param{36} = {'FourierBit'   'int'   0       0                ''};
+
+Pstate.param{37} = {'rseed'    'int'   1       0                ''};
+
+Pstate.param{38} = {'blankProb'    'float'   0       0                ''};
+
+Pstate.param{39} = {'stim_mon'    'int'   0       0                ''};
+Pstate.param{40} = {'mask_bit' 'int'   0       0                ''};
+Pstate.param{41} = {'mask_type' 
+##### SOURCE END #####
+--></body></html>
