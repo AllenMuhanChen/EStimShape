@@ -84,4 +84,11 @@ public class TestConfig {
         return intanClient;
     }
 
+    @Bean
+    public IntanFileNamingStrategy intanFileNamingStrategy(){
+        TaskIdFileNamingStrategy strategy = new TaskIdFileNamingStrategy();
+        strategy.setIntanController(intanController());
+        return strategy;
+    }
+
 }

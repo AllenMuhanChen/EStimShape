@@ -26,14 +26,22 @@ public class IntanMessageDispatcherTest {
      */
     @Test
     public void do_not_crash_when_intan_not_connected(){
+        intanMessageDispatcher.experimentStop(0);
+        intanMessageDispatcher.trialInit(0, new TrialContext());
+        intanMessageDispatcher.trialStop(0, new TrialContext());
+        intanMessageDispatcher.experimentStart(0);
+    }
+
+    @Test
+    public void trial_init_renames_base_filename_to_taskId(){
         TrialContext testContext = new TrialContext();
         ExperimentTask testTask = new ExperimentTask();
         testTask.setTaskId(1);
         testContext.setCurrentTask(testTask);
 
-        intanMessageDispatcher.experimentStop(0);
-        intanMessageDispatcher.trialInit(0, new TrialContext());
-        intanMessageDispatcher.trialStop(0, new TrialContext());
         intanMessageDispatcher.experimentStart(0);
+        intanMessageDispatcher.trialInit(0, testContext);
+        intanMessageDispatcher.trialStop(0, testContext);
+        intanMessageDispatcher.experimentStop(0);
     }
 }
