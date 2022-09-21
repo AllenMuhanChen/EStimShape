@@ -39,8 +39,18 @@ public class IntanController {
         runMode("Record");
     }
 
+    /**
+     * Stop saving of data to disk and playback of neural data
+     */
     public void stop(){
         runMode("Stop");
+    }
+
+    /**
+     * Stops saving of data to disk but keeps playback of neural data going
+     */
+    public void stopRecording(){
+        runMode("Run");
     }
 
     public void setSavePath(String path) {
@@ -57,6 +67,16 @@ public class IntanController {
      * @param mode: "Run", "Stop", "Record", or "Trigger"
      */
     private void runMode(String mode) {
+        if(mode.equalsIgnoreCase("Stop")){
+            setMode(mode);
+        } else{
+            setMode("Stop"); //Can only set to Run, Record, or Trigger if current mode is Stop
+            setMode(mode);
+        }
+
+    }
+
+    private void setMode(String mode) {
         if (!isRunMode(mode)) {
             waitForUpload();
             intanClient.set("runmode", mode);
@@ -67,8 +87,8 @@ public class IntanController {
      * @param mode: "Run", "Stop", "Record", or "Trigger"
      */
     private boolean isRunMode(String mode) {
-        String runmode = intanClient.get("runmode");
-        if (runmode.equalsIgnoreCase(mode)) {
+        String currentMode = intanClient.get("runmode");
+        if (currentMode.equalsIgnoreCase(mode)) {
             return true;
         } else {
             return false;

@@ -87,4 +87,14 @@ public class IntanTest {
         timeUtil.toc();
         System.out.println("Took " + timeUtil.elapsedTimeMillis() + "ms to check and maintain connection");
     }
+
+    @Test
+    public void intan_switches_from_recording_to_playback(){
+        intanController.record();
+        intanController.stopRecording();
+
+        assertTrue(intanClient.get("RunMode").equalsIgnoreCase("Run"));
+
+        intanController.stop();
+    }
 }

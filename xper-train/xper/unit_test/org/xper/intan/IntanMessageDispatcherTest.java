@@ -1,5 +1,6 @@
 package org.xper.intan;
 
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
@@ -46,6 +47,7 @@ public class IntanMessageDispatcherTest {
         intanMessageDispatcher.experimentStart(0);
         intanMessageDispatcher.trialInit(0, testContext);
         intanMessageDispatcher.trialStop(0, testContext);
+
         assertTrue(intanClient.get("Filename.BaseFilename").equals("1"));
     }
 }

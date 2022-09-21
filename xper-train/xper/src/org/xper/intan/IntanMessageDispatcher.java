@@ -4,6 +4,7 @@ import org.xper.Dependency;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.exception.RemoteException;
 import org.xper.experiment.listener.ExperimentEventListener;
 
 public class IntanMessageDispatcher implements TrialEventListener, ExperimentEventListener{
@@ -25,7 +26,7 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
         try {
             intanController.connect();
             connected = true;
-        } catch (Exception e){
+        } catch (RemoteException e){
             System.err.println("Could not connect to Intan, disabling Intan functionality");
             connected = false;
         }
@@ -33,8 +34,10 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
 
     @Override
     public void experimentStop(long timestamp) {
-        if (connected)
+        if (connected) {
+            intanController.stop();
             intanController.disconnect();
+        }
         connected = false;
     }
 
@@ -51,7 +54,7 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
     @Override
     public void trialStop(long timestamp, TrialContext context) {
         if (connected)
-            intanController.stop();
+            intanController.stopRecording();
     }
 
     @Override

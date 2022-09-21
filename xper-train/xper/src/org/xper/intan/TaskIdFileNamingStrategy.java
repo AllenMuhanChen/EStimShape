@@ -2,6 +2,9 @@ package org.xper.intan;
 
 import org.xper.classic.vo.TrialContext;
 
+/**
+ * @author Allen Chen
+ */
 public class TaskIdFileNamingStrategy extends IntanFileNamingStrategy{
 
     @Override
