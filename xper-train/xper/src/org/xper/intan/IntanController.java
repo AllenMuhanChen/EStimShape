@@ -81,10 +81,12 @@ public class IntanController {
      * commands
      */
     private void waitForUpload() {
-        while (isUploadInProgress()) {
-            System.out.println("Upload In Progress: Waiting");
-            ThreadUtil.sleep(IntanClient.QUERY_INTERVAL_MS);
-        }
+        intanClient.waitFor(new Condition() {
+            @Override
+            public boolean check() {
+                return !isUploadInProgress();
+            }
+        });
     }
 
     private boolean isUploadInProgress() {
