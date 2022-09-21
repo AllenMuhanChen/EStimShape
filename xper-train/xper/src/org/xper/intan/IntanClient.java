@@ -21,6 +21,7 @@ import java.nio.CharBuffer;
 public class IntanClient {
     static final int QUERY_INTERVAL_MS = 10;
     static final int TIME_OUT_MS = 1000;
+
     @Dependency
     String host;
 
@@ -64,7 +65,7 @@ public class IntanClient {
     }
 
     /**
-     * @param condition - given as a Boolean Operator - a function that returns a bool
+     * @param condition - given as a Condition - an object with a single method, check(), that returns a bool
      *
      * This is used to verify a set operation changes the value successfuly before
      * moving on because there is latency with setting operations.
