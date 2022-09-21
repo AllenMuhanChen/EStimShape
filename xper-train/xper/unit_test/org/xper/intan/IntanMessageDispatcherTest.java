@@ -7,6 +7,8 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.experiment.ExperimentTask;
 import org.xper.util.FileUtil;
 
+import static org.junit.Assert.assertTrue;
+
 /**
  * @author Allen Chen
  *
@@ -14,11 +16,13 @@ import org.xper.util.FileUtil;
 public class IntanMessageDispatcherTest {
 
     private static IntanMessageDispatcher intanMessageDispatcher;
+    private static IntanClient intanClient;
 
     @BeforeClass
     public static void set_up(){
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
         intanMessageDispatcher = context.getBean(IntanMessageDispatcher.class);
+        intanClient = context.getBean(IntanClient.class);
     }
 
     /**
@@ -42,6 +46,6 @@ public class IntanMessageDispatcherTest {
         intanMessageDispatcher.experimentStart(0);
         intanMessageDispatcher.trialInit(0, testContext);
         intanMessageDispatcher.trialStop(0, testContext);
-        intanMessageDispatcher.experimentStop(0);
+        assertTrue(intanClient.get("Filename.BaseFilename").equals("1"));
     }
 }
