@@ -7,6 +7,7 @@ import org.xper.Dependency;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 //import org.xper.drawing.renderer.PerspectiveStereoRenderer;
+import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.experiment.ExperimentTask;
 
 public class RFPlotScene extends AbstractTaskScene {
