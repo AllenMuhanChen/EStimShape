@@ -1,11 +1,6 @@
 package org.xper.rfplot;
 
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseMotionListener;
-import java.awt.event.MouseWheelListener;
+import java.awt.event.*;
 import java.util.List;
 
 import javax.swing.JPanel;
@@ -53,7 +48,11 @@ public abstract class RFPlotControl implements KeyListener, MouseListener, Mouse
 	
 	public void mouseReleased(MouseEvent e) {
 	}
-	
+
+	public void mouseWheelMoved(MouseWheelEvent e) {
+
+	}
+
 	public void keyPressed(KeyEvent e) {
 	}
 	
