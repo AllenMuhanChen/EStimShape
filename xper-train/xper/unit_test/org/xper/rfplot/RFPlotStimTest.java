@@ -28,8 +28,8 @@ public class RFPlotStimTest {
         xfmSpec.setColor(new RGBColor(1.0f,1.0f,1.0f));
         while(true){
             Random r = new Random();
-            double randX = r.nextDouble()*20-10;
-            double randY = r.nextDouble()*20-10;
+            double randX = r.nextDouble()*200-100;
+            double randY = r.nextDouble()*200-100;
             xfmSpec.setTranslation(new Coordinates2D(randX, randY));
 
             client.changeRFPlotStim(stimSpec.toXml());

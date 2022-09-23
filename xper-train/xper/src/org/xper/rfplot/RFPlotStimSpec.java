@@ -11,12 +11,14 @@ public class RFPlotStimSpec {
 	 * Spec for the RFPlotObject
 	 */
 	String stimSpec;
-	
+
+	boolean animation = true;
 	transient static XStream s;
 	
 	static {
 		s = new XStream();
 		s.alias("StimSpec", RFPlotStimSpec.class);
+		s.useAttributeFor("animation", boolean.class);
 	}
 	
 	public String toXml () {
