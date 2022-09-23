@@ -12,6 +12,9 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.classic.MarkEveryStepTrialDrawingController;
+import org.xper.classic.MarkStimTrialDrawingController;
+import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.ClassicConfig;
@@ -41,7 +44,8 @@ public class RFPlotConfig {
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}
-	
+
+
 	@Bean
 	public TaskScene taskScene() {
 		RFPlotScene scene = new RFPlotScene();
@@ -100,5 +104,20 @@ public class RFPlotConfig {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
 		return trialEventListener;
+	}
+
+	@Bean
+	public TrialDrawingController drawingController() {
+		RFPlotMarkStimTrialDrawingController controller;
+//		if (classicConfig.markEveryStep) {
+//			controller = new MarkEveryStepTrialDrawingController();
+//		} else {
+//			controller = new RFPlotMarkStimTrialDrawingController();
+//		}
+		controller = new RFPlotMarkStimTrialDrawingController();
+		controller.setWindow(classicConfig.monkeyWindow());
+		controller.setTaskScene(taskScene());
+		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
+		return controller;
 	}
 }

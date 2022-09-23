@@ -87,13 +87,11 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	}
 	
 	private void handleRequest() throws IOException {
-		System.err.println("handleRequest called");
 		Socket con = null;
 		try {
 			con = server.accept();
 			DataInputStream input = new DataInputStream(con.getInputStream());
 			int response = input.readInt();
-			System.err.println(response);
 
 			if (response != RFPLOT_STOP) {
 				String spec = input.readUTF();
@@ -104,11 +102,9 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 				switch (response) {
 				case RFPLOT_STIM_SPEC: 
 					task.setStimSpec(spec);
-					System.err.println("RFPLOT_STIM_SPEC");
 					break;
 				case RFPLOT_XFM_SPEC:
 					task.setXfmSpec(spec);
-					System.err.println("RFPLOT_XFM_SPEC");
 					break;
 				}
 				currentTask.set(task);
