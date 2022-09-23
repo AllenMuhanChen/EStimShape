@@ -1,20 +1,14 @@
 package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
-import org.xper.console.IConsolePlugin;
-import org.xper.rfplot.RFPlotTaskDataSourceClient;
-import org.xper.util.GuiUtil;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 public class RFPlotGUIController extends JFrame {
 
     @Dependency
-    RFPlotGUIView view;
+    RFPlotGUITestView view;
 
     @Dependency
     RFPlotGuiModel model;
@@ -34,16 +28,15 @@ public class RFPlotGUIController extends JFrame {
     }
 
     private void save(){
-        System.out.println("Saved");
         model.setStim(view.getStimTextField().getText());
-        model.setXfm(view.getXfmLabel().getText());
+        model.setXfm(view.getXfmTextField().getText());
     }
 
-    public RFPlotGUIView getView() {
+    public RFPlotGUITestView getView() {
         return view;
     }
 
-    public void setView(RFPlotGUIView view) {
+    public void setView(RFPlotGUITestView view) {
         this.view = view;
     }
 

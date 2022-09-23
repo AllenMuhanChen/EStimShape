@@ -1,22 +1,23 @@
 package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
+import org.xper.rfplot.RFPlotClient;
 import org.xper.rfplot.RFPlotTaskDataSourceClient;
 
 public class RFPlotGuiModel {
 
     @Dependency
-    RFPlotTaskDataSourceClient client;
+    RFPlotClient client;
 
     String stim;
 
     String xfm;
 
-    public RFPlotTaskDataSourceClient getClient() {
+    public RFPlotClient getClient() {
         return client;
     }
 
-    public void setClient(RFPlotTaskDataSourceClient client) {
+    public void setClient(RFPlotClient client) {
         this.client = client;
     }
 
@@ -26,6 +27,7 @@ public class RFPlotGuiModel {
 
     public void setStim(String stim) {
         this.stim = stim;
+        client.changeRFPlotStim(stim);
     }
 
     public String getXfm() {
@@ -34,5 +36,6 @@ public class RFPlotGuiModel {
 
     public void setXfm(String xfm) {
         this.xfm = xfm;
+        client.changeRFPlotXfm(xfm);
     }
 }

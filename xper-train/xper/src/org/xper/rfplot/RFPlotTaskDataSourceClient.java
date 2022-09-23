@@ -6,24 +6,28 @@ import java.net.Socket;
 import org.xper.Dependency;
 import org.xper.exception.RemoteException;
 
-public class RFPlotTaskDataSourceClient {
+public class RFPlotTaskDataSourceClient implements RFPlotClient {
 	@Dependency
 	String host;
 	@Dependency
 	int port = RFPlotTaskDataSource.DEFAULT_RF_PLOT_TASK_DATA_SOURCE_PORT;
 	
+	@Override
 	public String getHost() {
 		return host;
 	}
 
+	@Override
 	public void setHost(String host) {
 		this.host = host;
 	}
 
+	@Override
 	public int getPort() {
 		return port;
 	}
 
+	@Override
 	public void setPort(int port) {
 		this.port = port;
 	}
@@ -37,7 +41,8 @@ public class RFPlotTaskDataSourceClient {
 		this.host = host;
 	}
 	
-	public void shutdownRFPlotTaskDataSourceServer () {
+	@Override
+	public void shutdownRFPlotTaskDataSourceServer() {
 		Socket client;
 		try {
 			client = new Socket(host, port);
@@ -50,7 +55,8 @@ public class RFPlotTaskDataSourceClient {
 		}
 	}
 
-	public void changeRFPlotStim (String stim) {
+	@Override
+	public void changeRFPlotStim(String stim) {
 		Socket client;
 		try {
 			client = new Socket(host, port);
@@ -64,7 +70,8 @@ public class RFPlotTaskDataSourceClient {
 		}
 	}
 	
-	public void changeRFPlotXfm (String xfm) {
+	@Override
+	public void changeRFPlotXfm(String xfm) {
 		Socket client;
 		try {
 			client = new Socket(host, port);
