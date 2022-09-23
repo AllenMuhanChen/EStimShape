@@ -16,7 +16,7 @@ public class RFPlotStimSpec {
 	
 	static {
 		s = new XStream();
-		s.alias("RFPlotSpec", RFPlotStimSpec.class);
+		s.alias("StimSpec", RFPlotStimSpec.class);
 	}
 	
 	public String toXml () {
