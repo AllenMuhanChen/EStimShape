@@ -4,10 +4,8 @@ import org.xper.util.GuiUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
-public class RFPlotGUIView {
+public class RFPlotGUITestView {
 
     private JFrame frame;
     private JLabel stimLabel;
@@ -16,13 +14,14 @@ public class RFPlotGUIView {
     private JTextField xfmTextField;
     private JButton saveButton;
 
-    public RFPlotGUIView(){
+    public RFPlotGUITestView(){
         frame = new JFrame("RFPlot");
 
         //CONFIGURE FRAME
         frame.getContentPane().setLayout(new BoxLayout(frame.getContentPane(),BoxLayout.PAGE_AXIS));
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(true);
+        frame.setSize(new Dimension(500,500));
         GuiUtil.makeDisposeOnEscapeKey(frame);
 
         //CREATE UI ELEMENTS
