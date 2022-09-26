@@ -1,6 +1,7 @@
 package org.xper.rfplot;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
@@ -12,7 +13,7 @@ import org.xper.experiment.ExperimentTask;
 
 public class RFPlotScene extends AbstractTaskScene {
 	@Dependency
-	HashMap<String, RFPlotDrawable> rfObjectMap;
+	Map<String, RFPlotDrawable> rfObjectMap;
 	
 	RFPlotStimSpec spec;
 	RFPlotXfmSpec xfm;
@@ -55,11 +56,11 @@ public class RFPlotScene extends AbstractTaskScene {
 		}
 	}
 	
-	public HashMap<String, RFPlotDrawable> getRfObjectMap() {
+	public Map<String, RFPlotDrawable> getRfObjectMap() {
 		return rfObjectMap;
 	}
 
-	public void setRfObjectMap(HashMap<String, RFPlotDrawable> rfObjectMap) {
+	public void setRfObjectMap(Map<String, RFPlotDrawable> rfObjectMap) {
 		this.rfObjectMap = rfObjectMap;
 	}
 }
