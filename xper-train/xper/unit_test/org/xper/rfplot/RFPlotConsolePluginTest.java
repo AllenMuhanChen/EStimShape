@@ -28,11 +28,16 @@ public class RFPlotConsolePluginTest {
     }
 
     @Test
-    public void start_plugin_sets_default_stim_spec(){
+    public void start_plugin_sets_default_stim_spec_and_xfm(){
         plugin.startPlugin();
 
         String actualStimSpec = client.getMockStim();
         String expectedStimSpec = new RFPlotGaborObject().getSpec();
+
+        String actualXfmSpec = client.getMockXfm();
+        String expectedXfmSpec = new RFPlotXfmSpec().fromXml(null).toXml();
+
         assertEquals(expectedStimSpec, actualStimSpec);
+        assertEquals(expectedXfmSpec, actualXfmSpec);
     }
 }
