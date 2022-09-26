@@ -154,7 +154,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		}
 		 
 
-		// trial runModeStop
+		// trial stop
 		if (currentContext != null) {
 			long trialStopLocalTime = timeUtil.currentTimeMicros();
 			currentContext.setTrialStopTime(trialStopLocalTime);

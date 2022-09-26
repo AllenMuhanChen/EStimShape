@@ -71,7 +71,7 @@ public class DbUtil {
 	}
 
 	/**
-	 * Get AcqData between start time and runModeStop time.
+	 * Get AcqData between start time and stop time.
 	 * 
 	 * @param startTime
 	 * @param stopTime
@@ -134,7 +134,7 @@ public class DbUtil {
 	}
 	
 	/**
-	 * Get the time stamp of the most recent AcqData runModeRecord.
+	 * Get the time stamp of the most recent AcqData record.
 	 * @return
 	 */
 	public long readAcqDataMaxTimestamp () {
@@ -959,7 +959,7 @@ public class DbUtil {
 	}
 
 	/**
-	 * Write AcqData runModeRecord as little endian binary into database.
+	 * Write AcqData record as little endian binary into database.
 	 * 
 	 * @param tstamp
 	 * @param data

@@ -142,7 +142,7 @@ public class MarkStimExperimentSpikeCounter {
 			odd_marker_player = AcqUtil.getDigitalPlayer (acq_data, odd_marker_chan, odd_marker_channel_type);
 			if (!even_marker_player.hasUp() || !odd_marker_player.hasUp() ||
 					!even_marker_player.hasDown() || !odd_marker_player.hasDown()) {
-				throw new InvalidAcqDataException("Even and odd marker channels must runModeRecord up and down edge.");
+				throw new InvalidAcqDataException("Even and odd marker channels must record up and down edge.");
 			}
 			DigitalChannelPlayer [] player = new DigitalChannelPlayer[] {even_marker_player, odd_marker_player};
 		

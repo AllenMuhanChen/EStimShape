@@ -52,7 +52,7 @@ public class SocketTimeServer implements TimeServer {
 	}
 
 	/**
-	 * When runModeStop method is called, accept in this method will be still waiting until the next request comes.
+	 * When stop method is called, accept in this method will be still waiting until the next request comes.
 	 * Then after handling the next request, the server stops.
 	 * @throws IOException
 	 */

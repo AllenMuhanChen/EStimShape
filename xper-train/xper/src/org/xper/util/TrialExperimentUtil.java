@@ -152,7 +152,7 @@ public class TrialExperimentUtil {
 		}
 		taskDoneCache.flush();
 
-		// trial runModeStop
+		// trial stop
 		if (currentContext != null) {
 			long trialStopLocalTime = timeUtil.currentTimeMicros();
 			currentContext.setTrialStopTime(trialStopLocalTime);
@@ -356,7 +356,7 @@ public class TrialExperimentUtil {
 						threadHelper);
 			}
 		} finally {
-			// experiment runModeStop event
+			// experiment stop event
 			try {
 				System.out.println("SlideTrialExperiment stopped.");
 				EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),

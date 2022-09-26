@@ -17,7 +17,7 @@ public interface AnalogPlayer {
 	public void reset ();
 	
 	/**
-	 * Move pointer position to the first data runModeRecord with time stamp greater than or equal to sampleIndex.
+	 * Move pointer position to the first data record with time stamp greater than or equal to sampleIndex.
 	 * 
 	 * @param startTime
 	 * @return
@@ -25,7 +25,7 @@ public interface AnalogPlayer {
 	public boolean seekBeginWith (int sampleIndex);
 	
 	/**
-	 * Move pointer position to the last data runModeRecord with time stamp less than or equal to sampleIndex.
+	 * Move pointer position to the last data record with time stamp less than or equal to sampleIndex.
 	 * 
 	 * @param startSampleIndex
 	 * @return

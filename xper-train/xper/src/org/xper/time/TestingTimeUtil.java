@@ -6,16 +6,6 @@ import org.xper.util.OsUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * @author Allen Chen
- *
- * Intended to be used in unit tests:
- *
- * Contains tic toc functionality for measuring speed of operations.
- *
- * Updates XperConfig so DefaultTimeUtil has access to appropiate native libraries
- *
- */
 public class TestingTimeUtil extends DefaultTimeUtil {
     private long tic;
     private long toc;
@@ -29,6 +19,7 @@ public class TestingTimeUtil extends DefaultTimeUtil {
 
     public void tic(){
         this.tic = currentTimeMicros();
+        this.toc = 0;
     }
 
     public void toc(){
@@ -44,4 +35,8 @@ public class TestingTimeUtil extends DefaultTimeUtil {
         return Math.round(elapsed/1000);
     }
 
+    public long currentTimeMicros() {
+        long next = OsUtil.getTimeOfDay();
+        return next;
+    }
 }
