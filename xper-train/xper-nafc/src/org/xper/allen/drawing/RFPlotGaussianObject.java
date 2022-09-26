@@ -23,7 +23,6 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
-	private double rfRadius;
 
 	@Override
 	public String getDefaultSpec() {
@@ -67,31 +66,12 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	
 
 	public void draw(Context context) {
-		rfRadius = 1;
+		double rfRadius = 1;
 
 		double xCenter = spec.getXCenter() * rfRadius;
 		xCenter = deg2mm(xCenter);
 		double yCenter = spec.getYCenter() * rfRadius;
 		yCenter = deg2mm(yCenter);
-
-
-		array.flip();
-		GL11.glInterleavedArrays(GL11.GL_T2F_C3F_V3F, 0, array);
-
-		GL11.glEnable(GL11.GL_TEXTURE_2D);
-
-		GL11.glTranslated(xCenter, yCenter, 0);
-		GL11.glRotatef((float) (0 * 180 / Math.PI), 0.0f, 0.0f, 1.0f);
-
-		GL11.glDrawArrays(GL11.GL_QUADS, 0, STEPS * 4);
-
-		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		GL11.glRotatef((float) (-0 * 180 / Math.PI), 0.0f, 0.0f,
-						1.0f);
-		GL11.glTranslatef((float) -xCenter, (float) -yCenter, 0f);
-	}
-
-	private void buildAnimation(GaussSpec spec) {
 		double size = spec.getSize() * rfRadius;
 		size = deg2mm(size);
 		double brightness = spec.getBrightness();
@@ -156,8 +136,23 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 			array.putFloat(next_y);
 			array.putFloat(0.0f);
 		}
-	}
 
+		array.flip();
+		GL11.glInterleavedArrays(GL11.GL_T2F_C3F_V3F, 0, array);
+
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+		GL11.glTranslated(xCenter, yCenter, 0);
+		GL11.glRotatef((float) (0 * 180 / Math.PI), 0.0f, 0.0f, 1.0f);
+
+		GL11.glDrawArrays(GL11.GL_QUADS, 0, STEPS * 4);
+
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		GL11.glRotatef((float) (-0 * 180 / Math.PI), 0.0f, 0.0f,
+						1.0f);
+		GL11.glTranslatef((float) -xCenter, (float) -yCenter, 0f);
+	}
+	
 	public static void initGL() {
 		int w = 1024;
 		int h = 1024;
@@ -185,7 +180,6 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	@Override
 	public void setSpec(String spec) {
 		this.spec = GaussSpec.fromXml(spec);
-		buildAnimation(this.spec);
 	}
 
 
