@@ -19,10 +19,10 @@ public class RFPlotStimTest {
         RFPlotStimSpec stimSpec = new RFPlotStimSpec();
         GaborSpec gaborSpec = new GaborSpec();
         gaborSpec.setPhase(0);
-        gaborSpec.setFrequency(1);
+        gaborSpec.setFrequency(0.1);
         gaborSpec.setOrientation(0);
         gaborSpec.setAnimation(true);
-        gaborSpec.setSize(10);
+        gaborSpec.setSize(50);
         gaborSpec.setXCenter(0);
         gaborSpec.setYCenter(0);
         stimSpec.setStimSpec(gaborSpec.toXml());
@@ -32,6 +32,7 @@ public class RFPlotStimTest {
         xfmSpec.setColor(new RGBColor(1.0f,1.0f,1.0f));
         double prevX=0;
         double prevY=0;
+
         while(true){
             Random r = new Random();
             double stepSize = 10;
@@ -39,13 +40,12 @@ public class RFPlotStimTest {
             double randY = r.nextDouble()*stepSize-stepSize/2;
             double newX = prevX + randX;
             double newY = prevY + randY;
-            xfmSpec.setTranslation(new Coordinates2D(newX, newY));
+//            xfmSpec.setTranslation(new Coordinates2D(newX, newY));
             prevX = newX;
             prevY = newY;
 
-            client.changeRFPlotStim(stimSpec.toXml());
             client.changeRFPlotXfm(xfmSpec.toXml());
-
+            client.changeRFPlotStim(stimSpec.toXml());
             ThreadUtil.sleep(16);
         }
     }

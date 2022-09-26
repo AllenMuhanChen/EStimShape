@@ -15,6 +15,21 @@ public class RFPlotGaborObject implements RFPlotDrawable {
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
+
+
+	@Override
+	public String getDefaultSpec() {
+		GaborSpec defaultSpec = new GaborSpec();
+		defaultSpec.setPhase(0);
+		defaultSpec.setFrequency(1);
+		defaultSpec.setOrientation(0);
+		defaultSpec.setAnimation(true);
+		defaultSpec.setSize(10);
+		defaultSpec.setXCenter(0);
+		defaultSpec.setYCenter(0);
+
+		return defaultSpec.toXml();
+	}
 		
 	static ByteBuffer makeTexture(int w, int h) {
 		ByteBuffer texture = ByteBuffer.allocateDirect(
@@ -157,5 +172,6 @@ public class RFPlotGaborObject implements RFPlotDrawable {
 	public void setSpec(String s) {
 		spec = GaborSpec.fromXml(s);
 	}
+
 
 }
