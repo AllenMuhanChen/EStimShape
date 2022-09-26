@@ -1,6 +1,7 @@
 package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
+import org.xper.app.rfplot.CyclicIterator;
 import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
@@ -11,28 +12,51 @@ import org.xper.rfplot.*;
 import org.xper.util.StringUtil;
 
 import javax.swing.*;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class RFPlotConsolePlugin implements IConsolePlugin {
     @Dependency
     RFPlotClient client;
 
     @Dependency
-    HashMap<String, RFPlotDrawable> rfObjectMap;
+    LinkedHashMap<String, RFPlotDrawable> rfObjectMap;
 
     @Dependency
     ConsoleRenderer consoleRenderer;
 
     private String xfmSpec;
     private String stimSpec;
+    private CyclicIterator<String> types;
+
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)) {
+            String nextType = types.next();
+            changeStimType(nextType);
+        }
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
+            String previousType = types.previous();
+            changeStimType(previousType);
+        }
+    }
 
+    private void changeStimType(String stimType) {
+        RFPlotDrawable firstStimObj = rfObjectMap.get(stimType);
+        RFPlotStimSpec stimSpec = new RFPlotStimSpec();
+        stimSpec.setStimSpec(firstStimObj.getSpec());
+        stimSpec.setStimClass(firstStimObj.getClass().getName());
+        client.changeRFPlotStim(stimSpec.toXml());
+        System.err.println(stimType);
+    }
+
+    private void init() {
+        types = new CyclicIterator<String>(rfObjectMap.keySet());
+        String firstType = types.first();
+        try{changeStimType(firstType);} catch (Exception e){}
     }
 
     @Override
@@ -41,17 +65,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void startPlugin() {
-        setDefaultStimSpec();
-        setDefaultXfmSpec();
-    }
-
-    private void setDefaultStimSpec() {
-        String firstStimType = String.valueOf(rfObjectMap.keySet().stream().findFirst().orElse(null));
-        RFPlotDrawable firstStimObj = rfObjectMap.get(firstStimType);
-        RFPlotStimSpec stimSpec = new RFPlotStimSpec();
-        stimSpec.setStimSpec(firstStimObj.getSpec());
-        stimSpec.setStimClass(firstStimObj.getClass().getName());
-        client.changeRFPlotStim(stimSpec.toXml());
+        init();
     }
 
     private void setDefaultXfmSpec(){
@@ -92,12 +106,15 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public KeyStroke getToken() {
-        return KeyStroke.getKeyStroke('r');
+        return KeyStroke.getKeyStroke(KeyEvent.VK_R, 0);
     }
 
     @Override
     public List<KeyStroke> getCommandKeys() {
-        return new LinkedList<>();
+        List<KeyStroke> commandKeys = new LinkedList<>();
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_A,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_D,0));
+        return commandKeys;
     }
 
     @Override
@@ -122,7 +139,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         return rfObjectMap;
     }
 
-    public void setRfObjectMap(HashMap<String, RFPlotDrawable> rfObjectMap) {
+    public void setRfObjectMap(LinkedHashMap<String, RFPlotDrawable> rfObjectMap) {
         this.rfObjectMap = rfObjectMap;
     }
 

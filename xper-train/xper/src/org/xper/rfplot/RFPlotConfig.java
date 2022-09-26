@@ -1,6 +1,7 @@
 package org.xper.rfplot;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,6 +22,7 @@ import org.xper.config.ClassicConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.IConsolePlugin;
+import org.xper.drawing.Context;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.PerspectiveRenderer;
@@ -62,9 +64,11 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public HashMap<String, RFPlotDrawable> refObjMap() {
-		HashMap<String, RFPlotDrawable> refObjMap = new HashMap<String, RFPlotDrawable>();
+	public LinkedHashMap<String, RFPlotDrawable> refObjMap() {
+		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
+		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
+
 		return refObjMap;
 	}
 
