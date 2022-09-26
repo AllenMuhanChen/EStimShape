@@ -22,7 +22,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     RFPlotClient client;
 
     @Dependency
-    LinkedHashMap<String, RFPlotDrawable> rfObjectMap;
+    Map<String, RFPlotDrawable> rfObjectMap;
 
     @Dependency
     ConsoleRenderer consoleRenderer;
@@ -135,11 +135,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         this.client = client;
     }
 
-    public HashMap<String, RFPlotDrawable> getRfObjectMap() {
+    public Map<String, RFPlotDrawable> getRfObjectMap() {
         return rfObjectMap;
     }
 
-    public void setRfObjectMap(LinkedHashMap<String, RFPlotDrawable> rfObjectMap) {
+    public void setRfObjectMap(Map<String, RFPlotDrawable> rfObjectMap) {
         this.rfObjectMap = rfObjectMap;
     }
 

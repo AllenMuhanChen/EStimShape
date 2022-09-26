@@ -1,9 +1,6 @@
 package org.xper.rfplot;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
@@ -64,7 +61,7 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public LinkedHashMap<String, RFPlotDrawable> refObjMap() {
+	public Map<String, RFPlotDrawable> refObjMap() {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
