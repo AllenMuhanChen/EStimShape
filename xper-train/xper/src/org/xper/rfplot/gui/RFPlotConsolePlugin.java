@@ -3,6 +3,7 @@ package org.xper.rfplot.gui;
 import org.xper.Dependency;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.RFPlotClient;
 import org.xper.rfplot.RFPlotDrawable;
@@ -58,6 +59,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void handleMouseMove(int x, int y) {
+        RFPlotXfmSpec nowXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
+        nowXfmSpec.setTranslation(new Coordinates2D(x,y));
+        xfmSpec = nowXfmSpec.toXml();
+        client.changeRFPlotXfm(xfmSpec);
     }
 
     @Override
