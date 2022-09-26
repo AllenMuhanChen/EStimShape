@@ -3,9 +3,11 @@ package org.xper.rfplot.gui;
 import org.xper.Dependency;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
+import org.xper.drawing.RGBColor;
 import org.xper.rfplot.RFPlotClient;
 import org.xper.rfplot.RFPlotDrawable;
 import org.xper.rfplot.RFPlotTaskDataSourceClient;
+import org.xper.rfplot.RFPlotXfmSpec;
 
 import javax.swing.*;
 import java.awt.event.MouseEvent;
@@ -34,9 +36,19 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void startPlugin() {
+        setDefaultStimSpec();
+        setDefaultXfmSpec();
+    }
+
+    private void setDefaultStimSpec() {
         String firstStimType = String.valueOf(rfObjectMap.keySet().stream().findFirst().orElse(null));
         RFPlotDrawable firstStimObj = rfObjectMap.get(firstStimType);
         client.changeRFPlotStim(firstStimObj.getSpec());
+    }
+
+    private void setDefaultXfmSpec(){
+        RFPlotXfmSpec xfmSpec = RFPlotXfmSpec.fromXml(null);
+        client.changeRFPlotXfm(xfmSpec.toXml());
     }
 
     @Override
