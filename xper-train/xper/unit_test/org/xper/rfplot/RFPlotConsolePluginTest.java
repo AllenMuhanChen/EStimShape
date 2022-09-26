@@ -2,6 +2,7 @@ package org.xper.rfplot;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.gui.RFPlotConsolePlugin;
 
 import java.util.HashMap;
@@ -39,5 +40,17 @@ public class RFPlotConsolePluginTest {
 
         assertEquals(expectedStimSpec, actualStimSpec);
         assertEquals(expectedXfmSpec, actualXfmSpec);
+    }
+
+    @Test
+    public void mouse_move_changes_location(){
+        plugin.handleMouseMove(50,50);
+
+        String xfm = client.getMockXfm();
+        RFPlotXfmSpec spec = RFPlotXfmSpec.fromXml(xfm);
+        Coordinates2D actualCoords = spec.getTranslation();
+        Coordinates2D expectedCoords = new Coordinates2D(50,50);
+
+        assertEquals(expectedCoords, actualCoords);
     }
 }

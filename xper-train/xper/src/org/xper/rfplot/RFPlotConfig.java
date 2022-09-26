@@ -18,6 +18,9 @@ import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.console.ExperimentConsole;
+import org.xper.console.ExperimentMessageReceiver;
+import org.xper.console.IConsolePlugin;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.PerspectiveRenderer;
@@ -25,6 +28,7 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
+import org.xper.rfplot.gui.RFPlotConsolePlugin;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -49,16 +53,21 @@ public class RFPlotConfig {
 	@Bean
 	public TaskScene taskScene() {
 		RFPlotScene scene = new RFPlotScene();
-		HashMap<String, RFPlotDrawable> refObjMap = new HashMap<String, RFPlotDrawable>();
-		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
-		scene.setRfObjectMap(refObjMap);
+		scene.setRfObjectMap(refObjMap());
 		scene.setRenderer(rfRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setBlankScreen(new BlankScreen());
 		scene.setMarker(classicConfig.screenMarker());
 		return scene;
 	}
-	
+
+	@Bean
+	public HashMap<String, RFPlotDrawable> refObjMap() {
+		HashMap<String, RFPlotDrawable> refObjMap = new HashMap<String, RFPlotDrawable>();
+		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
+		return refObjMap;
+	}
+
 	@Bean
 	public RFPlotTaskDataSource taskDataSource() {
 		RFPlotTaskDataSource taskDataSource = new RFPlotTaskDataSource();
@@ -119,5 +128,39 @@ public class RFPlotConfig {
 		controller.setTaskScene(taskScene());
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
 		return controller;
+	}
+
+
+	@Bean
+	public ExperimentConsole experimentConsole () {
+		ExperimentConsole console = new ExperimentConsole();
+
+		console.setPaused(classicConfig.xperExperimentInitialPause());
+		console.setConsoleRenderer(classicConfig.consoleRenderer());
+		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
+		console.setModel(classicConfig.experimentConsoleModel());
+		console.setCanvasScaleFactor(3);
+
+		ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
+		// register itself to avoid circular reference
+		receiver.addMessageReceiverEventListener(console);
+
+		List<IConsolePlugin> plugins = new LinkedList<>();
+		plugins.add(rfPlotConsolePlugin());
+		console.setConsolePlugins(plugins);
+		return console;
+	}
+
+	@Bean
+	public RFPlotConsolePlugin rfPlotConsolePlugin(){
+		RFPlotConsolePlugin plugin = new RFPlotConsolePlugin();
+		plugin.setClient(rfPlotClient());
+		plugin.setRfObjectMap(refObjMap());
+		return plugin;
+	}
+
+	@Bean
+	public RFPlotClient rfPlotClient(){
+		return new RFPlotTaskDataSourceClient(classicConfig.experimentHost);
 	}
 }
