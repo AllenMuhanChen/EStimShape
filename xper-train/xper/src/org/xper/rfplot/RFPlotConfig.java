@@ -156,6 +156,7 @@ public class RFPlotConfig {
 		RFPlotConsolePlugin plugin = new RFPlotConsolePlugin();
 		plugin.setClient(rfPlotClient());
 		plugin.setRfObjectMap(refObjMap());
+		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
 		return plugin;
 	}
 
