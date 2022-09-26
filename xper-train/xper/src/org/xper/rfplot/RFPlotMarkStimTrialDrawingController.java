@@ -13,13 +13,22 @@ public class RFPlotMarkStimTrialDrawingController extends MarkStimTrialDrawingCo
         getWindow().swapBuffers();
     }
 
+    protected void drawTaskScene(ExperimentTask task, Context context) {
+        if (task != null) {
+            taskScene.setTask(task);
+            taskScene.drawTask(context, true);
+        } else {
+            taskScene.drawBlank(context, true, true);
+        }
+    }
+
     @Override
     protected void animateTaskScene(ExperimentTask task, Context context) {
         if (task != null) {
             taskScene.setTask(task);
-            taskScene.drawTask(context, fixationOnWithStimuli);
+            taskScene.drawTask(context, true);
         } else {
-            taskScene.drawBlank(context, fixationOnWithStimuli, true);
+            taskScene.drawBlank(context, true, true);
         }
     }
 
