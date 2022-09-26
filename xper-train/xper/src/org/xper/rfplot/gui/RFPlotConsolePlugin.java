@@ -1,19 +1,20 @@
 package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
+import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.RFPlotClient;
-import org.xper.rfplot.RFPlotDrawable;
-import org.xper.rfplot.RFPlotTaskDataSourceClient;
-import org.xper.rfplot.RFPlotXfmSpec;
+import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.rfplot.*;
+import org.xper.util.StringUtil;
 
 import javax.swing.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 public class RFPlotConsolePlugin implements IConsolePlugin {
@@ -22,6 +23,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Dependency
     HashMap<String, RFPlotDrawable> rfObjectMap;
+
+    @Dependency
+    ConsoleRenderer consoleRenderer;
 
     private String xfmSpec;
     private String stimSpec;
@@ -37,14 +41,16 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void startPlugin() {
-        setDefaultStimSpec();
-        setDefaultXfmSpec();
+
     }
 
     private void setDefaultStimSpec() {
         String firstStimType = String.valueOf(rfObjectMap.keySet().stream().findFirst().orElse(null));
         RFPlotDrawable firstStimObj = rfObjectMap.get(firstStimType);
-        client.changeRFPlotStim(firstStimObj.getSpec());
+        RFPlotStimSpec stimSpec = new RFPlotStimSpec();
+        stimSpec.setStimSpec(firstStimObj.getSpec());
+        stimSpec.setStimClass(firstStimObj.getClass().getName());
+        client.changeRFPlotStim(stimSpec.toXml());
     }
 
     private void setDefaultXfmSpec(){
@@ -54,15 +60,25 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void drawCanvas(Context context, String devId) {
-
+        setDefaultStimSpec();
+        setDefaultXfmSpec();
     }
 
     @Override
     public void handleMouseMove(int x, int y) {
         RFPlotXfmSpec nowXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
-        nowXfmSpec.setTranslation(new Coordinates2D(x,y));
+
+        nowXfmSpec.setTranslation(mouseWorldPosition(x,y));
+
         xfmSpec = nowXfmSpec.toXml();
         client.changeRFPlotXfm(xfmSpec);
+    }
+
+    public Coordinates2D mouseWorldPosition(int x, int y) {
+        AbstractRenderer renderer = consoleRenderer.getRenderer();
+        Coordinates2D world = renderer.pixel2coord(new Coordinates2D(x, y));
+
+        return world;
     }
 
     @Override
@@ -77,17 +93,17 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public KeyStroke getToken() {
-        return null;
+        return KeyStroke.getKeyStroke('r');
     }
 
     @Override
     public List<KeyStroke> getCommandKeys() {
-        return null;
+        return new LinkedList<>();
     }
 
     @Override
     public String getPluginHelp() {
-        return null;
+        return "null";
     }
 
     @Override
@@ -109,5 +125,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     public void setRfObjectMap(HashMap<String, RFPlotDrawable> rfObjectMap) {
         this.rfObjectMap = rfObjectMap;
+    }
+
+    public ConsoleRenderer getConsoleRenderer() {
+        return consoleRenderer;
+    }
+
+    public void setConsoleRenderer(ConsoleRenderer consoleRenderer) {
+        this.consoleRenderer = consoleRenderer;
     }
 }

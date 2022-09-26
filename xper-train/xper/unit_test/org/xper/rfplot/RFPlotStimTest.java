@@ -40,7 +40,7 @@ public class RFPlotStimTest {
             double randY = r.nextDouble()*stepSize-stepSize/2;
             double newX = prevX + randX;
             double newY = prevY + randY;
-//            xfmSpec.setTranslation(new Coordinates2D(newX, newY));
+            xfmSpec.setTranslation(new Coordinates2D(newX, newY));
             prevX = newX;
             prevY = newY;
 
