@@ -12,6 +12,10 @@ public class RFPlotStimTest {
     static RFPlotTaskDataSourceClient client = new RFPlotTaskDataSourceClient("localhost", RFPlotTaskDataSource.DEFAULT_RF_PLOT_TASK_DATA_SOURCE_PORT);
 
     public static void main(String[] args) {
+        streamRandomWalk();
+    }
+
+    private static void streamRandomWalk() {
         RFPlotStimSpec stimSpec = new RFPlotStimSpec();
         GaborSpec gaborSpec = new GaborSpec();
         gaborSpec.setPhase(0);
@@ -26,19 +30,23 @@ public class RFPlotStimTest {
 
         RFPlotXfmSpec xfmSpec = RFPlotXfmSpec.fromXml(null);
         xfmSpec.setColor(new RGBColor(1.0f,1.0f,1.0f));
+        double prevX=0;
+        double prevY=0;
         while(true){
             Random r = new Random();
-            double randX = r.nextDouble()*200-100;
-            double randY = r.nextDouble()*200-100;
-            xfmSpec.setTranslation(new Coordinates2D(randX, randY));
+            double stepSize = 10;
+            double randX = r.nextDouble()*stepSize-stepSize/2;
+            double randY = r.nextDouble()*stepSize-stepSize/2;
+            double newX = prevX + randX;
+            double newY = prevY + randY;
+            xfmSpec.setTranslation(new Coordinates2D(newX, newY));
+            prevX = newX;
+            prevY = newY;
 
             client.changeRFPlotStim(stimSpec.toXml());
-
-            ThreadUtil.sleep(100);
-
             client.changeRFPlotXfm(xfmSpec.toXml());
 
-            ThreadUtil.sleep(100);
+            ThreadUtil.sleep(16);
         }
     }
 }
