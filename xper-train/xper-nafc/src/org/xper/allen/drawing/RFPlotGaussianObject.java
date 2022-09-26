@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Context;
+import org.xper.rfplot.GaborSpec;
 import org.xper.rfplot.RFPlotDrawable;
 
 import org.xper.util.MathUtil;
@@ -22,7 +23,21 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
-	
+
+	@Override
+	public String getDefaultSpec() {
+		GaborSpec defaultSpec = new GaborSpec();
+		defaultSpec.setPhase(0);
+		defaultSpec.setFrequency(1);
+		defaultSpec.setOrientation(0);
+		defaultSpec.setAnimation(true);
+		defaultSpec.setSize(10);
+		defaultSpec.setXCenter(0);
+		defaultSpec.setYCenter(0);
+
+		return defaultSpec.toXml();
+	}
+
 	
 	static ByteBuffer makeTexture(int w, int h) {
 		ByteBuffer texture = ByteBuffer.allocateDirect(
@@ -49,10 +64,10 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		return texture;
 	}
 	
-	
+
 	public void draw(Context context) {
 		double rfRadius = 1;
-		
+
 		double xCenter = spec.getXCenter() * rfRadius;
 		xCenter = deg2mm(xCenter);
 		double yCenter = spec.getYCenter() * rfRadius;
@@ -60,7 +75,7 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		double size = spec.getSize() * rfRadius;
 		size = deg2mm(size);
 		double brightness = spec.getBrightness();
-		
+
 		float cury;
 		float color_ratio;
 		float texy;
@@ -165,9 +180,9 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	@Override
 	public void setSpec(String spec) {
 		this.spec = GaussSpec.fromXml(spec);
-		
 	}
-	
+
+
 	public double deg2mm(double deg) {
 		return Math.tan(deg * Math.PI / 180.0) * distance;
 	}
