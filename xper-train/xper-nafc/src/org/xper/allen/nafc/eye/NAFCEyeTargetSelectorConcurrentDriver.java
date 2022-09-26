@@ -27,7 +27,7 @@ public class NAFCEyeTargetSelectorConcurrentDriver {
 	}
 	
 	/*
-	 * This is running in a separate thread that is different from the main experiment thread where the Experiment objects runModeRun.
+	 * This is running in a separate thread that is different from the main experiment thread where the Experiment objects run.
 	 * Note: both the deadlineIntialEyeIn and eyeHoldTime are in micro seconds.
 	 */
 	public void start(final Coordinates2D[] targetCenter, final double[] targetWinSize, 
@@ -56,7 +56,7 @@ public class NAFCEyeTargetSelectorConcurrentDriver {
 					success = selector.waitEyeHold(sel, initialEyeInTime + eyeHoldTime);
 				}
 
-				/* Commented out b/c we don't want an eye break to runModeStop the trial
+				/* Commented out b/c we don't want an eye break to stop the trial
 				if (!success) {
 					result.setSelectionStatusResult(NAFCTrialResult.TARGET_SELECTION_EYE_BREAK);
 					return result;

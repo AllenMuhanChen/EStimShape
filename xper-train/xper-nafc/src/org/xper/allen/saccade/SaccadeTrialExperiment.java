@@ -82,7 +82,7 @@ public class SaccadeTrialExperiment implements Experiment {
 					
 
 					
-					// runModeRun trial
+					// run trial
 					return SaccadeTrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
 						public TrialResult runSlide() {

@@ -33,7 +33,7 @@ public class AnalogChannelPlayer extends AnalogDataPlayer {
 	}
 
 	/**
-	 * Forward to the next data runModeRecord of this channel.
+	 * Forward to the next data run of this channel.
 	 */
 	public boolean forward() {
 		if (!super.forward()) {
@@ -48,7 +48,7 @@ public class AnalogChannelPlayer extends AnalogDataPlayer {
 	}
 	
 	/**
-	 * Rewind to the prior data runModeRecord of this channel
+	 * Rewind to the prior data run of this channel
 	 */
 	public boolean rewind () {
 		if (!super.rewind()) {

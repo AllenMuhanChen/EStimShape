@@ -298,7 +298,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		}
 		taskDoneCache.flush();
 
-		// trial runModeStop
+		// trial stop
 		if (currentContext != null) {
 			long trialStopLocalTime = timeUtil.currentTimeMicros();
 			currentContext.setTrialStopTime(trialStopLocalTime);
@@ -521,7 +521,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				punishmentDelayTime=0;
 			}
 		} finally {
-			// experiment runModeStop event
+			// experiment stop event
 			try {
 				System.out.println("NAFCExperiment stopped.");
 				EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),

@@ -37,7 +37,7 @@ public class SizeQualitativeMorph extends QualitativeMorph{
 		thicknessBins = new ArrayList<Bin<Double>>();
 	}
 	/**
-	 * This needs to be runModeRun first
+	 * This needs to be run first
 	 * @param oldLength
 	 * @param oldThickness
 	 */

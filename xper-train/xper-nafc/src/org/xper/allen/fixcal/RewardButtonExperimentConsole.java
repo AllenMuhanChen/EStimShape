@@ -261,7 +261,7 @@ public class RewardButtonExperimentConsole extends JFrame implements
         eyePanel.add(eyeWinPanel);
         
         pauseResumeButton = new JButton();
-        pauseResumeButton.setToolTipText("runModeRun/pause experiment");
+        pauseResumeButton.setToolTipText("run/pause experiment");
         Action action = new AbstractAction() {
 			private static final long serialVersionUID = 1L;
 			
@@ -330,7 +330,7 @@ public class RewardButtonExperimentConsole extends JFrame implements
         	commandPanel.add(pLabel);
 		}
         
-        JLabel rpLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(pauseResumeKey.getKeyCode()) + "</strong>: runModeRun/pause </html>");
+        JLabel rpLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(pauseResumeKey.getKeyCode()) + "</strong>: run/pause </html>");
         commandPanel.add(rpLabel);
         
         JLabel exitLabel = new JLabel("<html><strong> ESC</strong>: exit </html>");

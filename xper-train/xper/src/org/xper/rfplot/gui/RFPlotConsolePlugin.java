@@ -41,7 +41,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void startPlugin() {
-
+        setDefaultStimSpec();
+        setDefaultXfmSpec();
     }
 
     private void setDefaultStimSpec() {
@@ -60,8 +61,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void drawCanvas(Context context, String devId) {
-        setDefaultStimSpec();
-        setDefaultXfmSpec();
     }
 
     @Override

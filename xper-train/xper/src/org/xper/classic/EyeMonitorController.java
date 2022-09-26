@@ -9,7 +9,7 @@ import org.xper.eye.win.EyeWindowAdjustable;
 import org.xper.eye.zero.EyeZeroAdjustable;
 
 /**
- * Controls eye monitor start, runModeStop and update of zero and eye window when
+ * Controls eye monitor start, stop and update of zero and eye window when
  * necessary
  * 
  * @author Zhihong Wang
