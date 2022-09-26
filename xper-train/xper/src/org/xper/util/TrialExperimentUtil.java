@@ -81,7 +81,6 @@ public class TrialExperimentUtil {
 				return TrialResult.EYE_BREAK;
 			}
 			if (stateObject.isAnimation()) {
-				System.err.println("IS ANIMATION");
 				currentContext.setAnimationFrameIndex(currentContext.getAnimationFrameIndex()+1);
 				drawingController.animateSlide(currentTask,
 						currentContext);
@@ -90,7 +89,6 @@ public class TrialExperimentUtil {
 					logger.debug(new Timestamp(t/1000).toString() + " " + t % 1000 + " frame: " + currentContext.getAnimationFrameIndex());
 				}
 			} else{
-				System.err.println("IS NOT ANIMATION");
 			}
 		} while (timeUtil.currentTimeMicros() < slideOnLocalTime
 				+ stateObject.getSlideLength() * 1000);
