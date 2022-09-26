@@ -30,14 +30,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void stopPlugin() {
-
     }
 
     @Override
     public void startPlugin() {
-        String firstStimType = String.valueOf(rfObjectMap.keySet().stream().findFirst());
+        String firstStimType = String.valueOf(rfObjectMap.keySet().stream().findFirst().orElse(null));
         RFPlotDrawable firstStimObj = rfObjectMap.get(firstStimType);
-        firstStimObj.getDefaultSpec();
+        client.changeRFPlotStim(firstStimObj.getSpec());
     }
 
     @Override
@@ -47,7 +46,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void handleMouseMove(int x, int y) {
-//        String xfm =
     }
 
     @Override
@@ -78,5 +76,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void handleMouseClicked(MouseEvent e) {
 
+    }
+
+    public RFPlotClient getClient() {
+        return client;
+    }
+
+    public void setClient(RFPlotClient client) {
+        this.client = client;
+    }
+
+    public HashMap<String, RFPlotDrawable> getRfObjectMap() {
+        return rfObjectMap;
+    }
+
+    public void setRfObjectMap(HashMap<String, RFPlotDrawable> rfObjectMap) {
+        this.rfObjectMap = rfObjectMap;
     }
 }
