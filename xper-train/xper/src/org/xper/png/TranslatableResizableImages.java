@@ -1,6 +1,5 @@
-package org.xper.allen.drawing.png;
+package org.xper.png;
 
-import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
@@ -8,7 +7,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javax.imageio.ImageIO;
@@ -17,6 +15,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.png.ImageDimensions;
 
 /**
  * Light version of JK's ImageStack with added functionality of changing location/size of each image on the stack.

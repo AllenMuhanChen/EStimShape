@@ -1,6 +1,5 @@
 package org.xper.allen.specs;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.drawing.stick.EndPt_Info;
 import org.xper.drawing.stick.JuncPt_Info;
 import org.xper.drawing.stick.MAxisArc;

@@ -1,7 +1,6 @@
 package org.xper.allen.util;
 
 import org.xper.Dependency;
-import org.xper.allen.drawing.png.ImageDimensions;
 import org.xper.drawing.renderer.AbstractRenderer;
 
 /**

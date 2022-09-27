@@ -1,4 +1,4 @@
-package org.xper.allen.drawing.png;
+package org.xper.png;
 
 import java.awt.geom.Dimension2D;
 

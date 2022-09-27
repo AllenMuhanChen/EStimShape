@@ -1,11 +1,11 @@
 package org.xper.allen.specs;
 
-import java.awt.Dimension;
 import java.util.Objects;
 
-import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.png.ImageDimensions;
 
 import com.thoughtworks.xstream.XStream;
+import org.xper.png.PngSpec;
 
 public class NoisyPngSpec {
 	double xCenter;

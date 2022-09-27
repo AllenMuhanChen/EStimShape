@@ -6,10 +6,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
-
-import javax.vecmath.Vector3d;
 
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
@@ -19,11 +16,10 @@ import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGener
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
-import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
-import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.specs.NAFCStimSpecSpec;
-import org.xper.allen.specs.PngSpec;
+import org.xper.png.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;

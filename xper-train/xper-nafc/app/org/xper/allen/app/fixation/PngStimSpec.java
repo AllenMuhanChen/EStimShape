@@ -1,8 +1,6 @@
 package org.xper.allen.app.fixation;
 
-import java.awt.Dimension;
-
-import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.png.ImageDimensions;
 
 import com.thoughtworks.xstream.XStream;
 

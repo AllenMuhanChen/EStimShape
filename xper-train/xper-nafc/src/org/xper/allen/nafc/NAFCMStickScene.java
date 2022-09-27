@@ -3,12 +3,10 @@ package org.xper.allen.nafc;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.vecmath.Point3d;
-
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.specs.AllenMStickSpec;

@@ -2,17 +2,15 @@ package org.xper.allen.app.fixation;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
-import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.drawing.png.TranslatableResizableImages;
-import org.xper.allen.specs.PngSpec;
+import org.xper.png.ImageDimensions;
+import org.xper.png.TranslatableResizableImages;
+import org.xper.png.PngSpec;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
-import org.xper.util.ThreadUtil;
-
 
 
 public class PngScene extends AbstractTaskScene{
