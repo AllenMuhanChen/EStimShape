@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen;
 
-import org.xper.png.ImageDimensions;
+import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 

@@ -2,9 +2,9 @@ package org.xper.allen.app.fixation;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
-import org.xper.png.ImageDimensions;
-import org.xper.png.TranslatableResizableImages;
-import org.xper.png.PngSpec;
+import org.xper.rfplot.drawing.png.ImageDimensions;
+import org.xper.rfplot.drawing.png.TranslatableResizableImages;
+import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;

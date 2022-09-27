@@ -1,4 +1,4 @@
-package org.xper.png;
+package org.xper.rfplot.drawing.png;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -15,7 +15,6 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
-import org.xper.png.ImageDimensions;
 
 /**
  * Light version of JK's ImageStack with added functionality of changing location/size of each image on the stack.

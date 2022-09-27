@@ -4,9 +4,9 @@ import java.io.File;
 import java.util.Random;
 
 import org.xper.Dependency;
-import org.xper.png.ImageDimensions;
+import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.png.PngSpec;
+import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;

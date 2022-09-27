@@ -1,6 +1,6 @@
 package org.xper.allen.app.fixation;
 
-import org.xper.png.ImageDimensions;
+import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import com.thoughtworks.xstream.XStream;
 

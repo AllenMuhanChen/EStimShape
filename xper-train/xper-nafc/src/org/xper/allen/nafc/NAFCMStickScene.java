@@ -6,7 +6,7 @@ import java.util.List;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.png.ImageDimensions;
+import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.specs.AllenMStickSpec;

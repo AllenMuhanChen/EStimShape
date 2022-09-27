@@ -2,7 +2,7 @@ package org.xper.allen.noisy.nafc;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
-import org.xper.png.ImageDimensions;
+import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
