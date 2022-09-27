@@ -1,4 +1,4 @@
-package org.xper.app.rfplot;
+package org.xper.rfplot.gui;
 
 import java.util.*;
 
