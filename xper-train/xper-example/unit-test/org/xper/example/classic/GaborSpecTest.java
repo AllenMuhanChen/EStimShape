@@ -2,8 +2,7 @@ package org.xper.example.classic;
 
 import junit.framework.TestCase;
 
-import org.xper.example.classic.GaborSpecGenerator;
-import org.xper.rfplot.GaborSpec;
+import org.xper.rfplot.drawing.GaborSpec;
 
 public class GaborSpecTest extends TestCase {
 	public void testXml () {

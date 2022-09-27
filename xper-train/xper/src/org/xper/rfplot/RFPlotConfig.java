@@ -10,8 +10,6 @@ import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
-import org.xper.classic.MarkEveryStepTrialDrawingController;
-import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
@@ -19,7 +17,6 @@ import org.xper.config.ClassicConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.IConsolePlugin;
-import org.xper.drawing.Context;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.PerspectiveRenderer;
@@ -27,6 +24,10 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
+import org.xper.rfplot.drawing.RFPlotBlankObject;
+import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.rfplot.drawing.RFPlotGaborObject;
+import org.xper.rfplot.drawing.RFPlotPngObject;
 import org.xper.rfplot.gui.RFPlotConsolePlugin;
 
 @Configuration(defaultLazy=Lazy.TRUE)
