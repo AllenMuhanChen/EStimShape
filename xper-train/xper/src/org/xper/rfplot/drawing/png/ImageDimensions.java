@@ -1,4 +1,4 @@
-package org.xper.png;
+package org.xper.rfplot.drawing.png;
 
 import java.awt.geom.Dimension2D;
 

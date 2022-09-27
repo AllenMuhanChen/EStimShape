@@ -1,4 +1,4 @@
-package org.xper.png;
+package org.xper.rfplot.drawing.png;
 
 import com.thoughtworks.xstream.XStream;
 

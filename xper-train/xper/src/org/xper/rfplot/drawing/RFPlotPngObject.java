@@ -2,9 +2,9 @@ package org.xper.rfplot.drawing;
 
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
-import org.xper.png.ImageDimensions;
-import org.xper.png.PngSpec;
-import org.xper.png.TranslatableResizableImages;
+import org.xper.rfplot.drawing.png.ImageDimensions;
+import org.xper.rfplot.drawing.png.PngSpec;
+import org.xper.rfplot.drawing.png.TranslatableResizableImages;
 
 public class RFPlotPngObject extends DefaultSpecRFPlotDrawable{
 
