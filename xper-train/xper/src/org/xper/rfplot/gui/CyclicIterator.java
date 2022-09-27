@@ -26,6 +26,7 @@ public class CyclicIterator<T> implements Iterator<T> {
     }
 
     public T first(){
-        return list.get(0);
+        i=0;
+        return list.get(i);
     }
 }

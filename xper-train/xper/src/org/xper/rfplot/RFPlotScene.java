@@ -8,6 +8,7 @@ import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 //import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.experiment.ExperimentTask;
+import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public class RFPlotScene extends AbstractTaskScene {
@@ -31,8 +32,13 @@ public class RFPlotScene extends AbstractTaskScene {
 			if (obj != null) {
 				obj.setSpec(spec.getStimSpec());
 			}
+		} else{
+			String objClass = RFPlotBlankObject.class.getName();
+			RFPlotDrawable obj = rfObjectMap.get(objClass);
+			obj.setDefaultSpec();
 		}
 		xfm = RFPlotXfmSpec.fromXml(task.getXfmSpec());
+		System.err.println(xfm.getTranslation().toString());
 	}
 
 	public void drawStimulus(Context context) {

@@ -284,10 +284,12 @@ public class TrialExperimentUtil {
 
 	public static void checkCurrentTaskAnimation(TrialExperimentState state) {
 		state.setAnimation(XmlUtil.slideIsAnimation(state.getCurrentTask()));
+		System.err.println("AC Animation: " + XmlUtil.slideIsAnimation(state.getCurrentTask()));
 	}
 
 	public static void getNextTask(TrialExperimentState state) {
 		state.setCurrentTask(state.getTaskDataSource().getNextTask());
+		System.err.println("AC current task: " + state.getCurrentTask());
 	}
 
 	public static void breakTrial(TrialExperimentState state) {

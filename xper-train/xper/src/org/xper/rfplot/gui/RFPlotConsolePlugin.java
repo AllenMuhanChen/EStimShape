@@ -7,6 +7,7 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
+import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import javax.swing.*;
@@ -64,6 +65,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void startPlugin() {
         init();
+    }
+
+    @Override
+    public void tokenAction() {
+        changeStimType(types.first());
     }
 
     @Override

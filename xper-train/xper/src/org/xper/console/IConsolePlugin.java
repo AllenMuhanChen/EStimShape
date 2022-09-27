@@ -26,6 +26,8 @@ public interface IConsolePlugin {
 	 */
 	void startPlugin();
 
+	void tokenAction();
+
 	void drawCanvas(Context context, String devId);
 
 	void handleMouseMove(int x, int y);

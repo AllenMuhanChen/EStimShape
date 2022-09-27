@@ -123,6 +123,11 @@ public class RdsConsolePlugin implements IConsolePlugin {
 	}
 
 	@Override
+	public void tokenAction() {
+
+	}
+
+	@Override
 	public void stopPlugin() {
 		rdsControlClient.stop();
 	}

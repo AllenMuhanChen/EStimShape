@@ -74,6 +74,7 @@ public class RFPlotConfig {
 	public RFPlotTaskDataSource taskDataSource() {
 		RFPlotTaskDataSource taskDataSource = new RFPlotTaskDataSource();
 		taskDataSource.setHost(classicConfig.experimentHost);
+		taskDataSource.setRefObjMap(refObjMap());
 		return taskDataSource;
 	}
 	

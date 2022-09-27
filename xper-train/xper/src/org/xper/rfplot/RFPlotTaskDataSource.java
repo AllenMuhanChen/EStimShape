@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
@@ -14,6 +15,8 @@ import org.xper.exception.RemoteException;
 import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.Threadable;
+import org.xper.rfplot.drawing.RFPlotBlankObject;
+import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.util.ThreadHelper;
 
 public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
@@ -28,6 +31,8 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	int backlog = DEFAULT_BACK_LOG;
 	@Dependency
 	String host;
+	@Dependency
+	Map<String, RFPlotDrawable> refObjMap;
 
 	public int getBacklog() {
 		return backlog;
@@ -64,8 +69,23 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 
 	public ExperimentTask getNextTask() {
 		ExperimentTask task = currentTask.get();
-		if (task == null || task.getStimSpec() == null || task.getXfmSpec() == null) return null;
-		else return task;
+		if (task == null){
+			task = new ExperimentTask();
+		}
+		if (task.getStimSpec() == null) {
+			RFPlotDrawable firstStimObj = getFirstStimObj();
+			task.setStimSpec(firstStimObj.getSpec());
+		}
+		if (task.getXfmSpec() == null){
+			task.setXfmSpec(RFPlotXfmSpec.fromXml(null).toXml());
+		}
+
+		return task;
+
+	}
+
+	private RFPlotDrawable getFirstStimObj() {
+		return (RFPlotDrawable) refObjMap.values().toArray()[0];
 	}
 
 	public void ungetTask(ExperimentTask t) {
@@ -97,8 +117,10 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 				String spec = input.readUTF();
 
 				ExperimentTask task = currentTask.get();
-				if (task == null) task = new ExperimentTask();
-				
+				if (task == null) {
+					task = new ExperimentTask();
+				}
+
 				switch (response) {
 				case RFPLOT_STIM_SPEC: 
 					task.setStimSpec(spec);
@@ -146,7 +168,6 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 				e.printStackTrace();
 			}
 		}
-		
 	}
 
 	public String getHost() {
@@ -156,6 +177,12 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	public void setHost(String host) {
 		this.host = host;
 	}
-	
-	
+
+	public Map<String, RFPlotDrawable> getRefObjMap() {
+		return refObjMap;
+	}
+
+	public void setRefObjMap(Map<String, RFPlotDrawable> refObjMap) {
+		this.refObjMap = refObjMap;
+	}
 }
