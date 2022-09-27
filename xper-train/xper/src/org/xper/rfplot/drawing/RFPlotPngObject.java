@@ -1,12 +1,10 @@
-package org.xper.rfplot;
+package org.xper.rfplot.drawing;
 
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.png.ImageDimensions;
 import org.xper.png.PngSpec;
 import org.xper.png.TranslatableResizableImages;
-
-import java.util.ResourceBundle;
 
 public class RFPlotPngObject extends DefaultSpecRFPlotDrawable{
 

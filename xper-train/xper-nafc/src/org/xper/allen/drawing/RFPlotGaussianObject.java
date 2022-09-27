@@ -6,8 +6,7 @@ import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Context;
-import org.xper.rfplot.GaborSpec;
-import org.xper.rfplot.RFPlotDrawable;
+import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import org.xper.util.MathUtil;
 

@@ -1,7 +1,7 @@
 package org.xper.example.classic;
 
 import org.xper.experiment.StimSpecGenerator;
-import org.xper.rfplot.GaborSpec;
+import org.xper.rfplot.drawing.GaborSpec;
 
 public class GaborSpecGenerator implements StimSpecGenerator {
 	public static GaborSpec generate () {

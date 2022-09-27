@@ -3,7 +3,7 @@ package org.xper.example.classic;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
-import org.xper.rfplot.RFPlotGaborObject;
+import org.xper.rfplot.drawing.RFPlotGaborObject;
 
 public class GaborScene extends AbstractTaskScene {
 	

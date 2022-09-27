@@ -1,4 +1,4 @@
-package org.xper.rfplot;
+package org.xper.rfplot.drawing;
 
 public abstract class DefaultSpecRFPlotDrawable implements RFPlotDrawable{
     public DefaultSpecRFPlotDrawable() {

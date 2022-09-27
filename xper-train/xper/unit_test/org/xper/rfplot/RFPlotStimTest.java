@@ -2,6 +2,8 @@ package org.xper.rfplot;
 
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.GaborSpec;
+import org.xper.rfplot.drawing.RFPlotGaborObject;
 import org.xper.util.ThreadUtil;
 
 import java.util.Random;

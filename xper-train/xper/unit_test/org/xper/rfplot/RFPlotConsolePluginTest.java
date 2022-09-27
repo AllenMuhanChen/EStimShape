@@ -4,9 +4,10 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.drawing.Coordinates2D;
+import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.rfplot.drawing.RFPlotGaborObject;
 import org.xper.rfplot.gui.RFPlotConsolePlugin;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 import static org.junit.Assert.assertEquals;

@@ -1,6 +1,5 @@
 package org.xper.rfplot;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.lwjgl.opengl.GL11;
@@ -8,8 +7,8 @@ import org.xper.Dependency;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 //import org.xper.drawing.renderer.PerspectiveStereoRenderer;
-import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.experiment.ExperimentTask;
+import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public class RFPlotScene extends AbstractTaskScene {
 	@Dependency

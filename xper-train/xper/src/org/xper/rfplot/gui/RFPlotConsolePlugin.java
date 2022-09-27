@@ -7,6 +7,7 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
+import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
