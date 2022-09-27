@@ -8,14 +8,10 @@ import org.xper.png.TranslatableResizableImages;
 
 import java.util.ResourceBundle;
 
-public class RFPlotPngObject implements RFPlotDrawable{
+public class RFPlotPngObject extends DefaultSpecRFPlotDrawable{
 
     private PngSpec spec;
     private TranslatableResizableImages images;
-
-    public RFPlotPngObject() {
-        setDefaultSpec();
-    }
 
     @Override
     public void draw(Context context) {
