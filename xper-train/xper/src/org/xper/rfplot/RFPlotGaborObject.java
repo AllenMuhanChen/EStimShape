@@ -7,7 +7,7 @@ import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.util.MathUtil;
 
-public class RFPlotGaborObject implements RFPlotDrawable {
+public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 	static final int STEPS = 1024;
 	
 	GaborSpec spec;
@@ -15,10 +15,6 @@ public class RFPlotGaborObject implements RFPlotDrawable {
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
-
-	public RFPlotGaborObject() {
-		setDefaultSpec();
-	}
 
 	@Override
 	public void setDefaultSpec() {
