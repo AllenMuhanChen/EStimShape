@@ -1,15 +1,12 @@
 package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
-import org.xper.app.rfplot.CyclicIterator;
 import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.RGBColor;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
-import org.xper.util.StringUtil;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -66,11 +63,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void startPlugin() {
         init();
-    }
-
-    private void setDefaultXfmSpec(){
-        RFPlotXfmSpec xfmSpec = RFPlotXfmSpec.fromXml(null);
-        client.changeRFPlotXfm(xfmSpec.toXml());
     }
 
     @Override
