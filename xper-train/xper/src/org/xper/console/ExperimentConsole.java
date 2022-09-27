@@ -141,6 +141,7 @@ public class ExperimentConsole extends JFrame implements
 
 				public void actionPerformed(ActionEvent e) {
 					currentPlugin = p;
+					currentPlugin.tokenAction();
 				}
 			};
 			keyMap.put(token, tokenAction);
@@ -698,7 +699,12 @@ public class ExperimentConsole extends JFrame implements
     protected JLabel breakTrialCount;
     protected JLabel completeTrialCount;
     protected Canvas consoleCanvas;
-    protected JComboBox eyeDeviceSelect;
+
+	public Canvas getConsoleCanvas() {
+		return consoleCanvas;
+	}
+
+	protected JComboBox eyeDeviceSelect;
     protected JLabel eyeReadingDegreeX;
     protected JLabel eyeReadingDegreeY;
     protected JLabel eyeReadingVoltX;
