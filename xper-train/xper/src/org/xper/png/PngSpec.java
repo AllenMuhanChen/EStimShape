@@ -1,8 +1,4 @@
-package org.xper.allen.specs;
-
-import java.awt.Dimension;
-
-import org.xper.allen.drawing.png.ImageDimensions;
+package org.xper.png;
 
 import com.thoughtworks.xstream.XStream;
 

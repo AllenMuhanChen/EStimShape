@@ -1,10 +1,10 @@
 package org.xper.allen.nafc.blockgen;
 
 import org.xper.Dependency;
-import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
-import org.xper.allen.specs.PngSpec;
+import org.xper.png.PngSpec;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;

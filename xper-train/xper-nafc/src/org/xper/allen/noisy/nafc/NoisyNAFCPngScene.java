@@ -2,18 +2,16 @@ package org.xper.allen.noisy.nafc;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
-import org.xper.allen.drawing.png.ImageDimensions;
+import org.xper.png.ImageDimensions;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
 import org.xper.allen.specs.NoisyPngSpec;
-import org.xper.allen.specs.PngSpec;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
-import org.xper.drawing.object.FixationPoint;
 import org.xper.experiment.ExperimentTask;
 
 public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{

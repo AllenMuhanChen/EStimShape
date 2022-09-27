@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.SplittableRandom;
 
@@ -15,8 +14,8 @@ import javax.imageio.ImageIO;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
-import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.drawing.png.TranslatableResizableImages;
+import org.xper.png.ImageDimensions;
+import org.xper.png.TranslatableResizableImages;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.time.DefaultTimeUtil;

@@ -2,11 +2,11 @@ package org.xper.allen.nafc;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
-import org.xper.allen.drawing.png.ImageDimensions;
-import org.xper.allen.drawing.png.TranslatableResizableImages;
+import org.xper.png.ImageDimensions;
+import org.xper.png.TranslatableResizableImages;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
-import org.xper.allen.specs.PngSpec;
+import org.xper.png.PngSpec;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
