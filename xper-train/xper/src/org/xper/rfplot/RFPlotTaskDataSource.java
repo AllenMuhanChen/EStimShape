@@ -15,7 +15,6 @@ import org.xper.exception.RemoteException;
 import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.Threadable;
-import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.util.ThreadHelper;
 
@@ -74,10 +73,7 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 		}
 		if (task.getStimSpec() == null) {
 			RFPlotDrawable firstStimObj = getFirstStimObj();
-			RFPlotStimSpec stimSpec = new RFPlotStimSpec();
-			stimSpec.setStimClass(firstStimObj.getClass().getName());
-			stimSpec.setStimSpec((firstStimObj.getSpec()));
-			task.setStimSpec(stimSpec.toXml());
+			task.setStimSpec(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj));
 		}
 		if (task.getXfmSpec() == null){
 			task.setXfmSpec(RFPlotXfmSpec.fromXml(null).toXml());

@@ -7,7 +7,6 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
-import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import javax.swing.*;
@@ -45,10 +44,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void changeStimType(String stimType) {
         RFPlotDrawable firstStimObj = rfObjectMap.get(stimType);
-        RFPlotStimSpec stimSpec = new RFPlotStimSpec();
-        stimSpec.setStimSpec(firstStimObj.getSpec());
-        stimSpec.setStimClass(firstStimObj.getClass().getName());
-        client.changeRFPlotStim(stimSpec.toXml());
+        client.changeRFPlotStim(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj));
         System.err.println(stimType);
     }
 

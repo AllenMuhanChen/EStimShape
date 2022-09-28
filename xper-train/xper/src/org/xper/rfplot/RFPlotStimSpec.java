@@ -1,6 +1,7 @@
 package org.xper.rfplot;
 
 import com.thoughtworks.xstream.XStream;
+import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public class RFPlotStimSpec {
 	/**
@@ -11,6 +12,14 @@ public class RFPlotStimSpec {
 	 * Spec for the RFPlotObject
 	 */
 	String stimSpec;
+
+	public RFPlotStimSpec() {
+	}
+
+	public RFPlotStimSpec(String stimClass, String stimSpec) {
+		this.stimClass = stimClass;
+		this.stimSpec = stimSpec;
+	}
 
 	boolean animation = true;
 	transient static XStream s;
@@ -33,6 +42,17 @@ public class RFPlotStimSpec {
 		if (xml == null) return null;
 		RFPlotStimSpec spec = (RFPlotStimSpec)s.fromXML(xml);
 		return spec;
+	}
+
+	public static RFPlotStimSpec fromRFPlotDrawable(RFPlotDrawable drawable){
+		String stimSpec = drawable.getSpec();
+		String stimClass = drawable.getClass().getName();
+
+		return new RFPlotStimSpec(stimClass, stimSpec);
+	}
+
+	public static String getStimSpecFromRFPlotDrawable(RFPlotDrawable drawable){
+		return RFPlotStimSpec.fromRFPlotDrawable(drawable).toXml();
 	}
 	
 	public String getStimClass() {
