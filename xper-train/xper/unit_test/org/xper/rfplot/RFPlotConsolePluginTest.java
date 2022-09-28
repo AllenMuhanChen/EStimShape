@@ -48,20 +48,14 @@ public class RFPlotConsolePluginTest {
 
     public static void startConsole(){
 
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-                } catch (Exception e) {
-                    throw new XGLException(e);
-                }
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            throw new XGLException(e);
+        }
 
-                console = context.getBean(ExperimentConsole.class);
-                console.run();
-            }
-        });
-        t.start();
+        console = context.getBean(ExperimentConsole.class);
+        console.run();
     }
 
     public void startExperiment(){
@@ -82,7 +76,7 @@ public class RFPlotConsolePluginTest {
         } catch (AWTException e) {
             throw new RuntimeException(e);
         }
-        startExperiment();
+//        startExperiment();
         startConsole();
 
         ThreadUtil.sleep(1000);

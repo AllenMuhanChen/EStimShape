@@ -74,7 +74,10 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 		}
 		if (task.getStimSpec() == null) {
 			RFPlotDrawable firstStimObj = getFirstStimObj();
-			task.setStimSpec(firstStimObj.getSpec());
+			RFPlotStimSpec stimSpec = new RFPlotStimSpec();
+			stimSpec.setStimClass(firstStimObj.getClass().getName());
+			stimSpec.setStimSpec((firstStimObj.getSpec()));
+			task.setStimSpec(stimSpec.toXml());
 		}
 		if (task.getXfmSpec() == null){
 			task.setXfmSpec(RFPlotXfmSpec.fromXml(null).toXml());
