@@ -11,6 +11,13 @@ public class RFPlotPngObject extends DefaultSpecRFPlotDrawable{
     private PngSpec spec;
     private TranslatableResizableImages images;
 
+    private String defaultPath;
+
+    public RFPlotPngObject(String defaultPath) {
+        this.defaultPath = defaultPath;
+        setDefaultSpec();
+    }
+
     @Override
     public void draw(Context context) {
         images.initTextures();
@@ -26,7 +33,7 @@ public class RFPlotPngObject extends DefaultSpecRFPlotDrawable{
     @Override
     public void setDefaultSpec() {
         spec = new PngSpec();
-        spec.setPath("/home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404/1657907417_sample.png");
+        spec.setPath(defaultPath);
         spec.setAlpha(1);
         spec.setDimensions(new ImageDimensions(10,10));
         spec.setxCenter(0);

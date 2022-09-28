@@ -3,10 +3,7 @@ package org.xper.rfplot;
 import java.util.*;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.config.java.annotation.Bean;
-import org.springframework.config.java.annotation.Configuration;
-import org.springframework.config.java.annotation.Import;
-import org.springframework.config.java.annotation.Lazy;
+import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
@@ -37,7 +34,13 @@ import org.xper.rfplot.gui.RFPlotConsolePlugin;
 public class RFPlotConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired ClassicConfig classicConfig;
-	
+
+	@ExternalValue("rfplot.default_png_path")
+	public String defaultPngPath;
+
+	@ExternalValue("rfplot.png_library_path")
+	public String pngLibraryPath;
+
 	@Bean
 	public PerspectiveRenderer rfRenderer () {
 		PerspectiveRenderer renderer = new PerspectiveRenderer();
@@ -66,8 +69,15 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
-		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject());
+		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject(defaultPngPath));
 		return refObjMap;
+	}
+
+	@Bean
+	public Map<String, RFPlotModulator> refModulatorMap(){
+		LinkedHashMap<String, RFPlotModulator> refModulatorMap = new LinkedHashMap<>();
+		refModulatorMap.put(RFPlotPngObject.class.getName(), new PngPathModulator(pngLibraryPath));
+		return refModulatorMap;
 	}
 
 	@Bean
@@ -158,7 +168,8 @@ public class RFPlotConfig {
 	public RFPlotConsolePlugin rfPlotConsolePlugin(){
 		RFPlotConsolePlugin plugin = new RFPlotConsolePlugin();
 		plugin.setClient(rfPlotClient());
-		plugin.setRfObjectMap(refObjMap());
+		plugin.setRefObjectMap(refObjMap());
+		plugin.setRefModulatorMap(refModulatorMap());
 		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
 		return plugin;
 	}
