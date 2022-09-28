@@ -2,6 +2,7 @@ package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
+import org.xper.console.ExperimentConsole;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
@@ -27,6 +28,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Dependency
     ConsoleRenderer consoleRenderer;
+
 
     private String xfmSpec;
     private String stimSpec;
@@ -66,11 +68,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void tokenAction() {
-        changeStimType(types.next());
+        if(types.getPosition()==0)
+            changeStimType(types.next());
     }
 
     @Override
     public void drawCanvas(Context context, String devId) {
+        consoleRenderer.drawCanvas(context, devId);
     }
 
     @Override
@@ -147,4 +151,5 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     public void setConsoleRenderer(ConsoleRenderer consoleRenderer) {
         this.consoleRenderer = consoleRenderer;
     }
+
 }

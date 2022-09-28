@@ -39,4 +39,8 @@ public class CyclicIterator<T> implements Iterator<T> {
     public T get(int i){
         return list.get(i);
     }
+
+    public int getPosition(){
+        return i;
+    }
 }
