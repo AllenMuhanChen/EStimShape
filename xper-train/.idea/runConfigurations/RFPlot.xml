@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="RFPlot" type="CompoundRunConfigurationType">
+    <toRun name="org.xper.app.rfplot.RFPlotConsole" type="Application" />
+    <toRun name="org.xper.app.rfplot.RFPlotExperiment" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>
