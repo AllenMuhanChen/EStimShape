@@ -64,8 +64,8 @@ public class RFPlotConfig {
 	@Bean
 	public Map<String, RFPlotDrawable> refObjMap() {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
-		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
+		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
 		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject());
 		return refObjMap;
 	}
