@@ -38,7 +38,6 @@ public class RFPlotScene extends AbstractTaskScene {
 			obj.setDefaultSpec();
 		}
 		xfm = RFPlotXfmSpec.fromXml(task.getXfmSpec());
-		System.err.println(xfm.getTranslation().toString());
 	}
 
 	public void drawStimulus(Context context) {

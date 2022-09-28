@@ -79,7 +79,8 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 			task.setXfmSpec(RFPlotXfmSpec.fromXml(null).toXml());
 		}
 
-		return task;
+		currentTask.set(task);
+		return currentTask.get();
 
 	}
 

@@ -5,6 +5,7 @@ import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
+import org.xper.util.TrialExperimentUtil;
 
 public class RFPlotMarkStimTrialDrawingController extends MarkStimTrialDrawingController {
 
