@@ -2,13 +2,13 @@ package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
-import org.xper.console.ExperimentConsole;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.rfplot.drawing.RFPlotPngObject;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -24,32 +24,36 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     RFPlotClient client;
 
     @Dependency
-    Map<String, RFPlotDrawable> rfObjectMap;
+    Map<String, RFPlotDrawable> refObjectMap;
+
+    @Dependency
+    Map<String, RFPlotModulator> refModulatorMap;
 
     @Dependency
     ConsoleRenderer consoleRenderer;
 
-
+    private String stimType;
     private String xfmSpec;
     private String stimSpec;
-    private CyclicIterator<String> types;
-
+    private CyclicIterator<String> stimTypeSpecs;
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
         if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)) {
-            String nextType = types.next();
+            String nextType = stimTypeSpecs.next();
             changeStimType(nextType);
         }
         if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
-            String previousType = types.previous();
+            String previousType = stimTypeSpecs.previous();
             changeStimType(previousType);
         }
     }
 
     private void changeStimType(String stimType) {
-        RFPlotDrawable firstStimObj = rfObjectMap.get(stimType);
-        client.changeRFPlotStim(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj));
+        this.stimType = stimType;
+        RFPlotDrawable firstStimObj = refObjectMap.get(stimType);
+        stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
+        client.changeRFPlotStim(stimSpec);
         System.err.println(stimType);
     }
 
@@ -63,13 +67,17 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private void init() {
-        types = new CyclicIterator<String>(rfObjectMap.keySet());
+        stimTypeSpecs = new CyclicIterator<String>(refObjectMap.keySet());
+    }
+
+    private Object getFirstStimType() {
+        return refObjectMap.keySet().toArray()[0];
     }
 
     @Override
     public void tokenAction() {
-        if(types.getPosition()==0)
-            changeStimType(types.next());
+        if(stimTypeSpecs.getPosition()==0)
+            changeStimType(stimTypeSpecs.next());
     }
 
     @Override
@@ -98,6 +106,23 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void handleMouseWheel(MouseWheelEvent e) {
 
+        int clicks = e.getWheelRotation();
+        System.err.println(clicks);
+        RFPlotModulator modulator = refModulatorMap.get(stimType);
+
+        if (modulator != null) {
+            RFPlotStimSpec newStimSpec = RFPlotStimSpec.fromXml(stimSpec);
+            if (clicks > 0) {
+                for (int i = 0; i < clicks; i++) {
+                    newStimSpec = modulator.next(RFPlotStimSpec.fromXml(stimSpec));
+                }
+            } else {
+                for (int i = 0; i > clicks; i--) {
+                    newStimSpec = modulator.previous(RFPlotStimSpec.fromXml(stimSpec));
+                }
+            }
+            client.changeRFPlotStim(newStimSpec.toXml());
+        }
     }
 
     @Override
@@ -136,12 +161,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         this.client = client;
     }
 
-    public Map<String, RFPlotDrawable> getRfObjectMap() {
-        return rfObjectMap;
+    public Map<String, RFPlotDrawable> getRefObjectMap() {
+        return refObjectMap;
     }
 
-    public void setRfObjectMap(Map<String, RFPlotDrawable> rfObjectMap) {
-        this.rfObjectMap = rfObjectMap;
+    public void setRefObjectMap(Map<String, RFPlotDrawable> refObjectMap) {
+        this.refObjectMap = refObjectMap;
     }
 
     public ConsoleRenderer getConsoleRenderer() {
@@ -152,4 +177,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         this.consoleRenderer = consoleRenderer;
     }
 
+    public Map<String, RFPlotModulator> getRefModulatorMap() {
+        return refModulatorMap;
+    }
+
+    public void setRefModulatorMap(Map<String, RFPlotModulator> refModulatorMap) {
+        this.refModulatorMap = refModulatorMap;
+    }
 }
