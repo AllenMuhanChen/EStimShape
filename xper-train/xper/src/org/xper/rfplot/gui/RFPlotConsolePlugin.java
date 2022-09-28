@@ -48,12 +48,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         System.err.println(stimType);
     }
 
-    private void init() {
-        types = new CyclicIterator<String>(rfObjectMap.keySet());
-        String firstType = types.first();
-        try{changeStimType(firstType);} catch (Exception e){}
-    }
-
     @Override
     public void stopPlugin() {
     }
@@ -63,9 +57,14 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         init();
     }
 
+    private void init() {
+        types = new CyclicIterator<String>(rfObjectMap.keySet());
+        String firstType = types.first();
+        try{changeStimType(firstType);} catch (Exception e){}
+    }
+
     @Override
     public void tokenAction() {
-        changeStimType(types.first());
     }
 
     @Override
@@ -74,6 +73,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void handleMouseMove(int x, int y) {
+
         RFPlotXfmSpec nowXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
 
         nowXfmSpec.setTranslation(mouseWorldPosition(x,y));
