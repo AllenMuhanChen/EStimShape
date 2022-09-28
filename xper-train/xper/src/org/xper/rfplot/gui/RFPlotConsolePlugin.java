@@ -15,6 +15,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.util.*;
 
+/**
+ * @author Allen Chen
+ */
 public class RFPlotConsolePlugin implements IConsolePlugin {
     @Dependency
     RFPlotClient client;
@@ -59,8 +62,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void init() {
         types = new CyclicIterator<String>(rfObjectMap.keySet());
-        String firstType = types.first();
-        try{changeStimType(firstType);} catch (Exception e){}
+//        String firstType = types.first();
+//        try{changeStimType(firstType);} catch (Exception e){}
     }
 
     @Override

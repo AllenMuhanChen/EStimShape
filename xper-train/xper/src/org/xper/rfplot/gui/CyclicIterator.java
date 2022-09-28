@@ -2,13 +2,17 @@ package org.xper.rfplot.gui;
 
 import java.util.*;
 
+/**
+ * @author Allen Chen
+ */
 public class CyclicIterator<T> implements Iterator<T> {
     int size;
     List<T> list = new LinkedList<>();
     int i=0;
-    public CyclicIterator(Set<T> set) {
-        list.addAll(set);
-        size = set.size();
+    public CyclicIterator(Collection<T> col) {
+        list.addAll(col);
+        size = col.size();
+        i=0;
     }
 
     @Override
@@ -18,11 +22,13 @@ public class CyclicIterator<T> implements Iterator<T> {
 
     @Override
     public T next() {
-        return list.get(i++ % size);
+        i++;
+        return list.get(i % size);
     }
 
     public T previous() {
-        return list.get(i-- % size);
+        i--;
+        return list.get(Math.floorMod(i, size));
     }
 
     public T first(){
