@@ -22,7 +22,6 @@ public class RFPlotStimModulator {
     protected CyclicIterator<String> modes;
     protected RFPlotScroller currentScroller;
 
-
     public void nextMode(){
        currentScroller = modeScrollerMap.get(modes.next());
     }
