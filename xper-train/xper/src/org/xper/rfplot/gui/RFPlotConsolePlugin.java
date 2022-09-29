@@ -111,17 +111,15 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         RFPlotModulator modulator = refModulatorMap.get(stimType);
 
         if (modulator != null) {
-            RFPlotStimSpec newStimSpec = RFPlotStimSpec.fromXml(stimSpec);
             if (clicks > 0) {
                 for (int i = 0; i < clicks; i++) {
-                    newStimSpec = modulator.next(RFPlotStimSpec.fromXml(stimSpec));
+                    modulator.next(refObjectMap.get(stimType));
                 }
             } else {
                 for (int i = 0; i > clicks; i--) {
-                    newStimSpec = modulator.previous(RFPlotStimSpec.fromXml(stimSpec));
+                    modulator.previous(refObjectMap.get(stimType));
                 }
             }
-            client.changeRFPlotStim(newStimSpec.toXml());
         }
     }
 

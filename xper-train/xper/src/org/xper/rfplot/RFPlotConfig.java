@@ -76,8 +76,15 @@ public class RFPlotConfig {
 	@Bean
 	public Map<String, RFPlotModulator> refModulatorMap(){
 		LinkedHashMap<String, RFPlotModulator> refModulatorMap = new LinkedHashMap<>();
-		refModulatorMap.put(RFPlotPngObject.class.getName(), new PngPathModulator(pngLibraryPath));
+		refModulatorMap.put(RFPlotPngObject.class.getName(), pngPathModulator());
 		return refModulatorMap;
+	}
+
+	@Bean
+	public PngPathModulator pngPathModulator(){
+		PngPathModulator modulator = new PngPathModulator(pngLibraryPath);
+		modulator.setClient(rfPlotClient());
+		return modulator;
 	}
 
 	@Bean

@@ -1,7 +1,7 @@
 package org.xper.rfplot;
 
+import org.xper.Dependency;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.RFPlotPngObject;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.gui.CyclicIterator;
 
@@ -14,10 +14,17 @@ public class PngPathModulator implements RFPlotModulator{
     String libraryPath;
     CyclicIterator<File> pngs;
 
+    @Dependency
+    RFPlotClient client;
 
     public PngPathModulator(String libraryPath) {
         this.libraryPath = libraryPath;
 
+        setPngsFromLibrary(libraryPath);
+
+    }
+
+    private void setPngsFromLibrary(String libraryPath) {
         File path = new File(libraryPath);
         pngs = new CyclicIterator<>(Arrays.asList(path.listFiles(new FileFilter() {
             @Override
@@ -25,29 +32,26 @@ public class PngPathModulator implements RFPlotModulator{
                 return pathname.getAbsolutePath().contains(".png");
             }
         })));
-
     }
 
     @Override
-    public RFPlotStimSpec next(RFPlotStimSpec current) {
+    public void next(RFPlotDrawable pngDrawable) {
         String nextPath = pngs.next().getAbsolutePath();
-
-        PngSpec pngSpec = PngSpec.fromXml(current.getStimSpec());
+        PngSpec pngSpec = PngSpec.fromXml(pngDrawable.getSpec());
         pngSpec.setPath(nextPath);
-
-        current.setStimSpec(pngSpec.toXml());
-        return current;
+        pngDrawable.setSpec(pngSpec.toXml());
+        String newStimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(pngDrawable);
+        client.changeRFPlotStim(newStimSpec);
     }
 
     @Override
-    public RFPlotStimSpec previous(RFPlotStimSpec current) {
+    public void previous(RFPlotDrawable pngDrawable) {
         String nextPath = pngs.previous().getAbsolutePath();
-
-        PngSpec pngSpec = PngSpec.fromXml(current.getStimSpec());
+        PngSpec pngSpec = PngSpec.fromXml(pngDrawable.getSpec());
         pngSpec.setPath(nextPath);
-
-        current.setStimSpec(pngSpec.toXml());
-        return current;
+        pngDrawable.setSpec(pngSpec.toXml());
+        String newStimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(pngDrawable);
+        client.changeRFPlotStim(newStimSpec);
     }
 
     @Override
@@ -55,8 +59,17 @@ public class PngPathModulator implements RFPlotModulator{
 
     }
 
+    public RFPlotClient getClient() {
+        return client;
+    }
+
+    public void setClient(RFPlotClient client) {
+        this.client = client;
+    }
+
     @Override
     public void previousMode() {
+
 
     }
 
