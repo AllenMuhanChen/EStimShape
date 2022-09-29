@@ -24,7 +24,7 @@ public class CyclicIterator<T> implements Iterator<T> {
     @Override
     public T next() {
         i++;
-        return list.get(i % size);
+        return list.get(Math.floorMod(i, size));
     }
 
     public T previous() {
