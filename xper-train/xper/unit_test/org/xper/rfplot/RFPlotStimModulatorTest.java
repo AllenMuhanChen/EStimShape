@@ -3,6 +3,7 @@ package org.xper.rfplot;
 import org.junit.Test;
 import org.xper.rfplot.drawing.RFPlotPngObject;
 import org.xper.rfplot.drawing.png.PngSpec;
+import org.xper.rfplot.gui.PngPathScroller;
 
 import static org.junit.Assert.assertTrue;
 

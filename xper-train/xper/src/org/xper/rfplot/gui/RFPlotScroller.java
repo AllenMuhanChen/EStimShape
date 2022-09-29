@@ -1,11 +1,12 @@
-package org.xper.rfplot;
+package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
+import org.xper.rfplot.RFPlotClient;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public abstract class RFPlotScroller {
 
-    RFPlotClient client;
+    protected RFPlotClient client;
 
     public RFPlotScroller(RFPlotClient client) {
         this.client = client;

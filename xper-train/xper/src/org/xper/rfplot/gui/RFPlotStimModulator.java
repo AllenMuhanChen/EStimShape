@@ -1,8 +1,8 @@
-package org.xper.rfplot;
+package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
+import org.xper.rfplot.RFPlotClient;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.gui.CyclicIterator;
 
 import java.util.LinkedHashMap;
 
