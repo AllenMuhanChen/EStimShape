@@ -6,6 +6,7 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.gui.PngPathScroller;
 import org.xper.rfplot.gui.PngSizeScroller;
+import org.xper.rfplot.gui.ScrollerParams;
 
 import static org.junit.Assert.assertTrue;
 
@@ -17,7 +18,7 @@ public class RFPlotStimModulatorTest {
         RFPlotPngObject pngObject = new RFPlotPngObject("/home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404_psychometric/1653428280110274_0.png");
 
         String firstPath = PngSpec.fromXml(pngObject.getSpec()).getPath();
-        scroller.next(pngObject);
+        scroller.next(new ScrollerParams(pngObject, null));
         String nextPath = PngSpec.fromXml(pngObject.getSpec()).getPath();
         assertTrue(firstPath!=nextPath);
 
@@ -29,7 +30,7 @@ public class RFPlotStimModulatorTest {
 
         RFPlotPngObject pngObject = new RFPlotPngObject("/home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404_psychometric/1653428280110274_0.png");
         ImageDimensions firstDimensions = PngSpec.fromXml(pngObject.getSpec()).getDimensions();
-        scroller.next(pngObject);
+        scroller.next(new ScrollerParams(pngObject, null));
         ImageDimensions nextDimensions = PngSpec.fromXml(pngObject.getSpec()).getDimensions();
         assertTrue(firstDimensions.getHeight() > nextDimensions.getHeight());
     }

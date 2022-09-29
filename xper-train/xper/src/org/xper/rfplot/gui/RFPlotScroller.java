@@ -1,8 +1,6 @@
 package org.xper.rfplot.gui;
 
-import org.xper.Dependency;
 import org.xper.rfplot.RFPlotClient;
-import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public abstract class RFPlotScroller {
 
@@ -12,8 +10,8 @@ public abstract class RFPlotScroller {
         this.client = client;
     }
 
-    public abstract void next(RFPlotDrawable drawable);
-    public abstract void previous(RFPlotDrawable drawable);
+    public abstract ScrollerParams next(ScrollerParams scrollerParams);
+    public abstract ScrollerParams previous(ScrollerParams scrollerParams);
 
 
 }

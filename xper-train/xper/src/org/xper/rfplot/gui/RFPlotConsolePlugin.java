@@ -117,11 +117,25 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if (modulator.hasScrollers()) {
             if (clicks > 0) {
                 for (int i = 0; i < clicks; i++) {
-                    modulator.next(refObjectMap.get(stimType));
+                    ScrollerParams newParams = modulator.next(new ScrollerParams(
+                            refObjectMap.get(stimType),
+                            RFPlotXfmSpec.fromXml(xfmSpec)
+                    ));
+                    stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(newParams.getRfPlotDrawable());
+                    xfmSpec = newParams.getXfmSpec().toXml();
+                    client.changeRFPlotStim(stimSpec);
+                    client.changeRFPlotXfm(xfmSpec);
                 }
             } else {
                 for (int i = 0; i > clicks; i--) {
-                    modulator.previous(refObjectMap.get(stimType));
+                    ScrollerParams newParams = modulator.previous(new ScrollerParams(
+                            refObjectMap.get(stimType),
+                            RFPlotXfmSpec.fromXml(xfmSpec)
+                    ));
+                    stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(newParams.getRfPlotDrawable());
+                    xfmSpec = newParams.getXfmSpec().toXml();
+                    client.changeRFPlotStim(stimSpec);
+                    client.changeRFPlotXfm(xfmSpec);
                 }
             }
         }
