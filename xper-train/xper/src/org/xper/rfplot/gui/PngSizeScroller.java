@@ -28,25 +28,4 @@ public class PngSizeScroller extends RFPlotScroller{
         return scrollerParams;
     }
 
-//    @Override
-//    public void next(ScrollerParams scrollerInput) {
-//        PngSpec pngSpec = PngSpec.fromXml(scrollerInput.getRfPlotDrawable().getSpec());
-//        ImageDimensions currentDimensions = pngSpec.getDimensions();
-//        ImageDimensions nextDimensions = new ImageDimensions(currentDimensions.getWidth()-SCALE_FACTOR, currentDimensions.getHeight()-SCALE_FACTOR);
-//        pngSpec.setDimensions(nextDimensions);
-//        scrollerInput.getRfPlotDrawable().setSpec(pngSpec.toXml());
-//        String nextStimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(scrollerInput.getRfPlotDrawable());
-//        client.changeRFPlotStim(nextStimSpec);
-//    }
-
-//    @Override
-//    public void previous(ScrollerParams scrollerInput) {
-//        PngSpec pngSpec = PngSpec.fromXml(scrollerInput.getRfPlotDrawable().getSpec());
-//        ImageDimensions currentDimensions = pngSpec.getDimensions();
-//        ImageDimensions nextDimensions = new ImageDimensions(currentDimensions.getWidth()+SCALE_FACTOR, currentDimensions.getHeight()+SCALE_FACTOR);
-//        pngSpec.setDimensions(nextDimensions);
-//        scrollerInput.getRfPlotDrawable().setSpec(pngSpec.toXml());
-//        String nextStimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(scrollerInput.getRfPlotDrawable());
-//        client.changeRFPlotStim(nextStimSpec);
-//    }
 }
