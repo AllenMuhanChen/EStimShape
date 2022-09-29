@@ -90,8 +90,8 @@ public class RFPlotConfig {
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Path", new PngPathScroller(rfPlotClient() , pngLibraryPath));
-		map.put("Size", new PngSizeScroller(rfPlotClient()));
+		map.put("Path", new PngPathScroller(pngLibraryPath));
+		map.put("Size", new PngSizeScroller());
 		return map;
 	}
 

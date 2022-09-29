@@ -1,15 +1,13 @@
 package org.xper.rfplot.gui;
 
 import org.xper.drawing.Coordinates2D;
-import org.xper.rfplot.RFPlotClient;
 import org.xper.rfplot.RFPlotXfmSpec;
 
 public class PngSizeScroller extends RFPlotScroller{
 
     public final static double SCALE_FACTOR = .1;
 
-    public PngSizeScroller(RFPlotClient client) {
-        super(client);
+    public PngSizeScroller() {
     }
 
     @Override
