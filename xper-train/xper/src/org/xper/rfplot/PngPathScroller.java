@@ -1,6 +1,5 @@
 package org.xper.rfplot;
 
-import org.xper.Dependency;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.gui.CyclicIterator;
@@ -9,19 +8,16 @@ import java.io.File;
 import java.io.FileFilter;
 import java.util.Arrays;
 
-public class PngPathModulator implements RFPlotModulator{
+public class PngPathScroller extends RFPlotScroller{
 
     String libraryPath;
     CyclicIterator<File> pngs;
 
-    @Dependency
-    RFPlotClient client;
-
-    public PngPathModulator(String libraryPath) {
+    public PngPathScroller(RFPlotClient client, String libraryPath) {
+        super(client);
         this.libraryPath = libraryPath;
 
         setPngsFromLibrary(libraryPath);
-
     }
 
     private void setPngsFromLibrary(String libraryPath) {
@@ -53,24 +49,4 @@ public class PngPathModulator implements RFPlotModulator{
         String newStimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(pngDrawable);
         client.changeRFPlotStim(newStimSpec);
     }
-
-    @Override
-    public void nextMode() {
-
-    }
-
-    public RFPlotClient getClient() {
-        return client;
-    }
-
-    public void setClient(RFPlotClient client) {
-        this.client = client;
-    }
-
-    @Override
-    public void previousMode() {
-
-
-    }
-
 }
