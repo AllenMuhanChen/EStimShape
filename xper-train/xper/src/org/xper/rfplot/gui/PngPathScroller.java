@@ -1,8 +1,6 @@
 package org.xper.rfplot.gui;
 
 import org.xper.rfplot.RFPlotClient;
-import org.xper.rfplot.RFPlotStimSpec;
-import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.png.PngSpec;
 
 import java.io.File;
@@ -32,22 +30,20 @@ public class PngPathScroller extends RFPlotScroller {
     }
 
     @Override
-    public void next(RFPlotDrawable pngDrawable) {
+    public ScrollerParams next(ScrollerParams scrollerParams) {
         String nextPath = pngs.next().getAbsolutePath();
-        PngSpec pngSpec = PngSpec.fromXml(pngDrawable.getSpec());
+        PngSpec pngSpec = PngSpec.fromXml(scrollerParams.getRfPlotDrawable().getSpec());
         pngSpec.setPath(nextPath);
-        pngDrawable.setSpec(pngSpec.toXml());
-        String newStimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(pngDrawable);
-        client.changeRFPlotStim(newStimSpec);
+        scrollerParams.getRfPlotDrawable().setSpec(pngSpec.toXml());
+        return scrollerParams;
     }
 
     @Override
-    public void previous(RFPlotDrawable pngDrawable) {
+    public ScrollerParams previous(ScrollerParams scrollerParams) {
         String nextPath = pngs.previous().getAbsolutePath();
-        PngSpec pngSpec = PngSpec.fromXml(pngDrawable.getSpec());
+        PngSpec pngSpec = PngSpec.fromXml(scrollerParams.getRfPlotDrawable().getSpec());
         pngSpec.setPath(nextPath);
-        pngDrawable.setSpec(pngSpec.toXml());
-        String newStimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(pngDrawable);
-        client.changeRFPlotStim(newStimSpec);
+        scrollerParams.getRfPlotDrawable().setSpec(pngSpec.toXml());
+        return scrollerParams;
     }
 }

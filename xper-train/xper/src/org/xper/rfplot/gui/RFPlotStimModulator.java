@@ -2,7 +2,6 @@ package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
 import org.xper.rfplot.RFPlotClient;
-import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import java.util.LinkedHashMap;
 
@@ -31,12 +30,13 @@ public class RFPlotStimModulator {
     }
 
 
-    public void next(RFPlotDrawable drawable){
-        currentScroller.next(drawable);
+    public ScrollerParams next(ScrollerParams scrollerParams){
+        return currentScroller.next(scrollerParams);
     }
 
-    public void previous(RFPlotDrawable drawable) {
-        currentScroller.previous(drawable);
+    public ScrollerParams previous(ScrollerParams scrollerParams) {
+        return  currentScroller.previous(scrollerParams);
+
     }
 
     public String getMode(){
