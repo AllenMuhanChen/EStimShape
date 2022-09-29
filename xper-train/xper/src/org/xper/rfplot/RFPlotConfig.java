@@ -102,9 +102,14 @@ public class RFPlotConfig {
 		plugin.setRefObjectMap(refObjMap());
 		plugin.setRefModulatorMap(refModulatorMap());
 		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
+		plugin.setPlotter(rfPlotter());
 		return plugin;
 	}
-
+	@Bean
+	public RFPlotter rfPlotter(){
+		RFPlotter plotter = new RFPlotter();
+		return plotter;
+	}
 
 	@Bean
 	public RFPlotClient rfPlotClient(){
