@@ -121,10 +121,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                             refObjectMap.get(stimType),
                             RFPlotXfmSpec.fromXml(xfmSpec)
                     ));
-                    stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(newParams.getRfPlotDrawable());
-                    xfmSpec = newParams.getXfmSpec().toXml();
-                    client.changeRFPlotStim(stimSpec);
-                    client.changeRFPlotXfm(xfmSpec);
+                    updateFromScroller(newParams);
                 }
             } else {
                 for (int i = 0; i > clicks; i--) {
@@ -132,13 +129,17 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                             refObjectMap.get(stimType),
                             RFPlotXfmSpec.fromXml(xfmSpec)
                     ));
-                    stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(newParams.getRfPlotDrawable());
-                    xfmSpec = newParams.getXfmSpec().toXml();
-                    client.changeRFPlotStim(stimSpec);
-                    client.changeRFPlotXfm(xfmSpec);
+                    updateFromScroller(newParams);
                 }
             }
         }
+    }
+
+    private void updateFromScroller(ScrollerParams newParams) {
+        stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(newParams.getRfPlotDrawable());
+        xfmSpec = newParams.getXfmSpec().toXml();
+        client.changeRFPlotStim(stimSpec);
+        client.changeRFPlotXfm(xfmSpec);
     }
 
     @Override
