@@ -59,7 +59,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void setSample(NAFCExperimentTask task) {
 		PngSpec sampleSpec = PngSpec.fromXml(task.getSampleSpec());
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
-		sampleDimensions = sampleSpec.getImageDimensions();
+		sampleDimensions = sampleSpec.getDimensions();
 		images.loadTexture(sampleSpec.getPath(), 0);
 	}
 
@@ -74,7 +74,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 		for (int i=0; i < numChoices; i++) {
 			choiceSpec[i] = PngSpec.fromXml(choiceSpecXml[i]);
 			choiceLocations[i] = new Coordinates2D(choiceSpec[i].getxCenter(), choiceSpec[i].getyCenter());
-			choiceDimensions[i] = choiceSpec[i].getImageDimensions();
+			choiceDimensions[i] = choiceSpec[i].getDimensions();
 			choiceAlphas[i] = choiceSpec[i].getAlpha();
 		}
 

@@ -84,12 +84,7 @@ public class PngSpec {
 	public void setPath(String path) {
 		this.path = path;
 	}
-	public ImageDimensions getImageDimensions() {
-		return dimensions;
-	}
-	public void setImageDimensions(ImageDimensions dimensions) {
-		this.dimensions = dimensions;
-	}
+
 	public ImageDimensions getDimensions() {
 		return dimensions;
 	}

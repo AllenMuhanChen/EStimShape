@@ -35,16 +35,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private String xfmSpec;
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
-
     @Override
     public void handleKeyStroke(KeyStroke k) {
-        if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)) {
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_W, 0).equals(k)) {
             String nextType = stimTypeSpecs.next();
             changeStimType(nextType);
         }
-        if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_S, 0).equals(k)){
             String previousType = stimTypeSpecs.previous();
             changeStimType(previousType);
+        }
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)){
+            refModulatorMap.get(stimType).nextMode();
+        }
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
+            refModulatorMap.get(stimType).previousMode();
         }
     }
 
@@ -137,6 +142,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         List<KeyStroke> commandKeys = new LinkedList<>();
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_A,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_D,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_W,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S,0));
         return commandKeys;
     }
 
