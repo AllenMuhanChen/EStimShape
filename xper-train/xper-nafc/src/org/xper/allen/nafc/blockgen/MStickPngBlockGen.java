@@ -380,7 +380,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			sampleSpec.setxCenter(sampleCoords.getX());
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
-			sampleSpec.setImageDimensions(sampleDimensions);
+			sampleSpec.setDimensions(sampleDimensions);
 			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
 
 			//
@@ -392,7 +392,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			matchSpec.setxCenter(matchCoords.getX());
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
-			matchSpec.setImageDimensions(matchDimensions);
+			matchSpec.setDimensions(matchDimensions);
 			dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
 			choiceIds[0] = matchId;
 
@@ -404,7 +404,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 				distractorSpec.get(j).setxCenter(distractorsCoords.get(j).getX());
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
-				distractorSpec.get(j).setImageDimensions(distractorDimensions);
+				distractorSpec.get(j).setDimensions(distractorDimensions);
 				dbUtil.writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "Distractor");
 				choiceIds[j+1] = distractorIds.get(j);
 			}

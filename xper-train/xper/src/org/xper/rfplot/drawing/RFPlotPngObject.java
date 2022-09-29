@@ -22,7 +22,7 @@ public class RFPlotPngObject extends DefaultSpecRFPlotDrawable{
     public void draw(Context context) {
         images.initTextures();
         images.loadTexture(spec.getPath(), 0);
-        images.draw(context, 0, new Coordinates2D(spec.getxCenter(), spec.getyCenter()), spec.getImageDimensions());
+        images.draw(context, 0, new Coordinates2D(spec.getxCenter(), spec.getyCenter()), spec.getDimensions());
     }
 
     @Override

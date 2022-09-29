@@ -25,10 +25,7 @@ import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotGaborObject;
 import org.xper.rfplot.drawing.RFPlotPngObject;
-import org.xper.rfplot.gui.PngPathScroller;
-import org.xper.rfplot.gui.RFPlotConsolePlugin;
-import org.xper.rfplot.gui.RFPlotScroller;
-import org.xper.rfplot.gui.RFPlotStimModulator;
+import org.xper.rfplot.gui.*;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -94,6 +91,7 @@ public class RFPlotConfig {
 	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
 		map.put("Path", new PngPathScroller(rfPlotClient() , pngLibraryPath));
+		map.put("Size", new PngSizeScroller(rfPlotClient()));
 		return map;
 	}
 

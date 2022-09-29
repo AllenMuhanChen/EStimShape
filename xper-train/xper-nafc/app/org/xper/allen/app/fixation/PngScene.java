@@ -52,7 +52,7 @@ public class PngScene extends AbstractTaskScene{
 	public void setTask(ExperimentTask task) {
 		PngSpec pngSpec = PngSpec.fromXml(task.getStimSpec());
 		pngLocation = new Coordinates2D(pngSpec.getxCenter(), pngSpec.getyCenter());
-		pngDimensions = pngSpec.getImageDimensions();
+		pngDimensions = pngSpec.getDimensions();
 //		image.loadTexture("/home/m2_allen/Documents/pngs/pngs_train_220328/1.png", 0);
 		image.loadTexture(pngSpec.getPath(), 0);
 //		System.out.println("AC908345098543" + pngSpec.getPath());
