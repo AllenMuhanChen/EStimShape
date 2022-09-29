@@ -74,17 +74,40 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public Map<String, RFPlotModulator> refModulatorMap(){
-		LinkedHashMap<String, RFPlotModulator> refModulatorMap = new LinkedHashMap<>();
-		refModulatorMap.put(RFPlotPngObject.class.getName(), pngPathModulator());
+	public Map<String, RFPlotStimModulator> refModulatorMap(){
+		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
+		refModulatorMap.put(RFPlotPngObject.class.getName(), pngModulator());
 		return refModulatorMap;
 	}
 
+
 	@Bean
-	public PngPathModulator pngPathModulator(){
-		PngPathModulator modulator = new PngPathModulator(pngLibraryPath);
-		modulator.setClient(rfPlotClient());
-		return modulator;
+	public RFPlotStimModulator pngModulator(){
+		RFPlotStimModulator pngModulator = new RFPlotStimModulator(pngModeScrollerMap());
+		return pngModulator;
+	}
+
+	@Bean
+	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
+		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
+		map.put("Path", new PngPathScroller(rfPlotClient() , pngLibraryPath));
+		return map;
+	}
+
+	@Bean
+	public RFPlotConsolePlugin rfPlotConsolePlugin(){
+		RFPlotConsolePlugin plugin = new RFPlotConsolePlugin();
+		plugin.setClient(rfPlotClient());
+		plugin.setRefObjectMap(refObjMap());
+		plugin.setRefModulatorMap(refModulatorMap());
+		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
+		return plugin;
+	}
+
+
+	@Bean
+	public RFPlotClient rfPlotClient(){
+		return new RFPlotTaskDataSourceClient(classicConfig.experimentHost);
 	}
 
 	@Bean
@@ -171,18 +194,5 @@ public class RFPlotConfig {
 		return console;
 	}
 
-	@Bean
-	public RFPlotConsolePlugin rfPlotConsolePlugin(){
-		RFPlotConsolePlugin plugin = new RFPlotConsolePlugin();
-		plugin.setClient(rfPlotClient());
-		plugin.setRefObjectMap(refObjMap());
-		plugin.setRefModulatorMap(refModulatorMap());
-		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
-		return plugin;
-	}
 
-	@Bean
-	public RFPlotClient rfPlotClient(){
-		return new RFPlotTaskDataSourceClient(classicConfig.experimentHost);
-	}
 }

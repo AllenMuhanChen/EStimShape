@@ -17,7 +17,8 @@ public class CyclicIterator<T> implements Iterator<T> {
 
     @Override
     public boolean hasNext() {
-        return true;
+        if (size>0) return true;
+        else return false;
     }
 
     @Override

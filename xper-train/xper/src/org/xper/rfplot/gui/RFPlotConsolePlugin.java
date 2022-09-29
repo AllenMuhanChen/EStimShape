@@ -8,7 +8,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.RFPlotPngObject;
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;
@@ -27,7 +26,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     Map<String, RFPlotDrawable> refObjectMap;
 
     @Dependency
-    Map<String, RFPlotModulator> refModulatorMap;
+    Map<String, RFPlotStimModulator> refModulatorMap;
 
     @Dependency
     ConsoleRenderer consoleRenderer;
@@ -108,9 +107,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         int clicks = e.getWheelRotation();
         System.err.println(clicks);
-        RFPlotModulator modulator = refModulatorMap.get(stimType);
+        RFPlotStimModulator modulator = refModulatorMap.get(stimType);
 
-        if (modulator != null) {
+        if (modulator.hasScrollers()) {
             if (clicks > 0) {
                 for (int i = 0; i < clicks; i++) {
                     modulator.next(refObjectMap.get(stimType));
@@ -175,11 +174,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         this.consoleRenderer = consoleRenderer;
     }
 
-    public Map<String, RFPlotModulator> getRefModulatorMap() {
+    public Map<String, RFPlotStimModulator> getRefModulatorMap() {
         return refModulatorMap;
     }
 
-    public void setRefModulatorMap(Map<String, RFPlotModulator> refModulatorMap) {
+    public void setRefModulatorMap(Map<String, RFPlotStimModulator> refModulatorMap) {
         this.refModulatorMap = refModulatorMap;
     }
 }
