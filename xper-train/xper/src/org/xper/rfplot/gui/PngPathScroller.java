@@ -1,14 +1,15 @@
-package org.xper.rfplot;
+package org.xper.rfplot.gui;
 
+import org.xper.rfplot.RFPlotClient;
+import org.xper.rfplot.RFPlotStimSpec;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.png.PngSpec;
-import org.xper.rfplot.gui.CyclicIterator;
 
 import java.io.File;
 import java.io.FileFilter;
 import java.util.Arrays;
 
-public class PngPathScroller extends RFPlotScroller{
+public class PngPathScroller extends RFPlotScroller {
 
     String libraryPath;
     CyclicIterator<File> pngs;
