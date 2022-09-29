@@ -14,7 +14,16 @@ public class Circle implements Drawable {
 	boolean solid = false;
 	@Dependency
 	double radius;
-	
+
+	public Circle() {
+	}
+
+	public Circle(boolean solid, double radius) {
+		this.solid = solid;
+		this.radius = radius;
+		initArray();
+	}
+
 	static final int STEPS = 200;
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * 3 * Float.SIZE / 8).order(

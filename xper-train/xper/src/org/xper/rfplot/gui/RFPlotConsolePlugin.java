@@ -5,6 +5,9 @@ import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.GLUtil;
+import org.xper.drawing.object.Circle;
+import org.xper.drawing.object.Square;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotDrawable;
@@ -30,6 +33,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Dependency
     ConsoleRenderer consoleRenderer;
+
+    @Dependency
+    RFPlotter plotter;
 
     private String stimType;
     private String xfmSpec;
@@ -86,7 +92,14 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void drawCanvas(Context context, String devId) {
-        consoleRenderer.drawCanvas(context, devId);
+        for (Coordinates2D point : plotter.getPoints()){
+            GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0);
+        }
+
+        for (Point point : plotter.getHull()){
+            GLUtil.drawCircle(new Circle(true, 5), point.x, point.y, 0, 1, 0, 0);
+        }
+        GLUtil.drawSquare(new Square(true, 10), plotter.getRFCenter().getX(), plotter.getRFCenter().getY(), 0, 0, 1, 1);
     }
 
     @Override
@@ -170,6 +183,23 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void handleMouseClicked(MouseEvent e) {
 
+        //Left Click
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
+            plotter.add(worldCoords);
+            System.out.println(plotter.getRFCenter());
+        }
+
+        //Right Click
+        if (e.getButton() == MouseEvent.BUTTON3) {
+            Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
+            plotter.removeClosest(worldCoords);
+        }
+
+        //Middle Mouse Click
+        if (e.getButton() == MouseEvent.BUTTON2) {
+
+        }
     }
 
     public RFPlotClient getClient() {
@@ -202,5 +232,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     public void setRefModulatorMap(Map<String, RFPlotStimModulator> refModulatorMap) {
         this.refModulatorMap = refModulatorMap;
+    }
+
+    public RFPlotter getPlotter() {
+        return plotter;
+    }
+
+    public void setPlotter(RFPlotter plotter) {
+        this.plotter = plotter;
     }
 }
