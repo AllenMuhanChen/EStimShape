@@ -26,7 +26,7 @@ public interface IConsolePlugin {
 	 */
 	void startPlugin();
 
-	void tokenAction();
+	void onSwitchToPlugin();
 
 	void drawCanvas(Context context, String devId);
 
