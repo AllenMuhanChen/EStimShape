@@ -12,7 +12,7 @@ import java.util.List;
 
 public class RFPlotDrawer {
 
-    List<Coordinates2D> points = new LinkedList<>();
+    private final List<Coordinates2D> points = new LinkedList<>();
     private List<Point> hull;
 
 
@@ -57,12 +57,26 @@ public class RFPlotDrawer {
 
     public Coordinates2D getRFCenter(){
         Point centroid = findCentroid(hull);
-        return new Coordinates2D(centroid.x, centroid.y);
+        return pointToCoord(centroid);
     }
 
-    public List<Point> getHull(){
-        return hull;
+    public List<Coordinates2D> getHull(){
+        List<Coordinates2D> hullCoords = pointsToCoords(hull);
+        return hullCoords;
     }
+
+    private List<Coordinates2D> pointsToCoords(List<Point> hull) {
+        List<Coordinates2D> hullCoords = new LinkedList<>();
+        for (Point point: hull){
+            hullCoords.add(pointToCoord(point));
+        }
+        return hullCoords;
+    }
+
+    private Coordinates2D pointToCoord(Point point) {
+        return new Coordinates2D(point.x, point.y);
+    }
+
 
     public List<Coordinates2D> getPoints(){
         return points;
