@@ -111,7 +111,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     @Override
-    public void tokenAction() {
+    public void onSwitchToPlugin() {
         if(stimTypeSpecs.getPosition()==0)
             changeStimType(stimTypeSpecs.next());
     }
