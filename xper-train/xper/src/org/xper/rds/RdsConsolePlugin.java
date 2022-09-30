@@ -6,7 +6,7 @@ import java.awt.event.MouseWheelEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.KeyStroke;
+import javax.swing.*;
 
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
@@ -125,6 +125,11 @@ public class RdsConsolePlugin implements IConsolePlugin {
 	@Override
 	public void onSwitchToPluginAction() {
 
+	}
+
+	@Override
+	public JPanel jPanel() {
+		return null;
 	}
 
 	@Override
