@@ -141,7 +141,7 @@ public class ExperimentConsole extends JFrame implements
 
 				public void actionPerformed(ActionEvent e) {
 					currentPlugin = p;
-					currentPlugin.tokenAction();
+					currentPlugin.onSwitchToPlugin();
 				}
 			};
 			keyMap.put(token, tokenAction);
