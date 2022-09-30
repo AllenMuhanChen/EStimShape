@@ -1,5 +1,6 @@
 package org.xper.rfplot.gui;
 
+import jdk.internal.util.xml.impl.Input;
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
@@ -10,6 +11,7 @@ import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import javax.swing.*;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -53,6 +55,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         }
         if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
             refModulatorMap.get(stimType).previousMode();
+        }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
+            System.err.println("SAVED!");
         }
     }
 
@@ -162,6 +167,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_D,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_W,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
         return commandKeys;
     }
 
