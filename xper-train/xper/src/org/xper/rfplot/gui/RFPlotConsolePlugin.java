@@ -54,9 +54,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
     private JLabel rfCenter;
+    private JLabel scrollerMode;
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
+
+
         if (KeyStroke.getKeyStroke(KeyEvent.VK_W, 0).equals(k)) {
             String nextType = stimTypeSpecs.next();
             changeStimType(nextType);
@@ -66,10 +69,14 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             changeStimType(previousType);
         }
         if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)){
-            refModulatorMap.get(stimType).nextMode();
+            RFPlotStimModulator modulator = refModulatorMap.get(stimType);
+            modulator.nextMode();
+            scrollerMode.setText(modulator.getMode());
         }
         if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
-            refModulatorMap.get(stimType).previousMode();
+            RFPlotStimModulator modulator = refModulatorMap.get(stimType);
+            modulator.previousMode();
+            scrollerMode.setText(modulator.getMode());
         }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
             save();
@@ -133,6 +140,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         jpanel.setLayout(new GridBagLayout());
         jpanel.setBorder(BorderFactory.createTitledBorder("RFPlot"));
 
+        rfCenterLabel(jpanel);
+        scrollerModeLabel(jpanel);
+        return jpanel;
+    }
+
+    private void rfCenterLabel(JPanel jpanel) {
         GridBagConstraints centerLabelConstraints = new GridBagConstraints();
         centerLabelConstraints.gridwidth = 1;
         centerLabelConstraints.ipadx=5;
@@ -147,8 +160,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         jpanel.add(rfCenter, centerValueConstraints);
         rfCenter.setHorizontalAlignment(SwingConstants.LEFT);
         rfCenter.setPreferredSize(new Dimension(320,20));
+    }
 
-        return jpanel;
+    private void scrollerModeLabel(JPanel jpanel){
+        GridBagConstraints scrollerModeConstraints = new GridBagConstraints();
+        scrollerModeConstraints.gridy = 2;
+        scrollerMode = new JLabel("Mode");
+        jpanel.add(scrollerMode, scrollerModeConstraints);
     }
 
     @Override
@@ -199,7 +217,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                     updateFromScroller(newParams);
                 }
             }
+
         }
+
+
     }
 
     private void updateFromScroller(ScrollerParams newParams) {
