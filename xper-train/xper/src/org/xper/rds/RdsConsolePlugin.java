@@ -123,7 +123,7 @@ public class RdsConsolePlugin implements IConsolePlugin {
 	}
 
 	@Override
-	public void onSwitchToPlugin() {
+	public void onSwitchToPluginAction() {
 
 	}
 
