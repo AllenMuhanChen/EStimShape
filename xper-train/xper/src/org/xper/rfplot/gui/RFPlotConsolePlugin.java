@@ -10,13 +10,19 @@ import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
+import org.xper.util.StringUtil;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.util.*;
+import java.util.List;
+
+import static java.awt.GridBagConstraints.PAGE_END;
+import static java.awt.GridBagConstraints.PAGE_START;
 
 /**
  * @author Allen Chen
@@ -47,6 +53,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private String xfmSpec;
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
+    private JLabel rfCenter;
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
@@ -114,6 +121,34 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     public void onSwitchToPluginAction() {
         if(stimTypeSpecs.getPosition()==0)
             changeStimType(stimTypeSpecs.next());
+    }
+
+    /**
+     * https://docs.oracle.com/javase/tutorial/uiswing/layout/gridbag.html#:~:text=A%20GridBagLayout%20places%20components%20in,necessarily%20have%20the%20same%20width.
+     * @return
+     */
+    @Override
+    public JPanel jPanel() {
+        JPanel jpanel = new JPanel();
+        jpanel.setLayout(new GridBagLayout());
+        jpanel.setBorder(BorderFactory.createTitledBorder("RFPlot"));
+
+        GridBagConstraints centerLabelConstraints = new GridBagConstraints();
+        centerLabelConstraints.gridwidth = 1;
+        centerLabelConstraints.ipadx=5;
+        centerLabelConstraints.anchor=PAGE_START;
+        jpanel.add(new JLabel("Center"), centerLabelConstraints);
+
+        rfCenter = new JLabel(new Coordinates2D(0,0).toString());
+        GridBagConstraints centerValueConstraints = new GridBagConstraints();
+        centerValueConstraints.gridwidth = 1;
+        centerValueConstraints.ipadx=5;
+        centerValueConstraints.anchor=PAGE_END;
+        jpanel.add(rfCenter, centerValueConstraints);
+        rfCenter.setHorizontalAlignment(SwingConstants.LEFT);
+        rfCenter.setPreferredSize(new Dimension(320,20));
+
+        return jpanel;
     }
 
     @Override
@@ -207,7 +242,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if (e.getButton() == MouseEvent.BUTTON1) {
             Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
             plotter.add(worldCoords);
-            System.out.println(plotter.getRFCenter());
         }
 
         //Right Click
@@ -220,6 +254,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if (e.getButton() == MouseEvent.BUTTON2) {
 
         }
+
+        rfCenter.setText(mm2deg(plotter.getRFCenter()).toString());
     }
 
     public RFPlotClient getClient() {

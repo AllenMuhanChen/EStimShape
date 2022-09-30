@@ -4,7 +4,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.util.List;
 
-import javax.swing.KeyStroke;
+import javax.swing.*;
 
 import org.xper.drawing.Context;
 
@@ -27,6 +27,8 @@ public interface IConsolePlugin {
 	void startPlugin();
 
 	void onSwitchToPluginAction();
+
+	JPanel jPanel();
 
 	void drawCanvas(Context context, String devId);
 

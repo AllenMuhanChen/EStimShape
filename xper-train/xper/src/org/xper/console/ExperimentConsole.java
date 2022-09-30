@@ -94,7 +94,7 @@ public class ExperimentConsole extends JFrame implements
 	AtomicReference<String> currentDeviceId = new AtomicReference<String>();
 	
 	static final double DEFAULT_CANVAS_SCALE_FACTOR = 2.5;
-	
+
 	public boolean isMonitorMode () {
 		return currentPlugin == null;
 	}
@@ -142,6 +142,7 @@ public class ExperimentConsole extends JFrame implements
 				public void actionPerformed(ActionEvent e) {
 					currentPlugin = p;
 					currentPlugin.onSwitchToPluginAction();
+					addPanel(currentPlugin.jPanel());
 				}
 			};
 			keyMap.put(token, tokenAction);
@@ -217,7 +218,9 @@ public class ExperimentConsole extends JFrame implements
 			}
 		});
         getContentPane().add(canvasPanel);
-        
+
+
+
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.LINE_AXIS));
         
@@ -476,6 +479,15 @@ public class ExperimentConsole extends JFrame implements
 
 		pack();
     }
+
+	private void addPanel(JPanel panel) {
+		try {
+			getContentPane().add(panel);
+			getContentPane().revalidate();
+			getContentPane().repaint();
+			pack();
+		} catch (Exception e){}
+	}
 
 	void pauseResume() {
 		paused = !paused;
