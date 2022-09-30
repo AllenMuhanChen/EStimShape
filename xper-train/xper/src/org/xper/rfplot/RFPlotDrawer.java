@@ -17,15 +17,17 @@ public class RFPlotDrawer {
 
 
     public void draw(){
-        for (Coordinates2D point : points){
-            GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0);
-        }
+        try {
+            for (Coordinates2D point : points) {
+                GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0);
+            }
 
-        for (Point point : hull){
-            GLUtil.drawCircle(new Circle(true, 5), point.x, point.y, 0, 1, 0, 0);
-        }
-        Coordinates2D rfCenter = getRFCenter();
-        GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
+            for (Point point : hull) {
+                GLUtil.drawCircle(new Circle(true, 5), point.x, point.y, 0, 1, 0, 0);
+            }
+            Coordinates2D rfCenter = getRFCenter();
+            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
+        } catch (Exception e){}
     }
 
     public void add(Coordinates2D point){
@@ -38,11 +40,11 @@ public class RFPlotDrawer {
         pointsUpdated();
     }
 
-    public void removeClosestTo(Coordinates2D to){
+    public void removeClosestTo(Coordinates2D point){
         Coordinates2D nearest = Collections.min(points, new Comparator<Coordinates2D>(){
             @Override
             public int compare(Coordinates2D o1, Coordinates2D o2) {
-                 return (int) (o1.distance(to) - o2.distance(to));
+                 return (int) (o1.distance(point) - o2.distance(point));
             }
         });
     points.remove(nearest);
