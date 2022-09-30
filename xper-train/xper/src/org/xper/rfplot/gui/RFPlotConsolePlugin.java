@@ -1,6 +1,5 @@
 package org.xper.rfplot.gui;
 
-import jdk.internal.util.xml.impl.Input;
 import org.xper.Dependency;
 import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
@@ -70,8 +69,23 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private void save(){
-        RFInfo rfInfo = new RFInfo(plotter.getHull(), plotter.getRFCenter());
+        RFInfo rfInfo = new RFInfo(mm2deg(plotter.getHull()), mm2deg(plotter.getRFCenter()));
         dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
+    }
+
+    private List<Coordinates2D> mm2deg(List<Coordinates2D> points) {
+        List<Coordinates2D> hullInDegrees = new ArrayList<>();
+        for (Coordinates2D pointInMM: points){
+            Coordinates2D pointInDegrees = mm2deg(pointInMM);
+            hullInDegrees.add(pointInDegrees);
+        }
+        return hullInDegrees;
+    }
+
+    private Coordinates2D mm2deg(Coordinates2D point){
+        double x = consoleRenderer.getRenderer().mm2deg(point.getX());
+        double y = consoleRenderer.getRenderer().mm2deg(point.getY());
+        return new Coordinates2D(x,y);
     }
 
     private void changeStimType(String stimType) {
@@ -249,5 +263,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     public void setPlotter(RFPlotDrawer plotter) {
         this.plotter = plotter;
+    }
+
+    public DbUtil getDbUtil() {
+        return dbUtil;
+    }
+
+    public void setDbUtil(DbUtil dbUtil) {
+        this.dbUtil = dbUtil;
+    }
+
+    public TimeUtil getTimeUtil() {
+        return timeUtil;
+    }
+
+    public void setTimeUtil(TimeUtil timeUtil) {
+        this.timeUtil = timeUtil;
     }
 }
