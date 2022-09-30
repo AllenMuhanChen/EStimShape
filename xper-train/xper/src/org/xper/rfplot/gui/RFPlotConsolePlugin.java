@@ -8,8 +8,11 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.time.TimeUtil;
+import org.xper.util.DbUtil;
 
 import javax.swing.*;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
@@ -31,10 +34,20 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Dependency
     ConsoleRenderer consoleRenderer;
 
+    @Dependency
+    RFPlotDrawer plotter;
+
+    @Dependency
+    DbUtil dbUtil;
+
+    @Dependency
+    TimeUtil timeUtil;
+
     private String stimType;
     private String xfmSpec;
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
+
     @Override
     public void handleKeyStroke(KeyStroke k) {
         if (KeyStroke.getKeyStroke(KeyEvent.VK_W, 0).equals(k)) {
@@ -51,6 +64,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
             refModulatorMap.get(stimType).previousMode();
         }
+        if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
+            save();
+        }
     }
 
     private void changeStimType(String stimType) {
@@ -59,6 +75,26 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
         client.changeRFPlotStim(stimSpec);
         System.err.println(stimType);
+    }
+
+    private void save(){
+        RFInfo rfInfo = new RFInfo(mm2deg(plotter.getHull()), mm2deg(plotter.getRFCenter()));
+        dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
+    }
+
+    private List<Coordinates2D> mm2deg(List<Coordinates2D> points) {
+        List<Coordinates2D> hullInDegrees = new ArrayList<>();
+        for (Coordinates2D pointInMM: points){
+            Coordinates2D pointInDegrees = mm2deg(pointInMM);
+            hullInDegrees.add(pointInDegrees);
+        }
+        return hullInDegrees;
+    }
+
+    private Coordinates2D mm2deg(Coordinates2D point){
+        double x = consoleRenderer.getRenderer().mm2deg(point.getX());
+        double y = consoleRenderer.getRenderer().mm2deg(point.getY());
+        return new Coordinates2D(x,y);
     }
 
     @Override
@@ -74,19 +110,15 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         stimTypeSpecs = new CyclicIterator<String>(refObjectMap.keySet());
     }
 
-    private Object getFirstStimType() {
-        return refObjectMap.keySet().toArray()[0];
-    }
-
     @Override
-    public void tokenAction() {
+    public void onSwitchToPluginAction() {
         if(stimTypeSpecs.getPosition()==0)
             changeStimType(stimTypeSpecs.next());
     }
 
     @Override
     public void drawCanvas(Context context, String devId) {
-        consoleRenderer.drawCanvas(context, devId);
+        plotter.draw();
     }
 
     @Override
@@ -102,9 +134,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     public Coordinates2D mouseWorldPosition(int x, int y) {
         AbstractRenderer renderer = consoleRenderer.getRenderer();
-        Coordinates2D world = renderer.pixel2coord(new Coordinates2D(x, y));
+        Coordinates2D worldCoordinates = renderer.pixel2coord(new Coordinates2D(x, y));
 
-        return world;
+        return worldCoordinates;
     }
 
     @Override
@@ -159,6 +191,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_D,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_W,0));
         commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S,0));
+        commandKeys.add(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK));
         return commandKeys;
     }
 
@@ -170,6 +203,23 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Override
     public void handleMouseClicked(MouseEvent e) {
 
+        //Left Click
+        if (e.getButton() == MouseEvent.BUTTON1) {
+            Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
+            plotter.add(worldCoords);
+            System.out.println(plotter.getRFCenter());
+        }
+
+        //Right Click
+        if (e.getButton() == MouseEvent.BUTTON3) {
+            Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
+            plotter.removeClosestTo(worldCoords);
+        }
+
+        //Middle Mouse Click
+        if (e.getButton() == MouseEvent.BUTTON2) {
+
+        }
     }
 
     public RFPlotClient getClient() {
@@ -202,5 +252,29 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     public void setRefModulatorMap(Map<String, RFPlotStimModulator> refModulatorMap) {
         this.refModulatorMap = refModulatorMap;
+    }
+
+    public RFPlotDrawer getPlotter() {
+        return plotter;
+    }
+
+    public void setPlotter(RFPlotDrawer plotter) {
+        this.plotter = plotter;
+    }
+
+    public DbUtil getDbUtil() {
+        return dbUtil;
+    }
+
+    public void setDbUtil(DbUtil dbUtil) {
+        this.dbUtil = dbUtil;
+    }
+
+    public TimeUtil getTimeUtil() {
+        return timeUtil;
+    }
+
+    public void setTimeUtil(TimeUtil timeUtil) {
+        this.timeUtil = timeUtil;
     }
 }

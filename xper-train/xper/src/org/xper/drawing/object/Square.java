@@ -20,6 +20,16 @@ public class Square implements Drawable {
 	ByteBuffer array = ByteBuffer.allocateDirect(STEPS * 3 * Float.SIZE / 8)
 			.order(ByteOrder.nativeOrder());
 
+	public Square() {
+	}
+
+	public Square(boolean solid, double size) {
+		this.solid = solid;
+		this.size = size;
+
+		initArray();
+	}
+
 	/**
 	 * @param context
 	 *            ignored.
