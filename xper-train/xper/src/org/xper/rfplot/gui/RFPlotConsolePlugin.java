@@ -9,6 +9,8 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.time.TimeUtil;
+import org.xper.util.DbUtil;
 
 import javax.swing.*;
 import java.awt.event.InputEvent;
@@ -36,6 +38,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     @Dependency
     RFPlotDrawer plotter;
 
+    @Dependency
+    DbUtil dbUtil;
+
+    @Dependency
+    TimeUtil timeUtil;
+
     private String stimType;
     private String xfmSpec;
     private String stimSpec;
@@ -57,8 +65,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             refModulatorMap.get(stimType).previousMode();
         }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
-            System.err.println("SAVED!");
+            save();
         }
+    }
+
+    private void save(){
+        RFInfo rfInfo = new RFInfo(plotter.getHull(), plotter.getRFCenter());
+        dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
     }
 
     private void changeStimType(String stimType) {
