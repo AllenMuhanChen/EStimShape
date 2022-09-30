@@ -106,8 +106,8 @@ public class RFPlotConfig {
 		return plugin;
 	}
 	@Bean
-	public RFPlotter rfPlotter(){
-		RFPlotter plotter = new RFPlotter();
+	public RFPlotDrawer rfPlotter(){
+		RFPlotDrawer plotter = new RFPlotDrawer();
 		return plotter;
 	}
 

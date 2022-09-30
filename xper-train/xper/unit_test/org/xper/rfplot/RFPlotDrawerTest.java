@@ -5,11 +5,11 @@ import org.xper.drawing.Coordinates2D;
 
 import static org.junit.Assert.assertEquals;
 
-public class RFPlotterTest {
+public class RFPlotDrawerTest {
 
     @Test
     public void plotter_gets_center_of_rf(){
-        RFPlotter plotter = new RFPlotter();
+        RFPlotDrawer plotter = new RFPlotDrawer();
 
         Coordinates2D coords1 = new Coordinates2D(0,0);
         Coordinates2D coords2 = new Coordinates2D(10,0);

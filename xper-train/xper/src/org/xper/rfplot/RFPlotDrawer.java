@@ -1,16 +1,32 @@
 package org.xper.rfplot;
 
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.GLUtil;
+import org.xper.drawing.object.Circle;
+import org.xper.drawing.object.Square;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
-public class RFPlotter {
+public class RFPlotDrawer {
 
     List<Coordinates2D> points = new LinkedList<>();
     private List<Point> hull;
+
+
+    public void draw(){
+        for (Coordinates2D point : points){
+            GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0);
+        }
+
+        for (Point point : hull){
+            GLUtil.drawCircle(new Circle(true, 5), point.x, point.y, 0, 1, 0, 0);
+        }
+        Coordinates2D rfCenter = getRFCenter();
+        GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
+    }
 
     public void add(Coordinates2D point){
         points.add(point);
@@ -22,7 +38,7 @@ public class RFPlotter {
         pointsUpdated();
     }
 
-    public void removeClosest(Coordinates2D to){
+    public void removeClosestTo(Coordinates2D to){
         Coordinates2D nearest = Collections.min(points, new Comparator<Coordinates2D>(){
             @Override
             public int compare(Coordinates2D o1, Coordinates2D o2) {
