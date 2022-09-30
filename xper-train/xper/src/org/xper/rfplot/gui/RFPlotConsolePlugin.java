@@ -47,6 +47,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private String xfmSpec;
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
+
     @Override
     public void handleKeyStroke(KeyStroke k) {
         if (KeyStroke.getKeyStroke(KeyEvent.VK_W, 0).equals(k)) {
@@ -66,6 +67,14 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
             save();
         }
+    }
+
+    private void changeStimType(String stimType) {
+        this.stimType = stimType;
+        RFPlotDrawable firstStimObj = refObjectMap.get(stimType);
+        stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
+        client.changeRFPlotStim(stimSpec);
+        System.err.println(stimType);
     }
 
     private void save(){
@@ -88,14 +97,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         return new Coordinates2D(x,y);
     }
 
-    private void changeStimType(String stimType) {
-        this.stimType = stimType;
-        RFPlotDrawable firstStimObj = refObjectMap.get(stimType);
-        stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
-        client.changeRFPlotStim(stimSpec);
-        System.err.println(stimType);
-    }
-
     @Override
     public void stopPlugin() {
     }
@@ -107,10 +108,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void init() {
         stimTypeSpecs = new CyclicIterator<String>(refObjectMap.keySet());
-    }
-
-    private Object getFirstStimType() {
-        return refObjectMap.keySet().toArray()[0];
     }
 
     @Override
@@ -137,9 +134,9 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     public Coordinates2D mouseWorldPosition(int x, int y) {
         AbstractRenderer renderer = consoleRenderer.getRenderer();
-        Coordinates2D world = renderer.pixel2coord(new Coordinates2D(x, y));
+        Coordinates2D worldCoordinates = renderer.pixel2coord(new Coordinates2D(x, y));
 
-        return world;
+        return worldCoordinates;
     }
 
     @Override
