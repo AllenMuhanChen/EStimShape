@@ -10,6 +10,7 @@ import org.springframework.config.java.util.DefaultScopes;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
+import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
@@ -34,6 +35,7 @@ import org.xper.rfplot.gui.*;
 public class RFPlotConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired ClassicConfig classicConfig;
+	@Autowired BaseConfig baseConfig;
 
 	@ExternalValue("rfplot.default_png_path")
 	public String defaultPngPath;
@@ -103,6 +105,8 @@ public class RFPlotConfig {
 		plugin.setRefModulatorMap(refModulatorMap());
 		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
 		plugin.setPlotter(rfPlotter());
+		plugin.setDbUtil(baseConfig.dbUtil());
+		plugin.setTimeUtil(baseConfig.localTimeUtil());
 		return plugin;
 	}
 	@Bean
