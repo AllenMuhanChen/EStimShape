@@ -40,7 +40,13 @@ public class RFPlotStimModulator {
     }
 
     public String getMode(){
-        return modes.get(modes.getPosition());
+        String mode = modes.get(modes.getPosition());
+        if(mode == null)
+            return "No Mode";
+        else{
+            return mode;
+        }
+
     }
 
     public RFPlotClient getClient() {
