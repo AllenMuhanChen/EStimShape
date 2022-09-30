@@ -24,12 +24,14 @@ public class CyclicIterator<T> implements Iterator<T> {
     @Override
     public T next() {
         i++;
-        return list.get(Math.floorMod(i, size));
+        i = Math.floorMod(i, size);
+        return list.get(i);
     }
 
     public T previous() {
         i--;
-        return list.get(Math.floorMod(i, size));
+        i = Math.floorMod(i, size);
+        return list.get(i);
     }
 
     public T first(){
