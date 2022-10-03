@@ -57,8 +57,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
-
-
         if (KeyStroke.getKeyStroke(KeyEvent.VK_W, 0).equals(k)) {
             String nextType = stimTypeSpecs.next();
             changeStimType(nextType);
@@ -96,12 +94,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private List<Coordinates2D> mm2deg(List<Coordinates2D> points) {
-        List<Coordinates2D> hullInDegrees = new ArrayList<>();
+        List<Coordinates2D> pointsInDegrees = new ArrayList<>();
         for (Coordinates2D pointInMM: points){
             Coordinates2D pointInDegrees = mm2deg(pointInMM);
-            hullInDegrees.add(pointInDegrees);
+            pointsInDegrees.add(pointInDegrees);
         }
-        return hullInDegrees;
+        return pointsInDegrees;
     }
 
     private Coordinates2D mm2deg(Coordinates2D point){
