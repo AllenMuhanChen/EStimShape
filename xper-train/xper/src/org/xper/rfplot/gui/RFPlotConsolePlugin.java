@@ -11,7 +11,6 @@ import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
-import org.xper.util.StringUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -69,12 +68,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)){
             RFPlotStimModulator modulator = refModulatorMap.get(stimType);
             modulator.nextMode();
-            scrollerMode.setText(modulator.getMode());
+            scrollerModeLabel.setText(modulator.getMode());
         }
         if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
             RFPlotStimModulator modulator = refModulatorMap.get(stimType);
             modulator.previousMode();
-            scrollerMode.setText(modulator.getMode());
+            scrollerModeLabel.setText(modulator.getMode());
         }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
             save();
@@ -129,8 +128,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             changeStimType(stimTypeSpecs.next());
     }
 
-    private JLabel rfCenter;
-    private JLabel scrollerMode;
+    private JLabel rfCenterLabel;
+    private JLabel scrollerModeLabel;
     /**
      * https://docs.oracle.com/javase/tutorial/uiswing/layout/gridbag.html#:~:text=A%20GridBagLayout%20places%20components%20in,necessarily%20have%20the%20same%20width.
      * @return
@@ -153,21 +152,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         centerLabelConstraints.anchor=PAGE_START;
         jpanel.add(new JLabel("Center"), centerLabelConstraints);
 
-        rfCenter = new JLabel(new Coordinates2D(0,0).toString());
+        rfCenterLabel = new JLabel(new Coordinates2D(0,0).toString());
         GridBagConstraints centerValueConstraints = new GridBagConstraints();
         centerValueConstraints.gridwidth = 1;
         centerValueConstraints.ipadx=5;
         centerValueConstraints.anchor=PAGE_END;
-        jpanel.add(rfCenter, centerValueConstraints);
-        rfCenter.setHorizontalAlignment(SwingConstants.LEFT);
-        rfCenter.setPreferredSize(new Dimension(320,20));
+        jpanel.add(rfCenterLabel, centerValueConstraints);
+        rfCenterLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        rfCenterLabel.setPreferredSize(new Dimension(320,20));
     }
 
     private void scrollerModeLabel(JPanel jpanel){
         GridBagConstraints scrollerModeConstraints = new GridBagConstraints();
         scrollerModeConstraints.gridy = 2;
-        scrollerMode = new JLabel("Mode");
-        jpanel.add(scrollerMode, scrollerModeConstraints);
+        scrollerModeLabel = new JLabel("Mode");
+        jpanel.add(scrollerModeLabel, scrollerModeConstraints);
     }
 
     @Override
@@ -277,7 +276,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         }
 
-        rfCenter.setText(mm2deg(plotter.getRFCenter()).toString());
+        rfCenterLabel.setText(mm2deg(plotter.getRFCenter()).toString());
     }
 
     public RFPlotClient getClient() {
