@@ -128,7 +128,7 @@ public class RdsConsolePlugin implements IConsolePlugin {
 	}
 
 	@Override
-	public JPanel jPanel() {
+	public JPanel pluginPanel() {
 		return null;
 	}
 

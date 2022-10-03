@@ -28,7 +28,7 @@ public interface IConsolePlugin {
 
 	void onSwitchToPluginAction();
 
-	JPanel jPanel();
+	JPanel pluginPanel();
 
 	void drawCanvas(Context context, String devId);
 
