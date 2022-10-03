@@ -14,6 +14,7 @@ public class RFPlotDrawer {
 
     private final List<Coordinates2D> points = new LinkedList<>();
     private List<Point> hull;
+    private Coordinates2D rfCenter;
 
 
     public void draw(){
@@ -22,10 +23,9 @@ public class RFPlotDrawer {
                 GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0);
             }
 
-            for (Point point : hull) {
-                GLUtil.drawCircle(new Circle(true, 5), point.x, point.y, 0, 1, 0, 0);
+            for (Point hullPoint : hull) {
+                GLUtil.drawCircle(new Circle(true, 5), hullPoint.x, hullPoint.y, 0, 1, 0, 0);
             }
-            Coordinates2D rfCenter = getRFCenter();
             GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
         } catch (Exception e){}
     }
@@ -53,11 +53,12 @@ public class RFPlotDrawer {
 
     private void pointsUpdated() {
         hull = ConvexHull.makeHullFromCoordinates(points);
+        rfCenter = getRFCenter();
     }
 
     public Coordinates2D getRFCenter(){
         Point centroid = findCentroid(hull);
-        return pointToCoord(centroid);
+        return point2Coordinates2D(centroid);
     }
 
     public List<Coordinates2D> getHull(){
@@ -68,12 +69,12 @@ public class RFPlotDrawer {
     private List<Coordinates2D> pointsToCoords(List<Point> hull) {
         List<Coordinates2D> hullCoords = new LinkedList<>();
         for (Point point: hull){
-            hullCoords.add(pointToCoord(point));
+            hullCoords.add(point2Coordinates2D(point));
         }
         return hullCoords;
     }
 
-    private Coordinates2D pointToCoord(Point point) {
+    private Coordinates2D point2Coordinates2D(Point point) {
         return new Coordinates2D(point.x, point.y);
     }
 
