@@ -53,8 +53,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     private String xfmSpec;
     private String stimSpec;
     private CyclicIterator<String> stimTypeSpecs;
-    private JLabel rfCenter;
-    private JLabel scrollerMode;
+
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
@@ -130,12 +129,14 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             changeStimType(stimTypeSpecs.next());
     }
 
+    private JLabel rfCenter;
+    private JLabel scrollerMode;
     /**
      * https://docs.oracle.com/javase/tutorial/uiswing/layout/gridbag.html#:~:text=A%20GridBagLayout%20places%20components%20in,necessarily%20have%20the%20same%20width.
      * @return
      */
     @Override
-    public JPanel jPanel() {
+    public JPanel pluginPanel() {
         JPanel jpanel = new JPanel();
         jpanel.setLayout(new GridBagLayout());
         jpanel.setBorder(BorderFactory.createTitledBorder("RFPlot"));
