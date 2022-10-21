@@ -1,6 +1,6 @@
 import mysql.connector
 import pandas as pd
-from src.data import timeutil
+from src.util import time_util
 
 
 class Connection:
@@ -27,11 +27,11 @@ class Connection:
     def _get_stim_sec(self, when) -> pd.DataFrame:
         self.mycursor.execute("SELECT * FROM StimSpec WHERE id>= %s & id<=%s", (when.start, when.stop))
         df = pd.DataFrame(self.mycursor.fetchall())
-        df.columns = ['id', 'spec', 'data']
+        df.columns = ['id', 'spec', 'util']
         return df
 
     def _get_stim_obj_data(self, when) -> pd.DataFrame:
         self.mycursor.execute("SELECT * FROM StimObjData WHERE id>= %s & id<=%s", (when.start, when.stop))
         df = pd.DataFrame(self.mycursor.fetchall())
-        df.columns = ['id', 'spec', 'data']
+        df.columns = ['id', 'spec', 'util']
         return df
