@@ -2,8 +2,8 @@ from unittest import TestCase
 
 import pandas as pd
 
-from src.data import trial_field
-from src.data import timeutil
+from src.compile import trial_field
+
 
 class DuckField:
     def __init__(self, quack):
