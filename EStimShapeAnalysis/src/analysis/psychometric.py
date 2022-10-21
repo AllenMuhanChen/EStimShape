@@ -56,9 +56,6 @@ if __name__ == '__main__':
             plt.text(x, y, "%d/%d = %.2f" % (num_correct, num_total, y))
     plt.legend()
 
-
-
-
     plt.show()
 
     numCorrect = sum(df_psychometric['IsCorrect'])

@@ -1,6 +1,6 @@
 import unittest
 import datetime
-import timeutil
+from src.data import timeutil
 
 class TestTimeStampMethods(unittest.TestCase):
     def test_today(self):
