@@ -8,6 +8,11 @@ class When:
         self.stop = stop
     def tuple(self):
         return (self.start, self.stop)
+    def __str__(self):
+        output = "({},{})".format(self.start, self.stop);
+        return output
+    def __repr__(self):
+        return self.__str__()
 
 def today():
     today = __unix(datetime.date.today())
