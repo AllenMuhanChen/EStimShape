@@ -32,5 +32,5 @@ def get_stim_spec_id(beh_msg, when):
 
 def get_stim_spec_data(beh_msg, stim_spec, when):
     stim_spec_id = get_stim_spec_id(beh_msg, when)
-    stim_spec_data_xml = stim_spec[stim_spec['id'] == stim_spec_id]['data']
+    stim_spec_data_xml = stim_spec[stim_spec['id'] == stim_spec_id]['util']
     return stim_spec_data_xml.item()

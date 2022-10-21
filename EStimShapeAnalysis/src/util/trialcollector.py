@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from src.data import connection, timeutil, table_util
+from src.util import connection, time_util, table_util
 
 
 class TrialCollector:
