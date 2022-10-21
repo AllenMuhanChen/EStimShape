@@ -1,5 +1,5 @@
 import unittest
-import connection
+from src.data import connection
 from src.data import timeutil
 
 
