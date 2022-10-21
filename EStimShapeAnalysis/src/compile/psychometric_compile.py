@@ -1,12 +1,11 @@
-# This is a sample Python scri
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 import datetime
 
 import pandas as pd
 import numpy as np
 import xmltodict
-from src.data import trial_field as tf, timeutil, table_util, connection, trialcollector
+from src.util import table_util, connection, trialcollector
+from src.compile import trial_field as tf
+
 
 class StimSpecDataField(tf.Field):
     def __init__(self, beh_msg: pd.DataFrame, stim_spec: pd.DataFrame):

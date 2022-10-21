@@ -20,7 +20,6 @@ class FieldList(list):
 
 
 class Trial:
-
     def __init__(self, when):
         self.fields = FieldList()
         self.when = when
