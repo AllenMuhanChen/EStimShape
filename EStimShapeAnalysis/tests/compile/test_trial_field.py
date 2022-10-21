@@ -3,7 +3,7 @@ from unittest import TestCase
 import pandas as pd
 
 from src.compile import trial_field
-
+from src.util.time_util import When
 
 class DuckField:
     def __init__(self, quack):
@@ -31,8 +31,8 @@ class WhenField(trial_field.Field):
 class TestField(TestCase):
     def test(self):
         trialList = []
-        trialList.append(trial_field.Trial(timeutil.When(1, 2)))
-        trialList.append(trial_field.Trial(timeutil.When(3, 4)))
+        trialList.append(trial_field.Trial(When(1, 2)))
+        trialList.append(trial_field.Trial(When(3, 4)))
 
         ## Interface for defining fields
         f = trial_field.Field()

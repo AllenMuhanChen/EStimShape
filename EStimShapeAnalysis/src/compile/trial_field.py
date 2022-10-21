@@ -1,13 +1,13 @@
 from collections import OrderedDict
 import pandas as pd
-
+from src.util.time_util import When
 
 class Field:
     def __init__(self):
         self.name = type(self).__name__
 
 
-    def retrieveValue(self, when):
+    def retrieveValue(self, when: When):
         self.value = self.name
 
 
@@ -20,7 +20,7 @@ class FieldList(list):
 
 
 class Trial:
-    def __init__(self, when):
+    def __init__(self, when: When):
         self.fields = FieldList()
         self.when = when
 
