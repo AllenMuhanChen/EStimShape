@@ -1,7 +1,7 @@
 from unittest import TestCase
-from src.util.trialcollector import TrialCollector
+from src.compile.trial_collector import TrialCollector
 from src.util.connection import Connection
-from src.util import time_util
+
 
 class TestTrialCollectorMethods(TestCase):
     conn = Connection("allen_estimshape_train_220725", when=timeutil.all())

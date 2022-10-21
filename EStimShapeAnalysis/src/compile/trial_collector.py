@@ -25,7 +25,7 @@ class TrialCollector:
         trial_starts, trial_stops = self.__ensure_ends_are_aligned(trial_starts, trial_stops)
         trial_starts, trial_stops = self.__ensure_balanced_trial_nums(trial_starts, trial_stops)
         trial_starts, trial_stops = self.__remove_misaligned_trials(trial_starts, trial_stops)
-        return [timeutil.When(trial_starts[i], trial_stops[i]) for i in range(len(trial_starts))]
+        return [time_util.When(trial_starts[i], trial_stops[i]) for i in range(len(trial_starts))]
 
     def __ensure_ends_are_aligned(self, trial_starts, trial_stops):
         while trial_stops[0] < trial_starts[0]:

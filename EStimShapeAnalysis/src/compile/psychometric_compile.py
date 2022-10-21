@@ -3,9 +3,9 @@ import datetime
 import pandas as pd
 import numpy as np
 import xmltodict
-from src.util import table_util, time_util, connection, trialcollector
+from src.util import table_util, connection
 from src.util.time_util import When
-from src.compile import trial_field as tf
+from src.compile import trial_field as tf, trial_collector
 
 
 class StimSpecDataField(tf.Field):
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     # Get DB Tables
     print("Reading Database")
     conn = connection.Connection("allen_estimshape_train_220725")
-    collector = trialcollector.TrialCollector(conn)
+    collector = trial_collector.TrialCollector(conn)
     today_beh_msg = conn.beh_msg
     today_stim_spec = conn.stim_spec
 
