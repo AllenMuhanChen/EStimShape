@@ -1,15 +1,16 @@
 from unittest import TestCase
-
+from src.util.time_util import When
+from src.util import time_util
 
 from src.compile import psychometric_compile as pc
 
-PSYCHOMETRIC = timeutil.When(1659208461019365, 1659208471171128)
+PSYCHOMETRIC = When(1659208461019365, 1659208471171128)
 
-RANDOM_CORRECT = timeutil.When(1659126605490042, 1659126611270426)
+RANDOM_CORRECT = When(1659126605490042, 1659126611270426)
 from src.util.connection import Connection
 
 class TestFields(TestCase):
-    reader = Connection("allen_estimshape_test_220729", when=timeutil.all())
+    reader = Connection("allen_estimshape_test_220729", when=time_util.all())
     beh_msg = reader.beh_msg
     stim_spec = reader.stim_spec
     def test_IsCorrect_field_retrieve_value(self):
