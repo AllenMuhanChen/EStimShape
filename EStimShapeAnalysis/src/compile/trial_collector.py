@@ -27,6 +27,14 @@ class TrialCollector:
         trial_starts, trial_stops = self.__remove_misaligned_trials(trial_starts, trial_stops)
         return [time_util.When(trial_starts[i], trial_stops[i]) for i in range(len(trial_starts))]
 
+    def collect_calibration_trials(self):
+        all_trial_times = self.collect_trials()
+        calibration_trial_times = []
+        for when in all_trial_times:
+            if table_util.contains_calibration(self.beh_msg, when):
+                calibration_trial_times.append(when)
+        return calibration_trial_times
+
     def __ensure_ends_are_aligned(self, trial_starts, trial_stops):
         while trial_stops[0] < trial_starts[0]:
             trial_stops = trial_stops[1:]
