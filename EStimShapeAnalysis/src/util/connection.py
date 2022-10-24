@@ -41,3 +41,8 @@ class Connection:
         df = pd.DataFrame(self.mycursor.fetchall())
         df.columns = ['id', 'spec', 'util']
         return df
+    def _get_beh_msg_eye(self, when: When) -> pd.DataFrame:
+        self.mycursor.execute("SELECT * FROM BehMsgEye WHERE id>= %s & id<=%s", (when.start, when.stop))
+        df = pd.DataFrame(self.mycursor.fetchall())
+        df.columns = ['tstamp', 'type', 'msg']
+        return df

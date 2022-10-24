@@ -2,6 +2,7 @@ import numpy as np
 import xmltodict
 from pandas import DataFrame
 from src.util.time_util import When
+from dataclasses import dataclass
 
 def get_during_trial(beh_msg: DataFrame, when: When):
     later_than_start = beh_msg['tstamp'] >= when.start
@@ -12,6 +13,14 @@ def get_during_trial(beh_msg: DataFrame, when: When):
 def contains_success(beh_msg: DataFrame, when: When) -> bool:
     msg_type = beh_msg['type'].where(get_during_trial(beh_msg, when))
     if msg_type.isin(["ChoiceSelectionSuccess"]).any():
+        return True
+    else:
+        return False
+
+
+def contains_calibration(beh_msg: DataFrame, when: When) -> bool:
+    msg_type = beh_msg['type'].where(get_during_trial(beh_msg, when))
+    if msg_type.isin(["CalibrationPointSetup"]).any():
         return True
     else:
         return False
@@ -35,3 +44,16 @@ def get_stim_spec_data(beh_msg: DataFrame, stim_spec, when: When):
     stim_spec_id = get_stim_spec_id(beh_msg, when)
     stim_spec_data_xml = stim_spec[stim_spec['id'] == stim_spec_id]['util']
     return stim_spec_data_xml.item()
+
+def get_eye_locations(beh_msg_eye: DataFrame, when: When):
+    pass
+@dataclass
+class Coordinates2D:
+    x: float
+    y: float
+
+@dataclass
+class EyeLocation:
+    left: Coordinates2D
+    right: Coordinates2D
+
