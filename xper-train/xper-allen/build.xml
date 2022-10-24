@@ -39,7 +39,7 @@
 	<target name="prepare">
 		<mkdir dir="${build.home}" />
 		<mkdir dir="${dist.home}" />
-		<mkdir dir="${dist.home}/allen" />		
+		<mkdir dir="${dist.home}/allen" />
 		
 		<copy todir="${dist.home}" includeEmptyDirs="false">
 			<fileset dir="src" excludes="**/*.java" />
@@ -110,25 +110,6 @@
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.training.RandomCircleTrainingXMLGen" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/EStimTestXmlGen.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/EStimTestXMLGen.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.simpleestim.EStimTestXMLGen" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
-			</manifest>
-		</jar>
-		<jar jarfile="${allen.home}/SimpleEStimGeneration.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/simpleestim/SimpleEStimGenerator.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.simpleestim.SimpleEStimGenerator" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
 		
