@@ -264,7 +264,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		/**
 		 * If switch out HeadFreeUtil then make sure the new version has prepareSample & prepareChoice
 		 */
-		NAFCTrialResult result = HeadFreeExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
+		NAFCTrialResult result = getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
@@ -398,9 +398,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 	public static NAFCTrialResult getMonkeyFixation(NAFCExperimentState state,
 			ThreadHelper threadHelper) {
 
-		NAFCMarkEveryStepTrialDrawingController drawingController = (NAFCMarkEveryStepTrialDrawingController) state.getDrawingController();
-
-		TrialContext currentContext = state.getCurrentContext();
+		NAFCTrialDrawingController drawingController = state.getDrawingController();
+		NAFCTrialContext currentContext = state.getCurrentContext();
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		List<? extends TrialEventListener> trialEventListeners = state
 				.getTrialEventListeners();

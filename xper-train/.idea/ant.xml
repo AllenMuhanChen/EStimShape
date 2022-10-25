@@ -5,5 +5,6 @@
     <buildFile url="file://$PROJECT_DIR$/xper/build.xml" />
     <buildFile url="file://$PROJECT_DIR$/xper-sach/build.xml" />
     <buildFile url="file://$PROJECT_DIR$/xper-example/build.xml" />
+    <buildFile url="file://$PROJECT_DIR$/xper-allen/build.xml" />
   </component>
 </project>
