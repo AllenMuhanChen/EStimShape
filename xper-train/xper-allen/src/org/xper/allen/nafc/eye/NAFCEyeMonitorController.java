@@ -15,22 +15,22 @@ import org.xper.eye.zero.EyeZeroAdjustable;
  */
 public class NAFCEyeMonitorController extends EyeMonitorController{
 
+	@Override
 	public void trialComplete(long timestamp, TrialContext context) {
-//		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
-//			adj.updateEyeWindow();
-//		}
-//		stopEyeZeroSignalCollection();
+		//Do Nothing
 	}
 	
 	/**
 	 * We no longer want to calculateNewEyeZero() here. Instead we do it after fixation success. 
 	 */
+	@Override
 		public void trialStop(long timestamp, TrialContext context) {
 			if (getEyeSampler().isRunning()) {
 				getEyeSampler().stop();
 			}
 		}
-	
+
+	@Override
 	public void fixationSucceed(long timestamp, TrialContext context) {
 		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
 			adj.updateEyeWindow();
@@ -41,11 +41,12 @@ public class NAFCEyeMonitorController extends EyeMonitorController{
 		stopEyeZeroSignalCollection();
 	}
 	
-
+	@Override
 	public void eyeInHoldFail(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();
 	}
-	
+
+	@Override
 	public void eyeInBreak(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();
 	}
