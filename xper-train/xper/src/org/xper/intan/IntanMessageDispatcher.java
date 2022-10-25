@@ -47,7 +47,7 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
             fileNamingStrategy.rename(context);
             intanController.record();
         } else{
-            tryConnection();
+//            tryConnection();
         }
     }
 
