@@ -28,7 +28,6 @@ public class GLUtil {
 
 
 	public static void drawSquare (Square square, double size, boolean solid, double tx, double ty, double tz) {
-		GL11.glPopAttrib();
 		square.setSize(size);
 		square.setSolid(solid);
 		GL11.glPushMatrix();
@@ -40,12 +39,9 @@ public class GLUtil {
 
 	public static void drawSquare (Square square, double tx, double ty, double tz, float r, float g, float b) {
 		GL11.glPushMatrix();
-//		GL11.glPushAttrib(GL11.GL_COLOR);
-		GL11.glPushMatrix();
 		GL11.glTranslated(tx, ty, tz);
 		GL11.glColor3f(r, g, b);
 		square.draw(null);
-//		GL11.glPopAttrib();
 		GL11.glPopMatrix();
 		GL11.glClear(GL11.GL_COLOR);
 	}
