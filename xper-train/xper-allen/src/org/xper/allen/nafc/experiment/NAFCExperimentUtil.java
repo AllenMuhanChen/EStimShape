@@ -264,7 +264,6 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		/**
 		 * If switch out HeadFreeUtil then make sure the new version has prepareSample & prepareChoice
 		 */
-		
 		NAFCTrialResult result = HeadFreeExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != NAFCTrialResult.FIXATION_SUCCESS) {
 			return result;

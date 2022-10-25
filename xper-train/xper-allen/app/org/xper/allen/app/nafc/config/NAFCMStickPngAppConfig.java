@@ -29,7 +29,7 @@ import org.xper.utils.RGBColor;
 @AnnotationDrivenConfig
 
 //@Import annotation avoids @ComponentScanning?
-@Import({NAFCConfig.class, HeadFreeConfig.class})
+@Import({NAFCConfig.class})
 /**
  * methods written here will OVERRIDE methods with identical name in config. 
  * By default, when one spring configuration file imports another one, the later definitions (imported) are overidden by earlier ones (importing)
@@ -42,7 +42,6 @@ import org.xper.utils.RGBColor;
 
 public class NAFCMStickPngAppConfig {
 	@Autowired NAFCConfig config;
-	@Autowired HeadFreeConfig headFreeConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
