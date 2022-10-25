@@ -397,6 +397,8 @@ public class NAFCConfig {
 	@Bean
 	NAFCEyeMonitorController eyeMonitorController(){
 		NAFCEyeMonitorController eyeMonitorController = new NAFCEyeMonitorController();
+		eyeMonitorController.setEyeSampler(classicConfig.eyeSampler());
+		eyeMonitorController.setEyeWindowAdjustable(classicConfig.eyeWindowAdjustables());
 		eyeMonitorController.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
 		return eyeMonitorController;
 	}

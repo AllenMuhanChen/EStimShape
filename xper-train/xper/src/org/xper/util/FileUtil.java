@@ -22,7 +22,8 @@ public class FileUtil {
 		configClassPath();
 		try {
 			loadSystemTestProperties();
-		} catch(ExperimentSetupException e){e.printStackTrace();}
+		} catch(ExperimentSetupException e){
+			System.out.println("No xper.properties.test found");}
 	}
 	
 	public interface FileVisitor {
