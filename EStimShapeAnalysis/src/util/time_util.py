@@ -19,7 +19,10 @@ def today():
     when = When(today, tomorrow)
     return when
 
-
+def days_ago(x):
+    start = __unix(datetime.date.today()-datetime.timedelta(days=x))
+    stop = __now()
+    when = When(start, stop)
 def all():
     when = When(0, __unix(datetime.date.fromisoformat('3022-01-01')))
     return when

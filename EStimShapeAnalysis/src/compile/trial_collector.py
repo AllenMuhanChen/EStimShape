@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 import pandas as pd
 from src.util import connection, time_util, table_util
@@ -19,13 +20,42 @@ class TrialCollector:
 
     def collect_trials(self):
         trial_starts = self.beh_msg[self.beh_msg['type'] == "TrialStart"]['tstamp'].values
-        print(len(self.beh_msg.index))
-        print(len(trial_starts))
         trial_stops = self.beh_msg[self.beh_msg['type'] == "TrialStop"]['tstamp'].values
+        # trial_starts, trial_stops = self.fix_bad_trials(trial_starts, trial_stops)
+        trial_starts, trial_stops = self.sort_fix_bad_trials(trial_starts, trial_stops)
+        return [time_util.When(trial_starts[i], trial_stops[i]) for i in range(len(trial_starts))]
+
+    def fix_bad_trials(self, trial_starts, trial_stops):
         trial_starts, trial_stops = self.__ensure_ends_are_aligned(trial_starts, trial_stops)
         trial_starts, trial_stops = self.__ensure_balanced_trial_nums(trial_starts, trial_stops)
         trial_starts, trial_stops = self.__remove_misaligned_trials(trial_starts, trial_stops)
-        return [time_util.When(trial_starts[i], trial_stops[i]) for i in range(len(trial_starts))]
+        return trial_starts, trial_stops
+
+    def sort_fix_bad_trials(self, trial_starts, trial_stops):
+        self.__ensure_ends_are_aligned(trial_starts, trial_stops)
+
+        trial_starts_ids = ["trial_start" for trial_start in trial_starts]
+        trial_stops_ids = ["trial_stop" for trial_stop in trial_stops]
+        combined_ids = trial_starts_ids + trial_stops_ids
+        combined_tstamps = numpy.append(trial_starts, trial_stops)
+        combined = zip(combined_ids, combined_tstamps)
+        combined_sorted = sorted(combined, key=lambda x: x[1])
+
+        previous = 'trial_stop'
+        to_remove = []
+        for i, item in enumerate(combined_sorted):
+            if item[0] == previous:
+                if item[0] == 'trial_start':
+                    to_remove.append(i - 1)  # remove earlier trial_start, since it's missing a trial_stop
+                    print("removing duplicate trial_start")
+                else:
+                    print("Somehow we have two repeating stops!")
+            previous = item[0]
+        combined_sorted_removed = [item for i, item in enumerate(combined_sorted) if i in to_remove]
+        combined_sorted = [item for i, item in enumerate(combined_sorted) if i not in to_remove]
+        trial_starts = [item[1] for item in combined_sorted if item[0] == 'trial_start']
+        trial_stops = [item[1] for item in combined_sorted if item[0] == 'trial_stop']
+        return trial_starts, trial_stops
 
     def collect_calibration_trials(self):
         all_trial_times = self.collect_trials()
