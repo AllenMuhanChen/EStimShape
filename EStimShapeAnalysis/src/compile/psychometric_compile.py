@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import xmltodict
 from src.util import table_util, connection
-from src.util.time_util import When
+from src.util.time_util import When, all
 from src.compile import trial_field as tf, trial_collector
 
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
     # Get DB Tables
     print("Reading Database")
-    conn = connection.Connection("allen_estimshape_train_220725")
+    conn = connection.Connection("allen_estimshape_train_220725", when=all())
     collector = trial_collector.TrialCollector(conn)
     today_beh_msg = conn.beh_msg
     today_stim_spec = conn.stim_spec
