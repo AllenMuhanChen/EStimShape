@@ -47,7 +47,7 @@ class IsCorrectField(tf.Field):
         self.name = "IsCorrect"
 
     def retrieveValue(self, when: When):
-        time_cond = table_util.get_during_trial(self.beh_msg, when)
+        time_cond = table_util.beh_msgs_during_trial(self.beh_msg, when)
         correct = self.__get_num_corrects(time_cond)
         incorrect = self.__get_num_incorrects(time_cond)
         if correct == 1 and incorrect == 0:

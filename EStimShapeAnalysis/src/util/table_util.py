@@ -5,22 +5,23 @@ from src.util.time_util import When
 from dataclasses import dataclass
 
 
-def get_during_trial(beh_msg: DataFrame, when: When):
+def beh_msgs_during_trial(beh_msg: DataFrame, when: When):
     later_than_start = beh_msg['tstamp'] >= when.start
     before_stop = beh_msg['tstamp'] <= when.stop
     return np.logical_and(later_than_start, before_stop)
 
 
 def contains_success(beh_msg: DataFrame, when: When) -> bool:
-    msg_type = beh_msg['type'].where(get_during_trial(beh_msg, when))
-    if msg_type.isin(["ChoiceSelectionSuccess"]).any():
+    # beh_msgs = beh_msg['type'].where(beh_msgs_during_trial(beh_msg, when))
+    beh_msgs = beh_msg['type'][beh_msgs_during_trial(beh_msg, when)]
+    if beh_msgs.isin(["ChoiceSelectionSuccess"]).any():
         return True
     else:
         return False
 
 
 def contains_calibration(beh_msg: DataFrame, when: When) -> bool:
-    msg_type = beh_msg['type'].where(get_during_trial(beh_msg, when))
+    msg_type = beh_msg['type'].where(beh_msgs_during_trial(beh_msg, when))
     if msg_type.isin(["CalibrationPointSetup"]).any():
         return True
     else:
@@ -29,7 +30,7 @@ def contains_calibration(beh_msg: DataFrame, when: When) -> bool:
 
 def get_stim_spec_id(beh_msg: DataFrame, when: When):
     def _get_trial_message(beh_msg, when: When):
-        msgs_during_trial = beh_msg["msg"].where(get_during_trial(beh_msg, when))
+        msgs_during_trial = beh_msg["msg"].where(beh_msgs_during_trial(beh_msg, when))
         trial_msg = [msg for msg in msgs_during_trial if "TrialMessage" in str(msg)][0]
         return trial_msg
 
@@ -65,7 +66,7 @@ class EyeLocation:
 
 def get_eye_location_volts(beh_msg_eye: DataFrame, when: When) -> [EyeLocation]:
     """Returns a list of EyeLocation objects given the beh_msg_eye table and timestamps to search within"""
-    eye_msgs_during_trial = beh_msg_eye['msg'].where(get_during_trial(beh_msg_eye, when))
+    eye_msgs_during_trial = beh_msg_eye['msg'].where(beh_msgs_during_trial(beh_msg_eye, when))
     left_volts = [xmltodict.parse(msg)['EyeDeviceMessage']['volt'] for msg in eye_msgs_during_trial if
                   "leftIscan" in str(msg)]
     right_volts = [xmltodict.parse(msg)['EyeDeviceMessage']['volt'] for msg in eye_msgs_during_trial if
