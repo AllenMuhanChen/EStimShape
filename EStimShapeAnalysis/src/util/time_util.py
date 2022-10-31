@@ -8,6 +8,10 @@ class When:
         self.stop = stop
     def tuple(self):
         return (self.start, self.stop)
+    def __str__(self):
+        return "({},{})".format(self.start, self.stop)
+    def __repr__(self):
+        return self.__str__()
 
 def today():
     today = __unix(datetime.date.today())
@@ -15,7 +19,10 @@ def today():
     when = When(today, tomorrow)
     return when
 
-
+def days_ago(x):
+    start = __unix(datetime.date.today()-datetime.timedelta(days=x))
+    stop = __now()
+    when = When(start, stop)
 def all():
     when = When(0, __unix(datetime.date.fromisoformat('3022-01-01')))
     return when
