@@ -10,6 +10,7 @@ class Connection:
     beh_msg: DataFrame
     stim_spec: DataFrame
     stim_obj_data: DataFrame
+    beh_msg_eye: DataFrame
     def __init__(self, database, password="up2nite", when=None):
         self.mydb = mysql.connector.connect(
             host="172.30.6.80",
@@ -23,6 +24,7 @@ class Connection:
         self.beh_msg = self._get_beh_msg(when)
         self.stim_spec = self._get_stim_sec(when)
         self.stim_obj_data = self._get_stim_obj_data(when)
+        self.beh_msg_eye = self._get_beh_msg_eye(when)
 
     def _get_beh_msg(self, when: When) -> pd.DataFrame:
         self.mycursor.execute("SELECT * FROM BehMsg WHERE tstamp>= %s && tstamp<=%s", (when.start, when.stop))
@@ -40,4 +42,9 @@ class Connection:
         self.mycursor.execute("SELECT * FROM StimObjData WHERE id>= %s & id<=%s", (when.start, when.stop))
         df = pd.DataFrame(self.mycursor.fetchall())
         df.columns = ['id', 'spec', 'util']
+        return df
+    def _get_beh_msg_eye(self, when: When) -> pd.DataFrame:
+        self.mycursor.execute("SELECT * FROM BehMsgEye WHERE tstamp>= %s & tstamp<=%s", (when.start, when.stop))
+        df = pd.DataFrame(self.mycursor.fetchall())
+        df.columns = ['tstamp', 'type', 'msg']
         return df

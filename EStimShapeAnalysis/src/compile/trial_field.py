@@ -2,10 +2,10 @@ from collections import OrderedDict
 import pandas as pd
 from src.util.time_util import When
 
+
 class Field:
     def __init__(self):
         self.name = type(self).__name__
-
 
     def retrieveValue(self, when: When):
         self.value = self.name
@@ -15,6 +15,7 @@ class FieldList(list):
     def get_df(self):
         df = pd.DataFrame(columns=self.get_names())
         return df
+
     def get_names(self):
         return [field.name for field in self]
 
@@ -39,4 +40,3 @@ class Trial:
     def __get_field_values(self):
         for field in self.fields:
             field.retrieveValue(self.when)
-
