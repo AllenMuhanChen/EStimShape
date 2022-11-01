@@ -6,11 +6,10 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.Trial;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
-import org.xper.time.TicToc;
 
 public class RandTrial implements Trial{
 

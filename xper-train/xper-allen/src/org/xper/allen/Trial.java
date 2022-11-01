@@ -1,4 +1,4 @@
-package org.xper.allen.nafc.blockgen;
+package org.xper.allen;
 
 import org.xper.allen.util.AllenDbUtil;
 

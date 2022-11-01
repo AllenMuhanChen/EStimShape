@@ -10,7 +10,7 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.nafc.blockgen.PsychometricMStickFetcher;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
-import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.Trial;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
