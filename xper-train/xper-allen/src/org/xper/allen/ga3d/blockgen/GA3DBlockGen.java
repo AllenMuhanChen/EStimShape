@@ -1,8 +1,7 @@
-package org.xper.allen.nafc.blockgen.ga;
+package org.xper.allen.ga3d.blockgen;
 
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.Trial;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 
 import java.util.LinkedList;
 import java.util.List;
