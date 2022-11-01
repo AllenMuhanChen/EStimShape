@@ -2,16 +2,14 @@ package org.xper.allen.nafc.blockgen;
 
 
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
 import org.xper.Dependency;
+import org.xper.allen.Trial;
 import org.xper.allen.util.AllenDbUtil;
-import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 
 public abstract class AbstractTrialGenerator {

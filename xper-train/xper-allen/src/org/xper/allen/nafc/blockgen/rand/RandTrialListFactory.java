@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.Trial;
 import org.xper.allen.nafc.blockgen.TrialListFactory;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;

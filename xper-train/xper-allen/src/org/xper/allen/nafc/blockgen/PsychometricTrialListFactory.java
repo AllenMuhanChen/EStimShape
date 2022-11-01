@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.blockgen;
 
+import org.xper.allen.Trial;
 import org.xper.allen.nafc.blockgen.psychometric.*;
 
 import java.io.File;
