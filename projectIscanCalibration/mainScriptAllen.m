@@ -4,7 +4,8 @@ function mainScriptAllen
     conn = getDbConnAllen;
     minute = (1/24/60);
     format long g
-    startTime = posixtime(datetime('now','TimeZone','America/New_York') - 5*minute) * 1000000
+    %startTime = posixtime(datetime('now','TimeZone','America/New_York') - 5*minute) * 1000000
+    startTime = maxExperimentStart(conn);
     [tstamps,pos] = getTrialTstamps(conn,startTime);
     volt = cell(size(tstamps,1),1);
     r = []; l = []; t = []; b = []; c = [];
