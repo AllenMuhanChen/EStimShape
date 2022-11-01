@@ -10,10 +10,10 @@ import java.util.List;
 public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     Long genId;
     private List<Trial> trials = new LinkedList<>();
+    GenerationFactory factory;
 
     public void generate(){
         pngMaker.createDrawerWindow();
-
         if(firstGeneration()){
             addFirstGeneration();
         } else{
@@ -24,17 +24,24 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
         }
         preWriteTrials();
         shuffleTrials();
-
-        if(firstGeneration()){
-            writeFirstGeneration();
-        } else{
-            writeNthGeneration();
-        }
-
+        updateGenId();
+        writeTrials();
         dbUtil.updateReadyGenerationInfo(genId, trials.size());
         System.out.println("Done Generating...");
         pngMaker.close();
 
+    }
+
+    private boolean firstGeneration(){
+        return genId == 0;
+    }
+
+    private void addFirstGeneration(){
+        trials.addAll(factory.createFirstGenerationTrials());
+    }
+
+    private void addNthGeneration(){
+        trials.addAll(factory.createNthGenerationTrials());
     }
 
 }
