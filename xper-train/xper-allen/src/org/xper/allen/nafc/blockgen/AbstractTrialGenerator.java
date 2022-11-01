@@ -3,15 +3,24 @@ package org.xper.allen.nafc.blockgen;
 
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
+import org.xper.Dependency;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.exception.VariableNotFoundException;
 
 public abstract class AbstractTrialGenerator {
-	
+
+	protected List<Trial> trials = new LinkedList<>();
+	protected Long genId;
+	@Dependency
+	protected AllenDbUtil dbUtil;
+
 	protected static int[] frequencyToNumTrials(double[] typesFrequencies, int numTrials) {
 		int[] typesNumTrials = new int[typesFrequencies.length];
 		for(int i=0; i<typesFrequencies.length; i++) {
@@ -72,12 +81,42 @@ public abstract class AbstractTrialGenerator {
 		}
 		return trialList;
 	}
-	
-
-	
-
-	
 
 
+	protected void preWriteTrials() {
+		for(Trial trial:trials){
+			trial.preWrite();
+		}
+	}
 
+	protected void writeTrials() {
+		for (Trial trial : trials) {
+			trial.write();
+			Long taskId = trial.getTaskId();
+			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
+		}
+	}
+
+	protected void shuffleTrials() {
+		Collections.shuffle(trials);
+	}
+
+	protected void updateGenId() {
+		try {
+			/**
+			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
+			 */
+			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
+		} catch (VariableNotFoundException e) {
+			dbUtil.writeReadyGenerationInfo(0, 0);
+		}
+	}
+
+	public AllenDbUtil getDbUtil() {
+		return dbUtil;
+	}
+
+	public void setDbUtil(AllenDbUtil dbUtil) {
+		this.dbUtil = dbUtil;
+	}
 }
