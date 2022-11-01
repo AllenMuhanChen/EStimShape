@@ -20,7 +20,6 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.rfplot.drawing.png.PngSpec;
-import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
@@ -35,8 +34,6 @@ import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWi
  *
  */
 public class MStickPngBlockGen extends AbstractTrialGenerator{
-	@Dependency
-	AllenDbUtil dbUtil;
 	@Dependency
 	TimeUtil globalTimeUtil;
 	@Dependency
@@ -172,9 +169,9 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			/**
 			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked. 
 			 */
-			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
+			genId = getDbUtil().readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
-			dbUtil.writeReadyGenerationInfo(genId, 0);
+			getDbUtil().writeReadyGenerationInfo(genId, 0);
 		}
 
 		int nSuccess = 0;
@@ -381,7 +378,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			sampleSpec.setyCenter(sampleCoords.getY());
 			ImageDimensions sampleDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
 			sampleSpec.setDimensions(sampleDimensions);
-			dbUtil.writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
+			getDbUtil().writeStimObjData(sampleId, sampleSpec.toXml(), "sample");
 
 			//
 			long[] choiceIds = new long[numChoices];
@@ -393,7 +390,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			matchSpec.setyCenter(matchCoords.getY());
 			ImageDimensions matchDimensions = new ImageDimensions(sampleScaleUpperLim, sampleScaleUpperLim);
 			matchSpec.setDimensions(matchDimensions);
-			dbUtil.writeStimObjData(matchId, matchSpec.toXml(), "Match");
+			getDbUtil().writeStimObjData(matchId, matchSpec.toXml(), "Match");
 			choiceIds[0] = matchId;
 
 			//DISTRACTORS
@@ -405,7 +402,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 				distractorSpec.get(j).setyCenter(distractorsCoords.get(j).getY());
 				ImageDimensions distractorDimensions = new ImageDimensions(distractorScaleUpperLim, distractorScaleUpperLim);
 				distractorSpec.get(j).setDimensions(distractorDimensions);
-				dbUtil.writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "Distractor");
+				getDbUtil().writeStimObjData(distractorIds.get(j), distractorSpec.get(j).toXml(), "Distractor");
 				choiceIds[j+1] = distractorIds.get(j);
 			}
 
@@ -429,12 +426,12 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			//WRITE SPEC
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoords.toArray(new Coordinates2D[0]), targetEyeWinSizeArray, sampleId, choiceIds, eStimObjData, rewardPolicy, rewardList);
 
-			dbUtil.writeStimSpec(taskId, stimSpec.toXml());
-			dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
+			getDbUtil().writeStimSpec(taskId, stimSpec.toXml());
+			getDbUtil().writeTaskToDo(taskId, taskId, -1, genId);
 
 
 		}
-		dbUtil.updateReadyGenerationInfo(genId, numTrials);
+		getDbUtil().updateReadyGenerationInfo(genId, numTrials);
 		System.out.println("Done Generating...");
 
 		return;
@@ -470,14 +467,6 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 	}
 
 
-
-	public AllenDbUtil getDbUtil() {
-		return dbUtil;
-	}
-
-	public void setDbUtil(AllenDbUtil dbUtil) {
-		this.dbUtil = dbUtil;
-	}
 	public TimeUtil getGlobalTimeUtil() {
 		return globalTimeUtil;
 	}

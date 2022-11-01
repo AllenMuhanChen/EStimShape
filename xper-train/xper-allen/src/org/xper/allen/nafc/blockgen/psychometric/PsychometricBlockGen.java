@@ -1,19 +1,11 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-
 import org.xper.allen.nafc.blockgen.PsychometricTrialListFactory;
-import org.xper.allen.nafc.blockgen.Trial;
 import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
 import org.xper.allen.nafc.blockgen.rand.RandTrialListFactory;
-import org.xper.exception.VariableNotFoundException;
 
 public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
 
-    Long genId;
-	private List<Trial> trials = new LinkedList<>();
     private PsychometricFactoryParameters psychometricFactoryParameters;
     private RandFactoryParameters randFactoryParameters;
 
@@ -48,35 +40,6 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
         RandTrialListFactory randFactory = new RandTrialListFactory(
         this, randFactoryParameters);
         trials.addAll(randFactory.createTrials());
-    }
-
-    private void preWriteTrials() {
-        for(Trial trial:trials){
-            trial.preWrite();
-        }
-    }
-
-    private void shuffleTrials() {
-        Collections.shuffle(trials);
-    }
-
-    private void updateGenId() {
-        try {
-            /**
-             * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
-             */
-            genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
-        } catch (VariableNotFoundException e) {
-            dbUtil.writeReadyGenerationInfo(0, 0);
-        }
-    }
-
-    private void writeTrials() {
-        for (Trial trial : trials) {
-            trial.write();
-            Long taskId = trial.getTaskId();
-            dbUtil.writeTaskToDo(taskId, taskId, -1, genId);
-        }
     }
 
     public String getGeneratorPngPath() {
