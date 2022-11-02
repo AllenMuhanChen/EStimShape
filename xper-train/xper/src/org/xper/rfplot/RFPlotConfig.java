@@ -40,8 +40,11 @@ public class RFPlotConfig {
 	@ExternalValue("rfplot.default_png_path")
 	public String defaultPngPath;
 
-	@ExternalValue("rfplot.png_library_path")
-	public String pngLibraryPath;
+	@ExternalValue("rfplot.png_library_path_generator")
+	public String pngLibraryPath_generator;
+
+	@ExternalValue("rfplot.png_library_path_experiment")
+	public String pngLibraryPath_experiment;
 
 	@Bean
 	public PerspectiveRenderer rfRenderer () {
@@ -92,7 +95,7 @@ public class RFPlotConfig {
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Path", new PngPathScroller(pngLibraryPath));
+		map.put("Path", new PngPathScroller(pngLibraryPath_generator, pngLibraryPath_experiment));
 		map.put("Size", new PngSizeScroller());
 		return map;
 	}
