@@ -37,9 +37,6 @@ public class RFPlotConfig {
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 
-	@ExternalValue("rfplot.default_png_path")
-	public String defaultPngPath;
-
 	@ExternalValue("rfplot.png_library_path_generator")
 	public String pngLibraryPath_generator;
 
@@ -74,7 +71,7 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
-		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject(defaultPngPath));
+		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject(pngPathScroller().getFirstPath()));
 		return refObjMap;
 	}
 
@@ -95,9 +92,18 @@ public class RFPlotConfig {
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Path", new PngPathScroller(pngLibraryPath_generator, pngLibraryPath_experiment));
+		map.put("Path", pngPathScroller());
 		map.put("Size", new PngSizeScroller());
 		return map;
+	}
+
+	@Bean
+	public PngPathScroller pngPathScroller() {
+		PngPathScroller scroller = new PngPathScroller();
+		scroller.setLibraryPath_generator(pngLibraryPath_generator);
+		scroller.setLibraryPath_experiment(pngLibraryPath_experiment);
+		scroller.init();
+		return scroller;
 	}
 
 	@Bean
