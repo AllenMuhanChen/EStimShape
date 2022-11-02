@@ -18,7 +18,6 @@
 	<echo message="Manifest classpath is ${manifest.classpath}" />
 
 	<target name="clean">
-		<delete dir="${build.home}" />
 		<delete dir="${dist.home}" />
 	</target>
 
