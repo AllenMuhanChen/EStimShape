@@ -8,15 +8,34 @@ import java.util.Arrays;
 
 public class PngPathScroller extends RFPlotScroller {
 
-    String libraryPath_generator;
-    String libraryPath_experiment;
+    private String libraryPath_generator;
+    private String libraryPath_experiment;
     CyclicIterator<File> pngs;
 
     public PngPathScroller(String libraryPath_generator, String libraryPath_experiment) {
-        this.libraryPath_generator = libraryPath_generator;
-        this.libraryPath_experiment = libraryPath_experiment;
+        this.setLibraryPath_generator(libraryPath_generator);
+        this.setLibraryPath_experiment(libraryPath_experiment);
 
         setPngsFromLibrary(libraryPath_generator);
+    }
+    public void init(){
+        System.err.println(libraryPath_generator);
+        try {
+            setPngsFromLibrary(libraryPath_experiment);
+        } catch (Exception e){
+            setPngsFromLibrary(libraryPath_generator);
+        }
+    }
+
+    public PngPathScroller() {
+    }
+
+    public String getLibraryPath_generator() {
+        return libraryPath_generator;
+    }
+
+    public String getLibraryPath_experiment() {
+        return libraryPath_experiment;
     }
 
     private void setPngsFromLibrary(String libraryPath) {
@@ -27,6 +46,10 @@ public class PngPathScroller extends RFPlotScroller {
                 return pathname.getAbsolutePath().contains(".png");
             }
         })));
+    }
+
+    public String getFirstPath(){
+        return convertGeneratorToExperiment(pngs.first().getAbsolutePath());
     }
 
     @Override
@@ -50,7 +73,15 @@ public class PngPathScroller extends RFPlotScroller {
     }
 
     private String convertGeneratorToExperiment(String imagePath){
-        String newPath = imagePath.replace(libraryPath_generator, libraryPath_experiment);
+        String newPath = imagePath.replace(getLibraryPath_generator(), getLibraryPath_experiment());
         return newPath;
+    }
+
+    public void setLibraryPath_generator(String libraryPath_generator) {
+        this.libraryPath_generator = libraryPath_generator;
+    }
+
+    public void setLibraryPath_experiment(String libraryPath_experiment) {
+        this.libraryPath_experiment = libraryPath_experiment;
     }
 }
