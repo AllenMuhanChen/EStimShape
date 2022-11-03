@@ -115,7 +115,7 @@ public class IscanDevice implements EyeDevice, EyeZeroAdjustable {
 
 		if (z != null) {
 			setEyeZero(z);	
-			System.out.println("AC8484932: newEyeZero = "+z.getX() + ", "+z.getY());
+			System.out.println("IscanDevice: newEyeZero = "+z.getX() + ", "+z.getY());
 		}
 		if (eyeZeroMessageListener != null) {
 			for (EyeZeroMessageListener listener : eyeZeroMessageListener) {
