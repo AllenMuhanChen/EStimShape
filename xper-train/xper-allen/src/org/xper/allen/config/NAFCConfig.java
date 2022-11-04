@@ -350,15 +350,13 @@ public class NAFCConfig {
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
 		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
-		state.setSampleLength(xperSampleLength());
-		state.setChoiceLength(xperChoiceLength());
 		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
 		state.setSleepWhileWait(true);
 		state.setPause(classicConfig.xperExperimentInitialPause());
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		//Target Stuff
 		state.setSampleLength(xperSampleLength());
-		state.setChoiceLength(xperChoiceLength());
+		state.setAnswerLength(xperAnswerLength());
 		state.setTargetSelector(eyeTargetSelector());
 		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());  
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
@@ -564,8 +562,8 @@ public class NAFCConfig {
 	}
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public Integer xperChoiceLength() {
-		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_choice_length", 0));
+	public Integer xperAnswerLength() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_answer_length", 0));
 	}
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperPunishmentDelayTime() {

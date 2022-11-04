@@ -25,6 +25,8 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	boolean repeatIncorrectTrials;
 	@Dependency
 	boolean showAnswer;
+	@Dependency
+	int answerLength;
 
 	int blankTargetScreenDisplayTime;
 	int punishmentDelayTime;
@@ -39,6 +41,10 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 
 	public boolean isShowAnswer() {
 		return showAnswer;
+	}
+
+	public int getAnswerLength() {
+		return answerLength;
 	}
 
 	public void setTargetSelector(EyeTargetSelector targetSelector) {
@@ -109,5 +115,9 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 
 	public void setShowAnswer(boolean showAnswer) {
 		this.showAnswer = showAnswer;
+	}
+
+	public void setAnswerLength(int answerLength) {
+		this.answerLength = answerLength;
 	}
 }
