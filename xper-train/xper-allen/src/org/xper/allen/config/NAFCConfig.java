@@ -366,6 +366,9 @@ public class NAFCConfig {
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		//Punishment
 		state.setPunishmentDelayTime(xperPunishmentDelayTime());
+		//Training Assist
+		state.setRepeatIncorrectTrials(xperRepeatIncorrectTrials());
+		state.setShowAnswer(xperShowAnswer());
 		//Intan Stuff
 		try {
 		state.setIntanUtil(intanUtil());
@@ -375,7 +378,8 @@ public class NAFCConfig {
 		}
 		return state;
 	}
-	
+
+
 	//TODO
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
@@ -499,6 +503,18 @@ public class NAFCConfig {
 		strategy.setEyeDevices(devices);
 		return strategy;
 	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Boolean xperShowAnswer(){
+		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_nafc_show_answer",0));
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Boolean xperRepeatIncorrectTrials(){
+		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_nafc_repeat_incorrect_trials",0));
+	}
+
+
 	/**
 	 * For fixation point eye selection, not alternative choices. 
 	 * @return

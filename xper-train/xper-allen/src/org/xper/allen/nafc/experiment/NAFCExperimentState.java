@@ -21,12 +21,24 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	IntanUtil intanUtil;
 	@Dependency
 	NAFCTrialDrawingController drawingController;
-	
+	@Dependency
+	boolean repeatIncorrectTrials;
+	@Dependency
+	boolean showAnswer;
+
 	int blankTargetScreenDisplayTime;
 	int punishmentDelayTime;
 	
 	public EyeTargetSelector getTargetSelector() {
 		return targetSelector;
+	}
+
+	public boolean isRepeatIncorrectTrials() {
+		return repeatIncorrectTrials;
+	}
+
+	public boolean isShowAnswer() {
+		return showAnswer;
 	}
 
 	public void setTargetSelector(EyeTargetSelector targetSelector) {
@@ -90,5 +102,12 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	public void setPunishmentDelayTime(int punishmentDelayTime) {
 		this.punishmentDelayTime = punishmentDelayTime;
 	}
-	
+
+	public void setRepeatIncorrectTrials(boolean repeatIncorrectTrials) {
+		this.repeatIncorrectTrials = repeatIncorrectTrials;
+	}
+
+	public void setShowAnswer(boolean showAnswer) {
+		this.showAnswer = showAnswer;
+	}
 }
