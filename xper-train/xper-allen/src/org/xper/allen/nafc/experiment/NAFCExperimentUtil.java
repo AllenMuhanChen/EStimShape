@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.xper.allen.eye.headfree.HeadFreeExperimentUtil;
 import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
@@ -22,10 +21,7 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
-import org.xper.classic.vo.TrialExperimentState;
-import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.EyeController;
-import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.time.TimeUtil;
@@ -36,7 +32,8 @@ import org.xper.util.TrialExperimentUtil;
 import org.xper.util.IntanUtil;
 
 public class NAFCExperimentUtil extends TrialExperimentUtil{
-	
+
+	boolean repeatIncorrectTrials;
 	static int punishmentDelayTime = 0; //Gets initialized to 0, if punishment should be applied, it's incremented, reset to zero after trial interval. 
 	
 	@SuppressWarnings("incomplete-switch")
@@ -207,7 +204,11 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
 					//PUNISHMENT DELAY
 					punish(stateObject);
-					taskDataSource.ungetTask(currentTask);
+
+					if (stateObject.isRepeatIncorrectTrials()) {
+						taskDataSource.ungetTask(currentTask);
+						System.out.println("Repeating Incorrect Trial");
+					}
 					System.out.println("Incorrect Choice");
 				}
 			}
@@ -237,11 +238,13 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		}
 
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
-		drawingController.showAnswer(currentTask, currentContext);
-		do {
-			//Wait for Slide to Finish
-			//Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer. 
-		}while(timeUtil.currentTimeMicros()<choicesOffLocalTime+stateObject.getChoiceLength()*1000);
+		if(stateObject.isShowAnswer()) {
+			drawingController.showAnswer(currentTask, currentContext);
+			do {
+				//Wait for Slide to Finish
+				//Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer.
+			} while (timeUtil.currentTimeMicros() < choicesOffLocalTime + stateObject.getChoiceLength() * 1000);
+		}
 		//finish current slide
 
 
