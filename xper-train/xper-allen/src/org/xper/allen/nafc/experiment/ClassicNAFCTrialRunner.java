@@ -24,26 +24,11 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         try {
             // get a task
             getNextTask(stateObject);
-            if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
-                try {
-                    Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
-                } catch (InterruptedException ignored) {
-                }
-                return NAFCTrialResult.NO_MORE_TASKS;
-            }
+            NAFCTrialResult noMoreTasks = checkForNoMoreTasks(stateObject);
+            if (noMoreTasks != null) return noMoreTasks;
 
             // initialize trial context
-            NAFCTrialContext context = new NAFCTrialContext();
-            context.setCurrentTask(stateObject.getCurrentTask());
-            stateObject.setCurrentContext(context);
-            stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
-                /*
-                TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
-                 */
-
-            // run trial
-            NAFCTrialContext currentContext = stateObject.getCurrentContext();
-            currentContext.setSampleLength(stateObject.getSampleLength());
+            NAFCTrialContext context = intializeTrialContext(stateObject);
 
             /*
               If switch out HeadFreeUtil then make sure the new version has prepareSample & prepareChoice
@@ -53,11 +38,13 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
                 return result;
             }
 
+            //Run Slide
             result = getRunner().runSlide(stateObject, context);
             if (result != NAFCTrialResult.TRIAL_COMPLETE) {
                 return result;
             }
 
+            //Complete Trial
             completeTrial(stateObject, threadHelper);
 
             return NAFCTrialResult.TRIAL_COMPLETE;
@@ -69,6 +56,26 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
                 e.printStackTrace();
             }
         }
+    }
+
+    private NAFCTrialContext intializeTrialContext(NAFCExperimentState stateObject) {
+        NAFCTrialContext context = new NAFCTrialContext();
+        context.setCurrentTask(stateObject.getCurrentTask());
+        stateObject.setCurrentContext(context);
+        stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
+        context.setSampleLength(stateObject.getSampleLength());
+        return context;
+    }
+
+    private NAFCTrialResult checkForNoMoreTasks(NAFCExperimentState stateObject) {
+        if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
+            try {
+                Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
+            } catch (InterruptedException ignored) {
+            }
+            return NAFCTrialResult.NO_MORE_TASKS;
+        }
+        return null;
     }
 
     public static void completeTrial(NAFCExperimentState state, ThreadHelper threadHelper) {
