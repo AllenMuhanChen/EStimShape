@@ -138,7 +138,7 @@ if __name__ == '__main__':
 
 
     #CSV SAVING
-    filename = str(datetime.date.today()) + ".csv"
+    filename = "psychometric-" + str(datetime.date.today()) + ".csv"
     path = save_dir + filename
     # existing_data = pd.read_csv(path)
 

@@ -5,7 +5,12 @@ import matplotlib.pylab as plt
 import xmltodict
 import ast
 
+from src.compile import psychometric_compile
+
 if __name__ == '__main__':
+    # psychometric_compile
+
+
     to_read = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/2022-11-04.csv"
     df = pandas.read_csv(to_read)
 
