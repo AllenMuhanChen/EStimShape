@@ -53,7 +53,7 @@ public class NAFCTrialExperiment implements Experiment {
 
 	private void startExperiment(TimeUtil timeUtil) {
 		threadHelper.started();
-		System.out.println("NAFCExperiment started.");
+		System.out.println("NAFCTrialExperiment started.");
 		stateObject.getDrawingController().init();
 		EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
 				stateObject.getExperimentEventListeners());
@@ -96,7 +96,7 @@ public class NAFCTrialExperiment implements Experiment {
 	}
 
 	public void stop() {
-		System.out.println("Stopping SlideTrialExperiment ...");
+		System.out.println("Stopping NAFCTrialExperiment ...");
 		if (isRunning()) {
 			threadHelper.stop();
 			threadHelper.join();
