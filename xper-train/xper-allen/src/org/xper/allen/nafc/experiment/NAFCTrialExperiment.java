@@ -10,7 +10,7 @@ import org.xper.util.*;
 
 import jssc.SerialPortException;
 
-import static org.xper.util.TrialExperimentUtil.pauseExperiment;
+import static org.xper.util.TrialExperimentUtil.pauseUntilRunReceived;
 
 public class NAFCTrialExperiment implements Experiment {
 	static Logger logger = Logger.getLogger(NAFCTrialExperiment.class);
@@ -36,45 +36,63 @@ public class NAFCTrialExperiment implements Experiment {
 	public void run() {
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
 		try {
-			threadHelper.started();
-			System.out.println("NAFCExperiment started.");
-			stateObject.getDrawingController().init();
-			EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
-					stateObject.getExperimentEventListeners());
+			startExperiment(timeUtil);
 
 			while (!threadHelper.isDone()) {
-				pauseExperiment(stateObject, threadHelper);
-				if (threadHelper.isDone()) {
-					break;
-				}
-				// one trial
-				try{
-					getTrialRunner().runTrial(stateObject, threadHelper);
-				} catch (NullPointerException e){
-					e.printStackTrace();
-					System.out.println("THERE ARE NO MORE TRIALS");
-				}
-				if (threadHelper.isDone()) {
-					break;
-				}
-				long current = timeUtil.currentTimeMicros();
-				ThreadUtil.sleepOrPinUtil(current
-								+ stateObject.getInterTrialInterval() * 1000, stateObject,						threadHelper);
+				//pause experiment
+				pauseUntilRunReceived(stateObject, threadHelper);
+				if (stopReceived()) break;
+				runTrial();
+				if (stopReceived()) break;
+				interTrialInterval(timeUtil);
 			}
 		} finally {
-			// experiment stop event
-			try {
-				System.out.println("NAFCExperiment stopped.");
-				EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),
-						stateObject.getExperimentEventListeners());
-				stateObject.getDrawingController().destroy();
-
-				threadHelper.stopped();
-			} catch (Exception e) {
-				//logger.warn(e.getMessage());
-				e.printStackTrace();
-			}
+			stopExperiment(timeUtil);
 		}
+	}
+
+	private void startExperiment(TimeUtil timeUtil) {
+		threadHelper.started();
+		System.out.println("NAFCExperiment started.");
+		stateObject.getDrawingController().init();
+		EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
+				stateObject.getExperimentEventListeners());
+	}
+
+	private void runTrial() {
+		try{
+			getTrialRunner().runTrial(stateObject, threadHelper);
+		} catch (NullPointerException e){
+			e.printStackTrace();
+			System.out.println("THERE ARE NO MORE TRIALS");
+		}
+	}
+
+	private void stopExperiment(TimeUtil timeUtil) {
+		try {
+			System.out.println("NAFCExperiment stopped.");
+			EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),
+					stateObject.getExperimentEventListeners());
+			stateObject.getDrawingController().destroy();
+
+			threadHelper.stopped();
+		} catch (Exception e) {
+			//logger.warn(e.getMessage());
+			e.printStackTrace();
+		}
+	}
+
+	private void interTrialInterval(TimeUtil timeUtil) {
+		long current = timeUtil.currentTimeMicros();
+		ThreadUtil.sleepOrPinUtil(current
+						+ stateObject.getInterTrialInterval() * 1000L, stateObject,						threadHelper);
+	}
+
+	private boolean stopReceived() {
+		if (threadHelper.isDone()) {
+			return true;
+		}
+		return false;
 	}
 
 	public void stop() {
@@ -90,10 +108,6 @@ public class NAFCTrialExperiment implements Experiment {
 		} catch (SerialPortException e) {
 			e.printStackTrace();
 		}
-	}
-
-	public NAFCExperimentState getStateObject() {
-		return stateObject;
 	}
 
 	public NAFCTrialRunner getTrialRunner() {
@@ -116,9 +130,7 @@ public class NAFCTrialExperiment implements Experiment {
 	public void setDbUtil(AllenDbUtil dbUtil) {
 		this.dbUtil = dbUtil;
 	}
-	public EyeMonitor getEyeMonitor() {
-		return eyeMonitor;
-	}
+
 	public void setEyeMonitor(EyeMonitor eyeMonitor) {
 		this.eyeMonitor = eyeMonitor;
 	}
