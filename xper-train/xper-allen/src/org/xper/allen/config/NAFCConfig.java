@@ -18,6 +18,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
 import org.xper.config.IntanConfig;
 import org.xper.drawing.renderer.AbstractRenderer;
@@ -29,14 +30,6 @@ import org.xper.allen.nafc.console.NAFCExperimentConsole;
 import org.xper.allen.nafc.console.NAFCExperimentConsoleModel;
 import org.xper.allen.nafc.console.NAFCExperimentConsoleRenderer;
 import org.xper.allen.nafc.console.NAFCExperimentMessageReceiver;
-import org.xper.allen.nafc.experiment.NAFCDatabaseTaskDataSource;
-import org.xper.allen.nafc.experiment.NAFCExperimentState;
-import org.xper.allen.nafc.experiment.NAFCMarkEveryStepTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCMarkStimTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCTrialExperiment;
-import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
-import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCExperimentMessageDispatcher;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
@@ -326,9 +319,21 @@ public class NAFCConfig {
 		NAFCTrialExperiment xper = new NAFCTrialExperiment();
 		xper.setEyeMonitor(classicConfig.eyeMonitor());
 		xper.setStateObject(experimentState());
-		xper.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		xper.setDbUtil(allenDbUtil());
+		xper.setTrialRunner(trialRunner());
 		return xper;
+	}
+
+	@Bean
+	public ClassicNAFCTrialRunner trialRunner(){
+		ClassicNAFCTrialRunner trialRunner = new ClassicNAFCTrialRunner();
+		trialRunner.setRunner(slideRunner());
+		return trialRunner;
+	}
+
+	@Bean
+	public ClassicNAFCSlideRunner slideRunner(){
+		return new ClassicNAFCSlideRunner();
 	}
 	
     //TODO
