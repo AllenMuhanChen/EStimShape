@@ -96,7 +96,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         long current = timeUtil.currentTimeMicros();
         if (state.getDelayAfterTrialComplete() > 0) {
             ThreadUtil.sleepOrPinUtil(current
-                            + state.getDelayAfterTrialComplete() * 1000, state,
+                            + state.getDelayAfterTrialComplete() * 1000L, state,
                     threadHelper);
         }
     }
@@ -109,7 +109,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
     public static void cleanupTrial (NAFCExperimentState state) {
         TimeUtil timeUtil = state.getLocalTimeUtil();
         NAFCExperimentTask currentTask = state.getCurrentTask();
-        NAFCTrialContext currentContext = (NAFCTrialContext) state.getCurrentContext();
+        NAFCTrialContext currentContext = state.getCurrentContext();
         NAFCDatabaseTaskDataSource taskDataSource = (NAFCDatabaseTaskDataSource) state.getTaskDataSource();
         TaskDoneCache taskDoneCache = state.getTaskDoneCache();
         TrialDrawingController drawingController = state.getDrawingController();
@@ -167,7 +167,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
         // time before fixation point on
         ThreadUtil.sleepOrPinUtil(trialStartLocalTime
-                        + state.getTimeBeforeFixationPointOn() * 1000, state,
+                        + state.getTimeBeforeFixationPointOn() * 1000L, state,
                 threadHelper);
 
         // fixation point on
@@ -180,7 +180,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         // wait for initial eye in
         boolean success = eyeController
                 .waitInitialEyeIn(fixationPointOnLocalTime
-                        + state.getTimeAllowedForInitialEyeIn() * 1000);
+                        + state.getTimeAllowedForInitialEyeIn() * 1000L);
 
         if (!success) {
             // eye fail to get in
@@ -205,7 +205,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
         // wait for eye hold
         success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
-                + state.getRequiredEyeInHoldTime() * 1000 + getRunner().getPunishmentDelayTime()*1000);
+                + state.getRequiredEyeInHoldTime() * 1000L + getRunner().getPunishmentDelayTime()*1000);
 
 
         if (!success) {
