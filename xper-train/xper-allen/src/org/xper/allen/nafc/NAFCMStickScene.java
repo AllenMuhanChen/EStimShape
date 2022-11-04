@@ -151,7 +151,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 
 
 	@Override
-	public void drawChoice(Context context, boolean fixationOn) {
+	public void drawChoices(Context context, boolean fixationOn) {
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
@@ -180,6 +180,10 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 			}}, context);
 	}
 
+	@Override
+	public void drawChoice(Context context, boolean fixationOn, int i) {
+		choiceMStick.get(i).draw();
+	}
 
 
 	@Override

@@ -36,9 +36,14 @@ public class BlankNAFCTaskScene extends AbstractTaskScene implements NAFCTaskSce
 	}
 
 	@Override
-	public void drawChoice(Context context, boolean fixation) {
+	public void drawChoices(Context context, boolean fixation) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public void drawChoice(Context context, boolean fixationOn, int i) {
+
 	}
 
 }

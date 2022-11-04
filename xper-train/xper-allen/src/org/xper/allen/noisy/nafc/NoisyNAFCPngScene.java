@@ -41,7 +41,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	ImageDimensions sampleDimensions;
 	ImageDimensions[] choiceDimensions;
 	double[] choiceAlphas;
-	
+	private int numFrames;
+
 	public void initGL(int w, int h) {
 		
 		setUseStencil(true);
@@ -57,7 +58,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		numChoices = task.getChoiceSpec().length;
 		long duration = context.getSampleLength()+100; //100 ms buffer
 		double durationSeconds = duration/1000.0;
-		int numFrames = (int) Math.ceil((durationSeconds*frameRate));
+		numFrames = (int) Math.ceil((durationSeconds*frameRate));
 		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
 		images.initTextures();
 		noiseIndx=0;
@@ -156,9 +157,38 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 			}}, context);
 	}
 	
+	@Override
+	public void drawChoice(Context context, boolean fixationOn, int i){
+		// clear the whole screen before define view ports in renderer
+		blankScreen.draw(null);
+		renderer.draw(new Drawable() {
+			public void draw(Context context) {
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+
+				//System.out.println();
+				images.draw(context,i+1, choiceLocations[i], choiceDimensions[i]);
+
+				if (useStencil) {
+					// 1 will pass for fixation and marker regions
+					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
+				}
+
+				if (fixationOn) {
+					getFixation().draw(context);
+				}
+				marker.draw(context);
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+			}}, context);
+	}
 
 	@Override
-	public void drawChoice(Context context, boolean fixationOn) {	
+	public void drawChoices(Context context, boolean fixationOn) {
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
@@ -189,6 +219,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	
 	
 	public void nextNoise() {
+		if (noiseIndx + 1 > numFrames)
+			noiseIndx=0;
 		this.noiseIndx++;
 	}
 

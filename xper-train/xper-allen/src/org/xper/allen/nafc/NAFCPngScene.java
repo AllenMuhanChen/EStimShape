@@ -115,7 +115,7 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	
 
 	@Override
-	public void drawChoice(Context context, boolean fixationOn) {	
+	public void drawChoices(Context context, boolean fixationOn) {
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
@@ -145,6 +145,36 @@ public class NAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 			}}, context);
 	}
 
+	@Override
+	public void drawChoice(Context context, boolean fixationOn, int i) {
+		// clear the whole screen before define view ports in renderer
+		blankScreen.draw(null);
+		renderer.draw(new Drawable() {
+			public void draw(Context context) {
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+
+				//System.out.println();
+				images.draw(context,i+1, choiceLocations[i], choiceDimensions[i]);
+				images.cleanUpImage(i+1);
+
+				if (useStencil) {
+					// 1 will pass for fixation and marker regions
+					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
+				}
+
+				if (fixationOn) {
+					getFixation().draw(context);
+				}
+				marker.draw(context);
+				if (useStencil) {
+					// 0 will pass for stimulus region
+					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
+				}
+			}}, context);
+	}
 
 
 	@Override

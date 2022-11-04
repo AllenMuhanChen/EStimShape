@@ -236,12 +236,15 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		}
 
 		System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
+		drawingController.showAnswer(currentTask, currentContext);
 		do {
 			//Wait for Slide to Finish
 			//Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer. 
-		}while(timeUtil.currentTimeMicros()<choicesOnLocalTime+stateObject.getChoiceLength()*1000);
+		}while(timeUtil.currentTimeMicros()<choicesOffLocalTime+stateObject.getChoiceLength()*1000);
 		//finish current slide
-		
+
+
+
 		drawingController.trialComplete(currentContext);
 		long choiceOffLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setChoicesOffTime(choiceOffLocalTime);

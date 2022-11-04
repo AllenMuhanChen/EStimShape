@@ -70,7 +70,7 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 		sample.draw(context);
 	}
 	
-	public void drawChoice(Context context, final boolean fixationOn) {
+	public void drawChoices(Context context, final boolean fixationOn) {
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
@@ -95,7 +95,13 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 				}
 			}}, context);
 	}
-	
+
+	@Override
+	public void drawChoice(Context context, boolean fixationOn, int i) {
+		choices[i].setDistance(distance);
+		choices[i].draw(context);
+	}
+
 	public void drawChoiceStimuli(Context context) {
 		
 		for (int i = 0; i < n; i++){
