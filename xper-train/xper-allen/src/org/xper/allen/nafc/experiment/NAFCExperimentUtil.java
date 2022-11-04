@@ -51,7 +51,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
 		EyeController eyeController = stateObject.getEyeController();
-
+		NAFCDatabaseTaskDataSource taskDataSource = (NAFCDatabaseTaskDataSource) stateObject.getTaskDataSource();
 		boolean fixationSuccess;
 
 
@@ -207,6 +207,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
 					//PUNISHMENT DELAY
 					punish(stateObject);
+					taskDataSource.ungetTask(currentTask);
 					System.out.println("Incorrect Choice");
 				}
 			}
