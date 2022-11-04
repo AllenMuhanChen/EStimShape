@@ -1,17 +1,18 @@
 package org.xper.allen.nafc.experiment;
 
+import org.dom4j.Document;
 import org.xper.Dependency;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
+import org.xper.classic.vo.TrialExperimentState;
+import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
-import org.xper.util.EventUtil;
-import org.xper.util.ThreadHelper;
-import org.xper.util.ThreadUtil;
+import org.xper.util.*;
 
 import java.util.List;
 
@@ -64,8 +65,19 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         stateObject.setCurrentContext(context);
         stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
         context.setSampleLength(stateObject.getSampleLength());
+        checkCurrentTaskAnimation(stateObject);
         return context;
     }
+
+    public void checkCurrentTaskAnimation(NAFCExperimentState state) {
+        state.setAnimation(slideIsAnimation(state.getCurrentTask().getSampleSpec()));
+    }
+
+    public static boolean slideIsAnimation(String xml) {
+        Document doc = XmlUtil.parseSpec(xml);
+        return XmlUtil.isAnimation(doc, "/StimSpec");
+    }
+
 
     private NAFCTrialResult checkForNoMoreTasks(NAFCExperimentState stateObject) {
         if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {

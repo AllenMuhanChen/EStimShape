@@ -62,7 +62,6 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
 		images.initTextures();
 		noiseIndx=0;
-
 	}
 	
 	@Override
