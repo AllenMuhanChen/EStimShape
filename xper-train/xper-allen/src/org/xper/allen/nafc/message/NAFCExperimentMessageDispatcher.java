@@ -78,7 +78,6 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	@Override
 	public void sampleOff(long timestamp) {
 		enqueue(timestamp, "SampleOff", "");
-		trialStat.setSampleSuccess(trialStat.getSampleSuccess()+1);
 	}
 
 	@Override
@@ -93,6 +92,7 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 		NAFCChoiceMessage sampleMsg = new NAFCChoiceMessage(currentTask.getChoiceSpecId(), currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize(), currentTask.getRewardPolicy());
 		String msg = sampleMsg.toXml();
 		enqueue(timestamp, "ChoicesOn", msg);
+		trialStat.setSampleSuccess(trialStat.getSampleSuccess()+1);
 	}
 
 	@Override

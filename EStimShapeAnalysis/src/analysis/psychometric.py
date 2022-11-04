@@ -8,15 +8,15 @@ import ast
 from src.compile import psychometric_compile
 
 if __name__ == '__main__':
-    # psychometric_compile
 
 
-    to_read = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/2022-11-04.csv"
+    to_read = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/psychometric-2022-11-04.csv"
     df = pandas.read_csv(to_read)
 
     df_psychometric = df[df['TrialType'] == 'Psychometric']
 
-    ids = df_psychometric['PsychometricId'].unique()
+    # ids = df_psychometric['PsychometricId'].unique()
+    ids=["1667577485864219_0", "1667577485864219_1"]
     noises = df_psychometric['NoiseChance'].unique()
 
 
