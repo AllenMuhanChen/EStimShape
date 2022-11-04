@@ -9,8 +9,6 @@ import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCEventUtil;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
-import org.xper.classic.SlideEventListener;
-import org.xper.classic.TrialEventListener;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
@@ -19,63 +17,45 @@ import org.xper.time.TimeUtil;
 import org.xper.util.IntanUtil;
 
 import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntPredicate;
 
+@SuppressWarnings("StatementWithEmptyBody")
 public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
     private int punishmentDelayTime = 0; //Gets initialized to 0, if punishment should be applied, it's incremented, reset to zero after trial interval.
 
     public NAFCTrialResult runSlide(NAFCExperimentState stateObject, NAFCTrialContext context) {
-            //int slidePerTrial = stateObject.getSlidePerTrial();
-            int slidePerTrial = 1;
-            NAFCExperimentTask currentTask = (NAFCExperimentTask) stateObject.getCurrentTask();
+            NAFCExperimentTask currentTask = stateObject.getCurrentTask();
             TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
             TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
-            List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
-            NAFCTrialResult result;
+        NAFCTrialResult result;
 
             try {
                 try {
                     //target info -AC
-                    Coordinates2D[] targetPosition = context.getCurrentTask().getTargetEyeWinCoords();
-                    double[] targetEyeWinSize = context.getCurrentTask().getTargetEyeWinSize();
-                    context.setTargetPos(targetPosition);
-                    context.setTargetEyeWindowSize(targetEyeWinSize);
+                    retrieveTargetInformation(context);
                 } catch (Exception e){
-                    System.out.println("No More Trials");
-                    try {
-                        Thread.sleep(NAFCTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
-                    } catch (InterruptedException ie) {
-                    }
-                    return NAFCTrialResult.NO_MORE_TASKS;
+                    return noMoreTrials();
                 }
 
-                for (int i = 0; i < slidePerTrial; i++) {
 
-                    // draw the slide
-                    result = doSlide(i, stateObject);
+                // draw the slide
+                result = doSlide(stateObject);
 
-                    //Check if Sample Hold was Successful
-                    if (result!=NAFCTrialResult.TRIAL_COMPLETE){
-                        return result;
-                    }
-
-                    // Trial done successfully
-                    if (currentTask != null) {
-                        taskDoneCache.put(currentTask, globalTimeClient
-                                .currentTimeMicros(), false);
-                        currentTask = null;
-                        stateObject.setCurrentTask(currentTask);
-                    }
-
+                //Check if Sample Hold was Successful
+                if (sampleHoldSuccessful(result)){
+                    return result;
                 }
+
+                // Trial done successfully
+                if (currentTask != null) {
+                    taskDone(stateObject, currentTask, taskDoneCache, globalTimeClient);
+                }
+
                 return NAFCTrialResult.TRIAL_COMPLETE;
-                // end of SlideRunner.runSlide
+
             } finally {
                 try {
                     cleanupTask(stateObject);
@@ -86,14 +66,38 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
             }
         }
 
-    public NAFCTrialResult doSlide(int i, NAFCExperimentState stateObject) {
-        NAFCTrialDrawingController drawingController = (NAFCTrialDrawingController) stateObject.getDrawingController();
+    private void taskDone(NAFCExperimentState stateObject, NAFCExperimentTask currentTask, TaskDoneCache taskDoneCache, TimeUtil globalTimeClient) {
+        taskDoneCache.put(currentTask, globalTimeClient
+                .currentTimeMicros(), false);
+        stateObject.setCurrentTask(null);
+    }
+
+    private boolean sampleHoldSuccessful(NAFCTrialResult result) {
+        return result != NAFCTrialResult.TRIAL_COMPLETE;
+    }
+
+    private NAFCTrialResult noMoreTrials() {
+        System.out.println("No More Trials");
+        try {
+            Thread.sleep(NAFCTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
+        } catch (InterruptedException ignored) {
+        }
+        return NAFCTrialResult.NO_MORE_TASKS;
+    }
+
+    private void retrieveTargetInformation(NAFCTrialContext context) {
+        Coordinates2D[] targetPosition = context.getCurrentTask().getTargetEyeWinCoords();
+        double[] targetEyeWinSize = context.getCurrentTask().getTargetEyeWinSize();
+        context.setTargetPos(targetPosition);
+        context.setTargetEyeWindowSize(targetEyeWinSize);
+    }
+
+    public NAFCTrialResult doSlide(NAFCExperimentState stateObject) {
+        NAFCTrialDrawingController drawingController = stateObject.getDrawingController();
         NAFCExperimentTask currentTask = stateObject.getCurrentTask();
-        NAFCTrialContext currentContext = (NAFCTrialContext) stateObject.getCurrentContext();
+        NAFCTrialContext currentContext = stateObject.getCurrentContext();
         List<? extends ChoiceEventListener> choiceEventListeners = stateObject.getChoiceEventListeners();
-        List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
         List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
-        List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
         EyeTargetSelector targetSelector = stateObject.getTargetSelector();
         TimeUtil timeUtil = stateObject.getLocalTimeUtil();
         EyeController eyeController = stateObject.getEyeController();
@@ -117,7 +121,7 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         long blankOnLocalTime = timeUtil.currentTimeMicros();
         do {
             //do nothing
-        }while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()*1000);
+        }while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()* 1000L);
 
         //SHOW SAMPLE
         drawingController.showSample(currentTask, currentContext); //THIS is called by prepare fixation
@@ -144,13 +148,12 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
                 //AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
                 return NAFCTrialResult.TRIAL_COMPLETE;
             }
-//			if(stateObject.isAnimation()) {
-            if(true) {
+			if(stateObject.isAnimation()) {
                 currentContext.setAnimationFrameIndex(currentContext.getAnimationFrameIndex()+1);
                 drawingController.animateSample(currentTask, currentContext);
             }
         } while (timeUtil.currentTimeMicros() < sampleOnLocalTime
-                + stateObject.getSampleLength() * 1000);
+                + stateObject.getSampleLength() * 1000L);
 
 
         //		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
@@ -319,11 +322,6 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
     /**
      * ESTIMULATOR
      * Send string of params for estim over to Intan
-     * @param state
-     * @throws Exception
-     * @throws SQLException
-     * @throws UnknownHostException
-     * @throws SocketException
      */
     public void sendEStims (NAFCExperimentState state) {
         try {
@@ -344,7 +342,7 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
     }
 
     private String eStimsToString(EStimObjDataEntry eStimObjData){
-        ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();
+        ArrayList<EStimParameter> eStimParams= new ArrayList<>();
         eStimParams.add(new EStimParameter("chans",eStimObjData.getChans()));
         eStimParams.add(new EStimParameter("stim_polarity",eStimObjData.get_stim_polarity()));
         eStimParams.add(new EStimParameter("trig_src",eStimObjData.get_trig_src()));
@@ -367,7 +365,7 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         eStimParams.add(new EStimParameter("post_stim_charge_recovery_on",eStimObjData.get_post_stim_charge_recovery_on()));
         eStimParams.add(new EStimParameter("post_stim_charge_recovery_off",eStimObjData.get_post_stim_charge_recovery_off()));
 
-        String output = new String();
+        String output = "";
         int loopindx = 0;
         for (EStimParameter param:eStimParams) {
             if(loopindx>0) {
@@ -385,10 +383,6 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
     /**
      * ESTIMULATOR
      * Send trigger for estim over to Intan
-     * @throws Exception
-     * @throws SQLException
-     * @throws UnknownHostException
-     * @throws SocketException
      *
      */
     public void sendEStimTrigger(NAFCExperimentState state){
