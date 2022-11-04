@@ -85,7 +85,7 @@ public class NAFCTrialExperiment implements Experiment {
 	private void interTrialInterval(TimeUtil timeUtil) {
 		long current = timeUtil.currentTimeMicros();
 		ThreadUtil.sleepOrPinUtil(current
-						+ stateObject.getInterTrialInterval() * 1000L, stateObject,						threadHelper);
+						+ stateObject.getInterTrialInterval() * 1000L, stateObject, threadHelper);
 	}
 
 	private boolean stopReceived() {
