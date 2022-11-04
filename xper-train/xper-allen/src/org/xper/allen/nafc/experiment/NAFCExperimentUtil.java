@@ -89,8 +89,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				drawingController.eyeInHoldFail(currentContext);
 				NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
 						choiceEventListeners, currentContext);
-				punishmentDelayTime += stateObject.getPunishmentDelayTime();
-				 
+				punish(stateObject);
+
 				drawingController.slideFinish(currentTask, currentContext);
 				long sampleOffLocalTime = timeUtil.currentTimeMicros();
 				currentContext.setSampleOffTime(sampleOffLocalTime);
@@ -200,12 +200,13 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			if (rewardPolicy == RewardPolicy.LIST) {
 				if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
 					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+					resetPunishment();
 					System.out.println("Correct Choice");
 				}
 				else {
 					NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
 					//PUNISHMENT DELAY
-					punishmentDelayTime += stateObject.getPunishmentDelayTime();
+					punish(stateObject);
 					System.out.println("Incorrect Choice");
 				}
 			}
@@ -249,6 +250,16 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 
 		return NAFCTrialResult.TRIAL_COMPLETE;
 
+	}
+
+	private static void resetPunishment() {
+		punishmentDelayTime=0;
+	}
+
+	private static void punish(NAFCExperimentState stateObject) {
+		if(punishmentDelayTime==0) {
+			punishmentDelayTime = stateObject.getPunishmentDelayTime();
+		}
 	}
 
 	public static boolean contains(final int[] arr, final int key) {
@@ -465,7 +476,8 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 
 		// wait for eye hold
 		success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
-				+ state.getRequiredEyeInHoldTime() * 1000);
+				+ state.getRequiredEyeInHoldTime() * 1000 + punishmentDelayTime*1000);
+
 
 		if (!success) {
 			// eye fail to hold
@@ -511,12 +523,10 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 				if (threadHelper.isDone()) {
 					break;
 				}
-				// inter-trial interval + PUNISHMENT DELAY TIME
 				long current = timeUtil.currentTimeMicros();
 				ThreadUtil.sleepOrPinUtil(current
-						+ state.getInterTrialInterval() * 1000 + punishmentDelayTime*1000, state,
+						+ state.getInterTrialInterval() * 1000, state,
 						threadHelper);
-				punishmentDelayTime=0;
 			}
 		} finally {
 			// experiment stop event
