@@ -21,57 +21,57 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
     ClassicNAFCSlideRunner runner;
 
     public NAFCTrialResult runTrial(NAFCExperimentState stateObject, ThreadHelper threadHelper) {
-            try {
-                // get a task
-                getNextTask(stateObject);
-                if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
-                    try {
-                        Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
-                    } catch (InterruptedException e) {
-                    }
-                    return NAFCTrialResult.NO_MORE_TASKS;
-                }
-
-                // initialize trial context
-                NAFCTrialContext context = new NAFCTrialContext();
-                context.setCurrentTask(stateObject.getCurrentTask());
-                stateObject.setCurrentContext(context);
-                stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
-					/*
-					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
-					 */
-
-                // run trial
-                NAFCTrialDrawingController drawingController = stateObject.getDrawingController();
-                NAFCExperimentTask currentTask = stateObject.getCurrentTask();
-                NAFCTrialContext currentContext = stateObject.getCurrentContext();
-                currentContext.setSampleLength(stateObject.getSampleLength());
-
-                /**
-                 * If switch out HeadFreeUtil then make sure the new version has prepareSample & prepareChoice
-                 */
-                NAFCTrialResult result = getMonkeyFixation(stateObject, threadHelper);
-                if (result != NAFCTrialResult.FIXATION_SUCCESS) {
-                    return result;
-                }
-
-                result = getRunner().runSlide(stateObject, context);
-                if (result != NAFCTrialResult.TRIAL_COMPLETE) {
-                    return result;
-                }
-
-                completeTrial(stateObject, threadHelper);
-
-                return NAFCTrialResult.TRIAL_COMPLETE;
-            } finally {
+        try {
+            // get a task
+            getNextTask(stateObject);
+            if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
                 try {
-                    cleanupTrial(stateObject);
-                } catch (Exception e) {
-//                    logger.warn(e.getMessage());
-                    e.printStackTrace();
+                    Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
+                } catch (InterruptedException e) {
                 }
+                return NAFCTrialResult.NO_MORE_TASKS;
+            }
+
+            // initialize trial context
+            NAFCTrialContext context = new NAFCTrialContext();
+            context.setCurrentTask(stateObject.getCurrentTask());
+            stateObject.setCurrentContext(context);
+            stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
+                /*
+                TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
+                 */
+
+            // run trial
+            NAFCTrialDrawingController drawingController = stateObject.getDrawingController();
+            NAFCExperimentTask currentTask = stateObject.getCurrentTask();
+            NAFCTrialContext currentContext = stateObject.getCurrentContext();
+            currentContext.setSampleLength(stateObject.getSampleLength());
+
+            /**
+             * If switch out HeadFreeUtil then make sure the new version has prepareSample & prepareChoice
+             */
+            NAFCTrialResult result = getMonkeyFixation(stateObject, threadHelper);
+            if (result != NAFCTrialResult.FIXATION_SUCCESS) {
+                return result;
+            }
+
+            result = getRunner().runSlide(stateObject, context);
+            if (result != NAFCTrialResult.TRIAL_COMPLETE) {
+                return result;
+            }
+
+            completeTrial(stateObject, threadHelper);
+
+            return NAFCTrialResult.TRIAL_COMPLETE;
+        } finally {
+            try {
+                cleanupTrial(stateObject);
+            } catch (Exception e) {
+//                    logger.warn(e.getMessage());
+                e.printStackTrace();
             }
         }
+    }
 
     public static void completeTrial(NAFCExperimentState state, ThreadHelper threadHelper) {
         TimeUtil timeUtil = state.getLocalTimeUtil();
