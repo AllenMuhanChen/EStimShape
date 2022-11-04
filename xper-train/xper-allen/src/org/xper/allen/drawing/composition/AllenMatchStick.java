@@ -835,7 +835,7 @@ public class AllenMatchStick extends MatchStick {
 					boolean tangentFlg = true;
 					Vector3d nowTangent = new Vector3d();
 					for (i=1; i<=getnJuncPt(); i++)
-						if ( JuncPtFlg[i] == true)
+						if (JuncPtFlg[i])
 						{
 							int uNdx = targetUNdx[i];
 							boolean midBranchFlg = false;
@@ -858,7 +858,7 @@ public class AllenMatchStick extends MatchStick {
 									nowTangent = getJuncPt()[i].getTangent()[j]; // soft copy is fine here
 									if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) // angle btw the two tangent vector
 										tangentFlg = false;
-									if ( midBranchFlg == true)
+									if (midBranchFlg)
 									{
 										finalTangent.negate();
 										if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) //
@@ -869,12 +869,12 @@ public class AllenMatchStick extends MatchStick {
 						}
 
 					// still valid after all tangent check
-					if (tangentFlg == true) 
+					if (tangentFlg)
 						break;
 					else
 					{
 
-						if ( showDebug)
+						if (showDebug)
 							System.out.println("didn't pass check tagent Zone in fine tune");
 					}
 					if (tangentTrialTimes > 100)
@@ -886,7 +886,7 @@ public class AllenMatchStick extends MatchStick {
 				//update the information of the related JuncPt
 				Vector3d finalTangent = new Vector3d();
 				for (i=1; i<= getnJuncPt(); i++)
-					if (JuncPtFlg[i] == true)
+					if (JuncPtFlg[i])
 					{
 						int nowUNdx = targetUNdx[i];
 						finalTangent.set(nowArc.getmTangent()[nowUNdx]);
