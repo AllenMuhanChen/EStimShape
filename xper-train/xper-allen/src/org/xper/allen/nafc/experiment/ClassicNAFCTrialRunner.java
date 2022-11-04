@@ -205,7 +205,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
         // wait for eye hold
         success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
-                + state.getRequiredEyeInHoldTime() * 1000L + getRunner().getPunishmentDelayTime()*1000);
+                + state.getRequiredEyeInHoldTime() * 1000L + getRunner().getPunishmentDelayTime()* 1000L);
 
 
         if (!success) {
