@@ -313,8 +313,8 @@ public class TrialExperimentUtil {
 		}
 	}	
 
-	public static void pauseExperiment(TrialExperimentState state,
-			ThreadHelper threadHelper) {
+	public static void pauseUntilRunReceived(TrialExperimentState state,
+											 ThreadHelper threadHelper) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		while (state.isPause()) {
 			ThreadUtil.sleepOrPinUtil(timeUtil.currentTimeMicros()
@@ -338,7 +338,7 @@ public class TrialExperimentUtil {
 					state.getExperimentEventListeners());
 
 			while (!threadHelper.isDone()) {
-				pauseExperiment(state, threadHelper);
+				pauseUntilRunReceived(state, threadHelper);
 				if (threadHelper.isDone()) {
 					break;
 				}
