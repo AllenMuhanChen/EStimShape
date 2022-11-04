@@ -243,7 +243,7 @@ public class NAFCExperimentUtil extends TrialExperimentUtil{
 			do {
 				//Wait for Slide to Finish
 				//Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer.
-			} while (timeUtil.currentTimeMicros() < choicesOffLocalTime + stateObject.getChoiceLength() * 1000);
+			} while (timeUtil.currentTimeMicros() < choicesOffLocalTime + stateObject.getAnswerLength() * 1000L);
 		}
 		//finish current slide
 
