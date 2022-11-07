@@ -61,10 +61,10 @@ public class FixationPngBlockGen extends AbstractMStickPngTrialGenerator {
 		return;
 	}
 
-	protected void addRandTrials(RandFactoryParameters randFactoryParameters) {
-		RandTrialListFactory randFactory = new RandTrialListFactory(
-		this, randFactoryParameters);
-		trials.addAll(randFactory.createTrials());
+
+	@Override
+	protected void addTrials() {
+		//TODO: Convert to TrialList implementation
 	}
 
 	public AllenDbUtil getDbUtil() {
