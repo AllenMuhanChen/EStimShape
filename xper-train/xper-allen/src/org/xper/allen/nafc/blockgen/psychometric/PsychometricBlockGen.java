@@ -10,9 +10,9 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     private RandFactoryParameters randFactoryParameters;
 
 
-    public void setUp(PsychometricBlockGenSetUpParameters psychometricBlockGenSetUpParameters){
-        this.psychometricFactoryParameters = psychometricBlockGenSetUpParameters.getPsychometricFactoryParameters();
-        this.randFactoryParameters = psychometricBlockGenSetUpParameters.getRandFactoryParameters();
+    public void setUp(PsychometricBlockParameters psychometricBlockParameters){
+        this.psychometricFactoryParameters = psychometricBlockParameters.getPsychometricFactoryParameters();
+        this.randFactoryParameters = psychometricBlockParameters.getRandFactoryParameters();
     }
 
     @Override

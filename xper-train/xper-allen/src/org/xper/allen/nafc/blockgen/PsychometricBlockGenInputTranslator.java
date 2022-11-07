@@ -3,7 +3,7 @@ package org.xper.allen.nafc.blockgen;
 import org.xper.allen.app.nafc.TrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGenSetUpParameters;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockParameters;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricFactoryParameters;
 import org.xper.allen.nafc.blockgen.rand.NumberOfDistractorsForRandTrial;
 import org.xper.allen.nafc.blockgen.rand.NumberOfMorphCategories;
@@ -73,7 +73,7 @@ public class PsychometricBlockGenInputTranslator extends TrialGenerator {
         eyeWinSize = Double.parseDouble(iterator.next());
     }
 
-    public PsychometricBlockGenSetUpParameters translate(String[] args){
+    public PsychometricBlockParameters translate(String[] args){
 
         readArgs(args);
         createSharedParameters();
@@ -82,7 +82,7 @@ public class PsychometricBlockGenInputTranslator extends TrialGenerator {
         RandFactoryParameters randFactoryParameters
                 = createRandFactoryParameters();
 
-        return new PsychometricBlockGenSetUpParameters(psychometricFactorParameters, randFactoryParameters);
+        return new PsychometricBlockParameters(psychometricFactorParameters, randFactoryParameters);
     }
 
     private void createSharedParameters() {
