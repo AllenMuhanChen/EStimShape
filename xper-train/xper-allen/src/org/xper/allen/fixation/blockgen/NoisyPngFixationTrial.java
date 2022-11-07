@@ -15,9 +15,9 @@ public class NoisyPngFixationTrial implements Trial {
     private long id;
 
     private final NoisyPngFixationBlockGen generator;
-    private final NoisyPngFixationParameters params;
+    private final NoisyPngFixationTrialParameters params;
 
-    public NoisyPngFixationTrial(NoisyPngFixationBlockGen generator, NoisyPngFixationParameters params) {
+    public NoisyPngFixationTrial(NoisyPngFixationBlockGen generator, NoisyPngFixationTrialParameters params) {
         this.generator = generator;
         this.params = params;
     }
@@ -39,6 +39,7 @@ public class NoisyPngFixationTrial implements Trial {
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
 
         //Create NoiseMap
+        mStick.setNoiseParameters(params.getNoiseParameters());
         String noiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
 
         //Assign Coordinates
