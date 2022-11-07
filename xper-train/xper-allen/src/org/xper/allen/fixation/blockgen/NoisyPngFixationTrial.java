@@ -1,33 +1,64 @@
 package org.xper.allen.fixation.blockgen;
 
+import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.RandMStickGenerator;
+import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
 import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
+import org.xper.rfplot.drawing.png.ImageDimensions;
+
+import java.util.Collections;
 
 public class NoisyPngFixationTrial implements Trial {
 
-    Coordinates2D coords;
-    String pngPath;
-    String noiseMapPath;
+    private long id;
+
+    private final NoisyPngFixationBlockGen generator;
+    private final NoisyPngFixationParameters params;
+
+    public NoisyPngFixationTrial(NoisyPngFixationBlockGen generator, NoisyPngFixationParameters params) {
+        this.generator = generator;
+        this.params = params;
+    }
 
     @Override
-    public void preWrite() {
+    public void preWrite() {}
 
-    }
 
     @Override
     public void write() {
-        //generate rand png
-        //generate noise map
-        //write stimObjId
-        //write stimSpec
+        //Generate MStick
+        RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
+        AllenMatchStick mStick = mStickGenerator.getMStick();
+
+        //Assign StimSpecId
+        id = generator.getGlobalTimeUtil().currentTimeMicros();
+
+        //Create Png
+        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
+
+        //Create NoiseMap
+        String noiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
+
+        //Assign Coordinates
+        Coordinates2D coords = NAFCCoordinateAssigner.randomCoordsWithinRadii(params.distanceLims.getLowerLim(), params.distanceLims.getUpperLim());
+
+        //Create StimSpec
+        NoisyPngSpec spec = new NoisyPngSpec();
+        spec.setPngPath(pngPath);
+        spec.setNoiseMapPath(noiseMapPath);
+        spec.setDimensions(new ImageDimensions(params.getSize(), params.getSize()));
+        spec.setxCenter(coords.getX());
+        spec.setyCenter(coords.getY());
+
+        //Write Spec
+        generator.getDbUtil().writeStimSpec(id, spec.toXml(), "");
     }
 
-    private void generateStim(){
-
-    }
 
     @Override
     public Long getTaskId() {
-        return null;
+        return id;
     }
 }

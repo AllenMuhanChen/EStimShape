@@ -2,25 +2,24 @@ package org.xper.allen.fixation.blockgen;
 
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.vo.NoiseParameters;
+import java.util.List;
 
 public class NoisyPngFixationParameters {
-    NoiseParameters noiseParameters;
+    List<NoiseParameters> noiseParameters;
     Lims distanceLims;
     double size;
 
-    public NoisyPngFixationParameters(NoiseParameters noiseParameters, Lims distanceLims, double size) {
+    public NoisyPngFixationParameters(List<NoiseParameters> noiseParameters, Lims distanceLims, double size) {
         this.noiseParameters = noiseParameters;
         this.distanceLims = distanceLims;
         this.size = size;
-
-
     }
 
-    public NoiseParameters getNoiseParameters() {
+    public List<NoiseParameters> getNoiseParameters() {
         return noiseParameters;
     }
 
-    public void setNoiseParameters(NoiseParameters noiseParameters) {
+    public void setNoiseParameters(List<NoiseParameters> noiseParameters) {
         this.noiseParameters = noiseParameters;
     }
 
