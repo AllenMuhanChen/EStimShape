@@ -9,9 +9,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.app.fixation.NoisyPngScene;
-import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
-import org.xper.allen.config.HeadFreeConfig;
-import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
+import org.xper.allen.config.MStickPngConfig;
+import org.xper.allen.fixation.blockgen.NoisyPngFixationBlockGen;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -21,11 +20,12 @@ import org.xper.drawing.object.BlankScreen;
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import({ClassicConfig.class})
+@Import({ClassicConfig.class, MStickPngConfig.class})
 public class NoisyPngFixationAppConfig {
     @Autowired ClassicConfig classicConfig;
     @Autowired BaseConfig baseConfig;
     @Autowired AcqConfig acqConfig;
+    @Autowired MStickPngConfig mStickConfig;
 
     @Bean
     NoisyPngScene taskScene(){
@@ -34,17 +34,24 @@ public class NoisyPngFixationAppConfig {
         scene.setFixation(classicConfig.experimentFixationPoint());
         scene.setMarker(classicConfig.screenMarker());
         scene.setBlankScreen(new BlankScreen());
-        scene.setBackgroundColor(xperBackgroundColor());
+        scene.setBackgroundColor(mStickConfig.xperBackgroundColor());
         scene.setFrameRate(xperNoiseRate());
         return scene;
     }
 
-    @Bean(scope = DefaultScopes.PROTOTYPE)
-    public double[] xperBackgroundColor() {
-        return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),
-                Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 1)),
-                Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 2))};
+    @Bean
+    NoisyPngFixationBlockGen generator(){
+        NoisyPngFixationBlockGen generator = new NoisyPngFixationBlockGen();
+        generator.setDbUtil(allenDbUtil());
+        generator.setPngMaker(mStickConfig.pngMaker());
+        generator.setGeneratorPngPath(mStickConfig.generatorPngPath);
+        generator.setGeneratorSpecPath(mStickConfig.generatorSpecPath);
+        generator.setExperimentPngPath(mStickConfig.experimentPngPath);
+        generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
+        generator.setMaxImageDimensionDegrees(mStickConfig.xperMaxImageDimensionDegrees());
+        return generator;
     }
+
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public Integer xperNoiseRate() {
