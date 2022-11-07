@@ -16,6 +16,8 @@ import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGener
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
+import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
+import org.xper.allen.nafc.blockgen.rand.RandTrialListFactory;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -440,6 +442,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 		return;
 	}
 
+
 	/**
 	 * It is imperative that these properties are set before the object is generated/is smoothized.
 	 * @param obj
@@ -470,6 +473,10 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 	}
 
 
+	@Override
+	protected void addTrials() {
+
+	}
 
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;

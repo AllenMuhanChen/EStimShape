@@ -5,15 +5,10 @@ import java.util.List;
 
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
-import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
-import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
 
 public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGenerator {
 
-	@Dependency
-	protected AllenDbUtil dbUtil;
 	@Dependency
 	protected TimeUtil globalTimeUtil;
 	@Dependency
@@ -45,14 +40,6 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 		String newPath = generatorPath.replace(getGeneratorPngPath(), getExperimentPngPath());
 	
 		return newPath;
-	}
-
-	public AllenDbUtil getDbUtil() {
-		return dbUtil;
-	}
-
-	public void setDbUtil(AllenDbUtil dbUtil) {
-		this.dbUtil = dbUtil;
 	}
 
 	public TimeUtil getGlobalTimeUtil() {
