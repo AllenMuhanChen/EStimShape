@@ -26,6 +26,16 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 		super();
 	}
 
+	@Override
+	protected void init() {
+		pngMaker.createDrawerWindow();
+	}
+
+	@Override
+	protected void tearDown() {
+		pngMaker.close();
+	}
+
 	public List<String> convertPathsToExperiment(List<String> generatorPaths) {
 		LinkedList<String> expPaths = new LinkedList<String>();
 		for(int s=0; s<generatorPaths.size(); s++) {
@@ -36,9 +46,9 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 	}
 
 	public String convertPathToExperiment(String generatorPath) {
-	
+
 		String newPath = generatorPath.replace(getGeneratorPngPath(), getExperimentPngPath());
-	
+
 		return newPath;
 	}
 

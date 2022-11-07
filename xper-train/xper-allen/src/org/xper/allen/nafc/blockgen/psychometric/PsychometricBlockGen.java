@@ -16,11 +16,6 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     }
 
     @Override
-    protected void init() {
-        pngMaker.createDrawerWindow();
-    }
-
-    @Override
     protected void addTrials() {
         addPsychometricTrials(psychometricFactoryParameters);
         addRandTrials(randFactoryParameters);
@@ -37,11 +32,6 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
         RandTrialListFactory randFactory = new RandTrialListFactory(
                 this, randFactoryParameters);
         trials.addAll(randFactory.createTrials());
-    }
-
-    @Override
-    protected void tearDown() {
-        pngMaker.close();
     }
 
     public String getGeneratorPngPath() {
