@@ -145,6 +145,11 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
                 currentContext.setSampleOffTime(sampleOffLocalTime);
                 NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
 
+                if (stateObject.isRepeatIncorrectTrials()) {
+                    taskDataSource.ungetTask(currentTask);
+                    System.out.println("Repeating Incorrect Trial");
+                }
+
                 //AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
                 return NAFCTrialResult.TRIAL_COMPLETE;
             }
