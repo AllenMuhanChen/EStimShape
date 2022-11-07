@@ -308,7 +308,7 @@ public class NAFCConfig {
 		NAFCDatabaseTaskDataSource source = new NAFCDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
-		source.setUngetBehavior(UngetPolicy.HEAD);
+		source.setUngetBehavior(xperUngetPolicy());
 		return source;
 	}
 	
@@ -573,6 +573,11 @@ public class NAFCConfig {
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperPunishmentDelayTime() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_punishment_delay_length", 0));
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public UngetPolicy xperUngetPolicy(){
+		return UngetPolicy.valueOf(baseConfig.systemVariableContainer().get("xper_unget_policy",0));
 	}
 	
 }
