@@ -2,6 +2,7 @@ package org.xper.allen.nafc.experiment;
 
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.log4j.Logger;
@@ -76,8 +77,13 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 		if (cur == null || cur.getGenId() == t.getGenId()) {
 			if (ungetBehavior == UngetPolicy.HEAD) {
 				tasks.addFirst(t);
-			} else {
+			} else if (ungetBehavior == UngetPolicy.TAIL){
 				tasks.addLast(t);
+			} else{
+				int numTasks = tasks.size();
+				Random r = new Random();
+				int randIndex = r.nextInt(numTasks);
+				tasks.add(randIndex, t);
 			}
 		}
 	}
