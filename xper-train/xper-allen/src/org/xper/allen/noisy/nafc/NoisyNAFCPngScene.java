@@ -2,6 +2,7 @@ package org.xper.allen.noisy.nafc;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
+import org.xper.classic.vo.TrialContext;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
@@ -43,6 +44,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	double[] choiceAlphas;
 	private int numFrames;
 
+	@Override
 	public void initGL(int w, int h) {
 		
 		setUseStencil(true);
@@ -53,6 +55,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		
 	}
 
+	@Override
 	public void trialStart(NAFCTrialContext context) {
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
@@ -100,7 +103,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		}
 	}
 
-	
+	@Override
 	public void drawSample(Context context, boolean fixationOn) {
 		
 		// clear the whole screen before define view ports in renderer
@@ -129,7 +132,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 				}
 			}}, context);
 	}
-	
+
+	@Override
 	public void drawBlank(Context context, final boolean fixationOn, final boolean markerOn) {
 		
 		
@@ -223,9 +227,10 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		this.noiseIndx++;
 	}
 
-	public void trialStop(Context context) {
+	@Override
+	public void trialStop(TrialContext context) {
 		images.cleanUpImage();
-		
+
 	}
 	
 	@Override
