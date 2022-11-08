@@ -43,9 +43,7 @@ public class NoisyPngScene extends AbstractTaskScene{
     public void trialStart(TrialContext context){
         double durationSeconds = getSlideLength() /1000.0;
         numNoiseFrames = (int) Math.ceil((durationSeconds * getFrameRate()));
-        System.out.println("dur: " + durationSeconds);
-        System.out.println("framerate: " + getFrameRate());
-        image = new NoisyTranslatableResizableImages(1, 1 );
+        image = new NoisyTranslatableResizableImages(numNoiseFrames, 1 );
         image.initTextures();
         noiseIndx = 0;
     }
