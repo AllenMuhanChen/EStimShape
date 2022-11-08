@@ -37,10 +37,12 @@ public class NoisyPngFixationTrial implements Trial {
 
         //Create Png
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
+        pngPath = generator.convertPathToExperiment(pngPath);
 
         //Create NoiseMap
         mStick.setNoiseParameters(params.getNoiseParameters());
         String noiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
+        noiseMapPath = generator.convertPathToExperiment(noiseMapPath);
 
         //Assign Coordinates
         Coordinates2D coords = NAFCCoordinateAssigner.randomCoordsWithinRadii(params.distanceLims.getLowerLim(), params.distanceLims.getUpperLim());

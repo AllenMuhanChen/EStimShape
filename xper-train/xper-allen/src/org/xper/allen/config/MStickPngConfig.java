@@ -28,7 +28,6 @@ public class MStickPngConfig {
     @ExternalValue("generator.spec_path")
     public String generatorSpecPath;
 
-
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public AllenPNGMaker pngMaker(){
         AllenPNGMaker pngMaker = new AllenPNGMaker();
@@ -57,7 +56,6 @@ public class MStickPngConfig {
         return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_max_image_dimension_degrees", 0));
     }
 
-
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public double[] xperBackgroundColor() {
         return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),
@@ -69,7 +67,6 @@ public class MStickPngConfig {
     public double xperMonkeyScreenDPI(){
         return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_monkey_screen_dpi", 0));
     }
-
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public Integer xperNoiseRate() {

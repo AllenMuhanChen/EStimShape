@@ -8,13 +8,16 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.springframework.config.java.support.ConfigurationSupport;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.NAFCConfig;
+import org.xper.allen.config.RewardButtonConfig;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.nafc.console.NAFCExperimentConsole;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -28,8 +31,8 @@ import org.xper.utils.RGBColor;
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
 
-@Import({NAFCMStickPngAppConfig.class})
-public class PsychometricAppConfig {
+@Import({NAFCMStickPngAppConfig.class, NAFCConfig.class})
+public class PsychometricAppConfig{
 	@Autowired NAFCMStickPngAppConfig appConfig;
 	@Autowired NAFCConfig config;
 	@Autowired MStickPngConfig mStickPngConfig;
@@ -52,6 +55,7 @@ public class PsychometricAppConfig {
 	@ExternalValue("generator.psychometric.spec_path")
 	public String generatorPsychometricSpecPath;
 
+
 	@Bean
 	public NoisyNAFCPngScene taskScene() {
 		NoisyNAFCPngScene scene = new NoisyNAFCPngScene();
@@ -66,7 +70,6 @@ public class PsychometricAppConfig {
 		scene.setFrameRate(mStickPngConfig.xperNoiseRate());
 		return scene;
 	}
-
 
 	@Bean
 	public PsychometricBlockGen psychometricPngGenerator() {

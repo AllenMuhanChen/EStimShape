@@ -7,12 +7,13 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.springframework.config.java.support.ConfigurationSupport;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.app.fixation.NoisyPngScene;
 import org.xper.allen.config.MStickPngConfig;
+import org.xper.allen.config.RewardButtonConfig;
 import org.xper.allen.fixation.blockgen.NoisyPngFixationBlockGen;
 import org.xper.allen.util.AllenDbUtil;
-import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
@@ -20,27 +21,14 @@ import org.xper.drawing.object.BlankScreen;
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import({ClassicConfig.class, MStickPngConfig.class})
-public class NoisyPngFixationAppConfig {
+@Import({ClassicConfig.class, MStickPngConfig.class, RewardButtonConfig.class})
+public class NoisyPngFixationAppConfig extends ConfigurationSupport {
     @Autowired ClassicConfig classicConfig;
     @Autowired BaseConfig baseConfig;
-    @Autowired AcqConfig acqConfig;
     @Autowired MStickPngConfig mStickConfig;
 
     @Bean
-    NoisyPngScene taskScene(){
-        NoisyPngScene scene = new NoisyPngScene();
-        scene.setRenderer(classicConfig.experimentGLRenderer());
-        scene.setFixation(classicConfig.experimentFixationPoint());
-        scene.setMarker(classicConfig.screenMarker());
-        scene.setBlankScreen(new BlankScreen());
-        scene.setBackgroundColor(mStickConfig.xperBackgroundColor());
-        scene.setFrameRate(xperNoiseRate());
-        return scene;
-    }
-
-    @Bean
-    NoisyPngFixationBlockGen generator(){
+    public NoisyPngFixationBlockGen noisyPngFixationBlockGen(){
         NoisyPngFixationBlockGen generator = new NoisyPngFixationBlockGen();
         generator.setDbUtil(allenDbUtil());
         generator.setPngMaker(mStickConfig.pngMaker());
@@ -52,6 +40,17 @@ public class NoisyPngFixationAppConfig {
         return generator;
     }
 
+    @Bean
+    public NoisyPngScene taskScene(){
+        NoisyPngScene scene = new NoisyPngScene();
+        scene.setRenderer(classicConfig.experimentGLRenderer());
+        scene.setFixation(classicConfig.experimentFixationPoint());
+        scene.setMarker(classicConfig.screenMarker());
+        scene.setBlankScreen(new BlankScreen());
+        scene.setBackgroundColor(mStickConfig.xperBackgroundColor());
+        scene.setFrameRate(xperNoiseRate());
+        return scene;
+    }
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public Integer xperNoiseRate() {
