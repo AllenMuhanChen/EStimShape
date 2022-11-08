@@ -20,7 +20,7 @@ public class NoisyPngFixationBlockGeneratorMain {
 
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-                FileUtil.loadConfigClass("experiment.ga.config_class"));
+                FileUtil.loadConfigClass("experiment.config_class"));
 
         NoisyPngFixationBlockGen gen = context.getBean(NoisyPngFixationBlockGen.class);
 
@@ -38,8 +38,7 @@ public class NoisyPngFixationBlockGeneratorMain {
 
         public static NoisyPngFixationBlockParameters translate(String[] args){
             List<String> argsList = Arrays.asList(args);
-            ListIterator<String> iterator = argsList.listIterator();
-
+            iterator = argsList.listIterator();
             int numTrials = Integer.parseInt(iterator.next());
             TypeFrequency<Lims> randNoiseChancesTF = new TypeFrequency<>(nextLimsType(), nextFrequency());
             TypeFrequency<NoiseType> noiseTypesTF = new TypeFrequency<>(stringToNoiseTypes(iterator.next()), nextFrequency());

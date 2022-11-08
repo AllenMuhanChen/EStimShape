@@ -7,6 +7,7 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.springframework.config.java.support.ConfigurationSupport;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
@@ -23,7 +24,7 @@ import org.xper.drawing.object.BlankScreen;
 @AnnotationDrivenConfig
 
 @Import({NAFCConfig.class, MStickPngConfig.class})
-public class NAFCMStickPngAppConfig {
+public class NAFCMStickPngAppConfig{
 	@Autowired NAFCConfig config;
 	@Autowired MStickPngConfig mStickPngConfig;
 	@Autowired ClassicConfig classicConfig;
