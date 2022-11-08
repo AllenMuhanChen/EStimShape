@@ -41,8 +41,10 @@ public class NoisyPngScene extends AbstractTaskScene{
 
     @Override
     public void trialStart(TrialContext context){
-        double durationSeconds = slideLength/1000.0;
-        numNoiseFrames = (int) Math.ceil((durationSeconds* getFrameRate()));
+        double durationSeconds = getSlideLength() /1000.0;
+        numNoiseFrames = (int) Math.ceil((durationSeconds * getFrameRate()));
+        System.out.println("dur: " + durationSeconds);
+        System.out.println("framerate: " + getFrameRate());
         image = new NoisyTranslatableResizableImages(1, 1 );
         image.initTextures();
         noiseIndx = 0;
@@ -54,6 +56,10 @@ public class NoisyPngScene extends AbstractTaskScene{
 
     public int getFrameRate() {
         return frameRate;
+    }
+
+    public int getSlideLength() {
+        return slideLength;
     }
 
     @Override
@@ -98,6 +104,8 @@ public class NoisyPngScene extends AbstractTaskScene{
         if (noiseIndx + 1 > numNoiseFrames)
             noiseIndx=0;
         this.noiseIndx++;
+        System.out.println(noiseIndx);
+        System.out.println(numNoiseFrames);
     }
 
     @Override
@@ -113,6 +121,10 @@ public class NoisyPngScene extends AbstractTaskScene{
 
     public void setFrameRate(int frameRate) {
         this.frameRate = frameRate;
+    }
+
+    public void setSlideLength(int slideLength) {
+        this.slideLength = slideLength;
     }
 }
 
