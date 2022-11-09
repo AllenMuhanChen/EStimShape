@@ -1658,6 +1658,7 @@ public class AllenMatchStick extends MatchStick {
 				}
 				else {
 					j++;
+					System.out.println("Attempt "+j + " to generate comp");
 				}
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
@@ -1913,7 +1914,6 @@ public class AllenMatchStick extends MatchStick {
 		}
 
 		//STARTING LEAF
-
 		getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 		double PROB_addToBaseEndNotBranch = 1;
 		int add_trial = 0;
@@ -2088,6 +2088,7 @@ public class AllenMatchStick extends MatchStick {
 
 		if ( this.validMStickSize() ==  false)
 		{
+			System.err.println("FAIL AT VALIDSIZE");
 			if ( showDebug)
 				System.out.println("\n FAIL the MStick size check ....\n");
 			return false;
@@ -3099,12 +3100,12 @@ Adding a new MAxisArc to a MatchStick
 				//dis = comp[i].vect_info[j].distance(ori);
 
 				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
-//					System.err.println("AC:71923: TOO BIG");
+					System.err.println("TOO BIG");
 //					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
 				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
-//					System.err.println("AC:71923: TOO BIG");
+					System.err.println("TOO BIG");
 //					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
@@ -3114,7 +3115,8 @@ Adding a new MAxisArc to a MatchStick
 					maxY = Math.abs(yLocation);
 			}
 		}
-		if (maxX < minBoundInMm || maxY < minBoundInMm) {
+		if (maxX < minBoundInMm && maxY < minBoundInMm) {
+			System.err.println("TOO SMALL");
 //			System.out.println("AC:71923: " + maxX);
 //			System.out.println("AC:71923: " + maxY);
 			return false;
@@ -3850,7 +3852,7 @@ Adding a new MAxisArc to a MatchStick
          * to be approx half the size.
          */
         double scale = maxImageDimensionDegrees /1.5;
-        double minScale = maxImageDimensionDegrees /2.5;
+        double minScale = scale/2;
         setScale(minScale, scale);
 
         //CONTRAST
