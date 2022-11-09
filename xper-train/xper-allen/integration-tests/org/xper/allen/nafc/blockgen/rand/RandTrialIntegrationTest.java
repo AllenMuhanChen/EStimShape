@@ -127,8 +127,8 @@ public class RandTrialIntegrationTest {
     }
 
     private void thenDrawsPngs() {
-
         String samplePath = getGeneratorSamplePath();
+        System.out.println(samplePath);
         String matchPath = getGeneratorMatchPath();
         List<String> qmDistractorPaths = getGeneratorQmDistractorPaths();
         List<String> randDistractorPaths = getGeneratorRandDistractorPaths();

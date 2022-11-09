@@ -617,7 +617,7 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			if(success){
 				boolean res;
 				try{
@@ -634,6 +634,42 @@ public class AllenMatchStick extends MatchStick {
 		}
 		return false;
 
+	}
+
+	private void positionShape() {
+//		centerShapeAtOrigin(getSpecialEndComp().get(0));
+		centerCenterOfMassAtOrigin();
+	}
+
+	/**
+	 *   A function that will put the center of comp1 back to origin
+	 */
+	public void centerCenterOfMassAtOrigin()
+	{
+		Point3d origin = new Point3d(0.0, 0.0, 0.0);
+
+		Point3d centerOfMass = getMassCenter();
+		Vector3d shiftVec = new Vector3d();
+		shiftVec.sub(origin, centerOfMass);
+		if ( origin.distance(centerOfMass) > 0.001)
+		{
+			applyTranslation(shiftVec);
+		}
+	}
+
+	public Point3d getMassCenter(){
+		Point3d cMass = new Point3d();
+		int totalVect = 0;
+		for (int i=1; i<=getnComponent(); i++)
+		{
+			totalVect += getComp()[i].getnVect();
+			for (int j=1; j<= getComp()[i].getnVect(); j++)
+				cMass.add(getComp()[i].getVect_info()[j]);
+		}
+		cMass.x /= totalVect;
+		cMass.y /= totalVect;
+		cMass.z /= totalVect;
+		return cMass;
 	}
 
 	protected boolean qualitativeMorphComponent(int id, QualitativeMorphParams qmp)
@@ -1004,7 +1040,7 @@ public class AllenMatchStick extends MatchStick {
 						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
 					success_process = false;
 				}
-				centerShapeAtOrigin(getSpecialEndComp().get(0));
+				positionShape();
 				if ( this.validMStickSize() ==  false)
 				{
 					if ( showDebug)
@@ -1262,7 +1298,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			if(success){
 				boolean res;
 				try{
@@ -1642,7 +1678,7 @@ public class AllenMatchStick extends MatchStick {
 
 			//TRY SMOOTHING THE SHAPE
 
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			boolean smoothSuccess = false;
 			if(compSuccess){
 
@@ -2553,7 +2589,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 
 			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth

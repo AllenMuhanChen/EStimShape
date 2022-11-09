@@ -65,10 +65,11 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(ClassicConfig.class)
+@Import({ClassicConfig.class, RewardButtonConfig.class})
 public class NAFCConfig {
+	@Autowired RewardButtonConfig rewardButtonConfig;
 	@Autowired BaseConfig baseConfig;
-	@Autowired ClassicConfig classicConfig;	
+	@Autowired ClassicConfig classicConfig;
 	@Autowired AcqConfig acqConfig;
 	@Autowired IntanConfig intanConfig;
 	
@@ -105,46 +106,8 @@ public class NAFCConfig {
 		}
 		return iUtil;
 	}
-/*	
-	@Bean
-	public TaskScene taskScene() {
-		BlankTaskScene scene = new BlankTaskScene();
-		scene.setRenderer(classicConfig.experimentGLRenderer());
-		scene.setFixation(classicConfig.experimentFixationPoint());
-		scene.setMarker(classicConfig.screenMarker());
-		scene.setBlankScreen(new BlankScreen());
-		return scene;
-	}
-*/
-	@Bean
-	public RewardButtonExperimentRunner experimentRunner() {
-		RewardButtonExperimentRunner runner = new RewardButtonExperimentRunner();
-		runner.setHost(classicConfig.experimentHost);
-		runner.setExperiment(experiment());
-		runner.setJuice(consoleButtonJuice());
-		runner.setDbUtil(allenDbUtil());
-		runner.setTimeUtil(baseConfig.localTimeUtil());
-		return runner;
-	}
-	
-	@Bean 
-	public DynamicJuice consoleButtonJuice() {
-		AnalogJuice juice = new AnalogJuice();
-		juice.setBonusDelay(classicConfig.xperJuiceBonusDelay());
-		juice.setBonusProbability(classicConfig.xperJuiceBonusProbability());
-		juice.setDelay(classicConfig.xperJuiceDelay());
-		juice.setReward(classicConfig.xperJuiceRewardLength());
-		juice.setLocalTimeUtil(baseConfig.localTimeUtil());
-		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NI)) {
-			juice.setDevice(classicConfig.niAnalogJuiceDevice());
-		} else if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_COMEDI)) {
-			juice.setDevice(classicConfig.comediAnalogJuiceDevice());
-		} else {
-			throw new ExperimentSetupException("Acq driver " + acqConfig.acqDriverName + " not supported.");
-		}
-		return juice;
-	}
-	
+
+
 	/**
 	 * When switching to Perspective Renderer we need to make sure the xper-window-length is precisely
 	 * the same width as the actual screen. 
@@ -217,7 +180,7 @@ public class NAFCConfig {
 		eyeMappingAlgorithm.put(classicConfig.xperRightIscanId(), classicConfig.rightIscanMappingAlgorithm());
 		model.setEyeMappingAlgorithm(eyeMappingAlgorithm);
 		
-		model.setExperimentRunnerClient(experimentRunnerClient());
+		model.setExperimentRunnerClient(rewardButtonConfig.experimentRunnerClient());
 		model.setChannelMap(classicConfig.iscanChannelMap());
 		model.setMessageHandler(messageHandler());
 		
@@ -239,11 +202,7 @@ public class NAFCConfig {
 
 		return model;
 	}
-	@Bean
-	public RewardButtonExperimentRunnerClient experimentRunnerClient() {
-		RewardButtonExperimentRunnerClient client = new RewardButtonExperimentRunnerClient(classicConfig.experimentHost);
-		return client;
-	}
+
 
 	@Bean
 	public NAFCExperimentConsoleRenderer consoleRenderer () {
@@ -262,7 +221,7 @@ public class NAFCConfig {
 		return renderer;
 	}
 	
-	//TODO 
+
 	@Bean
 	public NAFCExperimentMessageHandler  messageHandler() {
 		NAFCExperimentMessageHandler messageHandler = new NAFCExperimentMessageHandler();
@@ -312,8 +271,7 @@ public class NAFCConfig {
 		return source;
 	}
 	
-	
-	//TODO
+
 	@Bean
 	public NAFCTrialExperiment experiment() {
 		NAFCTrialExperiment xper = new NAFCTrialExperiment();
@@ -335,8 +293,7 @@ public class NAFCConfig {
 	public ClassicNAFCSlideRunner slideRunner(){
 		return new ClassicNAFCSlideRunner();
 	}
-	
-    //TODO
+
 	@Bean
 	public NAFCExperimentState experimentState() {
 		NAFCExperimentState state = new NAFCExperimentState();
@@ -383,7 +340,6 @@ public class NAFCConfig {
 	}
 
 
-	//TODO
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
