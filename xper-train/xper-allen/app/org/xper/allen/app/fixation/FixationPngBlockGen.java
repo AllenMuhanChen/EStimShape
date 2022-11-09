@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.Random;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
+import org.xper.allen.nafc.blockgen.rand.RandTrialListFactory;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.rfplot.drawing.png.PngSpec;
@@ -58,6 +60,13 @@ public class FixationPngBlockGen extends AbstractMStickPngTrialGenerator {
 		System.out.println("Done Generating...");
 		return;
 	}
+
+
+	@Override
+	protected void addTrials() {
+		//TODO: Convert to TrialList implementation
+	}
+
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;
 	}
