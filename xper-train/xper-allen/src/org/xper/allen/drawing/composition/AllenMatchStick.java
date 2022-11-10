@@ -617,7 +617,7 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			if(success){
 				boolean res;
 				try{
@@ -634,6 +634,42 @@ public class AllenMatchStick extends MatchStick {
 		}
 		return false;
 
+	}
+
+	private void positionShape() {
+//		centerShapeAtOrigin(getSpecialEndComp().get(0));
+		centerCenterOfMassAtOrigin();
+	}
+
+	/**
+	 *   A function that will put the center of comp1 back to origin
+	 */
+	public void centerCenterOfMassAtOrigin()
+	{
+		Point3d origin = new Point3d(0.0, 0.0, 0.0);
+
+		Point3d centerOfMass = getMassCenter();
+		Vector3d shiftVec = new Vector3d();
+		shiftVec.sub(origin, centerOfMass);
+		if ( origin.distance(centerOfMass) > 0.001)
+		{
+			applyTranslation(shiftVec);
+		}
+	}
+
+	public Point3d getMassCenter(){
+		Point3d cMass = new Point3d();
+		int totalVect = 0;
+		for (int i=1; i<=getnComponent(); i++)
+		{
+			totalVect += getComp()[i].getnVect();
+			for (int j=1; j<= getComp()[i].getnVect(); j++)
+				cMass.add(getComp()[i].getVect_info()[j]);
+		}
+		cMass.x /= totalVect;
+		cMass.y /= totalVect;
+		cMass.z /= totalVect;
+		return cMass;
 	}
 
 	protected boolean qualitativeMorphComponent(int id, QualitativeMorphParams qmp)
@@ -835,7 +871,7 @@ public class AllenMatchStick extends MatchStick {
 					boolean tangentFlg = true;
 					Vector3d nowTangent = new Vector3d();
 					for (i=1; i<=getnJuncPt(); i++)
-						if ( JuncPtFlg[i] == true)
+						if (JuncPtFlg[i])
 						{
 							int uNdx = targetUNdx[i];
 							boolean midBranchFlg = false;
@@ -858,7 +894,7 @@ public class AllenMatchStick extends MatchStick {
 									nowTangent = getJuncPt()[i].getTangent()[j]; // soft copy is fine here
 									if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) // angle btw the two tangent vector
 										tangentFlg = false;
-									if ( midBranchFlg == true)
+									if (midBranchFlg)
 									{
 										finalTangent.negate();
 										if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) //
@@ -869,12 +905,12 @@ public class AllenMatchStick extends MatchStick {
 						}
 
 					// still valid after all tangent check
-					if (tangentFlg == true) 
+					if (tangentFlg)
 						break;
 					else
 					{
 
-						if ( showDebug)
+						if (showDebug)
 							System.out.println("didn't pass check tagent Zone in fine tune");
 					}
 					if (tangentTrialTimes > 100)
@@ -886,7 +922,7 @@ public class AllenMatchStick extends MatchStick {
 				//update the information of the related JuncPt
 				Vector3d finalTangent = new Vector3d();
 				for (i=1; i<= getnJuncPt(); i++)
-					if (JuncPtFlg[i] == true)
+					if (JuncPtFlg[i])
 					{
 						int nowUNdx = targetUNdx[i];
 						finalTangent.set(nowArc.getmTangent()[nowUNdx]);
@@ -1004,7 +1040,7 @@ public class AllenMatchStick extends MatchStick {
 						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
 					success_process = false;
 				}
-				centerShapeAtOrigin(getSpecialEndComp().get(0));
+				positionShape();
 				if ( this.validMStickSize() ==  false)
 				{
 					if ( showDebug)
@@ -1262,7 +1298,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			if(success){
 				boolean res;
 				try{
@@ -1622,6 +1658,7 @@ public class AllenMatchStick extends MatchStick {
 				}
 				else {
 					j++;
+//					System.out.println("Attempt "+j + " to generate comp");
 				}
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
@@ -1642,7 +1679,7 @@ public class AllenMatchStick extends MatchStick {
 
 			//TRY SMOOTHING THE SHAPE
 
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			boolean smoothSuccess = false;
 			if(compSuccess){
 
@@ -1877,7 +1914,6 @@ public class AllenMatchStick extends MatchStick {
 		}
 
 		//STARTING LEAF
-
 		getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 		double PROB_addToBaseEndNotBranch = 1;
 		int add_trial = 0;
@@ -2052,6 +2088,7 @@ public class AllenMatchStick extends MatchStick {
 
 		if ( this.validMStickSize() ==  false)
 		{
+//			System.err.println("FAIL AT VALIDSIZE");
 			if ( showDebug)
 				System.out.println("\n FAIL the MStick size check ....\n");
 			return false;
@@ -2534,8 +2571,10 @@ public class AllenMatchStick extends MatchStick {
 		while (true) {
 
 			while (true) {
-				if (genMatchStick_comp(nComp) == true)
+//				System.err.println("Try Rand");
+				if (genMatchStick_comp(nComp) == true) {
 					break;
+				}
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
 			}
@@ -2553,7 +2592,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 
 			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth
@@ -3063,12 +3102,12 @@ Adding a new MAxisArc to a MatchStick
 				//dis = comp[i].vect_info[j].distance(ori);
 
 				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
-//					System.err.println("AC:71923: TOO BIG");
+//					System.err.println("TOO BIG");
 //					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
 				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
-//					System.err.println("AC:71923: TOO BIG");
+//					System.err.println("TOO BIG");
 //					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
@@ -3078,7 +3117,8 @@ Adding a new MAxisArc to a MatchStick
 					maxY = Math.abs(yLocation);
 			}
 		}
-		if (maxX < minBoundInMm || maxY < minBoundInMm) {
+		if (maxX < minBoundInMm && maxY < minBoundInMm) {
+//			System.err.println("TOO SMALL");
 //			System.out.println("AC:71923: " + maxX);
 //			System.out.println("AC:71923: " + maxY);
 			return false;
@@ -3814,7 +3854,7 @@ Adding a new MAxisArc to a MatchStick
          * to be approx half the size.
          */
         double scale = maxImageDimensionDegrees /1.5;
-        double minScale = maxImageDimensionDegrees /2.5;
+        double minScale = scale/2;
         setScale(minScale, scale);
 
         //CONTRAST

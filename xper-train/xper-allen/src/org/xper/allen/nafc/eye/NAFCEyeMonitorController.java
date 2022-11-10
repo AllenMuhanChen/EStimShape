@@ -16,8 +16,17 @@ import org.xper.eye.zero.EyeZeroAdjustable;
 public class NAFCEyeMonitorController extends EyeMonitorController{
 
 	@Override
+	public void fixationSucceed(long timestamp, TrialContext context) {
+		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
+			dev.calculateNewEyeZero();
+		}
+		stopEyeZeroSignalCollection();
+	}
+
 	public void trialComplete(long timestamp, TrialContext context) {
-		//Do Nothing
+		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
+			adj.updateEyeWindow();
+		}
 	}
 	
 	/**
@@ -30,17 +39,6 @@ public class NAFCEyeMonitorController extends EyeMonitorController{
 			}
 		}
 
-	@Override
-	public void fixationSucceed(long timestamp, TrialContext context) {
-		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
-			adj.updateEyeWindow();
-		}
-		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
-			dev.calculateNewEyeZero();
-		}
-		stopEyeZeroSignalCollection();
-	}
-	
 	@Override
 	public void eyeInHoldFail(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();

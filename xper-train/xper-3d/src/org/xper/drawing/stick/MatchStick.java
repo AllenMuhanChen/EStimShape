@@ -50,6 +50,7 @@ public class MatchStick implements Drawable {
 	protected RGBColor stimColor = new RGBColor(1,1,1);
 
 	private boolean doCenterObject = false;
+	private boolean showDebug = false;
 
 	public MatchStick()
 	{
@@ -725,6 +726,23 @@ public class MatchStick implements Drawable {
 		System.out.println("final tan" + getComp()[4].getmAxisInfo().getTransRotHis_finalTangent());
 	}
 
+	protected void applyTranslation(Vector3d shiftVec) {
+		for (int i=1; i<= getnComponent(); i++)
+		{
+			Point3d finalPos = new Point3d();
+			finalPos.add(getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
+			getComp()[i].translateComp(finalPos);
+		}
+		for (int i=1; i<=getnJuncPt(); i++)
+		{
+			getJuncPt()[i].getPos().add(shiftVec);
+		}
+		for (int i=1; i<=getnEndPt(); i++)
+		{
+			getEndPt()[i].getPos().add(shiftVec);
+		}
+	}
+
 	public void genMatchStickRand()
 	{
 		int nComp;
@@ -806,7 +824,6 @@ public class MatchStick implements Drawable {
 	 */
 	public boolean genMatchStick_comp(int nComp)
 	{
-		boolean showDebug = false;
 		//        System.out.println("  Start random MAxis Shape gen...");
 		if ( showDebug)
 			System.out.println("Generate new random mStick, with " + nComp + " components");
@@ -917,7 +934,6 @@ public class MatchStick implements Drawable {
 	{
 		int nComp = this.getnComponent();
 		boolean[][] connect = new boolean[nComp*2+1][nComp*2+1];
-		boolean showDebug = false;
 		// 1. build up the connection map
 		int i, j, k, m;
 		int a,b, cpt1, cpt2, part_a, part_b;
@@ -1078,7 +1094,6 @@ public class MatchStick implements Drawable {
 	 */
 	private boolean finalTubeCollisionCheck_SUB_checkCloseness( int compA, int part1, int compB, int part2)
 	{
-		boolean showDebug = false;
 		double tolerance, nowdist;
 		int nSamplePts = 51;
 		int midPt = (nSamplePts+1)/2;
@@ -1259,7 +1274,6 @@ public class MatchStick implements Drawable {
 	 */
 	protected boolean checkSkeletonNearby(int firstNComp)
 	{
-		boolean showDebug = false;
 		int nComp = firstNComp;
 		boolean[][] connect = new boolean[25][25]; //make it large enough for 8 component, not a large waste of space
 
@@ -1379,7 +1393,6 @@ public class MatchStick implements Drawable {
 	 */
 	private boolean checkSkeletonNearby_checkCloseness(int compA, int part1, int compB, int part2)
 	{
-		boolean showDebug = false;
 		final double NearByFactor = 7.0;
 		double tolerance, nowdist;
 		tolerance =  (getComp()[compA].getmAxisInfo().getArcLen() /NearByFactor + getComp()[compB].getmAxisInfo().getArcLen()/NearByFactor);
@@ -1449,7 +1462,6 @@ public class MatchStick implements Drawable {
 		// 4. type == 4: B2E conneciton
 
 		//shared variable Delcaration
-		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
 		int i;
 		int trialCount = 1; // an indicator that if something try too many time, then just give up
@@ -2211,7 +2223,6 @@ public class MatchStick implements Drawable {
 	 */
 	protected int findBestTubeToCenter()
 	{
-		boolean showDebug = false;
 		int i, j, k, a,b;
 		int maxTreeLevel = 1;
 		int[] treeLevel = new int[getnComponent()+1];
@@ -2330,46 +2341,24 @@ public class MatchStick implements Drawable {
 	public void centerShapeAtOrigin(int decidedCenterTube)
 	{
 		try {
-		boolean showDebug = false;
-		int i;
+			showDebug = false;
 		int compToCenter = decidedCenterTube;
-		if ( compToCenter == -1){ // no preference
+		if (compToCenter == -1){ // no preference
 			compToCenter = findBestTubeToCenter();
 		}
 		Point3d origin = new Point3d(0.0, 0.0, 0.0);
 
 		setNowCenterTube(compToCenter);
-		//Point3d nowComp1Center =   new Point3d(comp[compToCenter].mAxisInfo.mPts[comp[compToCenter].mAxisInfo.branchPt]);
-		// Dec 26th, change .branchPt to .MiddlePT (i.e. always at middle)
 		int midPtIndex = 26;
 		Point3d nowComp1Center =     new Point3d(getComp()[compToCenter].getmAxisInfo().getmPts()[midPtIndex]);
 		Vector3d shiftVec = new Vector3d();
 		shiftVec.sub(origin, nowComp1Center);
-		//        System.out.println("comp to center "+ compToCenter);
-		//        System.out.println(nowComp1Center);
 		if ( origin.distance(nowComp1Center) > 0.001)
 		{
 			if ( showDebug)
 				System.out.println("shift to make it center at origin!");
-			Point3d finalPos =new Point3d();
 
-			for (i=1; i<= getnComponent(); i++)
-			{
-				finalPos.add(getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
-				getComp()[i].translateComp( finalPos);
-			}
-			//also, all JuncPt and EndPt
-			for (i=1; i<=getnJuncPt(); i++)
-			{
-				getJuncPt()[i].getPos().add(shiftVec);
-			}
-			for (i=1; i<=getnEndPt(); i++)
-			{
-				getEndPt()[i].getPos().add(shiftVec);
-			}
-			//I'll call this check seperately
-			//if ( this.validMStickSize() ==  false)
-			//              return false;
+			applyTranslation(shiftVec);
 		}
 		//return true;
 		}catch (Exception e) {

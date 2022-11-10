@@ -233,7 +233,7 @@ public class MAxisArc
 	public void genArcRand()
 	{
 		// randomly determine the rad and arcLen, and then call genArc
-		double RadView = 5.0;
+		double RadView = 5;
 		// high curvature 0.2 ~ 0.6 R
 		// medium curvature 0.6 ~ 6 R
 		// no curvautre, let k = 0.000001;

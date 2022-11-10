@@ -10,23 +10,15 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
     private RandFactoryParameters randFactoryParameters;
 
 
-    public void setUp(PsychometricBlockGenSetUpParameters psychometricBlockGenSetUpParameters){
-        this.psychometricFactoryParameters = psychometricBlockGenSetUpParameters.getPsychometricFactoryParameters();
-        this.randFactoryParameters = psychometricBlockGenSetUpParameters.getRandFactoryParameters();
+    public void setUp(PsychometricBlockParameters psychometricBlockParameters){
+        this.psychometricFactoryParameters = psychometricBlockParameters.getPsychometricFactoryParameters();
+        this.randFactoryParameters = psychometricBlockParameters.getRandFactoryParameters();
     }
 
     @Override
-    public void generate() {
-        pngMaker.createDrawerWindow();
+    protected void addTrials() {
         addPsychometricTrials(psychometricFactoryParameters);
         addRandTrials(randFactoryParameters);
-        preWriteTrials();
-        shuffleTrials();
-        updateGenId();
-        writeTrials();
-        dbUtil.updateReadyGenerationInfo(genId, trials.size());
-        System.out.println("Done Generating...");
-        pngMaker.close();
     }
 
     private void addPsychometricTrials(PsychometricFactoryParameters psychometricFactoryParameters) {
@@ -36,9 +28,9 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
         trials.addAll(psychometricFactory.createTrials());
     }
 
-    private void addRandTrials(RandFactoryParameters randFactoryParameters) {
+    protected void addRandTrials(RandFactoryParameters randFactoryParameters) {
         RandTrialListFactory randFactory = new RandTrialListFactory(
-        this, randFactoryParameters);
+                this, randFactoryParameters);
         trials.addAll(randFactory.createTrials());
     }
 

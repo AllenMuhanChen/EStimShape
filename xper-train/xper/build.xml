@@ -18,7 +18,6 @@
 	<echo message="Manifest classpath is ${manifest.classpath}" />
 
 	<target name="clean">
-		<delete dir="${build.home}" />
 		<delete dir="${dist.home}" />
 	</target>
 
@@ -162,6 +161,26 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
 			</manifest>
 		</jar>
+
+		<jar jarfile="${dist.home}/rfplot_console.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/rfplot/RFPlotConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.rfplot.RFPlotConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
+
+		<jar jarfile="${dist.home}/rfplot.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/app/rfplot/RFPlotExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.app.rfplot.RFPlotExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
+			</manifest>
+		</jar>
 		
 		<jar jarfile="${dist.home}/rand_gen.jar">
 			<fileset dir="${build.home}">
@@ -172,6 +191,7 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
 			</manifest>
 		</jar>
+
 
 		<jar jarfile="${dist.home}/mock_xper.jar">
 			<fileset dir="${build.home}">

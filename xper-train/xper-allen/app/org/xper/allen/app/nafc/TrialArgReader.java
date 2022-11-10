@@ -6,8 +6,11 @@ import org.xper.allen.nafc.vo.NoiseType;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 
-public abstract class TrialGenerator {
+public abstract class TrialArgReader {
+	protected static ListIterator<String> iterator;
+
 	public static List<Integer> stringToIntegers(String string) {
 		String[] strArr = string.split(",");
 		int length = strArr.length;
@@ -77,5 +80,17 @@ public abstract class TrialGenerator {
 		lim.setLowerLim(Double.parseDouble(split[0]));
 		lim.setUpperLim(Double.parseDouble(split[1]));
 		return lim;
+	}
+
+	protected static List<Double> nextFrequency() {
+		return stringToDoubles(iterator.next());
+	}
+
+	protected static List<Integer> nextIntegerType() {
+		return stringToIntegers(iterator.next());
+	}
+
+	protected static List<Lims> nextLimsType(){
+		return stringToLims(iterator.next());
 	}
 }

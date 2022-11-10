@@ -58,6 +58,7 @@ public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 		int nTries = 0;
 		while(nTries<maxAttemptsToGenerateMStickFromLeaf) {
 			try {
+//				System.err.println("AttemptGenerateMStickFromLeaf number " + nTries);
 				generateMStickFromLeaf();
 				break;
 			} catch (Exception e) {
