@@ -1,9 +1,10 @@
 package org.xper.allen.fixation.blockgen;
 
+import org.xper.allen.Trial;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
-import org.xper.allen.nafc.blockgen.Trial;
+
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
