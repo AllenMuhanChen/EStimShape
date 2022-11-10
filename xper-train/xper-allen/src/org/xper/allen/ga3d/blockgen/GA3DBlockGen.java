@@ -11,8 +11,8 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     private List<Trial> trials = new LinkedList<>();
     GenerationFactory factory;
 
-    public void generate(){
-        pngMaker.createDrawerWindow();
+    @Override
+    protected void addTrials() {
         if(firstGeneration()){
             addFirstGeneration();
         } else{
@@ -21,14 +21,6 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
             // 1. Compile neural responses then choose stimuli to morph
             // 2. Assign stimulus type (rand, or child)
         }
-        preWriteTrials();
-        shuffleTrials();
-        updateGenId();
-        writeTrials();
-        dbUtil.updateReadyGenerationInfo(genId, trials.size());
-        System.out.println("Done Generating...");
-        pngMaker.close();
-
     }
 
     private boolean firstGeneration(){
@@ -40,7 +32,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     }
 
     private void addNthGeneration(){
-        trials.addAll(factory.createNthGenerationTrials());
+//        trials.addAll(factory.createNthGenerationTrials());
     }
 
 }
