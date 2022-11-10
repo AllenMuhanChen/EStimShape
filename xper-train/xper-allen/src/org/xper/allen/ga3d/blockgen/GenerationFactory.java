@@ -34,9 +34,9 @@ public class GenerationFactory {
         return trials;
     }
 
-    public List<Trial> createNthGenerationTrials(){
-        List<Trial> trials = new LinkedList<>();
-
-        List<Long> stimObjIds = parentSelector.selectParents();
-    }
+//    public List<Trial> createNthGenerationTrials(){
+//        List<Trial> trials = new LinkedList<>();
+//
+////        List<Long> stimObjIds = parentSelector.selectParents();
+//    }
 }
