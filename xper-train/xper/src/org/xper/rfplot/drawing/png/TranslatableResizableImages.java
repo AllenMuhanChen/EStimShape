@@ -151,6 +151,7 @@ public class TranslatableResizableImages {
 
 		} catch(IOException e) {
 			e.printStackTrace();
+			System.err.println(pathname);
 			throw new RuntimeException(e);
 		}
 	}

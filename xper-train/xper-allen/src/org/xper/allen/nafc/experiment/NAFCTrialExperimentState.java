@@ -23,22 +23,13 @@ public class NAFCTrialExperimentState extends TrialExperimentState {
 	*/
 	@Dependency
 	int sampleLength;
-	@Dependency
-	int choiceLength;
+
 	public int getSampleLength() {
 		return sampleLength;
 	}
 
 	public void setSampleLength(int sampleLength) {
 		this.sampleLength = sampleLength;
-	}
-
-	public int getChoiceLength() {
-		return choiceLength;
-	}
-
-	public void setChoiceLength(int choiceLength) {
-		this.choiceLength = choiceLength;
 	}
 
 	@Dependency

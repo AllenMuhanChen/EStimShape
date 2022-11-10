@@ -36,7 +36,6 @@ public abstract class AbstractPsychometricTrialGenerator extends AbstractMStickP
 		return expPaths;
 	}
 
-	public abstract void generate();
 
 	public String convertPsychometricToExperiment(String generatorPath) {
 		if(generatorPath.contains(generatorPsychometricNoiseMapPath))

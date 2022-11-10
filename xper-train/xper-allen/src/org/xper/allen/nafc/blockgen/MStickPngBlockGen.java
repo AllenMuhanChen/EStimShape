@@ -20,6 +20,7 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.rfplot.drawing.png.PngSpec;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
@@ -34,6 +35,8 @@ import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWi
  *
  */
 public class MStickPngBlockGen extends AbstractTrialGenerator{
+	@Dependency
+	AllenDbUtil dbUtil;
 	@Dependency
 	TimeUtil globalTimeUtil;
 	@Dependency
@@ -437,6 +440,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 		return;
 	}
 
+
 	/**
 	 * It is imperative that these properties are set before the object is generated/is smoothized.
 	 * @param obj
@@ -467,6 +471,18 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 	}
 
 
+	@Override
+	protected void addTrials() {
+
+	}
+
+	public AllenDbUtil getDbUtil() {
+		return dbUtil;
+	}
+
+	public void setDbUtil(AllenDbUtil dbUtil) {
+		this.dbUtil = dbUtil;
+	}
 	public TimeUtil getGlobalTimeUtil() {
 		return globalTimeUtil;
 	}

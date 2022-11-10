@@ -1,16 +1,11 @@
 package org.xper.allen.nafc.experiment;
 
-import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.classic.MarkStimTrialDrawingController;
-import org.xper.classic.TrialDrawingController;
-import org.xper.classic.vo.TrialContext;
-import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
-import org.xper.util.ThreadUtil;
 
 public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingController implements NAFCTrialDrawingController{
 
@@ -56,6 +51,17 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		getWindow().swapBuffers();
 	}
 
+	@Override
+	public void showAnswer(NAFCExperimentTask task, NAFCTrialContext context) {
+		int[] correct = task.getRewardList();
+		if(task != null) {
+			getTaskScene().drawChoice(context, false, correct[0]);
+		} else {
+			getTaskScene().drawBlank(context, false, false);
+		}
+		getWindow().swapBuffers();
+
+	}
 
 
 	public void prepareChoice(NAFCExperimentTask task, NAFCTrialContext context) {
@@ -66,7 +72,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void showChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
-			getTaskScene().drawChoice(context, false);
+			getTaskScene().drawChoices(context, false);
 		} else {
 			getTaskScene().drawBlank(context, false, false);
 		}

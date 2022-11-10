@@ -1,6 +1,8 @@
 package org.xper.allen.nafc.blockgen;
 
 import org.xper.Dependency;
+import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
+import org.xper.allen.nafc.blockgen.rand.RandTrialListFactory;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -193,7 +195,12 @@ public class PngBlockGen extends AbstractTrialGenerator{
 		System.out.println("Done Generating...");
 		return;
 	}
+	
 
+	@Override
+	protected void addTrials() {
+
+	}
 
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import xmltodict
 from src.util import table_util, connection
-from src.util.time_util import When, all
+from src.util.time_util import When, all, today
 from src.compile import trial_field as tf, trial_collector
 
 
@@ -104,7 +104,7 @@ if __name__ == '__main__':
 
     # Get DB Tables
     print("Reading Database")
-    conn = connection.Connection("allen_estimshape_train_220725", when=all())
+    conn = connection.Connection("allen_estimshape_train_221020", when=today())
     collector = trial_collector.TrialCollector(conn)
     today_beh_msg = conn.beh_msg
     today_stim_spec = conn.stim_spec
@@ -138,7 +138,7 @@ if __name__ == '__main__':
 
 
     #CSV SAVING
-    filename = str(datetime.date.today()) + ".csv"
+    filename = "psychometric-" + str(datetime.date.today()) + ".csv"
     path = save_dir + filename
     # existing_data = pd.read_csv(path)
 

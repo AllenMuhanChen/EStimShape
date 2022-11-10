@@ -61,10 +61,12 @@ public class NoisyPngSpec {
 	}
 	
 	transient static XStream s;
-	
+	boolean animation = true;
+
 	static {
 		s = new XStream();
-		s.alias("StimSpec", PngSpec.class);
+		s.alias("StimSpec", NoisyPngSpec.class);
+		s.useAttributeFor("animation", boolean.class);
 	}
 	
 	public String toXml () {

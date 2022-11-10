@@ -5,13 +5,18 @@ import matplotlib.pylab as plt
 import xmltodict
 import ast
 
+from src.compile import psychometric_compile
+
 if __name__ == '__main__':
-    to_read = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/2022-08-02.csv"
+
+
+    to_read = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/psychometric-2022-11-07.csv"
     df = pandas.read_csv(to_read)
 
     df_psychometric = df[df['TrialType'] == 'Psychometric']
 
-    ids = df_psychometric['PsychometricId'].unique()
+    # ids = df_psychometric['PsychometricId'].unique()
+    ids=["1667843144454282_0", "1667843144454282_1"]
     noises = df_psychometric['NoiseChance'].unique()
 
 
