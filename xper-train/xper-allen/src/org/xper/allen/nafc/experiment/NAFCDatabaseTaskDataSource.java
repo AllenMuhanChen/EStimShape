@@ -42,6 +42,7 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 				return null;
 			}
 			NAFCExperimentTask task = tasks.removeFirst();
+
 			if (logger.isDebugEnabled()) {
 				logger.debug("	Get -- Generation: " + task.getGenId() + " task: "
 						+ task.getTaskId());
@@ -82,7 +83,14 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 			} else{
 				int numTasks = tasks.size();
 				Random r = new Random();
-				int randIndex = r.nextInt(numTasks);
+				int randIndex;
+				if(numTasks>0) {
+					randIndex = r.nextInt(numTasks);
+				}
+				else {
+					randIndex = 0;
+				}
+
 				tasks.add(randIndex, t);
 			}
 		}
@@ -113,21 +121,19 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 								+ taskToDo.size());
 					}
 					if (taskToDo.size() > 0) {
-						//AC Addition: Finish previous gen/block before moving to the next
-						LinkedList<NAFCExperimentTask> currentTaskToDo = currentGeneration.get();
-						try {
-							taskToDo.addAll(currentTaskToDo);
-						}catch (Exception e) {
-
-						}
 						/////////////////////////
-						currentGeneration.set(taskToDo);
+						LinkedList<NAFCExperimentTask> unfinished = currentGeneration.get();
+						if(unfinished==null){
+							unfinished = new LinkedList<>();
+						}
+						unfinished.addAll(taskToDo);
+						currentGeneration.set(unfinished);
 						currentGenId = info.getGenId();
 					}
 				}
 				try {
 					Thread.sleep(queryInterval);
-				} catch (InterruptedException e) {
+				} catch (InterruptedException ignored) {
 				}
 			}
 		} finally {
