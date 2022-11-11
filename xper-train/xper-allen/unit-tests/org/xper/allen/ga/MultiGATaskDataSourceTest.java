@@ -1,8 +1,8 @@
 package org.xper.allen.ga;
 
 import org.junit.Test;
+import org.xper.allen.util.DbUtilFactory;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.allen.util.TestMultiGaDbUtil;
 import org.xper.util.ThreadUtil;
 
 import java.util.*;
@@ -12,8 +12,9 @@ import static org.junit.Assert.*;
 
 public class MultiGATaskDataSourceTest {
 
-    private static MultiGATaskDataSource dataSource;
-    private static MultiGaDbUtil dbUtil = new TestMultiGaDbUtil();
+    private static MultiGATaskDataSource taskDataSource;
+    private static final MultiGaDbUtil dbUtil = DbUtilFactory.createGaDbUtil("allen_estimshape_dev_221110");
+
 
     private long taskId=1;
 
@@ -22,42 +23,43 @@ public class MultiGATaskDataSourceTest {
         GAs.add("testGA1");
         GAs.add("testGA2");
 
-        dataSource = new MultiGATaskDataSource();
-        dataSource.setGaNames(GAs);
-        dataSource.setDbUtil(dbUtil);
+        taskDataSource = new MultiGATaskDataSource();
+        taskDataSource.setGaNames(GAs);
+        taskDataSource.setDbUtil(dbUtil);
     }
 
     public static void main(String[] args) {
         setUp();
-        dbUtil.writeReadyGenerationInfo(Arrays.asList("testGA1", "testGA2"));
-        dataSource.start();
+        dbUtil.writeReadyGAsAndGenerationsInfo(Arrays.asList("testGA1", "testGA2"));
+        taskDataSource.start();
 
     }
 
     @Test
     public void handles_updating_generation_info_across_two_GAs(){
         setUp();
-        dbUtil.writeReadyGenerationInfo(Arrays.asList("testGA1", "testGA2"));
-        dataSource.start();
+        dbUtil.writeReadyGAsAndGenerationsInfo(Arrays.asList("testGA1", "testGA2"));
+        taskDataSource.start();
         sleep();
 
         //Gen 1
-        putNewGeneration("testGA1", 1L);
-        putNewGeneration("testGA2", 1L);
+        putNewGeneration("testGA1", 0L);
+        sleep();
+        putNewGeneration("testGA2", 0L);
 
         sleep();
 
-        MultiGAExperimentTask nextTask = dataSource.getNextTask();
-        assertEquals(1L, nextTask.getGenId());
+        MultiGAExperimentTask nextTask = taskDataSource.getNextTask();
+        assertEquals(0L, nextTask.getGenId());
 
-        nextTask = dataSource.getNextTask();
-        assertEquals(1L, nextTask.getGenId());
+        nextTask = taskDataSource.getNextTask();
+        assertEquals(0L, nextTask.getGenId());
 
 
         //Gen 2 - assymetric
         putNewGeneration("testGA1", 2L);
         sleep();
-        nextTask = dataSource.getNextTask();
+        nextTask = taskDataSource.getNextTask();
         assertEquals("testGA1", nextTask.getGaName());
         assertEquals(2L, nextTask.getGenId());
     }
@@ -67,9 +69,10 @@ public class MultiGATaskDataSourceTest {
     }
 
     private void putNewGeneration(String gaName, long genId) {
-        dbUtil.writeTaskToDo(taskId,0,0, gaName, genId);
+        taskId = dbUtil.readTaskToDoMaxId();
         taskId++;
-        dbUtil.updateReadyGenerationInfo(gaName, genId);
+        dbUtil.writeTaskToDo(taskId,0,0, gaName, genId);
+        dbUtil.updateReadyGAsAndGenerationsInfo(gaName, genId);
     }
 
     private MultiGAExperimentTask testTask(String testGA1) {

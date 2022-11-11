@@ -12,7 +12,7 @@ import java.util.function.BiConsumer;
 /**
  * swaps database operations with simple set and gets for testing purposes.
  */
-public class TestMultiGaDbUtil implements MultiGaDbUtil {
+public class TestMultiGaDbUtil extends MultiGaDbUtil {
 
     LinkedList<MultiGAExperimentTask> tasksToDo = new LinkedList<>();
 
@@ -32,7 +32,7 @@ public class TestMultiGaDbUtil implements MultiGaDbUtil {
 
     Map<String, Long> genIdForGA;
     @Override
-    public void writeReadyGenerationInfo(List<String> gaNames){
+    public void writeReadyGAsAndGenerationsInfo(List<String> gaNames){
         genIdForGA = new HashMap<>();
         for (String ga: gaNames){
             genIdForGA.put(ga, 0L);
@@ -40,7 +40,7 @@ public class TestMultiGaDbUtil implements MultiGaDbUtil {
     }
 
     @Override
-    public MultiGaGenerationInfo readReadyGenerationInfo(){
+    public MultiGaGenerationInfo readReadyGAsAndGenerationsInfo(){
         MultiGaGenerationInfo info = new MultiGaGenerationInfo();
         info.setGenIdForGA(genIdForGA);
 
@@ -48,7 +48,7 @@ public class TestMultiGaDbUtil implements MultiGaDbUtil {
     }
 
     @Override
-    public void updateReadyGenerationInfo(String gaName, Long genId) {
+    public void updateReadyGAsAndGenerationsInfo(String gaName, Long genId) {
         genIdForGA.put(gaName, genId);
     }
 
