@@ -229,7 +229,7 @@ public class DbUtilTest extends TestCase {
 		// read ready gen info
 		MultiLineageGenerationInfo genInfo = new MultiLineageGenerationInfo();
 		try {
-			genInfo = dbUtil.readReadyGenerationInfo();
+			genInfo = (MultiLineageGenerationInfo) dbUtil.readReadyGenerationInfo();
 			genInfo.setGenId(genInfo.getGenId() + 1);
 			genInfo.setTaskCount(1);
 		} catch (VariableNotFoundException e) {

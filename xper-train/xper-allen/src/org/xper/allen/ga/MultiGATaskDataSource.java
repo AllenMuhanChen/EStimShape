@@ -1,7 +1,6 @@
 package org.xper.allen.ga;
 
 import org.xper.Dependency;
-import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 import org.xper.experiment.ExperimentTask;
@@ -48,6 +47,10 @@ public class MultiGATaskDataSource implements TaskDataSource, Runnable {
     @Override
     public void run() {
         try{
+            if (currentGeneration.get() == null){
+                currentGeneration.set(new LinkedList<>());
+            }
+
             threadHelper.started();
             initEachGA();
             mainLoop();
@@ -80,8 +83,12 @@ public class MultiGATaskDataSource implements TaskDataSource, Runnable {
             if (lastDoneTaskId < 0) {
                 lastDoneTaskId = dbUtil.readTaskDoneCompleteMaxId();
             }
-            MultiGaGenerationInfo readyGenerationsInfo = dbUtil.readReadyGenerationInfo();
-            updateEachGA(readyGenerationsInfo);
+            MultiGaGenerationInfo readyGenerationsInfo = dbUtil.readReadyGAsAndGenerationsInfo();
+            try {
+                updateEachGA(readyGenerationsInfo);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
             sleepForQueryInterval();
         }
     }
@@ -104,9 +111,7 @@ public class MultiGATaskDataSource implements TaskDataSource, Runnable {
     }
 
     private void updateTasks(LinkedList<MultiGAExperimentTask> newTasks) {
-        if (currentGeneration.get() == null){
-            currentGeneration.set(new LinkedList<>());
-        }
+        System.err.println("updateTasks called");
         currentGeneration.get().addAll(newTasks);
         Collections.shuffle(currentGeneration.get());
 
@@ -115,10 +120,10 @@ public class MultiGATaskDataSource implements TaskDataSource, Runnable {
     public MultiGAExperimentTask getNextTask() {
         try {
             LinkedList<MultiGAExperimentTask> tasks = currentGeneration.get();
-            System.out.println(tasks.size());
             if (tasks == null) {
                 return null;
             }
+            System.out.println(tasks.size());
             MultiGAExperimentTask task = tasks.removeFirst();
             return task;
         } catch (NoSuchElementException e) {

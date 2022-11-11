@@ -457,7 +457,7 @@ public class DbUtil {
 	 *         correct.
 	 */
 
-	public MultiLineageGenerationInfo readReadyGenerationInfo() {
+	public GenerationInfo readReadyGenerationInfo() {
 		String name = "task_to_do_gen_ready"; 
 		Map<String, InternalStateVariable> result = readInternalState(name);
 		InternalStateVariable var = result.get(name);
@@ -1271,7 +1271,6 @@ public class DbUtil {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
 		jt.update("insert into TaskDone (tstamp, task_id, part_done) values (?, ?, ?)", 
 						new Object[] { tstamp, taskId, part_done });
-
 	}
 
 	/**

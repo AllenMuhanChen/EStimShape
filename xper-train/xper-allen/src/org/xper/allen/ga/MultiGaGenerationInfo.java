@@ -17,6 +17,19 @@ public class MultiGaGenerationInfo {
         s.alias("GenerationInfo", MultiGaGenerationInfo.class);
     }
 
+    public String toXml(){
+        return MultiGaGenerationInfo.toXml(this);
+    }
+
+    public static String toXml(MultiGaGenerationInfo gaGenInfo){
+        return s.toXML(gaGenInfo);
+    }
+
+    public static MultiGaGenerationInfo fromXml(String xml){
+        MultiGaGenerationInfo g = (MultiGaGenerationInfo) s.fromXML(xml);
+        return g;
+    }
+
     public Map<String, Long> getGenIdForGA() {
         return genIdForGA;
     }
