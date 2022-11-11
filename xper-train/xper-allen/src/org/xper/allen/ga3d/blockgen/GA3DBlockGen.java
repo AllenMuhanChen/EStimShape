@@ -8,6 +8,8 @@ import java.util.List;
 
 public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     Long genId;
+    String gaName;
+
     private List<Trial> trials = new LinkedList<>();
     GenerationFactory factory;
 
