@@ -5,7 +5,7 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.xper.Dependency;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
-import org.xper.db.vo.InternalStateVariable;
+import org.xper.db.vo.*;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.experiment.ExperimentTask;
 import org.xper.util.DbUtil;
@@ -13,19 +13,53 @@ import org.xper.util.DbUtil;
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-public class MultiGaDbUtil extends DbUtil {
+public class MultiGaDbUtil extends AllenDbUtil {
 
     public static final String TASK_TO_DO_GA_AND_GEN_READY = "task_to_do_ga_and_gen_ready";
+
+    public MultiGaGenerationInfo readMultiGAReadyGenerationInfo() {
+        String name = TASK_TO_DO_GA_AND_GEN_READY;
+        Map<String, InternalStateVariable> result = readInternalState(name);
+        InternalStateVariable var = result.get(name);
+        if (var == null) {
+            throw new VariableNotFoundException("Internal state variable '"
+                    + name + "' not found.");
+        }
+        String genInfoXml = var.getValue(0);
+
+        return MultiGaGenerationInfo.fromXml(genInfoXml);
+    }
 
     public void writeTaskToDo(long taskId, long stimId, long xfmId, String gaName, long genId){
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         jt.update("insert into TaskToDo(task_id, stim_id, xfm_id, gen_id, ga_name) values (?, ?, ?, ?, ?)",
                 new Object[] { taskId, stimId, xfmId, genId, gaName });
+    }
+
+    public GenerationTaskToDoList readTaskToDoByGaAndGeneration(String gaName, long genId) { // TODO
+        final GenerationTaskToDoList genTask = new GenerationTaskToDoList();
+        genTask.setTasks(new ArrayList<TaskToDoEntry>());
+        genTask.setGenId(genId);
+
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.query(
+                " select task_id, stim_id, xfm_id, ga_name, gen_id " +
+                        " from TaskToDo " +
+                        " where gen_id = ? and ga_name = ?" +
+                        " order by task_id",
+                new Object[] { genId, gaName },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        TaskToDoEntry task = new TaskToDoEntry();
+                        task.setTaskId(rs.getLong("task_id"));
+                        task.setStimId(rs.getLong("stim_id"));
+                        task.setXfmId(rs.getLong("xfm_id"));
+                        task.setGenId(rs.getLong("gen_id"));
+                        genTask.getTasks().add(task);
+                    }});
+        return genTask;
     }
 
     public void writeReadyGAsAndGenerationsInfo(List<String> gaNames){

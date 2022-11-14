@@ -70,6 +70,14 @@ public class AllenPNGMaker{
 		return window.drawStimulus(obj, stimObjId, labels);
 	}
 
+	public String createAndSavePNG(Drawable obj, Long stimObjId, String destinationFolder) {
+		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
+		System.out.println("creating and saving PNG...");
+		List<String> emptyLabels = new LinkedList<>();
+		return window.drawStimulus(obj, stimObjId, emptyLabels);
+	}
+
 	public String createAndSaveNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(1.0f, 0.0f, 0.0f);

@@ -11,8 +11,14 @@ import java.util.Collections;
 
 public class RandTrial extends ThreeDGATrial {
 
-    public RandTrial(GA3DBlockGen generator) {
+    private double size;
+    private Coordinates2D coords;
+    private long id;
+
+    public RandTrial(GA3DBlockGen generator, double size, Coordinates2D coords) {
         super(generator);
+        this.size = size;
+        this.coords = coords;
     }
 
     @Override
@@ -29,13 +35,9 @@ public class RandTrial extends ThreeDGATrial {
         mStick.setTextureType("SHADE");
         //color
         mStick.setStimColor(new RGBColor(1,1,1));
-        //location
-        Coordinates2D coords = new Coordinates2D(0,0);
-        //size
-        double size = 5;
 
         //Assign StimSpecId
-        long id = generator.getGlobalTimeUtil().currentTimeMicros();
+        id = generator.getGlobalTimeUtil().currentTimeMicros();
 
         //png
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
@@ -49,10 +51,12 @@ public class RandTrial extends ThreeDGATrial {
         spec.setyCenter(coords.getY());
 
         generator.getDbUtil().writeStimSpec(id, spec.toXml(), mStickGenerator.getMStickSpec().toXml());
+
+        System.err.println("Finished Writing Rand Trial");
     }
 
     @Override
     public Long getTaskId() {
-        return null;
+        return id;
     }
 }
