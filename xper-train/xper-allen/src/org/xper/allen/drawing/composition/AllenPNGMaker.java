@@ -13,6 +13,7 @@ import java.util.List;
 import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
+import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.util.DPIUtil;
@@ -62,7 +63,7 @@ public class AllenPNGMaker{
 
 	}
 
-	public String createAndSavePNG(AllenMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
+	public String createAndSavePNG(Drawable obj, Long stimObjId, List<String> labels, String destinationFolder) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(backColor.getRed(), backColor.getGreen(), backColor.getGreen());
 		System.out.println("creating and saving PNG...");
