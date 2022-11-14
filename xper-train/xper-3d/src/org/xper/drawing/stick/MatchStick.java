@@ -79,7 +79,7 @@ public class MatchStick implements Drawable {
 		setnComponent(in.getnComponent());
 
 		for (i=1; i<=getnComponent(); i++) {
-			getComp()[i] = new TubeComp();
+			addTube(i);
 			getComp()[i].copyFrom(in.getComp()[i]);
 		}
 		this.setnEndPt(in.getnEndPt());
@@ -188,7 +188,7 @@ public class MatchStick implements Drawable {
 		{
 			//debug
 			//System.out.println("comp " + i + " : ");
-			getComp()[i] = new TubeComp();
+			addTube(i);
 			getComp()[i].setBranchUsed(inSpec.getmAxis().getTube()[i].isBranchUsed());
 			getComp()[i].setConnectType(inSpec.getmAxis().getTube()[i].getConnectType());
 			for (j=0; j<3; j++)
@@ -832,7 +832,7 @@ public class MatchStick implements Drawable {
 		//comp = new TubeComp[nComp+1];
 
 		for (i=1; i<=nComp; i++)
-			getComp()[i] = new TubeComp();
+			addTube(i);
 		// 1. create first component at the center of the space.
 		createFirstComp();
 		// 2. sequentially adding new components
@@ -2176,7 +2176,7 @@ public class MatchStick implements Drawable {
 	/**
 	 *   A function that randomly rotate the final object in a limit range
 	 */
-	private boolean changeFinalRotation()
+	protected boolean changeFinalRotation()
 	{
 		double degX, degY, degZ, sum_deg;
 		// randomly +/- ? degree to newLogInfo rotation
@@ -3244,7 +3244,7 @@ public class MatchStick implements Drawable {
 	/**
         function that add new tube in the mutation process
 	 */
-	private boolean addTubeMutation(int nAddTube)
+	protected boolean addTubeMutation(int nAddTube)
 	{
 		int add_trial = 0;
 		boolean showDebug = false;
@@ -3256,7 +3256,7 @@ public class MatchStick implements Drawable {
 		int i;
 
 		for (i= getnComponent()+1; i<= getnComponent()+1 + nAddTube-1; i++)
-			getComp()[i] = new TubeComp();
+			addTube(i);
 
 		// 1. sequentially adding new components
 
@@ -3323,6 +3323,10 @@ public class MatchStick implements Drawable {
 
 		return true;
 
+	}
+
+	protected void addTube(int i) {
+		getComp()[i] = new TubeComp();
 	}
 
 	/**

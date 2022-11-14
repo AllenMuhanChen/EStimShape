@@ -35,8 +35,8 @@ public class ThreeDGATest {
         List<String> gaNames = new LinkedList<>();
         gaNames.add("3D-1");
         generator.getDbUtil().writeReadyGAsAndGenerationsInfo(gaNames);
-        testParentId = generator.getDbUtil().readTaskToDoMaxId();
         generator.generate(); //first gen
+        testParentId = generator.getDbUtil().readTaskToDoMaxId();
         generator.generate(); //second gen
         List<Long> stimsToMorph = generator.stimsToMorph;
 

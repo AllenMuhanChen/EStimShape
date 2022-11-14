@@ -3869,4 +3869,220 @@ Adding a new MAxisArc to a MatchStick
         setTextureType("SHADE");
 
     }
+
+	/**
+	 A public function that will start generating an offspring of this existing shape
+	 The parent is the current shape.
+	 The result will be stored in this object
+	 */
+	public boolean mutate(int debugParam) {
+		final int MaxMutateTryTimes = 10;
+		final int MaxAddTubeTryTimes = 15;
+		final int MaxCompNum = 8;
+		final int MinCompNum = 2;
+		final int MaxDeletionNum = 1;
+
+		// 4 possible task for each tube
+		// [ 1.nothing 2.replace whole 3. fine chg 4. Remove it]
+		// The distribution will be different for center & leaf stick
+		double[] prob_leaf = {0.4, 0.6, 0.8, 1.0};
+		//double[] prob_center = {0.6, 0.8, 1.0, 1.0};
+		double[] prob_center = {0.6, 0.6, 1.0, 1.0};
+		double[] prob_addNewTube = { 0.3333, 0.6666, 1.0}; // 1/3 no add , 1/3 add 1, 1/3 add 2 tubes
+
+		if ( this.getnComponent() <=3) {
+			prob_addNewTube[0] = 0.3;
+			prob_addNewTube[1] = 1.0;
+		} else if ( this.getnComponent() >=4 && this.getnComponent() <=5) {
+			prob_addNewTube[0] = 0.5;
+			prob_addNewTube[1] = 1.0;
+		} else if ( this.getnComponent() >=6) {
+			prob_addNewTube[0] = 0.7;
+			prob_addNewTube[1] = 1.0;
+		}
+
+		this.decideLeafBranch();
+
+		int i;
+		int old_nComp;
+		int[] task4Tube = new int[getnComponent()+1];
+		int[] task4Tube_backup = new int[getnComponent()+1];
+		int nAddTube, nRemoveTube, nResultTube;
+		// 1. decide what kind of modification should go on
+		int nChgTotal;
+		int minChgTotal = 2;
+		int maxChgTotal = 3;
+		while (true) {
+			boolean noChgFlg = true;
+			for (i=1; i<=getnComponent(); i++) {
+				if (  getLeafBranch()[i] == true)
+					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_leaf);
+				else
+					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
+
+				if (task4Tube[i] != 1)
+					noChgFlg = false; // at least one chg will occur
+			}
+			nAddTube = stickMath_lib.pickFromProbDist( prob_addNewTube) - 1;
+			nRemoveTube =0;
+			for (i=1; i<=getnComponent(); i++)
+				if (task4Tube[i] == 4)
+					nRemoveTube++;
+			nResultTube = getnComponent() + nAddTube - nRemoveTube;
+
+			// calculate nChgTotal
+			nChgTotal = 0;
+			for (i=1; i<=getnComponent(); i++)
+				if (task4Tube[i] != 1)
+					nChgTotal++;
+			nChgTotal += nAddTube;
+			// so the # of nChgTotal means the # of tubes been ( modified or removed) + # of tube added
+			if ( nChgTotal > maxChgTotal || nChgTotal < minChgTotal)
+			{
+				//if ( showDebug)
+				//  System.out.println("nChgtotal is now " + nChgTotal);
+				continue; // we don't want to small or too big change
+			}
+			if ( noChgFlg == false && nResultTube <= MaxCompNum  && nResultTube >= MinCompNum
+					&& nRemoveTube <= MaxDeletionNum ) // a legal condition
+				break;
+		}
+
+		//debug
+		if (debugParam == 1) {
+			//only remove 1 component each time
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			while (true) {
+				i =stickMath_lib.randInt(1, getnComponent());
+				if (getLeafBranch()[i] == true) {
+					task4Tube[i] = 4;
+					break;
+				}
+			}
+			nRemoveTube = 1;
+			nAddTube = 0;
+		} else if ( debugParam == 2) {
+			nRemoveTube = 0;
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			nAddTube = 1;
+		} else if ( debugParam == 3) {
+			nRemoveTube = 0;
+			nAddTube = 0;
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			int randComp  = stickMath_lib.randInt(1, getnComponent());
+			task4Tube[randComp] = 2;
+		} else if ( debugParam == 4) {
+			nRemoveTube = 0;
+			nAddTube = 0;
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			int randComp  =stickMath_lib.randInt(1, getnComponent());
+			task4Tube[randComp] = 3;
+		}
+
+		// Now start the part of really doing the morphing
+
+		// Dec 24th 2008.
+		// At this point, we decide what kind of morphing to do
+		// but, sometimes, some details will fail.
+		// what I would like to do is try the morph several times before give up
+
+		// March 10th 2009.
+		// This is a bug I found after recording for a while
+		// everytime we should load the task4Tube from the back
+		// since if we re-do the mutate, the task4Tube might already
+		// change during the previous manipulation.
+
+		for (i=1; i<=getnComponent(); i++)
+			task4Tube_backup[i] = task4Tube[i];
+
+		int mutateTryTimes = 1;
+		boolean successMutateTillNow;
+		for (mutateTryTimes = 1; mutateTryTimes <= MaxMutateTryTimes; mutateTryTimes++) {
+			//load the backup of task4Tube
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = task4Tube_backup[i];
+
+			successMutateTillNow = true;
+			//1. remove the stick
+			boolean[] removeFlg = new boolean[getnComponent()+1];
+			for (i=1; i<=getnComponent(); i++)
+				if (task4Tube[i] == 4)
+					removeFlg[i] = true;
+			old_nComp = getnComponent(); // since this number will chg later in removeComponent
+			// 2. fine tune and replacement
+			// 2.1 remap the task4Tube
+			if (nRemoveTube > 0) // else , we can skip this procedure
+				this.removeComponent( removeFlg);
+
+			int counter = 1;
+			for (i=1; i<= old_nComp; i++)
+				if ( task4Tube[i] != 4)
+					task4Tube[counter++] = task4Tube[i];
+
+			// 2.2 really doing the fine tune & replace
+			for (i=1; i<= getnComponent(); i++) {
+				boolean res = true;
+				if (task4Tube[i] == 2) // replace
+					res = this.replaceComponent(i);
+				if (task4Tube[i] == 3) // fine tune
+					res = this.fineTuneComponent(i);
+
+				// if res == false, we want to go out to big Trial loop & try again
+				if (!res) {
+					successMutateTillNow = false;
+				}
+			}
+			if ( successMutateTillNow == false) continue;
+
+			// 3. Add new tube on the shape
+			// we will try to add several times locally
+			if (nAddTube > 0) {
+				AllenMatchStick tempStoreStick = new AllenMatchStick();
+				tempStoreStick.copyFrom(this);
+				int addtube_trytime = 0;
+				while (true) {
+					boolean res = this.addTubeMutation(nAddTube);
+					if (res)
+						break;
+					else {
+						addtube_trytime++;
+						if ( addtube_trytime > MaxAddTubeTryTimes) {
+							successMutateTillNow = false;
+							break;
+						}
+					}
+					this.copyFrom(tempStoreStick);
+				}
+			}
+			if (!successMutateTillNow)
+				continue;
+
+			// 5. reassign the radius value at junction point
+			this.MutateSUB_reAssignJunctionRadius();
+
+			// 6. translate the shape, so that the first component is centered at origin.
+			//            this.centerShapeAtOrigin(-1);
+
+			if (!this.validMStickSize())
+				successMutateTillNow = false;
+
+			if (!successMutateTillNow)
+				continue;
+
+			this.changeFinalRotation();
+
+			return this.smoothizeMStick();
+		}
+
+		return false;
+	}
+
+	@Override
+	protected void addTube(int i){
+		getComp()[i] = new AllenTubeComp();
+	}
 }
