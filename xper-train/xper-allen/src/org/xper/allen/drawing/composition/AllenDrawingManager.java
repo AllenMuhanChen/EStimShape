@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
 import org.xper.Dependency;
@@ -101,7 +99,7 @@ public class AllenDrawingManager implements Drawable {
 	 * @param labels
 	 * @return
 	 */
-	public String drawStimulus(AllenMatchStick obj, Long stimObjId, List<String> labels) {
+	public String drawStimulus(Drawable obj, Long stimObjId, List<String> labels) {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 		renderer.draw(new Drawable() {
@@ -122,7 +120,7 @@ public class AllenDrawingManager implements Drawable {
 		}
 	}
 
-	public void drawObj(AllenMatchStick obj) {
+	public void drawObj(Drawable obj) {
 		obj.draw();
 	}
 
