@@ -30,6 +30,10 @@ public class MultiGaGenerationInfo {
         return g;
     }
 
+    public Long getGenIdForGA(String gaName){
+        return getGenIdForGA().get(gaName);
+    }
+
     public Map<String, Long> getGenIdForGA() {
         return genIdForGA;
     }
