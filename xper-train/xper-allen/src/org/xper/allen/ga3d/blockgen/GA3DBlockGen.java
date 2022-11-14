@@ -1,5 +1,6 @@
 package org.xper.allen.ga3d.blockgen;
 
+import org.xper.Dependency;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.Trial;
 
@@ -11,7 +12,9 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     String gaName;
 
     private List<Trial> trials = new LinkedList<>();
-    GenerationFactory factory;
+
+    @Dependency
+    GenerationFactory factory = new GenerationFactory(this, 40);
 
     @Override
     protected void addTrials() {
@@ -34,7 +37,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     }
 
     private void addNthGeneration(){
-//        trials.addAll(factory.createNthGenerationTrials());
+        trials.addAll(factory.createNthGenerationTrials());
     }
 
 }

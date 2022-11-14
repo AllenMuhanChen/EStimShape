@@ -8,7 +8,6 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.time.TimeUtil;
 
 public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGenerator {
-
 	@Dependency
 	protected TimeUtil globalTimeUtil;
 	@Dependency

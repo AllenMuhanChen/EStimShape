@@ -1,8 +1,9 @@
 package org.xper.allen.ga3d.blockgen;
 
+import org.xper.Dependency;
 import org.xper.allen.Trial;
+import org.xper.allen.ga.ParentSelector;
 
-import javax.media.j3d.Link;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,23 +21,36 @@ import java.util.List;
  *
  */
 public class GenerationFactory {
+
+    @Dependency
+    ParentSelector parentSelector;
+
+    private final GA3DBlockGen generator;
+
     int numTrials=40;
 
-    public GenerationFactory(int numTrials) {
+    public GenerationFactory(GA3DBlockGen generator, int numTrials) {
+        this.generator = generator;
         this.numTrials = numTrials;
     }
 
     public List<Trial> createFirstGenerationTrials(){
         List<Trial> trials = new LinkedList<>();
         for (int i=0; i<numTrials; i++){
-            trials.add(new RandTrial());
+            trials.add(new RandTrial(generator));
         }
         return trials;
     }
 
-//    public List<Trial> createNthGenerationTrials(){
-//        List<Trial> trials = new LinkedList<>();
-//
-////        List<Long> stimObjIds = parentSelector.selectParents();
-//    }
+    public List<Trial> createNthGenerationTrials(){
+        List<Trial> trials = new LinkedList<>();
+
+        List<Long> stimObjIds = parentSelector.selectParents();
+
+        for (Long stimObjId: stimObjIds){
+            trials.add(new MorphTrial(generator, stimObjId));
+        }
+
+        return trials;
+    }
 }
