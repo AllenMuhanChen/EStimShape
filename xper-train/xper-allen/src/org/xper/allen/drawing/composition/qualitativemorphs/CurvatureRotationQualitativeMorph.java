@@ -24,7 +24,6 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 	private double newRotation;
 
 	public List<Bin<Double>> curvatureBins;
-	public List<Bin<Double>> rotationBins;
 	public ArrayList<Bin<Double>> scaledCurvatureBins;
 
 	private int assignedCurvatureBin;
@@ -36,7 +35,6 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 
 	public CurvatureRotationQualitativeMorph() {
 		curvatureBins = new ArrayList<Bin<Double>>();
-		rotationBins = new ArrayList<Bin<Double>>();
 		//scaledCurvatureBins = new ArrayList<>();
 	}
 
