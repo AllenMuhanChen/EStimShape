@@ -7,8 +7,6 @@ import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
-import org.xper.drawing.stick.stickMath_lib;
-
 import org.lwjgl.opengl.GL11;
 
 public class MAxisArc
@@ -404,8 +402,8 @@ public class MAxisArc
 //System.out.println("tangent[1] is at : "+ mTangent[1]);   
         /// 2. rotate to targetTangent
 
-  	   oriTangent.set( interTangent);   
-           Angle = oriTangent.angle(finalTangent);
+  	   oriTangent.set( interTangent);
+	   Angle = oriTangent.angle(finalTangent);
    	   RotAxis.cross(oriTangent, finalTangent);
 	   RotAxis.normalize();
 
@@ -430,28 +428,27 @@ public class MAxisArc
     
 	   if (!skipRotate)
 	   {
-      		oriPt.set(getmPts()[rotCenter]);
+		oriPt.set(getmPts()[rotCenter]);
 		AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
 		transMat.setRotation(axisInfo);
-  
-      		for (i = 1 ; i <= getMaxStep(); i++)
-                {
-			// rotate annd translate every mPts
-             		nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-			transMat.transform(nowvec); 
-			getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt			
-             		// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;             
-             		// rotate the Tangent vector along the maxis
-			transMat.transform(getmTangent()[i]);             		
-       		}
-           }
+
+		for (i = 1 ; i <= getMaxStep(); i++) {
+		// rotate annd translate every mPts
+		nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+		transMat.transform(nowvec);
+		getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
+				// rotate the Tangent vector along the maxis
+		transMat.transform(getmTangent()[i]);
+			}
+	   }
 //System.out.println("tangent[1] is at : "+ mTangent[1]);      
 //System.out.println("mPts[1] is at : "+ mPts[1]);
 	/// 3. rotate along the tangent axis by deviate Angle
-	   if (  getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
+	   if (getRad() < 100000) // if the mAxisArc is a str8 line, no need to do this part
   	   {
    		oriPt.set(getmPts()[rotCenter]);
-                AxisAngle4d axisInfo = new AxisAngle4d( finalTangent, deviateAngle);   		
+	    AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, deviateAngle);
 		transMat.setRotation(axisInfo);
    		for (i = 1 ; i <= getMaxStep(); i++)
 		{
@@ -559,19 +556,22 @@ public class MAxisArc
      /**
 	A function which can be called inside oGLFrame.display()
 	This function will draw out the Arc in oGL window
-     */
-     public void drawArc()
+	  * @param red
+	  * @param green
+	  * @param blue
+	  */
+     public void drawArc(float red, float green, float blue)
      {
            //use the oGL draw line function to draw out the mAxisArc
 	   int i;
-           GL11.glColor3f(1.0f, 1.0f, 0.0f);
+           GL11.glColor3f(red, green, blue);
 	   GL11.glBegin(GL11.GL_LINE_STRIP);
 	   
  	    for (i=1; i<=getMaxStep(); i++)
 		{
                   //GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
  	    		GL11.glVertex3d( getmPts()[i].x, getmPts()[i].y, getmPts()[i].z);
-		}  
+		}
              
            GL11.glEnd();
 

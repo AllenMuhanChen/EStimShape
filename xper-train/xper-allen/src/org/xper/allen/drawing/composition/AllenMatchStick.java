@@ -92,7 +92,7 @@ public class AllenMatchStick extends MatchStick {
 	protected final double PROB_addToEndorJunc = 1; // 50% add to end or
 	// junction pt, 50% to the
 	// branch
-	protected final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
+	protected final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
 	// 50% add to end, 50%
 	// add to junc
 	protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
@@ -100,7 +100,8 @@ public class AllenMatchStick extends MatchStick {
 	private double minScaleForMAxisShape;
 
 	protected final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
-	private final double TangentSaveZone = Math.PI/64;
+//	private final double TangentSaveZone = Math.PI/64;
+	private final double TangentSaveZone = Math.PI/6.0;
 
 	//AC ADDITIONS
 	private List<Integer> specialEnd = new ArrayList<Integer>();
@@ -384,7 +385,7 @@ public class AllenMatchStick extends MatchStick {
 					// store back to old condition
 					this.copyFrom(old_MStick);
 					// random get a new MAxisArc
-					nowArc = new AllenMAxisArc();
+					nowArc = newArc();
 					nowArc.genArcRand();
 
 					Vector3d finalTangent = new Vector3d();
@@ -581,6 +582,11 @@ public class AllenMatchStick extends MatchStick {
 		if (showDebug)
 			System.out.println("successfully replace a tube");
 		return true;
+	}
+
+	@Override
+	protected AllenMAxisArc newArc() {
+		return new AllenMAxisArc();
 	}
 	/*
 	protected void cleanData()
@@ -3915,15 +3921,15 @@ Adding a new MAxisArc to a MatchStick
 		while (true) {
 			boolean noChgFlg = true;
 			for (i=1; i<=getnComponent(); i++) {
-				if (  getLeafBranch()[i] == true)
-					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_leaf);
+				if (getLeafBranch()[i] == true)
+					task4Tube[i] = stickMath_lib.pickFromProbDist(prob_leaf);
 				else
-					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
+					task4Tube[i] = stickMath_lib.pickFromProbDist(prob_center);
 
 				if (task4Tube[i] != 1)
 					noChgFlg = false; // at least one chg will occur
 			}
-			nAddTube = stickMath_lib.pickFromProbDist( prob_addNewTube) - 1;
+			nAddTube = stickMath_lib.pickFromProbDist(prob_addNewTube) - 1;
 			nRemoveTube =0;
 			for (i=1; i<=getnComponent(); i++)
 				if (task4Tube[i] == 4)
@@ -4016,7 +4022,7 @@ Adding a new MAxisArc to a MatchStick
 			// 2. fine tune and replacement
 			// 2.1 remap the task4Tube
 			if (nRemoveTube > 0) // else , we can skip this procedure
-				this.removeComponent( removeFlg);
+				this.removeComponent(removeFlg);
 
 			int counter = 1;
 			for (i=1; i<= old_nComp; i++)
