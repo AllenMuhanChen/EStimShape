@@ -10,6 +10,8 @@ import org.xper.drawing.stick.MatchStick;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 public class MorphTrial extends ThreeDGATrial {
@@ -40,7 +42,9 @@ public class MorphTrial extends ThreeDGATrial {
 
 
         //draw pngs
-        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, generator.getGeneratorPngPath());
+        List<String> labels = new LinkedList<>();
+        labels.add(Long.toString(parentId));
+        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPathToExperiment(pngPath);
 
         Coordinates2D coords = getCoordsFromParent();

@@ -7,6 +7,7 @@ import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
@@ -128,7 +129,6 @@ public class AllenMAxisArc extends MAxisArc {
 	/**
 	 * @param inArc
 	 * @param alignedPt
-	 * @param volatileRate
 	 */
 	public void genQualitativeMorphArc( AllenMAxisArc inArc,int alignedPt,  QualitativeMorphParams qmp) {
 		boolean showDebug = false;
@@ -235,7 +235,6 @@ public class AllenMAxisArc extends MAxisArc {
 	/**
 	 * @param inArc
 	 * @param alignedPt
-	 * @param volatileRate
 	 */
 	public void genMetricSimilarArc( AllenMAxisArc inArc,int alignedPt,  MetricMorphParams mmp) {
 		boolean showDebug = false;
@@ -361,6 +360,7 @@ public class AllenMAxisArc extends MAxisArc {
 		 @param finalTangent Vector3d, the tangent direction where the rotCenter Pt will face
 		 @param deviateAngle double btw 0 ~ 2PI , the angle to rotate along the tangent direction
 	 */
+	@Override
 	public void transRotMAxis(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
 	{
 
@@ -420,7 +420,6 @@ public class AllenMAxisArc extends MAxisArc {
 		//System.out.println( mPts[30] + "  " + mPts[32]);   
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);   
 		/// 2. rotate to targetTangent
-
 		oriTangent.set( interTangent);   
 		Angle = oriTangent.angle(finalTangent);
 		RotAxis.cross(oriTangent, finalTangent);
@@ -468,12 +467,26 @@ public class AllenMAxisArc extends MAxisArc {
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);      
 		//System.out.println("mPts[1] is at : "+ mPts[1]);
 		/// 3. rotate along the tangent axis by deviate Angle
-		double nowDeviateAngle = 0;
-		if (  getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
+		double nowDeviateAngle;
+		if ( getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
 		{
+			//ROTATE OPPOSITE OF CURRENT DEV ANGLE TO RETURN TO ZERO
 			oriPt.set(getmPts()[rotCenter]);
+			nowDeviateAngle = getTransRotHis_devAngle();
+			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -nowDeviateAngle);
+			transMat.setRotation(axisInfo);
+			for (i = 1 ; i <= getMaxStep(); i++)
+			{
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+
+				transMat.transform(getmTangent()[i]);
+			}
+
+			//ROTATE TO DESIRED DEV ANGLE
 			nowDeviateAngle = deviateAngle;
-			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, nowDeviateAngle);   		
+			axisInfo = new AxisAngle4d(finalTangent, nowDeviateAngle);
 			transMat.setRotation(axisInfo);
 			for (i = 1 ; i <= getMaxStep(); i++)
 			{
@@ -601,6 +614,7 @@ public class AllenMAxisArc extends MAxisArc {
 
 
 	}
+
 
 	public Vector3d getNormal() {
 		return normal;

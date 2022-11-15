@@ -2915,7 +2915,7 @@ public class MatchStick implements Drawable {
 				//set the component to its new role
 				boolean branchUsed = this.getComp()[id].isBranchUsed();
 				int connectType = this.getComp()[id].getConnectType();
-				this.getComp()[id] = new TubeComp();
+				addTube(id);
 				this.getComp()[id].initSet( nowArc, branchUsed, connectType);
 				boolean closeHit = this.checkSkeletonNearby( getnComponent());
 				if (closeHit == false) // a safe skeleton
@@ -3048,7 +3048,7 @@ public class MatchStick implements Drawable {
 					tangentTrialTimes++;
 					this.copyFrom(old_MStick);
 					// random get a new MAxisArc
-					nowArc = new MAxisArc();
+					nowArc = newArc();
 					nowArc.genSimilarArc( this.getComp()[id].getmAxisInfo(), alignedPt,volatileRate);
 					// use this function to generate a similar arc
 
@@ -3159,7 +3159,7 @@ public class MatchStick implements Drawable {
 				//set the component to its new role
 				boolean branchUsed = this.getComp()[id].isBranchUsed();
 				int connectType = this.getComp()[id].getConnectType();
-				this.getComp()[id] = new TubeComp();
+				addTube(id);
 				this.getComp()[id].initSet( nowArc, branchUsed, connectType);
 				if (showDebug)
 					System.out.println("In fine tune: tube to modify # " +id +" now check skeleton");
@@ -3239,6 +3239,10 @@ public class MatchStick implements Drawable {
 		if ( showDebug)
 			System.out.println("successfully fine tune a tube");
 		return true;
+	}
+
+	protected MAxisArc newArc() {
+		return new MAxisArc();
 	}
 
 	/**
