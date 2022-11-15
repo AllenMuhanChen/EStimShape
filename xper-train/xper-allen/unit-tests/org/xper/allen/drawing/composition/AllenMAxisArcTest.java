@@ -104,7 +104,7 @@ public class AllenMAxisArcTest {
     @Test
     /**
      * In this test, we can see that MAXis changes devAngle by incrementing how much its devAngle moves. Since we are
-     * continuously incrementing devAngle, the devAngle change each iteration increases.
+     * are not incrementing devAngle ourselves, the MAxis steadily rotates itselfs by the devAngle.
      */
     public void MAxisHasContinuousDevAngleChangeWithNoIncrement(){
         TestDrawingWindow window = TestDrawingWindow.createDrawerWindow();
@@ -146,7 +146,13 @@ public class AllenMAxisArcTest {
     }
 
     private void drawArcAtAngle(TestDrawingWindow window, AllenMAxisArc allenMAxisArc1, double deviateAngle, float red, float green, float blue) {
-        drawArcAtAngle(window, allenMAxisArc1, deviateAngle, red, green, blue);
+        allenMAxisArc1.transRotMAxis(1, new Point3d(0,0,0), 1, new Vector3d(0,0,1), deviateAngle);
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                allenMAxisArc1.drawArc(red, green, blue);
+            }
+        });
     }
 
 
