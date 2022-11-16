@@ -69,7 +69,7 @@ public class SpikeReader {
                         snapshot.add(readMicrovolts());
                     }
                 }
-                double tstampSeconds = (double) (timestamp / sampleRate);
+                double tstampSeconds = timestamp / sampleRate;
                 Spike spike = new Spike(tstampSeconds, spikeId, snapshot);
                 spikesForChannel.get(channelName).add(spike);
             }
