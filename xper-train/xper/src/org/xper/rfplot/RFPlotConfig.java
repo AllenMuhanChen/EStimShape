@@ -12,6 +12,7 @@ import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.config.IntanConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.IConsolePlugin;
@@ -36,6 +37,7 @@ public class RFPlotConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
+	@Autowired IntanConfig intanConfig;
 
 	@ExternalValue("rfplot.png_library_path_generator")
 	public String pngLibraryPath_generator;
@@ -158,6 +160,7 @@ public class RFPlotConfig {
 		listeners.add(classicConfig.messageDispatcherController());
 		listeners.add(classicConfig.eyeZeroLogger());
 		listeners.add(classicConfig.experimentCpuBinder());
+		listeners.add(intanConfig.intanMessageDispatcher());
 		return listeners;
 	}
 	
@@ -174,6 +177,7 @@ public class RFPlotConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
+		trialEventListener.add(intanConfig.intanMessageDispatcher());
 		return trialEventListener;
 	}
 

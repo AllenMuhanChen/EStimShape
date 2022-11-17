@@ -37,6 +37,9 @@ public class SpikeReader {
     }
 
     public double getSpikeRate(String channelName) {
+        if(spikesForChannel.isEmpty()){
+            readSpikeFile();
+        }
         List<Spike> spikes = spikesForChannel.get(channelName);
         double elapsedTime = spikes.get(spikes.size() - 1).tstampSeconds - spikes.get(0).tstampSeconds;
 
