@@ -4,5 +4,5 @@ import java.util.List;
 
 public interface ParentSelector {
 
-    public List<Long> selectParents();
+    public List<Long> selectParents(List<String> parents);
 }
