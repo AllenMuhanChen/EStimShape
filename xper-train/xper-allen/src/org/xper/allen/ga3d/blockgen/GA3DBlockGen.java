@@ -21,7 +21,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     ParentSelector parentSelector;
 
     private String gaName;
-    private List<Trial> trials = new LinkedList<>();
+    private final List<Trial> trials = new LinkedList<>();
     private double initialSize;
     private Coordinates2D initialCoords;
     private int numTrials;
@@ -45,6 +45,34 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
             // 1. Compile neural responses then choose stimuli to morph
             // 2. Assign stimulus type (rand, or child)
         }
+    }
+
+    private void addFirstGeneration(){
+        trials.addAll(createFirstGenerationTrials(this, numTrials, initialSize, initialCoords));
+    }
+
+    private List<Trial> createFirstGenerationTrials(GA3DBlockGen generator, int numTrials, double size, Coordinates2D coords){
+        List<Trial> trials = new LinkedList<>();
+        for (int i = 0; i< numTrials; i++){
+            trials.add(new RandTrial(generator, size, coords));
+        }
+        return trials;
+    }
+
+    private void addNthGeneration(){
+        trials.addAll(createNthGenerationTrials(this));
+    }
+
+    private List<Trial> createNthGenerationTrials(GA3DBlockGen generator){
+        List<Trial> trials = new LinkedList<>();
+
+        stimsToMorph = parentSelector.selectParents();
+
+        for (Long stimObjId: stimsToMorph){
+            trials.add(new MorphTrial(generator, stimObjId));
+        }
+
+        return trials;
     }
 
     /**
@@ -77,30 +105,6 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
         System.out.println("Done Generating...");
     }
 
-    private List<Trial> createFirstGenerationTrials(GA3DBlockGen generator, int numTrials, double size, Coordinates2D coords){
-        List<Trial> trials = new LinkedList<>();
-        for (int i = 0; i< numTrials; i++){
-            trials.add(new RandTrial(generator, size, coords));
-        }
-        return trials;
-    }
-
-    private List<Trial> createNthGenerationTrials(GA3DBlockGen generator){
-        List<Trial> trials = new LinkedList<>();
-
-        stimsToMorph = parentSelector.selectParents();
-
-        for (Long stimObjId: stimsToMorph){
-            trials.add(new MorphTrial(generator, stimObjId));
-        }
-
-        return trials;
-    }
-
-    public ParentSelector getParentSelector() {
-        return parentSelector;
-    }
-
     public void setParentSelector(ParentSelector parentSelector) {
         this.parentSelector = parentSelector;
     }
@@ -113,14 +117,6 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
         return readyGens.get(gaName) == 0;
     }
 
-    private void addFirstGeneration(){
-        trials.addAll(createFirstGenerationTrials(this, numTrials, initialSize, initialCoords));
-    }
-
-    private void addNthGeneration(){
-        trials.addAll(createNthGenerationTrials(this));
-    }
-
 
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;
@@ -131,5 +127,9 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
         this.dbUtil = dbUtil;
 
 
+    }
+
+    public ParentSelector getParentSelector() {
+        return parentSelector;
     }
 }
