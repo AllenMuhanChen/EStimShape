@@ -2,6 +2,7 @@ package org.xper.intan.read;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.xper.util.ResourceUtil;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,8 +48,7 @@ public class SpikeReaderTest {
 
     @Before
     public void setUp() {
-        Path resourceDirectory = Paths.get("test","test-resources", "SpikeReaderTest-spike.dat");
-        spikeReader = new SpikeReader(resourceDirectory.toAbsolutePath().toString());
+        spikeReader = new SpikeReader(ResourceUtil.getResource("SpikeReaderTest-spike.dat"));
     }
 
 
