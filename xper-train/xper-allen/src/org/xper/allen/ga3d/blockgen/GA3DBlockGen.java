@@ -25,7 +25,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     private double initialSize;
     private Coordinates2D initialCoords;
     private int numTrials;
-    private List<String> channels;
+    protected List<String> channels;
 
     List<Long> stimsToMorph;
 

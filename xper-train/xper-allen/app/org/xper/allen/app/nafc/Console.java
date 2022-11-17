@@ -19,7 +19,7 @@ public class Console {
 			throw new XGLException(e);
 		}
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-				FileUtil.loadConfigClass("experiment.ga.config_class"));
+				FileUtil.loadConfigClass("experiment.config_class"));
 		NAFCExperimentConsole console = context.getBean(NAFCExperimentConsole.class);
 		console.run();
 	}

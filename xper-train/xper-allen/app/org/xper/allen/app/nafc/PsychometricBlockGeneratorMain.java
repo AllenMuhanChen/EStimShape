@@ -22,7 +22,7 @@ public class PsychometricBlockGeneratorMain extends TrialArgReader {
 
 	public static void main(String[] args) {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-				FileUtil.loadConfigClass("experiment.ga.config_class"));
+				FileUtil.loadConfigClass("experiment.config_class"));
 
 		PsychometricBlockGen gen = context.getBean(PsychometricBlockGen.class);
 

@@ -62,56 +62,7 @@
 	<target name="dist" depends="compile" >
 		<jar jarfile="${allen.home}/xper_allen.jar" basedir="${build.home}">
 		</jar>
-		
-		<jar jarfile="${allen.home}/trainingGeneration.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/TrainingGenerator.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.TrainingGenerator" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar" />
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/training.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/Experiment.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.Experiment" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} " />
-			</manifest>
-		</jar>	
-		
-		<jar jarfile="${allen.home}/console.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/Console.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.Console" />
-				<attribute name="Class-Path" value=". ${manifest.classpath}" />
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/RandomXmlGen.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/RandomTrainingXMLGen.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.RandomTrainingXMLGen" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/RandomCircleXmlGen.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/RandomCircleTrainingXMLGen.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.RandomCircleTrainingXMLGen" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
-			</manifest>
-		</jar>
+
 		
 		<jar jarfile="${allen.home}/fixcal_console.jar">
 			<fileset dir="${build.home}">
@@ -132,26 +83,7 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
-		
-		<jar jarfile="${allen.home}/nafcConsole.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/Console.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.Console" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/nafc.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/Experiment.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.Experiment" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
-			</manifest>
-		</jar>
+
 		
 		<jar jarfile="${allen.home}/PngGen.jar">
 			<fileset dir="${build.home}">
@@ -183,25 +115,7 @@
 			</manifest>
 		</jar>
 		
-		<jar jarfile="${allen.home}/fixationConsole.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/fixation/Console.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.fixation.Console" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
-			</manifest>
-		</jar>
 
-		<jar jarfile="${allen.home}/fixationExperiment.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/fixation/Experiment.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.fixation.Experiment" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
-			</manifest>
-		</jar>
 		<jar jarfile="${allen.home}/PsychometricMStickPngGenerator.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/nafc/PsychometricPngGeneratorMain.class" />
