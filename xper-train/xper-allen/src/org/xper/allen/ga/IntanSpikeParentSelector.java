@@ -4,8 +4,8 @@ import java.util.List;
 
 public class IntanSpikeParentSelector implements ParentSelector{
 
-    @Override
-    public List<Long> selectParents() {
+
+    public List<Long> selectParents(List<String> channels) {
         return null;
     }
 }

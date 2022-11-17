@@ -24,7 +24,7 @@ public class ThreeDGATest {
         generator = context.getBean(GA3DBlockGen.class);
         generator.setDbUtil(DbUtilFactory.createGaDbUtil("allen_estimshape_dev_221110"));
         generator.setParentSelector(testParentSelector());
-        generator.setUp(1, 2, 5, new Coordinates2D(0,0));
+        generator.setUp(1, 2, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
@@ -50,7 +50,7 @@ public class ThreeDGATest {
     private ParentSelector testParentSelector() {
         return new ParentSelector() {
             @Override
-            public List<Long> selectParents() {
+            public List<Long> selectParents(List<String> channels) {
                 LinkedList<Long> testList = new LinkedList<Long>();
                 testList.add(testParentId);
                 return testList;
