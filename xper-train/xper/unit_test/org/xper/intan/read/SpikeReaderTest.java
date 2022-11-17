@@ -8,8 +8,6 @@ import static org.junit.Assert.*;
 public class SpikeReaderTest {
 
     private SpikeReader spikeReader;
-    private String channelName;
-    private String spikeDatPath;
 
     @Test
     public void testReadSpikeFile(){
@@ -46,9 +44,8 @@ public class SpikeReaderTest {
 
     @Before
     public void setUp() {
-        spikeDatPath = "/home/r2_allen/Documents/EStimShape/dev_221110/spikefiles_dev_221110/Test_221116_113949/spike.dat";
+        String spikeDatPath = "/home/r2_allen/Documents/EStimShape/dev_221110/spikefiles_dev_221110/Test_221116_113949/spike.dat";
         spikeReader = new SpikeReader(spikeDatPath);
-        channelName = "B-000";
     }
 
 
