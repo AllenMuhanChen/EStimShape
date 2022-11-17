@@ -6,13 +6,13 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class SpikeReader {
 
     private static InputStream inputStream;
     double sampleRate;
     int samplesPreDetect;
     int samplesPostDetect;
-    private String spikeDatPath;
     int magicNumber;
     int spikeFileVersionNumber;
     String filename;
@@ -21,13 +21,11 @@ public class SpikeReader {
 
     Map<String, List<Spike>> spikesForChannel = new LinkedHashMap<>();
 
-    private int snapshots_present;
     private int nSamples;
 
     public SpikeReader(String spikeDatPath) {
-        this.spikeDatPath = spikeDatPath;
         try {
-            inputStream = new FileInputStream(this.spikeDatPath);
+            inputStream = new FileInputStream(spikeDatPath);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -83,17 +81,16 @@ public class SpikeReader {
         return 0.195 * (readUInt16() - 32768);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private String readNextNChars(int N) throws IOException {
         StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i< N; i++){
             stringBuilder.append(nextChar());
         }
-        String channelName = stringBuilder.toString();
-        return channelName;
+        return stringBuilder.toString();
     }
 
     private boolean isMultiChannel() {
-        boolean multichannel;
         if(magicNumber == 418924363)
             return true;
         else if(magicNumber == 418941952)
@@ -104,10 +101,7 @@ public class SpikeReader {
 
     private boolean snapshotsPresent() {
         nSamples = samplesPostDetect + samplesPreDetect;
-        if(nSamples ==0)
-            return false;
-        else
-            return true;
+        return nSamples != 0;
     }
 
     private float readSingle() {
