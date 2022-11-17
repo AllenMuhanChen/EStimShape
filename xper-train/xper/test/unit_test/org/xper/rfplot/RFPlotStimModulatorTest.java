@@ -7,9 +7,6 @@ import org.xper.rfplot.gui.PngPathScroller;
 import org.xper.rfplot.gui.ScrollerParams;
 import org.xper.util.ResourceUtil;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import static org.junit.Assert.assertTrue;
 
 public class RFPlotStimModulatorTest {
@@ -19,7 +16,7 @@ public class RFPlotStimModulatorTest {
         String resourcePath = ResourceUtil.getResource("RFPlotStimModulatorTest-TestLibrary");
         PngPathScroller scroller = new PngPathScroller(resourcePath, resourcePath);
 
-        RFPlotPngObject pngObject = new RFPlotPngObject(ResourceUtil.getResource("RFPlotStimModulatorTest-DefaultPng"));
+        RFPlotPngObject pngObject = new RFPlotPngObject(ResourceUtil.getResource("RFPlotStimModulatorTest-DefaultPng.png"));
 
         String firstPath = PngSpec.fromXml(pngObject.getSpec()).getPath();
         ScrollerParams newParams = scroller.next(new ScrollerParams(pngObject, null));
