@@ -2,15 +2,11 @@ package org.xper.allen.util;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
-import org.xper.Dependency;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.db.vo.*;
 import org.xper.exception.VariableNotFoundException;
-import org.xper.experiment.ExperimentTask;
-import org.xper.util.DbUtil;
 
-import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -135,4 +131,36 @@ public class MultiGaDbUtil extends AllenDbUtil {
 
     }
 
+    public long readTaskDoneMaxGenerationIdForGa(String gaName) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        long maxId = jt.queryForLong(
+                " select max(t.gen_id) as max_gen_id " +
+                        " from TaskDone d, TaskToDo t " +
+                        " where d.task_id = t.task_id and d.ga_name = ?",
+                new Object[]{gaName});
+        return maxId;
+    }
+
+    public GenerationTaskDoneList readTaskDoneForGaAndGeneration(String gaName, long genId) {
+        final GenerationTaskDoneList taskDone = new GenerationTaskDoneList();
+        taskDone.setGenId(genId);
+        taskDone.setDoneTasks(new ArrayList<TaskDoneEntry>());
+
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.query(
+                " select d.tstamp as tstamp, d.task_id as task_id, d.part_done as part_done" +
+                        " from TaskDone d, TaskToDo t "	+
+                        " where d.task_id = t.task_id and t.gen_id = ? and d.ga_name = ?" +
+                        " order by d.tstamp ",
+                new Object[] { genId, gaName },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        TaskDoneEntry ent = new TaskDoneEntry();
+                        ent.setTaskId(rs.getLong("task_id"));
+                        ent.setTstamp(rs.getLong("tstamp"));
+                        ent.setPart_done(rs.getInt("part_done"));
+                        taskDone.getDoneTasks().add(ent);
+                    }});
+        return taskDone;
+    }
 }

@@ -1,12 +1,15 @@
 package org.xper.allen.util;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
+import org.xper.db.vo.GenerationTaskDoneList;
+import org.xper.db.vo.TaskDoneEntry;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 /**
@@ -67,4 +70,31 @@ public class TestMultiGaDbUtil extends MultiGaDbUtil {
         }
         return output;
     }
+
+    @Override
+    public long readTaskDoneMaxGenerationIdForGa(String gaName) {
+        return 1L;
+    }
+
+    /**
+     * For mock testing IntanSpikeParentSelector, there's two done tasks, one with taskId1, the other with taskId2
+     * @param gaName
+     * @param genId
+     * @return
+     */
+    @Override
+    public GenerationTaskDoneList readTaskDoneForGaAndGeneration(String gaName, long genId) {
+        final GenerationTaskDoneList taskDone = new GenerationTaskDoneList();
+        List<TaskDoneEntry> doneTasks = new LinkedList<>();
+
+        TaskDoneEntry entry1 = new TaskDoneEntry();
+        entry1.setTaskId(12345);
+        TaskDoneEntry entry2 = new TaskDoneEntry();
+        entry2.setTaskId(12346);
+        doneTasks.add(entry1); doneTasks.add(entry2);
+        taskDone.setDoneTasks(doneTasks);
+
+        return taskDone;
+    }
+
 }
