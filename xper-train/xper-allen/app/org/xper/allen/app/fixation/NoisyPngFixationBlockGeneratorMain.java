@@ -20,7 +20,7 @@ public class NoisyPngFixationBlockGeneratorMain {
 
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-                FileUtil.loadConfigClass("experiment.config_class"));
+                FileUtil.loadConfigClass("experiment.ga.config_class"));
 
         NoisyPngFixationBlockGen gen = context.getBean(NoisyPngFixationBlockGen.class);
 
