@@ -50,7 +50,7 @@ public class ThreeDGATest {
     private ParentSelector testParentSelector() {
         return new ParentSelector() {
             @Override
-            public List<Long> selectParents(List<String> channels) {
+            public List<Long> selectParents(List<String> channels, String gaName) {
                 LinkedList<Long> testList = new LinkedList<Long>();
                 testList.add(testParentId);
                 return testList;

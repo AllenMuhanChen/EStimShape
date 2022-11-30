@@ -31,7 +31,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
     /**
      *
-     * @param linNumber - number of lineages
+     * @param linNumber - which lineage is being generated.
      * @param numTrials - number of trials per generations
      * @param initialSize - initial size of stimuli in GA
      * @param initialCoords - initial coordinates of stimuli in GA
@@ -51,9 +51,6 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
             addFirstGeneration();
         } else{
             addNthGeneration();
-            //add:
-            // 1. Compile neural responses then choose stimuli to morph
-            // 2. Assign stimulus type (rand, or child)
         }
     }
 
@@ -76,10 +73,10 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     private List<Trial> createNthGenerationTrials(GA3DBlockGen generator){
         List<Trial> trials = new LinkedList<>();
 
-        stimsToMorph = parentSelector.selectParents(channels);
+        stimsToMorph = parentSelector.selectParents(channels, gaName);
 
-        for (Long stimObjId: stimsToMorph){
-            trials.add(new MorphTrial(generator, stimObjId));
+        for (Long parentId: stimsToMorph){
+            trials.add(new MorphTrial(generator, parentId));
         }
 
         return trials;
@@ -123,7 +120,6 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     private boolean firstGeneration(){
         MultiGaGenerationInfo info = dbUtil.readReadyGAsAndGenerationsInfo();
         Map<String, Long> readyGens = info.getGenIdForGA();
-        System.err.println(readyGens);
         return readyGens.get(gaName) == 0;
     }
 
@@ -135,11 +131,17 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
     public void setDbUtil(MultiGaDbUtil dbUtil) {
         this.dbUtil = dbUtil;
-
-
     }
 
     public ParentSelector getParentSelector() {
         return parentSelector;
+    }
+
+    public String getGaName() {
+        return gaName;
+    }
+
+    public void setGaName(String gaName) {
+        this.gaName = gaName;
     }
 }

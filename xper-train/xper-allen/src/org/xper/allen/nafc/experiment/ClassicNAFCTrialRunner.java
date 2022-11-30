@@ -7,8 +7,6 @@ import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
-import org.xper.classic.vo.TrialExperimentState;
-import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
