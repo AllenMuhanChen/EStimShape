@@ -9,7 +9,6 @@ import org.xper.intan.read.SpikeReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -19,13 +18,14 @@ public class IntanSpikeParentSelector implements ParentSelector{
     MultiGaDbUtil dbUtil;
 
     @Dependency
-    String gaName;
+    String spikeDatDirectory;
 
     @Dependency
-    String spikeDatDirectory;
+    SpikeRateAnalyzer spikeRateAnalyzer;
+
     private List<Long> previousGenerationIds;
 
-    public List<Long> selectParents(List<String> channels) {
+    public List<Long> selectParents(List<String> channels, String gaName) {
 
         //Read Recent Generation into list of taskIds
         GenerationTaskDoneList taskDoneList = dbUtil.readTaskDoneForGaAndGeneration(gaName, dbUtil.readTaskDoneMaxGenerationIdForGa(gaName));
@@ -47,9 +47,8 @@ public class IntanSpikeParentSelector implements ParentSelector{
 
     private List<Long> selectParentsFrom(List<Double> spikeRates) {
         List<Long> parents = new LinkedList<>();
-        Double max = Collections.max(spikeRates);
-        parents.add(previousGenerationIds.get(spikeRates.indexOf(max)));
 
+        parents.addAll(spikeRateAnalyzer.analyze(previousGenerationIds, spikeRates));
         return parents;
     }
 
@@ -68,7 +67,7 @@ public class IntanSpikeParentSelector implements ParentSelector{
         File[] matchingSpikeDats = dir.listFiles(new FileFilter() {
             @Override
             public boolean accept(File pathname) {
-                return pathname.getName().contains(stimId +"_");
+                return pathname.getName().contains(stimId + "_");
             }
         });
         if (matchingSpikeDats.length == 1){
@@ -77,7 +76,6 @@ public class IntanSpikeParentSelector implements ParentSelector{
             throw new IllegalArgumentException("There's either none or too many" +
                     "spike.dat files matching the stimId: " + stimId);
         }
-
     }
 
     public MultiGaDbUtil getDbUtil() {
@@ -88,13 +86,6 @@ public class IntanSpikeParentSelector implements ParentSelector{
         this.dbUtil = dbUtil;
     }
 
-    public String getGaName() {
-        return gaName;
-    }
-
-    public void setGaName(String gaName) {
-        this.gaName = gaName;
-    }
 
     public String getSpikeDatDirectory() {
         return spikeDatDirectory;
@@ -103,4 +94,14 @@ public class IntanSpikeParentSelector implements ParentSelector{
     public void setSpikeDatDirectory(String spikeDatDirectory) {
         this.spikeDatDirectory = spikeDatDirectory;
     }
+
+    public SpikeRateAnalyzer getSpikeRateAnalyzer() {
+        return spikeRateAnalyzer;
+    }
+
+    public void setSpikeRateAnalyzer(SpikeRateAnalyzer spikeRateAnalyzer) {
+        this.spikeRateAnalyzer = spikeRateAnalyzer;
+    }
+
+
 }

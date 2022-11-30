@@ -2,10 +2,8 @@ package org.xper.allen.ga;
 
 import org.junit.Test;
 import org.xper.allen.util.TestMultiGaDbUtil;
-import org.xper.intan.read.SpikeReader;
 import org.xper.util.ResourceUtil;
 
-import javax.annotation.Resource;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -17,7 +15,7 @@ public class IntanSpikeParentSelectorTest {
 
     @Test
     public void test12345HigherSpikeRate() {
-        setUp();
+        setUpWithMaxSpikeRateAnalyzer();
 
         //actual spikerates calculated via matlab
         //12345: 476.427
@@ -27,7 +25,7 @@ public class IntanSpikeParentSelectorTest {
         channels.add("B-000");
         channels.add("B-031");
 
-        List<Long> parents = parentSelector.selectParents(channels);
+        List<Long> parents = parentSelector.selectParents(channels, "3DGA-1");
 
         assertEquals(12345, (long) parents.get(0));
         assertEquals(1, parents.size());
@@ -36,7 +34,7 @@ public class IntanSpikeParentSelectorTest {
 
     @Test
     public void test12346HigherSpikeRate(){
-        setUp();
+        setUpWithMaxSpikeRateAnalyzer();
 
         //actual spikerates calculated via matlab
         //12345: 391.70
@@ -46,18 +44,17 @@ public class IntanSpikeParentSelectorTest {
         channels.add("B-000");
         channels.add("B-015");
 
-        List<Long> parents = parentSelector.selectParents(channels);
+        List<Long> parents = parentSelector.selectParents(channels, "3DGA-1");
 
         assertEquals(12346, (long) parents.get(0));
         assertEquals(1, parents.size());
     }
 
-    private void setUp() {
+    private void setUpWithMaxSpikeRateAnalyzer() {
         IntanSpikeParentSelector parentSelector = new IntanSpikeParentSelector();
-        parentSelector.setGaName("3DGA-1");
         parentSelector.setDbUtil(new TestMultiGaDbUtil());
         parentSelector.setSpikeDatDirectory(ResourceUtil.getResource("IntanSpikeParentSelector-spikeDatDirectory"));
-
+        parentSelector.setSpikeRateAnalyzer(new MaxSpikeRateAnalyzer());
 
        this.parentSelector = parentSelector;
     }

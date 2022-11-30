@@ -43,6 +43,7 @@ public class MorphTrial extends ThreeDGATrial {
 
         //draw pngs
         List<String> labels = new LinkedList<>();
+        labels.add(generator.getGaName());
         labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPathToExperiment(pngPath);
