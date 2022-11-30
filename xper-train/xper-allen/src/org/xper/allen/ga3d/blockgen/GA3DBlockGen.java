@@ -55,10 +55,10 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     }
 
     private void addFirstGeneration(){
-        trials.addAll(createFirstGenerationTrials(this, numTrials, initialSize, initialCoords));
+        trials.addAll(createRandTrials(this, numTrials, initialSize, initialCoords));
     }
 
-    private List<Trial> createFirstGenerationTrials(GA3DBlockGen generator, int numTrials, double size, Coordinates2D coords){
+    private List<Trial> createRandTrials(GA3DBlockGen generator, int numTrials, double size, Coordinates2D coords){
         List<Trial> trials = new LinkedList<>();
         for (int i = 0; i< numTrials; i++){
             trials.add(new RandTrial(generator, size, coords));
@@ -67,10 +67,11 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     }
 
     private void addNthGeneration(){
-        trials.addAll(createNthGenerationTrials(this));
+        trials.addAll(createMorphTrials(this));
+        trials.addAll(createRandTrials(this, 4, initialSize, initialCoords));
     }
 
-    private List<Trial> createNthGenerationTrials(GA3DBlockGen generator){
+    private List<Trial> createMorphTrials(GA3DBlockGen generator){
         List<Trial> trials = new LinkedList<>();
 
         stimsToMorph = parentSelector.selectParents(channels, gaName);
