@@ -4,6 +4,7 @@ import org.xper.allen.Trial;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.ga.drawing.GAMatchStick;
+import org.xper.db.vo.StimSpecEntry;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.MStickSpec;
 import org.xper.drawing.stick.MatchStick;
@@ -56,7 +57,6 @@ public class MorphTrial extends ThreeDGATrial {
         Coordinates2D coords = morphCoords(parentCoords, parentSize);
         double size = morphSize(parentSize);
 
-
         //write spec
         taskId = id;
 
@@ -105,11 +105,18 @@ public class MorphTrial extends ThreeDGATrial {
 
 
     public Coordinates2D getCoordsFromParent(){ //TODO
-        return new Coordinates2D();
+        PngSpec parentStimSpec = getParentPngSpec();
+        return new Coordinates2D(parentStimSpec.getxCenter(), parentStimSpec.getyCenter());
+    }
+
+    private PngSpec getParentPngSpec() {
+        StimSpecEntry sse  = generator.getDbUtil().readStimSpec(parentId);
+        return PngSpec.fromXml(sse.getSpec());
     }
 
     public double getSizeFromParent(){ //TODO
-        return 0;
+        PngSpec parentStimSpec = getParentPngSpec();
+        return parentStimSpec.getDimensions().getHeight();
     }
 
     protected static Coordinates2D polarToCart(double r, double theta){
