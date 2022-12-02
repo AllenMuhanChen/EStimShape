@@ -1,19 +1,14 @@
 package org.xper.allen.ga3d.blockgen;
 
-import org.xper.allen.Trial;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.ga.drawing.GAMatchStick;
 import org.xper.db.vo.StimSpecEntry;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.stick.MStickSpec;
-import org.xper.drawing.stick.MatchStick;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -40,9 +35,11 @@ public class MorphTrial extends ThreeDGATrial {
         //generate Match Sticks
         AllenMatchStick mStick = new AllenMatchStick();
         mStick.setProperties(generator.getMaxImageDimensionDegrees());
-        mStick.genMatchStickFromShapeSpec(AllenMStickSpec.fromXml(getMStickSpec(parentId)),new double[]{0,0,0});
-        mStick.mutate(0);
-
+        mStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+//        mStick.genMatchStickFromShapeSpec(AllenMStickSpec.fromXml(readMStickSpec(parentId)),new double[]{0,0,0});
+        AllenMStickSpec mStickSpec = new AllenMStickSpec();
+        mStickSpec.setMStickInfo(mStick);
+        mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(id), true);
 
         //draw pngs
         List<String> labels = new LinkedList<>();
@@ -66,8 +63,6 @@ public class MorphTrial extends ThreeDGATrial {
         spec.setxCenter(coords.getX());
         spec.setyCenter(coords.getY());
 
-        AllenMStickSpec mStickSpec = new AllenMStickSpec();
-        mStickSpec.setMStickInfo(mStick);
         generator.getDbUtil().writeStimSpec(taskId, spec.toXml(), mStickSpec.toXml());
 
         System.err.println("Finished Writing Morph Trial");
@@ -84,6 +79,7 @@ public class MorphTrial extends ThreeDGATrial {
         while(output<lowerBound && output>upperBound){
             output = r.nextGaussian();
         }
+        System.err.println(output);
         return output;
     }
 
@@ -94,7 +90,7 @@ public class MorphTrial extends ThreeDGATrial {
         return new Coordinates2D(parentCoords.getX() + coordShift.getX(), parentCoords.getY() + coordShift.getY());
     }
 
-    private String getMStickSpec(Long parentId) {
+    private String readMStickSpec(Long parentId) {
         return generator.getDbUtil().readStimSpecDataByIdRangeAsMap(parentId, parentId).get(parentId);
     }
 

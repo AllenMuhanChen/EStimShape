@@ -371,7 +371,7 @@ public class AllenMAxisArc extends MAxisArc {
 		int i;
 		Point3d oriPt = new Point3d();
 		Vector3d nowvec = new Vector3d(0,0,0);
-		Transform3D transMat = new Transform3D(); 	
+		Transform3D transMat = new Transform3D();
 		Vector3d oriTangent = getmTangent()[rotCenter];
 
 		/// 1. rotate to [0 0 1]
@@ -406,22 +406,22 @@ public class AllenMAxisArc extends MAxisArc {
 			{
 				// rotate annd translate every mPts
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec); 
+				transMat.transform(nowvec);
 				getmPts()[i].add(nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;             
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
 				// rotate the Tangent vector along the maxis
-				transMat.transform(getmTangent()[i]);             		
+				transMat.transform(getmTangent()[i]);
 			}
 		}
 
 		//1.6 AC Define our normal angle
 		normal = new Vector3d(0,1,0);
 
-		//System.out.println( mPts[30] + "  " + mPts[32]);   
-		//System.out.println("tangent[1] is at : "+ mTangent[1]);   
+		//System.out.println( mPts[30] + "  " + mPts[32]);
+		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 		/// 2. rotate to targetTangent
-		oriTangent.set( interTangent);   
+		oriTangent.set( interTangent);
 		Angle = oriTangent.angle(finalTangent);
 		RotAxis.cross(oriTangent, finalTangent);
 		RotAxis.normalize();
@@ -456,20 +456,21 @@ public class AllenMAxisArc extends MAxisArc {
 			{
 				// rotate annd translate every mPts
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec); 
-				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt			
-				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;             
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
 				// rotate the Tangent vector along the maxis
-				transMat.transform(getmTangent()[i]);             		
+				transMat.transform(getmTangent()[i]);
 			}
 			//AC ADDITION:
 			transMat.transform(normal);
 		}
-		//System.out.println("tangent[1] is at : "+ mTangent[1]);      
+		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 		//System.out.println("mPts[1] is at : "+ mPts[1]);
 		/// 3. rotate along the tangent axis by deviate Angle
 		double nowDeviateAngle;
-		if ( getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
+//		if ( getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
+		if(true)
 		{
 			//ROTATE OPPOSITE OF CURRENT DEV ANGLE TO RETURN TO ZERO
 			oriPt.set(getmPts()[rotCenter]);
@@ -492,10 +493,10 @@ public class AllenMAxisArc extends MAxisArc {
 			for (i = 1 ; i <= getMaxStep(); i++)
 			{
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec); 
-				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt		
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-				transMat.transform(getmTangent()[i]);             	             				
+				transMat.transform(getmTangent()[i]);
 			}
 			//AC ADDITION:
 			transMat.transform(normal);
@@ -517,7 +518,7 @@ public class AllenMAxisArc extends MAxisArc {
 		setTransRotHis_rotCenter(rotCenter);
 
 		// July 24 2009, this is the key point
-		// change from = to set in May , so we should not have the 
+		// change from = to set in May , so we should not have the
 		// wrongly finalTangent probblem in the future
 		//transRotHis_finalPos = finalPos;
 		//		getTransRotHis_finalPos().set(finalPos);
