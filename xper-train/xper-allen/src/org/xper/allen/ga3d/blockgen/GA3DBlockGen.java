@@ -21,7 +21,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     ParentSelector parentSelector;
 
     private String gaName;
-    private final List<Trial> trials = new LinkedList<>();
+    private List<Trial> trials = new LinkedList<>();
     private double initialSize;
     private Coordinates2D initialCoords;
     private int numTrials;
@@ -47,6 +47,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
     @Override
     protected void addTrials() {
+        System.out.println(firstGeneration());
         if(firstGeneration()){
             addFirstGeneration();
         } else{
@@ -124,6 +125,11 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
         return readyGens.get(gaName) == 0;
     }
 
+    @Override
+    public void tearDown(){
+        pngMaker.close();
+        trials = new LinkedList<>();
+    }
 
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;

@@ -610,10 +610,10 @@ public class MStickObj4Smooth {
     public boolean objectMerge( MStickObj4Smooth inObj, boolean specialTreat)
     {
               // two main roles here are this (1) & inObj (2)
-        boolean showDebug = false;
+        boolean showDebug = true;
         if (showDebug)
         {
-                System.out.println("start merging object procedure....\n\n");
+            System.out.println("start merging object procedure....\n\n");
         }
           // 1. distance calculation
           double[] distVec1 = new double[this.nVect +1];
@@ -640,15 +640,17 @@ public class MStickObj4Smooth {
         {
             double minDist = 100.0;
             int i;
-            for (i=1 ; i<=nVect; i++)
-              if (distVec1[i] < minDist)
-            {
-                minDist = distVec1[i];
+            for (i=1 ; i<=nVect; i++) {
+                if (distVec1[i] < minDist) {
+                    minDist = distVec1[i];
+                }
             }
+            System.out.println(minDist);
             if (minDist >= 1.2)
             {
+
                 System.out.println("The two tube are not contacting.....fail");
-                return false;
+//                return false; //AC test disable
             }
         }
 
@@ -681,8 +683,13 @@ public class MStickObj4Smooth {
 
 
 
-      if (IntersectPatch.nVect == -1) // don't do anymore
-        return false;
+      if (IntersectPatch.nVect == -1) {// don't do anymore
+          if (showDebug){
+              System.out.println("fail intersectPatch.nvect ==-1");
+          }
+//          return false; //AC TEST DISABLE
+      }
+
 
         // 3. now the important part
         // merge the mesh from this, inObj, and IntersectPatch into one water-tight mesh

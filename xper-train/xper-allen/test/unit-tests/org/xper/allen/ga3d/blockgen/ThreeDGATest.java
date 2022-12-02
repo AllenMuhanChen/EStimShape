@@ -1,12 +1,19 @@
 package org.xper.allen.ga3d.blockgen;
 
+import com.sun.org.apache.xpath.internal.operations.Mult;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.xper.allen.ga.MockParentSelector;
 import org.xper.allen.ga.ParentSelector;
 import org.xper.allen.util.DbUtilFactory;
+import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.db.vo.GenerationTaskToDoList;
+import org.xper.db.vo.TaskToDoEntry;
 import org.xper.drawing.Coordinates2D;
 import org.xper.util.FileUtil;
+import org.xper.util.ThreadUtil;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -19,12 +26,18 @@ public class ThreeDGATest {
 
     @Before
     public void setUp(){
+
+
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
         generator = context.getBean(GA3DBlockGen.class);
-        generator.setDbUtil(DbUtilFactory.createGaDbUtil("allen_estimshape_dev_221110"));
-        generator.setParentSelector(testParentSelector());
-        generator.setUp(1, 2, 5, new Coordinates2D(0,0), generator.channels);
+
+        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
+        jt.execute("TRUNCATE TABLE TaskToDo");
+        jt.execute("TRUNCATE TABLE TaskDone");
+
+        generator.setParentSelector(new MockParentSelector(context.getBean(MultiGaDbUtil.class)));
+        generator.setUp(1, 20, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
@@ -33,7 +46,16 @@ public class ThreeDGATest {
         gaNames.add("3D-1");
         generator.getDbUtil().writeReadyGAsAndGenerationsInfo(gaNames);
         generator.generate(); //first gen
-        testParentId = generator.getDbUtil().readTaskToDoMaxId();
+
+        //MOCK DO FIRST GENERATION
+        GenerationTaskToDoList list = generator.getDbUtil().readTaskToDoByGaAndGeneration("3D-1", 1);
+        List<TaskToDoEntry> taskList = list.getTasks();
+        for (TaskToDoEntry taskToDo:taskList){
+            generator.getDbUtil().writeTaskDone(generator.getGlobalTimeUtil().currentTimeMicros(), taskToDo.getTaskId(), 0, "3D-1", 1);
+        }
+
+        ThreadUtil.sleep(1000);
+
         generator.generate(); //second gen
         List<Long> stimsToMorph = generator.stimsToMorph;
 

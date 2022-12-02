@@ -8,6 +8,8 @@ import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.utils.RGBColor;
 
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 public class RandTrial extends ThreeDGATrial {
 
@@ -28,19 +30,23 @@ public class RandTrial extends ThreeDGATrial {
 
     @Override
     public void write() {
-        RandMStickGenerator mStickGenerator = new RandMStickGenerator(5);
+        //Assign StimSpecId
+        id = generator.getGlobalTimeUtil().currentTimeMicros();
+
+        RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
         AllenMatchStick mStick = mStickGenerator.getMStick();
+        mStickGenerator.getMStickSpec().writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(id), true);
 
         //shading
         mStick.setTextureType("SHADE");
         //color
         mStick.setStimColor(new RGBColor(1,1,1));
 
-        //Assign StimSpecId
-        id = generator.getGlobalTimeUtil().currentTimeMicros();
-
         //png
-        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
+        //draw pngs
+        List<String> labels = new LinkedList<>();
+        labels.add(generator.getGaName());
+        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPathToExperiment(pngPath);
 
         //Create StimSpec

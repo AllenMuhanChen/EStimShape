@@ -3729,8 +3729,10 @@ public class MatchStick implements Drawable {
 			int target = i;
 			boolean res  = false;
 			res = nowObj.objectMerge( MObj[target], false); 
-			if (res == false)
+			if (res == false) {
+				System.err.println("FAIL AT OBJECT MERGE");
 				return false;
+			}
 		}
 
 		// 3. general smooth afterward

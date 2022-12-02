@@ -3266,7 +3266,7 @@ Adding a new MAxisArc to a MatchStick
 		int i, j, k;
 
 		// 1.5 AC Info
-		setSpecialEnd(inSpec.getmAxis().getSpecialEnd());
+		setSpecialEnd(new LinkedList<>(inSpec.getmAxis().getSpecialEnd()));
 		setSpecialEndComp(inSpec.getmAxis().getSpecialEndComp());
 		setBaseComp(inSpec.getmAxis().getBaseComp());
 
@@ -3397,33 +3397,33 @@ Adding a new MAxisArc to a MatchStick
 		if ( res == true)
 		{
 			return;
-			//            if ( inSpec.getNVect() < 10) // this might happen, not sure
-			//            {
-			////                System.out.println("no old smooth vertex info yet");
-			//                return;
-			//            }
-			//            Point3d[] oriVecList = inSpec.getVectInfo();
-			//            double vect_dist = 0.0;
-			//            int nVect1 = this.obj1.nVect;
-			//            int nVect2 = inSpec.getNVect();
-			//            System.out.println("      vec # check " + nVect1 + " " + nVect2);
-			//            if ( nVect1 != nVect2)
-			//            {
-			//                res = false;
-			//                System.out.println("            vec # unmatch");
-			//            }
-			//            if ( res == true)
-			//            {
-			//                for (i= 1; i<= this.obj1.nVect; i++)
-			//                {
-			//                    Point3d p1 = new Point3d(obj1.vect_info[i]);
-			//                    Point3d p2 = oriVecList[i];
-			//                    vect_dist += p1.distance(p2);
-			//                }
-			//                System.out.println("            total vect dist is :" + vect_dist);
-			//                if ( vect_dist > 5.0)
-			//                    res = false;
-			//            }
+//			            if ( inSpec.getNVect() < 10) // this might happen, not sure
+//			            {
+//			//                System.out.println("no old smooth vertex info yet");
+//			                return;
+//			            }
+//			            Point3d[] oriVecList = inSpec.getVectInfo();
+//			            double vect_dist = 0.0;
+//			            int nVect1 = this.obj1.nVect;
+//			            int nVect2 = inSpec.getNVect();
+//			            System.out.println("      vec # check " + nVect1 + " " + nVect2);
+//			            if ( nVect1 != nVect2)
+//			            {
+//			                res = false;
+//			                System.out.println("            vec # unmatch");
+//			            }
+//			            if ( res == true)
+//			            {
+//			                for (i= 1; i<= this.obj1.nVect; i++)
+//			                {
+//			                    Point3d p1 = new Point3d(obj1.vect_info[i]);
+//			                    Point3d p2 = oriVecList[i];
+//			                    vect_dist += p1.distance(p2);
+//			                }
+//			                System.out.println("            total vect dist is :" + vect_dist);
+//			                if ( vect_dist > 5.0)
+//			                    res = false;
+//			            }
 		}
 
 		boolean tryFlip = true;
