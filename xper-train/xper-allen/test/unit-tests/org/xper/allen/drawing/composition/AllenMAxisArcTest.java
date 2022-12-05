@@ -7,6 +7,8 @@ import org.xper.XperConfig;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.stick.MAxisArc;
+import org.xper.drawing.stick.MStickSpec;
+import org.xper.drawing.stick.MatchStick;
 import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
@@ -15,17 +17,22 @@ import javax.vecmath.Vector3d;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
+
 public class AllenMAxisArcTest {
 
     public static final Vector3d VIEW_SIDE = new Vector3d(1, 0, 0);
     public static final Vector3d VIEW_ABOVE = new Vector3d(0, 1, 0);
     private final Vector3d VIEW_TANGENT = new Vector3d(0, 0, 1);
+    private TestDrawingWindow window;
 
     @Before
     public void setUp(){
         List<String> libs = new ArrayList<String>();
         libs.add("xper");
         new XperConfig("", libs);
+
+        getTestDrawingWindow();
     }
 
     @After
@@ -38,7 +45,6 @@ public class AllenMAxisArcTest {
         Vector3d view = VIEW_ABOVE;
 
 
-        TestDrawingWindow window = TestDrawingWindow.createDrawerWindow();
         AllenMAxisArc allenMAxisArc = new AllenMAxisArc();
         allenMAxisArc.genArc(5,5);
         allenMAxisArc.transRotMAxis(1, new Point3d(0,0,0), 1, view, 0);
@@ -61,6 +67,11 @@ public class AllenMAxisArcTest {
 
     }
 
+    private TestDrawingWindow getTestDrawingWindow() {
+        window = TestDrawingWindow.createDrawerWindow();
+        return window;
+    }
+
     private void showNewSimilarArc(TestDrawingWindow window, AllenMAxisArc allenMAxisArc) {
         AllenMAxisArc allenMAxisArc1 = new AllenMAxisArc();
         allenMAxisArc1.genSimilarArc(allenMAxisArc, 1, 0.7);
@@ -78,7 +89,7 @@ public class AllenMAxisArcTest {
     public void MAXisArcGenSimilarArcGenerateSimilarArcs(){
         Vector3d view = VIEW_ABOVE;
 
-        TestDrawingWindow window = TestDrawingWindow.createDrawerWindow();
+        window = getTestDrawingWindow();
         MAxisArc mAxisArc = new MAxisArc();
         mAxisArc.genArc(5,5);
         mAxisArc.transRotMAxis(1, new Point3d(0,0,0), 1, view, 0);
@@ -121,7 +132,6 @@ public class AllenMAxisArcTest {
      * dev angle is drawn, then the position should be incrementing.
      */
     public void AllenMAxisHasAbsoluteDevAngles(){
-        TestDrawingWindow window = TestDrawingWindow.createDrawerWindow();
         //AllenMAxis devAngle=0
         AllenMAxisArc allenMAxisArc = new AllenMAxisArc();
         allenMAxisArc.genArc(5,5);
@@ -143,8 +153,9 @@ public class AllenMAxisArcTest {
         //AllenMAxis devAngle=pi
         AllenMAxisArc allenMAxisArc1 = new AllenMAxisArc();
         allenMAxisArc1.copyFrom(allenMAxisArc);
-        allenMAxisArc1.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_TANGENT, Math.PI/2);
-        double deviateAngle = 0;
+        allenMAxisArc1.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_TANGENT,  Math.PI/2);
+        double deviateAngle =  allenMAxisArc1.getTransRotHis_devAngle();
+        System.err.println(deviateAngle);
         for (int i=0; i<100; i++){
             drawArcAtAngle(window, allenMAxisArc1, deviateAngle, 1.0f, 1.0f, 0.0f);
             deviateAngle+=2*Math.PI/100;
@@ -159,7 +170,6 @@ public class AllenMAxisArcTest {
      * continuously incrementing devAngle, the devAngle change each iteration increases.
      */
     public void MAxisHasRelativeDevAngles(){
-        TestDrawingWindow window = TestDrawingWindow.createDrawerWindow();
         //MAxisArc devAngle=0
         MAxisArc mAxisArc = new MAxisArc();
         mAxisArc.genArc(5,5);
@@ -193,7 +203,6 @@ public class AllenMAxisArcTest {
      * are not incrementing devAngle ourselves, the MAxis steadily rotates itselfs by the devAngle.
      */
     public void MAxisHasContinuousDevAngleChangeWithNoIncrement(){
-        TestDrawingWindow window = TestDrawingWindow.createDrawerWindow();
         //MAxisArc devAngle=0
         MAxisArc mAxisArc = new MAxisArc();
         mAxisArc.genArc(5,5);
@@ -241,6 +250,73 @@ public class AllenMAxisArcTest {
         });
     }
 
+    private void drawAllenMAxisArc(TestDrawingWindow window, AllenMAxisArc allenMAxisArc1, float red, float green, float blue) {
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                allenMAxisArc1.drawArc(red, green, blue);
+            }
+        });
+    }
+
+    private void drawMAxisArc(TestDrawingWindow window, MAxisArc mAxisArc, float red, float green, float blue) {
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                mAxisArc.drawArc(red, green, blue);
+            }
+        });
+    }
+
+    @Test
+    public void testAlllenMAXisFromShapeSpecConsistent(){
+        System.err.println("GENERATING ORIGINAL MSTICK");
+        AllenMatchStick originalMStick = new AllenMatchStick();
+        originalMStick.genMatchStickRand();
+        AllenMStickSpec originalSpec = new AllenMStickSpec();
+        originalSpec.setMStickInfo(originalMStick);
+
+        System.err.println("GENERATING LOADED MSTICK");
+        AllenMatchStick loadedMStick = new AllenMatchStick();
+        loadedMStick.genMatchStickFromShapeSpec(originalSpec, new double[]{0,0,0});
+
+        for (int i=1; i<=originalMStick.getNComponent(); i++){
+            drawAllenMAxisArc(window, originalMStick.getComp()[i].getmAxisInfo(), 1, i/ originalSpec.getNComponent(), 0);
+            drawAllenMAxisArc(window, loadedMStick.getComp()[i].getmAxisInfo(), 0, i/ originalSpec.getNComponent(), 1);
+            ThreadUtil.sleep(3000);
+            assertEquals(originalMStick.getComp()[i].getmAxisInfo().getTransRotHis_devAngle(), loadedMStick.getComp()[i].getmAxisInfo().getTransRotHis_devAngle(), .001);
+            assertEquals(originalMStick.getComp()[i].getmAxisInfo().getTransRotHis_finalTangent(), loadedMStick.getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
+            for (int j=0; j<originalMStick.getNComponent(); j++) {
+                assertEquals(originalMStick.getComp()[i].getmAxisInfo().getmPts()[j].x, loadedMStick.getComp()[i].getmAxisInfo().getmPts()[j].x, .001);
+                assertEquals(originalMStick.getComp()[i].getmAxisInfo().getmPts()[j].y, loadedMStick.getComp()[i].getmAxisInfo().getmPts()[j].y, .001);
+                assertEquals(originalMStick.getComp()[i].getmAxisInfo().getmPts()[j].z, loadedMStick.getComp()[i].getmAxisInfo().getmPts()[j].z, .001);
+            }
+        }
+
+
+    }
+
+    @Test
+    public void testMAXisFromShapeSpecConsistent(){
+        System.err.println("GENERATING ORIGINAL MSTICK");
+        MatchStick originalMStick = new MatchStick();
+        originalMStick.genMatchStickRand();
+        MStickSpec originalSpec = new MStickSpec();
+        originalSpec.setMStickInfo(originalMStick);
+
+        System.err.println("GENERATING LOADED MSTICK");
+        MatchStick loadedMStick = new MatchStick();
+        loadedMStick.genMatchStickFromShapeSpec(originalSpec, new double[]{0,0,0});
+
+        for (int i=1; i<=originalMStick.getNComponent(); i++){
+            drawMAxisArc(window, originalMStick.getComp()[i].getmAxisInfo(), 1, 0, 0);
+            drawMAxisArc(window, loadedMStick.getComp()[i].getmAxisInfo(), 0, 0, 1);
+            ThreadUtil.sleep(3000);
+            assertEquals(originalMStick.getComp()[i].getmAxisInfo().getmPts(), loadedMStick.getComp()[i].getmAxisInfo().getmPts());
+        }
+
+
+    }
 
 
 }
