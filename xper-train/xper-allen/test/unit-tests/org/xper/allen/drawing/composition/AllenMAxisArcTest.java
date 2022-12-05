@@ -135,7 +135,7 @@ public class AllenMAxisArcTest {
         //AllenMAxis devAngle=0
         AllenMAxisArc allenMAxisArc = new AllenMAxisArc();
         allenMAxisArc.genArc(5,5);
-        allenMAxisArc.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_TANGENT, 0);
+        allenMAxisArc.transRotMAxis(1, new Point3d(0,0,0), 1,VIEW_TANGENT, 0);
         ThreadUtil.sleep(1000);
         window.draw(new Drawable() {
             @Override
@@ -145,14 +145,12 @@ public class AllenMAxisArcTest {
         });
 
 
-
         //draw
         ThreadUtil.sleep(1000);
 
 
         //AllenMAxis devAngle=pi
         AllenMAxisArc allenMAxisArc1 = new AllenMAxisArc();
-        allenMAxisArc1.copyFrom(allenMAxisArc);
         allenMAxisArc1.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_TANGENT,  Math.PI/2);
         double deviateAngle =  allenMAxisArc1.getTransRotHis_devAngle();
         System.err.println(deviateAngle);
@@ -276,6 +274,7 @@ public class AllenMAxisArcTest {
         AllenMStickSpec originalSpec = new AllenMStickSpec();
         originalSpec.setMStickInfo(originalMStick);
 
+
         System.err.println("GENERATING LOADED MSTICK");
         AllenMatchStick loadedMStick = new AllenMatchStick();
         loadedMStick.genMatchStickFromShapeSpec(originalSpec, new double[]{0,0,0});
@@ -283,6 +282,8 @@ public class AllenMAxisArcTest {
         for (int i=1; i<=originalMStick.getNComponent(); i++){
             drawAllenMAxisArc(window, originalMStick.getComp()[i].getmAxisInfo(), 1, i/ originalSpec.getNComponent(), 0);
             drawAllenMAxisArc(window, loadedMStick.getComp()[i].getmAxisInfo(), 0, i/ originalSpec.getNComponent(), 1);
+
+
             ThreadUtil.sleep(3000);
             assertEquals(originalMStick.getComp()[i].getmAxisInfo().getTransRotHis_devAngle(), loadedMStick.getComp()[i].getmAxisInfo().getTransRotHis_devAngle(), .001);
             assertEquals(originalMStick.getComp()[i].getmAxisInfo().getTransRotHis_finalTangent(), loadedMStick.getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
@@ -290,6 +291,8 @@ public class AllenMAxisArcTest {
                 assertEquals(originalMStick.getComp()[i].getmAxisInfo().getmPts()[j].x, loadedMStick.getComp()[i].getmAxisInfo().getmPts()[j].x, .001);
                 assertEquals(originalMStick.getComp()[i].getmAxisInfo().getmPts()[j].y, loadedMStick.getComp()[i].getmAxisInfo().getmPts()[j].y, .001);
                 assertEquals(originalMStick.getComp()[i].getmAxisInfo().getmPts()[j].z, loadedMStick.getComp()[i].getmAxisInfo().getmPts()[j].z, .001);
+
+                assertEquals(originalMStick.getComp()[i].getmAxisInfo().getNormal(), loadedMStick.getComp()[i].getmAxisInfo().getNormal());
             }
         }
 

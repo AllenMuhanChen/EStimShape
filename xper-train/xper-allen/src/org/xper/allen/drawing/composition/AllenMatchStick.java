@@ -3289,6 +3289,7 @@ Adding a new MAxisArc to a MatchStick
 					// System.out.print(comp[i].radInfo[j][k] + " " );
 				}
 			//System.out.println(" " );
+
 			getComp()[i].getmAxisInfo().setArcLen(inSpec.getmAxis().getTube()[i].getmAxis_arcLen());
 			getComp()[i].getmAxisInfo().setRad(inSpec.getmAxis().getTube()[i].getmAxis_rad());
 			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());

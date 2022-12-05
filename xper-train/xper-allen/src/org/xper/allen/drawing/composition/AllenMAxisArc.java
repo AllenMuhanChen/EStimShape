@@ -7,6 +7,7 @@ import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
@@ -416,11 +417,21 @@ public class AllenMAxisArc extends MAxisArc {
 		}
 
 		//1.6 AC Define our normal angle
-		normal = new Vector3d(0,1,0);
+//		normal = new Vector3d(0,1,0);
 
 		//System.out.println( mPts[30] + "  " + mPts[32]);
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 		/// 2. rotate to targetTangent
+
+
+		//CALCULATE NORMAL
+		normal = new Vector3d(0, 1, 0);
+		System.err.println("ANGLE BETWEEN NORMAL AND FINAL TANGENT AT ROT CENTER: " + normal.angle(getmTangent()[getTransRotHis_rotCenter()]));
+		Vector3d rotAxis = new Vector3d();
+		double x = Math.cos(deviateAngle);
+		double y = Math.sin(deviateAngle);
+		Vector3d finalNormal = new Vector3d(x,y,0);
+
 		oriTangent.set( interTangent);
 		Angle = oriTangent.angle(finalTangent);
 		RotAxis.cross(oriTangent, finalTangent);
@@ -464,39 +475,46 @@ public class AllenMAxisArc extends MAxisArc {
 			}
 			//AC ADDITION:
 			transMat.transform(normal);
+			transMat.transform(finalNormal);
 		}
 		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 		//System.out.println("mPts[1] is at : "+ mPts[1]);
 		/// 3. rotate along the tangent axis by deviate Angle
-		double nowDeviateAngle;
+		double nowDeviateAngle = deviateAngle;
 //		if ( getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
 		if(true)
 		{
-			System.err.println("Before Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
-			//ROTATE OPPOSITE OF CURRENT DEV ANGLE TO RETURN TO ZERO
-			oriPt.set(getmPts()[rotCenter]);
-			nowDeviateAngle = getTransRotHis_devAngle();
-			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -nowDeviateAngle);
+//			System.err.println("Before Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
+//			//ROTATE OPPOSITE OF CURRENT DEV ANGLE TO RETURN TO ZERO
+//			oriPt.set(getmPts()[rotCenter]);
+//
+//			nowDeviateAngle = getTransRotHis_devAngle();
+//			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -nowDeviateAngle);
+//
+//			transMat.setRotation(axisInfo);
+//			System.err.println("Angle Rotate to Original: " + axisInfo.getAngle());
+//			for (i = 1 ; i <= getMaxStep(); i++)
+//			{
+//				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+//				transMat.transform(nowvec);
+//				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+//
+//				transMat.transform(getmTangent()[i]);
+//			}
+//			System.err.println("After Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
 
-			transMat.setRotation(axisInfo);
-			System.err.println("Angle Rotate to Original: " + axisInfo.getAngle());
-			for (i = 1 ; i <= getMaxStep(); i++)
-			{
-				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec);
-				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-				transMat.transform(getmTangent()[i]);
-			}
-			System.err.println("After Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
 
 			//ROTATE TO DESIRED DEV ANGLE
 			oriPt.set(getmPts()[rotCenter]);
-			System.err.println("Before Angle Rotate to Desired DevAngle: " + getmTangent()[alignedPt].toString());
-			nowDeviateAngle = deviateAngle;
-			axisInfo = new AxisAngle4d(finalTangent, nowDeviateAngle);
+			rotAxis.cross(normal, finalNormal);
+			rotAxis.normalize();
+			AxisAngle4d axisInfo = new AxisAngle4d(rotAxis, normal.angle(finalNormal));
+
+//			transMat.setRotation(axisInfo);
+//			nowDeviateAngle = deviateAngle;
+//			axisInfo = new AxisAngle4d(finalTangent, nowDeviateAngle);
 			transMat.setRotation(axisInfo);
-			System.err.println("Angle Rotate to Desired Dev Angle: " + axisInfo.getAngle());
 			for (i = 1 ; i <= getMaxStep(); i++)
 			{
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
@@ -505,9 +523,9 @@ public class AllenMAxisArc extends MAxisArc {
 
 				transMat.transform(getmTangent()[i]);
 			}
-			System.err.println("After Angle Rotate to Desired DevAngle: " + getmTangent()[alignedPt].toString());
 			//AC ADDITION:
-			transMat.transform(normal);
+//			transMat.transform(this.normal);
+			this.normal = finalNormal;
 		} else {
 			nowDeviateAngle = getTransRotHis_devAngle();
 		}
@@ -780,6 +798,23 @@ public class AllenMAxisArc extends MAxisArc {
 
 			System.out.println("");
 		}
+
+	}
+
+	public void drawNormal(float red, float green, float blue)
+	{
+		//use the oGL draw line function to draw out the mAxisArc
+		int i;
+		GL11.glColor3f(red, green, blue);
+		GL11.glBegin(GL11.GL_LINE_STRIP);
+
+		for (i=1; i<= getNormal().length(); i++)
+		{
+			//GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
+			GL11.glVertex3d(getNormal().x, getNormal().y, getNormal().z);
+		}
+
+		GL11.glEnd();
 
 	}
 
