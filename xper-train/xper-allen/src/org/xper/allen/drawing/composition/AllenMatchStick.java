@@ -2559,6 +2559,10 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
+	public void genMatchStickRandSuper(){
+		super.genMatchStickRand();
+	}
+
 	public void genMatchStickRand() {
 		int nComp;
 		// double nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
@@ -3290,14 +3294,13 @@ Adding a new MAxisArc to a MatchStick
 			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());
 			//System.out.println("branchPt " + comp[i].mAxisInfo.branchPt);
 
-			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt()); 
+			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt());
 			getComp()[i].getmAxisInfo().setTransRotHis_rotCenter(inSpec.getmAxis().getTube()[i].getTransRotHis_rotCenter());
 			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().set(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
 			//getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
 			getComp()[i].getmAxisInfo().getTransRotHis_finalTangent().set(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
 			//getComp()[i].getmAxisInfo().setTransRotHis_finalTangent(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
 			getComp()[i].getmAxisInfo().setTransRotHis_devAngle(inSpec.getmAxis().getTube()[i].getTransRotHis_devAngle());
-
 		}
 
 		// 3. endPt info

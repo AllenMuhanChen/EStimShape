@@ -365,7 +365,7 @@ public class AllenMAxisArc extends MAxisArc {
 	public void transRotMAxis(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
 	{
 
-		//	 	System.out.println("transRot mAxis procedure:");
+		//	 	System.out.println("AllenMAXis transRot mAxis procedure:");
 		//	 	System.out.println("final pos: "+finalPos + "final tangent: "+finalTangent);
 
 		int i;
@@ -387,10 +387,10 @@ public class AllenMAxisArc extends MAxisArc {
 		boolean skipRotate = false;
 		//July 24 2009, should we remove Angle == Math.PI
 		if ( Angle == 0.0 || Angle == Math.PI) // no need to turn
-			//if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+//			if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
 		{
 			skipRotate = true;
-			//	 		System.out.println("Skip first rotation");
+				 		System.out.println("Skip first rotation");
 			//	 		System.out.println("ori Tangent: " + oriTangent);
 			//	 		System.out.println("inter tangent: " + interTangent);
 			//	 		System.out.println("rad of the arc is " + rad);
@@ -472,11 +472,14 @@ public class AllenMAxisArc extends MAxisArc {
 //		if ( getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
 		if(true)
 		{
+			System.err.println("Before Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
 			//ROTATE OPPOSITE OF CURRENT DEV ANGLE TO RETURN TO ZERO
 			oriPt.set(getmPts()[rotCenter]);
 			nowDeviateAngle = getTransRotHis_devAngle();
 			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -nowDeviateAngle);
+
 			transMat.setRotation(axisInfo);
+			System.err.println("Angle Rotate to Original: " + axisInfo.getAngle());
 			for (i = 1 ; i <= getMaxStep(); i++)
 			{
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
@@ -485,11 +488,15 @@ public class AllenMAxisArc extends MAxisArc {
 
 				transMat.transform(getmTangent()[i]);
 			}
+			System.err.println("After Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
 
 			//ROTATE TO DESIRED DEV ANGLE
+			oriPt.set(getmPts()[rotCenter]);
+			System.err.println("Before Angle Rotate to Desired DevAngle: " + getmTangent()[alignedPt].toString());
 			nowDeviateAngle = deviateAngle;
 			axisInfo = new AxisAngle4d(finalTangent, nowDeviateAngle);
 			transMat.setRotation(axisInfo);
+			System.err.println("Angle Rotate to Desired Dev Angle: " + axisInfo.getAngle());
 			for (i = 1 ; i <= getMaxStep(); i++)
 			{
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
@@ -498,6 +505,7 @@ public class AllenMAxisArc extends MAxisArc {
 
 				transMat.transform(getmTangent()[i]);
 			}
+			System.err.println("After Angle Rotate to Desired DevAngle: " + getmTangent()[alignedPt].toString());
 			//AC ADDITION:
 			transMat.transform(normal);
 		} else {

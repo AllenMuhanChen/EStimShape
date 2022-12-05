@@ -351,7 +351,7 @@ public class MAxisArc
      */
      public void transRotMAxis(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
      {
-// 	System.out.println("transRot mAxis procedure:");
+ 	System.out.println("transRot mAxis procedure:");
 // 	System.out.println("final pos: "+finalPos + "final tangent: "+finalTangent);
 	/// 1. rotate to [0 0 1]
 	  int i;

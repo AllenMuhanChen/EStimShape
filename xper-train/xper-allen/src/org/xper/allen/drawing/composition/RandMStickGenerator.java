@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition;
 
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
+import org.xper.drawing.stick.MatchStick;
 
 public class RandMStickGenerator extends AbstractMStickGenerator{
 
