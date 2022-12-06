@@ -1,0 +1,19 @@
+Universe = vanilla
++SourceLab="connor"
+#  use a specific machine :
+Requirements = OpSys == "LINUX" && Arch == "x86_64"
+
+Environment = HOME=/home/ram/
+notification 	= Complete
+notify_user 	=
+Executable = condorRunScript.sh
+initialdir = /home/ram/projectSTAStick/
+
+Log = runLog.txt
+
+Notification = Error
+
+Arguments = $$(Arch) doSingleCell $(Process)
+Output = data/cluster/matlab.$(Process).out
+Error = err/matlab.$(Process).err
+Queue 169
