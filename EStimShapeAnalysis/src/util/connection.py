@@ -18,7 +18,7 @@ class Connection:
             password=password,
             database=database
         )
-        self.mycursor = self.mydb.cursor()
+        self.my_cursor = self.mydb.cursor()
         if when is None:
             when = time_util.today()
         self.beh_msg = self._get_beh_msg(when)
@@ -26,25 +26,40 @@ class Connection:
         self.stim_obj_data = self._get_stim_obj_data(when)
         self.beh_msg_eye = self._get_beh_msg_eye(when)
 
+    def __init__(self, database, password="up2nite"):
+        self.mydb = mysql.connector.connect(
+            host="172.30.6.80",
+            user="xper_rw",
+            password=password,
+            database=database
+        )
+
+        self.my_cursor = self.mydb.cursor()
+
+    def execute(self, statement, params=()):
+        self.my_cursor.execute(statement, params)
+
+    def fetch_one(self):
+        return "".join(self.my_cursor.fetchall()[0])
     def _get_beh_msg(self, when: When) -> pd.DataFrame:
-        self.mycursor.execute("SELECT * FROM BehMsg WHERE tstamp>= %s && tstamp<=%s", (when.start, when.stop))
-        df = pd.DataFrame(self.mycursor.fetchall())
+        self.my_cursor.execute("SELECT * FROM BehMsg WHERE tstamp>= %s && tstamp<=%s", (when.start, when.stop))
+        df = pd.DataFrame(self.my_cursor.fetchall())
         df.columns = ['tstamp', 'type', 'msg']
         return df
 
     def _get_stim_sec(self, when: When) -> pd.DataFrame:
-        self.mycursor.execute("SELECT * FROM StimSpec WHERE id>= %s & id<=%s", (when.start, when.stop))
-        df = pd.DataFrame(self.mycursor.fetchall())
+        self.my_cursor.execute("SELECT * FROM StimSpec WHERE id>= %s & id<=%s", (when.start, when.stop))
+        df = pd.DataFrame(self.my_cursor.fetchall())
         df.columns = ['id', 'spec', 'util']
         return df
 
     def _get_stim_obj_data(self, when: When) -> pd.DataFrame:
-        self.mycursor.execute("SELECT * FROM StimObjData WHERE id>= %s & id<=%s", (when.start, when.stop))
-        df = pd.DataFrame(self.mycursor.fetchall())
+        self.my_cursor.execute("SELECT * FROM StimObjData WHERE id>= %s & id<=%s", (when.start, when.stop))
+        df = pd.DataFrame(self.my_cursor.fetchall())
         df.columns = ['id', 'spec', 'util']
         return df
     def _get_beh_msg_eye(self, when: When) -> pd.DataFrame:
-        self.mycursor.execute("SELECT * FROM BehMsgEye WHERE tstamp>= %s & tstamp<=%s", (when.start, when.stop))
-        df = pd.DataFrame(self.mycursor.fetchall())
+        self.my_cursor.execute("SELECT * FROM BehMsgEye WHERE tstamp>= %s & tstamp<=%s", (when.start, when.stop))
+        df = pd.DataFrame(self.my_cursor.fetchall())
         df.columns = ['tstamp', 'type', 'msg']
         return df
