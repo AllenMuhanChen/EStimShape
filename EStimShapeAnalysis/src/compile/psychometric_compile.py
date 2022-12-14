@@ -7,7 +7,7 @@ from src.util import table_util, connection
 from src.util.time_util import When, all, today
 from src.compile import trial_field as tf, trial_collector
 
-
+"""DEPRECATED """
 class StimSpecDataField(tf.Field):
     def __init__(self, beh_msg: pd.DataFrame, stim_spec: pd.DataFrame):
         self.beh_msg = beh_msg
