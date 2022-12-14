@@ -1,3 +1,5 @@
+import math
+
 import pandas as pd
 import xmltodict
 
@@ -23,7 +25,10 @@ class ShaftField(MatchStickField):
 
         shaft_data = pd.DataFrame
         for shaft_spec in shaft_specs:
-            angular_position = shaft_spec["transRotHis__finalPos"]
+            radial_position, angular_position = cartesian_to_polar(shaft_spec["transRotHis__finalPos"])
 
 
-
+def cartesian_to_polar(x, y):
+    r = math.sqrt(x ** 2 + y ** 2)
+    theta = math.atan2(y, x)
+    return r, theta
