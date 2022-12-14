@@ -17,6 +17,12 @@ class Test(TestCase):
         field = ShaftField(TestMStickSource())
         print(field.get(None))
 
+    def test_comp_txt(self):
+        comp_file = open("/home/r2_allen/Documents/EStimShape/dev_221110/specs/1670009332620530_comp.txt")
+        comp = comp_file.read()
+        comp_file.close()
+        print(comp)
+
 
 class TestMStickSource:
 
