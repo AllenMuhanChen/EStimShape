@@ -23,7 +23,7 @@ class TrialTypeField(StimSpecDataField):
         self.name = "TrialType"
         super().__init__(beh_msg, stim_spec)
 
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         stim_spec_data_xml = self.retrieve_spec_data(when)
         msg_type = self._parse_type_from_stim_spec_data(stim_spec_data_xml)
         if ("RandNoisyTrialParameters" in msg_type):
@@ -46,7 +46,7 @@ class IsCorrectField(tf.Field):
         self.beh_msg = beh_msg
         self.name = "IsCorrect"
 
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         time_cond = table_util.beh_msgs_during_trial(self.beh_msg, when)
         correct = self.__get_num_corrects(time_cond)
         incorrect = self.__get_num_incorrects(time_cond)
@@ -76,7 +76,7 @@ class NoiseChanceField(StimSpecDataField):
         self.name = "NoiseChance"
         super().__init__(beh_msg, stim_spec)
 
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         stim_spec_data_dict = self.retrieve_spec_data(when)
         trialtype = list(stim_spec_data_dict.keys())[0]
         noise_chance_dict =  stim_spec_data_dict[trialtype]['noiseParameters']['noiseChanceBounds']
@@ -89,7 +89,7 @@ class PsychometricIdField(StimSpecDataField):
         self.name = "PsychometricId"
         super().__init__(beh_msg, stim_spec)
 
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         stim_spec_data_dict = self.retrieve_spec_data(when)
         trialtype = list(stim_spec_data_dict.keys())[0]
         try:

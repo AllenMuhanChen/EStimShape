@@ -12,7 +12,7 @@ database = "allen_estimshape_train_221020"
 class EyeDeviceMessageField(Field):
     def __init__(self, beh_msg_eye: DataFrame):
         self.name = "EyeDeviceMessage"
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         pass
 
 if __name__ == '__main__':

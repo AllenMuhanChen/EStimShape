@@ -1,16 +1,18 @@
 import numpy
 import numpy as np
-import pandas as pd
-from src.util import connection, time_util, table_util
+from src.util import time_util, table_util
+from src.util.connection import Connection
+from src.util.time_util import When
 
 
 class TrialCollector:
-    def __init__(self, conn: connection.Connection):
-        self.beh_msg = conn.beh_msg
-        self.stim_spec = conn.stim_spec
-        self.stim_obj_data = conn.stim_obj_data
+    def __init__(self, conn: Connection, when: When = time_util.today()):
+        self.beh_msg = conn.get_beh_msg(when)
+        self.stim_spec = conn.get_stim_spec(when)
+        self.stim_obj_data = conn.get_stim_obj_data(when)
 
     def collect_choice_trials(self):
+        print("Collecting choice trials")
         all_trial_whens = self.collect_trials()
         choice_trial_whens = []
         for when in all_trial_whens:
@@ -19,6 +21,7 @@ class TrialCollector:
         return choice_trial_whens
 
     def collect_trials(self):
+        print("Collecting all trials")
         trial_starts = self.beh_msg[self.beh_msg['type'] == "TrialStart"]['tstamp'].values
         trial_stops = self.beh_msg[self.beh_msg['type'] == "TrialStop"]['tstamp'].values
         trial_starts, trial_stops = self.sort_fix_bad_trials(trial_starts, trial_stops)
