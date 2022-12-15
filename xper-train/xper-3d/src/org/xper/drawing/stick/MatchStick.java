@@ -3572,7 +3572,7 @@ public class MatchStick implements Drawable {
 	 *   This function should only be called in the analysis
 	 *   (after the electrophysio exp...)
 	 */
-	private void modifyMAxisFinalInfo()
+	protected void modifyMAxisFinalInfo()
 	{
 		//May 21st , I want to do the same
 		// rotate, scale, and translateinZ for the components
@@ -3602,7 +3602,7 @@ public class MatchStick implements Drawable {
 
 			getComp()[i].getmAxisInfo().setArcLen(getComp()[i].getmAxisInfo().getArcLen() * this.getScaleForMAxisShape());
 			getComp()[i].getmAxisInfo().setRad(getComp()[i].getmAxisInfo().getRad() * this.getScaleForMAxisShape());
-			getComp()[i].getmAxisInfo().curvature = 1.0 / getComp()[i].getmAxisInfo().getRad();
+			getComp()[i].getmAxisInfo().setCurvature(1.0 / getComp()[i].getmAxisInfo().getRad());
 			//rotate and scale for finalPos
 			// rotate and 'no' sclae for finalTangent
 
@@ -3696,13 +3696,7 @@ public class MatchStick implements Drawable {
 			// don't change the devAngle
 			//comp[i].mAxisInfo.transRotHis_devAngle =
 		}
-
-
-
-
 		// end of the change of component info
-
-
 
 	}
 	/**

@@ -2,9 +2,7 @@ package org.xper.drawing.stick;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.FileWriter;
 
 import javax.vecmath.Point3d;
@@ -201,8 +199,8 @@ public class MStickSpec {
         compPosTanStr = "";
         for (int i=1; i<=getNComponent(); i++) {
             MAxisArc tempArc = tubes[i].getmAxisInfo();
-            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," + 
-                    tempArc.curvature + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
+            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," +
+                    tempArc.getCurvature() + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
             for (int j=1; j<=51; j++) {
                 compPosTanStr = compPosTanStr + tempArc.getmPts()[j].x + "," + tempArc.getmPts()[j].y + "," + 
                         tempArc.getmPts()[j].z + "," + tempArc.getmTangent()[j].x + "," + 

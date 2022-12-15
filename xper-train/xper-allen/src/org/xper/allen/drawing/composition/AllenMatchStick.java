@@ -21,6 +21,8 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphPara
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.allen.util.CoordinateConverter;
+import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -4094,5 +4096,158 @@ Adding a new MAxisArc to a MatchStick
 	@Override
 	protected void addTube(int i){
 		getComp()[i] = new AllenTubeComp();
+	}
+
+	public void modifyMAxisFinalInfoForAnalysis(){
+		modifyMAxisFinalInfo();
+		//TODO: apply transformations to normal, and other stuff
+	}
+
+	public AllenMStickData getMStickData(){
+		AllenMStickData data = new AllenMStickData();
+
+		//TODO: WE HAVE TO BECAREFUL OF SIDE EFFECTS OF THIS METHOD. Must be the last thing.
+		modifyMAxisFinalInfoForAnalysis();
+
+		data.setShaftData(getShaftData());
+		data.setTerminationData(getTerminationData());
+		data.setJunctionData(getJunctionData());
+
+		return data;
+	}
+
+	private List<JunctionData> getJunctionData() {
+		List<JunctionData> junctionDatas = new LinkedList<>();
+		for (int i=1; i<=getNJuncPt(); i++){
+			JunctionData junctionData = new JunctionData();
+
+			//Position - Spherical Coordinates
+			JuncPt_struct juncPt = getJuncPt()[i];
+			Point3d junctionCenterCartesian = juncPt.getPos();
+			SphericalCoordinates junctionPositionSpherical = CoordinateConverter.cartesianToSpherical(junctionCenterCartesian);
+			junctionData.angularPosition = junctionPositionSpherical.getAngularCoordinates();
+			junctionData.radialPosition = junctionPositionSpherical.r;
+
+			//Angle Bisector Direction
+			junctionData.angleBisectorDirection = new LinkedList<AngularCoordinates>();
+			//for every pair
+			for(int j=1; j<=juncPt.getnComp(); j++){
+				for(int k =j+1; k<=juncPt.getnComp(); k++){
+					Vector3d[] junctionTangents = new Vector3d[]{juncPt.getTangent()[j], juncPt.getTangent()[k]};
+					Vector3d bisectorTangent = calculateBisectorVector(junctionTangents);
+					SphericalCoordinates bisectorTangentSpherical = CoordinateConverter.cartesianToSpherical(bisectorTangent);
+					junctionData.angleBisectorDirection.add(bisectorTangentSpherical.getAngularCoordinates());
+				}
+			}
+
+			//Radius
+			junctionData.radius = juncPt.getRad();
+
+			//Junction Subtense
+			junctionData.angularSubtense = new LinkedList<AngularCoordinates>();
+			//for every pair
+			for(int j=1; j<=juncPt.getnComp(); j++){
+				for(int k =j+1; k<=juncPt.getnComp(); k++){
+					SphericalCoordinates angle1 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[j]);
+					SphericalCoordinates angle2 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[k]);
+					double theta = angleDiff(angle1.theta, angle2.theta);
+					double phi = angleDiff(angle1.phi, angle2.phi);
+					AngularCoordinates subtense = new AngularCoordinates(theta, phi);
+					junctionData.angularSubtense.add(subtense);
+				}
+			}
+
+			//TODO: Planar Rotation
+
+			//
+			junctionDatas.add(junctionData);
+		}
+		return junctionDatas;
+	}
+
+	private List<TerminationData> getTerminationData() {
+		List<TerminationData> terminationDatas = new LinkedList<>();
+		for (int i=1; i<= getNEndPt(); i++){
+			TerminationData terminationData = new TerminationData();
+			EndPt_struct endPt = getEndPt()[i];
+
+			//Position - Spherical Coordinates
+			Point3d terminationPositionCartesian = endPt.getPos();
+			SphericalCoordinates junctionSphericalCoordinates = CoordinateConverter.cartesianToSpherical(terminationPositionCartesian);
+			terminationData.angularPosition = junctionSphericalCoordinates.getAngularCoordinates();
+			terminationData.radialPosition = junctionSphericalCoordinates.r;
+
+			//Direction
+			Vector3d directionCartesian = endPt.getTangent();
+			terminationData.direction = CoordinateConverter.cartesianToSpherical(directionCartesian).getAngularCoordinates();
+
+			//Radius
+			terminationData.radius = endPt.getRad();
+
+			//
+			terminationDatas.add(terminationData);
+		}
+		return terminationDatas;
+	}
+
+	private List<ShaftData> getShaftData() {
+		List<ShaftData> shaftDatas = new LinkedList<>();
+		for (int i=1; i<=getNComponent(); i++){
+			ShaftData shaftData = new ShaftData();
+			AllenTubeComp tube = getComp()[i];
+			AllenMAxisArc mAxis = tube.getmAxisInfo();
+
+			//Position - Spherical Coordinates
+			Point3d shaftCenterCartesian = mAxis.getmPts()[26];
+			SphericalCoordinates shaftCenterSpherical = CoordinateConverter.cartesianToSpherical(shaftCenterCartesian);
+			shaftData.angularPosition = shaftCenterSpherical.getAngularCoordinates();
+			shaftData.radialPosition = shaftCenterSpherical.r;
+
+			//Orientation
+			Vector3d orientationCartesian = mAxis.getmTangent()[26];
+			SphericalCoordinates orientationSpherical = CoordinateConverter.cartesianToSpherical(orientationCartesian);
+			shaftData.orientation = orientationSpherical.getAngularCoordinates();
+
+			//Radius
+			shaftData.radius = tube.getRadInfo()[i][1];
+
+			//Length
+			shaftData.length = mAxis.getArcLen();
+
+			//Curvature
+			shaftData.curvature = mAxis.getCurvature();
+
+			//
+			shaftDatas.add(shaftData);
+		}
+		return shaftDatas;
+	}
+
+	private double angleDiff(double angle1, double angle2) {
+		double diff = angle1 - angle2;
+		while(diff < 0){
+			diff+=2*Math.PI;
+		}
+		while(diff>2*Math.PI){
+			diff-=2*Math.PI;
+		}
+		return diff;
+	}
+
+	private Vector3d calculateBisectorVector(Vector3d[] bisectedVectors) {
+		Vector3d bisectorTangent = new Vector3d(0,0,0);
+		for(Vector3d tangent: bisectedVectors){
+			tangent.normalize();
+			bisectorTangent.add(tangent);
+		}
+		if(!bisectorTangent.equals(new Vector3d(0,0,0)))
+			bisectorTangent.normalize();
+		else{
+			//If the vector completely cancel each other out, we will get a divide by
+			//zero error. In this case, add a small pertubation to avoid a crash.
+			bisectorTangent.add(new Vector3d(0.000001, 0.000001, 0.000001));
+			bisectorTangent.normalize();
+		}
+		return bisectorTangent;
 	}
 }
