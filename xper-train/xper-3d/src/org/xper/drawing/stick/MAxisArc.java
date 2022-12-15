@@ -15,7 +15,7 @@ public class MAxisArc
 
      private double rad;
 
-	public double curvature;
+	private double curvature;
      private double arcLen;
 
 	private double angleExtend;
@@ -48,7 +48,7 @@ public class MAxisArc
 	public void copyFrom( MAxisArc in) {
 		int i;
 		setRad(in.getRad());
-		curvature = in.curvature;
+		setCurvature(in.getCurvature());
 		setArcLen(in.getArcLen());
 		setAngleExtend(in.getAngleExtend());
 		setBranchPt(in.getBranchPt());
@@ -280,7 +280,7 @@ public class MAxisArc
 	{
 		setRad(in_rad);
 		setArcLen(in_arcLen);
-		curvature = 1.0 / getRad();
+		setCurvature(1.0 / getRad());
 		setAngleExtend(getArcLen() / getRad());
 
 		//         System.out.println("in genArc  rad: "+ rad + " ArcLen: " + arcLen);
@@ -587,6 +587,10 @@ public class MAxisArc
 		return mPts;
 	}
 
+	public double getCurvature() {
+		return curvature;
+	}
+
 
 	public void setmPts(Point3d[] mPts) {
 		this.mPts = mPts;
@@ -703,5 +707,8 @@ public class MAxisArc
 	}
 
 
+	public void setCurvature(double curvature) {
+		this.curvature = curvature;
+	}
 }
 

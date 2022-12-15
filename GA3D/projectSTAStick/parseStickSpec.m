@@ -32,7 +32,8 @@ function [brfields,nComp,nJunc,nEnd,CompPts,CompunDxs,endCount,...
             %if want to store as individual branches numbered in structure
             if strcmp('pos',fieldNames{allNames}) == 1
                 % x,y,z position
-                brfields.EnPts(endNum).pos(1) = str2double(tempEndPt.pos.x.Text);
+                brfConverter
+                ields.EnPts(endNum).pos(1) = str2double(tempEndPt.pos.x.Text);
                 brfields.EnPts(endNum).pos(2) = str2double(tempEndPt.pos.y.Text);
                 brfields.EnPts(endNum).pos(3) = str2double(tempEndPt.pos.z.Text);
                 brfields.EnPts(endNum).pos = rotmat*brfields.EnPts(endNum).pos';

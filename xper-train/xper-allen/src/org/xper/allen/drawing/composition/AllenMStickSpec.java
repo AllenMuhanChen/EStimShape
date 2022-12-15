@@ -109,6 +109,7 @@ public class AllenMStickSpec {
             System.out.println(e);
         }
     }
+
     
     public void writeInfo2File(String fname, boolean vertBool) {
 	    	
