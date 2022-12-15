@@ -4109,6 +4109,10 @@ Adding a new MAxisArc to a MatchStick
 		//TODO: WE HAVE TO BECAREFUL OF SIDE EFFECTS OF THIS METHOD. Must be the last thing.
 		modifyMAxisFinalInfoForAnalysis();
 
+		AllenMStickSpec analysisMStickSpec = new AllenMStickSpec();
+		analysisMStickSpec.setMStickInfo(this);
+
+		data.setAnalysisMStickSpec(analysisMStickSpec);
 		data.setShaftData(getShaftData());
 		data.setTerminationData(getTerminationData());
 		data.setJunctionData(getJunctionData());

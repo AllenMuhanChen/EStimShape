@@ -12,8 +12,7 @@ public class AllenMStickDataTest {
        matchStick.genMatchStickRand();
 
 
-       AllenMStickData data = new AllenMStickData();
-       data.setMStickData(matchStick);
+       AllenMStickData data = matchStick.getMStickData();
 
 
 

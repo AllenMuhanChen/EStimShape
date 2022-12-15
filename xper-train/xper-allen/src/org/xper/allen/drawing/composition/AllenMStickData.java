@@ -6,14 +6,7 @@ public class AllenMStickData {
     List<ShaftData> shaftData;
     List<TerminationData> terminationData;
     List<JunctionData> junctionData;
-
-    public void setMStickData(AllenMatchStick stick){
-        AllenMStickData data = stick.getMStickData();
-
-
-
-
-    }
+    AllenMStickSpec analysisMStickSpec;
 
     public List<ShaftData> getShaftData() {
         return shaftData;
@@ -37,5 +30,13 @@ public class AllenMStickData {
 
     public void setJunctionData(List<JunctionData> junctionData) {
         this.junctionData = junctionData;
+    }
+
+    public AllenMStickSpec getAnalysisMStickSpec() {
+        return analysisMStickSpec;
+    }
+
+    public void setAnalysisMStickSpec(AllenMStickSpec analysisMStickSpec) {
+        this.analysisMStickSpec = analysisMStickSpec;
     }
 }
