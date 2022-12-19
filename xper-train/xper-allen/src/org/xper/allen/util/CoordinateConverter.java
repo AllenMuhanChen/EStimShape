@@ -56,10 +56,26 @@ public class CoordinateConverter {
         return new Vector3d(x,y,z);
     }
 
+    public static Vector3d sphericalToVector(double r,AngularCoordinates ac){
+        double x = r * Math.sin(ac.phi) * Math.cos(ac.theta);
+        double y = r * Math.sin(ac.phi) * Math.sin(ac.theta);
+        double z = r * Math.cos(ac.phi);
+
+        return new Vector3d(x,y,z);
+    }
+
     public static Point3d sphericalToPoint(SphericalCoordinates sc){
         double x = sc.r * Math.sin(sc.phi) * Math.cos(sc.theta);
         double y = sc.r * Math.sin(sc.phi) * Math.sin(sc.theta);
         double z = sc.r * Math.cos(sc.phi);
+
+        return new Point3d(x,y,z);
+    }
+
+    public static Point3d sphericalToPoint(double radius, AngularCoordinates ac){
+        double x = radius * Math.sin(ac.phi) * Math.cos(ac.theta);
+        double y = radius * Math.sin(ac.phi) * Math.sin(ac.theta);
+        double z = radius * Math.cos(ac.phi);
 
         return new Point3d(x,y,z);
     }
