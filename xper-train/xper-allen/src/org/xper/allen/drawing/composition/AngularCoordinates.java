@@ -8,4 +8,12 @@ public class AngularCoordinates {
         this.theta = theta;
         this.phi = phi;
     }
+
+    @Override
+    public String toString() {
+        return "AngularCoordinates{" +
+                "theta=" + theta +
+                ", phi=" + phi +
+                '}';
+    }
 }

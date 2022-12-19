@@ -3865,7 +3865,8 @@ Adding a new MAxisArc to a MatchStick
          * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
          * to be approx half the size.
          */
-        double scale = maxImageDimensionDegrees /1.5;
+//        double scale = maxImageDimensionDegrees /1.5;
+		double scale = maxImageDimensionDegrees;
         double minScale = scale/2;
         setScale(minScale, scale);
 
@@ -4136,7 +4137,7 @@ Adding a new MAxisArc to a MatchStick
 			junctionData.angleBisectorDirection = new LinkedList<AngularCoordinates>();
 			//for every pair
 			for(int j=1; j<=juncPt.getnComp(); j++){
-				for(int k =j+1; k<=juncPt.getnComp(); k++){
+				for(int k=j+1; k<=juncPt.getnComp(); k++){
 					Vector3d[] junctionTangents = new Vector3d[]{juncPt.getTangent()[j], juncPt.getTangent()[k]};
 					Vector3d bisectorTangent = calculateBisectorVector(junctionTangents);
 					SphericalCoordinates bisectorTangentSpherical = CoordinateConverter.cartesianToSpherical(bisectorTangent);
@@ -4151,7 +4152,7 @@ Adding a new MAxisArc to a MatchStick
 			junctionData.angularSubtense = new LinkedList<AngularCoordinates>();
 			//for every pair
 			for(int j=1; j<=juncPt.getnComp(); j++){
-				for(int k =j+1; k<=juncPt.getnComp(); k++){
+				for(int k=j+1; k<=juncPt.getnComp(); k++){
 					SphericalCoordinates angle1 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[j]);
 					SphericalCoordinates angle2 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[k]);
 					double theta = angleDiff(angle1.theta, angle2.theta);

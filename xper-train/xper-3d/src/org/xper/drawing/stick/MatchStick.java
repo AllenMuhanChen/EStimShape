@@ -3686,7 +3686,7 @@ public class MatchStick implements Drawable {
 
 			for (j=1; j<=getComp()[i].getnVect(); j++)
 			{
-				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
+//				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
 				// comp[i].vect_info[j].add(finalShiftinDepth);
 			}
 			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().scale(this.getScaleForMAxisShape());
@@ -3738,7 +3738,7 @@ public class MatchStick implements Drawable {
 
 		this.getObj1().rotateMesh(getFinalRotation());
 		//this.getObj1().scaleTheObj(scaleForMAxisShape*3);
-		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE 
+		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
 		/*
 		 * If the *3 is not removed, the printed images will all be zoomed in by factor of 3
 		 * Also, I believe this scaling my scaleForMAXisShape is what gives all of the dimmensionless

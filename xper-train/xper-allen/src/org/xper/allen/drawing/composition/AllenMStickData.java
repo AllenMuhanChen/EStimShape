@@ -39,4 +39,14 @@ public class AllenMStickData {
     public void setAnalysisMStickSpec(AllenMStickSpec analysisMStickSpec) {
         this.analysisMStickSpec = analysisMStickSpec;
     }
+
+    @Override
+    public String toString() {
+        return "AllenMStickData{" +
+                "shaftData=" + shaftData +
+                ", terminationData=" + terminationData +
+                ", junctionData=" + junctionData +
+                ", analysisMStickSpec=" + analysisMStickSpec +
+                '}';
+    }
 }

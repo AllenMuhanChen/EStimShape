@@ -2,13 +2,17 @@ package org.xper.drawing;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
+import org.xper.XperConfig;
 import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class TestDrawingWindow {
     BaseWindow window;
-    private PerspectiveRenderer renderer;
+    public PerspectiveRenderer renderer;
 
     public void draw(Drawable drawable){
         renderer.draw(drawable);
@@ -16,12 +20,20 @@ public class TestDrawingWindow {
     }
 
     public static TestDrawingWindow createDrawerWindow() {
+        initXperLibs();
+
         TestDrawingWindow drawingWindow = new TestDrawingWindow();
         if(drawingWindow.window == null || !drawingWindow.window.isOpen()) {
             drawingWindow.init();
         }
         return drawingWindow;
 
+    }
+
+    private static void initXperLibs() {
+        List<String> libs = new ArrayList<String>();
+        libs.add("xper");
+        new XperConfig("", libs);
     }
 
     private void init(){
@@ -35,8 +47,8 @@ public class TestDrawingWindow {
         renderer.setDepth(6000);
         renderer.setDistance(500); //TODO: stitch this into generator so it is a dependency
         renderer.setPupilDistance(50);
-        renderer.setHeight(10);
-        renderer.setWidth(10);
+        renderer.setHeight(100);
+        renderer.setWidth(100);
         renderer.init(window.getWidth(), window.getHeight());
         GL11.glShadeModel(GL11.GL_SMOOTH);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
