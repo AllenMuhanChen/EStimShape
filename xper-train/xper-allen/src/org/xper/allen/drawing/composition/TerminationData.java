@@ -47,4 +47,14 @@ public class TerminationData {
     public void setRadius(double radius) {
         this.radius = radius;
     }
+
+    @Override
+    public String toString() {
+        return "TerminationData{" +
+                "angularPosition=" + angularPosition +
+                ", radialPosition=" + radialPosition +
+                ", direction=" + direction +
+                ", radius=" + radius +
+                '}';
+    }
 }

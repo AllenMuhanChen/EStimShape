@@ -70,4 +70,16 @@ public class JunctionData {
     public void setPlanarRotation(double planarRotation) {
         this.planarRotation = planarRotation;
     }
+
+    @Override
+    public String toString() {
+        return "JunctionData{" +
+                "angularPosition=" + angularPosition +
+                ", radialPosition=" + radialPosition +
+                ", angleBisectorDirection=" + angleBisectorDirection +
+                ", radius=" + radius +
+                ", angularSubtense=" + angularSubtense +
+                ", planarRotation=" + planarRotation +
+                '}';
+    }
 }

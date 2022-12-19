@@ -63,7 +63,7 @@ public class RandTrialIntegrationTest {
 
     private void given_classic_test_trial() {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-                FileUtil.loadConfigClass("experiment.ga.config_class"));
+                FileUtil.loadConfigClass("experiment.config_class"));
 
         generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
         TestTimeUtil timeUtil = new TestTimeUtil();

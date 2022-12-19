@@ -332,9 +332,13 @@ public class AllenMStickSpec {
 		this.mAxis = mAxis;
 	}
 
-
-
-
-
-
+    @Override
+    public String toString() {
+        return "AllenMStickSpec{" +
+                "mAxis=" + mAxis +
+                ", vertex=" + vertex +
+                ", animation=" + animation +
+                ", compPosTanStr='" + compPosTanStr + '\'' +
+                '}';
+    }
 }
