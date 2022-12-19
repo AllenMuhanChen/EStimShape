@@ -14,6 +14,7 @@ import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,7 +30,7 @@ public class AllenMStickDataTest {
     }
 
     @Test
-    public void AllenMStickSpecGeneratesData() {
+    public void testShaftData() {
        AllenMatchStick matchStick = new AllenMatchStick();
        matchStick.setProperties(5);
        matchStick.genMatchStickRand();
@@ -42,11 +43,13 @@ public class AllenMStickDataTest {
         for (int i = 0; i< numShafts; i++) {
             ShaftData shaftData = data.getShaftData().get(i);
             AllenTubeComp tubeComp = matchStick.getComp()[i + 1];
+            AllenMAxisArc mAxis = tubeComp.getmAxisInfo();
 
             testShaftLength(i, shaftData);
             testShaftPosition(matchStick, i, shaftData);
             testShaftOrientation(i, shaftData);
             testShaftRadius(i, shaftData, tubeComp);
+            testShaftCurvature(shaftData, mAxis);
         }
 
 
@@ -55,6 +58,21 @@ public class AllenMStickDataTest {
 
 
 
+    }
+
+    private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis) {
+        double curvature = shaftData.curvature;
+        double length = shaftData.length;
+
+        double curvatureRadius = 1/curvature;
+        double angleExtend = length/curvatureRadius;
+
+        AllenMAxisArc mAxisArc = new AllenMAxisArc();
+        mAxisArc.genArc(curvatureRadius, length);
+        mAxisArc.transRotMAxis(mAxis.getTransRotHis_alignedPt(), mAxisArc.getTransRotHis_finalPos(), mAxisArc.getTransRotHis_rotCenter(), mAxisArc.getTransRotHis_finalTangent(), mAxisArc.getTransRotHis_devAngle());
+        List<Point3d> line = Arrays.asList(mAxis.getmPts());
+        line = line.subList(1,51);
+        drawLine(line, new RGBColor(1,1,0));
     }
 
     private void testShaftRadius(int i, ShaftData shaftData, AllenTubeComp tube) {
@@ -149,8 +167,8 @@ public class AllenMStickDataTest {
             public void draw() {
                 int i;
                 GL11.glColor3f(rgbColor.getRed(), rgbColor.getGreen(), rgbColor.getBlue());
+                GL11.glLineWidth(2);
                 GL11.glBegin(GL11.GL_LINE_STRIP);
-                GL11.glLineWidth(100);
                 for (i=0; i<line.size(); i++)
                 {
                     //GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
