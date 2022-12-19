@@ -46,18 +46,36 @@ public class AllenMStickDataTest {
             AllenMAxisArc mAxis = tubeComp.getmAxisInfo();
 
             testShaftLength(i, shaftData);
-            testShaftPosition(matchStick, i, shaftData);
+            //Shaft Position
+            testSphericalPosition(matchStick, i, shaftData.angularPosition, shaftData.radialPosition);
             testShaftOrientation(i, shaftData);
             testShaftRadius(i, shaftData, tubeComp);
             testShaftCurvature(shaftData, mAxis);
         }
 
-
-
        ThreadUtil.sleep(100000);
+    }
+
+    @Test
+    public void testTerminationData(){
+        AllenMatchStick matchStick = new AllenMatchStick();
+        matchStick.setProperties(5);
+        matchStick.genMatchStickRand();
+
+        AllenMStickData data = matchStick.getMStickData();
+        drawMStick(matchStick);
+
+        int numTerminations = data.getTerminationData().size();
+        for (int i=0; i<numTerminations; i++){
+            TerminationData terminationData = data.terminationData.get(i);
+            //Termination Position
+            testSphericalPosition(matchStick, i, terminationData.angularPosition, terminationData.radialPosition);
 
 
 
+        }
+
+        ThreadUtil.sleep(100000);
     }
 
     private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis) {
@@ -112,9 +130,7 @@ public class AllenMStickDataTest {
         drawLine(shaftLengthLine, shaft_colors.get(i));
     }
 
-    private void testShaftPosition(AllenMatchStick matchStick, int i, ShaftData shaftData) {
-        AngularCoordinates angularPosition = shaftData.angularPosition;
-        double radialPosition = shaftData.radialPosition;
+    private void testSphericalPosition(AllenMatchStick matchStick, int i, AngularCoordinates angularPosition, double radialPosition) {
 
         Point3d massCenter = matchStick.getMassCenter();
 
