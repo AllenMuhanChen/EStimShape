@@ -3593,18 +3593,7 @@ public class MatchStick implements Drawable {
 
 		for (i=1; i<= this.getnComponent(); i++)
 		{
-			// 1. scale up the (r1,r2,r3), rad(1/k), and arcLen
-			for (j=0; j<3; j++)
-			{
-				// comp[i].radInfo[j][0] should keep the same ( which is u index)
-				getComp()[i].getRadInfo()[j][1] *= this.getScaleForMAxisShape();
-			}
-
-			getComp()[i].getmAxisInfo().setArcLen(getComp()[i].getmAxisInfo().getArcLen() * this.getScaleForMAxisShape());
-			getComp()[i].getmAxisInfo().setRad(getComp()[i].getmAxisInfo().getRad() * this.getScaleForMAxisShape());
-			getComp()[i].getmAxisInfo().setCurvature(1.0 / getComp()[i].getmAxisInfo().getRad());
-			//rotate and scale for finalPos
-			// rotate and 'no' sclae for finalTangent
+			scaleComps(i);
 
 
 			// 1. rot X
@@ -3697,8 +3686,27 @@ public class MatchStick implements Drawable {
 			//comp[i].mAxisInfo.transRotHis_devAngle =
 		}
 		// end of the change of component info
+		for (int endPt=1; endPt<=getNEndPt(); endPt++){
 
+		}
 	}
+
+	private void scaleComps(int i) {
+		int j;
+		// 1. scale up the (r1,r2,r3), rad(1/k), and arcLen
+		for (j=0; j<3; j++)
+		{
+			// comp[i].radInfo[j][0] should keep the same ( which is u index)
+			getComp()[i].getRadInfo()[j][1] *= this.getScaleForMAxisShape();
+		}
+
+		getComp()[i].getmAxisInfo().setArcLen(getComp()[i].getmAxisInfo().getArcLen() * this.getScaleForMAxisShape());
+		getComp()[i].getmAxisInfo().setRad(getComp()[i].getmAxisInfo().getRad() * this.getScaleForMAxisShape());
+		getComp()[i].getmAxisInfo().setCurvature(1.0 / getComp()[i].getmAxisInfo().getRad());
+		//rotate and scale for finalPos
+		// rotate and 'no' sclae for finalTangent
+	}
+
 	/**
         function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
 	 */
