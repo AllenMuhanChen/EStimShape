@@ -184,6 +184,53 @@ public class MStickObj4Smooth {
         }
 
     }
+    public void drawVectTranslucent(float alpha) {
+
+
+        if (isDoLighting())
+            GL11.glEnable(GL11.GL_LIGHTING);
+        else
+            GL11.glDisable(GL11.GL_LIGHTING);
+
+        for (int i=0; i< nFac; i++) {
+            GL11.glBegin(GL11.GL_TRIANGLES);
+
+            GL11.glColor4d(stimColor.getRed(),stimColor.getGreen(),stimColor.getBlue(), alpha);
+
+            Point3d p1 = vect_info[ getFacInfo()[i][0]];
+            Point3d p2 = vect_info[ getFacInfo()[i][1]];
+            Point3d p3 = vect_info[ getFacInfo()[i][2]];
+            Vector3d v1 = normMat_info[ getFacInfo()[i][0]];
+            Vector3d v2 = normMat_info[ getFacInfo()[i][1]];
+            Vector3d v3 = normMat_info[ getFacInfo()[i][2]];
+            if ( v1.length() >= 1.01 || v1.length() <= 0.99) {
+                System.out.println("error in v1 length as:");
+                System.out.println(v1.x +" "+ v1.y + " " +v1.z);
+                System.out.println(v1.length());
+            }
+            if ( v2.length() >= 1.01 || v2.length() <= 0.99) {
+                System.out.println("error in v2 length as:");
+                System.out.println(v2.x +" "+ v2.y + " " +v2.z);
+                System.out.println(v2.length());
+            }
+            if ( v3.length() >= 1.01 || v3.length() <= 0.99) {
+                System.out.println("error in v3 length as:");
+                System.out.println(v3.x +" "+ v3.y + " " +v3.z);
+                System.out.println(v3.length());
+            }
+
+            GL11.glNormal3d( v1.x, v1.y, v1.z);
+            GL11.glVertex3d( p1.x, p1.y, p1.z);
+            GL11.glNormal3d( v2.x, v2.y, v2.z);
+            GL11.glVertex3d( p2.x, p2.y, p2.z);
+            GL11.glNormal3d( v3.x, v3.y, v3.z);
+            GL11.glVertex3d( p3.x, p3.y, p3.z);
+
+            GL11.glEnd();
+        }
+        GL11.glDisable(GL11.GL_LIGHTING);
+    }
+
     public void drawVect() {
 		GL11.glColor3d(stimColor.getRed(),stimColor.getGreen(),stimColor.getBlue());
 		if (isDoLighting())

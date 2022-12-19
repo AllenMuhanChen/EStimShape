@@ -588,7 +588,7 @@ public class TubeComp
 			setScaleOnce(false);
 		}
 
-		boolean useLight = false;
+		boolean useLight = true;
 
 		int i;
 		GL11.glColor3f(0.0f, 1.0f, 0.0f);		    
@@ -632,8 +632,8 @@ public class TubeComp
 			// 		System.out.println("fac Info " + facInfo[i][0] +" " + facInfo[i][1] +" " + facInfo[i][2]);
 
 			//AC TESTING
-			Random r = new Random();
-			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
+//			Random r = new Random();
+			GL11.glColor3f(colorCode[0], colorCode[1], colorCode[2]);
 			Point3d p1 = getVect_info()[ getFacInfo()[i][0]];
 			Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
 			Point3d p3 = getVect_info()[ getFacInfo()[i][2]];

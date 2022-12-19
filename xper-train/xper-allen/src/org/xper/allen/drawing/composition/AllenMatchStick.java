@@ -238,6 +238,17 @@ public class AllenMatchStick extends MatchStick {
 			getObj1().drawVect();
 	}
 
+	public void drawGhost(){
+		GL11.glShadeModel(GL11.GL_SMOOTH);
+		GL11.glEnable(GL11.GL_AUTO_NORMAL);   // Automatic normal generation when doing NURBS, if not enabled we have to provide the normals ourselves if we want to have a lighted image (which we do).
+		GL11.glEnable(GL11.GL_POLYGON_SMOOTH);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_SRC_ALPHA);
+
+		initLight();
+		getObj1().drawVectTranslucent(0.5F);
+	}
+
 
 	public void centerShapeAtPoint(int decidedCenterTube, Coordinates2D coords) {
 		Point3d newLocation = new Point3d();
@@ -4214,7 +4225,7 @@ Adding a new MAxisArc to a MatchStick
 			shaftData.orientation = orientationSpherical.getAngularCoordinates();
 
 			//Radius
-			shaftData.radius = tube.getRadInfo()[i][1];
+			shaftData.radius = tube.getRadInfo()[1][1];
 
 			//Length
 			shaftData.length = mAxis.getArcLen();
