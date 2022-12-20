@@ -2,12 +2,9 @@ package org.xper.allen.drawing.composition;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
+import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
@@ -4110,16 +4107,71 @@ Adding a new MAxisArc to a MatchStick
 		getComp()[i] = new AllenTubeComp();
 	}
 
-	public void modifyMAxisFinalInfoForAnalysis(){
+	public void modifyMStickFinalInfoForAnalysis(){
 		modifyMAxisFinalInfo();
+		modifyEndPtFinalInfoForAnalysis();
+		modifyJuncPtFinalInfoForAnalysis();
 		//TODO: apply transformations to normal, and other stuff
+	}
+
+	public void modifyEndPtFinalInfoForAnalysis(){
+		// end of the change of component info
+		for (int endPtIndx=1; endPtIndx<=getNEndPt(); endPtIndx++){
+			EndPt_struct endPt = getEndPt()[endPtIndx];
+
+		//Rotation
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if (rotVec[0] != 0.0){
+				Transform3D transMat = getRotation((rotVec[0]/180) * Math.PI, new Vector3d(1,0,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Y
+			if (rotVec[1] != 0.0){
+				Transform3D transMat = getRotation(rotVec[1]/180*Math.PI,
+						new Vector3d(0,1,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Z
+			if (rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(rotVec[2]/180*Math.PI,
+						new Vector3d(0,0,1));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+		//Scale
+			//Pos
+			endPt.getPos().scale(this.getScaleForMAxisShape());
+
+			//Rad
+			endPt.setRad(endPt.getRad()*getScaleForMAxisShape());
+
+		}
+	}
+
+	public void modifyJuncPtFinalInfoForAnalysis(){
+
 	}
 
 	public AllenMStickData getMStickData(){
 		AllenMStickData data = new AllenMStickData();
 
 		//TODO: WE HAVE TO BECAREFUL OF SIDE EFFECTS OF THIS METHOD. Must be the last thing.
-		modifyMAxisFinalInfoForAnalysis();
+		modifyMStickFinalInfoForAnalysis();
 
 		AllenMStickSpec analysisMStickSpec = new AllenMStickSpec();
 		analysisMStickSpec.setMStickInfo(this);
