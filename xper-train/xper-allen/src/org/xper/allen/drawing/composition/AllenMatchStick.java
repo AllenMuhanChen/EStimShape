@@ -4285,9 +4285,9 @@ Adding a new MAxisArc to a MatchStick
 
 			//Position - Spherical Coordinates
 			Point3d terminationPositionCartesian = endPt.getPos();
-			SphericalCoordinates junctionSphericalCoordinates = CoordinateConverter.cartesianToSpherical(terminationPositionCartesian);
-			terminationData.angularPosition = junctionSphericalCoordinates.getAngularCoordinates();
-			terminationData.radialPosition = junctionSphericalCoordinates.r;
+			SphericalCoordinates terminationSphericalCoordinates = CoordinateConverter.cartesianToSpherical(terminationPositionCartesian);
+			terminationData.angularPosition = terminationSphericalCoordinates.getAngularCoordinates();
+			terminationData.radialPosition = terminationSphericalCoordinates.r;
 
 			//Direction
 			Vector3d directionCartesian = endPt.getTangent();
