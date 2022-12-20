@@ -9,9 +9,9 @@ from src.util.time_util import When
 
 
 class MatchStickField(Field):
-    def __init__(self, mstick_spec_source, name: str = None):
+    def __init__(self, mstick_spec_data_source, name: str = None):
         super().__init__(name)
-        self.mstick_spec_source = mstick_spec_source
+        self.mstick_spec_source = mstick_spec_data_source
 
     def get(self, when: When) -> dict:
         mstick_spec_xml = self.mstick_spec_source.get(when)
@@ -21,7 +21,7 @@ class MatchStickField(Field):
 class ShaftField(MatchStickField):
     def get(self, when: When) -> pd.DataFrame:
         mstick_spec = MatchStickField.get(self, when)
-        shaft_specs = mstick_spec["AllenMStickSpec"]["mAxis"]["Tube"]["AllenTubeInfo"]
+        shaft_specs = mstick_spec["AllenMStickData"]["shaftData"]["Tube"]["AllenTubeInfo"]
 
         shaft_data = pd.DataFrame
         for shaft_spec in shaft_specs:

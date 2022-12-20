@@ -3521,6 +3521,13 @@ public class MatchStick implements Drawable {
 
 	}
 
+	protected Transform3D getRotation(double angle, Vector3d rotAxis) {
+		AxisAngle4d axisInfo = new AxisAngle4d(rotAxis, angle);
+		Transform3D transMat = new Transform3D();
+		transMat.setRotation(axisInfo);
+		return transMat;
+	}
+
 	/*
 	 *   calculate the center position of the shape
 	 *   which can be used to calculate the relative x,y,z for others
@@ -3601,9 +3608,7 @@ public class MatchStick implements Drawable {
 			{
 				Vector3d RotAxis = new Vector3d(1,0,0);
 				double Angle = (rotVec[0] /180.0 ) *Math.PI;
-				AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-				Transform3D transMat = new Transform3D();
-				transMat.setRotation(axisInfo);
+				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
 				{
@@ -3624,9 +3629,7 @@ public class MatchStick implements Drawable {
 			{
 				Vector3d RotAxis = new Vector3d(0,1,0);
 				double Angle = (rotVec[1] /180.0 ) *Math.PI;
-				AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-				Transform3D transMat = new Transform3D();
-				transMat.setRotation(axisInfo);
+				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
 				{
@@ -3648,9 +3651,7 @@ public class MatchStick implements Drawable {
 			{
 				Vector3d RotAxis = new Vector3d(0,0,1);
 				double Angle = (rotVec[2] /180.0 ) *Math.PI;
-				AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-				Transform3D transMat = new Transform3D();
-				transMat.setRotation(axisInfo);
+				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
 				{
@@ -3685,10 +3686,6 @@ public class MatchStick implements Drawable {
 			// don't change the devAngle
 			//comp[i].mAxisInfo.transRotHis_devAngle =
 		}
-		// end of the change of component info
-		for (int endPt=1; endPt<=getNEndPt(); endPt++){
-
-		}
 	}
 
 	private void scaleComps(int i) {
@@ -3704,6 +3701,8 @@ public class MatchStick implements Drawable {
 		getComp()[i].getmAxisInfo().setRad(getComp()[i].getmAxisInfo().getRad() * this.getScaleForMAxisShape());
 		getComp()[i].getmAxisInfo().setCurvature(1.0 / getComp()[i].getmAxisInfo().getRad());
 		//rotate and scale for finalPos
+
+
 		// rotate and 'no' sclae for finalTangent
 	}
 
