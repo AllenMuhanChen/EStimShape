@@ -24,6 +24,10 @@ public class AllenMStickDataTest {
         comp_colors.put(0, new RGBColor(1, 0, 0));
         comp_colors.put(1, new RGBColor(0,1,0));
         comp_colors.put(2, new RGBColor(0,0,1));
+        comp_colors.put(3, new RGBColor(1,1,0));
+        comp_colors.put(4, new RGBColor(0,1,1));
+        comp_colors.put(5, new RGBColor(1,0,1));
+        comp_colors.put(6, new RGBColor(1,1,1));
     }
 
     @Test
@@ -70,6 +74,24 @@ public class AllenMStickDataTest {
             testTerminationRadius(i, terminationData);
         }
 
+        ThreadUtil.sleep(100000);
+    }
+
+    @Test
+    public void testJunctionData(){
+        AllenMatchStick matchStick = new AllenMatchStick();
+        matchStick.setProperties(5);
+        matchStick.genMatchStickRand();
+
+        AllenMStickData data = matchStick.getMStickData();
+        drawMStick(matchStick);
+
+        int numJunctions = data.getJunctionData().size();
+        for (int i=0; i<numJunctions; i++){
+            JunctionData junctionData = data.junctionData.get(i);
+
+            testSphericalPosition(matchStick, i, junctionData.angularPosition, junctionData.radialPosition);
+        }
         ThreadUtil.sleep(100000);
     }
 

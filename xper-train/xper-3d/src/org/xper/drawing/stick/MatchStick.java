@@ -3528,6 +3528,10 @@ public class MatchStick implements Drawable {
 		return transMat;
 	}
 
+	protected double toRadians(double angle) {
+		return (angle / 180) * Math.PI;
+	}
+
 	/*
 	 *   calculate the center position of the shape
 	 *   which can be used to calculate the relative x,y,z for others
@@ -3609,7 +3613,7 @@ public class MatchStick implements Drawable {
 			if ( rotVec[0] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(1,0,0);
-				double Angle = (rotVec[0] /180.0 ) *Math.PI;
+				double Angle = toRadians(rotVec[0]);
 				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
@@ -3630,7 +3634,7 @@ public class MatchStick implements Drawable {
 			if ( rotVec[1] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(0,1,0);
-				double Angle = (rotVec[1] /180.0 ) *Math.PI;
+				double Angle = toRadians(rotVec[1]);
 				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
@@ -3652,7 +3656,7 @@ public class MatchStick implements Drawable {
 			if ( rotVec[2] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(0,0,1);
-				double Angle = (rotVec[2] /180.0 ) *Math.PI;
+				double Angle = toRadians(rotVec[2]);
 				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
@@ -3694,6 +3698,7 @@ public class MatchStick implements Drawable {
 			//comp[i].mAxisInfo.transRotHis_devAngle =
 		}
 	}
+
 
 	private void scaleComps(int i) {
 		int j;
