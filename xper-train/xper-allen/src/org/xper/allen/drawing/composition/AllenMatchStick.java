@@ -2575,8 +2575,8 @@ public class AllenMatchStick extends MatchStick {
 
 	public void genMatchStickRand() {
 		int nComp;
-		// double nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
-		// double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
+//		 double[] nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
+//		 double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
 		// double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
 		double[] nCompDist = this.PARAM_nCompDist;
 		nComp = stickMath_lib.pickFromProbDist(nCompDist);
@@ -4126,7 +4126,7 @@ Adding a new MAxisArc to a MatchStick
 			rotVec[2] = this.getFinalRotation()[2];
 			//Rot X
 			if (rotVec[0] != 0.0){
-				Transform3D transMat = getRotation((rotVec[0]/180) * Math.PI, new Vector3d(1,0,0));
+				Transform3D transMat = getRotation(toRadians(rotVec[0]), new Vector3d(1,0,0));
 				//Pos
 				transMat.transform(endPt.getPos());
 				//Tangent
@@ -4135,7 +4135,7 @@ Adding a new MAxisArc to a MatchStick
 
 			//Rot Y
 			if (rotVec[1] != 0.0){
-				Transform3D transMat = getRotation(rotVec[1]/180*Math.PI,
+				Transform3D transMat = getRotation(toRadians(rotVec[1]),
 						new Vector3d(0,1,0));
 				//Pos
 				transMat.transform(endPt.getPos());
@@ -4145,7 +4145,7 @@ Adding a new MAxisArc to a MatchStick
 
 			//Rot Z
 			if (rotVec[2] != 0.0){
-				Transform3D transMat = getRotation(rotVec[2]/180*Math.PI,
+				Transform3D transMat = getRotation(toRadians(rotVec[2]),
 						new Vector3d(0,0,1));
 				//Pos
 				transMat.transform(endPt.getPos());
@@ -4165,7 +4165,50 @@ Adding a new MAxisArc to a MatchStick
 	}
 
 	public void modifyJuncPtFinalInfoForAnalysis(){
+		for (int juncPtIndx = 1; juncPtIndx <= getNJuncPt(); juncPtIndx++) {
+			JuncPt_struct juncPt = getJuncPt()[juncPtIndx];
 
+		//Rotate
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if(rotVec[0] != 0.0) {
+				Transform3D transMat = getRotation(rotVec[0], new Vector3d(1, 0, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+		//Rot Y
+			if(rotVec[1] != 0.0) {
+				Transform3D transMat = getRotation(toRadians(rotVec[1]), new Vector3d(0, 1, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+		//Rot Z
+			if(rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[2]), new Vector3d(0, 0, 1));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+		//Scale
+			//Pos
+			juncPt.getPos().scale(getScaleForMAxisShape());
+			//Radius
+			juncPt.setRad(juncPt.getRad()*getScaleForMAxisShape());
+		}
 	}
 
 	public AllenMStickData getMStickData(){
