@@ -3604,6 +3604,8 @@ public class MatchStick implements Drawable {
 
 
 			// 1. rot X
+			TubeComp tubeComp = getComp()[i];
+			MAxisArc mAxisArc = tubeComp.getmAxisInfo();
 			if ( rotVec[0] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(1,0,0);
@@ -3612,16 +3614,16 @@ public class MatchStick implements Drawable {
 
 				for (j=1; j<=51; j++)
 				{
-					transMat.transform(getComp()[i].getmAxisInfo().getmPts()[j]);
-					transMat.transform(getComp()[i].getmAxisInfo().getmTangent()[j]);
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
 				}
-				for (j=1; j<=getComp()[i].getnVect(); j++)
+				for (j=1; j<= tubeComp.getnVect(); j++)
 				{
-					transMat.transform(getComp()[i].getVect_info()[j]);
-					transMat.transform(getComp()[i].getNormMat_info()[j]);
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
 				}
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalPos());
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
 
 			}
 			// 2. rot Y
@@ -3633,16 +3635,16 @@ public class MatchStick implements Drawable {
 
 				for (j=1; j<=51; j++)
 				{
-					transMat.transform(getComp()[i].getmAxisInfo().getmPts()[j]);
-					transMat.transform(getComp()[i].getmAxisInfo().getmTangent()[j]);
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
 				}
-				for (j=1; j<=getComp()[i].getnVect(); j++)
+				for (j=1; j<= tubeComp.getnVect(); j++)
 				{
-					transMat.transform(getComp()[i].getVect_info()[j]);
-					transMat.transform(getComp()[i].getNormMat_info()[j]);
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
 				}
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalPos());
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
 
 			}
 
@@ -3655,31 +3657,36 @@ public class MatchStick implements Drawable {
 
 				for (j=1; j<=51; j++)
 				{
-					transMat.transform(getComp()[i].getmAxisInfo().getmPts()[j]);
-					transMat.transform(getComp()[i].getmAxisInfo().getmTangent()[j]);
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
 				}
-				for (j=1; j<=getComp()[i].getnVect(); j++)
+				for (j=1; j<= tubeComp.getnVect(); j++)
 				{
-					transMat.transform(getComp()[i].getVect_info()[j]);
-					transMat.transform(getComp()[i].getNormMat_info()[j]);
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
 				}
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalPos());
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
 
 			}
+			for (j=1; j<=51; j++)
+			{
+//				mAxisArc.getmTangent()[j].negate();
+			}
+
 
 			for (j=0; j<=51; j++)
 			{
-				getComp()[i].getmAxisInfo().getmPts()[j].scale(this.getScaleForMAxisShape());
+				mAxisArc.getmPts()[j].scale(this.getScaleForMAxisShape());
 				// comp[i].mAxisInfo.mPts[j].add(this.finalShiftinDepth);
 			}
 
-			for (j=1; j<=getComp()[i].getnVect(); j++)
+			for (j=1; j<= tubeComp.getnVect(); j++)
 			{
 //				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
 				// comp[i].vect_info[j].add(finalShiftinDepth);
 			}
-			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().scale(this.getScaleForMAxisShape());
+			mAxisArc.getTransRotHis_finalPos().scale(this.getScaleForMAxisShape());
 			// comp[i].mAxisInfo.transRotHis_finalPos.add(this.finalShiftinDepth);
 			// no scale/add for the tangent, since it is a unit vector
 
