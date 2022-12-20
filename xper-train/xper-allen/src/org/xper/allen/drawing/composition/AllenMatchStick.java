@@ -4152,6 +4152,7 @@ Adding a new MAxisArc to a MatchStick
 				//Tangent
 				transMat.transform(endPt.getTangent());
 			}
+			endPt.getTangent().negate();
 
 		//Scale
 			//Pos
