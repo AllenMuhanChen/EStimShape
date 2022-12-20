@@ -9,8 +9,8 @@ import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
+import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.stickMath_lib;
-import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
@@ -29,6 +29,8 @@ public class AllenMStickDataTest {
         comp_colors.put(5, new RGBColor(1,0,1));
         comp_colors.put(6, new RGBColor(1,1,1));
     }
+
+    private List<Drawable> drawables;
 
     @Test
     public void testShaftData() {
@@ -51,10 +53,10 @@ public class AllenMStickDataTest {
             testSphericalPosition(matchStick, i, shaftData.angularPosition, shaftData.radialPosition);
             testShaftOrientation(i, shaftData);
             testRadius(i, shaftData.radius, mAxis.getmPts()[26], mAxis.getmTangent()[26]);
-            testShaftCurvature(shaftData, mAxis);
+            testShaftCurvature(shaftData, mAxis, i);
         }
 
-       ThreadUtil.sleep(100000);
+       window.animateRotation(drawables, 1, 10000);
     }
 
     @Test
@@ -74,7 +76,7 @@ public class AllenMStickDataTest {
             testTerminationRadius(i, terminationData);
         }
 
-        ThreadUtil.sleep(100000);
+        window.animateRotation(drawables, 1, 10000);
     }
 
     @Test
@@ -89,10 +91,34 @@ public class AllenMStickDataTest {
         int numJunctions = data.getJunctionData().size();
         for (int i=0; i<numJunctions; i++){
             JunctionData junctionData = data.junctionData.get(i);
+            JuncPt_struct juncPt_struct = matchStick.getJuncPt()[i + 1];
 
             testSphericalPosition(matchStick, i, junctionData.angularPosition, junctionData.radialPosition);
+            testJunctionBisector(junctionData, juncPt_struct);
+
+
         }
-        ThreadUtil.sleep(100000);
+        window.animateRotation(drawables, 1, 10000);
+    }
+
+    private void testJunctionBisector(JunctionData junctionData, JuncPt_struct juncPt_struct) {
+        for (int pairIndx = 0; pairIndx< junctionData.angleBisectorDirection.size(); pairIndx++) {
+            Vector3d angleBisector = CoordinateConverter.sphericalToVector(20, junctionData.getAngleBisectorDirection().get(pairIndx));
+            Point3d juncLocation = CoordinateConverter.sphericalToPoint(junctionData.getRadialPosition(), junctionData.getAngularPosition());
+            List<Point3d> angleBisectorLine = CoordinateConverter.vectorToLine(angleBisector, 50, juncLocation);
+            drawLine(angleBisectorLine, new RGBColor(0,1,0));
+
+            Vector3d bisectedVector1 = juncPt_struct.getTangent()[1];
+            bisectedVector1.scale(10);
+            List<Point3d> bisectedLine1 = CoordinateConverter.vectorToLine(bisectedVector1, 50, juncLocation);
+            drawLine(bisectedLine1, new RGBColor(0,1,0));
+
+            Vector3d bisectedVector2 = juncPt_struct.getTangent()[2];
+            bisectedVector2.scale(10);
+            List<Point3d> bisectedLine2 = CoordinateConverter.vectorToLine(bisectedVector2, 50, juncLocation);
+            drawLine(bisectedLine2, new RGBColor(0,1,0));
+
+        }
     }
 
     private void testTerminationRadius(int i, TerminationData terminationData) {
@@ -107,7 +133,7 @@ public class AllenMStickDataTest {
         drawLine(CoordinateConverter.vectorToLine(tangent, 50, endPtPosition), comp_colors.get(i));
     }
 
-    private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis) {
+    private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis, int i) {
         double curvature = shaftData.curvature;
         double length = shaftData.length;
 
@@ -119,7 +145,10 @@ public class AllenMStickDataTest {
         mAxisArc.transRotMAxis(mAxis.getTransRotHis_alignedPt(), mAxisArc.getTransRotHis_finalPos(), mAxisArc.getTransRotHis_rotCenter(), mAxisArc.getTransRotHis_finalTangent(), mAxisArc.getTransRotHis_devAngle());
         List<Point3d> line = Arrays.asList(mAxis.getmPts());
         line = line.subList(1,51);
-        drawLine(line, new RGBColor(1,1,0));
+        for (Point3d point:line){
+            point.add(new Point3d(20,0,0));
+        }
+        drawLine(line, comp_colors.get(i));
     }
 
     private void testRadius(int i, double radius, Point3d startPoint, Vector3d tangent) {
@@ -135,14 +164,15 @@ public class AllenMStickDataTest {
         }
 
         drawLine(disk, comp_colors.get(i));
+
     }
 
     private void testShaftOrientation(int i, ShaftData shaftData) {
-        Vector3d orientation = CoordinateConverter.sphericalToVector(10, shaftData.orientation);
+        Vector3d orientation = CoordinateConverter.sphericalToVector(5, shaftData.orientation);
         Point3d startPoint = CoordinateConverter.sphericalToPoint(shaftData.radialPosition, shaftData.angularPosition);
         List<Point3d> tangentLine = CoordinateConverter.vectorToLine(orientation, 50, startPoint);
         raiseLine(tangentLine);
-        drawLine(tangentLine, comp_colors.get(i));
+        drawLine(tangentLine, new RGBColor(1,0,1));
     }
 
     private void testShaftLength(int i, ShaftData shaftData) {
@@ -172,18 +202,15 @@ public class AllenMStickDataTest {
         }
     }
 
-    private double deg2mm(double degrees) {
-        return window.renderer.deg2mm(degrees);
-    }
 
-    private TestDrawingWindow getTestDrawingWindow() {
+    private void getTestDrawingWindow() {
         window = TestDrawingWindow.createDrawerWindow();
-        return window;
     }
 
     @Before
     public void setUp() throws Exception {
         getTestDrawingWindow();
+        drawables = new LinkedList<>();
     }
 
     @After
@@ -191,26 +218,29 @@ public class AllenMStickDataTest {
         window.close();
     }
 
+
     private void drawMStick(AllenMatchStick mStick){
-        window.draw(new Drawable() {
+        Drawable drawable;
+        window.draw(drawable = new Drawable() {
             @Override
             public void draw() {mStick.drawGhost();
             }
         });
+        drawables.add(drawable);
     }
 
 
     private void drawLine(List<Point3d> line, RGBColor rgbColor){
-
-        window.draw(new Drawable() {
+        Drawable drawable;
+        window.draw(drawable = new Drawable() {
             @Override
             public void draw() {
                 int i;
-                GL11.glColor3f(rgbColor.getRed(), rgbColor.getGreen(), rgbColor.getBlue());
                 GL11.glLineWidth(2);
                 GL11.glBegin(GL11.GL_LINE_STRIP);
                 for (i=0; i<line.size(); i++)
                 {
+                    GL11.glColor3f( rgbColor.getRed(),  rgbColor.getGreen(),  rgbColor.getBlue());
                     //GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
                     GL11.glVertex3d( line.get(i).x, line.get(i).y, line.get(i).z);
                 }
@@ -218,7 +248,29 @@ public class AllenMStickDataTest {
                 GL11.glEnd();
             }
         });
+        drawables.add(drawable);
+    }
 
+    private void drawLine(List<Point3d> line, RGBColor rgbColor, float alpha){
+        Drawable drawable;
+        window.draw(drawable = new Drawable() {
+            @Override
+            public void draw() {
+                int i;
+                GL11.glLineWidth(2);
+                GL11.glBegin(GL11.GL_LINE_STRIP);
+                for (i=0; i<line.size(); i++)
+                {
+                    float scalar = (float)(line.size()/2+i)/((float)line.size()/2 + line.size());
+                    GL11.glColor4f(scalar*rgbColor.getRed(), scalar*rgbColor.getGreen(), scalar*rgbColor.getBlue(), alpha);
+                    //GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
+                    GL11.glVertex3d( line.get(i).x, line.get(i).y, line.get(i).z);
+                }
+
+                GL11.glEnd();
+            }
+        });
+        drawables.add(drawable);
     }
 
 }

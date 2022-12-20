@@ -6,6 +6,7 @@ import org.xper.XperConfig;
 import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
+import org.xper.util.ThreadUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,33 @@ public class TestDrawingWindow {
     public void draw(Drawable drawable){
         renderer.draw(drawable);
         window.swapBuffers();
+    }
+
+    public void animateRotation(List<Drawable> drawables, float angle, double numFrames){
+        for (int frameNum = 0; frameNum< numFrames; frameNum++) {
+            int finalFrameNum = frameNum;
+            renderer.draw(new Drawable() {
+                @Override
+                public void draw() {
+                    GL11.glPushMatrix();
+                    GL11.glMatrixMode(GL11.GL_MODELVIEW);
+                    GL11.glRotatef(finalFrameNum*angle, 1f, 1f, 1f);
+                    for (Drawable drawable:drawables)
+                        drawable.draw();
+                }
+            });
+            GL11.glPopMatrix();
+            window.swapBuffers();
+            GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+            GL11.glFlush();
+            ThreadUtil.sleep(Math.round((1/60.0)*1000));
+        }
+
+    }
+
+    private void animateRotation(int numFrames, List<Drawable> drawables){
+
     }
 
     public static TestDrawingWindow createDrawerWindow() {
