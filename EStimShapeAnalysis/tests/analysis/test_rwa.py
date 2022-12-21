@@ -16,15 +16,16 @@ class Test(TestCase):
         for i in range(numDataPoints):
             stim_dict = {"A": self.genRandA(), "B": self.genRandB()}
             stim_dict_list.append(stim_dict)
-        stim_df = pd.DataFrame(stim_dict_list)
 
-        resp_vect = []
+
+        resp_list = []
         for stim in stim_dict_list:
-            resp_vect.append(self.genResp(stim["A"], stim["B"]))
+            resp_list.append(self.genResp(stim["A"], stim["B"]))
 
-        # rwa(stim_df, resp_vect, bins)
-        print(stim_dict_list)
-        print(resp_vect)
+        bins_for_field = {"A": Bins(0, 1, 10), "B": Bins(0, 2 * pi, 10)}
+
+        rwa(stim_dict_list, resp_list, bins_for_field)
+
 
     def test_bins(self):
         bins = Bins(0, 1, 10)

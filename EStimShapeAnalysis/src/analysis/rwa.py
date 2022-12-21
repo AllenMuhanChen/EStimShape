@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+import numpy as np
 import pandas as pd
 
 
@@ -39,5 +40,33 @@ class Bins:
                 return i, bin_range
 
 
-def rwa(stim_df: pd.DataFrame, resp_vect: list[float], bins: Bins):
-    pass
+def rwa(stims: list[dict], resp_vect: list[float], bins_for_field: dict[str, Bins]):
+    point_matrices = generate_point_matrix(bins_for_field, stims)
+    print(point_matrices)
+
+
+
+def generate_point_matrix(bins_for_field: dict[str, Bins], stims) -> list[np.ndarray]:
+    point_matrices = []
+    for stim_index, stim_dict in enumerate(stims):
+        assigned_bins_for_stim = assign_bins_for_stim(bins_for_field, stim_dict)
+        point_matrix = generate_point_matrix_for_stim(assigned_bins_for_stim, bins_for_field, stim_dict)
+        point_matrices.append(point_matrix)
+
+    return point_matrices
+
+
+def generate_point_matrix_for_stim(assigned_bins_for_stim, bins, stim_dict):
+    number_bins = [bins[data_key].num_bins for data_key, data_value in stim_dict.items()]
+    point_matrix = np.zeros(number_bins)
+    bin_indices_for_stim = tuple([assigned_bin[0] for assigned_bin in assigned_bins_for_stim])
+    point_matrix[bin_indices_for_stim] = 1
+    return point_matrix
+
+
+def assign_bins_for_stim(bins, stim_dict) -> list[(int, Bins)]:
+    assigned_bins_for_stim = [bins[data_key].assign_bin(data_value) for data_key, data_value in stim_dict.items()]
+    return assigned_bins_for_stim
+
+
+
