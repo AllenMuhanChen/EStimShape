@@ -1,5 +1,9 @@
 package org.xper.allen.drawing.composition;
 
+import com.thoughtworks.xstream.XStream;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.List;
 
 public class AllenMStickData {
@@ -7,6 +11,36 @@ public class AllenMStickData {
     List<TerminationData> terminationData;
     List<JunctionData> junctionData;
     AllenMStickSpec analysisMStickSpec;
+
+    static XStream s;
+
+    static {
+        s = new XStream();
+        s.alias("AllenMStickData", AllenMStickData.class);
+        s.alias("TerminationData", TerminationData.class);
+        s.alias("JunctionData", JunctionData.class);
+        s.alias("ShaftData", ShaftData.class);
+        s.alias("AllenMSickSpec", AllenMStickSpec.class);
+    }
+
+    public String toXml() {
+        return AllenMStickData.toXml(this);
+    }
+
+    public static String toXml(AllenMStickData data){
+        return s.toXML(data);
+    }
+
+    public void writeInfo2File(String fname){
+        try {
+            BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_spec.xml"));
+            out.write(toXml());
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
 
     public List<ShaftData> getShaftData() {
         return shaftData;

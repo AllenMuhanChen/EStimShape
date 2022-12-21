@@ -1,47 +1,75 @@
 package org.xper.allen.drawing.composition;
-
-import org.junit.After;
 import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.RGBColor;
-import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.stick.JuncPt_struct;
-import org.xper.drawing.stick.stickMath_lib;
+import org.xper.drawing.TestDrawingWindow;
 
-import javax.vecmath.Point3d;
+
+import org.xper.drawing.stick.stickMath_lib;
+import org.xper.util.ResourceUtil;
+
 import javax.vecmath.Vector3d;
+import javax.vecmath.Point3d;
+
+
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.*;
 
-public class AllenMStickDataTest {
+import static org.junit.Assert.assertTrue;
 
+public class AllenMStickDataTest {
     private TestDrawingWindow window;
-    private static LinkedHashMap<Integer, RGBColor> comp_colors = new LinkedHashMap<>();
+
+    private static final LinkedHashMap<Integer, RGBColor> COMP_COLORS = new LinkedHashMap<>();
     static {
-        comp_colors.put(0, new RGBColor(1, 0, 0));
-        comp_colors.put(1, new RGBColor(0,1,0));
-        comp_colors.put(2, new RGBColor(0,0,1));
-        comp_colors.put(3, new RGBColor(1,1,0));
-        comp_colors.put(4, new RGBColor(0,1,1));
-        comp_colors.put(5, new RGBColor(1,0,1));
-        comp_colors.put(6, new RGBColor(1,1,1));
+        COMP_COLORS.put(1, new RGBColor(0,1,0));
+        COMP_COLORS.put(2, new RGBColor(0,0,1));
+        COMP_COLORS.put(3, new RGBColor(1,1,0));
+        COMP_COLORS.put(4, new RGBColor(0,1,1));
+        COMP_COLORS.put(5, new RGBColor(1,0,1));
+        COMP_COLORS.put(6, new RGBColor(1,1,1));
+        COMP_COLORS.put(0, new RGBColor(1,0,0));
     }
 
     private List<Drawable> drawables;
+    private AllenMStickData data;
+
+    private AllenMatchStick matchStick;
+    private final static String FILE_NAME = Paths.get(ResourceUtil.getResource("testBin"), "AllenMStickDataTest_testFile").toString();;
+
+    @Before
+    public void setUp() throws Exception {
+        drawables = new LinkedList<>();
+        setMStickData();
+        getTestDrawingWindow();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        window.close();
+    }
+
+    @Test
+    public void testExport(){
+        System.out.println(data.toXml());
+        data.writeInfo2File(FILE_NAME);
+        File testFile = new File(FILE_NAME +"_spec.xml");
+        assertTrue(testFile.exists());
+//        testFile.delete();
+    }
 
     @Test
     public void testShaftData() {
-       AllenMatchStick matchStick = new AllenMatchStick();
-       matchStick.setProperties(5);
-       matchStick.genMatchStickRand();
+        drawMStick(matchStick);
 
-       AllenMStickData data = matchStick.getMStickData();
-       drawMStick(matchStick);
-
-       //SHAFTS
+        //SHAFTS
         int numShafts = data.getShaftData().size();
         for (int i = 0; i< numShafts; i++) {
             ShaftData shaftData = data.getShaftData().get(i);
@@ -49,23 +77,25 @@ public class AllenMStickDataTest {
             AllenMAxisArc mAxis = tubeComp.getmAxisInfo();
 
             testShaftLength(i, shaftData);
-            //Shaft Position
             testSphericalPosition(matchStick, i, shaftData.angularPosition, shaftData.radialPosition);
             testShaftOrientation(i, shaftData);
             testRadius(i, shaftData.radius, mAxis.getmPts()[26], mAxis.getmTangent()[26]);
             testShaftCurvature(shaftData, mAxis, i);
         }
 
-       window.animateRotation(drawables, 1, 10000);
+        window.animateRotation(drawables, 1, 10000);
+    }
+
+    private void setMStickData() {
+        matchStick = new AllenMatchStick();
+        matchStick.setProperties(5);
+        matchStick.genMatchStickRand();
+
+        data = matchStick.getMStickData();
     }
 
     @Test
     public void testTerminationData(){
-        AllenMatchStick matchStick = new AllenMatchStick();
-        matchStick.setProperties(5);
-        matchStick.genMatchStickRand();
-
-        AllenMStickData data = matchStick.getMStickData();
         drawMStick(matchStick);
 
         int numTerminations = data.getTerminationData().size();
@@ -130,7 +160,7 @@ public class AllenMStickDataTest {
     private void testTerminationOrientation(int i, TerminationData terminationData) {
         Vector3d tangent = CoordinateConverter.sphericalToVector(10, terminationData.direction);
         Point3d endPtPosition = CoordinateConverter.sphericalToPoint(terminationData.getRadialPosition(), terminationData.angularPosition);
-        drawLine(CoordinateConverter.vectorToLine(tangent, 50, endPtPosition), comp_colors.get(i));
+        drawLine(CoordinateConverter.vectorToLine(tangent, 50, endPtPosition), COMP_COLORS.get(i));
     }
 
     private void testShaftCurvature(ShaftData shaftData, AllenMAxisArc mAxis, int i) {
@@ -148,7 +178,7 @@ public class AllenMStickDataTest {
         for (Point3d point:line){
             point.add(new Point3d(20,0,0));
         }
-        drawLine(line, comp_colors.get(i));
+        drawLine(line, COMP_COLORS.get(i));
     }
 
     private void testRadius(int i, double radius, Point3d startPoint, Vector3d tangent) {
@@ -163,7 +193,7 @@ public class AllenMStickDataTest {
             disk.add(new Point3d(nextDiskPoint.x, nextDiskPoint.y, nextDiskPoint.z));
         }
 
-        drawLine(disk, comp_colors.get(i));
+        drawLine(disk, COMP_COLORS.get(i));
 
     }
 
@@ -181,7 +211,7 @@ public class AllenMStickDataTest {
         Point3d startPoint = new Point3d(-5,-25 + (i *5),-10);
         List<Point3d> shaftLengthLine = CoordinateConverter.vectorToLine(new Vector3d(length, 0, 0), 50, startPoint);
         raiseLine(shaftLengthLine);
-        drawLine(shaftLengthLine, comp_colors.get(i));
+        drawLine(shaftLengthLine, COMP_COLORS.get(i));
     }
 
     private void testSphericalPosition(AllenMatchStick matchStick, int i, AngularCoordinates angularPosition, double radialPosition) {
@@ -192,7 +222,7 @@ public class AllenMStickDataTest {
         List<Point3d> shaftLine = CoordinateConverter.vectorToLine(shaftAxis, 100, massCenter);
 
         raiseLine(shaftLine);
-        drawLine(shaftLine, comp_colors.get(i));
+        drawLine(shaftLine, COMP_COLORS.get(i));
     }
 
     private void raiseLine(List<Point3d> line) {
@@ -205,17 +235,6 @@ public class AllenMStickDataTest {
 
     private void getTestDrawingWindow() {
         window = TestDrawingWindow.createDrawerWindow();
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        getTestDrawingWindow();
-        drawables = new LinkedList<>();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        window.close();
     }
 
 

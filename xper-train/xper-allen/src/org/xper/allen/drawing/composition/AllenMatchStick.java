@@ -2336,7 +2336,7 @@ public class AllenMatchStick extends MatchStick {
 			getComp()[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
 
 			// 2.5 call the function to check if this new arc is valid
-			if (this.checkSkeletonNearby(nowComp) == true)
+			if (checkSkeletonNearby(nowComp))
 			{
 				getJuncPt()[getnJuncPt()] = null;
 				setnJuncPt(getnJuncPt() - 1);
