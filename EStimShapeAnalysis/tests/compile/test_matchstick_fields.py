@@ -29,9 +29,9 @@ class Test(TestCase):
         for field in field.get(None):
             data_fields = field.keys()
             assert(data_fields.__contains__('angularPosition'))
-            assert (data_fields.__contains__('radialPosition'))
-            assert (data_fields.__contains__('direction'))
-            assert (data_fields.__contains__('radius'))
+            assert(data_fields.__contains__('radialPosition'))
+            assert(data_fields.__contains__('direction'))
+            assert(data_fields.__contains__('radius'))
 
     def test_junction_field(self):
         field = JunctionField(TestMStickSource())
@@ -40,9 +40,9 @@ class Test(TestCase):
             data_fields = field.keys()
             print(data_fields)
             assert(data_fields.__contains__('angularPosition'))
-            assert (data_fields.__contains__('radialPosition'))
-            assert (data_fields.__contains__('angleBisectorDirection'))
-            assert (data_fields.__contains__('radius'))
+            assert(data_fields.__contains__('radialPosition'))
+            assert(data_fields.__contains__('angleBisectorDirection'))
+            assert(data_fields.__contains__('radius'))
 
     def test_comp_txt(self):
         comp_file = open("/home/r2_allen/Documents/EStimShape/dev_221110/specs/1670009332620530_comp.txt")
