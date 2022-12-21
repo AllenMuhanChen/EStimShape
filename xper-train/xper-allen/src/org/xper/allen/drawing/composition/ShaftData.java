@@ -1,5 +1,7 @@
 package org.xper.allen.drawing.composition;
 
+import com.thoughtworks.xstream.annotations.XStreamAlias;
+
 public class ShaftData {
     public AngularCoordinates angularPosition;
     public double radialPosition;

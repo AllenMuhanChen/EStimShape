@@ -19,16 +19,22 @@ class MatchStickField(Field):
 
 
 class ShaftField(MatchStickField):
-    def get(self, when: When) -> pd.DataFrame:
-        mstick_spec = MatchStickField.get(self, when)
-        shaft_specs = mstick_spec["AllenMStickData"]["shaftData"]["Tube"]["AllenTubeInfo"]
-
-        shaft_data = pd.DataFrame
-        for shaft_spec in shaft_specs:
-            radial_position, angular_position = cartesian_to_polar(shaft_spec["transRotHis__finalPos"])
+    def get(self, when: When) -> list[dict]:
+        mstick_data = MatchStickField.get(self, when)
+        shaft_data = mstick_data["AllenMStickData"]['shaftData']['ShaftData']
+        return shaft_data
 
 
-def cartesian_to_polar(x, y):
-    r = math.sqrt(x ** 2 + y ** 2)
-    theta = math.atan2(y, x)
-    return r, theta
+class TerminationField(MatchStickField):
+    def get(self, when: When) -> list[dict]:
+        mstick_data = MatchStickField.get(self, when)
+        termination_data = mstick_data["AllenMStickData"]['terminationData']['TerminationData']
+        return termination_data
+
+
+class JunctionField(MatchStickField):
+    def get(self, when: When) -> list[dict]:
+        mstick_data = MatchStickField.get(self, when)
+        termination_data = mstick_data["AllenMStickData"]['junctionData']['JunctionData']
+        return termination_data
+
