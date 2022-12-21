@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 import pandas as pd
 
 
@@ -22,7 +24,9 @@ class Bins:
             bin_middle = (bin_start + bin_end) / 2
 
             # Add the bin range to the list
-            bin_ranges.append((bin_start, bin_middle, bin_end))
+            BinRange = namedtuple('BinRange', 'start middle end')
+            bin_range = BinRange(bin_start, bin_middle, bin_end)
+            bin_ranges.append(bin_range)
 
         # Return the list of bin ranges
         self.bins = bin_ranges
@@ -30,7 +34,7 @@ class Bins:
     def assign_bin(self, value) -> (int, tuple):
         for i, bin_range in enumerate(self.bins):
             # Check if the value is within the current bin_range range
-            if bin_range[0] <= value < bin_range[2]:
+            if bin_range.start <= value < bin_range.end:
                 # Return the current bin_range range
                 return i, bin_range
 
