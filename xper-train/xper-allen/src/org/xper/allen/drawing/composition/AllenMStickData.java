@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition;
 
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.annotations.XStreamImplicitCollection;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
