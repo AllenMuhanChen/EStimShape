@@ -1,7 +1,14 @@
+from dataclasses import dataclass
 from collections import namedtuple
 
 import numpy as np
 import pandas as pd
+
+
+@dataclass
+class Matrix:
+    axes: dict[str, int]
+    values: np.ndarray
 
 
 class Binner:
@@ -51,7 +58,7 @@ def rwa(stims: list[list[dict]], resp_vect: list[float], binner_for_field: dict[
     print(point_matrices)
 
 
-def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> list[np.ndarray]:
+def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> Matrix:
     """For each stimulus, generates a Stimulus Point Matrix.
     Each Stim Point Matrix is the summation of multiple Component Point Matrices.
 
@@ -67,7 +74,7 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
 
     # For each stimulus
     for stim_index, stim_components in enumerate(stims):
-        axes, component_point_matrix = initialize_point_matrix(binner_for_field, stim_components)
+        component_point_matrix = initialize_point_matrix(binner_for_field, stim_components)
         # For each component of the stimulus
         for component in stim_components:
             assigned_bins_for_component = assign_bins_for_component(binner_for_field, component)
@@ -75,7 +82,7 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
                                                                       assigned_bins_for_component)
         stim_point_matrices.append(component_point_matrix)
 
-    return axes, stim_point_matrices
+    return stim_point_matrices
 
 
 def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
@@ -86,7 +93,7 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
     point_matrix = np.zeros(number_bins_for_each_field)
     axes = {field_key: index for index, (field_key, field_value) in enumerate(stim_components[0].items())}
 
-    return axes, point_matrix
+    return Matrix(axes, point_matrix)
 
 
 def assign_bins_for_component(binner_for_field: dict[str, Binner], component: dict) -> list[(int, Binner)]:
@@ -97,10 +104,10 @@ def assign_bins_for_component(binner_for_field: dict[str, Binner], component: di
     return assigned_bin_for_component
 
 
-def append_point_to_component_matrix(component_point_matrix: np.ndarray,
+def append_point_to_component_matrix(component_point_matrix: Matrix,
                                      assigned_index_and_bin_for_each_component: list[tuple[int, Binner]]) -> np.ndarray:
     """Sums onto component_point_matrix a 1 at the specified location (location = bins for a component)"""
     bin_indices_for_component = tuple(
         [assigned_index_and_bin[0] for assigned_index_and_bin in assigned_index_and_bin_for_each_component])
-    component_point_matrix[bin_indices_for_component] += 1
+    component_point_matrix.values[bin_indices_for_component] += 1
     return component_point_matrix
