@@ -49,7 +49,9 @@ class Binner:
 
 def rwa(stims: list[list[dict]], resp_vect: list[float], binner_for_field: dict[str, Binner]):
     """stims are list[list[dict]]: each stim can have one or more component. Each component's data
-    is represented by a dictionary. Each component for a stim should have the same data field keys/names
+    is represented by a dictionary. Each data field within a component can be a number OR a DICT.
+
+    Each component for a stim should have the same data field keys/names
     (but not data values)
 
     If a stim only has one component, put it in a list still!"""
@@ -87,7 +89,14 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
 
 def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
     """Initialize a zero matrix with a number of dimensions equal to the number of data fields.
-    Each dimension has size equal to the number of bins specified for that field. """
+    Each dimension has size equal to the number of bins specified for that field.
+
+    If a data field has multi-dimensions (i.e x,y position), then this will automatically unpack that.
+    Currently, the multidimensional data field must be a dict for this to work.
+
+    The total number of dimensions of this matrix will be equal to the total dimensionality of the data.
+
+    Currently only unpacks one level deep"""
     # number_bins_for_each_field = [binner_for_field[field_key].num_bins for field_key, field_value in
     #                               stim_components[0].items()]
 
@@ -113,7 +122,9 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
 
 def assign_bins_for_component(binner_for_field: dict[str, Binner], component: dict) -> list[(int, Binner)]:
     """Assigns the values of every data field to a bin for a single component.
-    Returns a list of tuples: (index, (min, middle, max)). One element per field """
+    Returns a list of tuples: (index, (min, middle, max)). One element per field.
+
+     If a data field is multidimensional, will automatically unpack (must be a dict)"""
     # assigned_bin_for_component = [binner_for_field[field_key].assign_bin(field_value) for field_key, field_value in
     #                               component.items()]
 
