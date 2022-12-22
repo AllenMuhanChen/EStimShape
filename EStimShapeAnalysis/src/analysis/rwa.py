@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from collections import namedtuple
 
 import numpy as np
+from scipy.ndimage.filters import gaussian_filter
 import pandas as pd
 
 
@@ -47,9 +48,12 @@ class Binner:
                 return i, bin_range
 
 
-def rwa(stims: list[list[dict]], resp_vect: list[float], binner_for_field: dict[str, Binner]):
+
+
+
+def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner]):
     """stims are list[list[dict]]: each stim can have one or more component. Each component's data
-    is represented by a dictionary. Each data field within a component can be a number OR a DICT.
+    is represented by a dictionary. Each data field within a component can be a number OR a dictionary.
 
     Each component for a stim should have the same data field keys/names
     (but not data values)
@@ -57,7 +61,11 @@ def rwa(stims: list[list[dict]], resp_vect: list[float], binner_for_field: dict[
     If a stim only has one component, put it in a list still!"""
 
     point_matrices = generate_point_matrices(binner_for_field, stims)
-    print(point_matrices)
+    smoothed_matrices = smooth_matrices(point_matrices)
+    response_weighted_average = calculate_response_weighted_average(smoothed_matrices, response_vector)
+    # normalized_rwa = normalize_matrix(response_weighted_average)
+
+    return response_weighted_average
 
 
 def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> Matrix:
@@ -85,6 +93,7 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
         stim_point_matrices.append(component_point_matrix)
 
     return stim_point_matrices
+
 
 
 def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
@@ -146,3 +155,32 @@ def append_point_to_component_matrix(component_point_matrix: Matrix,
         [assigned_index_and_bin[0] for assigned_index_and_bin in assigned_index_and_bin_for_each_component])
     component_point_matrix.values[bin_indices_for_component] += 1
     return component_point_matrix
+
+
+def smooth_matrices(matrices: list[Matrix], sigma=20) -> list[Matrix]:
+    smoothed_matrices = []
+    for matrix in matrices:
+        smoothed_matrix = gaussian_filter(matrix.values, sigma)
+        smoothed_matrices.append(Matrix(matrix.axes, smoothed_matrix))
+
+    return smoothed_matrices
+
+
+def calculate_response_weighted_average(matrices: list[Matrix], response_vector: list[float]) -> list[Matrix]:
+    response_weighted_matrices = []
+    for stim_index, matrix in enumerate(matrices):
+        response_weighted_matrix = matrix.values*response_vector[stim_index]
+        response_weighted_matrices.append(Matrix(matrix.axes, response_weighted_matrix))
+
+    response_weighted_sum_matrix = sum([matrix.values for matrix in response_weighted_matrices])
+    unweighted_sum_matrix = sum([matrix.values for matrix in matrices])
+
+    response_weighted_average = np.divide(response_weighted_sum_matrix, unweighted_sum_matrix)
+    return Matrix(matrices[0].axes, response_weighted_average)
+
+
+def normalize_matrix(matrix):
+    max_val = np.amax(matrix.values)
+    normalized_matrix = np.divide(matrix.values, max_val)
+    return Matrix(matrix.axes, normalized_matrix)
+

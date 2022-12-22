@@ -4,21 +4,42 @@ from unittest import TestCase
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 
-from src.analysis.rwa import rwa, Binner, generate_point_matrices
+from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, calculate_response_weighted_average, Matrix
 
 
 class Test(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.num_data_points = 100
+        self.num_data_points = 200
         self.stims = self.generate_stim(self.num_data_points)
-        self.resp_list = self.generate_resp(self.stims)
-        self.binner_for_field = {"A": Binner(0, 1, 10), "B": Binner(0, 2 * pi, 10)}
+        self.response_vector = self.generate_resp(self.stims)
+        self.binner_for_field = {"A": Binner(0, 1, 100), "B": Binner(0, 2 * pi, 100)}
 
     def test_rwa(self):
-        rwa(self.stims, self.resp_list, self.binner_for_field)
+        response_weighted_average = rwa(self.stims, self.response_vector, self.binner_for_field)
+        self.draw_A_tuning(response_weighted_average)
+
+    def test_smoothing(self):
+        stim_point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
+        smoothed_matrices = smooth_matrices(stim_point_matrices)
+        for stim_indx, smoothed_matrix in enumerate(smoothed_matrices):
+            print(self.stims[stim_indx])
+            self.draw_A_tuning(smoothed_matrix)
+
+    def draw_A_tuning(self, matrix_to_draw):
+        matrix = matrix_to_draw.values
+        # print(matrix)
+        matrix_summed = matrix.sum(2)
+        normalized_matrix = np.divide(matrix_summed, matrix.shape[2])
+        plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 1], origin="lower")
+        labels = [label for label, label_indx in matrix_to_draw.axes.items()]
+        plt.xlabel(labels[0])
+        plt.ylabel(labels[1])
+        plt.colorbar()
+        plt.show()
 
     def test_point_matrices(self):
         stim_point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
@@ -77,6 +98,8 @@ class Test(TestCase):
         return {"x": random.uniform(0, 1), "y": random.uniform(0, 1)}
 
     def generate_resp_for_stim(self, a_list, b_list):
+        """Our test neuron cares that A.x is close to 0.5, doesn't care about A.y, and cares that
+        B is close to pi"""
         a_peak = 0.5
         b_peak = pi
         a_distances_from_peak = [(fabs(a["x"] - a_peak)) for a in a_list]
