@@ -21,13 +21,13 @@ class Test(TestCase):
         rwa(self.stims, self.resp_list, self.binner_for_field)
 
     def test_point_matrices(self):
-        axes, point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
+        stim_point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
 
-        assert (len(point_matrices) == self.num_data_points)
-        for stim_indx, point_matrix in enumerate(point_matrices):
-            assert(point_matrix.sum() == len(self.stims[stim_indx]))
-        assert(axes["A"] == 0)
-        assert(axes["B"] == 1)
+        assert (len(stim_point_matrices) == self.num_data_points)
+        for stim_indx, point_matrix in enumerate(stim_point_matrices):
+            assert(point_matrix.values.sum() == len(self.stims[stim_indx]))
+        assert(point_matrix.axes["A"] == 0)
+        assert(point_matrix.axes["B"] == 1)
 
     def test_generate_resp(self):
         stims = self.generate_stim(100)
