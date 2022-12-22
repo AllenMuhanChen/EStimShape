@@ -5,7 +5,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from src.analysis.rwa import rwa, Bins, generate_point_matrices
+from src.analysis.rwa import rwa, Binner, generate_point_matrices
 
 
 class Test(TestCase):
@@ -15,17 +15,17 @@ class Test(TestCase):
         self.num_data_points = 100
         self.stims = self.generate_stim(self.num_data_points)
         self.resp_list = self.generate_resp(self.stims)
-        self.bins_for_field = {"A": Bins(0, 1, 10), "B": Bins(0, 2 * pi, 10)}
+        self.binner_for_field = {"A": Binner(0, 1, 10), "B": Binner(0, 2 * pi, 10)}
 
     def test_rwa(self):
-        rwa(self.stims, self.resp_list, self.bins_for_field)
+        rwa(self.stims, self.resp_list, self.binner_for_field)
 
     def test_point_matrices(self):
-        point_matrices = generate_point_matrices(self.bins_for_field, self.stims)
+        point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
 
         assert (len(point_matrices) == self.num_data_points)
-        for point_matrix in point_matrices:
-            assert(point_matrix.sum() == 2)
+        for stim_indx, point_matrix in enumerate(point_matrices):
+            assert(point_matrix.sum() == len(self.stims[stim_indx]))
 
     def test_generate_resp(self):
         stims = self.generate_stim(100)
@@ -40,7 +40,10 @@ class Test(TestCase):
     def generate_stim(self, num_data_points):
         stims = []
         for i in range(num_data_points):
-            stim_dict = [self.generate_stim_component(), self.generate_stim_component()]
+            if i%2==0:
+                stim_dict = [self.generate_stim_component(), self.generate_stim_component()]
+            else:
+                stim_dict = [self.generate_stim_component()]
             stims.append(stim_dict)
 
         return stims
@@ -61,7 +64,7 @@ class Test(TestCase):
         return {"A": self.generate_rand_a(), "B": self.generate_rand_b()}
 
     def test_bins(self):
-        bins = Bins(0, 1, 10)
+        bins = Binner(0, 1, 10)
         print(bins.bins)
 
     def generate_rand_b(self):

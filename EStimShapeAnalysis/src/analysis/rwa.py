@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-class Bins:
+class Binner:
     def __init__(self, start, end, num_bins):
         self.num_bins = num_bins
         self.end = end
@@ -40,15 +40,18 @@ class Bins:
                 return i, bin_range
 
 
-def rwa(stims: list[list[dict]], resp_vect: list[float], bins_for_field: dict[str, Bins]):
+def rwa(stims: list[list[dict]], resp_vect: list[float], binner_for_field: dict[str, Binner]):
     """stims are list[list[dict]]: each stim can have more than one component. Each component's data
     is represented by a dictionary. Each component for a stim should have dicts with identical
-    keys."""
-    point_matrices = generate_point_matrices(bins_for_field, stims)
+    keys.
+
+    If a stim only has one component, put it in a list still!"""
+
+    point_matrices = generate_point_matrices(binner_for_field, stims)
     print(point_matrices)
 
 
-def generate_point_matrices(bins_for_field: dict[str, Bins], stims: list[list[dict]]) -> list[np.ndarray]:
+def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> list[np.ndarray]:
     """For each stimulus, generates a Stimulus Point Matrix.
     Each Stim Point Matrix is the summation of multiple Component Point Matrices.
 
@@ -64,32 +67,32 @@ def generate_point_matrices(bins_for_field: dict[str, Bins], stims: list[list[di
 
     # For each stimulus
     for stim_index, stim_components in enumerate(stims):
-        component_point_matrix = initialize_point_matrix(bins_for_field, stim_components)
+        component_point_matrix = initialize_point_matrix(binner_for_field, stim_components)
         # For each component of the stimulus
         for component in stim_components:
-            assigned_bins_for_component = assign_bins_for_component(bins_for_field, component)
+            assigned_bins_for_component = assign_bins_for_component(binner_for_field, component)
             component_point_matrix = append_point_to_component_matrix(component_point_matrix, assigned_bins_for_component)
         stim_point_matrices.append(component_point_matrix)
 
     return stim_point_matrices
 
 
-def initialize_point_matrix(bins_for_field: dict[str, Bins], stim_components: list[dict]):
+def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
     """Initialize a zero matrix with a number of dimensions equal to the number of data fields.
     Each dimension has size equal to the number of bins specified for that field. """
-    number_bins_for_each_field = [bins_for_field[field_key].num_bins for field_key, field_value in stim_components[0].items()]
+    number_bins_for_each_field = [binner_for_field[field_key].num_bins for field_key, field_value in stim_components[0].items()]
     point_matrix = np.zeros(number_bins_for_each_field)
     return point_matrix
 
 
-def assign_bins_for_component(bins_for_field: dict[str, Bins], component: dict) -> list[(int, Bins)]:
+def assign_bins_for_component(binner_for_field: dict[str, Binner], component: dict) -> list[(int, Binner)]:
     """Assigns the values of every data field to a bin for a single component.
     Returns a list of tuples: (index, (min, middle, max)). One element per field """
-    assigned_bin_for_component = [bins_for_field[field_key].assign_bin(field_value) for field_key, field_value in component.items()]
+    assigned_bin_for_component = [binner_for_field[field_key].assign_bin(field_value) for field_key, field_value in component.items()]
     return assigned_bin_for_component
 
 
-def append_point_to_component_matrix(component_point_matrix: np.ndarray, assigned_index_and_bin_for_each_component: list[tuple[int, Bins]]) -> np.ndarray:
+def append_point_to_component_matrix(component_point_matrix: np.ndarray, assigned_index_and_bin_for_each_component: list[tuple[int, Binner]]) -> np.ndarray:
     """Sums onto component_point_matrix a 1 at the specified location (location = bins for a component)"""
     bin_indices_for_component = tuple([assigned_index_and_bin[0] for assigned_index_and_bin in assigned_index_and_bin_for_each_component])
     component_point_matrix[bin_indices_for_component] += 1
