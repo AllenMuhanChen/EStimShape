@@ -88,10 +88,25 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
 def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
     """Initialize a zero matrix with a number of dimensions equal to the number of data fields.
     Each dimension has size equal to the number of bins specified for that field. """
-    number_bins_for_each_field = [binner_for_field[field_key].num_bins for field_key, field_value in
-                                  stim_components[0].items()]
+    # number_bins_for_each_field = [binner_for_field[field_key].num_bins for field_key, field_value in
+    #                               stim_components[0].items()]
+
+    number_bins_for_each_field = []
+    axes = {}
+    field_index = 0
+    for field_key, field_value in stim_components[0].items():
+        if type(field_value) is not dict:
+            number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
+            axes[field_key] = field_index
+            field_index += 1
+        else:
+            for sub_field_key, sub_field_value in field_value.items():
+                number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
+                axes[field_key + "." + sub_field_key] = field_index
+                field_index += 1
+
     point_matrix = np.zeros(number_bins_for_each_field)
-    axes = {field_key: index for index, (field_key, field_value) in enumerate(stim_components[0].items())}
+    # axes = {field_key: index for index, (field_key, field_value) in enumerate(stim_components[0].items())}
 
     return Matrix(axes, point_matrix)
 
@@ -99,8 +114,17 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
 def assign_bins_for_component(binner_for_field: dict[str, Binner], component: dict) -> list[(int, Binner)]:
     """Assigns the values of every data field to a bin for a single component.
     Returns a list of tuples: (index, (min, middle, max)). One element per field """
-    assigned_bin_for_component = [binner_for_field[field_key].assign_bin(field_value) for field_key, field_value in
-                                  component.items()]
+    # assigned_bin_for_component = [binner_for_field[field_key].assign_bin(field_value) for field_key, field_value in
+    #                               component.items()]
+
+    assigned_bin_for_component = []
+    for field_key, field_value in component.items():
+        if type(field_value) is not dict:
+            assigned_bin_for_component.append(binner_for_field[field_key].assign_bin(field_value))
+        else:
+            for sub_field_key, sub_field_value in field_value.items():
+                assigned_bin_for_component.append(binner_for_field[field_key].assign_bin(sub_field_value))
+
     return assigned_bin_for_component
 
 

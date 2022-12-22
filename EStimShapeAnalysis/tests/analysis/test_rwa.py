@@ -25,9 +25,10 @@ class Test(TestCase):
 
         assert (len(stim_point_matrices) == self.num_data_points)
         for stim_indx, point_matrix in enumerate(stim_point_matrices):
-            assert(point_matrix.values.sum() == len(self.stims[stim_indx]))
-        assert(point_matrix.axes["A"] == 0)
-        assert(point_matrix.axes["B"] == 1)
+            assert (point_matrix.values.sum() == len(self.stims[stim_indx]))
+        assert (point_matrix.axes["A.x"] == 0)
+        assert (point_matrix.axes["A.y"] == 1)
+        assert (point_matrix.axes["B"] == 2)
 
     def test_generate_resp(self):
         stims = self.generate_stim(100)
@@ -42,7 +43,7 @@ class Test(TestCase):
     def generate_stim(self, num_data_points):
         stims = []
         for i in range(num_data_points):
-            if i%2==0:
+            if i % 2 == 0:
                 stim_dict = [self.generate_stim_component(), self.generate_stim_component()]
             else:
                 stim_dict = [self.generate_stim_component()]
@@ -55,11 +56,11 @@ class Test(TestCase):
 
         resp_list = []
         for stims in stims:
-            a_values = [field_value for component in stims for field_key, field_value in component.items() if
+            a_values_xy = [field_value for component in stims for field_key, field_value in component.items() if
                         field_key == "A"]
             b_values = [field_value for component in stims for field_key, field_value in component.items() if
                         field_key == "B"]
-            resp_list.append(self.generate_resp_for_stim(a_values, b_values))
+            resp_list.append(self.generate_resp_for_stim(a_values_xy, b_values))
         return resp_list
 
     def generate_stim_component(self):
@@ -73,12 +74,12 @@ class Test(TestCase):
         return random.uniform(0, 1) * 2 * pi
 
     def generate_rand_a(self):
-        return random.uniform(0, 1)
+        return {"x": random.uniform(0, 1), "y": random.uniform(0, 1)}
 
     def generate_resp_for_stim(self, a_list, b_list):
         a_peak = 0.5
         b_peak = pi
-        a_distances_from_peak = [(fabs(a - a_peak)) for a in a_list]
+        a_distances_from_peak = [(fabs(a["x"] - a_peak)) for a in a_list]
         b_distances_from_peak = [(fabs(b - b_peak)) for b in b_list]
         a_normalized_distances_from_peak = [a_distance_from_peak / max(1 - a_peak, a_peak) for a_distance_from_peak in
                                             a_distances_from_peak]
