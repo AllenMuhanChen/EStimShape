@@ -35,6 +35,7 @@ public class DbUtilTest extends TestCase {
 
 //		dbUtil = new DbUtil();
 //		dbUtil.setDataSource(dataSource);
+		FileUtil.loadTestSystemProperties("/xper.properties.test");
 
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
 		dbUtil = context.getBean(DbUtil.class);

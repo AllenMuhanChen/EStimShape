@@ -3,11 +3,8 @@ package org.xper.acq;
 import java.util.List;
 import java.util.Map;
 
-import junit.framework.TestCase;
-
 import org.junit.Ignore;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.xper.acq.vo.DigitalChannel;
 import org.xper.db.vo.AcqDataEntry;
 import org.xper.db.vo.SystemVariable;
@@ -19,7 +16,7 @@ import static org.junit.Assert.assertTrue;
 @Ignore
 public class AcqDataTest {
 	public void testReadAcqData () {
-
+		FileUtil.loadTestSystemProperties("/xper.properties.test");
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
 		DbUtil dbUtil = context.getBean(DbUtil.class);
 

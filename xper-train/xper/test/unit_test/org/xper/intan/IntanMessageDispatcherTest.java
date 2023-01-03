@@ -23,6 +23,7 @@ public class IntanMessageDispatcherTest {
 
     @BeforeClass
     public static void set_up(){
+        FileUtil.loadTestSystemProperties("/xper.properties.test");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
         intanMessageDispatcher = context.getBean(IntanMessageDispatcher.class);
         intanClient = context.getBean(IntanClient.class);

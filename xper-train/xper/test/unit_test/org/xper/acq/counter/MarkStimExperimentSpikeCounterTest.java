@@ -27,6 +27,7 @@ public class MarkStimExperimentSpikeCounterTest extends TestCase {
 		libs.add("xper");
 		new XperConfig("", libs);
 
+		FileUtil.loadTestSystemProperties("/xper.properties.test");
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
 		dbUtil = context.getBean(DbUtil.class);
 	}
