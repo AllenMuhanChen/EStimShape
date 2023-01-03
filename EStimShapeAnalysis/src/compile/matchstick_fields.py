@@ -14,8 +14,8 @@ class MatchStickField(Field):
         self.mstick_spec_source = mstick_spec_data_source
 
     def get(self, when: When) -> dict:
-        mstick_spec_xml = self.mstick_spec_source.get(when)
-        return xmltodict.parse(mstick_spec_xml)
+       return self.mstick_spec_source.get(when)
+
 
 
 class ShaftField(MatchStickField):

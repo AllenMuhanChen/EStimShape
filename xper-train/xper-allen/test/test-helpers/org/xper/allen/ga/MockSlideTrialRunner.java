@@ -1,10 +1,7 @@
 package org.xper.allen.ga;
 
 import org.xper.Dependency;
-import org.xper.classic.ClassicSlideRunner;
-import org.xper.classic.SlideRunner;
-import org.xper.classic.SlideTrialRunner;
-import org.xper.classic.TrialEventListener;
+import org.xper.classic.*;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
@@ -15,6 +12,7 @@ import org.xper.util.ThreadHelper;
 
 import java.util.List;
 
+import static org.xper.classic.ClassicSlideTrialRunner.cleanupTrial;
 import static org.xper.classic.ClassicSlideTrialRunner.completeTrial;
 
 public class MockSlideTrialRunner implements SlideTrialRunner{
@@ -24,35 +22,42 @@ public class MockSlideTrialRunner implements SlideTrialRunner{
 
     @Override
     public TrialResult runTrial(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
-        ClassicSlideRunner.getNextTask(stateObject);
+        try {
+            ClassicSlideRunner.getNextTask(stateObject);
 
-        if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
-            try {
-                Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
-            } catch (InterruptedException e) {
+            if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
+                try {
+                    Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
+                } catch (InterruptedException e) {
+                }
+                return TrialResult.NO_MORE_TASKS;
             }
-            return TrialResult.NO_MORE_TASKS;
+
+            // initialize trial context
+            stateObject.setCurrentContext(new TrialContext());
+            stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
+
+
+            TrialResult result = getMonkeyFixation(stateObject, threadHelper);
+            if (result != TrialResult.FIXATION_SUCCESS) {
+                return result;
+            }
+
+            result = slideRunner.runSlide(stateObject, threadHelper);
+            if (result != TrialResult.TRIAL_COMPLETE) {
+                return result;
+            }
+
+            completeTrial(stateObject, threadHelper);
+
+            return TrialResult.TRIAL_COMPLETE;
+        } finally {
+            try {
+                cleanupTrial(stateObject);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-
-        // initialize trial context
-        stateObject.setCurrentContext(new TrialContext());
-        stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
-
-
-        TrialResult result = getMonkeyFixation(stateObject, threadHelper);
-        if (result != TrialResult.FIXATION_SUCCESS) {
-            return result;
-        }
-
-        result = slideRunner.runSlide(stateObject, threadHelper);
-        if (result != TrialResult.TRIAL_COMPLETE) {
-            return result;
-        }
-
-        completeTrial(stateObject, threadHelper);
-
-        return TrialResult.TRIAL_COMPLETE;
-
 
     }
 
