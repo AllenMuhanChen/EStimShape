@@ -1,4 +1,5 @@
 import math
+from typing import Callable
 
 import pandas as pd
 import xmltodict
@@ -9,13 +10,12 @@ from src.util.time_util import When
 
 
 class MatchStickField(Field):
-    def __init__(self, mstick_spec_data_source, name: str = None):
+    def __init__(self, mstick_spec_data_source: Callable[[When], dict], name: str = None):
         super().__init__(name)
         self.mstick_spec_source = mstick_spec_data_source
 
     def get(self, when: When) -> dict:
-       return self.mstick_spec_source.get(when)
-
+        return self.mstick_spec_source.get(when)
 
 
 class ShaftField(MatchStickField):
@@ -37,4 +37,3 @@ class JunctionField(MatchStickField):
         mstick_data = MatchStickField.get(self, when)
         termination_data = mstick_data["AllenMStickData"]['junctionData']['JunctionData']
         return termination_data
-
