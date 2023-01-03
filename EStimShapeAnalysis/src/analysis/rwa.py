@@ -1,5 +1,7 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from collections import namedtuple
+from typing import Callable
 
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
@@ -10,6 +12,11 @@ import pandas as pd
 class LabelledMatrix:
     axes: dict[str, int]
     matrix: np.ndarray
+
+    def apply(self, func: Callable, *args) -> LabelledMatrix:
+        """apply a function to self.matrix and return a LabelledMatrix with the new
+        matrix"""
+        return LabelledMatrix(self.axes, func(self.matrix, *args))
 
 
 class Binner:
@@ -46,9 +53,6 @@ class Binner:
             if bin_range.start <= value < bin_range.end:
                 # Return the current bin_range range
                 return i, bin_range
-
-
-
 
 
 def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner]):
@@ -93,7 +97,6 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
         stim_point_matrices.append(component_point_matrix)
 
     return stim_point_matrices
-
 
 
 def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
@@ -160,27 +163,30 @@ def append_point_to_component_matrix(component_point_matrix: LabelledMatrix,
 def smooth_matrices(labelled_matrices: list[LabelledMatrix], sigma=20) -> list[LabelledMatrix]:
     smoothed_matrices = []
     for labelled_matrix in labelled_matrices:
-        smoothed_matrix = gaussian_filter(labelled_matrix.matrix, sigma)
-        smoothed_matrices.append(LabelledMatrix(labelled_matrix.axes, smoothed_matrix))
+        # smoothed_matrix = gaussian_filter(labelled_matrix.matrix, sigma)
+        smoothed_matrix = labelled_matrix.apply(gaussian_filter, sigma)
+        # smoothed_matrices.append(LabelledMatrix(labelled_matrix.axes, smoothed_matrix))
+        smoothed_matrices.append(smoothed_matrix)
 
     return smoothed_matrices
 
 
-def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix], response_vector: list[float]) -> list[LabelledMatrix]:
+def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix], response_vector: list[float]) -> list[
+    LabelledMatrix]:
     response_weighted_matrices = []
     for stim_index, labelled_matrix in enumerate(labelled_matrices):
         response_weighted_matrix = labelled_matrix.matrix * response_vector[stim_index]
         response_weighted_matrices.append(LabelledMatrix(labelled_matrix.axes, response_weighted_matrix))
 
-    response_weighted_sum_matrix = sum([matrix.matrix for matrix in response_weighted_matrices])
-    unweighted_sum_matrix = sum([matrix.matrix for matrix in labelled_matrices])
+    response_weighted_sum_matrix = sum([labelled_matrix.matrix for labelled_matrix in response_weighted_matrices])
+    unweighted_sum_matrix = sum([labelled_matrix.matrix for labelled_matrix in labelled_matrices])
 
     response_weighted_average = np.divide(response_weighted_sum_matrix, unweighted_sum_matrix)
     return LabelledMatrix(labelled_matrices[0].axes, response_weighted_average)
 
 
-def normalize_matrix(labelled_matrix):
+def normalize_matrix(labelled_matrix: LabelledMatrix):
     max_val = np.amax(labelled_matrix.matrix)
-    normalized_matrix = np.divide(labelled_matrix.matrix, max_val)
+    # normalized_matrix = np.divide(labelled_matrix.matrix, max_val)
+    normalized_matrix = labelled_matrix.apply(np.divide(), max_val)
     return LabelledMatrix(labelled_matrix.axes, normalized_matrix)
-
