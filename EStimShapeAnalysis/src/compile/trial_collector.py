@@ -22,8 +22,8 @@ class TrialCollector:
 
     def collect_trials(self):
         print("Collecting all trials")
-        trial_starts = self.beh_msg[self.beh_msg['type'] == "TrialStart"]['tstamp'].matrix
-        trial_stops = self.beh_msg[self.beh_msg['type'] == "TrialStop"]['tstamp'].matrix
+        trial_starts = self.beh_msg[self.beh_msg['type'] == "TrialStart"]['tstamp'].values
+        trial_stops = self.beh_msg[self.beh_msg['type'] == "TrialStop"]['tstamp'].values
         trial_starts, trial_stops = self.sort_fix_bad_trials(trial_starts, trial_stops)
         return [time_util.When(trial_starts[i], trial_stops[i]) for i in range(len(trial_starts))]
 

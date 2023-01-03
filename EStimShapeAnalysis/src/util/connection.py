@@ -37,10 +37,13 @@ class Connection:
         return df
 
     def get_stim_obj_data(self, when: When) -> pd.DataFrame:
-        self.my_cursor.execute("SELECT * FROM StimObjData WHERE id>= %s & id<=%s", (when.start, when.stop))
-        df = pd.DataFrame(self.my_cursor.fetchall())
-        df.columns = ['id', 'spec', 'util']
-        return df
+        try:
+            self.my_cursor.execute("SELECT * FROM StimObjData WHERE id>= %s & id<=%s", (when.start, when.stop))
+            df = pd.DataFrame(self.my_cursor.fetchall())
+            df.columns = ['id', 'spec', 'util']
+            return df
+        except:
+            return None
 
     def get_beh_msg_eye(self, when: When) -> pd.DataFrame:
         self.my_cursor.execute("SELECT * FROM BehMsgEye WHERE tstamp>= %s & tstamp<=%s", (when.start, when.stop))
