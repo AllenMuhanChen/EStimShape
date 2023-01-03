@@ -13,7 +13,7 @@ public class SlideEventLogger implements SlideEventListener {
 	
 	long slideOnTimestamp;
 
-	public void slideOff(int index, long timestamp, int frameCount) {
+	public void slideOff(int index, long timestamp, int frameCount, long taskId) {
 		long t = timestamp - slideOnTimestamp;
 		total += t;
 		n ++;
@@ -22,7 +22,7 @@ public class SlideEventLogger implements SlideEventListener {
 		logger.info( frameCount + " physical frames drawn. Time " + (t/1000) + " ms. Max " + (max/1000) + " Avg " + (total/n/1000));
 	}
 
-	public void slideOn(int index, long timestamp) {
+	public void slideOn(int index, long timestamp, long taskId) {
 		slideOnTimestamp = timestamp;
 		log("slideOn", index, timestamp);
 	}
