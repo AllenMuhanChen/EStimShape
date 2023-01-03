@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, calculate_response_weighted_average, Matrix
+from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, calculate_response_weighted_average, LabelledMatrix
 
 
 class Test(TestCase):
@@ -30,7 +30,7 @@ class Test(TestCase):
             self.draw_A_tuning(smoothed_matrix)
 
     def draw_A_tuning(self, matrix_to_draw):
-        matrix = matrix_to_draw.values
+        matrix = matrix_to_draw.matrix
         # print(matrix)
         matrix_summed = matrix.sum(2)
         normalized_matrix = np.divide(matrix_summed, matrix.shape[2])
@@ -46,7 +46,7 @@ class Test(TestCase):
 
         assert (len(stim_point_matrices) == self.num_data_points)
         for stim_indx, point_matrix in enumerate(stim_point_matrices):
-            assert (point_matrix.values.sum() == len(self.stims[stim_indx]))
+            assert (point_matrix.matrix.sum() == len(self.stims[stim_indx]))
         assert (point_matrix.axes["A.x"] == 0)
         assert (point_matrix.axes["A.y"] == 1)
         assert (point_matrix.axes["B"] == 2)
