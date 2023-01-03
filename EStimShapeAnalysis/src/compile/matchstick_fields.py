@@ -3,7 +3,7 @@ import math
 import pandas as pd
 import xmltodict
 
-from src.compile.database_fields import DatabaseField
+from src.compile.nafc_database_fields import DatabaseField
 from src.compile.trial_field import Field
 from src.util.time_util import When
 

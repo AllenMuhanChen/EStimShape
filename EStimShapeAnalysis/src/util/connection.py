@@ -22,7 +22,7 @@ class Connection:
         self.my_cursor.execute(statement, params)
 
     def fetch_one(self):
-        return "".join(self.my_cursor.fetchall()[0])
+        return "".join(map(str, self.my_cursor.fetchall()[0]))
 
     def get_beh_msg(self, when: When) -> pd.DataFrame:
         self.my_cursor.execute("SELECT * FROM BehMsg WHERE tstamp>= %s && tstamp<=%s", (when.start, when.stop))

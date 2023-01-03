@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.compile.database_fields import TrialTypeField
+from src.compile.nafc_database_fields import TrialTypeField
 from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
 from src.util import time_util
