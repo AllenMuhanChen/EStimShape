@@ -80,8 +80,10 @@ public class PsychometricTrialIntegrationTest {
 		numPsychometricDistractors = 2;
 		numRandDistractors = 1;
 
+		FileUtil.loadTestSystemProperties("/xper.properties.psychometric");
+
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-				FileUtil.loadConfigClass("experiment.ga.config_class"));
+				FileUtil.loadConfigClass("experiment.config_class"));
 
 		generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
 		TestTimeUtil timeUtil = new TestTimeUtil();

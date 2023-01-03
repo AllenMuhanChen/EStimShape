@@ -53,8 +53,9 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
     @Test
     public void generates_classic_use_case_trials(){
         startTime = System.currentTimeMillis()*1000;
+        FileUtil.loadTestSystemProperties("/xper.properties.psychometric");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-                FileUtil.loadConfigClass("experiment.ga.config_class"));
+                FileUtil.loadConfigClass("experiment.config_class"));
 
         generator = context.getBean(PsychometricBlockGen.class);
 
