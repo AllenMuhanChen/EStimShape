@@ -191,7 +191,7 @@ public class ClassicSlideRunner implements SlideRunner {
     }
 
 
-    public void getNextTask(TrialExperimentState state) {
+    public static void getNextTask(TrialExperimentState state) {
         state.setCurrentTask(state.getTaskDataSource().getNextTask());
     }
 

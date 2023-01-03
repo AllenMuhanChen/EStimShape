@@ -28,7 +28,7 @@ public class ThreeDGAMockExperiment {
 
     @Before
     public void setUp(){
-        FileUtil.loadTestSystemProperties("/xper.properties.3dga");
+        FileUtil.loadTestSystemProperties("/xper.properties.3dga.mock");
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
