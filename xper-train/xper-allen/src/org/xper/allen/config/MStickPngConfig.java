@@ -5,10 +5,12 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.allen.app.fixation.PngScene;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.util.DPIUtil;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.drawing.object.BlankScreen;
 import org.xper.utils.RGBColor;
 
 @Configuration(defaultLazy= Lazy.TRUE)
@@ -27,6 +29,21 @@ public class MStickPngConfig {
 
     @ExternalValue("generator.spec_path")
     public String generatorSpecPath;
+
+    @Bean
+    public PngScene taskScene() {
+        PngScene scene = new PngScene();
+        scene.setRenderer(classicConfig.experimentGLRenderer());
+        scene.setFixation(classicConfig.experimentFixationPoint());
+        scene.setMarker(classicConfig.screenMarker());
+        scene.setBlankScreen(new BlankScreen());
+        scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
+        scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
+        scene.setDistance(classicConfig.xperMonkeyScreenDistance());
+        scene.setBackgroundColor(xperBackgroundColor());
+        return scene;
+    }
+
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public AllenPNGMaker pngMaker(){
