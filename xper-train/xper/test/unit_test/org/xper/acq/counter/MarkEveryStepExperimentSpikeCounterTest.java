@@ -8,7 +8,6 @@ import java.util.SortedMap;
 import junit.framework.TestCase;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.xper.XperConfig;
 import org.xper.acq.vo.DigitalChannel;
 import org.xper.db.vo.AcqDataEntry;
@@ -30,6 +29,7 @@ public class MarkEveryStepExperimentSpikeCounterTest extends TestCase {
 		libs.add("xper");
 		new XperConfig("", libs);
 
+		FileUtil.loadTestSystemProperties("/xper.properties.test");
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
 		dbUtil = context.getBean(DbUtil.class);
 	}
