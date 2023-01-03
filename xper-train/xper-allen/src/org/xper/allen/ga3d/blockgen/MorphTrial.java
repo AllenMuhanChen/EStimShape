@@ -1,5 +1,6 @@
 package org.xper.allen.ga3d.blockgen;
 
+import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.db.vo.StimSpecEntry;
@@ -40,6 +41,7 @@ public class MorphTrial extends ThreeDGATrial {
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(id), true);
+        AllenMStickData mStickData = mStick.getMStickData();
 
         //draw pngs
         List<String> labels = new LinkedList<>();
@@ -63,7 +65,7 @@ public class MorphTrial extends ThreeDGATrial {
         spec.setxCenter(coords.getX());
         spec.setyCenter(coords.getY());
 
-        generator.getDbUtil().writeStimSpec(taskId, spec.toXml(), mStickSpec.toXml());
+        generator.getDbUtil().writeStimSpec(taskId, spec.toXml(), mStickData.toXml());
 
         System.err.println("Finished Writing Morph Trial");
     }

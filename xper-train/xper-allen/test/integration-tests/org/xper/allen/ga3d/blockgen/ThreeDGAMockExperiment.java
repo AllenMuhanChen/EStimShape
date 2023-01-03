@@ -1,13 +1,11 @@
 package org.xper.allen.ga3d.blockgen;
 
-import com.sun.org.apache.xpath.internal.operations.Mult;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.ga.MockParentSelector;
 import org.xper.allen.ga.ParentSelector;
-import org.xper.allen.util.DbUtilFactory;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.db.vo.GenerationTaskToDoList;
 import org.xper.db.vo.TaskToDoEntry;
@@ -20,8 +18,9 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class ThreeDGATest {
+public class ThreeDGAMockExperiment {
     GA3DBlockGen generator = new GA3DBlockGen();
+    private final MultiGaDbUtil dbUtil = generator.getDbUtil();
     private Long testParentId;
 
     @Before
@@ -32,26 +31,47 @@ public class ThreeDGATest {
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
         generator = context.getBean(GA3DBlockGen.class);
 
-        JdbcTemplate jt = new JdbcTemplate(generator.getDbUtil().getDataSource());
-        jt.execute("TRUNCATE TABLE TaskToDo");
-        jt.execute("TRUNCATE TABLE TaskDone");
-
+        //TODO: mockparentselector should read our python generated responses
         generator.setParentSelector(new MockParentSelector(context.getBean(MultiGaDbUtil.class)));
+
         generator.setUp(1, 20, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
-    public void write() {
-        List<String> gaNames = new LinkedList<>();
-        gaNames.add("3D-1");
-        generator.getDbUtil().writeReadyGAsAndGenerationsInfo(gaNames);
+    public void writeFirstGeneration(){
+        prepDB();
         generator.generate(); //first gen
 
+        assertEquals(1, (long) dbUtil.readMultiGAReadyGenerationInfo().getGenIdForGA("3D-1"));
+    }
+
+    private void prepDB() {
+        JdbcTemplate jt = new JdbcTemplate(dbUtil.getDataSource());
+        jt.execute("TRUNCATE TABLE TaskToDo");
+        jt.execute("TRUNCATE TABLE TaskDone");
+        jt.execute("TRUNCATE TABLE StimSpec");
+        jt.execute("TRUNCATE TABLE BehMsg");
+        jt.execute("TRUNCATE TABLE BehMsgEye");
+        jt.execute("TRUNCATE TABLE StimObjData");
+        jt.execute("TRUNCATE TABLE ExpLog");
+        jt.execute("TRUNCATE TABLE AcqData");
+
+
+        List<String> gaNames = new LinkedList<>();
+        gaNames.add("3D-1");
+        dbUtil.writeReadyGAsAndGenerationsInfo(gaNames);
+    }
+
+    @Test
+    public void write() {
+
+
+
         //MOCK DO FIRST GENERATION
-        GenerationTaskToDoList list = generator.getDbUtil().readTaskToDoByGaAndGeneration("3D-1", 1);
+        GenerationTaskToDoList list = dbUtil.readTaskToDoByGaAndGeneration("3D-1", 1);
         List<TaskToDoEntry> taskList = list.getTasks();
         for (TaskToDoEntry taskToDo:taskList){
-            generator.getDbUtil().writeTaskDone(generator.getGlobalTimeUtil().currentTimeMicros(), taskToDo.getTaskId(), 0, "3D-1", 1);
+            dbUtil.writeTaskDone(generator.getGlobalTimeUtil().currentTimeMicros(), taskToDo.getTaskId(), 0, "3D-1", 1);
         }
 
         ThreadUtil.sleep(1000);
