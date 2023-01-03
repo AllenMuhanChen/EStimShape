@@ -39,6 +39,7 @@ public class ThreeDGAConfig {
         generator.setPngMaker(mStickPngConfig.pngMaker());
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());
+        generator.setGaName(gaNames().get(0));
         return generator;
     }
 

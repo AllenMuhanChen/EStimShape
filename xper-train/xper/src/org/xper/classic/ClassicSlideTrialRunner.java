@@ -100,7 +100,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         state.setAnimation(XmlUtil.slideIsAnimation(state.getCurrentTask()));
     }
 
-    public void completeTrial(TrialExperimentState state, ThreadHelper threadHelper) {
+    public static void completeTrial(TrialExperimentState state, ThreadHelper threadHelper) {
         TimeUtil timeUtil = state.getLocalTimeUtil();
         TrialContext currentContext = state.getCurrentContext();
         TrialDrawingController drawingController = state.getDrawingController();
