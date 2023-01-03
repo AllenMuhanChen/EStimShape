@@ -2,7 +2,7 @@ import unittest
 
 import mysql
 
-from src.compile.database_fields import get_stim_spec_data, get_stim_spec_id
+from src.compile.nafc_database_fields import get_stim_spec_data, get_stim_spec_id
 from src.util.connection import Connection
 from src.util.time_util import When
 
