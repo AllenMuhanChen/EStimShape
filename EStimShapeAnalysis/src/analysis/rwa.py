@@ -7,9 +7,9 @@ import pandas as pd
 
 
 @dataclass
-class Matrix:
+class LabelledMatrix:
     axes: dict[str, int]
-    values: np.ndarray
+    matrix: np.ndarray
 
 
 class Binner:
@@ -68,7 +68,7 @@ def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field:
     return response_weighted_average
 
 
-def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> Matrix:
+def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> LabelledMatrix:
     """For each stimulus, generates a Stimulus Point Matrix.
     Each Stim Point Matrix is the summation of multiple Component Point Matrices.
 
@@ -126,7 +126,7 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
     point_matrix = np.zeros(number_bins_for_each_field)
     # axes = {field_key: index for index, (field_key, field_value) in enumerate(stim_components[0].items())}
 
-    return Matrix(axes, point_matrix)
+    return LabelledMatrix(axes, point_matrix)
 
 
 def assign_bins_for_component(binner_for_field: dict[str, Binner], component: dict) -> list[(int, Binner)]:
@@ -148,39 +148,39 @@ def assign_bins_for_component(binner_for_field: dict[str, Binner], component: di
     return assigned_bin_for_component
 
 
-def append_point_to_component_matrix(component_point_matrix: Matrix,
+def append_point_to_component_matrix(component_point_matrix: LabelledMatrix,
                                      assigned_index_and_bin_for_each_component: list[tuple[int, Binner]]) -> np.ndarray:
     """Sums onto component_point_matrix a 1 at the specified location (location = bins for a component)"""
     bin_indices_for_component = tuple(
         [assigned_index_and_bin[0] for assigned_index_and_bin in assigned_index_and_bin_for_each_component])
-    component_point_matrix.values[bin_indices_for_component] += 1
+    component_point_matrix.matrix[bin_indices_for_component] += 1
     return component_point_matrix
 
 
-def smooth_matrices(matrices: list[Matrix], sigma=20) -> list[Matrix]:
+def smooth_matrices(labelled_matrices: list[LabelledMatrix], sigma=20) -> list[LabelledMatrix]:
     smoothed_matrices = []
-    for matrix in matrices:
-        smoothed_matrix = gaussian_filter(matrix.values, sigma)
-        smoothed_matrices.append(Matrix(matrix.axes, smoothed_matrix))
+    for labelled_matrix in labelled_matrices:
+        smoothed_matrix = gaussian_filter(labelled_matrix.matrix, sigma)
+        smoothed_matrices.append(LabelledMatrix(labelled_matrix.axes, smoothed_matrix))
 
     return smoothed_matrices
 
 
-def calculate_response_weighted_average(matrices: list[Matrix], response_vector: list[float]) -> list[Matrix]:
+def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix], response_vector: list[float]) -> list[LabelledMatrix]:
     response_weighted_matrices = []
-    for stim_index, matrix in enumerate(matrices):
-        response_weighted_matrix = matrix.values*response_vector[stim_index]
-        response_weighted_matrices.append(Matrix(matrix.axes, response_weighted_matrix))
+    for stim_index, labelled_matrix in enumerate(labelled_matrices):
+        response_weighted_matrix = labelled_matrix.matrix * response_vector[stim_index]
+        response_weighted_matrices.append(LabelledMatrix(labelled_matrix.axes, response_weighted_matrix))
 
-    response_weighted_sum_matrix = sum([matrix.values for matrix in response_weighted_matrices])
-    unweighted_sum_matrix = sum([matrix.values for matrix in matrices])
+    response_weighted_sum_matrix = sum([matrix.matrix for matrix in response_weighted_matrices])
+    unweighted_sum_matrix = sum([matrix.matrix for matrix in labelled_matrices])
 
     response_weighted_average = np.divide(response_weighted_sum_matrix, unweighted_sum_matrix)
-    return Matrix(matrices[0].axes, response_weighted_average)
+    return LabelledMatrix(labelled_matrices[0].axes, response_weighted_average)
 
 
-def normalize_matrix(matrix):
-    max_val = np.amax(matrix.values)
-    normalized_matrix = np.divide(matrix.values, max_val)
-    return Matrix(matrix.axes, normalized_matrix)
+def normalize_matrix(labelled_matrix):
+    max_val = np.amax(labelled_matrix.matrix)
+    normalized_matrix = np.divide(labelled_matrix.matrix, max_val)
+    return LabelledMatrix(labelled_matrix.axes, normalized_matrix)
 
