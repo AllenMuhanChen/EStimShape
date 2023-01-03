@@ -13,9 +13,7 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
-import org.xper.util.XmlUtil;
 
-import java.sql.Timestamp;
 import java.util.List;
 
 
@@ -88,7 +86,7 @@ public class MockClassicSlideRunner implements SlideRunner {
         long slideOnLocalTime = timeUtil.currentTimeMicros();
         currentContext.setCurrentSlideOnTime(slideOnLocalTime);
         EventUtil.fireSlideOnEvent(i, slideOnLocalTime,
-                slideEventListeners);
+                slideEventListeners, currentTask.getTaskId());
 
 
 
@@ -97,7 +95,7 @@ public class MockClassicSlideRunner implements SlideRunner {
         currentContext.setCurrentSlideOffTime(slideOffLocalTime);
         EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
                 currentContext.getAnimationFrameIndex(),
-                slideEventListeners);
+                slideEventListeners, currentTask.getTaskId());
         currentContext.setAnimationFrameIndex(0);
 
         return TrialResult.SLIDE_OK;

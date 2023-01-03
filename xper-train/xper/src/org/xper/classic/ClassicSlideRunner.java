@@ -11,7 +11,6 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
-import org.xper.util.TrialExperimentUtil;
 import org.xper.util.XmlUtil;
 
 import java.sql.Timestamp;
@@ -113,8 +112,9 @@ public class ClassicSlideRunner implements SlideRunner {
         drawingController.showSlide(currentTask, currentContext);
         long slideOnLocalTime = timeUtil.currentTimeMicros();
         currentContext.setCurrentSlideOnTime(slideOnLocalTime);
+        long taskId = currentTask.getTaskId();
         EventUtil.fireSlideOnEvent(i, slideOnLocalTime,
-                slideEventListeners);
+                slideEventListeners, taskId);
 
         // wait for current slide to finish
         do {
@@ -142,7 +142,7 @@ public class ClassicSlideRunner implements SlideRunner {
         currentContext.setCurrentSlideOffTime(slideOffLocalTime);
         EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
                 currentContext.getAnimationFrameIndex(),
-                slideEventListeners);
+                slideEventListeners, taskId);
         currentContext.setAnimationFrameIndex(0);
 
         return TrialResult.SLIDE_OK;

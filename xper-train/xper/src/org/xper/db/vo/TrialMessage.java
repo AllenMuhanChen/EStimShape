@@ -1,7 +1,5 @@
-package org.xper.allen.nafc.message;
+package org.xper.db.vo;
 
-import org.xper.allen.saccade.console.SaccadeTargetMessage;
-import org.xper.drawing.Coordinates2D;
 
 import com.thoughtworks.xstream.XStream;
 

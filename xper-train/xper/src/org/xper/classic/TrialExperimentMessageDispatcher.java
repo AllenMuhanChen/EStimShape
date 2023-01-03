@@ -87,14 +87,14 @@ public class TrialExperimentMessageDispatcher implements ExperimentEventListener
 		enqueue(timestamp, "ExperimentStop", "");
 	}
 
-	public void slideOff(int index, long timestamp, int frameCount) {
+	public void slideOff(int index, long timestamp, int frameCount, long taskId) {
 		enqueue(timestamp, "SlideOff", SlideEvent
-				.toXml(new SlideEvent(index, timestamp, frameCount)));
+				.toXml(new SlideEvent(index, timestamp, frameCount, taskId)));
 	}
 
-	public void slideOn(int index, long timestamp) {
+	public void slideOn(int index, long timestamp, long taskId) {
 		enqueue(timestamp, "SlideOn", SlideEvent
-				.toXml(new SlideEvent(index, timestamp, -1)));
+				.toXml(new SlideEvent(index, timestamp, -1, taskId)));
 	}
 
 	/**
