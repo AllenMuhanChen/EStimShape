@@ -3,6 +3,7 @@ package org.xper.allen.nafc.experiment;
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
 import org.xper.allen.util.AllenDbUtil;
+import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.Experiment;
 import org.xper.eye.EyeMonitor;
 import org.xper.time.TimeUtil;
@@ -10,7 +11,7 @@ import org.xper.util.*;
 
 import jssc.SerialPortException;
 
-import static org.xper.util.TrialExperimentUtil.pauseUntilRunReceived;
+
 
 public class NAFCTrialExperiment implements Experiment {
 	static Logger logger = Logger.getLogger(NAFCTrialExperiment.class);
@@ -40,7 +41,7 @@ public class NAFCTrialExperiment implements Experiment {
 
 			while (!threadHelper.isDone()) {
 				//pause experiment
-				pauseUntilRunReceived(stateObject, threadHelper);
+				pauseUntilRunReceived();
 				if (stopReceived()) break;
 				runTrial();
 				if (stopReceived()) break;
@@ -51,7 +52,7 @@ public class NAFCTrialExperiment implements Experiment {
 		}
 	}
 
-	private void startExperiment(TimeUtil timeUtil) {
+	protected void startExperiment(TimeUtil timeUtil) {
 		threadHelper.started();
 		System.out.println("NAFCTrialExperiment started.");
 		stateObject.getDrawingController().init();
@@ -59,7 +60,7 @@ public class NAFCTrialExperiment implements Experiment {
 				stateObject.getExperimentEventListeners());
 	}
 
-	private void runTrial() {
+	protected void runTrial() {
 		try{
 			getTrialRunner().runTrial(stateObject, threadHelper);
 		} catch (NullPointerException e){
@@ -79,6 +80,18 @@ public class NAFCTrialExperiment implements Experiment {
 		} catch (Exception e) {
 			//logger.warn(e.getMessage());
 			e.printStackTrace();
+		}
+	}
+
+	public void pauseUntilRunReceived() {
+		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
+		while (stateObject.isPause()) {
+			ThreadUtil.sleepOrPinUtil(timeUtil.currentTimeMicros()
+							+ TrialExperimentState.EXPERIMENT_PAUSE_SLEEP_INTERVAL * 1000, stateObject,
+					threadHelper);
+			if (threadHelper.isDone()) {
+				return;
+			}
 		}
 	}
 
@@ -135,8 +148,8 @@ public class NAFCTrialExperiment implements Experiment {
 		this.eyeMonitor = eyeMonitor;
 	}
 
-
 	public void setTrialRunner(NAFCTrialRunner trialRunner) {
 		this.trialRunner = trialRunner;
 	}
+
 }

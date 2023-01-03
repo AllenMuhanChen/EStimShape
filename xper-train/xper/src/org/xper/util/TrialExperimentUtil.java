@@ -8,7 +8,7 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
-import org.xper.classic.TrialRunner;
+import org.xper.classic.SlideTrialRunner;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
@@ -119,7 +119,7 @@ public class TrialExperimentUtil {
 			return result;
 		}
 
-		result = runner.runSlide();
+		result = runner.runSlide((SlideTrialExperimentState) stateObject, threadHelper);
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
 		}

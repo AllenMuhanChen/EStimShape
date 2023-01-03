@@ -5,6 +5,6 @@ import org.xper.classic.vo.TrialResult;
 import org.xper.util.ThreadHelper;
 
 
-public interface SlideRunner {
-	public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper);
+public interface SlideTrialRunner {
+	public TrialResult runTrial(SlideTrialExperimentState stateObject, ThreadHelper threadHelper);
 }

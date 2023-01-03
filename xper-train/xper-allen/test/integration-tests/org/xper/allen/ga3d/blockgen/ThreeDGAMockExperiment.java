@@ -4,6 +4,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.xper.allen.app.GAConsole;
+import org.xper.allen.app.GAExperiment;
 import org.xper.allen.ga.MockParentSelector;
 import org.xper.allen.ga.ParentSelector;
 import org.xper.allen.util.MultiGaDbUtil;
@@ -19,8 +21,9 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class ThreeDGAMockExperiment {
+    private final String[] emptyArgs = {""};
     GA3DBlockGen generator = new GA3DBlockGen();
-    private final MultiGaDbUtil dbUtil = generator.getDbUtil();
+    private MultiGaDbUtil dbUtil;
     private Long testParentId;
 
     @Before
@@ -30,11 +33,11 @@ public class ThreeDGAMockExperiment {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
         generator = context.getBean(GA3DBlockGen.class);
-
+        dbUtil = generator.getDbUtil();
         //TODO: mockparentselector should read our python generated responses
         generator.setParentSelector(new MockParentSelector(context.getBean(MultiGaDbUtil.class)));
 
-        generator.setUp(1, 20, 5, new Coordinates2D(0,0), generator.channels);
+        generator.setUp(1, 5, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
@@ -43,6 +46,9 @@ public class ThreeDGAMockExperiment {
         generator.generate(); //first gen
 
         assertEquals(1, (long) dbUtil.readMultiGAReadyGenerationInfo().getGenIdForGA("3D-1"));
+
+        GAConsole.main(emptyArgs);
+        GAExperiment.main(emptyArgs);
     }
 
     private void prepDB() {

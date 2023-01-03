@@ -147,7 +147,7 @@
 				<include name="org/xper/app/experiment/Experiment.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.app.experiment.Experiment" />
+				<attribute name="Main-Class" value="org.xper.app.Experiment" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
 			</manifest>
 		</jar>
@@ -157,7 +157,7 @@
 				<include name="org/xper/app/experiment/Console.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.app.experiment.Console" />
+				<attribute name="Main-Class" value="org.xper.app.Console" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
 			</manifest>
 		</jar>

@@ -5,15 +5,17 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
-import org.xper.allen.ga.IntanSpikeParentSelector;
-import org.xper.allen.ga.ParentSelector;
-import org.xper.allen.ga.SpikeRateAnalyzer;
-import org.xper.allen.ga.StandardSpikeRateAnalyzer;
+import org.xper.allen.ga.*;
 import org.xper.allen.ga3d.blockgen.GA3DBlockGen;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.experiment.DatabaseTaskDataSource;
+import org.xper.experiment.TaskDataSource;
+
+import java.util.LinkedList;
+import java.util.List;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -46,6 +48,29 @@ public class ThreeDGAConfig {
         dbUtil.setDataSource(baseConfig.dataSource());
         return dbUtil;
     }
+
+    @Bean
+    public MultiGATaskDataSource taskDataSource(){
+        return databaseTaskDataSource();
+    }
+
+    @Bean
+    public MultiGATaskDataSource databaseTaskDataSource() {
+        MultiGATaskDataSource source = new MultiGATaskDataSource();
+        source.setDbUtil(dbUtil());
+        source.setQueryInterval(1000);
+        source.setUngetPolicy(DatabaseTaskDataSource.UngetPolicy.HEAD);
+        source.setGaNames(gaNames());
+        return source;
+    }
+
+    @Bean
+    public List<String> gaNames() {
+        LinkedList<String> gaNames = new LinkedList<>();
+        gaNames.add("3D-1");
+        return gaNames;
+    }
+
 
     @Bean
     public ParentSelector parentSelector(){
