@@ -41,7 +41,7 @@ mock.config_class=
 #path of computer running generator
 generator.png_path = /home/r2_allen/Documents/EStimShape/dev_221110/pngs_dev_221110
 #path of computer running experiment
-experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_22110/experiment/pngs_dev_22110
+experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_221110/pngs_dev_221110
 #path of location for specs to be saved
 generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_221110/specs
 
