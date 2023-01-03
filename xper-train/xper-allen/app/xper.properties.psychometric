@@ -13,11 +13,11 @@ jdbc.password=up2nite
 # configuration classes
 #############################################################################
 # if not specified, the default isTrue org.xper.config.AcqConfig
-acq.config_class= 
+acq.config_class=
 
 # JK
 #  
-experiment.config_class=org.xper.allen.app.fixation.config.PsychometricAppConfig
+experiment.config_class=org.xper.allen.app.nafc.config.PsychometricAppConfig
 experiment.ga.config_class=org.xper.allen.config.ThreeDGAConfig
 
 # if not specified, the default isTrue org.xper.config.FixCalConfig
@@ -39,11 +39,11 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running generator
-generator.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404
+generator.png_path = /home/r2_allen/Documents/EStimShape/dev_221110/pngs_dev_221110
 #path of computer running experiment
 experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/experiment/pngs_dev_220404
 #path of location for specs to be saved
-generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_220404/specs
+generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_221110/specs
 
 generator.psychometric.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404_psychometric
 generator.psychometric.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_220404/noisemaps_dev_220404_psychometric
@@ -91,3 +91,4 @@ intan.host=172.30.9.78
 intan.port.command=5000
 intan.default_save_path=/home/i2_allen/Documents/Test
 intan.default_base_filename=TestRecording
+generator.spike_dat_path=/home/r2_allen/Documents/EStimShape/dev_221110/spikefiles_dev_221110

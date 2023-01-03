@@ -62,6 +62,8 @@ public class RandTrialIntegrationTest {
 
 
     private void given_classic_test_trial() {
+        FileUtil.loadTestSystemProperties("/xper.properties.psychometric");
+
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
 

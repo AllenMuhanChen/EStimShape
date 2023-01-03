@@ -26,6 +26,8 @@ public class ThreeDGATest {
 
     @Before
     public void setUp(){
+        FileUtil.loadTestSystemProperties("/xper.properties.3dga");
+
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
         generator = context.getBean(GA3DBlockGen.class);

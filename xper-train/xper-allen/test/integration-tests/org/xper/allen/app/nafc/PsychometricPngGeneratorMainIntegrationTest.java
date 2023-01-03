@@ -26,8 +26,9 @@ public class PsychometricPngGeneratorMainIntegrationTest {
 
     @Test
     public void classic_use_case_generates_pngs(){
+        FileUtil.loadTestSystemProperties("/xper.properties.psychometric");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-                FileUtil.loadConfigClass("experiment.ga.config_class"));
+                FileUtil.loadConfigClass("experiment.config_class"));
 
         gen = context.getBean(PsychometricBlockGen.class);
 
