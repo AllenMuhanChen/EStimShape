@@ -119,13 +119,13 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 
 	}
 
-	public static TrialResult runTrial (SaccadeExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
+	public static TrialResult runTrial(SaccadeExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
 		TrialResult result = SaccadeTrialExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
 		sendEStims(stateObject);
-		result = runner.runSlide();
+		result = runner.runSlide(stateObject, threadHelper);
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
 		}

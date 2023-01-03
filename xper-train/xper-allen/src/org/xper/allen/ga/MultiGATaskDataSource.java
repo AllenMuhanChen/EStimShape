@@ -2,6 +2,7 @@ package org.xper.allen.ga;
 
 import org.xper.Dependency;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.experiment.DatabaseTaskDataSource;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
 import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.TaskDataSource;
@@ -15,7 +16,7 @@ import java.util.function.BiConsumer;
  * Supports adding tasks by GA name (i.e lineage) or genId and will shuffle new tasks into current
  * task list.
  */
-public class MultiGATaskDataSource implements TaskDataSource, Runnable {
+public class MultiGATaskDataSource extends DatabaseTaskDataSource {
 
     protected  static final int DEFAULT_QUERY_INTERVAL = 10;
 
@@ -169,5 +170,13 @@ public class MultiGATaskDataSource implements TaskDataSource, Runnable {
 
     public void setDbUtil(MultiGaDbUtil dbUtil) {
         this.dbUtil = dbUtil;
+    }
+
+    public long getQueryInterval() {
+        return queryInterval;
+    }
+
+    public void setQueryInterval(long queryInterval) {
+        this.queryInterval = queryInterval;
     }
 }
