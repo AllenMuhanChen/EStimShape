@@ -5,6 +5,11 @@ from src.util.connection import Connection
 from src.util.time_util import When
 
 
+class StimSpecIdField(DatabaseField):
+    def get(self, when: When) -> int:
+        return get_stim_spec_id(self.conn, when)
+
+
 class StimSpecDataField(DatabaseField):
     def get(self, when: When):
         return get_stim_spec_data(self.conn, when)

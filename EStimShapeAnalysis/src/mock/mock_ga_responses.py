@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from numpy import shape, double
 
-from src.compile.classic_database_fields import StimSpecDataField
+from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
@@ -57,7 +57,8 @@ class ShaftTuningFunction(TuningFunction):
         # generate response based on distance between same entry in data and peak
         field_distances = [self.difference(data["ShaftField"], peak_value) for field, peak_value in
                            self.shaft_peaks.items()]
-        normalized_distances = [[distance / self.field_ranges[field]['max'] for distance in distances] for field, distances in
+        normalized_distances = [[distance / self.field_ranges[field]['max'] for distance in distances] for
+                                field, distances in
                                 zip(self.field_ranges.keys(), field_distances)]
         normalized_distances = [[abs(distance) for distance in distances] for distances in normalized_distances]
         normalized_distances = [[1 - distance for distance in distances] for distances in normalized_distances]
@@ -65,8 +66,10 @@ class ShaftTuningFunction(TuningFunction):
         # component-wise distance. list of lists. inner list is distance between each component's shaft field and peak. outer list is
         # for each shaft field
 
-        component_responses = [[normalized_distance*normalized_distance * self.response_range['max'] for normalized_distance in distance] for
-                               distance in normalized_distances]
+        component_responses = [
+            [normalized_distance * normalized_distance * self.response_range['max'] for normalized_distance in distance]
+            for
+            distance in normalized_distances]
         response = sum([sum(component_response) for component_response in component_responses])
         # return sum between a random baseline response and the max of responses
         return self.get_baseline_response() + response
@@ -81,6 +84,7 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     mstick_spec_data_source = StimSpecDataField(conn)
 
     fields = FieldList()
+    fields.append(StimSpecIdField(conn, "Id"))
     fields.append(ShaftField(mstick_spec_data_source))
     fields.append(TerminationField(mstick_spec_data_source))
     fields.append(JunctionField(mstick_spec_data_source))
@@ -118,7 +122,15 @@ def main():
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
     response_rates = generate_responses(data, list_of_tuning_functions)
-    print(response_rates)
+
+    # EXPORT]
+    insert_to_exp_log(conn, response_rates, data["Id"])
+
+
+# write sql query to insert response_rates into ExpLog table
+def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Series):
+    for stim_id, stim_response_rate in zip(ids, response_rates):
+            conn.execute("INSERT INTO ExpLog (tstamp, memo) VALUES (%s, %s)", (stim_id, str(stim_response_rate)))
 
 
 if __name__ == '__main__':

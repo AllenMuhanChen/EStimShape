@@ -34,8 +34,6 @@ public class ThreeDGAMockExperiment {
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
         generator = context.getBean(GA3DBlockGen.class);
         dbUtil = generator.getDbUtil();
-        //TODO: mockparentselector should read our python generated responses
-        generator.setParentSelector(new MockParentSelector(context.getBean(MultiGaDbUtil.class)));
 
         generator.setUp(1, 5, 5, new Coordinates2D(0,0), generator.channels);
     }
@@ -69,18 +67,7 @@ public class ThreeDGAMockExperiment {
     }
 
     @Test
-    public void write() {
-
-
-
-        //MOCK DO FIRST GENERATION
-        GenerationTaskToDoList list = dbUtil.readTaskToDoByGaAndGeneration("3D-1", 1);
-        List<TaskToDoEntry> taskList = list.getTasks();
-        for (TaskToDoEntry taskToDo:taskList){
-            dbUtil.writeTaskDone(generator.getGlobalTimeUtil().currentTimeMicros(), taskToDo.getTaskId(), 0, "3D-1", 1);
-        }
-
-        ThreadUtil.sleep(1000);
+    public void writeNextGeneration() {
 
         generator.generate(); //second gen
         List<Long> stimsToMorph = generator.stimsToMorph;

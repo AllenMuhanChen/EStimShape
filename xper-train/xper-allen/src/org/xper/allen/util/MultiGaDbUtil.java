@@ -136,7 +136,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
         long maxId = jt.queryForLong(
                 " select max(t.gen_id) as max_gen_id " +
                         " from TaskDone d, TaskToDo t " +
-                        " where d.task_id = t.task_id and d.ga_name = ?",
+                        " where d.task_id = t.task_id and t.ga_name = ?",
                 new Object[]{gaName});
         return maxId;
     }
@@ -150,7 +150,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
         jt.query(
                 " select d.tstamp as tstamp, d.task_id as task_id, d.part_done as part_done" +
                         " from TaskDone d, TaskToDo t "	+
-                        " where d.task_id = t.task_id and t.gen_id = ? and d.ga_name = ?" +
+                        " where d.task_id = t.task_id and t.gen_id = ? and t.ga_name = ?" +
                         " order by d.tstamp ",
                 new Object[] { genId, gaName },
                 new RowCallbackHandler() {
@@ -163,4 +163,6 @@ public class MultiGaDbUtil extends AllenDbUtil {
                     }});
         return taskDone;
     }
+
+
 }
