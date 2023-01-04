@@ -10,7 +10,7 @@ from src.util.time_util import When
 
 
 class MatchStickField(Field):
-    def __init__(self, mstick_spec_data_source: Callable[[When], dict], name: str = None):
+    def __init__(self, mstick_spec_data_source, name: str = None):
         super().__init__(name)
         self.mstick_spec_source = mstick_spec_data_source
 
