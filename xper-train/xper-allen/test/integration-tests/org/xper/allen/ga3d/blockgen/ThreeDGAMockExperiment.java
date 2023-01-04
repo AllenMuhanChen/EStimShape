@@ -35,7 +35,7 @@ public class ThreeDGAMockExperiment {
         generator = context.getBean(GA3DBlockGen.class);
         dbUtil = generator.getDbUtil();
 
-        generator.setUp(1, 5, 5, new Coordinates2D(0,0), generator.channels);
+        generator.setUp(1, 20, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
@@ -70,10 +70,8 @@ public class ThreeDGAMockExperiment {
     public void writeNextGeneration() {
 
         generator.generate(); //second gen
-        List<Long> stimsToMorph = generator.stimsToMorph;
 
 
-//        assertMakesNewTrial();
 
     }
 
