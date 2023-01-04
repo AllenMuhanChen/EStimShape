@@ -40,6 +40,7 @@ public class ThreeDGAConfig {
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());
         generator.setGaName(gaNames().get(0));
+        generator.setParentSelector(parentSelector());
         return generator;
     }
 
