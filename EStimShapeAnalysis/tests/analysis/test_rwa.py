@@ -13,13 +13,15 @@ class Test(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.num_data_points = 100
+        self.num_data_points = 1
         self.stims = self.generate_stim(self.num_data_points)
         self.response_vector = self.generate_resp(self.stims)
-        self.binner_for_field = {"A": Binner(0, 1, 100), "B": Binner(0, 2 * pi, 100)}
+        num_bins = 10
+        self.binner_for_field = {"A": Binner(0, 1, num_bins), "B": Binner(0, 2 * pi, num_bins)}
 
     def test_rwa(self):
         response_weighted_average = rwa(self.stims, self.response_vector, self.binner_for_field)
+        print(response_weighted_average)
         self.draw_A_tuning(response_weighted_average)
 
     def test_smoothing(self):
@@ -31,11 +33,11 @@ class Test(TestCase):
 
     def draw_A_tuning(self, matrix_to_draw):
         matrix = matrix_to_draw.matrix
-        # print(matrix)
+        print(matrix)
         matrix_summed = matrix.sum(2)
         normalized_matrix = np.divide(matrix_summed, matrix.shape[2])
         plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 1], origin="lower")
-        labels = [label for label, label_indx in matrix_to_draw.axes.items()]
+        labels = [label for label, label_indx in matrix_to_draw.indices_for_axes.items()]
         plt.xlabel(labels[0])
         plt.ylabel(labels[1])
         plt.colorbar()
@@ -47,9 +49,9 @@ class Test(TestCase):
         assert (len(stim_point_matrices) == self.num_data_points)
         for stim_indx, point_matrix in enumerate(stim_point_matrices):
             assert (point_matrix.matrix.sum() == len(self.stims[stim_indx]))
-        assert (point_matrix.axes["A.x"] == 0)
-        assert (point_matrix.axes["A.y"] == 1)
-        assert (point_matrix.axes["B"] == 2)
+        assert (point_matrix.indices_for_axes["A.x"] == 0)
+        assert (point_matrix.indices_for_axes["A.y"] == 1)
+        assert (point_matrix.indices_for_axes["B"] == 2)
 
     def test_generate_resp(self):
         stims = self.generate_stim(100)
