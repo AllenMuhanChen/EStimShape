@@ -1,18 +1,8 @@
 import xmltodict
-from mysql.connector import CMySQLConnection
 
-from src.compile.trial_field import Field
+from src.compile.trial_field import DatabaseField
 from src.util.connection import Connection
 from src.util.time_util import When
-
-
-class DatabaseField(Field):
-    def __init__(self, conn: Connection, name: str = None):
-        super().__init__(name)
-        self.conn = conn
-
-    def get(self, when: When):
-        raise NotImplementedError("Not Implemented")
 
 
 class StimSpecDataField(DatabaseField):

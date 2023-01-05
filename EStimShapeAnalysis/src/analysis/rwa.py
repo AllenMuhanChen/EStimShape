@@ -1,6 +1,10 @@
 from __future__ import annotations
+
+import sys
+import tracemalloc
 from dataclasses import dataclass
 from collections import namedtuple
+from sys import getsizeof
 from typing import Callable
 
 import numpy as np
@@ -50,9 +54,11 @@ class Binner:
     def assign_bin(self, value) -> (int, tuple):
         for i, bin_range in enumerate(self.bins):
             # Check if the value is within the current bin_range range
-            if bin_range.start <= value < bin_range.end:
+            if bin_range.start <= float(value) < bin_range.end:
                 # Return the current bin_range range
                 return i, bin_range
+
+        raise Exception("Value not in range: " + str(value) + " not in " + self.start + " to " + self.end)
 
 
 def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner]):
@@ -64,15 +70,21 @@ def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field:
 
     If a stim only has one component, put it in a list still!"""
 
+    print("Generating Point Matrices")
     point_matrices = generate_point_matrices(binner_for_field, stims)
+    print("size of point_matrices" ,sys.getsizeof(point_matrices))
+
+    print("Smoothing Point Matrices")
     smoothed_matrices = smooth_matrices(point_matrices)
+
+    print("Calculating RWA")
     response_weighted_average = calculate_response_weighted_average(smoothed_matrices, response_vector)
     # normalized_rwa = normalize_matrix(response_weighted_average)
 
     return response_weighted_average
 
 
-def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> LabelledMatrix:
+def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> list[LabelledMatrix]:
     """For each stimulus, generates a Stimulus Point Matrix.
     Each Stim Point Matrix is the summation of multiple Component Point Matrices.
 
@@ -88,15 +100,20 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
 
     # For each stimulus
     for stim_index, stim_components in enumerate(stims):
-        component_point_matrix = initialize_point_matrix(binner_for_field, stim_components)
-        # For each component of the stimulus
-        for component in stim_components:
-            assigned_bins_for_component = assign_bins_for_component(binner_for_field, component)
-            component_point_matrix = append_point_to_component_matrix(component_point_matrix,
-                                                                      assigned_bins_for_component)
+        component_point_matrix = generate_component_point_matrix(binner_for_field, stim_components)
         stim_point_matrices.append(component_point_matrix)
 
     return stim_point_matrices
+
+
+def generate_component_point_matrix(binner_for_field, stim_components):
+    component_point_matrix = initialize_point_matrix(binner_for_field, stim_components)
+    # For each component of the stimulus
+    for component in stim_components:
+        assigned_bins_for_component = assign_bins_for_component(binner_for_field, component)
+        component_point_matrix = append_point_to_component_matrix(component_point_matrix,
+                                                                  assigned_bins_for_component)
+    return component_point_matrix
 
 
 def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
@@ -122,7 +139,10 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
             field_index += 1
         else:
             for sub_field_key, sub_field_value in field_value.items():
-                number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
+                try:
+                    number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
+                except:
+                    number_bins_for_each_field.append(binner_for_field[sub_field_key].num_bins)
                 axes[field_key + "." + sub_field_key] = field_index
                 field_index += 1
 
@@ -146,7 +166,10 @@ def assign_bins_for_component(binner_for_field: dict[str, Binner], component: di
             assigned_bin_for_component.append(binner_for_field[field_key].assign_bin(field_value))
         else:
             for sub_field_key, sub_field_value in field_value.items():
-                assigned_bin_for_component.append(binner_for_field[field_key].assign_bin(sub_field_value))
+                try:
+                    assigned_bin_for_component.append(binner_for_field[field_key].assign_bin(sub_field_value))
+                except:
+                    assigned_bin_for_component.append(binner_for_field[sub_field_key].assign_bin(sub_field_value))
 
     return assigned_bin_for_component
 
@@ -160,13 +183,25 @@ def append_point_to_component_matrix(component_point_matrix: LabelledMatrix,
     return component_point_matrix
 
 
-def smooth_matrices(labelled_matrices: list[LabelledMatrix], sigma=20) -> list[LabelledMatrix]:
+def smooth_matrices(labelled_matrices: list[LabelledMatrix], sigma=1) -> list[LabelledMatrix]:
     smoothed_matrices = []
-    for labelled_matrix in labelled_matrices:
+    print("size of labelled matrices: ", getsizeof(labelled_matrices))
+    for matrix_number, labelled_matrix in enumerate(labelled_matrices):
+        tracemalloc.start()
+
+        print("smoothing matrix #", matrix_number+1, "of", len(labelled_matrices))
         # smoothed_matrix = gaussian_filter(labelled_matrix.matrix, sigma)
-        smoothed_matrix = labelled_matrix.apply(gaussian_filter, sigma)
+        smoothed_matrices.append(labelled_matrix.apply(gaussian_filter, sigma))
         # smoothed_matrices.append(LabelledMatrix(labelled_matrix.axes, smoothed_matrix))
-        smoothed_matrices.append(smoothed_matrix)
+        print("appending smoothed matrix to list")
+        # smoothed_matrices.append(smoothed_matrix)
+        print("size of smoothed matrices: ", getsizeof(smoothed_matrices))
+
+        snapshot = tracemalloc.take_snapshot()
+        top_stats = snapshot.statistics('lineno')
+        print("[ Top 10 ]")
+        for stat in top_stats[:10]:
+            print(stat)
 
     return smoothed_matrices
 
@@ -175,7 +210,9 @@ def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix],
     LabelledMatrix]:
     response_weighted_matrices = []
     for stim_index, labelled_matrix in enumerate(labelled_matrices):
+        print("Response weighting matrix for stimulus: ", stim_index, " of ", len(labelled_matrices))
         response_weighted_matrix = labelled_matrix.matrix * response_vector[stim_index]
+        print("appending matrix to list of response weighted matrices for stimulus: ", stim_index, " of ", len(labelled_matrices))
         response_weighted_matrices.append(LabelledMatrix(labelled_matrix.axes, response_weighted_matrix))
 
     response_weighted_sum_matrix = sum([labelled_matrix.matrix for labelled_matrix in response_weighted_matrices])

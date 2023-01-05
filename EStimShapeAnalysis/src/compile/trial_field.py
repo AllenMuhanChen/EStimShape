@@ -4,6 +4,8 @@ from collections import OrderedDict
 from typing import Callable
 
 import pandas as pd
+
+from src.util.connection import Connection
 from src.util.time_util import When
 
 
@@ -52,3 +54,12 @@ def get_data_from_trials(fields: FieldList, trial_tstamps: list[When]) -> pd.Dat
         print("working on " + str(i) + " out of " + str(len(trialList)))
         data = t.append_to_data(data)
     return pd.DataFrame(data)
+
+
+class DatabaseField(Field):
+    def __init__(self, conn: Connection, name: str = None):
+        super().__init__(name)
+        self.conn = conn
+
+    def get(self, when: When):
+        raise NotImplementedError("Not Implemented")
