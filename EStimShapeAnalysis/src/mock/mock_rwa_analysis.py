@@ -3,8 +3,12 @@ import json
 import tracemalloc
 from math import pi
 
+import jsonpickle as jsonpickle
+import numpy as np
 import pandas as pd
+import scipy.io
 import xmltodict
+
 
 from src.analysis.rwa import rwa, Binner
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
@@ -46,8 +50,6 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
 
 
 def main():
-    tracemalloc.start()
-
 
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
@@ -65,10 +67,11 @@ def main():
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
     response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
-    print(response_weighted_average)
 
-    # EXPORT
-
+    # SAVE
+    filename = "test_rwa.json"
+    with open(filename, "w") as file:
+        file.write(jsonpickle.encode(response_weighted_average))
 
 
 
