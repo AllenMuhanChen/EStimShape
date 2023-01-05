@@ -66,7 +66,9 @@ def main():
     data = compile_data(conn, trial_tstamps)
     response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
     print(response_weighted_average)
+
     # EXPORT
+
 
 
 

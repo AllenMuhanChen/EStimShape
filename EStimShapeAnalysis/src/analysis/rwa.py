@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import sys
-import tracemalloc
 from dataclasses import dataclass
 from collections import namedtuple
-from sys import getsizeof
 from typing import Callable
-
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
-import pandas as pd
 
 
 @dataclass
@@ -70,14 +65,10 @@ def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field:
 
     If a stim only has one component, put it in a list still!"""
 
-    print("Generating Point Matrices")
     point_matrices = generate_point_matrices(binner_for_field, stims)
-    print("size of point_matrices" ,sys.getsizeof(point_matrices))
 
-    print("Smoothing Point Matrices")
     smoothed_matrices = smooth_matrices(point_matrices)
 
-    print("Calculating RWA")
     response_weighted_average = calculate_response_weighted_average(smoothed_matrices, response_vector)
     # normalized_rwa = normalize_matrix(response_weighted_average)
 
@@ -96,17 +87,14 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
 
     Each Component Matrix is composed of zeros everywhere, except with a 1
     At the location that represents the bins assigned to that component"""
-    stim_point_matrices = []
-
+    print("Generating Point Matrices")
     # For each stimulus
     for stim_index, stim_components in enumerate(stims):
-        component_point_matrix = generate_component_point_matrix(binner_for_field, stim_components)
-        stim_point_matrices.append(component_point_matrix)
-
-    return stim_point_matrices
+        stim_point_matrix = generate_stim_point_matrix(binner_for_field, stim_components)
+        yield stim_point_matrix
 
 
-def generate_component_point_matrix(binner_for_field, stim_components):
+def generate_stim_point_matrix(binner_for_field, stim_components):
     component_point_matrix = initialize_point_matrix(binner_for_field, stim_components)
     # For each component of the stimulus
     for component in stim_components:
@@ -147,8 +135,6 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
                 field_index += 1
 
     point_matrix = np.zeros(number_bins_for_each_field)
-    # axes = {field_key: index for index, (field_key, field_value) in enumerate(stim_components[0].items())}
-
     return LabelledMatrix(axes, point_matrix)
 
 
@@ -157,9 +143,6 @@ def assign_bins_for_component(binner_for_field: dict[str, Binner], component: di
     Returns a list of tuples: (index, (min, middle, max)). One element per field.
 
      If a data field is multidimensional, will automatically unpack (must be a dict)"""
-    # assigned_bin_for_component = [binner_for_field[field_key].assign_bin(field_value) for field_key, field_value in
-    #                               component.items()]
-
     assigned_bin_for_component = []
     for field_key, field_value in component.items():
         if type(field_value) is not dict:
@@ -175,7 +158,8 @@ def assign_bins_for_component(binner_for_field: dict[str, Binner], component: di
 
 
 def append_point_to_component_matrix(component_point_matrix: LabelledMatrix,
-                                     assigned_index_and_bin_for_each_component: list[tuple[int, Binner]]) -> np.ndarray:
+                                     assigned_index_and_bin_for_each_component: list[
+                                         tuple[int, Binner]]) -> LabelledMatrix:
     """Sums onto component_point_matrix a 1 at the specified location (location = bins for a component)"""
     bin_indices_for_component = tuple(
         [assigned_index_and_bin[0] for assigned_index_and_bin in assigned_index_and_bin_for_each_component])
@@ -184,46 +168,43 @@ def append_point_to_component_matrix(component_point_matrix: LabelledMatrix,
 
 
 def smooth_matrices(labelled_matrices: list[LabelledMatrix], sigma=1) -> list[LabelledMatrix]:
-    smoothed_matrices = []
-    print("size of labelled matrices: ", getsizeof(labelled_matrices))
+    print("Smoothing Point Matrices")
     for matrix_number, labelled_matrix in enumerate(labelled_matrices):
-        tracemalloc.start()
-
-        print("smoothing matrix #", matrix_number+1, "of", len(labelled_matrices))
-        # smoothed_matrix = gaussian_filter(labelled_matrix.matrix, sigma)
-        smoothed_matrices.append(labelled_matrix.apply(gaussian_filter, sigma))
-        # smoothed_matrices.append(LabelledMatrix(labelled_matrix.axes, smoothed_matrix))
-        print("appending smoothed matrix to list")
-        # smoothed_matrices.append(smoothed_matrix)
-        print("size of smoothed matrices: ", getsizeof(smoothed_matrices))
-
-        snapshot = tracemalloc.take_snapshot()
-        top_stats = snapshot.statistics('lineno')
-        print("[ Top 10 ]")
-        for stat in top_stats[:10]:
-            print(stat)
-
-    return smoothed_matrices
+        print("smoothing matrix #", matrix_number + 1)
+        smoothed_matrix = labelled_matrix.apply(gaussian_filter, sigma)
+        yield smoothed_matrix
 
 
-def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix], response_vector: list[float]) -> list[
-    LabelledMatrix]:
-    response_weighted_matrices = []
+def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix],
+                                        response_vector: list[float]) -> LabelledMatrix:
+    print("Calculating RWA")
+    response_weighted_sum_matrix = []
+    unweighted_sum_matrix = []
     for stim_index, labelled_matrix in enumerate(labelled_matrices):
-        print("Response weighting matrix for stimulus: ", stim_index, " of ", len(labelled_matrices))
-        response_weighted_matrix = labelled_matrix.matrix * response_vector[stim_index]
-        print("appending matrix to list of response weighted matrices for stimulus: ", stim_index, " of ", len(labelled_matrices))
-        response_weighted_matrices.append(LabelledMatrix(labelled_matrix.axes, response_weighted_matrix))
+        print("Response weighting matrix for stimulus: ", stim_index + 1)
+        response = response_vector[stim_index]
+        (unweighted_stim_matrix, response_weighted_stim_matrix) = response_weigh_matrices(labelled_matrix, response)
 
-    response_weighted_sum_matrix = sum([labelled_matrix.matrix for labelled_matrix in response_weighted_matrices])
-    unweighted_sum_matrix = sum([labelled_matrix.matrix for labelled_matrix in labelled_matrices])
+        response_weighted_sum_matrix = np.add(response_weighted_sum_matrix, response_weighted_stim_matrix)
+        unweighted_sum_matrix = np.add(unweighted_sum_matrix, unweighted_stim_matrix)
+        if stim_index == 0:
+            axes_copy = labelled_matrix.axes
 
     response_weighted_average = np.divide(response_weighted_sum_matrix, unweighted_sum_matrix)
-    return LabelledMatrix(labelled_matrices[0].axes, response_weighted_average)
+    return LabelledMatrix(axes_copy, response_weighted_average)
+
+
+def response_weigh_matrices(labelled_matrix, response):
+    unweighted_matrix = labelled_matrix
+    response_weighted_matrix = unweighted_matrix.apply(response_weigh_matrix, response)
+    return unweighted_matrix, response_weighted_matrix
+
+
+def response_weigh_matrix(matrix, response):
+    return matrix * response
 
 
 def normalize_matrix(labelled_matrix: LabelledMatrix):
     max_val = np.amax(labelled_matrix.matrix)
-    # normalized_matrix = np.divide(labelled_matrix.matrix, max_val)
     normalized_matrix = labelled_matrix.apply(np.divide(), max_val)
-    return LabelledMatrix(labelled_matrix.axes, normalized_matrix)
+    return normalized_matrix
