@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass
 from collections import namedtuple
 from typing import Callable
@@ -9,13 +10,14 @@ from scipy.ndimage.filters import gaussian_filter
 
 @dataclass
 class LabelledMatrix:
-    axes: dict[str, int]
+    indices_for_axes: dict[int, str]
     matrix: np.ndarray
+    binners_for_axes: dict[int, Binner]
 
-    def apply(self, func: Callable, *args) -> LabelledMatrix:
+    def apply(self, func: Callable, *args, **kwargs) -> LabelledMatrix:
         """apply a function to self.matrix and return a LabelledMatrix with the new
         matrix"""
-        return LabelledMatrix(self.axes, func(self.matrix, *args))
+        return LabelledMatrix(self.indices_for_axes, func(self.matrix, *args, **kwargs), self.binners_for_axes)
 
 
 class Binner:
@@ -119,23 +121,29 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
 
     number_bins_for_each_field = []
     axes = {}
-    field_index = 0
+    binner = {}
+    total_field_index = 0
     for field_key, field_value in stim_components[0].items():
         if type(field_value) is not dict:
             number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
-            axes[field_key] = field_index
-            field_index += 1
+            axes[total_field_index] = field_key
+            binner[total_field_index] = binner_for_field[field_key]
+            total_field_index += 1
         else:
             for sub_field_key, sub_field_value in field_value.items():
                 try:
                     number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
+                    binner[total_field_index] = binner_for_field[field_key]
                 except:
                     number_bins_for_each_field.append(binner_for_field[sub_field_key].num_bins)
-                axes[field_key + "." + sub_field_key] = field_index
-                field_index += 1
+                    binner[total_field_index] = binner_for_field[sub_field_key]
+
+                axes[total_field_index] = field_key + "." + sub_field_key
+
+                total_field_index += 1
 
     point_matrix = np.zeros(number_bins_for_each_field)
-    return LabelledMatrix(axes, point_matrix)
+    return LabelledMatrix(axes, point_matrix, binner)
 
 
 def assign_bins_for_component(binner_for_field: dict[str, Binner], component: dict) -> list[(int, Binner)]:
@@ -167,34 +175,38 @@ def append_point_to_component_matrix(component_point_matrix: LabelledMatrix,
     return component_point_matrix
 
 
-def smooth_matrices(labelled_matrices: list[LabelledMatrix], sigma=1) -> list[LabelledMatrix]:
+def smooth_matrices(labelled_matrices: list[LabelledMatrix]) -> list[LabelledMatrix]:
     print("Smoothing Point Matrices")
     for matrix_number, labelled_matrix in enumerate(labelled_matrices):
         print("smoothing matrix #", matrix_number + 1)
-        smoothed_matrix = labelled_matrix.apply(gaussian_filter, sigma)
+        sigmas = [binner.num_bins / 7 for axes_name, binner in labelled_matrix.binners_for_axes.items()]
+        smoothed_matrix = labelled_matrix.apply(gaussian_filter, sigmas, truncate=7)
         yield smoothed_matrix
 
 
 def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix],
                                         response_vector: list[float]) -> LabelledMatrix:
     print("Calculating RWA")
-    response_weighted_sum_matrix = []
-    unweighted_sum_matrix = []
     for stim_index, labelled_matrix in enumerate(labelled_matrices):
         print("Response weighting matrix for stimulus: ", stim_index + 1)
+
         response = response_vector[stim_index]
         (unweighted_stim_matrix, response_weighted_stim_matrix) = response_weigh_matrices(labelled_matrix, response)
 
-        response_weighted_sum_matrix = np.add(response_weighted_sum_matrix, response_weighted_stim_matrix)
-        unweighted_sum_matrix = np.add(unweighted_sum_matrix, unweighted_stim_matrix)
         if stim_index == 0:
-            axes_copy = labelled_matrix.axes
+            axes = labelled_matrix.indices_for_axes
+            binners = labelled_matrix.binners_for_axes
+            response_weighted_sum_matrix = np.zeros(response_weighted_stim_matrix.matrix.shape)
+            unweighted_sum_matrix = np.zeros(unweighted_stim_matrix.matrix.shape)
+
+        response_weighted_sum_matrix = np.add(response_weighted_sum_matrix, response_weighted_stim_matrix.matrix)
+        unweighted_sum_matrix = np.add(unweighted_sum_matrix, unweighted_stim_matrix.matrix)
 
     response_weighted_average = np.divide(response_weighted_sum_matrix, unweighted_sum_matrix)
-    return LabelledMatrix(axes_copy, response_weighted_average)
+    return LabelledMatrix(axes, response_weighted_average, binners)
 
 
-def response_weigh_matrices(labelled_matrix, response):
+def response_weigh_matrices(labelled_matrix, response) -> (LabelledMatrix, LabelledMatrix):
     unweighted_matrix = labelled_matrix
     response_weighted_matrix = unweighted_matrix.apply(response_weigh_matrix, response)
     return unweighted_matrix, response_weighted_matrix
