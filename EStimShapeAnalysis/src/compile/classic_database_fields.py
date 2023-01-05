@@ -1,6 +1,6 @@
 import xmltodict
 
-from src.compile.nafc_database_fields import DatabaseField
+from src.compile.trial_field import DatabaseField
 from src.util.connection import Connection
 from src.util.time_util import When
 
@@ -28,7 +28,7 @@ def get_stim_spec_data(conn: Connection, when: When) -> dict:
     return stim_spec_data_dict
 
 
-def get_stim_spec_id(conn: Connection, when: When) -> dict:
+def get_stim_spec_id(conn: Connection, when: When) -> int:
     conn.execute(
         "SELECT msg from BehMsg WHERE "
         "type = 'SlideOn' AND "
