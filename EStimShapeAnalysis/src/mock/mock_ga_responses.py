@@ -61,15 +61,15 @@ class ShaftTuningFunction(TuningFunction):
                                 field, distances in
                                 zip(self.field_ranges.keys(), field_distances)]
         normalized_distances = [[abs(distance) for distance in distances] for distances in normalized_distances]
-        normalized_distances = [[1 - distance for distance in distances] for distances in normalized_distances]
+        normalized_closeness = [[1 - distance for distance in distances] for distances in normalized_distances]
 
         # component-wise distance. list of lists. inner list is distance between each component's shaft field and peak. outer list is
         # for each shaft field
 
         component_responses = [
-            [normalized_distance * normalized_distance * self.response_range['max'] for normalized_distance in distance]
+            [normalized_closeness * normalized_closeness * self.response_range['max'] for normalized_closeness in closeness]
             for
-            distance in normalized_distances]
+            closeness in normalized_closeness]
         response = sum([sum(component_response) for component_response in component_responses])
         # return sum between a random baseline response and the max of responses
         return self.get_baseline_response() + response
