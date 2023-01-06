@@ -71,6 +71,8 @@ public class ThreeDGAMockExperiment {
 
         generator.generate(); //second gen
 
+        GAConsole.main(emptyArgs);
+        GAExperiment.main(emptyArgs);
 
 
     }

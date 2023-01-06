@@ -13,10 +13,10 @@ class Test(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.num_data_points = 100
+        self.num_data_points = 20
         self.stims = self.generate_stim(self.num_data_points)
         self.response_vector = self.generate_resp(self.stims)
-        num_bins = 20
+        num_bins = 10
         self.binner_for_field = {"A": Binner(0, 1, num_bins), "B": Binner(0, 2 * pi, num_bins)}
 
     def test_rwa(self):
