@@ -60,7 +60,7 @@ class Binner:
                 # Return the current bin_range range
                 return i, bin_range
 
-        raise Exception("Value not in range: " + str(value) + " not in " + self.start + " to " + self.end)
+        raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
 
 
 def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner]):

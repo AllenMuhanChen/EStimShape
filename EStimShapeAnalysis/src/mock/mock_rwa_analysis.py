@@ -57,8 +57,8 @@ def main():
     binner_for_shaft_fields = {
         "theta": Binner(-pi, pi, bin_size),
         "phi": Binner(-pi, pi, bin_size),
-        "radialPosition": Binner(0, 20, bin_size),
-        "length": Binner(0, 100, bin_size),
+        "radialPosition": Binner(0, 100, bin_size),
+        "length": Binner(0, 200, bin_size),
         "curvature": Binner(0, 1, bin_size),
         "radius": Binner(0, 20, bin_size),
     }
