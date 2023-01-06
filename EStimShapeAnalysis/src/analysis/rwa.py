@@ -4,8 +4,12 @@ import inspect
 import json
 from dataclasses import dataclass
 from collections import namedtuple
+import time
 from typing import Callable
 import numpy as np
+import scipy
+from numpy import float32
+from scipy.ndimage import fourier_gaussian
 from scipy.ndimage.filters import gaussian_filter
 
 
@@ -117,9 +121,6 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
     The total number of dimensions of this matrix will be equal to the total dimensionality of the data.
 
     Currently only unpacks one level deep"""
-    # number_bins_for_each_field = [binner_for_field[field_key].num_bins for field_key, field_value in
-    #                               stim_components[0].items()]
-
     number_bins_for_each_field = []
     axes = {}
     binner = {}
@@ -143,7 +144,7 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
 
                 total_field_index += 1
 
-    point_matrix = np.zeros(number_bins_for_each_field)
+    point_matrix = np.zeros(number_bins_for_each_field, dtype=float32)
     return LabelledMatrix(axes, point_matrix, binner)
 
 
@@ -180,9 +181,36 @@ def smooth_matrices(labelled_matrices: list[LabelledMatrix]) -> list[LabelledMat
     print("Smoothing Point Matrices")
     for matrix_number, labelled_matrix in enumerate(labelled_matrices):
         print("smoothing matrix #", matrix_number + 1)
-        sigmas = [binner.num_bins / 7 for axes_name, binner in labelled_matrix.binners_for_axes.items()]
-        smoothed_matrix = labelled_matrix.apply(gaussian_filter, sigmas, truncate=7)
+        sigmas = [binner.num_bins / 10 for axes_name, binner in labelled_matrix.binners_for_axes.items()]
+        # smoothed_matrix = test_fourier(labelled_matrix, sigmas)
+        smoothed_matrix = test_classic(labelled_matrix, sigmas)
         yield smoothed_matrix
+
+
+def test_classic(labelled_matrix, sigmas):
+    t = time.time()
+    smoothed_matrix = smooth_spatial_domain(labelled_matrix, sigmas)
+    print("elapsed classic: " + str(time.time() - t))
+    return smoothed_matrix
+
+
+def test_fourier(labelled_matrix, sigmas):
+    t = time.time()
+    smoothed_matrix = smooth_fourier_domain(labelled_matrix, sigmas)
+    print("elapsed fourier: " + str(time.time() - t))
+    return smoothed_matrix
+
+
+def smooth_spatial_domain(labelled_matrix, sigmas):
+    return labelled_matrix.apply(gaussian_filter, sigmas, truncate=2.5)
+
+
+def smooth_fourier_domain(labelled_matrix, sigmas):
+    labelled_matrix_frequency_domain = labelled_matrix.apply(scipy.fftpack.fftn)
+    filtered_matrix_frequency_domain = labelled_matrix_frequency_domain.apply(fourier_gaussian, sigmas)
+    smoothed_matrix = filtered_matrix_frequency_domain.apply(scipy.fftpack.ifftn)
+    smoothed_matrix = smoothed_matrix.apply(np.real_if_close)
+    return smoothed_matrix
 
 
 def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix],
@@ -197,14 +225,22 @@ def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix],
         if stim_index == 0:
             axes = labelled_matrix.indices_for_axes
             binners = labelled_matrix.binners_for_axes
-            response_weighted_sum_matrix = np.zeros(response_weighted_stim_matrix.matrix.shape)
-            unweighted_sum_matrix = np.zeros(unweighted_stim_matrix.matrix.shape)
+            response_weighted_sum_matrix = np.zeros(response_weighted_stim_matrix.matrix.shape, dtype=float32)
+            unweighted_sum_matrix = np.zeros(unweighted_stim_matrix.matrix.shape, dtype=float32)
 
         response_weighted_sum_matrix = np.add(response_weighted_sum_matrix, response_weighted_stim_matrix.matrix)
         unweighted_sum_matrix = np.add(unweighted_sum_matrix, unweighted_stim_matrix.matrix)
 
-    response_weighted_average = np.divide(response_weighted_sum_matrix, unweighted_sum_matrix)
+
+    response_weighted_average = divide_and_allow_divide_by_zero(response_weighted_sum_matrix, unweighted_sum_matrix)
+
     return LabelledMatrix(axes, response_weighted_average, binners)
+
+
+def divide_and_allow_divide_by_zero(response_weighted_sum_matrix, unweighted_sum_matrix):
+    """if attempt to divide by zero, returns 0"""
+    return np.divide(response_weighted_sum_matrix, unweighted_sum_matrix,
+                     out=np.zeros_like(response_weighted_sum_matrix), where=unweighted_sum_matrix != 0)
 
 
 def response_weigh_matrices(labelled_matrix, response) -> (LabelledMatrix, LabelledMatrix):

@@ -6,7 +6,17 @@ from matplotlib import pyplot as plt
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
     indices_for_axes = test_rwa.indices_for_axes
-    print(test_rwa)
+    print(test_rwa.matrix.dtype)
+    print(indices_for_axes)
+    indices_to_draw = [get_key_for_value(indices_for_axes, "angularPosition.theta"), get_key_for_value(indices_for_axes, "angularPosition.phi")]
+    matrices_to_draw = test_rwa.matrix.sum(indices_to_draw)
+def get_key_for_value(dictionary, value):
+    for key, val in dictionary.items():
+        if val == value:
+            return key
+    return None
+
+
 
 def draw_angle_tuning(self, matrix_to_draw):
     matrix = matrix_to_draw.matrix
