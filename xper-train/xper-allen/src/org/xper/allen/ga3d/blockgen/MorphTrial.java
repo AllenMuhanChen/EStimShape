@@ -38,7 +38,20 @@ public class MorphTrial extends ThreeDGATrial {
         mStick.setProperties(generator.getMaxImageDimensionDegrees());
         mStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 //        mStick.genMatchStickFromShapeSpec(AllenMStickSpec.fromXml(readMStickSpec(parentId)),new double[]{0,0,0});
-        mStick.mutate(0);
+        boolean mutateSuccess = false;
+        while (!mutateSuccess) {
+            try {
+                mutateSuccess = mStick.mutate(0);
+                mutateSuccess = true;
+
+            } catch (Exception e) {
+                System.err.println("Mutate failed, retrying...");
+                AllenMStickSpec mStickSpec = new AllenMStickSpec();
+                mStickSpec.setMStickInfo(mStick);
+                System.out.println(mStickSpec.toXml());
+                e.printStackTrace();
+            }
+        }
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(id), true);

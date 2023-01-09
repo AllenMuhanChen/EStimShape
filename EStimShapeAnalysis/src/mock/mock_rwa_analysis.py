@@ -1,3 +1,4 @@
+from __future__ import annotations
 import ast
 import json
 import tracemalloc
@@ -8,7 +9,6 @@ import numpy as np
 import pandas as pd
 import scipy.io
 import xmltodict
-
 
 from src.analysis.rwa import rwa, Binner
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
@@ -48,15 +48,65 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     return data
 
 
+def condition_spherical_angles(data):
+    for row in data["Shaft"]:
+        recursively_apply_function_to_subdictionaries_values_with_keys(row, ["theta", "phi"], condition_theta_and_phi)
+
+        print(row)
+
+    return data
+
+
+def condition_theta_and_phi(dictionary: dict):
+    theta = np.float32(dictionary["theta"])
+    phi = np.float32(dictionary["phi"])
+
+    # THETA [-pi, pi]
+    newMod(theta, (2 * pi))
+    if theta > pi:
+        theta = -((2*pi) - theta)
+    elif theta < -pi:
+        theta = (2*pi) + theta
+
+    # PHI [0, pi]
+    newMod(phi, (2 * pi))
+    if phi < 0:
+        phi += (2 * pi)
+    if phi > pi:
+        phi = (2 * pi) - phi
+        theta = -theta
+    return {"theta": theta, "phi": phi}
+
+
+def newMod(a, b):
+    res = a % b
+    return res if not res else res - b if a < 0 else res
+
+
+def recursively_apply_function_to_subdictionaries_values_with_keys(dictionary, keys, function):
+    if isinstance(dictionary, dict):
+        if set(keys).issubset(dictionary.keys()):
+            dictionary = function(dictionary)
+        for key, value in dictionary.items():
+            dictionary[key] = recursively_apply_function_to_subdictionaries_values_with_keys(value, keys, function)
+    elif isinstance(dictionary, list):
+        for index, item in enumerate(dictionary):
+            dictionary[index] = recursively_apply_function_to_subdictionaries_values_with_keys(item, keys, function)
+    return dictionary
+
+
+def condition_data(data):
+    data = condition_spherical_angles(data)
+    return data
+
 
 def main():
-
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
     bin_size = 10
     binner_for_shaft_fields = {
         "theta": Binner(-pi, pi, bin_size),
-        "phi": Binner(-pi, pi, bin_size),
+        "phi": Binner(0, pi, bin_size),
         "radialPosition": Binner(0, 100, bin_size),
         "length": Binner(0, 200, bin_size),
         "curvature": Binner(0, 1, bin_size),
@@ -66,13 +116,13 @@ def main():
     # PIPELINE
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
+    data = condition_data(data)
     response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
 
     # SAVE
     filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json"
     with open(filename, "w") as file:
         file.write(jsonpickle.encode(response_weighted_average))
-
 
 
 if __name__ == '__main__':
