@@ -63,6 +63,7 @@ class Binner:
         raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
 
 
+
 def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner]):
     """stims are list[list[dict]]: each stim can have one or more component. Each component's data
     is represented by a dictionary. Each data field within a component can be a number OR a dictionary.
