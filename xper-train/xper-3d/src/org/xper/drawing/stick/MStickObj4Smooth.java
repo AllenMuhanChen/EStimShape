@@ -697,7 +697,7 @@ public class MStickObj4Smooth {
             {
 
                 System.out.println("The two tube are not contacting.....fail");
-//                return false; //AC test disable
+                return false; //AC test disable
             }
         }
 
@@ -734,7 +734,7 @@ public class MStickObj4Smooth {
           if (showDebug){
               System.out.println("fail intersectPatch.nvect ==-1");
           }
-//          return false; //AC TEST DISABLE
+          return false; //AC TEST DISABLE
       }
 
 

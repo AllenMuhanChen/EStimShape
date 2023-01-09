@@ -68,7 +68,7 @@ def draw_angular_slice(slice_to_draw):
     Y = R * np.sin(PHI) * np.sin(THETA)
     Z = R * np.cos(PHI)
     C = slice_to_draw/np.max(slice_to_draw)
-    print(C)
+
 
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1, projection='3d')
@@ -78,6 +78,9 @@ def draw_angular_slice(slice_to_draw):
         X, Y, Z, rstride=1, cstride=1, cmap=plt.get_cmap('plasma'),
         linewidth=0, antialiased=False, alpha=1, facecolors=my_col)
     plt.colorbar(plot)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.clabel("z")
     plt.show()
 def get_key_for_value(dictionary, value):
     for key, val in dictionary.items():
