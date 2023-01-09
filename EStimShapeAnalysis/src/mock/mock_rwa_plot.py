@@ -58,7 +58,7 @@ def slice_matrix(indices_to_slice, matrix, matrix_peak_location):
 
 
 def draw_angular_slice(slice_to_draw):
-    theta, phi = np.linspace(0, np.pi, slice_to_draw.shape[0]), np.linspace(-np.pi, np.pi, slice_to_draw.shape[1])
+    theta, phi = np.linspace(-np.pi, np.pi, slice_to_draw.shape[0]), np.linspace(0, np.pi, slice_to_draw.shape[1])
 
     THETA, PHI = np.meshgrid(theta, phi)
 

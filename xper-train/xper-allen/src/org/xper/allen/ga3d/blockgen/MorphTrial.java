@@ -42,7 +42,6 @@ public class MorphTrial extends ThreeDGATrial {
         while (!mutateSuccess) {
             try {
                 mutateSuccess = mStick.mutate(0);
-                mutateSuccess = true;
 
             } catch (Exception e) {
                 System.err.println("Mutate failed, retrying...");
