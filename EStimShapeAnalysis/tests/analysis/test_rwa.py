@@ -46,22 +46,22 @@ class Test(TestCase):
     def test_point_matrices(self):
         stim_point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
 
-        assert (len(stim_point_matrices) == self.num_data_points)
+        self.assertTrue(len(stim_point_matrices) == self.num_data_points)
         for stim_indx, point_matrix in enumerate(stim_point_matrices):
-            assert (point_matrix.matrix.sum() == len(self.stims[stim_indx]))
-        assert (point_matrix.indices_for_axes["A.x"] == 0)
-        assert (point_matrix.indices_for_axes["A.y"] == 1)
-        assert (point_matrix.indices_for_axes["B"] == 2)
+            self.assertTrue(point_matrix.matrix.sum() == len(self.stims[stim_indx]))
+        self.assertTrue(point_matrix.indices_for_axes["A.x"] == 0)
+        self.assertTrue(point_matrix.indices_for_axes["A.y"] == 1)
+        self.assertTrue(point_matrix.indices_for_axes["B"] == 2)
 
     def test_generate_resp(self):
         stims = self.generate_stim(100)
         responses = self.generate_resp(stims)
-        assert (len(responses) == 100)
-        assert (min(responses) >= 0 and max(responses) <= 100)
+        self.assertTrue(len(responses) == 100)
+        self.assertTrue(min(responses) >= 0 and max(responses) <= 100)
 
     def test_generate_stim(self):
         stims = self.generate_stim(100)
-        assert (len(stims) == 100)
+        self.assertTrue(len(stims) == 100)
 
     def generate_stim(self, num_data_points):
         stims = []

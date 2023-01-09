@@ -60,16 +60,16 @@ def condition_spherical_angles(data):
 def condition_theta_and_phi(dictionary: dict):
     theta = np.float32(dictionary["theta"])
     phi = np.float32(dictionary["phi"])
-
+    pi = np.float32(np.pi)
     # THETA [-pi, pi]
-    newMod(theta, (2 * pi))
+    theta = newMod(theta, (2 * pi))
     if theta > pi:
         theta = -((2*pi) - theta)
     elif theta < -pi:
         theta = (2*pi) + theta
 
     # PHI [0, pi]
-    newMod(phi, (2 * pi))
+    phi = newMod(phi, (2 * pi))
     if phi < 0:
         phi += (2 * pi)
     if phi > pi:
