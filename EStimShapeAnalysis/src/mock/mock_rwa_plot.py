@@ -3,12 +3,14 @@ import types
 import jsonpickle
 import numpy as np
 from matplotlib import pyplot as plt, cm
+from scipy.ndimage import gaussian_filter
 
 
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
     #find peaks of matrix
     matrix = test_rwa.matrix
+
     matrix_peaks = []
     number_of_peaks =3
     matrix_peak_locations = np.unravel_index(np.argsort(matrix, axis=None)[-number_of_peaks:], matrix.shape)
@@ -26,6 +28,9 @@ def main():
     for i in range(number_of_peaks):
         slice_to_draw = slice_matrix(indices_to_slice_per_peak[i], matrix, matrix_peaks[i])
         slices_to_draw_per_peak.append(slice_to_draw)
+    # slices = [next(slice_to_draw) for slice_to_draw in slices_to_draw_per_peak]
+    # averaged_slices = sum(slices)/len(slices)
+    # draw_angular_slice(averaged_slices)
     draw_angular_slices(slices_to_draw_per_peak)
 
 
@@ -114,7 +119,7 @@ def draw_angular_slice(slice_to_draw, axes=None):
         linewidth=0, antialiased=False, alpha=1, facecolors=my_col)
 
 
-    plt.colorbar(plot)
+    # plt.colorbar(plot)
     axes.set_xlabel("X")
     axes.set_ylabel("Y")
     axes.set_zlabel("Z")
