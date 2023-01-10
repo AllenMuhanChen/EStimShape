@@ -182,7 +182,7 @@ def smooth_matrices(labelled_matrices: list[LabelledMatrix]) -> list[LabelledMat
     print("Smoothing Point Matrices")
     for matrix_number, labelled_matrix in enumerate(labelled_matrices):
         print("smoothing matrix #", matrix_number + 1)
-        sigmas = [binner.num_bins / 10 for axes_name, binner in labelled_matrix.binners_for_axes.items()]
+        sigmas = [binner.num_bins / 2 for axes_name, binner in labelled_matrix.binners_for_axes.items()]
         # smoothed_matrix = test_fourier(labelled_matrix, sigmas)
         smoothed_matrix = test_classic(labelled_matrix, sigmas)
         yield smoothed_matrix
