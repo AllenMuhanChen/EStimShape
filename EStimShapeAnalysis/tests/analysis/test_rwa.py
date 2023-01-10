@@ -13,7 +13,7 @@ class Test(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.num_data_points = 10
+        self.num_data_points = 100
         self.stims = self.generate_stim(self.num_data_points)
         self.response_vector = self.generate_resp(self.stims)
         num_bins = 10

@@ -97,8 +97,9 @@ class ShaftTuningFunction(TuningFunction):
             tuning_range_mins = []
             self.recursively_put_each_min_value_from_dictionary_into_list(self.field_ranges, tuning_range_mins)
             cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
+            total_energy = np.prod(cov)
             cov = np.array(cov) / 2
-            response = 100 * multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
+            response = total_energy * multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
                                                      allow_singular=True)
             # response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
             responses_per_component.append(response)
