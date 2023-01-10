@@ -78,20 +78,30 @@ class ShaftTuningFunction(TuningFunction):
         peak = []
         self.recursively_convert_each_dictionary_value_to_dimension_of_a_point(self.shaft_peaks, peak)
 
-        stim = [[component['angularPosition']['theta'], component['angularPosition']['phi'], component["radialPosition"]] for component in data['ShaftField']]
+        stim = [[component['angularPosition']['theta'],
+                 component['angularPosition']['phi'],
+                 component["radialPosition"],
+                 component["length"],
+                 component["curvature"],
+                 component["radius"]] for component in data['ShaftField']]
         stim = [[float(x) for x in component] for component in stim]
 
         sigma = 1
 
         responses_per_component = []
         for component in stim:
-            distance = np.linalg.norm(np.array(component) - np.array(peak))
-            #response = gaussian_filter(np.array(component) - np.array(peak), [2 * math.pi / 10, math.pi/10, 10])
-            response = 100*multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=[2 * math.pi / 10, math.pi/10, 10])
-            #response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
+            # distance = np.linalg.norm(np.array(component) - np.array(peak))
+
+            tuning_range_maxes = []
+            self.recursively_put_each_max_value_from_dictionary_into_list(self.field_ranges, tuning_range_maxes)
+            tuning_range_mins = []
+            self.recursively_put_each_min_value_from_dictionary_into_list(self.field_ranges, tuning_range_mins)
+            cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
+            cov = np.array(cov) / 2
+            response = 100 * multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
+                                                     allow_singular=True)
+            # response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
             responses_per_component.append(response)
-
-
 
         return np.max(responses_per_component)
 
@@ -109,7 +119,37 @@ class ShaftTuningFunction(TuningFunction):
                 else:
                     point.append(value)
 
+    def recursively_put_each_max_value_from_dictionary_into_list(self, dictionary: dict, list: list[float]):
+        if isinstance(dictionary, dict):
+            for key, value in dictionary.items():
+                if isinstance(value, dict):
+                    self.recursively_put_each_max_value_from_dictionary_into_list(value, list)
+                else:
+                    if key == 'max':
+                        list.append(value)
 
+        elif isinstance(dictionary, list):
+            for value in dictionary:
+                if isinstance(value, dict):
+                    self.recursively_put_each_max_value_from_dictionary_into_list(value, list)
+                else:
+                    list.append(value)
+
+    def recursively_put_each_min_value_from_dictionary_into_list(self, dictionary: dict, list: list[float]):
+        if isinstance(dictionary, dict):
+            for key, value in dictionary.items():
+                if isinstance(value, dict):
+                    self.recursively_put_each_min_value_from_dictionary_into_list(value, list)
+                else:
+                    if key == 'min':
+                        list.append(value)
+
+        elif isinstance(dictionary, list):
+            for value in dictionary:
+                if isinstance(value, dict):
+                    self.recursively_put_each_min_value_from_dictionary_into_list(value, list)
+                else:
+                    list.append(value)
 
     def get_response_classic(self, data: pd.Series) -> float:
         # generate response based on distance between same entry in data and peak
@@ -182,6 +222,8 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
 
         # DEBUG
         response = responses[-1][1]
+
+
         thetas = [float(component["angularPosition"]["theta"]) for component in row["ShaftField"]]
         thetas_differences = [abs(theta - 0) for theta in thetas]
         closest_theta = thetas[np.argmin(thetas_differences)]
@@ -223,9 +265,16 @@ def main():
     baseline_function = TuningFunction()
 
     tuning_peak = {"angularPosition": {"theta": 0, "phi": math.pi / 2},
-                   "radialPosition": 20}
-    list_of_tuning_ranges = {"theta": {"min": -math.pi, "max": math.pi}, "phi": {"min": 0, "max": math.pi},
-                             "radialPosition": {"min": 0, "max": 100}}
+                   "radialPosition": 20,
+                   "length": 10,
+                   "curvature": 0,
+                   "radius": 10}
+    list_of_tuning_ranges = {"theta": {"min": -math.pi, "max": math.pi},
+                             "phi": {"min": 0, "max": math.pi},
+                             "radialPosition": {"min": 0, "max": 100},
+                             "length": {"min": 0, "max": 200},
+                             "curvature": {"min": 0, "max": 1},
+                             "radius": {"min": 0, "max": 20}}
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
 
     list_of_tuning_functions = [baseline_function, shaft_function]

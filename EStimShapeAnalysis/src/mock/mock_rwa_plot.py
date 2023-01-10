@@ -11,7 +11,6 @@ def main():
     matrix = test_rwa.matrix
     matrix_peaks = []
     number_of_peaks =3
-    # matrix_peak_locations = np.argpartition(matrix, -number_of_peaks)[-number_of_peaks:]
     matrix_peak_locations = np.unravel_index(np.argsort(matrix, axis=None)[-number_of_peaks:], matrix.shape)
     for i in range(number_of_peaks):
         peak_indices = [matrix_peak_location[i] for matrix_peak_location in matrix_peak_locations]

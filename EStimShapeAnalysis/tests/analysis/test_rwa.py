@@ -13,7 +13,7 @@ class Test(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.num_data_points = 20
+        self.num_data_points = 10
         self.stims = self.generate_stim(self.num_data_points)
         self.response_vector = self.generate_resp(self.stims)
         num_bins = 10
@@ -29,7 +29,16 @@ class Test(TestCase):
         smoothed_matrices = smooth_matrices(stim_point_matrices)
         for stim_indx, smoothed_matrix in enumerate(smoothed_matrices):
             print(self.stims[stim_indx])
-            self.draw_A_tuning(smoothed_matrix)
+            matrix = smoothed_matrix.matrix
+            matrix_summed = matrix.sum(1)
+            normalized_matrix = np.divide(matrix_summed, matrix.shape[1])
+            plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 2*pi], origin="lower", aspect=1/(2*pi))
+            labels = [label for label_indx, label in smoothed_matrix.indices_for_axes.items()]
+            plt.xlabel(labels[0])
+            plt.ylabel(labels[2])
+            plt.colorbar()
+            plt.show()
+            # self.draw_A_tuning(smoothed_matrix)
 
     def draw_A_tuning(self, matrix_to_draw):
         matrix = matrix_to_draw.matrix
