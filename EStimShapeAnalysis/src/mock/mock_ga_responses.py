@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import shape, double
+from scipy.ndimage import gaussian_filter
+from scipy.stats import multivariate_normal
 
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
@@ -72,7 +74,44 @@ class ShaftTuningFunction(TuningFunction):
         # sum the differences for each component
         return max_differences_per_field
 
-    def get_response(self, data: pd.Series) -> float:
+    def get_response(self, data: pd.Series):
+        peak = []
+        self.recursively_convert_each_dictionary_value_to_dimension_of_a_point(self.shaft_peaks, peak)
+
+        stim = [[component['angularPosition']['theta'], component['angularPosition']['phi'], component["radialPosition"]] for component in data['ShaftField']]
+        stim = [[float(x) for x in component] for component in stim]
+
+        sigma = 1
+
+        responses_per_component = []
+        for component in stim:
+            distance = np.linalg.norm(np.array(component) - np.array(peak))
+            #response = gaussian_filter(np.array(component) - np.array(peak), [2 * math.pi / 10, math.pi/10, 10])
+            response = 100*multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=[2 * math.pi / 10, math.pi/10, 10])
+            #response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
+            responses_per_component.append(response)
+
+
+
+        return np.max(responses_per_component)
+
+    def recursively_convert_each_dictionary_value_to_dimension_of_a_point(self, dictionary: dict, point: list[float]):
+        if isinstance(dictionary, dict):
+            for key, value in dictionary.items():
+                if isinstance(value, dict):
+                    self.recursively_convert_each_dictionary_value_to_dimension_of_a_point(value, point)
+                else:
+                    point.append(value)
+        elif isinstance(dictionary, list):
+            for value in dictionary:
+                if isinstance(value, dict):
+                    self.recursively_convert_each_dictionary_value_to_dimension_of_a_point(value, point)
+                else:
+                    point.append(value)
+
+
+
+    def get_response_classic(self, data: pd.Series) -> float:
         # generate response based on distance between same entry in data and peak
         data = data["ShaftField"]
         raw_distance_per_peak_per_field_per_component = [self.differences_per_field(data, peak_field, peak_value) for
@@ -131,9 +170,10 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
     closest_thetas = []
     all_phis = []
     closest_phis = []
-    all_responses = []
     all_radial_positions = []
     closet_radial_positions = []
+    all_responses = []
+    closest_responses = []
     #######
     for index, row in data.iterrows():
 
@@ -154,25 +194,24 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
         radial_positions_differences = [abs(radialPosition - 20) for radialPosition in radial_positions]
         closest_radial_position = radial_positions[np.argmin(radial_positions_differences)]
 
+        closest_responses.append(response)
+        closest_thetas.append(closest_theta)
         for theta in thetas:
             all_thetas.append(theta)
-            closest_thetas.append(closest_theta)
             all_responses.append(response)
+        closest_phis.append(closest_phi)
         for phi in phis:
             all_phis.append(phi)
-            closest_phis.append(closest_phi)
+        closet_radial_positions.append(closest_radial_position)
         for radial_position in radial_positions:
             all_radial_positions.append(radial_position)
-            closet_radial_positions.append(closest_radial_position)
     # DEBUG
     fig, axes = plt.subplots(3)
     print(all_thetas)
-    axes[0].scatter(all_thetas, all_responses)
-    axes[0].scatter(closest_thetas, all_responses, alpha=0.5)
-    axes[1].scatter(all_phis, all_responses)
-    axes[1].scatter(closest_phis, all_responses, alpha=0.5)
+    axes[0].scatter(all_thetas, all_phis, c=all_responses)
+    axes[1].scatter(closest_thetas, closest_phis, c=closest_responses)
     axes[2].scatter(all_radial_positions, all_responses)
-    axes[2].scatter(closet_radial_positions, all_responses, alpha=0.5)
+    axes[2].scatter(closet_radial_positions, closest_responses, alpha=0.5)
 
     return responses
 
