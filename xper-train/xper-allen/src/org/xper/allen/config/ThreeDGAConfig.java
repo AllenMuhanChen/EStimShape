@@ -4,15 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.ga.*;
 import org.xper.allen.ga3d.blockgen.GA3DBlockGen;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
-import org.xper.config.ClassicConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
-import org.xper.experiment.TaskDataSource;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +25,9 @@ public class ThreeDGAConfig {
     @ExternalValue("generator.spike_dat_path")
     public String spikeDatPath;
 
+    @ExternalValue("number_of_lineages")
+    public String numberLineages;
+
     @Bean
     public GA3DBlockGen generator(){
         GA3DBlockGen generator = new GA3DBlockGen();
@@ -39,8 +38,9 @@ public class ThreeDGAConfig {
         generator.setPngMaker(mStickPngConfig.pngMaker());
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());
-        generator.setGaName(gaNames().get(0));
+        generator.setGaBaseName("3D");
         generator.setParentSelector(parentSelector());
+        generator.setNumLims(Integer.parseInt(numberLineages));
         return generator;
     }
 
@@ -62,15 +62,8 @@ public class ThreeDGAConfig {
         source.setDbUtil(dbUtil());
         source.setQueryInterval(1000);
         source.setUngetPolicy(DatabaseTaskDataSource.UngetPolicy.HEAD);
-        source.setGaNames(gaNames());
+        source.setGaNames(generator().getGaNames());
         return source;
-    }
-
-    @Bean
-    public List<String> gaNames() {
-        LinkedList<String> gaNames = new LinkedList<>();
-        gaNames.add("3D-1");
-        return gaNames;
     }
 
 
