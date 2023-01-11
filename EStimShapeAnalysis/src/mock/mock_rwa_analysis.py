@@ -1,14 +1,11 @@
 from __future__ import annotations
 import ast
-import json
-import tracemalloc
 from math import pi
 
 import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
-import scipy.io
-import xmltodict
+
 
 from src.analysis.rwa import rwa, Binner
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
@@ -36,7 +33,8 @@ def main():
     # PIPELINE
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
-    data = condition_data(data)
+    data = condition_spherical_angles(data)
+    data = condition_for_inside_bins(data, binner_for_shaft_fields)
     response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
 
     # SAVE
@@ -75,10 +73,13 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
 
 
 def condition_spherical_angles(data):
-    for row in data["Shaft"]:
-        recursively_apply_function_to_subdictionaries_values_with_keys(row, ["theta", "phi"], condition_theta_and_phi)
-
-        print(row)
+    for column in data:
+        column_data = data[column]
+        # print(column_data)
+        if column_data.dtype == object:
+            for stim_data in column_data.array:
+                recursively_apply_function_to_subdictionaries_values_with_keys(stim_data, ["theta", "phi"],
+                                                                               condition_theta_and_phi)
 
     return data
 
@@ -109,21 +110,57 @@ def newMod(a, b):
     return res if not res else res - b if a < 0 else res
 
 
+def condition_for_inside_bins(data: pd.DataFrame, binner_for_fields: dict[str, Binner]):
+    row_indices_to_remove = []
+    for column in data:
+        column_data = data[column]
+        # print(column_data)
+        if column_data.dtype == object:
+            for stim_index, stim_data in enumerate(column_data.array):
+                is_field_outside_range = False
+                if recursively_check_condition_for_subdictionaries(stim_data, check_if_outside_binrange, is_field_outside_range, binner_for_fields):
+                    row_indices_to_remove.append(stim_index)
+    data = data.drop(labels=row_indices_to_remove, axis=0, inplace=False)
+    return data
+
+
+def check_if_outside_binrange(field_name: str, value, binner_for_fields: dict[str, Binner]) -> bool:
+    """Outputs true only if the field is outside the bin range specified in its corresponding binner"""
+    binner = binner_for_fields.get(field_name)
+    if binner is not None:
+        return float(value) < binner.start or float(value) > binner.end
+    else:
+        return False
+
+
+def recursively_check_condition_for_subdictionaries(dictionary: dict, condition, boolean_to_update, *args):
+    """Returns true if any of the subdictionaries of the dictionary satisfy the condition"""
+    if isinstance(dictionary, dict):
+        for key, value in dictionary.items():
+            if isinstance(value, dict):
+                if recursively_check_condition_for_subdictionaries(value, condition, boolean_to_update, *args):
+                    return True
+            else:
+                if condition(key, value, *args):
+                    return True
+
+    elif isinstance(dictionary, list):
+        for item in dictionary:
+            if recursively_check_condition_for_subdictionaries(item, condition, boolean_to_update, *args):
+                return True
+
+
 def recursively_apply_function_to_subdictionaries_values_with_keys(dictionary, keys, function):
     if isinstance(dictionary, dict):
         if set(keys).issubset(dictionary.keys()):
             dictionary = function(dictionary)
-        for key, value in dictionary.items():
-            dictionary[key] = recursively_apply_function_to_subdictionaries_values_with_keys(value, keys, function)
+        else:
+            for key, value in dictionary.items():
+                dictionary[key] = recursively_apply_function_to_subdictionaries_values_with_keys(value, keys, function)
     elif isinstance(dictionary, list):
         for index, item in enumerate(dictionary):
             dictionary[index] = recursively_apply_function_to_subdictionaries_values_with_keys(item, keys, function)
     return dictionary
-
-
-def condition_data(data):
-    data = condition_spherical_angles(data)
-    return data
 
 
 if __name__ == '__main__':
