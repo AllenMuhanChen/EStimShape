@@ -12,7 +12,7 @@ import org.xper.allen.util.AllenDbUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.allen.Trial;
 
-public abstract class AbstractTrialGenerator {
+public abstract class AbstractTrialGenerator implements TrialGenerator {
 
 	@Dependency
 	protected AllenDbUtil dbUtil;
@@ -20,6 +20,7 @@ public abstract class AbstractTrialGenerator {
 	protected Long genId;
 	protected List<Trial> trials = new LinkedList<>();
 
+	@Override
 	public void generate(){
 		init();
 		addTrials();

@@ -35,7 +35,7 @@ public class ThreeDGAMockExperiment {
         generator = context.getBean(GA3DBlockGen.class);
         dbUtil = generator.getDbUtil();
 
-        generator.setUp(1, 20, 5, new Coordinates2D(0,0), generator.channels);
+        generator.setUp(20, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
@@ -44,6 +44,7 @@ public class ThreeDGAMockExperiment {
         generator.generate(); //first gen
 
         assertEquals(1, (long) dbUtil.readMultiGAReadyGenerationInfo().getGenIdForGA("3D-1"));
+        assertEquals(1, (long) dbUtil.readMultiGAReadyGenerationInfo().getGenIdForGA("3D-2"));
 
         GAConsole.main(emptyArgs);
         GAExperiment.main(emptyArgs);
@@ -63,6 +64,7 @@ public class ThreeDGAMockExperiment {
 
         List<String> gaNames = new LinkedList<>();
         gaNames.add("3D-1");
+        gaNames.add("3D-2");
         dbUtil.writeReadyGAsAndGenerationsInfo(gaNames);
     }
 

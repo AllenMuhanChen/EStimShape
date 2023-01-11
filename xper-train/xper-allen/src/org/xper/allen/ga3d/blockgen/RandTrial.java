@@ -8,7 +8,6 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.utils.RGBColor;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,7 +45,7 @@ public class RandTrial extends ThreeDGATrial {
         //png
         //draw pngs
         List<String> labels = new LinkedList<>();
-        labels.add(generator.getGaName());
+        labels.add(generator.getGaBaseName());
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPathToExperiment(pngPath);
 

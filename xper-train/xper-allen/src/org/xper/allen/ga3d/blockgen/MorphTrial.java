@@ -17,9 +17,11 @@ public class MorphTrial extends ThreeDGATrial {
 
     private Long parentId;
     private long taskId;
+    private String gaName;
 
-    public MorphTrial(GA3DBlockGen generator, Long parentId) {
+    public MorphTrial(GA3DBlockGen generator, String gaName, Long parentId) {
         super(generator);
+        this.gaName = gaName;
         this.parentId = parentId;
     }
 
@@ -60,7 +62,7 @@ public class MorphTrial extends ThreeDGATrial {
 
         //draw pngs
         List<String> labels = new LinkedList<>();
-        labels.add(generator.getGaName());
+        labels.add(gaName);
         labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPathToExperiment(pngPath);
