@@ -20,7 +20,33 @@ from src.util.connection import Connection
 from src.util.time_util import When
 
 
+def main():
+    # PARAMETERS
+    conn = Connection("allen_estimshape_dev_221110")
+    bin_size = 10
+    binner_for_shaft_fields = {
+        "theta": Binner(-pi, pi, bin_size),
+        "phi": Binner(0, pi, bin_size),
+        "radialPosition": Binner(0, 100, bin_size),
+        "length": Binner(0, 200, bin_size),
+        "curvature": Binner(0, 1, bin_size),
+        "radius": Binner(0, 20, bin_size),
+    }
+
+    # PIPELINE
+    trial_tstamps = collect_trials(conn, time_util.all())
+    data = compile_data(conn, trial_tstamps)
+    data = condition_data(data)
+    response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
+
+    # SAVE
+    filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json"
+    with open(filename, "w") as file:
+        file.write(jsonpickle.encode(response_weighted_average))
+
+
 class MockResponseField(StimSpecIdField):
+
     def __init__(self, conn: Connection, channel: int, name: str = None):
         super().__init__(conn, name=name)
         self.channel = channel
@@ -64,9 +90,9 @@ def condition_theta_and_phi(dictionary: dict):
     # THETA [-pi, pi]
     theta = newMod(theta, (2 * pi))
     if theta > pi:
-        theta = -((2*pi) - theta)
+        theta = -((2 * pi) - theta)
     elif theta < -pi:
-        theta = (2*pi) + theta
+        theta = (2 * pi) + theta
 
     # PHI [0, pi]
     phi = newMod(phi, (2 * pi))
@@ -98,31 +124,6 @@ def recursively_apply_function_to_subdictionaries_values_with_keys(dictionary, k
 def condition_data(data):
     data = condition_spherical_angles(data)
     return data
-
-
-def main():
-    # PARAMETERS
-    conn = Connection("allen_estimshape_dev_221110")
-    bin_size = 10
-    binner_for_shaft_fields = {
-        "theta": Binner(-pi, pi, bin_size),
-        "phi": Binner(0, pi, bin_size),
-        "radialPosition": Binner(0, 100, bin_size),
-        "length": Binner(0, 200, bin_size),
-        "curvature": Binner(0, 1, bin_size),
-        "radius": Binner(0, 20, bin_size),
-    }
-
-    # PIPELINE
-    trial_tstamps = collect_trials(conn, time_util.all())
-    data = compile_data(conn, trial_tstamps)
-    data = condition_data(data)
-    response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
-
-    # SAVE
-    filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json"
-    with open(filename, "w") as file:
-        file.write(jsonpickle.encode(response_weighted_average))
 
 
 if __name__ == '__main__':

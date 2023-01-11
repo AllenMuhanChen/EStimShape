@@ -18,9 +18,46 @@ from src.util import time_util
 from src.util.connection import Connection
 from src.util.time_util import When
 
+def main():
+    # PARAMETERS
+    conn = Connection("allen_estimshape_dev_221110")
+
+    baseline_function = TuningFunction()
+
+    tuning_peak = {"angularPosition": {"theta": 0, "phi": math.pi / 2},
+                   "radialPosition": 20,
+                   "length": 10,
+                   "curvature": 0,
+                   "radius": 10}
+    list_of_tuning_ranges = {"theta": {"min": -math.pi, "max": math.pi},
+                             "phi": {"min": 0, "max": math.pi},
+                             "radialPosition": {"min": 0, "max": 100},
+                             "length": {"min": 0, "max": 200},
+                             "curvature": {"min": 0, "max": 1},
+                             "radius": {"min": 0, "max": 20}}
+    shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
+
+    list_of_tuning_functions = [baseline_function, shaft_function]
+
+    # PIPELINE
+    trial_tstamps = collect_trials(conn, time_util.all())
+    data = compile_data(conn, trial_tstamps)
+    response_rates = generate_responses(data, list_of_tuning_functions)
+
+    # EXPORT]
+    insert_to_exp_log(conn, response_rates, data["Id"])
+
+    # DEBUG
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
+
 
 class TuningFunction:
     response_range = {"min": 0, "max": 100}
+
     baseline_range = {"min": 0, "max": 30}
 
     def get_response(self, data: pd.Series) -> float:
@@ -31,6 +68,7 @@ class TuningFunction:
 
 
 class ShaftTuningFunction(TuningFunction):
+
     def __init__(self, shaft_peaks: dict, field_ranges: dict):
         super().__init__()
         self.shaft_peaks = shaft_peaks
@@ -100,7 +138,7 @@ class ShaftTuningFunction(TuningFunction):
             total_energy = np.prod(cov)
             cov = np.array(cov) / 2
             response = total_energy * multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
-                                                     allow_singular=True)
+                                                              allow_singular=True)
             # response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
             responses_per_component.append(response)
 
@@ -224,7 +262,6 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
         # DEBUG
         response = responses[-1][1]
 
-
         thetas = [float(component["angularPosition"]["theta"]) for component in row["ShaftField"]]
         thetas_differences = [abs(theta - 0) for theta in thetas]
         closest_theta = thetas[np.argmin(thetas_differences)]
@@ -259,44 +296,7 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
     return responses
 
 
-def main():
-    # PARAMETERS
-    conn = Connection("allen_estimshape_dev_221110")
-
-    baseline_function = TuningFunction()
-
-    tuning_peak = {"angularPosition": {"theta": 0, "phi": math.pi / 2},
-                   "radialPosition": 20,
-                   "length": 10,
-                   "curvature": 0,
-                   "radius": 10}
-    list_of_tuning_ranges = {"theta": {"min": -math.pi, "max": math.pi},
-                             "phi": {"min": 0, "max": math.pi},
-                             "radialPosition": {"min": 0, "max": 100},
-                             "length": {"min": 0, "max": 200},
-                             "curvature": {"min": 0, "max": 1},
-                             "radius": {"min": 0, "max": 20}}
-    shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
-
-    list_of_tuning_functions = [baseline_function, shaft_function]
-
-    # PIPELINE
-    trial_tstamps = collect_trials(conn, time_util.all())
-    data = compile_data(conn, trial_tstamps)
-    response_rates = generate_responses(data, list_of_tuning_functions)
-
-    # EXPORT]
-    insert_to_exp_log(conn, response_rates, data["Id"])
-
-    # DEBUG
-    plt.show()
-
-
 # write sql query to insert response_rates into ExpLog table
 def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Series):
     for stim_id, stim_response_rate in zip(ids, response_rates):
         conn.execute("INSERT INTO ExpLog (tstamp, memo) VALUES (%s, %s)", (stim_id, str(stim_response_rate)))
-
-
-if __name__ == '__main__':
-    main()
