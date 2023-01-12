@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import math
 import random
 
@@ -221,8 +220,6 @@ class ShaftTuningFunction(TuningFunction):
         return response
 
 
-
-
 def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
     trial_collector = TrialCollector(conn, when)
     return trial_collector.collect_trials()
@@ -300,6 +297,7 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
 def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Series):
     for stim_id, stim_response_rate in zip(ids, response_rates):
         conn.execute("INSERT INTO ExpLog (tstamp, memo) VALUES (%s, %s)", (stim_id, str(stim_response_rate)))
+
 
 if __name__ == '__main__':
     main()

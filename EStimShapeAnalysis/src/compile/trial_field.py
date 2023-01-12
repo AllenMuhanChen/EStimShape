@@ -42,7 +42,7 @@ class Trial:
         new_row = OrderedDict(zip(names, field_values))
         data.append(new_row)
 
-        return data
+
 
 
 def get_data_from_trials(fields: FieldList, trial_tstamps: list[When]) -> pd.DataFrame:
@@ -52,7 +52,7 @@ def get_data_from_trials(fields: FieldList, trial_tstamps: list[When]) -> pd.Dat
     data = []
     for i, t in enumerate(trialList):
         print("working on " + str(i) + " out of " + str(len(trialList)))
-        data = t.append_to_data(data)
+        t.append_to_data(data)
     return pd.DataFrame(data)
 
 
