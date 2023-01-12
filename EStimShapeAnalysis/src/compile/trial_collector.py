@@ -6,6 +6,9 @@ from src.util.time_util import When
 
 
 class TrialCollector:
+    """Class for collecting trials from the database based on trialStart and trialStop tstamps in BehMsg,
+       and filtering types of trials (i.e. from different kinds of experiments)
+       based on the msgs between trialStart and trialStop in BehMsg"""
     def __init__(self, conn: Connection, when: When = time_util.today()):
         self.beh_msg = conn.get_beh_msg(when)
         self.stim_spec = conn.get_stim_spec(when)
@@ -16,7 +19,7 @@ class TrialCollector:
         all_trial_whens = self.collect_trials()
         choice_trial_whens = []
         for when in all_trial_whens:
-            if table_util.contains_success(self.beh_msg, when):
+            if table_util.contains_choice_success(self.beh_msg, when):
                 choice_trial_whens.append(when)
         return choice_trial_whens
 

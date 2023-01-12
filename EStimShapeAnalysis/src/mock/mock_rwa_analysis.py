@@ -8,7 +8,7 @@ import pandas as pd
 
 
 from src.analysis.rwa import rwa, Binner
-from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
+from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_field import FieldList, DatabaseField, get_data_from_trials
 from src.mock.mock_ga_responses import collect_trials
@@ -62,6 +62,8 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     mstick_spec_data_source = StimSpecDataField(conn)
 
     fields = FieldList()
+    fields.append(GaTypeField(conn, "GaType"))
+    fields.append(GaLineageField(conn, "Lineage"))
     fields.append(StimSpecIdField(conn, "Id"))
     fields.append(MockResponseField(conn, 1, name="Response-1"))
     fields.append(ShaftField(mstick_spec_data_source, name="Shaft"))
