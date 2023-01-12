@@ -11,7 +11,7 @@ def beh_msgs_during_trial(beh_msg: DataFrame, when: When):
     return np.logical_and(later_than_start, before_stop)
 
 
-def contains_success(beh_msg: DataFrame, when: When) -> bool:
+def contains_choice_success(beh_msg: DataFrame, when: When) -> bool:
     # beh_msgs = beh_msg['type'].where(beh_msgs_during_trial(beh_msg, when))
     beh_msgs = beh_msg['type'][beh_msgs_during_trial(beh_msg, when)]
     if beh_msgs.isin(["ChoiceSelectionSuccess"]).any():
