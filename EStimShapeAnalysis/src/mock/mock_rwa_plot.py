@@ -10,15 +10,17 @@ from scipy.ndimage import gaussian_filter
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
     #find peaks of matrix
+    # matrix = np.flip(test_rwa.matrix)
     matrix = test_rwa.matrix
 
     matrix_peaks = []
-    number_of_peaks =3
+    number_of_peaks = 3
     matrix_peak_locations = np.unravel_index(np.argsort(matrix, axis=None)[-number_of_peaks:], matrix.shape)
     for i in range(number_of_peaks):
         peak_indices = [matrix_peak_location[i] for matrix_peak_location in matrix_peak_locations]
         matrix_peaks.append(peak_indices)
 
+    print(matrix_peaks)
 
 
     #find indices to slice
@@ -38,16 +40,22 @@ def main():
 
 
     # 1D ANGULAR SLICES
-    indices_to_slice = get_indices_to_slice(number_of_peaks, test_rwa, ["radialPosition"])
+    draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "radialPosition")
+    draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "length")
+    draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "curvature")
+    draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "radius")
+    plt.show()
+
+
+def draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, field_name):
+    indices_to_slice = get_indices_to_slice(number_of_peaks, test_rwa, [field_name])
     fig, axes = plt.subplots(number_of_peaks)
-    for axes, indices_to_slice_for_peak in zip(axes, indices_to_slice):
-        slice_to_draw = slice_matrix(indices_to_slice_for_peak, matrix, matrix_peaks[0])
+    for axes, (peak_index, indices_to_slice_for_peak) in zip(axes, enumerate(indices_to_slice)):
+        slice_to_draw = slice_matrix(indices_to_slice_for_peak, matrix, matrix_peaks[peak_index])
         binner = test_rwa.binners_for_axes[str(indices_to_slice_for_peak[0])]
         draw_1D_slice(slice_to_draw, binner.bins, axes)
-        #labels
-        axes.set_xlabel("Radial Position")
-
-    plt.show()
+        # labels
+        axes.set_xlabel(field_name)
 
 
 def get_indices_to_slice(number_of_peaks, test_rwa, fields):

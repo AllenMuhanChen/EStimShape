@@ -28,13 +28,11 @@ def main():
     tuning_peak = {"angularPosition": {"theta": 0, "phi": math.pi / 2},
                    "radialPosition": 20,
                    "length": 10,
-                   "curvature": 0,
                    "radius": 10}
     list_of_tuning_ranges = {"theta": {"min": -math.pi, "max": math.pi},
                              "phi": {"min": 0, "max": math.pi},
                              "radialPosition": {"min": 0, "max": 100},
-                             "length": {"min": 0, "max": 200},
-                             "curvature": {"min": 0, "max": 1},
+                             "length": {"min": 0, "max": 100},
                              "radius": {"min": 0, "max": 20}}
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
 
@@ -117,7 +115,6 @@ class ShaftTuningFunction(TuningFunction):
                  component['angularPosition']['phi'],
                  component["radialPosition"],
                  component["length"],
-                 component["curvature"],
                  component["radius"]] for component in data['ShaftField']]
         stim = [[float(x) for x in component] for component in stim]
 
@@ -247,7 +244,13 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
     all_phis = []
     closest_phis = []
     all_radial_positions = []
-    closet_radial_positions = []
+    closest_radial_positions = []
+    all_lengths = []
+    closest_lengths = []
+    all_curvatures = []
+    closest_curvatures = []
+    all_radii = []
+    closest_radii = []
     all_responses = []
     closest_responses = []
     #######
@@ -271,6 +274,18 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
         radial_positions_differences = [abs(radialPosition - 20) for radialPosition in radial_positions]
         closest_radial_position = radial_positions[np.argmin(radial_positions_differences)]
 
+        lengths = [float(component["length"]) for component in row["ShaftField"]]
+        lengths_differences = [abs(length - 10) for length in lengths]
+        closest_length = lengths[np.argmin(lengths_differences)]
+
+        curvatures = [float(component["curvature"]) for component in row["ShaftField"]]
+        curvatures_differences = [abs(curvature - 0) for curvature in curvatures]
+        closest_curvature = curvatures[np.argmin(curvatures_differences)]
+
+        radii = [float(component["radius"]) for component in row["ShaftField"]]
+        radii_differences = [abs(radius - 10) for radius in radii]
+        closest_radius = radii[np.argmin(radii_differences)]
+
         closest_responses.append(response)
         closest_thetas.append(closest_theta)
         for theta in thetas:
@@ -279,16 +294,31 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
         closest_phis.append(closest_phi)
         for phi in phis:
             all_phis.append(phi)
-        closet_radial_positions.append(closest_radial_position)
+        closest_radial_positions.append(closest_radial_position)
         for radial_position in radial_positions:
             all_radial_positions.append(radial_position)
+        closest_lengths.append(closest_length)
+        for length in lengths:
+            all_lengths.append(length)
+        closest_curvatures.append(closest_curvature)
+        for curvature in curvatures:
+            all_curvatures.append(curvature)
+        closest_radii.append(closest_radius)
+        for radius in radii:
+            all_radii.append(radius)
     # DEBUG
-    fig, axes = plt.subplots(3)
+    fig, axes = plt.subplots(6)
     print(all_thetas)
     axes[0].scatter(all_thetas, all_phis, c=all_responses)
     axes[1].scatter(closest_thetas, closest_phis, c=closest_responses)
     axes[2].scatter(all_radial_positions, all_responses)
-    axes[2].scatter(closet_radial_positions, closest_responses, alpha=0.5)
+    axes[2].scatter(closest_radial_positions, closest_responses, alpha=0.5)
+    axes[3].scatter(all_lengths, all_responses)
+    axes[3].scatter(closest_lengths, closest_responses, alpha=0.5)
+    axes[4].scatter(all_curvatures, all_responses)
+    axes[4].scatter(closest_curvatures, closest_responses, alpha=0.5)
+    axes[5].scatter(all_radii, all_responses)
+    axes[5].scatter(closest_radii, closest_responses, alpha=0.5)
 
     return responses
 

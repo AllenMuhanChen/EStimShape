@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 public class StandardSpikeRateAnalyzer implements SpikeRateAnalyzer {
 
     public static final LinkedHashMap<PercentileRange,Integer> NUMBER_OF_MORPHS_PER_RANGE = new LinkedHashMap<>();
-    private final List<Long> chosenStims = new LinkedList<>();
+    private List<Long> chosenStims;
     static {
         NUMBER_OF_MORPHS_PER_RANGE.put(new PercentileRange(1.0, 0.9), 6);
         NUMBER_OF_MORPHS_PER_RANGE.put(new PercentileRange(0.9, 0.7), 4);
@@ -16,7 +16,7 @@ public class StandardSpikeRateAnalyzer implements SpikeRateAnalyzer {
     }
     @Override
     public List<Long> analyze(List<Long> stimIds, List<Double> spikeRates) {
-
+        chosenStims = new LinkedList<>();
        List<Stim> spikeDataForStims = new ArrayList<>();
         for (int i=0; i<stimIds.size(); i++){
             spikeDataForStims.add(new Stim(stimIds.get(i), spikeRates.get(i)));

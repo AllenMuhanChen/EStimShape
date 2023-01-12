@@ -20,9 +20,10 @@ class Test(TestCase):
         self.binner_for_field = {"A": Binner(0, 1, num_bins), "B": Binner(0, 2 * pi, num_bins)}
 
     def test_rwa(self):
-        response_weighted_average = rwa(self.stims, self.response_vector, self.binner_for_field)
-        print(response_weighted_average)
+        response_weighted_average = next(rwa(self.stims, self.response_vector, self.binner_for_field))
+
         self.draw_A_tuning(response_weighted_average)
+        self.draw_B_tuning(response_weighted_average)
 
     def test_smoothing(self):
         stim_point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
@@ -50,6 +51,14 @@ class Test(TestCase):
         plt.xlabel(labels[0])
         plt.ylabel(labels[1])
         plt.colorbar()
+        plt.show()
+
+    def draw_B_tuning(self, matrix_to_draw):
+        matrix = matrix_to_draw.matrix
+        matrix_summed = matrix.sum(axis=(0, 1))
+        bins = self.binner_for_field["B"].bins
+        x_axis = [bin.middle for bin in bins]
+        plt.plot(x_axis, matrix_summed)
         plt.show()
 
     def test_point_matrices(self):
@@ -112,7 +121,7 @@ class Test(TestCase):
         """Our test neuron cares that A.x is close to 0.5, doesn't care about A.y, and cares that
         B is close to pi"""
         a_peak = 0.5
-        b_peak = pi
+        b_peak = 4
         a_distances_from_peak = [(fabs(a["x"] - a_peak)) for a in a_list]
         b_distances_from_peak = [(fabs(b - b_peak)) for b in b_list]
         a_normalized_distances_from_peak = [a_distance_from_peak / max(1 - a_peak, a_peak) for a_distance_from_peak in

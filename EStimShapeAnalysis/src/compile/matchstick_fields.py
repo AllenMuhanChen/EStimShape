@@ -34,5 +34,5 @@ class TerminationField(MatchStickField):
 class JunctionField(MatchStickField):
     def get(self, when: When) -> list[dict]:
         mstick_data = MatchStickField.get(self, when)
-        termination_data = mstick_data["AllenMStickData"]['junctionData']['JunctionData']
-        return termination_data
+        junction_data = mstick_data["AllenMStickData"]['junctionData']['JunctionData']
+        return junction_data
