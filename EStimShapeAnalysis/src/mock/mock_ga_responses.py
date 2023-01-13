@@ -26,14 +26,11 @@ def main():
     baseline_function = TuningFunction()
 
     tuning_peak = {"angularPosition": {"theta": 0, "phi": math.pi / 2},
-                   "radialPosition": 20,
-                   "length": 10,
-                   "radius": 10}
+                   "radialPosition": 15
+                   }
     list_of_tuning_ranges = {"theta": {"min": -math.pi, "max": math.pi},
                              "phi": {"min": 0, "max": math.pi},
-                             "radialPosition": {"min": 0, "max": 100},
-                             "length": {"min": 0, "max": 100},
-                             "radius": {"min": 0, "max": 20}}
+                             "radialPosition": {"min": 0, "max": 30}}
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
 
     list_of_tuning_functions = [baseline_function, shaft_function]
@@ -113,9 +110,7 @@ class ShaftTuningFunction(TuningFunction):
 
         stim = [[component['angularPosition']['theta'],
                  component['angularPosition']['phi'],
-                 component["radialPosition"],
-                 component["length"],
-                 component["radius"]] for component in data['ShaftField']]
+                 component["radialPosition"]] for component in data['ShaftField']]
         stim = [[float(x) for x in component] for component in stim]
 
         sigma = 1

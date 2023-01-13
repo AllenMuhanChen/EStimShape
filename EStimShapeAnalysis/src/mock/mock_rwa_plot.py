@@ -16,6 +16,7 @@ def main():
     matrix_peaks = []
     number_of_peaks = 3
     matrix_peak_locations = np.unravel_index(np.argsort(matrix, axis=None)[-number_of_peaks:], matrix.shape)
+
     for i in range(number_of_peaks):
         peak_indices = [matrix_peak_location[i] for matrix_peak_location in matrix_peak_locations]
         matrix_peaks.append(peak_indices)
@@ -31,15 +32,14 @@ def main():
     for i in range(number_of_peaks):
         slice_to_draw = slice_matrix(indices_to_slice_per_peak[i], matrix, matrix_peaks[i])
         slices_to_draw_per_peak.append(slice_to_draw)
-    # slices = [next(slice_to_draw) for slice_to_draw in slices_to_draw_per_peak]
-    # averaged_slices = sum(slices)/len(slices)
-    # draw_angular_slice(averaged_slices)
     draw_angular_slices(slices_to_draw_per_peak)
 
 
+    # 1D RADIAL POSITION SUM SLICE
+    radial_position_sum = np.max(matrix, axis=(0,1,3,4,5,6,7))
+    plt.plot(radial_position_sum)
 
-
-    # 1D ANGULAR SLICES
+    # 1D SLICES
     draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "radialPosition")
     draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "length")
     draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "curvature")

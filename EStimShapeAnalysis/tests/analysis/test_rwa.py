@@ -26,7 +26,7 @@ class Test(TestCase):
         self.draw_B_tuning(response_weighted_average)
 
     def test_smoothing(self):
-        stim_point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
+        stim_point_matrices = generate_point_matrices(self.stims, self.binner_for_field)
         smoothed_matrices = smooth_matrices(stim_point_matrices)
         for stim_indx, smoothed_matrix in enumerate(smoothed_matrices):
             print(self.stims[stim_indx])
@@ -62,7 +62,7 @@ class Test(TestCase):
         plt.show()
 
     def test_point_matrices(self):
-        stim_point_matrices = generate_point_matrices(self.binner_for_field, self.stims)
+        stim_point_matrices = generate_point_matrices(self.stims, self.binner_for_field)
 
         self.assertTrue(len(stim_point_matrices) == self.num_data_points)
         for stim_indx, point_matrix in enumerate(stim_point_matrices):
