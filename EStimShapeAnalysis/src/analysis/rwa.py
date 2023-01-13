@@ -18,19 +18,20 @@ class LabelledMatrix:
     indices_for_axes: dict[int, str]
     matrix: np.ndarray
     binners_for_axes: dict[int, Binner]
+    sigmas_for_axes: dict[int, float]
 
     def apply(self, func: Callable, *args, **kwargs) -> LabelledMatrix:
         """apply a function to self.matrix and return a LabelledMatrix with the new
         matrix"""
-        return LabelledMatrix(self.indices_for_axes, func(self.matrix, *args, **kwargs), self.binners_for_axes)
+        return LabelledMatrix(self.indices_for_axes, func(self.matrix, *args, **kwargs), self.binners_for_axes, self.sigmas_for_axes)
 
     def copy_labels(self, matrix: np.ndarray) -> LabelledMatrix:
         """copy the labels from self to a new LabelledMatrix with the given matrix"""
-        return LabelledMatrix(self.indices_for_axes, matrix, self.binners_for_axes)
+        return LabelledMatrix(self.indices_for_axes, matrix, self.binners_for_axes, self.sigmas_for_axes)
 
 
 class Binner:
-    def __init__(self, start, end, num_bins):
+    def __init__(self, start: float, end: float, num_bins: int):
         self.num_bins = num_bins
         self.end = end
         self.start = start
@@ -67,16 +68,19 @@ class Binner:
         raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
 
 
-def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner]):
+def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner], sigma_for_field: dict[str, float]):
     """stims are list[list[dict]]: each stim can have one or more component. Each component's data
     is represented by a dictionary. Each data field within a component can be a number OR a dictionary.
 
     Each component for a stim should have the same data field keys/names
     (but not data values)
 
-    If a stim only has one component, put it in a list still!"""
+    If a stim only has one component, put it in a list still!
 
-    point_matrices = generate_point_matrices(binner_for_field, stims)
+    sigma_for_fields is expressed as a percentage of the number of bins for that dimension
+    """
+
+    point_matrices = generate_point_matrices(stims, binner_for_field, sigma_for_field)
 
     smoothed_matrices = smooth_matrices(point_matrices)
 
@@ -86,7 +90,7 @@ def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field:
     yield from response_weighted_average
 
 
-def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[list[dict]]) -> list[LabelledMatrix]:
+def generate_point_matrices(stims: list[list[dict]], binner_for_field: dict[str, Binner], sigma_for_field: dict[str, float]) -> list[LabelledMatrix]:
     """For each stimulus, generates a Stimulus Point Matrix.
     Each Stim Point Matrix is the summation of multiple Component Point Matrices.
 
@@ -101,12 +105,12 @@ def generate_point_matrices(binner_for_field: dict[str, Binner], stims: list[lis
     print("Generating Point Matrices")
     # For each stimulus
     for stim_index, stim_components in enumerate(stims):
-        stim_point_matrix = generate_stim_point_matrix(binner_for_field, stim_components)
+        stim_point_matrix = generate_stim_point_matrix(stim_components, binner_for_field, sigma_for_field)
         yield stim_point_matrix
 
 
-def generate_stim_point_matrix(binner_for_field, stim_components):
-    component_point_matrix = initialize_point_matrix(binner_for_field, stim_components)
+def generate_stim_point_matrix(stim_components, binner_for_field, sigma_for_field):
+    component_point_matrix = initialize_point_matrix(stim_components, binner_for_field, sigma_for_field)
     # For each component of the stimulus
     for component in stim_components:
         assigned_bins_for_component = assign_bins_for_component(binner_for_field, component)
@@ -115,7 +119,7 @@ def generate_stim_point_matrix(binner_for_field, stim_components):
     return component_point_matrix
 
 
-def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components: list[dict]):
+def initialize_point_matrix(stim_components: list[dict], binner_for_field: dict[str, Binner], sigma_for_field: dict[str, float]) -> LabelledMatrix:
     """Initialize a zero matrix with a number of dimensions equal to the number of data fields.
     Each dimension has size equal to the number of bins specified for that field.
 
@@ -128,28 +132,32 @@ def initialize_point_matrix(binner_for_field: dict[str, Binner], stim_components
     number_bins_for_each_field = []
     axes = {}
     binner = {}
+    sigma = {}
     total_field_index = 0
     for field_key, field_value in stim_components[0].items():
         if type(field_value) is not dict:
             number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
             axes[total_field_index] = field_key
             binner[total_field_index] = binner_for_field[field_key]
+            sigma[total_field_index] = sigma_for_field[field_key]
             total_field_index += 1
         else:
             for sub_field_key, sub_field_value in field_value.items():
                 try:
                     number_bins_for_each_field.append(binner_for_field[field_key].num_bins)
                     binner[total_field_index] = binner_for_field[field_key]
+                    sigma[total_field_index] = sigma_for_field[field_key]
                 except:
                     number_bins_for_each_field.append(binner_for_field[sub_field_key].num_bins)
                     binner[total_field_index] = binner_for_field[sub_field_key]
+                    sigma[total_field_index] = sigma_for_field[sub_field_key]
 
                 axes[total_field_index] = field_key + "." + sub_field_key
 
                 total_field_index += 1
 
     point_matrix = np.zeros(number_bins_for_each_field, dtype=float32)
-    return LabelledMatrix(axes, point_matrix, binner)
+    return LabelledMatrix(axes, point_matrix, binner, sigma)
 
 
 def assign_bins_for_component(binner_for_field: dict[str, Binner], component: dict) -> list[(int, tuple)]:
@@ -185,7 +193,7 @@ def smooth_matrices(labelled_matrices: list[LabelledMatrix]) -> list[LabelledMat
     print("Smoothing Point Matrices")
     for matrix_number, labelled_matrix in enumerate(labelled_matrices):
         print("smoothing matrix #", matrix_number + 1)
-        sigmas = [binner.num_bins / 5 for axes_name, binner in labelled_matrix.binners_for_axes.items()]
+        sigmas = [sigma * binner.num_bins for sigma, binner in zip(labelled_matrix.sigmas_for_axes.values(), labelled_matrix.binners_for_axes.values())]
         # smoothed_matrix = test_fourier(labelled_matrix, sigmas)
         smoothed_matrix = test_classic(labelled_matrix, sigmas)
         yield smoothed_matrix
@@ -230,23 +238,24 @@ def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix],
         (unweighted_stim_matrix, response_weighted_stim_matrix) = response_weigh_matrices(labelled_matrix, response)
 
         if stim_index == 0:
-            axes = labelled_matrix.indices_for_axes
-            binners = labelled_matrix.binners_for_axes
+            template_matrix = labelled_matrix
             response_weighted_sum_matrix = np.zeros(response_weighted_stim_matrix.matrix.shape, dtype=float32)
             unweighted_sum_matrix = np.zeros(unweighted_stim_matrix.matrix.shape, dtype=float32)
 
-        response_weighted_sum_matrix = np.add(response_weighted_sum_matrix, response_weighted_stim_matrix.matrix)
-        unweighted_sum_matrix = np.add(unweighted_sum_matrix, unweighted_stim_matrix.matrix)
+        np.add(response_weighted_sum_matrix, response_weighted_stim_matrix.matrix, out=response_weighted_sum_matrix)
+        np.add(unweighted_sum_matrix, unweighted_stim_matrix.matrix, out=unweighted_sum_matrix)
 
     response_weighted_average = divide_and_allow_divide_by_zero(response_weighted_sum_matrix, unweighted_sum_matrix)
 
-    yield LabelledMatrix(axes, response_weighted_average, binners)
+    yield template_matrix.copy_labels(response_weighted_average)
 
 
 def divide_and_allow_divide_by_zero(response_weighted_sum_matrix, unweighted_sum_matrix):
     """if attempt to divide by zero, returns 0"""
-    return np.divide(response_weighted_sum_matrix, unweighted_sum_matrix,
-                     out=np.zeros_like(response_weighted_sum_matrix), where=unweighted_sum_matrix != 0)
+    output = np.zeros_like(response_weighted_sum_matrix)
+    np.divide(response_weighted_sum_matrix, unweighted_sum_matrix,
+              out=output, where=unweighted_sum_matrix != 0)
+    return output
 
 
 def response_weigh_matrices(labelled_matrix, response) -> (LabelledMatrix, LabelledMatrix):

@@ -16,11 +16,12 @@ from src.util.connection import Connection
 from src.util.time_util import When
 
 
-def compute_rwa_from_lineages(data, ga_type, binner_for_fields):
+def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields=None):
+    """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
     data = data.loc[data['GaType'] == ga_type]
     rwas = []
     for (lineage, lineage_data) in data.groupby("Lineage"):
-        rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields))
+        rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
     print("Multiplying Lineage RWAs")
     rwas_labelled_matrices = [next(r) for r in rwas]
     rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
@@ -34,10 +35,20 @@ def main():
     binner_for_shaft_fields = {
         "theta": Binner(-pi, pi, num_bins),
         "phi": Binner(0, pi, num_bins),
-        "radialPosition": Binner(0, 100, num_bins),
-        "length": Binner(0, 100, num_bins),
-        "curvature": Binner(0, 1, num_bins),
-        "radius": Binner(0, 20, num_bins),
+        "radialPosition": Binner(0, 30, num_bins),
+        "length": Binner(0, 50, num_bins),
+        "curvature": Binner(0, 0.15, num_bins),
+        "radius": Binner(0, 12, num_bins),
+    }
+
+    # a percentage of the number of bins
+    sigma_for_fields = {
+        "theta": 1 / 8,
+        "phi": 1 / 8,
+        "radialPosition": 1 / 4,
+        "length": 1 / 4,
+        "curvature": 1 / 2,
+        "radius": 1 / 4,
     }
 
     # PIPELINE
@@ -45,7 +56,8 @@ def main():
     data = compile_data(conn, trial_tstamps)
     data = condition_spherical_angles(data)
     data = condition_for_inside_bins(data, binner_for_shaft_fields)
-    response_weighted_average = compute_rwa_from_lineages(data, "3D", binner_for_shaft_fields)
+    response_weighted_average = compute_rwa_from_lineages(data, "3D", binner_for_shaft_fields,
+                                                          sigma_for_fields=sigma_for_fields)
     # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
 
     # SAVE
