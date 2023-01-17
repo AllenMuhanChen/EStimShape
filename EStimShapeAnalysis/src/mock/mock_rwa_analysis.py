@@ -16,18 +16,6 @@ from src.util.connection import Connection
 from src.util.time_util import When
 
 
-def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields=None):
-    """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
-    data = data.loc[data['GaType'] == ga_type]
-    rwas = []
-    for (lineage, lineage_data) in data.groupby("Lineage"):
-        rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
-    print("Multiplying Lineage RWAs")
-    rwas_labelled_matrices = [next(r) for r in rwas]
-    rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
-    return rwas_labelled_matrices[0].copy_labels(rwa_prod)
-
-
 def main():
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
@@ -64,6 +52,18 @@ def main():
     filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json"
     with open(filename, "w") as file:
         file.write(jsonpickle.encode(response_weighted_average))
+
+
+def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields=None):
+    """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
+    data = data.loc[data['GaType'] == ga_type]
+    rwas = []
+    for (lineage, lineage_data) in data.groupby("Lineage"):
+        rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
+    print("Multiplying Lineage RWAs")
+    rwas_labelled_matrices = [next(r) for r in rwas]
+    rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
+    return rwas_labelled_matrices[0].copy_labels(rwa_prod)
 
 
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
