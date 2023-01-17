@@ -22,8 +22,8 @@ class StimSpecIdField(DatabaseField):
 
 
 class StimSpecDataField(StimSpecIdField):
-    def get(self, when: When):
-        stim_spec_id = StimSpecIdField(self.conn).get(when)
+    def get(self, when: When) -> dict:
+        stim_spec_id = super().get(when)
         return get_stim_spec_data(self.conn, when, stim_spec_id)
 
 
@@ -40,6 +40,21 @@ def get_stim_spec_data(conn: Connection, when: When, stim_spec_id) -> dict:
     return stim_spec_data_dict
 
 
+class StimSpecField(StimSpecIdField):
+    def get(self, when: When) -> dict:
+        stim_spec_id = super().get(when)
+        return get_stim_spec(self.conn, when, stim_spec_id)
+
+
+def get_stim_spec(conn: Connection, when: When, stim_spec_id: int) -> dict:
+    conn.execute("SELECT spec from StimSpec WHERE "
+                 "id = %s",
+                 params=(stim_spec_id,))
+    stim_spec_xml = conn.fetch_one()
+    stim_spec_dict = xmltodict.parse(stim_spec_xml)
+    return stim_spec_dict
+
+
 def get_ga_name_from_stim_spec_id(conn, stim_spec_id) -> str:
     conn.execute("SELECT ga_name FROM TaskToDo t WHERE"
                  " stim_id = %s",
@@ -51,19 +66,19 @@ def get_ga_name_from_stim_spec_id(conn, stim_spec_id) -> str:
 
 class GaNameField(StimSpecIdField):
     def get(self, when: When) -> str:
-        stim_spec_id = StimSpecIdField.get(self, when)
+        stim_spec_id = super().get(when)
         return get_ga_name_from_stim_spec_id(self.conn, stim_spec_id)
 
 
 class GaTypeField(GaNameField):
     def get(self, when: When):
-        ga_name = GaNameField.get(self, when)
+        ga_name = super().get(when)
         return get_ga_type_from_ga_name(self.conn, ga_name)
 
 
 class GaLineageField(GaNameField):
     def get(self, when: When):
-        ga_name = GaNameField.get(self, when)
+        ga_name = super().get(when)
         return get_ga_lineage_from_ga_name(self.conn, ga_name)
 
 
