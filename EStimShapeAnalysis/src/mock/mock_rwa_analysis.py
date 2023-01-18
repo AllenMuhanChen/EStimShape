@@ -6,13 +6,15 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from src.analysis.rwa import rwa, Binner, LabelledMatrix
+from src.analysis.rwa import rwa, Binner
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
-from src.compile.trial_field import FieldList, DatabaseField, get_data_from_trials
+from src.compile.trial_field import FieldList, get_data_from_trials
 from src.mock.mock_ga_responses import collect_trials
 from src.util import time_util
 from src.util.connection import Connection
+from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
+    check_condition_on_subdictionaries
 from src.util.time_util import When
 
 
@@ -103,8 +105,8 @@ def condition_spherical_angles(data):
         # print(column_data)
         if column_data.dtype == object:
             for stim_data in column_data.array:
-                recursively_apply_function_to_subdictionaries_values_with_keys(stim_data, ["theta", "phi"],
-                                                                               condition_theta_and_phi)
+                apply_function_to_subdictionaries_values_with_keys(stim_data, ["theta", "phi"],
+                                                                   condition_theta_and_phi)
 
     return data
 
@@ -143,8 +145,8 @@ def condition_for_inside_bins(data: pd.DataFrame, binner_for_fields: dict[str, B
         if column_data.dtype == object:
             for stim_index, stim_data in enumerate(column_data.array):
                 is_field_outside_range = False
-                if recursively_check_condition_for_subdictionaries(stim_data, check_if_outside_binrange,
-                                                                   is_field_outside_range, binner_for_fields):
+                if check_condition_on_subdictionaries(stim_data, check_if_outside_binrange,
+                                                      is_field_outside_range, binner_for_fields):
                     row_indices_to_remove.append(stim_index)
     data = data.drop(labels=row_indices_to_remove, axis=0, inplace=False)
     return data
@@ -157,36 +159,6 @@ def check_if_outside_binrange(field_name: str, value, binner_for_fields: dict[st
         return float(value) < binner.start or float(value) > binner.end
     else:
         return False
-
-
-def recursively_check_condition_for_subdictionaries(dictionary: dict, condition, boolean_to_update, *args):
-    """Returns true if any of the subdictionaries of the dictionary satisfy the condition"""
-    if isinstance(dictionary, dict):
-        for key, value in dictionary.items():
-            if isinstance(value, dict):
-                if recursively_check_condition_for_subdictionaries(value, condition, boolean_to_update, *args):
-                    return True
-            else:
-                if condition(key, value, *args):
-                    return True
-
-    elif isinstance(dictionary, list):
-        for item in dictionary:
-            if recursively_check_condition_for_subdictionaries(item, condition, boolean_to_update, *args):
-                return True
-
-
-def recursively_apply_function_to_subdictionaries_values_with_keys(dictionary, keys, function):
-    if isinstance(dictionary, dict):
-        if set(keys).issubset(dictionary.keys()):
-            dictionary = function(dictionary)
-        else:
-            for key, value in dictionary.items():
-                dictionary[key] = recursively_apply_function_to_subdictionaries_values_with_keys(value, keys, function)
-    elif isinstance(dictionary, list):
-        for index, item in enumerate(dictionary):
-            dictionary[index] = recursively_apply_function_to_subdictionaries_values_with_keys(item, keys, function)
-    return dictionary
 
 
 if __name__ == '__main__':
