@@ -13,22 +13,14 @@ from src.util.connection import Connection
 from src.util.time_util import When
 
 
-def show_top_n(data, n):
-    n_rows = int(n**0.5)
-    n_cols = int(n/n_rows)
-    if n_rows * n_cols < n:
-        n_cols += 1
-    fig, axes = subplots(n_rows, n_cols)
-    for (i, row), axis in zip(data.head(n).iterrows(), axes.flatten()):
-        img = plt.imread(row["Path"])
-        axis.imshow(img)
-        axis.set_title(row["Response"])
+def split_by_lineage(data):
+    print(data)
+    lin1 = data[data["Lineage"] == "1"]
+    lin2 = data[data["Lineage"] == "2"]
+    return (lin1, lin2)
 
-    plt.show()
 
 def main():
-    """example of data analysis pipeline"""
-
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
 
@@ -36,11 +28,36 @@ def main():
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
     data = sort_by_response(data)
+    data = split_by_lineage(data)
+    print(data)
 
     # PLOTTING
-    show_top_n(data, 10)
+    show_top_n_per_lineage(data, 5, 2)
 
-    print(data.to_string())
+
+def show_top_n_per_lineage(data, n, num_lineages):
+    fig, axes = subplots(n, num_lineages)
+    for i in range(num_lineages):
+        for (j, row), axis in zip(data[i].head(n).iterrows(), axes[:, i]):
+            img = plt.imread(row["Path"])
+            axis.imshow(img)
+            axis.set_title(str(row["Lineage"]) + ", " + str(row["Response"]))
+
+    plt.show()
+
+
+def show_top_n(data, n):
+    n_rows = int(n ** 0.5)
+    n_cols = int(n / n_rows)
+    if n_rows * n_cols < n:
+        n_cols += 1
+    fig, axes = subplots(n_rows, n_cols)
+    for (i, row), axis in zip(data.head(n).iterrows(), axes.flatten()):
+        img = plt.imread(row["Path"])
+        axis.imshow(img)
+        axis.set_title(str(row["Lineage"]) + ", " + str(row["Response"]))
+
+    plt.show()
 
 
 class PngPathField(StimSpecField):
