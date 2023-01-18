@@ -36,13 +36,15 @@ def main():
 
 
 def show_top_n_per_lineage(data, n, num_lineages):
-    fig, axes = subplots(n, num_lineages)
+    fig, axes = subplots(num_lineages, n)
     for i in range(num_lineages):
-        for (j, row), axis in zip(data[i].head(n).iterrows(), axes[:, i]):
+        for (j, row), axis in zip(data[i].head(n).iterrows(), axes[i, :]):
             img = plt.imread(row["Path"])
             axis.imshow(img)
             axis.set_title(str(row["Lineage"]) + ", " + str(row["Response"]))
-
+            axis.set_xticks([])
+            axis.set_yticks([])
+    plt.subplots_adjust(wspace=None, hspace=None)
     plt.show()
 
 
