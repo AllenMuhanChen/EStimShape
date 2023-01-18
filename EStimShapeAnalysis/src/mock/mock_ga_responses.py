@@ -26,17 +26,22 @@ def main():
 
     baseline_function = TuningFunction()
 
-    tuning_peak = {"angularPosition": {"theta": 0, "phi": math.pi / 2},
-                   "radialPosition": 15
-                   }
-    list_of_tuning_ranges = {"theta": {"min": -math.pi, "max": math.pi},
-                             "phi": {"min": 0, "max": math.pi},
-                             "radialPosition": {"min": 0, "max": 30},
-                             # "length": {"min": 0, "max": 50},
-                             # "curvature": {"min": 0, "max": 0.15},
-                             # "radius": {"min": 0, "max": 12},
-                             }
+    tuning_peak = {
+        # "angularPosition": {"theta": 0, "phi": math.pi / 2},
+        # "radialPosition": 15,
+        # "length": 15,
+        "curvature": 0,
+        "radius": 1,
+    }
 
+    list_of_tuning_ranges = {
+        # "theta": {"min": -math.pi, "max": math.pi},
+        # "phi": {"min": 0, "max": math.pi},
+        # "radialPosition": {"min": 0, "max": 30},
+        # "length": {"min": 0, "max": 50},
+        "curvature": {"min": 0, "max": 0.15},
+        "radius": {"min": 0, "max": 12},
+    }
 
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
 
@@ -47,8 +52,8 @@ def main():
     data = compile_data(conn, trial_tstamps)
     response_rates = generate_responses(data, list_of_tuning_functions)
 
-    #PLOTTING
-    plot_responses([response[1] for response in response_rates], data.iterrows())
+    # PLOTTING
+    # plot_responses([response[1] for response in response_rates], data.iterrows())
 
     # EXPORT]
     insert_to_exp_log(conn, response_rates, data["Id"])
@@ -76,14 +81,19 @@ class ShaftTuningFunction(TuningFunction):
         self.shaft_peaks = shaft_peaks
         self.field_ranges = field_ranges
 
-
     def get_response(self, data: pd.Series):
         peak = []
         flatten_dictionary(self.shaft_peaks, peak)
 
-        stim = [[component['angularPosition']['theta'],
-                 component['angularPosition']['phi'],
-                 component["radialPosition"]] for component in data['ShaftField']]
+        stim = [[
+            #component['angularPosition']['theta'],
+            #component['angularPosition']['phi'],
+            #component["radialPosition"],
+            #component["length"],
+            component["curvature"],
+            component["radius"]
+            ] for component in data['ShaftField']]
+
         stim = [[float(x) for x in component] for component in stim]
 
         responses_per_component = []
@@ -131,6 +141,7 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
             {unit: tuning_function.get_response(row) for unit, tuning_function in enumerate(list_of_tuning_functions)})
 
     return responses
+
 
 def plot_responses(responses, data):
     all_thetas = []
@@ -209,6 +220,7 @@ def plot_responses(responses, data):
     axes[4].scatter(closest_curvatures, closest_responses, alpha=0.5)
     axes[5].scatter(all_radii, all_responses)
     axes[5].scatter(closest_radii, closest_responses, alpha=0.5)
+
 
 # write sql query to insert response_rates into ExpLog table
 def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Series):
