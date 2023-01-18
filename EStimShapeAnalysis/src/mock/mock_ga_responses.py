@@ -233,7 +233,15 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
     # for each row in data, generate a response using tuning functions
     responses = []
 
-    # DEBUG
+    for index, row in data.iterrows():
+        responses.append(
+            {unit: tuning_function.get_response(row) for unit, tuning_function in enumerate(list_of_tuning_functions)})
+
+    plot_responses([response[1] for response in responses], data.iterrows())
+
+    return responses
+
+def plot_responses(responses, data):
     all_thetas = []
     closest_thetas = []
     all_phis = []
@@ -248,15 +256,10 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
     closest_radii = []
     all_responses = []
     closest_responses = []
-    #######
-    for index, row in data.iterrows():
 
-        responses.append(
-            {unit: tuning_function.get_response(row) for unit, tuning_function in enumerate(list_of_tuning_functions)})
-
+    for response, row in zip(responses, data):
+        row = row[1]
         # DEBUG
-        response = responses[-1][1]
-
         thetas = [float(component["angularPosition"]["theta"]) for component in row["ShaftField"]]
         thetas_differences = [abs(theta - 0) for theta in thetas]
         closest_theta = thetas[np.argmin(thetas_differences)]
@@ -301,6 +304,7 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
         closest_radii.append(closest_radius)
         for radius in radii:
             all_radii.append(radius)
+
     # DEBUG
     fig, axes = plt.subplots(6)
     print(all_thetas)
@@ -314,9 +318,6 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
     axes[4].scatter(closest_curvatures, closest_responses, alpha=0.5)
     axes[5].scatter(all_radii, all_responses)
     axes[5].scatter(closest_radii, closest_responses, alpha=0.5)
-
-    return responses
-
 
 # write sql query to insert response_rates into ExpLog table
 def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Series):
