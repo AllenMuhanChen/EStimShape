@@ -5,7 +5,8 @@ from unittest import TestCase
 from src.analysis.rwa import Binner
 from src.mock.mock_ga_responses import collect_trials
 from src.mock.mock_rwa_analysis import condition_theta_and_phi, condition_spherical_angles, condition_for_inside_bins, \
-    compile_data, recursively_apply_function_to_subdictionaries_values_with_keys
+    compile_data
+from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 from src.util import time_util
 from src.util.connection import Connection
 
@@ -86,8 +87,8 @@ class Test(TestCase):
             d["radialPosition"] = 1000
             return d
 
-        recursively_apply_function_to_subdictionaries_values_with_keys(test_stim, ['radialPosition'],
-                                                                       set_radial_position)
+        apply_function_to_subdictionaries_values_with_keys(test_stim, ['radialPosition'],
+                                                           set_radial_position)
         for row in data.iterrows():
             print("pre-removal: ", [component["radialPosition"] for component in row[1]["Shaft"]])
 
