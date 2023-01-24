@@ -5,13 +5,12 @@ import static org.junit.Assert.fail;
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.util.ThreadUtil;
-import org.xper.utils.RGBColor;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -44,10 +43,46 @@ public class DrawMStickTest {
     }
 
     @Test
-    public void loadCSVandConvert(){
+    public void loadSpecsandConvert(){
+
+       String spec_directory = "/home/r2_allen/Documents/Ram GA/" + unit + "/specs";
+       String data_directory = "/home/r2_allen/Documents/Ram GA/" + unit + "/data";
+        //read every file in folder
+        List<String> mstick_paths = readFilePathsIntoList(spec_directory);
+
+        List<AllenMStickData> mstickDatas = new LinkedList<>();
+        for (String mstick_spec_path : mstick_paths){
+            AllenMatchStick mStick = new AllenMatchStick();
+            mStick.genAllenMatchStickFromMatchStickFile(mstick_spec_path);
+            AllenMStickData mStickData = mStick.getMStickData();
+            mstickDatas.add(mStickData);
+        }
+
+        int indx = 0;
+
+        for (AllenMStickData mStickData : mstickDatas){
+            String mStickData_path = data_directory + "/" + indx;
+            mStickData.writeInfo2File(mStickData_path);
+            indx++;
+        }
 
 
     }
+
+    private List<String> readFilePathsIntoList(String folder_path){
+        List<String> path_list = new LinkedList<>();
+        File folder = new File(folder_path);
+        File[] listOfFiles = folder.listFiles();
+
+        for (File file : listOfFiles) {
+            if (file.isFile()) {
+                path_list.add(file.getAbsolutePath());
+            }
+        }
+        return path_list;
+    }
+
+
 
 
 }

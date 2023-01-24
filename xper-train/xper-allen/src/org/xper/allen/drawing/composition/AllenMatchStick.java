@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
 
-import javax.media.j3d.Transform3D;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
@@ -21,12 +20,7 @@ import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.stick.EndPt_struct;
-import org.xper.drawing.stick.JuncPt_struct;
-import org.xper.drawing.stick.MAxisArc;
-import org.xper.drawing.stick.MStickObj4Smooth;
-import org.xper.drawing.stick.MatchStick;
-import org.xper.drawing.stick.stickMath_lib;
+import org.xper.drawing.stick.*;
 import org.xper.utils.RGBColor;
 
 /**
@@ -3262,6 +3256,38 @@ Adding a new MAxisArc to a MatchStick
 		genMatchStickFromShapeSpec(inSpec, new double[] {0,0,0});
 	}
 
+	public void genAllenMatchStickFromMatchStickFile(String fname){
+		String in_specStr;
+		StringBuffer fileData = new StringBuffer(100000);
+		try
+		{
+			BufferedReader reader = new BufferedReader(
+					new FileReader(fname));
+			char[] buf = new char[1024];
+			int numRead=0;
+			while((numRead=reader.read(buf)) != -1){
+				String readData = String.valueOf(buf, 0, numRead);
+				//System.out.println(readData);
+				fileData.append(readData);
+				buf = new char[1024];
+
+			}
+			reader.close();
+		}
+		catch (Exception e)
+		{
+			System.out.println("error in read XML spec file");
+			System.out.println(e);
+		}
+
+		in_specStr = fileData.toString();
+
+		MStickSpec inSpec = new MStickSpec();
+		inSpec = MStickSpec.fromXml(in_specStr);
+
+		super.genMatchStickFromShapeSpec(inSpec, new double[] {0,0,0});
+	}
+
 
 	/**
 	 *    genMatchStickFrom spec data
@@ -3479,7 +3505,7 @@ Adding a new MAxisArc to a MatchStick
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = getObj1().nVect;
+					int nVect1 = getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -3489,7 +3515,7 @@ Adding a new MAxisArc to a MatchStick
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -3593,7 +3619,7 @@ Adding a new MAxisArc to a MatchStick
 					{
 						Point3d[] oriVecList = inSpec.getVectInfo();
 						double vect_dist = 0.0;
-						int nVect1 = getObj1().nVect;
+						int nVect1 = getObj1().getnVect();
 						int nVect2 = inSpec.getNVect();
 						System.out.println("vec # check " + nVect1 + " " + nVect2);
 						if ( nVect1 != nVect2)
@@ -3603,7 +3629,7 @@ Adding a new MAxisArc to a MatchStick
 						}
 						if ( res == true)
 						{
-							for (i= 1; i<= getObj1().nVect; i++)
+							for (i= 1; i<= getObj1().getnVect(); i++)
 							{
 								Point3d p1 = new Point3d(getObj1().vect_info[i]);
 								Point3d p2 = oriVecList[i];
@@ -3694,7 +3720,7 @@ Adding a new MAxisArc to a MatchStick
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = this.getObj1().nVect;
+					int nVect1 = this.getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -3704,7 +3730,7 @@ Adding a new MAxisArc to a MatchStick
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -4105,110 +4131,6 @@ Adding a new MAxisArc to a MatchStick
 	@Override
 	protected void addTube(int i){
 		getComp()[i] = new AllenTubeComp();
-	}
-
-	public void modifyMStickFinalInfoForAnalysis(){
-		modifyMAxisFinalInfo();
-		modifyEndPtFinalInfoForAnalysis();
-		modifyJuncPtFinalInfoForAnalysis();
-		//TODO: apply transformations to normal, and other stuff
-	}
-
-	public void modifyEndPtFinalInfoForAnalysis(){
-		// end of the change of component info
-		for (int endPtIndx=1; endPtIndx<=getNEndPt(); endPtIndx++){
-			EndPt_struct endPt = getEndPt()[endPtIndx];
-
-		//Rotation
-			double[] rotVec = new double[3];
-			rotVec[0] = this.getFinalRotation()[0];
-			rotVec[1] = this.getFinalRotation()[1];
-			rotVec[2] = this.getFinalRotation()[2];
-			//Rot X
-			if (rotVec[0] != 0.0){
-				Transform3D transMat = getRotation(toRadians(rotVec[0]), new Vector3d(1,0,0));
-				//Pos
-				transMat.transform(endPt.getPos());
-				//Tangent
-				transMat.transform(endPt.getTangent());
-			}
-
-			//Rot Y
-			if (rotVec[1] != 0.0){
-				Transform3D transMat = getRotation(toRadians(rotVec[1]),
-						new Vector3d(0,1,0));
-				//Pos
-				transMat.transform(endPt.getPos());
-				//Tangent
-				transMat.transform(endPt.getTangent());
-			}
-
-			//Rot Z
-			if (rotVec[2] != 0.0){
-				Transform3D transMat = getRotation(toRadians(rotVec[2]),
-						new Vector3d(0,0,1));
-				//Pos
-				transMat.transform(endPt.getPos());
-				//Tangent
-				transMat.transform(endPt.getTangent());
-			}
-			endPt.getTangent().negate();
-
-		//Scale
-			//Pos
-			endPt.getPos().scale(this.getScaleForMAxisShape());
-
-			//Rad
-			endPt.setRad(endPt.getRad()*getScaleForMAxisShape());
-
-		}
-	}
-
-	public void modifyJuncPtFinalInfoForAnalysis(){
-		for (int juncPtIndx = 1; juncPtIndx <= getNJuncPt(); juncPtIndx++) {
-			JuncPt_struct juncPt = getJuncPt()[juncPtIndx];
-
-		//Rotate
-			double[] rotVec = new double[3];
-			rotVec[0] = this.getFinalRotation()[0];
-			rotVec[1] = this.getFinalRotation()[1];
-			rotVec[2] = this.getFinalRotation()[2];
-			//Rot X
-			if(rotVec[0] != 0.0) {
-				Transform3D transMat = getRotation(rotVec[0], new Vector3d(1, 0, 0));
-				//Pos
-				transMat.transform(juncPt.getPos());
-				//Tangent
-				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
-					transMat.transform(juncPt.getTangent()[compIndx]);
-				}
-			}
-		//Rot Y
-			if(rotVec[1] != 0.0) {
-				Transform3D transMat = getRotation(toRadians(rotVec[1]), new Vector3d(0, 1, 0));
-				//Pos
-				transMat.transform(juncPt.getPos());
-				//Tangent
-				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
-					transMat.transform(juncPt.getTangent()[compIndx]);
-				}
-			}
-		//Rot Z
-			if(rotVec[2] != 0.0){
-				Transform3D transMat = getRotation(toRadians(rotVec[2]), new Vector3d(0, 0, 1));
-				//Pos
-				transMat.transform(juncPt.getPos());
-				//Tangent
-				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
-					transMat.transform(juncPt.getTangent()[compIndx]);
-				}
-			}
-		//Scale
-			//Pos
-			juncPt.getPos().scale(getScaleForMAxisShape());
-			//Radius
-			juncPt.setRad(juncPt.getRad()*getScaleForMAxisShape());
-		}
 	}
 
 	public AllenMStickData getMStickData(){

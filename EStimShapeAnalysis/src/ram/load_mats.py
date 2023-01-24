@@ -35,9 +35,10 @@ def main():
 
     top_stimulus(response_vector, stim_ids, mstick_specs, base_path, unit)
 
-    with open(base_path + "/stimuli.csv", 'w', newline='') as myfile:
-        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-        wr.writerow(mstick_specs)
+    for stim_id, mstick_spec in zip(stim_ids, mstick_specs):
+        with open ("%s/%s/specs/%s.txt" % (base_path, unit, stim_id), "w") as f:
+            f.write(mstick_spec)
+
 
 
 def read_generation(base_path, unit_id, gen_id):

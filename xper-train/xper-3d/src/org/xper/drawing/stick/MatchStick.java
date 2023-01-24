@@ -378,7 +378,7 @@ public class MatchStick implements Drawable {
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = getObj1().nVect;
+					int nVect1 = getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -388,7 +388,7 @@ public class MatchStick implements Drawable {
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -492,7 +492,7 @@ public class MatchStick implements Drawable {
 					{
 						Point3d[] oriVecList = inSpec.getVectInfo();
 						double vect_dist = 0.0;
-						int nVect1 = getObj1().nVect;
+						int nVect1 = getObj1().getnVect();
 						int nVect2 = inSpec.getNVect();
 						System.out.println("vec # check " + nVect1 + " " + nVect2);
 						if ( nVect1 != nVect2)
@@ -502,7 +502,7 @@ public class MatchStick implements Drawable {
 						}
 						if ( res == true)
 						{
-							for (i= 1; i<= getObj1().nVect; i++)
+							for (i= 1; i<= getObj1().getnVect(); i++)
 							{
 								Point3d p1 = new Point3d(getObj1().vect_info[i]);
 								Point3d p2 = oriVecList[i];
@@ -593,7 +593,7 @@ public class MatchStick implements Drawable {
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = this.getObj1().nVect;
+					int nVect1 = this.getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -603,7 +603,7 @@ public class MatchStick implements Drawable {
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -3532,6 +3532,110 @@ public class MatchStick implements Drawable {
 		return (angle / 180) * Math.PI;
 	}
 
+	public void modifyEndPtFinalInfoForAnalysis(){
+		// end of the change of component info
+		for (int endPtIndx=1; endPtIndx<=getNEndPt(); endPtIndx++){
+			EndPt_struct endPt = getEndPt()[endPtIndx];
+
+		//Rotation
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if (rotVec[0] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[0]), new Vector3d(1,0,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Y
+			if (rotVec[1] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[1]),
+						new Vector3d(0,1,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Z
+			if (rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[2]),
+						new Vector3d(0,0,1));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+			endPt.getTangent().negate();
+
+		//Scale
+			//Pos
+			endPt.getPos().scale(this.getScaleForMAxisShape());
+
+			//Rad
+			endPt.setRad(endPt.getRad()*getScaleForMAxisShape());
+
+		}
+	}
+
+	public void modifyJuncPtFinalInfoForAnalysis(){
+		for (int juncPtIndx = 1; juncPtIndx <= getNJuncPt(); juncPtIndx++) {
+			JuncPt_struct juncPt = getJuncPt()[juncPtIndx];
+
+		//Rotate
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if(rotVec[0] != 0.0) {
+				Transform3D transMat = getRotation(rotVec[0], new Vector3d(1, 0, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+		//Rot Y
+			if(rotVec[1] != 0.0) {
+				Transform3D transMat = getRotation(toRadians(rotVec[1]), new Vector3d(0, 1, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+		//Rot Z
+			if(rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[2]), new Vector3d(0, 0, 1));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+		//Scale
+			//Pos
+			juncPt.getPos().scale(getScaleForMAxisShape());
+			//Radius
+			juncPt.setRad(juncPt.getRad()*getScaleForMAxisShape());
+		}
+	}
+
+	public void modifyMStickFinalInfoForAnalysis(){
+		modifyMAxisFinalInfo();
+		modifyEndPtFinalInfoForAnalysis();
+		modifyJuncPtFinalInfoForAnalysis();
+		//TODO: apply transformations to normal, and other stuff
+	}
+
 	/*
 	 *   calculate the center position of the shape
 	 *   which can be used to calculate the relative x,y,z for others
@@ -3540,15 +3644,15 @@ public class MatchStick implements Drawable {
 	{
 		Point3d center = new Point3d(0,0,0);
 		int i;
-		for (i=1; i<= getObj1().nVect; i++)
+		for (i=1; i<= getObj1().getnVect(); i++)
 		{
 			center.x  += getObj1().vect_info[i].x;
 			center.y  += getObj1().vect_info[i].y;
 			center.z  += getObj1().vect_info[i].z;
 		}
-		center.x /= getObj1().nVect;
-		center.y /= getObj1().nVect;
-		center.z /= getObj1().nVect;
+		center.x /= getObj1().getnVect();
+		center.y /= getObj1().getnVect();
+		center.z /= getObj1().getnVect();
 		// July 30 2009
 		//there are two ways
 		// 1. the avg of all points on the mesh
