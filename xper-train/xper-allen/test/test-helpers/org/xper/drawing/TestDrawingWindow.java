@@ -58,7 +58,7 @@ public class TestDrawingWindow {
 
     }
 
-    private static void initXperLibs() {
+    public static void initXperLibs() {
         List<String> libs = new ArrayList<String>();
         libs.add("xper");
         new XperConfig("", libs);
