@@ -21,8 +21,8 @@ public class MStickObj4Smooth {
     public Point3d[] vect_info = new Point3d[25000]; // not sure if 15000 will work..let's see
     public Vector3d[] normMat_info = new Vector3d[25000];
     private int[][] facInfo = new int[45000][3];
-    public int nVect;
-    public int nFac;
+    private int nVect;
+    private int nFac;
     
     boolean doLighting = false;
     double contrast = 0.5;
@@ -32,16 +32,16 @@ public class MStickObj4Smooth {
     {
         int i, j;
         //just copy the vect, fac info.
-        this.nVect = inVect;
-        this.nFac = inFac;
+        this.setnVect(inVect);
+        this.setnFac(inFac);
 
-        for (i=1; i<=nVect; i++)
+        for (i=1; i<= getnVect(); i++)
         {
             this.vect_info[i] = new Point3d( ivect_info[i]);
             this.normMat_info[i] = new Vector3d(inormMat_info[i]);
         }
 
-        for (i=0; i<nFac; i++)
+        for (i=0; i< getnFac(); i++)
             for (j=0; j<3; j++)
         {
             getFacInfo()[i][j] = ifacInfo[i][j];
@@ -57,7 +57,7 @@ public class MStickObj4Smooth {
     public void translateBack( Point3d transVec)
     {
         int i;
-        for (i=1; i<= nVect; i++)
+        for (i=1; i<= getnVect(); i++)
         {
             vect_info[i].x += transVec.x;
             vect_info[i].y += transVec.y;
@@ -68,7 +68,7 @@ public class MStickObj4Smooth {
     public void translateFwd( Point3d transVec)
     {
         int i;
-        for (i=1; i<= nVect; i++)
+        for (i=1; i<= getnVect(); i++)
         {
             vect_info[i].x -= transVec.x;
             vect_info[i].y -= transVec.y;
@@ -79,7 +79,7 @@ public class MStickObj4Smooth {
     public void scaleTheObj(double scaleFactor)
     {
         int i;
-        for (i=1; i<=nVect; i++)
+        for (i=1; i<= getnVect(); i++)
         {
             vect_info[i].x *= scaleFactor;
             vect_info[i].y *= scaleFactor;
@@ -95,14 +95,14 @@ public class MStickObj4Smooth {
         //merge the vect and fac info into one
         //MStickObj4Smooth obj1 = this;
         MStickObj4Smooth obj2 = inObj;
-        int ori_nVect = this.nVect;
-        int ori_nFac = this.nFac;
-        this.nVect = ori_nVect + obj2.nVect;
-        this.nFac   = ori_nFac    + obj2.nFac;
+        int ori_nVect = this.getnVect();
+        int ori_nFac = this.getnFac();
+        this.setnVect(ori_nVect + obj2.getnVect());
+        this.setnFac(ori_nFac    + obj2.getnFac());
 
         // put the vec & normMat info into this.vect
         int i, j;
-        for (i=1; i<= obj2.nVect; i++)
+        for (i=1; i<= obj2.getnVect(); i++)
         {
 
             this.vect_info[i+ ori_nVect] = new Point3d( obj2.vect_info[i]);
@@ -113,7 +113,7 @@ public class MStickObj4Smooth {
             this.vect_type[i] = 0;
         }
 
-        for (i=0; i< obj2.nFac; i++)
+        for (i=0; i< obj2.getnFac(); i++)
             for (j=0; j<3; j++)
         {
             this.getFacInfo()[i + ori_nFac][j] = obj2.getFacInfo()[i][j] + ori_nVect;
@@ -146,7 +146,7 @@ public class MStickObj4Smooth {
            AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
            Transform3D transMat = new Transform3D();
            transMat.setRotation(axisInfo);
-           for (i=1; i<=nVect; i++)
+           for (i=1; i<= getnVect(); i++)
            {
              //  System.out.println(i + " " + vect_info[i].x);
                transMat.transform( vect_info[i]);
@@ -161,7 +161,7 @@ public class MStickObj4Smooth {
                AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
                Transform3D transMat = new Transform3D();
                transMat.setRotation(axisInfo);
-               for (i=1; i<=nVect; i++)
+               for (i=1; i<= getnVect(); i++)
                {
                    transMat.transform( vect_info[i]);
                    transMat.transform( normMat_info[i]);
@@ -176,7 +176,7 @@ public class MStickObj4Smooth {
                AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
                Transform3D transMat = new Transform3D();
                transMat.setRotation(axisInfo);
-               for (i=1; i<=nVect; i++)
+               for (i=1; i<= getnVect(); i++)
                {
                    transMat.transform( vect_info[i]);
                    transMat.transform( normMat_info[i]);
@@ -192,7 +192,7 @@ public class MStickObj4Smooth {
         else
             GL11.glDisable(GL11.GL_LIGHTING);
 
-        for (int i=0; i< nFac; i++) {
+        for (int i = 0; i< getnFac(); i++) {
             GL11.glBegin(GL11.GL_TRIANGLES);
 
             GL11.glColor4d(stimColor.getRed(),stimColor.getGreen(),stimColor.getBlue(), alpha);
@@ -238,7 +238,7 @@ public class MStickObj4Smooth {
 		else
 			GL11.glDisable(GL11.GL_LIGHTING);
   
-		for (int i=0; i< nFac; i++) {
+		for (int i = 0; i< getnFac(); i++) {
 			GL11.glBegin(GL11.GL_TRIANGLES);
 			
 			
@@ -280,7 +280,7 @@ public class MStickObj4Smooth {
     public MStickObj4Smooth()
     {
         nComponent = 1;
-        nVect = 0; nFac = 0;
+        setnVect(0); setnFac(0);
     }
     /**
         Constructor, use a TubeComp to be set as the first component of this MStickSMooth object
@@ -294,10 +294,10 @@ public class MStickObj4Smooth {
 
         //hard copy the vect, normMat, fac info from first tube to the object
         int i, j;
-        this.nVect = in_comp.getnVect();
-        this.nFac = in_comp.getnFac();
+        this.setnVect(in_comp.getnVect());
+        this.setnFac(in_comp.getnFac());
         if (showDebug)
-            System.out.println("the new obj with vec :" + nVect + " n face " + nFac);
+            System.out.println("the new obj with vec :" + getnVect() + " n face " + getnFac());
         for (i=1; i<= in_comp.getnVect(); i++)
         {
             vect_info[i] = new Point3d( in_comp.getVect_info()[i]);
@@ -324,9 +324,9 @@ public class MStickObj4Smooth {
         boolean showDebug = false;
         int i, j;
         // vect, normMat generation
-        int[] MapObj1 = new int[this.nVect+1];
-        int[] MapObj2 = new int[inObj.nVect+1];
-        int[] MapObj3 = new int[IntersectPatch.nVect+1];
+        int[] MapObj1 = new int[this.getnVect() +1];
+        int[] MapObj2 = new int[inObj.getnVect() +1];
+        int[] MapObj3 = new int[IntersectPatch.getnVect() +1];
         Point3d[] newVect = new Point3d[15000];
         Vector3d[] newNormMat = new Vector3d[15000];
         int[] newVectTag = new int[15000];
@@ -338,7 +338,7 @@ public class MStickObj4Smooth {
         this.nIntersectPatch++;
 
         // 1. put vertex info in obj1 into newVect
-        for (i=1; i<= this.nVect; i++)
+        for (i=1; i<= this.getnVect(); i++)
           if ( this.vect_type[i] == 0 || this.vect_type[i] == 3)
           {
             newVect[nNewVect] = new Point3d( this.vect_info[i]);
@@ -356,7 +356,7 @@ public class MStickObj4Smooth {
           }
 
         // 2. put vertex info in obj2 into newVect
-        for (i=1; i<= inObj.nVect; i++)
+        for (i=1; i<= inObj.getnVect(); i++)
           if ( inObj.vect_type[i] == 0 || inObj.vect_type[i] == 3)
           {
             newVect[nNewVect] = new Point3d( inObj.vect_info[i]);
@@ -378,7 +378,7 @@ public class MStickObj4Smooth {
         double dist;
         boolean redun_flag;
         int nRedun = 0;
-        for (i=1; i<= IntersectPatch.nVect; i++)
+        for (i=1; i<= IntersectPatch.getnVect(); i++)
         {
             nowp = IntersectPatch.vect_info[i];
             redun_flag = false; // redundant pt or not
@@ -409,17 +409,17 @@ public class MStickObj4Smooth {
         if (showDebug)
         {
             System.out.println("\n\nOBJECT MERGE INFO SUMMARY:\n======================================");
-            System.out.println("nVect in intersect " + IntersectPatch.nVect);
+            System.out.println("nVect in intersect " + IntersectPatch.getnVect());
             System.out.println("nRedun found is " + nRedun);
             System.out.println("n NewVect is " + nNewVect);
-            System.out.println("nVect obj1 "+ this.nVect + "  nvect obj2 " + inObj.nVect + "  interboundPt " + IntersectPatch.nVect);
-            System.out.println("nfac obj1 "+ this.nFac + "  nFac obj2 " + inObj.nFac + "  interboundPt " + IntersectPatch.nFac);
+            System.out.println("nVect obj1 "+ this.getnVect() + "  nvect obj2 " + inObj.getnVect() + "  interboundPt " + IntersectPatch.getnVect());
+            System.out.println("nfac obj1 "+ this.getnFac() + "  nFac obj2 " + inObj.getnFac() + "  interboundPt " + IntersectPatch.getnFac());
         }
         // Fac generation
         int[][] newFac = new int[25000][3];
         int nNewFac = 0;
         // From obj1
-        for (i=0; i < this.nFac; i++)
+        for (i=0; i < this.getnFac(); i++)
         if ( (this.vect_type[ this.getFacInfo()[i][0]] == 0 || this.vect_type[ this.getFacInfo()[i][0]] == 3 ) &&
              (this.vect_type[ this.getFacInfo()[i][1]] == 0 || this.vect_type[ this.getFacInfo()[i][1]] == 3 ) &&
              (this.vect_type[ this.getFacInfo()[i][2]] == 0 || this.vect_type[ this.getFacInfo()[i][2]] == 3 ) )
@@ -431,7 +431,7 @@ public class MStickObj4Smooth {
         }
 
         // From obj2
-        for (i=0; i < inObj.nFac; i++)
+        for (i=0; i < inObj.getnFac(); i++)
         if ( (inObj.vect_type[ inObj.getFacInfo()[i][0]] == 0 || inObj.vect_type[ inObj.getFacInfo()[i][0]] == 3 ) &&
              (inObj.vect_type[ inObj.getFacInfo()[i][1]] == 0 || inObj.vect_type[ inObj.getFacInfo()[i][1]] == 3 ) &&
              (inObj.vect_type[ inObj.getFacInfo()[i][2]] == 0 || inObj.vect_type[ inObj.getFacInfo()[i][2]] == 3 ) )
@@ -443,7 +443,7 @@ public class MStickObj4Smooth {
         }
 
         //From intersectPatch
-        for (i=0; i < IntersectPatch.nFac; i++)
+        for (i=0; i < IntersectPatch.getnFac(); i++)
         {
             newFac[nNewFac][0] = MapObj3[IntersectPatch.getFacInfo()[i][0]];
             newFac[nNewFac][1] = MapObj3[IntersectPatch.getFacInfo()[i][1]];
@@ -452,16 +452,16 @@ public class MStickObj4Smooth {
         }
 
         //copy all the important info back into This obj
-        this.nVect = nNewVect;
-        this.nFac = nNewFac;
-        for (i=1; i<=nVect; i++)
+        this.setnVect(nNewVect);
+        this.setnFac(nNewFac);
+        for (i=1; i<= getnVect(); i++)
         {
             this.vect_info[i] = new Point3d( newVect[i]);
             this.normMat_info[i] = new Vector3d( newNormMat[i]);
             this.vect_type[i] = 0;
             this.vectTag[i] = newVectTag[i];
         }
-        for (i=0; i< nFac; i++)
+        for (i=0; i< getnFac(); i++)
          for (j=0; j<3; j++)
             this.getFacInfo()[i][j] = newFac[i][j];
     }
@@ -475,13 +475,13 @@ public class MStickObj4Smooth {
         //nVect, nFac
               // First, generate a matrix called edge_info, which will store the nearby pts to each vertex
           int i, j, p1, p2, p3, now_nEdge;
-          int[][] edge_info = new int[nVect+1][400];
-          int[] nEdgeList= new int[nVect+1];
+          int[][] edge_info = new int[getnVect() +1][400];
+          int[] nEdgeList= new int[getnVect() +1];
           int smooth_ticker;
           boolean flag;
           int nedge;
         // 1. calculate the edge information
-        for (i=0; i < nFac; i++)
+        for (i=0; i < getnFac(); i++)
         {
             p1 = getFacInfo()[i][0];
             p2 = getFacInfo()[i][1];
@@ -582,13 +582,13 @@ public class MStickObj4Smooth {
                                                 Math.cos(2.0*Math.PI/(double)i))) ;
         // Now, after generation the edge relation, we can run the local vertex average
           {
-        Point3d[] newVertex = new Point3d[nVect+1];
+        Point3d[] newVertex = new Point3d[getnVect() +1];
         Point3d nowVertex = new Point3d();
-        for (i=1; i<=nVect; i++)
+        for (i=1; i<= getnVect(); i++)
             newVertex[i] = new Point3d();
         for ( smooth_ticker=1; smooth_ticker <= Vtimes; smooth_ticker++)
         {
-            for (i=1; i <= nVect; i++)
+            for (i=1; i <= getnVect(); i++)
             {
                 now_nEdge = nEdgeList[i];
                 //System.out.println("vect " + i + " with edge " + now_nEdge);
@@ -604,7 +604,7 @@ public class MStickObj4Smooth {
 
             }
 
-            for (i=1; i<=nVect; i++)
+            for (i=1; i<= getnVect(); i++)
                 vect_info[i].set( newVertex[i]);
 
         }
@@ -614,14 +614,14 @@ public class MStickObj4Smooth {
 
                {
         // now, smooth the normMat
-        Vector3d[] newNorm = new Vector3d[nVect+1];
+        Vector3d[] newNorm = new Vector3d[getnVect() +1];
         Vector3d nowNorm = new Vector3d();
-        for (i=1; i<=nVect; i++)
+        for (i=1; i<= getnVect(); i++)
             newNorm[i] = new Vector3d();
 
         for (smooth_ticker = 1 ; smooth_ticker <= Ntimes ; smooth_ticker++)
         {
-            for (i=1; i <= nVect; i++)
+            for (i=1; i <= getnVect(); i++)
             {
                 now_nEdge = nEdgeList[i];
                 nowNorm.set(0.0, 0.0, 0.0);
@@ -635,7 +635,7 @@ public class MStickObj4Smooth {
                 newNorm[i].normalize();
             }
 
-            for (i=1; i<=nVect; i++)
+            for (i=1; i<= getnVect(); i++)
             {
 
                 normMat_info[i].set( newNorm[i]);
@@ -663,8 +663,8 @@ public class MStickObj4Smooth {
             System.out.println("start merging object procedure....\n\n");
         }
           // 1. distance calculation
-          double[] distVec1 = new double[this.nVect +1];
-          double[] distVec2 = new double[inObj.nVect +1];
+          double[] distVec1 = new double[this.getnVect() +1];
+          double[] distVec2 = new double[inObj.getnVect() +1];
           distVec1 = MStickObj4Smooth_staticLib.distBtwObj( this, inObj, specialTreat);
           distVec2 = MStickObj4Smooth_staticLib.distBtwObj( inObj, this, specialTreat);
 
@@ -687,7 +687,7 @@ public class MStickObj4Smooth {
         {
             double minDist = 100.0;
             int i;
-            for (i=1 ; i<=nVect; i++) {
+            for (i=1 ; i<= getnVect(); i++) {
                 if (distVec1[i] < minDist) {
                     minDist = distVec1[i];
                 }
@@ -730,7 +730,7 @@ public class MStickObj4Smooth {
 
 
 
-      if (IntersectPatch.nVect == -1) {// don't do anymore
+      if (IntersectPatch.getnVect() == -1) {// don't do anymore
           if (showDebug){
               System.out.println("fail intersectPatch.nvect ==-1");
           }
@@ -778,7 +778,7 @@ public class MStickObj4Smooth {
         Point3d p1, p2, p3;
         Vector3d norm1, vec1 = new Vector3d(), vec2 = new Vector3d(), crossP = new Vector3d();
         int i;
-        for (i=0; i< this.nFac; i++)
+        for (i=0; i< this.getnFac(); i++)
         {
             p1 = vect_info[ getFacInfo()[i][0]];
             p2 = vect_info[ getFacInfo()[i][1]];
@@ -812,12 +812,12 @@ public class MStickObj4Smooth {
     {
         int i, j;
         boolean flag;
-        int[] nEdgeList = new int[ nVect+1];
-        int[][] edge_info = new int[nVect+1][120];
-        int[][] newVect_edge = new int[nVect+1][120];
+        int[] nEdgeList = new int[ getnVect() +1];
+        int[][] edge_info = new int[getnVect() +1][120];
+        int[][] newVect_edge = new int[getnVect() +1][120];
         int p1, p2, p3, nedge;
         // 1. calculate the edge information
-        for (i=0; i < nFac; i++)
+        for (i=0; i < getnFac(); i++)
         {
             p1 = getFacInfo()[i][0];
             p2 = getFacInfo()[i][1];
@@ -908,13 +908,13 @@ public class MStickObj4Smooth {
             nEdgeList[p3] = nedge;
         }
 
-        int newNVect = this.nVect;
-        Point3d[] newVect = new Point3d[ this.nVect*3 + 1];
-        Vector3d[] newNormMat = new Vector3d[ this.nVect*3 + 1];
-        int[][] newFac = new int[nFac * 4][3];
+        int newNVect = this.getnVect();
+        Point3d[] newVect = new Point3d[ this.getnVect() *3 + 1];
+        Vector3d[] newNormMat = new Vector3d[ this.getnVect() *3 + 1];
+        int[][] newFac = new int[getnFac() * 4][3];
 
         // 2. adding new intermediate vect
-        for (i=1; i<= nVect; i++)
+        for (i=1; i<= getnVect(); i++)
         {
             nedge = nEdgeList[i];
             p1 = i;
@@ -940,7 +940,7 @@ public class MStickObj4Smooth {
         // 3. calculate the new fac
         int f_adder;
         int pa, pb, p4, p5, p6;
-        for (i = 0; i < nFac; i++)
+        for (i = 0; i < getnFac(); i++)
         {
             f_adder = (i)*4;
             p1 = getFacInfo()[i][0]; p2 = getFacInfo()[i][1]; p3 = getFacInfo()[i][2];
@@ -982,19 +982,19 @@ public class MStickObj4Smooth {
         // 4. copy the new data into the object's storage
 
         // 4.1 update vect, normMat
-        for (i=nVect+1; i<= newNVect; i++)
+        for (i= getnVect() +1; i<= newNVect; i++)
         {
             this.vect_info[i] = new Point3d( newVect[i]);
             this.normMat_info[i] = new Vector3d( newNormMat[i]);
         }
         // 4.2 update fac
-        for (i=0; i< nFac*4; i++)
+        for (i=0; i< getnFac() *4; i++)
             for (j=0; j<3; j++)
         {
             this.getFacInfo()[i][j] = newFac[i][j];
         }
-        this.nVect = newNVect;
-        this.nFac = nFac*4;
+        this.setnVect(newNVect);
+        this.setnFac(getnFac() *4);
     }
 
     /**
@@ -1019,7 +1019,7 @@ public class MStickObj4Smooth {
             if ( showDebug)
                 System.out.println("now using tolerance at " + tolerance);
             nearestPt.set(0.0, 0.0, 0.0);
-            for (i=1; i<=nVect; i++)
+            for (i=1; i<= getnVect(); i++)
             {
                 if ( vect_info[i].x < tolerance && vect_info[i].x > -tolerance)
                  if ( vect_info[i].y < tolerance && vect_info[i].y > -tolerance)
@@ -1040,7 +1040,7 @@ public class MStickObj4Smooth {
         if ( showDebug)
             System.out.println("we choose the nearest pt"+ nearestPt.toString());
         //2. translate all vertex with the shiftVector
-        for (i=1; i<=nVect; i++)
+        for (i=1; i<= getnVect(); i++)
         {
             vect_info[i].sub(nearestPt);
         }
@@ -1059,7 +1059,7 @@ public class MStickObj4Smooth {
         double maxZ = -1000;
         double minZ = 1000;
         
-        for (i=1; i<=nVect; i++) {
+        for (i=1; i<= getnVect(); i++) {
         	maxZ = Math.max(vect_info[i].z,maxZ);
         	minZ = Math.min(vect_info[i].z,maxZ);
         }
@@ -1069,7 +1069,7 @@ public class MStickObj4Smooth {
         
         
         
-        for (i=1; i<=nVect; i++) {
+        for (i=1; i<= getnVect(); i++) {
             vect_info[i].sub(nearestPt);
         }
         return nearestPt;
@@ -1079,7 +1079,7 @@ public class MStickObj4Smooth {
     		Point3d[] box = getBoundingBox();
     		Point3d center = new Point3d((box[1].x+box[0].x)/2,(box[1].y+box[0].y)/2,(box[1].z+box[0].z)/2);
         
-        for (int i=1; i<=nVect; i++) {
+        for (int i = 1; i<= getnVect(); i++) {
 	        vect_info[i].sub(center);	        	
         }
         return center;
@@ -1090,7 +1090,7 @@ public class MStickObj4Smooth {
         box[0] = new Point3d(5000,5000,5000);
         box[1] = new Point3d(-5000,-5000,-5000);
     		
-        for (int i=1; i<= nVect; i++) {
+        for (int i = 1; i<= getnVect(); i++) {
 			Point3d p1 = vect_info[i];
 			
 			box[1].x = Math.max(box[1].x, p1.x);
@@ -1125,7 +1125,7 @@ public class MStickObj4Smooth {
         maxX = -100.0; maxY = -100.0;
         minX = 100.0; minY = 100.0;
 
-        for (i=1; i<= this.nVect; i++)
+        for (i=1; i<= this.getnVect(); i++)
         {
             if (this.vect_info[i].x > cubeSize || this.vect_info[i].x < -cubeSize)
                 return false;
@@ -1177,7 +1177,15 @@ public class MStickObj4Smooth {
 		return doLighting;
 	}
 
-	void setDoLighting(boolean doLighting) {
+    public int getnVect() {
+        return nVect;
+    }
+
+    public int getnFac() {
+        return nFac;
+    }
+
+    void setDoLighting(boolean doLighting) {
 		this.doLighting = doLighting;
 	}
 
@@ -1188,7 +1196,14 @@ public class MStickObj4Smooth {
 	public void setFacInfo(int[][] facInfo) {
 		this.facInfo = facInfo;
 	}
-    
+
+    public void setnVect(int nVect) {
+        this.nVect = nVect;
+    }
+
+    public void setnFac(int nFac) {
+        this.nFac = nFac;
+    }
 }
 
 /**
@@ -1331,7 +1346,7 @@ class MStickObj4Smooth_staticLib {
        if (interBound_obj1.nRimPt == -1 || interBound_obj2.nRimPt == -1) // error occur, in calc Intersect, we'll just give up
            {
                 MStickObj4Smooth testPatch = new MStickObj4Smooth();
-                testPatch.nVect = -1;
+                testPatch.setnVect(-1);
                 return testPatch;
            }
 
@@ -1355,7 +1370,7 @@ class MStickObj4Smooth_staticLib {
    {
     boolean showDebug = false;
     MStickObj4Smooth resObj = new MStickObj4Smooth();
-    resObj.nVect = bound_1.nRimPt + bound_2.nRimPt;
+    resObj.setnVect(bound_1.nRimPt + bound_2.nRimPt);
     int[] vectLabel_1 = new int[ bound_1.nRimPt+1];
     int[] vectLabel_2 = new int[ bound_2.nRimPt+1];
     int i, j;
@@ -1548,7 +1563,7 @@ class MStickObj4Smooth_staticLib {
 
         }
 
-        resObj.nFac = nFac;
+        resObj.setnFac(nFac);
         for (i=0; i<nFac; i++)
             for (j=0; j<3; j++)
                 resObj.getFacInfo()[i][j] = nowFac[i][j];
@@ -1566,8 +1581,8 @@ class MStickObj4Smooth_staticLib {
    {
     boolean showDebug = false;
     double distanceExpand = 0.20; // tricky number??
-    int nNodes = obj.nVect;
-    int nFaces = obj.nFac;
+    int nNodes = obj.getnVect();
+    int nFaces = obj.getnFac();
     int[] vect_type = new int[nNodes+1];
     Point3d[] vect = obj.vect_info; // soft copy is fine
     Vector3d[] normMat = obj.normMat_info;
@@ -1995,21 +2010,21 @@ class MStickObj4Smooth_staticLib {
           newNormal.add( normMat[p1], normMat[p2]);
           newNormal.normalize();
 
-          obj.vect_info[obj.nVect+1] = new Point3d( newPt);
-          obj.normMat_info[obj.nVect+1] = new Vector3d( newNormal);
-          obj.nVect++;
+          obj.vect_info[obj.getnVect() +1] = new Point3d( newPt);
+          obj.normMat_info[obj.getnVect() +1] = new Vector3d( newNormal);
+          obj.setnVect(obj.getnVect() + 1);
 
         // replace the face, and adding one new face
-          obj.getFacInfo()[i][0] = p1; obj.getFacInfo()[i][1] = obj.nVect; obj.getFacInfo()[i][2] = p3;
+          obj.getFacInfo()[i][0] = p1; obj.getFacInfo()[i][1] = obj.getnVect(); obj.getFacInfo()[i][2] = p3;
 
-          obj.getFacInfo()[obj.nFac][0] = obj.nVect; obj.getFacInfo()[obj.nFac][1] = p2; obj.getFacInfo()[obj.nFac][2] = p3;
-          obj.nFac++;
+          obj.getFacInfo()[obj.getnFac()][0] = obj.getnVect(); obj.getFacInfo()[obj.getnFac()][1] = p2; obj.getFacInfo()[obj.getnFac()][2] = p3;
+          obj.setnFac(obj.getnFac() + 1);
        }
     }
     // copy the vect type to obj.vect_type
        for (i=1; i<=nNodes; i++)
         obj.vect_type[i] = vect_type[i];
-       for (i=nNodes+1; i<= obj.nVect; i++)
+       for (i=nNodes+1; i<= obj.getnVect(); i++)
         obj.vect_type[i] = 3;
     //debug
     return outerRim;
@@ -2023,8 +2038,8 @@ class MStickObj4Smooth_staticLib {
    public static double[] distBtwObj( MStickObj4Smooth obj1, MStickObj4Smooth obj2, boolean specialTreat)
    {
     int i;
-    double[] distVec = new double[obj1.nVect+1];
-    for (i=1; i<= obj1.nVect; i++)
+    double[] distVec = new double[obj1.getnVect() +1];
+    for (i=1; i<= obj1.getnVect(); i++)
          distVec[i] = MStickObj4Smooth_staticLib.dist2Object( obj1.vect_info[i], obj2, specialTreat);
     return distVec; // the value range is 0.85 ~ 3.0
    }
