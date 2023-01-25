@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from math import pi
-
 import jsonpickle
 import numpy as np
 import scipy
 import xmltodict
 
-from src.analysis.rwa import Binner, rwa, AutomaticBinner
+from src.analysis.rwa import rwa, AutomaticBinner
+from src.mock.mock_rwa_analysis import hemisphericalize
+from src.util import dictionary_util
 
 
 def load_data_by_lineage(data_path, stim_ids):
@@ -39,6 +39,12 @@ def main():
     # STIM DATA
     datas_path = "%s/%s/data" % (base_path, unit)
     shaft_data, junction_data, termination_data = load_data_by_lineage(datas_path, stim_ids)
+
+    # CLEAN SHAFT DATA
+    for lineage in shaft_data:
+        for shaft in lineage:
+            dictionary_util.apply_function_to_subdictionaries_values_with_keys(shaft, ['angularPosition'],
+                                                                               hemisphericalize)
 
     # RWA
     num_bins = 10
