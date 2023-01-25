@@ -80,7 +80,7 @@ class AutomaticBinner(Binner):
         self.field_name = field_name
         self.data = data
         self.min, self.max = self.calculate_min_max()
-        super().__init__(self.min, math.ceil(round(self.max * 100000))/100000.0, num_bins)
+        super().__init__(self.min, math.ceil(math.ceil(self.max * 100000))/100000.0, num_bins)
         """rounding UP 5 decimal places to avoid floating point errors because bin end 
         is exclusive"""
 

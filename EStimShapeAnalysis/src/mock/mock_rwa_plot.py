@@ -23,21 +23,31 @@ def main():
 
     print(matrix_peaks)
 
-
-    #find indices to slice
-    indices_to_slice_per_peak = get_indices_to_slice(number_of_peaks, test_rwa, ["angularPosition.theta", "angularPosition.phi"])
-
-    # 2D ANGULAR SLICE
+    # 2D ANGULAR SLICE - angularPosition
+    # find indices to slice
+    indices_to_slice_per_peak = get_indices_to_slice(number_of_peaks, test_rwa,
+                                                     ["angularPosition.theta", "angularPosition.phi"])
     slices_to_draw_per_peak = []
     for i in range(number_of_peaks):
         slice_to_draw = slice_matrix(indices_to_slice_per_peak[i], matrix, matrix_peaks[i])
         slices_to_draw_per_peak.append(slice_to_draw)
-    draw_angular_slices(slices_to_draw_per_peak)
+    draw_spherical_slices(slices_to_draw_per_peak)
+
+
+    # 2D ANGULAR SLICE - orientation
+    # find indices to slice
+    indices_to_slice_per_peak = get_indices_to_slice(number_of_peaks, test_rwa,
+                                                     ["orientation.theta", "orientation.phi"])
+    slices_to_draw_per_peak = []
+    for i in range(number_of_peaks):
+        slice_to_draw = slice_matrix(indices_to_slice_per_peak[i], matrix, matrix_peaks[i])
+        slices_to_draw_per_peak.append(slice_to_draw)
+    draw_spherical_slices(slices_to_draw_per_peak)
 
 
     # 1D RADIAL POSITION SUM SLICE
-    radial_position_sum = np.max(matrix, axis=(0,1,3,4,5,6,7))
-    plt.plot(radial_position_sum)
+    # radial_position_sum = np.max(matrix, axis=(0,1,3,4,5,6,7))
+    # plt.plot(radial_position_sum)
 
     # 1D SLICES
     draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, "radialPosition")
@@ -93,15 +103,15 @@ def slice_matrix(indices_to_slice, matrix, matrix_peak_location):
     yield slice_to_draw
 
 
-def draw_angular_slices(slices_to_draw):
+def draw_spherical_slices(slices_to_draw):
     fig, subplots = plt.subplots(1, len(slices_to_draw), subplot_kw=dict(projection='3d'))
 
     for slice, subplot in zip(slices_to_draw, subplots):
-        draw_angular_slice(slice, subplot)
+        draw_spherical_slice(slice, subplot)
     plt.show()
 
 
-def draw_angular_slice(slice_to_draw, axes=None):
+def draw_spherical_slice(slice_to_draw, axes=None):
     if isinstance(slice_to_draw, types.GeneratorType):
         slice_to_draw = next(slice_to_draw)
     theta, phi = np.linspace(-np.pi, np.pi, slice_to_draw.shape[0]), np.linspace(0, np.pi, slice_to_draw.shape[1])
