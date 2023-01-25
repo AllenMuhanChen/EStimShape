@@ -6,7 +6,7 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from src.analysis.rwa import rwa, Binner
+from src.analysis.rwa import rwa, Binner, AutomaticBinner
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_field import FieldList, get_data_from_trials
@@ -22,14 +22,6 @@ def main():
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
     num_bins = 10
-    binner_for_shaft_fields = {
-        "theta": Binner(-pi, pi, num_bins),
-        "phi": Binner(0, pi, num_bins),
-        "radialPosition": Binner(0, 30, num_bins),
-        "length": Binner(0, 50, num_bins),
-        "curvature": Binner(0, 0.15, num_bins),
-        "radius": Binner(0, 12, num_bins),
-    }
 
     # a percentage of the number of bins
     sigma_for_fields = {
@@ -45,7 +37,16 @@ def main():
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
     data = condition_spherical_angles(data)
-    data = condition_for_inside_bins(data, binner_for_shaft_fields)
+    data = hemisphericalize_angular_position(data)
+    binner_for_shaft_fields = {
+        "theta": AutomaticBinner("theta", data, num_bins),
+        "phi": AutomaticBinner("phi", data, num_bins),
+        "radialPosition": AutomaticBinner("radialPosition", data, num_bins),
+        "length": AutomaticBinner("length", data, num_bins),
+        "curvature": AutomaticBinner("curvature", data, num_bins),
+        "radius": AutomaticBinner("radius", data, num_bins),
+    }
+    # data = condition_for_inside_bins(data, binner_for_shaft_fields)
     response_weighted_average = compute_rwa_from_lineages(data, "3D", binner_for_shaft_fields,
                                                           sigma_for_fields=sigma_for_fields)
 
@@ -114,26 +115,62 @@ def condition_theta_and_phi(dictionary: dict):
     theta = np.float32(dictionary["theta"])
     phi = np.float32(dictionary["phi"])
     pi = np.float32(np.pi)
-    # THETA [-pi, pi]
-    theta = newMod(theta, (2 * pi))
-    if theta > pi:
-        theta = -((2 * pi) - theta)
-    elif theta < -pi:
-        theta = (2 * pi) + theta
 
     # PHI [0, pi]
-    phi = newMod(phi, (2 * pi))
+    phi = modulus(phi, (2 * pi))
     if phi < 0:
         phi += (2 * pi)
     if phi > pi:
         phi = (2 * pi) - phi
-        theta = -theta
+        theta = theta + pi
+
+    # THETA [-pi, pi]
+    theta = map_theta(theta)
+
     return {"theta": theta, "phi": phi}
 
 
-def newMod(a, b):
+def map_theta(theta):
+    """Maps theta to [-pi, pi]"""
+    theta = modulus(theta, (2 * pi))
+    if theta > pi:
+        theta = -((2 * pi) - theta)
+    elif theta < -pi:
+        theta = (2 * pi) + theta
+    return theta
+
+
+def modulus(a, b):
+    """modulus function that works with negative numbers"""
     res = a % b
     return res if not res else res - b if a < 0 else res
+
+
+def hemisphericalize_angular_position(data):
+    for column in data:
+        column_data = data[column]
+        # print(column_data)
+        if column_data.dtype == object:
+            for stim_data in column_data.array:
+                apply_function_to_subdictionaries_values_with_keys(stim_data, ['angularPosition'],
+                                                                   hemisphericalize)
+    return data
+
+
+def hemisphericalize(dictionary: dict):
+    output = dictionary
+    angularPosition = output['angularPosition']
+    theta = np.float32(angularPosition['theta'])
+    phi = np.float32(angularPosition['phi'])
+
+    if phi > pi / 2:
+        phi = pi - phi
+        theta = theta + pi
+        theta = map_theta(theta)
+
+    output['angularPosition']['theta'] = theta
+    output['angularPosition']['phi'] = phi
+    return output
 
 
 def condition_for_inside_bins(data: pd.DataFrame, binner_for_fields: dict[str, Binner]):

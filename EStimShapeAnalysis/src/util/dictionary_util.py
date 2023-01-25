@@ -6,9 +6,9 @@ from typing import Union
 
 
 def apply_function_to_subdictionaries_values_with_keys(dictionary: Union[dict, list], keys: list, function):
-    """apply function to all values of subdictionaries with specified keys
+    """apply function to the subdictionary that contains the specified keys
     The supplied function should take in the dictionary containing the specified keys and
-    return a dictionary"""
+    return a new dictionary"""
     if isinstance(dictionary, dict):
         if set(keys).issubset(dictionary.keys()):
             dictionary = function(dictionary)
