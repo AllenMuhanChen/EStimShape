@@ -13,6 +13,7 @@ from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdFie
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
+from src.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from src.util import time_util
 from src.util.connection import Connection
 from src.util.dictionary_util import flatten_dictionary, \
@@ -40,7 +41,7 @@ def main():
         "angularPosition.phi": {"min": 0, "max": math.pi},
         "radialPosition": {"min": 0, "max": 60},
         "orientation.theta": {"min": -math.pi, "max": math.pi},
-        "orientation.phi": {"min": 0, "max": math.pi},
+        "orientation.phi": {"min": 0, "max": math.pi/2},
         # "length": {"min": 0, "max": 50},
         # "curvature": {"min": 0, "max": 0.15},
         # "radius": {"min": 0, "max": 12},
@@ -53,10 +54,12 @@ def main():
     # PIPELINE
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
+    data = condition_spherical_angles(data)
+    data = hemisphericalize_orientation(data)
     response_rates = generate_responses(data, list_of_tuning_functions)
 
     # PLOTTING
-    # plot_responses([response[1] for response in response_rates], data.iterrows())
+    plot_responses([response[1] for response in response_rates], data.iterrows())
 
     # EXPORT]
     insert_to_exp_log(conn, response_rates, data["Id"])
