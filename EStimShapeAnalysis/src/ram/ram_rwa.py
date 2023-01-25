@@ -52,7 +52,7 @@ def main():
     }
 
     # a percentage of the number of bins
-    sigma_for_fields = {
+    sigma_for_shaft_fields = {
         "theta": 1 / 8,
         "phi": 1 / 8,
         "radialPosition": 1 / 4,
@@ -63,7 +63,7 @@ def main():
 
     # CALCULATE RWA FOR EACH LINEAGE AND MULTIPLY
     response_weighted_average_shaft = rwa_from_lineages(shaft_data, response_vector, binner_for_shaft_fields,
-                                                        sigma_for_fields)
+                                                        sigma_for_shaft_fields)
 
     # SAVE
     filename = "%s/%s/rwa_shaft.json" % (base_path, unit)

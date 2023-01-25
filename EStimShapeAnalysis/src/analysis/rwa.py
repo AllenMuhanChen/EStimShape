@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import inspect
 import json
+import math
 from dataclasses import dataclass
 from collections import namedtuple
 import time
-from typing import Callable, List, Any
+from typing import Callable, List, Any, Union
 import numpy as np
+import pandas as pd
 import scipy
 from numpy import float32, double
 from scipy.ndimage import fourier_gaussian
@@ -73,12 +75,14 @@ class Binner:
 
 class AutomaticBinner(Binner):
     """Given a fieldname, and data containing that fieldname, finds min and max for binning"""
-    def __init__(self, field_name, data, num_bins: int):
+    def __init__(self, field_name: str, data: list, num_bins: int):
         """The data can be a list of dictionaries/values for the field or a pd.Series of dictionaries/values"""
         self.field_name = field_name
         self.data = data
         self.min, self.max = self.calculate_min_max()
-        super().__init__(self.min, self.max, num_bins)
+        super().__init__(self.min, math.ceil(round(self.max * 100000))/100000.0, num_bins)
+        """rounding UP 5 decimal places to avoid floating point errors because bin end 
+        is exclusive"""
 
     def calculate_min_max(self):
         values = []
@@ -89,6 +93,8 @@ class AutomaticBinner(Binner):
                 values.append(point)
         values = [float(v) for v in values]
         return min(values), max(values)
+
+
 
 
 def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner],

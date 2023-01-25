@@ -55,7 +55,7 @@ def flatten_dictionary(dictionary: Union[dict, list], output_list: list):
                 output_list.append(value)
 
 
-def extract_values_with_key_into_list(dictionary: Union[dict, list], output_list: list[float], key: str):
+def extract_values_with_key_into_list(dictionary: Union[dict, list], output_list: list, key: str):
     if isinstance(dictionary, dict):
         for k, value in dictionary.items():
             if isinstance(value, dict):
