@@ -9,8 +9,8 @@ import pandas as pd
 from src.analysis.rwa import rwa, Binner, AutomaticBinner
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
+from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
-from src.mock.mock_ga_responses import collect_trials
 from src.util import time_util
 from src.util.connection import Connection
 from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
@@ -56,6 +56,10 @@ def main():
     with open(filename, "w") as file:
         file.write(jsonpickle.encode(response_weighted_average))
 
+
+def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
+    trial_collector = TrialCollector(conn, when)
+    return trial_collector.collect_trials()
 
 def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields=None):
     """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
