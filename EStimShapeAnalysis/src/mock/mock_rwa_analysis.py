@@ -48,7 +48,6 @@ def main():
     data = condition_for_inside_bins(data, binner_for_shaft_fields)
     response_weighted_average = compute_rwa_from_lineages(data, "3D", binner_for_shaft_fields,
                                                           sigma_for_fields=sigma_for_fields)
-    # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields)
 
     # SAVE
     filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json"

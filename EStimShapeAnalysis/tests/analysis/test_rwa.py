@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, calculate_response_weighted_average, LabelledMatrix
+from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, calculate_response_weighted_average, \
+    LabelledMatrix, AutomaticBinner
 
 
 class Test(TestCase):
@@ -18,6 +19,17 @@ class Test(TestCase):
         self.response_vector = self.generate_resp(self.stims)
         num_bins = 10
         self.binner_for_field = {"A": Binner(0, 1, num_bins), "B": Binner(0, 2 * pi, num_bins)}
+
+    def test_automatic_binner(self):
+        num_bins = 10
+        self.binner_for_field = {"x": AutomaticBinner("x", self.stims, num_bins),
+                                 "y": AutomaticBinner("y", self.stims, num_bins),
+                                 "B": AutomaticBinner("B", self.stims, num_bins)}
+        print(self.binner_for_field["x"].min)
+        print(self.binner_for_field["x"].max)
+        print(self.binner_for_field["B"].min)
+        print(self.binner_for_field["B"].max)
+        print(self.binner_for_field["x"].bins)
 
     def test_rwa(self):
         response_weighted_average = next(rwa(self.stims, self.response_vector, self.binner_for_field))
@@ -33,7 +45,7 @@ class Test(TestCase):
             matrix = smoothed_matrix.matrix
             matrix_summed = matrix.sum(1)
             normalized_matrix = np.divide(matrix_summed, matrix.shape[1])
-            plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 2*pi], origin="lower", aspect=1/(2*pi))
+            plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 2 * pi], origin="lower", aspect=1 / (2 * pi))
             labels = [label for label_indx, label in smoothed_matrix.indices_for_axes.items()]
             plt.xlabel(labels[0])
             plt.ylabel(labels[2])
@@ -79,6 +91,7 @@ class Test(TestCase):
 
     def test_generate_stim(self):
         stims = self.generate_stim(100)
+        print(stims)
         self.assertTrue(len(stims) == 100)
 
     def generate_stim(self, num_data_points):
@@ -98,7 +111,7 @@ class Test(TestCase):
         resp_list = []
         for stims in stims:
             a_values_xy = [field_value for component in stims for field_key, field_value in component.items() if
-                        field_key == "A"]
+                           field_key == "A"]
             b_values = [field_value for component in stims for field_key, field_value in component.items() if
                         field_key == "B"]
             resp_list.append(self.generate_resp_for_stim(a_values_xy, b_values))

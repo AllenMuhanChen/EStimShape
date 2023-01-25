@@ -20,9 +20,9 @@ def main():
     base_path = "/home/r2_allen/Documents/Ram GA"
     num_generations = 6
     # unit = "170624_r-177"
-    # unit = "170508_r-45"
+    unit = "170508_r-45"
     # unit = "170808_r-276"
-    unit = "170807_r-274"
+    # unit = "170807_r-274"
 
     stim_ids = []
     mstick_specs = []
@@ -35,8 +35,9 @@ def main():
 
     top_stimulus(response_vector, stim_ids, mstick_specs, base_path, unit)
 
+    #WRITE SPEC FILES USING DESC_IDS
     for stim_id, mstick_spec in zip(stim_ids, mstick_specs):
-        with open ("%s/%s/specs/%s.txt" % (base_path, unit, stim_id), "w") as f:
+        with open ("%s/%s/spec/%s.txt" % (base_path, unit, stim_id), "w") as f:
             f.write(mstick_spec)
 
 

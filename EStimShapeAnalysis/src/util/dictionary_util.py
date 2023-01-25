@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from typing import Union
 
-def apply_function_to_subdictionaries_values_with_keys(dictionary, keys, function):
+"""This module contains functions for working with nested dictionaries and lists of (nested) dictionaries """
+
+
+def apply_function_to_subdictionaries_values_with_keys(dictionary: Union[dict, list], keys: list, function):
     """apply function to all values of subdictionaries with specified keys
     The supplied function should take in the dictionary containing the specified keys and
     return a dictionary"""
@@ -17,8 +21,9 @@ def apply_function_to_subdictionaries_values_with_keys(dictionary, keys, functio
     return dictionary
 
 
-def check_condition_on_subdictionaries(dictionary: dict, condition, boolean_to_update, *args):
-    """Returns true if any of the subdictionaries satisfy the condition"""
+def check_condition_on_subdictionaries(dictionary: Union[dict, list], condition, boolean_to_update, *args):
+    """Returns true if any of the key-value pairs satisfy the condition. The condition is a function that returns a boolean
+    and has parameters: (key, value, *args)"""
     if isinstance(dictionary, dict):
         for key, value in dictionary.items():
             if isinstance(value, dict):
@@ -34,22 +39,23 @@ def check_condition_on_subdictionaries(dictionary: dict, condition, boolean_to_u
                 return True
 
 
-def flatten_dictionary(dictionary: dict, point: list):
+def flatten_dictionary(dictionary: Union[dict, list], output_list: list):
+    """Converts a nested dictionary into a single list of values and appends those values into output_list"""
     if isinstance(dictionary, dict):
         for key, value in dictionary.items():
             if isinstance(value, dict):
-                flatten_dictionary(value, point)
+                flatten_dictionary(value, output_list)
             else:
-                point.append(value)
+                output_list.append(value)
     elif isinstance(dictionary, list):
         for value in dictionary:
-            if isinstance(value, dict):
-                flatten_dictionary(value, point)
+            if isinstance(value, dict) or isinstance(value, list):
+                flatten_dictionary(value, output_list)
             else:
-                point.append(value)
+                output_list.append(value)
 
 
-def extract_values_with_key_into_list(dictionary: dict, output_list: list[float], key: str):
+def extract_values_with_key_into_list(dictionary: Union[dict, list], output_list: list[float], key: str):
     if isinstance(dictionary, dict):
         for k, value in dictionary.items():
             if isinstance(value, dict):
@@ -58,9 +64,9 @@ def extract_values_with_key_into_list(dictionary: dict, output_list: list[float]
                 if k == key:
                     output_list.append(value)
 
-    elif isinstance(dictionary, output_list):
+    elif isinstance(dictionary, list):
         for value in dictionary:
-            if isinstance(value, dict):
+            if isinstance(value, dict) or isinstance(value, list):
                 extract_values_with_key_into_list(value, output_list, key)
             else:
                 output_list.append(value)
