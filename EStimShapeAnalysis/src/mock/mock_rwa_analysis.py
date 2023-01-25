@@ -37,14 +37,15 @@ def main():
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
     data = condition_spherical_angles(data)
-    data = hemisphericalize_angular_position(data)
+    data = hemisphericalize_orientation(data)
+    data_shaft = data['Shaft'].tolist()
     binner_for_shaft_fields = {
-        "theta": AutomaticBinner("theta", data, num_bins),
-        "phi": AutomaticBinner("phi", data, num_bins),
-        "radialPosition": AutomaticBinner("radialPosition", data, num_bins),
-        "length": AutomaticBinner("length", data, num_bins),
-        "curvature": AutomaticBinner("curvature", data, num_bins),
-        "radius": AutomaticBinner("radius", data, num_bins),
+        "theta": AutomaticBinner("theta", data_shaft, num_bins),
+        "phi": AutomaticBinner("phi", data_shaft, num_bins),
+        "radialPosition": AutomaticBinner("radialPosition", data_shaft, num_bins),
+        "length": AutomaticBinner("length", data_shaft, num_bins),
+        "curvature": AutomaticBinner("curvature", data_shaft, num_bins),
+        "radius": AutomaticBinner("radius", data_shaft, num_bins),
     }
     # data = condition_for_inside_bins(data, binner_for_shaft_fields)
     response_weighted_average = compute_rwa_from_lineages(data, "3D", binner_for_shaft_fields,
@@ -146,20 +147,20 @@ def modulus(a, b):
     return res if not res else res - b if a < 0 else res
 
 
-def hemisphericalize_angular_position(data):
+def hemisphericalize_orientation(data):
     for column in data:
         column_data = data[column]
         # print(column_data)
         if column_data.dtype == object:
             for stim_data in column_data.array:
-                apply_function_to_subdictionaries_values_with_keys(stim_data, ['angularPosition'],
+                apply_function_to_subdictionaries_values_with_keys(stim_data, ['orientation'],
                                                                    hemisphericalize)
     return data
 
 
 def hemisphericalize(dictionary: dict):
     output = dictionary
-    angularPosition = output['angularPosition']
+    angularPosition = output['orientation']
     theta = np.float32(angularPosition['theta'])
     phi = np.float32(angularPosition['phi'])
 
@@ -168,8 +169,8 @@ def hemisphericalize(dictionary: dict):
         theta = theta + pi
         theta = map_theta(theta)
 
-    output['angularPosition']['theta'] = theta
-    output['angularPosition']['phi'] = phi
+    output['orientation']['theta'] = theta
+    output['orientation']['phi'] = phi
     return output
 
 

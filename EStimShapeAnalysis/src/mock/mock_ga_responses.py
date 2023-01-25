@@ -27,20 +27,23 @@ def main():
     baseline_function = TuningFunction()
 
     tuning_peak = {
-        # "angularPosition": {"theta": 0, "phi": math.pi / 2},
-        # "radialPosition": 15,
+        "angularPosition": {"theta": 0, "phi": math.pi / 2},
+        "radialPosition": 15,
+        "orientation": {"theta": 0, "phi": math.pi / 4},
         # "length": 15,
-        "curvature": 0,
-        "radius": 1,
+        # "curvature": 0,
+        # "radius": 1,
     }
 
     list_of_tuning_ranges = {
-        # "theta": {"min": -math.pi, "max": math.pi},
-        # "phi": {"min": 0, "max": math.pi},
-        # "radialPosition": {"min": 0, "max": 30},
+        "angularPosition.theta": {"min": -math.pi, "max": math.pi},
+        "angularPosition.phi": {"min": 0, "max": math.pi},
+        "radialPosition": {"min": 0, "max": 60},
+        "orientation.theta": {"min": -math.pi, "max": math.pi},
+        "orientation.phi": {"min": 0, "max": math.pi},
         # "length": {"min": 0, "max": 50},
-        "curvature": {"min": 0, "max": 0.15},
-        "radius": {"min": 0, "max": 12},
+        # "curvature": {"min": 0, "max": 0.15},
+        # "radius": {"min": 0, "max": 12},
     }
 
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
@@ -86,12 +89,14 @@ class ShaftTuningFunction(TuningFunction):
         flatten_dictionary(self.shaft_peaks, peak)
 
         stim = [[
-            #component['angularPosition']['theta'],
-            #component['angularPosition']['phi'],
-            #component["radialPosition"],
+            component['angularPosition']['theta'],
+            component['angularPosition']['phi'],
+            component["radialPosition"],
+            component["orientation"]["theta"],
+            component["orientation"]["phi"],
             #component["length"],
-            component["curvature"],
-            component["radius"]
+            # component["curvature"],
+            # component["radius"]
             ] for component in data['ShaftField']]
 
         stim = [[float(x) for x in component] for component in stim]
