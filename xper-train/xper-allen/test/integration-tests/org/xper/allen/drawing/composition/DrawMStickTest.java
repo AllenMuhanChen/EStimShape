@@ -25,9 +25,9 @@ public class DrawMStickTest {
     public void before() throws Exception {
         initXperLibs();
 //      unit = "170624_r-177";
-//      unit = "170508_r-45";
+      unit = "170508_r-45";
 //      unit = "170808_r-276";
-        unit = "170807_r-274";
+//        unit = "170807_r-274";
         xml_path = "/home/r2_allen/Documents/Ram GA/" + unit + "/top_stimulus.txt";
     }
 
@@ -46,7 +46,7 @@ public class DrawMStickTest {
     @Test
     public void loadSpecsandConvert(){
 
-       String spec_directory = "/home/r2_allen/Documents/Ram GA/" + unit + "/specs";
+       String spec_directory = "/home/r2_allen/Documents/Ram GA/" + unit + "/spec";
        String data_directory = "/home/r2_allen/Documents/Ram GA/" + unit + "/data";
         //read every file in folder
         List<File> mstick_paths = readFilesIntoList(spec_directory);
