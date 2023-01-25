@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.util.*;
 

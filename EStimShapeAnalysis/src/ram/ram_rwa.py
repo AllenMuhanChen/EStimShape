@@ -5,6 +5,17 @@ import scipy
 
 
 
+def load_files_by_lineage_number(data_path, stim_ids):
+    stim_datas = [[],[]]
+    for lineage_index, lineage in enumerate(stim_ids):
+        for stim_id in lineage:
+            file = open("%s/%s_spec.xml" % (data_path, stim_id), "r")
+            spec = file.read()
+            stim_datas[lineage_index].append(spec)
+    print(stim_datas)
+
+
+
 def main():
     base_path = "/home/r2_allen/Documents/Ram GA"
     num_generations = 6
@@ -16,8 +27,10 @@ def main():
 
     # RESPONSE VECTOR
     stim_ids, response_vector = read_all_stim_ids_and_responses_by_lineage(base_path, num_generations, unit)
-    print(stim_ids)
+
     # STIM DATA
+    datas_path = "%s/%s/data" % (base_path, unit)
+    load_files_by_lineage_number(datas_path, stim_ids)
 
 
 def read_all_stim_ids_and_responses_by_lineage(base_path, num_generations, unit):
