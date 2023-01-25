@@ -12,6 +12,7 @@ import org.xper.util.ThreadUtil;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -48,38 +49,40 @@ public class DrawMStickTest {
        String spec_directory = "/home/r2_allen/Documents/Ram GA/" + unit + "/specs";
        String data_directory = "/home/r2_allen/Documents/Ram GA/" + unit + "/data";
         //read every file in folder
-        List<String> mstick_paths = readFilePathsIntoList(spec_directory);
+        List<File> mstick_paths = readFilesIntoList(spec_directory);
 
         List<AllenMStickData> mstickDatas = new LinkedList<>();
-        for (String mstick_spec_path : mstick_paths){
+        List<String> mstickIds = new LinkedList<>();
+        for (File mstick_file : mstick_paths){
             AllenMatchStick mStick = new AllenMatchStick();
-            mStick.genAllenMatchStickFromMatchStickFile(mstick_spec_path);
+            mStick.genAllenMatchStickFromMatchStickFile(mstick_file.getAbsolutePath());
             AllenMStickData mStickData = mStick.getMStickData();
             mstickDatas.add(mStickData);
-        }
-
-        int indx = 0;
-
-        for (AllenMStickData mStickData : mstickDatas){
-            String mStickData_path = data_directory + "/" + indx;
-            mStickData.writeInfo2File(mStickData_path);
-            indx++;
+            mstickIds.add(mstick_file.getName().replace(".txt", ""));
         }
 
 
+        Iterator<AllenMStickData> mstickDataIterator = mstickDatas.iterator();
+        Iterator<String> mstickIdIterator = mstickIds.iterator();
+        while (mstickDataIterator.hasNext()) {
+            AllenMStickData mStickData = mstickDataIterator.next();
+            String mStickId = mstickIdIterator.next();
+            mStickData.writeInfo2File(data_directory + "/" + mStickId);
+
+        }
     }
 
-    private List<String> readFilePathsIntoList(String folder_path){
-        List<String> path_list = new LinkedList<>();
+    private List<File> readFilesIntoList(String folder_path){
+        List<File> fileList = new LinkedList<>();
         File folder = new File(folder_path);
         File[] listOfFiles = folder.listFiles();
 
         for (File file : listOfFiles) {
             if (file.isFile()) {
-                path_list.add(file.getAbsolutePath());
+                fileList.add(file);
             }
         }
-        return path_list;
+        return fileList;
     }
 
 
