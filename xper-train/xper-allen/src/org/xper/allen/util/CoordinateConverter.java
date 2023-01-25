@@ -35,7 +35,12 @@ public class CoordinateConverter {
     public static SphericalCoordinates cartesianToSpherical(double x, double y, double z) {
         double r = Math.sqrt(x * x + y * y + z * z);
         double theta = Math.atan2(y, x);
-        double phi = Math.acos(z / r);
+        double phi;
+        if (theta == 0 || theta == Math.PI) {
+            phi = 0;
+        } else {
+            phi = Math.acos(z / r);
+        }
 
         return new SphericalCoordinates(r, theta, phi);
     }
