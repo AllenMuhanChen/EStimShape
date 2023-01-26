@@ -42,7 +42,7 @@ def main():
     for i in range(number_of_peaks):
         slice_to_draw = slice_matrix(indices_to_slice_per_peak[i], matrix, matrix_peaks[i])
         slices_to_draw_per_peak.append(slice_to_draw)
-    draw_spherical_slices(slices_to_draw_per_peak)
+    draw_hemispherical_slices(slices_to_draw_per_peak)
 
 
     # 1D RADIAL POSITION SUM SLICE
@@ -115,6 +115,49 @@ def draw_spherical_slice(slice_to_draw, axes=None):
     if isinstance(slice_to_draw, types.GeneratorType):
         slice_to_draw = next(slice_to_draw)
     theta, phi = np.linspace(-np.pi, np.pi, slice_to_draw.shape[0]), np.linspace(0, np.pi, slice_to_draw.shape[1])
+
+    THETA, PHI = np.meshgrid(theta, phi)
+
+    # R = np.cos(PHI ** 2)
+    R = np.ones_like(THETA)
+    X = R * np.sin(PHI) * np.cos(THETA)
+    Y = R * np.sin(PHI) * np.sin(THETA)
+    Z = R * np.cos(PHI)
+    C = slice_to_draw/np.max(slice_to_draw)
+
+    if axes is None:
+        fig = plt.figure()
+
+    if axes is None:
+        axes = fig.add_subplot(1, 1, 1, projection='3d')
+
+
+    my_col = cm.plasma(C)
+    plot = axes.plot_surface(
+        X, Y, Z, rstride=1, cstride=1, cmap=plt.get_cmap('plasma'),
+        linewidth=0, antialiased=False, alpha=1, facecolors=my_col)
+
+
+    # plt.colorbar(plot)
+    axes.set_xlabel("X")
+    axes.set_ylabel("Y")
+    axes.set_zlabel("Z")
+
+    if axes is None:
+        plt.show()
+
+
+def draw_hemispherical_slices(slices_to_draw):
+    fig, subplots = plt.subplots(1, len(slices_to_draw), subplot_kw=dict(projection='3d'))
+
+    for slice, subplot in zip(slices_to_draw, subplots):
+        draw_hemispherical_slice(slice, subplot)
+    plt.show()
+
+def draw_hemispherical_slice(slice_to_draw, axes=None):
+    if isinstance(slice_to_draw, types.GeneratorType):
+        slice_to_draw = next(slice_to_draw)
+    theta, phi = np.linspace(-np.pi, np.pi, slice_to_draw.shape[0]), np.linspace(0, np.pi/2, slice_to_draw.shape[1])
 
     THETA, PHI = np.meshgrid(theta, phi)
 

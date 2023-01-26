@@ -10,7 +10,9 @@ from typing import Callable, List, Any, Union
 import numpy as np
 import pandas as pd
 import scipy
-from numpy import float32, double
+from numpy import float32, double, float64
+
+data_type = float64
 from scipy.ndimage import fourier_gaussian
 from scipy.ndimage.filters import gaussian_filter
 
@@ -188,7 +190,7 @@ def initialize_point_matrix(stim_components: list[dict], binner_for_field: dict[
 
                 total_field_index += 1
 
-    point_matrix = np.zeros(number_bins_for_each_field, dtype=float32)
+    point_matrix = np.zeros(number_bins_for_each_field, dtype=data_type)
     return LabelledMatrix(axes, point_matrix, binner, sigma)
 
 
@@ -247,7 +249,7 @@ def test_fourier(labelled_matrix, sigmas):
 
 
 def smooth_spatial_domain(labelled_matrix, sigmas):
-    return labelled_matrix.apply(gaussian_filter, sigmas, truncate=2.5, mode='constant')
+    return labelled_matrix.apply(gaussian_filter, sigmas, truncate=2.5, mode='constant', cval=0)
 
 
 def smooth_fourier_domain(labelled_matrix, sigmas):
@@ -272,8 +274,8 @@ def calculate_response_weighted_average(labelled_matrices: list[LabelledMatrix],
 
         if stim_index == 0:
             template_matrix = labelled_matrix
-            response_weighted_sum_matrix = np.zeros(response_weighted_stim_matrix.matrix.shape, dtype=float32)
-            unweighted_sum_matrix = np.zeros(unweighted_stim_matrix.matrix.shape, dtype=float32)
+            response_weighted_sum_matrix = np.zeros(response_weighted_stim_matrix.matrix.shape, dtype=data_type)
+            unweighted_sum_matrix = np.zeros(unweighted_stim_matrix.matrix.shape, dtype=data_type)
 
         np.add(response_weighted_sum_matrix, response_weighted_stim_matrix.matrix, out=response_weighted_sum_matrix)
         np.add(unweighted_sum_matrix, unweighted_stim_matrix.matrix, out=unweighted_sum_matrix)
