@@ -9,6 +9,7 @@ from scipy.ndimage import gaussian_filter
 
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
+    # test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/Ram GA/170508_r-45/rwa_shaft.json", "r").read())
     #find peaks of matrix
     # matrix = np.flip(test_rwa.matrix)
     matrix = test_rwa.matrix
@@ -71,7 +72,7 @@ def draw_one_d_field(matrix, matrix_peaks, number_of_peaks, test_rwa, field_name
 def get_indices_to_slice(number_of_peaks, test_rwa, fields):
     indices_to_slice_per_peak = []
     for i in range(number_of_peaks):
-        indices_for_axes = test_rwa.indices_for_axes
+        indices_for_axes = test_rwa.names_for_axes_indices
         indices_to_slice = [get_key_for_value(indices_for_axes, field) for field in fields]
         indices_to_slice = [int(index) for index in indices_to_slice]
         indices_to_slice_per_peak.append(indices_to_slice)

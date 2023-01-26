@@ -12,16 +12,17 @@ import pandas as pd
 import scipy
 from numpy import float32, double, float64
 
-data_type = float64
 from scipy.ndimage import fourier_gaussian
 from scipy.ndimage.filters import gaussian_filter
 
 from src.util.dictionary_util import flatten_dictionary, extract_values_with_key_into_list
 
+data_type = float32
+
 
 @dataclass
 class LabelledMatrix:
-    indices_for_axes: dict[int, str]
+    names_for_axes_indices: dict[int, str]
     matrix: np.ndarray
     binners_for_axes: dict[int, Binner]
     sigmas_for_axes: dict[int, float]
@@ -29,12 +30,12 @@ class LabelledMatrix:
     def apply(self, func: Callable, *args, **kwargs) -> LabelledMatrix:
         """apply a function to self.matrix and return a LabelledMatrix with the new
         matrix"""
-        return LabelledMatrix(self.indices_for_axes, func(self.matrix, *args, **kwargs), self.binners_for_axes,
+        return LabelledMatrix(self.names_for_axes_indices, func(self.matrix, *args, **kwargs), self.binners_for_axes,
                               self.sigmas_for_axes)
 
     def copy_labels(self, matrix: np.ndarray) -> LabelledMatrix:
         """copy the labels from self to a new LabelledMatrix with the given matrix"""
-        return LabelledMatrix(self.indices_for_axes, matrix, self.binners_for_axes, self.sigmas_for_axes)
+        return LabelledMatrix(self.names_for_axes_indices, matrix, self.binners_for_axes, self.sigmas_for_axes)
 
 
 class Binner:
@@ -77,12 +78,13 @@ class Binner:
 
 class AutomaticBinner(Binner):
     """Given a fieldname, and data containing that fieldname, finds min and max for binning"""
+
     def __init__(self, field_name: str, data: list, num_bins: int):
         """The data can be a list of dictionaries/values for the field or a pd.Series of dictionaries/values"""
         self.field_name = field_name
         self.data = data
         self.min, self.max = self.calculate_min_max()
-        super().__init__(self.min, math.ceil(math.ceil(self.max * 100000))/100000.0, num_bins)
+        super().__init__(self.min, math.ceil(math.ceil(self.max * 100000)) / 100000.0, num_bins)
         """rounding UP 5 decimal places to avoid floating point errors because bin end 
         is exclusive"""
 
@@ -97,6 +99,48 @@ class AutomaticBinner(Binner):
         return min(values), max(values)
 
 
+def rwa_optimized(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner],
+                  sigma_for_field: dict[str, float]):
+    if isinstance(response_vector, pd.Series):
+        response_vector = response_vector.to_list()
+
+    print("generating point matrices")
+    point_matrices = generate_point_matrices(stims, binner_for_field, sigma_for_field)
+
+    print("response weighing and summing point matrices")
+    summed_response_weighted, summed_unweighted = next(
+        response_weight_and_sum_point_matrices(point_matrices, response_vector))
+
+    print("smoothing summed rw and uw matrices")
+    smoothed_response_weighted = smooth_matrix(summed_response_weighted)
+    smoothed_unweighted = smooth_matrix(summed_unweighted)
+
+    print("dividing rw and uw matrices")
+    response_weighted_average = divide_and_allow_divide_by_zero(next(smoothed_response_weighted).matrix,
+                                                                next(smoothed_unweighted).matrix)
+    response_weighted_average = summed_response_weighted.copy_labels(response_weighted_average)
+
+    yield response_weighted_average
+
+
+def response_weight_and_sum_point_matrices(point_matrices: list[LabelledMatrix], response_vector: list[float]) -> (
+        LabelledMatrix, LabelledMatrix):
+    point_matrices = (labelled_matrix for labelled_matrix in point_matrices)  # to unfold the generator objects
+
+    for index, point_matrix in enumerate(point_matrices):
+        if index == 0:
+            template = point_matrix
+            summed_response_weighted = np.zeros_like(template.matrix)
+            summed_unweighted = np.zeros_like(template.matrix)
+        np.add(summed_unweighted, point_matrix.matrix, out=summed_unweighted)
+        print("response weighing and summing point matrix " + str(index + 1))
+        matrix = point_matrix.apply(lambda m, r: m * r, response_vector[index]).matrix
+        np.add(summed_response_weighted, matrix,
+               out=summed_response_weighted)
+
+    summed_response_weighted = template.copy_labels(summed_response_weighted)
+    summed_unweighted = template.copy_labels(summed_unweighted)
+    yield summed_response_weighted, summed_unweighted
 
 
 def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner],
@@ -138,6 +182,7 @@ def generate_point_matrices(stims: list[list[dict]], binner_for_field: dict[str,
     print("Generating Point Matrices")
     # For each stimulus
     for stim_index, stim_components in enumerate(stims):
+        print("generating point matrix for stim " + str(stim_index))
         stim_point_matrix = generate_stim_point_matrix(stim_components, binner_for_field, sigma_for_field)
         yield stim_point_matrix
 
@@ -227,11 +272,15 @@ def smooth_matrices(labelled_matrices: list[LabelledMatrix]) -> list[LabelledMat
     print("Smoothing Point Matrices")
     for matrix_number, labelled_matrix in enumerate(labelled_matrices):
         print("smoothing matrix #", matrix_number + 1)
-        sigmas = [sigma * binner.num_bins for sigma, binner in
-                  zip(labelled_matrix.sigmas_for_axes.values(), labelled_matrix.binners_for_axes.values())]
-        # smoothed_matrix = test_fourier(labelled_matrix, sigmas)
-        smoothed_matrix = test_classic(labelled_matrix, sigmas)
-        yield smoothed_matrix
+        yield from smooth_matrix(labelled_matrix)
+
+
+def smooth_matrix(labelled_matrix):
+    sigmas = [sigma * binner.num_bins for sigma, binner in
+              zip(labelled_matrix.sigmas_for_axes.values(), labelled_matrix.binners_for_axes.values())]
+    # smoothed_matrix = test_fourier(labelled_matrix, sigmas)
+    smoothed_matrix = test_classic(labelled_matrix, sigmas)
+    yield smoothed_matrix
 
 
 def test_classic(labelled_matrix, sigmas):

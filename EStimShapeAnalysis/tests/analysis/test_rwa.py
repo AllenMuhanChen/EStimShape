@@ -7,7 +7,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, calculate_response_weighted_average, \
-    LabelledMatrix, AutomaticBinner
+    LabelledMatrix, AutomaticBinner, rwa_optimized
 
 
 class Test(TestCase):
@@ -34,9 +34,15 @@ class Test(TestCase):
 
     def test_rwa(self):
         response_weighted_average = next(rwa(self.stims, self.response_vector, self.binner_for_field, self.sigma_for_fields))
+        response_weighted_average_optimized = next(rwa_optimized(self.stims, self.response_vector, self.binner_for_field, self.sigma_for_fields))
 
-        self.draw_A_tuning(response_weighted_average)
-        self.draw_B_tuning(response_weighted_average)
+        fig, axes = plt.subplots(1, 2)
+        self.draw_A_tuning(response_weighted_average, axes[0])
+        self.draw_A_tuning(response_weighted_average_optimized, axes[1])
+        plt.show()
+        # plt.colorbar(axes[0].get)
+
+
 
     def test_smoothing(self):
         stim_point_matrices = generate_point_matrices(self.stims, self.binner_for_field, self.sigma_for_fields)
@@ -48,26 +54,26 @@ class Test(TestCase):
             matrix_summed = matrix.sum(1)
             normalized_matrix = np.divide(matrix_summed, matrix.shape[1])
             plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 2 * pi], origin="lower", aspect=1 / (2 * pi))
-            labels = [label for label_indx, label in smoothed_matrix.indices_for_axes.items()]
+            labels = [label for label_indx, label in smoothed_matrix.names_for_axes_indices.items()]
             plt.xlabel(labels[0])
             plt.ylabel(labels[2])
             plt.colorbar()
-            plt.show()
+
 
 
             # self.draw_A_tuning(smoothed_matrix)
 
-    def draw_A_tuning(self, matrix_to_draw):
+    def draw_A_tuning(self, matrix_to_draw, axis):
         matrix = matrix_to_draw.matrix
         print(matrix)
         matrix_summed = matrix.sum(2)
         normalized_matrix = np.divide(matrix_summed, matrix.shape[2])
-        plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 1], origin="lower")
-        labels = [label for label, label_indx in matrix_to_draw.indices_for_axes.items()]
-        plt.xlabel(labels[0])
-        plt.ylabel(labels[1])
-        plt.colorbar()
-        plt.show()
+        axis.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 1], origin="lower")
+        labels = [label for label, label_indx in matrix_to_draw.names_for_axes_indices.items()]
+        axis.set_xlabel(labels[0])
+        axis.set_ylabel(labels[1])
+
+
 
     def draw_B_tuning(self, matrix_to_draw):
         matrix = matrix_to_draw.matrix
@@ -83,9 +89,9 @@ class Test(TestCase):
         self.assertTrue(len(stim_point_matrices) == self.num_data_points)
         for stim_indx, point_matrix in enumerate(stim_point_matrices):
             self.assertTrue(point_matrix.matrix.sum() == len(self.stims[stim_indx]))
-        self.assertTrue(point_matrix.indices_for_axes["A.x"] == 0)
-        self.assertTrue(point_matrix.indices_for_axes["A.y"] == 1)
-        self.assertTrue(point_matrix.indices_for_axes["B"] == 2)
+        self.assertTrue(point_matrix.names_for_axes_indices["A.x"] == 0)
+        self.assertTrue(point_matrix.names_for_axes_indices["A.y"] == 1)
+        self.assertTrue(point_matrix.names_for_axes_indices["B"] == 2)
 
     def test_generate_resp(self):
         stims = self.generate_stim(100)
