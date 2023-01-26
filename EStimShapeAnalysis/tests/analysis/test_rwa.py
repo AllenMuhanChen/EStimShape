@@ -19,6 +19,7 @@ class Test(TestCase):
         self.response_vector = self.generate_resp(self.stims)
         num_bins = 10
         self.binner_for_field = {"A": Binner(0, 1, num_bins), "B": Binner(0, 2 * pi, num_bins)}
+        self.sigma_for_fields = {"A": 0.1, "B": 0.1}
 
     def test_automatic_binner(self):
         num_bins = 10
@@ -32,17 +33,18 @@ class Test(TestCase):
         print(self.binner_for_field["x"].bins)
 
     def test_rwa(self):
-        response_weighted_average = next(rwa(self.stims, self.response_vector, self.binner_for_field))
+        response_weighted_average = next(rwa(self.stims, self.response_vector, self.binner_for_field, self.sigma_for_fields))
 
         self.draw_A_tuning(response_weighted_average)
         self.draw_B_tuning(response_weighted_average)
 
     def test_smoothing(self):
-        stim_point_matrices = generate_point_matrices(self.stims, self.binner_for_field)
+        stim_point_matrices = generate_point_matrices(self.stims, self.binner_for_field, self.sigma_for_fields)
         smoothed_matrices = smooth_matrices(stim_point_matrices)
         for stim_indx, smoothed_matrix in enumerate(smoothed_matrices):
             print(self.stims[stim_indx])
             matrix = smoothed_matrix.matrix
+            print(np.max(matrix))
             matrix_summed = matrix.sum(1)
             normalized_matrix = np.divide(matrix_summed, matrix.shape[1])
             plt.imshow(np.transpose(normalized_matrix), extent=[0, 1, 0, 2 * pi], origin="lower", aspect=1 / (2 * pi))
@@ -51,6 +53,8 @@ class Test(TestCase):
             plt.ylabel(labels[2])
             plt.colorbar()
             plt.show()
+
+
             # self.draw_A_tuning(smoothed_matrix)
 
     def draw_A_tuning(self, matrix_to_draw):
