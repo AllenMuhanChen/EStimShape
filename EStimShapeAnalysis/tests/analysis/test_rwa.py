@@ -36,9 +36,11 @@ class Test(TestCase):
         response_weighted_average = next(rwa(self.stims, self.response_vector, self.binner_for_field, self.sigma_for_fields))
         response_weighted_average_optimized = next(rwa_optimized(self.stims, self.response_vector, self.binner_for_field, self.sigma_for_fields))
 
-        fig, axes = plt.subplots(1, 2)
-        self.draw_A_tuning(response_weighted_average, axes[0])
-        self.draw_A_tuning(response_weighted_average_optimized, axes[1])
+        fig, axes = plt.subplots(2, 2)
+        self.draw_A_tuning(response_weighted_average, axes[0][0])
+        self.draw_B_tuning(response_weighted_average, axes[0][1])
+        self.draw_A_tuning(response_weighted_average_optimized, axes[1][0])
+        self.draw_B_tuning(response_weighted_average_optimized, axes[1][1])
         plt.show()
         # plt.colorbar(axes[0].get)
 
@@ -63,7 +65,7 @@ class Test(TestCase):
 
             # self.draw_A_tuning(smoothed_matrix)
 
-    def draw_A_tuning(self, matrix_to_draw, axis):
+    def draw_A_tuning(self, matrix_to_draw, axis: plt.Axes):
         matrix = matrix_to_draw.matrix
         print(matrix)
         matrix_summed = matrix.sum(2)
@@ -75,13 +77,14 @@ class Test(TestCase):
 
 
 
-    def draw_B_tuning(self, matrix_to_draw):
+    def draw_B_tuning(self, matrix_to_draw, axis):
         matrix = matrix_to_draw.matrix
         matrix_summed = matrix.sum(axis=(0, 1))
         bins = self.binner_for_field["B"].bins
         x_axis = [bin.middle for bin in bins]
-        plt.plot(x_axis, matrix_summed)
-        plt.show()
+        axis.plot(x_axis, matrix_summed)
+        axis.set_xlabel("B")
+        # plt.show()
 
     def test_point_matrices(self):
         stim_point_matrices = generate_point_matrices(self.stims, self.binner_for_field)
@@ -143,8 +146,8 @@ class Test(TestCase):
     def generate_resp_for_stim(self, a_list, b_list):
         """Our test neuron cares that A.x is close to 0.5, doesn't care about A.y, and cares that
         B is close to pi"""
-        a_peak = 0.5
-        b_peak = 4
+        a_peak = 0.75
+        b_peak = 6
         a_distances_from_peak = [(fabs(a["x"] - a_peak)) for a in a_list]
         b_distances_from_peak = [(fabs(b - b_peak)) for b in b_list]
         a_normalized_distances_from_peak = [a_distance_from_peak / max(1 - a_peak, a_peak) for a_distance_from_peak in

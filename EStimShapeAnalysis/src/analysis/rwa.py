@@ -17,7 +17,7 @@ from scipy.ndimage.filters import gaussian_filter
 
 from src.util.dictionary_util import flatten_dictionary, extract_values_with_key_into_list
 
-data_type = float32
+data_type = float64
 
 
 @dataclass
@@ -128,10 +128,12 @@ def response_weight_and_sum_point_matrices(point_matrices: list[LabelledMatrix],
     point_matrices = (labelled_matrix for labelled_matrix in point_matrices)  # to unfold the generator objects
 
     for index, point_matrix in enumerate(point_matrices):
+        #intializing we have to do because of generators
         if index == 0:
             template = point_matrix
             summed_response_weighted = np.zeros_like(template.matrix)
             summed_unweighted = np.zeros_like(template.matrix)
+
         np.add(summed_unweighted, point_matrix.matrix, out=summed_unweighted)
         print("response weighing and summing point matrix " + str(index + 1))
         matrix = point_matrix.apply(lambda m, r: m * r, response_vector[index]).matrix

@@ -29,11 +29,11 @@ def main():
 
     tuning_peak = {
         "angularPosition": {"theta": 0, "phi": math.pi / 2},
-        "radialPosition": 15,
+        "radialPosition": 30,
         "orientation": {"theta": 0, "phi": math.pi / 4},
-        # "length": 15,
-        # "curvature": 0,
-        # "radius": 1,
+        "length": 15,
+        "curvature": 0,
+        "radius": 1,
     }
 
     list_of_tuning_ranges = {
@@ -42,9 +42,9 @@ def main():
         "radialPosition": {"min": 0, "max": 60},
         "orientation.theta": {"min": -math.pi, "max": math.pi},
         "orientation.phi": {"min": 0, "max": math.pi/2},
-        # "length": {"min": 0, "max": 50},
-        # "curvature": {"min": 0, "max": 0.15},
-        # "radius": {"min": 0, "max": 12},
+        "length": {"min": 0, "max": 50},
+        "curvature": {"min": 0, "max": 0.15},
+        "radius": {"min": 0, "max": 12},
     }
 
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
@@ -97,9 +97,9 @@ class ShaftTuningFunction(TuningFunction):
             component["radialPosition"],
             component["orientation"]["theta"],
             component["orientation"]["phi"],
-            #component["length"],
-            # component["curvature"],
-            # component["radius"]
+            component["length"],
+            component["curvature"],
+            component["radius"]
             ] for component in data['ShaftField']]
 
         stim = [[float(x) for x in component] for component in stim]

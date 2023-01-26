@@ -61,16 +61,28 @@ def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]
     trial_collector = TrialCollector(conn, when)
     return trial_collector.collect_trials()
 
+
 def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields=None):
     """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
     data = data.loc[data['GaType'] == ga_type]
     rwas = []
     for (lineage, lineage_data) in data.groupby("Lineage"):
-        rwas.append(rwa_optimized(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
+        rwas.append(
+            rwa_optimized(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
     print("Multiplying Lineage RWAs")
-    rwas_labelled_matrices = [next(r) for r in rwas]
-    rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
-    return rwas_labelled_matrices[0].copy_labels(rwa_prod)
+    # rwas_labelled_matrices = [next(r) for r in rwas]
+
+    rwa_prod = None
+    for lineage_index, r in enumerate(rwas):
+        lineage_rwa = next(r)
+        if lineage_index == 0:
+            template = lineage_rwa
+            rwa_prod = np.ones_like(lineage_rwa.matrix)
+        np.multiply(rwa_prod, lineage_rwa.matrix, out=rwa_prod)
+
+
+    # rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
+    return template.copy_labels(rwa_prod)
 
 
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
