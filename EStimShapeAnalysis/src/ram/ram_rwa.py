@@ -82,10 +82,19 @@ def rwa_from_lineages(data, response_vector, binner_for_shaft_fields, sigma_for_
     rwas = []
     for lineage_id, (lineage_stim_data, lineage_response_vector) in enumerate(zip(data, response_vector)):
         rwas.append(rwa_optimized(lineage_stim_data, lineage_response_vector, binner_for_shaft_fields, sigma_for_fields))
-    rwas_labelled_matrices = [next(r) for r in rwas]
-    rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
-    response_weighted_average = rwas_labelled_matrices[0].copy_labels(rwa_prod)
-    return response_weighted_average
+
+    rwa_prod = None
+    for lineage_index, r in enumerate(rwas):
+        lineage_rwa = next(r)
+        if lineage_index == 0:
+            template = lineage_rwa
+            rwa_prod = np.ones_like(lineage_rwa.matrix)
+        rwa_prod = np.multiply(rwa_prod, lineage_rwa.matrix)
+
+    # rwas_labelled_matrices = [next(r) for r in rwas]
+    # rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
+
+    return template.copy_labels(rwa_prod)
 
 
 def read_all_stim_ids_and_responses_by_lineage(base_path, num_generations, unit):
