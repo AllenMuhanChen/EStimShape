@@ -5,8 +5,8 @@ import numpy as np
 import scipy
 import xmltodict
 
-from src.analysis.rwa import rwa, AutomaticBinner
-from src.mock.mock_rwa_analysis import hemisphericalize
+from src.analysis.rwa import rwa, AutomaticBinner, rwa_optimized
+from src.mock.mock_rwa_analysis import hemisphericalize, condition_theta_and_phi
 from src.util import dictionary_util
 
 
@@ -43,7 +43,8 @@ def main():
     # CLEAN SHAFT DATA
     for lineage in shaft_data:
         for shaft in lineage:
-            dictionary_util.apply_function_to_subdictionaries_values_with_keys(shaft, ['angularPosition'],
+            dictionary_util.apply_function_to_subdictionaries_values_with_keys(shaft, ["theta", "phi"], condition_theta_and_phi)
+            dictionary_util.apply_function_to_subdictionaries_values_with_keys(shaft, ['orientation'],
                                                                                hemisphericalize)
 
     # RWA
@@ -80,7 +81,7 @@ def main():
 def rwa_from_lineages(data, response_vector, binner_for_shaft_fields, sigma_for_fields):
     rwas = []
     for lineage_id, (lineage_stim_data, lineage_response_vector) in enumerate(zip(data, response_vector)):
-        rwas.append(rwa(lineage_stim_data, lineage_response_vector, binner_for_shaft_fields, sigma_for_fields))
+        rwas.append(rwa_optimized(lineage_stim_data, lineage_response_vector, binner_for_shaft_fields, sigma_for_fields))
     rwas_labelled_matrices = [next(r) for r in rwas]
     rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
     response_weighted_average = rwas_labelled_matrices[0].copy_labels(rwa_prod)
@@ -92,7 +93,7 @@ def read_all_stim_ids_and_responses_by_lineage(base_path, num_generations, unit)
     response_vector = []
     for gen_id in range(1, num_generations + 1):
         (gen_stim_ids, gen_mstick_specs, gen_resp) = read_generation_by_lineage(base_path, unit, gen_id)
-        if (stim_ids == []):
+        if stim_ids == []:
             stim_ids = gen_stim_ids
             response_vector = gen_resp
         else:

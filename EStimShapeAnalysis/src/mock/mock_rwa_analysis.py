@@ -6,7 +6,7 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from src.analysis.rwa import rwa, Binner, AutomaticBinner
+from src.analysis.rwa import rwa, Binner, AutomaticBinner, rwa_optimized
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
@@ -66,7 +66,7 @@ def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields
     data = data.loc[data['GaType'] == ga_type]
     rwas = []
     for (lineage, lineage_data) in data.groupby("Lineage"):
-        rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
+        rwas.append(rwa_optimized(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
     print("Multiplying Lineage RWAs")
     rwas_labelled_matrices = [next(r) for r in rwas]
     rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
