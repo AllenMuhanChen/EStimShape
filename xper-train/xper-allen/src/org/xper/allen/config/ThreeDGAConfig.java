@@ -10,9 +10,6 @@ import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
 
-import java.util.LinkedList;
-import java.util.List;
-
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
@@ -40,7 +37,7 @@ public class ThreeDGAConfig {
         generator.setDbUtil(dbUtil());
         generator.setGaBaseName("3D");
         generator.setParentSelector(parentSelector());
-        generator.setNumLims(Integer.parseInt(numberLineages));
+        generator.setNumLineages(Integer.parseInt(numberLineages));
         return generator;
     }
 

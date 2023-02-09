@@ -6,49 +6,96 @@ import numpy as np
 from matplotlib import pyplot as plt, cm
 from scipy.ndimage import gaussian_filter
 
+from src.analysis.rwa import get_next
+
 
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
-    # test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/Ram GA/170508_r-45/rwa_shaft.json", "r").read())
-    # find peaks of matrix
-    # matrix = np.flip(test_rwa.matrix)
-    # plot_multi_peaks(test_rwa)
     plot_shaft_rwa(test_rwa)
+    plt.suptitle("Combined RWA")
 
+    # lineage_0_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_0.json", "r").read())
+    # plot_shaft_rwa(lineage_0_rwa)
+    # plt.suptitle("Lineage 0 RWA")
+    #
+    # lineage_1_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_1.json", "r").read())
+    # plot_shaft_rwa(lineage_1_rwa)
+    # plt.suptitle("Lineage 1 RWA")
+    #
+    # lineage_2_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_2.json", "r").read())
+    # plot_shaft_rwa(lineage_2_rwa)
+    # plt.suptitle("Lineage 2 RWA")
+    #
+    # lineage_3_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_3.json", "r").read())
+    # plot_shaft_rwa(lineage_3_rwa)
+    # plt.suptitle("Lineage 3 RWA")
+
+    plt.show()
+
+def plot_shaft_rwa_1d(test_rwa):
+    matrix = test_rwa.matrix
+
+    # matrix = np.flip(matrix)
+    matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
+
+    fig = plt.figure()
+    ax_angular_position_theta = fig.add_subplot(1, 8, 1)
+    ax_angular_position_phi = fig.add_subplot(1, 8, 2)
+    ax_radial_position = fig.add_subplot(1, 8, 3)
+    ax_orientation_theta = fig.add_subplot(1, 8, 4)
+    ax_orientation_phi = fig.add_subplot(1, 8, 5)
+    ax_radius = fig.add_subplot(1, 8, 6)
+    ax_length = fig.add_subplot(1, 8, 7)
+    ax_curvature = fig.add_subplot(1, 8, 8)
+
+    # 1D SLICES
+    draw_one_d_field(test_rwa, "angularPosition.theta", matrix_peak_location, ax_angular_position_theta)
+    draw_one_d_field(test_rwa, "angularPosition.phi", matrix_peak_location, ax_angular_position_phi)
+    draw_one_d_field(test_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
+    draw_one_d_field(test_rwa, "orientation.theta", matrix_peak_location, ax_orientation_theta)
+    draw_one_d_field(test_rwa, "orientation.phi", matrix_peak_location, ax_orientation_phi)
+    draw_one_d_field(test_rwa, "length", matrix_peak_location, ax_length)
+    draw_one_d_field(test_rwa, "curvature", matrix_peak_location, ax_curvature)
+    draw_one_d_field(test_rwa, "radius", matrix_peak_location, ax_radius)
 
 def plot_shaft_rwa(test_rwa):
     matrix = test_rwa.matrix
+
+    # matrix = np.flip(matrix)
     matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
 
     # ARRANGING SUBPLOTS
     fig = plt.figure()
-    ax_angular_position = fig.add_subplot(2, 3, 1, projection='3d')
-
-    ax_radial_position = fig.add_subplot(2, 3, 2)
-    ax_length = fig.add_subplot(2, 3, 5)
-    ax_curvature = fig.add_subplot(2, 3, 3)
-    ax_radius = fig.add_subplot(2, 3, 6)
+    ax_angular_position = fig.add_subplot(1, 6, 1, projection='3d')
+    ax_radial_position = fig.add_subplot(1, 6, 2)
+    ax_orientation = fig.add_subplot(1, 6, 3, projection='3d')
+    ax_radius = fig.add_subplot(1, 6, 4)
+    ax_length = fig.add_subplot(1, 6, 5)
+    ax_curvature = fig.add_subplot(1, 6, 6)
 
     # 2D ANGULAR SLICE - angularPosition
-    indices_to_slice = get_indices_to_slice(test_rwa, ["angularPosition.theta", "angularPosition.phi"])
+    indices_to_slice = get_indices_for_fields(test_rwa, ["angularPosition.theta", "angularPosition.phi"])
     slice_to_draw = slice_matrix(indices_to_slice, matrix, matrix_peak_location)
     draw_spherical_slice(slice_to_draw, axes=ax_angular_position)
     ax_angular_position.set_title("angularPosition")
 
     # 2D ANGULAR SLICE - orientation
-    ax_orientation = fig.add_subplot(2, 3, 4, projection='3d')
-    indices_to_slice = get_indices_to_slice(test_rwa, ["orientation.theta", "orientation.phi"])
+    indices_to_slice = get_indices_for_fields(test_rwa, ["orientation.theta", "orientation.phi"])
     slice_to_draw = slice_matrix(indices_to_slice, matrix, matrix_peak_location)
     draw_hemispherical_slice(slice_to_draw, axes=ax_orientation)
     ax_orientation.set_title("orientation")
 
     # 1D SLICES
-    draw_one_d_field(matrix, test_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
-    draw_one_d_field(matrix, test_rwa, "length", matrix_peak_location, ax_length)
-    draw_one_d_field(matrix, test_rwa, "curvature", matrix_peak_location, ax_curvature)
-    draw_one_d_field(matrix, test_rwa, "radius", matrix_peak_location, ax_radius)
+    draw_one_d_field(test_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
+    draw_one_d_field(test_rwa, "length", matrix_peak_location, ax_length)
+    draw_one_d_field(test_rwa, "curvature", matrix_peak_location, ax_curvature)
+    draw_one_d_field(test_rwa, "radius", matrix_peak_location, ax_radius)
 
-    plt.show()
+    plt.draw()
 
 
 def plot_multi_peaks(test_rwa):
@@ -100,26 +147,29 @@ def draw_one_d_field_per_peak(matrix, matrix_peaks, number_of_peaks, test_rwa, f
         axes.set_xlabel(field_name)
 
 
-def draw_one_d_field(matrix, test_rwa, field_name, matrix_peak_location, axis):
-    indices_to_slice = get_indices_to_slice(test_rwa, [field_name])
-    slice_to_draw = slice_matrix(indices_to_slice, matrix, matrix_peak_location)
-    binner = test_rwa.binners_for_axes[str(indices_to_slice[0])]
+def draw_one_d_field(rwa, field_name, matrix_peak_location, axis):
+    indices_to_slice = get_indices_for_fields(rwa, [field_name])
+    slice_to_draw = slice_matrix(indices_to_slice, rwa.matrix, matrix_peak_location)
+    try:
+        binner = rwa.binners_for_axes[str(indices_to_slice[0])]
+    except:
+        binner = rwa.binners_for_axes[indices_to_slice[0]]
     draw_1D_slice(slice_to_draw, binner.bins, axes=axis)
     # labels
     axis.set_xlabel(field_name)
-    axis.set_ylim(0, np.max(slice_to_draw)+1)
+
 
 
 def get_indices_to_slice_per_peak(number_of_peaks, test_rwa, fields):
     indices_to_slice_per_peak = []
     for i in range(number_of_peaks):
-        indices_to_slice = get_indices_to_slice(fields, test_rwa)
+        indices_to_slice = get_indices_for_fields(fields, test_rwa)
         indices_to_slice_per_peak.append(indices_to_slice)
     return indices_to_slice_per_peak
 
 
-def get_indices_to_slice(test_rwa, fields):
-    indices_for_axes = test_rwa.names_for_axes_indices
+def get_indices_for_fields(test_rwa, fields):
+    indices_for_axes = test_rwa.names_for_axes
     indices_to_slice = [get_key_for_value(indices_for_axes, field) for field in fields]
     indices_to_slice = [int(index) for index in indices_to_slice]
     return indices_to_slice
@@ -130,19 +180,20 @@ def draw_1D_slice(slice_to_draw, bins, axes=None):
         fig = plt.figure()
         axes = fig.add_subplot(1, 1, 1)
 
-    x_axis = [bin['py/newargs']['py/tuple'][1] for bin in bins]
+    try:
+        x_axis = [bin['py/newargs']['py/tuple'][1] for bin in bins]
+    except:
+        x_axis = [bin.middle for bin in bins]
     axes.plot(x_axis, np.squeeze(slice_to_draw))
 
-    # matrices_to_draw = test_rwa.matrix.sum(indices_to_slice)
 
-
-def slice_matrix(indices_to_slice, matrix, matrix_peak_location):
+def slice_matrix(indices_to_slice_along, matrix, matrix_peak_location):
     slice_indices_to_draw = list(matrix_peak_location)
     try:
-        for index_to_slice in indices_to_slice:
-            slice_indices_to_draw[index_to_slice] = slice(None)
+        for index_to_slice_along in indices_to_slice_along:
+            slice_indices_to_draw[index_to_slice_along] = slice(None)
     except TypeError:
-        slice_indices_to_draw[indices_to_slice] = slice(None)
+        slice_indices_to_draw[indices_to_slice_along] = slice(None)
 
     slice_to_draw = matrix[tuple(slice_indices_to_draw)]
     return slice_to_draw
@@ -158,7 +209,7 @@ def draw_spherical_slices(slices_to_draw):
 
 def draw_spherical_slice(slice_to_draw: np.ndarray, axes=None):
     if isinstance(slice_to_draw, types.GeneratorType):
-        slice_to_draw = next(slice_to_draw)
+        slice_to_draw = get_next(slice_to_draw)
     theta, phi = np.linspace(-np.pi, np.pi, slice_to_draw.shape[0]), np.linspace(0, np.pi, slice_to_draw.shape[1])
 
     THETA, PHI = np.meshgrid(theta, phi)
@@ -186,6 +237,32 @@ def draw_spherical_slice(slice_to_draw: np.ndarray, axes=None):
     axes.set_ylabel("Y")
     axes.set_zlabel("Z")
 
+    val = [1.5, 0, 0]
+    labels = ['x', 'y', 'z']
+    colors = ['r', 'g', 'b']
+    for v in range(3):
+        x = [val[v - 0], -val[v - 0]]
+        y = [val[v - 1], -val[v - 1]]
+        z = [val[v - 2], -val[v - 2]]
+        axes.plot(x, y, z, 'k-', linewidth=3)
+        axes.text(val[v - 0], val[v - 1], val[v - 2], labels[v], color=colors[v], fontsize=20)
+
+    # Hide everything else
+    # Hide axes ticks
+    axes.set_xticks([])
+    axes.set_yticks([])
+    axes.set_zticks([])
+    # make the panes transparent
+    axes.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    axes.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    axes.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+    # Hide box axes
+    axes._axis3don = False
+
+    # Expand to remove white space
+    axes.set_xlim(np.array([-1, 1]) * .57)
+    axes.set_ylim(np.array([-1, 1]) * .57)
+    axes.set_zlim(np.array([-1, 1]) * .57)
     if axes is None:
         plt.show()
 
@@ -200,8 +277,9 @@ def draw_hemispherical_slices(slices_to_draw):
 
 def draw_hemispherical_slice(slice_to_draw, axes=None):
     if isinstance(slice_to_draw, types.GeneratorType):
-        slice_to_draw = next(slice_to_draw)
-    theta, phi = np.linspace(-np.pi, np.pi, slice_to_draw.shape[0]), np.linspace(0, np.pi, slice_to_draw.shape[1])
+        slice_to_draw = get_next(slice_to_draw)
+    slice_to_draw = np.squeeze(slice_to_draw)
+    theta, phi = np.linspace(-np.pi, np.pi, slice_to_draw.shape[0]), np.linspace(0, np.pi / 2, slice_to_draw.shape[1])
 
     THETA, PHI = np.meshgrid(theta, phi)
 
@@ -218,8 +296,8 @@ def draw_hemispherical_slice(slice_to_draw, axes=None):
     if axes is None:
         axes = fig.add_subplot(1, 1, 1, projection='3d')
 
-    my_col = cm.plasma(C)
-    plot = axes.plot_surface(
+    my_col = cm.plasma(np.squeeze(C))
+    axes.plot_surface(
         X, Y, Z, rstride=1, cstride=1, cmap=plt.get_cmap('plasma'),
         linewidth=0, antialiased=False, alpha=1, facecolors=my_col)
 

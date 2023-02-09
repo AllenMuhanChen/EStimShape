@@ -7,7 +7,6 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.Trial;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
-import org.xper.exception.VariableNotFoundException;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -19,7 +18,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     @Dependency
     ParentSelector parentSelector;
     @Dependency
-    Integer numLims;
+    Integer numLineages;
 
     private String gaBaseName;
     private Map<String, List<Trial>> trialsForGA = new LinkedHashMap<String, List<Trial>>();
@@ -57,7 +56,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
     public List<String> getGaNames() {
         List<String> gaNames = new LinkedList<>();
-        for (int i = 1; i <= numLims; i++){
+        for (int i = 1; i <= numLineages; i++){
             gaNames.add(gaBaseName + "-" + i);
         }
         return gaNames;
@@ -197,11 +196,11 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
         this.gaBaseName = gaBaseName;
     }
 
-    public Integer getNumLims() {
-        return numLims;
+    public Integer getNumLineages() {
+        return numLineages;
     }
 
-    public void setNumLims(Integer numLims) {
-        this.numLims = numLims;
+    public void setNumLineages(Integer numLineages) {
+        this.numLineages = numLineages;
     }
 }

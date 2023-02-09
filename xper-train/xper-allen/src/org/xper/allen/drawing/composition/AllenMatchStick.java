@@ -3926,7 +3926,7 @@ Adding a new MAxisArc to a MatchStick
 	public boolean mutate(int debugParam) {
 		final int MaxMutateTryTimes = 10;
 		final int MaxAddTubeTryTimes = 15;
-		final int MaxCompNum = 8;
+		final int MaxCompNum = 4;
 		final int MinCompNum = 2;
 		final int MaxDeletionNum = 1;
 
