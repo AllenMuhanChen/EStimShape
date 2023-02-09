@@ -4,10 +4,14 @@ import jsonpickle
 import numpy as np
 import scipy
 import xmltodict
+from matplotlib import pyplot as plt
 
-from src.analysis.rwa import rwa, AutomaticBinner, rwa_optimized
+from src.analysis.rwa import rwa, AutomaticBinner, rwa, raw_data, get_next, combine_rwas
 from src.mock.mock_rwa_analysis import hemisphericalize, condition_theta_and_phi
+from src.mock.mock_rwa_plot import plot_shaft_rwa
+from src.ram import plot_ram
 from src.util import dictionary_util
+from tests.analysis.test_multidim_rwa import plot_data_and_rwa_variations
 
 
 def load_data_by_lineage(data_path, stim_ids):
@@ -23,6 +27,41 @@ def load_data_by_lineage(data_path, stim_ids):
             junction_datas[lineage_index].append(spec['AllenMStickData']['junctionData']['JunctionData'])
             termination_datas[lineage_index].append(spec['AllenMStickData']['terminationData']['TerminationData'])
     return shaft_datas, junction_datas, termination_datas
+
+
+def plot_top_n_responses(shaft_data, response_vector, n, binners_for_field):
+    sorted_data = [(x, resp) for resp, x in
+                   sorted(zip(response_vector, shaft_data), key=lambda pair: pair[0], reverse=True)]
+    top_n = sorted_data[:n]
+
+    fig = plt.figure(constrained_layout=True)
+    axes = fig.subplots(1, 8)
+    for stim, resp in top_n:
+        values = []
+        fields = []
+        bin_middles = []
+        for component in stim:
+            value = []
+            field = []
+            dictionary_util.flatten_dictionary(component, value, field)
+            values.append(value)
+            if not fields:
+                fields = field
+
+        for value in values:
+            bin_middle = []
+            for field_index, field in enumerate(fields):
+                bin_index, assigned_bin = binners_for_field[field].assign_bin(value[field_index])
+                bin_middle.append(assigned_bin.middle)
+            bin_middles.append(bin_middle)
+
+        for index, (axis, field) in enumerate(zip(axes, fields)):
+            x_points = [bin_middle[index] for bin_middle in bin_middles]
+            y_points = [resp for _ in range(0, len(x_points))]
+            axis.scatter(x_points, y_points)
+            axis.set_title(field)
+
+    plt.draw()
 
 
 def main():
@@ -43,49 +82,83 @@ def main():
     # CLEAN SHAFT DATA
     for lineage in shaft_data:
         for shaft in lineage:
-            dictionary_util.apply_function_to_subdictionaries_values_with_keys(shaft, ["theta", "phi"], condition_theta_and_phi)
+            dictionary_util.apply_function_to_subdictionaries_values_with_keys(shaft, ["theta", "phi"],
+                                                                               condition_theta_and_phi)
             dictionary_util.apply_function_to_subdictionaries_values_with_keys(shaft, ['orientation'],
                                                                                hemisphericalize)
 
     # RWA
     num_bins = 10
     binner_for_shaft_fields = {
-        "theta": AutomaticBinner("theta", shaft_data, num_bins),
-        "phi": AutomaticBinner("phi", shaft_data, num_bins),
-        "radialPosition": AutomaticBinner("radialPosition", shaft_data, num_bins),
-        "length": AutomaticBinner("length", shaft_data, num_bins),
-        "curvature": AutomaticBinner("curvature", shaft_data, num_bins),
-        "radius": AutomaticBinner("radius", shaft_data, num_bins),
+        "theta": AutomaticBinner("theta", shaft_data, 9),
+        "phi": AutomaticBinner("phi", shaft_data, 9),
+        "radialPosition": AutomaticBinner("radialPosition", shaft_data, 10),
+        "length": AutomaticBinner("length", shaft_data, 5),
+        "curvature": AutomaticBinner("curvature", shaft_data, 5),
+        "radius": AutomaticBinner("radius", shaft_data, 5),
     }
 
     # a percentage of the number of bins
     sigma_for_shaft_fields = {
-        "theta": 1 / 8,
-        "phi": 1 / 8,
-        "radialPosition": 1 / 4,
-        "length": 1 / 4,
-        "curvature": 1 / 2,
-        "radius": 1 / 4,
+        "theta": 0.2,
+        "phi": 0.2,
+        "radialPosition": 0.2,
+        "length": 0.2,
+        "curvature": 0.2,
+        "radius": 0.2,
     }
 
-    # CALCULATE RWA FOR EACH LINEAGE AND MULTIPLY
-    response_weighted_average_shaft = rwa_from_lineages(shaft_data, response_vector, binner_for_shaft_fields,
-                                                        sigma_for_shaft_fields)
+    padding_for_shaft_fields = {
+        "theta": "wrap",
+        "phi": "wrap",
+        "radialPosition": "nearest",
+        "length": "nearest",
+        "curvature": "nearest",
+        "radius": "nearest",
+    }
+    summed_response_weighted_1, summed_unweighted_1 = get_next(
+        raw_data(shaft_data[0], response_vector[0], binner_for_shaft_fields, sigma_for_shaft_fields,
+                 padding_for_shaft_fields))
+    summed_response_weighted_2, summed_unweighted_2 = get_next(
+        raw_data(shaft_data[1], response_vector[1], binner_for_shaft_fields, sigma_for_shaft_fields,
+                 padding_for_shaft_fields))
+    response_weighted_average_1 = get_next(
+        rwa(shaft_data[0], response_vector[0], binner_for_shaft_fields, sigma_for_shaft_fields,
+            padding_for_shaft_fields))
+    response_weighted_average_2 = get_next(
+        rwa(shaft_data[1], response_vector[1], binner_for_shaft_fields, sigma_for_shaft_fields,
+            padding_for_shaft_fields))
 
-    # SAVE
-    filename = "%s/%s/rwa_shaft.json" % (base_path, unit)
-    with open(filename, "w") as file:
-        file.write(jsonpickle.encode(response_weighted_average_shaft))
+    plot_top_n_responses(shaft_data[0], response_vector[0], 100, binner_for_shaft_fields)
+    plot_top_n_responses(shaft_data[1], response_vector[1], 100, binner_for_shaft_fields)
+    response_weighted_averages = [response_weighted_average_1, response_weighted_average_2,
+                 combine_rwas([response_weighted_average_1, response_weighted_average_2])]
+    summed_response_weighted = [summed_response_weighted_1,
+                  summed_response_weighted_2]
+    summed_unweighted = [summed_unweighted_1, summed_unweighted_2]
+    plot_data_and_rwa_variations(response_weighted_averages, summed_response_weighted, summed_unweighted)
+
+    # # CALCULATE RWA FOR EACH LINEAGE AND MULTIPLY
+    # response_weighted_average_shaft = rwa_from_lineages(shaft_data, response_vector, binner_for_shaft_fields,
+    #                                                     sigma_for_shaft_fields, padding_for_shaft_fields)
+    #
+    # # SAVE
+    # filename = "%s/%s/rwa_shaft.json" % (base_path, unit)
+    # with open(filename, "w") as file:
+    #     file.write(jsonpickle.encode(response_weighted_average_shaft))
+    #
+    # plot_ram.main()
 
 
-def rwa_from_lineages(data, response_vector, binner_for_shaft_fields, sigma_for_fields):
+def rwa_from_lineages(data, response_vector, binner_for_shaft_fields, sigma_for_fields, padding_for_fields):
     rwas = []
     for lineage_id, (lineage_stim_data, lineage_response_vector) in enumerate(zip(data, response_vector)):
-        rwas.append(rwa_optimized(lineage_stim_data, lineage_response_vector, binner_for_shaft_fields, sigma_for_fields))
+        rwas.append(rwa(lineage_stim_data, lineage_response_vector, binner_for_shaft_fields, sigma_for_fields,
+                        padding_for_fields))
 
     rwa_prod = None
     for lineage_index, r in enumerate(rwas):
-        lineage_rwa = next(r)
+        lineage_rwa = get_next(r)
         if lineage_index == 0:
             template = lineage_rwa
             rwa_prod = np.ones_like(lineage_rwa.matrix)

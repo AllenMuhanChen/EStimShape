@@ -13,6 +13,7 @@ from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdFie
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
+from src.mock import mock_rwa_plot, mock_rwa_analysis
 from src.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from src.util import time_util
 from src.util.connection import Connection
@@ -25,15 +26,17 @@ def main():
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
 
+    conn.execute("TRUNCATE TABLE ExpLog")
+
     baseline_function = TuningFunction()
 
     tuning_peak = {
         "angularPosition": {"theta": 0, "phi": math.pi / 2},
         "radialPosition": 30,
         "orientation": {"theta": 0, "phi": math.pi / 4},
-        "length": 15,
-        "curvature": 0,
-        "radius": 1,
+        "length": 25,
+        "curvature": 0.06,
+        "radius": 6,
     }
 
     list_of_tuning_ranges = {
@@ -59,13 +62,15 @@ def main():
     response_rates = generate_responses(data, list_of_tuning_functions)
 
     # PLOTTING
-    plot_responses([response[1] for response in response_rates], data.iterrows())
+    # plot_responses([response[1] for response in response_rates], data.iterrows())
 
     # EXPORT]
     insert_to_exp_log(conn, response_rates, data["Id"])
 
     # DEBUG
-    plt.show()
+    mock_rwa_analysis.main()
+    mock_rwa_plot.main()
+    # plt.show()
 
 
 class TuningFunction:
@@ -89,7 +94,11 @@ class ShaftTuningFunction(TuningFunction):
 
     def get_response(self, data: pd.Series):
         peak = []
-        flatten_dictionary(self.shaft_peaks, peak)
+        flatten_dictionary(self.shaft_peaks, peak, None)
+        print(data)
+
+        if not isinstance(data['ShaftField'], list):
+            data['ShaftField'] = [data['ShaftField']]
 
         stim = [[
             component['angularPosition']['theta'],
@@ -114,7 +123,7 @@ class ShaftTuningFunction(TuningFunction):
             extract_values_with_key_into_list(self.field_ranges, tuning_range_mins, "min")
             cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
             total_energy = np.prod(cov)
-            cov = np.array(cov) / 2
+            cov = np.array(cov) / 5
             response = total_energy * multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
                                                               allow_singular=True)
             # response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
@@ -134,8 +143,8 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields = FieldList()
     fields.append(StimSpecIdField(conn, "Id"))
     fields.append(ShaftField(mstick_spec_data_source))
-    fields.append(TerminationField(mstick_spec_data_source))
-    fields.append(JunctionField(mstick_spec_data_source))
+    # fields.append(TerminationField(mstick_spec_data_source))
+    # fields.append(JunctionField(mstick_spec_data_source))
 
     return get_data_from_trials(fields, trial_tstamps)
 

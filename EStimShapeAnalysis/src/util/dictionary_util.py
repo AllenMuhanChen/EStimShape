@@ -39,20 +39,29 @@ def check_condition_on_subdictionaries(dictionary: Union[dict, list], condition,
                 return True
 
 
-def flatten_dictionary(dictionary: Union[dict, list], output_list: list):
-    """Converts a nested dictionary into a single list of values and appends those values into output_list"""
+def flatten_dictionary(dictionary: Union[dict, list], output_value_list: list, output_key_list):
+    """Converts a nested dictionary into a single list of values and appends those values into output_list
+    :param output_key_list:
+    """
     if isinstance(dictionary, dict):
         for key, value in dictionary.items():
             if isinstance(value, dict):
-                flatten_dictionary(value, output_list)
+                flatten_dictionary(value, output_value_list, output_key_list)
             else:
-                output_list.append(value)
+                output_value_list.append(value)
+                if output_key_list is not None:
+                    output_key_list.append(key)
+
     elif isinstance(dictionary, list):
         for value in dictionary:
             if isinstance(value, dict) or isinstance(value, list):
-                flatten_dictionary(value, output_list)
+                flatten_dictionary(value, output_value_list, output_key_list)
             else:
-                output_list.append(value)
+                output_value_list.append(value)
+                if output_key_list is not None:
+                    output_key_list.append(None)
+
+
 
 
 def extract_values_with_key_into_list(dictionary: Union[dict, list], output_list: list, key: str):

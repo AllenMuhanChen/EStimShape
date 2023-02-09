@@ -8,6 +8,8 @@ from src.util.time_util import When, all, today
 from src.compile import trial_field as tf, trial_collector
 
 """DEPRECATED """
+
+
 class StimSpecDataField(tf.Field):
     def __init__(self, beh_msg: pd.DataFrame, stim_spec: pd.DataFrame):
         self.beh_msg = beh_msg
@@ -17,6 +19,7 @@ class StimSpecDataField(tf.Field):
         stim_spec_data_xml = table_util.get_stim_spec_data(self.beh_msg, self.stim_spec, when)
         stim_spec_data_dict = xmltodict.parse(stim_spec_data_xml)
         return stim_spec_data_dict
+
 
 class TrialTypeField(StimSpecDataField):
     def __init__(self, beh_msg: pd.DataFrame, stim_spec: pd.DataFrame):
@@ -70,7 +73,6 @@ class IsCorrectField(tf.Field):
         return correct
 
 
-
 class NoiseChanceField(StimSpecDataField):
     def __init__(self, beh_msg, stim_spec):
         self.name = "NoiseChance"
@@ -79,7 +81,7 @@ class NoiseChanceField(StimSpecDataField):
     def get(self, when: When):
         stim_spec_data_dict = self.retrieve_spec_data(when)
         trialtype = list(stim_spec_data_dict.keys())[0]
-        noise_chance_dict =  stim_spec_data_dict[trialtype]['noiseParameters']['noiseChanceBounds']
+        noise_chance_dict = stim_spec_data_dict[trialtype]['noiseParameters']['noiseChanceBounds']
         # noise_chance = (noise_chance_dict['lowerLim'], noise_chance_dict['upperLim'])
         self.value = noise_chance_dict
 
@@ -136,11 +138,9 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(data)
 
-
-    #CSV SAVING
+    # CSV SAVING
     filename = "psychometric-" + str(datetime.date.today()) + ".csv"
     path = save_dir + filename
     # existing_data = pd.read_csv(path)
 
     df.to_csv(path)
-

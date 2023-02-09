@@ -48,10 +48,6 @@ public class MorphTrial extends ThreeDGATrial {
 
             } catch (Exception e) {
                 System.err.println("Mutate failed, retrying...");
-
-//                AllenMStickSpec mStickSpec = new AllenMStickSpec();
-//                mStickSpec.setMStickInfo(mStick);
-//                System.out.println(mStickSpec.toXml());
                 e.printStackTrace();
             }
         }

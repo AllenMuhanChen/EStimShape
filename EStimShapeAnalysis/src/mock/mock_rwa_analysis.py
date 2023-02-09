@@ -6,7 +6,7 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from src.analysis.rwa import rwa, Binner, AutomaticBinner, rwa_optimized
+from src.analysis.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
@@ -25,12 +25,23 @@ def main():
 
     # a percentage of the number of bins
     sigma_for_fields = {
-        "theta": 1 / 8,
-        "phi": 1 / 8,
-        "radialPosition": 1 / 4,
-        "length": 1 / 4,
-        "curvature": 1 / 2,
-        "radius": 1 / 4,
+        "theta": 1 / 5,
+        "angularPosition.phi": 1 / 5,
+        "radialPosition": 1 / 5,
+        "orientation.phi": 1 / 5,
+        "length": 1 / 5,
+        "curvature": 1 / 5,
+        "radius": 1 / 5,
+    }
+
+    padding_for_fields = {
+        "theta": "wrap",
+        "angularPosition.phi": "wrap",
+        "radialPosition": "nearest",
+        "orientation.phi": "wrap",
+        "length": "nearest",
+        "curvature": "nearest",
+        "radius": "nearest",
     }
 
     # PIPELINE
@@ -39,22 +50,30 @@ def main():
     data = condition_spherical_angles(data)
     data = hemisphericalize_orientation(data)
     data_shaft = data['Shaft'].tolist()
+
     binner_for_shaft_fields = {
-        "theta": AutomaticBinner("theta", data_shaft, num_bins),
-        "phi": AutomaticBinner("phi", data_shaft, num_bins),
-        "radialPosition": AutomaticBinner("radialPosition", data_shaft, num_bins),
-        "length": AutomaticBinner("length", data_shaft, num_bins),
-        "curvature": AutomaticBinner("curvature", data_shaft, num_bins),
-        "radius": AutomaticBinner("radius", data_shaft, num_bins),
+        "theta": Binner(-pi, pi, 9),
+        "angularPosition.phi": Binner(0, pi, 9),
+        "radialPosition": AutomaticBinner("radialPosition", data_shaft, 9),
+        "orientation.phi": Binner(0, pi/2, 9),
+        "length": AutomaticBinner("length", data_shaft, 9),
+        "curvature": AutomaticBinner("curvature", data_shaft, 9),
+        "radius": AutomaticBinner("radius", data_shaft, 9),
     }
-    # data = condition_for_inside_bins(data, binner_for_shaft_fields)
+
     response_weighted_average = compute_rwa_from_lineages(data, "3D", binner_for_shaft_fields,
-                                                          sigma_for_fields=sigma_for_fields)
+                                                          sigma_for_fields=sigma_for_fields,
+                                                          padding_for_fields=padding_for_fields)
 
     # SAVE
-    filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json"
+    save(response_weighted_average, "test_rwa")
+
+
+def save(response_weighted_average, file_name):
+    filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/%s.json" % file_name
     with open(filename, "w") as file:
         file.write(jsonpickle.encode(response_weighted_average))
+        file.close()
 
 
 def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
@@ -62,27 +81,21 @@ def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]
     return trial_collector.collect_trials()
 
 
-def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields=None):
+def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields=None, padding_for_fields=None):
     """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
     data = data.loc[data['GaType'] == ga_type]
     rwas = []
     for (lineage, lineage_data) in data.groupby("Lineage"):
-        rwas.append(
-            rwa_optimized(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields, sigma_for_fields))
+        rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields,
+                        sigma_for_fields, padding_for_fields))
     print("Multiplying Lineage RWAs")
-    # rwas_labelled_matrices = [next(r) for r in rwas]
 
-    rwa_prod = None
-    for lineage_index, r in enumerate(rwas):
-        lineage_rwa = next(r)
-        if lineage_index == 0:
-            template = lineage_rwa
-            rwa_prod = np.ones_like(lineage_rwa.matrix)
-        np.multiply(rwa_prod, lineage_rwa.matrix, out=rwa_prod)
+    rwas = [get_next(r) for r in rwas]
+    for lineage_index, rwa_lineage in enumerate(rwas):
+        save(rwa_lineage, "lineage_rwa_%d" % lineage_index)
+    rwa_multiplied = combine_rwas(rwas)
 
-
-    # rwa_prod = np.prod(np.array([rwa_labelled_matrix.matrix for rwa_labelled_matrix in rwas_labelled_matrices]), axis=0)
-    return template.copy_labels(rwa_prod)
+    return rwa_multiplied
 
 
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
@@ -94,8 +107,8 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields.append(StimSpecIdField(conn, "Id"))
     fields.append(MockResponseField(conn, 1, name="Response-1"))
     fields.append(ShaftField(mstick_spec_data_source, name="Shaft"))
-    fields.append(TerminationField(mstick_spec_data_source, name="Termination"))
-    fields.append(JunctionField(mstick_spec_data_source, name="Junction"))
+    # fields.append(TerminationField(mstick_spec_data_source, name="Termination"))
+    # fields.append(JunctionField(mstick_spec_data_source, name="Junction"))
 
     data = get_data_from_trials(fields, trial_tstamps)
     return data
@@ -176,11 +189,11 @@ def hemisphericalize_orientation(data):
 
 def hemisphericalize(dictionary: dict):
     output = dictionary
-    angularPosition = output['orientation']
-    theta = np.float32(angularPosition['theta'])
-    phi = np.float32(angularPosition['phi'])
+    orientation = output['orientation']
+    theta = np.float32(orientation['theta'])
+    phi = np.float32(orientation['phi'])
 
-    if phi > pi / 2:
+    while phi > pi / 2:
         phi = pi - phi
         theta = theta + pi
         theta = map_theta(theta)
