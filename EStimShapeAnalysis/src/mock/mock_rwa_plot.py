@@ -11,7 +11,7 @@ from src.analysis.rwa import get_next
 
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
-    plot_shaft_rwa(test_rwa)
+    plot_shaft_rwa_1d(test_rwa)
     plt.suptitle("Combined RWA")
 
     # lineage_0_rwa = jsonpickle.decode(
@@ -182,9 +182,15 @@ def draw_1D_slice(slice_to_draw, bins, axes=None):
 
     try:
         x_axis = [bin['py/newargs']['py/tuple'][1] for bin in bins]
+        x_ticks = [round(bin['py/newargs']['py/tuple'][2], 2) for bin in bins]
     except:
         x_axis = [bin.middle for bin in bins]
+
+        x_ticks = [round(bin.end, 2) for bin in bins]
+
     axes.plot(x_axis, np.squeeze(slice_to_draw))
+    axes.set_xticks(x_ticks)
+    axes.set_xticklabels(x_ticks, rotation=90, ha='center')
 
 
 def slice_matrix(indices_to_slice_along, matrix, matrix_peak_location):

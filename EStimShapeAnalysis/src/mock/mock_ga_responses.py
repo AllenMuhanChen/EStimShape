@@ -32,11 +32,11 @@ def main():
 
     tuning_peak = {
         "angularPosition": {"theta": 0, "phi": math.pi / 2},
-        "radialPosition": 30,
+        "radialPosition": 15,
         "orientation": {"theta": 0, "phi": math.pi / 4},
-        "length": 25,
-        "curvature": 0.06,
-        "radius": 6,
+        "length": 15,
+        "curvature": 0.02,
+        "radius": 8,
     }
 
     list_of_tuning_ranges = {

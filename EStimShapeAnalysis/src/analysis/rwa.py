@@ -30,7 +30,7 @@ class RWAMatrix:
     3. sigmas_for_axes: sigma (as a proportion of number of bins) for the gaussian filter
        across this dimension.
     4. padding_for_axes: padding behavior for the gaussian filter across this dimension.
-       see scipy.ndimage.filters.gaussian_filter for more details
+       see parameter "mode" under scipy.ndimage.filters.gaussian_filter for more details
     """
     names_for_axes: dict[int, str]
     matrix: np.ndarray
