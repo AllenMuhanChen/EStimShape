@@ -46,10 +46,7 @@ public class IntanSpikeParentSelector implements ParentSelector{
     }
 
     private List<Long> selectParentsFrom(List<Double> spikeRates) {
-        List<Long> parents = new LinkedList<>();
-
-        parents.addAll(spikeRateAnalyzer.analyze(Parent.createParentListFrom(previousGenerationIds, spikeRates)));
-        return parents;
+        return new LinkedList<>(spikeRateAnalyzer.analyze(Parent.createParentListFrom(previousGenerationIds, spikeRates)));
     }
 
     private Double getSummedSpikeRatesFrom(List<String> channels, String spikeDatPath) {
