@@ -36,6 +36,7 @@ def main():
 
     plt.show()
 
+
 def plot_shaft_rwa_1d(test_rwa):
     matrix = test_rwa.matrix
 
@@ -61,6 +62,7 @@ def plot_shaft_rwa_1d(test_rwa):
     draw_one_d_field(test_rwa, "length", matrix_peak_location, ax_length)
     draw_one_d_field(test_rwa, "curvature", matrix_peak_location, ax_curvature)
     draw_one_d_field(test_rwa, "radius", matrix_peak_location, ax_radius)
+
 
 def plot_shaft_rwa(test_rwa):
     matrix = test_rwa.matrix
@@ -157,7 +159,6 @@ def draw_one_d_field(rwa, field_name, matrix_peak_location, axis):
     draw_1D_slice(slice_to_draw, binner.bins, axes=axis)
     # labels
     axis.set_xlabel(field_name)
-
 
 
 def get_indices_to_slice_per_peak(number_of_peaks, test_rwa, fields):
