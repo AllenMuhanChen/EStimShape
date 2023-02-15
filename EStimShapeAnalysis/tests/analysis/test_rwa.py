@@ -92,30 +92,6 @@ class Test(TestCase):
         self.draw_B_tuning(smoothed_matrices, axes[1])
         plt.show()
 
-    def test_gaussian(self):
-        mu = (5, 5)
-        sigma = (1, 1)
-        shape = (10, 10)
-        gauss = gaussian(mu, sigma, shape)
-        plt.imshow(np.transpose(gauss), extent=[0, 1, 0, 1], origin="lower")
-        plt.show()
-
-    def test_gaussian_vectorized(self):
-        mu = (0, 10)
-        sigma = (1, 1)
-        shape = (10, 10)
-        gauss = gaussian_vectorized(mu, sigma, shape)
-        plt.imshow(np.transpose(gauss), extent=[0, 1, 0, 1], origin="lower")
-        plt.show()
-
-    def test_gaussian_pdf(self):
-        mu = (0, 10)
-        sigma = (1, 1)
-        shape = (10, 10)
-        gauss = gaussian_pdf(mu, sigma, shape)
-        plt.imshow(np.transpose(gauss), extent=[0, 1, 0, 1], origin="lower")
-        plt.show()
-
     def generate_resp_for_stim(self, a_list, b_list):
         """Our test neuron cares that A.x is close to 0.5, doesn't care about A.y, and cares that
         B is close to pi"""

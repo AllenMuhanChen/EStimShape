@@ -101,7 +101,7 @@ def plot_data_sum(axis, rwa_matrix: RWAMatrix, field_name):
     axis.plot(x_axis, y_axis)
 
 
-class Test(TestCase):
+class MultiDimAndLineageTestCase(TestCase):
     """Leaner test casefor testing multidimensional rwas, without the cruft of nested dicts and the such"""
 
     def setUp(self) -> None:
