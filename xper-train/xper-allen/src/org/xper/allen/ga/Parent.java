@@ -20,8 +20,6 @@ public class Parent {
         return parents;
     }
 
-    Double percentile;
-
 
     public Long getId() {
         return id;
@@ -39,11 +37,4 @@ public class Parent {
         this.spikeRate = spikeRate;
     }
 
-    public Double getPercentile() {
-        return percentile;
-    }
-
-    public void setPercentile(Double percentile) {
-        this.percentile = percentile;
-    }
 }

@@ -6,7 +6,7 @@ import java.util.function.BiConsumer;
 public class StandardParentSelectorStrategy implements ParentSelectorStrategy {
 
     public static final LinkedHashMap<PercentileRange,Integer> NUMBER_OF_MORPHS_PER_RANGE = new LinkedHashMap<>();
-    private List<Long> chosenStims = new ArrayList<>();
+    private List<Long> chosenParentIds = new ArrayList<>();
     static {
         NUMBER_OF_MORPHS_PER_RANGE.put(new PercentileRange(1.0, 0.9), 6);
         NUMBER_OF_MORPHS_PER_RANGE.put(new PercentileRange(0.9, 0.7), 4);
@@ -18,30 +18,35 @@ public class StandardParentSelectorStrategy implements ParentSelectorStrategy {
     public List<Long> analyze(List<Parent> parents) {
 
         sortSpikesByAscending(parents);
-        calculatePercentile(parents);
-        chooseStimuli(parents);
+        Map<Parent, Double> percentileForParents = calculatePercentile(parents);
+        chooseParents(percentileForParents);
 
-        return chosenStims;
+        return chosenParentIds;
     }
 
-    private void chooseStimuli(List<Parent> parents) {
-        NUMBER_OF_MORPHS_PER_RANGE.forEach(new BiConsumer<PercentileRange, Integer>() {
+    private void chooseParents(Map<Parent, Double> percentileForParents) {
+        NUMBER_OF_MORPHS_PER_RANGE.forEach(
+        new BiConsumer<PercentileRange, Integer>() {
+
             //For each PercentileRange-NumberStimuliToChoose
             //Choose the NumberStimuliToChoose from PercentileRange
            private List<Parent> parentsInPercentileRange;
            @Override
            public void accept(PercentileRange percentileRange, Integer numToChoose) {
                parentsInPercentileRange = new LinkedList<>();
-               gatherWithinRangeStimuli(percentileRange);
+               gatherWithinPercentileStimuli(percentileRange);
                chooseRandomStimuli(numToChoose);
            }
 
-            private void gatherWithinRangeStimuli(PercentileRange percentileRange) {
-                for (Parent parent : parents){
-                    if(parent.percentile <= percentileRange.top && parent.percentile > percentileRange.bottom){
-                        parentsInPercentileRange.add(parent);
+            private void gatherWithinPercentileStimuli(PercentileRange percentileRange) {
+                percentileForParents.forEach(new BiConsumer<Parent, Double>() {
+                    @Override
+                    public void accept(Parent parent, Double percentile) {
+                        if(percentile <= percentileRange.top && percentile > percentileRange.bottom){
+                            parentsInPercentileRange.add(parent);
+                        }
                     }
-                }
+                });
             }
 
             private void chooseRandomStimuli(Integer numToChoose) {
@@ -53,7 +58,7 @@ public class StandardParentSelectorStrategy implements ParentSelectorStrategy {
                 Collections.shuffle(shuffleList);
 
                 for (int i = 0; i< numToChoose; i++){
-                    chosenStims.add(shuffleList.get(i).getId());
+                    chosenParentIds.add(shuffleList.get(i).getId());
                 }
             }
        });
@@ -68,13 +73,15 @@ public class StandardParentSelectorStrategy implements ParentSelectorStrategy {
         });
     }
 
-    private void calculatePercentile(List<Parent> spikeStims) {
+    private Map<Parent, Double> calculatePercentile(List<Parent> spikeStims) {
+        Map<Parent, Double> percentileForParents = new LinkedHashMap<>();
         int i=1;
         for (Parent stim : spikeStims) {
             int numStim = spikeStims.size();
-            stim.percentile = ((double)i / numStim);
+            percentileForParents.put(stim, ((double)i / numStim));
             i++;
         }
+        return percentileForParents;
     }
 
     public static class PercentileRange {
