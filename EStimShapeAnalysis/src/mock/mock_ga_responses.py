@@ -68,8 +68,8 @@ def main():
     insert_to_exp_log(conn, response_rates, data["Id"])
 
     # DEBUG
-    mock_rwa_analysis.main()
-    mock_rwa_plot.main()
+    # mock_rwa_analysis.main()
+    # mock_rwa_plot.main()
     # plt.show()
 
 

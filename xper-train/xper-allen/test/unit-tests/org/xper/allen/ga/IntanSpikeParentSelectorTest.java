@@ -54,7 +54,7 @@ public class IntanSpikeParentSelectorTest {
         IntanSpikeParentSelector parentSelector = new IntanSpikeParentSelector();
         parentSelector.setDbUtil(new TestMultiGaDbUtil());
         parentSelector.setSpikeDatDirectory(ResourceUtil.getResource("IntanSpikeParentSelector-spikeDatDirectory"));
-        parentSelector.setSpikeRateAnalyzer(new MaxSpikeRateAnalyzer());
+        parentSelector.setSpikeRateAnalyzer(new MaxSpikeRateParentSelectorStrategy());
 
        this.parentSelector = parentSelector;
     }

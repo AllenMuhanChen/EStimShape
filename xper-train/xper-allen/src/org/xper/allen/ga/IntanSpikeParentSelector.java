@@ -21,7 +21,7 @@ public class IntanSpikeParentSelector implements ParentSelector{
     String spikeDatDirectory;
 
     @Dependency
-    SpikeRateAnalyzer spikeRateAnalyzer;
+    ParentSelectorStrategy spikeRateAnalyzer;
 
     private List<Long> previousGenerationIds;
 
@@ -48,7 +48,7 @@ public class IntanSpikeParentSelector implements ParentSelector{
     private List<Long> selectParentsFrom(List<Double> spikeRates) {
         List<Long> parents = new LinkedList<>();
 
-        parents.addAll(spikeRateAnalyzer.analyze(previousGenerationIds, spikeRates));
+        parents.addAll(spikeRateAnalyzer.analyze(Parent.createParentListFrom(previousGenerationIds, spikeRates)));
         return parents;
     }
 
@@ -95,11 +95,11 @@ public class IntanSpikeParentSelector implements ParentSelector{
         this.spikeDatDirectory = spikeDatDirectory;
     }
 
-    public SpikeRateAnalyzer getSpikeRateAnalyzer() {
+    public ParentSelectorStrategy getSpikeRateAnalyzer() {
         return spikeRateAnalyzer;
     }
 
-    public void setSpikeRateAnalyzer(SpikeRateAnalyzer spikeRateAnalyzer) {
+    public void setSpikeRateAnalyzer(ParentSelectorStrategy spikeRateAnalyzer) {
         this.spikeRateAnalyzer = spikeRateAnalyzer;
     }
 
