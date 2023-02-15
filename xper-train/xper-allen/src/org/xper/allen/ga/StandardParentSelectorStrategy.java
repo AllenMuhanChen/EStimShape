@@ -16,7 +16,6 @@ public class StandardParentSelectorStrategy implements ParentSelectorStrategy {
     }
     @Override
     public List<Long> analyze(List<Parent> parents) {
-
         sortSpikesByAscending(parents);
         Map<Parent, Double> percentileForParents = calculatePercentile(parents);
         chooseParents(percentileForParents);
