@@ -74,8 +74,8 @@ public class ThreeDGAConfig {
     }
 
     @Bean
-    public SpikeRateAnalyzer spikeRateAnalyzer(){
-        StandardSpikeRateAnalyzer spikeRateAnalyzer = new StandardSpikeRateAnalyzer();
+    public ParentSelectorStrategy spikeRateAnalyzer(){
+        StandardParentSelectorStrategy spikeRateAnalyzer = new StandardParentSelectorStrategy();
         return spikeRateAnalyzer;
     }
 

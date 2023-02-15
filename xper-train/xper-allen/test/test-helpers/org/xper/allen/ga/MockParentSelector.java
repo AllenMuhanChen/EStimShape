@@ -15,7 +15,7 @@ public class MockParentSelector implements ParentSelector{
     private MultiGaDbUtil dbUtil;
 
     @Dependency
-    SpikeRateAnalyzer spikeRateAnalyzer;
+    ParentSelectorStrategy spikeRateAnalyzer;
 
     @Override
     public List<Long> selectParents(List<String> channels, String gaName) {
@@ -44,12 +44,14 @@ public class MockParentSelector implements ParentSelector{
 
         //parse correct channel from spikeRatesForChannel and calculate spikeRates
         List<Double> spikeRates = new ArrayList<>();
+        List<Long> parentIds = new ArrayList<>();
         spikeRatesForStim.forEach((k,v)->{
             spikeRates.add(v.get(1));
+            parentIds.add(k);
         });
         System.out.println(spikeRates);
         //convert hashmap values into list
-        List<Long> parents = spikeRateAnalyzer.analyze(previousGenerationIds, spikeRates);
+        List<Long> parents = spikeRateAnalyzer.analyze(Parent.createParentListFrom(parentIds, spikeRates));
         return parents;
     }
 
@@ -75,11 +77,11 @@ public class MockParentSelector implements ParentSelector{
         this.dbUtil = dbUtil;
     }
 
-    public SpikeRateAnalyzer getSpikeRateAnalyzer() {
+    public ParentSelectorStrategy getSpikeRateAnalyzer() {
         return spikeRateAnalyzer;
     }
 
-    public void setSpikeRateAnalyzer(SpikeRateAnalyzer spikeRateAnalyzer) {
+    public void setSpikeRateAnalyzer(ParentSelectorStrategy spikeRateAnalyzer) {
         this.spikeRateAnalyzer = spikeRateAnalyzer;
     }
 }
