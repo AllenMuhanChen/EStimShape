@@ -4,7 +4,6 @@ import org.xper.Dependency;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.ParentSelector;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.Trial;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 
@@ -21,24 +20,26 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     Integer numLineages;
 
     private String gaBaseName;
-    private Map<String, List<Trial>> trialsForGA = new LinkedHashMap<String, List<Trial>>();
+    private Map<String, List<ThreeDGATrial>> trialsForGA = new LinkedHashMap<String, List<ThreeDGATrial>>();
     private Map<String, Long> genIdsForGA = new LinkedHashMap<String, Long>();
     private double initialSize;
     private Coordinates2D initialCoords;
-    private int numTrials;
+    private int numStimuli;
     protected List<String> channels;
 
     private List<Long> stimsToMorph;
     private List<String> gaNames = new LinkedList<>();
+    private Integer numTrialsPerStimuli;
 
     /**
-     * @param numTrials - number of trials per lineage
+     * @param numStimuli - number of trials per lineage
      * @param initialSize - initial size of stimuli in GA
      * @param initialCoords - initial coordinates of stimuli in GA
      * @param channels - list of channels to analyze for parent selection
      */
-    public void setUp(int numTrials, double initialSize, Coordinates2D initialCoords, List<String> channels){
-        this.numTrials = numTrials;
+    public void setUp(int numStimuli, int numTrialsPerStimuli, double initialSize, Coordinates2D initialCoords, List<String> channels){
+        this.numStimuli = numStimuli;
+        this.numTrialsPerStimuli = numTrialsPerStimuli;
         this.initialSize = initialSize;
         this.initialCoords = initialCoords;
         this.gaBaseName = "3D";
@@ -49,7 +50,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
         //Populate trials_for_ga with empty lists
         for (String gaName : gaNames){
-            trialsForGA.put(gaName, new LinkedList<Trial>());
+            trialsForGA.put(gaName, new LinkedList<ThreeDGATrial>());
         }
 
     }
@@ -75,11 +76,11 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     }
 
     private void addFirstGeneration(String gaName){
-        trialsForGA.get(gaName).addAll(createRandTrials(this, numTrials, initialSize, initialCoords));
+        trialsForGA.get(gaName).addAll(createRandTrials(this, numStimuli, initialSize, initialCoords));
     }
 
-    private List<Trial> createMorphTrials(GA3DBlockGen generator, String gaName){
-        List<Trial> trials = new LinkedList<>();
+    private List<ThreeDGATrial> createMorphTrials(GA3DBlockGen generator, String gaName){
+        List<ThreeDGATrial> trials = new LinkedList<>();
 
         stimsToMorph = parentSelector.selectParents(channels, gaName);
 
@@ -91,8 +92,8 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     }
 
 
-    private List<Trial> createRandTrials(GA3DBlockGen generator, int numTrials, double size, Coordinates2D coords){
-        List<Trial> trials = new LinkedList<>();
+    private List<ThreeDGATrial> createRandTrials(GA3DBlockGen generator, int numTrials, double size, Coordinates2D coords){
+        List<ThreeDGATrial> trials = new LinkedList<>();
         for (int i = 0; i< numTrials; i++){
             trials.add(new RandTrial(generator, size, coords));
         }
@@ -107,9 +108,9 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
     @Override
     protected void shuffleTrials() {
-        trialsForGA.forEach(new BiConsumer<String, List<Trial>>() {
+        trialsForGA.forEach(new BiConsumer<String, List<ThreeDGATrial>>() {
             @Override
-            public void accept(String gaName, List<Trial> trials) {
+            public void accept(String gaName, List<ThreeDGATrial> trials) {
                 Collections.shuffle(trials);
             }
         });
@@ -135,13 +136,19 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
      */
     @Override
     protected void writeTrials() {
-        trialsForGA.forEach(new BiConsumer<String, List<Trial>>() {
+        trialsForGA.forEach(new BiConsumer<String, List<ThreeDGATrial>>() {
             @Override
-            public void accept(String gaName, List<Trial> trials) {
-                for (Trial trial : trials) {
+            public void accept(String gaName, List<ThreeDGATrial> trials) {
+                for (ThreeDGATrial trial : trials) {
                     trial.write();
                     Long taskId = trial.getTaskId();
                     dbUtil.writeTaskToDo(taskId, taskId, -1, gaName, genIdsForGA.get(gaName));
+
+                    for (int i = 0; i < numTrialsPerStimuli-1; i++) {
+                        RepetitionTrial repetition = trial.createRepetition();
+                        repetition.write();
+                        dbUtil.writeTaskToDo(repetition.getTaskId(), taskId, -1, gaName, genIdsForGA.get(gaName));
+                    }
                 }
             }
         });

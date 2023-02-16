@@ -18,6 +18,8 @@ public class MorphTrial extends ThreeDGATrial {
     private Long parentId;
     private long taskId;
     private String gaName;
+    private PngSpec spec;
+    private AllenMStickData mStickData;
 
     public MorphTrial(GA3DBlockGen generator, String gaName, Long parentId) {
         super(generator);
@@ -54,7 +56,7 @@ public class MorphTrial extends ThreeDGATrial {
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(id), true);
-        AllenMStickData mStickData = mStick.getMStickData();
+        mStickData = mStick.getMStickData();
 
         //draw pngs
         List<String> labels = new LinkedList<>();
@@ -72,15 +74,19 @@ public class MorphTrial extends ThreeDGATrial {
         //write spec
         taskId = id;
 
-        PngSpec spec = new PngSpec();
+        spec = new PngSpec();
         spec.setPath(pngPath);
         spec.setDimensions(new ImageDimensions(size,size));
         spec.setxCenter(coords.getX());
         spec.setyCenter(coords.getY());
 
-        generator.getDbUtil().writeStimSpec(taskId, spec.toXml(), mStickData.toXml());
+        writeStimSpec(taskId);
 
         System.err.println("Finished Writing Morph Trial");
+    }
+
+    public void writeStimSpec(long id) {
+        generator.getDbUtil().writeStimSpec(id, spec.toXml(), mStickData.toXml());
     }
 
     private double morphSize(double parentSize) {
@@ -108,6 +114,7 @@ public class MorphTrial extends ThreeDGATrial {
     private String readMStickSpec(Long parentId) {
         return generator.getDbUtil().readStimSpecDataByIdRangeAsMap(parentId, parentId).get(parentId);
     }
+
 
     @Override
     public Long getTaskId() {

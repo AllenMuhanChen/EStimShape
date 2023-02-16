@@ -1,6 +1,5 @@
 package org.xper.allen.ga3d.blockgen;
 
-import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.drawing.Coordinates2D;
@@ -13,14 +12,8 @@ import java.util.List;
 
 public class RandTrial extends ThreeDGATrial {
 
-    private double size;
-    private Coordinates2D coords;
-    private long id;
-
     public RandTrial(GA3DBlockGen generator, double size, Coordinates2D coords) {
-        super(generator);
-        this.size = size;
-        this.coords = coords;
+        super(generator, size, coords);
     }
 
     @Override
@@ -50,17 +43,18 @@ public class RandTrial extends ThreeDGATrial {
         pngPath = generator.convertPathToExperiment(pngPath);
 
         //Create StimSpec
-        PngSpec spec = new PngSpec();
+        spec = new PngSpec();
         spec.setPath(pngPath);
         spec.setDimensions(new ImageDimensions(size, size));
         spec.setxCenter(coords.getX());
         spec.setyCenter(coords.getY());
 
-        AllenMStickData mStickData = mStickGenerator.getMStick().getMStickData();
-        generator.getDbUtil().writeStimSpec(id, spec.toXml(), mStickData.toXml());
+        mStickData = mStickGenerator.getMStick().getMStickData();
+        writeStimSpec(id);
 
         System.err.println("Finished Writing Rand Trial");
     }
+
 
     @Override
     public Long getTaskId() {
