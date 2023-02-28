@@ -5,7 +5,7 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.ga.*;
-import org.xper.allen.ga3d.blockgen.GA3DBlockGen;
+import org.xper.allen.ga3d.blockgen.GA3DBlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
@@ -26,8 +26,8 @@ public class ThreeDGAConfig {
     public String numberLineages;
 
     @Bean
-    public GA3DBlockGen generator(){
-        GA3DBlockGen generator = new GA3DBlockGen();
+    public GA3DBlockGenerator generator(){
+        GA3DBlockGenerator generator = new GA3DBlockGenerator();
         generator.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
         generator.setExperimentPngPath(mStickPngConfig.experimentPngPath);
         generator.setGeneratorSpecPath(mStickPngConfig.generatorSpecPath);

@@ -13,7 +13,13 @@ def get_stim_spec_id(conn: Connection, when: When) -> int:
         params=(int(when.start), int(when.stop)))
     trial_msg_xml = conn.fetch_one()
     trial_msg_dict = xmltodict.parse(trial_msg_xml)
-    return int(trial_msg_dict['SlideEvent']['taskId'])
+    taskId = int(trial_msg_dict['SlideEvent']['taskId'])
+
+    conn.execute("SELECT stim_id from TaskToDo WHERE "
+                 "task_id = %s",
+                 params=(taskId,))
+    stim_spec_id = conn.fetch_one()
+    return stim_spec_id
 
 
 class StimSpecIdField(DatabaseField):

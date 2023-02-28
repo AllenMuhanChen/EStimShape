@@ -6,14 +6,10 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.GAConsole;
 import org.xper.allen.app.GAExperiment;
-import org.xper.allen.ga.MockParentSelector;
 import org.xper.allen.ga.ParentSelector;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.db.vo.GenerationTaskToDoList;
-import org.xper.db.vo.TaskToDoEntry;
 import org.xper.drawing.Coordinates2D;
 import org.xper.util.FileUtil;
-import org.xper.util.ThreadUtil;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -22,7 +18,7 @@ import static org.junit.Assert.*;
 
 public class ThreeDGAMockExperiment {
     private final String[] emptyArgs = {""};
-    GA3DBlockGen generator = new GA3DBlockGen();
+    GA3DBlockGenerator generator = new GA3DBlockGenerator();
     private MultiGaDbUtil dbUtil;
     private Long testParentId;
 
@@ -32,7 +28,7 @@ public class ThreeDGAMockExperiment {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
-        generator = context.getBean(GA3DBlockGen.class);
+        generator = context.getBean(GA3DBlockGenerator.class);
         dbUtil = generator.getDbUtil();
 
         generator.setUp(20, 5, 5, new Coordinates2D(0,0), generator.channels);

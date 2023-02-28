@@ -6,18 +6,18 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.Trial;
+import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
-public class RandTrial implements Trial{
+public class RandStim implements Stim {
 
 	//INput Fields
 	private AbstractMStickPngTrialGenerator generator;
 	private RandNoisyTrialParameters trialParameters;
 
-	public RandTrial(AbstractMStickPngTrialGenerator generator, RandNoisyTrialParameters trialParameters) {
+	public RandStim(AbstractMStickPngTrialGenerator generator, RandNoisyTrialParameters trialParameters) {
 		super();
 		this.generator = generator;
 		this.trialParameters = trialParameters;
@@ -40,7 +40,7 @@ public class RandTrial implements Trial{
 	public void preWrite() {}
 	
 	@Override
-	public void writeStimSpec() {
+	public void writeStim() {
 		assignStimObjIds();
 		generateMatchSticks();
 		drawPNGs();

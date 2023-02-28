@@ -10,9 +10,9 @@ import org.xper.utils.RGBColor;
 import java.util.LinkedList;
 import java.util.List;
 
-public class RandTrial extends ThreeDGATrial {
+public class RandStim extends ThreeDGAStim {
 
-    public RandTrial(GA3DBlockGen generator, double size, Coordinates2D coords) {
+    public RandStim(GA3DBlockGenerator generator, double size, Coordinates2D coords) {
         super(generator, size, coords);
     }
 
@@ -22,7 +22,7 @@ public class RandTrial extends ThreeDGATrial {
     }
 
     @Override
-    public void writeStimSpec() {
+    public void writeStim() {
         //Assign StimSpecId
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 

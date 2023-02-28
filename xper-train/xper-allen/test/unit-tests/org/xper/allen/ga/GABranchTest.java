@@ -56,8 +56,8 @@ public class GABranchTest {
         founder.forEach(new Consumer<GABranch>() {
             @Override
             public void accept(GABranch branch) {
-                System.out.println(branch.getBranchId());
-                childrenIds.add(branch.getBranchId());
+                System.out.println(branch.getStimId());
+                childrenIds.add(branch.getStimId());
             }
         });
 

@@ -10,7 +10,7 @@ import org.xper.drawing.Coordinates2D;
 import java.util.*;
 import java.util.function.BiConsumer;
 
-public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
+public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
 
     @Dependency
     MultiGaDbUtil dbUtil;
@@ -20,8 +20,8 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     Integer numLineages;
 
     private String gaBaseName;
-    private Map<String, List<ThreeDGATrial>> trialsForGA = new LinkedHashMap<String, List<ThreeDGATrial>>();
-    private Map<String, Long> genIdsForGA = new LinkedHashMap<String, Long>();
+    private Map<String, List<ThreeDGAStim>> trialsForGA = new LinkedHashMap<String, List<ThreeDGAStim>>();
+    private Map<String, Long> genIdForGA = new LinkedHashMap<String, Long>();
     private double initialSize;
     private Coordinates2D initialCoords;
     private int numStimuli;
@@ -50,7 +50,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
         //Populate trials_for_ga with empty lists
         for (String gaName : gaNames){
-            trialsForGA.put(gaName, new LinkedList<ThreeDGATrial>());
+            trialsForGA.put(gaName, new LinkedList<ThreeDGAStim>());
         }
 
     }
@@ -79,23 +79,23 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
         trialsForGA.get(gaName).addAll(createRandTrials(this, numStimuli, initialSize, initialCoords));
     }
 
-    private List<ThreeDGATrial> createMorphTrials(GA3DBlockGen generator, String gaName){
-        List<ThreeDGATrial> trials = new LinkedList<>();
+    private List<ThreeDGAStim> createMorphTrials(GA3DBlockGenerator generator, String gaName){
+        List<ThreeDGAStim> trials = new LinkedList<>();
 
         stimsToMorph = parentSelector.selectParents(channels, gaName);
 
         for (Long parentId: stimsToMorph){
-            trials.add(new MorphTrial(generator, gaName, parentId));
+            trials.add(new MorphStim(generator, gaName, parentId));
         }
 
         return trials;
     }
 
 
-    private List<ThreeDGATrial> createRandTrials(GA3DBlockGen generator, int numTrials, double size, Coordinates2D coords){
-        List<ThreeDGATrial> trials = new LinkedList<>();
+    private List<ThreeDGAStim> createRandTrials(GA3DBlockGenerator generator, int numTrials, double size, Coordinates2D coords){
+        List<ThreeDGAStim> trials = new LinkedList<>();
         for (int i = 0; i< numTrials; i++){
-            trials.add(new RandTrial(generator, size, coords));
+            trials.add(new RandStim(generator, size, coords));
         }
         return trials;
     }
@@ -108,9 +108,9 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
 
     @Override
     protected void shuffleTrials() {
-        trialsForGA.forEach(new BiConsumer<String, List<ThreeDGATrial>>() {
+        trialsForGA.forEach(new BiConsumer<String, List<ThreeDGAStim>>() {
             @Override
-            public void accept(String gaName, List<ThreeDGATrial> trials) {
+            public void accept(String gaName, List<ThreeDGAStim> trials) {
                 Collections.shuffle(trials);
             }
         });
@@ -127,7 +127,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
                 genId = 0L;
 //                getDbUtil().writeReadyGenerationInfo(0, 0);
             }
-            genIdsForGA.put(gaName, genId);
+            genIdForGA.put(gaName, genId);
         }
     }
 
@@ -136,15 +136,16 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
      */
     @Override
     protected void writeTrials() {
-        trialsForGA.forEach(new BiConsumer<String, List<ThreeDGATrial>>() {
+        trialsForGA.forEach(new BiConsumer<String, List<ThreeDGAStim>>() {
             @Override
-            public void accept(String gaName, List<ThreeDGATrial> trials) {
-                for (ThreeDGATrial trial : trials) {
-                    trial.writeStimSpec();
+            public void accept(String gaName, List<ThreeDGAStim> trials) {
+                for (ThreeDGAStim trial : trials) {
+                    trial.writeStim();
+                    trial.writeStimGaInfo(gaName, genIdForGA.get(gaName));
                     Long stimId = trial.getStimId();
                     for (int i = 0; i < numTrialsPerStimuli; i++) {
                         long taskId = getGlobalTimeUtil().currentTimeMicros();
-                        dbUtil.writeTaskToDo(taskId, stimId, -1, gaName, genIdsForGA.get(gaName));
+                        dbUtil.writeTaskToDo(taskId, stimId, -1, gaName, genIdForGA.get(gaName));
                     }
                 }
             }
@@ -155,7 +156,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     @Override
     protected void updateReadyGeneration() {
         for (String gaName : gaNames){
-            getDbUtil().updateReadyGAsAndGenerationsInfo(gaName, genIdsForGA.get(gaName));
+            getDbUtil().updateReadyGAsAndGenerationsInfo(gaName, genIdForGA.get(gaName));
         }
 
         System.out.println("Done Generating...");
@@ -176,7 +177,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     @Override
     public void tearDown(){
         pngMaker.close();
-        trials = new LinkedList<>();
+        stims = new LinkedList<>();
     }
 
     public MultiGaDbUtil getDbUtil() {
