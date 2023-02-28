@@ -15,38 +15,20 @@ public class StandardParentSelectorTestData {
     private StandardParentSelector parentSelector;
 
     @Test
-    public void test12345HigherSpikeRate() {
+    public void testTwoStimWithTwoRepetitions() {
         setUp();
 
         //actual spikerates calculated via matlab
-        //12345: 476.427
-        //12346" 471.725
-
+        //stimId: 2, taskId: 12345, spikeRate: 476.427
+        //stimId: 1, taskId:  12346, spikeRate:  471.725
 
         List<Long> parents = parentSelector.selectParents("3DGA-1");
 
-        assertEquals(12345, (long) parents.get(0));
+        assertEquals(2, (long) parents.get(0));
         assertEquals(1, parents.size());
 
     }
 
-    @Test
-    public void test12346HigherSpikeRate(){
-        setUp();
-
-        //actual spikerates calculated via matlab
-        //12345: 391.70
-        //12346: 393.71
-
-        List<String> channels = new LinkedList<>();
-        channels.add("B-000");
-        channels.add("B-015");
-
-        List<Long> parents = parentSelector.selectParents("3DGA-1");
-
-        assertEquals(12346, (long) parents.get(0));
-        assertEquals(1, parents.size());
-    }
 
     private void setUp() {
         StandardParentSelector parentSelector = new StandardParentSelector();
@@ -58,7 +40,7 @@ public class StandardParentSelectorTestData {
         spikeRateSource.setChannels(Arrays.asList("B-000", "B-031"));
         parentSelector.setSpikeRateSource(spikeRateSource);
 
-        parentSelector.setParentSelectorStrategy(new MaxSpikeRateParentSelectorStrategy());
+        parentSelector.setParentSelectorStrategy(new MaxSpikeRateParentSelectionStrategy());
 
        this.parentSelector = parentSelector;
     }
