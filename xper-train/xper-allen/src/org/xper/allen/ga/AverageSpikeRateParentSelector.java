@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 /**
  * Selects parents based on spike rate read by Intan
  */
-public class StandardParentSelector implements ParentSelector{
+public class AverageSpikeRateParentSelector implements ParentSelector{
 
     @Dependency
     MultiGaDbUtil dbUtil;

@@ -5,14 +5,13 @@ import org.xper.allen.util.ParentSelectorTestMockMultiGaDbUtil;
 import org.xper.util.ResourceUtil;
 
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class StandardParentSelectorTestData {
+public class AverageSpikeRateParentSelectorTestData {
 
-    private StandardParentSelector parentSelector;
+    private AverageSpikeRateParentSelector parentSelector;
 
     @Test
     public void testTwoStimWithTwoRepetitions() {
@@ -31,7 +30,7 @@ public class StandardParentSelectorTestData {
 
 
     private void setUp() {
-        StandardParentSelector parentSelector = new StandardParentSelector();
+        AverageSpikeRateParentSelector parentSelector = new AverageSpikeRateParentSelector();
 
         parentSelector.setDbUtil(new ParentSelectorTestMockMultiGaDbUtil());
 
