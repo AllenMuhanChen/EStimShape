@@ -90,8 +90,8 @@ public class ThreeDGAConfig {
 
 
     @Bean
-    public ParentSelectorStrategy spikeRateAnalyzer(){
-        RamParentSelectorStrategy spikeRateAnalyzer = new RamParentSelectorStrategy();
+    public ParentSelectionStrategy spikeRateAnalyzer(){
+        RamParentSelectionStrategy spikeRateAnalyzer = new RamParentSelectionStrategy();
         return spikeRateAnalyzer;
     }
 

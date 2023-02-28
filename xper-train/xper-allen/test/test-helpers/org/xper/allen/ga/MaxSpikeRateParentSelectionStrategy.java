@@ -1,9 +1,8 @@
 package org.xper.allen.ga;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
-public class MaxSpikeRateParentSelectorStrategy implements ParentSelectorStrategy {
+public class MaxSpikeRateParentSelectionStrategy implements ParentSelectionStrategy {
 
 
     @Override

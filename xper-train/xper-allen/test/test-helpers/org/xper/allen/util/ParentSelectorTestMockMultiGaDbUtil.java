@@ -92,4 +92,17 @@ public class ParentSelectorTestMockMultiGaDbUtil extends MultiGaDbUtil {
         return taskDone;
     }
 
+    public Map<Long, List<Long>> readTaskDoneIdsForStimIds(String gaName, long genId){
+        HashMap<Long, List<Long>> output = new HashMap<>();
+        output.put(1L, new LinkedList<>());
+        output.get(1L).add(12346L);
+        output.get(1L).add(12346L);
+
+        output.put(2L, new LinkedList<>());
+        output.get(2L).add(12345L);
+        output.get(2L).add(12345L);
+
+        return output;
+    }
+
 }

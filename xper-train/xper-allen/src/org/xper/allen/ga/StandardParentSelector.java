@@ -22,7 +22,7 @@ public class StandardParentSelector implements ParentSelector{
     SpikeRateSource spikeRateSource;
 
     @Dependency
-    ParentSelectorStrategy parentSelectorStrategy;
+    ParentSelectionStrategy parentSelectionStrategy;
 
 
     public List<Long> selectParents(String gaName) {
@@ -30,8 +30,9 @@ public class StandardParentSelector implements ParentSelector{
         Map<Long, List<Double>> spikeRatesForStimIds = getSpikeRatesForEachStimId(taskIdsForStimIds);
         Map<Long, Double> averageSpikeRateForStimIds = calculateAverageSpikeRateForEachStimId(spikeRatesForStimIds);
         Map<Long, ParentData> parentDataForStimId = convertToParentData(averageSpikeRateForStimIds);
-        return parentSelectorStrategy.selectParents(parentDataForStimId);
+        return parentSelectionStrategy.selectParents(parentDataForStimId);
     }
+
 
     private Map<Long, ParentData> convertToParentData(Map<Long, Double> averageSpikeRateForStimIds) {
         Map<Long, ParentData> parentDataForStimId = new HashMap<>();
@@ -43,6 +44,7 @@ public class StandardParentSelector implements ParentSelector{
         });
         return parentDataForStimId;
     }
+
 
     private Map<Long, Double> calculateAverageSpikeRateForEachStimId(Map<Long, List<Double>> spikeRatesForStimId) {
         Map<Long, Double> averageSpikeRateForStimId = new HashMap<>();
@@ -58,6 +60,7 @@ public class StandardParentSelector implements ParentSelector{
         });
         return averageSpikeRateForStimId;
     }
+
 
     private Map<Long, List<Double>> getSpikeRatesForEachStimId(Map<Long, List<Long>> taskIdsForStimId) {
         Map<Long, List<Double>> spikeRatesForStimId = new HashMap<>();
@@ -89,12 +92,12 @@ public class StandardParentSelector implements ParentSelector{
         this.dbUtil = dbUtil;
     }
 
-    public ParentSelectorStrategy getParentSelectorStrategy() {
-        return parentSelectorStrategy;
+    public ParentSelectionStrategy getParentSelectorStrategy() {
+        return parentSelectionStrategy;
     }
 
-    public void setParentSelectorStrategy(ParentSelectorStrategy parentSelectorStrategy) {
-        this.parentSelectorStrategy = parentSelectorStrategy;
+    public void setParentSelectorStrategy(ParentSelectionStrategy parentSelectionStrategy) {
+        this.parentSelectionStrategy = parentSelectionStrategy;
     }
 
     public SpikeRateSource getSpikeRateSource() {

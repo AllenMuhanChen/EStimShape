@@ -15,7 +15,7 @@ public class MockParentSelector implements ParentSelector{
     private MultiGaDbUtil dbUtil;
 
     @Dependency
-    ParentSelectorStrategy spikeRateAnalyzer;
+    ParentSelectionStrategy spikeRateAnalyzer;
 
     @Override
     public List<Long> selectParents(String gaName) {
@@ -77,11 +77,11 @@ public class MockParentSelector implements ParentSelector{
         this.dbUtil = dbUtil;
     }
 
-    public ParentSelectorStrategy getSpikeRateAnalyzer() {
+    public ParentSelectionStrategy getSpikeRateAnalyzer() {
         return spikeRateAnalyzer;
     }
 
-    public void setSpikeRateAnalyzer(ParentSelectorStrategy spikeRateAnalyzer) {
+    public void setSpikeRateAnalyzer(ParentSelectionStrategy spikeRateAnalyzer) {
         this.spikeRateAnalyzer = spikeRateAnalyzer;
     }
 }

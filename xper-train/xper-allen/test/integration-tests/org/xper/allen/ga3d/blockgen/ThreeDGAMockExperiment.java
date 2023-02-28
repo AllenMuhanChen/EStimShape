@@ -13,10 +13,12 @@ import org.xper.util.FileUtil;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
 public class ThreeDGAMockExperiment {
+    public static final int NUM_TRIALS_PER_STIMULI = 2;
     private final String[] emptyArgs = {""};
     GA3DBlockGenerator generator = new GA3DBlockGenerator();
     private MultiGaDbUtil dbUtil;
@@ -31,7 +33,7 @@ public class ThreeDGAMockExperiment {
         generator = context.getBean(GA3DBlockGenerator.class);
         dbUtil = generator.getDbUtil();
 
-        generator.setUp(20, 5, 5, new Coordinates2D(0,0), generator.channels);
+        generator.setUp(20, NUM_TRIALS_PER_STIMULI, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
@@ -69,11 +71,18 @@ public class ThreeDGAMockExperiment {
 
         generator.generate(); //second gen
 
+        assertCorrectNumberOfRepetitions();
 //        GAConsole.main(emptyArgs);
 //        GAExperiment.main(emptyArgs);
-
-
     }
+
+    private void assertCorrectNumberOfRepetitions() {
+        Map<Long, List<Long>> taskIdsForStimIds = generator.getDbUtil().readTaskDoneIdsForStimIds("3D-1", generator.getDbUtil().readTaskDoneMaxGenerationIdForGa("3D-1"));
+        taskIdsForStimIds.forEach((stimId, taskIds) -> {
+            assertTrue(taskIds.size() == NUM_TRIALS_PER_STIMULI);
+        });
+    }
+
 
     private void assertMakesNewTrial() {
         fail();
