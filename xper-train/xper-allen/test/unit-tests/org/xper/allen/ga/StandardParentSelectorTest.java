@@ -9,9 +9,9 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class IntanSpikeParentSelectorTest {
+public class StandardParentSelectorTest {
 
-    private IntanSpikeParentSelector parentSelector;
+    private StandardParentSelector parentSelector;
 
     @Test
     public void test12345HigherSpikeRate() {
@@ -51,7 +51,7 @@ public class IntanSpikeParentSelectorTest {
     }
 
     private void setUpWithMaxSpikeRateAnalyzer() {
-        IntanSpikeParentSelector parentSelector = new IntanSpikeParentSelector();
+        StandardParentSelector parentSelector = new StandardParentSelector();
         parentSelector.setDbUtil(new TestMultiGaDbUtil());
         parentSelector.setSpikeDatDirectory(ResourceUtil.getResource("IntanSpikeParentSelector-spikeDatDirectory"));
         parentSelector.setSpikeRateAnalyzer(new MaxSpikeRateParentSelectorStrategy());

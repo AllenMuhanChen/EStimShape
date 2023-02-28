@@ -66,7 +66,7 @@ public class ThreeDGAConfig {
 
     @Bean
     public ParentSelector parentSelector(){
-        IntanSpikeParentSelector parentSelector = new IntanSpikeParentSelector();
+        StandardParentSelector parentSelector = new StandardParentSelector();
         parentSelector.setDbUtil(dbUtil());
         parentSelector.setSpikeDatDirectory(spikeDatPath);
         parentSelector.setSpikeRateAnalyzer(spikeRateAnalyzer());
