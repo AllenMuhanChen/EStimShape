@@ -1,7 +1,5 @@
 package org.xper.allen.util;
 
-import org.apache.commons.math3.geometry.Space;
-import org.apache.commons.math3.geometry.partitioning.Region;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.xper.allen.ga.MultiGAExperimentTask;
@@ -192,5 +190,27 @@ public class MultiGaDbUtil extends AllenDbUtil {
                         info.setTreeSpec(rs.getString("tree_spec"));
                     }});
         return info;
+    }
+
+    public Map<Long, List<Long>> readTaskDoneIdsForStimIds(String gaName, long genId){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final Map<Long, List<Long>> result = new HashMap<>();
+        jt.query(
+                " select t.stim_id, d.task_id " +
+                        " from TaskDone d, TaskToDo t " +
+                        " where d.task_id = t.task_id and t.ga_name = ? and t.gen_id = ?",
+                new Object[] { gaName, genId },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        Long stimId = rs.getLong("stim_id");
+                        Long taskId = rs.getLong("task_id");
+                        List<Long> taskIds = result.get(stimId);
+                        if (taskIds == null) {
+                            taskIds = new ArrayList<>();
+                            result.put(stimId, taskIds);
+                        }
+                        taskIds.add(taskId);
+                    }});
+        return result;
     }
 }
