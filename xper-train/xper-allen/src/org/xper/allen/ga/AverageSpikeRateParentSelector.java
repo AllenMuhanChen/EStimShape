@@ -11,7 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Selects parents based on spike rate read by Intan
+ * Selects parents based on average spike rate across multiple repetitions.
  */
 public class AverageSpikeRateParentSelector implements ParentSelector{
 
@@ -22,7 +22,7 @@ public class AverageSpikeRateParentSelector implements ParentSelector{
     SpikeRateSource spikeRateSource;
 
     @Dependency
-    ParentSelectionStrategy parentSelectionStrategy;
+    ParentAnalysisStrategy parentAnalysisStrategy;
 
 
     public List<Long> selectParents(String gaName) {
@@ -30,7 +30,7 @@ public class AverageSpikeRateParentSelector implements ParentSelector{
         Map<Long, List<Double>> spikeRatesForStimIds = getSpikeRatesForEachStimId(taskIdsForStimIds);
         Map<Long, Double> averageSpikeRateForStimIds = calculateAverageSpikeRateForEachStimId(spikeRatesForStimIds);
         Map<Long, ParentData> parentDataForStimId = convertToParentData(averageSpikeRateForStimIds);
-        return parentSelectionStrategy.selectParents(parentDataForStimId);
+        return parentAnalysisStrategy.selectParents(parentDataForStimId);
     }
 
 
@@ -92,12 +92,12 @@ public class AverageSpikeRateParentSelector implements ParentSelector{
         this.dbUtil = dbUtil;
     }
 
-    public ParentSelectionStrategy getParentSelectorStrategy() {
-        return parentSelectionStrategy;
+    public ParentAnalysisStrategy getParentSelectorStrategy() {
+        return parentAnalysisStrategy;
     }
 
-    public void setParentSelectorStrategy(ParentSelectionStrategy parentSelectionStrategy) {
-        this.parentSelectionStrategy = parentSelectionStrategy;
+    public void setParentSelectorStrategy(ParentAnalysisStrategy parentAnalysisStrategy) {
+        this.parentAnalysisStrategy = parentAnalysisStrategy;
     }
 
     public SpikeRateSource getSpikeRateSource() {

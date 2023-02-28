@@ -2,7 +2,7 @@ package org.xper.allen.ga;
 
 import java.util.*;
 
-public class MaxSpikeRateParentSelectionStrategy implements ParentSelectionStrategy {
+public class MaxSpikeRateParentAnalysisStrategy implements ParentAnalysisStrategy {
 
 
     @Override

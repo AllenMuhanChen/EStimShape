@@ -4,7 +4,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-public class RamParentSelectionStrategy implements ParentSelectionStrategy {
+public class RamParentAnalysisStrategy implements ParentAnalysisStrategy {
 
     public static final LinkedHashMap<PercentileRange,Integer> NUMBER_OF_MORPHS_PER_RANGE = new LinkedHashMap<>();
     private List<Long> chosenParentIds = new ArrayList<>();
