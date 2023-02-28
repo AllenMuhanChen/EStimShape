@@ -60,7 +60,7 @@ public class PsychometricTrialIntegrationTest {
 
 		//Act
 		trial.preWrite();
-		trial.write();
+		trial.writeStimSpec();
 
 		//Assert
 		thenPsychometricFilesFound();

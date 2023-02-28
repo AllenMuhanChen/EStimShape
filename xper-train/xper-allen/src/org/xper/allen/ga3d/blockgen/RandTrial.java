@@ -22,13 +22,13 @@ public class RandTrial extends ThreeDGATrial {
     }
 
     @Override
-    public void write() {
+    public void writeStimSpec() {
         //Assign StimSpecId
-        id = generator.getGlobalTimeUtil().currentTimeMicros();
+        stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
         RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
         AllenMatchStick mStick = mStickGenerator.getMStick();
-        mStickGenerator.getMStickSpec().writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(id), true);
+        mStickGenerator.getMStickSpec().writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
 
         //shading
         mStick.setTextureType("SHADE");
@@ -39,25 +39,25 @@ public class RandTrial extends ThreeDGATrial {
         //draw pngs
         List<String> labels = new LinkedList<>();
         labels.add(generator.getGaBaseName());
-        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, labels, generator.getGeneratorPngPath());
+        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPathToExperiment(pngPath);
 
         //Create StimSpec
-        spec = new PngSpec();
-        spec.setPath(pngPath);
-        spec.setDimensions(new ImageDimensions(size, size));
-        spec.setxCenter(coords.getX());
-        spec.setyCenter(coords.getY());
+        stimSpec = new PngSpec();
+        stimSpec.setPath(pngPath);
+        stimSpec.setDimensions(new ImageDimensions(size, size));
+        stimSpec.setxCenter(coords.getX());
+        stimSpec.setyCenter(coords.getY());
 
         mStickData = mStickGenerator.getMStick().getMStickData();
-        writeStimSpec(id);
+        writeStimSpec(stimId);
 
         System.err.println("Finished Writing Rand Trial");
     }
 
 
     @Override
-    public Long getTaskId() {
-        return id;
+    public Long getStimId() {
+        return stimId;
     }
 }

@@ -28,7 +28,7 @@ public class NoisyPngFixationTrial implements Trial {
 
 
     @Override
-    public void write() {
+    public void writeStimSpec() {
         //Generate MStick
         RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
         AllenMatchStick mStick = mStickGenerator.getMStick();
@@ -62,7 +62,7 @@ public class NoisyPngFixationTrial implements Trial {
 
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return id;
     }
 }

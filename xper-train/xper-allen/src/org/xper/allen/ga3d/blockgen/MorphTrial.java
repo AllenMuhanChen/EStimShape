@@ -33,7 +33,7 @@ public class MorphTrial extends ThreeDGATrial {
     }
 
     @Override
-    public void write() {
+    public void writeStimSpec() {
         //asign stimId
         long id = generator.getGlobalTimeUtil().currentTimeMicros();
 
@@ -117,7 +117,7 @@ public class MorphTrial extends ThreeDGATrial {
 
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return taskId;
     }
 

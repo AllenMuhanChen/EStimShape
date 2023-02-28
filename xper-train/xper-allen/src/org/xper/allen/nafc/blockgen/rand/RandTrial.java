@@ -40,7 +40,7 @@ public class RandTrial implements Trial{
 	public void preWrite() {}
 	
 	@Override
-	public void write() {
+	public void writeStimSpec() {
 		assignStimObjIds();
 		generateMatchSticks();
 		drawPNGs();
@@ -104,7 +104,7 @@ public class RandTrial implements Trial{
 
 	private void writeStimSpec(){
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getTaskId(),
+				getStimId(),
 				dbUtil,
 				trialParameters,
 				coords,
@@ -114,7 +114,7 @@ public class RandTrial implements Trial{
 		stimSpecWriter.writeStimSpec();
 	}
 	@Override
-	public Long getTaskId() {
+	public Long getStimId() {
 		return taskId;
 	}
 	

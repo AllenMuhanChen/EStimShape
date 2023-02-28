@@ -68,7 +68,7 @@ public class PsychometricTrial implements Trial{
 	}
 
 	@Override
-	public void write() {
+	public void writeStimSpec() {
 		assignStimObjIds();
 		loadMSticks();
 		generateNoiseMap();
@@ -158,7 +158,7 @@ public class PsychometricTrial implements Trial{
 	
 	private void writeStimSpec() {
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getTaskId(), 
+				getStimId(),
 				dbUtil,
 				trialParameters,
 				coords,
@@ -168,7 +168,7 @@ public class PsychometricTrial implements Trial{
 		stimSpecWriter.writeStimSpec();
 	}
 
-	public Long getTaskId() {
+	public Long getStimId() {
 		return taskId;
 	}
 

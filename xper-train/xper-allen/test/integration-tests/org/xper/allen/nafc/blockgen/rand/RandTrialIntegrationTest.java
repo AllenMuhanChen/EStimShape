@@ -118,7 +118,7 @@ public class RandTrialIntegrationTest {
 
         //Act
         randTrial.preWrite();
-        randTrial.write();
+        randTrial.writeStimSpec();
 
         //Assert
         thenDrawsPngs();
