@@ -69,7 +69,7 @@ public class ThreeDGAConfig {
 
     @Bean
     public ParentSelector parentSelector(){
-        StandardParentSelector parentSelector = new StandardParentSelector();
+        AverageSpikeRateParentSelector parentSelector = new AverageSpikeRateParentSelector();
         parentSelector.setDbUtil(dbUtil());
         parentSelector.setSpikeRateSource(spikeRateSource());
         parentSelector.setParentSelectorStrategy(spikeRateAnalyzer());
