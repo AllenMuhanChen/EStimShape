@@ -20,7 +20,7 @@ public class StandardSpikeRateAnalyzerTest {
      */
     @Test
     public void chooses_16_out_of_20() {
-        RamParentSelectionStrategy analyzer = new RamParentSelectionStrategy();
+        RamParentAnalysisStrategy analyzer = new RamParentAnalysisStrategy();
 
 
         List<Double> spikeRates = new LinkedList<>();

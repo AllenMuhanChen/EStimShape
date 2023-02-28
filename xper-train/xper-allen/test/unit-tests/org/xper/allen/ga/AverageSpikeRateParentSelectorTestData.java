@@ -39,7 +39,7 @@ public class AverageSpikeRateParentSelectorTestData {
         spikeRateSource.setChannels(Arrays.asList("B-000", "B-031"));
         parentSelector.setSpikeRateSource(spikeRateSource);
 
-        parentSelector.setParentSelectorStrategy(new MaxSpikeRateParentSelectionStrategy());
+        parentSelector.setParentSelectorStrategy(new MaxSpikeRateParentAnalysisStrategy());
 
        this.parentSelector = parentSelector;
     }
