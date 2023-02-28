@@ -13,18 +13,15 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class MorphTrial extends ThreeDGATrial {
+public class MorphStim extends ThreeDGAStim {
 
-    private Long parentId;
-    private long taskId;
     private String gaName;
     private PngSpec spec;
     private AllenMStickData mStickData;
 
-    public MorphTrial(GA3DBlockGen generator, String gaName, Long parentId) {
-        super(generator);
+    public MorphStim(GA3DBlockGenerator generator, String gaName, Long parentId) {
+        super(generator, parentId);
         this.gaName = gaName;
-        this.parentId = parentId;
     }
 
     @Override
@@ -33,9 +30,9 @@ public class MorphTrial extends ThreeDGATrial {
     }
 
     @Override
-    public void writeStimSpec() {
+    public void writeStim() {
         //asign stimId
-        long id = generator.getGlobalTimeUtil().currentTimeMicros();
+        stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
         //generate Match Sticks
         AllenMatchStick mStick = new AllenMatchStick();
@@ -55,14 +52,14 @@ public class MorphTrial extends ThreeDGATrial {
         }
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick);
-        mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(id), true);
+        mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
         mStickData = mStick.getMStickData();
 
         //draw pngs
         List<String> labels = new LinkedList<>();
         labels.add(gaName);
         labels.add(Long.toString(parentId));
-        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, labels, generator.getGeneratorPngPath());
+        String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
         pngPath = generator.convertPathToExperiment(pngPath);
 
         Coordinates2D parentCoords = getCoordsFromParent();
@@ -71,16 +68,14 @@ public class MorphTrial extends ThreeDGATrial {
         Coordinates2D coords = morphCoords(parentCoords, parentSize);
         double size = morphSize(parentSize);
 
-        //write spec
-        taskId = id;
-
         spec = new PngSpec();
         spec.setPath(pngPath);
         spec.setDimensions(new ImageDimensions(size,size));
         spec.setxCenter(coords.getX());
         spec.setyCenter(coords.getY());
 
-        writeStimSpec(taskId);
+        writeStimSpec(stimId);
+
 
         System.err.println("Finished Writing Morph Trial");
     }
@@ -118,7 +113,7 @@ public class MorphTrial extends ThreeDGATrial {
 
     @Override
     public Long getStimId() {
-        return taskId;
+        return stimId;
     }
 
 

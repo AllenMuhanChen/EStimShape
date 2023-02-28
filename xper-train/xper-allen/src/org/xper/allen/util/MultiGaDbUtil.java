@@ -1,9 +1,12 @@
 package org.xper.allen.util;
 
+import org.apache.commons.math3.geometry.Space;
+import org.apache.commons.math3.geometry.partitioning.Region;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
+import org.xper.allen.ga.StimGaInfo;
 import org.xper.db.vo.*;
 import org.xper.exception.VariableNotFoundException;
 
@@ -11,6 +14,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
+/**
+ * Contains database operations for multi-ga experiment.
+ */
 public class MultiGaDbUtil extends AllenDbUtil {
 
     public static final String TASK_TO_DO_GA_AND_GEN_READY = "task_to_do_ga_and_gen_ready";
@@ -165,4 +171,26 @@ public class MultiGaDbUtil extends AllenDbUtil {
     }
 
 
+    public void writeStimGaInfo(Long stimId, Long parentId, String gaName, Long genId, String treeSpec) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.update("insert into StimGaInfo (stim_id, parent_id, ga_name, gen_id, tree_spec) values (?, ?, ?, ?, ?)",
+                new Object[] {stimId, parentId, gaName, genId, treeSpec});
+    }
+
+    public StimGaInfo readStimGaInfo(Long stimId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final StimGaInfo info = new StimGaInfo();
+        jt.query(
+                " select * from StimGaInfo where stim_id = ?",
+                new Object[] { stimId },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        info.setGenId(rs.getLong("gen_id"));
+                        info.setGaName(rs.getString("ga_name"));
+                        info.setParentId(rs.getLong("parent_id"));
+                        info.setStimId(rs.getLong("stim_id"));
+                        info.setTreeSpec(rs.getString("tree_spec"));
+                    }});
+        return info;
+    }
 }

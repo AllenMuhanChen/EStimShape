@@ -1,8 +1,8 @@
 package org.xper.allen.ga3d.blockgen;
 
-import org.xper.allen.Trial;
+import org.xper.allen.Stim;
 
-public class GA3DTrial implements Trial {
+public class GA3DStim implements Stim {
 
     @Override
     public void preWrite() {
@@ -10,7 +10,7 @@ public class GA3DTrial implements Trial {
     }
 
     @Override
-    public void writeStimSpec() {
+    public void writeStim() {
 
     }
 

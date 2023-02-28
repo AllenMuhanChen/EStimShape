@@ -1,6 +1,6 @@
 package org.xper.allen.fixation.blockgen;
 
-import org.xper.allen.Trial;
+import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
@@ -11,14 +11,14 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import java.util.Collections;
 
-public class NoisyPngFixationTrial implements Trial {
+public class NoisyPngFixationStim implements Stim {
 
     private long id;
 
     private final NoisyPngFixationBlockGen generator;
     private final NoisyPngFixationTrialParameters params;
 
-    public NoisyPngFixationTrial(NoisyPngFixationBlockGen generator, NoisyPngFixationTrialParameters params) {
+    public NoisyPngFixationStim(NoisyPngFixationBlockGen generator, NoisyPngFixationTrialParameters params) {
         this.generator = generator;
         this.params = params;
     }
@@ -28,7 +28,7 @@ public class NoisyPngFixationTrial implements Trial {
 
 
     @Override
-    public void writeStimSpec() {
+    public void writeStim() {
         //Generate MStick
         RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
         AllenMatchStick mStick = mStickGenerator.getMStick();

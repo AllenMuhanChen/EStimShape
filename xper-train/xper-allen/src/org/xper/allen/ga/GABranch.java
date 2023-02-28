@@ -10,19 +10,24 @@ import java.util.function.Consumer;
 public class GABranch {
 
     private Collection<GABranch> children;
-    private Long branchId;
+    private Long stimId;
 
 
+    /**
+     * For xstream, don't use this.
+     */
     public GABranch() {
     }
 
-    public GABranch(Long branchId, Collection<GABranch> children){
-        this.branchId = branchId;
+
+    public GABranch(Long stimId, Collection<GABranch> children){
+        this.stimId = stimId;
         this.children = children;
     }
 
-    public GABranch(Long branchId){
-        this.branchId = branchId;
+
+    public GABranch(Long stimId){
+        this.stimId = stimId;
         this.children = new LinkedList<>();
     }
 
@@ -49,12 +54,22 @@ public class GABranch {
         children.add(child);
     }
 
-    public void addChildTo(long branchId, GABranch branch) {
-        if (this.branchId == branchId){
-            this.addChild(branch);
+    public void addChildTo(long parentId, GABranch childBranch) {
+        if (this.stimId == parentId){
+            this.addChild(childBranch);
         } else {
             for (GABranch child : children){
-                child.addChildTo(branchId, branch);
+                child.addChildTo(parentId, childBranch);
+            }
+        }
+    }
+
+    public void addChildTo(long parentId, long childId) {
+        if (this.stimId == parentId){
+            this.addChild(new GABranch(childId));
+        } else {
+            for (GABranch child : children){
+                child.addChildTo(parentId, childId);
             }
         }
     }
@@ -74,17 +89,17 @@ public class GABranch {
         this.children = children;
     }
 
-    public Long getBranchId() {
-        return branchId;
+    public Long getStimId() {
+        return stimId;
     }
 
-    public void setBranchId(Long branchId) {
-        this.branchId = branchId;
+    public void setStimId(Long stimId) {
+        this.stimId = stimId;
     }
 
     @Override
     public String toString() {
-       String s = branchId + "\n";
+       String s = stimId + "\n";
          for (GABranch child : children){
 
               s += "-"+child.toString();
@@ -97,11 +112,11 @@ public class GABranch {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         GABranch gaBranch = (GABranch) o;
-        return getChildren().equals(gaBranch.getChildren()) && getBranchId().equals(gaBranch.getBranchId());
+        return getChildren().equals(gaBranch.getChildren()) && getStimId().equals(gaBranch.getStimId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getChildren(), getBranchId());
+        return Objects.hash(getChildren(), getStimId());
     }
 }

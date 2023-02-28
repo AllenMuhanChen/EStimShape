@@ -25,13 +25,13 @@ public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
         PsychometricTrialListFactory psychometricFactory = new PsychometricTrialListFactory(
                 this, psychometricFactoryParameters
         );
-        trials.addAll(psychometricFactory.createTrials());
+        stims.addAll(psychometricFactory.createTrials());
     }
 
     protected void addRandTrials(RandFactoryParameters randFactoryParameters) {
         RandTrialListFactory randFactory = new RandTrialListFactory(
                 this, randFactoryParameters);
-        trials.addAll(randFactory.createTrials());
+        stims.addAll(randFactory.createTrials());
     }
 
     public String getGeneratorPngPath() {

@@ -10,21 +10,21 @@ import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.nafc.blockgen.PsychometricMStickFetcher;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
-import org.xper.allen.Trial;
+import org.xper.allen.Stim;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
 /**
  * callMain Class to write a PsychometricTrial to the database.
  */
-public class PsychometricTrial implements Trial{
+public class PsychometricStim implements Stim {
 	/**
 	 * Inputs
 	 */
 	private AbstractPsychometricTrialGenerator generator;
 	private PsychometricTrialParameters trialParameters;
 
-	public PsychometricTrial(
+	public PsychometricStim(
 			AbstractPsychometricTrialGenerator noisyMStickPngPsychometricBlockGen,
 			PsychometricTrialParameters trialParameters) {
 
@@ -68,7 +68,7 @@ public class PsychometricTrial implements Trial{
 	}
 
 	@Override
-	public void writeStimSpec() {
+	public void writeStim() {
 		assignStimObjIds();
 		loadMSticks();
 		generateNoiseMap();
@@ -77,7 +77,17 @@ public class PsychometricTrial implements Trial{
 		assignCoords();
 		writeStimObjDataSpecs();
 		assignTaskId();
-		writeStimSpec();
+
+		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+				getStimId(),
+				dbUtil,
+				trialParameters,
+				coords,
+				numChoices,
+				stimObjIds);
+
+		stimSpecWriter.writeStimSpec();
+
 	}
 
 
@@ -155,18 +165,8 @@ public class PsychometricTrial implements Trial{
 	private void assignTaskId() {
 		setTaskId(stimObjIds.getSample());
 	}
-	
-	private void writeStimSpec() {
-		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getStimId(),
-				dbUtil,
-				trialParameters,
-				coords,
-				numChoices,
-				stimObjIds);
-		
-		stimSpecWriter.writeStimSpec();
-	}
+
+
 
 	public Long getStimId() {
 		return taskId;
