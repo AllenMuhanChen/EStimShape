@@ -10,6 +10,9 @@ import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
 
+import java.util.LinkedList;
+import java.util.List;
+
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
@@ -68,14 +71,27 @@ public class ThreeDGAConfig {
     public ParentSelector parentSelector(){
         StandardParentSelector parentSelector = new StandardParentSelector();
         parentSelector.setDbUtil(dbUtil());
-        parentSelector.setSpikeDatDirectory(spikeDatPath);
-        parentSelector.setSpikeRateAnalyzer(spikeRateAnalyzer());
+        parentSelector.setSpikeRateSource(spikeRateSource());
+        parentSelector.setParentSelectorStrategy(spikeRateAnalyzer());
         return parentSelector;
     }
 
+    private SpikeRateSource spikeRateSource() {
+        IntanSpikeRateSource spikeRateSource = new IntanSpikeRateSource();
+        spikeRateSource.setSpikeDatDirectory(spikeDatPath);
+        spikeRateSource.setChannels(channels());
+        return spikeRateSource;
+    }
+
+    //TODO: figure out the best way to get the channels we want to analyze in the GA
+    private List<String> channels() {
+        return new LinkedList<>();
+    }
+
+
     @Bean
     public ParentSelectorStrategy spikeRateAnalyzer(){
-        StandardParentSelectorStrategy spikeRateAnalyzer = new StandardParentSelectorStrategy();
+        RamParentSelectorStrategy spikeRateAnalyzer = new RamParentSelectorStrategy();
         return spikeRateAnalyzer;
     }
 

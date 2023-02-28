@@ -8,19 +8,17 @@ import java.io.FileFilter;
 import java.util.LinkedList;
 import java.util.List;
 
-public class IntanSpikeRateSource {
+public class IntanSpikeRateSource implements SpikeRateSource {
 
     @Dependency
     String spikeDatDirectory;
 
-    private List<String> channels;
+    @Dependency
+    List<String> channels;
 
-    public void setChannels(List<String> channels) {
-        this.channels = channels;
-    }
-
-    public List<Double> getSpikeRates(Long stimId){
-        String spikeDatPath = getSpikeDatPathFor(stimId);
+    @Override
+    public List<Double> getSpikeRates(Long taskId){
+        String spikeDatPath = getSpikeDatPathFor(taskId);
         return getCombinedSpikeRatesFrom(spikeDatPath);
     }
 
@@ -49,11 +47,19 @@ public class IntanSpikeRateSource {
         return spikeRates;
     }
 
+    public void setChannels(List<String> channels) {
+        this.channels = channels;
+    }
+
     public String getSpikeDatDirectory() {
         return spikeDatDirectory;
     }
 
     public void setSpikeDatDirectory(String spikeDatDirectory) {
         this.spikeDatDirectory = spikeDatDirectory;
+    }
+
+    public List<String> getChannels() {
+        return channels;
     }
 }

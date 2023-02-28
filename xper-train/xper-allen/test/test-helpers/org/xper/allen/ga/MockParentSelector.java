@@ -18,7 +18,7 @@ public class MockParentSelector implements ParentSelector{
     ParentSelectorStrategy spikeRateAnalyzer;
 
     @Override
-    public List<Long> selectParents(List<String> channels, String gaName) {
+    public List<Long> selectParents(String gaName) {
         GenerationTaskDoneList taskDoneList = dbUtil.readTaskDoneForGaAndGeneration(gaName, dbUtil.readTaskDoneMaxGenerationIdForGa(gaName));
 
         List<TaskDoneEntry> doneTasks = taskDoneList.getDoneTasks();
@@ -51,7 +51,7 @@ public class MockParentSelector implements ParentSelector{
         });
         System.out.println(spikeRates);
         //convert hashmap values into list
-        List<Long> parents = spikeRateAnalyzer.analyze(Parent.createParentListFrom(parentIds, spikeRates));
+        List<Long> parents = spikeRateAnalyzer.selectParents(ParentData.createMapFrom(parentIds, spikeRates));
         return parents;
     }
 

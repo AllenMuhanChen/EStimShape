@@ -1,21 +1,16 @@
 package org.xper.allen.util;
 
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowCallbackHandler;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.db.vo.GenerationTaskDoneList;
 import org.xper.db.vo.TaskDoneEntry;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.*;
-import java.util.function.BiConsumer;
 
 /**
- * swaps database operations with simple set and gets for testing purposes.
+ * swaps database operations with simple set and gets for testing StandardParentSelector
  */
-public class TestMultiGaDbUtil extends MultiGaDbUtil {
+public class ParentSelectorTestMockMultiGaDbUtil extends MultiGaDbUtil {
 
     LinkedList<MultiGAExperimentTask> tasksToDo = new LinkedList<>();
 

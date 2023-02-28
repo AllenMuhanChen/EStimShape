@@ -2,15 +2,13 @@ package org.xper.allen.ga;
 
 import org.xper.Dependency;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.db.vo.GenerationTaskDoneList;
-import org.xper.db.vo.TaskDoneEntry;
-import org.xper.intan.read.SpikeReader;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Selects parents based on spike rate read by Intan
@@ -21,45 +19,65 @@ public class StandardParentSelector implements ParentSelector{
     MultiGaDbUtil dbUtil;
 
     @Dependency
-    IntanSpikeRateSource intanSpikeRateSource;
-
+    SpikeRateSource spikeRateSource;
 
     @Dependency
-    ParentSelectorStrategy spikeRateAnalyzer;
+    ParentSelectorStrategy parentSelectorStrategy;
 
-    private List<Long> previousGenerationIds;
 
-    public List<Long> selectParents(List<String> channels, String gaName) {
-
-        //Read Recent Generation into list of taskIds
-        GenerationTaskDoneList taskDoneList = dbUtil.readTaskDoneForGaAndGeneration(gaName, dbUtil.readTaskDoneMaxGenerationIdForGa(gaName));
-        List<TaskDoneEntry> doneTasks = taskDoneList.getDoneTasks();
-        previousGenerationIds = new LinkedList<>();
-        for(TaskDoneEntry task:doneTasks){
-            previousGenerationIds.add(task.getTaskId());
-        }
-
-        //analyze stims
-        List<Double> spikeRates = new ArrayList<>();
-        for (Long stimId: previousGenerationIds){
-            String spikeDatPath = getSpikeDatPathFor(stimId);
-            spikeRates.add(getSummedSpikeRatesFrom(channels, spikeDatPath));
-        }
-
-        return selectParentsFrom(spikeRates);
+    public List<Long> selectParents(String gaName) {
+        Map<Long, List<Long>> taskIdsForStimIds = dbUtil.readTaskDoneIdsForStimIds(gaName, dbUtil.readTaskDoneMaxGenerationIdForGa(gaName));
+        Map<Long, List<Double>> spikeRatesForStimIds = getSpikeRatesForEachStimId(taskIdsForStimIds);
+        Map<Long, Double> averageSpikeRateForStimIds = calculateAverageSpikeRateForEachStimId(spikeRatesForStimIds);
+        Map<Long, ParentData> parentDataForStimId = convertToParentData(averageSpikeRateForStimIds);
+        return parentSelectorStrategy.selectParents(parentDataForStimId);
     }
 
-    private List<Long> selectParentsFrom(List<Double> spikeRates) {
-        return new LinkedList<>(spikeRateAnalyzer.analyze(Parent.createParentListFrom(previousGenerationIds, spikeRates)));
+    private Map<Long, ParentData> convertToParentData(Map<Long, Double> averageSpikeRateForStimIds) {
+        Map<Long, ParentData> parentDataForStimId = new HashMap<>();
+        averageSpikeRateForStimIds.forEach(new BiConsumer<Long, Double>() {
+            @Override
+            public void accept(Long stimId, Double averageSpikeRate) {
+                parentDataForStimId.put(stimId, new ParentData(stimId, averageSpikeRate));
+            }
+        });
+        return parentDataForStimId;
     }
 
-    private Double getSummedSpikeRatesFrom(List<String> channels, String spikeDatPath) {
-        SpikeReader spikeReader = new SpikeReader(spikeDatPath);
-        double summedSpikeRate=0;
-        for (String channel:channels){
-            summedSpikeRate += spikeReader.getSpikeRate(channel);
-        }
-        return summedSpikeRate;
+    private Map<Long, Double> calculateAverageSpikeRateForEachStimId(Map<Long, List<Double>> spikeRatesForStimId) {
+        Map<Long, Double> averageSpikeRateForStimId = new HashMap<>();
+        spikeRatesForStimId.forEach(new BiConsumer<Long, List<Double>>() {
+            @Override
+            public void accept(Long stimId, List<Double> spikeRates) {
+                double sum = 0;
+                for (double spikeRate: spikeRates){
+                    sum += spikeRate;
+                }
+                averageSpikeRateForStimId.put(stimId, sum/spikeRates.size());
+            }
+        });
+        return averageSpikeRateForStimId;
+    }
+
+    private Map<Long, List<Double>> getSpikeRatesForEachStimId(Map<Long, List<Long>> taskIdsForStimId) {
+        Map<Long, List<Double>> spikeRatesForStimId = new HashMap<>();
+        taskIdsForStimId.forEach(new BiConsumer<Long, List<Long>>() {
+            @Override
+            public void accept(Long stimId, List<Long> taskIds) {
+
+                //Read the spike rates for each taskId
+                taskIds.forEach(new Consumer<Long>() {
+                    @Override
+                    public void accept(Long taskId) {
+                        if (spikeRatesForStimId.get(stimId) == null) {
+                            spikeRatesForStimId.put(stimId, new LinkedList<>());
+                        }
+                        spikeRatesForStimId.get(stimId).addAll(spikeRateSource.getSpikeRates(taskId));
+                    }
+                });
+            }
+        });
+        return spikeRatesForStimId;
     }
 
 
@@ -71,13 +89,19 @@ public class StandardParentSelector implements ParentSelector{
         this.dbUtil = dbUtil;
     }
 
-    public ParentSelectorStrategy getSpikeRateAnalyzer() {
-        return spikeRateAnalyzer;
+    public ParentSelectorStrategy getParentSelectorStrategy() {
+        return parentSelectorStrategy;
     }
 
-    public void setSpikeRateAnalyzer(ParentSelectorStrategy spikeRateAnalyzer) {
-        this.spikeRateAnalyzer = spikeRateAnalyzer;
+    public void setParentSelectorStrategy(ParentSelectorStrategy parentSelectorStrategy) {
+        this.parentSelectorStrategy = parentSelectorStrategy;
     }
 
+    public SpikeRateSource getSpikeRateSource() {
+        return spikeRateSource;
+    }
 
+    public void setSpikeRateSource(SpikeRateSource spikeRateSource) {
+        this.spikeRateSource = spikeRateSource;
+    }
 }

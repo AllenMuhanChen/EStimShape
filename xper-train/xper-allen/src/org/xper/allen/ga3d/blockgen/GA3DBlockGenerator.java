@@ -82,7 +82,7 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
     private List<ThreeDGAStim> createMorphTrials(GA3DBlockGenerator generator, String gaName){
         List<ThreeDGAStim> trials = new LinkedList<>();
 
-        stimsToMorph = parentSelector.selectParents(channels, gaName);
+        stimsToMorph = parentSelector.selectParents(gaName);
 
         for (Long parentId: stimsToMorph){
             trials.add(new MorphStim(generator, gaName, parentId));
