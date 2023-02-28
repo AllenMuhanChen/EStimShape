@@ -12,13 +12,17 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-public class IntanSpikeParentSelector implements ParentSelector{
+/**
+ * Selects parents based on spike rate read by Intan
+ */
+public class StandardParentSelector implements ParentSelector{
 
     @Dependency
     MultiGaDbUtil dbUtil;
 
     @Dependency
-    String spikeDatDirectory;
+    IntanSpikeRateSource intanSpikeRateSource;
+
 
     @Dependency
     ParentSelectorStrategy spikeRateAnalyzer;
@@ -58,22 +62,6 @@ public class IntanSpikeParentSelector implements ParentSelector{
         return summedSpikeRate;
     }
 
-    @SuppressWarnings("ConstantConditions")
-    private String getSpikeDatPathFor(Long stimId) {
-        File dir = new File(spikeDatDirectory);
-        File[] matchingSpikeDats = dir.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File pathname) {
-                return pathname.getName().contains(stimId + "_");
-            }
-        });
-        if (matchingSpikeDats.length == 1){
-            return matchingSpikeDats[0].getAbsolutePath() + "/spike.dat";
-        } else{
-            throw new IllegalArgumentException("There's either none or too many" +
-                    "spike.dat files matching the stimId: " + stimId);
-        }
-    }
 
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;
@@ -81,15 +69,6 @@ public class IntanSpikeParentSelector implements ParentSelector{
 
     public void setDbUtil(MultiGaDbUtil dbUtil) {
         this.dbUtil = dbUtil;
-    }
-
-
-    public String getSpikeDatDirectory() {
-        return spikeDatDirectory;
-    }
-
-    public void setSpikeDatDirectory(String spikeDatDirectory) {
-        this.spikeDatDirectory = spikeDatDirectory;
     }
 
     public ParentSelectorStrategy getSpikeRateAnalyzer() {
