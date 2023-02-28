@@ -24,7 +24,6 @@ public class AverageSpikeRateParentSelector implements ParentSelector{
     @Dependency
     ParentAnalysisStrategy parentAnalysisStrategy;
 
-
     public List<Long> selectParents(String gaName) {
         Map<Long, List<Long>> taskIdsForStimIds = dbUtil.readTaskDoneIdsForStimIds(gaName, dbUtil.readTaskDoneMaxGenerationIdForGa(gaName));
         Map<Long, List<Double>> spikeRatesForStimIds = getSpikeRatesForEachStimId(taskIdsForStimIds);
@@ -32,35 +31,6 @@ public class AverageSpikeRateParentSelector implements ParentSelector{
         Map<Long, ParentData> parentDataForStimId = convertToParentData(averageSpikeRateForStimIds);
         return parentAnalysisStrategy.selectParents(parentDataForStimId);
     }
-
-
-    private Map<Long, ParentData> convertToParentData(Map<Long, Double> averageSpikeRateForStimIds) {
-        Map<Long, ParentData> parentDataForStimId = new HashMap<>();
-        averageSpikeRateForStimIds.forEach(new BiConsumer<Long, Double>() {
-            @Override
-            public void accept(Long stimId, Double averageSpikeRate) {
-                parentDataForStimId.put(stimId, new ParentData(stimId, averageSpikeRate));
-            }
-        });
-        return parentDataForStimId;
-    }
-
-
-    private Map<Long, Double> calculateAverageSpikeRateForEachStimId(Map<Long, List<Double>> spikeRatesForStimId) {
-        Map<Long, Double> averageSpikeRateForStimId = new HashMap<>();
-        spikeRatesForStimId.forEach(new BiConsumer<Long, List<Double>>() {
-            @Override
-            public void accept(Long stimId, List<Double> spikeRates) {
-                double sum = 0;
-                for (double spikeRate: spikeRates){
-                    sum += spikeRate;
-                }
-                averageSpikeRateForStimId.put(stimId, sum/spikeRates.size());
-            }
-        });
-        return averageSpikeRateForStimId;
-    }
-
 
     private Map<Long, List<Double>> getSpikeRatesForEachStimId(Map<Long, List<Long>> taskIdsForStimId) {
         Map<Long, List<Double>> spikeRatesForStimId = new HashMap<>();
@@ -83,6 +53,31 @@ public class AverageSpikeRateParentSelector implements ParentSelector{
         return spikeRatesForStimId;
     }
 
+    private Map<Long, Double> calculateAverageSpikeRateForEachStimId(Map<Long, List<Double>> spikeRatesForStimId) {
+        Map<Long, Double> averageSpikeRateForStimId = new HashMap<>();
+        spikeRatesForStimId.forEach(new BiConsumer<Long, List<Double>>() {
+            @Override
+            public void accept(Long stimId, List<Double> spikeRates) {
+                double sum = 0;
+                for (double spikeRate: spikeRates){
+                    sum += spikeRate;
+                }
+                averageSpikeRateForStimId.put(stimId, sum/spikeRates.size());
+            }
+        });
+        return averageSpikeRateForStimId;
+    }
+
+    private Map<Long, ParentData> convertToParentData(Map<Long, Double> averageSpikeRateForStimIds) {
+        Map<Long, ParentData> parentDataForStimId = new HashMap<>();
+        averageSpikeRateForStimIds.forEach(new BiConsumer<Long, Double>() {
+            @Override
+            public void accept(Long stimId, Double averageSpikeRate) {
+                parentDataForStimId.put(stimId, new ParentData(stimId, averageSpikeRate));
+            }
+        });
+        return parentDataForStimId;
+    }
 
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;
