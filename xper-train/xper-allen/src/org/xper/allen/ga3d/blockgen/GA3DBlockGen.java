@@ -140,14 +140,11 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
             @Override
             public void accept(String gaName, List<ThreeDGATrial> trials) {
                 for (ThreeDGATrial trial : trials) {
-                    trial.write();
-                    Long taskId = trial.getTaskId();
-                    dbUtil.writeTaskToDo(taskId, taskId, -1, gaName, genIdsForGA.get(gaName));
-
-                    for (int i = 0; i < numTrialsPerStimuli-1; i++) {
-                        RepetitionTrial repetition = trial.createRepetition();
-                        repetition.write();
-                        dbUtil.writeTaskToDo(repetition.getTaskId(), taskId, -1, gaName, genIdsForGA.get(gaName));
+                    trial.writeStimSpec();
+                    Long stimId = trial.getStimId();
+                    for (int i = 0; i < numTrialsPerStimuli; i++) {
+                        long taskId = getGlobalTimeUtil().currentTimeMicros();
+                        dbUtil.writeTaskToDo(taskId, stimId, -1, gaName, genIdsForGA.get(gaName));
                     }
                 }
             }

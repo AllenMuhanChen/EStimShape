@@ -10,12 +10,12 @@ public class GA3DTrial implements Trial {
     }
 
     @Override
-    public void write() {
+    public void writeStimSpec() {
 
     }
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return null;
     }
 }

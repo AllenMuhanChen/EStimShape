@@ -1,7 +1,5 @@
 package org.xper.allen;
 
-import org.xper.allen.util.AllenDbUtil;
-
 /**
  * All trials need to be written to the database and be associated with a taskId. 
  * @return taskId
@@ -10,7 +8,7 @@ import org.xper.allen.util.AllenDbUtil;
  */
 public interface Trial {
 	void preWrite();
-	void write();
-	Long getTaskId();
+	void writeStimSpec();
+	Long getStimId();
 	
 }

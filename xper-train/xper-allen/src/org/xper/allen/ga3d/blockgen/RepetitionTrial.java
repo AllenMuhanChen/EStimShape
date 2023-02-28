@@ -5,9 +5,10 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.PngSpec;
 
 public class RepetitionTrial extends ThreeDGATrial {
-    long id;
+    long stimId;
     PngSpec spec;
     AllenMStickData mStickData;
+
 
     public RepetitionTrial(GA3DBlockGen generator, double size, Coordinates2D coords, PngSpec spec, AllenMStickData mStickData) {
         super(generator, size, coords);
@@ -21,16 +22,16 @@ public class RepetitionTrial extends ThreeDGATrial {
     }
 
     @Override
-    public void write() {
+    public void writeStimSpec() {
         //Assign StimSpecId
-        id = generator.getGlobalTimeUtil().currentTimeMicros();
+        stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
         //Create StimSpec
-        generator.getDbUtil().writeStimSpec(id, spec.toXml(), mStickData.toXml());
+        generator.getDbUtil().writeStimSpec(stimId, spec.toXml(), mStickData.toXml());
     }
 
     @Override
-    public Long getTaskId() {
-        return id;
+    public Long getStimId() {
+        return stimId;
     }
 }

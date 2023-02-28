@@ -58,8 +58,8 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 
 	protected void writeTrials() {
 		for (Trial trial : trials) {
-			trial.write();
-			Long taskId = trial.getTaskId();
+			trial.writeStimSpec();
+			Long taskId = trial.getStimId();
 			getDbUtil().writeTaskToDo(taskId, taskId, -1, genId);
 		}
 	}
