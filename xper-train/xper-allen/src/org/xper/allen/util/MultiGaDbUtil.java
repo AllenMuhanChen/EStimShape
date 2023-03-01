@@ -213,4 +213,17 @@ public class MultiGaDbUtil extends AllenDbUtil {
                     }});
         return result;
     }
+
+    public List<Long> readAllStimIdsForGa(String gaName){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final List<Long> result = new ArrayList<>();
+        jt.query(
+                " select distinct stim_id from StimGaInfo where ga_name = ?",
+                new Object[] { gaName },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        result.add(rs.getLong("stim_id"));
+                    }});
+        return result;
+    }
 }
