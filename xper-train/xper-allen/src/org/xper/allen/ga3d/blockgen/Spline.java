@@ -1,0 +1,38 @@
+package org.xper.allen.ga3d.blockgen;
+
+import org.apache.commons.math.FunctionEvaluationException;
+import org.apache.commons.math.analysis.PolynomialSplineFunction;
+import org.apache.commons.math.analysis.SplineInterpolator;
+import org.apache.commons.math.analysis.UnivariateRealFunction;
+
+import javax.vecmath.Point2d;
+import java.util.List;
+
+public class Spline {
+
+    private UnivariateRealFunction splineFunction;
+
+    public Spline(double[] controlPoints_x, double[] controlPoints_y) {
+        createSpline(controlPoints_x, controlPoints_y);
+    }
+
+    public Spline(List<Point2d> controlPoints) {
+        double[] controlPoints_x = new double[controlPoints.size()];
+        double[] controlPoints_y = new double[controlPoints.size()];
+        for (int i = 0; i < controlPoints.size(); i++) {
+            controlPoints_x[i] = controlPoints.get(i).x;
+            controlPoints_y[i] = controlPoints.get(i).y;
+        }
+        createSpline(controlPoints_x, controlPoints_y);
+    }
+
+    public double getValue(double x) throws FunctionEvaluationException {
+        return splineFunction.value(x);
+    }
+
+
+    private void createSpline(double[] x, double[] y){
+        SplineInterpolator splineInterpolator = new SplineInterpolator();
+        splineFunction = splineInterpolator.interpolate(x, y);
+    }
+}
