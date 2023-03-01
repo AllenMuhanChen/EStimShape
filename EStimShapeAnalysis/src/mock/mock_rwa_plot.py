@@ -100,6 +100,7 @@ def plot_shaft_rwa(test_rwa):
     plt.draw()
 
 
+
 def plot_multi_peaks(test_rwa):
     matrix = test_rwa.matrix
     matrix_peaks = []
