@@ -6,7 +6,6 @@ import org.junit.Test;
 import org.knowm.xchart.SwingWrapper;
 import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XYSeries;
-import org.knowm.xchart.internal.series.Series;
 import org.knowm.xchart.style.Styler;
 import org.xper.util.ThreadUtil;
 
@@ -27,13 +26,15 @@ public class SplineTest {
         controlPoints.add(new Point2d(0, 0));
         controlPoints.add(new Point2d(1, 1));
         controlPoints.add(new Point2d(2, 2));
-        Spline spline = new Spline(controlPoints);
+        NaturalSpline spline = new NaturalSpline(controlPoints);
 
         double test_x = 0.5;
         double actual_y = spline.getValue(test_x);
         double expected_y = 0.5;
 
         assertEquals(expected_y, actual_y, 0.0001);
+
+        plotSpline(spline);
     }
 
     @Test
@@ -42,7 +43,7 @@ public class SplineTest {
         controlPoints.add(new Point2d(0, 0));
         controlPoints.add(new Point2d(1, 1));
         controlPoints.add(new Point2d(2, 4));
-        Spline spline = new Spline(controlPoints);
+        NaturalSpline spline = new NaturalSpline(controlPoints);
 
         double test_x = 0.5;
         double actual_y = spline.getValue(test_x);
@@ -53,13 +54,46 @@ public class SplineTest {
         plotSpline(spline);
     }
 
-    private void plotSpline(Spline spline) throws FunctionEvaluationException {
-        XYChart chart = new XYChart(800, 600);
-        chart.setTitle("Spline Test");
-        chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);
+    @Test
+    public void test_peak_to_slope() throws FunctionEvaluationException {
+        LinkedList<Point2d> peakPoints = new LinkedList<Point2d>();
+        peakPoints.add(new Point2d(0, 0));
+        peakPoints.add(new Point2d(0.5, 1));
+        peakPoints.add(new Point2d(1, 0));
 
+        LinkedList<Point2d> slopePoints = new LinkedList<Point2d>();
+        slopePoints.add(new Point2d(0, 0));
+        slopePoints.add(new Point2d(0.5, 1));
+        slopePoints.add(new Point2d(0.75, 0.99));
+        slopePoints.add(new Point2d(1, 1));
+
+        NaturalSpline peakSpline = new NaturalSpline(peakPoints);
+        NaturalSpline slopeSpline = new NaturalSpline(slopePoints);
+
+        XYChart chart = initChart();
+        addSplineToChart(peakSpline, chart, "Peak");
+        addSplineToChart(slopeSpline, chart, "Slope");
+        show(chart);
+
+
+    }
+
+    private XYChart plotSpline(NaturalSpline spline) throws FunctionEvaluationException {
+        XYChart chart = initChart();
+        addSplineToChart(spline, chart, "Spline");
+        show(chart);
+        return chart;
+    }
+
+    private void show(XYChart chart) {
+        // Show the chart
+        new SwingWrapper<>(chart).displayChart();
+        ThreadUtil.sleep(100000);
+    }
+
+    private void addSplineToChart(NaturalSpline spline, XYChart chart, String seriesName) throws FunctionEvaluationException {
         double begin = 0.0;
-        double end = 2.0;
+        double end = 1.0;
         int numPoints = 100;
         double[] x = new double[numPoints];
         double[] y = new double[numPoints];
@@ -69,11 +103,14 @@ public class SplineTest {
             y[index] = spline.getValue(i);
             index++;
         }
-        XYSeries splineSeries = chart.addSeries("Spline", x, y);
-
-        // Show the chart
-        new SwingWrapper<>(chart).displayChart();
-
-        ThreadUtil.sleep(100000);
+        XYSeries splineSeries = chart.addSeries(seriesName, x, y);
     }
+
+    private XYChart initChart() {
+        XYChart chart = new XYChart(800, 600);
+        chart.setTitle("Spline Test");
+        chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);
+        return chart;
+    }
+
 }
