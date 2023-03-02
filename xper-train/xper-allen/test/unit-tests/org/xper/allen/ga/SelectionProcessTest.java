@@ -28,7 +28,7 @@ public class SelectionProcessTest {
     }
 
     @Test
-    public void selectParents() {
+    public void selects_correct_distribution_of_children() {
 
         List<Child> selectedChildren = selector.select("test");
 

@@ -26,6 +26,13 @@ public class SelectionProcess{
 
     private ProbabilityTable<Child> table;
 
+    /**
+     * Selects children from the database based on their fitness scores.
+     * The fitness scores are calculated based on the spike rates and canopy widths of the children.
+     *
+     * @param gaName
+     * @return
+     */
     public List<Child> select(String gaName) {
         List<Long> allStimIds = dbUtil.readAllStimIdsForGa(gaName);
         List<Child> possibleChildren = convertToChildren(allStimIds);
