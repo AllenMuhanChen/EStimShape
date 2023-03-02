@@ -4,6 +4,7 @@ import org.xper.Dependency;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class SelectionProcess{
@@ -20,14 +21,39 @@ public class SelectionProcess{
     @Dependency
     FitnessScoreCalculator fitnessScoreCalculator;
 
-    public ProbabilityTable<Child> select(String gaName) {
+    @Dependency
+    Integer numChildren;
+
+    private ProbabilityTable<Child> table;
+
+    public List<Child> select(String gaName) {
         List<Long> allStimIds = dbUtil.readAllStimIdsForGa(gaName);
-        List<Child> children = convertToChildren(allStimIds);
-        List<Double> fitnesses = calculateFitnesses(children);
-        ProbabilityTable<Child> table = new ProbabilityTable<>(children, fitnesses);
-        return table;
+        List<Child> possibleChildren = convertToChildren(allStimIds);
+        List<Double> fitnesses = calculateFitnesses(possibleChildren);
+
+        return selectChildren(possibleChildren, fitnesses);
     }
 
+    /**
+     * Selects children from the list of possible children based on their fitness scores.
+     * The fitness scores are used to create a probability table, and then children are
+     * sampled from the table with replacement.
+     */
+    private List<Child> selectChildren(List<Child> possibleChildren, List<Double> fitnesses) {
+        List<Child> selectedChildren = new LinkedList<>();
+        table = new ProbabilityTable<>(possibleChildren, fitnesses);
+        for (int i = 0; i < numChildren; i++) {
+            Child child = table.sampleWithReplacement();
+            selectedChildren.add(child);
+        }
+        return selectedChildren;
+    }
+
+    /**
+     * Converts a list of stimIds into a list of possible children that could be selected
+     * in the selection process.
+     * @param allStimIds
+     */
     private List<Child> convertToChildren(List<Long> allStimIds) {
         List<Child> children = new ArrayList<>();
         for (Long stimId : allStimIds) {
@@ -42,7 +68,7 @@ public class SelectionProcess{
         List<Double> fitnesses = new ArrayList<>();
         for (Child child : children) {
             Double averageSpikeRate = getAverageSpikeRate(child);
-            Integer treeCanopyWidth = canopyWidthSource.getCanopyWidth(child.getStimId());
+            Integer treeCanopyWidth = getTreeCanopyWidth(child);
 
             Double fitnessScore = calculateFitnessScore(new FitnessScoreParameters(averageSpikeRate, treeCanopyWidth));
             fitnesses.add(fitnessScore);
@@ -57,6 +83,14 @@ public class SelectionProcess{
         return average(spikeRates);
     }
 
+    private Integer getTreeCanopyWidth(Child child) {
+        return canopyWidthSource.getCanopyWidth(child.getStimId());
+    }
+
+    private Double calculateFitnessScore(FitnessScoreParameters fitnessScoreParameters) {
+        return fitnessScoreCalculator.calculateFitnessScore(fitnessScoreParameters);
+    }
+
     private double average(List<Double> spikeRates) {
         double averageSpikeRate = 0;
         for (Double spikeRate : spikeRates) {
@@ -64,10 +98,6 @@ public class SelectionProcess{
         }
         averageSpikeRate /= spikeRates.size();
         return averageSpikeRate;
-    }
-
-    private Double calculateFitnessScore(FitnessScoreParameters fitnessScoreParameters) {
-        return fitnessScoreCalculator.calculateFitnessScore(fitnessScoreParameters);
     }
 
     public MultiGaDbUtil getDbUtil() {
@@ -100,5 +130,17 @@ public class SelectionProcess{
 
     public void setFitnessScoreCalculator(FitnessScoreCalculator fitnessScoreCalculator) {
         this.fitnessScoreCalculator = fitnessScoreCalculator;
+    }
+
+    public ProbabilityTable<Child> getTable() {
+        return table;
+    }
+
+    public Integer getNumChildren() {
+        return numChildren;
+    }
+
+    public void setNumChildren(Integer numChildren) {
+        this.numChildren = numChildren;
     }
 }
