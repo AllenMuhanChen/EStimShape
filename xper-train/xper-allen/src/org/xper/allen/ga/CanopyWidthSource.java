@@ -3,7 +3,14 @@ package org.xper.allen.ga;
 import org.xper.Dependency;
 import org.xper.allen.util.MultiGaDbUtil;
 
+import java.util.LinkedList;
+import java.util.List;
+import java.util.function.Consumer;
+
 public class CanopyWidthSource {
+
+    @Dependency
+    public static double THRESHOLD_PERCENTAGE = 0.8;
 
     @Dependency
     MultiGaDbUtil dbUtil;
@@ -11,11 +18,45 @@ public class CanopyWidthSource {
     @Dependency
     MaxResponseSource maxResponseSource;
 
+    @Dependency
+    SpikeRateSource spikeRateSource;
+
+    /**
+     * Finds the canopy width associated with the lineage tree for any particular stimulus.
+     *
+     * @param stimId
+     * @return
+     */
     public Integer getCanopyWidth(Long stimId) {
         StimGaInfo gaInfo =  dbUtil.readStimGaInfo(stimId);
         String treeSpec = gaInfo.getTreeSpec();
+        Branch<Long> tree = Branch.fromXml(treeSpec);
 
-        return 0;
+        List<Long> canopyStims = findCanopy(tree);
+
+        return canopyStims.size();
+    }
+
+    private List<Long> findCanopy(Branch<Long> tree) {
+        //Finding the average spike rate for each stimulus and adding it to the list of canopy sitmuli
+        // if it is above the threshold
+        List<Long> canopyStims = new LinkedList<>();
+        Double maxResponse = maxResponseSource.getMaxResponse();
+        tree.forEach(new Consumer<Branch<Long>>() {
+            @Override
+            public void accept(Branch<Long> branch) {
+                double spikeRate = getAverageSpikeRateForStim(branch.getIdentifier());
+                if (spikeRate > THRESHOLD_PERCENTAGE * maxResponse) {
+                    canopyStims.add(branch.getIdentifier());
+                }
+
+            }
+        });
+        return canopyStims;
+    }
+
+    private Double getAverageSpikeRateForStim(Long stimId) {
+        return spikeRateSource.getSpikeRates(stimId).stream().mapToDouble(Double::doubleValue).average().getAsDouble();
     }
 
     public MultiGaDbUtil getDbUtil() {
@@ -32,5 +73,21 @@ public class CanopyWidthSource {
 
     public void setMaxResponseSource(MaxResponseSource maxResponseSource) {
         this.maxResponseSource = maxResponseSource;
+    }
+
+    public SpikeRateSource getSpikeRateSource() {
+        return spikeRateSource;
+    }
+
+    public void setSpikeRateSource(SpikeRateSource spikeRateSource) {
+        this.spikeRateSource = spikeRateSource;
+    }
+
+    public static double getThresholdPercentage() {
+        return THRESHOLD_PERCENTAGE;
+    }
+
+    public static void setThresholdPercentage(double thresholdPercentage) {
+        THRESHOLD_PERCENTAGE = thresholdPercentage;
     }
 }

@@ -4,6 +4,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xper.allen.util.MultiGaDbUtil;
 
+import java.util.LinkedList;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+
 public class CanopyWidthSourceTest {
 
     private CanopyWidthSource canopyWidthSource;
@@ -16,14 +21,38 @@ public class CanopyWidthSourceTest {
         canopyWidthSource.setMaxResponseSource(new MaxResponseSource() {
             @Override
             public double getMaxResponse() {
-                return 1.0;
+                return 42;
             }
         });
+
+        canopyWidthSource.setSpikeRateSource(new CanopyWidthSourceTestSpikeRateSource());
     }
 
     @Test
-    public void getCanopyWidth() {
+    public void calculates_canopy_width_correctly() {
+        //0.8 * 42 = 33.6
+        //SpikeRate is set equal to stimId in this test, so the only stimuli that are above this threshold are
+        //41L and 42L
+        Integer expectedWidth = 2;
+        Integer actualWidth = canopyWidthSource.getCanopyWidth(1L);
 
+        assertEquals(expectedWidth, actualWidth);
+    }
+
+    @Test
+    public void calculates_identical_canopy_widths_from_stims_from_same_tree(){
+        Integer expectedWidth = 2;
+        Integer actualWidth = canopyWidthSource.getCanopyWidth(21L);
+        assertEquals(expectedWidth, actualWidth);
+
+        actualWidth = canopyWidthSource.getCanopyWidth(22L);
+        assertEquals(expectedWidth, actualWidth);
+
+        actualWidth = canopyWidthSource.getCanopyWidth(31L);
+        assertEquals(expectedWidth, actualWidth);
+
+        actualWidth = canopyWidthSource.getCanopyWidth(32L);
+        assertEquals(expectedWidth, actualWidth);
     }
 
     private static class CanopyWidthSourceTestDbUtil extends MultiGaDbUtil {
@@ -31,14 +60,25 @@ public class CanopyWidthSourceTest {
         @Override
         public StimGaInfo readStimGaInfo(Long stimId){
             StimGaInfo stimGaInfo = new StimGaInfo();
-            Branch tree  = new Branch(1L);
-            tree.addChild(new Branch(21L));
-            tree.addChild(new Branch(22L));
-            tree.addChildTo(22L, new Branch(31L));
-            tree.addChildTo(22L, new Branch(32L));
+            Branch<Long> tree  = new Branch<>(1L);
+            tree.addChild(new Branch<Long>(21L));
+            tree.addChild(new Branch<Long>(22L));
+            tree.addChildTo(22L, new Branch<>(31L));
+            tree.addChildTo(22L, new Branch<>(32L));
+            tree.addChildTo(31L, new Branch<>(41L));
+            tree.addChildTo(32L, new Branch<>(42L));
 
             stimGaInfo.setTreeSpec(tree.toXml());
             return stimGaInfo;
+        }
+    }
+
+    private static class CanopyWidthSourceTestSpikeRateSource implements SpikeRateSource {
+        @Override
+        public List<Double> getSpikeRates(Long taskId) {
+            LinkedList<Double> output = new LinkedList<>();
+            output.add(Double.valueOf(taskId));
+            return output;
         }
     }
 }
