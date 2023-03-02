@@ -22,7 +22,7 @@ public class SelectionProcess{
     FitnessScoreCalculator fitnessScoreCalculator;
 
     @Dependency
-    Integer numChildren;
+    Integer numChildrenToSelect;
 
     private ProbabilityTable<Child> table;
 
@@ -49,7 +49,7 @@ public class SelectionProcess{
     private List<Child> selectChildren(List<Child> possibleChildren, List<Double> fitnesses) {
         List<Child> selectedChildren = new LinkedList<>();
         table = new ProbabilityTable<>(possibleChildren, fitnesses);
-        for (int i = 0; i < numChildren; i++) {
+        for (int i = 0; i < numChildrenToSelect; i++) {
             Child child = table.sampleWithReplacement();
             selectedChildren.add(child);
         }
@@ -59,11 +59,11 @@ public class SelectionProcess{
     /**
      * Converts a list of stimIds into a list of possible children that could be selected
      * in the selection process.
-     * @param allStimIds
+     * @param stimIds
      */
-    private List<Child> convertToChildren(List<Long> allStimIds) {
+    private List<Child> convertToChildren(List<Long> stimIds) {
         List<Child> children = new ArrayList<>();
-        for (Long stimId : allStimIds) {
+        for (Long stimId : stimIds) {
             children.add(new Child(stimId, Child.MorphType.GROWING));
             children.add(new Child(stimId, Child.MorphType.PRUNING));
         }
@@ -80,8 +80,6 @@ public class SelectionProcess{
             Double fitnessScore = calculateFitnessScore(new FitnessScoreParameters(averageSpikeRate, treeCanopyWidth));
             fitnesses.add(fitnessScore);
         }
-
-
         return fitnesses;
     }
 
@@ -143,11 +141,11 @@ public class SelectionProcess{
         return table;
     }
 
-    public Integer getNumChildren() {
-        return numChildren;
+    public Integer getNumChildrenToSelect() {
+        return numChildrenToSelect;
     }
 
-    public void setNumChildren(Integer numChildren) {
-        this.numChildren = numChildren;
+    public void setNumChildrenToSelect(Integer numChildrenToSelect) {
+        this.numChildrenToSelect = numChildrenToSelect;
     }
 }
