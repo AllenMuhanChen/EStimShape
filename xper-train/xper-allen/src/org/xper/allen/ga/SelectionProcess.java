@@ -77,7 +77,7 @@ public class SelectionProcess{
             Double averageSpikeRate = getAverageSpikeRate(child);
             Integer treeCanopyWidth = getTreeCanopyWidth(child);
 
-            Double fitnessScore = calculateFitnessScore(new FitnessScoreParameters(averageSpikeRate, treeCanopyWidth));
+            Double fitnessScore = calculateFitnessScore(new TreeFitnessScoreParameters(averageSpikeRate, treeCanopyWidth));
             fitnesses.add(fitnessScore);
         }
         return fitnesses;
@@ -92,7 +92,7 @@ public class SelectionProcess{
         return canopyWidthSource.getCanopyWidth(child.getStimId());
     }
 
-    private Double calculateFitnessScore(FitnessScoreParameters fitnessScoreParameters) {
+    private Double calculateFitnessScore(TreeFitnessScoreParameters fitnessScoreParameters) {
         return fitnessScoreCalculator.calculateFitnessScore(fitnessScoreParameters);
     }
 
