@@ -51,7 +51,6 @@ public class CanopyWidthSource {
                 if (spikeRate > THRESHOLD_PERCENTAGE * maxResponse) {
                     canopyStims.add(branch.getIdentifier());
                 }
-
             }
         });
         return canopyStims;

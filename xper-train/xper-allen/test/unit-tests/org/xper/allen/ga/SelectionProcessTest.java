@@ -24,7 +24,7 @@ public class SelectionProcessTest {
         selector.setSpikeRateSource(new ComplexParentSelectorTestSpikeRateSource());
         selector.setCanopyWidthSource(new ComplexParentSelectorTestCanopyWidthSource());
         selector.setFitnessScoreCalculator(new ComplexParentSelectorTestFitnessScoreCalculator());
-        selector.setNumChildren(NUM_DRAWS);
+        selector.setNumChildrenToSelect(NUM_DRAWS);
     }
 
     @Test
