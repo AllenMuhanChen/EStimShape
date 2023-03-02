@@ -20,7 +20,7 @@ public class CanopyWidthSourceTest {
         canopyWidthSource.setDbUtil(new CanopyWidthSourceTestDbUtil());
         canopyWidthSource.setMaxResponseSource(new MaxResponseSource() {
             @Override
-            public double getMaxResponse() {
+            public double getMaxResponse(String gaName) {
                 return 42;
             }
         });
@@ -55,6 +55,9 @@ public class CanopyWidthSourceTest {
         assertEquals(expectedWidth, actualWidth);
     }
 
+    /**
+     * For testing purposes, we create a simple tree
+     */
     private static class CanopyWidthSourceTestDbUtil extends MultiGaDbUtil {
 
         @Override
@@ -73,7 +76,10 @@ public class CanopyWidthSourceTest {
         }
     }
 
-    private static class CanopyWidthSourceTestSpikeRateSource implements SpikeRateSource {
+    /**
+     * For testing purposes, the spike rate is set equal to the stimId
+     */
+    public static class CanopyWidthSourceTestSpikeRateSource implements SpikeRateSource {
         @Override
         public List<Double> getSpikeRates(Long taskId) {
             LinkedList<Double> output = new LinkedList<>();
