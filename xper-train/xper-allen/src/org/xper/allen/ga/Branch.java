@@ -7,27 +7,27 @@ import java.util.LinkedList;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class GABranch {
+public class Branch<T> {
 
-    private Collection<GABranch> children;
-    private Long stimId;
+    private Collection<Branch<T>> children;
+    private T identifier;
 
 
     /**
      * For xstream, don't use this.
      */
-    public GABranch() {
+    public Branch() {
     }
 
 
-    public GABranch(Long stimId, Collection<GABranch> children){
-        this.stimId = stimId;
+    public Branch(T identifier, Collection<Branch<T>> children){
+        this.identifier = identifier;
         this.children = children;
     }
 
 
-    public GABranch(Long stimId){
-        this.stimId = stimId;
+    public Branch(T identifier){
+        this.identifier = identifier;
         this.children = new LinkedList<>();
     }
 
@@ -35,72 +35,73 @@ public class GABranch {
 
     static{
         s = new XStream();
-        s.alias("GABranch", GABranch.class);
+        s.alias("GABranch", Branch.class);
+        s.aliasField("identifier", Branch.class, "identifier");
     }
 
     public String toXml(){
-        return GABranch.toXml(this);
+        return Branch.toXml(this);
     }
 
-    public static String toXml(GABranch gaBranch){
-        return s.toXML(gaBranch);
+    public static String toXml(Branch branch){
+        return s.toXML(branch);
     }
 
-    public static GABranch fromXml(String xml){
-        return (GABranch) s.fromXML(xml);
+    public static Branch fromXml(String xml){
+        return (Branch) s.fromXML(xml);
     }
 
-    public void addChild(GABranch child){
+    public void addChild(Branch<T> child){
         children.add(child);
     }
 
-    public void addChildTo(long parentId, GABranch childBranch) {
-        if (this.stimId == parentId){
+    public void addChildTo(T parentId, Branch<T> childBranch) {
+        if (this.identifier == parentId){
             this.addChild(childBranch);
         } else {
-            for (GABranch child : children){
+            for (Branch<T> child : children){
                 child.addChildTo(parentId, childBranch);
             }
         }
     }
 
-    public void addChildTo(long parentId, long childId) {
-        if (this.stimId == parentId){
-            this.addChild(new GABranch(childId));
+    public void addChildTo(T parentId, T childId) {
+        if (this.identifier == parentId){
+            this.addChild(new Branch<T>(childId));
         } else {
-            for (GABranch child : children){
+            for (Branch<T> child : children){
                 child.addChildTo(parentId, childId);
             }
         }
     }
 
-    public void forEach(Consumer<? super GABranch> action) {
+    public void forEach(Consumer<? super Branch<T>> action) {
         action.accept(this);
-        for (GABranch child : children){
+        for (Branch<T> child : children){
             child.forEach(action);
         }
     }
 
-    public Collection<GABranch> getChildren() {
+    public Collection<Branch<T>> getChildren() {
         return children;
     }
 
-    public void setChildren(Collection<GABranch> children) {
+    public void setChildren(Collection<Branch<T>> children) {
         this.children = children;
     }
 
-    public Long getStimId() {
-        return stimId;
+    public T getIdentifier() {
+        return identifier;
     }
 
-    public void setStimId(Long stimId) {
-        this.stimId = stimId;
+    public void setIdentifier(T identifier) {
+        this.identifier = identifier;
     }
 
     @Override
     public String toString() {
-       String s = stimId + "\n";
-         for (GABranch child : children){
+       String s = identifier + "\n";
+         for (Branch<T> child : children){
 
               s += "-"+child.toString();
          }
@@ -111,12 +112,12 @@ public class GABranch {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        GABranch gaBranch = (GABranch) o;
-        return getChildren().equals(gaBranch.getChildren()) && getStimId().equals(gaBranch.getStimId());
+        Branch<T> branch = (Branch<T>) o;
+        return getChildren().equals(branch.getChildren()) && getIdentifier().equals(branch.getIdentifier());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getChildren(), getStimId());
+        return Objects.hash(getChildren(), getIdentifier());
     }
 }

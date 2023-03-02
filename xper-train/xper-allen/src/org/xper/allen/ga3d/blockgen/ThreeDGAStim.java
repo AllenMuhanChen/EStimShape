@@ -2,7 +2,7 @@ package org.xper.allen.ga3d.blockgen;
 
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
-import org.xper.allen.ga.GABranch;
+import org.xper.allen.ga.Branch;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.PngSpec;
 
@@ -14,7 +14,7 @@ public abstract class ThreeDGAStim implements Stim {
     protected PngSpec stimSpec;
     protected AllenMStickData mStickData;
     protected Long parentId;
-    private GABranch tree;
+    private Branch<Long> tree;
 
     /**
      * Constructor for creating a parent stimulus
@@ -42,11 +42,11 @@ public abstract class ThreeDGAStim implements Stim {
     public void writeStimGaInfo(String gaName, long genId){
         //Is Founder Stimulus
         if (parentId == 0L) {
-            tree = new GABranch(stimId);
+            tree = new Branch<>(stimId);
         }
         else {
             String treeSpec = generator.getDbUtil().readStimGaInfo(parentId).getTreeSpec();
-            tree = GABranch.fromXml(treeSpec);
+            tree = Branch.fromXml(treeSpec);
             tree.addChildTo(parentId, stimId);
         }
 
