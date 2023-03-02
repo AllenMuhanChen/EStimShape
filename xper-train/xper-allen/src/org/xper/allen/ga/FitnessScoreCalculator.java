@@ -1,6 +1,6 @@
 package org.xper.allen.ga;
 
-public interface FitnessScoreCalculator {
+public abstract class FitnessScoreCalculator<T extends FitnessScoreParameters> {
 
-    public double calculateFitnessScore(FitnessScoreParameters params);
+    public abstract double calculateFitnessScore(T params);
 }

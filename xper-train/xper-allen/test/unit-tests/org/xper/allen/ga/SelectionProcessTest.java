@@ -77,9 +77,10 @@ public class SelectionProcessTest {
 
 
 
-    private static class ComplexParentSelectorTestFitnessScoreCalculator implements FitnessScoreCalculator {
+    private static class ComplexParentSelectorTestFitnessScoreCalculator extends FitnessScoreCalculator<TreeFitnessScoreParameters> {
+
         @Override
-        public double calculateFitnessScore(FitnessScoreParameters params) {
+        public  double calculateFitnessScore(TreeFitnessScoreParameters params) {
             return params.getAverageSpikeRate() * params.getTreeCanopyWidth();
         }
     }
