@@ -10,18 +10,18 @@ import java.util.function.Consumer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class GABranchTest {
+public class BranchTest {
 
-    private GABranch founder;
+    private Branch<Long> founder;
 
     @Before
     public void setUp() throws Exception {
-        founder = new GABranch(1L);
+        founder = new Branch<>(1L);
     }
 
     @Test
     public void addsChildToCurrentBranch(){
-        GABranch child = new GABranch(2L);
+        Branch<Long> child = new Branch<>(2L);
         founder.addChild(child);
 
         System.out.println(founder);
@@ -30,12 +30,12 @@ public class GABranchTest {
 
     @Test
     public void addsChildToSpecifiedBranch(){
-        GABranch child1 = new GABranch(2L);
-        GABranch child2 = new GABranch(3L);
+        Branch<Long> child1 = new Branch<>(2L);
+        Branch<Long> child2 = new Branch<>(3L);
         founder.addChild(child1);
         founder.addChild(child2);
 
-        GABranch testBranch = new GABranch(4L);
+        Branch<Long> testBranch = new Branch<>(4L);
         founder.addChildTo(2L, testBranch);
 
         System.out.println(founder);
@@ -45,19 +45,19 @@ public class GABranchTest {
 
     @Test
     public void can_parse_tree(){
-        GABranch child1 = new GABranch(2L);
-        GABranch child2 = new GABranch(3L);
+        Branch<Long> child1 = new Branch<>(2L);
+        Branch<Long> child2 = new Branch<>(3L);
         founder.addChild(child1);
         founder.addChild(child2);
 
-        GABranch testBranch = new GABranch(4L);
+        Branch<Long> testBranch = new Branch<>(4L);
         founder.addChildTo(2L, testBranch);
         List<Long> childrenIds = new LinkedList<>();
-        founder.forEach(new Consumer<GABranch>() {
+        founder.forEach(new Consumer<Branch<Long>>() {
             @Override
-            public void accept(GABranch branch) {
-                System.out.println(branch.getStimId());
-                childrenIds.add(branch.getStimId());
+            public void accept(Branch<Long> branch) {
+                System.out.println(branch.getIdentifier());
+                childrenIds.add(branch.getIdentifier());
             }
         });
 
@@ -69,16 +69,16 @@ public class GABranchTest {
 
     @Test
     public void to_xml_and_back(){
-        GABranch child1 = new GABranch(2L);
-        GABranch child2 = new GABranch(3L);
+        Branch<Long> child1 = new Branch<>(2L);
+        Branch<Long> child2 = new Branch<>(3L);
         founder.addChild(child1);
         founder.addChild(child2);
-        GABranch child3 = new GABranch(4L);
+        Branch<Long> child3 = new Branch<>(4L);
         founder.addChildTo(2L, child3);
 
         String xml = founder.toXml();
         System.out.println(xml);
-        GABranch fromXML = GABranch.fromXml(xml);
+        Branch fromXML = Branch.fromXml(xml);
         System.out.println(fromXML);
 
         assertEquals(founder, fromXML);
