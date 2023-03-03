@@ -3,12 +3,17 @@ package org.xper.allen.ga;
 public class TreeFitnessScoreParameters extends FitnessScoreParameters {
     private final Integer treeCanopyWidth;
 
-    public TreeFitnessScoreParameters(Double averageSpikeRate, Integer treeCanopyWidth) {
-        super(averageSpikeRate);
+    /**
+     *
+     * @param normalizedSpikeRate averageSpikeRate / maxSpikeRate
+     * @param treeCanopyWidth
+     */
+    public TreeFitnessScoreParameters(Double normalizedSpikeRate, Integer treeCanopyWidth) {
+        super(normalizedSpikeRate);
         this.treeCanopyWidth = treeCanopyWidth;
     }
 
-    public Integer getTreeCanopyWidth() {
+    public Integer getCanopyWidth() {
         return treeCanopyWidth;
     }
 }
