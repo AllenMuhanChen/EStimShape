@@ -29,7 +29,7 @@ public class SplineTest {
         NaturalSpline spline = new NaturalSpline(controlPoints);
 
         double test_x = 0.5;
-        double actual_y = spline.getValue(test_x);
+        double actual_y = spline.value(test_x);
         double expected_y = 0.5;
 
         assertEquals(expected_y, actual_y, 0.0001);
@@ -46,7 +46,7 @@ public class SplineTest {
         NaturalSpline spline = new NaturalSpline(controlPoints);
 
         double test_x = 0.5;
-        double actual_y = spline.getValue(test_x);
+        double actual_y = spline.value(test_x);
         double expected_y = 0.3125;
 
         assertEquals(expected_y, actual_y, 0.0001);
@@ -100,7 +100,7 @@ public class SplineTest {
         int index = 0;
         for (double i = begin; i <= end; i += (end - begin) / numPoints) {
             x[index] = i;
-            y[index] = spline.getValue(i);
+            y[index] = spline.value(i);
             index++;
         }
         XYSeries splineSeries = chart.addSeries(seriesName, x, y);

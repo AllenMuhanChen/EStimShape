@@ -19,7 +19,7 @@ public class SelectionProcess{
     CanopyWidthSource canopyWidthSource;
 
     @Dependency
-    FitnessScoreCalculator fitnessScoreCalculator;
+    FitnessScoreCalculator<TreeFitnessScoreParameters> fitnessScoreCalculator;
 
     @Dependency
     Integer numChildrenToSelect;
