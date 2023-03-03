@@ -30,7 +30,7 @@ public class GrowingMatchStickTest {
     @Test
     public void mutate() {
         drawPng(gms, 1L);
-//        gms.mutate(0);
+        gms.mutate();
 //        drawPng(gms, 2L);
     }
 
