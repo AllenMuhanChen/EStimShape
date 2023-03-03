@@ -12,18 +12,27 @@ public class TreeFitnessScoreCalculator implements FitnessScoreCalculator<TreeFi
     Map<Integer, UnivariateFunction> fitnessFunctionsForCanopyWidthThresholds; // (percentage_of_max_response, fitness_score)
 
 
+    @Dependency
+    MaxResponseSource maxResponseSource;
+
+    /**
+     * Chooses the proper fitness score function based on canopy width, normalizes the spike rate,
+     * and then plugs the normalized spike rate through the chosen fitness function to get a fitness score.
+     */
     @Override
     public double calculateFitnessScore(TreeFitnessScoreParameters params) {
-        // Based on canopy width define different fitnessScore functions between spike rate and fitness score.
-        // Use function associated with the greatest canopy width past threshold
+        // Based on canopy width, define different fitnessScore functions between spike rate and fitness score.
+        // Choose function associated with the greatest canopy width past threshold
+        UnivariateFunction fitnessFunction = chooseFitnessFunctionBasedOnCanopyWidth(params);
 
-        UnivariateFunction fitnessFunction = chooseFitnessFunction(params);
+        // Normalize spike rate by max response
+        double normalizedSpikeRate = params.getAverageSpikeRate() / maxResponseSource.getMaxResponse(params.getGaName());
 
         // put spike rate through fitness score function associated with the canopy width
-        return fitnessFunction.value(params.getAverageSpikeRate());
+        return fitnessFunction.value(normalizedSpikeRate);
     }
 
-    private UnivariateFunction chooseFitnessFunction(TreeFitnessScoreParameters params) {
+    private UnivariateFunction chooseFitnessFunctionBasedOnCanopyWidth(TreeFitnessScoreParameters params) {
         // Get all entries in fitnessFunctionsForCanopyWidthThresholds above canopy width
         List<Map.Entry<Integer, UnivariateFunction>> aboveThreshold = new LinkedList<>();
         fitnessFunctionsForCanopyWidthThresholds.forEach(new BiConsumer<Integer, UnivariateFunction>() {
@@ -56,5 +65,11 @@ public class TreeFitnessScoreCalculator implements FitnessScoreCalculator<TreeFi
         this.fitnessFunctionsForCanopyWidthThresholds = fitnessFunctionsForCanopyWidthThresholds;
     }
 
+    public MaxResponseSource getMaxResponseSource() {
+        return maxResponseSource;
+    }
 
+    public void setMaxResponseSource(MaxResponseSource maxResponseSource) {
+        this.maxResponseSource = maxResponseSource;
+    }
 }
