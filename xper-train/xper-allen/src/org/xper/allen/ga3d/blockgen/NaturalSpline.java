@@ -3,11 +3,12 @@ package org.xper.allen.ga3d.blockgen;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.SplineInterpolator;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
+import org.apache.commons.math3.analysis.UnivariateFunction;
 
 import javax.vecmath.Point2d;
 import java.util.List;
 
-public class NaturalSpline {
+public class NaturalSpline implements UnivariateFunction{
 
     private UnivariateRealFunction splineFunction;
 
@@ -25,8 +26,13 @@ public class NaturalSpline {
         createSpline(controlPoints_x, controlPoints_y);
     }
 
-    public double getValue(double x) throws FunctionEvaluationException {
-        return splineFunction.value(x);
+    @Override
+    public double value(double x) {
+        try {
+            return splineFunction.value(x);
+        } catch (FunctionEvaluationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -34,4 +40,5 @@ public class NaturalSpline {
         SplineInterpolator splineInterpolator = new SplineInterpolator();
         splineFunction = splineInterpolator.interpolate(x, y);
     }
+
 }
