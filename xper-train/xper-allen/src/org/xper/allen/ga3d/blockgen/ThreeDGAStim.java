@@ -50,6 +50,6 @@ public abstract class ThreeDGAStim implements Stim {
             tree.addChildTo(parentId, stimId);
         }
 
-        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, tree.toXml());
+        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, tree.getIdentifier(), tree.toXml());
     }
 }

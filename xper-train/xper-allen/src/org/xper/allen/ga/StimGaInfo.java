@@ -7,17 +7,10 @@ public class StimGaInfo {
     long parentId;
     String gaName;
     long genId;
+    long lineageId;
     String treeSpec;
 
     public StimGaInfo() {
-    }
-
-    public StimGaInfo(long stimId, long parentId, String gaName, long genId, String treeSpec) {
-        this.stimId = stimId;
-        this.parentId = parentId;
-        this.gaName = gaName;
-        this.genId = genId;
-        this.treeSpec = treeSpec;
     }
 
     private static final XStream s;
@@ -69,6 +62,14 @@ public class StimGaInfo {
 
     public void setGenId(long genId) {
         this.genId = genId;
+    }
+
+    public long getLineageId() {
+        return lineageId;
+    }
+
+    public void setLineageId(long lineageId) {
+        this.lineageId = lineageId;
     }
 
     public String getTreeSpec() {
