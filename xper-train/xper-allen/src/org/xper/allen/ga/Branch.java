@@ -44,7 +44,7 @@ public class Branch<T> {
      * @param childId given identifier for the child branch, will create a new branch with this identifier to add
      */
     public void addChildTo(T parentId, T childId) {
-        if (this.identifier == parentId){
+        if (this.identifier.equals(parentId)){
             this.addChild(new Branch<T>(childId));
         } else {
             for (Branch<T> child : children){
