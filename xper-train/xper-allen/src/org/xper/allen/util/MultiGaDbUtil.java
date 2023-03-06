@@ -227,4 +227,17 @@ public class MultiGaDbUtil extends AllenDbUtil {
                     }});
         return result;
     }
+
+    public List<String> readAllTreeSpecsForGa(String gaName) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final List<String> result = new ArrayList<>();
+        jt.query(
+                " select distinct tree_spec from StimGaInfo where ga_name = ?",
+                new Object[] { gaName },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        result.add(rs.getString("tree_spec"));
+                    }});
+        return result;
+    }
 }

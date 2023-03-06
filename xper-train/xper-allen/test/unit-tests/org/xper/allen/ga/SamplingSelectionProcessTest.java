@@ -9,14 +9,14 @@ import java.util.List;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
-public class SelectionProcessTest {
+public class SamplingSelectionProcessTest {
 
     private static final int NUM_DRAWS = 100000;
-    private SelectionProcess selector;
+    private SamplingSelectionProcess selector;
 
     @Before
     public void setUp() throws Exception {
-        selector = new SelectionProcess();
+        selector = new SamplingSelectionProcess();
 
         //Mock extraction from Database of children (stimIds). Random stimIds?
         selector.setDbUtil(new ComplexParentSelectorTestDbUtil());
