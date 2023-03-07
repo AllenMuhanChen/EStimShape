@@ -62,8 +62,16 @@ public class SlotSelectionProcess {
 
     private List<Long> fetchLineageIds(String gaName) {
         List<String> treeSpecs = dbUtil.readAllTreeSpecsForGa(gaName);
-        List<Long> lineageIds = treeSpecsToLineageIds(treeSpecs);
-        return lineageIds;
+        return treeSpecsToLineageIds(treeSpecs);
+    }
+
+    private List<Long> treeSpecsToLineageIds(List<String> treeSpecs) {
+        List<Long> founderIds = new LinkedList<>();
+        for (String treeSpec : treeSpecs) {
+            Branch<Long> tree = Branch.fromXml(treeSpec);
+            founderIds.add(tree.getIdentifier());
+        }
+        return founderIds;
     }
 
     private Map<Long, Double> calculateRegimeScoresForLineages(List<Long> lineageIds) {
@@ -137,11 +145,13 @@ public class SlotSelectionProcess {
 
         //populate slotsForLineage for regimes
         Iterator<Slot> slotsIterator = slotsForLineage.iterator();
-        for (Regime regime : Regime.values()) {
+        for (Regime regime : numSlotsForRegimes.keySet()) {
             int numSlotsAssigned = 0;
             while(numSlotsAssigned < numSlotsForRegimes.get(regime)) {
                 slotsIterator.next().setRegime(regime);
+                numSlotsAssigned++;
             }
+
         }
     }
 
@@ -156,7 +166,6 @@ public class SlotSelectionProcess {
     private Map<Long, Double> calculateSlotScoresForLineages(Map<Long, Double> regimeScoreForLineages) {
         Map<Long, Double> slotScoresForLineages = new LinkedHashMap<>();
         for (Long lineageId : regimeScoreForLineages.keySet()) {
-            //calculate how many slots to assign to this lineage
             Double regimeScore = regimeScoreForLineages.get(lineageId);
             Double slotScore = plugIntoFunction(slotFunctionForLineage, regimeScore);
             slotScoresForLineages.put(lineageId, slotScore);
@@ -189,7 +198,7 @@ public class SlotSelectionProcess {
 
     private Map<Regime, Double> calculateSlotScoresForRegimes(Double regimeScore) {
         Map<Regime, Double> slotScoreForRegimes = new LinkedHashMap<>();
-        for (Regime regime : Regime.values()) {
+        for (Regime regime : slotFunctionForRegimes.keySet()) {
             UnivariateRealFunction slotFunction = slotFunctionForRegimes.get(regime);
             Double slotScore = plugIntoFunction(slotFunction, regimeScore);
             slotScoreForRegimes.put(regime, slotScore);
@@ -201,6 +210,7 @@ public class SlotSelectionProcess {
         Map<Regime, Integer> numSlotsForRegimes = new LinkedHashMap<>();
         for (int i = 0; i < numSlotsForLineage; i++) {
             Regime regime = probabilitiesForRegimes.sampleWithReplacement();
+            numSlotsForRegimes.putIfAbsent(regime, 0);
             Integer numSlotsForRegime = numSlotsForRegimes.get(regime);
             numSlotsForRegimes.put(regime, numSlotsForRegime + 1);
         }
@@ -218,14 +228,7 @@ public class SlotSelectionProcess {
     }
 
 
-    private List<Long> treeSpecsToLineageIds(List<String> treeSpecs) {
-        List<Long> founderIds = new LinkedList<>();
-        for (String treeSpec : treeSpecs) {
-            Branch<Long> tree = Branch.fromXml(treeSpec);
-            founderIds.add(tree.getIdentifier());
-        }
-        return founderIds;
-    }
+
 
     public static class Slot {
         private Long lineageId;
