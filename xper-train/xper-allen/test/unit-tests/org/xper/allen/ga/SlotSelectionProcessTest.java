@@ -8,6 +8,8 @@ import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.*;
 
+import static org.junit.Assert.assertEquals;
+
 public class SlotSelectionProcessTest {
 
     private SlotSelectionProcess slotSelectionProcess;
@@ -17,7 +19,7 @@ public class SlotSelectionProcessTest {
         slotSelectionProcess = new SlotSelectionProcess();
 
         slotSelectionProcess.setDbUtil(new MockDbUtil());
-        slotSelectionProcess.setNumChildrenToSelect(10);
+        slotSelectionProcess.setNumChildrenToSelect(10000);
         slotSelectionProcess.setRegimeScoreSource(new MockRegimeScoreSource());
 
         slotSelectionProcess.setSlotFunctionForLineage(slotFunctionForLineage());
@@ -27,10 +29,46 @@ public class SlotSelectionProcessTest {
     }
 
     @Test
-    public void select() {
+    public void selects_appropiate_number_and_ratios_of_slots() {
         List<Child> children = slotSelectionProcess.select("SlotSelectionProcessTest");
 
-        System.out.println(children);
+        assertEquals(10000, children.size());
+        correct_proportion_of_slots_to_lineages(children);
+        correct_proportion_of_slots_to_regimes(children);
+    }
+
+    /**
+     * Lineage 2 should have roughly twice the amount of slots as lineage 1.
+     * @param children
+     */
+    private void correct_proportion_of_slots_to_lineages(List<Child> children) {
+        int lineage1Count = 0;
+        int lineage2Count = 0;
+        for (Child child : children) {
+            if (child.getStimId() == 11L || child.getStimId() == 12L) {
+                lineage1Count++;
+            } else if (child.getStimId() == 21L || child.getStimId() == 22L) {
+                lineage2Count++;
+            }
+        }
+        assertEquals(1/3 * 10000, lineage1Count/lineage2Count, 100);
+    }
+
+    /**
+     * Regime 2 should have roughly twice the amount of slots as regime 1
+     * @param children
+     */
+    private void correct_proportion_of_slots_to_regimes(List<Child> children) {
+        int regime1Count = 0;
+        int regime2Count = 0;
+        for (Child child : children) {
+            if (child.getRegime() == Regime.ONE) {
+                regime1Count++;
+            } else if (child.getRegime() == Regime.TWO) {
+                regime2Count++;
+            }
+        }
+        assertEquals(1/3*10000, regime1Count/regime2Count, 100);
 
     }
 
@@ -48,12 +86,26 @@ public class SlotSelectionProcessTest {
 
     /**
      * For simplicity, we have only two regimes.
+     * Regime One is the only option when regime score is one
+     * Regime Two is the only option when regime score is two
      */
     private Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
         Map<Regime, UnivariateRealFunction> output = new LinkedHashMap<>();
 
-        output.put(Regime.ONE, regimeSlotFunction());
-        output.put(Regime.TWO, regimeSlotFunction());
+        output.put(Regime.ONE, x->{
+            if (x==1){
+                return 1;
+            } else {
+                return 0;
+            }
+        });
+        output.put(Regime.TWO, x->{
+            if (x==2){
+                return 1;
+            } else {
+                return 0;
+            }
+        });
 
         return output;
     }
