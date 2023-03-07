@@ -3,15 +3,11 @@ package org.xper.allen.ga;
 public class Child {
 
     private long stimId;
-    private MorphType morphType;
+    private Regime regime;
 
-    public enum MorphType {
-        GROWING, PRUNING
-    }
-
-    public Child(long stimId, MorphType morphType) {
+    public Child(long stimId, Regime regime) {
         this.stimId = stimId;
-        this.morphType = morphType;
+        this.regime = regime;
     }
 
     public long getStimId() {
@@ -22,11 +18,11 @@ public class Child {
         this.stimId = stimId;
     }
 
-    public MorphType getMorphType() {
-        return morphType;
+    public Regime getRegime() {
+        return regime;
     }
 
-    public void setMorphType(MorphType morphType) {
-        this.morphType = morphType;
+    public void setRegime(Regime regime) {
+        this.regime = regime;
     }
 }
