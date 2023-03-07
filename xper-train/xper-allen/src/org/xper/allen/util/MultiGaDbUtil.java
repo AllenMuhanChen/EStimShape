@@ -228,6 +228,19 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result;
     }
 
+    public List<Long> readStimIdsForLineage(String gaName, Long lineageId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final List<Long> result = new ArrayList<>();
+        jt.query(
+                " select stim_id from StimGaInfo where ga_name = ? and lineage_id = ?",
+                new Object[] { gaName, lineageId },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        result.add(rs.getLong("stim_id"));
+                    }});
+        return result;
+    }
+
     public List<String> readAllTreeSpecsForGa(String gaName) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final List<String> result = new ArrayList<>();

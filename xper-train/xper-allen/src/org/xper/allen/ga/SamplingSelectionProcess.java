@@ -66,8 +66,8 @@ public class SamplingSelectionProcess {
     private List<Child> convertToChildren(List<Long> stimIds) {
         List<Child> children = new ArrayList<>();
         for (Long stimId : stimIds) {
-            children.add(new Child(stimId, Child.MorphType.GROWING));
-            children.add(new Child(stimId, Child.MorphType.PRUNING));
+            children.add(new Child(stimId, Regime.ONE));
+            children.add(new Child(stimId, Regime.TWO));
         }
 
         return children;

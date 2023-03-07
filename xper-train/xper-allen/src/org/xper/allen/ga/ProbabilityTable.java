@@ -12,6 +12,16 @@ public class ProbabilityTable<T> {
         normalizeProbabilities();
     }
 
+    public ProbabilityTable(Map<T, Double> probabilityForItems) {
+        this.items = new ArrayList<T>();
+        this.probabilities = new ArrayList<Double>();
+        for (T key : probabilityForItems.keySet()) {
+            items.add((T) key);
+            probabilities.add(probabilityForItems.get(key));
+        }
+        normalizeProbabilities();
+    }
+
     public T sampleWithReplacement() {
         double rand = Math.random();
         double cumProb = 0.0;
