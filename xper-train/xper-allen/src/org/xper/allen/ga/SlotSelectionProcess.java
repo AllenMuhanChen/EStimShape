@@ -15,9 +15,6 @@ import java.util.function.BiConsumer;
  *
  */
 public class SlotSelectionProcess {
-
-    private String string;
-
     @Dependency
     MultiGaDbUtil dbUtil;
 
