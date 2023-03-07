@@ -21,7 +21,6 @@ public class SlotSelectionProcessTest {
         slotSelectionProcess.setDbUtil(new MockDbUtil());
         slotSelectionProcess.setNumChildrenToSelect(10000);
         slotSelectionProcess.setRegimeScoreSource(new MockRegimeScoreSource());
-
         slotSelectionProcess.setSlotFunctionForLineage(slotFunctionForLineage());
         slotSelectionProcess.setSlotFunctionForRegimes(slotFunctionForRegimes());
         slotSelectionProcess.setFitnessFunctionForRegimes(mockFitnessFunction());
