@@ -1,7 +1,5 @@
 package org.xper.allen.ga;
 
-import org.apache.commons.math.random.EmpiricalDistribution;
-import org.apache.commons.math3.analysis.BivariateFunction;
 import org.xper.Dependency;
 import org.xper.allen.util.MultiGaDbUtil;
 
@@ -11,6 +9,9 @@ public class RegimeScoreSource implements LineageScoreSource{
 
     @Dependency
     MultiGaDbUtil dbUtil;
+
+    @Dependency
+    LineageGaInfoDbUtil lineageGaInfoDbUtil;
 
     @Dependency
     Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions;
