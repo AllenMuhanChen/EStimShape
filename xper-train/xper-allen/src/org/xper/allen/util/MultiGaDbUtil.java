@@ -393,4 +393,34 @@ public class MultiGaDbUtil extends AllenDbUtil {
                         lineageId
                 });
     }
+
+    public void writeLineageData(long lineageId, String lineageData){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.update("INSERT INTO LineageData (lineage_id, lineage_data) VALUES (?, ?)",
+                new Object[] {
+                        lineageId,
+                        lineageData
+                });
+    }
+
+    public String readLineageData(Long lineageId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        List<String> lineageData = new ArrayList<>();
+        jt.query("SELECT lineage_data FROM LineageData WHERE lineage_id = ?",
+                new Object[]{lineageId},
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        lineageData.add(rs.getString("lineage_data"));
+                    }});
+        if (lineageData.size() == 0) {
+            throw new RuntimeException("No lineage data found for lineageId " + lineageId);
+        }
+        else if (lineageData.size() > 1) {
+            throw new RuntimeException("Multiple lineage data found for lineageId " + lineageId);
+        }
+        else {
+            return lineageData.get(0);
+        }
+    }
 }

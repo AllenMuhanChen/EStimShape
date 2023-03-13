@@ -125,7 +125,6 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
             } catch (Exception e) {
                 getDbUtil().writeReadyGAsAndGenerationsInfo(gaNames);
                 genId = 0L;
-//                getDbUtil().writeReadyGenerationInfo(0, 0);
             }
             genIdForGA.put(gaName, genId);
         }
