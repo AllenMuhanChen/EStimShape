@@ -1,7 +1,7 @@
 package org.xper.allen.ga;
 
 /**
- * Any method that returns a double given an id for a lineage
+ * Returns a number between 0-1 given a lineage Id.
  */
 public interface LineageScoreSource {
     public Double getLineageScore(Long lineageId);
