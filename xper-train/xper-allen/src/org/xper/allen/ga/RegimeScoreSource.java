@@ -29,23 +29,6 @@ public class RegimeScoreSource implements LineageScoreSource{
         return regimeScore;
     }
 
-    private void updateRegimeScore(Long lineageId) {
-        dbUtil.updateRegimeScore(lineageId, regimeScore);
-        LineageData lineageData = updateLineageData(lineageId);
-        dbUtil.writeLineageData(lineageId, lineageData.toXml());
-    }
-
-    private LineageData updateLineageData(Long lineageId) {
-        LineageData lineageData;
-        try {
-            lineageData = LineageData.fromXml(dbUtil.readLineageData(lineageId));
-        } catch (RuntimeException e){
-            lineageData = new LineageData();
-        }
-        lineageData.putRegimeScoreForGeneration(dbUtil.readLatestGenIdForLineage(lineageId), regimeScore);
-        return lineageData;
-    }
-
     private void calculateRegimeScore(Long founderId, Double lastGenRegimeScore) {
         if (lastGenRegimeScore < 1.0){
             updateRegimeScoreWith(RegimeTransition.ZERO_TO_ONE, founderId);
@@ -66,6 +49,23 @@ public class RegimeScoreSource implements LineageScoreSource{
         if (newRegimeScore > regimeScore){
             regimeScore = newRegimeScore;
         }
+    }
+
+    private void updateRegimeScore(Long lineageId) {
+        dbUtil.updateRegimeScore(lineageId, regimeScore);
+        LineageData lineageData = updateLineageData(lineageId);
+        dbUtil.writeLineageData(lineageId, lineageData.toXml());
+    }
+
+    private LineageData updateLineageData(Long lineageId) {
+        LineageData lineageData;
+        try {
+            lineageData = LineageData.fromXml(dbUtil.readLineageData(lineageId));
+        } catch (RuntimeException e){
+            lineageData = new LineageData();
+        }
+        lineageData.putRegimeScoreForGeneration(dbUtil.readLatestGenIdForLineage(lineageId), regimeScore);
+        return lineageData;
     }
 
     public MultiGaDbUtil getDbUtil() {
