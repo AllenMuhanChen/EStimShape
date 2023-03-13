@@ -422,7 +422,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
                 });
     }
 
-    public void writeLineageData(long lineageId, String lineageData){
+    public void writeLineageData(Long lineageId, String lineageData){
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         jt.update("INSERT INTO LineageData (lineage_id, lineage_data) VALUES (?, ?)",
                 new Object[] {

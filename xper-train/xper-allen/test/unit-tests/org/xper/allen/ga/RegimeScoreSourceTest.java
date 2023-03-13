@@ -2,6 +2,7 @@ package org.xper.allen.ga;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.xper.allen.ga3d.blockgen.LineageData;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.LinkedHashMap;
@@ -73,6 +74,16 @@ public class RegimeScoreSourceTest {
     }
 
     @Test
+    public void regime_scores_saved_in_lineage_data(){
+        regimeScoreSource.getLineageScore(2L);
+
+        String lineageDataXml = regimeScoreSource.getDbUtil().readLineageData(2L);
+        LineageData lineageData = LineageData.fromXml(lineageDataXml);
+
+        assertEquals(9.0, lineageData.regimeScoreForGenerations.get(10), 0.0001);
+    }
+
+    @Test
     public void getLineageScore() {
     }
 
@@ -81,6 +92,8 @@ public class RegimeScoreSourceTest {
      */
     private static class RegimeScoreSourceTestDbUtil extends MultiGaDbUtil {
 
+        Map<Long, LineageData> dataForLineages = new LinkedHashMap<>();
+
         @Override
         public Double readRegimeScore(Long lineageId) {
             return lineageId.doubleValue();
@@ -88,7 +101,23 @@ public class RegimeScoreSourceTest {
 
         @Override
         public void updateRegimeScore(Long lineageId, Double regimeScore) {
+            //empty
+        }
 
+        @Override
+        public String readLineageData(Long lineageId) {
+            return dataForLineages.get(lineageId).toXml();
+        }
+
+        @Override
+        public Integer readLatestGenIdForLineage(Long lineageId) {
+            return 10;
+        }
+
+        @Override
+        public void writeLineageData(Long lineageId, String xml) {
+            LineageData data = LineageData.fromXml(xml);
+            dataForLineages.put(lineageId, data);
         }
     }
 
