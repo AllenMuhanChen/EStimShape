@@ -31,24 +31,31 @@ public class RegimeScoreSource implements LineageScoreSource{
     }
 
     private void calculateRegimeScore(Long founderId) {
+        Double lineageScore;
         if (lastGenRegimeScore < 1.0){
-            updateRegimeScoreWith(RegimeTransition.ZERO_TO_ONE, founderId);
+            lineageScore = calculateLineageScoreWith(RegimeTransition.ZERO_TO_ONE, founderId);
+            regimeScore = 1.0 + lineageScore;
         }
         else if (lastGenRegimeScore < 2.0){
-            updateRegimeScoreWith(RegimeTransition.ONE_TO_TWO, founderId);
+            lineageScore = calculateLineageScoreWith(RegimeTransition.ONE_TO_TWO, founderId);
+            regimeScore = 2.0 + lineageScore;
         }
         else if (lastGenRegimeScore < 3.0) {
-            updateRegimeScoreWith(RegimeTransition.TWO_TO_THREE, founderId);
+            lineageScore = calculateLineageScoreWith(RegimeTransition.TWO_TO_THREE, founderId);
+            regimeScore = 3.0 + lineageScore;
         }
         else if (lastGenRegimeScore < 4.0) {
-            updateRegimeScoreWith(RegimeTransition.THREE_TO_FOUR, founderId);
+            lineageScore = calculateLineageScoreWith(RegimeTransition.THREE_TO_FOUR, founderId);
+            regimeScore = 4.0 + lineageScore;
         }
     }
 
-    private void updateRegimeScoreWith(RegimeTransition regimeTransition, Long founderId){
+    private Double calculateLineageScoreWith(RegimeTransition regimeTransition, Long founderId){
         Double newRegimeScore = lineageScoreSourceForRegimeTransitions.get(regimeTransition).getLineageScore(founderId);
         if (newRegimeScore > lastGenRegimeScore){
-            regimeScore = newRegimeScore;
+            return newRegimeScore;
+        } else {
+            return lastGenRegimeScore;
         }
     }
 
