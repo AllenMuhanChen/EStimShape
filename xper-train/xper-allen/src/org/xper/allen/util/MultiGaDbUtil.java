@@ -181,6 +181,12 @@ public class MultiGaDbUtil extends AllenDbUtil {
                 new Object[] {stimId, parentId, gaName, genId, lineageId, treeSpec});
     }
 
+    public void writeStimGaInfo(Long stimId, Long parentId, String gaName, Long genId, Long lineageId, String treeSpec, String stimType) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.update("insert into StimGaInfo (stim_id, parent_id, ga_name, gen_id, lineage_id, tree_spec) values (?, ?, ?, ?, ?, ?, ?)",
+                new Object[] {stimId, parentId, gaName, genId, lineageId, treeSpec, stimType});
+    }
+
     public StimGaInfo readStimGaInfo(Long stimId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final StimGaInfo info = new StimGaInfo();
@@ -195,6 +201,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
                         info.setStimId(rs.getLong("stim_id"));
                         info.setTreeSpec(rs.getString("tree_spec"));
                         info.setLineageId(rs.getLong("lineage_id"));
+                        info.setStimType(rs.getString("stim_type"));
                     }});
         return info;
     }

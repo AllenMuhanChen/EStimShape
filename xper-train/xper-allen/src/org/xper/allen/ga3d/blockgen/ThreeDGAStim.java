@@ -50,7 +50,7 @@ public abstract class ThreeDGAStim implements Stim {
     public void writeGaInfo(String gaName, long genId){
         updateStimTree();
         lineageId = tree.getIdentifier();
-        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, lineageId, tree.toXml());
+        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, lineageId, tree.toXml(), "DEFAULT");
         updateLineageTree();
     }
 
