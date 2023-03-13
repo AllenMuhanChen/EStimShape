@@ -14,6 +14,12 @@ import java.util.*;
 
 /**
  * Contains database operations for multi-ga experiment.
+ *
+ * Involves tables:
+ * StimGaInfo
+ * InternalState
+ * TaskToDo
+ * TaskDone
  */
 public class MultiGaDbUtil extends AllenDbUtil {
 
