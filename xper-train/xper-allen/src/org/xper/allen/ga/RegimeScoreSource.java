@@ -15,6 +15,7 @@ public class RegimeScoreSource implements LineageScoreSource{
     Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions;
 
     private Double regimeScore;
+    private Double lastGenRegimeScore;
 
     public enum RegimeTransition{
         ZERO_TO_ONE,
@@ -23,13 +24,13 @@ public class RegimeScoreSource implements LineageScoreSource{
         THREE_TO_FOUR,
     }
     public Double getLineageScore(Long lineageId) {
-        Double lastGenRegimeScore = dbUtil.readRegimeScore(lineageId);
-        calculateRegimeScore(lineageId, lastGenRegimeScore);
+        lastGenRegimeScore = dbUtil.readRegimeScore(lineageId);
+        calculateRegimeScore(lineageId);
         updateRegimeScore(lineageId);
         return regimeScore;
     }
 
-    private void calculateRegimeScore(Long founderId, Double lastGenRegimeScore) {
+    private void calculateRegimeScore(Long founderId) {
         if (lastGenRegimeScore < 1.0){
             updateRegimeScoreWith(RegimeTransition.ZERO_TO_ONE, founderId);
         }
@@ -46,7 +47,7 @@ public class RegimeScoreSource implements LineageScoreSource{
 
     private void updateRegimeScoreWith(RegimeTransition regimeTransition, Long founderId){
         Double newRegimeScore = lineageScoreSourceForRegimeTransitions.get(regimeTransition).getLineageScore(founderId);
-        if (newRegimeScore > regimeScore){
+        if (newRegimeScore > lastGenRegimeScore){
             regimeScore = newRegimeScore;
         }
     }

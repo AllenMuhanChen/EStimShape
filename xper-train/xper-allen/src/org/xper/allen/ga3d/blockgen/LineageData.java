@@ -28,7 +28,6 @@ public class LineageData {
     }
 
     public static LineageData fromXml(String xml) {
-        XStream s = new XStream();
         return (LineageData) s.fromXML(xml);
     }
 
