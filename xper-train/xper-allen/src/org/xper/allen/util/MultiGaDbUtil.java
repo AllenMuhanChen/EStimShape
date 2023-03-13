@@ -260,10 +260,53 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result;
     }
 
+    public Integer readFirstGenId(Long lineageId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final Integer[] result = new Integer[1];
+        jt.query(
+                " select min(gen_id) as gen_id from StimGaInfo where lineage_id = ?",
+                new Object[] { lineageId },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) {
+                        try {
+                            result[0] = rs.getInt("gen_id");
+                        } catch (SQLException e) {
+                            result[0] = 0;
+                        }
+                    }});
+        return result[0];
+    }
+
+    public Long readLineageId(Long stimId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final Long[] result = new Long[1];
+        jt.query(
+                " select lineage_id from StimGaInfo where stim_id = ?",
+                new Object[] { stimId },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) {
+                        try {
+                            result[0] = rs.getLong("lineage_id");
+                        } catch (SQLException e) {
+                            result[0] = 0L;
+                        }
+                    }});
+        return result[0];
+    }
+
     public static class LineageGaInfo {
         Long lineageId;
         String treeSpec;
         Double regimeScore;
+
+        public LineageGaInfo() {
+        }
+
+        public LineageGaInfo(Long lineageId, String treeSpec, Double regimeScore) {
+            this.lineageId = lineageId;
+            this.treeSpec = treeSpec;
+            this.regimeScore = regimeScore;
+        }
     }
 
     public LineageGaInfo readLineageGaInfo(long lineageId) {
@@ -283,7 +326,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
 
     public void writeLineageGaInfo(LineageGaInfo lineageGaInfo) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("INSERT INTO LineageGaInfo (lineageId, treeSpec, regimeScore) VALUES (?, ?, ?)",
+        jt.update("INSERT INTO LineageGaInfo (lineage_id, tree_spec, regime_score) VALUES (?, ?, ?)",
                 new Object[] {
                         lineageGaInfo.lineageId,
                         lineageGaInfo.treeSpec,
@@ -294,12 +337,12 @@ public class MultiGaDbUtil extends AllenDbUtil {
     public Double readRegimeScore(long lineageId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         List<Double> regimeScore = new ArrayList<>();
-        jt.query("SELECT regimeScore FROM LineageGaInfo WHERE lineageId = ?",
+        jt.query("SELECT regime_score FROM LineageGaInfo WHERE lineage_id = ?",
                 new Object[]{lineageId},
                 new RowCallbackHandler() {
                     @Override
                     public void processRow(ResultSet rs) throws SQLException {
-                        regimeScore.add(rs.getDouble("regimeScore"));
+                        regimeScore.add(rs.getDouble("regime_score"));
                     }});
         if (regimeScore.size() == 0) {
             throw new RuntimeException("No regime score found for lineageId " + lineageId);
@@ -314,22 +357,22 @@ public class MultiGaDbUtil extends AllenDbUtil {
 
     public void updateRegimeScore(long lineageId, double regimeScore) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("UPDATE LineageGaInfo SET regimeScore = ? WHERE lineageId = ?",
+        jt.update("UPDATE LineageGaInfo SET regime_score = ? WHERE lineage_id = ?",
                 new Object[] {
                         regimeScore,
                         lineageId
                 });
     }
 
-    public String readTreeSpec(long lineageId) {
+    public String readLineageTreeSpec(long lineageId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         List<String> treeSpec = new ArrayList<>();
-        jt.query("SELECT treeSpec FROM LineageGaInfo WHERE lineageId = ?",
+        jt.query("SELECT tree_spec FROM LineageGaInfo WHERE lineage_id = ?",
                 new Object[]{lineageId},
                 new RowCallbackHandler() {
                     @Override
                     public void processRow(ResultSet rs) throws SQLException {
-                        treeSpec.add(rs.getString("treeSpec"));
+                        treeSpec.add(rs.getString("tree_spec"));
                     }});
         if (treeSpec.size() == 0) {
             throw new RuntimeException("No tree spec found for lineageId " + lineageId);
@@ -342,9 +385,9 @@ public class MultiGaDbUtil extends AllenDbUtil {
         }
     }
 
-    public void updateTreeSpec(long lineageId, String treeSpec) {
+    public void updateLineageTreeSpec(long lineageId, String treeSpec) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("UPDATE LineageGaInfo SET treeSpec = ? WHERE lineageId = ?",
+        jt.update("UPDATE LineageGaInfo SET tree_spec = ? WHERE lineage_id = ?",
                 new Object[] {
                         treeSpec,
                         lineageId

@@ -15,6 +15,7 @@ public abstract class ThreeDGAStim implements Stim {
     protected AllenMStickData mStickData;
     protected Long parentId;
     private Branch<Long> tree;
+    private Long lineageId;
 
     /**
      * Constructor for creating a parent stimulus
@@ -24,6 +25,7 @@ public abstract class ThreeDGAStim implements Stim {
         this.size = size;
         this.coords = coords;
         this.parentId = 0L;
+        this.tree = null;
     }
 
     /**
@@ -32,16 +34,51 @@ public abstract class ThreeDGAStim implements Stim {
     public ThreeDGAStim(GA3DBlockGenerator generator, Long parentId) {
         this.generator = generator;
         this.parentId = parentId;
+        this.tree = null;
     }
 
     protected void writeStimSpec(long id) {
         generator.getDbUtil().writeStimSpec(id, stimSpec.toXml(), mStickData.toXml());
     }
 
+    /**
+     * Updates StimGaInfo and LineageGaInfo tables
+     * @param gaName
+     * @param genId
+     */
+    public void writeGaInfo(String gaName, long genId){
+        updateStimTree();
+        lineageId = tree.getIdentifier();
+        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, lineageId, tree.toXml());
+        updateLineageTree();
+    }
 
-    public void writeStimGaInfo(String gaName, long genId){
-        //Is Founder Stimulus
-        if (parentId == 0L) {
+
+    private boolean isFounderStim() {
+        return parentId == 0L;
+    }
+
+
+    private void updateLineageTree() {
+        Branch lineageTree;
+        if (isFounderStim()){
+            lineageTree = new Branch<>(stimId);
+        } else{
+            lineageTree = Branch.fromXml(generator.getDbUtil().readLineageTreeSpec(lineageId));
+            lineageTree.addChildTo(parentId, stimId);
+        }
+
+        generator.getDbUtil().updateLineageTreeSpec(lineageId, lineageTree.toXml());
+    }
+
+    /**
+     * MAy be deprecated/
+     * Only update the tree if it hasn't been updated yet.
+     *
+     * A stim tree is a stimulus' tree of ancestors.
+     */
+    private void updateStimTree() {
+        if (isFounderStim()) {
             tree = new Branch<>(stimId);
         }
         else {
@@ -49,11 +86,5 @@ public abstract class ThreeDGAStim implements Stim {
             tree = Branch.fromXml(treeSpec);
             tree.addChildTo(parentId, stimId);
         }
-
-        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, tree.getIdentifier(), tree.toXml());
-    }
-
-    public void writeLineageGaInfo(long genId){
-
     }
 }

@@ -58,6 +58,8 @@ public class ThreeDGAMockExperiment {
         jt.execute("TRUNCATE TABLE StimObjData");
         jt.execute("TRUNCATE TABLE ExpLog");
         jt.execute("TRUNCATE TABLE AcqData");
+        jt.execute("TRUNCATE TABLE StimGaInfo");
+        jt.execute("TRUNCATE TABLE LineageGaInfo");
 
 
         List<String> gaNames = new LinkedList<>();
