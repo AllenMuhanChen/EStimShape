@@ -1,19 +1,96 @@
 package org.xper.allen.ga;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.xper.allen.util.MultiGaDbUtil;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+
 public class RegimeScoreSourceTest {
 
-    @Test
-    public void getRegimeScoreForLineages() {
-        RegimeScoreSource regimeScoreSource = new RegimeScoreSource();
+    private RegimeScoreSource regimeScoreSource;
+
+    @Before
+    public void setUp() throws Exception {
+        regimeScoreSource = new RegimeScoreSource();
         regimeScoreSource.setDbUtil(new RegimeScoreSourceTestDbUtil());
 
-        Double score = regimeScoreSource.getLineageScore(1L);
+        regimeScoreSource.setLineageScoreSourceForRegimeTransitions(lineageScoreSourcesForRegimeTransitions());
     }
 
-    private class RegimeScoreSourceTestDbUtil extends MultiGaDbUtil {
+    private Map<RegimeScoreSource.RegimeTransition, LineageScoreSource> lineageScoreSourcesForRegimeTransitions() {
+        Map<RegimeScoreSource.RegimeTransition, LineageScoreSource> map = new LinkedHashMap<>();
+        map.put(RegimeScoreSource.RegimeTransition.ZERO_TO_ONE, new LineageScoreSource() {
+            @Override
+            public Double getLineageScore(Long lineageId) {
+                return 1.0;
+            }
+        });
 
+        map.put(RegimeScoreSource.RegimeTransition.ONE_TO_TWO, new LineageScoreSource() {
+            @Override
+            public Double getLineageScore(Long lineageId) {
+                return 4.0;
+            }
+        });
+
+        map.put(RegimeScoreSource.RegimeTransition.TWO_TO_THREE, new LineageScoreSource() {
+            @Override
+            public Double getLineageScore(Long lineageId) {
+                return 9.0;
+            }
+        });
+
+        map.put(RegimeScoreSource.RegimeTransition.THREE_TO_FOUR, new LineageScoreSource() {
+            @Override
+            public Double getLineageScore(Long lineageId) {
+                return 16.0;
+            }
+        });
+
+        return map;
     }
+
+    @Test
+    public void regime_scores_calls_correct_lineage_score_source() {
+        Double score = regimeScoreSource.getLineageScore(0L);
+        assertEquals(1.0, score, 0.0001);
+
+        score = regimeScoreSource.getLineageScore((long) 0.5);
+        assertEquals(1.0, score, 0.0001);
+
+        score = regimeScoreSource.getLineageScore(1L);
+        assertEquals(4.0, score, 0.0001);
+
+        score = regimeScoreSource.getLineageScore(2L);
+        assertEquals(9.0, score, 0.0001);
+
+        score = regimeScoreSource.getLineageScore(3L);
+        assertEquals(16.0, score, 0.0001);
+    }
+
+    @Test
+    public void getLineageScore() {
+    }
+
+    /**
+     * Sets regime score of previous generation to be the lineage id of the current generation for testing purposes
+     */
+    private static class RegimeScoreSourceTestDbUtil extends MultiGaDbUtil {
+
+        @Override
+        public Double readRegimeScore(Long lineageId) {
+            return lineageId.doubleValue();
+        }
+
+        @Override
+        public void updateRegimeScore(Long lineageId, Double regimeScore) {
+
+        }
+    }
+
+
 }
