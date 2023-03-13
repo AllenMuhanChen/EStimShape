@@ -22,23 +22,23 @@ public class RegimeScoreSource implements LineageScoreSource{
         THREE_TO_FOUR,
     }
     public Double getLineageScore(Long lineageId) {
-        regimeScore = dbUtil.readRegimeScore(lineageId);
-        calculateRegimeScore(lineageId);
+        Double lastGenRegimeScore = dbUtil.readRegimeScore(lineageId);
+        calculateRegimeScore(lineageId, lastGenRegimeScore);
         dbUtil.updateRegimeScore(lineageId, regimeScore);
         return regimeScore;
     }
 
-    private void calculateRegimeScore(Long founderId) {
-        if (regimeScore < 1.0){
+    private void calculateRegimeScore(Long founderId, Double lastGenRegimeScore) {
+        if (lastGenRegimeScore < 1.0){
             updateRegimeScoreWith(RegimeTransition.ZERO_TO_ONE, founderId);
         }
-        else if (regimeScore < 2.0){
+        else if (lastGenRegimeScore < 2.0){
             updateRegimeScoreWith(RegimeTransition.ONE_TO_TWO, founderId);
         }
-        else if (regimeScore < 3.0) {
+        else if (lastGenRegimeScore < 3.0) {
             updateRegimeScoreWith(RegimeTransition.TWO_TO_THREE, founderId);
         }
-        else if (regimeScore < 4.0) {
+        else if (lastGenRegimeScore < 4.0) {
             updateRegimeScoreWith(RegimeTransition.THREE_TO_FOUR, founderId);
         }
     }
