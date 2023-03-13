@@ -75,7 +75,7 @@ public class SlotSelectionProcess {
         // Calculate Regime Scores For All Lineages
         Map<Long, Double> regimeScoreForLineages = new LinkedHashMap<>();
         for (Long lineageId : lineageIds){
-            regimeScoreForLineages.put(lineageId, regimeScoreSource.getRegimeScore(lineageId));
+            regimeScoreForLineages.put(lineageId, regimeScoreSource.getLineageScore(lineageId));
         }
         return regimeScoreForLineages;
     }

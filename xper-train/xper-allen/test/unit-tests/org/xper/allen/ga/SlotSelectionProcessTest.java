@@ -174,7 +174,7 @@ public class SlotSelectionProcessTest {
 
     private static class MockRegimeScoreSource extends RegimeScoreSource {
         @Override
-        public Double getRegimeScore(Long lineageId) {
+        public Double getLineageScore(Long lineageId) {
             // Give different regime score to different lineages
             if (lineageId == 1L) {
                 return 1.0;

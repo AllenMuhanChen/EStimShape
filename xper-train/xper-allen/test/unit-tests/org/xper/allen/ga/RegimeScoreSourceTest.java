@@ -10,7 +10,7 @@ public class RegimeScoreSourceTest {
         RegimeScoreSource regimeScoreSource = new RegimeScoreSource();
         regimeScoreSource.setDbUtil(new RegimeScoreSourceTestDbUtil());
 
-        Double score = regimeScoreSource.getRegimeScore(1L);
+        Double score = regimeScoreSource.getLineageScore(1L);
     }
 
     private class RegimeScoreSourceTestDbUtil extends MultiGaDbUtil {

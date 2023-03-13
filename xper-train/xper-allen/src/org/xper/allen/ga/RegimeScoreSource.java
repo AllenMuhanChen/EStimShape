@@ -4,22 +4,24 @@ import org.apache.commons.math.random.EmpiricalDistribution;
 import org.apache.commons.math3.analysis.BivariateFunction;
 import org.xper.Dependency;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 
+import java.util.Map;
 
-public class RegimeScoreSource {
+public class RegimeScoreSource implements LineageScoreSource{
 
     @Dependency
     MultiGaDbUtil dbUtil;
 
     @Dependency
-    MaxResponseSource lineageMaxResponseSource;
+    Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions;
 
-    BivariateFunction  childParentResponseFunction;
-
-    EmpiricalDistribution childParentResponseDistribution;
-
-    public Double getRegimeScore(Long founderId) {
+    public enum RegimeTransition{
+        ZERO_TO_ONE,
+        ONE_TO_TWO,
+        TWO_TO_THREE,
+        THREE_TO_FOUR,
+    }
+    public Double getLineageScore(Long founderId) {
         //
         return null;
     }
@@ -33,4 +35,6 @@ public class RegimeScoreSource {
     public void setDbUtil(MultiGaDbUtil dbUtil) {
         this.dbUtil = dbUtil;
     }
+
+
 }
