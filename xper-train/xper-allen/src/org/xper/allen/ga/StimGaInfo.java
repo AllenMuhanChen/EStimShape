@@ -9,6 +9,7 @@ public class StimGaInfo {
     long genId;
     long lineageId;
     String treeSpec;
+    String stimType;
 
     public StimGaInfo() {
     }
@@ -78,5 +79,13 @@ public class StimGaInfo {
 
     public void setTreeSpec(String treeSpec) {
         this.treeSpec = treeSpec;
+    }
+
+    public String getStimType() {
+        return stimType;
+    }
+
+    public void setStimType(String stimType) {
+        this.stimType = stimType;
     }
 }
