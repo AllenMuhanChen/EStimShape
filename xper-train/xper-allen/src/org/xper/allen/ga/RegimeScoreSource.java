@@ -10,8 +10,6 @@ public class RegimeScoreSource implements LineageScoreSource{
     @Dependency
     MultiGaDbUtil dbUtil;
 
-    @Dependency
-    LineageGaInfoDbUtil lineageGaInfoDbUtil;
 
     @Dependency
     Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions;
@@ -23,7 +21,7 @@ public class RegimeScoreSource implements LineageScoreSource{
         THREE_TO_FOUR,
     }
     public Double getLineageScore(Long founderId) {
-        //
+        Double regimeScore = dbUtil.readRegimeScore(founderId);
         return null;
     }
 
