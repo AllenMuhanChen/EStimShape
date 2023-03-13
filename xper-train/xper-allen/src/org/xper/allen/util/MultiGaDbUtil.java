@@ -294,18 +294,44 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result[0];
     }
 
+    public Integer readLatestGenIdForLineage(Long lineageId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final Integer[] result = new Integer[1];
+        jt.query(
+                " select max(gen_id) as gen_id from StimGaInfo where lineage_id = ?",
+                new Object[] { lineageId },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) {
+                        try {
+                            result[0] = rs.getInt("gen_id");
+                        } catch (SQLException e) {
+                            result[0] = 0;
+                        }
+                    }});
+        return result[0];
+    }
+
     public static class LineageGaInfo {
         Long lineageId;
         String treeSpec;
         Double regimeScore;
+        String lineageData;
 
         public LineageGaInfo() {
+        }
+
+        public LineageGaInfo(Long lineageId, String treeSpec, Double regimeScore, String lineageData) {
+            this.lineageId = lineageId;
+            this.treeSpec = treeSpec;
+            this.regimeScore = regimeScore;
+            this.lineageData = lineageData;
         }
 
         public LineageGaInfo(Long lineageId, String treeSpec, Double regimeScore) {
             this.lineageId = lineageId;
             this.treeSpec = treeSpec;
             this.regimeScore = regimeScore;
+            this.lineageData = "";
         }
     }
 
@@ -317,20 +343,22 @@ public class MultiGaDbUtil extends AllenDbUtil {
                 new RowCallbackHandler() {
                     @Override
                     public void processRow(ResultSet rs) throws SQLException {
-                        lineageGaInfo.lineageId = rs.getLong("lineageId");
-                        lineageGaInfo.treeSpec = rs.getString("treeSpec");
-                        lineageGaInfo.regimeScore = rs.getDouble("regimeScore");
+                        lineageGaInfo.lineageId = rs.getLong("lineage_id");
+                        lineageGaInfo.treeSpec = rs.getString("tree_spec");
+                        lineageGaInfo.regimeScore = rs.getDouble("regime_score");
+                        lineageGaInfo.lineageData = rs.getString("lineage_data");
                     }});
         return lineageGaInfo;
     }
 
     public void writeLineageGaInfo(LineageGaInfo lineageGaInfo) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("INSERT INTO LineageGaInfo (lineage_id, tree_spec, regime_score) VALUES (?, ?, ?)",
+        jt.update("INSERT INTO LineageGaInfo (lineage_id, tree_spec, regime_score, lineage_data) VALUES (?, ?, ?, ?)",
                 new Object[] {
                         lineageGaInfo.lineageId,
                         lineageGaInfo.treeSpec,
-                        lineageGaInfo.regimeScore
+                        lineageGaInfo.regimeScore,
+                        lineageGaInfo.lineageData
                 });
     }
 

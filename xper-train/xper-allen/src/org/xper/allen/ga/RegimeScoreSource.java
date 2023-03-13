@@ -1,6 +1,7 @@
 package org.xper.allen.ga;
 
 import org.xper.Dependency;
+import org.xper.allen.ga3d.blockgen.LineageData;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.Map;
@@ -24,8 +25,25 @@ public class RegimeScoreSource implements LineageScoreSource{
     public Double getLineageScore(Long lineageId) {
         Double lastGenRegimeScore = dbUtil.readRegimeScore(lineageId);
         calculateRegimeScore(lineageId, lastGenRegimeScore);
-        dbUtil.updateRegimeScore(lineageId, regimeScore);
+        updateRegimeScore(lineageId);
         return regimeScore;
+    }
+
+    private void updateRegimeScore(Long lineageId) {
+        dbUtil.updateRegimeScore(lineageId, regimeScore);
+        LineageData lineageData = updateLineageData(lineageId);
+        dbUtil.writeLineageData(lineageId, lineageData.toXml());
+    }
+
+    private LineageData updateLineageData(Long lineageId) {
+        LineageData lineageData;
+        try {
+            lineageData = LineageData.fromXml(dbUtil.readLineageData(lineageId));
+        } catch (RuntimeException e){
+            lineageData = new LineageData();
+        }
+        lineageData.putRegimeScoreForGeneration(dbUtil.readLatestGenIdForLineage(lineageId), regimeScore);
+        return lineageData;
     }
 
     private void calculateRegimeScore(Long founderId, Double lastGenRegimeScore) {

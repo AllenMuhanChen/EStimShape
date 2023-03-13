@@ -3,6 +3,7 @@ package org.xper.allen.ga3d.blockgen;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.ga.Branch;
+import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.PngSpec;
 
@@ -78,20 +79,21 @@ public abstract class ThreeDGAStim implements Stim {
      * (Including siblings, uncles, cousins, etc.)
      */
     private void updateLineageTree() {
-        Branch<LineageInfo> lineageTree;
+        Branch<Long> lineageTree;
         if (isFounderStim()){
             lineageTree = new Branch<>(stimId);
+            generator.getDbUtil().writeLineageGaInfo(new MultiGaDbUtil.LineageGaInfo(
+                    lineageId,
+                    lineageTree.toXml(),
+                    0.0,
+                    new LineageData().toXml()));
         } else{
             lineageTree = Branch.fromXml(generator.getDbUtil().readLineageTreeSpec(lineageId));
             lineageTree.addChildTo(parentId, stimId);
+            generator.getDbUtil().updateLineageTreeSpec(lineageId, lineageTree.toXml());
         }
 
-        generator.getDbUtil().updateLineageTreeSpec(lineageId, lineageTree.toXml());
-    }
-
-    public static class LineageInfo {
-        Long stimId;
-
 
     }
+
 }
