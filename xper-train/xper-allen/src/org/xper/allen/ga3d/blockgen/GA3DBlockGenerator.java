@@ -141,7 +141,7 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
             public void accept(String gaName, List<ThreeDGAStim> trials) {
                 for (ThreeDGAStim trial : trials) {
                     trial.writeStim();
-                    trial.writeStimGaInfo(gaName, genIdForGA.get(gaName));
+                    trial.writeGaInfo(gaName, genIdForGA.get(gaName));
                     Long stimId = trial.getStimId();
                     for (int i = 0; i < numTrialsPerStimuli; i++) {
                         long taskId = getGlobalTimeUtil().currentTimeMicros();
