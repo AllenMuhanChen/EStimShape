@@ -334,7 +334,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
                 });
     }
 
-    public Double readRegimeScore(long lineageId) {
+    public Double readRegimeScore(Long lineageId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         List<Double> regimeScore = new ArrayList<>();
         jt.query("SELECT regime_score FROM LineageGaInfo WHERE lineage_id = ?",
@@ -355,7 +355,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
         }
     }
 
-    public void updateRegimeScore(long lineageId, double regimeScore) {
+    public void updateRegimeScore(Long lineageId, Double regimeScore) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         jt.update("UPDATE LineageGaInfo SET regime_score = ? WHERE lineage_id = ?",
                 new Object[] {

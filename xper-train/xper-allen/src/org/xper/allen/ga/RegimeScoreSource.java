@@ -58,5 +58,11 @@ public class RegimeScoreSource implements LineageScoreSource{
         this.dbUtil = dbUtil;
     }
 
+    public Map<RegimeTransition, LineageScoreSource> getLineageScoreSourceForRegimeTransitions() {
+        return lineageScoreSourceForRegimeTransitions;
+    }
 
+    public void setLineageScoreSourceForRegimeTransitions(Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions) {
+        this.lineageScoreSourceForRegimeTransitions = lineageScoreSourceForRegimeTransitions;
+    }
 }
