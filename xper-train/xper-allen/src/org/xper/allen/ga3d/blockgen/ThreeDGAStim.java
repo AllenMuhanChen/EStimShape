@@ -58,24 +58,9 @@ public abstract class ThreeDGAStim implements Stim {
         return parentId == 0L;
     }
 
-
-    private void updateLineageTree() {
-        Branch lineageTree;
-        if (isFounderStim()){
-            lineageTree = new Branch<>(stimId);
-        } else{
-            lineageTree = Branch.fromXml(generator.getDbUtil().readLineageTreeSpec(lineageId));
-            lineageTree.addChildTo(parentId, stimId);
-        }
-
-        generator.getDbUtil().updateLineageTreeSpec(lineageId, lineageTree.toXml());
-    }
-
     /**
-     * MAy be deprecated/
-     * Only update the tree if it hasn't been updated yet.
-     *
-     * A stim tree is a stimulus' tree of ancestors.
+     * Tracks the genetic history of a single stimulus, starting from the founder of the lineage that stimulus is in.
+     * (Only the parent of the stimulus, and the parents of parents)
      */
     private void updateStimTree() {
         if (isFounderStim()) {
@@ -86,5 +71,27 @@ public abstract class ThreeDGAStim implements Stim {
             tree = Branch.fromXml(treeSpec);
             tree.addChildTo(parentId, stimId);
         }
+    }
+
+    /**
+     * Tracks the pedigree of an entire lineage, starting from the founder of the lineage.
+     * (Including siblings, uncles, cousins, etc.)
+     */
+    private void updateLineageTree() {
+        Branch<LineageInfo> lineageTree;
+        if (isFounderStim()){
+            lineageTree = new Branch<>(stimId);
+        } else{
+            lineageTree = Branch.fromXml(generator.getDbUtil().readLineageTreeSpec(lineageId));
+            lineageTree.addChildTo(parentId, stimId);
+        }
+
+        generator.getDbUtil().updateLineageTreeSpec(lineageId, lineageTree.toXml());
+    }
+
+    public static class LineageInfo {
+        Long stimId;
+
+
     }
 }
