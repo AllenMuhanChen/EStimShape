@@ -10,9 +10,10 @@ public class RegimeScoreSource implements LineageScoreSource{
     @Dependency
     MultiGaDbUtil dbUtil;
 
-
     @Dependency
     Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions;
+
+    private Double regimeScore;
 
     public enum RegimeTransition{
         ZERO_TO_ONE,
@@ -20,12 +21,34 @@ public class RegimeScoreSource implements LineageScoreSource{
         TWO_TO_THREE,
         THREE_TO_FOUR,
     }
-    public Double getLineageScore(Long founderId) {
-        Double regimeScore = dbUtil.readRegimeScore(founderId);
-        return null;
+    public Double getLineageScore(Long lineageId) {
+        regimeScore = dbUtil.readRegimeScore(lineageId);
+        calculateRegimeScore(lineageId);
+        dbUtil.updateRegimeScore(lineageId, regimeScore);
+        return regimeScore;
     }
 
+    private void calculateRegimeScore(Long founderId) {
+        if (regimeScore < 1.0){
+            updateRegimeScoreWith(RegimeTransition.ZERO_TO_ONE, founderId);
+        }
+        else if (regimeScore < 2.0){
+            updateRegimeScoreWith(RegimeTransition.ONE_TO_TWO, founderId);
+        }
+        else if (regimeScore < 3.0) {
+            updateRegimeScoreWith(RegimeTransition.TWO_TO_THREE, founderId);
+        }
+        else if (regimeScore < 4.0) {
+            updateRegimeScoreWith(RegimeTransition.THREE_TO_FOUR, founderId);
+        }
+    }
 
+    private void updateRegimeScoreWith(RegimeTransition regimeTransition, Long founderId){
+        Double newRegimeScore = lineageScoreSourceForRegimeTransitions.get(regimeTransition).getLineageScore(founderId);
+        if (newRegimeScore > regimeScore){
+            regimeScore = newRegimeScore;
+        }
+    }
 
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;
