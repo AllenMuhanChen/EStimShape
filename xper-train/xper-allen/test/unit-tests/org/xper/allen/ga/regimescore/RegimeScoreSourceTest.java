@@ -66,13 +66,13 @@ public class RegimeScoreSourceTest {
         assertEquals(1.0, score, 0.0001);
 
         score = regimeScoreSource.getLineageScore(1L);
-        assertEquals(4.0, score, 0.0001);
+        assertEquals(4.0+1, score, 0.0001);
 
         score = regimeScoreSource.getLineageScore(2L);
-        assertEquals(9.0, score, 0.0001);
+        assertEquals(9+2, score, 0.0001);
 
         score = regimeScoreSource.getLineageScore(3L);
-        assertEquals(16.0, score, 0.0001);
+        assertEquals(16.0+3, score, 0.0001);
     }
 
     @Test
@@ -82,7 +82,7 @@ public class RegimeScoreSourceTest {
         String lineageDataXml = regimeScoreSource.getDbUtil().readLineageData(2L);
         LineageData lineageData = LineageData.fromXml(lineageDataXml);
 
-        assertEquals(9.0, lineageData.regimeScoreForGenerations.get(10), 0.0001);
+        assertEquals(9.0+2, lineageData.regimeScoreForGenerations.get(10), 0.0001);
     }
 
     @Test

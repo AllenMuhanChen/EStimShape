@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-public class StabilityOfMaxSource implements LineageScoreSource{
+public class StabilityOfMaxScoreSource implements LineageScoreSource{
 
     @Dependency
     static int N = 3;
