@@ -36,7 +36,7 @@ public class StabilityOfMaxSource implements LineageScoreSource{
     public Double getLineageScore(Long lineageId) {
         this.lineageId = lineageId;
         //Get a Map of all genIds and their stimIds for a lineage
-        LinkedHashMap<Integer, List<Long>> stimIdsForGenIds = (LinkedHashMap<Integer, List<Long>>) dbUtil.readStimIdsForGenIdsFor(lineageId);
+        LinkedHashMap<Integer, List<Long>> stimIdsForGenIds = (LinkedHashMap<Integer, List<Long>>) dbUtil.readStimIdsFromGenIdsFor(lineageId);
 
         //For each genId in the map, find max of all spike rates in generations up to that genId
         LinkedHashMap<Integer, Double> maxSpikeRateUpToGenIds = new LinkedHashMap<>();

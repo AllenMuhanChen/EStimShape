@@ -241,7 +241,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result;
     }
 
-    public List<Long> readStimIdsForLineage(String gaName, Long lineageId) {
+    public List<Long> readStimIdsFromLineage(String gaName, Long lineageId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final List<Long> result = new ArrayList<>();
         jt.query(
@@ -473,7 +473,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return stimIds;
     }
 
-    public Map<Integer, List<Long>> readStimIdsForGenIdsFor(Long lineageId){
+    public Map<Integer, List<Long>> readStimIdsFromGenIdsFor(Long lineageId){
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         Map<Integer, List<Long>> stimIdsByGenId = new HashMap<>();
         jt.query("SELECT stim_id, gen_id FROM StimGaInfo WHERE lineage_id = ?",
