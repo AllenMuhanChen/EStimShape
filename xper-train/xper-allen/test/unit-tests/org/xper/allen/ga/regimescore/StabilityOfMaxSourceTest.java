@@ -103,10 +103,8 @@ public class StabilityOfMaxSourceTest {
 
     private static class MockSpikeRateSource implements SpikeRateSource {
         @Override
-        public List<Double> getSpikeRates(Long taskId) {
-            List<Double> rates = new ArrayList<>();
-            rates.add(Double.valueOf(taskId));
-            return rates;
+        public Double getSpikeRate(Long taskId) {
+            return taskId.doubleValue();
         }
     }
 

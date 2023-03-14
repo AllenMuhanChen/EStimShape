@@ -39,8 +39,7 @@ public class MaxValueLineageScore implements LineageScoreSource {
     private Double calculateMaxSpikeRateFor(List<Long> stimIds) {
         Map<Long, Double> averageSpikeRateForStimIds = new HashMap<Long, Double>();
         for (Long stimId : stimIds) {
-            List<Double> spikeRates = spikeRateSource.getSpikeRates(stimId);
-            Double averageSpikeRate = getAverageSpikeRate(spikeRates);
+            Double averageSpikeRate = spikeRateSource.getSpikeRate(stimId);
             averageSpikeRateForStimIds.put(stimId, averageSpikeRate);
         }
 

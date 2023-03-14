@@ -115,8 +115,7 @@ public class SlotSelectionProcess {
                     // find responses for each potential parents
                     List<Double> responses = new LinkedList<>();
                     for (Long potentialParent : potentialParents) {
-                        List<Double> spikeRates = spikeRateSource.getSpikeRates(potentialParent);
-                        Double averageSpikeRate = calculateAverageSpikeRate(spikeRates);
+                        Double averageSpikeRate = spikeRateSource.getSpikeRate(potentialParent);
                         responses.add(averageSpikeRate);
                     }
 

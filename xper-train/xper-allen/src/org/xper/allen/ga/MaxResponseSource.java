@@ -21,8 +21,7 @@ public class MaxResponseSource {
 
         Double maxResponse = minimumMaxResponse;
         for (Long stimId : allStimIds) {
-            List<Double> spikeRates = spikeRateSource.getSpikeRates(stimId);
-            Double averageSpikeRate = calculateAverageSpikeRate(spikeRates);
+            Double averageSpikeRate = spikeRateSource.getSpikeRate(stimId);
 
             if (averageSpikeRate > maxResponse) {
                 maxResponse = averageSpikeRate;

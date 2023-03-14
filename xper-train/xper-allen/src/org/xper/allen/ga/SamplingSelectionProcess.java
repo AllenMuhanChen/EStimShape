@@ -87,8 +87,7 @@ public class SamplingSelectionProcess {
     }
 
     private Double getAverageSpikeRate(Child child) {
-        List<Double> spikeRates = spikeRateSource.getSpikeRates(child.getStimId());
-        return average(spikeRates);
+        return spikeRateSource.getSpikeRate(child.getStimId());
     }
 
     private Integer getTreeCanopyWidth(Child child) {

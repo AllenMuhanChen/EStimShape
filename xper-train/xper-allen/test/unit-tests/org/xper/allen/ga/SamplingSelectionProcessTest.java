@@ -85,11 +85,8 @@ public class SamplingSelectionProcessTest {
 
     private static class ComplexParentSelectorTestSpikeRateSource implements SpikeRateSource {
         @Override
-        public List<Double> getSpikeRates(Long taskId) {
-            ArrayList<Double> output = new ArrayList<Double>();
-            output.add(Double.valueOf(taskId));
-
-            return output;
+        public Double getSpikeRate(Long taskId) {
+            return taskId.doubleValue();
         }
     }
 

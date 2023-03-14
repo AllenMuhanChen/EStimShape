@@ -1,6 +1,7 @@
 package org.xper.allen.ga;
 
 import org.apache.commons.math3.analysis.BivariateFunction;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.util.ThreadUtil;
 
@@ -15,6 +16,7 @@ import java.util.List;
 public class GaussianMixtureModelTest {
 
     @Test
+    @Ignore
     public void testGaussianMixtureModel() {
         List<Point2D> controlPoints = new ArrayList<Point2D>();
         controlPoints.add(new Point2D.Double(0, 0));

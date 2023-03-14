@@ -45,7 +45,7 @@ public class AverageSpikeRateParentSelector implements ParentSelector{
                         if (spikeRatesForStimId.get(stimId) == null) {
                             spikeRatesForStimId.put(stimId, new LinkedList<>());
                         }
-                        spikeRatesForStimId.get(stimId).addAll(spikeRateSource.getSpikeRates(taskId));
+                        spikeRatesForStimId.get(stimId).add(spikeRateSource.getSpikeRate(taskId));
                     }
                 });
             }
