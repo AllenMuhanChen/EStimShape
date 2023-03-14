@@ -74,7 +74,7 @@ public class StabilityOfMaxSourceTest {
     private static class MockDbUtil extends MultiGaDbUtil {
 
         @Override
-        public Map<Integer, List<Long>> readStimIdsForGenIdsFor(Long lineageId){
+        public Map<Integer, List<Long>> readStimIdsFromGenIdsFor(Long lineageId){
             Map<Integer, List<Long>> map = new LinkedHashMap<>();
             if (lineageId.equals(1L)) {
                 map.put(1, Arrays.asList(1L, 2L, 3L));

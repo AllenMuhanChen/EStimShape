@@ -160,7 +160,7 @@ public class SlotSelectionProcessTest {
         }
 
         @Override
-        public List<Long> readStimIdsForLineage(String gaName, Long lineageId) {
+        public List<Long> readStimIdsFromLineage(String gaName, Long lineageId) {
             // Give different stim Ids for each founder
             List<Long> stimIds = new LinkedList<>();
             if (lineageId == 1L) {
