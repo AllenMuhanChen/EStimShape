@@ -20,10 +20,10 @@ public class MaxValueLineageScoreTest {
 
         source.setDbUtil(new MockDbUtil());
         source.setSpikeRateSource(new MockSpikeRateSource());
-        source.setThresholdSource(new ThresholdSource() {
+        source.setMaxThresholdSource(new ThresholdSource() {
             @Override
             public Double getThreshold() {
-                return 2.0;
+                return 3.0;
             }
         });
     }
@@ -35,12 +35,13 @@ public class MaxValueLineageScoreTest {
             public List<Long> readStimIdsFromLineageAndType(Long lineageId, String type) {
                 List<Long> stimIds = new ArrayList<Long>();
                 stimIds.add(1L);
+                stimIds.add(2L);
                 return stimIds;
             }
         });
 
-        Double score = source.getLineageScore(1L);
-        assertEquals(0.5, score, 0.001);
+        Double score = source.getLineageScore(null);
+        assertEquals(0.6666, score, 0.001);
     }
 
     @Test
@@ -52,10 +53,11 @@ public class MaxValueLineageScoreTest {
                 stimIds.add(1L);
                 stimIds.add(2L);
                 stimIds.add(3L);
+                stimIds.add(4L);
                 return stimIds;
             }
         });
-        Double score = source.getLineageScore(1L);
+        Double score = source.getLineageScore(null);
         assertEquals(1, score, 0.001);
 
     }

@@ -2,7 +2,6 @@ package org.xper.allen.util;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.StimGaInfo;
@@ -472,5 +471,43 @@ public class MultiGaDbUtil extends AllenDbUtil {
                     }
                 });
         return stimIds;
+    }
+
+    public Map<Integer, List<Long>> readStimIdsForGenIdsFor(Long lineageId){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        Map<Integer, List<Long>> stimIdsByGenId = new HashMap<>();
+        jt.query("SELECT stim_id, gen_id FROM StimGaInfo WHERE lineage_id = ?",
+                new Object[]{lineageId},
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        Long stimId = rs.getLong("stim_id");
+                        Integer genId = rs.getInt("gen_id");
+                        if (!stimIdsByGenId.containsKey(genId)) {
+                            stimIdsByGenId.put(genId, new ArrayList<>());
+                        }
+                        stimIdsByGenId.get(genId).add(stimId);
+                    }
+                });
+        return stimIdsByGenId;
+    }
+
+    public String readGaNameFor(Long lineageId){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        List<String> gaNames = new ArrayList<>();
+        jt.query("SELECT ga_name FROM StimGaInfo WHERE lineage_id = ?",
+                new Object[]{lineageId},
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        gaNames.add(rs.getString("ga_name"));
+                    }
+                });
+        if (gaNames.size() == 0) {
+            throw new RuntimeException("No ga name found for lineageId " + lineageId);
+        }
+        else {
+            return gaNames.get(0);
+        }
     }
 }
