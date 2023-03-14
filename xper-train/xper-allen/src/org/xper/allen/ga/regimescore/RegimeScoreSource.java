@@ -1,4 +1,4 @@
-package org.xper.allen.ga;
+package org.xper.allen.ga.regimescore;
 
 import org.xper.Dependency;
 import org.xper.allen.ga3d.blockgen.LineageData;
@@ -6,7 +6,7 @@ import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.Map;
 
-public class RegimeScoreSource implements LineageScoreSource{
+public class RegimeScoreSource implements LineageScoreSource {
 
     @Dependency
     MultiGaDbUtil dbUtil;

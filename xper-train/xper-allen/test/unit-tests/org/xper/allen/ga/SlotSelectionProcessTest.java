@@ -4,6 +4,8 @@ import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.junit.Before;
 import org.junit.Test;
+import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.RegimeScoreSource;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.*;

@@ -1,7 +1,9 @@
-package org.xper.allen.ga;
+package org.xper.allen.ga.regimescore;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.xper.allen.ga.regimescore.LineageScoreSource;
+import org.xper.allen.ga.regimescore.RegimeScoreSource;
 import org.xper.allen.ga3d.blockgen.LineageData;
 import org.xper.allen.util.MultiGaDbUtil;
 

@@ -1,7 +1,6 @@
 package org.xper.allen.ga3d.blockgen;
 
 import com.thoughtworks.xstream.XStream;
-import org.xper.allen.ga.RegimeScoreSource;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

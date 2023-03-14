@@ -2,6 +2,7 @@ package org.xper.allen.util;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.StimGaInfo;
@@ -457,5 +458,19 @@ public class MultiGaDbUtil extends AllenDbUtil {
         else {
             return lineageData.get(0);
         }
+    }
+
+    public List<Long> readStimIdsFromLineageAndType(Long lineageId, String type){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        List<Long> stimIds = new ArrayList<>();
+        jt.query("SELECT stim_id FROM StimGaInfo WHERE lineage_id = ? AND type = ?",
+                new Object[]{lineageId, type},
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        stimIds.add(rs.getLong("stim_id"));
+                    }
+                });
+        return stimIds;
     }
 }

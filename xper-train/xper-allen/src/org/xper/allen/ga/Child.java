@@ -1,5 +1,7 @@
 package org.xper.allen.ga;
 
+import org.xper.allen.ga.regimescore.Regime;
+
 public class Child {
 
     private long stimId;
