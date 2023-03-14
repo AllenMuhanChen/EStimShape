@@ -3,6 +3,8 @@ package org.xper.allen.ga;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.xper.Dependency;
+import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.RegimeScoreSource;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.*;

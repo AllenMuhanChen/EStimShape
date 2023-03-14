@@ -1,6 +1,7 @@
 package org.xper.allen.ga;
 
 import org.xper.Dependency;
+import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.ArrayList;

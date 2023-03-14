@@ -1,4 +1,4 @@
-package org.xper.allen.ga;
+package org.xper.allen.ga.regimescore;
 
 /**
  * Returns a number between 0-1 given a lineage Id.
