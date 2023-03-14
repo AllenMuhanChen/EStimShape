@@ -10,13 +10,13 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
-public class StabilityOfMaxSourceTest {
+public class StabilityOfMaxScoreSourceTest {
 
-    private StabilityOfMaxSource source;
+    private StabilityOfMaxScoreSource source;
 
     @Before
     public void setUp() throws Exception {
-        source = new StabilityOfMaxSource();
+        source = new StabilityOfMaxScoreSource();
         source.setDbUtil(new MockDbUtil());
         source.setSpikeRateSource(new MockSpikeRateSource());
         source.setMaxResponseSource(new MockMaxResponseSource());

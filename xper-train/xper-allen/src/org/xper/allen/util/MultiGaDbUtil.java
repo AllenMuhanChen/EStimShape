@@ -206,6 +206,14 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return info;
     }
 
+    public Long readParentFor(Long stimId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        Long parentId = jt.queryForLong(
+                " select parent_id from StimGaInfo where stim_id = ?",
+                new Object[] { stimId });
+        return parentId;
+    }
+
     public Map<Long, List<Long>> readTaskDoneIdsForStimIds(String gaName, long genId){
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final Map<Long, List<Long>> result = new HashMap<>();
