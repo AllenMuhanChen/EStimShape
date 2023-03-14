@@ -68,10 +68,8 @@ public class MaxValueLineageScoreTest {
 
     private static class MockSpikeRateSource implements SpikeRateSource {
         @Override
-        public List<Double> getSpikeRates(Long taskId) {
-            List<Double> spikeRates = new ArrayList<Double>();
-            spikeRates.add(Double.valueOf(taskId));
-            return spikeRates;
+        public Double getSpikeRate(Long taskId) {
+            return taskId.doubleValue();
         }
     }
 

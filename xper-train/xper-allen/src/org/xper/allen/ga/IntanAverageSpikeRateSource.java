@@ -8,7 +8,7 @@ import java.io.FileFilter;
 import java.util.LinkedList;
 import java.util.List;
 
-public class IntanSpikeRateSource implements SpikeRateSource {
+public class IntanAverageSpikeRateSource implements SpikeRateSource {
 
     @Dependency
     String spikeDatDirectory;
@@ -17,9 +17,9 @@ public class IntanSpikeRateSource implements SpikeRateSource {
     List<String> channels;
 
     @Override
-    public List<Double> getSpikeRates(Long taskId){
+    public Double getSpikeRate(Long taskId){
         String spikeDatPath = getSpikeDatPathFor(taskId);
-        return getCombinedSpikeRatesFrom(spikeDatPath);
+        return calculateAverageAcrossChannels(spikeDatPath);
     }
 
     private String getSpikeDatPathFor(Long stimId) {
@@ -38,13 +38,19 @@ public class IntanSpikeRateSource implements SpikeRateSource {
         }
     }
 
-    private List<Double> getCombinedSpikeRatesFrom(String spikeDatPath) {
+    private Double calculateAverageAcrossChannels(String spikeDatPath) {
         SpikeReader spikeReader = new SpikeReader(spikeDatPath);
         List<Double> spikeRates = new LinkedList<>();
         for (String channel:channels){
             spikeRates.add(spikeReader.getSpikeRate(channel));
         }
-        return spikeRates;
+
+        //calculate average of all spikeRates
+        Double sum = 0.0;
+        for (Double spikeRate : spikeRates) {
+            sum += spikeRate;
+        }
+        return sum / spikeRates.size();
     }
 
     public void setChannels(List<String> channels) {

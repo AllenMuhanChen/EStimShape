@@ -57,7 +57,7 @@ public class CanopyWidthSource {
     }
 
     private Double getAverageSpikeRateForStim(Long stimId) {
-        return spikeRateSource.getSpikeRates(stimId).stream().mapToDouble(Double::doubleValue).average().getAsDouble();
+        return spikeRateSource.getSpikeRate(stimId);
     }
 
     public MultiGaDbUtil getDbUtil() {

@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.LinkedList;
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -81,10 +80,8 @@ public class CanopyWidthSourceTest {
      */
     public static class CanopyWidthSourceTestSpikeRateSource implements SpikeRateSource {
         @Override
-        public List<Double> getSpikeRates(Long taskId) {
-            LinkedList<Double> output = new LinkedList<>();
-            output.add(Double.valueOf(taskId));
-            return output;
+        public Double getSpikeRate(Long taskId) {
+            return taskId.doubleValue();
         }
     }
 }

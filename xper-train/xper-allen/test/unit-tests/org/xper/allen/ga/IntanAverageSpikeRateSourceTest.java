@@ -9,13 +9,13 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class IntanSpikeRateSourceTest {
+public class IntanAverageSpikeRateSourceTest {
 
-    private IntanSpikeRateSource spikeRateSource;
+    private IntanAverageSpikeRateSource spikeRateSource;
 
     @Before
     public void setUp() throws Exception {
-        spikeRateSource = new IntanSpikeRateSource();
+        spikeRateSource = new IntanAverageSpikeRateSource();
         spikeRateSource.setSpikeDatDirectory((ResourceUtil.getResource("IntanSpikeParentSelector-spikeDatDirectory")));
     }
 
@@ -27,10 +27,9 @@ public class IntanSpikeRateSourceTest {
 
         spikeRateSource.setChannels(channels);
 
-        List<Double> spikeRates = spikeRateSource.getSpikeRates(12345L);
+        Double spikeRate = spikeRateSource.getSpikeRate(12345L);
 
-        assertEquals(2, spikeRates.size());
-        assertEquals(205.574, spikeRates.get(0), 0.001);
-        assertEquals(270.973, spikeRates.get(1), 0.001);
+        assertEquals(238.273, spikeRate, 0.001);
+
     }
 }

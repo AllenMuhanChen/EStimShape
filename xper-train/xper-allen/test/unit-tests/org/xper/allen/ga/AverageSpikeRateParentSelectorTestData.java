@@ -34,7 +34,7 @@ public class AverageSpikeRateParentSelectorTestData {
 
         parentSelector.setDbUtil(new ParentSelectorTestMockMultiGaDbUtil());
 
-        IntanSpikeRateSource spikeRateSource = new IntanSpikeRateSource();
+        IntanAverageSpikeRateSource spikeRateSource = new IntanAverageSpikeRateSource();
         spikeRateSource.setSpikeDatDirectory(ResourceUtil.getResource("IntanSpikeParentSelector-spikeDatDirectory"));
         spikeRateSource.setChannels(Arrays.asList("B-000", "B-031"));
         parentSelector.setSpikeRateSource(spikeRateSource);

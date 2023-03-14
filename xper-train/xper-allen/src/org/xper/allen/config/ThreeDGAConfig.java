@@ -77,7 +77,7 @@ public class ThreeDGAConfig {
     }
 
     private SpikeRateSource spikeRateSource() {
-        IntanSpikeRateSource spikeRateSource = new IntanSpikeRateSource();
+        IntanAverageSpikeRateSource spikeRateSource = new IntanAverageSpikeRateSource();
         spikeRateSource.setSpikeDatDirectory(spikeDatPath);
         spikeRateSource.setChannels(channels());
         return spikeRateSource;

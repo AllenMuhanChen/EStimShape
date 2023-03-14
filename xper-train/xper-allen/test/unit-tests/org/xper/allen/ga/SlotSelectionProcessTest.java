@@ -188,9 +188,9 @@ public class SlotSelectionProcessTest {
 
     private static class MockSpikeRateSource implements SpikeRateSource {
         @Override
-        public List<Double> getSpikeRates(Long taskId) {
+        public Double getSpikeRate(Long taskId) {
             // give default firing rate that matches our fitness function
-            return Collections.singletonList(1.0);
+            return 1.0;
         }
     }
 }
