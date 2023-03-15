@@ -45,27 +45,6 @@ public class ParentChildBinThresholdsScoreSourceTest {
 
     }
 
-    private Map<NormalizedResponseBin, ThresholdSource> thresholdsForBins() {
-        Map<NormalizedResponseBin, ThresholdSource> map = new LinkedHashMap<>();
-
-        NormalizedResponseBin bin1 = new NormalizedResponseBin(0.0, 0.5);
-        map.put(bin1, new ThresholdSource() {
-            @Override
-            public Double getThreshold() {
-                return 3.0;
-            }
-        });
-
-        NormalizedResponseBin bin2 = new NormalizedResponseBin(0.5, 1.0);
-        map.put(bin2, new ThresholdSource() {
-            @Override
-            public Double getThreshold() {
-                return 4.0;
-            }
-        });
-        return map;
-    }
-
     /**
      * There's 5 pairs of (parent, child).
      * (1,2), (2,4), (3,6), (4,8), (5,10)
@@ -97,6 +76,27 @@ public class ParentChildBinThresholdsScoreSourceTest {
     public void more_pairs_in_one_bin_does_not_raise_whole_score(){
         Double actualScore = source.getLineageScore(2L);
         assertEquals(0.833, actualScore, 0.001);
+    }
+
+    private Map<NormalizedResponseBin, ThresholdSource> thresholdsForBins() {
+        Map<NormalizedResponseBin, ThresholdSource> map = new LinkedHashMap<>();
+
+        NormalizedResponseBin bin1 = new NormalizedResponseBin(0.0, 0.5);
+        map.put(bin1, new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 3.0;
+            }
+        });
+
+        NormalizedResponseBin bin2 = new NormalizedResponseBin(0.5, 1.0);
+        map.put(bin2, new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 4.0;
+            }
+        });
+        return map;
     }
 
 
