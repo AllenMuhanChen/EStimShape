@@ -112,14 +112,6 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
         return max;
     }
 
-    private Double getAverageSpikeRate(List<Double> spikeRates) {
-        Double sum = 0.0;
-        for (Double spikeRate : spikeRates) {
-            sum += spikeRate;
-        }
-        return sum / spikeRates.size();
-    }
-
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;
     }
