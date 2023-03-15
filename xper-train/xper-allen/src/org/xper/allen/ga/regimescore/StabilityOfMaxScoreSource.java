@@ -12,6 +12,18 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+/**
+ * For each generation in a lineage, calculates the max response across children
+ * from the beginning of lineage up until and including that generation.
+ *
+ * Then, calculates the stability of the most recent N generations
+ * by calculating the range of max-responses across the N generations.
+ *
+ * Then calculates a score between 0-1 where 0 is the least stable (highest range)
+ * and 1 is when the range is less than or equal to the range threshold.
+ *
+ * If is the range is greater than the range threshold, the score is truncated to 1.
+ */
 public class StabilityOfMaxScoreSource implements LineageScoreSource{
 
     @Dependency
