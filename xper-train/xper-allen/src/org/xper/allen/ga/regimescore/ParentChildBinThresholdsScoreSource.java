@@ -39,21 +39,53 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
         // Find all StimIds from this lineage and have stimType
         List<Long> stimIdsWithStimType = dbUtil.readStimIdsFromLineageAndType(lineageId, stimType);
 
-        // Filter by stim whose parents response meets parentResponseThreshold
-        List<Long> passedFilter = new LinkedList<>();
-        for (Long stimId : stimIdsWithStimType) {
-            // Get parent response
-            Long parentId = dbUtil.readParentFor(stimId);
-            // If parent response meets threshold, add to filteredStimIds
-            Double parentResponse = spikeRateSource.getSpikeRate(parentId);
-            boolean passedParentThreshold = parentResponse >= parentResponseThresholdSource.getThreshold();
+        List<Long> passedFilter = filterByParentResponseThreshold(stimIdsWithStimType);
 
-            if (passedParentThreshold) {
-                passedFilter.add(stimId);
-            }
+        LinkedHashMap<NormalizedResponseBin, List<Long>> childrenInsideBinForBins =
+                assignChildrenToBins(passedFilter);
+
+        LinkedHashMap<NormalizedResponseBin, Double> scoresForBins =
+                calculateScoresForBins(childrenInsideBinForBins);
+
+        // Calculate score such that 1 is that all bins have reached the threshold.
+        double score = averageBinScores(scoresForBins);
+
+        if (score > 1) {
+            score = 1.0;
         }
 
-        // For each bin, filter by stim whose response is inside the bin
+        return score;
+    }
+
+    private Double averageBinScores(LinkedHashMap<NormalizedResponseBin, Double> scoresForBins) {
+        Double score = 0.0;
+        for (Double binScore : scoresForBins.values()) {
+            score += binScore;
+        }
+        score = score / scoresForBins.size();
+        return score;
+    }
+
+    private LinkedHashMap<NormalizedResponseBin, Double> calculateScoresForBins(LinkedHashMap<NormalizedResponseBin, List<Long>> childrenInsideBinForBins) {
+        LinkedHashMap<NormalizedResponseBin, Double> scoresForBins = new LinkedHashMap<>();
+        childrenInsideBinForBins.forEach(new BiConsumer<NormalizedResponseBin, List<Long>>() {
+
+            @Override
+            public void accept(NormalizedResponseBin bin, List<Long> childrenIds) {
+                Integer numChildren = childrenIds.size();
+                Double pairThreshold = numPairThresholdSourcesForBins.get(bin).getThreshold();
+
+                Double score = numChildren / pairThreshold;
+                if (score > 1) {
+                    score = 1.0;
+                }
+                scoresForBins.put(bin, score);
+            }
+        });
+        return scoresForBins;
+    }
+
+    private LinkedHashMap<NormalizedResponseBin, List<Long>> assignChildrenToBins(List<Long> passedFilter) {
         LinkedHashMap<NormalizedResponseBin, List<Long>> childrenInsideBinForBins = new LinkedHashMap<>();
         numPairThresholdSourcesForBins.forEach(new BiConsumer<NormalizedResponseBin, ThresholdSource>() {
             @Override
@@ -75,37 +107,23 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
                 }
             }
         });
+        return childrenInsideBinForBins;
+    }
 
-        // Calculate a score 0-1 for each bin
-        LinkedHashMap<NormalizedResponseBin, Double> scoresForBins = new LinkedHashMap<>();
-        childrenInsideBinForBins.forEach(new BiConsumer<NormalizedResponseBin, List<Long>>() {
+    private List<Long> filterByParentResponseThreshold(List<Long> stimIdsWithStimType) {
+        List<Long> passedFilter = new LinkedList<>();
+        for (Long stimId : stimIdsWithStimType) {
+            // Get parent response
+            Long parentId = dbUtil.readParentFor(stimId);
+            // If parent response meets threshold, add to filteredStimIds
+            Double parentResponse = spikeRateSource.getSpikeRate(parentId);
+            boolean passedParentThreshold = parentResponse >= parentResponseThresholdSource.getThreshold();
 
-            @Override
-            public void accept(NormalizedResponseBin bin, List<Long> childrenIds) {
-                Integer numChildren = childrenIds.size();
-                Double pairThreshold = numPairThresholdSourcesForBins.get(bin).getThreshold();
-
-                Double score = numChildren / pairThreshold;
-                if (score > 1) {
-                    score = 1.0;
-                }
-                scoresForBins.put(bin, score);
+            if (passedParentThreshold) {
+                passedFilter.add(stimId);
             }
-        });
-
-
-        // Calculate score such that 1 is that all bins have reached the threshold.
-        Double score = 0.0;
-        for (Double binScore : scoresForBins.values()) {
-            score += binScore;
         }
-        score = score / scoresForBins.size();
-
-        if (score > 1) {
-            score = 1.0;
-        }
-
-        return score;
+        return passedFilter;
     }
 
     public static class NormalizedResponseBin {
