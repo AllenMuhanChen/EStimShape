@@ -8,6 +8,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Calculates the max response so far in a lineage and returns a number between 0-1
+ * where 1 is when the max response is greater or equal to the threshold, and 0 is when the max response
+ * is zero.
+ */
 public class MaxValueLineageScore implements LineageScoreSource {
 
     @Dependency
