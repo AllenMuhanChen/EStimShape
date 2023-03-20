@@ -35,14 +35,16 @@ public class ComponentMorphParameters {
         return rotation;
     }
 
-    public Double getLength(Double oldLength){
-        LengthMorpher doubleMorpher = new LengthMorpher();
-        length = doubleMorpher.morphLength(oldLength, getCurvature(), lengthMagnitude);
-        return length;
+    public Double getCurvature(Double oldCurvature){
+        CurvatureMorpher curvatureMorpher = new CurvatureMorpher();
+        curvature = curvatureMorpher.morphCurvature(oldCurvature, curvatureMagnitude);
+        return curvature;
     }
 
-    public Double getCurvature(){
-        return null;
+    public Double getLength(Double oldLength){
+        LengthMorpher doubleMorpher = new LengthMorpher();
+        length = doubleMorpher.morphLength(oldLength, curvature, lengthMagnitude);
+        return length;
     }
 
     Double orientationMagnitude;

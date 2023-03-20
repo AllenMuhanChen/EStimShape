@@ -16,7 +16,6 @@ public class LengthMorpher {
 
         double distToMin = Math.abs(oldLength - MIN_LENGTH);
         double distToMax = Math.abs(oldLength - MAX_LENGTH);
-
         double maxDist = Math.max(distToMin, distToMax);
 
         double normalizedDistToMin = distToMin / maxDist;
