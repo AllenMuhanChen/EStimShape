@@ -25,7 +25,14 @@ public class ComponentMorphParameters {
 
     public Vector3d getOrientation(Vector3d oldOrientation){
         Vector3DMorpher vector3DMorpher = new Vector3DMorpher();
-        return vector3DMorpher.morphVector(oldOrientation, orientationMagnitude);
+        orientation = vector3DMorpher.morphVector(oldOrientation, orientationMagnitude);
+        return orientation;
+    }
+
+    public Double getRotation(Double oldRotation){
+        AngleMorpher angleMorpher = new AngleMorpher();
+        rotation = angleMorpher.morphAngle(oldRotation, rotationMagnitude);
+        return rotation;
     }
 
     Double orientationMagnitude;
