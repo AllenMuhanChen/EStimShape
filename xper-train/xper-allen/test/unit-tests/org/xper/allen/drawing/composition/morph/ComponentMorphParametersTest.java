@@ -28,11 +28,14 @@ public class ComponentMorphParametersTest {
         magnitudes.add(morphParams.radiusProfileMagnitude);
 
         double sum = 0.0;
+        // Assert that each magnitude is between 0 and 1
         for (Double magnitude : magnitudes) {
             sum += magnitude;
             Assert.assertTrue(magnitude >= 0.0);
             Assert.assertTrue(magnitude <= 1.0);
         }
+        // Assert that the sum of the magnitudes is less than or equal to 2.5 (0.5 * 5, because we specified magnitude
+        // of 0.5, and there are 5 categories to distribute normalized magnitudes to)
         Assert.assertTrue(sum <= 2.5);
     }
 }
