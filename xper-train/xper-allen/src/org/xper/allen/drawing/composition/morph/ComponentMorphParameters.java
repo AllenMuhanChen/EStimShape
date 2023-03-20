@@ -24,7 +24,8 @@ public class ComponentMorphParameters {
     RadiusProfile radiusProfile;
 
     public Vector3d getOrientation(Vector3d oldOrientation){
-        return null;
+        Vector3DMorpher vector3DMorpher = new Vector3DMorpher();
+        return vector3DMorpher.morphVector(oldOrientation, orientationMagnitude);
     }
 
     Double orientationMagnitude;

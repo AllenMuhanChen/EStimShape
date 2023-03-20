@@ -2,14 +2,13 @@ package org.xper.allen.drawing.composition.morph;
 
 import org.xper.allen.drawing.composition.AngularCoordinates;
 import org.xper.allen.util.CoordinateConverter;
-import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 
 import javax.media.j3d.Transform3D;
 import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Vector3d;
 import java.util.Random;
 
-public class OrientationMorpher {
+public class Vector3DMorpher {
     public Vector3d morphVector(Vector3d oldVector, double magnitude){
         // Determine the final angle (shortest) between the oldVector and newVector
         double totalRotation = magnitude * Math.PI; // 180-degree rotation when rotationFactor = 1

@@ -10,13 +10,13 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-public class OrientationMorpherTest {
+public class Vector3DMorpherTest {
 
-    private OrientationMorpher morpher;
+    private Vector3DMorpher morpher;
 
     @Before
     public void setUp() throws Exception {
-        morpher = new OrientationMorpher();
+        morpher = new Vector3DMorpher();
     }
 
     @Test
