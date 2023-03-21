@@ -78,6 +78,7 @@ public class RadiusProfileMorpher {
 
                 ValueShifter1D converter = new ValueShifter1D(MIN_RADIUS, MAX_RADIUS);
                 double newRadius = converter.convert(normalizedMagnitude, oldRadiusInfo.getRadius());
+
                 RadiusInfo newRadiusInfo = new RadiusInfo(oldRadiusInfo, newRadius);
                 newRadiusProfile.addRadiusInfo(pointIndex, newRadiusInfo);
             }
