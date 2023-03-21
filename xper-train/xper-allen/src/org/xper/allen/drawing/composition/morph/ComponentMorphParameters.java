@@ -1,9 +1,7 @@
 package org.xper.allen.drawing.composition.morph;
 
 import javax.vecmath.Vector3d;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ComponentMorphParameters {
@@ -21,7 +19,7 @@ public class ComponentMorphParameters {
     Double rotation;
     Double length;
     Double curvature;
-    RadiusProfile radiusProfile;
+    Double juncRadius;
 
     public Vector3d getOrientation(Vector3d oldOrientation){
         Vector3DMorpher vector3DMorpher = new Vector3DMorpher();
@@ -42,9 +40,18 @@ public class ComponentMorphParameters {
     }
 
     public Double getLength(Double oldLength){
+        if (curvature == null) {
+            throw new RuntimeException("Curvature must be set before length can be set. Call getCurvature() first.");
+        }
         LengthMorpher doubleMorpher = new LengthMorpher();
         length = doubleMorpher.morphLength(oldLength, curvature, lengthMagnitude);
         return length;
+    }
+
+    public RadiusProfile getRadius(RadiusProfile oldRadiusProfile){
+        RadiusProfileMorpher radiusProfileMorpher = new RadiusProfileMorpher();
+        RadiusProfile radiusProfile = radiusProfileMorpher.morphRadiusProfile(oldRadiusProfile, length, curvature, radiusProfileMagnitude);
+        return radiusProfile;
     }
 
     Double orientationMagnitude;
@@ -71,16 +78,17 @@ public class ComponentMorphParameters {
         Collections.shuffle(magnitudes);
 
         Double amountToDistribute = magnitude;
-        for (AtomicReference<Double> magnitude : magnitudes) {
-            double randomMagnitude = Math.random() * MAX;
-            amountToDistribute -= randomMagnitude;
-            if (amountToDistribute > 0) {
-                double normalizedMagnitude = randomMagnitude / MAX;
-                magnitude.set(normalizedMagnitude);
-            }
-            else {
-                magnitude.set(amountToDistribute + randomMagnitude);
-                break;
+        while (amountToDistribute > 0) {
+            for (AtomicReference<Double> magnitude : magnitudes) {
+                double randomMagnitude = Math.random() * MAX;
+                amountToDistribute -= randomMagnitude;
+                if (amountToDistribute > 0) {
+                    double normalizedMagnitude = randomMagnitude / MAX;
+                    magnitude.set(magnitude.get() + normalizedMagnitude);
+                } else {
+                    magnitude.set(magnitude.get() + amountToDistribute + randomMagnitude);
+                    break;
+                }
             }
         }
 
@@ -91,10 +99,76 @@ public class ComponentMorphParameters {
         this.radiusProfileMagnitude = radiusProfileMagnitude.get();
     }
 
-    public static class RadiusProfile {
+    public static class RadiusProfile{
+        Map<Integer, RadiusInfo> infoForRadius = new HashMap<>();
+
+        //TODO: API to add radius info
+
+        public Map<Integer, RadiusInfo> getInfoForRadius() {
+            return infoForRadius;
+        }
+
+        public void addRadiusInfo(Integer id, RadiusInfo radiusInfo){
+            infoForRadius.put(id, radiusInfo);
+        }
+
+        public RadiusInfo getRadiusInfo(Integer id){
+            return infoForRadius.get(id);
+        }
     }
+    public enum RADIUS_TYPE{JUNCTION, MIDPT, ENDPT}
 
 
+    public static class RadiusInfo {
+        Double radius;
+        Integer uNdx;
+        RADIUS_TYPE radiusType;
+        Boolean preserve;
 
+        public RadiusInfo(Double radius, Integer uNdx, RADIUS_TYPE radiusType, Boolean preserve) {
+            this.radius = radius;
+            this.uNdx = uNdx;
+            this.radiusType = radiusType;
+            this.preserve = preserve;
+        }
 
+        public RadiusInfo(RadiusInfo oldRadiusInfo, Double newRadius) {
+            this.radius = newRadius;
+            this.uNdx = oldRadiusInfo.getuNdx(); //not needed?
+            this.radiusType = oldRadiusInfo.getRadiusType();
+            this.preserve = oldRadiusInfo.getPreserve(); //not needed?
+        }
+
+        public Double getRadius() {
+            return radius;
+        }
+
+        public void setRadius(Double radius) {
+            this.radius = radius;
+        }
+
+        public Integer getuNdx() {
+            return uNdx;
+        }
+
+        public void setuNdx(Integer uNdx) {
+            this.uNdx = uNdx;
+        }
+
+        public RADIUS_TYPE getRadiusType() {
+            return radiusType;
+        }
+
+        public void setRadiusType(RADIUS_TYPE radiusType) {
+            this.radiusType = radiusType;
+        }
+
+        public Boolean getPreserve() {
+            return preserve;
+        }
+
+        public void setPreserve(Boolean preserve) {
+            this.preserve = preserve;
+        }
+    }
 }

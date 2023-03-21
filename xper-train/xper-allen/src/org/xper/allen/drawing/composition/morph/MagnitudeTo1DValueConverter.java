@@ -29,9 +29,9 @@ public class MagnitudeTo1DValueConverter {
 
         List<Double> possibleLengths = new ArrayList<Double>();
         if (normalizedDistToMin >= magnitude)
-            possibleLengths.add(oldValue - magnitude * (oldValue - MIN_VALUE));
+            possibleLengths.add(oldValue - magnitude * maxDist);
         if (normalizedDistToMax >= magnitude)
-            possibleLengths.add(oldValue + magnitude * (MAX_VALUE - oldValue));
+            possibleLengths.add(oldValue + magnitude * maxDist);
 
         Collections.shuffle(possibleLengths);
         return possibleLengths.get(0);
