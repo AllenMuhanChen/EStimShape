@@ -10,7 +10,7 @@ public class LengthMorpher {
     public Double morphLength(Double oldLength, Double curvatureRadius, Double lengthMagnitude) {
         // Max length is a quarter turn of the curvature, but if there's no curvature, it's the radius of the view
         MAX_LENGTH = Math.min(curvatureRadius * Math.PI, RADIUS_VIEW);
-        MagnitudeTo1DValueConverter converter = new MagnitudeTo1DValueConverter(MIN_LENGTH, MAX_LENGTH);
+        ValueShifter1D converter = new ValueShifter1D(MIN_LENGTH, MAX_LENGTH);
         return converter.convert(lengthMagnitude, oldLength);
     }
 

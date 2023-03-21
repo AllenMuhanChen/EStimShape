@@ -1,10 +1,5 @@
 package org.xper.allen.drawing.composition.morph;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 public class CurvatureMorpher {
     public final static double RADIUS_VIEW = 5.0;
     public final static double LOW_CURVATURE_UPPER = 1 / (6 * RADIUS_VIEW);
@@ -35,7 +30,7 @@ public class CurvatureMorpher {
         double MIN_CURVATURE = 0.0;
         double MAX_CURVATURE = 1.0;
 
-        MagnitudeTo1DValueConverter converter = new MagnitudeTo1DValueConverter(MIN_CURVATURE, MAX_CURVATURE);
+        ValueShifter1D converter = new ValueShifter1D(MIN_CURVATURE, MAX_CURVATURE);
         double newNormalizedCurvature = converter.convert(curvatureMagnitude, oldNormalizedCurvature);
 
         // Convert the new normalized curvature value to a new curvature value
