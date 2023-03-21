@@ -76,7 +76,7 @@ public class RadiusProfileMorpher {
                     throw new RuntimeException("Invalid radius type");
                 }
 
-                MagnitudeTo1DValueConverter converter = new MagnitudeTo1DValueConverter(MIN_RADIUS, MAX_RADIUS);
+                ValueShifter1D converter = new ValueShifter1D(MIN_RADIUS, MAX_RADIUS);
                 double newRadius = converter.convert(normalizedMagnitude, oldRadiusInfo.getRadius());
                 RadiusInfo newRadiusInfo = new RadiusInfo(oldRadiusInfo, newRadius);
                 newRadiusProfile.addRadiusInfo(pointIndex, newRadiusInfo);
