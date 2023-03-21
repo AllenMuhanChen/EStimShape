@@ -32,20 +32,11 @@ public class CurvatureMorpher {
         }
 
         // Use curvature magnitude to determine the new normalized curvature value
-        double distToMin = Math.abs(oldNormalizedCurvature);
-        double distToMax = Math.abs(1 - oldNormalizedCurvature);
-        double maxDist = Math.max(distToMin, distToMax);
-        double normalizedDistToMin = distToMin / maxDist;
-        double normalizedDistToMax = distToMax / maxDist;
+        double MIN_CURVATURE = 0.0;
+        double MAX_CURVATURE = 1.0;
 
-        List<Double> possibleNormalizedCurvatures = new ArrayList<>();
-        if (normalizedDistToMin >= curvatureMagnitude)
-            possibleNormalizedCurvatures.add(oldNormalizedCurvature - curvatureMagnitude*oldNormalizedCurvature);
-        if (normalizedDistToMax >= curvatureMagnitude)
-            possibleNormalizedCurvatures.add(oldNormalizedCurvature + curvatureMagnitude*(1.0-oldNormalizedCurvature));
-        Collections.shuffle(possibleNormalizedCurvatures);
-
-        Double newNormalizedCurvature = possibleNormalizedCurvatures.get(0);
+        MagnitudeTo1DValueConverter converter = new MagnitudeTo1DValueConverter(MIN_CURVATURE, MAX_CURVATURE);
+        double newNormalizedCurvature = converter.convert(curvatureMagnitude, oldNormalizedCurvature);
 
         // Convert the new normalized curvature value to a new curvature value
         if (newNormalizedCurvature <= 1.0/3.0) {
