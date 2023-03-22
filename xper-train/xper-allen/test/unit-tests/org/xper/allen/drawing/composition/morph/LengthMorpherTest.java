@@ -17,6 +17,15 @@ public class LengthMorpherTest {
         morpher = new LengthMorpher();
     }
 
+    @Test
+    public void magnitude_of_zero_leads_to_same(){
+        Double oldLength = 2.0;
+        Double lengthMagnitude = 0.0;
+        Double radius = 1.0;
+
+        Double newLength = morpher.morphLength(oldLength, radius, lengthMagnitude);
+        assertEquals(newLength, oldLength, 0.0001);
+    }
     /**
      * min: 1.5
      * max: 3.14159

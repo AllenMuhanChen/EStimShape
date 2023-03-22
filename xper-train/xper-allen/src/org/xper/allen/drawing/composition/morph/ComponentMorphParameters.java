@@ -19,7 +19,7 @@ public class ComponentMorphParameters {
     Double rotation;
     Double length;
     Double curvature;
-    Double juncRadius;
+    RadiusProfile radiusProfile;
 
     public Vector3d getOrientation(Vector3d oldOrientation){
         Vector3DMorpher vector3DMorpher = new Vector3DMorpher();
@@ -50,7 +50,7 @@ public class ComponentMorphParameters {
 
     public RadiusProfile getRadius(RadiusProfile oldRadiusProfile){
         RadiusProfileMorpher radiusProfileMorpher = new RadiusProfileMorpher();
-        RadiusProfile radiusProfile = radiusProfileMorpher.morphRadiusProfile(oldRadiusProfile, length, curvature, radiusProfileMagnitude);
+        radiusProfile = radiusProfileMorpher.morphRadiusProfile(oldRadiusProfile, length, curvature, radiusProfileMagnitude);
         return radiusProfile;
     }
 
@@ -75,21 +75,31 @@ public class ComponentMorphParameters {
         magnitudes.add(radiusProfileMagnitude);
         MAX = 1.0 / magnitudes.size();
 
-        Collections.shuffle(magnitudes);
 
-        Double amountToDistribute = magnitude;
-        while (amountToDistribute > 0) {
+
+        Double amountLeftToDistribute = magnitude;
+        while (amountLeftToDistribute > 0) {
+            Collections.shuffle(magnitudes);
             for (AtomicReference<Double> magnitude : magnitudes) {
-                double randomMagnitude = Math.random() * MAX;
-                amountToDistribute -= randomMagnitude;
-                if (amountToDistribute > 0) {
-                    double normalizedMagnitude = randomMagnitude / MAX;
-                    magnitude.set(magnitude.get() + normalizedMagnitude);
-                } else {
-                    magnitude.set(magnitude.get() + amountToDistribute + randomMagnitude);
-                    break;
+                double randomMagnitude = Math.min(Math.random() * MAX, Math.random() * this.magnitude / magnitudes.size());
+                // If the random magnitude is greater than the amount left to distribute, then we need to
+                // reduce the magnitude to the amount left to distribute
+                if (randomMagnitude > amountLeftToDistribute) {
+                    randomMagnitude = amountLeftToDistribute;
                 }
+                // If adding the random magnitude to the current magnitude would exceed the max, then we need to
+                // reduce the magnitude to the amount that would bring the current magnitude to the max
+                if (magnitude.get() + randomMagnitude > MAX) {
+                    randomMagnitude = MAX - magnitude.get();                }
+                double normalizedMagnitude = randomMagnitude / MAX;
+                magnitude.set(magnitude.get() + randomMagnitude);
+                amountLeftToDistribute -= randomMagnitude;
             }
+        }
+
+        // Normalize the magnitudes
+        for (AtomicReference<Double> magnitude : magnitudes) {
+            magnitude.set(magnitude.get() / MAX);
         }
 
         this.orientationMagnitude = orientationMagnitude.get();

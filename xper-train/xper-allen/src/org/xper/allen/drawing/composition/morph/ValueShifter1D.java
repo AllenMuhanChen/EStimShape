@@ -14,7 +14,6 @@ public class ValueShifter1D {
     }
 
     /**
-     *
      * @param magnitude - number between 0 and 1. One represents a shift to the furthest point away
      *                  from the old value. Zero represents no shift. Numbers in between
      *                  represent a percentage of the maximum possible shift

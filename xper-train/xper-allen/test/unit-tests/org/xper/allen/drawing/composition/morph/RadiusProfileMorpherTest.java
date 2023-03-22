@@ -17,6 +17,17 @@ public class RadiusProfileMorpherTest {
 
     }
 
+    @Test
+    public void magnitude_of_zero_leads_to_same(){
+        RadiusProfile oldRadiusProfile = new RadiusProfile();
+        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(2.5, null, ComponentMorphParameters.RADIUS_TYPE.ENDPT, true));
+        Double length = 9.0;
+        Double curvature = 1/6.0;
+
+        RadiusProfile newRadiusProfile = morpher.morphRadiusProfile(oldRadiusProfile, length, curvature, 0.0);
+        assertEquals(2.5, newRadiusProfile.getRadiusInfo(1).getRadius(), 0.00001);
+    }
+
     /**
      * MAX_RADIUS = 3.0
      * MIN_RADIUS = 9.0/10.0 or 0.00001 depending if EndPt or not

@@ -35,7 +35,7 @@ public class CurvatureMorpher {
 
         // Convert the new normalized curvature value to a new curvature value
         if (newNormalizedCurvature <= 1.0/3.0) {
-            return 1.0/10000;
+            return 1.0/100001;
         }
         else if (newNormalizedCurvature <= 2.0/3.0) {
             double normalizedMediumCurvature = (newNormalizedCurvature - 1.0/3.0) * 3.0;

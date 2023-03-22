@@ -647,7 +647,7 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
-	private void positionShape() {
+	protected void positionShape() {
 //		centerShapeAtOrigin(getSpecialEndComp().get(0));
 		centerCenterOfMassAtOrigin();
 	}
@@ -1436,8 +1436,10 @@ public class AllenMatchStick extends MatchStick {
 		AllenMatchStick old_MStick = new AllenMatchStick();
 		old_MStick.copyFrom(this);
 
+		// Radius Changes
 		while (true)
 		{
+			// anything that changes the skeleton
 			while(true)
 			{
 				//GENERATE A NEW ARC WITH NEW TANGENT (that is checked by TangentSaveZone)
