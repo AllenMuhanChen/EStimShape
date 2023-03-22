@@ -20,6 +20,14 @@ public class CurvatureMorpherTest {
     }
 
     @Test
+    public void magnitude_of_zero_leads_to_same(){
+        Double oldCurvature = 1.0/10000;
+        Double curvatureMagnitude = 0.0;
+        Double newCurvature = morpher.morphCurvature(oldCurvature, curvatureMagnitude);
+        assertEquals(newCurvature, oldCurvature, 0.0001);
+    }
+
+    @Test
     public void magnitude_of_one_leads_to_max_possible_curvature_change() {
         Double oldCurvature = 1.0/10000;
         Double curvatureMagnitude = 1.0;

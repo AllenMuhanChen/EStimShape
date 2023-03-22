@@ -24,28 +24,35 @@ public class RadiusProfileMorpher {
     private Map<Integer, Double> distributeMagnitudeToRadiiAndNormalize(Double radiusProfileMagnitude, Map<Integer, RadiusInfo> radiusInfoForPoints) {
         int numPoints = radiusInfoForPoints.size();
         double maxToDistributeToSingleRadius = 1.0 / numPoints;
-        double amountToDistribute = radiusProfileMagnitude;
 
         List<Map.Entry<Integer, RadiusInfo>> radiusInfosForPointList = new ArrayList<>(radiusInfoForPoints.entrySet());
         Collections.shuffle(radiusInfosForPointList);
 
         Map<Integer, Double> normalizedMagnitudeForRadii = new HashMap<>();
-        while (amountToDistribute > 0){
+        for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
+            normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), 0.0);
+        }
+        double amountLeftToDistribute = radiusProfileMagnitude;
+        while (amountLeftToDistribute > 0){
             for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
                 double randomMagnitude = Math.random() * maxToDistributeToSingleRadius;
-                amountToDistribute -= randomMagnitude;
-                if (amountToDistribute > 0) {
-                    double normalizedMagnitude = randomMagnitude / maxToDistributeToSingleRadius;
-                    double amountToAdd = normalizedMagnitude;
-                    normalizedMagnitudeForRadii.putIfAbsent(radiusInfoForPoint.getKey(), 0.0);
-                    normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + amountToAdd);
-                } else {
-                    double amountToAdd = amountToDistribute + randomMagnitude;
-                    normalizedMagnitudeForRadii.putIfAbsent(radiusInfoForPoint.getKey(), 0.0);
-                    normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + amountToAdd);
-                    break;
+                // If the random magnitude is greater than the amount left to distribute, then we need to
+                // reduce the magnitude to the amount left to distribute
+                if (randomMagnitude > amountLeftToDistribute) {
+                    randomMagnitude = amountLeftToDistribute;
+
                 }
+                // If adding the random magnitude to the current magnitude would exceed the max, then we need to
+                // reduce the magnitude to the amount that would bring the current magnitude to the max
+                if (normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + randomMagnitude > maxToDistributeToSingleRadius) {
+                    randomMagnitude = maxToDistributeToSingleRadius - normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey());
+                }
+                double normalizedMagnitude = randomMagnitude / maxToDistributeToSingleRadius;
+                normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedMagnitude);
+                amountLeftToDistribute -= randomMagnitude;
             }
+
+
         }
         return normalizedMagnitudeForRadii;
     }
