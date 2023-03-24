@@ -36,14 +36,18 @@ public class MorphedMatchStickTest {
     @Test
     public void mutate() {
         Map<Integer, ComponentMorphParameters> morphParams = new HashMap<>();
-        morphParams.put(1, new ComponentMorphParameters(0.05));
-        morphParams.put(2, new ComponentMorphParameters(0.05));
+        morphParams.put(1, new ComponentMorphParameters(0.25));
+        morphParams.put(2, new ComponentMorphParameters(0.25));
 
         MorphedMatchStick childMStick = new MorphedMatchStick();
         childMStick.setProperties(30.0);
         childMStick.genMorphedMatchStick(morphParams, parentMStick);
 
         drawPng(childMStick, 2L);
+
+        System.out.println(childMStick.getComp()[1].getRadInfo());
+        System.out.println(childMStick.getComp()[2].getRadInfo());
+        System.out.println("Done");
     }
 
     private void drawPng(MatchStick matchStick, long id) {

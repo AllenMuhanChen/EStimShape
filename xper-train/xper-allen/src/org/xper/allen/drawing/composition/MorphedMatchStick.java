@@ -6,6 +6,8 @@ import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusP
 import org.xper.allen.drawing.composition.morph.MorphedMAxisArc;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
+import org.xper.drawing.stick.MatchStick;
+import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
@@ -14,8 +16,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MorphedMatchStick extends AllenMatchStick{
-    private static final int NUM_ATTEMPTS_PER_COMPONENT = 15;
-    private static final int NUM_ATTEMPTS_PER_SKELETON = 25;
+    private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
+    private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
     private static final int NUM_ATTEMPTS_PER_ARC = 100;
     private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 5;
     private MorphedMAxisArc newArc;
@@ -24,12 +26,13 @@ public class MorphedMatchStick extends AllenMatchStick{
     public void genMorphedMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph){
         MorphedMatchStick backup = new MorphedMatchStick();
         backup.copyFrom(matchStickToMorph);
+        copyFrom(backup);
 
         // Attempt to morph every component. If we fail, then restart with the backup.
         while (true) {
             try {
-                copyFrom(backup);
                 morphAllComponents(morphParametersForComponents, matchStickToMorph);
+                MutateSUB_reAssignJunctionRadius();
                 positionShape();
                 attemptSmoothizeMStick();
                 return;
@@ -138,10 +141,10 @@ public class MorphedMatchStick extends AllenMatchStick{
             try{
                 res = smoothizeMStick();
             } catch(Exception e){
-                throw new RuntimeException("Failed to smoothize the matchstick!");
+                throw new MorphException("Failed to smoothize the matchstick!");
             }
             if(!res){
-                throw new RuntimeException("Failed to smoothize the matchstick!");
+                throw new MorphException("Failed to smoothize the matchstick!");
             }
         }
     }
@@ -160,13 +163,17 @@ public class MorphedMatchStick extends AllenMatchStick{
 
     private void attemptMutateRadius(int id, ComponentMorphParameters morphParams) {
         int numAttempts = 0;
+        RadiusProfile oldRadiusProfile = retrieveOldRadiusProfile(id);
+        MorphedMatchStick backup = new MorphedMatchStick();
+        backup.copyFrom(this);
         while(numAttempts < NUM_ATTEMPTS_PER_RADIUS_PROFILE){
             try {
-                mutateRadiusProfile(id, morphParams);
+                mutateRadiusProfile(id, morphParams, oldRadiusProfile);
                 applyRadiusProfile(id);
                 System.out.println("Successfully generated valid radius for component " + id);
                 return;
             } catch (MorphException e){
+                copyFrom(backup);
                 e.printStackTrace();
             } finally {
                 numAttempts++;
@@ -183,15 +190,14 @@ public class MorphedMatchStick extends AllenMatchStick{
         }
     }
 
-    private void mutateRadiusProfile(int id, ComponentMorphParameters morphParams) {
-        RadiusProfile oldRadiusProfile = retrieveOldRadiusProfile(id);
+    private void mutateRadiusProfile(int id, ComponentMorphParameters morphParams, RadiusProfile oldRadiusProfile) {
         RadiusProfile newRadiusProfile = morphParams.getRadius(oldRadiusProfile);
         updateRadiusProfile(id, newRadiusProfile);
     }
 
     private void updateRadiusProfile(int id, RadiusProfile newRadiusProfile) {
         // Update Junctions
-        forEachJunctionOfComp(id, new BiConsumer<JuncPt_struct, Integer>() {
+        forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
             public void accept(JuncPt_struct junction, Integer compIndx) {
                 int uNdx = junction.getuNdx()[compIndx];
@@ -200,21 +206,26 @@ public class MorphedMatchStick extends AllenMatchStick{
                     Double newRadius = radiusInfo.getRadius();
 
                     junction.setRad(newRadius);
-                    double uValue = (uNdx - 1.0) / (51.0 - 1.0);
-                    if (Math.abs(uValue - 0.0) < 0.0001) {
-                        getComp()[id].getRadInfo()[0][0] = 0.0;
-                        getComp()[id].getRadInfo()[0][1] = newRadius;
-                    } else if (Math.abs(uValue - 1.0) < 0.0001) {
-                        getComp()[id].getRadInfo()[2][0] = 1.0;
-                        getComp()[id].getRadInfo()[2][1] = newRadius;
-                    } else // middle u value
-                    {
-                        getComp()[id].getRadInfo()[1][0] = uValue;
-                        getComp()[id].getRadInfo()[1][1] = newRadius;
+
+                    for (int i=1; i<=junction.getnComp(); i++) {
+                        uNdx = junction.getuNdx()[i];
+                        double uValue = (uNdx - 1.0) / (51.0 - 1.0);
+                        if (Math.abs(uValue - 0.0) < 0.0001) {
+                            getComp()[junction.getComp()[i]].getRadInfo()[0][0] = 0.0;
+                            getComp()[junction.getComp()[i]].getRadInfo()[0][1] = newRadius;
+                        } else if (Math.abs(uValue - 1.0) < 0.0001) {
+                            getComp()[junction.getComp()[i]].getRadInfo()[2][0] = 1.0;
+                            getComp()[junction.getComp()[i]].getRadInfo()[2][1] = newRadius;
+                        } else // middle u value
+                        {
+                            getComp()[junction.getComp()[i]].getRadInfo()[1][0] = uValue;
+                            getComp()[junction.getComp()[i]].getRadInfo()[1][1] = newRadius;
+                        }
                     }
                 }
             }
         });
+
 
         // Update EndPts
         forEachEndPtOfComp(id, new Consumer<EndPt_struct>() {
@@ -256,6 +267,132 @@ public class MorphedMatchStick extends AllenMatchStick{
 
     }
 
+    /**
+     reAssign the junction radius value
+     One of the last function call by mutate()
+     */
+    protected void MutateSUB_reAssignJunctionRadius()
+    {
+        double rad_Volatile = 0;
+        double nowRad, u_value;
+        boolean showDebug = false;
+        int try_time = 0;
+        if ( showDebug)
+            System.out.println("In radius reassign at junction");
+        boolean[] radChgFlg = new boolean[ getnComponent()+1];
+        int i, j;
+        MatchStick old_mStick = new MatchStick();
+        old_mStick.copyFrom(this); // a back up
+
+        while (true)
+        {
+            // for all juncPt, we check the radius value is in the legal range,
+            // if not, we must reassign,
+            // if yes, there is certain probability we chg the assigned value
+            for (i=1; i<= getnJuncPt(); i++)
+            {
+
+                double rMin = -10.0, rMax = 100000.0, tempX;
+                int nRelated_comp = getJuncPt()[i].getnComp();
+                for (j = 1 ; j <= nRelated_comp; j++)
+                {
+                    rMin = Math.max( rMin, getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 10.0);
+                    tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getRad(),
+                            getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 3.0);
+                    rMax = Math.min( rMax, tempX);
+                }
+
+                if (rMax < rMin)
+                    System.out.println(" In radius assign, ERROR: rMax < rMin");
+
+                boolean haveChg = false;
+                nowRad = -10.0;
+                // Check now Junc.rad versus rMin, rMax
+                if ( getJuncPt()[i].getRad() > rMax || getJuncPt()[i].getRad() < rMin)
+                {
+                    haveChg = true; // definitely need to chg
+                    if (stickMath_lib.rand01() < rad_Volatile)
+                        nowRad = stickMath_lib.randDouble( rMin, rMax);
+                    else // we don't want huge chg
+                    {
+                        if ( getJuncPt()[i].getRad() > rMax)  nowRad = rMax;
+                        if ( getJuncPt()[i].getRad() < rMin)  nowRad = rMin;
+                    }
+                }
+                else // the original value is in legal range
+                {
+                    if (stickMath_lib.rand01() < rad_Volatile)
+                    {
+                        haveChg = true;
+                        while(true)
+                        {
+                            nowRad = stickMath_lib.randDouble( rMin, rMax);
+                            double dist = Math.abs( nowRad - getJuncPt()[i].getRad());
+                            double range = rMax - rMin;
+                            if ( dist >= 0.2 * range) break; // not very near the original value
+                        }
+                    }
+
+                }
+
+                // set the new value to each component
+                if ( haveChg ) // the radius have been chged
+                {
+                    getJuncPt()[i].setRad(nowRad);
+                    for (j = 1 ; j <= nRelated_comp ; j++)
+                    {
+                        radChgFlg[ getJuncPt()[i].getComp()[j]] = true;
+                        u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
+                        if ( Math.abs( u_value - 0.0) < 0.0001)
+                        {
+                            getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
+                            getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+                        }
+                        else if ( Math.abs(u_value - 1.0) < 0.0001)
+                        {
+                            getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
+                            getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+                        }
+                        else // middle u value
+                        {
+                            getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
+                            getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+                        }
+                    }
+                }
+            } // for loop along JuncPt
+
+            // now use new radius value to generate new tube
+            boolean success = true;
+            for (i=1; i<= getnComponent(); i++)
+                if ( radChgFlg[i] == true)
+                {
+                    if ( getComp()[i].RadApplied_Factory() == false)
+                        success = false; // fail Jacob or gradR
+                }
+            if (success ) // then check closeHit & IntheBox
+            {
+                if ( this.validMStickSize() ==  false)
+                    success = false;
+                if ( this.finalTubeCollisionCheck() == true)
+                    success = false;
+            }
+
+            if ( success )
+                break; // not error, good
+            else
+            {
+                //                System.out.println("In rad reassign at junction: need re-try");
+                this.copyFrom(old_mStick);
+                for (i=1; i<=getnComponent(); i++)
+                    radChgFlg[i] = false;
+                try_time++;
+            }
+            if ( try_time > 30)
+                break; //give up the junction change
+        } // while loop
+    }
+
     private RadiusProfile retrieveOldRadiusProfile(int id) {
         double[][] old_radInfo = new double[3][2];
         for (int i=0; i<3; i++)
@@ -266,7 +403,7 @@ public class MorphedMatchStick extends AllenMatchStick{
 
         // Get old radius profile for this component;
         // Retrieve Radii from Junctions
-        forEachJunctionOfComp(id, new BiConsumer<JuncPt_struct, Integer>() {
+        forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
             public void accept(JuncPt_struct junction, Integer compIndx) {
                 int uNdx = junction.getuNdx()[compIndx];
@@ -316,7 +453,7 @@ public class MorphedMatchStick extends AllenMatchStick{
     }
 
     private void updateJuncPtsForNewComp(int id) {
-        forEachJunctionOfComp(id, new BiConsumer<JuncPt_struct, Integer>() {
+        forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
             public void accept(JuncPt_struct junction, Integer compIndx) {
                 int nowUNdx = junction.getuNdx()[compIndx];
@@ -366,13 +503,18 @@ public class MorphedMatchStick extends AllenMatchStick{
     }
 
     private MorphedMAxisArc attemptToGenerateValidMorphedArc(int id, ComponentMorphParameters morphParams) {
+        MorphedMatchStick backup = new MorphedMatchStick();
+        backup.copyFrom(this);
+
+        MorphedMAxisArc arcToMorph = new MorphedMAxisArc(getComp()[id].getmAxisInfo());
         int numAttemptsToGenerateArc = 0;
         while(numAttemptsToGenerateArc < NUM_ATTEMPTS_PER_ARC){
             try {
-                newArc = generateMorphedArc(id, morphParams);
+                newArc = generateMorphedArc(id, morphParams, arcToMorph);
                 checkJunctions(id, newArc);
                 return newArc;
             } catch (MorphException e){
+                copyFrom(backup);
                 System.err.println("Failed to generate a valid morphed arc. Attempting again...");
                 e.printStackTrace();
             } finally {
@@ -384,7 +526,7 @@ public class MorphedMatchStick extends AllenMatchStick{
     }
 
     private void checkJunctions(int id, MorphedMAxisArc newArc) throws MorphException{
-        forEachJunctionOfComp(id, new BiConsumer<JuncPt_struct, Integer>() {
+        forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
             public void accept(JuncPt_struct junction, Integer compIndx) {
                 int nowUNdx = junction.getuNdx()[compIndx];
@@ -421,15 +563,14 @@ public class MorphedMatchStick extends AllenMatchStick{
         });
     }
 
-    private MorphedMAxisArc generateMorphedArc(int id, ComponentMorphParameters morphParams) {
-        MorphedMAxisArc arcToMorph = new MorphedMAxisArc(getComp()[id].getmAxisInfo());
+    private MorphedMAxisArc generateMorphedArc(int id, ComponentMorphParameters morphParams, MorphedMAxisArc arcToMorph) {
         int alignedPt = MutationSUB_determineHinge(id);
         MorphedMAxisArc newArc = new MorphedMAxisArc();
         newArc.genMorphedArc(arcToMorph, alignedPt, morphParams);
         return newArc;
     }
 
-    protected void forEachJunctionOfComp(int id, BiConsumer<JuncPt_struct, Integer> junctionCompIdConsumer) {
+    protected void forEachJunctionThatContainsComp(int id, BiConsumer<JuncPt_struct, Integer> junctionCompIdConsumer) {
         for (int i = 1; i<= getnJuncPt(); i++) {
             for (int j = 1; j <= getJuncPt()[i].getnComp(); j++){
                 if (getJuncPt()[i].getComp()[j] == id) {
