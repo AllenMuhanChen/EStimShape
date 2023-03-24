@@ -35,7 +35,7 @@ public class RadiusProfileMorpher {
         double amountLeftToDistribute = radiusProfileMagnitude;
         while (amountLeftToDistribute > 0){
             for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
-                double randomMagnitude = Math.random() * maxToDistributeToSingleRadius;
+                double randomMagnitude = Math.min(Math.random() * maxToDistributeToSingleRadius,Math.random() * radiusProfileMagnitude / radiusInfoForPoints.size() );
                 // If the random magnitude is greater than the amount left to distribute, then we need to
                 // reduce the magnitude to the amount left to distribute
                 if (randomMagnitude > amountLeftToDistribute) {

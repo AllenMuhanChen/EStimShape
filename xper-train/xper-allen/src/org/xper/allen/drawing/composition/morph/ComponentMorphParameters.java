@@ -7,11 +7,15 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ComponentMorphParameters {
 
     public static double MAX;
-    Double magnitude;
+    public Double magnitude;
 
     public ComponentMorphParameters(Double magnitude) {
         this.magnitude = magnitude;
 
+        distributeMagnitude();
+    }
+
+    public void redistribute() {
         distributeMagnitude();
     }
 
