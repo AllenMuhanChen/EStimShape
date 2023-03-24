@@ -92,7 +92,7 @@ public class MatchStick implements Drawable {
 			getJuncPt()[i] = new JuncPt_struct();
 			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
-		this.setObj1(in.getObj1()); 
+		this.setObj1(in.getObj1());
 
 		for (i=1; i<=getnComponent(); i++)
 			getLeafBranch()[i] = in.getLeafBranch()[i];
@@ -174,7 +174,7 @@ public class MatchStick implements Drawable {
 	{
 		// i can't see how inSpec is changed by this function
 		//but it seems to be the case........
-		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos. 
+		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos.
 		cleanData();
 
 		// 1. general info
@@ -203,7 +203,7 @@ public class MatchStick implements Drawable {
 			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());
 			//System.out.println("branchPt " + comp[i].mAxisInfo.branchPt);
 
-			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt()); 
+			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt());
 			getComp()[i].getmAxisInfo().setTransRotHis_rotCenter(inSpec.getmAxis().getTube()[i].getTransRotHis_rotCenter());
 			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().set(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
 			//getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
@@ -751,7 +751,7 @@ public class MatchStick implements Drawable {
 		//double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
 		double[] nCompDist = PARAM_nCompDist;
 		nComp = stickMath_lib.pickFromProbDist(nCompDist);
-		
+
 		cleanData();
 		//  debug
 		//  nComp = 4;
@@ -801,7 +801,7 @@ public class MatchStick implements Drawable {
 		boolean showComponents = false;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
-				float[][] colorCode= {  
+				float[][] colorCode= {
 						{1.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 0.0f},
 						{0.0f, 1.0f, 0.0f},
@@ -809,7 +809,7 @@ public class MatchStick implements Drawable {
 						{0.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 1.0f},
 						{1.0f, 1.0f, 0.0f},
-						{0.4f, 0.1f, 0.6f} 
+						{0.4f, 0.1f, 0.6f}
 				};
 
 
@@ -1551,7 +1551,7 @@ public class MatchStick implements Drawable {
 			trialCount = 1;
 			while (true)
 			{
-				
+
 				finalTangent = stickMath_lib.randomUnitVec();
 				boolean flag = true;
 				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
@@ -1559,15 +1559,15 @@ public class MatchStick implements Drawable {
 					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
 						flag = false;
 					}
-					
+
 				}
 				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
 					break;
 				if ( trialCount++ == 150) {
 					return false;
 				}
-					
-				
+
+
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
@@ -1590,7 +1590,7 @@ public class MatchStick implements Drawable {
 		}
 		else if (type == 3) //end-to-branch connection
 		{
-			
+
 			// 1. select a existing comp, with free branch
 			int pickedComp;
 			while(true)
@@ -1793,7 +1793,7 @@ public class MatchStick implements Drawable {
 				else
 					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
 
-				if (task4Tube[i] != 1) 
+				if (task4Tube[i] != 1)
 					noChgFlg = false; // at least one chg will occur
 			}
 			nAddTube = stickMath_lib.pickFromProbDist( prob_addNewTube) - 1;
@@ -1931,7 +1931,7 @@ public class MatchStick implements Drawable {
 					this.copyFrom(tempStoreStick);
 				}
 			}
-			if (!successMutateTillNow) 
+			if (!successMutateTillNow)
 				continue;
 
 			// 5. reassign the radius value at junction point
@@ -1940,7 +1940,7 @@ public class MatchStick implements Drawable {
 			// 6. translate the shape, so that the first component is centered at origin.
 			//            this.centerShapeAtOrigin(-1);
 
-			if (!this.validMStickSize()) 
+			if (!this.validMStickSize())
 				successMutateTillNow = false;
 
 			if (!successMutateTillNow)
@@ -1993,7 +1993,7 @@ public class MatchStick implements Drawable {
 		int minChgTotal = nTimes;
 		int maxChgTotal = nTimes;
 		while (true) {
-			boolean noChgFlg = true;	
+			boolean noChgFlg = true;
 			nChgTotal = 0;
 			doScaleMorph = false;
 
@@ -2003,7 +2003,7 @@ public class MatchStick implements Drawable {
 				nChgTotal++;
 			}
 
-			if ( noChgFlg == false && nChgTotal >= minChgTotal && nChgTotal <= maxChgTotal) 
+			if ( noChgFlg == false && nChgTotal >= minChgTotal && nChgTotal <= maxChgTotal)
 				break;
 
 			for (i=1; i<=getnComponent(); i++) {
@@ -2012,7 +2012,7 @@ public class MatchStick implements Drawable {
 				else
 					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
 
-				if (task4Tube[i] != 1) 
+				if (task4Tube[i] != 1)
 					noChgFlg = false; // at least one chg will occur
 			}
 
@@ -2151,7 +2151,7 @@ public class MatchStick implements Drawable {
 					this.copyFrom(tempStoreStick);
 				}
 			}
-			if (!successMutateTillNow) 
+			if (!successMutateTillNow)
 				continue;
 
 			// 5. reassign the radius value at junction point
@@ -2160,7 +2160,7 @@ public class MatchStick implements Drawable {
 			// 6. translate the shape, so that the first component is centered at origin.
 			//            this.centerShapeAtOrigin(-1);
 
-			if (!this.validMStickSize()) 
+			if (!this.validMStickSize())
 				successMutateTillNow = false;
 
 			if (!successMutateTillNow)
@@ -3845,7 +3845,7 @@ public class MatchStick implements Drawable {
 		for (i=2; i<= getnComponent(); i++) {
 			int target = i;
 			boolean res  = false;
-			res = nowObj.objectMerge( MObj[target], false); 
+			res = nowObj.objectMerge( MObj[target], false);
 			if (res == false) {
 				System.err.println("FAIL AT OBJECT MERGE");
 				return false;
@@ -3865,9 +3865,9 @@ public class MatchStick implements Drawable {
 		/*
 		 * If the *3 is not removed, the printed images will all be zoomed in by factor of 3
 		 * Also, I believe this scaling my scaleForMAXisShape is what gives all of the dimmensionless
-		 * units of length in the MatchStick units for the first time. 
+		 * units of length in the MatchStick units for the first time.
 		 */
-		
+
 		if (isDoCenterObject())
 			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
 
@@ -4563,6 +4563,3 @@ public class MatchStick implements Drawable {
 		return doCenterObject;
 	}
 }
-
-
-
