@@ -1,7 +1,6 @@
 package org.xper.allen.drawing.composition;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.util.*;
 
@@ -43,7 +42,7 @@ public class AllenMatchStick extends MatchStick {
 		AllenMatchStick other = (AllenMatchStick) obj;
 		if (!Arrays.equals(JuncPt, other.JuncPt))
 			return false;
-		if (!Arrays.equals(LeafBranch, other.LeafBranch))
+		if (!Arrays.equals(getLeafBranch(), other.getLeafBranch()))
 			return false;
 		if (baseComp != other.baseComp)
 			return false;
@@ -81,7 +80,7 @@ public class AllenMatchStick extends MatchStick {
 	protected EndPt_struct[] endPt = new EndPt_struct[50];
 	private JuncPt_struct[] JuncPt = new JuncPt_struct[50];
 	private MStickObj4Smooth obj1;
-	protected boolean[] LeafBranch = new boolean[10];
+	private boolean[] LeafBranch = new boolean[10];
 
 	protected final double PROB_addToEndorJunc = 1; // 50% add to end or
 	// junction pt, 50% to the
@@ -3026,7 +3025,7 @@ Adding a new MAxisArc to a MatchStick
 		decideLeafBranch();
 		List<Integer> choosableList = new LinkedList<Integer>();
 		for (int i = 0; i < getnComponent(); i++) {
-			if (LeafBranch[i] == true) {
+			if (getLeafBranch()[i] == true) {
 				choosableList.add(i);
 			}
 		}
@@ -3187,7 +3186,7 @@ Adding a new MAxisArc to a MatchStick
 		this.setObj1(in.getObj1());
 
 		for (i=1; i<=getnComponent(); i++)
-			LeafBranch[i] = in.LeafBranch[i];
+			getLeafBranch()[i] = in.getLeafBranch()[i];
 	}
 
 
@@ -3908,7 +3907,7 @@ Adding a new MAxisArc to a MatchStick
         setScale(minScale, scale);
 
         //CONTRAST
-        double contrast = 1;
+        double contrast = 0.5;
         setContrast(contrast);
 
         //COLOR
