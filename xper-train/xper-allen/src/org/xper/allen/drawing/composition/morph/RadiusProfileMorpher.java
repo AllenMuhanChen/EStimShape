@@ -49,7 +49,7 @@ public class RadiusProfileMorpher {
                 }
                 double normalizedMagnitude = randomMagnitude / maxToDistributeToSingleRadius;
                 normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedMagnitude);
-                amountLeftToDistribute -= randomMagnitude;
+                System.out.println(amountLeftToDistribute -= randomMagnitude);
             }
 
 

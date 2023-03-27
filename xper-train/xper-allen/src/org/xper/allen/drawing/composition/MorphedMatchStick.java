@@ -62,9 +62,9 @@ public class MorphedMatchStick extends AllenMatchStick{
         }
 
         // Determine what components should be preserved
-        for (Integer id : morphParametersForComponents.keySet()) {
-            if (!components.contains(id)){
-                compsToPreserve.add(id);
+        for (Integer component : components){
+            if (!morphParametersForComponents.containsKey(component)){
+                compsToPreserve.add(component);
             }
         }
     }
@@ -116,7 +116,7 @@ public class MorphedMatchStick extends AllenMatchStick{
         attemptMutateRadius(id, morphParams);
 
         checkForTubeCollisions();
-        checkForValidMStickSize();
+//        checkForValidMStickSize();
 
 
     }
@@ -230,20 +230,18 @@ public class MorphedMatchStick extends AllenMatchStick{
                     junction.setRad(newRadius);
 
                     for (int i=1; i<=junction.getnComp(); i++) {
-                        if (compsToPreserve.contains(junction.getComp()[i])) {
-                            uNdx = junction.getuNdx()[i];
-                            double uValue = (uNdx - 1.0) / (51.0 - 1.0);
-                            if (Math.abs(uValue - 0.0) < 0.0001) {
-                                getComp()[junction.getComp()[i]].getRadInfo()[0][0] = 0.0;
-                                getComp()[junction.getComp()[i]].getRadInfo()[0][1] = newRadius;
-                            } else if (Math.abs(uValue - 1.0) < 0.0001) {
-                                getComp()[junction.getComp()[i]].getRadInfo()[2][0] = 1.0;
-                                getComp()[junction.getComp()[i]].getRadInfo()[2][1] = newRadius;
-                            } else // middle u value
-                            {
-                                getComp()[junction.getComp()[i]].getRadInfo()[1][0] = uValue;
-                                getComp()[junction.getComp()[i]].getRadInfo()[1][1] = newRadius;
-                            }
+                        uNdx = junction.getuNdx()[i];
+                        double uValue = (uNdx - 1.0) / (51.0 - 1.0);
+                        if (Math.abs(uValue - 0.0) < 0.0001) {
+                            getComp()[junction.getComp()[i]].getRadInfo()[0][0] = 0.0;
+                            getComp()[junction.getComp()[i]].getRadInfo()[0][1] = newRadius;
+                        } else if (Math.abs(uValue - 1.0) < 0.0001) {
+                            getComp()[junction.getComp()[i]].getRadInfo()[2][0] = 1.0;
+                            getComp()[junction.getComp()[i]].getRadInfo()[2][1] = newRadius;
+                        } else // middle u value
+                        {
+                            getComp()[junction.getComp()[i]].getRadInfo()[1][0] = uValue;
+                            getComp()[junction.getComp()[i]].getRadInfo()[1][1] = newRadius;
                         }
                     }
                 }
@@ -433,7 +431,23 @@ public class MorphedMatchStick extends AllenMatchStick{
                 int uNdx = junction.getuNdx()[compIndx];
                 Double oldRadius = junction.getRad();
                 RadiusInfo junctionRadiusInfo = new RadiusInfo(oldRadius, uNdx, ComponentMorphParameters.RADIUS_TYPE.JUNCTION, false);
-                oldRadiusProfile.addRadiusInfo(uNdx, junctionRadiusInfo);
+
+
+                // Only add junction radius info if
+                // the junction does not contain any components that should be preserved
+                boolean junctionContainsPreservedComponents = false;
+                for (int i=1; i<=junction.getnComp(); i++) {
+                    if (compsToPreserve.contains(junction.getComp()[i])){
+                        junctionContainsPreservedComponents = true;
+                        break;
+                    }
+
+                }
+
+                if (!junctionContainsPreservedComponents) {
+                    oldRadiusProfile.addRadiusInfo(uNdx, junctionRadiusInfo);
+                }
+
             }
         });
 
