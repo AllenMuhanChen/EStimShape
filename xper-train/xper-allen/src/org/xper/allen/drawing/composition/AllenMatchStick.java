@@ -82,17 +82,17 @@ public class AllenMatchStick extends MatchStick {
 	private MStickObj4Smooth obj1;
 	private boolean[] LeafBranch = new boolean[10];
 
-	protected final double PROB_addToEndorJunc = 1; // 50% add to end or
+	private final double PROB_addToEndorJunc = 1; // 50% add to end or
 	// junction pt, 50% to the
 	// branch
-	protected final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
+	private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
 	// 50% add to end, 50%
 	// add to junc
-	protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
+	private final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
 	protected final double[] finalRotation = new double[3];
 	private double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0 };
+	private final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
 //	private final double TangentSaveZone = Math.PI/64;
 	private final double TangentSaveZone = Math.PI/6.0;
 
@@ -1650,7 +1650,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf) {
-		double[] nCompDist = PARAM_nCompDist;
+		double[] nCompDist = getPARAM_nCompDist();
 		int nComp = stickMath_lib.pickFromProbDist(nCompDist);
 
 		// debug
@@ -2051,16 +2051,16 @@ public class AllenMatchStick extends MatchStick {
 			if ( showDebug)
 				System.out.println("adding new MAxis on, now # " +  nowComp);
 			randNdx = stickMath_lib.rand01();
-			if (randNdx < PROB_addToEndorJunc)
+			if (randNdx < getPROB_addToEndorJunc())
 			{
-				if (getnJuncPt() == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
+				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
 					addSuccess = Add_AccessoryMStick(nowComp, 1);
 				else
 					addSuccess = Add_AccessoryMStick(nowComp, 2);
 			}
 			else
 			{
-				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
+				if (stickMath_lib.rand01() < getPROB_addTiptoBranch())
 					addSuccess = Add_AccessoryMStick(nowComp, 3);
 				else
 					addSuccess = Add_AccessoryMStick(nowComp, 4);
@@ -2574,7 +2574,7 @@ public class AllenMatchStick extends MatchStick {
 //		 double[] nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
 //		 double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
 		// double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
-		double[] nCompDist = this.PARAM_nCompDist;
+		double[] nCompDist = this.getPARAM_nCompDist();
 		nComp = stickMath_lib.pickFromProbDist(nCompDist);
 		// nComp = 2;
 
@@ -2651,16 +2651,16 @@ public class AllenMatchStick extends MatchStick {
 			if ( showDebug)
 				System.out.println("adding new MAxis on, now # " +  nowComp);
 			randNdx = stickMath_lib.rand01();
-			if (randNdx < PROB_addToEndorJunc)
+			if (randNdx < getPROB_addToEndorJunc())
 			{
-				if (getnJuncPt() == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
+				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
 					addSuccess = Add_MStick(nowComp, 1);
 				else
 					addSuccess = Add_MStick(nowComp, 2);
 			}
 			else
 			{
-				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
+				if (stickMath_lib.rand01() < getPROB_addTiptoBranch())
 					addSuccess = Add_MStick(nowComp, 3);
 				else
 					addSuccess = Add_MStick(nowComp, 4);

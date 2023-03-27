@@ -13,7 +13,7 @@ public class PruningMatchStick extends MorphedMatchStick{
         List<Integer> componentsToMorph = chooseComponentsToMorph(numPreserve);
 
         // Construct MorphParameters for componentsToMorph
-        Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
+        Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
         for (Integer comp : componentsToMorph) {
             ComponentMorphParameters params = new ComponentMorphParameters(magnitude);
             paramsForComps.put(comp, params);
