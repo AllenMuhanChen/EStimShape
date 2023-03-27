@@ -4,8 +4,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.PNGmaker;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
@@ -34,6 +32,27 @@ public class MorphedMatchStickTest {
 
 
         drawPng(parentMStick, 1L);
+    }
+
+
+    @Test
+    @Ignore
+    public void growingMatchStick() {
+        GrowingMatchStick growingMatchStick = new GrowingMatchStick();
+        growingMatchStick.setProperties(30.0);
+        growingMatchStick.genGrowingMatchStick(parentMStick, 0.2);
+        ThreadUtil.sleep(500);
+        drawPng(growingMatchStick, 2L);
+    }
+
+    @Test
+    @Ignore
+    public void pruningMatchStick(){
+        PruningMatchStick pruningMatchStick = new PruningMatchStick();
+        pruningMatchStick.setProperties(30.0);
+        pruningMatchStick.genPruningMatchStick(parentMStick, 0.6, 1);
+        ThreadUtil.sleep(500);
+        drawPng(pruningMatchStick, 2L);
     }
 
     @Test

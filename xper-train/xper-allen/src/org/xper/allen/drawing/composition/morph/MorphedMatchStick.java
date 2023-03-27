@@ -54,12 +54,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
-        List<Integer> components = new LinkedList<>();
-        for (int i = 0; i < getComp().length; i++) {
-            if (getComp()[i] != null) {
-                components.add(i);
-            }
-        }
+        List<Integer> components = getCompList();
 
         // Determine what components should be preserved
         for (Integer component : components){
@@ -67,6 +62,16 @@ public class MorphedMatchStick extends AllenMatchStick {
                 compsToPreserve.add(component);
             }
         }
+    }
+
+    public List<Integer> getCompList() {
+        List<Integer> components = new LinkedList<>();
+        for (int i = 0; i < getComp().length; i++) {
+            if (getComp()[i] != null) {
+                components.add(i);
+            }
+        }
+        return components;
     }
 
     private void morphAllComponents(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph) {
