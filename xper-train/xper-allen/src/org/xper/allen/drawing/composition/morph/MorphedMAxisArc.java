@@ -35,6 +35,7 @@ public class MorphedMAxisArc extends AllenMAxisArc {
 
         // Create actual arc
         genArc(1.0/newCurvature, newLength);
+        setBranchPt(arcToMorph.getBranchPt());
         Point3d finalPos = new Point3d(arcToMorph.getmPts()[alignedPt]);
         transRotMAxis(alignedPt, finalPos, rotationCenter, newTangent, newRotation);
     }
