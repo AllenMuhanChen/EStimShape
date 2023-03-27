@@ -11,6 +11,9 @@ import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -23,11 +26,14 @@ public class MorphedMatchStick extends AllenMatchStick{
     private MorphedMAxisArc newArc;
     private int[] compLabel;
     private MorphedMatchStick localBackup;
+    private List<Integer> compsToPreserve = new ArrayList<>();
 
     public void genMorphedMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph){
         MorphedMatchStick backup = new MorphedMatchStick();
         backup.copyFrom(matchStickToMorph);
         copyFrom(backup);
+
+        findCompsToPreserve(morphParametersForComponents);
 
         // Attempt to morph every component. If we fail, then restart with the backup.
         while (true) {
@@ -43,6 +49,22 @@ public class MorphedMatchStick extends AllenMatchStick{
                 copyFrom(backup);
                 e.printStackTrace();
                 System.err.println("Failed to morph matchstick. Retrying...");
+            }
+        }
+    }
+
+    private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
+        List<Integer> components = new LinkedList<>();
+        for (int i = 0; i < getComp().length; i++) {
+            if (getComp()[i] != null) {
+                components.add(i);
+            }
+        }
+
+        // Determine what components should be preserved
+        for (Integer id : morphParametersForComponents.keySet()) {
+            if (!components.contains(id)){
+                compsToPreserve.add(id);
             }
         }
     }
@@ -77,7 +99,6 @@ public class MorphedMatchStick extends AllenMatchStick{
                 System.err.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams);
                 System.err.println("Retrying...");
                 System.err.println("Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_COMPONENT);
-//                matchStickToMorph.copyFrom(localBackup);
                 morphParams.redistribute();
             } finally {
                 numAttempts++;
@@ -95,7 +116,7 @@ public class MorphedMatchStick extends AllenMatchStick{
         attemptMutateRadius(id, morphParams);
 
         checkForTubeCollisions();
-//        checkForValidMStickSize();
+        checkForValidMStickSize();
 
 
     }
@@ -203,23 +224,26 @@ public class MorphedMatchStick extends AllenMatchStick{
                 int uNdx = junction.getuNdx()[compIndx];
                 if (newRadiusProfile.getInfoForRadius().containsKey(uNdx)) {
                     RadiusInfo radiusInfo = newRadiusProfile.getRadiusInfo(uNdx);
-                    Double newRadius = radiusInfo.getRadius();
+                    Double newRadius;
+                    newRadius = radiusInfo.getRadius();
 
                     junction.setRad(newRadius);
 
                     for (int i=1; i<=junction.getnComp(); i++) {
-                        uNdx = junction.getuNdx()[i];
-                        double uValue = (uNdx - 1.0) / (51.0 - 1.0);
-                        if (Math.abs(uValue - 0.0) < 0.0001) {
-                            getComp()[junction.getComp()[i]].getRadInfo()[0][0] = 0.0;
-                            getComp()[junction.getComp()[i]].getRadInfo()[0][1] = newRadius;
-                        } else if (Math.abs(uValue - 1.0) < 0.0001) {
-                            getComp()[junction.getComp()[i]].getRadInfo()[2][0] = 1.0;
-                            getComp()[junction.getComp()[i]].getRadInfo()[2][1] = newRadius;
-                        } else // middle u value
-                        {
-                            getComp()[junction.getComp()[i]].getRadInfo()[1][0] = uValue;
-                            getComp()[junction.getComp()[i]].getRadInfo()[1][1] = newRadius;
+                        if (compsToPreserve.contains(junction.getComp()[i])) {
+                            uNdx = junction.getuNdx()[i];
+                            double uValue = (uNdx - 1.0) / (51.0 - 1.0);
+                            if (Math.abs(uValue - 0.0) < 0.0001) {
+                                getComp()[junction.getComp()[i]].getRadInfo()[0][0] = 0.0;
+                                getComp()[junction.getComp()[i]].getRadInfo()[0][1] = newRadius;
+                            } else if (Math.abs(uValue - 1.0) < 0.0001) {
+                                getComp()[junction.getComp()[i]].getRadInfo()[2][0] = 1.0;
+                                getComp()[junction.getComp()[i]].getRadInfo()[2][1] = newRadius;
+                            } else // middle u value
+                            {
+                                getComp()[junction.getComp()[i]].getRadInfo()[1][0] = uValue;
+                                getComp()[junction.getComp()[i]].getRadInfo()[1][1] = newRadius;
+                            }
                         }
                     }
                 }
