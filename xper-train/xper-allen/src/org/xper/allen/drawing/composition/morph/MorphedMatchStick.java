@@ -19,6 +19,14 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MorphedMatchStick extends AllenMatchStick {
+    private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch
+    private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
+    // 50% add to end, 50%
+    // add to junc
+    protected final double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0 };
+    protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
+
+
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
     private static final int NUM_ATTEMPTS_PER_ARC = 10;
@@ -636,4 +644,23 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
+    @Override
+    public double[] getPARAM_nCompDist() {
+        return PARAM_nCompDist;
+    }
+
+    @Override
+    public double getPROB_addTiptoBranch() {
+        return PROB_addTiptoBranch;
+    }
+
+    @Override
+    public double getPROB_addToEndorJunc() {
+        return PROB_addToEndorJunc;
+    }
+
+    @Override
+    public double getPROB_addToEnd_notJunc() {
+        return PROB_addToEnd_notJunc;
+    }
 }
