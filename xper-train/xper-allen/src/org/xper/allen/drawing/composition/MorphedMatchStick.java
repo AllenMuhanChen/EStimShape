@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 public class MorphedMatchStick extends AllenMatchStick{
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
-    private static final int NUM_ATTEMPTS_PER_ARC = 100;
+    private static final int NUM_ATTEMPTS_PER_ARC = 10;
     private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 5;
     private MorphedMAxisArc newArc;
     private int[] compLabel;
@@ -32,12 +32,13 @@ public class MorphedMatchStick extends AllenMatchStick{
         while (true) {
             try {
                 morphAllComponents(morphParametersForComponents, matchStickToMorph);
-                MutateSUB_reAssignJunctionRadius();
+//                MutateSUB_reAssignJunctionRadius();
                 positionShape();
                 attemptSmoothizeMStick();
                 return;
             } catch (MorphException e) {
                 cleanData();
+                this.setObj1(null);
                 copyFrom(backup);
                 e.printStackTrace();
                 System.err.println("Failed to morph matchstick. Retrying...");
@@ -61,8 +62,8 @@ public class MorphedMatchStick extends AllenMatchStick{
 
      */
     private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams, MorphedMatchStick matchStickToMorph) {
-        MorphedMatchStick localBackup = new MorphedMatchStick();
-        localBackup.copyFrom(matchStickToMorph);
+//        MorphedMatchStick localBackup = new MorphedMatchStick();
+//        localBackup.copyFrom(matchStickToMorph);
 
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
@@ -75,7 +76,7 @@ public class MorphedMatchStick extends AllenMatchStick{
                 System.err.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams);
                 System.err.println("Retrying...");
                 System.err.println("Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_COMPONENT);
-                matchStickToMorph.copyFrom(localBackup);
+//                matchStickToMorph.copyFrom(localBackup);
                 morphParams.redistribute();
             } finally {
                 numAttempts++;
@@ -93,7 +94,7 @@ public class MorphedMatchStick extends AllenMatchStick{
         attemptMutateRadius(id, morphParams);
 
         checkForTubeCollisions();
-        checkForValidMStickSize();
+//        checkForValidMStickSize();
 
 
     }
@@ -116,7 +117,6 @@ public class MorphedMatchStick extends AllenMatchStick{
                 System.out.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_SKELETON + " to generate valid skeleton for component " + id);
             } finally {
                 numAttempts++;
-
             }
         }
         throw new MorphException("Failed to generate valid skeleton for using a morphed component " + id + " after " + NUM_ATTEMPTS_PER_SKELETON + " attempts.");
@@ -132,21 +132,20 @@ public class MorphedMatchStick extends AllenMatchStick{
         getComp()[id].getmAxisInfo().copyFrom(newArc);
         getComp()[id].setBranchUsed(branchUsed);
         getComp()[id].setConnectType(connectType);
+
     }
 
     private void attemptSmoothizeMStick() {
-        boolean success = false;
-        if(!success){
-            boolean res;
-            try{
-                res = smoothizeMStick();
-            } catch(Exception e){
-                throw new MorphException("Failed to smoothize the matchstick!");
-            }
-            if(!res){
-                throw new MorphException("Failed to smoothize the matchstick!");
-            }
+        boolean res;
+        try{
+            res = smoothizeMStick();
+        } catch(Exception e){
+            throw new MorphException("Failed to smoothize the matchstick!");
         }
+        if(!res){
+            throw new MorphException("Failed to smoothize the matchstick!");
+        }
+
     }
 
     private void checkForValidMStickSize() {
