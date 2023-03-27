@@ -92,7 +92,7 @@ public class AllenMatchStick extends MatchStick {
 	protected final double[] finalRotation = new double[3];
 	private double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
+	protected final double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0 };
 //	private final double TangentSaveZone = Math.PI/64;
 	private final double TangentSaveZone = Math.PI/6.0;
 
