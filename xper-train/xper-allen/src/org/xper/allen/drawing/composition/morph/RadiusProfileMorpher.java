@@ -26,7 +26,7 @@ public class RadiusProfileMorpher {
         double maxToDistributeToSingleRadius = 1.0 / numPoints;
 
         List<Map.Entry<Integer, RadiusInfo>> radiusInfosForPointList = new ArrayList<>(radiusInfoForPoints.entrySet());
-        Collections.shuffle(radiusInfosForPointList);
+
 
         Map<Integer, Double> normalizedMagnitudeForRadii = new HashMap<>();
         for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
@@ -34,6 +34,7 @@ public class RadiusProfileMorpher {
         }
         double amountLeftToDistribute = radiusProfileMagnitude;
         while (amountLeftToDistribute > 0){
+            Collections.shuffle(radiusInfosForPointList);
             for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
                 double normalizedRandomMagnitude = Math.random() * radiusProfileMagnitude / numPoints;
                 // If the random magnitude is greater than the amount left to distribute, then we need to
@@ -50,8 +51,6 @@ public class RadiusProfileMorpher {
                 normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedRandomMagnitude);
                 System.out.println(amountLeftToDistribute -= normalizedRandomMagnitude);
             }
-
-
         }
         return normalizedMagnitudeForRadii;
     }

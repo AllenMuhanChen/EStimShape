@@ -1,9 +1,9 @@
-package org.xper.allen.drawing.composition;
+package org.xper.allen.drawing.composition.morph;
 
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
+import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusInfo;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
-import org.xper.allen.drawing.composition.morph.MorphedMAxisArc;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.MatchStick;
@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class MorphedMatchStick extends AllenMatchStick{
+public class MorphedMatchStick extends AllenMatchStick {
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
     private static final int NUM_ATTEMPTS_PER_ARC = 10;

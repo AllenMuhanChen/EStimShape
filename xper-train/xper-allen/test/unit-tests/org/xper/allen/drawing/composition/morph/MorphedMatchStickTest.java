@@ -1,15 +1,15 @@
-package org.xper.allen.drawing.composition;
+package org.xper.allen.drawing.composition.morph;
 
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
 
-import javax.media.j3d.Morph;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,7 +40,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void mutate() {
         Map<Integer, ComponentMorphParameters> morphParams = new HashMap<>();
-        morphParams.put(1, new ComponentMorphParameters(0.5));
+        morphParams.put(1, new ComponentMorphParameters(0.25));
 //        morphParams.put(2, new ComponentMorphParameters(0.2));
 
 
