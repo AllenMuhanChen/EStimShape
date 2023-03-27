@@ -22,6 +22,7 @@ public class MorphedMatchStick extends AllenMatchStick{
     private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 5;
     private MorphedMAxisArc newArc;
     private int[] compLabel;
+    private MorphedMatchStick localBackup;
 
     public void genMorphedMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph){
         MorphedMatchStick backup = new MorphedMatchStick();
@@ -62,8 +63,8 @@ public class MorphedMatchStick extends AllenMatchStick{
 
      */
     private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams, MorphedMatchStick matchStickToMorph) {
-//        MorphedMatchStick localBackup = new MorphedMatchStick();
-//        localBackup.copyFrom(matchStickToMorph);
+        localBackup = new MorphedMatchStick();
+        localBackup.copyFrom(matchStickToMorph);
 
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
@@ -100,8 +101,8 @@ public class MorphedMatchStick extends AllenMatchStick{
     }
 
     private void attemptToGenerateValidComponentSkeleton(int id, ComponentMorphParameters morphParams) {
-        MorphedMatchStick backUp = new MorphedMatchStick();
-        backUp.copyFrom(this);
+//        MorphedMatchStick backUp = new MorphedMatchStick();
+//        backUp.copyFrom(this);
         int numAttempts = 0;
         while(numAttempts < NUM_ATTEMPTS_PER_SKELETON){
             try {
@@ -112,7 +113,7 @@ public class MorphedMatchStick extends AllenMatchStick{
                 System.out.println("Successfully generated valid skeleton for component " + id);
                 return;
             } catch (MorphException e){
-                copyFrom(backUp);
+//                copyFrom(backUp);
                 e.printStackTrace();
                 System.out.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_SKELETON + " to generate valid skeleton for component " + id);
             } finally {
@@ -457,6 +458,8 @@ public class MorphedMatchStick extends AllenMatchStick{
             public void accept(JuncPt_struct junction, Integer compIndx) {
                 int nowUNdx = junction.getuNdx()[compIndx];
                 Vector3d finalTangent = newArc.getmTangent()[nowUNdx];
+                if (nowUNdx == 51)
+                    finalTangent.negate();
                 Point3d newPos = newArc.getmPts()[nowUNdx];
                 Point3d shiftVec = new Point3d();
                 shiftVec.sub(newPos, junction.getPos());
@@ -502,9 +505,6 @@ public class MorphedMatchStick extends AllenMatchStick{
     }
 
     private MorphedMAxisArc attemptToGenerateValidMorphedArc(int id, ComponentMorphParameters morphParams) {
-        MorphedMatchStick backup = new MorphedMatchStick();
-        backup.copyFrom(this);
-
         MorphedMAxisArc arcToMorph = new MorphedMAxisArc(getComp()[id].getmAxisInfo());
         int numAttemptsToGenerateArc = 0;
         while(numAttemptsToGenerateArc < NUM_ATTEMPTS_PER_ARC){
@@ -513,7 +513,7 @@ public class MorphedMatchStick extends AllenMatchStick{
                 checkJunctions(id, newArc);
                 return newArc;
             } catch (MorphException e){
-                copyFrom(backup);
+                copyFrom(localBackup);
                 System.err.println("Failed to generate a valid morphed arc. Attempting again...");
                 e.printStackTrace();
             } finally {
