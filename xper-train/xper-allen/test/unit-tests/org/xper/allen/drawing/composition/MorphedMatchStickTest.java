@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
@@ -36,6 +37,7 @@ public class MorphedMatchStickTest {
     }
 
     @Test
+    @Ignore
     public void mutate() {
         Map<Integer, ComponentMorphParameters> morphParams = new HashMap<>();
         morphParams.put(1, new ComponentMorphParameters(0.5));
@@ -48,6 +50,26 @@ public class MorphedMatchStickTest {
         ThreadUtil.sleep(500);
         drawPng(childMStick, 2L);
 
+        System.out.println("Parents: ");
+        System.out.println("Comp 1: ");
+        System.out.println(parentMStick.getComp()[1].getRadInfo()[0][1]);
+        System.out.println(parentMStick.getComp()[1].getRadInfo()[1][1]);
+        System.out.println(parentMStick.getComp()[1].getRadInfo()[2][1]);
+        System.out.println("Comp 2: ");
+        System.out.println(parentMStick.getComp()[2].getRadInfo()[0][1]);
+        System.out.println(parentMStick.getComp()[2].getRadInfo()[1][1]);
+        System.out.println(parentMStick.getComp()[2].getRadInfo()[2][1]);
+        System.out.println("Children: ");
+        System.out.println("Comp 1: ");
+        System.out.println(childMStick.getComp()[1].getRadInfo()[0][1]);
+        System.out.println(childMStick.getComp()[1].getRadInfo()[1][1]);
+        System.out.println(childMStick.getComp()[1].getRadInfo()[2][1]);
+        System.out.println("Comp 2: ");
+        System.out.println(childMStick.getComp()[2].getRadInfo()[0][1]);
+        System.out.println(childMStick.getComp()[2].getRadInfo()[1][1]);
+        System.out.println(childMStick.getComp()[2].getRadInfo()[2][1]);
+
+
         System.out.println("Done");
     }
 
@@ -56,15 +78,4 @@ public class MorphedMatchStickTest {
         pngMaker.createAndSavePNGsfromObjs(Arrays.asList(matchStick), Arrays.asList(new Long[]{id}), testBin);
     }
 
-    @Test
-    public void compare(){
-        Map<Integer, ComponentMorphParameters> morphParams = new HashMap<>();
-//        morphParams.put(1, new ComponentMorphParameters(0.0));
-//        morphParams.put(2, new ComponentMorphParameters(0.0));
-
-        MorphedMatchStick childMStick = new MorphedMatchStick();
-        childMStick.setProperties(30.0);
-        childMStick.genMorphedMatchStick(morphParams, parentMStick);
-
-    }
 }

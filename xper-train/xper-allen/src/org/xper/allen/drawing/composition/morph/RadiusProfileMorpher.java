@@ -21,7 +21,7 @@ public class RadiusProfileMorpher {
         return newRadiusProfile;
     }
 
-    private Map<Integer, Double> distributeMagnitudeToRadiiAndNormalize(Double radiusProfileMagnitude, Map<Integer, RadiusInfo> radiusInfoForPoints) {
+    private Map<Integer, Double> distributeMagnitudeToRadiiAndNormalize(double radiusProfileMagnitude, Map<Integer, RadiusInfo> radiusInfoForPoints) {
         int numPoints = radiusInfoForPoints.size();
         double maxToDistributeToSingleRadius = 1.0 / numPoints;
 
@@ -35,21 +35,20 @@ public class RadiusProfileMorpher {
         double amountLeftToDistribute = radiusProfileMagnitude;
         while (amountLeftToDistribute > 0){
             for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
-                double randomMagnitude = Math.min(Math.random() * maxToDistributeToSingleRadius,Math.random() * radiusProfileMagnitude);
+                double normalizedRandomMagnitude = Math.random() * radiusProfileMagnitude / numPoints;
                 // If the random magnitude is greater than the amount left to distribute, then we need to
                 // reduce the magnitude to the amount left to distribute
-                if (randomMagnitude > amountLeftToDistribute) {
-                    randomMagnitude = amountLeftToDistribute;
+                if (normalizedRandomMagnitude > amountLeftToDistribute) {
+                    normalizedRandomMagnitude = amountLeftToDistribute;
 
                 }
                 // If adding the random magnitude to the current magnitude would exceed the max, then we need to
                 // reduce the magnitude to the amount that would bring the current magnitude to the max
-                if (normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + randomMagnitude > maxToDistributeToSingleRadius) {
-                    randomMagnitude = maxToDistributeToSingleRadius - normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey());
+                if (normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedRandomMagnitude > maxToDistributeToSingleRadius) {
+                    normalizedRandomMagnitude = maxToDistributeToSingleRadius - normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey());
                 }
-                double normalizedMagnitude = randomMagnitude / maxToDistributeToSingleRadius;
-                normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedMagnitude);
-                System.out.println(amountLeftToDistribute -= randomMagnitude);
+                normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedRandomMagnitude);
+                System.out.println(amountLeftToDistribute -= normalizedRandomMagnitude);
             }
 
 

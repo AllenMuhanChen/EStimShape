@@ -85,19 +85,18 @@ public class ComponentMorphParameters {
         while (amountLeftToDistribute > 0) {
             Collections.shuffle(magnitudes);
             for (AtomicReference<Double> magnitude : magnitudes) {
-                double randomMagnitude = Math.min(Math.random() * MAX, Math.random() * this.magnitude / magnitudes.size());
+                double normalizedRandomMagnitude = Math.random() * this.magnitude / magnitudes.size();
                 // If the random magnitude is greater than the amount left to distribute, then we need to
                 // reduce the magnitude to the amount left to distribute
-                if (randomMagnitude > amountLeftToDistribute) {
-                    randomMagnitude = amountLeftToDistribute;
+                if (normalizedRandomMagnitude > amountLeftToDistribute) {
+                    normalizedRandomMagnitude = amountLeftToDistribute;
                 }
                 // If adding the random magnitude to the current magnitude would exceed the max, then we need to
                 // reduce the magnitude to the amount that would bring the current magnitude to the max
-                if (magnitude.get() + randomMagnitude > MAX) {
-                    randomMagnitude = MAX - magnitude.get();                }
-                double normalizedMagnitude = randomMagnitude / MAX;
-                magnitude.set(magnitude.get() + randomMagnitude);
-                amountLeftToDistribute -= randomMagnitude;
+                if (magnitude.get() + normalizedRandomMagnitude > MAX) {
+                    normalizedRandomMagnitude = MAX - magnitude.get();                }
+                magnitude.set(magnitude.get() + normalizedRandomMagnitude);
+                amountLeftToDistribute -= normalizedRandomMagnitude;
             }
         }
 
