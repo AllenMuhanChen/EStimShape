@@ -38,15 +38,15 @@ public class MorphedMatchStickTest {
     @Test
     public void mutate() {
         Map<Integer, ComponentMorphParameters> morphParams = new HashMap<>();
-        morphParams.put(1, new ComponentMorphParameters(0.0));
-        morphParams.put(2, new ComponentMorphParameters(0.0));
+        morphParams.put(1, new ComponentMorphParameters(0.2));
+        morphParams.put(2, new ComponentMorphParameters(0.2));
 
 
         MorphedMatchStick childMStick = new MorphedMatchStick();
         childMStick.setProperties(30.0);
         childMStick.genMorphedMatchStick(morphParams, parentMStick);
         ThreadUtil.sleep(500);
-        drawPng(childMStick, 3L);
+        drawPng(childMStick, 2L);
 
         System.out.println("Done");
     }
