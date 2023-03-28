@@ -40,7 +40,7 @@ public class NewGABlockGenerator extends GABlockGenerator {
     }
 
     private void addFirstGeneration() {
-        stims.addAll(createRandStim(this, numStimuliPerGeneration, initialSize, initialCoords));
+        getStims().addAll(createRandStim(this, numStimuliPerGeneration, initialSize, initialCoords));
     }
 
     private List<ThreeDGAStim> createRandStim(GABlockGenerator generator, int numTrials, double size, Coordinates2D coords) {
@@ -55,13 +55,16 @@ public class NewGABlockGenerator extends GABlockGenerator {
         List<Child> selectedParents = slotSelectionProcess.select(getGaBaseName());
         for (Child child: selectedParents) {
             if (child.getRegime() == Regime.ONE) {
-                stims.add(new RegimeOneStim(this, child.getParentId()));
+                getStims().add(new RegimeOneStim(this, child.getParentId()));
             }
             else if (child.getRegime() == Regime.TWO) {
-                stims.add(new RegimeTwoStim(this, child.getParentId()));
+                getStims().add(new RegimeTwoStim(this, child.getParentId()));
             }
             else if (child.getRegime() == Regime.THREE) {
-                stims.add(new RegimeThreeStim(this, child.getParentId()));
+                getStims().add(new RegimeThreeStim(this, child.getParentId()));
+            }
+            else{
+                throw new RuntimeException("Invalid Regime");
             }
         }
 

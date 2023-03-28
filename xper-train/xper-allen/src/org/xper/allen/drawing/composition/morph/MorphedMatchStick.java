@@ -36,6 +36,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private MorphedMatchStick localBackup;
     private List<Integer> compsToPreserve = new ArrayList<>();
 
+
     public void genMorphedMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph){
         MorphedMatchStick backup = new MorphedMatchStick();
         backup.copyFrom(matchStickToMorph);
