@@ -4,20 +4,20 @@ import org.xper.allen.ga.regimescore.Regime;
 
 public class Child {
 
-    private long stimId;
+    private long parentId;
     private Regime regime;
 
-    public Child(long stimId, Regime regime) {
-        this.stimId = stimId;
+    public Child(long parentId, Regime regime) {
+        this.parentId = parentId;
         this.regime = regime;
     }
 
-    public long getStimId() {
-        return stimId;
+    public long getParentId() {
+        return parentId;
     }
 
-    public void setStimId(long stimId) {
-        this.stimId = stimId;
+    public void setParentId(long parentId) {
+        this.parentId = parentId;
     }
 
     public Regime getRegime() {

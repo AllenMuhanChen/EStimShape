@@ -1,0 +1,80 @@
+package org.xper.allen.newga.blockgen;
+
+import org.xper.Dependency;
+import org.xper.allen.ga.Child;
+import org.xper.allen.ga.MultiGaGenerationInfo;
+import org.xper.allen.ga.SlotSelectionProcess;
+import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga3d.blockgen.GABlockGenerator;
+import org.xper.allen.ga3d.blockgen.RandStim;
+import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
+import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
+import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.drawing.Coordinates2D;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+public class NewGABlockGenerator extends GABlockGenerator {
+    public static String gaBaseName = "New3D";
+
+    @Dependency
+    MultiGaDbUtil dbUtil;
+
+    @Dependency
+    SlotSelectionProcess slotSelectionProcess;
+
+    // Constructor
+    int numStimuliPerGeneration;
+    double initialSize;
+    private Coordinates2D initialCoords;
+
+    @Override
+    protected void addTrials() {
+        if (isFirstGeneration()) {
+            addFirstGeneration();
+        } else {
+            addNthGeneration();
+        }
+    }
+
+    private void addFirstGeneration() {
+        stims.addAll(createRandStim(this, numStimuliPerGeneration, initialSize, initialCoords));
+    }
+
+    private List<ThreeDGAStim> createRandStim(GABlockGenerator generator, int numTrials, double size, Coordinates2D coords) {
+        List<ThreeDGAStim> trials = new LinkedList<>();
+        for (int i = 0; i < numTrials; i++) {
+            trials.add(new RandStim(generator, size, coords));
+        }
+        return trials;
+    }
+
+    private void addNthGeneration() {
+        List<Child> selectedParents = slotSelectionProcess.select(getGaBaseName());
+        for (Child child: selectedParents) {
+            if (child.getRegime() == Regime.ONE) {
+                stims.add(new RegimeOneStim(this, child.getParentId()));
+            }
+            else if (child.getRegime() == Regime.TWO) {
+                stims.add(new RegimeTwoStim(this, child.getParentId()));
+            }
+            else if (child.getRegime() == Regime.THREE) {
+                stims.add(new RegimeThreeStim(this, child.getParentId()));
+            }
+        }
+
+    }
+
+    private boolean isFirstGeneration() {
+        MultiGaGenerationInfo info = dbUtil.readReadyGAsAndGenerationsInfo();
+        Map<String, Long> readyGens = info.getGenIdForGA();
+
+        return readyGens.getOrDefault(getGaBaseName(), 0L) == 0;
+    }
+
+    public String getGaBaseName() {
+        return gaBaseName;
+    }
+}

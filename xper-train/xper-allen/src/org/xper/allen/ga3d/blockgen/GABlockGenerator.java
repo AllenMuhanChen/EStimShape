@@ -22,8 +22,4 @@ public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator {
     public String getGaBaseName() {
         return GA_NAME;
     }
-
-    public void setGaBaseName(String gaBaseName) {
-        GA_NAME = gaBaseName;
-    }
 }
