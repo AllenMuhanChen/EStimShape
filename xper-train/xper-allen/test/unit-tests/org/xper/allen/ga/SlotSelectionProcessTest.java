@@ -46,9 +46,9 @@ public class SlotSelectionProcessTest {
         int lineage1Count = 0;
         int lineage2Count = 0;
         for (Child child : children) {
-            if (child.getStimId() == 11L || child.getStimId() == 12L) {
+            if (child.getParentId() == 11L || child.getParentId() == 12L) {
                 lineage1Count++;
-            } else if (child.getStimId() == 21L || child.getStimId() == 22L) {
+            } else if (child.getParentId() == 21L || child.getParentId() == 22L) {
                 lineage2Count++;
             }
         }

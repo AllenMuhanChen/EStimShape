@@ -32,7 +32,7 @@ public abstract class ThreeDGAStim implements Stim {
     /**
      * Constructor for creating a child stimulus
      */
-    public ThreeDGAStim(GA3DLineageBlockGenerator generator, Long parentId) {
+    public ThreeDGAStim(GABlockGenerator generator, Long parentId) {
         this.generator = generator;
         this.parentId = parentId;
         this.tree = null;

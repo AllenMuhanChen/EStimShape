@@ -54,7 +54,7 @@ public class SamplingSelectionProcessTest {
             double expectedCount = table.getProbabilities().get(i) * NUM_DRAWS;
             double actualCount = possibleChildCounts.get(i);
             double percentError = Math.abs(expectedCount - actualCount) / expectedCount;
-            System.out.println("item: " + possibleChildren.get(i).getStimId() + " expectedCount: " + expectedCount + " actualCount: " + actualCount + " percentError: " + percentError);
+            System.out.println("item: " + possibleChildren.get(i).getParentId() + " expectedCount: " + expectedCount + " actualCount: " + actualCount + " percentError: " + percentError);
             assertTrue(percentError < 0.15);
         }
 
@@ -62,10 +62,10 @@ public class SamplingSelectionProcessTest {
         //This is because we hardcoded that the probability is directly-related to stimId
         for (int i = 0; i < possibleChildren.size(); i++) {
             for (int j = i + 1; j < possibleChildren.size(); j++) {
-                double expectedRatio = (double) possibleChildren.get(i).getStimId() / (double) possibleChildren.get(j).getStimId();
+                double expectedRatio = (double) possibleChildren.get(i).getParentId() / (double) possibleChildren.get(j).getParentId();
                 double actualRatio = (double) possibleChildCounts.get(i) / (double) possibleChildCounts.get(j);
                 double percentError = Math.abs(expectedRatio - actualRatio) / expectedRatio;
-                System.out.println("item: " + possibleChildren.get(i).getStimId() + " / " + possibleChildren.get(j).getStimId() + " expectedRatio: " + expectedRatio + " actualRatio: " + actualRatio + " percentError: " + percentError);
+                System.out.println("item: " + possibleChildren.get(i).getParentId() + " / " + possibleChildren.get(j).getParentId() + " expectedRatio: " + expectedRatio + " actualRatio: " + actualRatio + " percentError: " + percentError);
                 assertTrue(percentError < 0.15);
             }
         }

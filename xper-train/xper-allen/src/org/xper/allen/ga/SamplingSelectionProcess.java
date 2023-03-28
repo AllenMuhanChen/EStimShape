@@ -87,11 +87,11 @@ public class SamplingSelectionProcess {
     }
 
     private Double getAverageSpikeRate(Child child) {
-        return spikeRateSource.getSpikeRate(child.getStimId());
+        return spikeRateSource.getSpikeRate(child.getParentId());
     }
 
     private Integer getTreeCanopyWidth(Child child) {
-        return canopyWidthSource.getCanopyWidth(child.getStimId());
+        return canopyWidthSource.getCanopyWidth(child.getParentId());
     }
 
     private Double calculateFitnessScore(TreeFitnessScoreParameters fitnessScoreParameters) {
