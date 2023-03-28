@@ -1,15 +1,16 @@
 package org.xper.allen.newga.blockgen;
 
-import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
+import org.xper.allen.newga.blockgen.NewGABlockGenerator.Regime;
 
 public class RegimeTwoStim extends MorphedStim {
 
     public RegimeTwoStim(GABlockGenerator generator, Long parentId) {
         super(generator, parentId);
+        this.stimType = NewGABlockGenerator.stimTypeForRegime.get(Regime.TWO);
     }
 
     @Override
