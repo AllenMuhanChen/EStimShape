@@ -27,14 +27,22 @@ public class SlotSelectionProcess {
     RegimeScoreSource regimeScoreSource;
 
     /**
-     * Function that maps regime score to proportion of slots.
+     * Function that maps regime score of a linaege to likelihood of assigning slots to that lineage.
      */
     @Dependency
     UnivariateRealFunction slotFunctionForLineage;
 
+    /**
+     * A separate function for each regime that maps regime score to likelihood of slots being
+     * assigned to that regime.
+     */
     @Dependency
     Map<Regime, UnivariateRealFunction> slotFunctionForRegimes;
 
+    /**
+     * Once slots are assigned to lineages and regimes, this function maps the response rate of a parent
+     * to likelihood that the parent should be selected based on the regime.
+     */
     @Dependency
     Map<Regime, UnivariateRealFunction> fitnessFunctionForRegimes;
 

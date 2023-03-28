@@ -9,6 +9,7 @@ public class RegimeThreeStim extends MorphedStim {
 
     public RegimeThreeStim(GABlockGenerator generator, Long parentId) {
         super(generator, parentId);
+        this.stimType = NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.THREE);
     }
 
     @Override

@@ -17,7 +17,7 @@ public abstract class ThreeDGAStim implements Stim {
     protected Long parentId;
     private Branch<Long> tree;
     private Long lineageId;
-
+    protected String stimType = "3DGAStim";
     /**
      * Constructor for creating a parent stimulus
      */
@@ -50,7 +50,7 @@ public abstract class ThreeDGAStim implements Stim {
     public void writeGaInfo(String gaName, long genId){
         updateStimTree();
         lineageId = tree.getIdentifier();
-        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, lineageId, tree.toXml(), "DEFAULT");
+        generator.getDbUtil().writeStimGaInfo(stimId, parentId, gaName, genId, lineageId, tree.toXml(), stimType);
         updateLineageTree();
     }
 

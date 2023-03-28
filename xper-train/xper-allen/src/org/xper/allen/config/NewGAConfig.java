@@ -4,19 +4,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.allen.ga.IntanAverageSpikeRateSource;
-import org.xper.allen.ga.MultiGATaskDataSource;
-import org.xper.allen.ga.SlotSelectionProcess;
-import org.xper.allen.ga.SpikeRateSource;
-import org.xper.allen.ga.regimescore.RegimeScoreSource;
+import org.xper.allen.ga.*;
+import org.xper.allen.ga.regimescore.*;
+import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
+import org.xper.allen.ga.regimescore.RegimeScoreSource.RegimeTransition;
 import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
 
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -47,34 +44,166 @@ public class NewGAConfig {
         return generator;
     }
 
-    private SlotSelectionProcess slotSelectionProcess() {
+    @Bean
+    public SlotSelectionProcess slotSelectionProcess() {
         SlotSelectionProcess slotSelectionProcess = new SlotSelectionProcess();
         slotSelectionProcess.setDbUtil(dbUtil());
         slotSelectionProcess.setNumChildrenToSelect(numberOfStimuliPerGeneration);
         slotSelectionProcess.setSpikeRateSource(spikeRateSource());
+        slotSelectionProcess.setRegimeScoreSource(regimeScoreSource());
         slotSelectionProcess.setSlotFunctionForLineage(slotFunctionForLineage());
         slotSelectionProcess.setSlotFunctionForRegimes(slotFunctionForRegimes());
         slotSelectionProcess.setFitnessFunctionForRegimes(fitnessFunctionForRegimes());
-        slotSelectionProcess.setRegimeScoreSource(regimeScoreSource());
         return slotSelectionProcess;
     }
 
-    private SpikeRateSource spikeRateSource() {
+    @Bean
+    public RegimeScoreSource regimeScoreSource() {
+        RegimeScoreSource regimeScoreSource = new RegimeScoreSource();
+        regimeScoreSource.setDbUtil(dbUtil());
+        regimeScoreSource.setLineageScoreSourceForRegimeTransitions(lineageScoreSourceForRegimeTransitions());
+        return regimeScoreSource;
+    }
+
+    @Bean
+    public Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions() {
+        Map<RegimeTransition, LineageScoreSource> lineageScoreSourceForRegimeTransitions = new HashMap<>();
+        lineageScoreSourceForRegimeTransitions.put(RegimeTransition.ZERO_TO_ONE, regimeZeroToOne());
+        lineageScoreSourceForRegimeTransitions.put(RegimeTransition.ONE_TO_TWO, regimeOneToTwo());
+        lineageScoreSourceForRegimeTransitions.put(RegimeTransition.TWO_TO_THREE, regimeTwoToThree());
+        lineageScoreSourceForRegimeTransitions.put(RegimeTransition.THREE_TO_FOUR, regimeThreeToFour());
+        return lineageScoreSourceForRegimeTransitions;
+    }
+
+    @Bean
+    public LineageScoreSource regimeZeroToOne() {
+        MaxValueLineageScore zeroToOne = new MaxValueLineageScore();
+        zeroToOne.setDbUtil(dbUtil());
+        zeroToOne.setSpikeRateSource(spikeRateSource());
+        zeroToOne.setMaxThresholdSource(regimeZeroToOneThreshold());
+        return zeroToOne;
+    }
+
+    @Bean
+    public ThresholdSource regimeZeroToOneThreshold() {
+        return new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 30.0;
+            }
+        };
+    }
+
+    @Bean
+    public LineageScoreSource regimeOneToTwo() {
+        StabilityOfMaxScoreSource oneToTwo = new StabilityOfMaxScoreSource();
+        oneToTwo.setDbUtil(dbUtil());
+        oneToTwo.setSpikeRateSource(spikeRateSource());
+        oneToTwo.setMaxResponseSource(maxResponseSource());
+        oneToTwo.setNormalizedRangeThresholdSource(regimeOneToTwoThreshold());
+        return oneToTwo;
+    }
+
+    @Bean
+    public ThresholdSource regimeOneToTwoThreshold() {
+        return new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 10.0;
+            }
+        };
+    }
+
+    private LineageScoreSource regimeTwoToThree() {
+        ParentChildThresholdScoreSource twoToThree = new ParentChildThresholdScoreSource();
+        twoToThree.setStimType(NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.TWO));
+        twoToThree.setDbUtil(dbUtil());
+        twoToThree.setNumPairThresholdSource(regimeTwoToThreePairThreshold());
+        twoToThree.setParentResponseThresholdSource(regimeTwoToThreeParentThreshold());
+        twoToThree.setChildResponseThresholdSource(regimeTwoToThreeChildThreshold());
+        twoToThree.setSpikeRateSource(spikeRateSource());
+        return twoToThree;
+    }
+
+    private ThresholdSource regimeTwoToThreePairThreshold() {
+        return new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 10.0;
+            }
+        };
+    }
+
+    private ThresholdSource regimeTwoToThreeParentThreshold() {
+        return new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 60.0;
+            }
+        };
+    }
+
+    private ThresholdSource regimeTwoToThreeChildThreshold() {
+        return regimeTwoToThreeParentThreshold();
+    }
+
+    private LineageScoreSource regimeThreeToFour() {
+        ParentChildBinThresholdsScoreSource threeToFour = new ParentChildBinThresholdsScoreSource();
+        threeToFour.setStimType(NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.THREE));
+        threeToFour.setDbUtil(dbUtil());
+        threeToFour.setParentResponseThresholdSource(regimeThreeToFourParentThreshold());
+        threeToFour.setNumPairThresholdSourcesForBins(regimeThreeToFourPairThresholds());
+        threeToFour.setSpikeRateSource(spikeRateSource());
+        threeToFour.setMaxResponseSource(maxResponseSource());
+        return threeToFour;
+    }
+
+    private ThresholdSource regimeThreeToFourParentThreshold() {
+        return new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 60.0;
+            }
+        };
+    }
+
+    private Map<NormalizedResponseBin, ThresholdSource> regimeThreeToFourPairThresholds() {
+        Map<NormalizedResponseBin, ThresholdSource> pairThresholds = new HashMap<>();
+        pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), thresholdForRegimeThreeToFourPair());
+        pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), thresholdForRegimeThreeToFourPair());
+        pairThresholds.put(new NormalizedResponseBin(0.66, 1.0), thresholdForRegimeThreeToFourPair());
+        return null;
+    }
+
+    private ThresholdSource thresholdForRegimeThreeToFourPair() {
+        return new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 10.0;
+            }
+        };
+    }
+
+    @Bean
+    public MaxResponseSource maxResponseSource() {
+        MaxResponseSource maxResponseSource = new MaxResponseSource();
+        maxResponseSource.setDbUtil(dbUtil());
+        maxResponseSource.setMinimumMaxResponse(30.0);
+        maxResponseSource.setSpikeRateSource(spikeRateSource());
+        return maxResponseSource;
+    }
+
+    @Bean
+    public SpikeRateSource spikeRateSource() {
         IntanAverageSpikeRateSource spikeRateSource = new IntanAverageSpikeRateSource();
         spikeRateSource.setSpikeDatDirectory(spikeDatPath);
         spikeRateSource.setChannels(channels());
         return spikeRateSource;
     }
 
-    private List<String> channels() {
+    @Bean
+    public List<String> channels() {
         return new LinkedList<>();
-    }
-
-    private RegimeScoreSource regimeScoreSource() {
-        RegimeScoreSource regimeScoreSource = new RegimeScoreSource();
-        regimeScoreSource.setDbUtil(dbUtil());
-        regimeScoreSource.setLineageScoreSourceForRegimeTransitions(lineageScoreSourceForRegimeTransitions());
-        return regimeScoreSource;
     }
 
     @Bean
