@@ -18,7 +18,7 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 	protected AllenDbUtil dbUtil;
 
 	protected Long genId;
-	private List<? extends Stim> stims = new LinkedList<>();
+	private List<Stim> stims = new LinkedList<>();
 
 	@Override
 	public void generate(){
@@ -90,11 +90,11 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 		this.dbUtil = dbUtil;
 	}
 
-	public List<? extends Stim> getStims() {
+	public List<Stim> getStims() {
 		return stims;
 	}
 
-	public void setStims(List<? extends Stim> stims) {
+	public void setStims(List<Stim> stims) {
 		this.stims = stims;
 	}
 }
