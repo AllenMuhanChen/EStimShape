@@ -3,23 +3,25 @@ package org.xper.allen.ga3d.blockgen;
 import org.xper.Dependency;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.ParentSelector;
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 
-public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
+/**
+ * Implements lineages as a list of separate GA's.
+ * i.e
+ * Lineage 1: "GA-1"
+ * Lineage 2: "GA-2"
+ */
+public class GA3DLineageBlockGenerator extends GABlockGenerator {
 
-    @Dependency
-    MultiGaDbUtil dbUtil;
     @Dependency
     ParentSelector parentSelector;
     @Dependency
     Integer numLineages;
 
-    private String gaBaseName;
     private Map<String, List<ThreeDGAStim>> trialsForGA = new LinkedHashMap<String, List<ThreeDGAStim>>();
     private Map<String, Long> genIdForGA = new LinkedHashMap<String, Long>();
     private double initialSize;
@@ -42,7 +44,7 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
         this.numTrialsPerStimuli = numTrialsPerStimuli;
         this.initialSize = initialSize;
         this.initialCoords = initialCoords;
-        this.gaBaseName = "3D";
+        this.GA_NAME = "3D";
         this.channels = channels;
 
         //Populate gaNames based off number of lineages. i.e "3D-1", "3D-2", etc.
@@ -56,11 +58,11 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
     }
 
     public List<String> getGaNames() {
-        List<String> gaNames = new LinkedList<>();
+        List<String> gaLineageNames = new LinkedList<>();
         for (int i = 1; i <= numLineages; i++){
-            gaNames.add(gaBaseName + "-" + i);
+            gaLineageNames.add(GA_NAME + "-" + i);
         }
-        return gaNames;
+        return gaLineageNames;
     }
 
     @Override
@@ -79,7 +81,7 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
         trialsForGA.get(gaName).addAll(createRandTrials(this, numStimuli, initialSize, initialCoords));
     }
 
-    private List<ThreeDGAStim> createMorphTrials(GA3DBlockGenerator generator, String gaName){
+    private List<ThreeDGAStim> createMorphTrials(GA3DLineageBlockGenerator generator, String gaName){
         List<ThreeDGAStim> trials = new LinkedList<>();
 
         stimsToMorph = parentSelector.selectParents(gaName);
@@ -92,7 +94,7 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
     }
 
 
-    private List<ThreeDGAStim> createRandTrials(GA3DBlockGenerator generator, int numTrials, double size, Coordinates2D coords){
+    private List<ThreeDGAStim> createRandTrials(GA3DLineageBlockGenerator generator, int numTrials, double size, Coordinates2D coords){
         List<ThreeDGAStim> trials = new LinkedList<>();
         for (int i = 0; i< numTrials; i++){
             trials.add(new RandStim(generator, size, coords));
@@ -193,11 +195,11 @@ public class GA3DBlockGenerator extends AbstractMStickPngTrialGenerator {
     }
 
     public String getGaBaseName() {
-        return gaBaseName;
+        return GA_NAME;
     }
 
     public void setGaBaseName(String gaBaseName) {
-        this.gaBaseName = gaBaseName;
+        this.GA_NAME = gaBaseName;
     }
 
     public Integer getNumLineages() {

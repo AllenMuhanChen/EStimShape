@@ -12,7 +12,7 @@ import java.util.List;
 
 public class RandStim extends ThreeDGAStim {
 
-    public RandStim(GA3DBlockGenerator generator, double size, Coordinates2D coords) {
+    public RandStim(GABlockGenerator generator, double size, Coordinates2D coords) {
         super(generator, size, coords);
     }
 

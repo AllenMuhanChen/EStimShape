@@ -8,7 +8,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.PngSpec;
 
 public abstract class ThreeDGAStim implements Stim {
-    protected final GA3DBlockGenerator generator;
+    protected final GABlockGenerator generator;
     protected double size;
     protected Coordinates2D coords;
     protected long stimId;
@@ -21,7 +21,7 @@ public abstract class ThreeDGAStim implements Stim {
     /**
      * Constructor for creating a parent stimulus
      */
-    public ThreeDGAStim(GA3DBlockGenerator generator, double size, Coordinates2D coords) {
+    public ThreeDGAStim(GABlockGenerator generator, double size, Coordinates2D coords) {
         this.generator = generator;
         this.size = size;
         this.coords = coords;
@@ -32,7 +32,7 @@ public abstract class ThreeDGAStim implements Stim {
     /**
      * Constructor for creating a child stimulus
      */
-    public ThreeDGAStim(GA3DBlockGenerator generator, Long parentId) {
+    public ThreeDGAStim(GA3DLineageBlockGenerator generator, Long parentId) {
         this.generator = generator;
         this.parentId = parentId;
         this.tree = null;

@@ -19,7 +19,7 @@ public class MorphStim extends ThreeDGAStim {
     private PngSpec spec;
     private AllenMStickData mStickData;
 
-    public MorphStim(GA3DBlockGenerator generator, String gaName, Long parentId) {
+    public MorphStim(GA3DLineageBlockGenerator generator, String gaName, Long parentId) {
         super(generator, parentId);
         this.gaName = gaName;
     }
