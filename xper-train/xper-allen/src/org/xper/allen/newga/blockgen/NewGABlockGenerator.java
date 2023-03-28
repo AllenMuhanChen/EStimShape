@@ -20,9 +20,6 @@ public class NewGABlockGenerator extends GABlockGenerator {
     public static String gaBaseName = "New3D";
 
     @Dependency
-    MultiGaDbUtil dbUtil;
-
-    @Dependency
     SlotSelectionProcess slotSelectionProcess;
 
     // Constructor
@@ -79,5 +76,13 @@ public class NewGABlockGenerator extends GABlockGenerator {
 
     public String getGaBaseName() {
         return gaBaseName;
+    }
+
+    public SlotSelectionProcess getSlotSelectionProcess() {
+        return slotSelectionProcess;
+    }
+
+    public void setSlotSelectionProcess(SlotSelectionProcess slotSelectionProcess) {
+        this.slotSelectionProcess = slotSelectionProcess;
     }
 }
