@@ -10,7 +10,7 @@ public class RepetitionStim extends ThreeDGAStim {
     AllenMStickData mStickData;
 
 
-    public RepetitionStim(GA3DBlockGenerator generator, double size, Coordinates2D coords, PngSpec spec, AllenMStickData mStickData) {
+    public RepetitionStim(GA3DLineageBlockGenerator generator, double size, Coordinates2D coords, PngSpec spec, AllenMStickData mStickData) {
         super(generator, size, coords);
         this.spec = spec;
         this.mStickData = mStickData;

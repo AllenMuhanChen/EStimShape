@@ -20,7 +20,7 @@ import static org.junit.Assert.*;
 public class ThreeDGAMockExperiment {
     public static final int NUM_TRIALS_PER_STIMULI = 2;
     private final String[] emptyArgs = {""};
-    GA3DBlockGenerator generator = new GA3DBlockGenerator();
+    GA3DLineageBlockGenerator generator = new GA3DLineageBlockGenerator();
     private MultiGaDbUtil dbUtil;
     private Long testParentId;
 
@@ -30,7 +30,7 @@ public class ThreeDGAMockExperiment {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
-        generator = context.getBean(GA3DBlockGenerator.class);
+        generator = context.getBean(GA3DLineageBlockGenerator.class);
         dbUtil = generator.getDbUtil();
 
         generator.setUp(20, NUM_TRIALS_PER_STIMULI, 5, new Coordinates2D(0,0), generator.channels);
