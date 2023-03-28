@@ -114,7 +114,8 @@ public class NewGAConfig {
         };
     }
 
-    private LineageScoreSource regimeTwoToThree() {
+    @Bean
+    public LineageScoreSource regimeTwoToThree() {
         ParentChildThresholdScoreSource twoToThree = new ParentChildThresholdScoreSource();
         twoToThree.setStimType(NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.TWO));
         twoToThree.setDbUtil(dbUtil());
@@ -125,7 +126,8 @@ public class NewGAConfig {
         return twoToThree;
     }
 
-    private ThresholdSource regimeTwoToThreePairThreshold() {
+    @Bean
+    public ThresholdSource regimeTwoToThreePairThreshold() {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
@@ -134,7 +136,8 @@ public class NewGAConfig {
         };
     }
 
-    private ThresholdSource regimeTwoToThreeParentThreshold() {
+    @Bean
+    public ThresholdSource regimeTwoToThreeParentThreshold() {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
@@ -143,11 +146,13 @@ public class NewGAConfig {
         };
     }
 
-    private ThresholdSource regimeTwoToThreeChildThreshold() {
+    @Bean
+    public ThresholdSource regimeTwoToThreeChildThreshold() {
         return regimeTwoToThreeParentThreshold();
     }
 
-    private LineageScoreSource regimeThreeToFour() {
+    @Bean
+    public LineageScoreSource regimeThreeToFour() {
         ParentChildBinThresholdsScoreSource threeToFour = new ParentChildBinThresholdsScoreSource();
         threeToFour.setStimType(NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.THREE));
         threeToFour.setDbUtil(dbUtil());
@@ -158,7 +163,8 @@ public class NewGAConfig {
         return threeToFour;
     }
 
-    private ThresholdSource regimeThreeToFourParentThreshold() {
+    @Bean
+    public ThresholdSource regimeThreeToFourParentThreshold() {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
@@ -167,7 +173,8 @@ public class NewGAConfig {
         };
     }
 
-    private Map<NormalizedResponseBin, ThresholdSource> regimeThreeToFourPairThresholds() {
+    @Bean
+    public Map<NormalizedResponseBin, ThresholdSource> regimeThreeToFourPairThresholds() {
         Map<NormalizedResponseBin, ThresholdSource> pairThresholds = new HashMap<>();
         pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), thresholdForRegimeThreeToFourPair());
         pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), thresholdForRegimeThreeToFourPair());
@@ -175,7 +182,8 @@ public class NewGAConfig {
         return null;
     }
 
-    private ThresholdSource thresholdForRegimeThreeToFourPair() {
+    @Bean
+    public ThresholdSource thresholdForRegimeThreeToFourPair() {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
