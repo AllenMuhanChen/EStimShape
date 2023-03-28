@@ -18,7 +18,7 @@ public class NoisyPngFixationBlockGen extends AbstractMStickPngTrialGenerator {
         List<NoiseParameters> noises = params.getNoiseParameters();
         for (NoiseParameters noise : noises) {
             NoisyPngFixationTrialParameters trialParams = new NoisyPngFixationTrialParameters(noise, params.getDistanceLims(), params.getSize());
-            stims.add(new NoisyPngFixationStim(this, trialParams));
+            getStims().add(new NoisyPngFixationStim(this, trialParams));
         }
     }
 

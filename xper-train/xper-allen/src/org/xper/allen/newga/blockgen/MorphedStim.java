@@ -35,6 +35,12 @@ public abstract class MorphedStim extends ThreeDGAStim {
     }
 
     @Override
+    public void preWrite() {
+
+    }
+
+
+    @Override
     public void writeStim() {
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 

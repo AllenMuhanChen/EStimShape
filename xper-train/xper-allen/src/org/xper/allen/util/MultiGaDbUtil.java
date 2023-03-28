@@ -79,6 +79,13 @@ public class MultiGaDbUtil extends AllenDbUtil {
         updateInternalState(TASK_TO_DO_GA_AND_GEN_READY, 0, generationInfoToWrite.toXml());
     }
 
+    public void writeReadyGAandGenerationInfo(String gaName){
+        List<String> gaNames = new ArrayList<>();
+        gaNames.add(gaName);
+
+        writeReadyGAsAndGenerationsInfo(gaNames);
+    }
+
 
     public void updateReadyGAsAndGenerationsInfo(String gaName, Long genId){
         MultiGaGenerationInfo currentGenerationInfo = readReadyGAsAndGenerationsInfo();

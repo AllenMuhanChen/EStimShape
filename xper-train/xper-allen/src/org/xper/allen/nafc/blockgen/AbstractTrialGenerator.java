@@ -18,7 +18,7 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 	protected AllenDbUtil dbUtil;
 
 	protected Long genId;
-	protected List<Stim> stims = new LinkedList<>();
+	private List<? extends Stim> stims = new LinkedList<>();
 
 	@Override
 	public void generate(){
@@ -36,13 +36,13 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 	protected abstract void addTrials();
 
 	protected void preWriteTrials() {
-		for(Stim stim : stims){
+		for(Stim stim : getStims()){
 			stim.preWrite();
 		}
 	}
 
 	protected void shuffleTrials() {
-		Collections.shuffle(stims);
+		Collections.shuffle(getStims());
 	}
 
 	protected void updateGenId() {
@@ -57,7 +57,7 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 	}
 
 	protected void writeTrials() {
-		for (Stim stim : stims) {
+		for (Stim stim : getStims()) {
 			stim.writeStim();
 			Long taskId = stim.getStimId();
 			getDbUtil().writeTaskToDo(taskId, taskId, -1, genId);
@@ -65,7 +65,7 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 	}
 
 	protected void updateReadyGeneration() {
-		getDbUtil().updateReadyGenerationInfo(genId, stims.size());
+		getDbUtil().updateReadyGenerationInfo(genId, getStims().size());
 		System.out.println("Done Generating...");
 	}
 
@@ -88,5 +88,13 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 
 	public void setDbUtil(AllenDbUtil dbUtil) {
 		this.dbUtil = dbUtil;
+	}
+
+	public List<? extends Stim> getStims() {
+		return stims;
+	}
+
+	public void setStims(List<? extends Stim> stims) {
+		this.stims = stims;
 	}
 }

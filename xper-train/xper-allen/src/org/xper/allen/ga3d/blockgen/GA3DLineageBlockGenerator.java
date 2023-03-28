@@ -31,7 +31,6 @@ public class GA3DLineageBlockGenerator extends GABlockGenerator {
 
     private List<Long> stimsToMorph;
     private List<String> gaNames = new LinkedList<>();
-    private Integer numTrialsPerStimuli;
 
     /**
      * @param numStimuli - number of trials per lineage
