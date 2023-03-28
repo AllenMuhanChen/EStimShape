@@ -18,7 +18,7 @@ public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator<T
     protected Integer numTrialsPerStimuli;
 
     @Dependency
-    MultiGaDbUtil dbUtil;
+    protected MultiGaDbUtil dbUtil;
 
     List<ThreeDGAStim> stims = new ArrayList<>();
 
