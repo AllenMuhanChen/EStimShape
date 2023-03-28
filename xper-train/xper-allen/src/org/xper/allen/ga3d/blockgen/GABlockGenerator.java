@@ -8,7 +8,7 @@ import org.xper.allen.util.MultiGaDbUtil;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator {
+public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator<ThreeDGAStim> {
     public static String GA_NAME;
     protected Integer numTrialsPerStimuli;
 
@@ -67,7 +67,7 @@ public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator {
         return stims;
     }
 
-    public void setStims(List<? extends Stim> stims) {
+    public void setStims(List<ThreeDGAStim> stims) {
         this.stims = (List<ThreeDGAStim>) stims;
     }
 }

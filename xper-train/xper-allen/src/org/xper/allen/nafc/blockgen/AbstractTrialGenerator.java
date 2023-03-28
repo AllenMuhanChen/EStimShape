@@ -12,13 +12,13 @@ import org.xper.allen.util.AllenDbUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.allen.Stim;
 
-public abstract class AbstractTrialGenerator implements TrialGenerator {
+public abstract class AbstractTrialGenerator<T extends Stim> implements TrialGenerator {
 
 	@Dependency
 	protected AllenDbUtil dbUtil;
 
 	protected Long genId;
-	private List<Stim> stims = new LinkedList<>();
+	private List<T> stims = new LinkedList<>();
 
 	@Override
 	public void generate(){
@@ -90,11 +90,11 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 		this.dbUtil = dbUtil;
 	}
 
-	public List<Stim> getStims() {
+	public List<T> getStims() {
 		return stims;
 	}
 
-	public void setStims(List<Stim> stims) {
+	public void setStims(List<T> stims) {
 		this.stims = stims;
 	}
 }
