@@ -1,5 +1,6 @@
 package org.xper.allen.ga;
 
+import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,7 +21,7 @@ public class TreeFitnessScoreCalculatorTest {
     public void setUp() throws Exception {
         treeFitnessScoreCalculator = new TreeFitnessScoreCalculator();
 
-        Map<Integer, UnivariateFunction> fitnessScoreFunctionsForCanopyWidthThresholds = new HashMap<>();
+        Map<Integer, UnivariateRealFunction> fitnessScoreFunctionsForCanopyWidthThresholds = new HashMap<>();
         NaturalSpline narrowCanopySpline_linear = new NaturalSpline(Arrays.asList(new Point2d(0, 0), new Point2d(0.5, 0.5), new Point2d(1, 1)));
         fitnessScoreFunctionsForCanopyWidthThresholds.put(0, narrowCanopySpline_linear);
         NaturalSpline wideCanopySpline_bell = new NaturalSpline(Arrays.asList(new Point2d(0, 0), new Point2d(0.5, 1), new Point2d(1, 0)));
