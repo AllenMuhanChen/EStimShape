@@ -23,7 +23,8 @@ public class LinearInterpolationFunctionTest {
         List<Point2d> controlPoints = Arrays.asList(
                 new Point2d(0, 0),
                 new Point2d(1, 0),
-                new Point2d(2, 1),
+                new Point2d(1, 1),
+                new Point2d(2, 2),
                 new Point2d(3, 4)
         );
 
@@ -36,12 +37,17 @@ public class LinearInterpolationFunctionTest {
 
         double x2 = 1.5;
         double y2 = interpolationFunction.value(x2);
-        double expectedY2 = 0.5;
+        double expectedY2 = 1.5;
         assertEquals("Interpolation at x = " + x2, expectedY2, y2, 1e-9);
 
         double x3 = 2.5;
         double y3 = interpolationFunction.value(x3);
-        double expectedY3 = 2.5;
+        double expectedY3 = 3.0;
         assertEquals("Interpolation at x = " + x3, expectedY3, y3, 1e-9);
+
+        // At Step point, return control point value with higher value
+        double x4 = 1.0;
+        double y4 = interpolationFunction.value(x4);
+        assertEquals("Interpolation at x = " + x4, 1.0, y4, 1e-9);
     }
 }

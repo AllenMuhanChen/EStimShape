@@ -27,11 +27,18 @@ public class LinearSpline implements UnivariateRealFunction {
         Point2d lowerBound = null;
         Point2d upperBound = null;
 
-        for (Point2d point : controlPoints) {
-            if (point.getX() <= x) {
-                lowerBound = point;
+        for (int i = 0; i < controlPoints.size(); i++) {
+            Point2d currentPoint = controlPoints.get(i);
+            if (currentPoint.getX() < x) {
+                lowerBound = currentPoint;
+            } else if (currentPoint.getX() == x) {
+                if (i < controlPoints.size() - 1 && controlPoints.get(i + 1).getX() == x) {
+                    return Math.max(currentPoint.getY(), controlPoints.get(i + 1).getY());
+                } else {
+                    return currentPoint.getY();
+                }
             } else {
-                upperBound = point;
+                upperBound = currentPoint;
                 break;
             }
         }
