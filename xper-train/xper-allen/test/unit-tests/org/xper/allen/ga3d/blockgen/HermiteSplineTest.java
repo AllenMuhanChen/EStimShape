@@ -4,12 +4,8 @@ import org.apache.commons.math.FunctionEvaluationException;
 import org.junit.Test;
 import org.xper.allen.ga3d.blockgen.HermiteSpline.ControlPoint;
 
-import javax.vecmath.Point2d;
-
 import java.util.Arrays;
 import java.util.List;
-
-import static org.junit.Assert.*;
 
 public class HermiteSplineTest {
 
@@ -24,6 +20,6 @@ public class HermiteSplineTest {
         HermiteSpline spline = new HermiteSpline(controlPoints);
         System.out.println(spline.value(1.0));
 
-        SplineTest.plotSpline(spline);
+        FunctionTest.plotFunction(spline, "Spline", 0.0, 1.0);
     }
 }

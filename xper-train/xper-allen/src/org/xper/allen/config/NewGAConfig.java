@@ -11,6 +11,8 @@ import org.xper.allen.ga.regimescore.*;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
 import org.xper.allen.ga.regimescore.RegimeScoreSource.RegimeTransition;
 import org.xper.allen.ga3d.blockgen.LinearSpline;
+import org.xper.allen.ga3d.blockgen.NaturalSpline;
+import org.xper.allen.ga3d.blockgen.Sigmoid;
 import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
@@ -61,15 +63,78 @@ public class NewGAConfig {
         return slotSelectionProcess;
     }
 
-    private UnivariateRealFunction slotFunctionForLineage() {
+    @Bean
+    public UnivariateRealFunction slotFunctionForLineage() {
+        List<Point2d> controlPoints = new ArrayList<>();
+        controlPoints.add(new Point2d(0.0, 0.0));
+        controlPoints.add(new Point2d(1.0, 0.0));
+        controlPoints.add(new Point2d(1.0, 1.0/3.0));
+        controlPoints.add(new Point2d(2.0, 2.0/3.0));
+        controlPoints.add(new Point2d(3.9, 1));
+        controlPoints.add(new Point2d(4.0, 0));
+        return new LinearSpline(controlPoints);
+    }
 
+
+    @Bean
+    public Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
+        Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
+        slotFunctionForRegimes.put(Regime.ZERO, zeroFunction());
+        slotFunctionForRegimes.put(Regime.ONE, peakFunctionAround(1.0, 1.0));
+        slotFunctionForRegimes.put(Regime.TWO, peakFunctionAround(2.0, 1.0));
+        slotFunctionForRegimes.put(Regime.THREE, peakFunctionAround(3.0, 1.0));
+        slotFunctionForRegimes.put(Regime.FOUR, zeroFunction());
+        return slotFunctionForRegimes;
+    }
+
+    @Bean
+    public UnivariateRealFunction peakFunctionAround(double center, double radius) {
+        List<Point2d> controlPoints = new ArrayList<>();
+        controlPoints.add(new Point2d(center - radius, 0));
+        controlPoints.add(new Point2d(center, 1));
+        controlPoints.add(new Point2d(center + radius, 0));
+        return new NaturalSpline(controlPoints);
+    }
+
+    @Bean
+    public Map<Regime, UnivariateRealFunction> fitnessFunctionForRegimes() {
+        Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
+        slotFunctionForRegimes.put(Regime.ZERO, zeroFunction());
+        slotFunctionForRegimes.put(Regime.ONE, fitnessFunctionForRegimeOne());
+        slotFunctionForRegimes.put(Regime.TWO, fitnessFunctionForRegimeTwo());
+        slotFunctionForRegimes.put(Regime.THREE, fitnessFunctionForRegimeThree());
+        slotFunctionForRegimes.put(Regime.FOUR, zeroFunction());
+        return slotFunctionForRegimes;
+    }
+
+    @Bean
+    public UnivariateRealFunction fitnessFunctionForRegimeOne() {
+        return new Sigmoid(0.5, 10.0);
+    }
+
+    @Bean
+    public UnivariateRealFunction fitnessFunctionForRegimeTwo() {
+        return  new Sigmoid(0.8, 50.0);
+    }
+
+    @Bean
+    public UnivariateRealFunction fitnessFunctionForRegimeThree() {
         List<Point2d> controlPoints = new ArrayList<>();
         controlPoints.add(new Point2d(0, 0));
-        controlPoints.add(new Point2d(1, 1.0/3.0));
-        controlPoints.add(new Point2d(2, 2.0/3.0));
-        controlPoints.add(new Point2d(3.9, 1));
-        controlPoints.add(new Point2d(4, 0));
+        controlPoints.add(new Point2d(0.75, 0));
+        controlPoints.add(new Point2d(0.75, 1.0));
+        controlPoints.add(new Point2d(1.0, 1.0));
         return new LinearSpline(controlPoints);
+    }
+
+    @Bean
+    public UnivariateRealFunction zeroFunction() {
+        return new UnivariateRealFunction() {
+            @Override
+            public double value(double v) {
+                return 0;
+            }
+        };
     }
 
     @Bean
