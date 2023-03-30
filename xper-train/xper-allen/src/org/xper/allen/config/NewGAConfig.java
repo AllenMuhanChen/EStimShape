@@ -71,8 +71,8 @@ public class NewGAConfig {
         controlPoints.add(new Point2d(1.0, 0.0));
         controlPoints.add(new Point2d(1.0, 1.0/3.0));
         controlPoints.add(new Point2d(2.0, 2.0/3.0));
-        controlPoints.add(new Point2d(3.9, 1));
-        controlPoints.add(new Point2d(4.0, 0));
+        controlPoints.add(new Point2d(3.9, 1.0));
+        controlPoints.add(new Point2d(4.0, 0.0));
         return new LinearSpline(controlPoints);
     }
 
