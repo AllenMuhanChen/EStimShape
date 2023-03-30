@@ -31,7 +31,7 @@ public class NaturalSpline implements UnivariateRealFunction{
         try {
             return splineFunction.value(x);
         } catch (FunctionEvaluationException e) {
-            throw new RuntimeException(e);
+            return 0.0;
         }
     }
 
