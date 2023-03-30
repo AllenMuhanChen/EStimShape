@@ -243,6 +243,28 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result;
     }
 
+    public Map<Long, List<Long>> readTaskDoneIdsForStimIds(String gaName){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final Map<Long, List<Long>> result = new HashMap<>();
+        jt.query(
+                " select t.stim_id, d.task_id " +
+                        " from TaskDone d, TaskToDo t " +
+                        " where d.task_id = t.task_id and t.ga_name = ?",
+                new Object[] { gaName },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        Long stimId = rs.getLong("stim_id");
+                        Long taskId = rs.getLong("task_id");
+                        List<Long> taskIds = result.get(stimId);
+                        if (taskIds == null) {
+                            taskIds = new ArrayList<>();
+                            result.put(stimId, taskIds);
+                        }
+                        taskIds.add(taskId);
+                    }});
+        return result;
+    }
+
     public List<Long> readAllStimIdsForGa(String gaName){
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final List<Long> result = new ArrayList<>();

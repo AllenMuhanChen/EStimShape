@@ -80,8 +80,8 @@ public class CanopyWidthSourceTest {
      */
     public static class CanopyWidthSourceTestSpikeRateSource implements SpikeRateSource {
         @Override
-        public Double getSpikeRate(Long taskId) {
-            return taskId.doubleValue();
+        public Double getSpikeRate(Long stimId) {
+            return stimId.doubleValue();
         }
     }
 }

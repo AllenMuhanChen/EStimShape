@@ -17,8 +17,9 @@ public class IntanAverageSpikeRateSource implements SpikeRateSource {
     List<String> channels;
 
     @Override
-    public Double getSpikeRate(Long taskId){
-        String spikeDatPath = getSpikeDatPathFor(taskId);
+    public Double getSpikeRate(Long stimId){
+        //TODO: find all taskIds that match stimId
+        String spikeDatPath = getSpikeDatPathFor(stimId);
         return calculateAverageAcrossChannels(spikeDatPath);
     }
 
