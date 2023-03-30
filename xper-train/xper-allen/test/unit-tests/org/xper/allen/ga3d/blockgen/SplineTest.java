@@ -1,6 +1,7 @@
 package org.xper.allen.ga3d.blockgen;
 
 import org.apache.commons.math.FunctionEvaluationException;
+import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.junit.Before;
 import org.junit.Test;
 import org.knowm.xchart.SwingWrapper;
@@ -51,7 +52,7 @@ public class SplineTest {
 
         assertEquals(expected_y, actual_y, 0.0001);
 
-        plotSpline(spline);
+        plotSpline((UnivariateRealFunction) spline);
     }
 
     @Test
@@ -63,7 +64,7 @@ public class SplineTest {
 
         LinkedList<Point2d> slopePoints = new LinkedList<Point2d>();
         slopePoints.add(new Point2d(0, 0));
-        slopePoints.add(new Point2d(0.5, 1));
+        slopePoints.add(new Point2d(0.5, 0.9));
         slopePoints.add(new Point2d(0.75, 0.99));
         slopePoints.add(new Point2d(1, 1));
 
@@ -78,20 +79,20 @@ public class SplineTest {
 
     }
 
-    private XYChart plotSpline(NaturalSpline spline) throws FunctionEvaluationException {
+    public static XYChart plotSpline(UnivariateRealFunction spline) throws FunctionEvaluationException {
         XYChart chart = initChart();
         addSplineToChart(spline, chart, "Spline");
         show(chart);
         return chart;
     }
 
-    private void show(XYChart chart) {
+    private static void show(XYChart chart) {
         // Show the chart
         new SwingWrapper<>(chart).displayChart();
         ThreadUtil.sleep(100000);
     }
 
-    private void addSplineToChart(NaturalSpline spline, XYChart chart, String seriesName) throws FunctionEvaluationException {
+    private static void addSplineToChart(UnivariateRealFunction spline, XYChart chart, String seriesName) throws FunctionEvaluationException {
         double begin = 0.0;
         double end = 1.0;
         int numPoints = 100;
@@ -106,7 +107,7 @@ public class SplineTest {
         XYSeries splineSeries = chart.addSeries(seriesName, x, y);
     }
 
-    private XYChart initChart() {
+    private static XYChart initChart() {
         XYChart chart = new XYChart(800, 600);
         chart.setTitle("Spline Test");
         chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNW);

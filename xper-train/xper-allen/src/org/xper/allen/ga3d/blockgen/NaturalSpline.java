@@ -8,7 +8,7 @@ import org.apache.commons.math3.analysis.UnivariateFunction;
 import javax.vecmath.Point2d;
 import java.util.List;
 
-public class NaturalSpline implements UnivariateFunction{
+public class NaturalSpline implements UnivariateRealFunction{
 
     private UnivariateRealFunction splineFunction;
 
