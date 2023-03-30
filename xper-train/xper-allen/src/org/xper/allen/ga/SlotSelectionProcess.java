@@ -49,6 +49,9 @@ public class SlotSelectionProcess {
     @Dependency
     SpikeRateSource spikeRateSource;
 
+    @Dependency
+    MaxResponseSource maxResponseSource;
+
     public List<Child> select(String gaName) {
         List<Child> selectedParents = new LinkedList<>();
 
@@ -120,20 +123,21 @@ public class SlotSelectionProcess {
                     // use lineageId to find potential parents
                     List<Long> potentialParents = dbUtil.readStimIdsFromLineage(gaName, lineageId);
 
-                    // find responses for each potential parents
-                    List<Double> responses = new LinkedList<>();
+                    // find normalized normalizedResponses for each potential parents
+                    List<Double> normalizedResponses = new LinkedList<>();
                     for (Long potentialParent : potentialParents) {
                         Double averageSpikeRate = spikeRateSource.getSpikeRate(potentialParent);
-                        responses.add(averageSpikeRate);
+                        double normalizedSpikeRate = averageSpikeRate / maxResponseSource.getMaxResponse(gaName);
+                        normalizedResponses.add(normalizedSpikeRate);
                     }
 
-                    // use responses to find fitness scores
+                    // use normalizedResponses to find fitness scores
                     List<Double> fitnessScores = new LinkedList<>();
-                    for (Double response : responses) {
+                    for (Double response : normalizedResponses) {
                         fitnessScores.add(plugIntoFunction(fitnessFunctionForRegimes.get(slot.getRegime()), response));
                     }
 
-                    // use fitnessFunctions and responses to assign fitness scores to each potential parent
+                    // use fitnessFunctions and normalizedResponses to assign fitness scores to each potential parent
                     ProbabilityTable<Long> probabilitiesForParentIds = new ProbabilityTable<>(potentialParents, fitnessScores);
 
                     // select parents
@@ -315,5 +319,13 @@ public class SlotSelectionProcess {
 
     public void setSpikeRateSource(SpikeRateSource spikeRateSource) {
         this.spikeRateSource = spikeRateSource;
+    }
+
+    public MaxResponseSource getMaxResponseSource() {
+        return maxResponseSource;
+    }
+
+    public void setMaxResponseSource(MaxResponseSource maxResponseSource) {
+        this.maxResponseSource = maxResponseSource;
     }
 }

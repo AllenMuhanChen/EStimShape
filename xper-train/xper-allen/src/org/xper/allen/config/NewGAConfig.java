@@ -60,6 +60,7 @@ public class NewGAConfig {
         slotSelectionProcess.setSlotFunctionForLineage(slotFunctionForLineage());
         slotSelectionProcess.setSlotFunctionForRegimes(slotFunctionForRegimes());
         slotSelectionProcess.setFitnessFunctionForRegimes(fitnessFunctionForRegimes());
+        slotSelectionProcess.setMaxResponseSource(maxResponseSource());
         return slotSelectionProcess;
     }
 
