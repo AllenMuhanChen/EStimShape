@@ -1,5 +1,7 @@
 package org.xper.allen.config;
 
+import org.apache.commons.math.analysis.UnivariateRealFunction;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
@@ -8,11 +10,13 @@ import org.xper.allen.ga.*;
 import org.xper.allen.ga.regimescore.*;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
 import org.xper.allen.ga.regimescore.RegimeScoreSource.RegimeTransition;
+import org.xper.allen.ga3d.blockgen.LinearSpline;
 import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
 
+import javax.vecmath.Point2d;
 import java.util.*;
 
 @Configuration(defaultLazy= Lazy.TRUE)
@@ -55,6 +59,17 @@ public class NewGAConfig {
         slotSelectionProcess.setSlotFunctionForRegimes(slotFunctionForRegimes());
         slotSelectionProcess.setFitnessFunctionForRegimes(fitnessFunctionForRegimes());
         return slotSelectionProcess;
+    }
+
+    private UnivariateRealFunction slotFunctionForLineage() {
+
+        List<Point2d> controlPoints = new ArrayList<>();
+        controlPoints.add(new Point2d(0, 0));
+        controlPoints.add(new Point2d(1, 1.0/3.0));
+        controlPoints.add(new Point2d(2, 2.0/3.0));
+        controlPoints.add(new Point2d(3.9, 1));
+        controlPoints.add(new Point2d(4, 0));
+        return new LinearSpline(controlPoints);
     }
 
     @Bean

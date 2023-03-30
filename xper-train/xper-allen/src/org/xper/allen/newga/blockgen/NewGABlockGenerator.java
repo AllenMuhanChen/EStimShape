@@ -62,16 +62,15 @@ public class NewGABlockGenerator extends GABlockGenerator {
     private void addNthGeneration() {
         List<Child> selectedParents = slotSelectionProcess.select(getGaBaseName());
         for (Child child: selectedParents) {
-            if (child.getRegime() == Regime.ONE) {
+            if (child.getRegime().equals(Regime.ONE)) {
                 getStims().add(new RegimeOneStim(this, child.getParentId()));
             }
-            else if (child.getRegime() == Regime.TWO) {
+            else if (child.getRegime().equals(Regime.TWO)) {
                 getStims().add(new RegimeTwoStim(this, child.getParentId()));
-            }
-            else if (child.getRegime() == Regime.THREE) {
+            } else if (child.getRegime().equals(Regime.THREE)) {
+
                 getStims().add(new RegimeThreeStim(this, child.getParentId()));
-            }
-            else{
+            } else {
                 throw new RuntimeException("Invalid Regime");
             }
         }
