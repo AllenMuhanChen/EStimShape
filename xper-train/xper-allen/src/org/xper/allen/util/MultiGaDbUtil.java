@@ -278,6 +278,19 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result;
     }
 
+    public List<Long> readAllDoneStimIdsForGa(String gaName){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final List<Long> result = new ArrayList<>();
+        jt.query(
+                " select distinct s.stim_id from StimGaInfo s, TaskDone d, TaskToDo t where (d.task_id = t.task_id) and (s.stim_id = t.stim_id) and s.ga_name = ?",
+                new Object[] { gaName },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) throws SQLException {
+                        result.add(rs.getLong("stim_id"));
+                    }});
+        return result;
+    }
+
     public List<Long> readStimIdsFromLineage(String gaName, Long lineageId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final List<Long> result = new ArrayList<>();

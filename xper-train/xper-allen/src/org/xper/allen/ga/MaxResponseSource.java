@@ -17,7 +17,7 @@ public class MaxResponseSource {
     SpikeRateSource spikeRateSource;
 
     public double getMaxResponse(String gaName) {
-        List<Long> allStimIds = dbUtil.readAllStimIdsForGa(gaName);
+        List<Long> allStimIds = dbUtil.readAllDoneStimIdsForGa(gaName);
 
         Double maxResponse = minimumMaxResponse;
         for (Long stimId : allStimIds) {
