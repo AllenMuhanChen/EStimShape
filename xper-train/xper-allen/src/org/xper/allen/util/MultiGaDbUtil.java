@@ -291,11 +291,11 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result;
     }
 
-    public List<Long> readStimIdsFromLineage(String gaName, Long lineageId) {
+    public List<Long> readDoneStimIdsFromLineage(String gaName, Long lineageId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final List<Long> result = new ArrayList<>();
         jt.query(
-                " select stim_id from StimGaInfo where ga_name = ? and lineage_id = ?",
+                " select distinct s.stim_id from StimGaInfo s, TaskDone d, TaskToDo t where s.ga_name = ? and s.lineage_id = ? and (d.task_id = t.task_id) and (s.stim_id = t.stim_id)",
                 new Object[] { gaName, lineageId },
                 new RowCallbackHandler() {
                     public void processRow(ResultSet rs) throws SQLException {

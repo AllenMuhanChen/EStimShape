@@ -121,7 +121,7 @@ public class SlotSelectionProcess {
                 for (Slot slot : slots) {
 
                     // use lineageId to find potential parents
-                    List<Long> potentialParents = dbUtil.readStimIdsFromLineage(gaName, lineageId);
+                    List<Long> potentialParents = dbUtil.readDoneStimIdsFromLineage(gaName, lineageId);
 
                     // find normalized normalizedResponses for each potential parents
                     List<Double> normalizedResponses = new LinkedList<>();
