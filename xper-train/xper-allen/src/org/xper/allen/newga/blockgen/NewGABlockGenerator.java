@@ -4,31 +4,30 @@ import org.xper.Dependency;
 import org.xper.allen.ga.Child;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.SlotSelectionProcess;
+import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.RandStim;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
 import org.xper.drawing.Coordinates2D;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class NewGABlockGenerator extends GABlockGenerator {
     public static String gaBaseName = "New3D";
 
-    public enum Regime {
-        ZERO, ONE, TWO, THREE, FOUR
-    }
 
-    public static final Map<Regime, String> stimTypeForRegime = new HashMap<>();
-    static {
+    public static final Map<Regime, String> stimTypeForRegime = createMap();
+
+    private static Map<Regime, String> createMap() {
+        HashMap<Regime, String> stimTypeForRegime = new HashMap<Regime, String>();
         stimTypeForRegime.put(Regime.ZERO, "RegimeZero");
         stimTypeForRegime.put(Regime.ONE, "RegimeOne");
         stimTypeForRegime.put(Regime.TWO, "RegimeTwo");
         stimTypeForRegime.put(Regime.THREE, "RegimeThree");
         stimTypeForRegime.put(Regime.FOUR, "RegimeFour");
+        return Collections.unmodifiableMap(stimTypeForRegime);
     }
+
 
     @Dependency
     SlotSelectionProcess slotSelectionProcess;

@@ -2,11 +2,15 @@ package org.xper.allen.ga.regimescore;
 
 import org.xper.Dependency;
 import org.xper.allen.ga.SpikeRateSource;
+import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.xper.allen.ga.regimescore.Regime.*;
+import static org.xper.allen.newga.blockgen.NewGABlockGenerator.*;
 
 /**
  * Calculates the max response so far in a lineage and returns a number between 0-1
@@ -27,7 +31,8 @@ public class MaxValueLineageScore implements LineageScoreSource {
     @Override
     public Double getLineageScore(Long lineageId) {
         // get all stim_ids from lineageId of type RAND
-        List<Long> stimIds = dbUtil.readStimIdsFromLineageAndType(lineageId, "RAND");
+        String stimType = stimTypeForRegime.get(Regime.ZERO);
+        List<Long> stimIds = dbUtil.readStimIdsFromLineageAndType(lineageId, stimType);
 
         // find spike rates of all stim_ids
         Double max = calculateMaxSpikeRateFor(stimIds);

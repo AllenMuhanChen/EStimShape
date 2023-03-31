@@ -3,6 +3,7 @@ package org.xper.allen.config;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
@@ -40,7 +41,7 @@ public class NewGAConfig {
     @ExternalValue("number_of_repetitions_per_stimulus")
     public Integer numberOfRepetitionsPerStimulus;
 
-    @Bean(scope = DefaultScopes.PROTOTYPE)
+    @Bean
     public NewGABlockGenerator generator(){
         NewGABlockGenerator generator = new NewGABlockGenerator();
         generator.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
@@ -52,10 +53,11 @@ public class NewGAConfig {
         generator.setDbUtil(dbUtil());
         generator.setSlotSelectionProcess(slotSelectionProcess());
         generator.setNumTrialsPerStimuli(numberOfRepetitionsPerStimulus);
+        System.err.println("generator called");
         return generator;
     }
 
-    @Bean(scope = DefaultScopes.PROTOTYPE)
+    @Bean
     public SlotSelectionProcess slotSelectionProcess() {
         SlotSelectionProcess slotSelectionProcess = new SlotSelectionProcess();
         slotSelectionProcess.setDbUtil(dbUtil());
@@ -85,11 +87,11 @@ public class NewGAConfig {
     @Bean
     public Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
         Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
-        slotFunctionForRegimes.put(Regime.ZERO, zeroFunction());
+//        slotFunctionForRegimes.put(Regime.ZERO, zeroFunction());
         slotFunctionForRegimes.put(Regime.ONE, peakFunctionAround(1.0, 1.0));
         slotFunctionForRegimes.put(Regime.TWO, peakFunctionAround(2.0, 1.0));
         slotFunctionForRegimes.put(Regime.THREE, peakFunctionAround(3.0, 1.0));
-        slotFunctionForRegimes.put(Regime.FOUR, zeroFunction());
+//        slotFunctionForRegimes.put(Regime.FOUR, zeroFunction());
         return slotFunctionForRegimes;
     }
 
@@ -203,7 +205,7 @@ public class NewGAConfig {
     @Bean
     public LineageScoreSource regimeTwoToThree() {
         ParentChildThresholdScoreSource twoToThree = new ParentChildThresholdScoreSource();
-        twoToThree.setStimType(NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.TWO));
+        twoToThree.setStimType(NewGABlockGenerator.stimTypeForRegime.get(Regime.TWO));
         twoToThree.setDbUtil(dbUtil());
         twoToThree.setNumPairThresholdSource(regimeTwoToThreePairThreshold());
         twoToThree.setParentResponseThresholdSource(regimeTwoToThreeParentThreshold());
@@ -240,7 +242,7 @@ public class NewGAConfig {
     @Bean
     public LineageScoreSource regimeThreeToFour() {
         ParentChildBinThresholdsScoreSource threeToFour = new ParentChildBinThresholdsScoreSource();
-        threeToFour.setStimType(NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.THREE));
+        threeToFour.setStimType(NewGABlockGenerator.stimTypeForRegime.get(Regime.THREE));
         threeToFour.setDbUtil(dbUtil());
         threeToFour.setParentResponseThresholdSource(regimeThreeToFourParentThreshold());
         threeToFour.setNumPairThresholdSourcesForBins(regimeThreeToFourPairThresholds());
@@ -287,13 +289,14 @@ public class NewGAConfig {
         return maxResponseSource;
     }
 
-    @Bean(scope = DefaultScopes.PROTOTYPE)
+    @Bean(lazy = Lazy.TRUE)
     public SpikeRateSource spikeRateSource() {
         IntanAverageSpikeRateSource spikeRateSource = new IntanAverageSpikeRateSource();
         spikeRateSource.setSpikeDatDirectory(spikeDatPath);
         spikeRateSource.setChannels(channels());
         return spikeRateSource;
     }
+
 
     @Bean
     public List<String> channels() {

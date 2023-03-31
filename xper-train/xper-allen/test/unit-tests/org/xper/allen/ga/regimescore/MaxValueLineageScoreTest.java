@@ -32,7 +32,7 @@ public class MaxValueLineageScoreTest {
     public void under_threshold_returns_right_value(){
         source.setDbUtil(new MockDbUtil() {
             @Override
-            public List<Long> readStimIdsFromLineageAndType(Long lineageId, String type) {
+            public List<Long> readStimIdsFromLineageAndType(Long lineageId, String stimType) {
                 List<Long> stimIds = new ArrayList<Long>();
                 stimIds.add(1L);
                 stimIds.add(2L);
@@ -48,7 +48,7 @@ public class MaxValueLineageScoreTest {
     public void over_threshold_returns_1() {
         source.setDbUtil(new MockDbUtil() {
             @Override
-            public List<Long> readStimIdsFromLineageAndType(Long lineageId, String type) {
+            public List<Long> readStimIdsFromLineageAndType(Long lineageId, String stimType) {
                 List<Long> stimIds = new ArrayList<Long>();
                 stimIds.add(1L);
                 stimIds.add(2L);

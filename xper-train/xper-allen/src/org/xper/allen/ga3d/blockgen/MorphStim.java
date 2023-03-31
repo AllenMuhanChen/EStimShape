@@ -16,8 +16,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MorphStim extends ThreeDGAStim {
 
     private String gaName;
-    private PngSpec spec;
-    private AllenMStickData mStickData;
 
     public MorphStim(GA3DLineageBlockGenerator generator, String gaName, Long parentId) {
         super(generator, parentId);
@@ -68,11 +66,11 @@ public class MorphStim extends ThreeDGAStim {
         Coordinates2D coords = morphCoords(parentCoords, parentSize);
         double size = morphSize(parentSize);
 
-        spec = new PngSpec();
-        spec.setPath(pngPath);
-        spec.setDimensions(new ImageDimensions(size,size));
-        spec.setxCenter(coords.getX());
-        spec.setyCenter(coords.getY());
+        stimSpec = new PngSpec();
+        stimSpec.setPath(pngPath);
+        stimSpec.setDimensions(new ImageDimensions(size,size));
+        stimSpec.setxCenter(coords.getX());
+        stimSpec.setyCenter(coords.getY());
 
         writeStimSpec(stimId);
 
@@ -81,7 +79,7 @@ public class MorphStim extends ThreeDGAStim {
     }
 
     public void writeStimSpec(long id) {
-        generator.getDbUtil().writeStimSpec(id, spec.toXml(), mStickData.toXml());
+        generator.getDbUtil().writeStimSpec(id, stimSpec.toXml(), mStickData.toXml());
     }
 
     private double morphSize(double parentSize) {

@@ -16,8 +16,6 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public abstract class MorphedStim extends ThreeDGAStim {
-    private PngSpec spec;
-    private AllenMStickData mStickData;
     private Coordinates2D coords;
     private double size;
 
@@ -58,11 +56,11 @@ public abstract class MorphedStim extends ThreeDGAStim {
     }
 
     private void writeSpecs(String pngPath) {
-        spec = new PngSpec();
-        spec.setPath(pngPath);
-        spec.setDimensions(new ImageDimensions(size, size));
-        spec.setxCenter(coords.getX());
-        spec.setyCenter(coords.getY());
+        stimSpec = new PngSpec();
+        stimSpec.setPath(pngPath);
+        stimSpec.setDimensions(new ImageDimensions(size, size));
+        stimSpec.setxCenter(coords.getX());
+        stimSpec.setyCenter(coords.getY());
 
         writeStimSpec(stimId);
     }

@@ -468,9 +468,10 @@ public class MultiGaDbUtil extends AllenDbUtil {
 
     public void writeLineageData(Long lineageId, String lineageData){
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("INSERT INTO LineageData (lineage_id, lineage_data) VALUES (?, ?)",
+        jt.update("INSERT INTO LineageGaInfo (lineage_id, lineage_data) VALUES (?, ?) ON DUPLICATE KEY UPDATE lineage_data = ?",
                 new Object[] {
                         lineageId,
+                        lineageData,
                         lineageData
                 });
     }
@@ -478,7 +479,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
     public String readLineageData(Long lineageId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         List<String> lineageData = new ArrayList<>();
-        jt.query("SELECT lineage_data FROM LineageData WHERE lineage_id = ?",
+        jt.query("SELECT lineage_data FROM LineageGaInfo WHERE lineage_id = ?",
                 new Object[]{lineageId},
                 new RowCallbackHandler() {
                     @Override
@@ -496,11 +497,11 @@ public class MultiGaDbUtil extends AllenDbUtil {
         }
     }
 
-    public List<Long> readStimIdsFromLineageAndType(Long lineageId, String type){
+    public List<Long> readStimIdsFromLineageAndType(Long lineageId, String stimType){
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         List<Long> stimIds = new ArrayList<>();
-        jt.query("SELECT stim_id FROM StimGaInfo WHERE lineage_id = ? AND type = ?",
-                new Object[]{lineageId, type},
+        jt.query("SELECT stim_id FROM StimGaInfo WHERE lineage_id = ? AND stim_type = ?",
+                new Object[]{lineageId, stimType},
                 new RowCallbackHandler() {
                     @Override
                     public void processRow(ResultSet rs) throws SQLException {
