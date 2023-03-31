@@ -34,9 +34,8 @@ public class NewGABlockGenerator extends GABlockGenerator {
     SlotSelectionProcess slotSelectionProcess;
 
     // Constructor
-    int numStimuliPerGeneration;
-    double initialSize;
-    private Coordinates2D initialCoords;
+    double initialSize = 5.0;
+    private Coordinates2D initialCoords = new Coordinates2D(0, 0);
 
     @Override
     protected void addTrials() {
@@ -48,13 +47,13 @@ public class NewGABlockGenerator extends GABlockGenerator {
     }
 
     private void addFirstGeneration() {
-        getStims().addAll(createRandStim(this, numStimuliPerGeneration, initialSize, initialCoords));
+        getStims().addAll(createRandStim(this, slotSelectionProcess.getNumChildrenToSelect(), initialSize, initialCoords));
     }
 
     private List<ThreeDGAStim> createRandStim(GABlockGenerator generator, int numTrials, double size, Coordinates2D coords) {
         List<ThreeDGAStim> trials = new LinkedList<>();
         for (int i = 0; i < numTrials; i++) {
-            trials.add(new RandStim(generator, size, coords));
+            trials.add(new RandStim(generator, size, coords, stimTypeForRegime.get(Regime.ZERO)));
         }
         return trials;
     }

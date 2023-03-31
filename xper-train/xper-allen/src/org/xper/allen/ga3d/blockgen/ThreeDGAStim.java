@@ -96,4 +96,11 @@ public abstract class ThreeDGAStim implements Stim {
 
     }
 
+    public String getStimType() {
+        return stimType;
+    }
+
+    public void setStimType(String stimType) {
+        this.stimType = stimType;
+    }
 }

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.ga.*;
 import org.xper.allen.ga.regimescore.*;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
@@ -36,7 +37,10 @@ public class NewGAConfig {
     @ExternalValue("number_of_stimuli_per_generation")
     public Integer numberOfStimuliPerGeneration;
 
-    @Bean
+    @ExternalValue("number_of_repetitions_per_stimulus")
+    public Integer numberOfRepetitionsPerStimulus;
+
+    @Bean(scope = DefaultScopes.PROTOTYPE)
     public NewGABlockGenerator generator(){
         NewGABlockGenerator generator = new NewGABlockGenerator();
         generator.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
@@ -47,10 +51,11 @@ public class NewGAConfig {
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());
         generator.setSlotSelectionProcess(slotSelectionProcess());
+        generator.setNumTrialsPerStimuli(numberOfRepetitionsPerStimulus);
         return generator;
     }
 
-    @Bean
+    @Bean(scope = DefaultScopes.PROTOTYPE)
     public SlotSelectionProcess slotSelectionProcess() {
         SlotSelectionProcess slotSelectionProcess = new SlotSelectionProcess();
         slotSelectionProcess.setDbUtil(dbUtil());
@@ -88,7 +93,7 @@ public class NewGAConfig {
         return slotFunctionForRegimes;
     }
 
-    @Bean
+
     public UnivariateRealFunction peakFunctionAround(double center, double radius) {
         List<Point2d> controlPoints = new ArrayList<>();
         controlPoints.add(new Point2d(center - radius, 0));
@@ -260,7 +265,7 @@ public class NewGAConfig {
         pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), thresholdForRegimeThreeToFourPair());
         pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), thresholdForRegimeThreeToFourPair());
         pairThresholds.put(new NormalizedResponseBin(0.66, 1.0), thresholdForRegimeThreeToFourPair());
-        return null;
+        return pairThresholds;
     }
 
     @Bean
@@ -282,7 +287,7 @@ public class NewGAConfig {
         return maxResponseSource;
     }
 
-    @Bean
+    @Bean(scope = DefaultScopes.PROTOTYPE)
     public SpikeRateSource spikeRateSource() {
         IntanAverageSpikeRateSource spikeRateSource = new IntanAverageSpikeRateSource();
         spikeRateSource.setSpikeDatDirectory(spikeDatPath);

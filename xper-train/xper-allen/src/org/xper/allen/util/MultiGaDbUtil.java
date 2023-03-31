@@ -190,7 +190,7 @@ public class MultiGaDbUtil extends AllenDbUtil {
 
     public void writeStimGaInfo(Long stimId, Long parentId, String gaName, Long genId, Long lineageId, String treeSpec, String stimType) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        jt.update("insert into StimGaInfo (stim_id, parent_id, ga_name, gen_id, lineage_id, tree_spec) values (?, ?, ?, ?, ?, ?, ?)",
+        jt.update("insert into StimGaInfo (stim_id, parent_id, ga_name, gen_id, lineage_id, tree_spec, stim_type) values (?, ?, ?, ?, ?, ?, ?)",
                 new Object[] {stimId, parentId, gaName, genId, lineageId, treeSpec, stimType});
     }
 
