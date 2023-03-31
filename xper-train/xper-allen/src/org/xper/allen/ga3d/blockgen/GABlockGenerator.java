@@ -75,4 +75,12 @@ public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator<T
     public void setStims(List<ThreeDGAStim> stims) {
         this.stims = (List<ThreeDGAStim>) stims;
     }
+
+    public Integer getNumTrialsPerStimuli() {
+        return numTrialsPerStimuli;
+    }
+
+    public void setNumTrialsPerStimuli(Integer numTrialsPerStimuli) {
+        this.numTrialsPerStimuli = numTrialsPerStimuli;
+    }
 }

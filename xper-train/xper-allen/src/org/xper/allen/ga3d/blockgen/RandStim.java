@@ -16,6 +16,11 @@ public class RandStim extends ThreeDGAStim {
         super(generator, size, coords);
     }
 
+    public RandStim(GABlockGenerator generator, double size, Coordinates2D coords, String stimType) {
+        super(generator, size, coords);
+        this.stimType = stimType;
+    }
+
     @Override
     public void preWrite() {
 

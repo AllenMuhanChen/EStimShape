@@ -61,4 +61,20 @@ public class MockSpikeRateSource implements SpikeRateSource{
         }
         return map;
     }
+
+    public MultiGaDbUtil getDbUtil() {
+        return dbUtil;
+    }
+
+    public void setDbUtil(MultiGaDbUtil dbUtil) {
+        this.dbUtil = dbUtil;
+    }
+
+    public String getGaName() {
+        return gaName;
+    }
+
+    public void setGaName(String gaName) {
+        this.gaName = gaName;
+    }
 }
