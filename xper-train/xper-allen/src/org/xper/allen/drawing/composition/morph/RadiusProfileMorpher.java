@@ -33,7 +33,7 @@ public class RadiusProfileMorpher {
             normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), 0.0);
         }
         double amountLeftToDistribute = radiusProfileMagnitude;
-        while (amountLeftToDistribute > 0){
+        while (Math.round(amountLeftToDistribute * 100000.0)/ 100000.0 > 0){
             Collections.shuffle(radiusInfosForPointList);
             for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
                 double normalizedRandomMagnitude = Math.random() * radiusProfileMagnitude / numPoints;
