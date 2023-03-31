@@ -13,14 +13,14 @@ import java.util.Map;
 /**
  * Abstract class for GA Block generation that relies on MultiDbGaUtil
  */
-public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator<ThreeDGAStim> {
+public abstract class GABlockGenerator<T extends ThreeDGAStim> extends AbstractMStickPngTrialGenerator<T> {
     public static String GA_NAME;
     protected Integer numTrialsPerStimuli;
 
     @Dependency
     protected MultiGaDbUtil dbUtil;
 
-    List<ThreeDGAStim> stims = new ArrayList<>();
+    List<T> stims = new ArrayList<>();
 
     @Override
     public MultiGaDbUtil getDbUtil() {
@@ -49,7 +49,7 @@ public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator<T
 
     @Override
     protected void writeTrials(){
-        for (ThreeDGAStim stim : getStims()) {
+        for (T stim : getStims()) {
             stim.writeStim();
             stim.writeGaInfo(getGaBaseName(), genId);
             Long stimId = stim.getStimId();
@@ -68,12 +68,14 @@ public abstract class GABlockGenerator extends AbstractMStickPngTrialGenerator<T
         return GA_NAME;
     }
 
-    public List<ThreeDGAStim> getStims() {
+    @Override
+    public List<T> getStims() {
         return stims;
     }
 
-    public void setStims(List<ThreeDGAStim> stims) {
-        this.stims = (List<ThreeDGAStim>) stims;
+    @Override
+    public void setStims(List<T> stims) {
+        this.stims = stims;
     }
 
     public Integer getNumTrialsPerStimuli() {

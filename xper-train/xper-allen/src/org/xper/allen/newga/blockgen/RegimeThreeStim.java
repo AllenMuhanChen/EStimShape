@@ -3,13 +3,14 @@ package org.xper.allen.newga.blockgen;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 
 public class RegimeThreeStim extends MorphedStim {
 
     public RegimeThreeStim(GABlockGenerator generator, Long parentId) {
         super(generator, parentId);
-        this.stimType = NewGABlockGenerator.stimTypeForRegime.get(NewGABlockGenerator.Regime.THREE);
+        this.stimType = NewGABlockGenerator.stimTypeForRegime.get(Regime.THREE);
     }
 
     @Override

@@ -12,8 +12,10 @@ import org.xper.util.FileUtil;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class NewGAMockExperiment {
     private final String[] emptyArgs = {""};
@@ -42,6 +44,23 @@ public class NewGAMockExperiment {
         GAExperiment.main(emptyArgs);
 
     }
+
+    @Test
+    public void writeNextGeneration() {
+
+        generator.generate(); //second gen
+
+        assertCorrectNumberOfRepetitions();
+//        GAConsole.main(emptyArgs);
+//        GAExperiment.main(emptyArgs);
+    }
+    private void assertCorrectNumberOfRepetitions() {
+        Map<Long, List<Long>> taskIdsForStimIds = generator.getDbUtil().readTaskDoneIdsForStimIds("3D-1", generator.getDbUtil().readTaskDoneMaxGenerationIdForGa("3D-1"));
+        taskIdsForStimIds.forEach((stimId, taskIds) -> {
+            assertTrue(taskIds.size() == 5);
+        });
+    }
+
 
     private void prepDB() {
 

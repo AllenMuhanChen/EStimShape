@@ -102,7 +102,7 @@ public class ParentChildBinThresholdsScoreSourceTest {
 
     private static class MockDbUtil extends MultiGaDbUtil {
         @Override
-        public List<Long> readStimIdsFromLineageAndType(Long lineageId, String type) {
+        public List<Long> readStimIdsFromLineageAndType(Long lineageId, String stimType) {
             List<Long> stimIds = new ArrayList<>();
             if (lineageId.equals(1L)) {
                 stimIds.add(2L);

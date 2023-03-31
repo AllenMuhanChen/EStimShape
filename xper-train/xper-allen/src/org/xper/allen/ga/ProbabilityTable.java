@@ -40,7 +40,11 @@ public class ProbabilityTable<T> {
             sum += p;
         }
         for (int i = 0; i < probabilities.size(); i++) {
-            probabilities.set(i, probabilities.get(i)/sum);
+            if (sum == 0.0){
+                probabilities.set(i, 1.0/probabilities.size());
+            } else {
+                probabilities.set(i, probabilities.get(i) / sum);
+            }
         }
     }
 
