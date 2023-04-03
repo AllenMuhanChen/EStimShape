@@ -166,12 +166,12 @@ public class NewGAConfig {
         MaxValueLineageScore zeroToOne = new MaxValueLineageScore();
         zeroToOne.setDbUtil(dbUtil());
         zeroToOne.setSpikeRateSource(spikeRateSource());
-        zeroToOne.setMaxThresholdSource(regimeZeroToOneThreshold());
+        zeroToOne.setMaxThresholdSource(regimeZeroToOneMaxSpikeRateThreshold());
         return zeroToOne;
     }
 
     @Bean
-    public ThresholdSource regimeZeroToOneThreshold() {
+    public ThresholdSource regimeZeroToOneMaxSpikeRateThreshold() {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
@@ -186,12 +186,12 @@ public class NewGAConfig {
         oneToTwo.setDbUtil(dbUtil());
         oneToTwo.setSpikeRateSource(spikeRateSource());
         oneToTwo.setMaxResponseSource(maxResponseSource());
-        oneToTwo.setNormalizedRangeThresholdSource(regimeOneToTwoThreshold());
+        oneToTwo.setNormalizedRangeThresholdSource(regimeOneToTwoRangeThreshold());
         return oneToTwo;
     }
 
     @Bean
-    public ThresholdSource regimeOneToTwoThreshold() {
+    public ThresholdSource regimeOneToTwoRangeThreshold() {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
