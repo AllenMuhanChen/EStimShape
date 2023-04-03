@@ -52,7 +52,7 @@ def main():
 
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
 
-    list_of_tuning_functions = [baseline_function, shaft_function]
+    list_of_tuning_functions = [shaft_function, shaft_function]
 
     # PIPELINE
     trial_tstamps = collect_trials(conn, time_util.all())
@@ -122,10 +122,14 @@ class ShaftTuningFunction(TuningFunction):
             tuning_range_mins = []
             extract_values_with_key_into_list(self.field_ranges, tuning_range_mins, "min")
             cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
-            total_energy = np.prod(cov)
+            # total_energy = np.prod(cov)
             cov = np.array(cov) / 5
-            response = total_energy * multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
+            response = multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
                                                               allow_singular=True)
+            max_possible_response = multivariate_normal.pdf(np.array(peak), mean=np.array(peak), cov=cov,
+                                                                allow_singular=True)
+            response = response / max_possible_response * 100
+
             # response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
             responses_per_component.append(response)
 
