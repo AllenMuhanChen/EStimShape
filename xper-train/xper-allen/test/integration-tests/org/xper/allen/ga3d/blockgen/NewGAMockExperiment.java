@@ -10,7 +10,6 @@ import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.util.FileUtil;
 
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +28,7 @@ public class NewGAMockExperiment {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
         generator = context.getBean(NewGABlockGenerator.class);
+
         gaBaseName = generator.getGaBaseName();
         dbUtil = generator.getDbUtil();
     }
@@ -57,7 +57,7 @@ public class NewGAMockExperiment {
     private void assertCorrectNumberOfRepetitions() {
         Map<Long, List<Long>> taskIdsForStimIds = generator.getDbUtil().readTaskDoneIdsForStimIds("3D-1", generator.getDbUtil().readTaskDoneMaxGenerationIdForGa("3D-1"));
         taskIdsForStimIds.forEach((stimId, taskIds) -> {
-            assertTrue(taskIds.size() == 5);
+            assertTrue(taskIds.size() == generator.getNumTrialsPerStimulus());
         });
     }
 

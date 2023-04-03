@@ -1,21 +1,18 @@
 package org.xper.allen.ga3d.blockgen;
 
 import org.xper.Dependency;
-import org.xper.allen.Stim;
-import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Abstract class for GA Block generation that relies on MultiDbGaUtil
  */
 public abstract class GABlockGenerator<T extends ThreeDGAStim> extends AbstractMStickPngTrialGenerator<T> {
     public static String GA_NAME;
-    protected Integer numTrialsPerStimuli;
+    protected Integer numTrialsPerStimulus;
 
     @Dependency
     protected MultiGaDbUtil dbUtil;
@@ -53,7 +50,7 @@ public abstract class GABlockGenerator<T extends ThreeDGAStim> extends AbstractM
             stim.writeStim();
             stim.writeGaInfo(getGaBaseName(), genId);
             Long stimId = stim.getStimId();
-            for (int i = 0; i < numTrialsPerStimuli; i++) {
+            for (int i = 0; i < numTrialsPerStimulus; i++) {
                 long taskId = getGlobalTimeUtil().currentTimeMicros();
                 dbUtil.writeTaskToDo(taskId, stimId, -1, getGaBaseName(), genId);
             }
@@ -78,11 +75,11 @@ public abstract class GABlockGenerator<T extends ThreeDGAStim> extends AbstractM
         this.stims = stims;
     }
 
-    public Integer getNumTrialsPerStimuli() {
-        return numTrialsPerStimuli;
+    public Integer getNumTrialsPerStimulus() {
+        return numTrialsPerStimulus;
     }
 
-    public void setNumTrialsPerStimuli(Integer numTrialsPerStimuli) {
-        this.numTrialsPerStimuli = numTrialsPerStimuli;
+    public void setNumTrialsPerStimulus(Integer numTrialsPerStimulus) {
+        this.numTrialsPerStimulus = numTrialsPerStimulus;
     }
 }

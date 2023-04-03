@@ -45,7 +45,7 @@ experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_221110/pngs_dev_22
 #path of location for specs to be saved
 generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_221110/specs
 number_of_stimuli_per_generation = 40
-number_of_repetitions_per_stimulus = 5
+number_of_repetitions_per_stimulus = 2
 
 acq.server_host=localhost
 

@@ -25,7 +25,8 @@ public class MockSpikeRateSource implements SpikeRateSource{
         List<Double> spikeRatesAcrossRepetitions = new LinkedList<>();
         for (ExpLogEntry entry: expLogEntries){
             double averageSpikeRateAcrossChannels = 0;
-            if (taskDoneIdsForStimIds.get(stimId).contains(entry.getTstamp())){
+            // If this expLogEntry is a repetition of the current stimId
+            if (entry.getTstamp() == (stimId)){
                 //parse spikeRatesAcrossRepetitions for each channel (key = channel, value = averageSpikeRateAcrossChannels)
                 HashMap<Integer, Double> spikeRatesForChannel = parsePythonDictionaryToHashMap(entry.getLog());
                 //average spikeRatesAcrossRepetitions for all channels
@@ -33,8 +34,8 @@ public class MockSpikeRateSource implements SpikeRateSource{
                     averageSpikeRateAcrossChannels += rate;
                 }
                 averageSpikeRateAcrossChannels = averageSpikeRateAcrossChannels/spikeRatesForChannel.size();
+                spikeRatesAcrossRepetitions.add(averageSpikeRateAcrossChannels);
             }
-            spikeRatesAcrossRepetitions.add(averageSpikeRateAcrossChannels);
         }
 
         //average spikeRates across all repetitions

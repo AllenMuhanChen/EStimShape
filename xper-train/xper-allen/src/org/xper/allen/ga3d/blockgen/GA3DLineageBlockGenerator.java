@@ -40,7 +40,7 @@ public class GA3DLineageBlockGenerator extends GABlockGenerator {
      */
     public void setUp(int numStimuli, int numTrialsPerStimuli, double initialSize, Coordinates2D initialCoords, List<String> channels){
         this.numStimuli = numStimuli;
-        this.numTrialsPerStimuli = numTrialsPerStimuli;
+        this.numTrialsPerStimulus = numTrialsPerStimuli;
         this.initialSize = initialSize;
         this.initialCoords = initialCoords;
         this.GA_NAME = "3D";
@@ -143,7 +143,7 @@ public class GA3DLineageBlockGenerator extends GABlockGenerator {
                     trial.writeStim();
                     trial.writeGaInfo(gaName, genIdForGA.get(gaName));
                     Long stimId = trial.getStimId();
-                    for (int i = 0; i < numTrialsPerStimuli; i++) {
+                    for (int i = 0; i < numTrialsPerStimulus; i++) {
                         long taskId = getGlobalTimeUtil().currentTimeMicros();
                         dbUtil.writeTaskToDo(taskId, stimId, -1, gaName, genIdForGA.get(gaName));
                     }

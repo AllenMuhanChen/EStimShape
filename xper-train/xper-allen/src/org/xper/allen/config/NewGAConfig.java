@@ -3,11 +3,9 @@ package org.xper.allen.config;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.ga.*;
 import org.xper.allen.ga.regimescore.*;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
@@ -52,7 +50,7 @@ public class NewGAConfig {
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());
         generator.setSlotSelectionProcess(slotSelectionProcess());
-        generator.setNumTrialsPerStimuli(numberOfRepetitionsPerStimulus);
+        generator.setNumTrialsPerStimulus(numberOfRepetitionsPerStimulus);
         System.err.println("generator called");
         return generator;
     }
