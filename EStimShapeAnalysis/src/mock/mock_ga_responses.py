@@ -115,25 +115,30 @@ class ShaftTuningFunction(TuningFunction):
 
         responses_per_component = []
         for component in stim:
-            # distance = np.linalg.norm(np.array(component) - np.array(peak))
-
-            tuning_range_maxes = []
-            extract_values_with_key_into_list(self.field_ranges, tuning_range_maxes, "max")
-            tuning_range_mins = []
-            extract_values_with_key_into_list(self.field_ranges, tuning_range_mins, "min")
-            cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
-            # total_energy = np.prod(cov)
-            cov = np.array(cov) / 5
-            response = multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
-                                                              allow_singular=True)
-            max_possible_response = multivariate_normal.pdf(np.array(peak), mean=np.array(peak), cov=cov,
-                                                                allow_singular=True)
-            response = response / max_possible_response * 100
-
-            # response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
+            cov = self.assign_tuning_width(num_bins=5)
+            response = self.calculate_normalized_response(component, cov, peak)
             responses_per_component.append(response)
 
         return np.max(responses_per_component)
+
+    def assign_tuning_width(self, num_bins: int = 5):
+        tuning_range_maxes = []
+        extract_values_with_key_into_list(self.field_ranges, tuning_range_maxes, "max")
+        tuning_range_mins = []
+        extract_values_with_key_into_list(self.field_ranges, tuning_range_mins, "min")
+        cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
+        cov = np.array(cov) / num_bins
+        return cov
+
+    '''Maps being within a tuning range to 100, and being outside towards zero.
+    Being closer to the mean than a tuning range gives a value higher than 100'''
+    def calculate_normalized_response(self, component, cov, peak):
+        response = multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
+                                           allow_singular=True)
+        top_end_response = multivariate_normal.pdf(np.array(peak) + cov, mean=np.array(peak), cov=cov,
+                                                   allow_singular=True)
+        response = response / top_end_response * 100
+        return response
 
 
 def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
