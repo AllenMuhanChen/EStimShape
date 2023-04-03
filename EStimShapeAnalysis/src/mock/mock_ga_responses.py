@@ -26,7 +26,7 @@ def main():
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
 
-    conn.execute("TRUNCATE TABLE ExpLog")
+    # conn.execute("TRUNCATE TABLE ExpLog")
 
     baseline_function = TuningFunction()
 
@@ -135,9 +135,13 @@ class ShaftTuningFunction(TuningFunction):
     def calculate_normalized_response(self, component, cov, peak):
         response = multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
                                            allow_singular=True)
-        top_end_response = multivariate_normal.pdf(np.array(peak) + cov, mean=np.array(peak), cov=cov,
+        top_end_response = multivariate_normal.pdf(np.array(peak) + cov/4, mean=np.array(peak), cov=cov,
                                                    allow_singular=True)
-        response = response / top_end_response * 100
+        absolute_max_response = multivariate_normal.pdf(np.array(peak), mean=np.array(peak), cov=cov,
+                                                   allow_singular=True)
+        print("abs max: " + str(math.pow(absolute_max_response, 1/8)))
+        print("top end: " + str(math.pow(top_end_response, 1/8)))
+        response = math.pow(response / top_end_response, 1/8) * 100
         return response
 
 

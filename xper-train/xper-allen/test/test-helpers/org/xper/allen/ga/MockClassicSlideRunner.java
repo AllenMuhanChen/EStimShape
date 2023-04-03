@@ -21,7 +21,7 @@ public class MockClassicSlideRunner implements SlideRunner {
     @Override
     public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
         int slidePerTrial = stateObject.getSlidePerTrial();
-        TrialDrawingController drawingController = stateObject.getDrawingController();
+//        TrialDrawingController drawingController = stateObject.getDrawingController();
         ExperimentTask currentTask = stateObject.getCurrentTask();
         TrialContext currentContext = stateObject.getCurrentContext();
         TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
@@ -59,8 +59,8 @@ public class MockClassicSlideRunner implements SlideRunner {
                     }
                     currentContext.setSlideIndex(i + 1);
                     currentContext.setCurrentTask(currentTask);
-                    drawingController.prepareNextSlide(currentTask,
-                            currentContext);
+//                    drawingController.prepareNextSlide(currentTask,
+//                            currentContext);
                 }
             }
             return TrialResult.TRIAL_COMPLETE;

@@ -4,13 +4,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.ga.*;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
 import org.xper.allen.ga.regimescore.ThresholdSource;
 import org.xper.allen.newga.blockgen.NewGABlockGenerator;
+import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideTrialRunner;
+import org.xper.classic.TrialEventListener;
+import org.xper.config.ClassicConfig;
+import org.xper.experiment.listener.ExperimentEventListener;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 @Configuration(defaultLazy = Lazy.TRUE)
@@ -20,6 +27,32 @@ import java.util.Map;
 public class MockNewGAConfig {
     @Autowired
     NewGAConfig config;
+    @Autowired
+    ClassicConfig classicConfig;
+
+    @Bean(scope = DefaultScopes.PROTOTYPE)
+    public List<ExperimentEventListener> experimentEventListeners () {
+        List<ExperimentEventListener> listeners =  new LinkedList<ExperimentEventListener>();
+        listeners.add(classicConfig.messageDispatcher());
+        listeners.add(classicConfig.databaseTaskDataSourceController());
+        listeners.add(classicConfig.messageDispatcherController());
+        return listeners;
+    }
+
+    @Bean(scope = DefaultScopes.PROTOTYPE)
+    public List<SlideEventListener> slideEventListeners () {
+        List<SlideEventListener> listeners = new LinkedList<SlideEventListener>();
+        listeners.add(classicConfig.messageDispatcher());
+        return listeners;
+    }
+
+    @Bean (scope = DefaultScopes.PROTOTYPE)
+    public List<TrialEventListener> trialEventListeners () {
+        List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
+        trialEventListener.add(classicConfig.messageDispatcher());
+
+        return trialEventListener;
+    }
 
     @Bean
     public SlideTrialRunner slideTrialRunner(){

@@ -25,6 +25,7 @@ public class RegimeScoreSource implements LineageScoreSource {
         THREE_TO_FOUR,
     }
     public Double getLineageScore(Long lineageId) {
+        regimeScore = 0.0;
         this.lineageId = lineageId;
         lastGenRegimeScore = dbUtil.readRegimeScore(lineageId);
         calculateRegimeScore();
@@ -54,15 +55,13 @@ public class RegimeScoreSource implements LineageScoreSource {
         else {
             throw new RuntimeException("Regime score is greater than 4.0! " + lastGenRegimeScore);
         }
+        if (regimeScore < lastGenRegimeScore){
+            regimeScore = lastGenRegimeScore;
+        }
     }
 
     private Double calculateLineageScoreWith(RegimeTransition regimeTransition, Long founderId){
-        Double newRegimeScore = lineageScoreSourceForRegimeTransitions.get(regimeTransition).getLineageScore(founderId);
-        if (newRegimeScore > lastGenRegimeScore){
-            return newRegimeScore;
-        } else {
-            return lastGenRegimeScore;
-        }
+        return lineageScoreSourceForRegimeTransitions.get(regimeTransition).getLineageScore(founderId);
     }
 
     private void updateRegimeScore() {

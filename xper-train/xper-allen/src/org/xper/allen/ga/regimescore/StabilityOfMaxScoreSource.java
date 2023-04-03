@@ -48,7 +48,7 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
     public Double getLineageScore(Long lineageId) {
         this.lineageId = lineageId;
         //Get a Map of all genIds and their stimIds for a lineage
-        LinkedHashMap<Integer, List<Long>> stimIdsForGenIds = (LinkedHashMap<Integer, List<Long>>) dbUtil.readStimIdsFromGenIdsFor(lineageId);
+        HashMap<Integer, List<Long>> stimIdsForGenIds = (HashMap<Integer, List<Long>>) dbUtil.readStimIdsFromGenIdsFor(lineageId);
 
         //For each genId in the map, find max of all spike rates in generations up to that genId
         LinkedHashMap<Integer, Double> maxSpikeRateUpToGenIds = new LinkedHashMap<>();
@@ -56,7 +56,8 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
             @Override
             public void accept(Integer currentGenId, List<Long> stimIds) {
                 //Find max of all spike rates up to that currentGenId
-                List<Integer> genIdsUpToCurrentGenId = stimIdsForGenIds.keySet().stream().filter(key -> key <= currentGenId).collect(Collectors.toList());
+                List<Integer> genIdsUpToCurrentGenId = stimIdsForGenIds.keySet().stream().filter(
+                        key -> key <= currentGenId).collect(Collectors.toList());
                 List<Long> stimIdsFromGensUpToCurrent = genIdsUpToCurrentGenId.stream().flatMap(key -> stimIdsForGenIds.get(key).stream()).collect(Collectors.toList());
                 Double maxSpikeRate = calculateMaxSpikeRateFor(stimIdsFromGensUpToCurrent);
                 maxSpikeRateUpToGenIds.put(currentGenId, maxSpikeRate);
@@ -73,7 +74,7 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
 
     private Double calculateStability(LinkedHashMap<Integer, Double> maxSpikeRateUpToGenIds) {
         //Sort the map by genId
-        Map<Integer, Double> sortedMap = maxSpikeRateUpToGenIds.entrySet().stream()
+        LinkedHashMap<Integer, Double> sortedMap = maxSpikeRateUpToGenIds.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (oldValue, newValue) -> oldValue, LinkedHashMap::new));
@@ -92,6 +93,7 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
         Double range = max - min;
         Double rangeThreshold = calculateRangeThreshold();
         return rangeThreshold / range;
+
     }
 
     private Double calculateRangeThreshold() {

@@ -47,7 +47,6 @@ public class NewGAMockExperiment {
 
     @Test
     public void writeNextGeneration() {
-
         generator.generate(); //second gen
 
         assertCorrectNumberOfRepetitions();

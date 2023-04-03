@@ -71,8 +71,7 @@ public class SlotSelectionProcess {
     }
 
     private List<Long> fetchLineageIds(String gaName) {
-        List<String> treeSpecs = dbUtil.readAllTreeSpecsForGa(gaName);
-        return treeSpecsToLineageIds(treeSpecs);
+        return dbUtil.readAllLineageIds(gaName);
     }
 
     private List<Long> treeSpecsToLineageIds(List<String> treeSpecs) {
