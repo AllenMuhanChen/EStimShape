@@ -33,8 +33,6 @@ public class AllenTubeComp extends TubeComp{
 	private boolean branchUsed;
 	private double[] radiusAcross = new double[52]; // the radius value at each mPts point
 	private int connectType;
-	private Point3d maxXYZ;
-	private Point3d minXYZ;
 	boolean scaleOnce = true;
 	private boolean isNormalized = false;
 	public int maxStep = 51;
@@ -129,13 +127,16 @@ public class AllenTubeComp extends TubeComp{
 		setConnectType(in.getConnectType());
 		if (in.getMaxXYZ() != null) {
 			setMaxXYZ(new Point3d(in.getMaxXYZ()));
-		} else {
-			setMaxXYZ(null);
+		}
+		else{
+			in.calcTubeRange();
+			setMaxXYZ(new Point3d(in.getMaxXYZ()));
 		}
 		if (in.getMinXYZ() != null) {
 			setMinXYZ(new Point3d(in.getMinXYZ()));
 		} else {
-			setMinXYZ(null);
+			in.calcTubeRange();
+			setMinXYZ(new Point3d(in.getMinXYZ()));
 		}
 
 		// about vect, fac
@@ -442,21 +443,6 @@ public class AllenTubeComp extends TubeComp{
 		this.connectType = connectType;
 	}
 
-	public Point3d getMaxXYZ() {
-		return maxXYZ;
-	}
-
-	public void setMaxXYZ(Point3d maxXYZ) {
-		this.maxXYZ = maxXYZ;
-	}
-
-	public Point3d getMinXYZ() {
-		return minXYZ;
-	}
-
-	public void setMinXYZ(Point3d minXYZ) {
-		this.minXYZ = minXYZ;
-	}
 
 	public boolean isScaleOnce() {
 		return scaleOnce;
@@ -573,5 +559,7 @@ public class AllenTubeComp extends TubeComp{
 	void setNormalized(boolean isNormalized) {
 		this.isNormalized = isNormalized;
 	}
+
+
 
 }

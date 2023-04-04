@@ -16,7 +16,8 @@ public class MStickObj4Smooth {
     public TubeComp[] comp;
     private static final int MAX_COMP = 11;
 
-    public Point3d maxXYZ, minXYZ;
+    private Point3d maxXYZ;
+    private Point3d minXYZ;
 
     public Point3d[] vect_info = new Point3d[25000]; // not sure if 15000 will work..let's see
     public Vector3d[] normMat_info = new Vector3d[25000];
@@ -309,8 +310,8 @@ public class MStickObj4Smooth {
             for (j=0; j<3; j++)
                 getFacInfo()[i][j] = in_comp.getFacInfo()[i][j];
 
-        this.maxXYZ = new Point3d( in_comp.getMaxXYZ());
-        this.minXYZ = new Point3d( in_comp.getMinXYZ());
+        this.setMaxXYZ(new Point3d( in_comp.getMaxXYZ()));
+        this.setMinXYZ(new Point3d( in_comp.getMinXYZ()));
     }
 
 
@@ -758,13 +759,13 @@ public class MStickObj4Smooth {
 //        if (inObj.maxXYZ.getZ() > this.maxXYZ.getZ())  this.maxXYZ.setZ( inObj.maxXYZ.getZ());
 
 
-        if (inObj.minXYZ.x < this.minXYZ.x)  this.minXYZ.x =  inObj.minXYZ.x;
-        if (inObj.minXYZ.y < this.minXYZ.y)  this.minXYZ.y =  inObj.minXYZ.y;
-        if (inObj.minXYZ.z < this.minXYZ.z)  this.minXYZ.z =  inObj.minXYZ.z;
+        if (inObj.getMinXYZ().x < this.getMinXYZ().x)  this.getMinXYZ().x =  inObj.getMinXYZ().x;
+        if (inObj.getMinXYZ().y < this.getMinXYZ().y)  this.getMinXYZ().y =  inObj.getMinXYZ().y;
+        if (inObj.getMinXYZ().z < this.getMinXYZ().z)  this.getMinXYZ().z =  inObj.getMinXYZ().z;
 
-        if (inObj.maxXYZ.x > this.maxXYZ.x)  this.maxXYZ.x =  inObj.maxXYZ.x;
-        if (inObj.maxXYZ.y > this.maxXYZ.y)  this.maxXYZ.y =  inObj.maxXYZ.y;
-        if (inObj.maxXYZ.z > this.maxXYZ.z)  this.maxXYZ.z =  inObj.maxXYZ.z;
+        if (inObj.getMaxXYZ().x > this.getMaxXYZ().x)  this.getMaxXYZ().x =  inObj.getMaxXYZ().x;
+        if (inObj.getMaxXYZ().y > this.getMaxXYZ().y)  this.getMaxXYZ().y =  inObj.getMaxXYZ().y;
+        if (inObj.getMaxXYZ().z > this.getMaxXYZ().z)  this.getMaxXYZ().z =  inObj.getMaxXYZ().z;
 
         return true;
     }
@@ -1203,6 +1204,22 @@ public class MStickObj4Smooth {
 
     public void setnFac(int nFac) {
         this.nFac = nFac;
+    }
+
+    public Point3d getMinXYZ() {
+        return minXYZ;
+    }
+
+    public void setMinXYZ(Point3d minXYZ) {
+        this.minXYZ = minXYZ;
+    }
+
+    public Point3d getMaxXYZ() {
+        return maxXYZ;
+    }
+
+    public void setMaxXYZ(Point3d maxXYZ) {
+        this.maxXYZ = maxXYZ;
     }
 }
 

@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class StabilityOfMaxScoreSource implements LineageScoreSource{
 
     @Dependency
-    static int N = 3;
+    static int N = 4;
 
     @Dependency
     MultiGaDbUtil dbUtil;

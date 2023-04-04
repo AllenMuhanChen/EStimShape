@@ -3413,7 +3413,14 @@ Adding a new MAxisArc to a MatchStick
 		// again, or we should do it!
 		//        this.finalRotateAllPoints( finalRotation[0], finalRotation[1], finalRotation[2]);
 
-		boolean res = smoothizeMStick();
+		boolean res;
+		try {
+			res = smoothizeMStick();
+		} catch (NullPointerException e) {
+			res = true;
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		if ( res == false) {
 			System.out.println("Fail to smooth while using info from a shapeSpec");
 			System.out.println("THIS SHOULD NOT HAPPEN");
