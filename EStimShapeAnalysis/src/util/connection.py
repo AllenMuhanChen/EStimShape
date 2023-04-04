@@ -21,6 +21,7 @@ class Connection:
     def execute(self, statement, params=()):
         self.my_cursor.execute(statement, params)
 
+
     def fetch_one(self):
         return "".join(map(str, self.my_cursor.fetchall()[0]))
 
@@ -50,3 +51,6 @@ class Connection:
         df = pd.DataFrame(self.my_cursor.fetchall())
         df.columns = ['tstamp', 'type', 'msg']
         return df
+
+    def fetch_all(self):
+        return self.my_cursor.fetchall()

@@ -48,10 +48,11 @@ class TreeGraphApp:
 
 
 class TreeGraph:
-
     def __init__(self, y_values_for_stim_ids, edges):
         self.image_folder = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/tree_graph/test_pngs"
         self._create_tree_graph(y_values_for_stim_ids, edges)
+
+    fig: go.Figure
 
     def _create_tree_graph(self, y_values_for_stim_ids, edges):
         tree = self._create_directed_graph(edges)
