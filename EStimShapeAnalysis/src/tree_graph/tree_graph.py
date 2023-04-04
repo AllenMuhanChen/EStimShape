@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import base64
-import io
-import os
-import signal
-import subprocess
 
+import os
 import dash
-from dash import dcc, Dash
+import pyperclip
+from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output
 import networkx as nx
@@ -30,7 +27,8 @@ class TreeGraphApp:
         self.app.layout = html.Div(
             [
                 dcc.Graph(id="tree", figure=fig, clear_on_unhover=True),
-                html.Div(id="node-info", style={"padding": "10px"}),
+                html.Div(id="clipboard-data"),
+                html.Div(id="node-info"),
             ]
         )
 
@@ -46,10 +44,26 @@ class TreeGraphApp:
             else:
                 return ""
 
+        # Define the callback for copying to clipboard
+        @self.app.callback(
+            Output("clipboard-data", "children"), Input("tree", "clickData")
+        )
+        def copy_to_clipboard(clickData):
+            if clickData:
+                node_label = clickData["points"][0]["text"]
+                print(f"Node {node_label} copied to clipboard")  # Print the node information
+                pyperclip.copy(node_label)
+                return f"Node {node_label} copied to clipboard"
+            else:
+                return ""
+
+
+
+
 
 class TreeGraph:
-    def __init__(self, y_values_for_stim_ids, edges):
-        self.image_folder = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/tree_graph/test_pngs"
+    def __init__(self, y_values_for_stim_ids, edges, image_folder):
+        self.image_folder = image_folder
         self._create_tree_graph(y_values_for_stim_ids, edges)
 
     fig: go.Figure

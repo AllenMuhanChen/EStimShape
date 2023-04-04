@@ -381,6 +381,12 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result;
     }
 
+    public void writeResponse(Long stimId, Double response) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        jt.update("update StimGaInfo set response = ? where stim_id = ?",
+                new Object[] { response, stimId });
+    }
+
     public static class LineageGaInfo {
         Long lineageId;
         String treeSpec;

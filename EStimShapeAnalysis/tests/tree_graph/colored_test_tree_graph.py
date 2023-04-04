@@ -16,9 +16,9 @@ from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp
 
 
 class ColoredTreeGraph(TreeGraph):
-    def __init__(self, y_values_for_stim_ids, edges, edge_colors):
+    def __init__(self, y_values_for_stim_ids, edges, edge_colors, image_folder):
         self.edge_colors = edge_colors
-        super().__init__(y_values_for_stim_ids, edges)
+        super().__init__(y_values_for_stim_ids, edges, image_folder)
 
     def _create_edges(self, pos, tree):
         print("COLORED EDGES CALLED")
@@ -37,6 +37,7 @@ class ColoredTreeGraph(TreeGraph):
             edge_traces.append(edge_trace)
         return edge_traces
 
+
 class TestColoredTreeGraph(TestCase):
     def test_create_colored_edges(self):
         # Input dictionary with stim_id as keys and y positions as values
@@ -54,9 +55,8 @@ class TestColoredTreeGraph(TestCase):
         edge_colors = {(1, 2): "red", (1, 3): "blue", (2, 4): "green", (2, 5): "yellow", (3, 6): "purple",
                        (3, 7): "orange"}
 
-        colored_tree_graph = ColoredTreeGraph(stim_id_y_positions, edges, edge_colors)
+        image_folder = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/tree_graph/test_pngs"
+        colored_tree_graph = ColoredTreeGraph(stim_id_y_positions, edges, edge_colors, image_folder)
         app = TreeGraphApp(colored_tree_graph)
         self.app = app
         self.app.run()
-
-

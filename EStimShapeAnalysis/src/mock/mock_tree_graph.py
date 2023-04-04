@@ -1,18 +1,63 @@
 from __future__ import annotations
+
+import os
+
+import PIL
+import plotly.graph_objects as go
+from PIL.Image import Image
+
 from src.tree_graph.tree_graph import TreeGraph
 from src.util.connection import Connection
 
 import xml.etree.ElementTree as ET
 
+from tests.tree_graph.colored_test_tree_graph import ColoredTreeGraph
+
 conn = Connection("allen_estimshape_dev_221110")
 
 
-class MockTreeGraph(TreeGraph):
+class MockTreeGraph(ColoredTreeGraph):
     def __init__(self, lineage_id):
         tree_spec = fetch_tree_spec(lineage_id)
-        self.edges = recursive_tree_to_edges(tree_spec)
-        self.stim_ids = {stim_id for edge in self.edges for stim_id in edge}
-        self.y_values_for_stim_ids = fetch_responses_for(self.stim_ids)
+        edges = recursive_tree_to_edges(tree_spec)
+        stim_ids = {stim_id for edge in edges for stim_id in edge}
+        y_values_for_stim_ids = fetch_responses_for(stim_ids)
+        image_folder = "/home/r2_allen/Documents/EStimShape/dev_221110/pngs_dev_221110"
+        edge_colors = get_edge_colors(edges)
+        super().__init__(y_values_for_stim_ids, edges, edge_colors, image_folder)
+
+    def _get_image(self, stim_id):
+        for filename in os.listdir(self.image_folder):
+            if filename.startswith(str(stim_id)) and filename.endswith('.png'):
+                img_path = os.path.join(self.image_folder, filename)
+                print(img_path)
+                img = PIL.Image.open(img_path)
+                return img
+        return None
+
+
+def get_edge_colors(edges: list[tuple[int, int]]):
+    colors_for_regimes = {
+        "RegimeZero": "black",
+        "RegimeOne": "red",
+        "RegimeTwo": "blue",
+        "RegimeThree": "green",
+        "RegimeFour": "yellow",
+    }
+
+    edge_colors = {}
+    for edge in edges:
+        regime = fetch_regime_for_stim_id(edge[1])
+        color = colors_for_regimes[regime]
+        edge_colors[edge] = color
+
+    return edge_colors
+
+
+def fetch_regime_for_stim_id(stim_id):
+    conn.execute("SELECT stim_type from StimGaInfo where stim_id = %s", (stim_id,))
+    stim_type = conn.fetch_one()
+    return stim_type
 
 
 def fetch_responses_for(stim_ids):

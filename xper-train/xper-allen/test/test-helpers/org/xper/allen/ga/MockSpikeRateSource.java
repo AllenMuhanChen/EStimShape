@@ -45,8 +45,10 @@ public class MockSpikeRateSource implements SpikeRateSource{
         }
         averageSpikeRate = averageSpikeRate/spikeRatesAcrossRepetitions.size();
 
+
         return averageSpikeRate;
     }
+
 
 
     public HashMap<Integer, Double> parsePythonDictionaryToHashMap (String pythonDictionary){

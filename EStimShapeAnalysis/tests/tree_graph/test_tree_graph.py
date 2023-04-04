@@ -24,8 +24,8 @@ class TreeGraphTest(TestCase):
 
         edges = [(1, 2), (1, 3), (2, 4), (2, 5), (3, 6), (3, 7)]
 
-        tree_graph.image_folder = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/tree_graph/test_pngs"
-        tg = TreeGraph(stim_id_y_positions, edges)
+        image_folder = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/tree_graph/test_pngs"
+        tg = TreeGraph(stim_id_y_positions, edges, image_folder)
         app = TreeGraphApp(tg)
         app.run()
 
