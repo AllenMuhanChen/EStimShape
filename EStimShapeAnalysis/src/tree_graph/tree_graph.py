@@ -25,7 +25,9 @@ class TreeGraphApp:
         # Create the app layout
         self.app.layout = html.Div(
             [
-                dcc.Graph(id="tree", figure=fig, clear_on_unhover=True),
+                dcc.Graph(id="tree",
+                          figure=fig, clear_on_unhover=True,
+                          autosize=True),
                 html.Div(id="clipboard-data"),
                 html.Div(id="node-info"),
             ]

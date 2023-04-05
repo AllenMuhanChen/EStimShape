@@ -4,9 +4,11 @@ import os
 
 import PIL
 import plotly.graph_objects as go
+import pyperclip
 from PIL.Image import Image
+from dash import dash, dcc, html, Output, Input
 
-from src.tree_graph.tree_graph import TreeGraph
+from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp
 from src.util.connection import Connection
 
 import xml.etree.ElementTree as ET
@@ -14,6 +16,70 @@ import xml.etree.ElementTree as ET
 from tests.tree_graph.colored_test_tree_graph import ColoredTreeGraph
 
 conn = Connection("allen_estimshape_dev_221110")
+
+
+class MockTreeGraphApp(TreeGraphApp):
+    def __init__(self):
+        self.app = dash.Dash("Tree Graphs")
+        self._update_app()
+        self.run()
+
+    def _update_app(self):
+        # Define the lineage_id options
+        lineage_id_options = get_all_lineages()
+
+        # Create the app layout
+        self.app.layout = html.Div(
+            [
+                dcc.Dropdown(id="lineage-id", options=lineage_id_options, value=1),
+                dcc.Graph(id="tree", clear_on_unhover=True),
+                html.Div(id="clipboard-data"),
+                html.Div(id="node-info"),
+            ]
+        )
+
+        # Define the callback for updating the graph based on the selected lineage_id
+        @self.app.callback(
+            Output("tree", "figure"),
+            Input("lineage-id", "value"),
+        )
+        def update_graph(lineage_id):
+            # modify the figure based on the selected lineage_id
+            print(f"Lineage {lineage_id} selected")
+            tree_graph = MockTreeGraph(lineage_id)
+            return tree_graph.fig
+
+        # Define the callback for click events
+        @self.app.callback(
+            Output("node-info", "children"), Input("tree", "clickData")
+        )
+        def display_click_data(clickData):
+            if clickData:
+                node_label = clickData["points"][0]["text"]
+                print(f"Node {node_label} clicked")  # Print the node information
+                return f"Node {node_label} clicked"
+            else:
+                return ""
+
+        # Define the callback for copying to clipboard
+        @self.app.callback(
+            Output("clipboard-data", "children"), Input("tree", "clickData")
+        )
+        def copy_to_clipboard(clickData):
+            if clickData:
+                node_label = clickData["points"][0]["text"]
+                print(f"Node {node_label} copied to clipboard")  # Print the node information
+                pyperclip.copy(node_label)
+                return f"Node {node_label} copied to clipboard"
+            else:
+                return ""
+
+
+def get_all_lineages():
+    conn.execute("SELECT lineage_id FROM LineageGaInfo ORDER BY regime_score desc")
+    lineage_ids_as_list_of_tuples = conn.fetch_all()
+    lineage_ids = [lineage_id[0] for lineage_id in lineage_ids_as_list_of_tuples]
+    return lineage_ids
 
 
 class MockTreeGraph(ColoredTreeGraph):
