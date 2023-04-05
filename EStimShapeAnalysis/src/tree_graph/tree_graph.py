@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import os
 import dash
 import pyperclip
@@ -58,9 +57,6 @@ class TreeGraphApp:
                 return ""
 
 
-
-
-
 class TreeGraph:
     def __init__(self, y_values_for_stim_ids, edges, image_folder):
         self.image_folder = image_folder
@@ -69,6 +65,8 @@ class TreeGraph:
     fig: go.Figure
 
     def _create_tree_graph(self, y_values_for_stim_ids, edges):
+        self.node_size = 15
+
         tree = self._create_directed_graph(edges)
 
         pos = self._compute_node_positions(tree, y_values_for_stim_ids)
@@ -111,7 +109,7 @@ class TreeGraph:
             mode="markers+text",
             text=list(tree.nodes()),
             textposition="bottom center",
-            marker=dict(size=30, color="lightblue"),
+            marker=dict(size=self.node_size, color="lightblue"),
             hoverinfo="text",
             opacity=0
         )
@@ -136,8 +134,8 @@ class TreeGraph:
                 yref="y",
                 x=pos[stim_id][0],
                 y=pos[stim_id][1],
-                sizex=6,
-                sizey=6,
+                sizex=self.node_size,
+                sizey=self.node_size,
                 xanchor="center",
                 yanchor="middle",
                 sizing="contain",
