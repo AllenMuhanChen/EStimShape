@@ -8,6 +8,7 @@ import org.xper.allen.app.GAConsole;
 import org.xper.allen.app.GAExperiment;
 import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.app.acq.AcqServer;
 import org.xper.util.FileUtil;
 
 import java.util.List;
@@ -31,6 +32,13 @@ public class NewGAMockExperiment {
 
         gaBaseName = generator.getGaBaseName();
         dbUtil = generator.getDbUtil();
+    }
+
+    @Test
+    public void startExperiment(){
+        prepDB();
+        GAConsole.main(emptyArgs);
+        GAExperiment.main(emptyArgs);
     }
 
     @Test

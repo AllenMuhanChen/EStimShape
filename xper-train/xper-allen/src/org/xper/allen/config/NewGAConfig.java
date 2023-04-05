@@ -85,11 +85,9 @@ public class NewGAConfig {
     @Bean
     public Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
         Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
-//        slotFunctionForRegimes.put(Regime.ZERO, zeroFunction());
         slotFunctionForRegimes.put(Regime.ONE, peakFunctionAround(1.0, 1.0));
         slotFunctionForRegimes.put(Regime.TWO, peakFunctionAround(2.0, 1.0));
         slotFunctionForRegimes.put(Regime.THREE, peakFunctionAround(3.0, 1.0));
-//        slotFunctionForRegimes.put(Regime.FOUR, zeroFunction());
         return slotFunctionForRegimes;
     }
 

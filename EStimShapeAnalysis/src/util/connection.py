@@ -21,6 +21,10 @@ class Connection:
     def execute(self, statement, params=()):
         self.my_cursor.execute(statement, params)
 
+    def truncate(self, table_name):
+        self.execute(f"TRUNCATE TABLE {table_name}")
+        self.fetch_all()
+        self.mydb.commit()
 
     def fetch_one(self):
         return "".join(map(str, self.my_cursor.fetchall()[0]))
