@@ -45,9 +45,14 @@ def ga_loop(num_generations):
 
 
 def run_trial_generator():
+    output_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/tree_graph"
+    output_file = os.path.join(output_dir, "output.txt")
+
     trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")
     trial_generator_command = f"java -jar {trial_generator_path}"
-    result = subprocess.run(trial_generator_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    with open(output_file, "w") as file:
+        result = subprocess.run(trial_generator_command, shell=True, stdout=file, stderr=subprocess.STDOUT, text=True)
     return result.returncode
 
 # def run_trial_generator():

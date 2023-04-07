@@ -42,11 +42,11 @@ public class MorphedMatchStick extends AllenMatchStick {
         backup.copyFrom(matchStickToMorph);
         copyFrom(backup);
 
-        findCompsToPreserve(morphParametersForComponents);
 
         // Attempt to morph every component. If we fail, then restart with the backup.
         while (true) {
             try {
+                findCompsToPreserve(morphParametersForComponents);
                 morphAllComponents(morphParametersForComponents, matchStickToMorph);
 //                MutateSUB_reAssignJunctionRadius();
                 positionShape();
@@ -63,6 +63,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
+        compsToPreserve.clear();
         List<Integer> components = getCompList();
 
         // Determine what components should be preserved
