@@ -17,10 +17,20 @@ public class MaxResponseSource {
     @Dependency
     SpikeRateSource spikeRateSource;
 
+    private Long lastGenIdMaxReadFrom = -1L;
+    private Double maxResponse;
+
     public double getMaxResponse(String gaName) {
-        TikTok readingFromDbTimer = new TikTok("Reading from db");
+        long mostRecentGenId = dbUtil.readTaskDoneMaxGenerationIdForGa(gaName);
+        if (mostRecentGenId > lastGenIdMaxReadFrom) {
+            maxResponse = readNewMaxResponse(gaName);
+            lastGenIdMaxReadFrom = mostRecentGenId;
+        }
+        return maxResponse;
+    }
+
+    private Double readNewMaxResponse(String gaName) {
         List<Long> allStimIds = dbUtil.readAllDoneStimIdsForGa(gaName);
-        readingFromDbTimer.stop();
 
         TikTok calculatingMaxResponseTimer = new TikTok("Calculating max response");
         Double maxResponse = minimumMaxResponse;

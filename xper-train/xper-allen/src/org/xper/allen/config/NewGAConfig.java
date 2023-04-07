@@ -3,6 +3,7 @@ package org.xper.allen.config;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
@@ -276,7 +277,7 @@ public class NewGAConfig {
         };
     }
 
-    @Bean
+    @Bean(scope= BeanDefinition.SCOPE_SINGLETON)
     public MaxResponseSource maxResponseSource() {
         MaxResponseSource maxResponseSource = new MaxResponseSource();
         maxResponseSource.setDbUtil(dbUtil());
