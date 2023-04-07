@@ -2,6 +2,7 @@ package org.xper.allen.ga;
 
 import org.xper.Dependency;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.allen.util.TikTok;
 
 import java.util.List;
 
@@ -17,8 +18,11 @@ public class MaxResponseSource {
     SpikeRateSource spikeRateSource;
 
     public double getMaxResponse(String gaName) {
+        TikTok readingFromDbTimer = new TikTok("Reading from db");
         List<Long> allStimIds = dbUtil.readAllDoneStimIdsForGa(gaName);
+        readingFromDbTimer.stop();
 
+        TikTok calculatingMaxResponseTimer = new TikTok("Calculating max response");
         Double maxResponse = minimumMaxResponse;
         for (Long stimId : allStimIds) {
             Double averageSpikeRate = spikeRateSource.getSpikeRate(stimId);
@@ -28,6 +32,7 @@ public class MaxResponseSource {
 
             }
         }
+        calculatingMaxResponseTimer.stop();
         return maxResponse;
     }
 

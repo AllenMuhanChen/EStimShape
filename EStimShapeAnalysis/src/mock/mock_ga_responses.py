@@ -95,7 +95,7 @@ class ShaftTuningFunction(TuningFunction):
     def get_response(self, data: pd.Series):
         peak = []
         flatten_dictionary(self.shaft_peaks, peak, None)
-        print(data)
+        # print(data)
 
         if not isinstance(data['ShaftField'], list):
             data['ShaftField'] = [data['ShaftField']]
@@ -139,8 +139,8 @@ class ShaftTuningFunction(TuningFunction):
                                                    allow_singular=True)
         absolute_max_response = multivariate_normal.pdf(np.array(peak), mean=np.array(peak), cov=cov,
                                                    allow_singular=True)
-        print("abs max: " + str(math.pow(absolute_max_response, 1/8)))
-        print("top end: " + str(math.pow(top_end_response, 1/8)))
+        # print("abs max: " + str(math.pow(absolute_max_response, 1/8)))
+        # print("top end: " + str(math.pow(top_end_response, 1/8)))
         response = math.pow(response / top_end_response, 1/8) * 100
         return response
 
@@ -239,7 +239,7 @@ def plot_responses(responses, data):
 
     # DEBUG
     fig, axes = plt.subplots(6)
-    print(all_thetas)
+    # print(all_thetas)
     axes[0].scatter(all_thetas, all_phis, c=all_responses)
     axes[1].scatter(closest_thetas, closest_phis, c=closest_responses)
     axes[2].scatter(all_radial_positions, all_responses)

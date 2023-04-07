@@ -32,10 +32,12 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
     MaxResponseSource maxResponseSource;
 
     private Long lineageId;
+    private Double maxResponse;
 
     @Override
     public Double getLineageScore(Long lineageId) {
         this.lineageId = lineageId;
+        maxResponse = maxResponseSource.getMaxResponse(dbUtil.readGaNameFor(lineageId));
         // Find all StimIds from this lineage and have stimType
         List<Long> stimIdsWithStimType = dbUtil.readStimIdsFromLineageAndType(lineageId, stimType);
 
@@ -93,7 +95,6 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
                 for (Long stimId : passedFilter) {
                     // Normalize child response
                     Double childResponse = spikeRateSource.getSpikeRate(stimId);
-                    Double maxResponse = maxResponseSource.getMaxResponse(dbUtil.readGaNameFor(lineageId));
                     Double normalizedResponse = childResponse / maxResponse;
 
                     // Compare to bin

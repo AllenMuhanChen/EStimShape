@@ -43,10 +43,12 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
 
 
     private Long lineageId;
+    private Double maxResponse;
 
     @Override
     public Double getLineageScore(Long lineageId) {
         this.lineageId = lineageId;
+        maxResponse = maxResponseSource.getMaxResponse(dbUtil.readGaNameFor(lineageId));
         //Get a Map of all genIds and their stimIds for a lineage
         HashMap<Integer, List<Long>> stimIdsForGenIds = (HashMap<Integer, List<Long>>) dbUtil.readStimIdsFromGenIdsFor(lineageId);
 
@@ -97,7 +99,6 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
     }
 
     private Double calculateRangeThreshold() {
-        Double maxResponse = maxResponseSource.getMaxResponse(dbUtil.readGaNameFor(lineageId));
         Double normalizedRangeThreshold = normalizedRangeThresholdSource.getThreshold();
         return maxResponse * normalizedRangeThreshold;
     }

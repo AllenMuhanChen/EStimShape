@@ -658,7 +658,7 @@ public class MStickObj4Smooth {
     public boolean objectMerge( MStickObj4Smooth inObj, boolean specialTreat)
     {
         // two main roles here are this (1) & inObj (2)
-        boolean showDebug = true;
+        boolean showDebug = false;
         if (showDebug)
         {
             System.out.println("start merging object procedure....\n\n");
@@ -693,7 +693,7 @@ public class MStickObj4Smooth {
                     minDist = distVec1[i];
                 }
             }
-            System.out.println(minDist);
+//            System.out.println(minDist);
             if (minDist >= 1.2)
             {
 

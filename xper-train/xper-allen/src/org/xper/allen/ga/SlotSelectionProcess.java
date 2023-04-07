@@ -6,6 +6,7 @@ import org.xper.Dependency;
 import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.ga.regimescore.RegimeScoreSource;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.allen.util.TikTok;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -52,20 +53,32 @@ public class SlotSelectionProcess {
     @Dependency
     MaxResponseSource maxResponseSource;
 
+
+    private double maxResponse;
+
     public List<Child> select(String gaName) {
+        TikTok maxResponseTimer = new TikTok("Getting max response");
+        maxResponse = maxResponseSource.getMaxResponse(gaName);
+        maxResponseTimer.stop();
+
         List<Child> selectedParents = new LinkedList<>();
 
+        System.out.println("Fetching Lineage Ids");
         List<Long> lineageIds = fetchLineageIds(gaName);
 
+        System.out.println("Calculating Regime Scores");
         Map<Long, Double> regimeScoreForLineages =
                 calculateRegimeScoresForLineages(lineageIds);
 
+        System.out.println("Creating Slots For Lineages");
         Map<Long, List<Slot>> slotsForLineages =
                 createSlotsForLineages(regimeScoreForLineages);
 
+        System.out.println("Assigning Regimes To Slots");
         assignRegimesToSlotsForEachLineage(slotsForLineages, regimeScoreForLineages);
 
         // For Each slot, use the lineage to choose parents, and use the regime to assign fitness score
+        System.out.println("Assigning Fitness Scores To Slots");
         fillSlotsWithParents(gaName, selectedParents, slotsForLineages);
         return selectedParents;
     }
@@ -117,31 +130,48 @@ public class SlotSelectionProcess {
         slotsForLineages.forEach(new BiConsumer<Long, List<Slot>>() {
             @Override
             public void accept(Long lineageId, List<Slot> slots) {
-                for (Slot slot : slots) {
+                TikTok assignSlotsTimer = new TikTok("Assigning Slots For Lineage: " + lineageId + " with " + slots.size() + " slots");
 
+                for (Slot slot : slots) {;
                     // use lineageId to find potential parents
+                    TikTok findPotentialParentsTimer = new TikTok("Using lineageId: " + lineageId + " to find potential parents");
                     List<Long> potentialParents = dbUtil.readDoneStimIdsFromLineage(gaName, lineageId);
+                    findPotentialParentsTimer.stop();
 
                     // find normalized normalizedResponses for each potential parents
+                    TikTok normalizedResponseTimer = new TikTok("Finding normalized responses for each potential parent");
                     List<Double> normalizedResponses = new LinkedList<>();
                     for (Long potentialParent : potentialParents) {
+                        TikTok spikeRateTimer = new TikTok("Getting spike rate for potential parent: " + potentialParent);
                         Double averageSpikeRate = spikeRateSource.getSpikeRate(potentialParent);
-                        double normalizedSpikeRate = averageSpikeRate / maxResponseSource.getMaxResponse(gaName);
+                        spikeRateTimer.stop();
+                        double normalizedSpikeRate = averageSpikeRate / maxResponse;
                         normalizedResponses.add(normalizedSpikeRate);
                     }
+                    normalizedResponseTimer.stop();
 
                     // use normalizedResponses to find fitness scores
+                    TikTok fitnessScoreTimer = new TikTok("Using normalized responses to find fitness scores");
                     List<Double> fitnessScores = new LinkedList<>();
                     for (Double response : normalizedResponses) {
                         fitnessScores.add(plugIntoFunction(fitnessFunctionForRegimes.get(slot.getRegime()), response));
                     }
+                    fitnessScoreTimer.stop();
+
 
                     // use fitnessFunctions and normalizedResponses to assign fitness scores to each potential parent
+                    //slow
+                    TikTok probabilityTableTimer = new TikTok("Using fitness functions and normalized responses to assign fitness scores to each potential parent");
                     ProbabilityTable<Long> probabilitiesForParentIds = new ProbabilityTable<>(potentialParents, fitnessScores);
+                    probabilityTableTimer.stop();
 
                     // select parents
+                    TikTok selectingParentsTimer = new TikTok("Selecting parents");
                     selectedParents.add(new Child(probabilitiesForParentIds.sampleWithReplacement(), slot.getRegime()));
+                    selectingParentsTimer.stop();
+
                 }
+                assignSlotsTimer.stop();
             }
         });
     }

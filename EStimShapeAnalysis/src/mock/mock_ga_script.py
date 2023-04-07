@@ -11,7 +11,7 @@ allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 xper_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/xper"
 
 def main():
-    num_generations = 5
+    num_generations = 8
     # start_experiment()
     ga_loop(num_generations)
 
@@ -38,15 +38,10 @@ def start_experiment():
 
 def ga_loop(num_generations):
     for generation in range(num_generations):
-        if run_trial_generator()==0:
-            print(f"Generation {generation} generation complete")
-        else:
-            print(f"Generation {generation} failed")
-            break
+        run_trial_generator()
         sleep(5)
         mock_ga_responses.main()
         print(f"Generation {generation} responses mocked")
-
 
 
 def run_trial_generator():
@@ -54,6 +49,26 @@ def run_trial_generator():
     trial_generator_command = f"java -jar {trial_generator_path}"
     result = subprocess.run(trial_generator_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return result.returncode
+
+# def run_trial_generator():
+#     trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")
+#     trial_generator_command = f"java -jar {trial_generator_path}"
+#     process = subprocess.Popen(trial_generator_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#     while True:
+#         output = process.stdout.readline().decode().strip()
+#         error = process.stderr.readline().decode().strip()
+#
+#         # If the output and error streams are closed and there's no more output to read, break out of the loop
+#         if process.poll() is not None and output == '' and error == '':
+#             break
+#
+#         # If there is output or error to print, print it
+#         if output:
+#             print(output)
+#         if error:
+#             print(error)
+#
+#     return process.poll()
 
 
 if __name__ == "__main__":

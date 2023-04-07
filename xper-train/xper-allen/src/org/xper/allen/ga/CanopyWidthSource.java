@@ -21,6 +21,7 @@ public class CanopyWidthSource {
     @Dependency
     SpikeRateSource spikeRateSource;
     private String gaName;
+    private Double maxResponse;
 
     /**
      * Finds the canopy width associated with the lineage tree for any particular stimulus.
@@ -31,6 +32,7 @@ public class CanopyWidthSource {
     public Integer getCanopyWidth(Long stimId) {
         StimGaInfo gaInfo =  dbUtil.readStimGaInfo(stimId);
         gaName = gaInfo.getGaName();
+        maxResponse = maxResponseSource.getMaxResponse(gaName);
         String treeSpec = gaInfo.getTreeSpec();
         Branch<Long> tree = Branch.fromXml(treeSpec);
 
@@ -43,7 +45,6 @@ public class CanopyWidthSource {
         //Finding the average spike rate for each stimulus and adding it to the list of canopy sitmuli
         // if it is above the threshold
         List<Long> canopyStims = new LinkedList<>();
-        Double maxResponse = maxResponseSource.getMaxResponse(gaName);
         tree.forEach(new Consumer<Branch<Long>>() {
             @Override
             public void accept(Branch<Long> branch) {
