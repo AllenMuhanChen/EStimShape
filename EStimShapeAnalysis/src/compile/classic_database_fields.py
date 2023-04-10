@@ -70,6 +70,36 @@ def get_ga_name_from_stim_spec_id(conn, stim_spec_id) -> str:
     return ga_name
 
 
+class NewGaNameField(StimSpecIdField):
+    def get(self, when: When) -> str:
+        stim_spec_id = super().get(when)
+        return get_new_ga_name_from_stim_spec_id(self.conn, stim_spec_id)
+
+
+def get_new_ga_name_from_stim_spec_id(conn, stim_spec_id):
+    conn.execute("SELECT ga_name FROM TaskToDo t WHERE"
+                 " stim_id = %s",
+                 params=(stim_spec_id,))
+
+    ga_name = conn.fetch_one()
+    return ga_name
+
+
+class NewGaLineageField(StimSpecIdField):
+    def get(self, when: When) -> str:
+        stim_spec_id = super().get(when)
+        return get_new_ga_lineage_from_stim_spec_id(self.conn, stim_spec_id)
+
+
+def get_new_ga_lineage_from_stim_spec_id(conn, stim_spec_id):
+    conn.execute("SELECT lineage_id FROM StimGaInfo WHERE"
+                 " stim_id = %s",
+                 params=(stim_spec_id,))
+
+    lineage = conn.fetch_one()
+    return lineage
+
+
 class GaNameField(StimSpecIdField):
     def get(self, when: When) -> str:
         stim_spec_id = super().get(when)

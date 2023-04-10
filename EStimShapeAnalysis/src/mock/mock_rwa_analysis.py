@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 
 from src.analysis.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
-from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField
+from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField, \
+    NewGaLineageField, NewGaNameField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
@@ -61,10 +62,12 @@ def main():
         "radius": AutomaticBinner("radius", data_shaft, 9),
     }
 
-    response_weighted_average = compute_rwa_from_lineages(data, "3D", binner_for_shaft_fields,
+    response_weighted_average = compute_rwa_from_lineages(data, "New3D", binner_for_shaft_fields,
                                                           sigma_for_fields=sigma_for_fields,
                                                           padding_for_fields=padding_for_fields)
 
+    # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
+    #     sigma_for_fields, padding_for_fields)
     # SAVE
     save(response_weighted_average, "test_rwa")
 
@@ -102,8 +105,10 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     mstick_spec_data_source = StimSpecDataField(conn)
 
     fields = FieldList()
-    fields.append(GaTypeField(conn, "GaType"))
-    fields.append(GaLineageField(conn, "Lineage"))
+    fields.append(NewGaNameField(conn, "GaType"))
+    fields.append(NewGaLineageField(conn, "Lineage"))
+    # fields.append(GaTypeField(conn, "GaType"))
+    # fields.append(GaLineageField(conn, "Lineage"))
     fields.append(StimSpecIdField(conn, "Id"))
     fields.append(MockResponseField(conn, 1, name="Response-1"))
     fields.append(ShaftField(mstick_spec_data_source, name="Shaft"))

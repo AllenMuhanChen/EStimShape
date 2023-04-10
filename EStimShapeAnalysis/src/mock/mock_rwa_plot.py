@@ -11,7 +11,7 @@ from src.analysis.rwa import get_next
 
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
-    plot_shaft_rwa_1d(test_rwa)
+    plot_shaft_rwa_1d(next(test_rwa))
     plt.suptitle("Combined RWA")
 
     # lineage_0_rwa = jsonpickle.decode(

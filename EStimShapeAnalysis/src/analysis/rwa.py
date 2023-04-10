@@ -54,6 +54,7 @@ class Binner:
     """Generates a specified amount of bins for a given range of values.
        Stores these bins to be used for later in self.bins
        Assigns data values to one of the generated bins"""
+
     def __init__(self, start: float, end: float, num_bins: int):
         self.num_bins = num_bins
         self.end = end
@@ -87,8 +88,9 @@ class Binner:
             if bin_range.start <= float(value) < bin_range.end:
                 # Return the current bin_range range
                 return i, bin_range
-
-        raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
+        if not value > self.end:
+            return len(self.bins) - 1, self.bins[-1]
+        # raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
 
 
 @dataclass

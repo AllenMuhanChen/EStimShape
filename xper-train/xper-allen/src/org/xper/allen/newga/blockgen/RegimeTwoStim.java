@@ -22,7 +22,7 @@ public class RegimeTwoStim extends MorphedStim {
 
         PruningMatchStick childMStick = new PruningMatchStick();
         childMStick.setProperties(generator.getMaxImageDimensionDegrees());
-        childMStick.genPruningMatchStick(parentMStick, 0.75, 1);
+        childMStick.genPruningMatchStick(parentMStick, 0.6, 1);
         return childMStick;
 
     }

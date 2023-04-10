@@ -27,11 +27,11 @@ public class PruningMatchStick extends MorphedMatchStick{
     private List<Integer> chooseComponentsToMorph(int numPreserve) {
         List<Integer> componentsToMorph = matchStickToMorph.getCompList();
         Collections.shuffle(componentsToMorph);
-        List<Integer> toRemove = new ArrayList<Integer>();
+        List<Integer> toPreserve = new ArrayList<Integer>();
         for (int i = 0; i< numPreserve; i++){
-            toRemove.add(componentsToMorph.get(i));
+            toPreserve.add(componentsToMorph.get(i));
         }
-        componentsToMorph.removeAll(toRemove);
+        componentsToMorph.removeAll(toPreserve);
         return componentsToMorph;
     }
 }

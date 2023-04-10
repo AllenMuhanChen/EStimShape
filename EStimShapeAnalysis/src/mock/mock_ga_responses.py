@@ -34,7 +34,7 @@ def main():
         "angularPosition": {"theta": 0, "phi": math.pi / 2},
         "radialPosition": 15,
         "orientation": {"theta": 0, "phi": math.pi / 4},
-        "length": 15,
+        "length": 35,
         "curvature": 0.02,
         "radius": 8,
     }
