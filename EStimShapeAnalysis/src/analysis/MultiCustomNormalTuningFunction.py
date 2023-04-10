@@ -16,7 +16,7 @@ def sigma_to_kappa(sigma):
     return 1 / sigma ** 2
 
 
-class TuningFunction:
+class MultiCustomNormalTuningFunction:
     """ Represents the tuning function of a neuron as the custom multivariate distribution that is a product of von Mises and Gaussian distributions.
     The von Mises distribution is used for the periodic dimensions and the Gaussian distribution is used for the non-periodic dimensions.
     Tuning widths are defined as FWHM (Full Width at Half Maximum), which is used to estimate a sigma.
@@ -49,10 +49,8 @@ class TuningFunction:
 
     def pdf(self, x):
         x = np.array(x)
-        von_mises_pdf = np.prod([scipy.stats.vonmises.pdf(x[i], loc=self.mu[i], kappa=self.kappa[i]) for i in self.periodic_indices])
+        von_mises_pdf = np.prod([scipy.stats.vonmises.pdf(x[combined_index], loc=self.mu[combined_index], kappa=self.kappa[periodic_index]) for periodic_index, combined_index in enumerate(self.periodic_indices)])
         non_periodic_pdf = self.non_periodic_dist.pdf(x[self.non_periodic_indices])
-        for pdf in [von_mises_pdf, non_periodic_pdf]:
-            print(pdf)
         pdf_value = von_mises_pdf * non_periodic_pdf
         return pdf_value
 

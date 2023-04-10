@@ -4,7 +4,7 @@ from unittest import TestCase
 import numpy as np
 import scipy
 import scipy.optimize as opt
-from src.analysis.TuningFunction import TuningFunction, tuning_width_to_sigma, sigma_to_kappa
+from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction, tuning_width_to_sigma, sigma_to_kappa
 
 
 class TestTuningFunction(TestCase):
@@ -17,7 +17,7 @@ class TestTuningFunction(TestCase):
         max_spike_rate = 100
 
         # Create an instance of the TuningFunction
-        tuning_function = TuningFunction(mu, tuning_widths, periodic_indices, non_periodic_indices, max_spike_rate)
+        tuning_function = MultiCustomNormalTuningFunction(mu, tuning_widths, periodic_indices, non_periodic_indices, max_spike_rate)
 
         # Tolerance for comparing spike rates
         tolerance = 1e-6
@@ -36,11 +36,10 @@ class TestTuningFunction(TestCase):
         print("x_half_tuning_width_away:", x_half_tuning_width_away)
         spike_rate_half_tuning_width_away = tuning_function.response(x_half_tuning_width_away)
         adjusted_spike_rate = spike_rate_half_tuning_width_away
-
-
         print("Adjusted spike rate at half the tuning width away:", adjusted_spike_rate)
-        tolerance = 15
+        tolerance = 1e-6
         self.assertAlmostEqual(adjusted_spike_rate, 50, delta=tolerance)
+
 
     def test_1d_half_tuning_width_for_normal(self):
         from scipy.stats import norm

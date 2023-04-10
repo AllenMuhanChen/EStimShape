@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from numpy import double
 from scipy.stats import multivariate_normal
 
+from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
@@ -44,7 +45,7 @@ def main():
         "angularPosition.phi": {"min": 0, "max": math.pi},
         "radialPosition": {"min": 0, "max": 60},
         "orientation.theta": {"min": -math.pi, "max": math.pi},
-        "orientation.phi": {"min": 0, "max": math.pi/2},
+        "orientation.phi": {"min": 0, "max": math.pi / 2},
         "length": {"min": 0, "max": 50},
         "curvature": {"min": 0, "max": 0.15},
         "radius": {"min": 0, "max": 12},
@@ -89,13 +90,20 @@ class ShaftTuningFunction(TuningFunction):
 
     def __init__(self, shaft_peaks: dict, field_ranges: dict):
         super().__init__()
+        self.tuning_function = None
         self.shaft_peaks = shaft_peaks
         self.field_ranges = field_ranges
 
     def get_response(self, data: pd.Series):
         peak = []
         flatten_dictionary(self.shaft_peaks, peak, None)
-        # print(data)
+
+        periodic_indices = [0, 1, 3, 4]
+        non_periodic_indices = [2, 5, 6, 7]
+        mu = np.array(peak)
+        tuning_width = self.assign_tuning_width(fraction_of_range=1.0/5.0 * 2)
+        self.tuning_function = MultiCustomNormalTuningFunction(mu, tuning_width, periodic_indices, non_periodic_indices,
+                                                               100)
 
         if not isinstance(data['ShaftField'], list):
             data['ShaftField'] = [data['ShaftField']]
@@ -109,36 +117,26 @@ class ShaftTuningFunction(TuningFunction):
             component["length"],
             component["curvature"],
             component["radius"]
-            ] for component in data['ShaftField']]
-
+        ] for component in data['ShaftField']]
         stim = [[float(x) for x in component] for component in stim]
 
         responses_per_component = []
         for component in stim:
-            cov = self.assign_tuning_width(num_bins=5)
-            response = self.calculate_normalized_response(component, cov, peak)
+            response = self.tuning_function.response(component)
             responses_per_component.append(response)
 
-        return np.max(responses_per_component)
+        response = np.max(responses_per_component)
+        print(response)
+        return response
 
-    def assign_tuning_width(self, num_bins: int = 5):
+    def assign_tuning_width(self, fraction_of_range: float = 1.0 / 5.0):
         tuning_range_maxes = []
         extract_values_with_key_into_list(self.field_ranges, tuning_range_maxes, "max")
         tuning_range_mins = []
         extract_values_with_key_into_list(self.field_ranges, tuning_range_mins, "min")
-        cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
-        cov = np.array(cov) / num_bins
-        return cov
-
-    '''Maps being within a tuning range to 100, and being outside towards zero.
-    Being closer to the mean than a tuning range gives a value higher than 100'''
-    def calculate_normalized_response(self, component, cov, peak):
-        response = multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
-                                           allow_singular=True)
-        top_end_response = multivariate_normal.pdf(np.array(peak) + cov/4, mean=np.array(peak), cov=cov,
-                                                   allow_singular=True)
-        response = math.pow(response / top_end_response, 1/8) * 100
-        return response
+        tuning_width = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
+        tuning_width = np.array(tuning_width) * fraction_of_range
+        return tuning_width
 
 
 def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
@@ -260,9 +258,6 @@ def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Ser
         conn.execute("INSERT INTO ExpLog (tstamp, memo) VALUES (%s, %s)", (stim_id, str(stim_response_rate)))
         conn.fetch_all()
         conn.mydb.commit()
-
-
-
 
 
 if __name__ == '__main__':
