@@ -40,23 +40,21 @@ class TuningFunction:
         self.sigmas = np.diag(self.sigmas)  # Convert sigmas to a diagonal covariance matrix
 
         non_periodic_mu = self.mu[non_periodic_indices]  # Get the mean values for non-periodic dimensions
-        self.non_periodic_dist = scipy.stats.multivariate_normal(mean=non_periodic_mu, cov=self.sigmas)
+        self.non_periodic_dist = scipy.stats.multivariate_normal(mean=non_periodic_mu, cov=self.sigmas**2)
 
         # Compute the maximum value of the PDF (used for normalizing the PDF)
-        max_response = np.prod([
-            scipy.stats.vonmises.pdf(self.mu[i], loc=self.mu[i], kappa=self.kappa[i]) for i in periodic_indices] +
-            [self.non_periodic_dist.pdf(non_periodic_mu)
-        ])
-        self.max_response = max_response
+        self.max_response = self.pdf(self.mu)
+
 
 
     def pdf(self, x):
         x = np.array(x)
         von_mises_pdf = np.prod([scipy.stats.vonmises.pdf(x[i], loc=self.mu[i], kappa=self.kappa[i]) for i in self.periodic_indices])
         non_periodic_pdf = self.non_periodic_dist.pdf(x[self.non_periodic_indices])
-
+        for pdf in [von_mises_pdf, non_periodic_pdf]:
+            print(pdf)
         pdf_value = von_mises_pdf * non_periodic_pdf
+        return pdf_value
 
-        # Normalize the PDF value using the max_response and max_spike_rate
-        pdf_value_normalized = pdf_value / self.max_response * self.max_spike_rate
-        return pdf_value_normalized
+    def response(self, x):
+        return self.pdf(x) / self.max_response * self.max_spike_rate
