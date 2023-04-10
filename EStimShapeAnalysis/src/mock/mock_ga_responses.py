@@ -137,10 +137,6 @@ class ShaftTuningFunction(TuningFunction):
                                            allow_singular=True)
         top_end_response = multivariate_normal.pdf(np.array(peak) + cov/4, mean=np.array(peak), cov=cov,
                                                    allow_singular=True)
-        absolute_max_response = multivariate_normal.pdf(np.array(peak), mean=np.array(peak), cov=cov,
-                                                   allow_singular=True)
-        # print("abs max: " + str(math.pow(absolute_max_response, 1/8)))
-        # print("top end: " + str(math.pow(top_end_response, 1/8)))
         response = math.pow(response / top_end_response, 1/8) * 100
         return response
 
