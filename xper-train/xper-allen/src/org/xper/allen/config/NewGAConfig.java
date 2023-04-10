@@ -1,5 +1,6 @@
 package org.xper.allen.config;
 
+import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,11 +74,11 @@ public class NewGAConfig {
     @Bean
     public UnivariateRealFunction slotFunctionForLineage() {
         List<Point2d> controlPoints = new ArrayList<>();
-        controlPoints.add(new Point2d(0.0, 0.0));
-        controlPoints.add(new Point2d(1.0, 0.0));
-        controlPoints.add(new Point2d(1.0, 1.0/3.0));
-        controlPoints.add(new Point2d(2.0, 2.0/3.0));
-        controlPoints.add(new Point2d(3.9, 1.0));
+        controlPoints.add(new Point2d(0.0, 0.01));
+        controlPoints.add(new Point2d(1.0, 0.01));
+        controlPoints.add(new Point2d(1.0, 0.5));
+        controlPoints.add(new Point2d(2.0, 1.5));
+        controlPoints.add(new Point2d(3.9, 4.5));
         controlPoints.add(new Point2d(4.0, 0.0));
         return new LinearSpline(controlPoints);
     }
@@ -86,12 +87,34 @@ public class NewGAConfig {
     @Bean
     public Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
         Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
-        slotFunctionForRegimes.put(Regime.ONE, peakFunctionAround(1.0, 1.0));
+        slotFunctionForRegimes.put(Regime.ZERO, new UnivariateRealFunction() {
+            @Override
+            public double value(double v) throws FunctionEvaluationException {
+                if (v < 1.0){
+                return 0.3;
+                } else {
+                    return 0.0;
+                }
+            }
+        });
+        slotFunctionForRegimes.put(Regime.ONE, truncated_peak(1.0));
         slotFunctionForRegimes.put(Regime.TWO, peakFunctionAround(2.0, 1.0));
         slotFunctionForRegimes.put(Regime.THREE, peakFunctionAround(3.0, 1.0));
         return slotFunctionForRegimes;
     }
 
+    private UnivariateRealFunction truncated_peak(double left_edge) {
+        return new UnivariateRealFunction() {
+            @Override
+            public double value(double v) throws FunctionEvaluationException {
+                if (v<left_edge){
+                    return 0.0;
+                } else{
+                    return peakFunctionAround(left_edge, 1.0).value(v);
+                }
+            }
+        };
+    }
 
     public UnivariateRealFunction peakFunctionAround(double center, double radius) {
         List<Point2d> controlPoints = new ArrayList<>();
@@ -103,13 +126,17 @@ public class NewGAConfig {
 
     @Bean
     public Map<Regime, UnivariateRealFunction> fitnessFunctionForRegimes() {
-        Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
-        slotFunctionForRegimes.put(Regime.ZERO, zeroFunction());
-        slotFunctionForRegimes.put(Regime.ONE, fitnessFunctionForRegimeOne());
-        slotFunctionForRegimes.put(Regime.TWO, fitnessFunctionForRegimeTwo());
-        slotFunctionForRegimes.put(Regime.THREE, fitnessFunctionForRegimeThree());
-        slotFunctionForRegimes.put(Regime.FOUR, zeroFunction());
-        return slotFunctionForRegimes;
+        Map<Regime, UnivariateRealFunction> fitnessFunctionsForRegimes = new HashMap<>();
+        fitnessFunctionsForRegimes.put(Regime.ZERO, new UnivariateRealFunction() {
+            @Override
+            public double value(double v) throws FunctionEvaluationException {
+                return 1.0;
+            }
+        });
+        fitnessFunctionsForRegimes.put(Regime.ONE, fitnessFunctionForRegimeOne());
+        fitnessFunctionsForRegimes.put(Regime.TWO, fitnessFunctionForRegimeTwo());
+        fitnessFunctionsForRegimes.put(Regime.THREE, fitnessFunctionForRegimeThree());
+        return fitnessFunctionsForRegimes;
     }
 
     @Bean
@@ -174,7 +201,7 @@ public class NewGAConfig {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
-                return 30.0;
+                return 20.0;
             }
         };
     }

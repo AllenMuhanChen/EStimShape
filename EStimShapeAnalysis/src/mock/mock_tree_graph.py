@@ -165,3 +165,12 @@ def _parse_recursive_xml_helper(elem):
         result["children"] = children
         result["identifier"] = int(elem.find("identifier").text)
     return result
+
+
+def main():
+    app = MockTreeGraphApp()
+    app.run()
+
+
+if __name__ == "main":
+    main()

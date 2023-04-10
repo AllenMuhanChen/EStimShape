@@ -4,16 +4,20 @@ import os
 import subprocess
 from time import sleep
 
-from src.mock import mock_ga_responses
+from src.mock import mock_ga_responses, mock_rwa_analysis, mock_rwa_plot, mock_tree_graph
 from src.util.connection import Connection
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 xper_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/xper"
 
 def main():
-    num_generations = 8
-    # start_experiment()
+    num_generations = 10
+
     ga_loop(num_generations)
+
+    mock_rwa_analysis.main()
+    mock_rwa_plot.main()
+    mock_tree_graph.main()
 
 
 def start_experiment():

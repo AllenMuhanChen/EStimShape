@@ -88,7 +88,7 @@ class Binner:
             if bin_range.start <= float(value) < bin_range.end:
                 # Return the current bin_range range
                 return i, bin_range
-        if not value > self.end:
+        if not float(value) > self.end:
             return len(self.bins) - 1, self.bins[-1]
         # raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
 

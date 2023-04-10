@@ -49,10 +49,10 @@ public class NewGABlockGenerator extends GABlockGenerator {
         getStims().addAll(createRandStim(this, slotSelectionProcess.getNumChildrenToSelect(), initialSize, initialCoords));
     }
 
-    private List<ThreeDGAStim> createRandStim(GABlockGenerator generator, int numTrials, double size, Coordinates2D coords) {
+    private List<ThreeDGAStim> createRandStim(NewGABlockGenerator generator, int numTrials, double size, Coordinates2D coords) {
         List<ThreeDGAStim> trials = new LinkedList<>();
         for (int i = 0; i < numTrials; i++) {
-            trials.add(new RandStim(generator, size, coords, stimTypeForRegime.get(Regime.ZERO)));
+            trials.add(new RegimeZeroStim(generator, size, coords));
         }
         return trials;
     }
@@ -62,7 +62,11 @@ public class NewGABlockGenerator extends GABlockGenerator {
         List<Child> selectedParents = slotSelectionProcess.select(getGaBaseName());
         for (Child child: selectedParents) {
             System.out.println("Attemptins regime " + child.getRegime() + " for parent " + child.getParentId() + "");
-            if (child.getRegime().equals(Regime.ONE)) {
+            if (child.getRegime().equals(Regime.ZERO)) {
+                System.out.println("Adding Regime Zero Stim");
+                getStims().add(new RegimeZeroStim(this, initialSize, initialCoords));
+            }
+            else if (child.getRegime().equals(Regime.ONE)) {
                 System.out.println("Adding Regime One Stim");
                 getStims().add(new RegimeOneStim(this, child.getParentId()));
             }

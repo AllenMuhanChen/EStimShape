@@ -2574,7 +2574,7 @@ public class AllenMatchStick extends MatchStick {
 //		 double[] nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
 //		 double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
 		// double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
-		double[] nCompDist = this.getPARAM_nCompDist();
+		double[] nCompDist = getPARAM_nCompDist();
 		nComp = stickMath_lib.pickFromProbDist(nCompDist);
 		// nComp = 2;
 
@@ -4291,7 +4291,7 @@ Adding a new MAxisArc to a MatchStick
 			shaftData.length = mAxis.getArcLen();
 
 			//Curvature
-			shaftData.curvature = mAxis.getCurvature();
+			shaftData.curvature = 1.0 / mAxis.getRad();
 
 			//
 			shaftDatas.add(shaftData);

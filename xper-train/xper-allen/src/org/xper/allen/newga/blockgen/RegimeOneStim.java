@@ -24,7 +24,7 @@ public class RegimeOneStim extends MorphedStim {
 
         GrowingMatchStick childMStick = new GrowingMatchStick();
         childMStick.setProperties(generator.getMaxImageDimensionDegrees());
-        childMStick.genGrowingMatchStick(parentMStick, 0.2);
+        childMStick.genGrowingMatchStick(parentMStick, 0.3);
         return childMStick;
     }
 

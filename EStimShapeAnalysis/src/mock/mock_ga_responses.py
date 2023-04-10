@@ -101,7 +101,7 @@ class ShaftTuningFunction(TuningFunction):
         periodic_indices = [0, 1, 3, 4]
         non_periodic_indices = [2, 5, 6, 7]
         mu = np.array(peak)
-        tuning_width = self.assign_tuning_width(fraction_of_range=1.0/5.0 * 2)
+        tuning_width = self.assign_tuning_width_from_range(fraction_of_range= 1.0/2.0)
         self.tuning_function = MultiCustomNormalTuningFunction(mu, tuning_width, periodic_indices, non_periodic_indices,
                                                                100)
 
@@ -129,7 +129,7 @@ class ShaftTuningFunction(TuningFunction):
         print(response)
         return response
 
-    def assign_tuning_width(self, fraction_of_range: float = 1.0 / 5.0):
+    def assign_tuning_width_from_range(self, fraction_of_range: float = 1.0 / 5.0):
         tuning_range_maxes = []
         extract_values_with_key_into_list(self.field_ranges, tuning_range_maxes, "max")
         tuning_range_mins = []

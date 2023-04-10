@@ -62,12 +62,12 @@ def main():
         "radius": AutomaticBinner("radius", data_shaft, 9),
     }
 
-    response_weighted_average = compute_rwa_from_lineages(data, "New3D", binner_for_shaft_fields,
-                                                          sigma_for_fields=sigma_for_fields,
-                                                          padding_for_fields=padding_for_fields)
+    # response_weighted_average = compute_rwa_from_lineages(data, "New3D", binner_for_shaft_fields,
+    #                                                       sigma_for_fields=sigma_for_fields,
+    #                                                       padding_for_fields=padding_for_fields)
 
-    # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
-    #     sigma_for_fields, padding_for_fields)
+    response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
+        sigma_for_fields, padding_for_fields)
     # SAVE
     save(response_weighted_average, "test_rwa")
 
