@@ -5,6 +5,7 @@ import os
 import PIL
 import plotly.graph_objects as go
 import pyperclip
+import xmltodict
 from PIL.Image import Image
 from dash import dash, dcc, html, Output, Input
 
@@ -16,6 +17,9 @@ import xml.etree.ElementTree as ET
 from tests.tree_graph.colored_test_tree_graph import ColoredTreeGraph
 
 conn = Connection("allen_estimshape_dev_221110")
+
+
+
 
 
 class MockTreeGraphApp(TreeGraphApp):
@@ -56,8 +60,13 @@ class MockTreeGraphApp(TreeGraphApp):
         def display_click_data(clickData):
             if clickData:
                 node_label = clickData["points"][0]["text"]
-                print(f"Node {node_label} clicked")  # Print the node information
-                return f"Node {node_label} clicked"
+                mstick_data = fetch_shaft_data_for_mstick(node_label)
+                component_print = []
+                for component in mstick_data:
+                    component_print.append(f"{component}\n")
+                    component_print.append(html.Br())
+
+                return component_print
             else:
                 return ""
 
@@ -134,6 +143,12 @@ def fetch_responses_for(stim_ids):
         responses[stim_id] = float(response)
     return responses
 
+def fetch_shaft_data_for_mstick(stim_id):
+    conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
+    mstick_data = conn.fetch_one()
+    mstick_data_dict = xmltodict.parse(mstick_data)
+    shaft_data = mstick_data_dict["AllenMStickData"]["shaftData"]["ShaftData"]
+    return shaft_data
 
 def recursive_tree_to_edges(tree):
     edges = []
@@ -172,5 +187,5 @@ def main():
     app.run()
 
 
-if __name__ == "main":
+if __name__ == "__main__":
     main()

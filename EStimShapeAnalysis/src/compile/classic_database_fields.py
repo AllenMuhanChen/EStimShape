@@ -91,6 +91,20 @@ class NewGaLineageField(StimSpecIdField):
         return get_new_ga_lineage_from_stim_spec_id(self.conn, stim_spec_id)
 
 
+class RegimeScoreField(NewGaLineageField):
+    def get(self, when: When) -> str:
+        lineage_id = super().get(when)
+        return float(get_regime_score_from_lineage_id(self.conn, lineage_id))
+
+
+def get_regime_score_from_lineage_id(conn, lineage_id):
+    conn.execute("SELECT regime_score FROM LineageGaInfo WHERE lineage_id"
+                 " = %s",
+                 params=(lineage_id,))
+    regime_score = conn.fetch_one()
+    return regime_score
+
+
 def get_new_ga_lineage_from_stim_spec_id(conn, stim_spec_id):
     conn.execute("SELECT lineage_id FROM StimGaInfo WHERE"
                  " stim_id = %s",

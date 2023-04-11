@@ -8,10 +8,11 @@ import pandas as pd
 
 from src.analysis.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField, \
-    NewGaLineageField, NewGaNameField
+    NewGaLineageField, NewGaNameField, RegimeScoreField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
+from src.mock import mock_rwa_plot
 from src.util import time_util
 from src.util.connection import Connection
 from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
@@ -26,13 +27,13 @@ def main():
 
     # a percentage of the number of bins
     sigma_for_fields = {
-        "theta": 1 / 5,
-        "angularPosition.phi": 1 / 5,
-        "radialPosition": 1 / 5,
-        "orientation.phi": 1 / 5,
-        "length": 1 / 5,
-        "curvature": 1 / 5,
-        "radius": 1 / 5,
+        "theta": 1 / 9,
+        "angularPosition.phi": 1 / 9,
+        "radialPosition": 1 / 9,
+        "orientation.phi": 1 / 9,
+        "length": 1 / 9,
+        "curvature": 1 / 9,
+        "radius": 1 / 9,
     }
 
     padding_for_fields = {
@@ -56,20 +57,21 @@ def main():
         "theta": Binner(-pi, pi, 9),
         "angularPosition.phi": Binner(0, pi, 9),
         "radialPosition": AutomaticBinner("radialPosition", data_shaft, 9),
-        "orientation.phi": Binner(0, pi/2, 9),
+        "orientation.phi": Binner(0, pi / 2, 9),
         "length": AutomaticBinner("length", data_shaft, 9),
         "curvature": AutomaticBinner("curvature", data_shaft, 9),
         "radius": AutomaticBinner("radius", data_shaft, 9),
     }
 
-    # response_weighted_average = compute_rwa_from_lineages(data, "New3D", binner_for_shaft_fields,
-    #                                                       sigma_for_fields=sigma_for_fields,
-    #                                                       padding_for_fields=padding_for_fields)
-
+    n = 1
+    # response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
+    #                                                             sigma_for_fields=sigma_for_fields,
+    #                                                             padding_for_fields=padding_for_fields)
+    #
     response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
-        sigma_for_fields, padding_for_fields)
+                                    sigma_for_fields, padding_for_fields)
     # SAVE
-    save(response_weighted_average, "test_rwa")
+    save(get_next(response_weighted_average), "test_rwa")
 
 
 def save(response_weighted_average, file_name):
@@ -101,12 +103,35 @@ def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields
     return rwa_multiplied
 
 
+def compute_rwa_from_top_n_lineages(data, ga_type, n, binner_for_fields, sigma_for_fields=None, padding_for_fields=None):
+    """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
+    data = data.loc[data['GaType'] == ga_type]
+    rwas = []
+    means_for_lineages = data.groupby("Lineage")["RegimeScore"].mean()
+    top_n_lineages = means_for_lineages.nlargest(n).index
+    filtered_data = data[data["Lineage"].isin(top_n_lineages)]
+    for i, (lineage, lineage_data) in enumerate(filtered_data.groupby("Lineage")):
+        if i < n:
+            print(lineage)
+            rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields,
+                            sigma_for_fields, padding_for_fields))
+    print("Multiplying Lineage RWAs")
+
+    rwas = [get_next(r) for r in rwas]
+    for lineage_index, rwa_lineage in enumerate(rwas):
+        save(rwa_lineage, "lineage_rwa_%d" % lineage_index)
+    rwa_multiplied = combine_rwas(rwas)
+
+    return rwa_multiplied
+
+
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     mstick_spec_data_source = StimSpecDataField(conn)
 
     fields = FieldList()
     fields.append(NewGaNameField(conn, "GaType"))
     fields.append(NewGaLineageField(conn, "Lineage"))
+    fields.append(RegimeScoreField(conn, "RegimeScore"))
     # fields.append(GaTypeField(conn, "GaType"))
     # fields.append(GaLineageField(conn, "Lineage"))
     fields.append(StimSpecIdField(conn, "Id"))
@@ -234,3 +259,5 @@ def check_if_outside_binrange(field_name: str, value, binner_for_fields: dict[st
 
 if __name__ == '__main__':
     main()
+    mock_rwa_plot.main()
+
