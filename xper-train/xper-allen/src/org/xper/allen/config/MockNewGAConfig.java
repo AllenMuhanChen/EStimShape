@@ -151,7 +151,7 @@ public class MockNewGAConfig {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
-                return 5.0;
+                return 3.0;
             }
         };
     }

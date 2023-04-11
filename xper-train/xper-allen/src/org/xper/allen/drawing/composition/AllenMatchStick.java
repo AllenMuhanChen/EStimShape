@@ -208,7 +208,6 @@ public class AllenMatchStick extends MatchStick {
 
 	public void drawSkeleton() {
 		int i;
-		boolean showComponents = false;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
 				float[][] colorCode= {

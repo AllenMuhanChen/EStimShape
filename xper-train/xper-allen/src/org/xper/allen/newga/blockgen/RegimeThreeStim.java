@@ -28,6 +28,6 @@ public class RegimeThreeStim extends MorphedStim {
 
     //TODO: have magnitude determined by current balance of magnitudes
     private double getMagnitude(){
-        return Math.random();
+        return Math.random() * 0.2+0.3;
     }
 }

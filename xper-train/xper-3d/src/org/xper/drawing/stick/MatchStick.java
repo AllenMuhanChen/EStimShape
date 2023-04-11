@@ -51,6 +51,7 @@ public class MatchStick implements Drawable {
 
 	private boolean doCenterObject = false;
 	private boolean showDebug = false;
+	protected boolean showComponents = false;
 
 	public MatchStick()
 	{
@@ -798,7 +799,6 @@ public class MatchStick implements Drawable {
 
 	public void drawSkeleton() {
 		int i;
-		boolean showComponents = false;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
 				float[][] colorCode= {

@@ -9,11 +9,11 @@ from src.util.connection import Connection
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 xper_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/xper"
-
+conn = Connection("allen_estimshape_dev_221110")
 def main():
     num_generations = 10
 
-    ga_loop(num_generations)
+    ga_loop()
 
     mock_rwa_analysis.main()
     mock_rwa_plot.main()
@@ -47,6 +47,22 @@ def ga_loop(num_generations):
         mock_ga_responses.main()
         print(f"Generation {generation} responses mocked")
 
+def ga_loop():
+    generation = 1
+    while float(number_of_complete_lineages()) < 2:
+        run_trial_generator()
+        sleep(5)
+        mock_ga_responses.main()
+        print(f"Generation {generation} responses mocked")
+        generation += 1
+
+def number_of_complete_lineages():
+    query = """
+    SELECT COUNT(*) FROM LineageGaInfo
+    WHERE regime_score = 4
+    """
+    conn.execute(query)
+    return conn.fetch_one()
 
 def run_trial_generator():
     output_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/tree_graph"
