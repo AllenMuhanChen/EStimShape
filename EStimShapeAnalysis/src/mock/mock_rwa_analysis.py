@@ -12,7 +12,6 @@ from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdFie
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
 from src.compile.trial_field import FieldList, get_data_from_trials
-from src.mock import mock_rwa_plot
 from src.util import time_util
 from src.util.connection import Connection
 from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
@@ -39,11 +38,11 @@ def main():
     padding_for_fields = {
         "theta": "wrap",
         "angularPosition.phi": "wrap",
-        "radialPosition": "nearest",
+        "radialPosition": "reflect",
         "orientation.phi": "wrap",
-        "length": "nearest",
-        "curvature": "nearest",
-        "radius": "nearest",
+        "length": "reflect",
+        "curvature": "reflect",
+        "radius": "reflect",
     }
 
     # PIPELINE
@@ -64,12 +63,12 @@ def main():
     }
 
     n = 2
-    response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
-                                                                sigma_for_fields=sigma_for_fields,
-                                                                padding_for_fields=padding_for_fields)
-
-    # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
-    #                                 sigma_for_fields, padding_for_fields)
+    # response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
+    #                                                             sigma_for_fields=sigma_for_fields,
+    #                                                             padding_for_fields=padding_for_fields)
+    #
+    response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
+                                    sigma_for_fields, padding_for_fields)
     # SAVE
     save(get_next(response_weighted_average), "test_rwa")
 
@@ -262,5 +261,5 @@ def check_if_outside_binrange(field_name: str, value, binner_for_fields: dict[st
 
 if __name__ == '__main__':
     main()
-    mock_rwa_plot.main()
+    # mock_rwa_plot.main()
 

@@ -17,9 +17,8 @@ public class RadiusProfileMorpher {
                 distributeMagnitudeToRadiiAndNormalize(radiusProfileMagnitude, oldRadiusInfoForPoints);
 
         // Use the radius points' associated normalized magnitudes to change the radius points
-        RadiusProfile newRadiusProfile = pickNewRadii(oldRadiusInfoForPoints, normalizedMagnitudeForRadii, length, curvature);
 
-        return newRadiusProfile;
+        return pickNewRadii(oldRadiusInfoForPoints, normalizedMagnitudeForRadii, length, curvature);
     }
 
     private Map<Integer, Double> distributeMagnitudeToRadiiAndNormalize(double radiusProfileMagnitude, Map<Integer, RadiusInfo> radiusInfoForPoints) {

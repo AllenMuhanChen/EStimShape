@@ -6,7 +6,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class ComponentMorphParameters {
 
-    public static double MAX;
     public Double magnitude;
 
     public ComponentMorphParameters(Double magnitude) {

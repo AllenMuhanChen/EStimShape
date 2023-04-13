@@ -48,7 +48,7 @@ def main():
         "orientation.phi": {"min": 0, "max": math.pi / 2},
         "length": {"min": 0, "max": 50},
         "curvature": {"min": 0, "max": 0.15},
-        "radius": {"min": 0, "max": 12},
+        "radius": {"min": 0, "max": 30},
     }
 
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
