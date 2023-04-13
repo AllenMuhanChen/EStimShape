@@ -10,6 +10,8 @@ from src.util.connection import Connection
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 xper_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/xper"
 conn = Connection("allen_estimshape_dev_221110")
+
+
 def main():
     num_generations = 10
 
@@ -47,22 +49,35 @@ def ga_loop(num_generations):
         mock_ga_responses.main()
         print(f"Generation {generation} responses mocked")
 
+
 def ga_loop():
     generation = 1
-    while float(number_of_complete_lineages()) < 2:
+    num_complete_lineages = 0
+    while float(num_complete_lineages) < 2:
+        print(f"Number of complete lineages: {num_complete_lineages}")
         run_trial_generator()
+        print(f"Highest regime score so far: {get_highest_regime_score()}")
         sleep(5)
         mock_ga_responses.main()
         print(f"Generation {generation} responses mocked")
         generation += 1
+        num_complete_lineages = number_of_complete_lineages()
+
+
+def get_highest_regime_score():
+    try:
+        conn.execute("SELECT MAX(regime_score) FROM LineageGaInfo")
+        highest_regime_score = conn.fetch_one()
+        return float(highest_regime_score)
+    except:
+        return 0.0
+
 
 def number_of_complete_lineages():
-    query = """
-    SELECT COUNT(*) FROM LineageGaInfo
-    WHERE regime_score = 4
-    """
-    conn.execute(query)
-    return conn.fetch_one()
+    conn.execute("SELECT COUNT(*) FROM LineageGaInfo WHERE regime_score = 4.0")
+    num_complete_lineages = conn.fetch_one()
+    return float(num_complete_lineages)
+
 
 def run_trial_generator():
     output_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/tree_graph"
@@ -74,6 +89,7 @@ def run_trial_generator():
     with open(output_file, "w") as file:
         result = subprocess.run(trial_generator_command, shell=True, stdout=file, stderr=subprocess.STDOUT, text=True)
     return result.returncode
+
 
 # def run_trial_generator():
 #     trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")

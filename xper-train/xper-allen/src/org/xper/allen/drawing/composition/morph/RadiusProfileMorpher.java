@@ -5,6 +5,7 @@ import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusI
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 public class RadiusProfileMorpher {
@@ -22,38 +23,25 @@ public class RadiusProfileMorpher {
     }
 
     private Map<Integer, Double> distributeMagnitudeToRadiiAndNormalize(double radiusProfileMagnitude, Map<Integer, RadiusInfo> radiusInfoForPoints) {
-        int numPoints = radiusInfoForPoints.size();
-        double maxToDistributeToSingleRadius = 1.0 / numPoints;
-
         List<Map.Entry<Integer, RadiusInfo>> radiusInfosForPointList = new ArrayList<>(radiusInfoForPoints.entrySet());
 
 
-        Map<Integer, Double> normalizedMagnitudeForRadii = new HashMap<>();
+        Map<Integer, AtomicReference<Double>> magnitudesForPointsToDistributeTo = new HashMap<>();
         for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
-            normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), 0.0);
+            magnitudesForPointsToDistributeTo.put(radiusInfoForPoint.getKey(), new AtomicReference<>(0.0));
         }
-        double amountLeftToDistribute = radiusProfileMagnitude;
-        while (Math.round(amountLeftToDistribute * 100000.0)/ 100000.0 > 0){
-            Collections.shuffle(radiusInfosForPointList);
-            for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
-                double normalizedRandomMagnitude = Math.random() * radiusProfileMagnitude / numPoints;
-                // If the random magnitude is greater than the amount left to distribute, then we need to
-                // reduce the magnitude to the amount left to distribute
-                if (normalizedRandomMagnitude > amountLeftToDistribute) {
-                    normalizedRandomMagnitude = amountLeftToDistribute;
+        MorphDistributer morphDistributer = new MorphDistributer();
+        morphDistributer.distributeMagnitudeTo(magnitudesForPointsToDistributeTo.values(), radiusProfileMagnitude);
 
-                }
-                // If adding the random magnitude to the current magnitude would exceed the max, then we need to
-                // reduce the magnitude to the amount that would bring the current magnitude to the max
-                if (normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedRandomMagnitude > maxToDistributeToSingleRadius) {
-                    normalizedRandomMagnitude = maxToDistributeToSingleRadius - normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey());
-                }
-                normalizedMagnitudeForRadii.put(radiusInfoForPoint.getKey(), normalizedMagnitudeForRadii.get(radiusInfoForPoint.getKey()) + normalizedRandomMagnitude);
-                amountLeftToDistribute -= normalizedRandomMagnitude;
-                System.out.println("Amount left to distribute to radii: " + amountLeftToDistribute);
+        Map<Integer, Double> output = new HashMap<>();
+        magnitudesForPointsToDistributeTo.forEach(new BiConsumer<Integer, AtomicReference<Double>>() {
+            @Override
+            public void accept(Integer pointIndex, AtomicReference<Double> magnitude) {
+                output.put(pointIndex, magnitude.get());
             }
-        }
-        return normalizedMagnitudeForRadii;
+        });
+
+        return output;
     }
 
     private RadiusProfile pickNewRadii(Map<Integer, RadiusInfo> oldRadiusInfoForPoints, Map<Integer, Double> normalizedMagnitudeForRadii, Double length, Double curvature) {

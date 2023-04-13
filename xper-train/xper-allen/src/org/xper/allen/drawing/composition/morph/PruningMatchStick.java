@@ -32,6 +32,7 @@ public class PruningMatchStick extends MorphedMatchStick{
             toPreserve.add(componentsToMorph.get(i));
         }
         componentsToMorph.removeAll(toPreserve);
+        System.err.println("componentsToMorph: " + componentsToMorph.size() + " out of " + matchStickToMorph.getNComponent());
         return componentsToMorph;
     }
 }

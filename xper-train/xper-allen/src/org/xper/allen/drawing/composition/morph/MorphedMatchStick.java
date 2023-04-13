@@ -74,6 +74,8 @@ public class MorphedMatchStick extends AllenMatchStick {
                 compsToPreserve.add(component);
             }
         }
+
+        System.err.println("Preserving components: " + compsToPreserve.size() + " out of " + components.size());
     }
 
     public List<Integer> getCompList() {

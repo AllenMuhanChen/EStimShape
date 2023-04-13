@@ -64,12 +64,12 @@ def main():
     }
 
     n = 2
-    # response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
-    #                                                             sigma_for_fields=sigma_for_fields,
-    #                                                             padding_for_fields=padding_for_fields)
-    #
-    response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
-                                    sigma_for_fields, padding_for_fields)
+    response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
+                                                                sigma_for_fields=sigma_for_fields,
+                                                                padding_for_fields=padding_for_fields)
+
+    # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
+    #                                 sigma_for_fields, padding_for_fields)
     # SAVE
     save(get_next(response_weighted_average), "test_rwa")
 
@@ -174,8 +174,13 @@ def condition_spherical_angles(data):
 def condition_theta_and_phi(dictionary: dict):
     theta = np.float32(dictionary["theta"])
     phi = np.float32(dictionary["phi"])
-    pi = np.float32(np.pi)
 
+    phi, theta = map_theta_and_phi(phi, theta)
+
+    return {"theta": theta, "phi": phi}
+
+
+def map_theta_and_phi(phi, theta):
     # PHI [0, pi]
     phi = modulus(phi, (2 * pi))
     if phi < 0:
@@ -183,11 +188,9 @@ def condition_theta_and_phi(dictionary: dict):
     if phi > pi:
         phi = (2 * pi) - phi
         theta = theta + pi
-
     # THETA [-pi, pi]
     theta = map_theta(theta)
-
-    return {"theta": theta, "phi": phi}
+    return phi, theta
 
 
 def map_theta(theta):

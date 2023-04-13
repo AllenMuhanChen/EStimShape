@@ -77,36 +77,11 @@ public class ComponentMorphParameters {
         magnitudes.add(lengthMagnitude);
         magnitudes.add(curvatureMagnitude);
         magnitudes.add(radiusProfileMagnitude);
-        MAX = 1.0 / magnitudes.size();
+
+        MorphDistributer morphDistributer = new MorphDistributer();
+        morphDistributer.distributeMagnitudeTo(magnitudes, magnitude);
 
 
-
-        Double amountLeftToDistribute = magnitude;
-        while ( amountLeftToDistribute > 0.0) {
-            Collections.shuffle(magnitudes);
-            for (AtomicReference<Double> magnitude : magnitudes) {
-                double normalizedRandomMagnitude = Math.random() * this.magnitude / magnitudes.size();
-                System.out.println("Random magnitude: " + normalizedRandomMagnitude);
-                // If the random magnitude is greater than the amount left to distribute, then we need to
-                // reduce the magnitude to the amount left to distribute
-                if (normalizedRandomMagnitude > amountLeftToDistribute) {
-                    normalizedRandomMagnitude = amountLeftToDistribute;
-                }
-                // If adding the random magnitude to the current magnitude would exceed the max, then we need to
-                // reduce the magnitude to the amount that would bring the current magnitude to the max
-                if (magnitude.get() + normalizedRandomMagnitude > MAX) {
-                    normalizedRandomMagnitude = MAX - magnitude.get();
-                }
-                magnitude.set(magnitude.get() + normalizedRandomMagnitude);
-                amountLeftToDistribute -= normalizedRandomMagnitude;
-                System.out.println("Amount left to distribute to parameters: " + amountLeftToDistribute);
-            }
-        }
-
-        // Normalize the magnitudes
-        for (AtomicReference<Double> magnitude : magnitudes) {
-            magnitude.set(magnitude.get() / MAX);
-        }
         // Divide orientation magnitude by 2 because
         // morphing an orientation changes two dimensions of the RWA
         this.orientationMagnitude = orientationMagnitude.get()/2.0;

@@ -52,6 +52,9 @@ public class RegimeScoreSource implements LineageScoreSource {
             lineageScore = calculateLineageScoreWith(RegimeTransition.THREE_TO_FOUR, lineageId);
             regimeScore = 3.0 + lineageScore;
         }
+        else if (lastGenRegimeScore == 4.0){
+            regimeScore = 4.0;
+        }
         else {
             throw new RuntimeException("Regime score is greater than 4.0! " + lastGenRegimeScore);
         }
