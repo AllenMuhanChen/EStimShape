@@ -61,6 +61,7 @@ public class RegimeScoreSource implements LineageScoreSource {
         if (regimeScore < lastGenRegimeScore){
             regimeScore = lastGenRegimeScore;
         }
+        System.err.println("Regime score: " + regimeScore);
     }
 
     private Double calculateLineageScoreWith(RegimeTransition regimeTransition, Long founderId){

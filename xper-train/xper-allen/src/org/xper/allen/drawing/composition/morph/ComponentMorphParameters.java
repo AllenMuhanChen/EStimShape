@@ -83,7 +83,7 @@ public class ComponentMorphParameters {
 
         // Divide orientation magnitude by 2 because
         // morphing an orientation changes two dimensions of the RWA
-        this.orientationMagnitude = orientationMagnitude.get()/2.0;
+        this.orientationMagnitude = orientationMagnitude.get();
         this.rotationMagnitude = rotationMagnitude.get();
         this.lengthMagnitude = lengthMagnitude.get();
         this.curvatureMagnitude = curvatureMagnitude.get();
