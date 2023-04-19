@@ -2,14 +2,12 @@ package org.xper.allen.ga.regimescore;
 
 import org.xper.Dependency;
 import org.xper.allen.ga.SpikeRateSource;
-import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.xper.allen.ga.regimescore.Regime.*;
 import static org.xper.allen.newga.blockgen.NewGABlockGenerator.*;
 
 /**
@@ -26,7 +24,7 @@ public class MaxValueLineageScore implements LineageScoreSource {
     SpikeRateSource spikeRateSource;
 
     @Dependency
-    ThresholdSource maxThresholdSource;
+    ValueSource maxValueSource;
 
     @Override
     public Double getLineageScore(Long lineageId) {
@@ -38,7 +36,7 @@ public class MaxValueLineageScore implements LineageScoreSource {
         Double max = calculateMaxSpikeRateFor(stimIds);
 
         // normalize by threshold such that when max == threshold, score == 1
-        Double threshold = maxThresholdSource.getThreshold();
+        Double threshold = maxValueSource.getValue();
         Double score = max / threshold;
         if (score > 1.0) {
             score = 1.0;
@@ -83,11 +81,11 @@ public class MaxValueLineageScore implements LineageScoreSource {
         this.spikeRateSource = spikeRateSource;
     }
 
-    public ThresholdSource getMaxThresholdSource() {
-        return maxThresholdSource;
+    public ValueSource getMaxThresholdSource() {
+        return maxValueSource;
     }
 
-    public void setMaxThresholdSource(ThresholdSource maxThresholdSource) {
-        this.maxThresholdSource = maxThresholdSource;
+    public void setMaxThresholdSource(ValueSource maxValueSource) {
+        this.maxValueSource = maxValueSource;
     }
 }

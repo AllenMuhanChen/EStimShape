@@ -30,15 +30,15 @@ public class ParentChildBinThresholdsScoreSourceTest {
                 return stimId.doubleValue();
             }
         });
-        source.setParentResponseThresholdSource(new ThresholdSource() {
+        source.setParentResponseThresholdSource(new LineageValueSource() {
             @Override
-            public Double getThreshold() {
+            public double getValue(long lineageId) {
                 return 0.0;
             }
         });
-        source.setMaxResponseSource(new MaxResponseSource() {
+        source.setMaxResponseSource(new LineageMaxResponseSource() {
             @Override
-            public double getMaxResponse(String gaName) {
+            public double getValue(long lineageId) {
                 return 10.0;
             }
         });
@@ -78,21 +78,21 @@ public class ParentChildBinThresholdsScoreSourceTest {
         assertEquals(0.833, actualScore, 0.001);
     }
 
-    private Map<NormalizedResponseBin, ThresholdSource> thresholdsForBins() {
-        Map<NormalizedResponseBin, ThresholdSource> map = new LinkedHashMap<>();
+    private Map<NormalizedResponseBin, ValueSource> thresholdsForBins() {
+        Map<NormalizedResponseBin, ValueSource> map = new LinkedHashMap<>();
 
         NormalizedResponseBin bin1 = new NormalizedResponseBin(0.0, 0.5);
-        map.put(bin1, new ThresholdSource() {
+        map.put(bin1, new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 3.0;
             }
         });
 
         NormalizedResponseBin bin2 = new NormalizedResponseBin(0.5, 1.0);
-        map.put(bin2, new ThresholdSource() {
+        map.put(bin2, new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 4.0;
             }
         });

@@ -226,10 +226,10 @@ public class NewGAConfig {
     }
 
     @Bean
-    public ThresholdSource regimeZeroToOneMaxSpikeRateThreshold() {
-        return new ThresholdSource() {
+    public ValueSource regimeZeroToOneMaxSpikeRateThreshold() {
+        return new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 20.0;
             }
         };
@@ -246,10 +246,10 @@ public class NewGAConfig {
     }
 
     @Bean
-    public ThresholdSource regimeOneToTwoRangeThreshold() {
-        return new ThresholdSource() {
+    public ValueSource regimeOneToTwoRangeThreshold() {
+        return new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 10.0;
             }
         };
@@ -267,28 +267,38 @@ public class NewGAConfig {
         return twoToThree;
     }
 
+
     @Bean
-    public ThresholdSource regimeTwoToThreePairThreshold() {
-        return new ThresholdSource() {
+    public LineageMaxResponseSource lineageMaxResponseSource() {
+        LineageMaxResponseSource lineageMaxResponseSource = new LineageMaxResponseSource();
+        lineageMaxResponseSource.setDbUtil(dbUtil());
+        lineageMaxResponseSource.setMinimumMaxResponse(40.0);
+        lineageMaxResponseSource.setSpikeRateSource(spikeRateSource());
+        return lineageMaxResponseSource;
+    }
+
+    @Bean
+    public ValueSource regimeTwoToThreePairThreshold() {
+        return new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 10.0;
             }
         };
     }
 
     @Bean
-    public ThresholdSource regimeTwoToThreeParentThreshold() {
-        return new ThresholdSource() {
+    public LineageValueSource regimeTwoToThreeParentThreshold() {
+        return new LineageValueSource() {
             @Override
-            public Double getThreshold() {
-                return 60.0;
+            public double getValue(long lineageId) {
+                return 0.66 * lineageMaxResponseSource().getValue(lineageId);
             }
         };
     }
 
     @Bean
-    public ThresholdSource regimeTwoToThreeChildThreshold() {
+    public LineageValueSource regimeTwoToThreeChildThreshold() {
         return regimeTwoToThreeParentThreshold();
     }
 
@@ -300,23 +310,23 @@ public class NewGAConfig {
         threeToFour.setParentResponseThresholdSource(regimeThreeToFourParentThreshold());
         threeToFour.setNumPairThresholdSourcesForBins(regimeThreeToFourPairThresholds());
         threeToFour.setSpikeRateSource(spikeRateSource());
-        threeToFour.setMaxResponseSource(maxResponseSource());
+        threeToFour.setMaxResponseSource(lineageMaxResponseSource());
         return threeToFour;
     }
 
     @Bean
-    public ThresholdSource regimeThreeToFourParentThreshold() {
-        return new ThresholdSource() {
+    public LineageValueSource regimeThreeToFourParentThreshold() {
+        return new LineageValueSource() {
             @Override
-            public Double getThreshold() {
-                return 60.0;
+            public double getValue(long lineageId) {
+                return 0.66 * lineageMaxResponseSource().getValue(lineageId);
             }
         };
     }
 
     @Bean
-    public Map<NormalizedResponseBin, ThresholdSource> regimeThreeToFourPairThresholds() {
-        Map<NormalizedResponseBin, ThresholdSource> pairThresholds = new HashMap<>();
+    public Map<NormalizedResponseBin, ValueSource> regimeThreeToFourPairThresholds() {
+        Map<NormalizedResponseBin, ValueSource> pairThresholds = new HashMap<>();
         pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), thresholdForRegimeThreeToFourPair());
         pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), thresholdForRegimeThreeToFourPair());
         pairThresholds.put(new NormalizedResponseBin(0.66, 1.0), thresholdForRegimeThreeToFourPair());
@@ -324,11 +334,11 @@ public class NewGAConfig {
     }
 
     @Bean
-    public ThresholdSource thresholdForRegimeThreeToFourPair() {
-        return new ThresholdSource() {
+    public ValueSource thresholdForRegimeThreeToFourPair() {
+        return new ValueSource() {
             @Override
-            public Double getThreshold() {
-                return 10.0;
+            public Double getValue() {
+                return 5.0;
             }
         };
     }

@@ -20,9 +20,9 @@ public class MaxValueLineageScoreTest {
 
         source.setDbUtil(new MockDbUtil());
         source.setSpikeRateSource(new MockSpikeRateSource());
-        source.setMaxThresholdSource(new ThresholdSource() {
+        source.setMaxThresholdSource(new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 3.0;
             }
         });

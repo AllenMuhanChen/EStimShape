@@ -20,24 +20,24 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
     MultiGaDbUtil dbUtil;
 
     @Dependency
-    ThresholdSource parentResponseThresholdSource;
+    LineageValueSource parentResponseThresholdSource;
 
     @Dependency
-    Map<NormalizedResponseBin, ThresholdSource> numPairThresholdSourcesForBins;
+    Map<NormalizedResponseBin, ValueSource> numPairThresholdSourcesForBins;
 
     @Dependency
     SpikeRateSource spikeRateSource;
 
     @Dependency
-    MaxResponseSource maxResponseSource;
+    LineageMaxResponseSource maxResponseSource;
 
     private Long lineageId;
-    private Double maxResponse;
+    private Double lineageMaxResponse;
 
     @Override
     public Double getLineageScore(Long lineageId) {
         this.lineageId = lineageId;
-        maxResponse = maxResponseSource.getMaxResponse(dbUtil.readGaNameFor(lineageId));
+        lineageMaxResponse = maxResponseSource.getValue(lineageId);
         // Find all StimIds from this lineage and have stimType
         List<Long> stimIdsWithStimType = dbUtil.readStimIdsFromLineageAndType(lineageId, stimType);
 
@@ -78,7 +78,7 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
             @Override
             public void accept(NormalizedResponseBin bin, List<Long> childrenIds) {
                 Integer numChildren = childrenIds.size();
-                Double pairThreshold = numPairThresholdSourcesForBins.get(bin).getThreshold();
+                Double pairThreshold = numPairThresholdSourcesForBins.get(bin).getValue();
 
                 Double score = numChildren / pairThreshold;
                 if (score > 1) {
@@ -92,13 +92,13 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
 
     private LinkedHashMap<NormalizedResponseBin, List<Long>> assignChildrenToBins(List<Long> passedFilter) {
         LinkedHashMap<NormalizedResponseBin, List<Long>> childrenInsideBinForBins = new LinkedHashMap<>();
-        numPairThresholdSourcesForBins.forEach(new BiConsumer<NormalizedResponseBin, ThresholdSource>() {
+        numPairThresholdSourcesForBins.forEach(new BiConsumer<NormalizedResponseBin, ValueSource>() {
             @Override
-            public void accept(NormalizedResponseBin bin, ThresholdSource thresholdSource) {
+            public void accept(NormalizedResponseBin bin, ValueSource valueSource) {
                 for (Long stimId : passedFilter) {
                     // Normalize child response
                     Double childResponse = spikeRateSource.getSpikeRate(stimId);
-                    Double normalizedResponse = childResponse / maxResponse;
+                    Double normalizedResponse = childResponse / lineageMaxResponse;
 
                     // Compare to bin
                     if (bin.contains(normalizedResponse)) {
@@ -121,7 +121,7 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
             Long parentId = dbUtil.readParentFor(stimId);
             // If parent response meets threshold, add to filteredStimIds
             Double parentResponse = spikeRateSource.getSpikeRate(parentId);
-            boolean passedParentThreshold = parentResponse >= parentResponseThresholdSource.getThreshold();
+            boolean passedParentThreshold = parentResponse >= parentResponseThresholdSource.getValue(lineageId);
 
             if (passedParentThreshold) {
                 passedFilter.add(stimId);
@@ -163,19 +163,19 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
         this.dbUtil = dbUtil;
     }
 
-    public ThresholdSource getParentResponseThresholdSource() {
+    public LineageValueSource getParentResponseThresholdSource() {
         return parentResponseThresholdSource;
     }
 
-    public void setParentResponseThresholdSource(ThresholdSource parentResponseThresholdSource) {
+    public void setParentResponseThresholdSource(LineageValueSource parentResponseThresholdSource) {
         this.parentResponseThresholdSource = parentResponseThresholdSource;
     }
 
-    public Map<NormalizedResponseBin, ThresholdSource> getNumPairThresholdSourcesForBins() {
+    public Map<NormalizedResponseBin, ValueSource> getNumPairThresholdSourcesForBins() {
         return numPairThresholdSourcesForBins;
     }
 
-    public void setNumPairThresholdSourcesForBins(Map<NormalizedResponseBin, ThresholdSource> numPairThresholdSourcesForBins) {
+    public void setNumPairThresholdSourcesForBins(Map<NormalizedResponseBin, ValueSource> numPairThresholdSourcesForBins) {
         this.numPairThresholdSourcesForBins = numPairThresholdSourcesForBins;
     }
 
@@ -187,11 +187,11 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
         this.spikeRateSource = spikeRateSource;
     }
 
-    public MaxResponseSource getMaxResponseSource() {
+    public LineageMaxResponseSource getMaxResponseSource() {
         return maxResponseSource;
     }
 
-    public void setMaxResponseSource(MaxResponseSource maxResponseSource) {
+    public void setMaxResponseSource(LineageMaxResponseSource maxResponseSource) {
         this.maxResponseSource = maxResponseSource;
     }
 }

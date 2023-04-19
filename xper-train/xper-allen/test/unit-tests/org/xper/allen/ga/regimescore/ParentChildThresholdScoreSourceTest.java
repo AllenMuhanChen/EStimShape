@@ -19,9 +19,9 @@ public class ParentChildThresholdScoreSourceTest {
         source = new ParentChildThresholdScoreSource();
         source.setStimType("Regime2");
         source.setDbUtil(new MockDbUtil());
-        source.setNumPairThresholdSource(new ThresholdSource() {
+        source.setNumPairThresholdSource(new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 3.0;
             }
         });
@@ -42,15 +42,15 @@ public class ParentChildThresholdScoreSourceTest {
      */
     @Test
     public void child_threshold_works() {
-        source.setParentResponseThresholdSource(new ThresholdSource() {
+        source.setParentResponseThresholdSource(new LineageValueSource() {
             @Override
-            public Double getThreshold() {
+            public double getValue(long lineageId) {
                 return 0.0;
             }
         });
-        source.setChildResponseThresholdSource(new ThresholdSource() {
+        source.setChildResponseThresholdSource(new LineageMaxResponseSource() {
             @Override
-            public Double getThreshold() {
+            public double getValue(long lineageId) {
                 return 8.0;
             }
         });
@@ -64,15 +64,15 @@ public class ParentChildThresholdScoreSourceTest {
      */
     @Test
     public void parent_threshold_works() {
-        source.setParentResponseThresholdSource(new ThresholdSource() {
+        source.setParentResponseThresholdSource(new LineageValueSource() {
             @Override
-            public Double getThreshold() {
+            public double getValue(long lineageId) {
                 return 3.5;
             }
         });
-        source.setChildResponseThresholdSource(new ThresholdSource() {
+        source.setChildResponseThresholdSource(new LineageValueSource() {
             @Override
-            public Double getThreshold() {
+            public double getValue(long lineageId) {
                 return 0.0;
             }
         });
@@ -86,15 +86,15 @@ public class ParentChildThresholdScoreSourceTest {
      */
     @Test
     public void more_pairs_than_threshold_leads_to_score_of_one() {
-        source.setParentResponseThresholdSource(new ThresholdSource() {
+        source.setParentResponseThresholdSource(new LineageValueSource() {
             @Override
-            public Double getThreshold() {
+            public double getValue(long lineageId) {
                 return 0.0;
             }
         });
-        source.setChildResponseThresholdSource(new ThresholdSource() {
+        source.setChildResponseThresholdSource(new LineageValueSource() {
             @Override
-            public Double getThreshold() {
+            public double getValue(long lineageId) {
                 return 0.0;
             }
         });

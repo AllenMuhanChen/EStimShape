@@ -20,7 +20,7 @@ public class StabilityOfMaxScoreSourceTest {
         source.setDbUtil(new MockDbUtil());
         source.setSpikeRateSource(new MockSpikeRateSource());
         source.setMaxResponseSource(new MockMaxResponseSource());
-        source.setNormalizedRangeThresholdSource(new MockNormalizedRangeThresholdSource());
+        source.setNormalizedRangeThresholdSource(new MockNormalizedRangeValueSource());
     }
 
     /**
@@ -115,9 +115,9 @@ public class StabilityOfMaxScoreSourceTest {
         }
     }
 
-    private static class MockNormalizedRangeThresholdSource implements ThresholdSource {
+    private static class MockNormalizedRangeValueSource implements ValueSource {
         @Override
-        public Double getThreshold() {
+        public Double getValue() {
             return 0.2;
         }
     }

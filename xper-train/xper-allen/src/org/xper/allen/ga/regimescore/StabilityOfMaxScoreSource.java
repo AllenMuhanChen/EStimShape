@@ -39,7 +39,7 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
     MaxResponseSource maxResponseSource;
 
     @Dependency
-    ThresholdSource normalizedRangeThresholdSource;
+    ValueSource normalizedRangeValueSource;
 
 
     private Long lineageId;
@@ -99,7 +99,7 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
     }
 
     private Double calculateRangeThreshold() {
-        Double normalizedRangeThreshold = normalizedRangeThresholdSource.getThreshold();
+        Double normalizedRangeThreshold = normalizedRangeValueSource.getValue();
         return maxResponse * normalizedRangeThreshold;
     }
 
@@ -147,11 +147,11 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
         this.maxResponseSource = maxResponseSource;
     }
 
-    public ThresholdSource getNormalizedRangeThresholdSource() {
-        return normalizedRangeThresholdSource;
+    public ValueSource getNormalizedRangeThresholdSource() {
+        return normalizedRangeValueSource;
     }
 
-    public void setNormalizedRangeThresholdSource(ThresholdSource normalizedRangeThresholdSource) {
-        this.normalizedRangeThresholdSource = normalizedRangeThresholdSource;
+    public void setNormalizedRangeThresholdSource(ValueSource normalizedRangeValueSource) {
+        this.normalizedRangeValueSource = normalizedRangeValueSource;
     }
 }

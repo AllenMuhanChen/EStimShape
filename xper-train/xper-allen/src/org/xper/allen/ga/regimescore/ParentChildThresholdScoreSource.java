@@ -25,13 +25,13 @@ public class ParentChildThresholdScoreSource implements LineageScoreSource{
     MultiGaDbUtil dbUtil;
 
     @Dependency
-    ThresholdSource numPairThresholdSource;
+    ValueSource numPairValueSource;
 
     @Dependency
-    ThresholdSource parentResponseThresholdSource;
+    LineageValueSource parentResponseThresholdSource;
 
     @Dependency
-    ThresholdSource childResponseThresholdSource;
+    LineageValueSource childResponseThresholdSource;
 
     @Dependency
     SpikeRateSource spikeRateSource;
@@ -47,14 +47,14 @@ public class ParentChildThresholdScoreSource implements LineageScoreSource{
         List<Long> passedFilter = new LinkedList<>();
         for (Long stimId : stimIdsWithStimType) {
             Double childSpikeRate = spikeRateSource.getSpikeRate(stimId);
-            boolean passedChildThreshold = childSpikeRate >= childResponseThresholdSource.getThreshold();
+            boolean passedChildThreshold = childSpikeRate >= childResponseThresholdSource.getValue(lineageId);
 
             if (passedChildThreshold) {
                 // Get parent response
                 Long parentId = dbUtil.readParentFor(stimId);
                 // If parent response meets threshold, add to filteredStimIds
                 Double parentResponse = spikeRateSource.getSpikeRate(parentId);
-                boolean passedParentThreshold = parentResponse >= parentResponseThresholdSource.getThreshold();
+                boolean passedParentThreshold = parentResponse >= parentResponseThresholdSource.getValue(lineageId);
 
                 if (passedParentThreshold) {
                     passedFilter.add(stimId);
@@ -64,7 +64,7 @@ public class ParentChildThresholdScoreSource implements LineageScoreSource{
 
         // Calculate score as num that pass filter / numPairThreshold
         Integer numPassed = passedFilter.size();
-        double score = numPassed / numPairThresholdSource.getThreshold();
+        double score = numPassed / numPairValueSource.getValue();
         if (score > 1.0) {
             score = 1.0;
         }
@@ -87,27 +87,27 @@ public class ParentChildThresholdScoreSource implements LineageScoreSource{
         this.dbUtil = dbUtil;
     }
 
-    public ThresholdSource getNumPairThresholdSource() {
-        return numPairThresholdSource;
+    public ValueSource getNumPairThresholdSource() {
+        return numPairValueSource;
     }
 
-    public void setNumPairThresholdSource(ThresholdSource numPairThresholdSource) {
-        this.numPairThresholdSource = numPairThresholdSource;
+    public void setNumPairThresholdSource(ValueSource numPairValueSource) {
+        this.numPairValueSource = numPairValueSource;
     }
 
-    public ThresholdSource getParentResponseThresholdSource() {
+    public LineageValueSource getParentResponseThresholdSource() {
         return parentResponseThresholdSource;
     }
 
-    public void setParentResponseThresholdSource(ThresholdSource parentResponseThresholdSource) {
+    public void setParentResponseThresholdSource(LineageValueSource parentResponseThresholdSource) {
         this.parentResponseThresholdSource = parentResponseThresholdSource;
     }
 
-    public ThresholdSource getChildResponseThresholdSource() {
+    public LineageValueSource getChildResponseThresholdSource() {
         return childResponseThresholdSource;
     }
 
-    public void setChildResponseThresholdSource(ThresholdSource childResponseThresholdSource) {
+    public void setChildResponseThresholdSource(LineageValueSource childResponseThresholdSource) {
         this.childResponseThresholdSource = childResponseThresholdSource;
     }
 

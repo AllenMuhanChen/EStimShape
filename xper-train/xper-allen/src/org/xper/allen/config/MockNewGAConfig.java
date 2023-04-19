@@ -6,8 +6,9 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.ga.*;
+import org.xper.allen.ga.regimescore.LineageValueSource;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
-import org.xper.allen.ga.regimescore.ThresholdSource;
+import org.xper.allen.ga.regimescore.ValueSource;
 import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideTrialRunner;
@@ -80,10 +81,10 @@ public class MockNewGAConfig {
      * @return
      */
     @Bean
-    public ThresholdSource regimeZeroToOneMaxSpikeRateThreshold() {
-        return new ThresholdSource() {
+    public ValueSource regimeZeroToOneMaxSpikeRateThreshold() {
+        return new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 30.0;
             }
         };
@@ -95,10 +96,10 @@ public class MockNewGAConfig {
      * @return
      */
     @Bean
-    public ThresholdSource regimeOneToTwoRangeThreshold() {
-        return new ThresholdSource() {
+    public ValueSource regimeOneToTwoRangeThreshold() {
+        return new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 10.0;
             }
         };
@@ -109,75 +110,38 @@ public class MockNewGAConfig {
      * for the parents and children, respectively.
      */
     @Bean
-    public ThresholdSource regimeTwoToThreePairThreshold() {
-        return new ThresholdSource() {
+    public ValueSource regimeTwoToThreePairThreshold() {
+        return new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 3.0;
             }
         };
     }
 
-    /**
-     * Threshold for the response of parents to be considered for a parent-child pair.
-     * @return
-     */
-    @Bean
-    public ThresholdSource regimeTwoToThreeParentThreshold() {
-        return new ThresholdSource() {
-            @Override
-            public Double getThreshold() {
-                return getCurrentMaxResponse()*0.75;
-            }
-        };
-    }
-
-    private double getCurrentMaxResponse() {
-        return config.maxResponseSource().getMaxResponse(NewGABlockGenerator.gaBaseName);
-    }
-
-    @Bean
-    public ThresholdSource regimeTwoToThreeChildThreshold() {
-        return regimeTwoToThreeParentThreshold();
-    }
-
-
-    /**
-     * Threshold on the response rate that parents must meet to be considered for a parent-child pair.
-     * @return
-     */
-    @Bean
-    public ThresholdSource regimeThreeToFourParentThreshold() {
-        return new ThresholdSource() {
-            @Override
-            public Double getThreshold() {
-                return getCurrentMaxResponse()*0.75;
-            }
-        };
-    }
 
     /**
      * Threshold for the bin distribution of the children to be considered for a parent-child pair.
      * @return
      */
     @Bean
-    public Map<NormalizedResponseBin, ThresholdSource> regimeThreeToFourPairThresholds() {
-        Map<NormalizedResponseBin, ThresholdSource> pairThresholds = new HashMap<>();
-        pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), new ThresholdSource() {
+    public Map<NormalizedResponseBin, ValueSource> regimeThreeToFourPairThresholds() {
+        Map<NormalizedResponseBin, ValueSource> pairThresholds = new HashMap<>();
+        pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 10.0;
             }
         });
-        pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), new ThresholdSource() {
+        pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 5.0;
             }
         });
-        pairThresholds.put(new NormalizedResponseBin(0.66, 1.0), new ThresholdSource() {
+        pairThresholds.put(new NormalizedResponseBin(0.66, 1.0), new ValueSource() {
             @Override
-            public Double getThreshold() {
+            public Double getValue() {
                 return 3.0;
             }
         });
