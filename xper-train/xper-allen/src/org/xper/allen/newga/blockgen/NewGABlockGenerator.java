@@ -8,6 +8,7 @@ import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.RandStim;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
+import org.xper.allen.util.TikTok;
 import org.xper.drawing.Coordinates2D;
 
 import java.util.*;
@@ -59,23 +60,33 @@ public class NewGABlockGenerator extends GABlockGenerator {
 
     private void addNthGeneration() {
         System.out.println("Selecting Parents");
+        TikTok selecingParentsTimer = new TikTok("Selecting Parents");
         List<Child> selectedParents = slotSelectionProcess.select(getGaBaseName());
+        selecingParentsTimer.stop();
         for (Child child: selectedParents) {
             System.out.println("Attemptins regime " + child.getRegime() + " for parent " + child.getParentId() + "");
             if (child.getRegime().equals(Regime.ZERO)) {
+                TikTok timer = new TikTok("Adding Regime Zero Stim");
                 System.out.println("Adding Regime Zero Stim");
                 getStims().add(new RegimeZeroStim(this, initialSize, initialCoords));
+                timer.stop();
             }
             else if (child.getRegime().equals(Regime.ONE)) {
+                TikTok timer = new TikTok("Adding Regime One Stim");
                 System.out.println("Adding Regime One Stim");
                 getStims().add(new RegimeOneStim(this, child.getParentId()));
+                timer.stop();
             }
             else if (child.getRegime().equals(Regime.TWO)) {
+                TikTok timer = new TikTok("Adding Regime Two Stim");
                 System.out.println("Adding Regime Two Stim");
                 getStims().add(new RegimeTwoStim(this, child.getParentId()));
+                timer.stop();
             } else if (child.getRegime().equals(Regime.THREE)) {
+                TikTok timer = new TikTok("Adding Regime Three Stim");
                 System.out.println("Adding Regime Three Stim");
                 getStims().add(new RegimeThreeStim(this, child.getParentId()));
+                timer.stop();
             } else {
                 throw new RuntimeException("Invalid Regime");
             }

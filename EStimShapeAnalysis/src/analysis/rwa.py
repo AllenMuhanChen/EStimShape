@@ -114,7 +114,7 @@ class AutomaticBinner(Binner):
         self.data = data
         self.min, self.max = self.calculate_min_max()
         super().__init__(self.min, math.ceil(math.ceil(self.max * 100000)) / 100000.0, num_bins)
-        """rounding UP 5 decimal places to avoid floating point errors because bin end 
+        """rounding UP 5 decimal places to avoid floating point errors because bin end
         is exclusive"""
 
     def calculate_min_max(self):
@@ -128,19 +128,19 @@ class AutomaticBinner(Binner):
         return min(values), max(values)
 
 
-def combine_rwas(rwas):
-    normalized_rwas, overall_max = normalize_rwas(rwas)
-    rwa_product = multiply_rwas(normalized_rwas)
-    rwa_normalized_product = normalize_matrix(rwa_product)
-    rwa_normalized_product = rwa_normalized_product.apply(lambda m: m * overall_max)
-    # rwa_normalized_product = rwa_normalized_product.apply(lambda m: np.power(m, 1 / len(rwas)))
-    return rwa_normalized_product
-
-
 # def combine_rwas(rwas):
-#     rwa_product = multiply_rwas(rwas)
+#     normalized_rwas, overall_max = normalize_rwas(rwas)
+#     rwa_product = multiply_rwas(normalized_rwas)
 #     rwa_normalized_product = normalize_matrix(rwa_product)
+#     rwa_normalized_product = rwa_normalized_product.apply(lambda m: m * overall_max)
+#     # rwa_normalized_product = rwa_normalized_product.apply(lambda m: np.power(m, 1 / len(rwas)))
 #     return rwa_normalized_product
+
+
+def combine_rwas(rwas):
+    rwa_product = multiply_rwas(rwas)
+    rwa_normalized_product = normalize_matrix(rwa_product)
+    return rwa_normalized_product
 
 
 def normalize_rwas(rwas):

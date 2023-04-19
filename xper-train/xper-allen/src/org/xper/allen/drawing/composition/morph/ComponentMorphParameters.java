@@ -7,9 +7,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ComponentMorphParameters {
 
     public Double magnitude;
+    private MorphDistributer morphDistributer;
 
-    public ComponentMorphParameters(Double magnitude) {
+    public ComponentMorphParameters(Double magnitude, MorphDistributer morphDistributer) {
         this.magnitude = magnitude;
+        this.morphDistributer = morphDistributer;
 
         distributeMagnitude();
     }
@@ -77,7 +79,6 @@ public class ComponentMorphParameters {
         magnitudes.add(curvatureMagnitude);
         magnitudes.add(radiusProfileMagnitude);
 
-        MorphDistributer morphDistributer = new MorphDistributer();
         morphDistributer.distributeMagnitudeTo(magnitudes, magnitude);
 
 

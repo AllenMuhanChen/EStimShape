@@ -113,7 +113,7 @@ public class MockNewGAConfig {
         return new ThresholdSource() {
             @Override
             public Double getThreshold() {
-                return 3.0;
+                return 4.0;
             }
         };
     }
@@ -141,20 +141,6 @@ public class MockNewGAConfig {
         return regimeTwoToThreeParentThreshold();
     }
 
-    /**
-     * Threshold on the number of parent-child pairs where the parent meets a response threshold
-     * and the children meet a bin distribution threshold
-     * @return
-     */
-    @Bean
-    public ThresholdSource thresholdForRegimeThreeToFourPair() {
-        return new ThresholdSource() {
-            @Override
-            public Double getThreshold() {
-                return 3.0;
-            }
-        };
-    }
 
     /**
      * Threshold on the response rate that parents must meet to be considered for a parent-child pair.
@@ -177,9 +163,24 @@ public class MockNewGAConfig {
     @Bean
     public Map<NormalizedResponseBin, ThresholdSource> regimeThreeToFourPairThresholds() {
         Map<NormalizedResponseBin, ThresholdSource> pairThresholds = new HashMap<>();
-        pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), thresholdForRegimeThreeToFourPair());
-        pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), thresholdForRegimeThreeToFourPair());
-        pairThresholds.put(new NormalizedResponseBin(0.66, 1.0), thresholdForRegimeThreeToFourPair());
+        pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 10.0;
+            }
+        });
+        pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 5.0;
+            }
+        });
+        pairThresholds.put(new NormalizedResponseBin(0.66, 1.0), new ThresholdSource() {
+            @Override
+            public Double getThreshold() {
+                return 3.0;
+            }
+        });
         return pairThresholds;
     }
 

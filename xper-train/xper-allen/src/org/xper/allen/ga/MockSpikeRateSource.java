@@ -17,11 +17,12 @@ public class MockSpikeRateSource implements SpikeRateSource{
     @Override
     public Double getSpikeRate(Long stimId) {
         // Read all expLog entries
-        long mostRecentTask = dbUtil.readTaskDoneMaxId();
-        List<ExpLogEntry> expLogEntries = dbUtil.readExpLog(0, mostRecentTask);
+//        long mostRecentTask = dbUtil.readTaskDoneMaxId();
+        List<ExpLogEntry> expLogEntries = dbUtil.readExpLog(stimId, stimId);
+        expLogEntries = expLogEntries.subList(0, 1);
 
         //Collect average spike rate across channels for each repetition
-        Map<Long, List<Long>> taskDoneIdsForStimIds = dbUtil.readTaskDoneIdsForStimIds(gaName);
+//        Map<Long, List<Long>> taskDoneIdsForStimIds = dbUtil.readTaskDoneIdsForStimIds(gaName);
         List<Double> spikeRatesAcrossRepetitions = new LinkedList<>();
         for (ExpLogEntry entry: expLogEntries){
             double averageSpikeRateAcrossChannels = 0;

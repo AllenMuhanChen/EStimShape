@@ -38,18 +38,25 @@ public class RegimeScoreSource implements LineageScoreSource {
         Double lineageScore;
         if (lastGenRegimeScore < 1.0){
             lineageScore = calculateLineageScoreWith(RegimeTransition.ZERO_TO_ONE, lineageId);
+            System.out.println("Lineage score: " + lineageScore + " for transition: " + RegimeTransition.ZERO_TO_ONE);
+            System.out.println(" for lineage: " + lineageId);
             regimeScore = lineageScore;
         }
         else if (lastGenRegimeScore < 2.0){
             lineageScore = calculateLineageScoreWith(RegimeTransition.ONE_TO_TWO, lineageId);
+            System.out.println("Lineage score: " + lineageScore + " for transition: " + RegimeTransition.ONE_TO_TWO);
+            System.out.println(" for lineage: " + lineageId);
             regimeScore = 1.0 + lineageScore;
+
         }
         else if (lastGenRegimeScore < 3.0) {
             lineageScore = calculateLineageScoreWith(RegimeTransition.TWO_TO_THREE, lineageId);
+            System.out.println("Lineage score: " + lineageScore + " for transition: " + RegimeTransition.TWO_TO_THREE);
             regimeScore = 2.0 + lineageScore;
         }
         else if (lastGenRegimeScore < 4.0) {
             lineageScore = calculateLineageScoreWith(RegimeTransition.THREE_TO_FOUR, lineageId);
+            System.out.println("Lineage score: " + lineageScore + " for transition: " + RegimeTransition.THREE_TO_FOUR);
             regimeScore = 3.0 + lineageScore;
         }
         else if (lastGenRegimeScore == 4.0){

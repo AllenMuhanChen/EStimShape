@@ -19,13 +19,14 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MorphedMatchStick extends AllenMatchStick {
+    private static final int MAX_TOTAL_ATTEMPTS = 100;
     private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch
     private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
     // 50% add to end, 50%
     // add to junc
 //    protected final double[] PARAM_nCompDist = {0, 0.33, 0.66, 1.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-    protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    protected final double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
 
 
@@ -39,6 +40,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private List<Integer> compsToPreserve = new ArrayList<>();
 
 
+
     public void genMorphedMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph){
         this.showComponents = true;
 
@@ -48,7 +50,8 @@ public class MorphedMatchStick extends AllenMatchStick {
 
 
         // Attempt to morph every component. If we fail, then restart with the backup.
-        while (true) {
+        int numAttempts = 0;
+        while (numAttempts < MAX_TOTAL_ATTEMPTS) {
             try {
                 findCompsToPreserve(morphParametersForComponents);
                 morphAllComponents(morphParametersForComponents, matchStickToMorph);
@@ -60,10 +63,16 @@ public class MorphedMatchStick extends AllenMatchStick {
                 cleanData();
                 this.setObj1(null);
                 copyFrom(backup);
+//                localBackup.copyFrom(backup);
                 e.printStackTrace();
                 System.err.println("Failed to morph matchstick. Retrying...");
+            } finally{
+                numAttempts++;
             }
         }
+        System.err.println("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
+        System.err.println("Generating a random matchstick instead.");
+        genMatchStickRand();
     }
 
     private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
@@ -106,8 +115,8 @@ public class MorphedMatchStick extends AllenMatchStick {
 
      */
     private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams, MorphedMatchStick matchStickToMorph) {
-        localBackup = new MorphedMatchStick();
-        localBackup.copyFrom(matchStickToMorph);
+//        localBackup = new MorphedMatchStick();
+//        localBackup.copyFrom(this);
 
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
@@ -572,7 +581,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 checkJunctions(id, newArc);
                 return newArc;
             } catch (MorphException e){
-                copyFrom(localBackup);
+//                copyFrom(localBackup);
                 System.err.println("Failed to generate a valid morphed arc. Attempting again...");
                 e.printStackTrace();
             } finally {

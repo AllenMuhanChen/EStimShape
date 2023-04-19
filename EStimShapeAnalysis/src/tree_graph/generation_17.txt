@@ -1,0 +1,79 @@
+Wed Apr 19 15:49:30 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Apr 19 15:49:30 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Apr 19 15:49:30 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Apr 19 15:49:30 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+generator called
+Selecting Parents
+TikTok: Calculating max response: Elapsed time: 3091 ms
+TikTok: Getting max response: Elapsed time: 3099 ms
+Fetching Lineage Ids
+Calculating Regime Scores
+Regime score: 0.12672
+Regime score: 0.35887
+Regime score: 0.10184
+Regime score: 0.20074
+Regime score: 0.06378
+Regime score: 0.054133896793004926
+Regime score: 0.08671
+Regime score: 0.14425
+Regime score: 0.04150296012426672
+Regime score: 0.03628
+Regime score: 0.20808400245849154
+Regime score: 0.5618506126155812
+Regime score: 0.25057
+Regime score: 4.0
+Regime score: 0.13342
+Regime score: 0.15013
+Regime score: 0.2869802350929149
+Regime score: 0.31499392654036157
+Regime score: 0.5194747304237453
+Regime score: 0.2360433180809771
+Regime score: 0.18482
+Regime score: 0.02595164221776404
+Regime score: 0.21855083970722639
+Regime score: 0.7106918234991079
+Regime score: 0.13364
+Regime score: 0.4595342515847439
+Regime score: 0.26615130441670426
+Regime score: 0.18536180886995385
+Regime score: 0.0835
+Regime score: 0.45051224540654505
+Regime score: 0.18475053717578946
+Regime score: 0.10059
+Regime score: 0.41760048128586374
+Regime score: 0.10395
+Regime score: 0.57537
+Regime score: NaN
+Exception in thread "main" org.springframework.dao.TransientDataAccessResourceException: PreparedStatementCallback; SQL [UPDATE LineageGaInfo SET regime_score = ? WHERE lineage_id = ?]; 'NaN' is not a valid numeric or approximate numeric value; nested exception is java.sql.SQLException: 'NaN' is not a valid numeric or approximate numeric value
+	at org.springframework.jdbc.support.SQLStateSQLExceptionTranslator.doTranslate(SQLStateSQLExceptionTranslator.java:106)
+	at org.springframework.jdbc.support.AbstractFallbackSQLExceptionTranslator.translate(AbstractFallbackSQLExceptionTranslator.java:72)
+	at org.springframework.jdbc.support.AbstractFallbackSQLExceptionTranslator.translate(AbstractFallbackSQLExceptionTranslator.java:80)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:607)
+	at org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:792)
+	at org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:850)
+	at org.springframework.jdbc.core.JdbcTemplate.update(JdbcTemplate.java:858)
+	at org.xper.allen.util.MultiGaDbUtil.updateRegimeScore(MultiGaDbUtil.java:464)
+	at org.xper.allen.ga.regimescore.RegimeScoreSource.updateRegimeScore(RegimeScoreSource.java:72)
+	at org.xper.allen.ga.regimescore.RegimeScoreSource.getLineageScore(RegimeScoreSource.java:32)
+	at org.xper.allen.ga.SlotSelectionProcess.calculateRegimeScoresForLineages(SlotSelectionProcess.java:103)
+	at org.xper.allen.ga.SlotSelectionProcess.select(SlotSelectionProcess.java:71)
+	at org.xper.allen.newga.blockgen.NewGABlockGenerator.addNthGeneration(NewGABlockGenerator.java:62)
+	at org.xper.allen.newga.blockgen.NewGABlockGenerator.addTrials(NewGABlockGenerator.java:44)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:26)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Caused by: java.sql.SQLException: 'NaN' is not a valid numeric or approximate numeric value
+	at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:964)
+	at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:897)
+	at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:886)
+	at com.mysql.jdbc.SQLError.createSQLException(SQLError.java:860)
+	at com.mysql.jdbc.PreparedStatement.setDouble(PreparedStatement.java:3260)
+	at com.mysql.jdbc.PreparedStatement.setObject(PreparedStatement.java:3543)
+	at com.mysql.jdbc.JDBC42PreparedStatement.setObject(JDBC42PreparedStatement.java:68)
+	at com.mchange.v2.c3p0.impl.NewProxyPreparedStatement.setObject(NewProxyPreparedStatement.java:365)
+	at org.springframework.jdbc.core.StatementCreatorUtils.setValue(StatementCreatorUtils.java:346)
+	at org.springframework.jdbc.core.StatementCreatorUtils.setParameterValueInternal(StatementCreatorUtils.java:217)
+	at org.springframework.jdbc.core.StatementCreatorUtils.setParameterValue(StatementCreatorUtils.java:145)
+	at org.springframework.jdbc.core.ArgPreparedStatementSetter.setValues(ArgPreparedStatementSetter.java:51)
+	at org.springframework.jdbc.core.JdbcTemplate$2.doInPreparedStatement(JdbcTemplate.java:796)
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:591)
+	... 12 more

@@ -53,9 +53,9 @@ def ga_loop(num_generations):
 def ga_loop():
     generation = 1
     num_complete_lineages = 0
-    while float(num_complete_lineages) < 1:
+    while float(num_complete_lineages) < 2:
         print(f"Number of complete lineages: {num_complete_lineages}")
-        run_trial_generator()
+        run_trial_generator(generation)
         print(f"Highest regime score so far: {get_highest_regime_score()}")
         sleep(5)
         mock_ga_responses.main()
@@ -79,10 +79,10 @@ def number_of_complete_lineages():
     return float(num_complete_lineages)
 
 
-def run_trial_generator():
+def run_trial_generator(generation):
     output_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/tree_graph"
-    output_file = os.path.join(output_dir, "output.txt")
 
+    output_file = os.path.join(output_dir, f"generation_{generation}.txt")
     trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")
     trial_generator_command = f"java -jar {trial_generator_path}"
 

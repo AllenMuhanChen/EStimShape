@@ -387,6 +387,23 @@ public class MultiGaDbUtil extends AllenDbUtil {
                 new Object[] { response, stimId });
     }
 
+    public Integer readGenIdForStimId(Long childId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        final Integer[] result = new Integer[1];
+        jt.query(
+                " select gen_id from StimGaInfo where stim_id = ?",
+                new Object[] { childId },
+                new RowCallbackHandler() {
+                    public void processRow(ResultSet rs) {
+                        try {
+                            result[0] = rs.getInt("gen_id");
+                        } catch (SQLException e) {
+                            result[0] = 0;
+                        }
+                    }});
+        return result[0];
+    }
+
     public static class LineageGaInfo {
         Long lineageId;
         String treeSpec;
@@ -578,6 +595,25 @@ public class MultiGaDbUtil extends AllenDbUtil {
         }
         else {
             return gaNames.get(0);
+        }
+    }
+
+    public String readStimTypeFor(long stimId){
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        List<String> stimTypes = new ArrayList<>();
+        jt.query("SELECT stim_type FROM StimGaInfo WHERE stim_id = ?",
+                new Object[]{stimId},
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        stimTypes.add(rs.getString("stim_type"));
+                    }
+                });
+        if (stimTypes.size() == 0) {
+            throw new RuntimeException("No stim type found for stimId " + stimId);
+        }
+        else {
+            return stimTypes.get(0);
         }
     }
 }

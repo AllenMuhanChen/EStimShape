@@ -55,6 +55,7 @@ public class MaxValueLineageScore implements LineageScoreSource {
 
         // return max spike rate
         Double max = averageSpikeRateForStimIds.values().stream().max(Double::compare).get();
+        System.out.println("Max spike rate: " + max);
         return max;
     }
 

@@ -14,6 +14,7 @@ public class TikTok {
 
     private void start() {
         startTime = Instant.now();
+        System.out.println("TikTok: "+ message + ": Started.");
     }
 
     public void stop() {

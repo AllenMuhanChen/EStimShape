@@ -12,7 +12,7 @@ public class MorphDistributerTest {
 
     @Test
     public void max_magnitude_leads_to_max() {
-        MorphDistributer morphDistributer = new MorphDistributer();
+        MorphDistributer morphDistributer = new MorphDistributer(1/3.0);
         List<AtomicReference<Double>> paramMagnitudes = Arrays.asList(
                 new AtomicReference<>(0.0),
                 new AtomicReference<>(0.0),
@@ -25,7 +25,7 @@ public class MorphDistributerTest {
 
     @Test
     public void test(){
-        MorphDistributer morphDistributer = new MorphDistributer();
+        MorphDistributer morphDistributer = new MorphDistributer(1/3.0);
         List<AtomicReference<Double>> paramMagnitudes = Arrays.asList(
                 new AtomicReference<>(0.0),
                 new AtomicReference<>(0.0),

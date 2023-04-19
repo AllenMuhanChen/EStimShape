@@ -5,15 +5,16 @@ import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.ga.Branch;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.stick.MatchStick;
 import org.xper.rfplot.drawing.png.PngSpec;
 
-public abstract class ThreeDGAStim implements Stim {
-    protected final GABlockGenerator generator;
+public abstract class ThreeDGAStim<T extends MatchStick, MStickData extends AllenMStickData> implements Stim {
+    protected GABlockGenerator generator;
     protected double size;
     protected Coordinates2D coords;
     protected long stimId;
     protected PngSpec stimSpec;
-    protected AllenMStickData mStickData;
+    protected MStickData mStickData;
     protected Long parentId;
     private Branch<Long> tree;
     private Long lineageId;

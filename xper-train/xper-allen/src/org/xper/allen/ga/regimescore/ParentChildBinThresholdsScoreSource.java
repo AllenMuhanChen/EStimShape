@@ -56,6 +56,9 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
             score = 1.0;
         }
 
+        if (score != score) {
+            score = 0.0;
+        }
         return score;
     }
 

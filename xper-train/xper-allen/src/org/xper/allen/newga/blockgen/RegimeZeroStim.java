@@ -1,5 +1,6 @@
 package org.xper.allen.newga.blockgen;
 
+import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
@@ -13,7 +14,7 @@ import org.xper.rfplot.drawing.png.PngSpec;
 import java.util.LinkedList;
 import java.util.List;
 
-public class RegimeZeroStim extends ThreeDGAStim {
+public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickData> {
     public RegimeZeroStim(NewGABlockGenerator generator, double size, Coordinates2D coords) {
         super(generator, size, coords);
         this.stimType = NewGABlockGenerator.stimTypeForRegime.get(Regime.ZERO);

@@ -1,33 +1,57 @@
 package org.xper.allen.newga.blockgen;
 
-import org.xper.allen.Stim;
-import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.morph.PruningMatchStick;
+import org.xper.allen.drawing.composition.morph.PruningMatchStick.PruningMStickData;
 import org.xper.allen.ga.regimescore.Regime;
-import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 
-public class RegimeThreeStim extends MorphedStim {
+import java.util.LinkedList;
+import java.util.List;
 
-    public RegimeThreeStim(GABlockGenerator generator, Long parentId) {
+import static org.xper.allen.newga.blockgen.NewGABlockGenerator.stimTypeForRegime;
+
+public class RegimeThreeStim extends MorphedStim<ExploreMatchStick, AllenMStickData> {
+
+    private NewGABlockGenerator generator;
+    public RegimeThreeStim(NewGABlockGenerator generator, Long parentId) {
         super(generator, parentId);
-        this.stimType = NewGABlockGenerator.stimTypeForRegime.get(Regime.THREE);
+        this.generator = generator;
+        this.stimType = stimTypeForRegime.get(Regime.THREE);
     }
 
     @Override
-    protected MorphedMatchStick morphStim() {
-        //Generate MStick
-        GrowingMatchStick parentMStick = new GrowingMatchStick();
-        parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
-        parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+    protected ExploreMatchStick morphStim() {
+        PruningMatchStick parentMStick = new PruningMatchStick();
+        parentMStick.setProperties(getGenerator().getMaxImageDimensionDegrees());
+        parentMStick.genMatchStickFromFile(getGenerator().getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        GrowingMatchStick childMStick = new GrowingMatchStick();
-        childMStick.setProperties(generator.getMaxImageDimensionDegrees());
-        childMStick.genGrowingMatchStick(parentMStick, getMagnitude());
+        RegimeThreeComponentChooser chooser = new RegimeThreeComponentChooser(getGenerator().getDbUtil(), getGenerator().getSlotSelectionProcess().getSpikeRateSource());
+        List<Integer> compsToMorph = chooser.choose(parentId, 1);
+
+        ExploreMatchStick childMStick = new ExploreMatchStick(parentMStick, compsToMorph);
+        childMStick.setProperties(getGenerator().getMaxImageDimensionDegrees());
+        childMStick.genExploreMatchStick(rollMagnitude());
         return childMStick;
     }
 
-    //TODO: have magnitude determined by current balance of magnitudes
-    private double getMagnitude(){
-        return Math.random() * 0.2+0.3;
+    private double rollMagnitude() {
+        return Math.random() * 0.3 + 0.2;
+    }
+
+    @Override
+    protected void writeMStickData(ExploreMatchStick mStick){
+        AllenMStickSpec mStickSpec = new AllenMStickSpec();
+        mStickSpec.setMStickInfo(mStick);
+        mStickSpec.writeInfo2File(getGenerator().getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
+        mStickData = mStick.getMStickData();
+    }
+
+    public NewGABlockGenerator getGenerator() {
+        return generator;
+    }
+
+    public void setGenerator(NewGABlockGenerator generator) {
+        this.generator = generator;
     }
 }

@@ -24,6 +24,23 @@ public class AllenMStickData {
         s.alias("AllenMSickSpec", AllenMStickSpec.class);
     }
 
+    public AllenMStickData(AllenMStickData other) {
+        this.shaftData = other.shaftData;
+        this.terminationData = other.terminationData;
+        this.junctionData = other.junctionData;
+        this.analysisMStickSpec = other.analysisMStickSpec;
+    }
+
+    public AllenMStickData(List<ShaftData> shaftData, List<TerminationData> terminationData, List<JunctionData> junctionData, AllenMStickSpec analysisMStickSpec) {
+        this.shaftData = shaftData;
+        this.terminationData = terminationData;
+        this.junctionData = junctionData;
+        this.analysisMStickSpec = analysisMStickSpec;
+    }
+
+    public AllenMStickData() {
+    }
+
     public String toXml() {
         return AllenMStickData.toXml(this);
     }

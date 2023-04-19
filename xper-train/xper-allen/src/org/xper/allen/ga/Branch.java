@@ -4,8 +4,10 @@ import com.thoughtworks.xstream.XStream;
 
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class Branch<T> {
 
@@ -58,6 +60,49 @@ public class Branch<T> {
         for (Branch<T> child : children){
             child.forEach(action);
         }
+    }
+
+    public Branch<T> findParentOf(T childId) {
+        if (this.children.stream().anyMatch(new Predicate<Branch<T>>() {
+            @Override
+            public boolean test(Branch<T> branch) {
+                return branch.identifier.equals(childId);
+            }
+        })){
+            return this;
+        } else {
+            for (Branch<T> child : children){
+                Branch<T> parent = child.findParentOf(childId);
+                if (parent != null){
+                    return parent;
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<T> findSiblingsOf(T id) {
+        List<T> siblings = new LinkedList<>();
+        if (this.children.stream().anyMatch(new Predicate<Branch<T>>() {
+            @Override
+            public boolean test(Branch<T> branch) {
+                return branch.identifier.equals(id);
+            }
+        })){
+            for (Branch<T> child : children){
+                if (!child.identifier.equals(id)){
+                    siblings.add(child.identifier);
+                }
+            }
+        } else {
+            for (Branch<T> child : children){
+                List<T> childSiblings = child.findSiblingsOf(id);
+                if (childSiblings != null){
+                    siblings.addAll(childSiblings);
+                }
+            }
+        }
+        return siblings;
     }
 
     static XStream s;
@@ -123,5 +168,19 @@ public class Branch<T> {
     @Override
     public int hashCode() {
         return Objects.hash(getChildren(), getIdentifier());
+    }
+
+    public Branch<T> find(T id) {
+        if (this.identifier.equals(id)){
+            return this;
+        } else {
+            for (Branch<T> child : children){
+                Branch<T> found = child.find(id);
+                if (found != null){
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 }

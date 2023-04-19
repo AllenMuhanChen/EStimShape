@@ -91,17 +91,45 @@ public class NewGAConfig {
             @Override
             public double value(double v) throws FunctionEvaluationException {
                 if (v < 1.0){
-                return 0.3;
+                    return 0.3;
                 } else {
                     return 0.0;
                 }
             }
         });
-        slotFunctionForRegimes.put(Regime.ONE, truncated_peak(1.0));
-        slotFunctionForRegimes.put(Regime.TWO, peakFunctionAround(2.0, 1.0));
-        slotFunctionForRegimes.put(Regime.THREE, peakFunctionAround(3.0, 1.0));
+        slotFunctionForRegimes.put(Regime.ONE, squareFunction(1.0, 2.0));
+        slotFunctionForRegimes.put(Regime.TWO, squareFunction(2.0, 3.0));
+        slotFunctionForRegimes.put(Regime.THREE, squareFunction(3.0, 4.0));
         return slotFunctionForRegimes;
     }
+
+    public UnivariateRealFunction squareFunction(double left, double right){
+        List<Point2d> controlPoints = new ArrayList<>();
+        controlPoints.add(new Point2d(left, 0));
+        controlPoints.add(new Point2d(left, 1));
+        controlPoints.add(new Point2d(right, 1));
+        controlPoints.add(new Point2d(right, 0));
+        return new LinearSpline(controlPoints);
+    }
+
+//    @Bean
+//    public Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
+//        Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
+//        slotFunctionForRegimes.put(Regime.ZERO, new UnivariateRealFunction() {
+//            @Override
+//            public double value(double v) throws FunctionEvaluationException {
+//                if (v < 1.0){
+//                return 0.3;
+//                } else {
+//                    return 0.0;
+//                }
+//            }
+//        });
+//        slotFunctionForRegimes.put(Regime.ONE, truncated_peak(1.0));
+//        slotFunctionForRegimes.put(Regime.TWO, peakFunctionAround(2.0, 1.0));
+//        slotFunctionForRegimes.put(Regime.THREE, peakFunctionAround(3.0, 1.0));
+//        return slotFunctionForRegimes;
+//    }
 
     private UnivariateRealFunction truncated_peak(double left_edge) {
         return new UnivariateRealFunction() {
@@ -115,6 +143,7 @@ public class NewGAConfig {
             }
         };
     }
+
 
     public UnivariateRealFunction peakFunctionAround(double center, double radius) {
         List<Point2d> controlPoints = new ArrayList<>();

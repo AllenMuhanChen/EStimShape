@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 import javax.vecmath.Point2d;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -49,5 +50,27 @@ public class LinearInterpolationFunctionTest {
         double x4 = 1.0;
         double y4 = interpolationFunction.value(x4);
         assertEquals("Interpolation at x = " + x4, 1.0, y4, 1e-9);
+    }
+
+    @Test
+    public void test() throws FunctionEvaluationException {
+        List<Point2d> controlPoints = new ArrayList<>();
+        controlPoints.add(new Point2d(0.0, 0.001));
+        controlPoints.add(new Point2d(1.0, 0.001));
+        controlPoints.add(new Point2d(1.0, 0.5));
+        controlPoints.add(new Point2d(2.0, 1.5));
+        controlPoints.add(new Point2d(3.9, 4.5));
+        controlPoints.add(new Point2d(4.0, 0.0));
+
+        UnivariateRealFunction interpolationFunction = new LinearSpline(controlPoints);
+        double x1 = 1.0;
+        double y1 = interpolationFunction.value(x1);
+        double expectedY1 = 0.5;
+        assertEquals("Interpolation at x = " + x1, expectedY1, y1, 1e-9);
+
+        double x2 = 0.0;
+        double y2 = interpolationFunction.value(x2);
+        double expectedY2 = 0.001;
+        assertEquals("Interpolation at x = " + x2, expectedY2, y2, 1e-9);
     }
 }

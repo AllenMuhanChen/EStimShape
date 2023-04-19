@@ -1,0 +1,141 @@
+Wed Apr 19 15:51:53 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Apr 19 15:51:53 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Apr 19 15:51:53 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Apr 19 15:51:53 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+generator called
+Selecting Parents
+TikTok: Selecting Parents: Started.
+TikTok: Getting max response: Started.
+TikTok: Calculating max response: Started.
+TikTok: Calculating max response: Elapsed time: 15 ms
+TikTok: Getting max response: Elapsed time: 19 ms
+Fetching Lineage Ids
+TikTok: Fetching Lineage Ids: Started.
+TikTok: Fetching Lineage Ids: Elapsed time: 1 ms
+Calculating Regime Scores
+TikTok: Calculating Regime Scores: Started.
+Max spike rate: 8.52891263964687
+Lineage score: 0.284297087988229 for transition: ZERO_TO_ONE
+ for lineage: 1681933884600796
+Regime score: 0.2843
+Lineage score: 0.0 for transition: ONE_TO_TWO
+ for lineage: 1681933885696386
+Regime score: 1.0
+Max spike rate: 3.9057393108752954
+Lineage score: 0.13019131036250983 for transition: ZERO_TO_ONE
+ for lineage: 1681933886520688
+Regime score: 0.13019131036250983
+Max spike rate: 12.656647785860892
+Lineage score: 0.4218882595286964 for transition: ZERO_TO_ONE
+ for lineage: 1681933887275073
+Regime score: 0.42189
+Max spike rate: 2.018699742480302
+Lineage score: 0.06728999141601007 for transition: ZERO_TO_ONE
+ for lineage: 1681933887918872
+Regime score: 0.06729
+Max spike rate: 14.801864208228618
+Lineage score: 0.4933954736076206 for transition: ZERO_TO_ONE
+ for lineage: 1681933888618304
+Regime score: 0.4934
+Max spike rate: 14.973608755952183
+Lineage score: 0.4991202918650728 for transition: ZERO_TO_ONE
+ for lineage: 1681933889267848
+Regime score: 0.4991202918650728
+Max spike rate: 6.376127387320249
+Lineage score: 0.21253757957734162 for transition: ZERO_TO_ONE
+ for lineage: 1681933889916961
+Regime score: 0.21254
+Max spike rate: 1.7039358006356773
+Lineage score: 0.05679786002118924 for transition: ZERO_TO_ONE
+ for lineage: 1681933890587428
+Regime score: 0.0568
+Max spike rate: 15.238186040916247
+Lineage score: 0.5079395346972082 for transition: ZERO_TO_ONE
+ for lineage: 1681933891222565
+Regime score: 0.50794
+Max spike rate: 0.7954419431593939
+Lineage score: 0.026514731438646463 for transition: ZERO_TO_ONE
+ for lineage: 1681933891910615
+Regime score: 0.026514731438646463
+Max spike rate: 19.724370416400177
+Lineage score: 0.6574790138800058 for transition: ZERO_TO_ONE
+ for lineage: 1681933892645156
+Regime score: 0.65748
+Max spike rate: 12.580134783348973
+Lineage score: 0.4193378261116324 for transition: ZERO_TO_ONE
+ for lineage: 1681933893337918
+Regime score: 0.41934
+Max spike rate: 10.77586525087965
+Lineage score: 0.359195508362655 for transition: ZERO_TO_ONE
+ for lineage: 1681933894044293
+Regime score: 0.3592
+Max spike rate: 11.378772314205483
+Lineage score: 0.3792924104735161 for transition: ZERO_TO_ONE
+ for lineage: 1681933894823769
+Regime score: 0.3792924104735161
+Max spike rate: 13.106091481846342
+Lineage score: 0.43686971606154473 for transition: ZERO_TO_ONE
+ for lineage: 1681933895582433
+Regime score: 0.43687
+Max spike rate: 14.062406867232829
+Lineage score: 0.4687468955744276 for transition: ZERO_TO_ONE
+ for lineage: 1681933896302586
+Regime score: 0.46875
+Max spike rate: 5.0422585453255415
+Lineage score: 0.1680752848441847 for transition: ZERO_TO_ONE
+ for lineage: 1681933896938369
+Regime score: 0.16808
+Max spike rate: 4.230343045173495
+Lineage score: 0.1410114348391165 for transition: ZERO_TO_ONE
+ for lineage: 1681933897627090
+Regime score: 0.1410114348391165
+Max spike rate: 4.422837992628384
+Lineage score: 0.14742793308761282 for transition: ZERO_TO_ONE
+ for lineage: 1681933898310561
+Regime score: 0.14743
+TikTok: Calculating Regime Scores: Elapsed time: 393 ms
+Creating Slots For Lineages
+TikTok: Creating Slots For Lineages: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Creating Slots For Lineages: Elapsed time: 3 ms
+Assigning Regimes To Slots
+TikTok: Assigning Regimes To Slots: Started.
+Exception in thread "main" java.lang.IllegalArgumentException: x is out of the control points range.
+	at org.xper.allen.ga3d.blockgen.LinearSpline.value(LinearSpline.java:47)
+	at org.xper.allen.ga.SlotSelectionProcess.plugIntoFunction(SlotSelectionProcess.java:272)
+	at org.xper.allen.ga.SlotSelectionProcess.calculateSlotScoresForRegimes(SlotSelectionProcess.java:252)
+	at org.xper.allen.ga.SlotSelectionProcess.assignNumSlotsToRegimes(SlotSelectionProcess.java:240)
+	at org.xper.allen.ga.SlotSelectionProcess.assignRegimes(SlotSelectionProcess.java:193)
+	at org.xper.allen.ga.SlotSelectionProcess.access$0(SlotSelectionProcess.java:189)
+	at org.xper.allen.ga.SlotSelectionProcess$1.accept(SlotSelectionProcess.java:134)
+	at org.xper.allen.ga.SlotSelectionProcess$1.accept(SlotSelectionProcess.java:1)
+	at java.util.LinkedHashMap.forEach(LinkedHashMap.java:684)
+	at org.xper.allen.ga.SlotSelectionProcess.assignRegimesToSlotsForEachLineage(SlotSelectionProcess.java:130)
+	at org.xper.allen.ga.SlotSelectionProcess.select(SlotSelectionProcess.java:85)
+	at org.xper.allen.newga.blockgen.NewGABlockGenerator.addNthGeneration(NewGABlockGenerator.java:64)
+	at org.xper.allen.newga.blockgen.NewGABlockGenerator.addTrials(NewGABlockGenerator.java:45)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:26)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)

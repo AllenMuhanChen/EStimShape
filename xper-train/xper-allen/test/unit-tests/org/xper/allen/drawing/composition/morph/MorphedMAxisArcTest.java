@@ -35,7 +35,7 @@ public class MorphedMAxisArcTest {
         arc.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_ABOVE, 0);
 
         MorphedMAxisArc morphedArc = new MorphedMAxisArc();
-        ComponentMorphParameters morphParams = new ComponentMorphParameters(0.2);
+        ComponentMorphParameters morphParams = new ComponentMorphParameters(0.2, new MorphDistributer(1/3.0));
         morphedArc.genMorphedArc(arc, 1, morphParams);
 //        morphedArc.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_ABOVE, 0);
 

@@ -64,22 +64,32 @@ public class SlotSelectionProcess {
         List<Child> selectedParents = new LinkedList<>();
 
         System.out.println("Fetching Lineage Ids");
+        TikTok lineageTimer = new TikTok("Fetching Lineage Ids");
         List<Long> lineageIds = fetchLineageIds(gaName);
+        lineageTimer.stop();
 
         System.out.println("Calculating Regime Scores");
+        TikTok regimeScoreTimer = new TikTok("Calculating Regime Scores");
         Map<Long, Double> regimeScoreForLineages =
                 calculateRegimeScoresForLineages(lineageIds);
+        regimeScoreTimer.stop();
 
         System.out.println("Creating Slots For Lineages");
+        TikTok slotTimer = new TikTok("Creating Slots For Lineages");
         Map<Long, List<Slot>> slotsForLineages =
                 createSlotsForLineages(regimeScoreForLineages);
+        slotTimer.stop();
 
         System.out.println("Assigning Regimes To Slots");
+        TikTok regimeTimer = new TikTok("Assigning Regimes To Slots");
         assignRegimesToSlotsForEachLineage(slotsForLineages, regimeScoreForLineages);
+        regimeTimer.stop();
 
         // For Each slot, use the lineage to choose parents, and use the regime to assign fitness score
         System.out.println("Assigning Fitness Scores To Slots");
+        TikTok fitnessTimer = new TikTok("Assigning Fitness Scores To Slots");
         fillSlotsWithParents(gaName, selectedParents, slotsForLineages);
+        fitnessTimer.stop();
         return selectedParents;
     }
 

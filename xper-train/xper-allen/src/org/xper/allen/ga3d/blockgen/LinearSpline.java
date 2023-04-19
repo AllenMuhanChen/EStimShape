@@ -44,7 +44,7 @@ public class LinearSpline implements UnivariateRealFunction {
         }
 
         if (lowerBound == null || upperBound == null) {
-            throw new IllegalArgumentException("x is out of the control points range.");
+            return 0;
         }
 
         double slope = (upperBound.getY() - lowerBound.getY()) / (upperBound.getX() - lowerBound.getX());

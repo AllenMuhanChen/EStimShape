@@ -29,7 +29,7 @@ public class RadiusProfileMorpher {
         for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
             magnitudesForPointsToDistributeTo.put(radiusInfoForPoint.getKey(), new AtomicReference<>(0.0));
         }
-        MorphDistributer morphDistributer = new MorphDistributer();
+        MorphDistributer morphDistributer = new MorphDistributer(1/3.0);
         morphDistributer.distributeMagnitudeTo(magnitudesForPointsToDistributeTo.values(), radiusProfileMagnitude);
 
         Map<Integer, Double> output = new HashMap<>();
@@ -46,36 +46,37 @@ public class RadiusProfileMorpher {
     private RadiusProfile pickNewRadii(Map<Integer, RadiusInfo> oldRadiusInfoForPoints, Map<Integer, Double> normalizedMagnitudeForRadii, Double length, Double curvature) {
         RadiusProfile newRadiusProfile = new RadiusProfile();
         HashMap<Object, Object> newRadiusInfoForPoints = new HashMap<>();
-        oldRadiusInfoForPoints.forEach(new BiConsumer<Integer, RadiusInfo>() {
-            @Override
-            public void accept(Integer pointIndex, RadiusInfo oldRadiusInfo) {
-                double normalizedMagnitude = normalizedMagnitudeForRadii.get(pointIndex);
-                RADIUS_TYPE radiusType = oldRadiusInfo.getRadiusType();
-                double MIN_RADIUS;
-                double MAX_RADIUS;
-                if (radiusType == RADIUS_TYPE.JUNCTION) {
-                    MIN_RADIUS = length / 10.0;
-                    MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1/ curvature));
-                }
-                else if (radiusType == RADIUS_TYPE.ENDPT) {
-                    MIN_RADIUS = 0.00001;
-                    MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1/ curvature));
-                }
-                else if (radiusType == RADIUS_TYPE.MIDPT) {
-                    MIN_RADIUS = length / 10.0;
-                    MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1/ curvature));
-                }
-                else {
-                    throw new RuntimeException("Invalid radius type");
-                }
+        try {
+            oldRadiusInfoForPoints.forEach(new BiConsumer<Integer, RadiusInfo>() {
+                @Override
+                public void accept(Integer pointIndex, RadiusInfo oldRadiusInfo) {
+                    double normalizedMagnitude = normalizedMagnitudeForRadii.get(pointIndex);
+                    RADIUS_TYPE radiusType = oldRadiusInfo.getRadiusType();
+                    double MIN_RADIUS;
+                    double MAX_RADIUS;
+                    if (radiusType == RADIUS_TYPE.JUNCTION) {
+                        MIN_RADIUS = length / 10.0;
+                        MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1 / curvature));
+                    } else if (radiusType == RADIUS_TYPE.ENDPT) {
+                        MIN_RADIUS = 0.00001;
+                        MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1 / curvature));
+                    } else if (radiusType == RADIUS_TYPE.MIDPT) {
+                        MIN_RADIUS = length / 10.0;
+                        MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1 / curvature));
+                    } else {
+                        throw new RuntimeException("Invalid radius type");
+                    }
 
-                ValueShifter1D converter = new ValueShifter1D(MIN_RADIUS, MAX_RADIUS);
-                double newRadius = converter.convert(normalizedMagnitude, oldRadiusInfo.getRadius());
+                    ValueShifter1D converter = new ValueShifter1D(MIN_RADIUS, MAX_RADIUS);
+                    double newRadius = converter.convert(normalizedMagnitude, oldRadiusInfo.getRadius());
 
-                RadiusInfo newRadiusInfo = new RadiusInfo(oldRadiusInfo, newRadius);
-                newRadiusProfile.addRadiusInfo(pointIndex, newRadiusInfo);
-            }
-        });
+                    RadiusInfo newRadiusInfo = new RadiusInfo(oldRadiusInfo, newRadius);
+                    newRadiusProfile.addRadiusInfo(pointIndex, newRadiusInfo);
+                }
+            });
+        } catch (Exception e) {
+
+        }
         return newRadiusProfile;
     }
 }

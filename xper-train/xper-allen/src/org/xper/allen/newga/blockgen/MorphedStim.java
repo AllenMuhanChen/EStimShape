@@ -2,6 +2,7 @@ package org.xper.allen.newga.blockgen;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-public abstract class MorphedStim extends ThreeDGAStim {
+public abstract class MorphedStim<T extends MorphedMatchStick, D extends AllenMStickData> extends ThreeDGAStim<T, D> {
     private Coordinates2D coords;
     private double size;
 
@@ -42,7 +43,7 @@ public abstract class MorphedStim extends ThreeDGAStim {
     public void writeStim() {
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
-        MorphedMatchStick mStick = morphStim();
+        T mStick = morphStim();
 
         writeMStickData(mStick);
 
@@ -82,14 +83,14 @@ public abstract class MorphedStim extends ThreeDGAStim {
         return pngPath;
     }
 
-    private void writeMStickData(MorphedMatchStick mStick) {
+    protected void writeMStickData(T mStick) {
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
-        mStickData = mStick.getMStickData();
+        mStickData = (D) mStick.getMStickData();
     }
 
-    protected abstract MorphedMatchStick morphStim();
+    protected abstract T morphStim();
 
     private Coordinates2D morphCoords(Coordinates2D parentCoords, double parentSize) {
         double dr = parentSize / 2;

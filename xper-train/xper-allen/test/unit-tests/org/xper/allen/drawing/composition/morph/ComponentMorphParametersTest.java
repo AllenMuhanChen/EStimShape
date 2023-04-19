@@ -14,12 +14,12 @@ public class ComponentMorphParametersTest {
 
     @Before
     public void setUp() throws Exception {
-        morphParams = new ComponentMorphParameters(1.0);
+        morphParams = new ComponentMorphParameters(1.0, new MorphDistributer(1/3.0));
     }
 
     @Test
     public void test_magnitude_distribution() {
-        morphParams = new ComponentMorphParameters(0.5);
+        morphParams = new ComponentMorphParameters(0.5, new MorphDistributer(1/3.0));
         List<Double> magnitudes = new ArrayList<>();
         magnitudes.add(morphParams.orientationMagnitude);
         magnitudes.add(morphParams.rotationMagnitude);

@@ -7,6 +7,10 @@ public class MorphDistributer {
 
     private double sigma = 1.0/3.0;
 
+    public MorphDistributer(double sigma) {
+        this.sigma = sigma;
+    }
+
     public void distributeMagnitudeTo(Collection<AtomicReference<Double>> paramMagnitudes, double magnitude) {
         List<AtomicReference<Double>> magnitudesToDistributeTo = new LinkedList<>(paramMagnitudes);
         double amountLeftToDistribute = magnitude;

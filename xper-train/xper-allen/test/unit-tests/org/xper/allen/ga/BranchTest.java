@@ -84,5 +84,46 @@ public class BranchTest {
         assertEquals(founder, fromXML);
     }
 
+    @Test
+    public void test_find(){
+        Branch<Long> child1 = new Branch<>(2L);
+        Branch<Long> child2 = new Branch<>(3L);
+        founder.addChild(child1);
+        founder.addChild(child2);
+        Branch<Long> child3 = new Branch<>(4L);
+        founder.addChildTo(2L, child3);
+
+        Branch<Long> found = founder.find(2L);
+        assertEquals(child1, found);
+        assertEquals(2L, (long)found.getIdentifier());
+    }
+
+    @Test
+    public void test_find_parent(){
+        Branch<Long> child1 = new Branch<>(2L);
+        Branch<Long> child2 = new Branch<>(3L);
+        founder.addChild(child1);
+        founder.addChild(child2);
+        Branch<Long> child3 = new Branch<>(4L);
+        founder.addChildTo(2L, child3);
+
+        Branch<Long> found = founder.findParentOf(4L);
+        assertEquals(child1, found);
+        assertEquals(2L, (long)found.getIdentifier());
+    }
+
+    @Test
+    public void test_find_siblings(){
+        Branch<Long> child1 = new Branch<>(2L);
+        Branch<Long> child2 = new Branch<>(3L);
+        founder.addChild(child1);
+        founder.addChild(child2);
+        Branch<Long> child3 = new Branch<>(4L);
+        founder.addChildTo(2L, child3);
+
+        List<Long> siblings = founder.findSiblingsOf(2L);
+        System.out.println(siblings);
+        assertTrue(siblings.contains(3L));
+    }
 
 }
