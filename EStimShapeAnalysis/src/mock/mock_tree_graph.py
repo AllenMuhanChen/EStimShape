@@ -19,7 +19,12 @@ from tests.tree_graph.colored_test_tree_graph import ColoredTreeGraph
 conn = Connection("allen_estimshape_dev_221110")
 
 
-
+def fetch_components_to_preserve_for_stim_id(stim_id):
+    conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
+    mstick_data = conn.fetch_one()
+    mstick_data_dict = xmltodict.parse(mstick_data)
+    components_to_preserve = mstick_data_dict["AllenMStickSpec"]["componentsToPreserve"]
+    return components_to_preserve
 
 
 class MockTreeGraphApp(TreeGraphApp):
@@ -60,8 +65,24 @@ class MockTreeGraphApp(TreeGraphApp):
         def display_click_data(clickData):
             if clickData:
                 node_label = clickData["points"][0]["text"]
-                mstick_data = fetch_shaft_data_for_mstick(node_label)
                 component_print = []
+                # Print Parent INfo
+                parent_id = fetch_parent_id_for_stim_id(node_label)
+                component_print.append(f"ParentID: {parent_id}\n")
+                component_print.append(html.Br())
+
+                # Print Regime Info
+                stim_type = fetch_regime_for_stim_id(node_label)
+                component_print.append(f"StimType: {stim_type}\n")
+                component_print.append(html.Br())
+
+                # If Regime TWO
+                if stim_type == "RegimeTwo":
+                    components_to_preserve = fetch_components_to_preserve_for_stim_id(node_label)
+                    component_print.append(f"Components to Preserve: {components_to_preserve}\n")
+                    component_print.append(html.Br())
+                # Print Shaft Info
+                mstick_data = fetch_shaft_data_for_mstick(node_label)
                 for component in mstick_data:
                     component_print.append(f"{component}\n")
                     component_print.append(html.Br())
@@ -85,10 +106,11 @@ class MockTreeGraphApp(TreeGraphApp):
 
 
 def get_all_lineages():
-    conn.execute("SELECT lineage_id FROM LineageGaInfo ORDER BY regime_score desc")
+    conn.execute("SELECT lineage_id FROM LineageGaInfo ORDER BY regime_score desc LIMIT 10")
     lineage_ids_as_list_of_tuples = conn.fetch_all()
     lineage_ids = [lineage_id[0] for lineage_id in lineage_ids_as_list_of_tuples]
     return lineage_ids
+
 
 
 class MockTreeGraph(ColoredTreeGraph):
@@ -134,6 +156,10 @@ def fetch_regime_for_stim_id(stim_id):
     stim_type = conn.fetch_one()
     return stim_type
 
+def fetch_parent_id_for_stim_id(stim_id):
+    conn.execute("SELECT parent_id from StimGaInfo where stim_id = %s", (stim_id,))
+    parent_id = conn.fetch_one()
+    return parent_id
 
 def fetch_responses_for(stim_ids):
     responses = {}

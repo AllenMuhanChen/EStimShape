@@ -63,7 +63,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 cleanData();
                 this.setObj1(null);
                 copyFrom(backup);
-//                localBackup.copyFrom(backup);
                 e.printStackTrace();
                 System.err.println("Failed to morph matchstick. Retrying...");
             } finally{
@@ -115,8 +114,8 @@ public class MorphedMatchStick extends AllenMatchStick {
 
      */
     private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams, MorphedMatchStick matchStickToMorph) {
-//        localBackup = new MorphedMatchStick();
-//        localBackup.copyFrom(this);
+        localBackup = new MorphedMatchStick();
+        localBackup.copyFrom(this);
 
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
@@ -152,8 +151,6 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void attemptToGenerateValidComponentSkeleton(int id, ComponentMorphParameters morphParams) {
-//        MorphedMatchStick backUp = new MorphedMatchStick();
-//        backUp.copyFrom(this);
         int numAttempts = 0;
         while(numAttempts < NUM_ATTEMPTS_PER_SKELETON){
             try {
@@ -164,7 +161,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.out.println("Successfully generated valid skeleton for component " + id);
                 return;
             } catch (MorphException e){
-//                copyFrom(backUp);
                 e.printStackTrace();
                 System.out.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_SKELETON + " to generate valid skeleton for component " + id);
             } finally {
@@ -581,7 +577,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 checkJunctions(id, newArc);
                 return newArc;
             } catch (MorphException e){
-//                copyFrom(localBackup);
                 System.err.println("Failed to generate a valid morphed arc. Attempting again...");
                 e.printStackTrace();
             } finally {

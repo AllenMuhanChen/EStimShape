@@ -63,12 +63,12 @@ def main():
     }
 
     n = 2
-    # response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
-    #                                                             sigma_for_fields=sigma_for_fields,
-    #                                                             padding_for_fields=padding_for_fields)
-    #
-    response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
-                                    sigma_for_fields, padding_for_fields)
+    response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
+                                                                sigma_for_fields=sigma_for_fields,
+                                                                padding_for_fields=padding_for_fields)
+
+    # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
+    #                                 sigma_for_fields, padding_for_fields)
     # SAVE
     save(get_next(response_weighted_average), "test_rwa")
 
