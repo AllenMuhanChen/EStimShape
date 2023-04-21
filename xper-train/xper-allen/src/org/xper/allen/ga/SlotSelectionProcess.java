@@ -110,7 +110,9 @@ public class SlotSelectionProcess {
         // Calculate Regime Scores For All Lineages
         Map<Long, Double> regimeScoreForLineages = new LinkedHashMap<>();
         for (Long lineageId : lineageIds){
+            TikTok regimeScoreTimer = new TikTok("Calculating Regime Score For Lineage: " + lineageId);
             regimeScoreForLineages.put(lineageId, regimeScoreSource.getLineageScore(lineageId));
+            regimeScoreTimer.stop();
         }
         return regimeScoreForLineages;
     }

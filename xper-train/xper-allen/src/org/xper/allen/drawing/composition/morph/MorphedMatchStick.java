@@ -55,7 +55,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             try {
                 findCompsToPreserve(morphParametersForComponents);
                 morphAllComponents(morphParametersForComponents, matchStickToMorph);
-//                MutateSUB_reAssignJunctionRadius();
+                MutateSUB_reAssignJunctionRadius();
                 positionShape();
                 attemptSmoothizeMStick();
                 return;
@@ -137,7 +137,11 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void morphComponent(int id, ComponentMorphParameters morphParams) throws MorphException{
+        System.err.println("Morphing component " + id);
         compLabel = MutationSUB_compRelation2Target(id);
+        for (int i = 0; i < compLabel.length; i++) {
+            System.err.println("compLabel[" + i + "] = " + compLabel[i]);
+        }
 
         attemptToGenerateValidComponentSkeleton(id, morphParams);
         updateEndPtsAndJunctions();
@@ -329,7 +333,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             System.out.println("In radius reassign at junction");
         boolean[] radChgFlg = new boolean[ getnComponent()+1];
         int i, j;
-        MatchStick old_mStick = new MatchStick();
+        MorphedMatchStick old_mStick = new MorphedMatchStick();
         old_mStick.copyFrom(this); // a back up
 
         while (true)
@@ -530,15 +534,20 @@ public class MorphedMatchStick extends AllenMatchStick {
 
                 // For each component attached to this junction if it's not the alignedPT
                 // Translate it to its final position
+//                if(true) {
                 if(nowUNdx != newArc.getTransRotHis_alignedPt()){
+                    System.err.println("past the nowUndx check");
                     for (int j=1; j<=junction.getnComp(); j++){
                         int nowCompIndex = junction.getComp()[j];
                         if ( nowCompIndex != id){
+                            System.err.println("past the nowCompIndex check");
                             for (int k=1; k<=getnComponent(); k++){
+//                                if (compLabel[k] != 0) {
                                 if (compLabel[k] == nowCompIndex) {
+                                    System.err.println("comp label success: " + compLabel[k]);
                                     AllenTubeComp attachedComp = getComp()[k];
-                                    Point3d finalPos = attachedComp.getmAxisInfo().getTransRotHis_finalPos();
-                                    finalPos.add(shiftVec);
+                                    Point3d finalPos = new Point3d();
+                                    finalPos.add(attachedComp.getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
                                     attachedComp.translateComp(finalPos);
                                 }
                             }
@@ -573,6 +582,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttemptsToGenerateArc = 0;
         while(numAttemptsToGenerateArc < NUM_ATTEMPTS_PER_ARC){
             try {
+                this.copyFrom(localBackup);
                 newArc = generateMorphedArc(id, morphParams, arcToMorph);
                 checkJunctions(id, newArc);
                 return newArc;

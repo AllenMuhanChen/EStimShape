@@ -2,6 +2,7 @@ package org.xper.allen.newga.blockgen;
 
 import org.xper.allen.drawing.composition.morph.PruningMatchStick.PruningMStickData;
 import org.xper.allen.ga.Branch;
+import org.xper.allen.ga.ProbabilityTable;
 import org.xper.allen.ga.SpikeRateSource;
 import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.util.MultiGaDbUtil;
@@ -44,9 +45,16 @@ public class RegimeThreeComponentChooser {
 
         // Choose the top numComponentsToChoose components
         List<Integer> compsToChoose = new LinkedList<>();
+        ProbabilityTable<Integer> probTable = new ProbabilityTable<>(avgSpikeRateForCompsPreserved);
         for (int i = 0; i < numComponentsToChoose; i++) {
-            compsToChoose.add(sortedComponents.get(i));
+            compsToChoose.add(probTable.sampleWithoutReplacement());
         }
+
+//        // Choose the top numComponentsToChoose components
+//        List<Integer> compsToChoose = new LinkedList<>();
+//        for (int i = 0; i < numComponentsToChoose; i++) {
+//            compsToChoose.add(sortedComponents.get(i));
+//        }
 
         return compsToChoose;
     }

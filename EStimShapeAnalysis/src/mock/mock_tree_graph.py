@@ -20,10 +20,13 @@ conn = Connection("allen_estimshape_dev_221110")
 
 
 def fetch_components_to_preserve_for_stim_id(stim_id):
-    conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
-    mstick_data = conn.fetch_one()
-    mstick_data_dict = xmltodict.parse(mstick_data)
-    components_to_preserve = mstick_data_dict["AllenMStickSpec"]["componentsToPreserve"]
+    try:
+        conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
+        mstick_data = conn.fetch_one()
+        mstick_data_dict = xmltodict.parse(mstick_data)
+        components_to_preserve = mstick_data_dict["AllenMStickDataZ"]["componentsToPreserve"]
+    except:
+        components_to_preserve = None
     return components_to_preserve
 
 

@@ -40,12 +40,26 @@ public class ProbabilityTable<T> {
         TikTok timer = new TikTok("Sample with replacement");
         double rand = Math.random();
         for (int i=0; i<cdf.length; i++){
-//            System.out.println(i + ": " + cdf[i]);
             if (rand < cdf[i]){
                 return items.get(i);
             }
         }
         timer.stop();
+        return null;
+    }
+
+    public T sampleWithoutReplacement() {
+        TikTok timer = new TikTok("Sample without replacement");
+        double rand = Math.random();
+        for (int i = 0; i < cdf.length; i++) {
+            if (rand < cdf[i]) {
+                T item = items.get(i);
+                items.remove(i);
+                probabilities.remove(i);
+                initTable();
+                return item;
+            }
+        }
         return null;
     }
 

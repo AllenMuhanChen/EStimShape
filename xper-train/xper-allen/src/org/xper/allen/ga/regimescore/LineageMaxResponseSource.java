@@ -16,7 +16,20 @@ public class LineageMaxResponseSource implements LineageValueSource {
     @Dependency
     SpikeRateSource spikeRateSource;
 
+    private Long lastGenIdMaxReadFrom = -1L;
+    private Double maxResponse;
+
     public double getValue(long lineageId) {
+        String gaName = dbUtil.readGaNameFor(lineageId);
+        long mostRecentGenId = dbUtil.readTaskDoneMaxGenerationIdForGa(gaName);
+        if (mostRecentGenId > lastGenIdMaxReadFrom) {
+            maxResponse = readNewMaxResponse(lineageId);
+            lastGenIdMaxReadFrom = mostRecentGenId;
+        }
+        return maxResponse;
+    }
+
+    private Double readNewMaxResponse(long lineageId) {
         String gaName = dbUtil.readGaNameFor(lineageId);
         List<Long> stimIds = dbUtil.readDoneStimIdsFromLineage(gaName, lineageId);
 

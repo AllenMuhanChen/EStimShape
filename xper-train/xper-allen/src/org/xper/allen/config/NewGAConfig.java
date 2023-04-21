@@ -74,14 +74,27 @@ public class NewGAConfig {
     @Bean
     public UnivariateRealFunction slotFunctionForLineage() {
         List<Point2d> controlPoints = new ArrayList<>();
-        controlPoints.add(new Point2d(0.0, 0.001));
-        controlPoints.add(new Point2d(1.0, 0.001));
+        controlPoints.add(new Point2d(0.0, 0.01));
+        controlPoints.add(new Point2d(1.0, 0.01));
         controlPoints.add(new Point2d(1.0, 0.5));
         controlPoints.add(new Point2d(2.0, 1.5));
-        controlPoints.add(new Point2d(3.9, 4.5));
+        controlPoints.add(new Point2d(3.9, 3.0));
         controlPoints.add(new Point2d(4.0, 0.0));
         return new LinearSpline(controlPoints);
     }
+
+
+//    @Bean
+//    public UnivariateRealFunction slotFunctionForLineage() {
+//        List<Point2d> controlPoints = new ArrayList<>();
+//        controlPoints.add(new Point2d(0.0, 0.001));
+//        controlPoints.add(new Point2d(1.0, 0.001));
+//        controlPoints.add(new Point2d(1.0, 0.5));
+//        controlPoints.add(new Point2d(2.0, 1.5));
+//        controlPoints.add(new Point2d(3.9, 4.5));
+//        controlPoints.add(new Point2d(4.0, 0.0));
+//        return new LinearSpline(controlPoints);
+//    }
 
 
     @Bean
