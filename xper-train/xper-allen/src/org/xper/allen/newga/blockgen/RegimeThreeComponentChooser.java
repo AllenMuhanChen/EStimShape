@@ -65,8 +65,13 @@ public class RegimeThreeComponentChooser {
     private void calculateConfidence(List<Integer> sortedComponents, Map<Integer, Double> avgSpikeRateForCompsPreserved) {
         // calculate
         Double topComponentSpikeRate = avgSpikeRateForCompsPreserved.get(sortedComponents.get(0));
-        Double secondComponentSpikeRate = avgSpikeRateForCompsPreserved.get(sortedComponents.get(1));
-        confidence = (topComponentSpikeRate - secondComponentSpikeRate) / topComponentSpikeRate;
+        if (sortedComponents.size()>1) {
+            Double secondComponentSpikeRate = avgSpikeRateForCompsPreserved.get(sortedComponents.get(1));
+            confidence = (topComponentSpikeRate - secondComponentSpikeRate) / topComponentSpikeRate;
+        }
+        else {
+            confidence = 1.0;
+        }
 
     }
 

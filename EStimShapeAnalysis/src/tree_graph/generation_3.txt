@@ -1,263 +1,249 @@
-Mon Apr 24 14:52:44 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Apr 24 14:52:44 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Apr 24 14:52:44 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Apr 24 14:52:44 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 15:20:02 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 15:20:02 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 15:20:02 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 15:20:02 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
 generator called
 Selecting Parents
 TikTok: Selecting Parents: Started.
 Fetching Lineage Ids
 TikTok: Fetching Lineage Ids: Started.
-TikTok: Fetching Lineage Ids: Elapsed time: 12 ms
+TikTok: Fetching Lineage Ids: Elapsed time: 11 ms
 Calculating Regime Scores
 TikTok: Calculating Regime Scores: Started.
-TikTok: Calculating Regime Score For Lineage: 1682362318769854: Started.
-Max spike rate: 5.609936051927039
-Lineage score: 0.18699786839756796 for transition: ZERO_TO_ONE
- for lineage: 1682362318769854
-Regime score: 0.187
-TikTok: Calculating Regime Score For Lineage: 1682362318769854: Elapsed time: 27 ms
-TikTok: Calculating Regime Score For Lineage: 1682362319887457: Started.
-Max spike rate: 15.396740426948845
-Lineage score: 0.5132246808982949 for transition: ZERO_TO_ONE
- for lineage: 1682362319887457
-Regime score: 0.5132246808982949
-TikTok: Calculating Regime Score For Lineage: 1682362319887457: Elapsed time: 10 ms
-TikTok: Calculating Regime Score For Lineage: 1682362320423683: Started.
-Max spike rate: 6.282424475680708
-Lineage score: 0.20941414918935694 for transition: ZERO_TO_ONE
- for lineage: 1682362320423683
-Regime score: 0.20941414918935694
-TikTok: Calculating Regime Score For Lineage: 1682362320423683: Elapsed time: 8 ms
-TikTok: Calculating Regime Score For Lineage: 1682362320826201: Started.
-Max spike rate: 2.8957095982515075
-Lineage score: 0.09652365327505025 for transition: ZERO_TO_ONE
- for lineage: 1682362320826201
-Regime score: 0.09652365327505025
-TikTok: Calculating Regime Score For Lineage: 1682362320826201: Elapsed time: 9 ms
-TikTok: Calculating Regime Score For Lineage: 1682362321940508: Started.
-Max spike rate: 7.386171753532805
-Lineage score: 0.24620572511776018 for transition: ZERO_TO_ONE
- for lineage: 1682362321940508
-Regime score: 0.24621
-TikTok: Calculating Regime Score For Lineage: 1682362321940508: Elapsed time: 16 ms
-TikTok: Calculating Regime Score For Lineage: 1682362322395282: Started.
-Max spike rate: 4.788028092097971
-Lineage score: 0.1596009364032657 for transition: ZERO_TO_ONE
- for lineage: 1682362322395282
-Regime score: 0.1596009364032657
-TikTok: Calculating Regime Score For Lineage: 1682362322395282: Elapsed time: 9 ms
-TikTok: Calculating Regime Score For Lineage: 1682362323253892: Started.
-Max spike rate: 5.855624426041723
-Lineage score: 0.19518748086805746 for transition: ZERO_TO_ONE
- for lineage: 1682362323253892
-Regime score: 0.19519
-TikTok: Calculating Regime Score For Lineage: 1682362323253892: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362324377823: Started.
-Max spike rate: 1.4917543346541504
-Lineage score: 0.04972514448847168 for transition: ZERO_TO_ONE
- for lineage: 1682362324377823
-Regime score: 0.04973
-TikTok: Calculating Regime Score For Lineage: 1682362324377823: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362324804341: Started.
-Max spike rate: 5.442030587399212
-Lineage score: 0.18140101957997373 for transition: ZERO_TO_ONE
- for lineage: 1682362324804341
-Regime score: 0.18140101957997373
-TikTok: Calculating Regime Score For Lineage: 1682362324804341: Elapsed time: 13 ms
-TikTok: Calculating Regime Score For Lineage: 1682362325236937: Started.
-Max spike rate: 11.676088654788103
-Lineage score: 0.3892029551596034 for transition: ZERO_TO_ONE
- for lineage: 1682362325236937
-Regime score: 0.3892029551596034
-TikTok: Calculating Regime Score For Lineage: 1682362325236937: Elapsed time: 14 ms
-TikTok: Calculating Regime Score For Lineage: 1682362326366886: Started.
-Mon Apr 24 14:52:45 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Max spike rate: 28.0388174197528
-Lineage score: 0.9346272473250933 for transition: ZERO_TO_ONE
- for lineage: 1682362326366886
-Regime score: 0.93463
-Mon Apr 24 14:52:45 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Apr 24 14:52:45 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-TikTok: Calculating Regime Score For Lineage: 1682362326366886: Elapsed time: 18 ms
-TikTok: Calculating Regime Score For Lineage: 1682362327492083: Started.
-Max spike rate: 1.3586727818906967
-Lineage score: 0.04528909272968989 for transition: ZERO_TO_ONE
- for lineage: 1682362327492083
-Regime score: 0.04529
-TikTok: Calculating Regime Score For Lineage: 1682362327492083: Elapsed time: 16 ms
-TikTok: Calculating Regime Score For Lineage: 1682362327921568: Started.
-Max spike rate: 9.974588951557502
-Lineage score: 0.33248629838525007 for transition: ZERO_TO_ONE
- for lineage: 1682362327921568
-Regime score: 0.33249
-TikTok: Calculating Regime Score For Lineage: 1682362327921568: Elapsed time: 16 ms
-TikTok: Calculating Regime Score For Lineage: 1682362328391468: Started.
-Max spike rate: 3.796159590814869
-Lineage score: 0.1265386530271623 for transition: ZERO_TO_ONE
- for lineage: 1682362328391468
-Regime score: 0.12654
-TikTok: Calculating Regime Score For Lineage: 1682362328391468: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362328893151: Started.
-Max spike rate: 5.54427876416638
-Lineage score: 0.18480929213887934 for transition: ZERO_TO_ONE
- for lineage: 1682362328893151
-Regime score: 0.18481
-TikTok: Calculating Regime Score For Lineage: 1682362328893151: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362329657264: Started.
-Max spike rate: 7.586001815477639
-Lineage score: 0.25286672718258796 for transition: ZERO_TO_ONE
- for lineage: 1682362329657264
-Regime score: 0.25287
-TikTok: Calculating Regime Score For Lineage: 1682362329657264: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362330097007: Started.
-Max spike rate: 5.915228853855364
-Lineage score: 0.19717429512851214 for transition: ZERO_TO_ONE
- for lineage: 1682362330097007
-Regime score: 0.19717429512851214
-TikTok: Calculating Regime Score For Lineage: 1682362330097007: Elapsed time: 9 ms
-TikTok: Calculating Regime Score For Lineage: 1682362330502817: Started.
-Max spike rate: 12.579378849608428
-Lineage score: 0.41931262832028093 for transition: ZERO_TO_ONE
- for lineage: 1682362330502817
-Regime score: 0.41931262832028093
-TikTok: Calculating Regime Score For Lineage: 1682362330502817: Elapsed time: 9 ms
-TikTok: Calculating Regime Score For Lineage: 1682362331558841: Started.
-Max spike rate: 1.788914492695347
-Lineage score: 0.0596304830898449 for transition: ZERO_TO_ONE
- for lineage: 1682362331558841
-Regime score: 0.0596304830898449
-TikTok: Calculating Regime Score For Lineage: 1682362331558841: Elapsed time: 9 ms
-TikTok: Calculating Regime Score For Lineage: 1682362332582365: Started.
-Max spike rate: 7.258751876361023
-Lineage score: 0.24195839587870077 for transition: ZERO_TO_ONE
- for lineage: 1682362332582365
-Regime score: 0.24196
-TikTok: Calculating Regime Score For Lineage: 1682362332582365: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362341359041: Started.
-Max spike rate: 3.2042012348068685
-Lineage score: 0.10680670782689562 for transition: ZERO_TO_ONE
- for lineage: 1682362341359041
-Regime score: 0.10680670782689562
-TikTok: Calculating Regime Score For Lineage: 1682362341359041: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362343238941: Started.
-Max spike rate: 24.291278592716406
-Lineage score: 0.8097092864238802 for transition: ZERO_TO_ONE
- for lineage: 1682362343238941
-Regime score: 0.8097092864238802
-TikTok: Calculating Regime Score For Lineage: 1682362343238941: Elapsed time: 16 ms
-TikTok: Calculating Regime Score For Lineage: 1682362343702638: Started.
-Max spike rate: 3.5511182536969894
-Lineage score: 0.11837060845656631 for transition: ZERO_TO_ONE
- for lineage: 1682362343702638
-Regime score: 0.11837060845656631
-TikTok: Calculating Regime Score For Lineage: 1682362343702638: Elapsed time: 16 ms
-TikTok: Calculating Regime Score For Lineage: 1682362344427823: Started.
-Max spike rate: 3.835049652236412
-Lineage score: 0.1278349884078804 for transition: ZERO_TO_ONE
- for lineage: 1682362344427823
-Regime score: 0.1278349884078804
-TikTok: Calculating Regime Score For Lineage: 1682362344427823: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362345107895: Started.
-Max spike rate: 14.641114726384114
-Lineage score: 0.48803715754613713 for transition: ZERO_TO_ONE
- for lineage: 1682362345107895
-Regime score: 0.48803715754613713
-TikTok: Calculating Regime Score For Lineage: 1682362345107895: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362345554207: Started.
-Max spike rate: 22.33527005491533
-Lineage score: 0.744509001830511 for transition: ZERO_TO_ONE
- for lineage: 1682362345554207
-Regime score: 0.744509001830511
-TikTok: Calculating Regime Score For Lineage: 1682362345554207: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362346282905: Started.
-Max spike rate: 3.4888030071910117
-Lineage score: 0.11629343357303372 for transition: ZERO_TO_ONE
- for lineage: 1682362346282905
-Regime score: 0.11629343357303372
-TikTok: Calculating Regime Score For Lineage: 1682362346282905: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362347533652: Started.
-Max spike rate: 2.7907839233217
-Lineage score: 0.09302613077739001 for transition: ZERO_TO_ONE
- for lineage: 1682362347533652
-Regime score: 0.09302613077739001
-TikTok: Calculating Regime Score For Lineage: 1682362347533652: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362348679223: Started.
-Max spike rate: 5.491636626570899
-Lineage score: 0.18305455421902997 for transition: ZERO_TO_ONE
- for lineage: 1682362348679223
-Regime score: 0.18305455421902997
-TikTok: Calculating Regime Score For Lineage: 1682362348679223: Elapsed time: 15 ms
-TikTok: Calculating Regime Score For Lineage: 1682362349071234: Started.
-Max spike rate: 4.384407511269553
-Lineage score: 0.14614691704231844 for transition: ZERO_TO_ONE
- for lineage: 1682362349071234
-Regime score: 0.14614691704231844
-TikTok: Calculating Regime Score For Lineage: 1682362349071234: Elapsed time: 19 ms
-TikTok: Calculating Regime Score For Lineage: 1682362349546837: Started.
-Max spike rate: 1.6187975584770153
-Lineage score: 0.053959918615900514 for transition: ZERO_TO_ONE
- for lineage: 1682362349546837
-Regime score: 0.053959918615900514
-TikTok: Calculating Regime Score For Lineage: 1682362349546837: Elapsed time: 16 ms
-TikTok: Calculating Regime Score For Lineage: 1682362350639504: Started.
-Max spike rate: 1.6290654255998707
-Lineage score: 0.054302180853329024 for transition: ZERO_TO_ONE
- for lineage: 1682362350639504
-Regime score: 0.054302180853329024
-TikTok: Calculating Regime Score For Lineage: 1682362350639504: Elapsed time: 19 ms
-TikTok: Calculating Regime Score For Lineage: 1682362351404301: Started.
-Max spike rate: 22.868775234422824
-Lineage score: 0.7622925078140941 for transition: ZERO_TO_ONE
- for lineage: 1682362351404301
-Regime score: 0.7622925078140941
-TikTok: Calculating Regime Score For Lineage: 1682362351404301: Elapsed time: 30 ms
-TikTok: Calculating Regime Score For Lineage: 1682362352475353: Started.
-Max spike rate: 10.497784578130771
-Lineage score: 0.34992615260435905 for transition: ZERO_TO_ONE
- for lineage: 1682362352475353
-Regime score: 0.34992615260435905
-TikTok: Calculating Regime Score For Lineage: 1682362352475353: Elapsed time: 17 ms
-TikTok: Calculating Regime Score For Lineage: 1682362352964121: Started.
-Max spike rate: 20.741798871728363
-Lineage score: 0.6913932957242788 for transition: ZERO_TO_ONE
- for lineage: 1682362352964121
-Regime score: 0.6913932957242788
-TikTok: Calculating Regime Score For Lineage: 1682362352964121: Elapsed time: 24 ms
-TikTok: Calculating Regime Score For Lineage: 1682362353409458: Started.
-Max spike rate: 5.162580799531597
-Lineage score: 0.17208602665105321 for transition: ZERO_TO_ONE
- for lineage: 1682362353409458
-Regime score: 0.17208602665105321
-TikTok: Calculating Regime Score For Lineage: 1682362353409458: Elapsed time: 25 ms
-TikTok: Calculating Regime Score For Lineage: 1682362354575247: Started.
-Max spike rate: 8.775040062026568
-Lineage score: 0.2925013354008856 for transition: ZERO_TO_ONE
- for lineage: 1682362354575247
-Regime score: 0.2925013354008856
-TikTok: Calculating Regime Score For Lineage: 1682362354575247: Elapsed time: 17 ms
-TikTok: Calculating Regime Score For Lineage: 1682362355066982: Started.
-Max spike rate: 2.1938465437379304
-Lineage score: 0.07312821812459767 for transition: ZERO_TO_ONE
- for lineage: 1682362355066982
-Regime score: 0.07312821812459767
-TikTok: Calculating Regime Score For Lineage: 1682362355066982: Elapsed time: 17 ms
-TikTok: Calculating Regime Score For Lineage: 1682362355812215: Started.
-Max spike rate: 8.533299556289187
-Lineage score: 0.2844433185429729 for transition: ZERO_TO_ONE
- for lineage: 1682362355812215
-Regime score: 0.2844433185429729
-TikTok: Calculating Regime Score For Lineage: 1682362355812215: Elapsed time: 16 ms
-TikTok: Calculating Regime Score For Lineage: 1682362356937214: Started.
-Max spike rate: 9.59497426860976
-Lineage score: 0.31983247562032535 for transition: ZERO_TO_ONE
- for lineage: 1682362356937214
-Regime score: 0.31983247562032535
-TikTok: Calculating Regime Score For Lineage: 1682362356937214: Elapsed time: 16 ms
-TikTok: Calculating Regime Scores: Elapsed time: 629 ms
+TikTok: Calculating Regime Score For Lineage: 1682363959039203: Started.
+Max spike rate: 0.5921350601442025
+Lineage score: 0.019737835338140084 for transition: ZERO_TO_ONE
+ for lineage: 1682363959039203
+Regime score: 0.01974
+TikTok: Calculating Regime Score For Lineage: 1682363959039203: Elapsed time: 31 ms
+TikTok: Calculating Regime Score For Lineage: 1682363959779232: Started.
+TikTok: Calculating max response: Started.
+TikTok: Calculating max response: Elapsed time: 14 ms
+Lineage score: 0.0 for transition: ONE_TO_TWO
+ for lineage: 1682363959779232
+Regime score: 1.0
+TikTok: Calculating Regime Score For Lineage: 1682363959779232: Elapsed time: 48 ms
+TikTok: Calculating Regime Score For Lineage: 1682363960343704: Started.
+Max spike rate: 3.3540961897377763
+Lineage score: 0.11180320632459255 for transition: ZERO_TO_ONE
+ for lineage: 1682363960343704
+Regime score: 0.11180320632459255
+TikTok: Calculating Regime Score For Lineage: 1682363960343704: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682363960782363: Started.
+Max spike rate: 10.65772387136608
+Lineage score: 0.35525746237886935 for transition: ZERO_TO_ONE
+ for lineage: 1682363960782363
+Regime score: 0.35526
+TikTok: Calculating Regime Score For Lineage: 1682363960782363: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682363961910773: Started.
+Max spike rate: 5.171371399616054
+Lineage score: 0.17237904665386847 for transition: ZERO_TO_ONE
+ for lineage: 1682363961910773
+Regime score: 0.17238
+TikTok: Calculating Regime Score For Lineage: 1682363961910773: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682363963007528: Started.
+Max spike rate: 2.1120677806156887
+Lineage score: 0.07040225935385629 for transition: ZERO_TO_ONE
+ for lineage: 1682363963007528
+Regime score: 0.07040225935385629
+TikTok: Calculating Regime Score For Lineage: 1682363963007528: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682363963694927: Started.
+Max spike rate: 3.2675456209963496
+Lineage score: 0.10891818736654499 for transition: ZERO_TO_ONE
+ for lineage: 1682363963694927
+Regime score: 0.10892
+TikTok: Calculating Regime Score For Lineage: 1682363963694927: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682363964719505: Started.
+Max spike rate: 8.945664314891237
+Lineage score: 0.2981888104963746 for transition: ZERO_TO_ONE
+ for lineage: 1682363964719505
+Regime score: 0.29819
+TikTok: Calculating Regime Score For Lineage: 1682363964719505: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682363965664534: Started.
+Max spike rate: 1.0104261724941355
+Lineage score: 0.033680872416471185 for transition: ZERO_TO_ONE
+ for lineage: 1682363965664534
+Regime score: 0.033680872416471185
+TikTok: Calculating Regime Score For Lineage: 1682363965664534: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682363966102324: Started.
+Max spike rate: 11.532563495739259
+Lineage score: 0.3844187831913086 for transition: ZERO_TO_ONE
+ for lineage: 1682363966102324
+Regime score: 0.38442
+TikTok: Calculating Regime Score For Lineage: 1682363966102324: Elapsed time: 19 ms
+TikTok: Calculating Regime Score For Lineage: 1682363967204170: Started.
+Max spike rate: 13.45104230015027
+Lineage score: 0.44836807667167566 for transition: ZERO_TO_ONE
+ for lineage: 1682363967204170
+Regime score: 0.44837
+TikTok: Calculating Regime Score For Lineage: 1682363967204170: Elapsed time: 25 ms
+TikTok: Calculating Regime Score For Lineage: 1682363967635726: Started.
+Max spike rate: 4.891967509044755
+Lineage score: 0.16306558363482518 for transition: ZERO_TO_ONE
+ for lineage: 1682363967635726
+Regime score: 0.16307
+TikTok: Calculating Regime Score For Lineage: 1682363967635726: Elapsed time: 25 ms
+TikTok: Calculating Regime Score For Lineage: 1682363968373730: Started.
+Max spike rate: 12.52256484989599
+Lineage score: 0.4174188283298663 for transition: ZERO_TO_ONE
+ for lineage: 1682363968373730
+Regime score: 0.41742
+TikTok: Calculating Regime Score For Lineage: 1682363968373730: Elapsed time: 22 ms
+TikTok: Calculating Regime Score For Lineage: 1682363968783727: Started.
+Max spike rate: 2.212653377882868
+Lineage score: 0.0737551125960956 for transition: ZERO_TO_ONE
+ for lineage: 1682363968783727
+Regime score: 0.07376
+TikTok: Calculating Regime Score For Lineage: 1682363968783727: Elapsed time: 19 ms
+TikTok: Calculating Regime Score For Lineage: 1682363969491213: Started.
+Max spike rate: 3.4570217242818364
+Lineage score: 0.11523405747606122 for transition: ZERO_TO_ONE
+ for lineage: 1682363969491213
+Regime score: 0.11523405747606122
+TikTok: Calculating Regime Score For Lineage: 1682363969491213: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682363969911907: Started.
+Max spike rate: 7.266375553807255
+Lineage score: 0.24221251846024183 for transition: ZERO_TO_ONE
+ for lineage: 1682363969911907
+Regime score: 0.24221251846024183
+TikTok: Calculating Regime Score For Lineage: 1682363969911907: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682363970649625: Started.
+Max spike rate: 6.609825120582488
+Lineage score: 0.22032750401941625 for transition: ZERO_TO_ONE
+ for lineage: 1682363970649625
+Regime score: 0.22033
+TikTok: Calculating Regime Score For Lineage: 1682363970649625: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682363971767107: Started.
+Max spike rate: 13.980966424027688
+Lineage score: 0.4660322141342563 for transition: ZERO_TO_ONE
+ for lineage: 1682363971767107
+Regime score: 0.4660322141342563
+TikTok: Calculating Regime Score For Lineage: 1682363971767107: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682363972886357: Started.
+Max spike rate: 8.89090663876387
+Lineage score: 0.2963635546254623 for transition: ZERO_TO_ONE
+ for lineage: 1682363972886357
+Regime score: 0.2963635546254623
+TikTok: Calculating Regime Score For Lineage: 1682363972886357: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682363973387114: Started.
+Max spike rate: 2.918101801123933
+Lineage score: 0.09727006003746444 for transition: ZERO_TO_ONE
+ for lineage: 1682363973387114
+Regime score: 0.09727006003746444
+TikTok: Calculating Regime Score For Lineage: 1682363973387114: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682363981953889: Started.
+Max spike rate: 10.975513313779883
+Lineage score: 0.3658504437926628 for transition: ZERO_TO_ONE
+ for lineage: 1682363981953889
+Regime score: 0.3658504437926628
+TikTok: Calculating Regime Score For Lineage: 1682363981953889: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682363983019141: Started.
+Max spike rate: 1.0447030691924482
+Lineage score: 0.034823435639748275 for transition: ZERO_TO_ONE
+ for lineage: 1682363983019141
+Regime score: 0.034823435639748275
+TikTok: Calculating Regime Score For Lineage: 1682363983019141: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682363983727392: Started.
+Max spike rate: 4.595163909014741
+Lineage score: 0.15317213030049137 for transition: ZERO_TO_ONE
+ for lineage: 1682363983727392
+Regime score: 0.15317213030049137
+TikTok: Calculating Regime Score For Lineage: 1682363983727392: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682363984168096: Started.
+Max spike rate: 12.861451425779624
+Lineage score: 0.42871504752598744 for transition: ZERO_TO_ONE
+ for lineage: 1682363984168096
+Regime score: 0.42871504752598744
+TikTok: Calculating Regime Score For Lineage: 1682363984168096: Elapsed time: 25 ms
+TikTok: Calculating Regime Score For Lineage: 1682363986228582: Started.
+Max spike rate: 10.373594916608923
+Lineage score: 0.3457864972202974 for transition: ZERO_TO_ONE
+ for lineage: 1682363986228582
+Regime score: 0.3457864972202974
+TikTok: Calculating Regime Score For Lineage: 1682363986228582: Elapsed time: 20 ms
+TikTok: Calculating Regime Score For Lineage: 1682363986658455: Started.
+Max spike rate: 15.523588007116235
+Lineage score: 0.5174529335705411 for transition: ZERO_TO_ONE
+ for lineage: 1682363986658455
+Regime score: 0.5174529335705411
+TikTok: Calculating Regime Score For Lineage: 1682363986658455: Elapsed time: 19 ms
+TikTok: Calculating Regime Score For Lineage: 1682363987397424: Started.
+Max spike rate: 10.918110273805624
+Lineage score: 0.3639370091268541 for transition: ZERO_TO_ONE
+ for lineage: 1682363987397424
+Regime score: 0.3639370091268541
+TikTok: Calculating Regime Score For Lineage: 1682363987397424: Elapsed time: 17 ms
+TikTok: Calculating Regime Score For Lineage: 1682363988467388: Started.
+Max spike rate: 4.609807326128766
+Lineage score: 0.1536602442042922 for transition: ZERO_TO_ONE
+ for lineage: 1682363988467388
+Regime score: 0.1536602442042922
+TikTok: Calculating Regime Score For Lineage: 1682363988467388: Elapsed time: 20 ms
+TikTok: Calculating Regime Score For Lineage: 1682363989178801: Started.
+Max spike rate: 2.193888190356039
+Lineage score: 0.07312960634520131 for transition: ZERO_TO_ONE
+ for lineage: 1682363989178801
+Regime score: 0.07312960634520131
+TikTok: Calculating Regime Score For Lineage: 1682363989178801: Elapsed time: 23 ms
+TikTok: Calculating Regime Score For Lineage: 1682363990225246: Started.
+Max spike rate: 22.917581218616764
+Lineage score: 0.7639193739538921 for transition: ZERO_TO_ONE
+ for lineage: 1682363990225246
+Regime score: 0.7639193739538921
+TikTok: Calculating Regime Score For Lineage: 1682363990225246: Elapsed time: 17 ms
+TikTok: Calculating Regime Score For Lineage: 1682363990937633: Started.
+Max spike rate: 5.895147193648182
+Lineage score: 0.1965049064549394 for transition: ZERO_TO_ONE
+ for lineage: 1682363990937633
+Regime score: 0.1965049064549394
+TikTok: Calculating Regime Score For Lineage: 1682363990937633: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682363991359836: Started.
+Max spike rate: 5.057695307973296
+Lineage score: 0.16858984359910986 for transition: ZERO_TO_ONE
+ for lineage: 1682363991359836
+Regime score: 0.16858984359910986
+TikTok: Calculating Regime Score For Lineage: 1682363991359836: Elapsed time: 17 ms
+TikTok: Calculating Regime Score For Lineage: 1682363991981433: Started.
+Max spike rate: 8.580242225659768
+Lineage score: 0.2860080741886589 for transition: ZERO_TO_ONE
+ for lineage: 1682363991981433
+Regime score: 0.2860080741886589
+TikTok: Calculating Regime Score For Lineage: 1682363991981433: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682363992370594: Started.
+Max spike rate: 2.019670133141195
+Lineage score: 0.06732233777137317 for transition: ZERO_TO_ONE
+ for lineage: 1682363992370594
+Regime score: 0.06732233777137317
+TikTok: Calculating Regime Score For Lineage: 1682363992370594: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682363993404891: Started.
+Max spike rate: 7.274670237721889
+Lineage score: 0.24248900792406297 for transition: ZERO_TO_ONE
+ for lineage: 1682363993404891
+Regime score: 0.24248900792406297
+TikTok: Calculating Regime Score For Lineage: 1682363993404891: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682363993852319: Started.
+Max spike rate: 31.54958366421901
+Lineage score: 1.0 for transition: ZERO_TO_ONE
+ for lineage: 1682363993852319
+Regime score: 1.0
+TikTok: Calculating Regime Score For Lineage: 1682363993852319: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682363994588118: Started.
+Max spike rate: 5.738361105899852
+Lineage score: 0.19127870352999507 for transition: ZERO_TO_ONE
+ for lineage: 1682363994588118
+Regime score: 0.19127870352999507
+TikTok: Calculating Regime Score For Lineage: 1682363994588118: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682363994991407: Started.
+Max spike rate: 6.653169958152692
+Lineage score: 0.22177233193842308 for transition: ZERO_TO_ONE
+ for lineage: 1682363994991407
+Regime score: 0.22177233193842308
+TikTok: Calculating Regime Score For Lineage: 1682363994991407: Elapsed time: 22 ms
+TikTok: Calculating Regime Scores: Elapsed time: 658 ms
 Creating Slots For Lineages
 TikTok: Creating Slots For Lineages: Started.
 TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Normalize probability table: Elapsed time: 1 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 0 ms
 TikTok: Sample with replacement: Started.
@@ -280,7 +266,7 @@ TikTok: Sample with replacement: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Sample with replacement: Started.
-TikTok: Creating Slots For Lineages: Elapsed time: 0 ms
+TikTok: Creating Slots For Lineages: Elapsed time: 4 ms
 Assigning Regimes To Slots
 TikTok: Assigning Regimes To Slots: Started.
 TikTok: Normalize probability table: Started.
@@ -288,12 +274,6 @@ TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 0 ms
 TikTok: Sample with replacement: Started.
-TikTok: Sample with replacement: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Sample with replacement: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
@@ -305,10 +285,6 @@ TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 0 ms
 TikTok: Sample with replacement: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
 TikTok: Sample with replacement: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 0 ms
@@ -318,12 +294,9 @@ TikTok: Sample with replacement: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Calculate CDF: Elapsed time: 1 ms
 TikTok: Sample with replacement: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 0 ms
@@ -350,124 +323,42 @@ TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 0 ms
 TikTok: Sample with replacement: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Sample with replacement: Started.
-TikTok: Sample with replacement: Started.
-TikTok: Sample with replacement: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
 TikTok: Sample with replacement: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 1 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 0 ms
 TikTok: Sample with replacement: Started.
-TikTok: Assigning Regimes To Slots: Elapsed time: 2 ms
-Assigning Fitness Scores To Slots
-TikTok: Assigning Fitness Scores To Slots: Started.
-TikTok: Assigning Slots For Lineage: 1682362343238941 with 2 slots: Started.
-TikTok: Using lineageId: 1682362343238941 to find potential parents: Started.
-TikTok: Using lineageId: 1682362343238941 to find potential parents: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362343238941: Started.
-TikTok: Getting spike rate for potential parent: 1682362343238941: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 50 ms
-TikTok: Using normalized responses to find fitness scores: Started.
-TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
-TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
-TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Using lineageId: 1682362343238941 to find potential parents: Started.
-TikTok: Using lineageId: 1682362343238941 to find potential parents: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362343238941: Started.
-TikTok: Getting spike rate for potential parent: 1682362343238941: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
-TikTok: Using normalized responses to find fitness scores: Started.
-TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
-TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
-TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362343238941 with 2 slots: Elapsed time: 53 ms
-TikTok: Assigning Slots For Lineage: 1682362349071234 with 1 slots: Started.
-TikTok: Using lineageId: 1682362349071234 to find potential parents: Started.
-TikTok: Using lineageId: 1682362349071234 to find potential parents: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362349071234: Started.
-TikTok: Getting spike rate for potential parent: 1682362349071234: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
-TikTok: Using normalized responses to find fitness scores: Started.
-TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
-TikTok: Selecting parents: Started.
-TikTok: Sample with replacement: Started.
-TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362349071234 with 1 slots: Elapsed time: 2 ms
-TikTok: Assigning Slots For Lineage: 1682362346282905 with 2 slots: Started.
-TikTok: Using lineageId: 1682362346282905 to find potential parents: Started.
-TikTok: Using lineageId: 1682362346282905 to find potential parents: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362346282905: Started.
-TikTok: Getting spike rate for potential parent: 1682362346282905: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
-TikTok: Using normalized responses to find fitness scores: Started.
-TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
-TikTok: Selecting parents: Started.
-TikTok: Sample with replacement: Started.
-TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Using lineageId: 1682362346282905 to find potential parents: Started.
-TikTok: Using lineageId: 1682362346282905 to find potential parents: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362346282905: Started.
-TikTok: Getting spike rate for potential parent: 1682362346282905: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
-TikTok: Using normalized responses to find fitness scores: Started.
-TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
 TikTok: Normalize probability table: Started.
 TikTok: Normalize probability table: Elapsed time: 0 ms
 TikTok: Calculate CDF: Started.
 TikTok: Calculate CDF: Elapsed time: 1 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 1 ms
-TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
-TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362346282905 with 2 slots: Elapsed time: 5 ms
-TikTok: Assigning Slots For Lineage: 1682362332582365 with 1 slots: Started.
-TikTok: Using lineageId: 1682362332582365 to find potential parents: Started.
-TikTok: Using lineageId: 1682362332582365 to find potential parents: Elapsed time: 0 ms
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Assigning Regimes To Slots: Elapsed time: 7 ms
+Assigning Fitness Scores To Slots
+TikTok: Assigning Fitness Scores To Slots: Started.
+TikTok: Assigning Slots For Lineage: 1682363990937633 with 1 slots: Started.
+TikTok: Using lineageId: 1682363990937633 to find potential parents: Started.
+TikTok: Using lineageId: 1682363990937633 to find potential parents: Elapsed time: 3 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362332582365: Started.
-TikTok: Getting spike rate for potential parent: 1682362332582365: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682363990937633: Started.
+TikTok: Getting spike rate for potential parent: 1682363990937633: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 135 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -479,14 +370,13 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362332582365 with 1 slots: Elapsed time: 1 ms
-TikTok: Assigning Slots For Lineage: 1682362319887457 with 1 slots: Started.
-TikTok: Using lineageId: 1682362319887457 to find potential parents: Started.
-TikTok: Using lineageId: 1682362319887457 to find potential parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363990937633 with 1 slots: Elapsed time: 139 ms
+TikTok: Assigning Slots For Lineage: 1682363992370594 with 2 slots: Started.
+TikTok: Using lineageId: 1682363992370594 to find potential parents: Started.
+TikTok: Using lineageId: 1682363992370594 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362319887457: Started.
-TikTok: Getting spike rate for potential parent: 1682362319887457: Elapsed time: 1 ms
-Mon Apr 24 14:52:45 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+TikTok: Getting spike rate for potential parent: 1682363992370594: Started.
+TikTok: Getting spike rate for potential parent: 1682363992370594: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
@@ -499,13 +389,11 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362319887457 with 1 slots: Elapsed time: 2 ms
-TikTok: Assigning Slots For Lineage: 1682362327921568 with 1 slots: Started.
-TikTok: Using lineageId: 1682362327921568 to find potential parents: Started.
-TikTok: Using lineageId: 1682362327921568 to find potential parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682363992370594 to find potential parents: Started.
+TikTok: Using lineageId: 1682363992370594 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362327921568: Started.
-TikTok: Getting spike rate for potential parent: 1682362327921568: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682363992370594: Started.
+TikTok: Getting spike rate for potential parent: 1682363992370594: Elapsed time: 0 ms
 TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
@@ -518,14 +406,49 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362327921568 with 1 slots: Elapsed time: 1 ms
-TikTok: Assigning Slots For Lineage: 1682362329657264 with 1 slots: Started.
-TikTok: Using lineageId: 1682362329657264 to find potential parents: Started.
-Mon Apr 24 14:52:45 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-TikTok: Using lineageId: 1682362329657264 to find potential parents: Elapsed time: 1 ms
+TikTok: Assigning Slots For Lineage: 1682363992370594 with 2 slots: Elapsed time: 5 ms
+TikTok: Assigning Slots For Lineage: 1682363984168096 with 2 slots: Started.
+TikTok: Using lineageId: 1682363984168096 to find potential parents: Started.
+TikTok: Using lineageId: 1682363984168096 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362329657264: Started.
-TikTok: Getting spike rate for potential parent: 1682362329657264: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682363984168096: Started.
+TikTok: Getting spike rate for potential parent: 1682363984168096: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682363984168096 to find potential parents: Started.
+TikTok: Using lineageId: 1682363984168096 to find potential parents: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682363984168096: Started.
+TikTok: Getting spike rate for potential parent: 1682363984168096: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363984168096 with 2 slots: Elapsed time: 5 ms
+TikTok: Assigning Slots For Lineage: 1682363970649625 with 1 slots: Started.
+TikTok: Using lineageId: 1682363970649625 to find potential parents: Started.
+TikTok: Using lineageId: 1682363970649625 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682363970649625: Started.
+TikTok: Getting spike rate for potential parent: 1682363970649625: Elapsed time: 0 ms
 TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
@@ -538,15 +461,18 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362329657264 with 1 slots: Elapsed time: 2 ms
-TikTok: Assigning Slots For Lineage: 1682362352475353 with 1 slots: Started.
-TikTok: Using lineageId: 1682362352475353 to find potential parents: Started.
-Mon Apr 24 14:52:45 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-TikTok: Using lineageId: 1682362352475353 to find potential parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363970649625 with 1 slots: Elapsed time: 2 ms
+TikTok: Assigning Slots For Lineage: 1682363959779232 with 3 slots: Started.
+TikTok: Using lineageId: 1682363959779232 to find potential parents: Started.
+TikTok: Using lineageId: 1682363959779232 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362352475353: Started.
-TikTok: Getting spike rate for potential parent: 1682362352475353: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 7 ms
+TikTok: Getting spike rate for potential parent: 1682363959779232: Started.
+TikTok: Getting spike rate for potential parent: 1682363959779232: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682363985737443: Started.
+TikTok: Getting spike rate for potential parent: 1682363985737443: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682363985247202: Started.
+TikTok: Getting spike rate for potential parent: 1682363985247202: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 4 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -558,32 +484,15 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362352475353 with 1 slots: Elapsed time: 7 ms
-TikTok: Assigning Slots For Lineage: 1682362323253892 with 1 slots: Started.
-TikTok: Using lineageId: 1682362323253892 to find potential parents: Started.
-TikTok: Using lineageId: 1682362323253892 to find potential parents: Elapsed time: 1 ms
+TikTok: Using lineageId: 1682363959779232 to find potential parents: Started.
+TikTok: Using lineageId: 1682363959779232 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362323253892: Started.
-TikTok: Getting spike rate for potential parent: 1682362323253892: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 5 ms
-TikTok: Using normalized responses to find fitness scores: Started.
-TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
-TikTok: Selecting parents: Started.
-TikTok: Sample with replacement: Started.
-TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362323253892 with 1 slots: Elapsed time: 6 ms
-TikTok: Assigning Slots For Lineage: 1682362326366886 with 1 slots: Started.
-TikTok: Using lineageId: 1682362326366886 to find potential parents: Started.
-TikTok: Using lineageId: 1682362326366886 to find potential parents: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362326366886: Started.
-TikTok: Getting spike rate for potential parent: 1682362326366886: Elapsed time: 2 ms
+TikTok: Getting spike rate for potential parent: 1682363959779232: Started.
+TikTok: Getting spike rate for potential parent: 1682363959779232: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682363985737443: Started.
+TikTok: Getting spike rate for potential parent: 1682363985737443: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682363985247202: Started.
+TikTok: Getting spike rate for potential parent: 1682363985247202: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Elapsed time: 3 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
@@ -596,32 +505,15 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362326366886 with 1 slots: Elapsed time: 4 ms
-TikTok: Assigning Slots For Lineage: 1682362318769854 with 1 slots: Started.
-TikTok: Using lineageId: 1682362318769854 to find potential parents: Started.
-TikTok: Using lineageId: 1682362318769854 to find potential parents: Elapsed time: 2 ms
+TikTok: Using lineageId: 1682363959779232 to find potential parents: Started.
+TikTok: Using lineageId: 1682363959779232 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362318769854: Started.
-TikTok: Getting spike rate for potential parent: 1682362318769854: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 4 ms
-TikTok: Using normalized responses to find fitness scores: Started.
-TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
-TikTok: Normalize probability table: Started.
-TikTok: Normalize probability table: Elapsed time: 0 ms
-TikTok: Calculate CDF: Started.
-TikTok: Calculate CDF: Elapsed time: 0 ms
-TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
-TikTok: Selecting parents: Started.
-TikTok: Sample with replacement: Started.
-TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362318769854 with 1 slots: Elapsed time: 6 ms
-TikTok: Assigning Slots For Lineage: 1682362327492083 with 1 slots: Started.
-TikTok: Using lineageId: 1682362327492083 to find potential parents: Started.
-TikTok: Using lineageId: 1682362327492083 to find potential parents: Elapsed time: 0 ms
-TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362327492083: Started.
-TikTok: Getting spike rate for potential parent: 1682362327492083: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682363959779232: Started.
+TikTok: Getting spike rate for potential parent: 1682363959779232: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682363985737443: Started.
+TikTok: Getting spike rate for potential parent: 1682363985737443: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682363985247202: Started.
+TikTok: Getting spike rate for potential parent: 1682363985247202: Elapsed time: 0 ms
 TikTok: Finding normalized responses for each potential parent: Elapsed time: 3 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
@@ -634,14 +526,14 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362327492083 with 1 slots: Elapsed time: 3 ms
-TikTok: Assigning Slots For Lineage: 1682362324804341 with 1 slots: Started.
-TikTok: Using lineageId: 1682362324804341 to find potential parents: Started.
-TikTok: Using lineageId: 1682362324804341 to find potential parents: Elapsed time: 1 ms
+TikTok: Assigning Slots For Lineage: 1682363959779232 with 3 slots: Elapsed time: 13 ms
+TikTok: Assigning Slots For Lineage: 1682363986228582 with 1 slots: Started.
+TikTok: Using lineageId: 1682363986228582 to find potential parents: Started.
+TikTok: Using lineageId: 1682363986228582 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362324804341: Started.
-TikTok: Getting spike rate for potential parent: 1682362324804341: Elapsed time: 4 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 5 ms
+TikTok: Getting spike rate for potential parent: 1682363986228582: Started.
+TikTok: Getting spike rate for potential parent: 1682363986228582: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -653,14 +545,14 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362324804341 with 1 slots: Elapsed time: 6 ms
-TikTok: Assigning Slots For Lineage: 1682362347533652 with 3 slots: Started.
-TikTok: Using lineageId: 1682362347533652 to find potential parents: Started.
-TikTok: Using lineageId: 1682362347533652 to find potential parents: Elapsed time: 4 ms
+TikTok: Assigning Slots For Lineage: 1682363986228582 with 1 slots: Elapsed time: 2 ms
+TikTok: Assigning Slots For Lineage: 1682363961910773 with 1 slots: Started.
+TikTok: Using lineageId: 1682363961910773 to find potential parents: Started.
+TikTok: Using lineageId: 1682363961910773 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362347533652: Started.
-TikTok: Getting spike rate for potential parent: 1682362347533652: Elapsed time: 5 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 10 ms
+TikTok: Getting spike rate for potential parent: 1682363961910773: Started.
+TikTok: Getting spike rate for potential parent: 1682363961910773: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -672,12 +564,14 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Using lineageId: 1682362347533652 to find potential parents: Started.
-TikTok: Using lineageId: 1682362347533652 to find potential parents: Elapsed time: 1 ms
+TikTok: Assigning Slots For Lineage: 1682363961910773 with 1 slots: Elapsed time: 2 ms
+TikTok: Assigning Slots For Lineage: 1682363991981433 with 1 slots: Started.
+TikTok: Using lineageId: 1682363991981433 to find potential parents: Started.
+TikTok: Using lineageId: 1682363991981433 to find potential parents: Elapsed time: 0 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362347533652: Started.
-TikTok: Getting spike rate for potential parent: 1682362347533652: Elapsed time: 2 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 4 ms
+TikTok: Getting spike rate for potential parent: 1682363991981433: Started.
+TikTok: Getting spike rate for potential parent: 1682363991981433: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -689,12 +583,14 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Using lineageId: 1682362347533652 to find potential parents: Started.
-TikTok: Using lineageId: 1682362347533652 to find potential parents: Elapsed time: 1 ms
+TikTok: Assigning Slots For Lineage: 1682363991981433 with 1 slots: Elapsed time: 2 ms
+TikTok: Assigning Slots For Lineage: 1682363969491213 with 1 slots: Started.
+TikTok: Using lineageId: 1682363969491213 to find potential parents: Started.
+TikTok: Using lineageId: 1682363969491213 to find potential parents: Elapsed time: 0 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362347533652: Started.
-TikTok: Getting spike rate for potential parent: 1682362347533652: Elapsed time: 3 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 7 ms
+TikTok: Getting spike rate for potential parent: 1682363969491213: Started.
+TikTok: Getting spike rate for potential parent: 1682363969491213: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -706,14 +602,14 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362347533652 with 3 slots: Elapsed time: 27 ms
-TikTok: Assigning Slots For Lineage: 1682362328893151 with 1 slots: Started.
-TikTok: Using lineageId: 1682362328893151 to find potential parents: Started.
-TikTok: Using lineageId: 1682362328893151 to find potential parents: Elapsed time: 2 ms
+TikTok: Assigning Slots For Lineage: 1682363969491213 with 1 slots: Elapsed time: 2 ms
+TikTok: Assigning Slots For Lineage: 1682363994588118 with 2 slots: Started.
+TikTok: Using lineageId: 1682363994588118 to find potential parents: Started.
+TikTok: Using lineageId: 1682363994588118 to find potential parents: Elapsed time: 1 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362328893151: Started.
-TikTok: Getting spike rate for potential parent: 1682362328893151: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 4 ms
+TikTok: Getting spike rate for potential parent: 1682363994588118: Started.
+TikTok: Getting spike rate for potential parent: 1682363994588118: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -725,14 +621,12 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362328893151 with 1 slots: Elapsed time: 6 ms
-TikTok: Assigning Slots For Lineage: 1682362352964121 with 1 slots: Started.
-TikTok: Using lineageId: 1682362352964121 to find potential parents: Started.
-TikTok: Using lineageId: 1682362352964121 to find potential parents: Elapsed time: 1 ms
+TikTok: Using lineageId: 1682363994588118 to find potential parents: Started.
+TikTok: Using lineageId: 1682363994588118 to find potential parents: Elapsed time: 0 ms
 TikTok: Finding normalized responses for each potential parent: Started.
-TikTok: Getting spike rate for potential parent: 1682362352964121: Started.
-TikTok: Getting spike rate for potential parent: 1682362352964121: Elapsed time: 1 ms
-TikTok: Finding normalized responses for each potential parent: Elapsed time: 5 ms
+TikTok: Getting spike rate for potential parent: 1682363994588118: Started.
+TikTok: Getting spike rate for potential parent: 1682363994588118: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
 TikTok: Using normalized responses to find fitness scores: Started.
 TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
 TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
@@ -744,92 +638,254 @@ TikTok: Using fitness functions and normalized responses to assign fitness score
 TikTok: Selecting parents: Started.
 TikTok: Sample with replacement: Started.
 TikTok: Selecting parents: Elapsed time: 0 ms
-TikTok: Assigning Slots For Lineage: 1682362352964121 with 1 slots: Elapsed time: 6 ms
-TikTok: Assigning Fitness Scores To Slots: Elapsed time: 137 ms
-TikTok: Selecting Parents: Elapsed time: 782 ms
-Attemptins regime ZERO for parent 1682362343238941
+TikTok: Assigning Slots For Lineage: 1682363994588118 with 2 slots: Elapsed time: 3 ms
+TikTok: Assigning Slots For Lineage: 1682363960782363 with 1 slots: Started.
+TikTok: Using lineageId: 1682363960782363 to find potential parents: Started.
+TikTok: Using lineageId: 1682363960782363 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682363960782363: Started.
+TikTok: Getting spike rate for potential parent: 1682363960782363: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363960782363 with 1 slots: Elapsed time: 3 ms
+TikTok: Assigning Slots For Lineage: 1682363965664534 with 1 slots: Started.
+TikTok: Using lineageId: 1682363965664534 to find potential parents: Started.
+TikTok: Using lineageId: 1682363965664534 to find potential parents: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682363965664534: Started.
+TikTok: Getting spike rate for potential parent: 1682363965664534: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363965664534 with 1 slots: Elapsed time: 1 ms
+TikTok: Assigning Slots For Lineage: 1682363993404891 with 1 slots: Started.
+TikTok: Using lineageId: 1682363993404891 to find potential parents: Started.
+TikTok: Using lineageId: 1682363993404891 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682363993404891: Started.
+TikTok: Getting spike rate for potential parent: 1682363993404891: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363993404891 with 1 slots: Elapsed time: 2 ms
+TikTok: Assigning Slots For Lineage: 1682363987397424 with 1 slots: Started.
+TikTok: Using lineageId: 1682363987397424 to find potential parents: Started.
+TikTok: Using lineageId: 1682363987397424 to find potential parents: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682363987397424: Started.
+TikTok: Getting spike rate for potential parent: 1682363987397424: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363987397424 with 1 slots: Elapsed time: 1 ms
+TikTok: Assigning Slots For Lineage: 1682363971767107 with 1 slots: Started.
+TikTok: Using lineageId: 1682363971767107 to find potential parents: Started.
+TikTok: Using lineageId: 1682363971767107 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682363971767107: Started.
+TikTok: Getting spike rate for potential parent: 1682363971767107: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 0 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682363971767107 with 1 slots: Elapsed time: 2 ms
+TikTok: Assigning Fitness Scores To Slots: Elapsed time: 186 ms
+TikTok: Selecting Parents: Elapsed time: 868 ms
+Attemptins regime ZERO for parent 1682363990937633
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 1 ms
-Attemptins regime ZERO for parent 1682362343238941
+Attemptins regime ZERO for parent 1682363992370594
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362349071234
+Attemptins regime ZERO for parent 1682363992370594
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362346282905
+Attemptins regime ZERO for parent 1682363984168096
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362346282905
+Attemptins regime ZERO for parent 1682363984168096
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362332582365
+Attemptins regime ZERO for parent 1682363970649625
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362319887457
+Attemptins regime ONE for parent 1682363959779232
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682363959779232
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682363985247202
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ZERO for parent 1682363986228582
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362327921568
+Attemptins regime ZERO for parent 1682363961910773
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362329657264
+Attemptins regime ZERO for parent 1682363991981433
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362352475353
+Attemptins regime ZERO for parent 1682363969491213
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362323253892
+Attemptins regime ZERO for parent 1682363994588118
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362326366886
+Attemptins regime ZERO for parent 1682363994588118
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362318769854
+Attemptins regime ZERO for parent 1682363960782363
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362327492083
+Attemptins regime ZERO for parent 1682363965664534
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362324804341
+Attemptins regime ZERO for parent 1682363993404891
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 1 ms
+Attemptins regime ZERO for parent 1682363987397424
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362347533652
-TikTok: Adding Regime Zero Stim: Started.
-Adding Regime Zero Stim
-TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362347533652
-TikTok: Adding Regime Zero Stim: Started.
-Adding Regime Zero Stim
-TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362347533652
-TikTok: Adding Regime Zero Stim: Started.
-Adding Regime Zero Stim
-TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362328893151
-TikTok: Adding Regime Zero Stim: Started.
-Adding Regime Zero Stim
-TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
-Attemptins regime ZERO for parent 1682362352964121
+Attemptins regime ZERO for parent 1682363971767107
 TikTok: Adding Regime Zero Stim: Started.
 Adding Regime Zero Stim
 TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
 Skip first rotation
+creating and saving PNG...
 Skip first rotation
 Skip first rotation
+creating and saving PNG...
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+0.19918044305172633
+0.06106162412997268
+0.0
+0.0
+0.0
+0.2530283997345895
+0.09929132333043991
+0.0023394371460463137
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.6768918167558344
+0.6700051765058447
+0.566289431754557
+0.39563334811592443
+0.10213904873656027
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Successfully generated valid skeleton for component 2
+0.6684351638232385
+0.35809048559651163
+0.18449480633399784
+0.024757152263178317
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+-1.8363704490108337
+Finished Writing Morph Trial
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
 Skip first rotation
 Skip first rotation
 creating and saving PNG...
@@ -842,71 +898,131 @@ Skip first rotation
 Skip first rotation
 Skip first rotation
 Skip first rotation
-Skip first rotation
-Skip first rotation
-creating and saving PNG...
 creating and saving PNG...
 Skip first rotation
 creating and saving PNG...
+0.1850577365056313
+0.16163165267177568
+0.1130829272042084
+0.06472104762356556
+0.0
+0.2580824993015935
+0.21604287214364631
+0.15494057349204535
+0.018744136701081465
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.08391263606828472
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+Failed to generate a valid morphed arc. Attempting again...
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tangent angle too small!
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$7.accept(MorphedMatchStick.java:626)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$7.accept(MorphedMatchStick.java:1)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.forEachJunctionThatContainsComp(MorphedMatchStick.java:649)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkJunctions(MorphedMatchStick.java:601)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidMorphedArc(MorphedMatchStick.java:587)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:161)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Skip first rotation
+Successfully generated valid skeleton for component 2
+0.004745697723686118
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+0.22782287372860954
+Finished Writing Morph Trial
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+Skip first rotation
 Skip first rotation
 Skip first rotation
 creating and saving PNG...
 Skip first rotation
 creating and saving PNG...
 creating and saving PNG...
+creating and saving PNG...
+Skip first rotation
+0.19344338416258633
+0.06788673357073885
+0.007462342735724527
+0.0
+0.0
+0.24913071224318095
+0.13012502413031202
+0.017452592199225986
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.40912608842299664
+0.2742916131510161
+0.058103730210737004
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+Successfully generated valid skeleton for component 2
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+-0.9083024800193337
+Finished Writing Morph Trial
 Skip first rotation
 Skip first rotation
 Skip first rotation
 Skip first rotation
 Skip first rotation
 creating and saving PNG...
-Skip first rotation
-Skip first rotation
-creating and saving PNG...
-creating and saving PNG...
-creating and saving PNG...
-Skip first rotation
-creating and saving PNG...
-Skip first rotation
-Skip first rotation
-creating and saving PNG...
-creating and saving PNG...
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-creating and saving PNG...
-creating and saving PNG...
-Skip first rotation
-Skip first rotation
-Skip first rotation
-creating and saving PNG...
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-creating and saving PNG...
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
-Skip first rotation
 Skip first rotation
 creating and saving PNG...
 creating and saving PNG...
