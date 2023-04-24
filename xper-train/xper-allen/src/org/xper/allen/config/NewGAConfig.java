@@ -65,20 +65,21 @@ public class NewGAConfig {
         slotSelectionProcess.setSpikeRateSource(spikeRateSource());
         slotSelectionProcess.setRegimeScoreSource(regimeScoreSource());
         slotSelectionProcess.setSlotFunctionForLineage(slotFunctionForLineage());
+        slotSelectionProcess.setMaxLineagesToBuild(4);
         slotSelectionProcess.setSlotFunctionForRegimes(slotFunctionForRegimes());
         slotSelectionProcess.setFitnessFunctionForRegimes(fitnessFunctionForRegimes());
-        slotSelectionProcess.setMaxResponseSource(maxResponseSource());
+        slotSelectionProcess.setMaxResponseSource(lineageMaxResponseSource());
         return slotSelectionProcess;
     }
 
     @Bean
     public UnivariateRealFunction slotFunctionForLineage() {
         List<Point2d> controlPoints = new ArrayList<>();
-        controlPoints.add(new Point2d(0.0, 0.01));
-        controlPoints.add(new Point2d(1.0, 0.01));
-        controlPoints.add(new Point2d(1.0, 0.5));
-        controlPoints.add(new Point2d(2.0, 1.5));
-        controlPoints.add(new Point2d(3.9, 3.0));
+        controlPoints.add(new Point2d(0.0, 0.1));
+        controlPoints.add(new Point2d(1.0, 0.1));
+        controlPoints.add(new Point2d(1.0, 0.33));
+        controlPoints.add(new Point2d(2.0, 0.66));
+        controlPoints.add(new Point2d(3.99, 1.0));
         controlPoints.add(new Point2d(4.0, 0.0));
         return new LinearSpline(controlPoints);
     }
@@ -282,15 +283,6 @@ public class NewGAConfig {
 
 
     @Bean
-    public LineageMaxResponseSource lineageMaxResponseSource() {
-        LineageMaxResponseSource lineageMaxResponseSource = new LineageMaxResponseSource();
-        lineageMaxResponseSource.setDbUtil(dbUtil());
-        lineageMaxResponseSource.setMinimumMaxResponse(40.0);
-        lineageMaxResponseSource.setSpikeRateSource(spikeRateSource());
-        return lineageMaxResponseSource;
-    }
-
-    @Bean
     public ValueSource regimeTwoToThreePairThreshold() {
         return new ValueSource() {
             @Override
@@ -359,6 +351,15 @@ public class NewGAConfig {
     @Bean(scope= BeanDefinition.SCOPE_SINGLETON)
     public MaxResponseSource maxResponseSource() {
         MaxResponseSource maxResponseSource = new MaxResponseSource();
+        maxResponseSource.setDbUtil(dbUtil());
+        maxResponseSource.setMinimumMaxResponse(30.0);
+        maxResponseSource.setSpikeRateSource(spikeRateSource());
+        return maxResponseSource;
+    }
+
+    @Bean(scope= BeanDefinition.SCOPE_SINGLETON)
+    public LineageMaxResponseSource lineageMaxResponseSource() {
+        LineageMaxResponseSource maxResponseSource = new LineageMaxResponseSource();
         maxResponseSource.setDbUtil(dbUtil());
         maxResponseSource.setMinimumMaxResponse(30.0);
         maxResponseSource.setSpikeRateSource(spikeRateSource());

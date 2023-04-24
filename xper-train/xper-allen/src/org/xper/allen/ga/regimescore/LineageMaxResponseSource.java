@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LineageMaxResponseSource implements LineageValueSource {
-
+    @Dependency
     MultiGaDbUtil dbUtil;
 
     @Dependency

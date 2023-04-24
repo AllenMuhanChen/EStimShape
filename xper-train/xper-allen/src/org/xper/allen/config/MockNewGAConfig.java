@@ -130,7 +130,7 @@ public class MockNewGAConfig {
         pairThresholds.put(new NormalizedResponseBin(0.0, 0.33), new ValueSource() {
             @Override
             public Double getValue() {
-                return 10.0;
+                return 5.0;
             }
         });
         pairThresholds.put(new NormalizedResponseBin(0.33, 0.66), new ValueSource() {

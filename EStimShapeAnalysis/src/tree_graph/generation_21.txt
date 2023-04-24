@@ -1,0 +1,1232 @@
+Mon Apr 24 13:24:01 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 13:24:01 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 13:24:01 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 13:24:01 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+generator called
+Selecting Parents
+TikTok: Selecting Parents: Started.
+TikTok: Getting max response: Started.
+TikTok: Calculating max response: Started.
+TikTok: Calculating max response: Elapsed time: 165 ms
+TikTok: Getting max response: Elapsed time: 172 ms
+Fetching Lineage Ids
+TikTok: Fetching Lineage Ids: Started.
+Mon Apr 24 13:24:02 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+TikTok: Fetching Lineage Ids: Elapsed time: 28 ms
+Calculating Regime Scores
+TikTok: Calculating Regime Scores: Started.
+TikTok: Calculating Regime Score For Lineage: 1682356763046525: Started.
+Mon Apr 24 13:24:02 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Lineage score: 0.0 for transition: TWO_TO_THREE
+Regime score: 2.0
+Mon Apr 24 13:24:02 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+TikTok: Calculating Regime Score For Lineage: 1682356763046525: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356742683546: Started.
+Lineage score: 0.0 for transition: ONE_TO_TWO
+ for lineage: 1682356742683546
+Regime score: 1.0
+TikTok: Calculating Regime Score For Lineage: 1682356742683546: Elapsed time: 21 ms
+TikTok: Calculating Regime Score For Lineage: 1682356906466058: Started.
+Lineage score: 0.0 for transition: ONE_TO_TWO
+ for lineage: 1682356906466058
+Regime score: 1.0
+TikTok: Calculating Regime Score For Lineage: 1682356906466058: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682357003133573: Started.
+Lineage score: 0.0 for transition: ONE_TO_TWO
+ for lineage: 1682357003133573
+Regime score: 1.0
+TikTok: Calculating Regime Score For Lineage: 1682357003133573: Elapsed time: 9 ms
+TikTok: Calculating Regime Scores: Elapsed time: 57 ms
+Creating Slots For Lineages
+TikTok: Creating Slots For Lineages: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Creating Slots For Lineages: Elapsed time: 1 ms
+Assigning Regimes To Slots
+TikTok: Assigning Regimes To Slots: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Assigning Regimes To Slots: Elapsed time: 0 ms
+Assigning Fitness Scores To Slots
+TikTok: Assigning Fitness Scores To Slots: Started.
+TikTok: Assigning Slots For Lineage: 1682356763046525 with 5 slots: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356776537708: Started.
+TikTok: Getting spike rate for potential parent: 1682356776537708: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682356852329901: Started.
+TikTok: Getting spike rate for potential parent: 1682356852329901: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356868557818: Started.
+TikTok: Getting spike rate for potential parent: 1682356868557818: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356925562462: Started.
+TikTok: Getting spike rate for potential parent: 1682356925562462: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 4 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356776537708: Started.
+TikTok: Getting spike rate for potential parent: 1682356776537708: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356852329901: Started.
+TikTok: Getting spike rate for potential parent: 1682356852329901: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682356868557818: Started.
+TikTok: Getting spike rate for potential parent: 1682356868557818: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356925562462: Started.
+TikTok: Getting spike rate for potential parent: 1682356925562462: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 4 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356776537708: Started.
+TikTok: Getting spike rate for potential parent: 1682356776537708: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356852329901: Started.
+TikTok: Getting spike rate for potential parent: 1682356852329901: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356868557818: Started.
+TikTok: Getting spike rate for potential parent: 1682356868557818: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682356925562462: Started.
+TikTok: Getting spike rate for potential parent: 1682356925562462: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 4 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356776537708: Started.
+TikTok: Getting spike rate for potential parent: 1682356776537708: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356852329901: Started.
+TikTok: Getting spike rate for potential parent: 1682356852329901: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682356868557818: Started.
+TikTok: Getting spike rate for potential parent: 1682356868557818: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356925562462: Started.
+TikTok: Getting spike rate for potential parent: 1682356925562462: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 3 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 1 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356776537708: Started.
+TikTok: Getting spike rate for potential parent: 1682356776537708: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682356852329901: Started.
+TikTok: Getting spike rate for potential parent: 1682356852329901: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356868557818: Started.
+TikTok: Getting spike rate for potential parent: 1682356868557818: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356925562462: Started.
+TikTok: Getting spike rate for potential parent: 1682356925562462: Elapsed time: 0 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 3 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 1 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356763046525 with 5 slots: Elapsed time: 26 ms
+TikTok: Assigning Slots For Lineage: 1682356906466058 with 2 slots: Started.
+TikTok: Using lineageId: 1682356906466058 to find potential parents: Started.
+TikTok: Using lineageId: 1682356906466058 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356906466058: Started.
+TikTok: Getting spike rate for potential parent: 1682356906466058: Elapsed time: 0 ms
+TikTok: Getting spike rate for potential parent: 1682356944228417: Started.
+TikTok: Getting spike rate for potential parent: 1682356944228417: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682356906466058 to find potential parents: Started.
+TikTok: Using lineageId: 1682356906466058 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356906466058: Started.
+TikTok: Getting spike rate for potential parent: 1682356906466058: Elapsed time: 1 ms
+TikTok: Getting spike rate for potential parent: 1682356944228417: Started.
+TikTok: Getting spike rate for potential parent: 1682356944228417: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356906466058 with 2 slots: Elapsed time: 5 ms
+TikTok: Assigning Slots For Lineage: 1682357003133573 with 3 slots: Started.
+TikTok: Using lineageId: 1682357003133573 to find potential parents: Started.
+TikTok: Using lineageId: 1682357003133573 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682357003133573: Started.
+TikTok: Getting spike rate for potential parent: 1682357003133573: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682357003133573 to find potential parents: Started.
+TikTok: Using lineageId: 1682357003133573 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682357003133573: Started.
+TikTok: Getting spike rate for potential parent: 1682357003133573: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Using lineageId: 1682357003133573 to find potential parents: Started.
+TikTok: Using lineageId: 1682357003133573 to find potential parents: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682357003133573: Started.
+TikTok: Getting spike rate for potential parent: 1682357003133573: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682357003133573 with 3 slots: Elapsed time: 6 ms
+TikTok: Assigning Fitness Scores To Slots: Elapsed time: 38 ms
+TikTok: Selecting Parents: Elapsed time: 296 ms
+Attemptins regime ONE for parent 1682356763046525
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 2 ms
+Attemptins regime ONE for parent 1682356763046525
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682356763046525
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime TWO for parent 1682356763046525
+TikTok: Adding Regime Two Stim: Started.
+Adding Regime Two Stim
+TikTok: Adding Regime Two Stim: Elapsed time: 1 ms
+Attemptins regime TWO for parent 1682356763046525
+TikTok: Adding Regime Two Stim: Started.
+Adding Regime Two Stim
+TikTok: Adding Regime Two Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682356944228417
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682356906466058
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682357003133573
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682357003133573
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682357003133573
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 0 ms
+Skip first rotation
+0.19268700841529907
+0.13250235326752238
+0.12309243806691354
+0.012440055804271669
+0.0
+0.2880871924935512
+0.15660398082927632
+0.05081036199962771
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.46036046489840476
+0.26662306254293555
+0.09060317965253917
+0.04276393471600115
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+Successfully generated valid skeleton for component 2
+0.4520810383950584
+0.2711711953401852
+0.15824851565975456
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+0.6671069591540171
+Finished Writing Morph Trial
+0.1889706312672128
+0.08075540274277972
+0.0
+0.0
+0.0
+0.2773224682309397
+0.266517042205894
+0.1729056488324488
+0.015542683287913694
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Successfully generated valid skeleton for component 2
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+1.203978249154538
+Finished Writing Morph Trial
+Skip first rotation
+0.6325860462109539
+0.43518398387438273
+0.2844081885152682
+0.18091171369421577
+0.05599532404278977
+0.053397386379360964
+0.04499722439981538
+0.02933664543454299
+0.0
+0.0
+Preserving components: 1 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.5766137343078367
+0.27123183241288606
+0.07661373430783669
+0.07548547973682557
+0.07548547973682557
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+creating and saving PNG...
+-0.42845616151739246
+Finished Writing Morph Trial
+Skip first rotation
+0.24024255261038646
+0.09870638315461197
+0.04937801348339243
+0.0
+0.0
+0.14895415522997862
+0.0
+0.0
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.0776459102522804
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+-2.2644536707740053
+Finished Writing Morph Trial
+Skip first rotation
+0.21313140553083293
+0.04462854455641346
+0.0
+0.0
+0.0
+0.2143180454099758
+0.18361722532763852
+0.09695543339190266
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 1
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 1
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 1
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 1
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 1
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Failed to generate valid radius for using a morphed component 1 after 10 attempts.
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:234)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2392212b
+Retrying...
+Attempt 0 of 5
+0.13618866446463718
+0.0
+0.0
+0.0
+0.0
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+Successfully generated valid skeleton for component 2
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+0.4651025596298492
+Finished Writing Morph Trial
+Skip first rotation
+0.2526221832025941
+0.1333525292033436
+0.07753329292864689
+0.0
+0.0
+0.15225277826339098
+0.12523275735122433
+0.1171479572820975
+0.02795281046488364
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.06890356399576844
+0.0
+0.0
+Successfully generated valid radius for component 1
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2516fc68
+Retrying...
+Attempt 0 of 5
+0.24386643113342504
+0.1503571831915665
+0.0
+0.0
+0.0
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.4119051173524378
+0.1479304655646444
+0.0
+Successfully generated valid radius for component 1
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2516fc68
+Retrying...
+Attempt 1 of 5
+0.22553879234637467
+0.1710613406279497
+0.0016749724015494294
+0.0
+0.0
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.6583949649037846
+0.6304972390893656
+0.5827985160791946
+0.5086774486688281
+0.3531602536297065
+0.06752564330654409
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Successfully generated valid skeleton for component 2
+0.11498578374907968
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+0.11666681081494468
+Finished Writing Morph Trial
+Skip first rotation
+0.6919714107392492
+0.6210867447160753
+0.46032578146340597
+0.27824333854198435
+0.2597193141716479
+0.2204802774243172
+0.12220786270458488
+0.0
+0.0
+0.0
+Preserving components: 1 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+creating and saving PNG...
+-0.20362428648600392
+Finished Writing Morph Trial
+0.23356857661023467
+0.1951225543595295
+0.07682775588023136
+0.07513413884086835
+0.0
+0.2435852355786331
+0.18928742431796092
+0.09622399714717471
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.20292545683862354
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Skeleton nearby
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForCollisions(MorphedMatchStick.java:519)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:164)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Successfully generated valid skeleton for component 2
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+-1.4582356324799988
+Finished Writing Morph Trial
+0.19330951102846128
+0.1505174849372793
+0.09858597464757433
+0.0
+0.0
+0.2766562879367695
+0.216718908894462
+0.1797836207021258
+0.13324050100620333
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.004698808661014464
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Skeleton nearby
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForCollisions(MorphedMatchStick.java:519)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:164)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Successfully generated valid skeleton for component 2
+0.034385045623874344
+0.03278797560256724
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+1.0113563164086845
+Finished Writing Morph Trial
+0.21718412513297858
+0.06930566176361622
+0.0
+0.0
+0.0
+0.29244856558989596
+0.15722326056957117
+0.0
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.20593722384210383
+0.0
+0.0
+Successfully generated valid radius for component 1
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@695a69a1
+Retrying...
+Attempt 0 of 5
+0.1462245978733858
+0.0
+0.0
+0.0
+0.0
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Skeleton nearby
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForCollisions(MorphedMatchStick.java:519)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:164)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Successfully generated valid skeleton for component 1
+0.7067583005527674
+0.4685406464795129
+0.347529675848013
+0.24579137409139118
+0.1468395454703984
+0.06236125400209616
+0.05172386621031963
+0.0
+0.0
+Successfully generated valid radius for component 1
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@695a69a1
+Retrying...
+Attempt 1 of 5
+0.21381060155717252
+0.13413526275654147
+0.02599700966808434
+0.0
+0.0
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Successfully generated valid skeleton for component 1
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 1
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@695a69a1
+Retrying...
+Attempt 2 of 5
+0.1632460093276407
+0.006594921535773318
+0.0
+0.0
+0.0
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Skeleton nearby
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForCollisions(MorphedMatchStick.java:519)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:164)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 1
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@695a69a1
+Retrying...
+Attempt 3 of 5
+0.2875280815764349
+0.23378627844180078
+0.05022231169512453
+0.0
+0.0
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Skip first rotation
+Successfully generated valid skeleton for component 1
+0.2624285348448152
+0.12628052049670566
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Successfully generated valid skeleton for component 2
+0.02312889040235559
+0.0
+0.0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 2
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+0.0
+0.0
+0.0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 2
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+0.0
+0.0
+0.0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 2
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+0.0
+0.0
+0.0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 2
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+0.0
+0.0
+0.0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 2
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Failed to generate valid radius for using a morphed component 2 after 10 attempts.
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:234)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@264c5d07
+Retrying...
+Attempt 0 of 5
+0.21042562810561227
+0.06962646574970471
+0.0
+0.0
+0.0
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Successfully generated valid skeleton for component 2
+0.5407778503934673
+0.3059824547544546
+0.04115833585921658
+0.024604434906959703
+0.0
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+-0.5437056942651377
+Finished Writing Morph Trial
+Done Generating...

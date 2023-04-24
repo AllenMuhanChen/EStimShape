@@ -1,0 +1,1514 @@
+Mon Apr 24 13:22:00 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 13:22:00 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 13:22:00 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Apr 24 13:22:00 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+generator called
+Selecting Parents
+TikTok: Selecting Parents: Started.
+TikTok: Getting max response: Started.
+TikTok: Calculating max response: Started.
+TikTok: Calculating max response: Elapsed time: 82 ms
+TikTok: Getting max response: Elapsed time: 89 ms
+Fetching Lineage Ids
+TikTok: Fetching Lineage Ids: Started.
+TikTok: Fetching Lineage Ids: Elapsed time: 27 ms
+Calculating Regime Scores
+TikTok: Calculating Regime Scores: Started.
+TikTok: Calculating Regime Score For Lineage: 1682356678388692: Started.
+Max spike rate: 23.622844035411493
+Lineage score: 0.7874281345137164 for transition: ZERO_TO_ONE
+ for lineage: 1682356678388692
+Regime score: 0.78743
+TikTok: Calculating Regime Score For Lineage: 1682356678388692: Elapsed time: 25 ms
+TikTok: Calculating Regime Score For Lineage: 1682356679934215: Started.
+Max spike rate: 9.266673028928993
+Lineage score: 0.3088891009642998 for transition: ZERO_TO_ONE
+ for lineage: 1682356679934215
+Regime score: 0.30889
+TikTok: Calculating Regime Score For Lineage: 1682356679934215: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356680693948: Started.
+Max spike rate: 5.709765936009555
+Lineage score: 0.1903255312003185 for transition: ZERO_TO_ONE
+ for lineage: 1682356680693948
+Regime score: 0.19033
+TikTok: Calculating Regime Score For Lineage: 1682356680693948: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356681411504: Started.
+Max spike rate: 3.018163239011001
+Lineage score: 0.10060544130036671 for transition: ZERO_TO_ONE
+ for lineage: 1682356681411504
+Regime score: 0.10061
+TikTok: Calculating Regime Score For Lineage: 1682356681411504: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356682094851: Started.
+Max spike rate: 19.867364306237175
+Lineage score: 0.6622454768745725 for transition: ZERO_TO_ONE
+ for lineage: 1682356682094851
+Regime score: 0.66225
+TikTok: Calculating Regime Score For Lineage: 1682356682094851: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356683122659: Started.
+Max spike rate: 3.707844175851843
+Lineage score: 0.1235948058617281 for transition: ZERO_TO_ONE
+ for lineage: 1682356683122659
+Regime score: 0.1235948058617281
+TikTok: Calculating Regime Score For Lineage: 1682356683122659: Elapsed time: 18 ms
+TikTok: Calculating Regime Score For Lineage: 1682356684091469: Started.
+Max spike rate: 3.9945741679113254
+Lineage score: 0.13315247226371085 for transition: ZERO_TO_ONE
+ for lineage: 1682356684091469
+Regime score: 0.13315247226371085
+TikTok: Calculating Regime Score For Lineage: 1682356684091469: Elapsed time: 18 ms
+TikTok: Calculating Regime Score For Lineage: 1682356684508806: Started.
+Max spike rate: 8.305222639998965
+Lineage score: 0.27684075466663216 for transition: ZERO_TO_ONE
+ for lineage: 1682356684508806
+Regime score: 0.27684075466663216
+TikTok: Calculating Regime Score For Lineage: 1682356684508806: Elapsed time: 20 ms
+TikTok: Calculating Regime Score For Lineage: 1682356685455394: Started.
+Max spike rate: 2.6724033965697185
+Lineage score: 0.08908011321899062 for transition: ZERO_TO_ONE
+ for lineage: 1682356685455394
+Regime score: 0.08908011321899062
+TikTok: Calculating Regime Score For Lineage: 1682356685455394: Elapsed time: 17 ms
+TikTok: Calculating Regime Score For Lineage: 1682356686093258: Started.
+Max spike rate: 3.554808789834786
+Lineage score: 0.1184936263278262 for transition: ZERO_TO_ONE
+ for lineage: 1682356686093258
+Regime score: 0.1184936263278262
+TikTok: Calculating Regime Score For Lineage: 1682356686093258: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356693828230: Started.
+Max spike rate: 8.594767168791858
+Lineage score: 0.2864922389597286 for transition: ZERO_TO_ONE
+ for lineage: 1682356693828230
+Regime score: 0.2864922389597286
+TikTok: Calculating Regime Score For Lineage: 1682356693828230: Elapsed time: 19 ms
+TikTok: Calculating Regime Score For Lineage: 1682356695035614: Started.
+Max spike rate: 0.7387737283708663
+Lineage score: 0.024625790945695544 for transition: ZERO_TO_ONE
+ for lineage: 1682356695035614
+Regime score: 0.02463
+TikTok: Calculating Regime Score For Lineage: 1682356695035614: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356695458540: Started.
+Max spike rate: 6.26848718630567
+Lineage score: 0.20894957287685567 for transition: ZERO_TO_ONE
+ for lineage: 1682356695458540
+Regime score: 0.20895
+TikTok: Calculating Regime Score For Lineage: 1682356695458540: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682356696238311: Started.
+Max spike rate: 14.368209338269446
+Lineage score: 0.47894031127564823 for transition: ZERO_TO_ONE
+ for lineage: 1682356696238311
+Regime score: 0.47894031127564823
+TikTok: Calculating Regime Score For Lineage: 1682356696238311: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356697370995: Started.
+Max spike rate: 0.5968831044166405
+Lineage score: 0.019896103480554685 for transition: ZERO_TO_ONE
+ for lineage: 1682356697370995
+Regime score: 0.0199
+TikTok: Calculating Regime Score For Lineage: 1682356697370995: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356698077624: Started.
+Max spike rate: 12.219861871609437
+Lineage score: 0.4073287290536479 for transition: ZERO_TO_ONE
+ for lineage: 1682356698077624
+Regime score: 0.40733
+TikTok: Calculating Regime Score For Lineage: 1682356698077624: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356699152024: Started.
+Max spike rate: 4.455874489749574
+Lineage score: 0.14852914965831912 for transition: ZERO_TO_ONE
+ for lineage: 1682356699152024
+Regime score: 0.14853
+TikTok: Calculating Regime Score For Lineage: 1682356699152024: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682356699604541: Started.
+Max spike rate: 5.215215646870279
+Lineage score: 0.17384052156234261 for transition: ZERO_TO_ONE
+ for lineage: 1682356699604541
+Regime score: 0.17384052156234261
+TikTok: Calculating Regime Score For Lineage: 1682356699604541: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356700306032: Started.
+Max spike rate: 28.21528867500398
+Lineage score: 0.9405096225001326 for transition: ZERO_TO_ONE
+ for lineage: 1682356700306032
+Regime score: 0.94051
+TikTok: Calculating Regime Score For Lineage: 1682356700306032: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356700970453: Started.
+Max spike rate: 1.8593813293521322
+Lineage score: 0.061979377645071075 for transition: ZERO_TO_ONE
+ for lineage: 1682356700970453
+Regime score: 0.06198
+TikTok: Calculating Regime Score For Lineage: 1682356700970453: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356709221706: Started.
+Max spike rate: 3.0100466106203334
+Lineage score: 0.10033488702067778 for transition: ZERO_TO_ONE
+ for lineage: 1682356709221706
+Regime score: 0.10033488702067778
+TikTok: Calculating Regime Score For Lineage: 1682356709221706: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356710879481: Started.
+Max spike rate: 11.380660704189816
+Lineage score: 0.3793553568063272 for transition: ZERO_TO_ONE
+ for lineage: 1682356710879481
+Regime score: 0.37936
+TikTok: Calculating Regime Score For Lineage: 1682356710879481: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356711361199: Started.
+Max spike rate: 15.221448948856525
+Lineage score: 0.5073816316285508 for transition: ZERO_TO_ONE
+ for lineage: 1682356711361199
+Regime score: 0.5073816316285508
+TikTok: Calculating Regime Score For Lineage: 1682356711361199: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356712062179: Started.
+Max spike rate: 11.16335969103238
+Lineage score: 0.37211198970107934 for transition: ZERO_TO_ONE
+ for lineage: 1682356712062179
+Regime score: 0.37211198970107934
+TikTok: Calculating Regime Score For Lineage: 1682356712062179: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356713021418: Started.
+Max spike rate: 2.272812316980349
+Lineage score: 0.07576041056601164 for transition: ZERO_TO_ONE
+ for lineage: 1682356713021418
+Regime score: 0.07576041056601164
+TikTok: Calculating Regime Score For Lineage: 1682356713021418: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356713715496: Started.
+Max spike rate: 1.2359181505473846
+Lineage score: 0.04119727168491282 for transition: ZERO_TO_ONE
+ for lineage: 1682356713715496
+Regime score: 0.0412
+TikTok: Calculating Regime Score For Lineage: 1682356713715496: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356714330770: Started.
+Max spike rate: 11.72731589705457
+Lineage score: 0.390910529901819 for transition: ZERO_TO_ONE
+ for lineage: 1682356714330770
+Regime score: 0.390910529901819
+TikTok: Calculating Regime Score For Lineage: 1682356714330770: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356714953990: Started.
+Max spike rate: 4.938172168339504
+Lineage score: 0.16460573894465014 for transition: ZERO_TO_ONE
+ for lineage: 1682356714953990
+Regime score: 0.16461
+TikTok: Calculating Regime Score For Lineage: 1682356714953990: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356715606450: Started.
+Max spike rate: 9.409625295156648
+Lineage score: 0.3136541765052216 for transition: ZERO_TO_ONE
+ for lineage: 1682356715606450
+Regime score: 0.3136541765052216
+TikTok: Calculating Regime Score For Lineage: 1682356715606450: Elapsed time: 17 ms
+TikTok: Calculating Regime Score For Lineage: 1682356716644864: Started.
+Max spike rate: 0.7756355606627702
+Lineage score: 0.025854518688759005 for transition: ZERO_TO_ONE
+ for lineage: 1682356716644864
+Regime score: 0.025854518688759005
+TikTok: Calculating Regime Score For Lineage: 1682356716644864: Elapsed time: 17 ms
+TikTok: Calculating Regime Score For Lineage: 1682356725408218: Started.
+Max spike rate: 4.42689558154536
+Lineage score: 0.147563186051512 for transition: ZERO_TO_ONE
+ for lineage: 1682356725408218
+Regime score: 0.147563186051512
+TikTok: Calculating Regime Score For Lineage: 1682356725408218: Elapsed time: 18 ms
+TikTok: Calculating Regime Score For Lineage: 1682356726453941: Started.
+Max spike rate: 9.616410045449857
+Lineage score: 0.32054700151499527 for transition: ZERO_TO_ONE
+ for lineage: 1682356726453941
+Regime score: 0.32055
+TikTok: Calculating Regime Score For Lineage: 1682356726453941: Elapsed time: 20 ms
+TikTok: Calculating Regime Score For Lineage: 1682356727527140: Started.
+Max spike rate: 1.7099890329485425
+Lineage score: 0.05699963443161808 for transition: ZERO_TO_ONE
+ for lineage: 1682356727527140
+Regime score: 0.057
+TikTok: Calculating Regime Score For Lineage: 1682356727527140: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356727957747: Started.
+Max spike rate: 9.841955436785804
+Lineage score: 0.3280651812261935 for transition: ZERO_TO_ONE
+ for lineage: 1682356727957747
+Regime score: 0.32807
+TikTok: Calculating Regime Score For Lineage: 1682356727957747: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356728403836: Started.
+Max spike rate: 7.256615021912539
+Lineage score: 0.24188716739708466 for transition: ZERO_TO_ONE
+ for lineage: 1682356728403836
+Regime score: 0.24189
+TikTok: Calculating Regime Score For Lineage: 1682356728403836: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356729128620: Started.
+Max spike rate: 8.749737180442207
+Lineage score: 0.29165790601474023 for transition: ZERO_TO_ONE
+ for lineage: 1682356729128620
+Regime score: 0.29166
+TikTok: Calculating Regime Score For Lineage: 1682356729128620: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356729797000: Started.
+Max spike rate: 14.651117448663472
+Lineage score: 0.4883705816221157 for transition: ZERO_TO_ONE
+ for lineage: 1682356729797000
+Regime score: 0.4883705816221157
+TikTok: Calculating Regime Score For Lineage: 1682356729797000: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356730502349: Started.
+Max spike rate: 2.788029408697367
+Lineage score: 0.09293431362324557 for transition: ZERO_TO_ONE
+ for lineage: 1682356730502349
+Regime score: 0.09293431362324557
+TikTok: Calculating Regime Score For Lineage: 1682356730502349: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356731133864: Started.
+Max spike rate: 9.0230846935958
+Lineage score: 0.3007694897865267 for transition: ZERO_TO_ONE
+ for lineage: 1682356731133864
+Regime score: 0.30077
+TikTok: Calculating Regime Score For Lineage: 1682356731133864: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356731806757: Started.
+Max spike rate: 9.06661304859726
+Lineage score: 0.30222043495324197 for transition: ZERO_TO_ONE
+ for lineage: 1682356731806757
+Regime score: 0.30222043495324197
+TikTok: Calculating Regime Score For Lineage: 1682356731806757: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356741181825: Started.
+Max spike rate: 13.334826205721665
+Lineage score: 0.44449420685738883 for transition: ZERO_TO_ONE
+ for lineage: 1682356741181825
+Regime score: 0.44449420685738883
+TikTok: Calculating Regime Score For Lineage: 1682356741181825: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356742683546: Started.
+Lineage score: 0.0 for transition: ONE_TO_TWO
+ for lineage: 1682356742683546
+Regime score: 1.0
+TikTok: Calculating Regime Score For Lineage: 1682356742683546: Elapsed time: 18 ms
+TikTok: Calculating Regime Score For Lineage: 1682356743451819: Started.
+Max spike rate: 6.783287780475292
+Lineage score: 0.22610959268250974 for transition: ZERO_TO_ONE
+ for lineage: 1682356743451819
+Regime score: 0.22611
+TikTok: Calculating Regime Score For Lineage: 1682356743451819: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356744135641: Started.
+Max spike rate: 4.863831972322089
+Lineage score: 0.1621277324107363 for transition: ZERO_TO_ONE
+ for lineage: 1682356744135641
+Regime score: 0.16213
+TikTok: Calculating Regime Score For Lineage: 1682356744135641: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356744591246: Started.
+Max spike rate: 8.509814743542195
+Lineage score: 0.28366049145140654 for transition: ZERO_TO_ONE
+ for lineage: 1682356744591246
+Regime score: 0.28366049145140654
+TikTok: Calculating Regime Score For Lineage: 1682356744591246: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356745253689: Started.
+Max spike rate: 11.726715095184543
+Lineage score: 0.3908905031728181 for transition: ZERO_TO_ONE
+ for lineage: 1682356745253689
+Regime score: 0.3908905031728181
+TikTok: Calculating Regime Score For Lineage: 1682356745253689: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356746165767: Started.
+Max spike rate: 3.2878367208554318
+Lineage score: 0.10959455736184773 for transition: ZERO_TO_ONE
+ for lineage: 1682356746165767
+Regime score: 0.10959455736184773
+TikTok: Calculating Regime Score For Lineage: 1682356746165767: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356746878679: Started.
+Max spike rate: 11.75514306312692
+Lineage score: 0.39183810210423065 for transition: ZERO_TO_ONE
+ for lineage: 1682356746878679
+Regime score: 0.39184
+TikTok: Calculating Regime Score For Lineage: 1682356746878679: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356747967367: Started.
+Max spike rate: 5.07232704775095
+Lineage score: 0.169077568258365 for transition: ZERO_TO_ONE
+ for lineage: 1682356747967367
+Regime score: 0.16908
+TikTok: Calculating Regime Score For Lineage: 1682356747967367: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356748648278: Started.
+Max spike rate: 15.842801821659073
+Lineage score: 0.5280933940553024 for transition: ZERO_TO_ONE
+ for lineage: 1682356748648278
+Regime score: 0.5280933940553024
+TikTok: Calculating Regime Score For Lineage: 1682356748648278: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356758243399: Started.
+Max spike rate: 5.057939632600186
+Lineage score: 0.16859798775333953 for transition: ZERO_TO_ONE
+ for lineage: 1682356758243399
+Regime score: 0.1686
+TikTok: Calculating Regime Score For Lineage: 1682356758243399: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682356759359613: Started.
+Max spike rate: 1.2295697118209836
+Lineage score: 0.040985657060699454 for transition: ZERO_TO_ONE
+ for lineage: 1682356759359613
+Regime score: 0.04099
+TikTok: Calculating Regime Score For Lineage: 1682356759359613: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356759843747: Started.
+Max spike rate: 6.051251963417961
+Lineage score: 0.2017083987805987 for transition: ZERO_TO_ONE
+ for lineage: 1682356759843747
+Regime score: 0.20171
+TikTok: Calculating Regime Score For Lineage: 1682356759843747: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682356760990679: Started.
+Max spike rate: 18.935313064730963
+Lineage score: 0.6311771021576987 for transition: ZERO_TO_ONE
+ for lineage: 1682356760990679
+Regime score: 0.63118
+TikTok: Calculating Regime Score For Lineage: 1682356760990679: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356762012288: Started.
+Max spike rate: 3.4184917747233494
+Lineage score: 0.11394972582411164 for transition: ZERO_TO_ONE
+ for lineage: 1682356762012288
+Regime score: 0.11395
+TikTok: Calculating Regime Score For Lineage: 1682356762012288: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356763046525: Started.
+Lineage score: 0.0 for transition: TWO_TO_THREE
+Regime score: 2.0
+TikTok: Calculating Regime Score For Lineage: 1682356763046525: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356763501423: Started.
+Max spike rate: 5.187569165990593
+Lineage score: 0.1729189721996864 for transition: ZERO_TO_ONE
+ for lineage: 1682356763501423
+Regime score: 0.17292
+TikTok: Calculating Regime Score For Lineage: 1682356763501423: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356764210646: Started.
+Max spike rate: 19.392160686369607
+Lineage score: 0.6464053562123202 for transition: ZERO_TO_ONE
+ for lineage: 1682356764210646
+Regime score: 0.64641
+TikTok: Calculating Regime Score For Lineage: 1682356764210646: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356765191849: Started.
+Max spike rate: 18.083361945562267
+Lineage score: 0.6027787315187422 for transition: ZERO_TO_ONE
+ for lineage: 1682356765191849
+Regime score: 0.60278
+TikTok: Calculating Regime Score For Lineage: 1682356765191849: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356765586339: Started.
+Max spike rate: 2.814455924323345
+Lineage score: 0.09381519747744484 for transition: ZERO_TO_ONE
+ for lineage: 1682356765586339
+Regime score: 0.09382
+TikTok: Calculating Regime Score For Lineage: 1682356765586339: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356775137305: Started.
+Max spike rate: 8.69465789732134
+Lineage score: 0.2898219299107113 for transition: ZERO_TO_ONE
+ for lineage: 1682356775137305
+Regime score: 0.2898219299107113
+TikTok: Calculating Regime Score For Lineage: 1682356775137305: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356777037840: Started.
+Max spike rate: 10.858810368367832
+Lineage score: 0.3619603456122611 for transition: ZERO_TO_ONE
+ for lineage: 1682356777037840
+Regime score: 0.3619603456122611
+TikTok: Calculating Regime Score For Lineage: 1682356777037840: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356777492739: Started.
+Max spike rate: 0.8980798528946985
+Lineage score: 0.02993599509648995 for transition: ZERO_TO_ONE
+ for lineage: 1682356777492739
+Regime score: 0.02994
+TikTok: Calculating Regime Score For Lineage: 1682356777492739: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356778153555: Started.
+Max spike rate: 9.380789438938523
+Lineage score: 0.31269298129795076 for transition: ZERO_TO_ONE
+ for lineage: 1682356778153555
+Regime score: 0.31269298129795076
+TikTok: Calculating Regime Score For Lineage: 1682356778153555: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356779261510: Started.
+Max spike rate: 14.42246808993117
+Lineage score: 0.480748936331039 for transition: ZERO_TO_ONE
+ for lineage: 1682356779261510
+Regime score: 0.48075
+TikTok: Calculating Regime Score For Lineage: 1682356779261510: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356779695775: Started.
+Max spike rate: 28.579016645981365
+Lineage score: 0.9526338881993789 for transition: ZERO_TO_ONE
+ for lineage: 1682356779695775
+Regime score: 0.9526338881993789
+TikTok: Calculating Regime Score For Lineage: 1682356779695775: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356780743524: Started.
+Max spike rate: 9.316091341098927
+Lineage score: 0.3105363780366309 for transition: ZERO_TO_ONE
+ for lineage: 1682356780743524
+Regime score: 0.31054
+TikTok: Calculating Regime Score For Lineage: 1682356780743524: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682356781777395: Started.
+Max spike rate: 11.40702430849573
+Lineage score: 0.38023414361652436 for transition: ZERO_TO_ONE
+ for lineage: 1682356781777395
+Regime score: 0.38023414361652436
+TikTok: Calculating Regime Score For Lineage: 1682356781777395: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682356792955240: Started.
+Max spike rate: 6.876735866064684
+Lineage score: 0.2292245288688228 for transition: ZERO_TO_ONE
+ for lineage: 1682356792955240
+Regime score: 0.2292245288688228
+TikTok: Calculating Regime Score For Lineage: 1682356792955240: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356794012771: Started.
+Max spike rate: 11.031402804926667
+Lineage score: 0.3677134268308889 for transition: ZERO_TO_ONE
+ for lineage: 1682356794012771
+Regime score: 0.3677134268308889
+TikTok: Calculating Regime Score For Lineage: 1682356794012771: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356794746009: Started.
+Max spike rate: 11.173558734513115
+Lineage score: 0.37245195781710383 for transition: ZERO_TO_ONE
+ for lineage: 1682356794746009
+Regime score: 0.37245195781710383
+TikTok: Calculating Regime Score For Lineage: 1682356794746009: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356795815309: Started.
+Max spike rate: 1.8557400001928748
+Lineage score: 0.06185800000642916 for transition: ZERO_TO_ONE
+ for lineage: 1682356795815309
+Regime score: 0.06186
+TikTok: Calculating Regime Score For Lineage: 1682356795815309: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356796263621: Started.
+Max spike rate: 4.401666988592265
+Lineage score: 0.1467222329530755 for transition: ZERO_TO_ONE
+ for lineage: 1682356796263621
+Regime score: 0.1467222329530755
+TikTok: Calculating Regime Score For Lineage: 1682356796263621: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356796711271: Started.
+Max spike rate: 7.101978889578968
+Lineage score: 0.23673262965263225 for transition: ZERO_TO_ONE
+ for lineage: 1682356796711271
+Regime score: 0.23673262965263225
+TikTok: Calculating Regime Score For Lineage: 1682356796711271: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356797115840: Started.
+Max spike rate: 4.619308715048622
+Lineage score: 0.1539769571682874 for transition: ZERO_TO_ONE
+ for lineage: 1682356797115840
+Regime score: 0.15398
+TikTok: Calculating Regime Score For Lineage: 1682356797115840: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356797815745: Started.
+Max spike rate: 15.524509071941337
+Lineage score: 0.5174836357313779 for transition: ZERO_TO_ONE
+ for lineage: 1682356797815745
+Regime score: 0.5174836357313779
+TikTok: Calculating Regime Score For Lineage: 1682356797815745: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356798487928: Started.
+Max spike rate: 23.50605246857728
+Lineage score: 0.7835350822859094 for transition: ZERO_TO_ONE
+ for lineage: 1682356798487928
+Regime score: 0.78354
+TikTok: Calculating Regime Score For Lineage: 1682356798487928: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356799432692: Started.
+Max spike rate: 19.060318351071864
+Lineage score: 0.6353439450357288 for transition: ZERO_TO_ONE
+ for lineage: 1682356799432692
+Regime score: 0.6353439450357288
+TikTok: Calculating Regime Score For Lineage: 1682356799432692: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356810038229: Started.
+Max spike rate: 1.658936835990515
+Lineage score: 0.055297894533017165 for transition: ZERO_TO_ONE
+ for lineage: 1682356810038229
+Regime score: 0.0553
+TikTok: Calculating Regime Score For Lineage: 1682356810038229: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356810727507: Started.
+Max spike rate: 17.622638684463862
+Lineage score: 0.5874212894821287 for transition: ZERO_TO_ONE
+ for lineage: 1682356810727507
+Regime score: 0.5874212894821287
+TikTok: Calculating Regime Score For Lineage: 1682356810727507: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356811955671: Started.
+Max spike rate: 25.9804490509626
+Lineage score: 0.86601496836542 for transition: ZERO_TO_ONE
+ for lineage: 1682356811955671
+Regime score: 0.86601496836542
+TikTok: Calculating Regime Score For Lineage: 1682356811955671: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356812450896: Started.
+Max spike rate: 5.96003684137509
+Lineage score: 0.198667894712503 for transition: ZERO_TO_ONE
+ for lineage: 1682356812450896
+Regime score: 0.19867
+TikTok: Calculating Regime Score For Lineage: 1682356812450896: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356813241195: Started.
+Max spike rate: 22.027414376649322
+Lineage score: 0.7342471458883107 for transition: ZERO_TO_ONE
+ for lineage: 1682356813241195
+Regime score: 0.73425
+TikTok: Calculating Regime Score For Lineage: 1682356813241195: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356813684740: Started.
+Max spike rate: 14.07697201887364
+Lineage score: 0.46923240062912136 for transition: ZERO_TO_ONE
+ for lineage: 1682356813684740
+Regime score: 0.46923240062912136
+TikTok: Calculating Regime Score For Lineage: 1682356813684740: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356814735535: Started.
+Max spike rate: 14.67496428664728
+Lineage score: 0.48916547622157597 for transition: ZERO_TO_ONE
+ for lineage: 1682356814735535
+Regime score: 0.48917
+TikTok: Calculating Regime Score For Lineage: 1682356814735535: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356815809106: Started.
+Max spike rate: 0.33998710196361537
+Lineage score: 0.011332903398787179 for transition: ZERO_TO_ONE
+ for lineage: 1682356815809106
+Regime score: 0.011332903398787179
+TikTok: Calculating Regime Score For Lineage: 1682356815809106: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356816284510: Started.
+Max spike rate: 5.5181603981399565
+Lineage score: 0.18393867993799856 for transition: ZERO_TO_ONE
+ for lineage: 1682356816284510
+Regime score: 0.18394
+TikTok: Calculating Regime Score For Lineage: 1682356816284510: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356816699049: Started.
+Max spike rate: 8.274590140525605
+Lineage score: 0.2758196713508535 for transition: ZERO_TO_ONE
+ for lineage: 1682356816699049
+Regime score: 0.27582
+TikTok: Calculating Regime Score For Lineage: 1682356816699049: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356827977485: Started.
+Max spike rate: 5.170933698398934
+Lineage score: 0.1723644566132978 for transition: ZERO_TO_ONE
+ for lineage: 1682356827977485
+Regime score: 0.1723644566132978
+TikTok: Calculating Regime Score For Lineage: 1682356827977485: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356829036065: Started.
+Max spike rate: 1.694078274256219
+Lineage score: 0.05646927580854064 for transition: ZERO_TO_ONE
+ for lineage: 1682356829036065
+Regime score: 0.05647
+TikTok: Calculating Regime Score For Lineage: 1682356829036065: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356829447595: Started.
+Max spike rate: 1.7061161125259894
+Lineage score: 0.056870537084199646 for transition: ZERO_TO_ONE
+ for lineage: 1682356829447595
+Regime score: 0.056870537084199646
+TikTok: Calculating Regime Score For Lineage: 1682356829447595: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356830203493: Started.
+Max spike rate: 4.884484871289307
+Lineage score: 0.16281616237631022 for transition: ZERO_TO_ONE
+ for lineage: 1682356830203493
+Regime score: 0.16282
+TikTok: Calculating Regime Score For Lineage: 1682356830203493: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356830681900: Started.
+Max spike rate: 4.832808552050073
+Lineage score: 0.1610936184016691 for transition: ZERO_TO_ONE
+ for lineage: 1682356830681900
+Regime score: 0.1610936184016691
+TikTok: Calculating Regime Score For Lineage: 1682356830681900: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356831441622: Started.
+Max spike rate: 11.46169683477025
+Lineage score: 0.3820565611590083 for transition: ZERO_TO_ONE
+ for lineage: 1682356831441622
+Regime score: 0.38206
+TikTok: Calculating Regime Score For Lineage: 1682356831441622: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356832569615: Started.
+Max spike rate: 1.661036638282803
+Lineage score: 0.055367887942760104 for transition: ZERO_TO_ONE
+ for lineage: 1682356832569615
+Regime score: 0.05537
+TikTok: Calculating Regime Score For Lineage: 1682356832569615: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682356833224569: Started.
+Max spike rate: 10.51189583081054
+Lineage score: 0.3503965276936846 for transition: ZERO_TO_ONE
+ for lineage: 1682356833224569
+Regime score: 0.3504
+TikTok: Calculating Regime Score For Lineage: 1682356833224569: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356834226360: Started.
+Max spike rate: 9.278999796517494
+Lineage score: 0.3092999932172498 for transition: ZERO_TO_ONE
+ for lineage: 1682356834226360
+Regime score: 0.3093
+TikTok: Calculating Regime Score For Lineage: 1682356834226360: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356834868465: Started.
+Max spike rate: 1.9898376753949363
+Lineage score: 0.06632792251316454 for transition: ZERO_TO_ONE
+ for lineage: 1682356834868465
+Regime score: 0.06633
+TikTok: Calculating Regime Score For Lineage: 1682356834868465: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356846182414: Started.
+Max spike rate: 11.054079992654302
+Lineage score: 0.36846933308847674 for transition: ZERO_TO_ONE
+ for lineage: 1682356846182414
+Regime score: 0.36847
+TikTok: Calculating Regime Score For Lineage: 1682356846182414: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682356847623428: Started.
+Max spike rate: 16.850592041822036
+Lineage score: 0.5616864013940679 for transition: ZERO_TO_ONE
+ for lineage: 1682356847623428
+Regime score: 0.56169
+TikTok: Calculating Regime Score For Lineage: 1682356847623428: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356848660631: Started.
+Max spike rate: 15.507505043316405
+Lineage score: 0.5169168347772135 for transition: ZERO_TO_ONE
+ for lineage: 1682356848660631
+Regime score: 0.51692
+TikTok: Calculating Regime Score For Lineage: 1682356848660631: Elapsed time: 12 ms
+TikTok: Calculating Regime Score For Lineage: 1682356849121373: Started.
+Max spike rate: 3.214105997494548
+Lineage score: 0.1071368665831516 for transition: ZERO_TO_ONE
+ for lineage: 1682356849121373
+Regime score: 0.10714
+TikTok: Calculating Regime Score For Lineage: 1682356849121373: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356849565626: Started.
+Max spike rate: 6.098272659707458
+Lineage score: 0.20327575532358194 for transition: ZERO_TO_ONE
+ for lineage: 1682356849565626
+Regime score: 0.20328
+TikTok: Calculating Regime Score For Lineage: 1682356849565626: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356849992956: Started.
+Max spike rate: 5.11614195083745
+Lineage score: 0.17053806502791502 for transition: ZERO_TO_ONE
+ for lineage: 1682356849992956
+Regime score: 0.17054
+TikTok: Calculating Regime Score For Lineage: 1682356849992956: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356850699226: Started.
+Max spike rate: 7.101432240954751
+Lineage score: 0.23671440803182503 for transition: ZERO_TO_ONE
+ for lineage: 1682356850699226
+Regime score: 0.23671440803182503
+TikTok: Calculating Regime Score For Lineage: 1682356850699226: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356851185927: Started.
+Max spike rate: 8.315004884363471
+Lineage score: 0.2771668294787824 for transition: ZERO_TO_ONE
+ for lineage: 1682356851185927
+Regime score: 0.27717
+TikTok: Calculating Regime Score For Lineage: 1682356851185927: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356851957874: Started.
+Max spike rate: 6.429960774277657
+Lineage score: 0.21433202580925526 for transition: ZERO_TO_ONE
+ for lineage: 1682356851957874
+Regime score: 0.21433202580925526
+TikTok: Calculating Regime Score For Lineage: 1682356851957874: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356863774835: Started.
+Max spike rate: 15.328267802821674
+Lineage score: 0.5109422600940559 for transition: ZERO_TO_ONE
+ for lineage: 1682356863774835
+Regime score: 0.5109422600940559
+TikTok: Calculating Regime Score For Lineage: 1682356863774835: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356864439330: Started.
+Max spike rate: 4.273351180892485
+Lineage score: 0.14244503936308284 for transition: ZERO_TO_ONE
+ for lineage: 1682356864439330
+Regime score: 0.14245
+TikTok: Calculating Regime Score For Lineage: 1682356864439330: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356865005022: Started.
+Max spike rate: 13.997841389607032
+Lineage score: 0.4665947129869011 for transition: ZERO_TO_ONE
+ for lineage: 1682356865005022
+Regime score: 0.4665947129869011
+TikTok: Calculating Regime Score For Lineage: 1682356865005022: Elapsed time: 10 ms
+TikTok: Calculating Regime Score For Lineage: 1682356866090910: Started.
+Max spike rate: 18.214200753201577
+Lineage score: 0.6071400251067193 for transition: ZERO_TO_ONE
+ for lineage: 1682356866090910
+Regime score: 0.6071400251067193
+TikTok: Calculating Regime Score For Lineage: 1682356866090910: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356866853441: Started.
+Max spike rate: 5.093177896533627
+Lineage score: 0.1697725965511209 for transition: ZERO_TO_ONE
+ for lineage: 1682356866853441
+Regime score: 0.1697725965511209
+TikTok: Calculating Regime Score For Lineage: 1682356866853441: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356867540760: Started.
+Max spike rate: 15.899324015307492
+Lineage score: 0.5299774671769164 for transition: ZERO_TO_ONE
+ for lineage: 1682356867540760
+Regime score: 0.52998
+TikTok: Calculating Regime Score For Lineage: 1682356867540760: Elapsed time: 14 ms
+TikTok: Calculating Regime Score For Lineage: 1682356869018756: Started.
+Max spike rate: 5.263875188366348
+Lineage score: 0.17546250627887827 for transition: ZERO_TO_ONE
+ for lineage: 1682356869018756
+Regime score: 0.17546250627887827
+TikTok: Calculating Regime Score For Lineage: 1682356869018756: Elapsed time: 13 ms
+TikTok: Calculating Regime Score For Lineage: 1682356869430122: Started.
+Max spike rate: 6.0087167092512095
+Lineage score: 0.2002905569750403 for transition: ZERO_TO_ONE
+ for lineage: 1682356869430122
+Regime score: 0.2002905569750403
+TikTok: Calculating Regime Score For Lineage: 1682356869430122: Elapsed time: 11 ms
+TikTok: Calculating Regime Score For Lineage: 1682356870199793: Started.
+Max spike rate: 14.811755846315656
+Lineage score: 0.4937251948771885 for transition: ZERO_TO_ONE
+ for lineage: 1682356870199793
+Regime score: 0.49373
+TikTok: Calculating Regime Score For Lineage: 1682356870199793: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356882671152: Started.
+Max spike rate: 3.9174840702738667
+Lineage score: 0.13058280234246222 for transition: ZERO_TO_ONE
+ for lineage: 1682356882671152
+Regime score: 0.13058280234246222
+TikTok: Calculating Regime Score For Lineage: 1682356882671152: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356883354871: Started.
+Max spike rate: 1.6614514956971935
+Lineage score: 0.05538171652323978 for transition: ZERO_TO_ONE
+ for lineage: 1682356883354871
+Regime score: 0.05538171652323978
+TikTok: Calculating Regime Score For Lineage: 1682356883354871: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356884490966: Started.
+Max spike rate: 8.05201442145444
+Lineage score: 0.268400480715148 for transition: ZERO_TO_ONE
+ for lineage: 1682356884490966
+Regime score: 0.268400480715148
+TikTok: Calculating Regime Score For Lineage: 1682356884490966: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356885191833: Started.
+Max spike rate: 0.6706706040919455
+Lineage score: 0.022355686803064847 for transition: ZERO_TO_ONE
+ for lineage: 1682356885191833
+Regime score: 0.02236
+TikTok: Calculating Regime Score For Lineage: 1682356885191833: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356885614265: Started.
+Max spike rate: 14.215916199716212
+Lineage score: 0.4738638733238737 for transition: ZERO_TO_ONE
+ for lineage: 1682356885614265
+Regime score: 0.4738638733238737
+TikTok: Calculating Regime Score For Lineage: 1682356885614265: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356886686848: Started.
+Max spike rate: 5.369091613826404
+Lineage score: 0.17896972046088014 for transition: ZERO_TO_ONE
+ for lineage: 1682356886686848
+Regime score: 0.17897
+TikTok: Calculating Regime Score For Lineage: 1682356886686848: Elapsed time: 19 ms
+TikTok: Calculating Regime Score For Lineage: 1682356887411925: Started.
+Max spike rate: 4.207398708626737
+Lineage score: 0.14024662362089124 for transition: ZERO_TO_ONE
+ for lineage: 1682356887411925
+Regime score: 0.14025
+TikTok: Calculating Regime Score For Lineage: 1682356887411925: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682356888101251: Started.
+Max spike rate: 10.442199937284135
+Lineage score: 0.3480733312428045 for transition: ZERO_TO_ONE
+ for lineage: 1682356888101251
+Regime score: 0.3480733312428045
+TikTok: Calculating Regime Score For Lineage: 1682356888101251: Elapsed time: 9 ms
+TikTok: Calculating Regime Score For Lineage: 1682356888815229: Started.
+Max spike rate: 5.026602262208067
+Lineage score: 0.16755340874026892 for transition: ZERO_TO_ONE
+ for lineage: 1682356888815229
+Regime score: 0.16755340874026892
+TikTok: Calculating Regime Score For Lineage: 1682356888815229: Elapsed time: 8 ms
+TikTok: Calculating Regime Score For Lineage: 1682356889929070: Started.
+Max spike rate: 1.3369870167108597
+Lineage score: 0.04456623389036199 for transition: ZERO_TO_ONE
+ for lineage: 1682356889929070
+Regime score: 0.04457
+TikTok: Calculating Regime Score For Lineage: 1682356889929070: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356902040686: Started.
+Max spike rate: 25.600453238810772
+Lineage score: 0.8533484412936924 for transition: ZERO_TO_ONE
+ for lineage: 1682356902040686
+Regime score: 0.8533484412936924
+TikTok: Calculating Regime Score For Lineage: 1682356902040686: Elapsed time: 18 ms
+TikTok: Calculating Regime Score For Lineage: 1682356903472734: Started.
+Max spike rate: 16.737120210862965
+Lineage score: 0.5579040070287655 for transition: ZERO_TO_ONE
+ for lineage: 1682356903472734
+Regime score: 0.5579040070287655
+TikTok: Calculating Regime Score For Lineage: 1682356903472734: Elapsed time: 21 ms
+TikTok: Calculating Regime Score For Lineage: 1682356904521693: Started.
+Max spike rate: 3.7735122655443556
+Lineage score: 0.12578374218481186 for transition: ZERO_TO_ONE
+ for lineage: 1682356904521693
+Regime score: 0.12578374218481186
+TikTok: Calculating Regime Score For Lineage: 1682356904521693: Elapsed time: 16 ms
+TikTok: Calculating Regime Score For Lineage: 1682356905561594: Started.
+Max spike rate: 4.419352673431428
+Lineage score: 0.1473117557810476 for transition: ZERO_TO_ONE
+ for lineage: 1682356905561594
+Regime score: 0.1473117557810476
+TikTok: Calculating Regime Score For Lineage: 1682356905561594: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356906466058: Started.
+Max spike rate: 42.75215671888715
+Lineage score: 1.0 for transition: ZERO_TO_ONE
+ for lineage: 1682356906466058
+Regime score: 1.0
+TikTok: Calculating Regime Score For Lineage: 1682356906466058: Elapsed time: 21 ms
+TikTok: Calculating Regime Score For Lineage: 1682356906883263: Started.
+Max spike rate: 4.415918288465477
+Lineage score: 0.14719727628218257 for transition: ZERO_TO_ONE
+ for lineage: 1682356906883263
+Regime score: 0.14719727628218257
+TikTok: Calculating Regime Score For Lineage: 1682356906883263: Elapsed time: 17 ms
+TikTok: Calculating Regime Score For Lineage: 1682356907306843: Started.
+Max spike rate: 4.812547001876719
+Lineage score: 0.16041823339589062 for transition: ZERO_TO_ONE
+ for lineage: 1682356907306843
+Regime score: 0.16041823339589062
+TikTok: Calculating Regime Score For Lineage: 1682356907306843: Elapsed time: 15 ms
+TikTok: Calculating Regime Score For Lineage: 1682356908379999: Started.
+Max spike rate: 2.9306731023280457
+Lineage score: 0.09768910341093485 for transition: ZERO_TO_ONE
+ for lineage: 1682356908379999
+Regime score: 0.09768910341093485
+TikTok: Calculating Regime Score For Lineage: 1682356908379999: Elapsed time: 22 ms
+TikTok: Calculating Regime Score For Lineage: 1682356909410041: Started.
+Max spike rate: 13.329180778144856
+Lineage score: 0.4443060259381619 for transition: ZERO_TO_ONE
+ for lineage: 1682356909410041
+Regime score: 0.4443060259381619
+TikTok: Calculating Regime Score For Lineage: 1682356909410041: Elapsed time: 20 ms
+TikTok: Calculating Regime Score For Lineage: 1682356909834746: Started.
+Max spike rate: 11.233685651424983
+Lineage score: 0.3744561883808328 for transition: ZERO_TO_ONE
+ for lineage: 1682356909834746
+Regime score: 0.3744561883808328
+TikTok: Calculating Regime Score For Lineage: 1682356909834746: Elapsed time: 21 ms
+TikTok: Calculating Regime Scores: Elapsed time: 1633 ms
+Creating Slots For Lineages
+TikTok: Creating Slots For Lineages: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Creating Slots For Lineages: Elapsed time: 3 ms
+Assigning Regimes To Slots
+TikTok: Assigning Regimes To Slots: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 1 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Sample with replacement: Started.
+TikTok: Assigning Regimes To Slots: Elapsed time: 2 ms
+Assigning Fitness Scores To Slots
+TikTok: Assigning Fitness Scores To Slots: Started.
+TikTok: Assigning Slots For Lineage: 1682356700970453 with 1 slots: Started.
+TikTok: Using lineageId: 1682356700970453 to find potential parents: Started.
+TikTok: Using lineageId: 1682356700970453 to find potential parents: Elapsed time: 5 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356700970453: Started.
+TikTok: Getting spike rate for potential parent: 1682356700970453: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 1 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 1 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356700970453 with 1 slots: Elapsed time: 8 ms
+TikTok: Assigning Slots For Lineage: 1682356779261510 with 1 slots: Started.
+TikTok: Using lineageId: 1682356779261510 to find potential parents: Started.
+TikTok: Using lineageId: 1682356779261510 to find potential parents: Elapsed time: 4 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356779261510: Started.
+TikTok: Getting spike rate for potential parent: 1682356779261510: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356779261510 with 1 slots: Elapsed time: 6 ms
+TikTok: Assigning Slots For Lineage: 1682356888815229 with 1 slots: Started.
+TikTok: Using lineageId: 1682356888815229 to find potential parents: Started.
+TikTok: Using lineageId: 1682356888815229 to find potential parents: Elapsed time: 5 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356888815229: Started.
+TikTok: Getting spike rate for potential parent: 1682356888815229: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356888815229 with 1 slots: Elapsed time: 7 ms
+TikTok: Assigning Slots For Lineage: 1682356830203493 with 1 slots: Started.
+TikTok: Using lineageId: 1682356830203493 to find potential parents: Started.
+TikTok: Using lineageId: 1682356830203493 to find potential parents: Elapsed time: 3 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356830203493: Started.
+TikTok: Getting spike rate for potential parent: 1682356830203493: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 1 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 1 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356830203493 with 1 slots: Elapsed time: 6 ms
+TikTok: Assigning Slots For Lineage: 1682356682094851 with 1 slots: Started.
+TikTok: Using lineageId: 1682356682094851 to find potential parents: Started.
+TikTok: Using lineageId: 1682356682094851 to find potential parents: Elapsed time: 3 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356682094851: Started.
+TikTok: Getting spike rate for potential parent: 1682356682094851: Elapsed time: 3 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 3 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356682094851 with 1 slots: Elapsed time: 6 ms
+TikTok: Assigning Slots For Lineage: 1682356829036065 with 1 slots: Started.
+TikTok: Using lineageId: 1682356829036065 to find potential parents: Started.
+TikTok: Using lineageId: 1682356829036065 to find potential parents: Elapsed time: 4 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356829036065: Started.
+TikTok: Getting spike rate for potential parent: 1682356829036065: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356829036065 with 1 slots: Elapsed time: 6 ms
+TikTok: Assigning Slots For Lineage: 1682356763046525 with 1 slots: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Started.
+TikTok: Using lineageId: 1682356763046525 to find potential parents: Elapsed time: 4 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Started.
+TikTok: Getting spike rate for potential parent: 1682356763046525: Elapsed time: 3 ms
+TikTok: Getting spike rate for potential parent: 1682356776537708: Started.
+TikTok: Getting spike rate for potential parent: 1682356776537708: Elapsed time: 3 ms
+TikTok: Getting spike rate for potential parent: 1682356852329901: Started.
+TikTok: Getting spike rate for potential parent: 1682356852329901: Elapsed time: 3 ms
+TikTok: Getting spike rate for potential parent: 1682356868557818: Started.
+TikTok: Getting spike rate for potential parent: 1682356868557818: Elapsed time: 3 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 12 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356763046525 with 1 slots: Elapsed time: 16 ms
+TikTok: Assigning Slots For Lineage: 1682356813684740 with 1 slots: Started.
+TikTok: Using lineageId: 1682356813684740 to find potential parents: Started.
+TikTok: Using lineageId: 1682356813684740 to find potential parents: Elapsed time: 4 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356813684740: Started.
+TikTok: Getting spike rate for potential parent: 1682356813684740: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 2 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356813684740 with 1 slots: Elapsed time: 6 ms
+TikTok: Assigning Slots For Lineage: 1682356883354871 with 1 slots: Started.
+TikTok: Using lineageId: 1682356883354871 to find potential parents: Started.
+TikTok: Using lineageId: 1682356883354871 to find potential parents: Elapsed time: 3 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356883354871: Started.
+TikTok: Getting spike rate for potential parent: 1682356883354871: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356883354871 with 1 slots: Elapsed time: 4 ms
+TikTok: Assigning Slots For Lineage: 1682356814735535 with 1 slots: Started.
+TikTok: Using lineageId: 1682356814735535 to find potential parents: Started.
+TikTok: Using lineageId: 1682356814735535 to find potential parents: Elapsed time: 2 ms
+TikTok: Finding normalized responses for each potential parent: Started.
+TikTok: Getting spike rate for potential parent: 1682356814735535: Started.
+TikTok: Getting spike rate for potential parent: 1682356814735535: Elapsed time: 1 ms
+TikTok: Finding normalized responses for each potential parent: Elapsed time: 1 ms
+TikTok: Using normalized responses to find fitness scores: Started.
+TikTok: Using normalized responses to find fitness scores: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Started.
+TikTok: Normalize probability table: Started.
+TikTok: Normalize probability table: Elapsed time: 0 ms
+TikTok: Calculate CDF: Started.
+TikTok: Calculate CDF: Elapsed time: 0 ms
+TikTok: Using fitness functions and normalized responses to assign fitness scores to each potential parent: Elapsed time: 0 ms
+TikTok: Selecting parents: Started.
+TikTok: Sample with replacement: Started.
+TikTok: Selecting parents: Elapsed time: 0 ms
+TikTok: Assigning Slots For Lineage: 1682356814735535 with 1 slots: Elapsed time: 3 ms
+TikTok: Assigning Fitness Scores To Slots: Elapsed time: 70 ms
+TikTok: Selecting Parents: Elapsed time: 1824 ms
+Attemptins regime ZERO for parent 1682356700970453
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 2 ms
+Attemptins regime ZERO for parent 1682356779261510
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Attemptins regime ZERO for parent 1682356888815229
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Attemptins regime ZERO for parent 1682356830203493
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Attemptins regime ZERO for parent 1682356682094851
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Attemptins regime ZERO for parent 1682356829036065
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Attemptins regime ONE for parent 1682356763046525
+TikTok: Adding Regime One Stim: Started.
+Adding Regime One Stim
+TikTok: Adding Regime One Stim: Elapsed time: 1 ms
+Attemptins regime ZERO for parent 1682356813684740
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Attemptins regime ZERO for parent 1682356883354871
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Attemptins regime ZERO for parent 1682356814735535
+TikTok: Adding Regime Zero Stim: Started.
+Adding Regime Zero Stim
+TikTok: Adding Regime Zero Stim: Elapsed time: 0 ms
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+0.20255621385587624
+0.16225056591261489
+0.08289052658629104
+0.0
+0.0
+0.2663360064170622
+0.1158195452215458
+0.0
+0.0
+0.0
+Preserving components: 0 out of 2
+Morphing component 1
+compLabel[0] = 0
+compLabel[1] = 0
+compLabel[2] = 2
+Failed to generate a valid morphed arc. Attempting again...
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tangent angle too small!
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$7.accept(MorphedMatchStick.java:626)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$7.accept(MorphedMatchStick.java:1)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.forEachJunctionThatContainsComp(MorphedMatchStick.java:649)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkJunctions(MorphedMatchStick.java:601)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidMorphedArc(MorphedMatchStick.java:587)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:161)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to generate a valid morphed arc. Attempting again...
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tangent angle too small!
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$7.accept(MorphedMatchStick.java:626)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$7.accept(MorphedMatchStick.java:1)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.forEachJunctionThatContainsComp(MorphedMatchStick.java:649)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkJunctions(MorphedMatchStick.java:601)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidMorphedArc(MorphedMatchStick.java:587)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:161)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Successfully generated valid skeleton for component 1
+0.0
+0.0
+0.0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 1
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+0.0
+0.0
+0.0
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2b680207
+Retrying...
+Attempt 0 of 5
+0.1916568248525553
+0.06796200363166631
+0.02287900791186645
+0.0
+0.0
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+Successfully generated valid skeleton for component 2
+0.0
+0.0
+0.0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Radius profile failed when attempting to be applied to component 2
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.applyRadiusProfile(MorphedMatchStick.java:240)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptMutateRadius(MorphedMatchStick.java:223)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:149)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+0.14149893555911475
+0.0
+0.0
+Successfully generated valid radius for component 2
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2b680207
+Retrying...
+Attempt 1 of 5
+0.25867792757408814
+0.07019861209354505
+0.0
+0.0
+0.0
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Skeleton nearby
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForCollisions(MorphedMatchStick.java:519)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:164)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Skip first rotation
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Skeleton nearby
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForCollisions(MorphedMatchStick.java:519)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:164)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+FAILED Attempt 1 of 5 to generate valid skeleton for component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2b680207
+Retrying...
+Attempt 2 of 5
+0.14381833064322713
+0.0
+0.0
+0.0
+0.0
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+Successfully generated valid skeleton for component 2
+0.5902967756254215
+0.4493760541832789
+0.2165166933530245
+0.1160427208499456
+0.08718612484829957
+0.0
+Successfully generated valid radius for component 2
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Tube collision check failed
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForTubeCollisions(MorphedMatchStick.java:211)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:151)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2b680207
+Retrying...
+Attempt 3 of 5
+0.10069591556324536
+0.06877294650076204
+0.0069355616939051
+0.0
+0.0
+Morphing component 2
+compLabel[0] = 0
+compLabel[1] = 1
+compLabel[2] = 0
+Skip first rotation
+org.xper.allen.drawing.composition.morph.MorphedMatchStick$MorphException: Skeleton nearby
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.checkForCollisions(MorphedMatchStick.java:519)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToGenerateValidComponentSkeleton(MorphedMatchStick.java:164)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphComponent(MorphedMatchStick.java:146)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.attemptToMorphComponent(MorphedMatchStick.java:123)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.access$0(MorphedMatchStick.java:116)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:105)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick$1.accept(MorphedMatchStick.java:1)
+	at java.util.HashMap.forEach(HashMap.java:1289)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.morphAllComponents(MorphedMatchStick.java:102)
+	at org.xper.allen.drawing.composition.morph.MorphedMatchStick.genMorphedMatchStick(MorphedMatchStick.java:57)
+	at org.xper.allen.drawing.composition.morph.GrowingMatchStick.genGrowingMatchStick(GrowingMatchStick.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:29)
+	at org.xper.allen.newga.blockgen.RegimeOneStim.morphStim(RegimeOneStim.java:1)
+	at org.xper.allen.newga.blockgen.MorphedStim.writeStim(MorphedStim.java:46)
+	at org.xper.allen.ga3d.blockgen.GABlockGenerator.writeTrials(GABlockGenerator.java:50)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:15)
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Skip first rotation
+Successfully generated valid skeleton for component 2
+0.74756271940393
+0.5246187578624136
+0.44144070010135306
+0.23155656802858193
+0.1471809374750917
+0.036791565683274796
+0.036791565683274796
+0.036791565683274796
+0.0
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+creating and saving PNG...
+0.015507687681337387
+Finished Writing Morph Trial
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+creating and saving PNG...
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+Skip first rotation
+creating and saving PNG...
+creating and saving PNG...
+creating and saving PNG...
+Done Generating...

@@ -3,6 +3,7 @@ package org.xper.allen.ga;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.xper.Dependency;
+import org.xper.allen.ga.regimescore.LineageMaxResponseSource;
 import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.ga.regimescore.RegimeScoreSource;
 import org.xper.allen.util.MultiGaDbUtil;
@@ -26,6 +27,9 @@ public class SlotSelectionProcess {
 
     @Dependency
     RegimeScoreSource regimeScoreSource;
+
+    @Dependency
+    Integer maxLineagesToBuild;
 
     /**
      * Function that maps regime score of a linaege to likelihood of assigning slots to that lineage.
@@ -51,21 +55,16 @@ public class SlotSelectionProcess {
     SpikeRateSource spikeRateSource;
 
     @Dependency
-    MaxResponseSource maxResponseSource;
+    LineageMaxResponseSource maxResponseSource;
 
 
-    private double maxResponse;
 
     public List<Child> select(String gaName) {
-        TikTok maxResponseTimer = new TikTok("Getting max response");
-        maxResponse = maxResponseSource.getMaxResponse(gaName);
-        maxResponseTimer.stop();
-
         List<Child> selectedParents = new LinkedList<>();
 
         System.out.println("Fetching Lineage Ids");
         TikTok lineageTimer = new TikTok("Fetching Lineage Ids");
-        List<Long> lineageIds = fetchLineageIds(gaName);
+        List<Long> lineageIds = chooseLineages(gaName);
         lineageTimer.stop();
 
         System.out.println("Calculating Regime Scores");
@@ -93,8 +92,66 @@ public class SlotSelectionProcess {
         return selectedParents;
     }
 
-    private List<Long> fetchLineageIds(String gaName) {
-        return dbUtil.readAllLineageIds(gaName);
+    /**
+     * Count how many lineages are past regime score of 1.0.
+     * If the amount is less than maxLineagesToBuild, then return all lineages,
+     * so we can have more lineages reach regime score of 1.0.
+     *
+     * If the amount is greater or equal to maxLineagesToBuild, then
+     * return the top maxLineagesToBuild lineages.
+     * @param gaName
+     * @return
+     */
+    private List<Long> chooseLineages(String gaName) {
+        List<Long> allLineageIds =  dbUtil.readAllLineageIds(gaName);
+
+        // Read regime scores for all lineages
+        Map<Long, Double> regimeScoresForLineageIds = new LinkedHashMap<>();
+        for (long lineageId: allLineageIds) {
+            Double currentRegimeScore = dbUtil.readRegimeScore(lineageId);
+            regimeScoresForLineageIds.put(lineageId, currentRegimeScore);
+        }
+
+        boolean reachedMaxLineagesToBuild = reachedMaxLineagesToBuild(regimeScoresForLineageIds);
+
+        if (!reachedMaxLineagesToBuild) {
+            return allLineageIds;
+        }
+        else{
+            return chooseTopLineages(regimeScoresForLineageIds);
+        }
+
+
+    }
+
+    private boolean reachedMaxLineagesToBuild(Map<Long, Double> regimeScoresForLineageIds) {
+        // Count number of lineages with regimeScore >= 1.0
+        int numRegimeOnePlusLineages = 0;
+        for (Double regimeScore: regimeScoresForLineageIds.values()) {
+            if (regimeScore >= 1.0) {
+                numRegimeOnePlusLineages++;
+            }
+        }
+        return numRegimeOnePlusLineages >= maxLineagesToBuild;
+    }
+
+    private List<Long> chooseTopLineages(Map<Long, Double> regimeScoresForLineageIds) {
+        // Sort lineages by regime score descending
+        List<Map.Entry<Long, Double>> lineageIdAndRegimeScoreList =
+                new LinkedList<>(regimeScoresForLineageIds.entrySet());
+        Collections.sort(lineageIdAndRegimeScoreList, new Comparator<Map.Entry<Long, Double>>() {
+            @Override
+            public int compare(Map.Entry<Long, Double> o1, Map.Entry<Long, Double> o2) {
+                return o2.getValue().compareTo(o1.getValue());
+            }
+        });
+
+        // Get the top maxLineagesToBuild lineages
+        List<Long> topLineageIds = new LinkedList<>();
+        for (int i = 0; i < maxLineagesToBuild; i++) {
+            topLineageIds.add(lineageIdAndRegimeScoreList.get(i).getKey());
+        }
+        return topLineageIds;
     }
 
     private List<Long> treeSpecsToLineageIds(List<String> treeSpecs) {
@@ -157,7 +214,7 @@ public class SlotSelectionProcess {
                         TikTok spikeRateTimer = new TikTok("Getting spike rate for potential parent: " + potentialParent);
                         Double averageSpikeRate = spikeRateSource.getSpikeRate(potentialParent);
                         spikeRateTimer.stop();
-                        double normalizedSpikeRate = averageSpikeRate / maxResponse;
+                        double normalizedSpikeRate = averageSpikeRate / maxResponseSource.getValue(lineageId);
                         normalizedResponses.add(normalizedSpikeRate);
                     }
                     normalizedResponseTimer.stop();
@@ -362,11 +419,19 @@ public class SlotSelectionProcess {
         this.spikeRateSource = spikeRateSource;
     }
 
-    public MaxResponseSource getMaxResponseSource() {
+    public LineageMaxResponseSource getMaxResponseSource() {
         return maxResponseSource;
     }
 
-    public void setMaxResponseSource(MaxResponseSource maxResponseSource) {
+    public void setMaxResponseSource(LineageMaxResponseSource maxResponseSource) {
         this.maxResponseSource = maxResponseSource;
+    }
+
+    public Integer getMaxLineagesToBuild() {
+        return maxLineagesToBuild;
+    }
+
+    public void setMaxLineagesToBuild(Integer maxLineagesToBuild) {
+        this.maxLineagesToBuild = maxLineagesToBuild;
     }
 }
