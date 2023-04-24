@@ -36,7 +36,7 @@ public class RegimeThreeStim extends MorphedStim<ExploreMatchStick, AllenMStickD
     }
 
     private double rollMagnitude() {
-        return Math.random() * 0.2 + 0.1;
+        return Math.random() * 0.3 + 0.2;
     }
 
     @Override

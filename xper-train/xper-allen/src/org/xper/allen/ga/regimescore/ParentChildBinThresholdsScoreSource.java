@@ -32,12 +32,12 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
     LineageMaxResponseSource maxResponseSource;
 
     private Long lineageId;
-    private Double lineageMaxResponse;
+//    private Double lineageMaxResponse;
 
     @Override
     public Double getLineageScore(Long lineageId) {
         this.lineageId = lineageId;
-        lineageMaxResponse = maxResponseSource.getValue(lineageId);
+//        lineageMaxResponse = maxResponseSource.getValue(lineageId);
         // Find all StimIds from this lineage and have stimType
         List<Long> stimIdsWithStimType = dbUtil.readStimIdsFromLineageAndType(lineageId, stimType);
 
@@ -98,7 +98,7 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
                 for (Long stimId : passedFilter) {
                     // Normalize child response
                     Double childResponse = spikeRateSource.getSpikeRate(stimId);
-                    Double normalizedResponse = childResponse / lineageMaxResponse;
+                    Double normalizedResponse = childResponse / maxResponseSource.getValue(lineageId);
 
                     // Compare to bin
                     if (bin.contains(normalizedResponse)) {
@@ -141,7 +141,8 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
 
         public boolean contains(Double normalizedValue) {
             if (normalizedValue < 0 || normalizedValue > 1) {
-                throw new IllegalArgumentException("Normalized value must be between 0 and 1");
+                throw new IllegalArgumentException("Normalized value must be between 0 and 1" +
+                        " but was " + normalizedValue);
             }
             return normalizedValue > startPercentage && normalizedValue <= endPercentage;
         }

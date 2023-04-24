@@ -126,7 +126,6 @@ class ShaftTuningFunction(TuningFunction):
             responses_per_component.append(response)
 
         response = np.max(responses_per_component)
-        print(response)
         return response
 
     def assign_tuning_width_from_range(self, fraction_of_range: float = 1.0 / 5.0):

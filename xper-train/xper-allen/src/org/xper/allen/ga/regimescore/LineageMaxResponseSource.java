@@ -4,7 +4,9 @@ import org.xper.Dependency;
 import org.xper.allen.ga.SpikeRateSource;
 import org.xper.allen.util.MultiGaDbUtil;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class LineageMaxResponseSource implements LineageValueSource {
 
@@ -17,20 +19,28 @@ public class LineageMaxResponseSource implements LineageValueSource {
     SpikeRateSource spikeRateSource;
 
     private Long lastGenIdMaxReadFrom = -1L;
-    private Double maxResponse;
+//    private Double maxResponse;
+    private Map<Long, Double> maxResponseForLineageId = new HashMap<Long, Double>();
+    private String gaName;
 
     public double getValue(long lineageId) {
-        String gaName = dbUtil.readGaNameFor(lineageId);
+        gaName = dbUtil.readGaNameFor(lineageId);
         long mostRecentGenId = dbUtil.readTaskDoneMaxGenerationIdForGa(gaName);
         if (mostRecentGenId > lastGenIdMaxReadFrom) {
-            maxResponse = readNewMaxResponse(lineageId);
+            updateMaxResponses();
             lastGenIdMaxReadFrom = mostRecentGenId;
         }
-        return maxResponse;
+        return maxResponseForLineageId.get(lineageId);
     }
 
-    private Double readNewMaxResponse(long lineageId) {
-        String gaName = dbUtil.readGaNameFor(lineageId);
+    private void updateMaxResponses() {
+        List<Long> lineageIds = dbUtil.readAllLineageIds(gaName);
+        for (Long lineageId : lineageIds) {
+            updateMaxResponseFor(lineageId);
+        }
+    }
+
+    private void updateMaxResponseFor(Long lineageId) {
         List<Long> stimIds = dbUtil.readDoneStimIdsFromLineage(gaName, lineageId);
 
         Double maxResponse = minimumMaxResponse;
@@ -42,7 +52,8 @@ public class LineageMaxResponseSource implements LineageValueSource {
 
             }
         }
-        return maxResponse;
+
+        maxResponseForLineageId.put(lineageId, maxResponse);
     }
 
     public MultiGaDbUtil getDbUtil() {

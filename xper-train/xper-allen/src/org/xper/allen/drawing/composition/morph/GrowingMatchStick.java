@@ -5,8 +5,18 @@ import java.util.Map;
 
 public class GrowingMatchStick extends MorphedMatchStick{
 
+    private double sigma;
+
+    public GrowingMatchStick(double sigma) {
+        this.sigma = sigma;
+    }
+
+    public GrowingMatchStick() {
+        this.sigma = 1/3.0;
+    }
+
     public void genGrowingMatchStick(MorphedMatchStick matchStickToMorph, double magnitude) {
-        MorphDistributer morphDistributer = new MorphDistributer(1/3.0);
+        MorphDistributer morphDistributer = new MorphDistributer(sigma);
         // Construct MorphParameters for components
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
         for (int i=1; i<=matchStickToMorph.getNComponent(); i++) {

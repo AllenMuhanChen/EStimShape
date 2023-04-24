@@ -53,7 +53,7 @@ def ga_loop(num_generations):
 def ga_loop():
     generation = 1
     num_complete_lineages = 0
-    while float(num_complete_lineages) < 2:
+    while float(num_complete_lineages) < 3:
         print(f"Number of complete lineages: {num_complete_lineages}")
         run_trial_generator(generation)
         print(f"Highest regime score so far: {get_highest_regime_score()}")
