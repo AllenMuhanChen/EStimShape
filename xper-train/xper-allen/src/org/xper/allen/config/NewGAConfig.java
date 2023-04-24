@@ -315,7 +315,7 @@ public class NewGAConfig {
         threeToFour.setParentResponseThresholdSource(regimeThreeToFourParentThreshold());
         threeToFour.setNumPairThresholdSourcesForBins(regimeThreeToFourPairThresholds());
         threeToFour.setSpikeRateSource(spikeRateSource());
-        threeToFour.setMaxResponseSource(lineageMaxResponseSource());
+        threeToFour.setMaxResponseSource(maxResponseSource());
         return threeToFour;
     }
 

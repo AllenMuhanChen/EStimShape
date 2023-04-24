@@ -25,7 +25,7 @@ public class MaxResponseSourceTest {
     public void returns_min_if_resp_under_min() throws Exception {
         maxResponseSource.setDbUtil(new MockUnderMinDbUtil());
 
-        double maxResponse = maxResponseSource.getMaxResponse(null);
+        double maxResponse = maxResponseSource.getValue(null);
 
         assertEquals(maxResponse, 4.0, .001);
     }
@@ -34,7 +34,7 @@ public class MaxResponseSourceTest {
     public void returns_max_if_resp_over_min() throws Exception {
         maxResponseSource.setDbUtil(new MockOverMinDbUtil());
 
-        double maxResponse = maxResponseSource.getMaxResponse(null);
+        double maxResponse = maxResponseSource.getValue(null);
 
         assertEquals(maxResponse, 5.0, .001);
     }

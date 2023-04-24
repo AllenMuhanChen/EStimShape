@@ -110,7 +110,7 @@ public class StabilityOfMaxScoreSourceTest {
 
     private static class MockMaxResponseSource extends MaxResponseSource {
         @Override
-        public double getMaxResponse(String gaName) {
+        public double getValue(String gaName) {
             return 10.0;
         }
     }

@@ -36,9 +36,9 @@ public class ParentChildBinThresholdsScoreSourceTest {
                 return 0.0;
             }
         });
-        source.setMaxResponseSource(new LineageMaxResponseSource() {
+        source.setMaxResponseSource(new MaxResponseSource() {
             @Override
-            public double getValue(long lineageId) {
+            public double getValue(String gaName) {
                 return 10.0;
             }
         });

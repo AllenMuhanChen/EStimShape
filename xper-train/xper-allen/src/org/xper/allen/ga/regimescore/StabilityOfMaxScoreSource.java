@@ -48,7 +48,7 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
     @Override
     public Double getLineageScore(Long lineageId) {
         this.lineageId = lineageId;
-        maxResponse = maxResponseSource.getMaxResponse(dbUtil.readGaNameFor(lineageId));
+        maxResponse = maxResponseSource.getValue(dbUtil.readGaNameFor(lineageId));
         //Get a Map of all genIds and their stimIds for a lineage
         HashMap<Integer, List<Long>> stimIdsForGenIds = (HashMap<Integer, List<Long>>) dbUtil.readStimIdsFromGenIdsFor(lineageId);
 

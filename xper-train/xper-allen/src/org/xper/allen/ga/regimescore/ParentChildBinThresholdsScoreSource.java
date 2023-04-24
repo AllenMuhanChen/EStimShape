@@ -29,7 +29,7 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
     SpikeRateSource spikeRateSource;
 
     @Dependency
-    LineageMaxResponseSource maxResponseSource;
+    MaxResponseSource maxResponseSource;
 
     private Long lineageId;
 //    private Double lineageMaxResponse;
@@ -188,11 +188,19 @@ public class ParentChildBinThresholdsScoreSource implements LineageScoreSource{
         this.spikeRateSource = spikeRateSource;
     }
 
-    public LineageMaxResponseSource getMaxResponseSource() {
+    public Long getLineageId() {
+        return lineageId;
+    }
+
+    public void setLineageId(Long lineageId) {
+        this.lineageId = lineageId;
+    }
+
+    public MaxResponseSource getMaxResponseSource() {
         return maxResponseSource;
     }
 
-    public void setMaxResponseSource(LineageMaxResponseSource maxResponseSource) {
+    public void setMaxResponseSource(MaxResponseSource maxResponseSource) {
         this.maxResponseSource = maxResponseSource;
     }
 }

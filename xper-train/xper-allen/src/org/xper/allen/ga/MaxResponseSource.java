@@ -1,12 +1,13 @@
 package org.xper.allen.ga;
 
 import org.xper.Dependency;
+import org.xper.allen.ga.regimescore.LineageValueSource;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.allen.util.TikTok;
 
 import java.util.List;
 
-public class MaxResponseSource {
+public class MaxResponseSource implements LineageValueSource {
 
     @Dependency
     MultiGaDbUtil dbUtil;
@@ -20,7 +21,13 @@ public class MaxResponseSource {
     private Long lastGenIdMaxReadFrom = -1L;
     private Double maxResponse;
 
-    public double getMaxResponse(String gaName) {
+
+    @Override
+    public double getValue(long lineageId) {
+        return getValue(dbUtil.readGaNameFor(lineageId));
+    }
+
+    public double getValue(String gaName) {
         long mostRecentGenId = dbUtil.readTaskDoneMaxGenerationIdForGa(gaName);
         if (mostRecentGenId > lastGenIdMaxReadFrom) {
             maxResponse = readNewMaxResponse(gaName);
@@ -77,4 +84,6 @@ public class MaxResponseSource {
     public void setSpikeRateSource(SpikeRateSource spikeRateSource) {
         this.spikeRateSource = spikeRateSource;
     }
+
+
 }

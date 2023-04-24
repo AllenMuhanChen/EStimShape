@@ -31,7 +31,7 @@ public class TreeFitnessScoreCalculatorTest {
 
         treeFitnessScoreCalculator.setMaxResponseSource(new MaxResponseSource(){
             @Override
-            public double getMaxResponse(String gaName) {
+            public double getValue(String gaName) {
                 return 1.0;
             }
         });
@@ -64,7 +64,7 @@ public class TreeFitnessScoreCalculatorTest {
     public void normalizes_spike_rates(){
         treeFitnessScoreCalculator.setMaxResponseSource(new MaxResponseSource(){
             @Override
-            public double getMaxResponse(String gaName) {
+            public double getValue(String gaName) {
                 return 2.0;
             }
         });

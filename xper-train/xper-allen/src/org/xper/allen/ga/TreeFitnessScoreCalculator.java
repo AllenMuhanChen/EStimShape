@@ -27,7 +27,7 @@ public class TreeFitnessScoreCalculator implements FitnessScoreCalculator<TreeFi
         UnivariateRealFunction fitnessFunction = chooseFitnessFunctionBasedOnCanopyWidth(params);
 
         // Normalize spike rate by max response
-        double normalizedSpikeRate = params.getAverageSpikeRate() / maxResponseSource.getMaxResponse(params.getGaName());
+        double normalizedSpikeRate = params.getAverageSpikeRate() / maxResponseSource.getValue(params.getGaName());
 
         // put spike rate through fitness score function associated with the canopy width
         try {

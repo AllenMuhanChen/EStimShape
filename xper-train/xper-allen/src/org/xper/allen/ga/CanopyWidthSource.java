@@ -32,7 +32,7 @@ public class CanopyWidthSource {
     public Integer getCanopyWidth(Long stimId) {
         StimGaInfo gaInfo =  dbUtil.readStimGaInfo(stimId);
         gaName = gaInfo.getGaName();
-        maxResponse = maxResponseSource.getMaxResponse(gaName);
+        maxResponse = maxResponseSource.getValue(gaName);
         String treeSpec = gaInfo.getTreeSpec();
         Branch<Long> tree = Branch.fromXml(treeSpec);
 

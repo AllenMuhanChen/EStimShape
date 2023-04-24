@@ -19,7 +19,7 @@ public class CanopyWidthSourceTest {
         canopyWidthSource.setDbUtil(new CanopyWidthSourceTestDbUtil());
         canopyWidthSource.setMaxResponseSource(new MaxResponseSource() {
             @Override
-            public double getMaxResponse(String gaName) {
+            public double getValue(String gaName) {
                 return 42;
             }
         });
