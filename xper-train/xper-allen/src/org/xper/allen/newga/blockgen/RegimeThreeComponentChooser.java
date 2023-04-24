@@ -16,6 +16,7 @@ public class RegimeThreeComponentChooser {
 
     private final MultiGaDbUtil dbUtil;
     private final SpikeRateSource spikeRateSource;
+    private double confidence;
 
     public RegimeThreeComponentChooser(MultiGaDbUtil dbUtil, SpikeRateSource spikeRateSource) {
         this.dbUtil = dbUtil;
@@ -43,6 +44,8 @@ public class RegimeThreeComponentChooser {
             }
         });
 
+        calculateConfidence(sortedComponents, avgSpikeRateForCompsPreserved);
+
         // Choose the top numComponentsToChoose components
         List<Integer> compsToChoose = new LinkedList<>();
         ProbabilityTable<Integer> probTable = new ProbabilityTable<>(avgSpikeRateForCompsPreserved);
@@ -57,6 +60,18 @@ public class RegimeThreeComponentChooser {
 //        }
 
         return compsToChoose;
+    }
+
+    private void calculateConfidence(List<Integer> sortedComponents, Map<Integer, Double> avgSpikeRateForCompsPreserved) {
+        // calculate
+        Double topComponentSpikeRate = avgSpikeRateForCompsPreserved.get(sortedComponents.get(0));
+        Double secondComponentSpikeRate = avgSpikeRateForCompsPreserved.get(sortedComponents.get(1));
+        confidence = (topComponentSpikeRate - secondComponentSpikeRate) / topComponentSpikeRate;
+
+    }
+
+    public double getConfidence() {
+        return confidence;
     }
 
     /**

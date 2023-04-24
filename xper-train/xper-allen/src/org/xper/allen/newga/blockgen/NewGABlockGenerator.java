@@ -85,7 +85,7 @@ public class NewGABlockGenerator extends GABlockGenerator {
             } else if (child.getRegime().equals(Regime.THREE)) {
                 TikTok timer = new TikTok("Adding Regime Three Stim");
                 System.out.println("Adding Regime Three Stim");
-                getStims().add(new OldRegimeThreeStim(this, child.getParentId()));
+                getStims().add(new RegimeThreeStim(this, child.getParentId()));
                 timer.stop();
             } else {
                 throw new RuntimeException("Invalid Regime");
