@@ -32,9 +32,9 @@ def main():
     baseline_function = TuningFunction()
 
     tuning_peak = {
-        "angularPosition": {"theta": 0, "phi": math.pi / 2},
+        "angularPosition": {"theta": math.pi, "phi": math.pi / 2},
         "radialPosition": 15,
-        "orientation": {"theta": 0, "phi": math.pi / 4},
+        "orientation": {"theta": math.pi, "phi": math.pi / 4},
         "length": 35,
         "curvature": 0.02,
         "radius": 8,

@@ -29,6 +29,16 @@ def fetch_components_to_preserve_for_stim_id(stim_id):
         components_to_preserve = None
     return components_to_preserve
 
+def fetch_components_exploring_for_stim_id(stim_id):
+    try:
+        conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
+        mstick_data = conn.fetch_one()
+        mstick_data_dict = xmltodict.parse(mstick_data)
+        components_exploring = mstick_data_dict["AllenMStickData"]["componentsExploring"]
+    except:
+        components_exploring = None
+    return components_exploring
+
 
 class MockTreeGraphApp(TreeGraphApp):
     def __init__(self):
@@ -84,6 +94,16 @@ class MockTreeGraphApp(TreeGraphApp):
                     components_to_preserve = fetch_components_to_preserve_for_stim_id(node_label)
                     component_print.append(f"Components to Preserve: {components_to_preserve}\n")
                     component_print.append(html.Br())
+
+                # IF Regime THREE
+                if stim_type == "RegimeThree":
+                    try:
+                        components_exploring = fetch_components_exploring_for_stim_id(node_label)
+                        component_print.append(f"Components Exploring: {components_exploring}\n")
+                        component_print.append(html.Br())
+                    except:
+                        component_print.append(f"Components Exploring: All\n")
+
                 # Print Shaft Info
                 mstick_data = fetch_shaft_data_for_mstick(node_label)
                 for component in mstick_data:

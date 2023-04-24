@@ -5,10 +5,8 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
-import org.xper.allen.drawing.composition.morph.PruningMatchStick.PruningMStickData;
 import org.xper.allen.ga.regimescore.Regime;
 
-import java.util.LinkedList;
 import java.util.List;
 
 import static org.xper.allen.newga.blockgen.NewGABlockGenerator.stimTypeForRegime;
@@ -43,7 +41,6 @@ public class RegimeThreeStim extends MorphedStim<MorphedMatchStick, AllenMStickD
             return childMStick;
         }
     }
-
 
     @Override
     protected void writeMStickData(MorphedMatchStick mStick){

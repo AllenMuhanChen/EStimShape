@@ -46,18 +46,18 @@ public class RegimeThreeComponentChooser {
 
         calculateConfidence(sortedComponents, avgSpikeRateForCompsPreserved);
 
-        // Choose the top numComponentsToChoose components
-        List<Integer> compsToChoose = new LinkedList<>();
-        ProbabilityTable<Integer> probTable = new ProbabilityTable<>(avgSpikeRateForCompsPreserved);
-        for (int i = 0; i < numComponentsToChoose; i++) {
-            compsToChoose.add(probTable.sampleWithoutReplacement());
-        }
-
 //        // Choose the top numComponentsToChoose components
 //        List<Integer> compsToChoose = new LinkedList<>();
+//        ProbabilityTable<Integer> probTable = new ProbabilityTable<>(avgSpikeRateForCompsPreserved);
 //        for (int i = 0; i < numComponentsToChoose; i++) {
-//            compsToChoose.add(sortedComponents.get(i));
+//            compsToChoose.add(probTable.sampleWithoutReplacement());
 //        }
+
+        // Choose the top numComponentsToChoose components
+        List<Integer> compsToChoose = new LinkedList<>();
+        for (int i = 0; i < numComponentsToChoose; i++) {
+            compsToChoose.add(sortedComponents.get(i));
+        }
 
         return compsToChoose;
     }
