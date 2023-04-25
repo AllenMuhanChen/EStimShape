@@ -20,14 +20,17 @@ class ColoredTreeGraph(TreeGraph):
         self.edge_colors = edge_colors
         super().__init__(y_values_for_stim_ids, edges, image_folder)
 
+
     def _create_edges(self, pos, tree):
         print("COLORED EDGES CALLED")
+        self.ids_for_edge_traces = []
         edge_traces = []
         for edge in tree.edges():
             x = [pos[edge[0]][0], pos[edge[1]][0], None]
             y = [pos[edge[0]][1], pos[edge[1]][1], None]
             color = self.edge_colors[edge]
             edge_trace = go.Scatter(
+                name=str((edge[0], edge[1])),
                 x=x,
                 y=y,
                 mode="lines",

@@ -28,7 +28,7 @@ class TreeGraphApp:
             [
                 dcc.Graph(id="tree",
                           figure=fig, clear_on_unhover=True,
-                          autosize=False,),
+                          autosize=False, ),
                 html.Div(id="clipboard-data"),
                 html.Div(id="node-info"),
             ]
@@ -61,20 +61,12 @@ class TreeGraphApp:
 
 
 class TreeGraph:
-    def __init__(self, y_values_for_stim_ids, edges, image_folder):
+    def __init__(self, y_values_for_stim_ids, edges: list[tuple], image_folder):
+        self.edges = edges
         self.image_folder = image_folder
         self._create_tree_graph(y_values_for_stim_ids, edges)
 
     fig: go.Figure
-
-    def update_image_size(self, size):
-        print(f"Updating images with size {size}")
-        for img in self.fig.layout.images:
-            img.sizex = size
-            img.sizey = size
-
-        self.fig.update_layout(images=self.fig.layout.images)
-        return self.fig
 
     def _create_tree_graph(self, y_values_for_stim_ids, edges):
         self.node_size = 100
@@ -118,17 +110,17 @@ class TreeGraph:
         return layout
 
     def _create_nodes(self, pos, tree) -> go.Scatter | list[go.Scatter]:
-        node_trace = go.Scatter(
+        self.node_trace = go.Scatter(
             x=[pos[k][0] for k in tree.nodes()],
             y=[pos[k][1] for k in tree.nodes()],
             mode="markers+text",
             text=list(tree.nodes()),
             textposition="bottom center",
-            marker=dict(size=self.node_size, color="lightblue"),
+            marker=dict(size=self.node_size/4, color="lightblue"),
             hoverinfo="text",
             opacity=0
         )
-        return node_trace
+        return self.node_trace
 
     def _create_edges(self, pos, tree) -> go.Scatter | list[go.Scatter]:
         edge_trace = go.Scatter(
@@ -143,16 +135,10 @@ class TreeGraph:
     def _get_images_for_stims(self):
         images = []
         for stim_id in self.tree.nodes():
-            images.append(go.layout.Image(
-                source=self._get_image(stim_id),
-                xref="x",
-                yref="y",
-                x=self.pos[stim_id][0],
-                y=self.pos[stim_id][1],
-                sizex=self.node_size, sizey=self.node_size, xanchor="center",
-                yanchor="middle",
-                sizing="contain",
-                layer="above"))
+            image = go.layout.Image(name=stim_id, source=self._get_image(stim_id), xref="x", yref="y", x=self.pos[stim_id][0],
+                                    y=self.pos[stim_id][1], sizex=self.node_size, sizey=self.node_size,
+                                    xanchor="center", yanchor="middle", sizing="contain", layer="above")
+            images.append(image)
         return images
 
     def _get_image(self, stim_id):

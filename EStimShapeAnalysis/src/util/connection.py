@@ -38,6 +38,11 @@ class Connection:
         self.my_cursor.close()
         return result
 
+    def fetch_all(self):
+        result = self.my_cursor.fetchall()
+        self.my_cursor.close()
+        return result
+
     def get_beh_msg(self, when: When) -> pd.DataFrame:
         self.execute("SELECT * FROM BehMsg WHERE tstamp>= %s && tstamp<=%s", (when.start, when.stop))
         df = pd.DataFrame(self.my_cursor.fetchall())
@@ -65,5 +70,4 @@ class Connection:
         df.columns = ['tstamp', 'type', 'msg']
         return df
 
-    def fetch_all(self):
-        return self.my_cursor.fetchall()
+

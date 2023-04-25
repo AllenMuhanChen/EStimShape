@@ -10,7 +10,8 @@ from PIL.Image import Image
 from dash import dash, dcc, html, Output, Input, State
 import dash as DASH
 from dash.exceptions import PreventUpdate
-
+from plotly.graph_objs import Scatter
+from ast import literal_eval as make_tuple
 from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp
 from src.util.connection import Connection
 
@@ -63,7 +64,8 @@ class MockTreeGraphApp(TreeGraphApp):
                 dcc.Store(id="zoom-factor", data=100),
                 html.Button("Increase Size", id="increase-size-btn", n_clicks=0),
                 html.Button("Decrease Size", id="decrease-size-btn", n_clicks=0),
-                dash.dcc.Store(id='highlight-data', data=None)
+                dash.dcc.Store(id='highlight-data', data=[]),
+                html.Button("Reset Highlight", id="reset-highlight-btn", n_clicks=0),
             ]
         )
 
@@ -71,9 +73,10 @@ class MockTreeGraphApp(TreeGraphApp):
         @self.app.callback(
             Output("tree", "figure"),
             Input("lineage-id", "value"),
-            Input("zoom-factor", "data")
+            Input("zoom-factor", "data"),
+            Input("highlight-data", "data"),
         )
-        def update_graph(lineage_id, zoom_factor):
+        def update_graph(lineage_id, zoom_factor, nodes_to_highlight):
             ctx = DASH.callback_context
             if ctx.triggered:
                 input_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -81,6 +84,8 @@ class MockTreeGraphApp(TreeGraphApp):
                     return update_lineage(lineage_id)
                 elif input_id == "zoom-factor":
                     return self.tree_graph.update_image_size(zoom_factor)
+                elif input_id == "highlight-data":
+                    return self.tree_graph.highlight_nodes(nodes_to_highlight)
                 else:
                     return dash.no_update
             else:
@@ -100,26 +105,47 @@ class MockTreeGraphApp(TreeGraphApp):
             Input("decrease-size-btn", "n_clicks"),
             State("zoom-factor", "data"),
         )
-        def update_image_size_on_click(increase_clicks, decrease_clicks, zoom_factor):
+        def update_image_size_on_button_press(increase_clicks, decrease_clicks, zoom_factor):
             ctx = DASH.callback_context
 
             if ctx.triggered:
                 button_id = ctx.triggered[0]["prop_id"].split(".")[0]
                 if button_id == "increase-size-btn":
                     zoom_factor = zoom_factor + 5
-                    increase_clicks_state = 0
                     return zoom_factor
                 elif button_id == "decrease-size-btn":
                     zoom_factor = zoom_factor - 5
-                    decrease_clicks_state = 0
                     return zoom_factor
 
             raise PreventUpdate
 
+        @self.app.callback(
+            Output("highlight-data", "data"),
+            Input("tree", "clickData"),
+            Input("reset-highlight-btn", "n_clicks"),
+        )
+        def update_highlight_data(clickData, reset_clicks):
+            ctx = DASH.callback_context
+            if ctx.triggered:
+                input_id = ctx.triggered[0]['prop_id'].split('.')[0]
+                if input_id == "tree":
+                    nodes_to_highlight = []
+                    if clickData:
+                        stim_id = clickData["points"][0]["text"]
+                        nodes_to_highlight.append(float(stim_id))
+                        return nodes_to_highlight
+                    else:
+                        return dash.no_update
+                elif input_id == "reset-highlight-btn":
+                    return self.tree_graph.stim_ids
+                else:
+                    return dash.no_update
+
 
         # Define the callback for click events
         @self.app.callback(
-            Output("node-info", "children"), Input("tree", "clickData")
+            Output("node-info", "children"),
+            Input("tree", "clickData")
         )
         def display_click_data(clickData):
             if clickData:
@@ -162,7 +188,8 @@ class MockTreeGraphApp(TreeGraphApp):
 
         # Define the callback for copying to clipboard
         @self.app.callback(
-            Output("clipboard-data", "children"), Input("tree", "clickData")
+            Output("clipboard-data", "children"),
+            Input("tree", "clickData")
         )
         def copy_to_clipboard(clickData):
             if clickData:
@@ -172,6 +199,7 @@ class MockTreeGraphApp(TreeGraphApp):
                 return f"Node {node_label} copied to clipboard"
             else:
                 return ""
+
 
 
 def get_all_lineages():
@@ -185,11 +213,59 @@ class MockTreeGraph(ColoredTreeGraph):
     def __init__(self, lineage_id):
         tree_spec = fetch_tree_spec(lineage_id)
         edges = recursive_tree_to_edges(tree_spec)
-        stim_ids = {stim_id for edge in edges for stim_id in edge}
-        y_values_for_stim_ids = fetch_responses_for(stim_ids)
+        self.stim_ids = [stim_id for edge in edges for stim_id in edge]
+        y_values_for_stim_ids = fetch_responses_for(self.stim_ids)
         image_folder = "/home/r2_allen/Documents/EStimShape/dev_221110/pngs_dev_221110"
         edge_colors = get_edge_colors(edges)
         super().__init__(y_values_for_stim_ids, edges, edge_colors, image_folder)
+        self.highlighted_nodes = []
+
+    def update_image_size(self, size):
+        print(f"Updating images with size {size}")
+        for img in self.fig.layout.images:
+            img.sizex = size
+            img.sizey = size
+
+        # self.node_trace.update(marker_size=size/2)
+        self.fig.data[0].update(marker_size=size/4)
+
+        return self.fig
+
+    def highlight_nodes(self, nodes_to_highlight):
+        parent_id = fetch_parent_id_for_stim_id(nodes_to_highlight[0])
+        for image_index, img in enumerate(self.fig.layout.images):
+            try:
+                if int(img.name) in nodes_to_highlight or int(img.name) == int(parent_id):
+                    img.opacity = 1
+                else:
+                    img.opacity = 0.1
+            except:
+                pass
+
+        self.fig.update_layout(images=self.fig.layout.images)
+
+        for i, edge in enumerate(self.fig.data[1:-1]):
+            edge_nodes = make_tuple(edge.name)
+            try:
+                if edge_nodes[0] in nodes_to_highlight or edge_nodes[1] in nodes_to_highlight:
+                    edge.update(opacity=1)
+                else:
+                    edge.update(opacity=0.1)
+            except:
+                pass
+        self.highlighted_nodes = nodes_to_highlight
+
+        return self.fig
+
+    def reset_highlighted_nodes(self):
+        for image_index, img in enumerate(self.fig.layout.images):
+            img.opacity = 1
+
+        self.fig.update_layout(images=self.fig.layout.images)
+
+        for i, edge in enumerate(self.fig.data[1:-1]):
+            edge.update(opacity=1)
+        self.highlighted_nodes = []
 
     def _get_image(self, stim_id):
         for filename in os.listdir(self.image_folder):
