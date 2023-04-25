@@ -63,6 +63,7 @@ class MockTreeGraphApp(TreeGraphApp):
                 dcc.Store(id="zoom-factor", data=100),
                 html.Button("Increase Size", id="increase-size-btn", n_clicks=0),
                 html.Button("Decrease Size", id="decrease-size-btn", n_clicks=0),
+                dash.dcc.Store(id='highlight-data', data=None)
             ]
         )
 
@@ -79,7 +80,7 @@ class MockTreeGraphApp(TreeGraphApp):
                 if input_id == "lineage-id":
                     return update_lineage(lineage_id)
                 elif input_id == "zoom-factor":
-                    return self.tree_graph.update_images(zoom_factor)
+                    return self.tree_graph.update_image_size(zoom_factor)
                 else:
                     return dash.no_update
             else:
@@ -95,16 +96,11 @@ class MockTreeGraphApp(TreeGraphApp):
 
         @self.app.callback(
             Output("zoom-factor", "data"),
-            Output("increase-size-btn", "n_clicks"),
-            Output("decrease-size-btn", "n_clicks"),
             Input("increase-size-btn", "n_clicks"),
             Input("decrease-size-btn", "n_clicks"),
             State("zoom-factor", "data"),
-            State("increase-size-btn", "n_clicks"),
-            State("decrease-size-btn", "n_clicks"),
         )
-        def update_image_size_on_click(increase_clicks, decrease_clicks, zoom_factor, increase_clicks_state,
-                                       decrease_clicks_state):
+        def update_image_size_on_click(increase_clicks, decrease_clicks, zoom_factor):
             ctx = DASH.callback_context
 
             if ctx.triggered:
@@ -112,52 +108,14 @@ class MockTreeGraphApp(TreeGraphApp):
                 if button_id == "increase-size-btn":
                     zoom_factor = zoom_factor + 5
                     increase_clicks_state = 0
-                    return zoom_factor, increase_clicks_state, decrease_clicks_state
+                    return zoom_factor
                 elif button_id == "decrease-size-btn":
                     zoom_factor = zoom_factor - 5
                     decrease_clicks_state = 0
-                    return zoom_factor, increase_clicks_state, decrease_clicks_state
+                    return zoom_factor
 
             raise PreventUpdate
 
-
-        # # Define the callback for updating images
-        # @self.app.callback(
-        #     Output("zoom-factor", "data"),
-        #     Input("tree", "relayoutData"),
-        # )
-        # def update_images(relayoutData):
-        #     if relayoutData:
-        #         # Get the current figure
-        #
-        #         try:
-        #             tree_graph = self.tree_graph
-        #             fig = tree_graph.fig
-        #             # Get the current axis ranges
-        #             x_range = []
-        #             y_range = []
-        #
-        #             x_range.append(relayoutData.get("xaxis.range[0]"))
-        #             x_range.append(relayoutData.get("xaxis.range[1]"))
-        #             y_range.append(relayoutData.get("yaxis.range[0]"))
-        #             y_range.append(relayoutData.get("yaxis.range[1]"))
-        #         except:
-        #             return dash.no_update
-        #
-        #         # Calculate the zoom level
-        #         if x_range and y_range:
-        #             range = max(
-        #                 (x_range[1] - x_range[0]),
-        #                 (y_range[1] - y_range[0])
-        #             )
-        #         else:
-        #             return dash.no_update
-        #
-        #         # Update the zoom level
-        #         zoom_level = range * 0.05
-        #         return zoom_level
-        #     else:
-        #         return dash.no_update
 
         # Define the callback for click events
         @self.app.callback(

@@ -67,7 +67,7 @@ class TreeGraph:
 
     fig: go.Figure
 
-    def update_images(self, size):
+    def update_image_size(self, size):
         print(f"Updating images with size {size}")
         for img in self.fig.layout.images:
             img.sizex = size
