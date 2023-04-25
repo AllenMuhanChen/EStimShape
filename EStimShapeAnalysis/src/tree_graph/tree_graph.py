@@ -13,6 +13,7 @@ from PIL import Image
 
 class TreeGraphApp:
     def __init__(self, tree_graph):
+        self.tree_graph = tree_graph
         self.app = dash.Dash("Tree Graph")
         self._update_app(tree_graph.fig)
         self.run()
@@ -27,7 +28,7 @@ class TreeGraphApp:
             [
                 dcc.Graph(id="tree",
                           figure=fig, clear_on_unhover=True,
-                          autosize=True),
+                          autosize=False,),
                 html.Div(id="clipboard-data"),
                 html.Div(id="node-info"),
             ]
@@ -66,12 +67,23 @@ class TreeGraph:
 
     fig: go.Figure
 
+    def update_images(self, size):
+        print(f"Updating images with size {size}")
+        for img in self.fig.layout.images:
+            img.sizex = size
+            img.sizey = size
+
+        self.fig.update_layout(images=self.fig.layout.images)
+        return self.fig
+
     def _create_tree_graph(self, y_values_for_stim_ids, edges):
-        self.node_size = 15
+        self.node_size = 100
 
         tree = self._create_directed_graph(edges)
+        self.tree = tree
 
         pos = self._compute_node_positions(tree, y_values_for_stim_ids)
+        self.pos = pos
 
         layout = self._create_layout(pos, tree)
 
@@ -100,7 +112,8 @@ class TreeGraph:
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=True, ticks="outside"),
             yaxis_side="left",
-            images=self._get_images_for_stims(pos, tree),
+            images=self._get_images_for_stims(),
+            uirevision=True,
         )
         return layout
 
@@ -118,7 +131,6 @@ class TreeGraph:
         return node_trace
 
     def _create_edges(self, pos, tree) -> go.Scatter | list[go.Scatter]:
-        print("BLACK EDGES CALLED")
         edge_trace = go.Scatter(
             x=[x for edge in tree.edges() for x in (pos[edge[0]][0], pos[edge[1]][0], None)],
             y=[y for edge in tree.edges() for y in (pos[edge[0]][1], pos[edge[1]][1], None)],
@@ -128,23 +140,20 @@ class TreeGraph:
         )
         return edge_trace
 
-    def _get_images_for_stims(self, pos, tree):
-        return [
-            go.layout.Image(
+    def _get_images_for_stims(self):
+        images = []
+        for stim_id in self.tree.nodes():
+            images.append(go.layout.Image(
                 source=self._get_image(stim_id),
                 xref="x",
                 yref="y",
-                x=pos[stim_id][0],
-                y=pos[stim_id][1],
-                sizex=self.node_size,
-                sizey=self.node_size,
-                xanchor="center",
+                x=self.pos[stim_id][0],
+                y=self.pos[stim_id][1],
+                sizex=self.node_size, sizey=self.node_size, xanchor="center",
                 yanchor="middle",
                 sizing="contain",
-                layer="above",
-            )
-            for stim_id in tree.nodes()
-        ]
+                layer="above"))
+        return images
 
     def _get_image(self, stim_id):
         img = Image.open(os.path.join(self.image_folder, f"{stim_id}.png"))

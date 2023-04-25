@@ -7,7 +7,9 @@ import plotly.graph_objects as go
 import pyperclip
 import xmltodict
 from PIL.Image import Image
-from dash import dash, dcc, html, Output, Input
+from dash import dash, dcc, html, Output, Input, State
+import dash as DASH
+from dash.exceptions import PreventUpdate
 
 from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp
 from src.util.connection import Connection
@@ -28,6 +30,7 @@ def fetch_components_to_preserve_for_stim_id(stim_id):
     except:
         components_to_preserve = None
     return components_to_preserve
+
 
 def fetch_components_exploring_for_stim_id(stim_id):
     try:
@@ -57,6 +60,9 @@ class MockTreeGraphApp(TreeGraphApp):
                 dcc.Graph(id="tree", clear_on_unhover=True),
                 html.Div(id="clipboard-data"),
                 html.Div(id="node-info"),
+                dcc.Store(id="zoom-factor", data=100),
+                html.Button("Increase Size", id="increase-size-btn", n_clicks=0),
+                html.Button("Decrease Size", id="decrease-size-btn", n_clicks=0),
             ]
         )
 
@@ -64,12 +70,94 @@ class MockTreeGraphApp(TreeGraphApp):
         @self.app.callback(
             Output("tree", "figure"),
             Input("lineage-id", "value"),
+            Input("zoom-factor", "data")
         )
-        def update_graph(lineage_id):
+        def update_graph(lineage_id, zoom_factor):
+            ctx = DASH.callback_context
+            if ctx.triggered:
+                input_id = ctx.triggered[0]['prop_id'].split('.')[0]
+                if input_id == "lineage-id":
+                    return update_lineage(lineage_id)
+                elif input_id == "zoom-factor":
+                    return self.tree_graph.update_images(zoom_factor)
+                else:
+                    return dash.no_update
+            else:
+                return dash.no_update
+
+        def update_lineage(lineage_id):
             # modify the figure based on the selected lineage_id
             print(f"Lineage {lineage_id} selected")
-            tree_graph = MockTreeGraph(lineage_id)
-            return tree_graph.fig
+            self.tree_graph = MockTreeGraph(lineage_id)
+            self.tree_graph.fig.update_xaxes(autorange=True)
+            self.tree_graph.fig.update_yaxes(autorange=True)
+            return self.tree_graph.fig
+
+        @self.app.callback(
+            Output("zoom-factor", "data"),
+            Output("increase-size-btn", "n_clicks"),
+            Output("decrease-size-btn", "n_clicks"),
+            Input("increase-size-btn", "n_clicks"),
+            Input("decrease-size-btn", "n_clicks"),
+            State("zoom-factor", "data"),
+            State("increase-size-btn", "n_clicks"),
+            State("decrease-size-btn", "n_clicks"),
+        )
+        def update_image_size_on_click(increase_clicks, decrease_clicks, zoom_factor, increase_clicks_state,
+                                       decrease_clicks_state):
+            ctx = DASH.callback_context
+
+            if ctx.triggered:
+                button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+                if button_id == "increase-size-btn":
+                    zoom_factor = zoom_factor + 5
+                    increase_clicks_state = 0
+                    return zoom_factor, increase_clicks_state, decrease_clicks_state
+                elif button_id == "decrease-size-btn":
+                    zoom_factor = zoom_factor - 5
+                    decrease_clicks_state = 0
+                    return zoom_factor, increase_clicks_state, decrease_clicks_state
+
+            raise PreventUpdate
+
+
+        # # Define the callback for updating images
+        # @self.app.callback(
+        #     Output("zoom-factor", "data"),
+        #     Input("tree", "relayoutData"),
+        # )
+        # def update_images(relayoutData):
+        #     if relayoutData:
+        #         # Get the current figure
+        #
+        #         try:
+        #             tree_graph = self.tree_graph
+        #             fig = tree_graph.fig
+        #             # Get the current axis ranges
+        #             x_range = []
+        #             y_range = []
+        #
+        #             x_range.append(relayoutData.get("xaxis.range[0]"))
+        #             x_range.append(relayoutData.get("xaxis.range[1]"))
+        #             y_range.append(relayoutData.get("yaxis.range[0]"))
+        #             y_range.append(relayoutData.get("yaxis.range[1]"))
+        #         except:
+        #             return dash.no_update
+        #
+        #         # Calculate the zoom level
+        #         if x_range and y_range:
+        #             range = max(
+        #                 (x_range[1] - x_range[0]),
+        #                 (y_range[1] - y_range[0])
+        #             )
+        #         else:
+        #             return dash.no_update
+        #
+        #         # Update the zoom level
+        #         zoom_level = range * 0.05
+        #         return zoom_level
+        #     else:
+        #         return dash.no_update
 
         # Define the callback for click events
         @self.app.callback(
@@ -135,7 +223,6 @@ def get_all_lineages():
     return lineage_ids
 
 
-
 class MockTreeGraph(ColoredTreeGraph):
     def __init__(self, lineage_id):
         tree_spec = fetch_tree_spec(lineage_id)
@@ -150,7 +237,6 @@ class MockTreeGraph(ColoredTreeGraph):
         for filename in os.listdir(self.image_folder):
             if filename.startswith(str(stim_id)) and filename.endswith('.png'):
                 img_path = os.path.join(self.image_folder, filename)
-                print(img_path)
                 img = PIL.Image.open(img_path)
                 return img
         return None
@@ -179,10 +265,12 @@ def fetch_regime_for_stim_id(stim_id):
     stim_type = conn.fetch_one()
     return stim_type
 
+
 def fetch_parent_id_for_stim_id(stim_id):
     conn.execute("SELECT parent_id from StimGaInfo where stim_id = %s", (stim_id,))
     parent_id = conn.fetch_one()
     return parent_id
+
 
 def fetch_responses_for(stim_ids):
     responses = {}
@@ -192,12 +280,14 @@ def fetch_responses_for(stim_ids):
         responses[stim_id] = float(response)
     return responses
 
+
 def fetch_shaft_data_for_mstick(stim_id):
     conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
     mstick_data = conn.fetch_one()
     mstick_data_dict = xmltodict.parse(mstick_data)
     shaft_data = mstick_data_dict["AllenMStickData"]["shaftData"]["ShaftData"]
     return shaft_data
+
 
 def recursive_tree_to_edges(tree):
     edges = []
