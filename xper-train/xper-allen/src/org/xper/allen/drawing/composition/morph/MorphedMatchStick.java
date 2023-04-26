@@ -42,7 +42,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
 
     public void genMorphedMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph){
-        this.showComponents = true;
+        this.showComponents = false;
 
         MorphedMatchStick backup = new MorphedMatchStick();
         backup.copyFrom(matchStickToMorph);

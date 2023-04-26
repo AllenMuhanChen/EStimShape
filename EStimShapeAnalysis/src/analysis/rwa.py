@@ -130,7 +130,7 @@ class AutomaticBinner(Binner):
 
 def combine_rwas(rwas):
     normalized_rwas, overall_max = normalize_rwas(rwas)
-    rwa_product = multiply_rwas(normalized_rwas)
+    rwa_product = multiply_rwas(rwas)
     rwa_normalized_product = normalize_matrix(rwa_product)
     rwa_normalized_product = rwa_normalized_product.apply(lambda m: np.power(m, 1 / len(rwas)))
     rwa_normalized_product = rwa_normalized_product.apply(lambda m: m * overall_max)

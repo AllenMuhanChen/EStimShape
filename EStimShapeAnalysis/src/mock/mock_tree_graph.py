@@ -209,6 +209,13 @@ def get_all_lineages():
     return lineage_ids
 
 
+def fetch_children_ids_for_stim_id(param):
+    conn.execute("SELECT stim_id FROM StimGaInfo WHERE parent_id = %s", (param,))
+    children_ids_as_list_of_tuples = conn.fetch_all()
+    children_ids = [child_id[0] for child_id in children_ids_as_list_of_tuples]
+    return children_ids
+
+
 class MockTreeGraph(ColoredTreeGraph):
     def __init__(self, lineage_id):
         tree_spec = fetch_tree_spec(lineage_id)
@@ -232,15 +239,22 @@ class MockTreeGraph(ColoredTreeGraph):
         return self.fig
 
     def highlight_nodes(self, nodes_to_highlight):
+
+        # Highlight selected node and the parent to 100% opacit
+        # and set everything else to 0.1 opacity
         parent_id = fetch_parent_id_for_stim_id(nodes_to_highlight[0])
+        children_ids = fetch_children_ids_for_stim_id(nodes_to_highlight[0])
         for image_index, img in enumerate(self.fig.layout.images):
             try:
                 if int(img.name) in nodes_to_highlight or int(img.name) == int(parent_id):
                     img.opacity = 1
+                elif int(img.name) in children_ids:
+                    img.opacity = 0.5
                 else:
-                    img.opacity = 0.1
+                    img.opacity = 0.05
             except:
                 pass
+
 
         self.fig.update_layout(images=self.fig.layout.images)
 

@@ -250,12 +250,12 @@ def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Ser
     for stim_id, stim_response_rate in zip(ids, response_rates):
         average_response_rate = sum(stim_response_rate.values()) / len(stim_response_rate)
         conn.execute("UPDATE StimGaInfo SET response = %s WHERE stim_id = %s", (average_response_rate, str(stim_id)))
-        conn.fetch_all()
+        # conn.fetch_all()
         conn.mydb.commit()
 
     for stim_id, stim_response_rate in zip(ids, response_rates):
         conn.execute("INSERT INTO ExpLog (tstamp, memo) VALUES (%s, %s)", (stim_id, str(stim_response_rate)))
-        conn.fetch_all()
+        # conn.fetch_all()
         conn.mydb.commit()
 
 
