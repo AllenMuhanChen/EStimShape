@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -27,7 +28,10 @@ import java.util.stream.Collectors;
 public class StabilityOfMaxScoreSource implements LineageScoreSource{
 
     @Dependency
-    static int N = 4;
+    int N = 4;
+
+    @Dependency
+    String stimType;
 
     @Dependency
     MultiGaDbUtil dbUtil;
@@ -52,15 +56,32 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
         //Get a Map of all genIds and their stimIds for a lineage
         HashMap<Integer, List<Long>> stimIdsForGenIds = (HashMap<Integer, List<Long>>) dbUtil.readStimIdsFromGenIdsFor(lineageId);
 
+        // Filter by generations that contain a stimType stimulus
+        stimIdsForGenIds = (HashMap<Integer, List<Long>>) stimIdsForGenIds.entrySet().stream().filter(
+                new Predicate<Map.Entry<Integer, List<Long>>>() {
+                    @Override
+                    public boolean test(Map.Entry<Integer, List<Long>> entry) {
+                        for (Long stimId : entry.getValue()) {
+                            if (dbUtil.readStimTypeFor(stimId).equals(stimType)) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                }
+        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+
         //For each genId in the map, find max of all spike rates in generations up to that genId
         LinkedHashMap<Integer, Double> maxSpikeRateUpToGenIds = new LinkedHashMap<>();
+        HashMap<Integer, List<Long>> finalStimIdsForGenIds = stimIdsForGenIds;
         stimIdsForGenIds.forEach(new BiConsumer<Integer, List<Long>>() {
             @Override
             public void accept(Integer currentGenId, List<Long> stimIds) {
                 //Find max of all spike rates up to that currentGenId
-                List<Integer> genIdsUpToCurrentGenId = stimIdsForGenIds.keySet().stream().filter(
+                List<Integer> genIdsUpToCurrentGenId = finalStimIdsForGenIds.keySet().stream().filter(
                         key -> key <= currentGenId).collect(Collectors.toList());
-                List<Long> stimIdsFromGensUpToCurrent = genIdsUpToCurrentGenId.stream().flatMap(key -> stimIdsForGenIds.get(key).stream()).collect(Collectors.toList());
+                List<Long> stimIdsFromGensUpToCurrent = genIdsUpToCurrentGenId.stream().flatMap(key -> finalStimIdsForGenIds.get(key).stream()).collect(Collectors.toList());
                 Double maxSpikeRate = calculateMaxSpikeRateFor(stimIdsFromGensUpToCurrent);
                 maxSpikeRateUpToGenIds.put(currentGenId, maxSpikeRate);
             }
@@ -123,11 +144,11 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
         this.dbUtil = dbUtil;
     }
 
-    public static int getN() {
+    public int getN() {
         return N;
     }
 
-    public static void setN(int n) {
+    public void setN(int n) {
         N = n;
     }
 
@@ -153,5 +174,13 @@ public class StabilityOfMaxScoreSource implements LineageScoreSource{
 
     public void setNormalizedRangeThresholdSource(ValueSource normalizedRangeValueSource) {
         this.normalizedRangeValueSource = normalizedRangeValueSource;
+    }
+
+    public String getStimType() {
+        return stimType;
+    }
+
+    public void setStimType(String stimType) {
+        this.stimType = stimType;
     }
 }

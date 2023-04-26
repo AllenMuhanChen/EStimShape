@@ -6,9 +6,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.ga.*;
-import org.xper.allen.ga.regimescore.LineageValueSource;
+import org.xper.allen.ga.regimescore.*;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
-import org.xper.allen.ga.regimescore.ValueSource;
 import org.xper.allen.newga.blockgen.NewGABlockGenerator;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideTrialRunner;
@@ -20,6 +19,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 @Configuration(defaultLazy = Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -119,6 +120,28 @@ public class MockNewGAConfig {
         };
     }
 
+
+//    @Bean
+//    public LineageScoreSource regimeThreeToFour() {
+//        StabilityOfMaxScoreSource oneToTwo = new StabilityOfMaxScoreSource();
+//        oneToTwo.setDbUtil(config.dbUtil());
+//        oneToTwo.setSpikeRateSource(spikeRateSource());
+//        oneToTwo.setMaxResponseSource(config.maxResponseSource());
+//        oneToTwo.setNormalizedRangeThresholdSource(regimeThreeToFourRangeThreshold());
+//        oneToTwo.setN(6);
+//        oneToTwo.setStimType(STIM_TYPE_FOR_REGIME.get(Regime.THREE));
+//        return oneToTwo;
+//    }
+
+//    @Bean
+//    public ValueSource regimeThreeToFourRangeThreshold() {
+//        return new ValueSource() {
+//            @Override
+//            public Double getValue() {
+//                return 5.0;
+//            }
+//        };
+//    }
 
     /**
      * Threshold for the bin distribution of the children to be considered for a parent-child pair.

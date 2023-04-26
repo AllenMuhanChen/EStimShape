@@ -23,6 +23,8 @@ import org.xper.experiment.DatabaseTaskDataSource;
 import javax.vecmath.Point2d;
 import java.util.*;
 
+import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
+
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
@@ -256,6 +258,7 @@ public class NewGAConfig {
         oneToTwo.setSpikeRateSource(spikeRateSource());
         oneToTwo.setMaxResponseSource(maxResponseSource());
         oneToTwo.setNormalizedRangeThresholdSource(regimeOneToTwoRangeThreshold());
+        oneToTwo.setStimType(STIM_TYPE_FOR_REGIME.get(Regime.ONE));
         return oneToTwo;
     }
 
@@ -272,7 +275,7 @@ public class NewGAConfig {
     @Bean
     public LineageScoreSource regimeTwoToThree() {
         ParentChildThresholdScoreSource twoToThree = new ParentChildThresholdScoreSource();
-        twoToThree.setStimType(NewGABlockGenerator.stimTypeForRegime.get(Regime.TWO));
+        twoToThree.setStimType(STIM_TYPE_FOR_REGIME.get(Regime.TWO));
         twoToThree.setDbUtil(dbUtil());
         twoToThree.setNumPairThresholdSource(regimeTwoToThreePairThreshold());
         twoToThree.setParentResponseThresholdSource(regimeTwoToThreeParentThreshold());
@@ -307,10 +310,11 @@ public class NewGAConfig {
         return regimeTwoToThreeParentThreshold();
     }
 
+
     @Bean
     public LineageScoreSource regimeThreeToFour() {
         ParentChildBinThresholdsScoreSource threeToFour = new ParentChildBinThresholdsScoreSource();
-        threeToFour.setStimType(NewGABlockGenerator.stimTypeForRegime.get(Regime.THREE));
+        threeToFour.setStimType(STIM_TYPE_FOR_REGIME.get(Regime.THREE));
         threeToFour.setDbUtil(dbUtil());
         threeToFour.setParentResponseThresholdSource(regimeThreeToFourParentThreshold());
         threeToFour.setNumPairThresholdSourcesForBins(regimeThreeToFourPairThresholds());

@@ -9,7 +9,7 @@ import org.xper.allen.ga.regimescore.Regime;
 
 import java.util.List;
 
-import static org.xper.allen.newga.blockgen.NewGABlockGenerator.stimTypeForRegime;
+import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 public class RegimeThreeStim extends MorphedStim<MorphedMatchStick, AllenMStickData> {
 
@@ -17,7 +17,7 @@ public class RegimeThreeStim extends MorphedStim<MorphedMatchStick, AllenMStickD
     public RegimeThreeStim(NewGABlockGenerator generator, Long parentId) {
         super(generator, parentId);
         this.generator = generator;
-        this.stimType = stimTypeForRegime.get(Regime.THREE);
+        this.stimType = STIM_TYPE_FOR_REGIME.get(Regime.THREE);
     }
 
     @Override

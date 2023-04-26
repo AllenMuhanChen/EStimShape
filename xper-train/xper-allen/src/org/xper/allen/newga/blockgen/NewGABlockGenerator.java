@@ -6,7 +6,6 @@ import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.SlotSelectionProcess;
 import org.xper.allen.ga.regimescore.Regime;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
-import org.xper.allen.ga3d.blockgen.RandStim;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
 import org.xper.allen.util.TikTok;
 import org.xper.drawing.Coordinates2D;
@@ -17,7 +16,7 @@ public class NewGABlockGenerator extends GABlockGenerator {
     public static String gaBaseName = "New3D";
 
 
-    public static final Map<Regime, String> stimTypeForRegime = createMap();
+    public static final Map<Regime, String> STIM_TYPE_FOR_REGIME = createMap();
 
     private static Map<Regime, String> createMap() {
         HashMap<Regime, String> stimTypeForRegime = new HashMap<Regime, String>();
