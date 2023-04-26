@@ -54,18 +54,18 @@ public class RegimeScoreSource implements LineageScoreSource {
             System.out.println("Lineage score: " + lineageScore + " for transition: " + RegimeTransition.TWO_TO_THREE);
             regimeScore = 2.0 + lineageScore;
         }
-        else if (lastGenRegimeScore < 4.0) {
+        else if (lastGenRegimeScore <= 4.0) {
             lineageScore = calculateLineageScoreWith(RegimeTransition.THREE_TO_FOUR, lineageId);
             System.out.println("Lineage score: " + lineageScore + " for transition: " + RegimeTransition.THREE_TO_FOUR);
             regimeScore = 3.0 + lineageScore;
         }
-        else if (lastGenRegimeScore == 4.0){
-            regimeScore = 4.0;
-        }
+//        else if (lastGenRegimeScore == 4.0){
+//            regimeScore = 4.0;
+//        }
         else {
             throw new RuntimeException("Regime score is greater than 4.0! " + lastGenRegimeScore);
         }
-        if (regimeScore < lastGenRegimeScore){
+        if (regimeScore < lastGenRegimeScore && regimeScore <= 3.0){
             regimeScore = lastGenRegimeScore;
         }
         System.err.println("Regime score: " + regimeScore);
