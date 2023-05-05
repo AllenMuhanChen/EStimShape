@@ -67,7 +67,7 @@ public class NewGAConfig {
         slotSelectionProcess.setSpikeRateSource(spikeRateSource());
         slotSelectionProcess.setRegimeScoreSource(regimeScoreSource());
         slotSelectionProcess.setSlotFunctionForLineage(slotFunctionForLineage());
-        slotSelectionProcess.setMaxLineagesToBuild(4);
+        slotSelectionProcess.setMaxLineagesToBuild(3);
         slotSelectionProcess.setSlotFunctionForRegimes(slotFunctionForRegimes());
         slotSelectionProcess.setFitnessFunctionForRegimes(fitnessFunctionForRegimes());
         slotSelectionProcess.setMaxResponseSource(lineageMaxResponseSource());
