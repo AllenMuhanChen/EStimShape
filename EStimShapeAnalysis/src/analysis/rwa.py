@@ -54,6 +54,7 @@ class Binner:
     """Generates a specified amount of bins for a given range of values.
        Stores these bins to be used for later in self.bins
        Assigns data values to one of the generated bins"""
+
     def __init__(self, start: float, end: float, num_bins: int):
         self.num_bins = num_bins
         self.end = end
@@ -87,8 +88,9 @@ class Binner:
             if bin_range.start <= float(value) < bin_range.end:
                 # Return the current bin_range range
                 return i, bin_range
-
-        raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
+        if not float(value) > self.end:
+            return len(self.bins) - 1, self.bins[-1]
+        # raise Exception("Value not in range: " + str(value) + " not in " + str(self.start) + " to " + str(self.end))
 
 
 @dataclass
@@ -112,7 +114,7 @@ class AutomaticBinner(Binner):
         self.data = data
         self.min, self.max = self.calculate_min_max()
         super().__init__(self.min, math.ceil(math.ceil(self.max * 100000)) / 100000.0, num_bins)
-        """rounding UP 5 decimal places to avoid floating point errors because bin end 
+        """rounding UP 5 decimal places to avoid floating point errors because bin end
         is exclusive"""
 
     def calculate_min_max(self):
@@ -128,10 +130,10 @@ class AutomaticBinner(Binner):
 
 def combine_rwas(rwas):
     normalized_rwas, overall_max = normalize_rwas(rwas)
-    rwa_product = multiply_rwas(normalized_rwas)
+    rwa_product = multiply_rwas(rwas)
     rwa_normalized_product = normalize_matrix(rwa_product)
-    rwa_normalized_product = rwa_normalized_product.apply(lambda m: m * overall_max)
     rwa_normalized_product = rwa_normalized_product.apply(lambda m: np.power(m, 1 / len(rwas)))
+    rwa_normalized_product = rwa_normalized_product.apply(lambda m: m * overall_max)
     return rwa_normalized_product
 
 
@@ -392,7 +394,6 @@ def smooth_matrix(labelled_matrix):
     sigmas = [sigma * binner.num_bins for sigma, binner in
               zip(labelled_matrix.sigmas_for_axes.values(), labelled_matrix.binners_for_axes.values())]
     padding = labelled_matrix.padding_for_axes.values()
-    # smoothed_matrix = test_fourier(labelled_matrix, sigmas)
     smoothed_matrix = test_classic(labelled_matrix, sigmas, padding)
     yield smoothed_matrix
 
@@ -414,11 +415,7 @@ def test_fourier(labelled_matrix, sigmas):
 def smooth_spatial_domain(labelled_matrix, sigmas, padding):
     if padding is None:
         padding = "nearest"
-    radii = list(np.multiply(sigmas, 2))
-    radii = [int(radius) for radius in radii]
     return labelled_matrix.apply(gaussian_filter, sigmas, mode=padding, truncate=5)
-    # labelled_matrix.matrix = gaussian_filter(labelled_matrix.matrix, sigmas, radius= 5)
-    # return labelled_matrix
 
 
 def smooth_fourier_domain(labelled_matrix, sigmas):
@@ -432,11 +429,6 @@ def smooth_fourier_domain(labelled_matrix, sigmas):
 def divide_and_allow_divide_by_zero(response_weighted_sum_matrix, unweighted_sum_matrix):
     """if attempt to divide by zero, returns 0"""
     output = np.zeros_like(response_weighted_sum_matrix)
-    # for index, value in np.ndenumerate(response_weighted_sum_matrix):
-    #     if unweighted_sum_matrix[index] != 0:
-    #         divisor = unweighted_sum_matrix[index]
-    #         answer = value / divisor
-    #         output[index] = answer
     np.divide(response_weighted_sum_matrix, unweighted_sum_matrix,
               out=output, where=unweighted_sum_matrix != 0)
     return output

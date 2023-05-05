@@ -6,23 +6,21 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.GAConsole;
 import org.xper.allen.app.GAExperiment;
-import org.xper.allen.ga.MockParentSelector;
 import org.xper.allen.ga.ParentSelector;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.db.vo.GenerationTaskToDoList;
-import org.xper.db.vo.TaskToDoEntry;
 import org.xper.drawing.Coordinates2D;
 import org.xper.util.FileUtil;
-import org.xper.util.ThreadUtil;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
 public class ThreeDGAMockExperiment {
+    public static final int NUM_TRIALS_PER_STIMULI = 2;
     private final String[] emptyArgs = {""};
-    GA3DBlockGen generator = new GA3DBlockGen();
+    GA3DLineageBlockGenerator generator = new GA3DLineageBlockGenerator();
     private MultiGaDbUtil dbUtil;
     private Long testParentId;
 
@@ -32,10 +30,10 @@ public class ThreeDGAMockExperiment {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
-        generator = context.getBean(GA3DBlockGen.class);
+        generator = context.getBean(GA3DLineageBlockGenerator.class);
         dbUtil = generator.getDbUtil();
 
-        generator.setUp(20, 5, new Coordinates2D(0,0), generator.channels);
+        generator.setUp(20, NUM_TRIALS_PER_STIMULI, 5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test
@@ -60,6 +58,8 @@ public class ThreeDGAMockExperiment {
         jt.execute("TRUNCATE TABLE StimObjData");
         jt.execute("TRUNCATE TABLE ExpLog");
         jt.execute("TRUNCATE TABLE AcqData");
+        jt.execute("TRUNCATE TABLE StimGaInfo");
+        jt.execute("TRUNCATE TABLE LineageGaInfo");
 
 
         List<String> gaNames = new LinkedList<>();
@@ -73,11 +73,18 @@ public class ThreeDGAMockExperiment {
 
         generator.generate(); //second gen
 
+        assertCorrectNumberOfRepetitions();
 //        GAConsole.main(emptyArgs);
 //        GAExperiment.main(emptyArgs);
-
-
     }
+
+    private void assertCorrectNumberOfRepetitions() {
+        Map<Long, List<Long>> taskIdsForStimIds = generator.getDbUtil().readTaskDoneIdsForStimIds("3D-1", generator.getDbUtil().readTaskDoneMaxGenerationIdForGa("3D-1"));
+        taskIdsForStimIds.forEach((stimId, taskIds) -> {
+            assertTrue(taskIds.size() == NUM_TRIALS_PER_STIMULI);
+        });
+    }
+
 
     private void assertMakesNewTrial() {
         fail();
@@ -87,7 +94,7 @@ public class ThreeDGAMockExperiment {
     private ParentSelector testParentSelector() {
         return new ParentSelector() {
             @Override
-            public List<Long> selectParents(List<String> channels, String gaName) {
+            public List<Long> selectParents(String gaName) {
                 LinkedList<Long> testList = new LinkedList<Long>();
                 testList.add(testParentId);
                 return testList;

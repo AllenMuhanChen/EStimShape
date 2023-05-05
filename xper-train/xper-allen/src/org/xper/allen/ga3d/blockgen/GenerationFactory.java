@@ -1,13 +1,5 @@
 package org.xper.allen.ga3d.blockgen;
 
-import org.xper.Dependency;
-import org.xper.allen.Trial;
-import org.xper.allen.ga.ParentSelector;
-import org.xper.drawing.Coordinates2D;
-
-import java.util.LinkedList;
-import java.util.List;
-
 /**
  * Will control the proportion of trial types.
  * 32/40: morphTrial

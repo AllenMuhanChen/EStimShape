@@ -4,10 +4,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.Dependency;
+import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.time.TimeUtil;
 
-public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGenerator {
+public abstract class AbstractMStickPngTrialGenerator<T extends Stim> extends AbstractTrialGenerator<T> {
 	@Dependency
 	protected TimeUtil globalTimeUtil;
 	@Dependency

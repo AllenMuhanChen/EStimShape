@@ -10,15 +10,15 @@ import java.util.stream.IntStream;
 import org.xper.Dependency;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.exception.VariableNotFoundException;
-import org.xper.allen.Trial;
+import org.xper.allen.Stim;
 
-public abstract class AbstractTrialGenerator implements TrialGenerator {
+public abstract class AbstractTrialGenerator<T extends Stim> implements TrialGenerator {
 
 	@Dependency
 	protected AllenDbUtil dbUtil;
 
 	protected Long genId;
-	protected List<Trial> trials = new LinkedList<>();
+	private List<T> stims = new LinkedList<>();
 
 	@Override
 	public void generate(){
@@ -36,13 +36,13 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 	protected abstract void addTrials();
 
 	protected void preWriteTrials() {
-		for(Trial trial:trials){
-			trial.preWrite();
+		for(Stim stim : getStims()){
+			stim.preWrite();
 		}
 	}
 
 	protected void shuffleTrials() {
-		Collections.shuffle(trials);
+		Collections.shuffle(getStims());
 	}
 
 	protected void updateGenId() {
@@ -57,15 +57,15 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 	}
 
 	protected void writeTrials() {
-		for (Trial trial : trials) {
-			trial.write();
-			Long taskId = trial.getTaskId();
+		for (Stim stim : getStims()) {
+			stim.writeStim();
+			Long taskId = stim.getStimId();
 			getDbUtil().writeTaskToDo(taskId, taskId, -1, genId);
 		}
 	}
 
 	protected void updateReadyGeneration() {
-		getDbUtil().updateReadyGenerationInfo(genId, trials.size());
+		getDbUtil().updateReadyGenerationInfo(genId, getStims().size());
 		System.out.println("Done Generating...");
 	}
 
@@ -88,5 +88,13 @@ public abstract class AbstractTrialGenerator implements TrialGenerator {
 
 	public void setDbUtil(AllenDbUtil dbUtil) {
 		this.dbUtil = dbUtil;
+	}
+
+	public List<T> getStims() {
+		return stims;
+	}
+
+	public void setStims(List<T> stims) {
+		this.stims = stims;
 	}
 }
