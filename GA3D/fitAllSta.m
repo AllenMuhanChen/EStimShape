@@ -1,0 +1,176 @@
+function [linSta,binSpec] = fitAllSta(stimStruct,resp,lineage,isControl)
+    resp = resp ./ max(resp);
+    resp(isControl) = nan;
+    
+    % s: full sphere, r: rotated hemi, z: normal, h: hemi, i: ignore, c: circular
+    binSpec.s = getBinSpec_gauss([stimStruct.s]',[1 80 5 1 40 5 5 5],'iszihzzz'); 
+    binSpec.r = getBinSpec_gauss([stimStruct.r]',[1 80 5 1 80 5 4 4],'isziszcc');
+    binSpec.t = getBinSpec_gauss([stimStruct.t]',[1 80 5 1 80 5],'iszisz');
+    
+    [~,~,binSpec.ico.s] = getIcosphereDeets(1,0,0);
+    [~,~,binSpec.ico.h] = getIcosphereDeets(0,0,0);
+    [~,~,binSpec.ico.r] = getIcosphereDeets(0,1,0);
+        
+    for ll=1:2
+        disp(['... lineage ' num2str(ll)]);
+        stim_l = stimStruct(lineage == ll);
+        resp_l = resp(lineage == ll);
+        
+        disp('....... calculating');
+        linSta(ll) = doSta(stim_l,resp_l,binSpec); %#ok<AGROW>
+    end
+end
+
+function spec = getBinSpec_gauss(stim,nBin,padding)  
+    binCenters = cell(1,length(nBin));
+    std_bin = nan(1,length(nBin));
+    for ii=1:length(nBin)
+        if padding(ii) == 's'
+            binCenters{ii} = 1:80;
+            std_bin(ii) = deg2rad(18);
+        elseif padding(ii) == 'h' || padding(ii) == 'r'
+            binCenters{ii} = 1:40;
+            std_bin(ii) = deg2rad(18);
+        elseif padding(ii) == 'i'
+            binCenters{ii} = [];
+            std_bin(ii) = 0;
+        elseif padding(ii) == 'c' 
+            if min(stim(:,ii)) > 0 % circular variable is 0-pi, most likely
+                binEdges = linspace(0,pi,nBin(ii)+1);    
+            else % circular variable is -pi/2-pi/2, most likely
+                binEdges = linspace(-pi/2,pi/2,nBin(ii)+1);
+            end
+            binCenters{ii} = conv(binEdges,[0.5 0.5],'valid');
+            std_bin(ii) = pi/4;
+        else
+            binEdges = linspace(min(stim(:,ii)),max(stim(:,ii)),nBin(ii)+1);
+            binCenters{ii} = conv(binEdges,[0.5 0.5],'valid');
+            std_bin(ii) = min(diff(binEdges));
+        end
+    end
+
+    spec.nBin = nBin;
+    spec.binCenters = binCenters;
+    spec.std_bin = std_bin;
+    spec.padding = padding;
+end
+
+function sta = doSta(stim,resp,binSpec)
+    respThreshold = 0;
+    eval(['s_sta = squeeze(zeros('  strrep(strrep(num2str(binSpec.s.nBin),'   ',','),'  ',',') '));']);
+    eval(['s_staN = squeeze(zeros('  strrep(strrep(num2str(binSpec.s.nBin),'   ',','),'  ',',') '));']);
+    eval(['r_sta = squeeze(zeros('  strrep(strrep(num2str(binSpec.r.nBin),'   ',','),'  ',',') '));']);
+    eval(['r_staN = squeeze(zeros('  strrep(strrep(num2str(binSpec.r.nBin),'   ',','),'  ',',') '));']);
+    eval(['t_sta = squeeze(zeros('  strrep(strrep(num2str(binSpec.t.nBin),'   ',','),'  ',',') '));']);
+    eval(['t_staN = squeeze(zeros('  strrep(strrep(num2str(binSpec.t.nBin),'   ',','),'  ',',') '));']);
+    
+    fprintf('........... stim     ');
+    for stimNum=1:length(stim)
+        fprintf('\b\b\b\b%4d',stimNum)
+        if ~isnan(resp(stimNum))
+            if resp(stimNum) >= respThreshold
+                [s_sta_temp,s_staN_temp] = doGaussianSta_perStim(stim(stimNum).s',resp(stimNum),binSpec.s,binSpec.ico);
+                s_sta = s_sta + s_sta_temp;
+                s_staN = s_staN + s_staN_temp;
+
+                [r_sta_temp,r_staN_temp] = doGaussianSta_perStim(stim(stimNum).r',resp(stimNum),binSpec.r,binSpec.ico);
+                r_sta = r_sta + r_sta_temp;
+                r_staN = r_staN + r_staN_temp;
+
+                [t_sta_temp,t_staN_temp] = doGaussianSta_perStim(stim(stimNum).t',resp(stimNum),binSpec.t,binSpec.ico);
+                t_sta = t_sta + t_sta_temp;
+                t_staN = t_staN + t_staN_temp;
+            end
+        end
+    end
+    fprintf('\n')
+    sta.s = s_sta ./ s_staN; sta.s(isnan(sta.s)) = 0;
+    sta.r = r_sta ./ r_staN; sta.r(isnan(sta.r)) = 0;
+    sta.t = t_sta ./ t_staN; sta.t(isnan(sta.t)) = 0;
+end
+
+function [tempRwa,tempRwaN] = doGaussianSta_perStim(stim,resp,binSpec,ico)
+    nBin = binSpec.nBin;
+    binCenters = binSpec.binCenters;  %#ok<NASGU>
+    std_bin = binSpec.std_bin;
+    
+    tempRwa = squeeze(zeros(nBin));
+    tempRwaN = squeeze(zeros(nBin));
+    
+    if isnan(stim(1))
+        return
+    end
+    
+    str1 = '['; str2 = '('; str3 = '[';
+    binCount = 0;
+    for jj=1:length(nBin)
+        if binSpec.padding(jj) ~= 'i'
+            binCount = binCount + 1;
+            str1 = [str1 'b' num2str(binCount) ',']; %#ok<AGROW>
+            str2 = [str2 'binCenters{' num2str(jj) '},']; %#ok<AGROW>
+            str3 = [str3 'b' num2str(binCount) '(:),']; %#ok<AGROW>
+        end
+    end
+    str1 = [str1(1:end-1) ']'];
+    str2 = [str2(1:end-1) ');'];
+    str3 = [str3(1:end-1) '];'];
+    
+    eval([str1 ' = ndgrid' str2]);
+    eval(['x = ' str3]);
+    
+    for ss=1:size(stim,1)
+        betaRwa = [resp std_bin stim(ss,:)];
+        betaRwaN = [1 std_bin stim(ss,:)];
+        tempRwa = tempRwa + reshape(getGaussianNd(betaRwa,x,binSpec.padding,ico),size(tempRwaN));
+        tempRwaN = tempRwaN + reshape(getGaussianNd(betaRwaN,x,binSpec.padding,ico),size(tempRwa));
+    end
+end
+
+function y = getGaussianNd(beta,x0,padding,ico)
+    % beta = [a s1 s2 s3 s4 s5 ... m1 m2 m3 m4 m5 ...]
+    % x0 = [x1 x2 x3 x4 x5 ...]
+    
+    n = length(padding);
+    
+    a = beta(1);
+    s = beta(2:1+n);
+    m = beta(2+n:end);
+
+    c = zeros(size(x0));
+    binCount = 0;
+    % s: full sphere, r: rotated hemi, z: normal, h: hemi, i: ignore, c: circular
+    for ii=1:n
+        if padding(ii) ~= 'i'
+            binCount = binCount + 1; v1 = [];
+            if padding(ii) == 'c'
+                cc = abs(circ_dist(x0(:,binCount),m(ii)));
+            elseif padding(ii) == 'z'
+                cc = abs(x0(:,binCount)-m(ii));
+            elseif padding(ii) == 's'
+                norms = ico.s;
+                [v1(1),v1(2),v1(3)] = sph2cart(m(ii-1),m(ii),1);
+                v2 = norms(x0(:,binCount),:);
+                v1 = repmat(v1,size(v2,1),1);
+                cc = acos(dot(v1',v2'));
+            elseif padding(ii) == 'r'
+                norms = ico.r;
+                [v1(1),v1(2),v1(3)] = sph2cart(m(ii-1),m(ii),1);
+                v2 = norms(x0(:,binCount),:);
+                v1 = repmat(v1,size(v2,1),1);
+                cc = acos(dot(v1',v2'));
+            elseif padding(ii) == 'h'
+                norms = ico.h;
+                [v1(1),v1(2),v1(3)] = sph2cart(m(ii-1),m(ii),1);
+                v2 = norms(x0(:,binCount),:);
+                v1 = repmat(v1,size(v2,1),1);
+                cc = acos(dot(v1',v2'));
+            end
+            c(:,binCount) = (cc.^2)/(2*s(ii)^2);
+        end
+    end
+    
+    s(s==0) = [];
+    b = 1/(2*pi*prod(s));
+    
+    y = a * b .* exp(-(sum(c,2)));
+end
