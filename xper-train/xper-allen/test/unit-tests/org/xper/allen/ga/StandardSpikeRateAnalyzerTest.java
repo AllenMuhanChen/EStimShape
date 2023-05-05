@@ -20,7 +20,7 @@ public class StandardSpikeRateAnalyzerTest {
      */
     @Test
     public void chooses_16_out_of_20() {
-        StandardSpikeRateAnalyzer analyzer = new StandardSpikeRateAnalyzer();
+        RamParentAnalysisStrategy analyzer = new RamParentAnalysisStrategy();
 
 
         List<Double> spikeRates = new LinkedList<>();
@@ -32,7 +32,7 @@ public class StandardSpikeRateAnalyzerTest {
             spikeRates.add((double) i);
         }
 
-        List<Long> chosenParents = analyzer.analyze(stimIds, spikeRates);
+        List<Long> chosenParents = analyzer.selectParents(ParentData.createMapFrom(stimIds, spikeRates));
         Map<Long, Integer> frequencies = countFrequencies(chosenParents);
         System.out.println(chosenParents);
         assertTrue(frequencies.getOrDefault(1L,0) + frequencies.getOrDefault(2L,0) == 6);

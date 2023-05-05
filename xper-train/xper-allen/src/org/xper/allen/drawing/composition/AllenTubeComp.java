@@ -15,8 +15,8 @@ import org.xper.drawing.stick.sampleFaceInfo;
 /**
  * AC Additions:
  * AllenMAXisArc: keeps track of normal of devAngle along with new methods.
- * Normalized RadInfo: has additional fields to keep track of normalized RadInfo (between 0 and 1) 
- * and a scale that when multiplied with normalized RadInfo yields unnormalized radInfo. 
+ * Normalized RadInfo: has additional fields to keep track of normalized RadInfo (between 0 and 1)
+ * and a scale that when multiplied with normalized RadInfo yields unnormalized radInfo.
  * Has methods for generating and utilizing normalized RadInfo
  * @author r2_allen
  *
@@ -33,8 +33,6 @@ public class AllenTubeComp extends TubeComp{
 	private boolean branchUsed;
 	private double[] radiusAcross = new double[52]; // the radius value at each mPts point
 	private int connectType;
-	private Point3d maxXYZ;
-	private Point3d minXYZ;
 	boolean scaleOnce = true;
 	private boolean isNormalized = false;
 	public int maxStep = 51;
@@ -73,12 +71,12 @@ public class AllenTubeComp extends TubeComp{
 ////		Vector3d finalTangent = getmTangent()[rotCenter];
 //		Vector3d finalTangent = upSampledArc.getTransRotHis_finalTangent();
 //		double devAngle = getTransRotHis_devAngle();
-//		
+//
 //		upSampledArc.transRotMAxis(alignedPt, finalPos, rotCenter, finalTangent, devAngle);
-//		
+//
 //		return upSampledArc.getmPts();
 //	}
-	
+
 	//TODO: Figure out what to do with this.
 	/**
 	 * calculates the normalized radInfo information based on current radInfo.
@@ -127,23 +125,34 @@ public class AllenTubeComp extends TubeComp{
 		for (i=1; i<=51; i++)
 			getRadiusAcross()[i] = in.getRadiusAcross()[i];
 		setConnectType(in.getConnectType());
-		setMaxXYZ(new Point3d(in.getMaxXYZ()));
-		setMinXYZ(new Point3d(in.getMinXYZ()));
+		if (in.getMaxXYZ() != null) {
+			setMaxXYZ(new Point3d(in.getMaxXYZ()));
+		}
+		else{
+			in.calcTubeRange();
+			setMaxXYZ(new Point3d(in.getMaxXYZ()));
+		}
+		if (in.getMinXYZ() != null) {
+			setMinXYZ(new Point3d(in.getMinXYZ()));
+		} else {
+			in.calcTubeRange();
+			setMinXYZ(new Point3d(in.getMinXYZ()));
+		}
 
 		// about vect, fac
-		setnVect(in.getnVect());		
+		setnVect(in.getnVect());
 		for (i=1; i<=getnVect(); i++)
 		{
 			getVect_info()[i] = new Point3d( in.getVect_info()[i]);
-			getNormMat_info()[i] = new Vector3d(in.getNormMat_info()[i]);			
+			getNormMat_info()[i] = new Vector3d(in.getNormMat_info()[i]);
 		}
-		// Fac Info is always fix 
+		// Fac Info is always fix
 		// seems not need to copy the ringPT, cap_poleNS , we'll see later
-		setRingPt(in.getRingPt());
-		setCap_poleN(in.getCap_poleN());
-		setCap_poleS(in.getCap_poleS());
-		setRingSample(in.getRingSample());
-		setCapSample(in.getCapSample());
+//		setRingPt(in.getRingPt());
+//		setCap_poleN(in.getCap_poleN());
+//		setCap_poleS(in.getCap_poleS());
+//		setRingSample(in.getRingSample());
+//		setCapSample(in.getCapSample());
 	}
 
 	/**
@@ -160,7 +169,7 @@ public class AllenTubeComp extends TubeComp{
 				getRadInfo()[i][j] = 100.0;
 
 	}
-	
+
 	public void scaleTheRing(double scaleFactor) {
 		//AC
 		System.out.println("AC MAXSTEP: " + getMaxStep());
@@ -172,7 +181,7 @@ public class AllenTubeComp extends TubeComp{
 				getRingPt()[i][j].z *= scaleFactor;
 			}
 		}
-		
+
 		for (int i=1 ; i<= getCapSample(); i++)
 		{
 			for (int j=1; j<= getRingSample(); j++)
@@ -180,20 +189,20 @@ public class AllenTubeComp extends TubeComp{
 				getCap_poleN()[i][j].x *= scaleFactor;
 				getCap_poleN()[i][j].y *= scaleFactor;
 				getCap_poleN()[i][j].z *= scaleFactor;
-				
+
 				getCap_poleS()[i][j].x *= scaleFactor;
 				getCap_poleS()[i][j].y *= scaleFactor;
 				getCap_poleS()[i][j].z *= scaleFactor;
 			}
-			 
+
 		}
 	}
-	
+
 	public void drawSurfPt(double scaleFactor, NoiseMapCalculation noiseMap)
 	{
 		//use the oGL draw line function to draw out the mAxisArc
 		/*int ringSample = 20;
-		  int capSample = 10;		
+		  int capSample = 10;
 		  int maxStep = 51;*/
 		if (isScaleOnce()) {
 			scaleTheObj(scaleFactor);
@@ -203,13 +212,13 @@ public class AllenTubeComp extends TubeComp{
 //			scaleTheRing(scaleFactor);
 //			setScaleOnce(false);
 //		}
-		
-		
+
+
 		boolean useLight = false;
 
 		int i;
-		GL11.glColor3f(0.0f, 1.0f, 0.0f);		    
-		GL11.glPointSize(3.0f);	
+		GL11.glColor3f(0.0f, 1.0f, 0.0f);
+		GL11.glPointSize(3.0f);
 
 
 		// draw the surface triangle
@@ -219,7 +228,7 @@ public class AllenTubeComp extends TubeComp{
 		}
 
 
-		
+
 		boolean drawMAxis = false;
 
 		if (drawMAxis == true)
@@ -250,11 +259,11 @@ public class AllenTubeComp extends TubeComp{
 			return;
 
 		}
-	
-		
 
-		
-		
+
+
+
+
 		GL11.glBegin(GL11.GL_TRIANGLES);
 		//	GL11.glBegin(GL11.GL_POINTS);
 		for (i=0; i< getnFac(); i++)
@@ -264,8 +273,8 @@ public class AllenTubeComp extends TubeComp{
 
 			//AC TESTING
 //			Random r = new Random();
-			
-			
+
+
 			Point3d p1 = getVect_info()[ getFacInfo()[i][0]];
 			Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
 			Point3d p3 = getVect_info()[ getFacInfo()[i][2]];
@@ -289,13 +298,13 @@ public class AllenTubeComp extends TubeComp{
 		if ( useLight == false)
 			GL11.glEnable(GL11.GL_LIGHTING);
 
-		
+
 
 //		ThreadUtil.sleep(1000);
 
 //		int glMode = GL11.GL_POLYGON;
 //		Random r = new Random();
-////		GL11.glColor3f(0.0f, 1.0f, 0.0f);	
+////		GL11.glColor3f(0.0f, 1.0f, 0.0f);
 //		for (i=1 ; i<= getMaxStep(); i++)
 //		{
 //			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
@@ -306,11 +315,11 @@ public class AllenTubeComp extends TubeComp{
 //				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
 //
 //			}
-//			GL11.glEnd();  
+//			GL11.glEnd();
 //		}
 //
-////		GL11.glColor3f(0.0f, 1.0f, 1.0f);		
-//		
+////		GL11.glColor3f(0.0f, 1.0f, 1.0f);
+//
 //		for (i=1 ; i<= getCapSample(); i++)
 //		{
 //			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
@@ -322,11 +331,11 @@ public class AllenTubeComp extends TubeComp{
 //				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
 //
 //			}
-//			GL11.glEnd();  
+//			GL11.glEnd();
 //		}
 //
-////		GL11.glColor3f(0.0f, 0.0f, 1.0f);	
-//		
+////		GL11.glColor3f(0.0f, 0.0f, 1.0f);
+//
 //		for (i=1 ; i<= getCapSample(); i++)
 //		{
 //			GL11.glColor3f(r.nextFloat(), r.nextFloat(), r.nextFloat());
@@ -338,18 +347,18 @@ public class AllenTubeComp extends TubeComp{
 //				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
 //
 //			}
-//			GL11.glEnd();  
+//			GL11.glEnd();
 //		}
 
 //
-//		GL11.glPointSize(3.0f);	
+//		GL11.glPointSize(3.0f);
 //		GL11.glBegin(GL11.GL_POINTS);
 //		for (i=1 ; i<= maxStep; i++)
 //			for (int j=1; j<= ringSample; j++)
 //			{
 //				Point3d nowPt = ringPt[i][j];
 //				GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
-//			}  
+//			}
 //
 //		for (i=1; i<=capSample; i++)
 //			for (int j=1; j<=ringSample; j++)
@@ -366,7 +375,7 @@ public class AllenTubeComp extends TubeComp{
 //		GL11.glEnd();
 
 	}
-	
+
 	public void scaleTheObj(double scaleFactor)
 	{
 		int i;
@@ -377,7 +386,7 @@ public class AllenTubeComp extends TubeComp{
 			getVect_info()[i].z *= scaleFactor;
 		}
 	}
-	
+
 	public AllenMAxisArc getmAxisInfo() {
 		return mAxisInfo;
 	}
@@ -434,21 +443,6 @@ public class AllenTubeComp extends TubeComp{
 		this.connectType = connectType;
 	}
 
-	public Point3d getMaxXYZ() {
-		return maxXYZ;
-	}
-
-	public void setMaxXYZ(Point3d maxXYZ) {
-		this.maxXYZ = maxXYZ;
-	}
-
-	public Point3d getMinXYZ() {
-		return minXYZ;
-	}
-
-	public void setMinXYZ(Point3d minXYZ) {
-		this.minXYZ = minXYZ;
-	}
 
 	public boolean isScaleOnce() {
 		return scaleOnce;
@@ -565,5 +559,7 @@ public class AllenTubeComp extends TubeComp{
 	void setNormalized(boolean isNormalized) {
 		this.isNormalized = isNormalized;
 	}
+
+
 
 }

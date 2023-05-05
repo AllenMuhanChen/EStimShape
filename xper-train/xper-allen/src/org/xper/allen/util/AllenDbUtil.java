@@ -29,9 +29,9 @@ public class AllenDbUtil extends DbUtil {
 	protected
 	DataSource dataSource;
 
-	public AllenDbUtil() {	
+	public AllenDbUtil() {
 	}
-	
+
 	public AllenDbUtil(DataSource dataSource) {
 		super();
 		this.dataSource = dataSource;
@@ -40,9 +40,9 @@ public class AllenDbUtil extends DbUtil {
 
 	/**
 	 * Before DbUtil can be used. DataSource must be set.
-	 * 
+	 *
 	 * See createXperDbUtil in MATLAB directory for how to create data source.
-	 * 
+	 *
 	 * @param dataSource
 	 */
 	/*
@@ -77,37 +77,47 @@ public class AllenDbUtil extends DbUtil {
 		return result;
 	}
 
+	public String readStimSpecDataFor(long id) {
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		return (String) jt.queryForObject(
+				" select data " +
+						" from StimSpec " +
+						" where id = ? ",
+				new Object[] {id},
+				String.class);
+	}
+
 	/**
 	 * Write StimSpec.
-	 * 
+	 *
 	 * @param id
 	 * @param spec
 	 */
 
 	public void writeStimSpec(long id, String spec, String data) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.update("insert into StimSpec (id, spec, data) values (?, ?, ?)", 
+		jt.update("insert into StimSpec (id, spec, data) values (?, ?, ?)",
 				new Object[] { id, spec, data });
 	}
-	
+
 	/**
 	 * Update existing StimSpec row with data
-	 * 
+	 *
 	 * @param id
 	 */
 
 	public void updateStimSpecData(long id, String data) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.update("UPDATE StimSpec SET data=? WHERE id=?", 
+		jt.update("UPDATE StimSpec SET data=? WHERE id=?",
 				new Object[] { data, id});
 	}
-	
-	
+
+
 	public DataSource getDataSource() {
 		return dataSource;
 	}
 
-	
+
 	//=====================EStimObjData========================================
 	public void writeEStimObjData(long id, EStimObjDataEntry e) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
@@ -120,7 +130,7 @@ public class AllenDbUtil extends DbUtil {
 						e.get_maintain_amp_settle_during_pulse_train(), e.isEnable_charge_recovery(), e.get_post_stim_charge_recovery_on(),
 						e.get_post_stim_charge_recovery_off() });
 	}
-	
+
 	public EStimObjDataEntry readEStimObjData(long estimId) {
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
 		return jt.queryForObject(
@@ -172,11 +182,11 @@ public class AllenDbUtil extends DbUtil {
 					}
 				}, blockId);
 	}
-	
+
 //========================StimObjId===============================================
 	public void writeStimObjData(long id, String spec, String data) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.update("insert into StimObjData (id, spec, data) values (?, ?, ?)", 
+		jt.update("insert into StimObjData (id, spec, data) values (?, ?, ?)",
 				new Object[] { id, spec, data });
 	}
 	public StimSpecEntry readStimObjData(long StimObjId) {
@@ -206,16 +216,16 @@ public class AllenDbUtil extends DbUtil {
 						return s;
 					}
 				}, StimSpecId);
-		
-		
+
+
 	}
-	
+
 
 //=================readExperimentTasks============================================
 	//TODO: Add stimObjData ID and estimObjData ID to this. Make function to read.
-	
+
 /**
- * Reads stimSpec from TaskToDo and pulls stimulus information from StimObjData. If StimObjData is an array, it returns a random stimulus from that array. 
+ * Reads stimSpec from TaskToDo and pulls stimulus information from StimObjData. If StimObjData is an array, it returns a random stimulus from that array.
  * @param genId
  * @param lastDoneTaskId
  * @author allenchen
@@ -232,7 +242,7 @@ public class AllenDbUtil extends DbUtil {
 						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
 				" from TaskToDo t " +
 				" where t.gen_id = ? and t.task_id > ? " +
-				" order by t.task_id", 
+				" order by t.task_id",
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
@@ -245,16 +255,16 @@ public class AllenDbUtil extends DbUtil {
 
 						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
-						sse.setSpec(rs.getString("stim_spec"));	
+						sse.setSpec(rs.getString("stim_spec"));
 						SaccadeStimSpecSpec ss = sseU.saccadeStimSpecSpecFromXmlSpec();
-						//StimObjData	
+						//StimObjData
 						task.setStimId(readStimObjData(ss.getStimObjData()[0]).getStimId());
-						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());	
+						task.setStimSpec(readStimObjData(ss.getStimObjData()[0]).getSpec());
 						//StimSpec
-						
+
 						//TODO SET sampleSpec and choiceSpec!
-						
-						
+
+
 						task.setTargetEyeWinCoords(ss.getTargetEyeWinCoords());
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						task.setDuration(ss.getDuration());
@@ -266,11 +276,11 @@ public class AllenDbUtil extends DbUtil {
 						taskToDo.add(task);
 					}});
 		return taskToDo;
-	}	
-	
+	}
+
 	public LinkedList<NAFCExperimentTask> readNAFCExperimentTasks(long genId,
 			long lastDoneTaskId) {
-		
+
 
 		//
 		final LinkedList<NAFCExperimentTask> taskToDo = new LinkedList<NAFCExperimentTask>();
@@ -281,7 +291,7 @@ public class AllenDbUtil extends DbUtil {
 						" (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
 				" from TaskToDo t " +
 				" where t.gen_id = ? and t.task_id > ? " +
-				" order by t.task_id", 
+				" order by t.task_id",
 				new Object[] { genId, lastDoneTaskId },
 				new RowCallbackHandler() {
 					public void processRow(ResultSet rs) throws SQLException {
@@ -289,32 +299,32 @@ public class AllenDbUtil extends DbUtil {
 						//AC
 						//System.out.println(Long.toString(lastDoneTaskId));
 						sse = readStimSpec(rs.getLong("stim_id"));
-							 
 
-						
+
+
 						StimSpecEntryUtil sseU = new StimSpecEntryUtil(sse);
-						
+
 						NAFCExperimentTask task = new NAFCExperimentTask();
 
 						task.setGenId(rs.getLong("gen_id"));
 						//Serializing StimSpec
-						//sse.setSpec(rs.getString("stim_spec"));	
+						//sse.setSpec(rs.getString("stim_spec"));
 						NAFCStimSpecSpec ss = sseU.NAFCStimSpecSpecFromXmlSpec();
-						//StimObjData	
+						//StimObjData
 						//task.setStimId(readStimObjData(ss.getSampleObjData()).getStimId());
 						task.setSampleSpecId(ss.getSampleObjData());
 						task.setChoiceSpecId(ss.getChoiceObjData());
-						task.setSampleSpec(readStimObjData(ss.getSampleObjData()).getSpec());	
+						task.setSampleSpec(readStimObjData(ss.getSampleObjData()).getSpec());
 						task.setStimSpec(sse.getSpec());
 						task.setStimId(sse.getStimId());
-						
+
 						int n = ss.getChoiceObjData().length;
 						String[] choiceSpec = new String[n];
 						for (int i = 0; i < n; i++){
 							choiceSpec[i] = readStimObjData(ss.getChoiceObjData()[i]).getSpec();
 						}
-					
-						task.setChoiceSpec(choiceSpec);							
+
+						task.setChoiceSpec(choiceSpec);
 						//StimSpec
 						task.setRewardPolicy(ss.getRewardPolicy());
 						task.setRewardList(ss.getRewardList());
@@ -325,7 +335,7 @@ public class AllenDbUtil extends DbUtil {
 							task.seteStimObjDataEntry(readEStimObjData(ss.geteStimObjData()[0]));
 						} catch(Exception e){
 							System.out.println("No EStimObjData Found.");
-							task.seteStimObjDataEntry(new EStimObjDataEntry());	
+							task.seteStimObjDataEntry(new EStimObjDataEntry());
 						}
 						task.setTaskId(rs.getLong("task_id"));
 						task.setXfmId(rs.getLong("xfm_id"));
@@ -333,5 +343,5 @@ public class AllenDbUtil extends DbUtil {
 						taskToDo.add(task);
 					}});
 		return taskToDo;
-	}	
+	}
 }

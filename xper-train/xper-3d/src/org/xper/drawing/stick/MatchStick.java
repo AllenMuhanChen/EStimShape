@@ -51,13 +51,14 @@ public class MatchStick implements Drawable {
 
 	private boolean doCenterObject = false;
 	private boolean showDebug = false;
+	protected boolean showComponents = false;
 
 	public MatchStick()
 	{
 	}
 
 	/**
-        clean the old storage of information
+	 clean the old storage of information
 	 */
 	protected void cleanData()
 	{
@@ -66,11 +67,11 @@ public class MatchStick implements Drawable {
 		setnJuncPt(0);
 	}
 	/**
-        genMatchStick with random # of components
+	 genMatchStick with random # of components
 	 */
 
 	/**
-        copy the whole structure
+	 copy the whole structure
 	 */
 	public void copyFrom(MatchStick in)
 	{
@@ -92,7 +93,7 @@ public class MatchStick implements Drawable {
 			getJuncPt()[i] = new JuncPt_struct();
 			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
-		this.setObj1(in.getObj1()); 
+		this.setObj1(in.getObj1());
 
 		for (i=1; i<=getnComponent(); i++)
 			getLeafBranch()[i] = in.getLeafBranch()[i];
@@ -174,7 +175,7 @@ public class MatchStick implements Drawable {
 	{
 		// i can't see how inSpec is changed by this function
 		//but it seems to be the case........
-		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos. 
+		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos.
 		cleanData();
 
 		// 1. general info
@@ -203,7 +204,7 @@ public class MatchStick implements Drawable {
 			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());
 			//System.out.println("branchPt " + comp[i].mAxisInfo.branchPt);
 
-			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt()); 
+			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt());
 			getComp()[i].getmAxisInfo().setTransRotHis_rotCenter(inSpec.getmAxis().getTube()[i].getTransRotHis_rotCenter());
 			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().set(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
 			//getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
@@ -751,7 +752,7 @@ public class MatchStick implements Drawable {
 		//double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
 		double[] nCompDist = PARAM_nCompDist;
 		nComp = stickMath_lib.pickFromProbDist(nCompDist);
-		
+
 		cleanData();
 		//  debug
 		//  nComp = 4;
@@ -798,10 +799,9 @@ public class MatchStick implements Drawable {
 
 	public void drawSkeleton() {
 		int i;
-		boolean showComponents = false;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
-				float[][] colorCode= {  
+				float[][] colorCode= {
 						{1.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 0.0f},
 						{0.0f, 1.0f, 0.0f},
@@ -809,7 +809,7 @@ public class MatchStick implements Drawable {
 						{0.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 1.0f},
 						{1.0f, 1.0f, 0.0f},
-						{0.4f, 0.1f, 0.6f} 
+						{0.4f, 0.1f, 0.6f}
 				};
 
 
@@ -820,7 +820,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-    genMatchStick with nComp components
+	 genMatchStick with nComp components
 	 */
 	public boolean genMatchStick_comp(int nComp)
 	{
@@ -905,8 +905,8 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-      function check if the MStick is inside a BOX or not <BR>
-      ( to prevent a shape extend too much outside one dimension)
+	 function check if the MStick is inside a BOX or not <BR>
+	 ( to prevent a shape extend too much outside one dimension)
 	 */
 	protected boolean validMStickSize()
 	{
@@ -1089,8 +1089,8 @@ public class MatchStick implements Drawable {
 
 	}
 	/**
-        Sub function of finalTubeCollsionCheck
-        This function calculate if part of two tubes are too near to each other or not
+	 Sub function of finalTubeCollsionCheck
+	 This function calculate if part of two tubes are too near to each other or not
 	 */
 	private boolean finalTubeCollisionCheck_SUB_checkCloseness( int compA, int part1, int compB, int part2)
 	{
@@ -1137,8 +1137,8 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        Assign the radius value to the Match Stick.
-        The radius value will be randomly chosen in reasonable range
+	 Assign the radius value to the Match Stick.
+	 The radius value will be randomly chosen in reasonable range
 	 */
 	protected void RadiusAssign(int nPreserve)
 	{
@@ -1269,8 +1269,8 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-         check if the first several mAxisArc are too nearby to each other
-         @param firstNComp specify till what component, we want to check
+	 check if the first several mAxisArc are too nearby to each other
+	 @param firstNComp specify till what component, we want to check
 	 */
 	protected boolean checkSkeletonNearby(int firstNComp)
 	{
@@ -1388,8 +1388,8 @@ public class MatchStick implements Drawable {
 		return check_res; // return true if there is closeness found
 	}
 	/**
-        Check if two component skeleton are too nearby or not
-        A function that be used in checkSkeletonNearby ONLY!
+	 Check if two component skeleton are too nearby or not
+	 A function that be used in checkSkeletonNearby ONLY!
 	 */
 	private boolean checkSkeletonNearby_checkCloseness(int compA, int part1, int compB, int part2)
 	{
@@ -1448,9 +1448,9 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        Adding a new MAxisArc to a MatchStick
-        @param nowComp the index of the new added mAxis
-        @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
+	 Adding a new MAxisArc to a MatchStick
+	 @param nowComp the index of the new added mAxis
+	 @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
 	 */
 	protected boolean Add_MStick(int nowComp, int type)
 	{
@@ -1551,7 +1551,7 @@ public class MatchStick implements Drawable {
 			trialCount = 1;
 			while (true)
 			{
-				
+
 				finalTangent = stickMath_lib.randomUnitVec();
 				boolean flag = true;
 				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
@@ -1559,15 +1559,15 @@ public class MatchStick implements Drawable {
 					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
 						flag = false;
 					}
-					
+
 				}
 				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
 					break;
 				if ( trialCount++ == 150) {
 					return false;
 				}
-					
-				
+
+
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
@@ -1590,7 +1590,7 @@ public class MatchStick implements Drawable {
 		}
 		else if (type == 3) //end-to-branch connection
 		{
-			
+
 			// 1. select a existing comp, with free branch
 			int pickedComp;
 			while(true)
@@ -1718,7 +1718,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-         Deal with the creation of first MAxisArc component
+	 Deal with the creation of first MAxisArc component
 	 */
 	protected void createFirstComp() // create the first component of the MStick
 	{
@@ -1744,9 +1744,9 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-    A public function that will start generating an offspring of this existing shape
-        The parent is the current shape.
-        The result will be stored in this object
+	 A public function that will start generating an offspring of this existing shape
+	 The parent is the current shape.
+	 The result will be stored in this object
 	 */
 	public boolean mutate(int debugParam) {
 		final int MaxMutateTryTimes = 10;
@@ -1793,7 +1793,7 @@ public class MatchStick implements Drawable {
 				else
 					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
 
-				if (task4Tube[i] != 1) 
+				if (task4Tube[i] != 1)
 					noChgFlg = false; // at least one chg will occur
 			}
 			nAddTube = stickMath_lib.pickFromProbDist( prob_addNewTube) - 1;
@@ -1931,7 +1931,7 @@ public class MatchStick implements Drawable {
 					this.copyFrom(tempStoreStick);
 				}
 			}
-			if (!successMutateTillNow) 
+			if (!successMutateTillNow)
 				continue;
 
 			// 5. reassign the radius value at junction point
@@ -1940,7 +1940,7 @@ public class MatchStick implements Drawable {
 			// 6. translate the shape, so that the first component is centered at origin.
 			//            this.centerShapeAtOrigin(-1);
 
-			if (!this.validMStickSize()) 
+			if (!this.validMStickSize())
 				successMutateTillNow = false;
 
 			if (!successMutateTillNow)
@@ -1993,7 +1993,7 @@ public class MatchStick implements Drawable {
 		int minChgTotal = nTimes;
 		int maxChgTotal = nTimes;
 		while (true) {
-			boolean noChgFlg = true;	
+			boolean noChgFlg = true;
 			nChgTotal = 0;
 			doScaleMorph = false;
 
@@ -2003,7 +2003,7 @@ public class MatchStick implements Drawable {
 				nChgTotal++;
 			}
 
-			if ( noChgFlg == false && nChgTotal >= minChgTotal && nChgTotal <= maxChgTotal) 
+			if ( noChgFlg == false && nChgTotal >= minChgTotal && nChgTotal <= maxChgTotal)
 				break;
 
 			for (i=1; i<=getnComponent(); i++) {
@@ -2012,7 +2012,7 @@ public class MatchStick implements Drawable {
 				else
 					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
 
-				if (task4Tube[i] != 1) 
+				if (task4Tube[i] != 1)
 					noChgFlg = false; // at least one chg will occur
 			}
 
@@ -2151,7 +2151,7 @@ public class MatchStick implements Drawable {
 					this.copyFrom(tempStoreStick);
 				}
 			}
-			if (!successMutateTillNow) 
+			if (!successMutateTillNow)
 				continue;
 
 			// 5. reassign the radius value at junction point
@@ -2160,7 +2160,7 @@ public class MatchStick implements Drawable {
 			// 6. translate the shape, so that the first component is centered at origin.
 			//            this.centerShapeAtOrigin(-1);
 
-			if (!this.validMStickSize()) 
+			if (!this.validMStickSize())
 				successMutateTillNow = false;
 
 			if (!successMutateTillNow)
@@ -2342,33 +2342,33 @@ public class MatchStick implements Drawable {
 	{
 		try {
 			showDebug = false;
-		int compToCenter = decidedCenterTube;
-		if (compToCenter == -1){ // no preference
-			compToCenter = findBestTubeToCenter();
-		}
-		Point3d origin = new Point3d(0.0, 0.0, 0.0);
+			int compToCenter = decidedCenterTube;
+			if (compToCenter == -1){ // no preference
+				compToCenter = findBestTubeToCenter();
+			}
+			Point3d origin = new Point3d(0.0, 0.0, 0.0);
 
-		setNowCenterTube(compToCenter);
-		int midPtIndex = 26;
-		Point3d nowComp1Center =     new Point3d(getComp()[compToCenter].getmAxisInfo().getmPts()[midPtIndex]);
-		Vector3d shiftVec = new Vector3d();
-		shiftVec.sub(origin, nowComp1Center);
-		if ( origin.distance(nowComp1Center) > 0.001)
-		{
-			if ( showDebug)
-				System.out.println("shift to make it center at origin!");
+			setNowCenterTube(compToCenter);
+			int midPtIndex = 26;
+			Point3d nowComp1Center =     new Point3d(getComp()[compToCenter].getmAxisInfo().getmPts()[midPtIndex]);
+			Vector3d shiftVec = new Vector3d();
+			shiftVec.sub(origin, nowComp1Center);
+			if ( origin.distance(nowComp1Center) > 0.001)
+			{
+				if ( showDebug)
+					System.out.println("shift to make it center at origin!");
 
-			applyTranslation(shiftVec);
-		}
-		//return true;
+				applyTranslation(shiftVec);
+			}
+			//return true;
 		}catch (Exception e) {
 			System.out.println("Centering failed for some reason.");
 			e.printStackTrace();
 		}
 	}
 	/**
-        reAssign the junction radius value
-        One of the last function call by mutate()
+	 reAssign the junction radius value
+	 One of the last function call by mutate()
 	 */
 	protected void MutateSUB_reAssignJunctionRadius()
 	{
@@ -2493,8 +2493,8 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        subFunction of: (replaceComponent, fineTuneComponent) <BR>
-        Will determine the relation of each component to the target component
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the relation of each component to the target component
 	 */
 	protected int[] MutationSUB_compRelation2Target(int targetComp)
 	{
@@ -2545,9 +2545,9 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-           subFunction of: (replaceComponent, fineTuneComponent) <BR>
-        Will determine the radius of the modified component
-        If there is value in [][] oriValue, it is the radius value of the original component
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the radius of the modified component
+	 If there is value in [][] oriValue, it is the radius value of the original component
 	 */
 	protected void MutationSUB_radAssign2NewComp( int targetComp, double[][] oriValue)
 	{
@@ -2655,7 +2655,7 @@ public class MatchStick implements Drawable {
 					getComp()[nowComp].getRadInfo()[2][1] = nowRad;
 				}
 				else // middle u value
-				System.out.println( "error in endPt radius assignment");
+					System.out.println( "error in endPt radius assignment");
 			}
 
 		//set intermediate pt if not assigned yet
@@ -2714,8 +2714,8 @@ public class MatchStick implements Drawable {
 		}
 	}
 	/**
-        subFunction of: (replaceComponent, fineTuneComponent) <BR>
-        Will determine the Hinge Pt to stay still
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the Hinge Pt to stay still
 	 */
 	protected int MutationSUB_determineHinge(int targetComp)
 	{
@@ -2757,7 +2757,7 @@ public class MatchStick implements Drawable {
 		return alignedPt;
 	}
 	/**
-        replace one of the component with a total new tube
+	 replace one of the component with a total new tube
 	 */
 	protected boolean replaceComponent(int id)
 	{
@@ -2991,7 +2991,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        Fine tune the parameters of one of the component.
+	 Fine tune the parameters of one of the component.
 	 */
 	protected boolean fineTuneComponent(int id)
 	{
@@ -3246,7 +3246,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        function that add new tube in the mutation process
+	 function that add new tube in the mutation process
 	 */
 	protected boolean addTubeMutation(int nAddTube)
 	{
@@ -3334,7 +3334,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        Remove the component from this shape ( the component to remove is indexed by removeFlg bool array
+	 Remove the component from this shape ( the component to remove is indexed by removeFlg bool array
 	 */
 	protected void removeComponent(boolean[] removeFlg)
 	{
@@ -3432,7 +3432,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        A private function that will decide which components are leaf branch, which are NOT
+	 A private function that will decide which components are leaf branch, which are NOT
 	 */
 	protected void decideLeafBranch()
 	{
@@ -3537,7 +3537,7 @@ public class MatchStick implements Drawable {
 		for (int endPtIndx=1; endPtIndx<=getNEndPt(); endPtIndx++){
 			EndPt_struct endPt = getEndPt()[endPtIndx];
 
-		//Rotation
+			//Rotation
 			double[] rotVec = new double[3];
 			rotVec[0] = this.getFinalRotation()[0];
 			rotVec[1] = this.getFinalRotation()[1];
@@ -3572,7 +3572,7 @@ public class MatchStick implements Drawable {
 			}
 			endPt.getTangent().negate();
 
-		//Scale
+			//Scale
 			//Pos
 			endPt.getPos().scale(this.getScaleForMAxisShape());
 
@@ -3586,7 +3586,7 @@ public class MatchStick implements Drawable {
 		for (int juncPtIndx = 1; juncPtIndx <= getNJuncPt(); juncPtIndx++) {
 			JuncPt_struct juncPt = getJuncPt()[juncPtIndx];
 
-		//Rotate
+			//Rotate
 			double[] rotVec = new double[3];
 			rotVec[0] = this.getFinalRotation()[0];
 			rotVec[1] = this.getFinalRotation()[1];
@@ -3601,7 +3601,7 @@ public class MatchStick implements Drawable {
 					transMat.transform(juncPt.getTangent()[compIndx]);
 				}
 			}
-		//Rot Y
+			//Rot Y
 			if(rotVec[1] != 0.0) {
 				Transform3D transMat = getRotation(toRadians(rotVec[1]), new Vector3d(0, 1, 0));
 				//Pos
@@ -3611,7 +3611,7 @@ public class MatchStick implements Drawable {
 					transMat.transform(juncPt.getTangent()[compIndx]);
 				}
 			}
-		//Rot Z
+			//Rot Z
 			if(rotVec[2] != 0.0){
 				Transform3D transMat = getRotation(toRadians(rotVec[2]), new Vector3d(0, 0, 1));
 				//Pos
@@ -3621,7 +3621,7 @@ public class MatchStick implements Drawable {
 					transMat.transform(juncPt.getTangent()[compIndx]);
 				}
 			}
-		//Scale
+			//Scale
 			//Pos
 			juncPt.getPos().scale(getScaleForMAxisShape());
 			//Radius
@@ -3823,7 +3823,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
+	 function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
 	 */
 
 	public boolean smoothizeMStick()
@@ -3845,7 +3845,7 @@ public class MatchStick implements Drawable {
 		for (i=2; i<= getnComponent(); i++) {
 			int target = i;
 			boolean res  = false;
-			res = nowObj.objectMerge( MObj[target], false); 
+			res = nowObj.objectMerge( MObj[target], false);
 			if (res == false) {
 				System.err.println("FAIL AT OBJECT MERGE");
 				return false;
@@ -3865,9 +3865,9 @@ public class MatchStick implements Drawable {
 		/*
 		 * If the *3 is not removed, the printed images will all be zoomed in by factor of 3
 		 * Also, I believe this scaling my scaleForMAXisShape is what gives all of the dimmensionless
-		 * units of length in the MatchStick units for the first time. 
+		 * units of length in the MatchStick units for the first time.
 		 */
-		
+
 		if (isDoCenterObject())
 			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
 
@@ -4400,10 +4400,10 @@ public class MatchStick implements Drawable {
 	}
 	public double getFinalShiftInDepth(int i) {
 		switch(i) {
-		case 0: return getFinalShiftinDepth().x;
-		case 1: return getFinalShiftinDepth().y;
-		case 2: return getFinalShiftinDepth().z;
-		default: return 0;
+			case 0: return getFinalShiftinDepth().x;
+			case 1: return getFinalShiftinDepth().y;
+			case 2: return getFinalShiftinDepth().z;
+			default: return 0;
 		}
 	}
 
@@ -4563,6 +4563,3 @@ public class MatchStick implements Drawable {
 		return doCenterObject;
 	}
 }
-
-
-

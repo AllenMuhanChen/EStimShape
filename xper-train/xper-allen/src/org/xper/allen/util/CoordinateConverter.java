@@ -15,6 +15,12 @@ public class CoordinateConverter {
         public double theta;
         public double phi;
 
+        /**
+         *
+         * @param r - radius
+         * @param theta - azimuth
+         * @param phi - 90 - elevation angle
+         */
         public SphericalCoordinates(double r, double theta, double phi) {
             this.r = r;
             this.theta = theta;

@@ -5,10 +5,13 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.ga.*;
-import org.xper.allen.ga3d.blockgen.GA3DBlockGen;
+import org.xper.allen.ga3d.blockgen.GA3DLineageBlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
+
+import java.util.LinkedList;
+import java.util.List;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -26,8 +29,8 @@ public class ThreeDGAConfig {
     public String numberLineages;
 
     @Bean
-    public GA3DBlockGen generator(){
-        GA3DBlockGen generator = new GA3DBlockGen();
+    public GA3DLineageBlockGenerator generator(){
+        GA3DLineageBlockGenerator generator = new GA3DLineageBlockGenerator();
         generator.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
         generator.setExperimentPngPath(mStickPngConfig.experimentPngPath);
         generator.setGeneratorSpecPath(mStickPngConfig.generatorSpecPath);
@@ -66,16 +69,29 @@ public class ThreeDGAConfig {
 
     @Bean
     public ParentSelector parentSelector(){
-        IntanSpikeParentSelector parentSelector = new IntanSpikeParentSelector();
+        AverageSpikeRateParentSelector parentSelector = new AverageSpikeRateParentSelector();
         parentSelector.setDbUtil(dbUtil());
-        parentSelector.setSpikeDatDirectory(spikeDatPath);
-        parentSelector.setSpikeRateAnalyzer(spikeRateAnalyzer());
+        parentSelector.setSpikeRateSource(spikeRateSource());
+        parentSelector.setParentSelectorStrategy(spikeRateAnalyzer());
         return parentSelector;
     }
 
+    private SpikeRateSource spikeRateSource() {
+        IntanAverageSpikeRateSource spikeRateSource = new IntanAverageSpikeRateSource();
+        spikeRateSource.setSpikeDatDirectory(spikeDatPath);
+        spikeRateSource.setChannels(channels());
+        return spikeRateSource;
+    }
+
+    //TODO: figure out the best way to get the channels we want to analyze in the GA
+    private List<String> channels() {
+        return new LinkedList<>();
+    }
+
+
     @Bean
-    public SpikeRateAnalyzer spikeRateAnalyzer(){
-        StandardSpikeRateAnalyzer spikeRateAnalyzer = new StandardSpikeRateAnalyzer();
+    public ParentAnalysisStrategy spikeRateAnalyzer(){
+        RamParentAnalysisStrategy spikeRateAnalyzer = new RamParentAnalysisStrategy();
         return spikeRateAnalyzer;
     }
 

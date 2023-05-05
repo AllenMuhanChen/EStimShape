@@ -9,6 +9,7 @@ from matplotlib import pyplot as plt
 from numpy import double
 from scipy.stats import multivariate_normal
 
+from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
 from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
 from src.compile.trial_collector import TrialCollector
@@ -26,15 +27,15 @@ def main():
     # PARAMETERS
     conn = Connection("allen_estimshape_dev_221110")
 
-    conn.execute("TRUNCATE TABLE ExpLog")
+    # conn.execute("TRUNCATE TABLE ExpLog")
 
     baseline_function = TuningFunction()
 
     tuning_peak = {
-        "angularPosition": {"theta": 0, "phi": math.pi / 2},
+        "angularPosition": {"theta": math.pi, "phi": math.pi / 2},
         "radialPosition": 15,
-        "orientation": {"theta": 0, "phi": math.pi / 4},
-        "length": 15,
+        "orientation": {"theta": math.pi, "phi": math.pi / 4},
+        "length": 35,
         "curvature": 0.02,
         "radius": 8,
     }
@@ -44,15 +45,15 @@ def main():
         "angularPosition.phi": {"min": 0, "max": math.pi},
         "radialPosition": {"min": 0, "max": 60},
         "orientation.theta": {"min": -math.pi, "max": math.pi},
-        "orientation.phi": {"min": 0, "max": math.pi/2},
+        "orientation.phi": {"min": 0, "max": math.pi / 2},
         "length": {"min": 0, "max": 50},
         "curvature": {"min": 0, "max": 0.15},
-        "radius": {"min": 0, "max": 12},
+        "radius": {"min": 0, "max": 30},
     }
 
     shaft_function = ShaftTuningFunction(tuning_peak, list_of_tuning_ranges)
 
-    list_of_tuning_functions = [baseline_function, shaft_function]
+    list_of_tuning_functions = [shaft_function, shaft_function]
 
     # PIPELINE
     trial_tstamps = collect_trials(conn, time_util.all())
@@ -68,8 +69,8 @@ def main():
     insert_to_exp_log(conn, response_rates, data["Id"])
 
     # DEBUG
-    mock_rwa_analysis.main()
-    mock_rwa_plot.main()
+    # mock_rwa_analysis.main()
+    # mock_rwa_plot.main()
     # plt.show()
 
 
@@ -89,13 +90,20 @@ class ShaftTuningFunction(TuningFunction):
 
     def __init__(self, shaft_peaks: dict, field_ranges: dict):
         super().__init__()
+        self.tuning_function = None
         self.shaft_peaks = shaft_peaks
         self.field_ranges = field_ranges
 
     def get_response(self, data: pd.Series):
         peak = []
         flatten_dictionary(self.shaft_peaks, peak, None)
-        print(data)
+
+        periodic_indices = [0, 1, 3, 4]
+        non_periodic_indices = [2, 5, 6, 7]
+        mu = np.array(peak)
+        tuning_width = self.assign_tuning_width_from_range(fraction_of_range= 1.0/2.0)
+        self.tuning_function = MultiCustomNormalTuningFunction(mu, tuning_width, periodic_indices, non_periodic_indices,
+                                                               100)
 
         if not isinstance(data['ShaftField'], list):
             data['ShaftField'] = [data['ShaftField']]
@@ -109,27 +117,25 @@ class ShaftTuningFunction(TuningFunction):
             component["length"],
             component["curvature"],
             component["radius"]
-            ] for component in data['ShaftField']]
-
+        ] for component in data['ShaftField']]
         stim = [[float(x) for x in component] for component in stim]
 
         responses_per_component = []
         for component in stim:
-            # distance = np.linalg.norm(np.array(component) - np.array(peak))
-
-            tuning_range_maxes = []
-            extract_values_with_key_into_list(self.field_ranges, tuning_range_maxes, "max")
-            tuning_range_mins = []
-            extract_values_with_key_into_list(self.field_ranges, tuning_range_mins, "min")
-            cov = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
-            total_energy = np.prod(cov)
-            cov = np.array(cov) / 5
-            response = total_energy * multivariate_normal.pdf(np.array(component), mean=np.array(peak), cov=cov,
-                                                              allow_singular=True)
-            # response = 100 * np.exp((-(distance)**2)/ (2*sigma**2))
+            response = self.tuning_function.response(component)
             responses_per_component.append(response)
 
-        return np.max(responses_per_component)
+        response = np.max(responses_per_component)
+        return response
+
+    def assign_tuning_width_from_range(self, fraction_of_range: float = 1.0 / 5.0):
+        tuning_range_maxes = []
+        extract_values_with_key_into_list(self.field_ranges, tuning_range_maxes, "max")
+        tuning_range_mins = []
+        extract_values_with_key_into_list(self.field_ranges, tuning_range_mins, "min")
+        tuning_width = [max - min for max, min in zip(tuning_range_maxes, tuning_range_mins)]
+        tuning_width = np.array(tuning_width) * fraction_of_range
+        return tuning_width
 
 
 def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
@@ -226,7 +232,7 @@ def plot_responses(responses, data):
 
     # DEBUG
     fig, axes = plt.subplots(6)
-    print(all_thetas)
+    # print(all_thetas)
     axes[0].scatter(all_thetas, all_phis, c=all_responses)
     axes[1].scatter(closest_thetas, closest_phis, c=closest_responses)
     axes[2].scatter(all_radial_positions, all_responses)
@@ -242,7 +248,15 @@ def plot_responses(responses, data):
 # write sql query to insert response_rates into ExpLog table
 def insert_to_exp_log(conn, response_rates: list[dict[int, double]], ids: pd.Series):
     for stim_id, stim_response_rate in zip(ids, response_rates):
+        average_response_rate = sum(stim_response_rate.values()) / len(stim_response_rate)
+        conn.execute("UPDATE StimGaInfo SET response = %s WHERE stim_id = %s", (average_response_rate, str(stim_id)))
+        # conn.fetch_all()
+        conn.mydb.commit()
+
+    for stim_id, stim_response_rate in zip(ids, response_rates):
         conn.execute("INSERT INTO ExpLog (tstamp, memo) VALUES (%s, %s)", (stim_id, str(stim_response_rate)))
+        # conn.fetch_all()
+        conn.mydb.commit()
 
 
 if __name__ == '__main__':

@@ -25,9 +25,9 @@ public class DrawMStickTest {
     public void before() throws Exception {
         initXperLibs();
 //      unit = "170624_r-177";
-      unit = "170508_r-45";
+        unit = "170508_r-45";
 //      unit = "170808_r-276";
-//        unit = "170807_r-274";
+//      unit = "170807_r-274";
         xml_path = "/home/r2_allen/Documents/Ram GA/" + unit + "/top_stimulus.txt";
     }
 

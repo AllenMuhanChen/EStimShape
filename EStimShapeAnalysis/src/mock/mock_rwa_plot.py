@@ -3,15 +3,20 @@ import types
 
 import jsonpickle
 import numpy as np
+import xmltodict
 from matplotlib import pyplot as plt, cm
 from scipy.ndimage import gaussian_filter
 
 from src.analysis.rwa import get_next
+from src.mock.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
+from src.util.connection import Connection
+from src.util.dictionary_util import flatten_dictionary, apply_function_to_subdictionaries_values_with_keys
 
 
 def main():
     test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
-    plot_shaft_rwa_1d(test_rwa)
+    fig = plot_shaft_rwa_1d(get_next(test_rwa))
+    plot_top_n_stimuli(2, fig)
     plt.suptitle("Combined RWA")
 
     # lineage_0_rwa = jsonpickle.decode(
@@ -35,6 +40,102 @@ def main():
     # plt.suptitle("Lineage 3 RWA")
 
     plt.show()
+
+def plot_top_n_stimuli(n, fig):
+    conn = Connection("allen_estimshape_dev_221110")
+    conn.execute("SELECT stim_id, response FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
+    top_n_stim_id_and_response = conn.fetch_all()
+    top_n_stim_ids = [stim[0] for stim in top_n_stim_id_and_response]
+    top_n_response = [float(stim[1]) for stim in top_n_stim_id_and_response]
+
+    print(top_n_response)
+    # top_n_stim_ids = conn.fetch_all()
+    # top_n_stim_ids = [stim_id[0] for stim_id in top_n_stim_ids]
+
+
+    # Get Data from StimSpec for each top_n_stim_ids
+    top_n_stim_data = []
+    for stim_id in top_n_stim_ids:
+        conn.execute("SELECT data FROM StimSpec WHERE id = %s", params=(stim_id,))
+        top_n_stim_data.append(conn.fetch_one())
+
+    # Parse XML
+    top_n_shaft_data = []
+    for stim_data in top_n_stim_data:
+        stim_data = xmltodict.parse(stim_data)
+        shaft_data = stim_data["AllenMStickData"]["shaftData"]["ShaftData"]
+        apply_function_to_subdictionaries_values_with_keys(shaft_data, ["theta", "phi"],
+                                                           condition_theta_and_phi)
+        apply_function_to_subdictionaries_values_with_keys(shaft_data, ['orientation'],
+                                                           hemisphericalize)
+        top_n_shaft_data.append(shaft_data)
+
+    # Convert to single points
+    top_n_shaft_points = []
+    for shaft_data in top_n_shaft_data:
+        stim = [[
+            component['angularPosition']['theta'],
+            component['angularPosition']['phi'],
+            component["radialPosition"],
+            component["orientation"]["theta"],
+            component["orientation"]["phi"],
+            component["length"],
+            component["curvature"],
+            component["radius"]
+        ] for component in shaft_data]
+        stim = [[float(x) for x in component] for component in stim]
+
+        top_n_shaft_points.append(stim)
+
+    # Plot each shaft
+    ax = fig.axes
+    for stim_index, shaft_points in enumerate(top_n_shaft_points):
+        colors = ['black', 'red', 'green', 'blue']
+        response = top_n_response[stim_index]
+        y_values = [response for point in shaft_points]
+
+
+        # Plot angular position theta
+        angularPosition_theta = [point[0] for point in shaft_points]
+        for point_index, point in enumerate(angularPosition_theta):
+            ax[0].scatter(point, y_values[point_index], color=colors[point_index])
+
+        # Plot angular position phi
+        angularPosition_phi = [point[1] for point in shaft_points]
+        for point_index, point in enumerate(angularPosition_phi):
+            ax[1].scatter(point, y_values[point_index], color=colors[point_index])
+
+        # Plot radial position
+        radialPosition = [point[2] for point in shaft_points]
+        for point_index, point in enumerate(radialPosition):
+            ax[2].scatter(point, y_values[point_index], color=colors[point_index])
+
+        # Plot orientation theta
+        orientation_theta = [point[3] for point in shaft_points]
+        for point_index, point in enumerate(orientation_theta):
+            ax[3].scatter(point, y_values[point_index], color=colors[point_index])
+
+        # Plot orientation phi
+        orientation_phi = [point[4] for point in shaft_points]
+        for point_index, point in enumerate(orientation_phi):
+            ax[4].scatter(point, y_values[point_index], color=colors[point_index])
+
+        # Plot Length
+        length = [point[5] for point in shaft_points]
+        for point_index, point in enumerate(length):
+            ax[6].scatter(point, y_values[point_index], color=colors[point_index])
+
+        # Plot Curvature
+        curvature = [point[6] for point in shaft_points]
+        for point_index, point in enumerate(curvature):
+            ax[7].scatter(point, y_values[point_index], color=colors[point_index])
+
+        # Plot Radius
+        radius = [point[7] for point in shaft_points]
+        for point_index, point in enumerate(radius):
+            ax[5].scatter(point, y_values[point_index], color=colors[point_index])
+
+
 
 
 def plot_shaft_rwa_1d(test_rwa):
@@ -63,6 +164,7 @@ def plot_shaft_rwa_1d(test_rwa):
     draw_one_d_field(test_rwa, "curvature", matrix_peak_location, ax_curvature)
     draw_one_d_field(test_rwa, "radius", matrix_peak_location, ax_radius)
 
+    return fig
 
 def plot_shaft_rwa(test_rwa):
     matrix = test_rwa.matrix
@@ -98,6 +200,7 @@ def plot_shaft_rwa(test_rwa):
     draw_one_d_field(test_rwa, "radius", matrix_peak_location, ax_radius)
 
     plt.draw()
+
 
 
 def plot_multi_peaks(test_rwa):
