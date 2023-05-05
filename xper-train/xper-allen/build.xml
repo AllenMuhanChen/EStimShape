@@ -5,8 +5,8 @@
 	<property name="native.home" location="${basedir}/../xper-native" />
 	<property name="dist.home" location="${basedir}/../dist" />
 	<property name="allen.home" location="${dist.home}/allen" />
-	
-	
+
+
 	<target name="clean">
 		<delete dir="${build.home}" />
 		<delete dir="${allen.home}" />
@@ -25,29 +25,29 @@
 		<fileset file="${dist.home}/xper.jar" />
 		<fileset file="${dist.home}/3d/xper_3d.jar" />
 	</path>
-	
+
 	<pathconvert property="manifest.classpath" dirsep="/" pathsep=" ">
 		<path refid="classpath">
 		</path>
 		<map from="${xper.home}${file.separator}lib" to="../lib" />
 		<map from="${dist.home}${file.separator}" to="../" />
 	</pathconvert>
-	
+
 	<echo message="Manifest classpath is ${manifest.classpath}" />
-	
-	
+
+
 	<target name="prepare">
 		<mkdir dir="${build.home}" />
 		<mkdir dir="${dist.home}" />
 		<mkdir dir="${dist.home}/allen" />
-		
+
 		<copy todir="${dist.home}" includeEmptyDirs="false">
 			<fileset dir="src" excludes="**/*.java" />
 			<fileset dir="app" excludes="**/*.java" />
 		</copy>
 	</target>
 
-	
+
 	<target name="compile" depends="prepare">
 		<javac srcdir="src" destdir="${build.home}" debug="true" debuglevel="lines,vars,source">
 			<classpath refid="classpath" />
@@ -55,64 +55,14 @@
 		<javac srcdir="app" destdir="${build.home}" debug="true" debuglevel="lines,vars,source">
 			<classpath refid="classpath" />
 		</javac>
-		
 	</target>
 
-	
+
 	<target name="dist" depends="compile" >
 		<jar jarfile="${allen.home}/xper_allen.jar" basedir="${build.home}">
 		</jar>
-		
-		<jar jarfile="${allen.home}/trainingGeneration.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/TrainingGenerator.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.TrainingGenerator" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar" />
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/training.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/Experiment.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.Experiment" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} " />
-			</manifest>
-		</jar>	
-		
-		<jar jarfile="${allen.home}/console.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/Console.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.Console" />
-				<attribute name="Class-Path" value=". ${manifest.classpath}" />
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/RandomXmlGen.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/RandomTrainingXMLGen.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.RandomTrainingXMLGen" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/RandomCircleXmlGen.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/training/RandomCircleTrainingXMLGen.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.training.RandomCircleTrainingXMLGen" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
+
+
 		<jar jarfile="${allen.home}/fixcal_console.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/fixcal/RewardButtonFixCalConsole.class" />
@@ -122,7 +72,7 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
-		
+
 		<jar jarfile="${allen.home}/fixcal.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/fixcal/RewardButtonFixCalExperiment.class" />
@@ -132,27 +82,8 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
-		
-		<jar jarfile="${allen.home}/nafcConsole.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/Console.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.Console" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
-		<jar jarfile="${allen.home}/nafc.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/nafc/Experiment.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.nafc.Experiment" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
-			</manifest>
-		</jar>
-		
+
+
 		<jar jarfile="${allen.home}/PngGen.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/nafc/PngGenerator.class" />
@@ -162,7 +93,7 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar "/>
 			</manifest>
 		</jar>
-		
+
 		<jar jarfile="${allen.home}/MStickPngTrialGen.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/nafc/MStickPngTrialGenerator.class" />
@@ -172,7 +103,7 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
-		
+
 		<jar jarfile="${allen.home}/fixationPngGen.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/fixation/FixationPngGenerator.class" />
@@ -182,26 +113,8 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
-		
-		<jar jarfile="${allen.home}/fixationConsole.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/fixation/Console.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.fixation.Console" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
-			</manifest>
-		</jar>
 
-		<jar jarfile="${allen.home}/fixationExperiment.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/fixation/Experiment.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.fixation.Experiment" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
-			</manifest>
-		</jar>
+
 		<jar jarfile="${allen.home}/PsychometricMStickPngGenerator.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/allen/app/nafc/PsychometricPngGeneratorMain.class" />
@@ -217,6 +130,60 @@
 			</fileset>
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.nafc.PsychometricBlockGeneratorMain" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		<jar jarfile="${allen.home}/NoisyPngFixationBlockGeneratorMain.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/fixation/NoisyPngFixationBlockGeneratorMain.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.fixation.NoisyPngFixationBlockGeneratorMain" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		<jar jarfile="${allen.home}/GAConsole.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/GAConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.GAConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		<jar jarfile="${allen.home}/GAExperiment.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/GAExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.GAExperiment" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		<jar jarfile="${allen.home}/MockNewGATrialGenerator.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/newga/MockNewGATrialGenerator.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.newga.MockNewGATrialGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		<jar jarfile="${allen.home}/MockConsole.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/newga/MockConsole.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.newga.MockConsole" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
+			</manifest>
+		</jar>
+		<jar jarfile="${allen.home}/MockExperiment.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/app/newga/MockExperiment.class" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.app.newga.MockExperiment" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>

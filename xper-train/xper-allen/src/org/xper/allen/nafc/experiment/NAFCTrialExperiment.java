@@ -1,28 +1,17 @@
 package org.xper.allen.nafc.experiment;
 
-import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
-import org.xper.allen.nafc.vo.NAFCTrialResult;
-import org.xper.allen.saccade.SaccadeExperimentState;
 import org.xper.allen.util.AllenDbUtil;
-import org.xper.classic.SlideRunner;
-import org.xper.classic.TrialEventListener;
-import org.xper.classic.TrialRunner;
-import org.xper.classic.vo.SlideTrialExperimentState;
-import org.xper.classic.vo.TrialResult;
-import org.xper.drawing.Coordinates2D;
+import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.Experiment;
-import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeMonitor;
 import org.xper.time.TimeUtil;
-import org.xper.util.IntanUtil;
-import org.xper.util.ThreadHelper;
-import org.xper.util.TrialExperimentUtil;
-import org.xper.util.XmlUtil;
+import org.xper.util.*;
 
 import jssc.SerialPortException;
+
+
 
 public class NAFCTrialExperiment implements Experiment {
 	static Logger logger = Logger.getLogger(NAFCTrialExperiment.class);
@@ -34,10 +23,8 @@ public class NAFCTrialExperiment implements Experiment {
 	NAFCExperimentState stateObject;
 	@Dependency
 	AllenDbUtil dbUtil;
-
-
 	@Dependency
-	int blankTargetScreenDisplayTime; //in ms
+	NAFCTrialRunner trialRunner;
 
 	public boolean isRunning() {
 		return threadHelper.isRunning();
@@ -48,105 +35,81 @@ public class NAFCTrialExperiment implements Experiment {
 	}
 
 	public void run() {
-		NAFCExperimentUtil.run(stateObject, threadHelper, new NAFCTrialRunner() {
-			public NAFCTrialResult runTrial() {
-				try {
-					// get a task
-					NAFCExperimentUtil.getNextTask(stateObject);
-					if (stateObject.getCurrentTask() == null && !stateObject.isDoEmptyTask()) {
-						try {
-							Thread.sleep(SlideTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
-						} catch (InterruptedException e) {
-						}
-						return NAFCTrialResult.NO_MORE_TASKS;
-					}
+		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
+		try {
+			startExperiment(timeUtil);
 
-					// initialize trial context
-					NAFCTrialContext context = new NAFCTrialContext();
-					context.setCurrentTask(stateObject.getCurrentTask());
-					stateObject.setCurrentContext(context);
-					stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
-					/*
-					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
-					 */
+			while (!threadHelper.isDone()) {
+				//pause experiment
+				pauseUntilRunReceived();
+				if (stopReceived()) break;
+				runTrial();
+				if (stopReceived()) break;
+				interTrialInterval(timeUtil);
+			}
+		} finally {
+			stopExperiment(timeUtil);
+		}
+	}
 
+	protected void startExperiment(TimeUtil timeUtil) {
+		threadHelper.started();
+		System.out.println("NAFCTrialExperiment started.");
+		stateObject.getDrawingController().init();
+		EventUtil.fireExperimentStartEvent(timeUtil.currentTimeMicros(),
+				stateObject.getExperimentEventListeners());
+	}
 
+	protected void runTrial() {
+		try{
+			getTrialRunner().runTrial(stateObject, threadHelper);
+		} catch (NullPointerException e){
+			e.printStackTrace();
+			System.out.println("THERE ARE NO MORE TRIALS");
+		}
+	}
 
-					// run trial
-					return NAFCExperimentUtil.runTrial(stateObject, threadHelper, new NAFCSlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
+	private void stopExperiment(TimeUtil timeUtil) {
+		try {
+			System.out.println("NAFCExperiment stopped.");
+			EventUtil.fireExperimentStopEvent(timeUtil.currentTimeMicros(),
+					stateObject.getExperimentEventListeners());
+			stateObject.getDrawingController().destroy();
 
-						public NAFCTrialResult runSlide() {
-							//int slidePerTrial = stateObject.getSlidePerTrial();
-							int slidePerTrial = 1;
-							NAFCExperimentTask currentTask = (NAFCExperimentTask) stateObject.getCurrentTask();
-							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
-							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
-							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
-							NAFCTrialResult result;
+			threadHelper.stopped();
+		} catch (Exception e) {
+			//logger.warn(e.getMessage());
+			e.printStackTrace();
+		}
+	}
 
-							try {
-								try {
-									//target info -AC
-									Coordinates2D[] targetPosition = context.getCurrentTask().getTargetEyeWinCoords();
-									double[] targetEyeWinSize = context.getCurrentTask().getTargetEyeWinSize();
-									context.setTargetPos(targetPosition);
-									context.setTargetEyeWindowSize(targetEyeWinSize);
-								} catch (Exception e){
-									System.out.println("No More Trials");
-									try {
-										Thread.sleep(NAFCTrialExperimentState.NO_TASK_SLEEP_INTERVAL);
-									} catch (InterruptedException ie) {
-									}
-									return NAFCTrialResult.NO_MORE_TASKS;
-								}
+	public void pauseUntilRunReceived() {
+		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
+		while (stateObject.isPause()) {
+			ThreadUtil.sleepOrPinUtil(timeUtil.currentTimeMicros()
+							+ TrialExperimentState.EXPERIMENT_PAUSE_SLEEP_INTERVAL * 1000, stateObject,
+					threadHelper);
+			if (threadHelper.isDone()) {
+				return;
+			}
+		}
+	}
 
-								for (int i = 0; i < slidePerTrial; i++) {
+	private void interTrialInterval(TimeUtil timeUtil) {
+		long current = timeUtil.currentTimeMicros();
+		ThreadUtil.sleepOrPinUtil(current
+						+ stateObject.getInterTrialInterval() * 1000L, stateObject, threadHelper);
+	}
 
-									// draw the slide
-									result = NAFCExperimentUtil.doSlide(i, stateObject);
-
-									//Check if Sample Hold was Successful
-									if (result!=NAFCTrialResult.TRIAL_COMPLETE){
-										return result;
-									}
-
-									// Trial done successfully
-									if (currentTask != null) {
-										taskDoneCache.put(currentTask, globalTimeClient
-												.currentTimeMicros(), false);
-										currentTask = null;
-										stateObject.setCurrentTask(currentTask);
-									}
-
-								}
-								return NAFCTrialResult.TRIAL_COMPLETE;
-								// end of SlideRunner.runSlide
-							} finally {
-								try {
-									NAFCExperimentUtil.cleanupTask(stateObject);
-								} catch (Exception e) {
-									logger.warn(e.getMessage());
-									e.printStackTrace();
-								}
-							}
-						}
-
-					}); // end of TrialExperimentUtil.runTrial 
-					// end of TrialRunner.runTrial	
-				} finally {
-					try {
-						NAFCExperimentUtil.cleanupTrial(stateObject);
-					} catch (Exception e) {
-						logger.warn(e.getMessage());
-						e.printStackTrace();
-					}
-				}
-			}}
-				);
+	private boolean stopReceived() {
+		if (threadHelper.isDone()) {
+			return true;
+		}
+		return false;
 	}
 
 	public void stop() {
-		System.out.println("Stopping SlideTrialExperiment ...");
+		System.out.println("Stopping NAFCTrialExperiment ...");
 		if (isRunning()) {
 			threadHelper.stop();
 			threadHelper.join();
@@ -160,8 +123,8 @@ public class NAFCTrialExperiment implements Experiment {
 		}
 	}
 
-	public NAFCExperimentState getStateObject() {
-		return stateObject;
+	public NAFCTrialRunner getTrialRunner() {
+		return trialRunner;
 	}
 
 	public void setStateObject(NAFCExperimentState stateObject) {
@@ -172,13 +135,6 @@ public class NAFCTrialExperiment implements Experiment {
 		stateObject.setPause(pause);
 	}
 
-	public int getBlankTargetScreenDisplayTime() {
-		return blankTargetScreenDisplayTime;
-	}
-
-	public void setBlankTargetScreenDisplayTime(int blankTargetScreenDisplayTime) {
-		this.blankTargetScreenDisplayTime = blankTargetScreenDisplayTime;
-	}
 
 	public AllenDbUtil getDbUtil() {
 		return dbUtil;
@@ -187,12 +143,13 @@ public class NAFCTrialExperiment implements Experiment {
 	public void setDbUtil(AllenDbUtil dbUtil) {
 		this.dbUtil = dbUtil;
 	}
-	public EyeMonitor getEyeMonitor() {
-		return eyeMonitor;
-	}
+
 	public void setEyeMonitor(EyeMonitor eyeMonitor) {
 		this.eyeMonitor = eyeMonitor;
 	}
 
+	public void setTrialRunner(NAFCTrialRunner trialRunner) {
+		this.trialRunner = trialRunner;
+	}
 
 }

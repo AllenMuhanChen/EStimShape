@@ -14,7 +14,7 @@ public class FixationPngGenerator {
 		double radiusUpperLim = Double.parseDouble(args[3]);
 
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-				FileUtil.loadConfigClass("experiment.config_class"));
+				FileUtil.loadConfigClass("experiment.ga.config_class"));
 
 		FixationPngBlockGen gen = context.getBean(FixationPngBlockGen.class);
 

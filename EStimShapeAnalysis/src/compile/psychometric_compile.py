@@ -3,9 +3,11 @@ import datetime
 import pandas as pd
 import numpy as np
 import xmltodict
-from src.util import table_util, time_util, connection, trialcollector
-from src.util.time_util import When
-from src.compile import trial_field as tf
+from src.util import table_util, connection
+from src.util.time_util import When, all, today
+from src.compile import trial_field as tf, trial_collector
+
+"""DEPRECATED """
 
 
 class StimSpecDataField(tf.Field):
@@ -18,12 +20,13 @@ class StimSpecDataField(tf.Field):
         stim_spec_data_dict = xmltodict.parse(stim_spec_data_xml)
         return stim_spec_data_dict
 
+
 class TrialTypeField(StimSpecDataField):
     def __init__(self, beh_msg: pd.DataFrame, stim_spec: pd.DataFrame):
         self.name = "TrialType"
         super().__init__(beh_msg, stim_spec)
 
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         stim_spec_data_xml = self.retrieve_spec_data(when)
         msg_type = self._parse_type_from_stim_spec_data(stim_spec_data_xml)
         if ("RandNoisyTrialParameters" in msg_type):
@@ -46,8 +49,8 @@ class IsCorrectField(tf.Field):
         self.beh_msg = beh_msg
         self.name = "IsCorrect"
 
-    def retrieveValue(self, when: When):
-        time_cond = table_util.get_during_trial(self.beh_msg, when)
+    def get(self, when: When):
+        time_cond = table_util.beh_msgs_during_trial(self.beh_msg, when)
         correct = self.__get_num_corrects(time_cond)
         incorrect = self.__get_num_incorrects(time_cond)
         if correct == 1 and incorrect == 0:
@@ -70,16 +73,15 @@ class IsCorrectField(tf.Field):
         return correct
 
 
-
 class NoiseChanceField(StimSpecDataField):
     def __init__(self, beh_msg, stim_spec):
         self.name = "NoiseChance"
         super().__init__(beh_msg, stim_spec)
 
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         stim_spec_data_dict = self.retrieve_spec_data(when)
         trialtype = list(stim_spec_data_dict.keys())[0]
-        noise_chance_dict =  stim_spec_data_dict[trialtype]['noiseParameters']['noiseChanceBounds']
+        noise_chance_dict = stim_spec_data_dict[trialtype]['noiseParameters']['noiseChanceBounds']
         # noise_chance = (noise_chance_dict['lowerLim'], noise_chance_dict['upperLim'])
         self.value = noise_chance_dict
 
@@ -89,7 +91,7 @@ class PsychometricIdField(StimSpecDataField):
         self.name = "PsychometricId"
         super().__init__(beh_msg, stim_spec)
 
-    def retrieveValue(self, when: When):
+    def get(self, when: When):
         stim_spec_data_dict = self.retrieve_spec_data(when)
         trialtype = list(stim_spec_data_dict.keys())[0]
         try:
@@ -104,8 +106,8 @@ if __name__ == '__main__':
 
     # Get DB Tables
     print("Reading Database")
-    conn = connection.Connection("allen_estimshape_train_220725")
-    collector = trialcollector.TrialCollector(conn)
+    conn = connection.Connection("allen_estimshape_train_221020", when=today())
+    collector = trial_collector.TrialCollector(conn)
     today_beh_msg = conn.beh_msg
     today_stim_spec = conn.stim_spec
 
@@ -136,11 +138,9 @@ if __name__ == '__main__':
 
     df = pd.DataFrame(data)
 
-
-    #CSV SAVING
-    filename = str(datetime.date.today()) + ".csv"
+    # CSV SAVING
+    filename = "psychometric-" + str(datetime.date.today()) + ".csv"
     path = save_dir + filename
     # existing_data = pd.read_csv(path)
 
     df.to_csv(path)
-

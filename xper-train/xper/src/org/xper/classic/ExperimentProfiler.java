@@ -14,7 +14,7 @@ public class ExperimentProfiler implements SlideEventListener,
 	long frameCount = 0;
 	double totalTime = 0;
 
-	public void slideOff(int index, long timestamp, int frameCount) {
+	public void slideOff(int index, long timestamp, int frameCount, long taskId) {
 		double length = timestamp - onTimestamp;
 		slideStat.addValue(length/1000.0);
 		if (frameCount > 0) {
@@ -23,7 +23,7 @@ public class ExperimentProfiler implements SlideEventListener,
 		}
 	}
 
-	public void slideOn(int index, long timestamp) {
+	public void slideOn(int index, long timestamp, long taskId) {
 		onTimestamp = timestamp;
 	}
 

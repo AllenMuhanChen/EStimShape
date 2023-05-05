@@ -14,7 +14,7 @@ import org.xper.exception.ComediException;
 
 /**
  * Software timing analog output.
- * 
+ *
  * @author John
  *
  */
@@ -23,10 +23,10 @@ public class ComediAnalogSWOutDevice implements AnalogOutDevice {
 	List<ComediChannelSpec> outputChannels;
 	@Dependency
 	String deviceString;
-	
+
 	ByteBuffer handle;
 	ByteBuffer buf;
-	
+
 	@PostConstruct
 	public void init () {
 		System.out.println("init() on ComediAnalogSWOutDevice CAlled");
@@ -39,30 +39,30 @@ public class ComediAnalogSWOutDevice implements AnalogOutDevice {
 		buf = ByteBuffer.allocateDirect(
 				outputChannels.size() * Double.SIZE / 8).order(
 				ByteOrder.nativeOrder());
-		
+
 		//debug - RS
 //		System.out.println("output buffer init size " + outputChannels.size());
-		
+
 		handle = nCreateTask(deviceString, outputChannels.size());
 		for (int i = 0; i < outputChannels.size(); i ++) {
 			ComediChannelSpec spec = outputChannels.get(i);
 			if (spec.getAref() == null) {
-				throw new ComediException("Reference setting for channel " + spec.getChannel() + " is null."); 
+				throw new ComediException("Reference setting for channel " + spec.getChannel() + " is null.");
 			}
 			nCreateChannels(handle, i, spec.getChannel(),
 					spec.getMinValue(), spec.getMaxValue(), spec.getAref());
-			
+
 			// debug - RS
 //			System.out.println("output buffer " + i + " created. chan = " + spec.getChannel() + " min = " +
 //					spec.getMinValue()  + " max = " + spec.getMaxValue() + " ref = " + spec.getAref());
 		}
 	}
-	
+
 	@PreDestroy
 	public void destroy () {
 		nDestroy(handle);
 	}
-	
+
 	/**
 	 * Output the data. One data point for each channel.
 	 */
@@ -78,7 +78,7 @@ public class ComediAnalogSWOutDevice implements AnalogOutDevice {
 
 		nWrite(handle, buf);
 	}
-	
+
 	native ByteBuffer nCreateTask(String deviceString, int nChannels);
 	native void nDestroy(ByteBuffer handle);
 	native void nCreateChannels(ByteBuffer handle, int i, short channel,

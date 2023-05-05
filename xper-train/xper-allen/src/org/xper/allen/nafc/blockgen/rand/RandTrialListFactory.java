@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.rand;
 
-import org.xper.allen.nafc.blockgen.Trial;
+import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.TrialListFactory;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
@@ -31,16 +31,16 @@ public class RandTrialListFactory implements TrialListFactory {
 
 
     @Override
-    public List<Trial> createTrials() {
+    public List<Stim> createTrials() {
         List<NumberOfDistractorsForRandTrial> numDistractors = this.numDistractors;
         List<NumberOfMorphCategories> numMorphCategories = this.numMorphCategories;
         List<NoisyTrialParameters> trialParameters = this.trialParameters;
 
-        List<Trial> trials = new LinkedList<>();
+        List<Stim> stims = new LinkedList<>();
         for(int i=0; i<numTrials; i++){
             RandNoisyTrialParameters randNoisyTrialParameters = new RandNoisyTrialParameters(numDistractors.get(i), numMorphCategories.get(i), trialParameters.get(i));
-            trials.add(new RandTrial(generator, randNoisyTrialParameters));
+            stims.add(new RandStim(generator, randNoisyTrialParameters));
         }
-        return trials;
+        return stims;
     }
 }

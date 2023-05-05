@@ -8,7 +8,6 @@ import org.xper.allen.saccade.SaccadeExperimentState;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialEventListener;
-import org.xper.classic.TrialRunner;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialResult;
 import org.xper.drawing.Coordinates2D;
@@ -21,6 +20,7 @@ import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
 
 import jssc.SerialPortException;
+import org.xper.util.TrialRunner;
 
 /**
  * Format of StimSpec:
@@ -85,7 +85,7 @@ public class SaccadeTrialExperiment implements Experiment {
 					// run trial
 					return SaccadeTrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
-						public TrialResult runSlide() {
+						public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
 							int slidePerTrial = stateObject.getSlidePerTrial();
 							SaccadeExperimentTask currentTask = (SaccadeExperimentTask) stateObject.getCurrentTask();
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();

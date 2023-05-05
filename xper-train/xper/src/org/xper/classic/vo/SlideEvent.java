@@ -6,6 +6,7 @@ public class SlideEvent {
 	int index;
 	long timestamp;
 	int frameCount;
+	long taskId;
 	
 	static XStream xstream = new XStream();
 
@@ -21,11 +22,12 @@ public class SlideEvent {
 		return xstream.toXML(msg);
 	}
 	
-	public SlideEvent(int index, long timestamp, int frameCount) {
+	public SlideEvent(int index, long timestamp, int frameCount, long taskId) {
 		super();
 		this.index = index;
 		this.timestamp = timestamp;
 		this.frameCount = frameCount;
+		this.taskId = taskId;
 	}
 	public int getFrameCount() {
 		return frameCount;
@@ -44,5 +46,13 @@ public class SlideEvent {
 	}
 	public void setTimestamp(long timestamp) {
 		this.timestamp = timestamp;
+	}
+
+	public long getTaskId() {
+		return taskId;
+	}
+
+	public void setTaskId(long taskId) {
+		this.taskId = taskId;
 	}
 }

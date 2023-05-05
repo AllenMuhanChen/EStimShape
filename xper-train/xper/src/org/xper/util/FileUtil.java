@@ -20,11 +20,9 @@ public class FileUtil {
 	static {
 		loadSystemProperties();
 		configClassPath();
-		try {
-			loadSystemTestProperties();
-		} catch(ExperimentSetupException e){e.printStackTrace();}
 	}
-	
+
+
 	public interface FileVisitor {
 		public void visitFile (File f);
 		/**
@@ -124,16 +122,16 @@ public class FileUtil {
 		System.setProperties(props);
 	}
 
-	public static void loadSystemTestProperties () {
+	public static void loadTestSystemProperties(String xper_properties) {
 		Properties props = new Properties(System.getProperties());
 		try {
-			props.load(XperConfig.class.getResourceAsStream("/xper.properties.test"));
-		} catch (IOException e) {
-			throw new ExperimentSetupException("Cannot find xper.properties.test file.", e);
+			props.load(XperConfig.class.getResourceAsStream(xper_properties));
+		} catch (Exception e) {
+			throw new ExperimentSetupException("Cannot find " + xper_properties + " file.", e);
 		}
 		System.setProperties(props);
 	}
-	
+
 	public static boolean isFile (String path) {
 		File f = new File(path);
 		return f.isFile();

@@ -18,6 +18,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.allen.nafc.experiment.*;
+import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
 import org.xper.config.IntanConfig;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
@@ -28,23 +30,12 @@ import org.xper.allen.nafc.console.NAFCExperimentConsole;
 import org.xper.allen.nafc.console.NAFCExperimentConsoleModel;
 import org.xper.allen.nafc.console.NAFCExperimentConsoleRenderer;
 import org.xper.allen.nafc.console.NAFCExperimentMessageReceiver;
-import org.xper.allen.nafc.experiment.NAFCDatabaseTaskDataSource;
-import org.xper.allen.nafc.experiment.NAFCExperimentState;
-import org.xper.allen.nafc.experiment.NAFCMarkEveryStepTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCMarkStimTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCTrialExperiment;
-import org.xper.allen.nafc.experiment.RewardButtonExperimentRunner;
-import org.xper.allen.nafc.experiment.RewardButtonExperimentRunnerClient;
-import org.xper.allen.nafc.eye.FreeHeadNAFCEyeMonitorController;
-import org.xper.allen.nafc.eye.LaggingMovingAverageEyeZeroAlgorithm;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCExperimentMessageDispatcher;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
 import org.xper.allen.nafc.message.NAFCJuiceController;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
-import org.xper.classic.EyeMonitorController;
 import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -54,7 +45,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
-import org.xper.drawing.renderer.PerspectiveStereoRenderer;
 import org.xper.exception.DbException;
 import org.xper.exception.ExperimentSetupException;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
@@ -75,11 +65,11 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import(ClassicConfig.class)
+@Import({ClassicConfig.class, RewardButtonConfig.class})
 public class NAFCConfig {
-
+	@Autowired RewardButtonConfig rewardButtonConfig;
 	@Autowired BaseConfig baseConfig;
-	@Autowired ClassicConfig classicConfig;	
+	@Autowired ClassicConfig classicConfig;
 	@Autowired AcqConfig acqConfig;
 	@Autowired IntanConfig intanConfig;
 	
@@ -116,46 +106,8 @@ public class NAFCConfig {
 		}
 		return iUtil;
 	}
-/*	
-	@Bean
-	public TaskScene taskScene() {
-		BlankTaskScene scene = new BlankTaskScene();
-		scene.setRenderer(classicConfig.experimentGLRenderer());
-		scene.setFixation(classicConfig.experimentFixationPoint());
-		scene.setMarker(classicConfig.screenMarker());
-		scene.setBlankScreen(new BlankScreen());
-		return scene;
-	}
-*/
-	@Bean
-	public RewardButtonExperimentRunner experimentRunner() {
-		RewardButtonExperimentRunner runner = new RewardButtonExperimentRunner();
-		runner.setHost(classicConfig.experimentHost);
-		runner.setExperiment(experiment());
-		runner.setJuice(consoleButtonJuice());
-		runner.setDbUtil(allenDbUtil());
-		runner.setTimeUtil(baseConfig.localTimeUtil());
-		return runner;
-	}
-	
-	@Bean 
-	public DynamicJuice consoleButtonJuice() {
-		AnalogJuice juice = new AnalogJuice();
-		juice.setBonusDelay(classicConfig.xperJuiceBonusDelay());
-		juice.setBonusProbability(classicConfig.xperJuiceBonusProbability());
-		juice.setDelay(classicConfig.xperJuiceDelay());
-		juice.setReward(classicConfig.xperJuiceRewardLength());
-		juice.setLocalTimeUtil(baseConfig.localTimeUtil());
-		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NI)) {
-			juice.setDevice(classicConfig.niAnalogJuiceDevice());
-		} else if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_COMEDI)) {
-			juice.setDevice(classicConfig.comediAnalogJuiceDevice());
-		} else {
-			throw new ExperimentSetupException("Acq driver " + acqConfig.acqDriverName + " not supported.");
-		}
-		return juice;
-	}
-	
+
+
 	/**
 	 * When switching to Perspective Renderer we need to make sure the xper-window-length is precisely
 	 * the same width as the actual screen. 
@@ -228,7 +180,7 @@ public class NAFCConfig {
 		eyeMappingAlgorithm.put(classicConfig.xperRightIscanId(), classicConfig.rightIscanMappingAlgorithm());
 		model.setEyeMappingAlgorithm(eyeMappingAlgorithm);
 		
-		model.setExperimentRunnerClient(experimentRunnerClient());
+		model.setExperimentRunnerClient(rewardButtonConfig.experimentRunnerClient());
 		model.setChannelMap(classicConfig.iscanChannelMap());
 		model.setMessageHandler(messageHandler());
 		
@@ -250,11 +202,7 @@ public class NAFCConfig {
 
 		return model;
 	}
-	@Bean
-	public RewardButtonExperimentRunnerClient experimentRunnerClient() {
-		RewardButtonExperimentRunnerClient client = new RewardButtonExperimentRunnerClient(classicConfig.experimentHost);
-		return client;
-	}
+
 
 	@Bean
 	public NAFCExperimentConsoleRenderer consoleRenderer () {
@@ -273,7 +221,7 @@ public class NAFCConfig {
 		return renderer;
 	}
 	
-	//TODO 
+
 	@Bean
 	public NAFCExperimentMessageHandler  messageHandler() {
 		NAFCExperimentMessageHandler messageHandler = new NAFCExperimentMessageHandler();
@@ -319,23 +267,33 @@ public class NAFCConfig {
 		NAFCDatabaseTaskDataSource source = new NAFCDatabaseTaskDataSource();
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
-		source.setUngetBehavior(UngetPolicy.TAIL);
+		source.setUngetBehavior(xperUngetPolicy());
 		return source;
 	}
 	
-	
-	//TODO
+
 	@Bean
 	public NAFCTrialExperiment experiment() {
 		NAFCTrialExperiment xper = new NAFCTrialExperiment();
 		xper.setEyeMonitor(classicConfig.eyeMonitor());
 		xper.setStateObject(experimentState());
-		xper.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		xper.setDbUtil(allenDbUtil());
+		xper.setTrialRunner(trialRunner());
 		return xper;
 	}
-	
-    //TODO
+
+	@Bean
+	public ClassicNAFCTrialRunner trialRunner(){
+		ClassicNAFCTrialRunner trialRunner = new ClassicNAFCTrialRunner();
+		trialRunner.setRunner(slideRunner());
+		return trialRunner;
+	}
+
+	@Bean
+	public ClassicNAFCSlideRunner slideRunner(){
+		return new ClassicNAFCSlideRunner();
+	}
+
 	@Bean
 	public NAFCExperimentState experimentState() {
 		NAFCExperimentState state = new NAFCExperimentState();
@@ -354,15 +312,13 @@ public class NAFCConfig {
 		state.setTimeBeforeFixationPointOn(classicConfig.xperTimeBeforeFixationPointOn());
 		state.setTimeAllowedForInitialEyeIn(classicConfig.xperTimeAllowedForInitialEyeIn());
 		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
-		state.setSampleLength(xperSampleLength());
-		state.setChoiceLength(xperChoiceLength());
 		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
 		state.setSleepWhileWait(true);
 		state.setPause(classicConfig.xperExperimentInitialPause());
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		//Target Stuff
 		state.setSampleLength(xperSampleLength());
-		state.setChoiceLength(xperChoiceLength());
+		state.setAnswerLength(xperAnswerLength());
 		state.setTargetSelector(eyeTargetSelector());
 		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());  
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
@@ -370,6 +326,9 @@ public class NAFCConfig {
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
 		//Punishment
 		state.setPunishmentDelayTime(xperPunishmentDelayTime());
+		//Training Assist
+		state.setRepeatIncorrectTrials(xperRepeatIncorrectTrials());
+		state.setShowAnswer(xperShowAnswer());
 		//Intan Stuff
 		try {
 		state.setIntanUtil(intanUtil());
@@ -379,16 +338,15 @@ public class NAFCConfig {
 		}
 		return state;
 	}
-	
-	//TODO
+
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
-		trialEventListener.add(classicConfig.eyeMonitorController());
+		trialEventListener.add(eyeMonitorController());
 		trialEventListener.add(classicConfig.trialEventLogger());
 		trialEventListener.add(classicConfig.experimentProfiler());
 		trialEventListener.add(messageDispatcher());
-		//trialEventListener.add(juiceController());
 		trialEventListener.add(classicConfig.trialSyncController());
 		trialEventListener.add(classicConfig.dataAcqController());
 		trialEventListener.add(classicConfig.jvmManager());
@@ -398,19 +356,16 @@ public class NAFCConfig {
 		trialEventListener.add(intanConfig.intanMessageDispatcher());
 		return trialEventListener;
 	}
-	
 
-/*
-	//TODO
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public List<TargetEventListener> targetEventListeners () {
-		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
-		listeners.add((TargetEventListener) messageDispatcher());
-		listeners.add((TargetEventListener) juiceController());
-		return listeners;
+	@Bean
+	NAFCEyeMonitorController eyeMonitorController(){
+		NAFCEyeMonitorController eyeMonitorController = new NAFCEyeMonitorController();
+		eyeMonitorController.setEyeSampler(classicConfig.eyeSampler());
+		eyeMonitorController.setEyeWindowAdjustable(classicConfig.eyeWindowAdjustables());
+		eyeMonitorController.setEyeDeviceWithAdjustableZero(classicConfig.eyeZeroAdjustables());
+		return eyeMonitorController;
 	}
-	*/
-	//TODO
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<ChoiceEventListener> choiceEventListeners () {
 		List<ChoiceEventListener> listeners = new LinkedList<ChoiceEventListener>();
@@ -418,8 +373,7 @@ public class NAFCConfig {
 		listeners.add(juiceController());
 		return listeners;
 	}
-	
-	
+
 	
 	@Bean
 	public NAFCExperimentMessageDispatcher messageDispatcher() {
@@ -508,6 +462,18 @@ public class NAFCConfig {
 		strategy.setEyeDevices(devices);
 		return strategy;
 	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Boolean xperShowAnswer(){
+		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_nafc_show_answer",0));
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Boolean xperRepeatIncorrectTrials(){
+		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_nafc_repeat_incorrect_trials",0));
+	}
+
+
 	/**
 	 * For fixation point eye selection, not alternative choices. 
 	 * @return
@@ -557,12 +523,17 @@ public class NAFCConfig {
 	}
 	
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public Integer xperChoiceLength() {
-		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_choice_length", 0));
+	public Integer xperAnswerLength() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_answer_length", 0));
 	}
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperPunishmentDelayTime() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_punishment_delay_length", 0));
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public UngetPolicy xperUngetPolicy(){
+		return UngetPolicy.valueOf(baseConfig.systemVariableContainer().get("xper_unget_policy",0));
 	}
 	
 }

@@ -15,21 +15,21 @@ class TestFields(TestCase):
     stim_spec = reader.stim_spec
     def test_IsCorrect_field_retrieve_value(self):
         trial = pc.IsCorrectField(self.beh_msg)
-        trial.retrieveValue(RANDOM_CORRECT)
+        trial.get(RANDOM_CORRECT)
         isCorrect = trial.value
         self.assertEqual(True, isCorrect)
 
     def test_trial_type_field_retrieve_value(self):
         trial = pc.TrialTypeField(self.beh_msg, self.stim_spec)
-        trial.retrieveValue(RANDOM_CORRECT)
+        trial.get(RANDOM_CORRECT)
         self.assertEqual("Rand", trial.value)
 
     def test_noise_retrieve_value(self):
         trial = pc.NoiseChanceField(self.beh_msg, self.stim_spec)
-        trial.retrieveValue(RANDOM_CORRECT)
+        trial.get(RANDOM_CORRECT)
         print(trial.value)
 
     def test_psychometric_id_retrieve_value(self):
         trial = pc.PsychometricIdField(self.beh_msg, self.stim_spec)
-        trial.retrieveValue(PSYCHOMETRIC)
+        trial.get(PSYCHOMETRIC)
         print(trial.value)

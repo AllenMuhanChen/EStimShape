@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.xper.Dependency;
 import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.SimpleEStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
@@ -19,9 +18,7 @@ import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialResult;
-import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.TaskDoneCache;
-import org.xper.eye.EyeMonitor;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.eye.EyeTargetSelectorConcurrentDriver;
 import org.xper.eye.TargetSelectorResult;
@@ -29,8 +26,6 @@ import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
-
-import jssc.SerialPortException;
 
 import org.xper.util.IntanUtil;
 import org.xper.drawing.Coordinates2D;
@@ -59,7 +54,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		drawingController.showSlide(currentTask, currentContext);
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
-		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners);
+		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners, currentTask.getTaskId());
 		
 		//ESTIMULATOR
 		sendEStimTrigger(stateObject);
@@ -111,7 +106,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 				 * TODO: Animation frame stuff may not be needed 
 				 */
 				currentContext.getAnimationFrameIndex(),
-				slideEventListeners);
+				slideEventListeners, currentTask.getTaskId());
 		currentContext.setAnimationFrameIndex(0);
 
 
@@ -119,13 +114,13 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 
 	}
 
-	public static TrialResult runTrial (SaccadeExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
+	public static TrialResult runTrial(SaccadeExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
 		TrialResult result = SaccadeTrialExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
 		sendEStims(stateObject);
-		result = runner.runSlide();
+		result = runner.runSlide(stateObject, threadHelper);
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
 		}

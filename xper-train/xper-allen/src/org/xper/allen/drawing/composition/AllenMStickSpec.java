@@ -2,9 +2,7 @@ package org.xper.allen.drawing.composition;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.FileWriter;
 
 import javax.vecmath.Point3d;
@@ -109,6 +107,7 @@ public class AllenMStickSpec {
             System.out.println(e);
         }
     }
+
     
     public void writeInfo2File(String fname, boolean vertBool) {
 	    	
@@ -202,7 +201,13 @@ public class AllenMStickSpec {
 		
 //		setSpecialEnd(inStick.getSpecialEnd());
 //		setSpecialEndComp(inStick.getSpecialEndComp());
-		vertex.setVertexInfo(inStick.getSmoothObj());
+        try {
+            vertex.setVertexInfo(inStick.getSmoothObj());
+        } catch (Exception e) {
+            e.printStackTrace();
+
+        }
+
 
         AllenTubeComp[] tubes = inStick.getComp();
         
@@ -223,7 +228,7 @@ public class AllenMStickSpec {
 
     public Point3d[] getVectInfo()
     {
-        int nVect = this.vertex.nVect;
+        int nVect = this.vertex.getnVect();
         int i;
         Point3d[] vect = new Point3d[ nVect+1];
         ByteArrayInputStream bis1 = new ByteArrayInputStream (vertex.vect_bArray);
@@ -244,7 +249,7 @@ public class AllenMStickSpec {
     }
 
     public Vector3d[] getNormMatInfo() {
-        int nVect = this.vertex.nVect;
+        int nVect = this.vertex.getnVect();
         Vector3d[] normMat = new Vector3d[ nVect+1];
         ByteArrayInputStream bis2 = new ByteArrayInputStream (vertex.normMat_bArray);
         DataInputStream dis2 = new DataInputStream (bis2);
@@ -269,7 +274,7 @@ public class AllenMStickSpec {
         // TODO Auto-generated method stub
         ByteArrayInputStream bis3 = new ByteArrayInputStream (vertex.fac_bArray);
         DataInputStream dis3 = new DataInputStream (bis3);
-        int nFac = this.vertex.nFac;
+        int nFac = this.vertex.getnFac();
         int[][] facInfo =new int[ nFac][3];
         int i, j;
 
@@ -313,10 +318,10 @@ public class AllenMStickSpec {
 
     public int getNFac() {
         // TODO Auto-generated method stub
-        return this.vertex.nFac;
+        return this.vertex.getnFac();
     }
     public int getNVect(){
-        return this.vertex.nVect;
+        return this.vertex.getnVect();
     }
 
     public int getNComponent(){
@@ -331,9 +336,13 @@ public class AllenMStickSpec {
 		this.mAxis = mAxis;
 	}
 
-
-
-
-
-
+    @Override
+    public String toString() {
+        return "AllenMStickSpec{" +
+                "mAxis=" + mAxis +
+                ", vertex=" + vertex +
+                ", animation=" + animation +
+                ", compPosTanStr='" + compPosTanStr + '\'' +
+                '}';
+    }
 }

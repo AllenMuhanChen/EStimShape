@@ -92,17 +92,17 @@ public class EventUtil {
 	}
 
 	public static void fireSlideOnEvent(int index, long timestamp,
-			List<? extends SlideEventListener> slideEventListeners) {
+										List<? extends SlideEventListener> slideEventListeners, long taskId) {
 		for (SlideEventListener listener : slideEventListeners) {
-			listener.slideOn(index, timestamp);
+			listener.slideOn(index, timestamp, taskId);
 		}
 	}
 
 	public static void fireSlideOffEvent(int index, long timestamp,
-			int frameCount,
-			List<? extends SlideEventListener> slideEventListeners) {
+										 int frameCount,
+										 List<? extends SlideEventListener> slideEventListeners, long taskId) {
 		for (SlideEventListener listener : slideEventListeners) {
-			listener.slideOff(index, timestamp, frameCount);
+			listener.slideOff(index, timestamp, frameCount, taskId);
 		}
 	}
 

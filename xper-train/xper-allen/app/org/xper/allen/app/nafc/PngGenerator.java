@@ -1,14 +1,12 @@
 package org.xper.allen.app.nafc;
 
-import java.util.Arrays;
-
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.PngBlockGen;
 import org.xper.util.FileUtil;
+import org.xper.allen.nafc.blockgen.PngBlockGen;
 
 /**
  * callMain function for reading an XML file of stimuli specifications and inputs them into the database.
- * @param file path for xml file
+ *
  */
 public class PngGenerator {
 	public static void main(String[] args) {

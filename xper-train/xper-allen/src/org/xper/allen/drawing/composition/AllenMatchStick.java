@@ -2,11 +2,7 @@ package org.xper.allen.drawing.composition;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
@@ -21,18 +17,15 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphPara
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.allen.util.CoordinateConverter;
+import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.stick.EndPt_struct;
-import org.xper.drawing.stick.JuncPt_struct;
-import org.xper.drawing.stick.MAxisArc;
-import org.xper.drawing.stick.MStickObj4Smooth;
-import org.xper.drawing.stick.MatchStick;
-import org.xper.drawing.stick.stickMath_lib;
+import org.xper.drawing.stick.*;
 import org.xper.utils.RGBColor;
 
 /**
  * MatchStick class with ability to make deep clones and manipulations of shapes
- * 
+ *
  * @author r2_allen
  *
  */
@@ -49,7 +42,7 @@ public class AllenMatchStick extends MatchStick {
 		AllenMatchStick other = (AllenMatchStick) obj;
 		if (!Arrays.equals(JuncPt, other.JuncPt))
 			return false;
-		if (!Arrays.equals(LeafBranch, other.LeafBranch))
+		if (!Arrays.equals(getLeafBranch(), other.getLeafBranch()))
 			return false;
 		if (baseComp != other.baseComp)
 			return false;
@@ -87,20 +80,21 @@ public class AllenMatchStick extends MatchStick {
 	protected EndPt_struct[] endPt = new EndPt_struct[50];
 	private JuncPt_struct[] JuncPt = new JuncPt_struct[50];
 	private MStickObj4Smooth obj1;
-	protected boolean[] LeafBranch = new boolean[10];
+	private boolean[] LeafBranch = new boolean[10];
 
-	protected final double PROB_addToEndorJunc = 1; // 50% add to end or
+	private final double PROB_addToEndorJunc = 1; // 50% add to end or
 	// junction pt, 50% to the
 	// branch
-	protected final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
+	private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
 	// 50% add to end, 50%
 	// add to junc
-	protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
+	private final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
 	protected final double[] finalRotation = new double[3];
 	private double minScaleForMAxisShape;
 
-	protected final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
-	private final double TangentSaveZone = Math.PI/64;
+	private final double[] PARAM_nCompDist = {0, 1, 0, 0, 0.0, 0.0, 0.0, 0.0 };
+//	private final double TangentSaveZone = Math.PI/64;
+	private final double TangentSaveZone = Math.PI/6.0;
 
 	//AC ADDITIONS
 	private List<Integer> specialEnd = new ArrayList<Integer>();
@@ -128,7 +122,7 @@ public class AllenMatchStick extends MatchStick {
 		 * AC: This thread sleep is NECESSARY. Without it, there are serious
 		 * graphical glitches with the first saved image drawn. My guess is that
 		 * there is some multithreaded stuff in init() (openGL?) that didn't have
-		 * time to finish before drawSkeleton() is called. 
+		 * time to finish before drawSkeleton() is called.
 		 */
 		try {
 			Thread.sleep(100);
@@ -214,10 +208,9 @@ public class AllenMatchStick extends MatchStick {
 
 	public void drawSkeleton() {
 		int i;
-		boolean showComponents = false;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
-				float[][] colorCode= {  
+				float[][] colorCode= {
 						{1.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 0.0f},
 						{0.0f, 1.0f, 0.0f},
@@ -225,7 +218,7 @@ public class AllenMatchStick extends MatchStick {
 						{0.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 1.0f},
 						{1.0f, 1.0f, 0.0f},
-						{0.4f, 0.1f, 0.6f} 
+						{0.4f, 0.1f, 0.6f}
 				};
 
 
@@ -233,6 +226,17 @@ public class AllenMatchStick extends MatchStick {
 			}
 		else
 			getObj1().drawVect();
+	}
+
+	public void drawGhost(){
+		GL11.glShadeModel(GL11.GL_SMOOTH);
+		GL11.glEnable(GL11.GL_AUTO_NORMAL);   // Automatic normal generation when doing NURBS, if not enabled we have to provide the normals ourselves if we want to have a lighted image (which we do).
+		GL11.glEnable(GL11.GL_POLYGON_SMOOTH);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_SRC_ALPHA);
+
+		initLight();
+		getObj1().drawVectTranslucent(0.5F);
 	}
 
 
@@ -331,7 +335,7 @@ public class AllenMatchStick extends MatchStick {
 
 	/**
 	 * replace one of the component with a total new tube
-	 * 
+	 *
 	 * But controlling the angle the new tube can be - Allen Chen
 	 */
 	protected boolean replaceComponent(int id, boolean maintainTangent) {
@@ -384,7 +388,7 @@ public class AllenMatchStick extends MatchStick {
 					// store back to old condition
 					this.copyFrom(old_MStick);
 					// random get a new MAxisArc
-					nowArc = new AllenMAxisArc();
+					nowArc = newArc();
 					nowArc.genArcRand();
 
 					Vector3d finalTangent = new Vector3d();
@@ -582,6 +586,11 @@ public class AllenMatchStick extends MatchStick {
 			System.out.println("successfully replace a tube");
 		return true;
 	}
+
+	@Override
+	protected AllenMAxisArc newArc() {
+		return new AllenMAxisArc();
+	}
 	/*
 	protected void cleanData()
 	{
@@ -617,7 +626,7 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			if(success){
 				boolean res;
 				try{
@@ -634,6 +643,42 @@ public class AllenMatchStick extends MatchStick {
 		}
 		return false;
 
+	}
+
+	protected void positionShape() {
+//		centerShapeAtOrigin(getSpecialEndComp().get(0));
+		centerCenterOfMassAtOrigin();
+	}
+
+	/**
+	 *   A function that will put the center of comp1 back to origin
+	 */
+	public void centerCenterOfMassAtOrigin()
+	{
+		Point3d origin = new Point3d(0.0, 0.0, 0.0);
+
+		Point3d centerOfMass = getMassCenter();
+		Vector3d shiftVec = new Vector3d();
+		shiftVec.sub(origin, centerOfMass);
+		if ( origin.distance(centerOfMass) > 0.001)
+		{
+			applyTranslation(shiftVec);
+		}
+	}
+
+	public Point3d getMassCenter(){
+		Point3d cMass = new Point3d();
+		int totalVect = 0;
+		for (int i=1; i<=getnComponent(); i++)
+		{
+			totalVect += getComp()[i].getnVect();
+			for (int j=1; j<= getComp()[i].getnVect(); j++)
+				cMass.add(getComp()[i].getVect_info()[j]);
+		}
+		cMass.x /= totalVect;
+		cMass.y /= totalVect;
+		cMass.z /= totalVect;
+		return cMass;
 	}
 
 	protected boolean qualitativeMorphComponent(int id, QualitativeMorphParams qmp)
@@ -717,7 +762,7 @@ public class AllenMatchStick extends MatchStick {
 						}
 						else {
 							radProfileJuncIndx = 2;
-							radProfileEndIndx = 0;			
+							radProfileEndIndx = 0;
 						}
 					}
 				}
@@ -738,7 +783,7 @@ public class AllenMatchStick extends MatchStick {
 		if(qmp.curvatureRotationFlag) {
 			qmp.curvRotQualMorph.loadParams(getComp()[id].getmAxisInfo().getRad(), getComp()[id].getmAxisInfo().getTransRotHis_devAngle());
 			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo().getArcLen(),getComp()[id].getmAxisInfo());
-		} // Curvature Rotation 
+		} // Curvature Rotation
 
 
 		//SIZE: LENGTH & THICKNESS
@@ -776,7 +821,7 @@ public class AllenMatchStick extends MatchStick {
 
 					JuncPtFlg[i] = true;
 
-					if(positionFlag) { 
+					if(positionFlag) {
 						//This junction point is an end point of the target leaf
 						if(getJuncPt()[i].getuNdx()[j] == 51 || getJuncPt()[i].getuNdx()[j] == 1) {
 							//We need to change the uNdx of the limb the morphed limb is attached to
@@ -788,13 +833,13 @@ public class AllenMatchStick extends MatchStick {
 							//The endPt's pos is automatically updated later in the code by using the position of the mAxis.
 							//ALL we needed to do is update the info about the base comp since that is not updated later, and add any new juncs or end points
 						}
-						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point 
+						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point
 						else {
 							//We can just change its position
 							getJuncPt()[i].getuNdx()[j] = newPosition;
 							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
 							qmp.objCenteredPosQualMorph.setNewPositionCartesian(new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[newPosition]));
-							//Later code will handle assigning this JuncPt's pos 
+							//Later code will handle assigning this JuncPt's pos
 						}
 						targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 					}else {
@@ -835,7 +880,7 @@ public class AllenMatchStick extends MatchStick {
 					boolean tangentFlg = true;
 					Vector3d nowTangent = new Vector3d();
 					for (i=1; i<=getnJuncPt(); i++)
-						if ( JuncPtFlg[i] == true)
+						if (JuncPtFlg[i])
 						{
 							int uNdx = targetUNdx[i];
 							boolean midBranchFlg = false;
@@ -858,7 +903,7 @@ public class AllenMatchStick extends MatchStick {
 									nowTangent = getJuncPt()[i].getTangent()[j]; // soft copy is fine here
 									if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) // angle btw the two tangent vector
 										tangentFlg = false;
-									if ( midBranchFlg == true)
+									if (midBranchFlg)
 									{
 										finalTangent.negate();
 										if ( nowTangent.angle(finalTangent) <= getTangentSaveZone() ) //
@@ -869,12 +914,12 @@ public class AllenMatchStick extends MatchStick {
 						}
 
 					// still valid after all tangent check
-					if (tangentFlg == true) 
+					if (tangentFlg)
 						break;
 					else
 					{
 
-						if ( showDebug)
+						if (showDebug)
 							System.out.println("didn't pass check tagent Zone in fine tune");
 					}
 					if (tangentTrialTimes > 100)
@@ -886,7 +931,7 @@ public class AllenMatchStick extends MatchStick {
 				//update the information of the related JuncPt
 				Vector3d finalTangent = new Vector3d();
 				for (i=1; i<= getnJuncPt(); i++)
-					if (JuncPtFlg[i] == true)
+					if (JuncPtFlg[i])
 					{
 						int nowUNdx = targetUNdx[i];
 						finalTangent.set(nowArc.getmTangent()[nowUNdx]);
@@ -1004,7 +1049,7 @@ public class AllenMatchStick extends MatchStick {
 						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
 					success_process = false;
 				}
-				centerShapeAtOrigin(getSpecialEndComp().get(0));
+				positionShape();
 				if ( this.validMStickSize() ==  false)
 				{
 					if ( showDebug)
@@ -1071,7 +1116,7 @@ public class AllenMatchStick extends MatchStick {
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
 							if(qmp.radProfileQualMorph.isJuncFlag()) {
-								nowNormalizedValue[2][1] = qmp.radProfileQualMorph.getNewJunc(); 
+								nowNormalizedValue[2][1] = qmp.radProfileQualMorph.getNewJunc();
 							}
 							nowRad = nowNormalizedValue[2][1] * radiusScale;
 							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
@@ -1080,7 +1125,7 @@ public class AllenMatchStick extends MatchStick {
 						else // middle u value
 						{
 							if(qmp.radProfileQualMorph.isJuncFlag()) {
-								nowNormalizedValue[1][1] = qmp.radProfileQualMorph.getNewJunc(); 
+								nowNormalizedValue[1][1] = qmp.radProfileQualMorph.getNewJunc();
 							}
 							nowRad = nowNormalizedValue[1][1] * radiusScale;
 							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
@@ -1118,7 +1163,7 @@ public class AllenMatchStick extends MatchStick {
 				}
 		}
 
-		//set new value at end Pt 
+		//set new value at end Pt
 		for (i=1; i<= getnEndPt(); i++)
 			if (getEndPt()[i].getComp() == targetComp)
 			{
@@ -1135,7 +1180,7 @@ public class AllenMatchStick extends MatchStick {
 				int nowComp = targetComp;
 				//rMin = 0.00001; // as small as you like
 				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
-				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims. 
+				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims.
 				// retrive the oriValue
 				double oriRad;
 				if ( getEndPt()[i].getuNdx() == 1) {
@@ -1196,7 +1241,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	/**
-	 * Apply radius, do tube collision check, center at origin, and smoothize. 
+	 * Apply radius, do tube collision check, center at origin, and smoothize.
 	 * @return
 	 */
 	public boolean postProcessMatchStick() {
@@ -1262,7 +1307,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			if(success){
 				boolean res;
 				try{
@@ -1284,7 +1329,7 @@ public class AllenMatchStick extends MatchStick {
 	/**
     Derived from fineTuneComponent()
 
-    AC: Modifications to keep finetunes to metric changes only. 
+    AC: Modifications to keep finetunes to metric changes only.
     	orientation of limb
     	length of limb
     	radius of limb (not changing radius profile)
@@ -1317,7 +1362,7 @@ public class AllenMatchStick extends MatchStick {
 
 					JuncPtFlg[i] = true;
 
-					if(mmp.positionFlag) { 
+					if(mmp.positionFlag) {
 						//We need to find the Junc_index for the comp that the morphigng limb is attached to
 						int baseJuncNdx=0;
 						//If we've specified a comp to be the base that this limb moves along
@@ -1354,7 +1399,7 @@ public class AllenMatchStick extends MatchStick {
 
 							//We need to change the uNdx of the limb the morphed limb is attached to
 							getJuncPt()[i].getuNdx()[baseJuncNdx] = nowPosition;
-							//Move our current junction point to a new location	
+							//Move our current junction point to a new location
 							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
 
 							//We let the mAxis code know the new position through this mmp object
@@ -1363,13 +1408,13 @@ public class AllenMatchStick extends MatchStick {
 							//The endPt's pos is automatically updated later in the code by using the position of the mAxis.
 							//ALL we needed to do is update the info about the base comp since that is not updated later, and add any new juncs or end points
 						}
-						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point 
+						//This is a middle point of the target leaf- the only this is possible is if this leaf is attached to the end of another limb through this leaf's branch point
 						else {
 							//We can just change its position
 							getJuncPt()[i].getuNdx()[j] = nowPosition;
 							//JuncPt[i].pos = new Point3d(comp[baseComp].mAxisInfo.mPts[nowPosition]);
 							mmp.positionMagnitude.newPos = new Point3d(getComp()[getBaseComp()].getmAxisInfo().getmPts()[nowPosition]);
-							//Later code will handle assigning this JuncPt's pos 
+							//Later code will handle assigning this JuncPt's pos
 						}
 						targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 					}else {
@@ -1389,8 +1434,10 @@ public class AllenMatchStick extends MatchStick {
 		AllenMatchStick old_MStick = new AllenMatchStick();
 		old_MStick.copyFrom(this);
 
+		// Radius Changes
 		while (true)
 		{
+			// anything that changes the skeleton
 			while(true)
 			{
 				//GENERATE A NEW ARC WITH NEW TANGENT (that is checked by TangentSaveZone)
@@ -1444,7 +1491,7 @@ public class AllenMatchStick extends MatchStick {
 						}
 
 					// still valid after all tangent check
-					if (tangentFlg == true) 
+					if (tangentFlg == true)
 						break;
 					else
 					{
@@ -1602,7 +1649,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf) {
-		double[] nCompDist = PARAM_nCompDist;
+		double[] nCompDist = getPARAM_nCompDist();
 		int nComp = stickMath_lib.pickFromProbDist(nCompDist);
 
 		// debug
@@ -1613,7 +1660,7 @@ public class AllenMatchStick extends MatchStick {
 		int i=0; //Number of times tried to generate a comp and smoothize it
 		boolean compSuccess = false;
 		while (i<2) {
-			int j=0; //Number of times tried to generate a comp. 
+			int j=0; //Number of times tried to generate a comp.
 			this.cleanData();
 			while (j<10) {
 				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf) == true){
@@ -1622,6 +1669,7 @@ public class AllenMatchStick extends MatchStick {
 				}
 				else {
 					j++;
+//					System.out.println("Attempt "+j + " to generate comp");
 				}
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
@@ -1642,7 +1690,7 @@ public class AllenMatchStick extends MatchStick {
 
 			//TRY SMOOTHING THE SHAPE
 
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 			boolean smoothSuccess = false;
 			if(compSuccess){
 
@@ -1778,7 +1826,7 @@ public class AllenMatchStick extends MatchStick {
 				}
 		}
 
-		//set new value at end Pt 
+		//set new value at end Pt
 		for (i=1; i<= getnEndPt(); i++)
 			if (getEndPt()[i].getComp() == targetComp)
 			{
@@ -1795,7 +1843,7 @@ public class AllenMatchStick extends MatchStick {
 				int nowComp = targetComp;
 				//rMin = 0.00001; // as small as you like
 				//rMax = Math.min( comp[nowComp].mAxisInfo.arcLen / 3.0, 0.5 * comp[nowComp].mAxisInfo.rad);
-				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims. 
+				//double[] rangeFractions = {0, 0.1}; //AC: modulate new rad profile lims.
 				// retrive the oriValue
 				double oriRad;
 				if ( getEndPt()[i].getuNdx() == 1)
@@ -1863,8 +1911,8 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	/**
-	 * special end: endPt of a leaf that should never be in a E2E, E2J, E2B etc.. 
-	 * specialEndComp: comp of the leaf that this end belongs to. 
+	 * special end: endPt of a leaf that should never be in a E2E, E2J, E2B etc..
+	 * specialEndComp: comp of the leaf that this end belongs to.
 	 */
 
 	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf){
@@ -1877,7 +1925,6 @@ public class AllenMatchStick extends MatchStick {
 		}
 
 		//STARTING LEAF
-
 		getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 		double PROB_addToBaseEndNotBranch = 1;
 		int add_trial = 0;
@@ -1994,7 +2041,7 @@ public class AllenMatchStick extends MatchStick {
 		}
 		///////////////////////////////////////////////////////////////////////////
 		//ADD ACCESSORY LIMBS - FOLLOWS SPECIAL RULES
-		/////////////////////////////////////////////////////////////////////////// 
+		///////////////////////////////////////////////////////////////////////////
 		add_trial = 0;
 		double randNdx;
 		addSuccess = false;
@@ -2003,16 +2050,16 @@ public class AllenMatchStick extends MatchStick {
 			if ( showDebug)
 				System.out.println("adding new MAxis on, now # " +  nowComp);
 			randNdx = stickMath_lib.rand01();
-			if (randNdx < PROB_addToEndorJunc)
+			if (randNdx < getPROB_addToEndorJunc())
 			{
-				if (getnJuncPt() == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
+				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
 					addSuccess = Add_AccessoryMStick(nowComp, 1);
 				else
 					addSuccess = Add_AccessoryMStick(nowComp, 2);
 			}
 			else
 			{
-				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
+				if (stickMath_lib.rand01() < getPROB_addTiptoBranch())
 					addSuccess = Add_AccessoryMStick(nowComp, 3);
 				else
 					addSuccess = Add_AccessoryMStick(nowComp, 4);
@@ -2052,6 +2099,7 @@ public class AllenMatchStick extends MatchStick {
 
 		if ( this.validMStickSize() ==  false)
 		{
+//			System.err.println("FAIL AT VALIDSIZE");
 			if ( showDebug)
 				System.out.println("\n FAIL the MStick size check ....\n");
 			return false;
@@ -2068,7 +2116,7 @@ public class AllenMatchStick extends MatchStick {
 	protected boolean Add_BaseMStick(int nowComp, int type) {
 		boolean showDebug = false;
 		//Base System: a single leaf is pre-defined to have one end and one juncion. The base is formed by adding to this junction
-		//point, either E2J or B2J. 
+		//point, either E2J or B2J.
 		//Add a new component to an existing MStick (there should only be one MStick)
 		//1. type==1: E2J (Add end to end onto the end that used to be a junction)
 		//2. type==2: B2J (Add a branch pt on the new BaseMStick and add the end that used to be a junction)
@@ -2283,7 +2331,7 @@ public class AllenMatchStick extends MatchStick {
 			getComp()[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
 
 			// 2.5 call the function to check if this new arc is valid
-			if (this.checkSkeletonNearby(nowComp) == true)
+			if (checkSkeletonNearby(nowComp))
 			{
 				getJuncPt()[getnJuncPt()] = null;
 				setnJuncPt(getnJuncPt() - 1);
@@ -2351,7 +2399,7 @@ public class AllenMatchStick extends MatchStick {
 		else if (type == 3) //end-to-branch connection
 		{
 
-			// 1. select a existing comp that is not the special comp. 
+			// 1. select a existing comp that is not the special comp.
 			int pickedComp;
 			int nTries=0;
 			while(true)
@@ -2516,12 +2564,16 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
+	public void genMatchStickRandSuper(){
+		super.genMatchStickRand();
+	}
+
 	public void genMatchStickRand() {
 		int nComp;
-		// double nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
-		// double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
+//		 double[] nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
+//		 double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
 		// double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
-		double[] nCompDist = this.PARAM_nCompDist;
+		double[] nCompDist = getPARAM_nCompDist();
 		nComp = stickMath_lib.pickFromProbDist(nCompDist);
 		// nComp = 2;
 
@@ -2534,8 +2586,10 @@ public class AllenMatchStick extends MatchStick {
 		while (true) {
 
 			while (true) {
-				if (genMatchStick_comp(nComp) == true)
+//				System.err.println("Try Rand");
+				if (genMatchStick_comp(nComp) == true) {
 					break;
+				}
 				// else
 				// System.out.println(" Attempt to gen shape fail. try again");
 			}
@@ -2553,7 +2607,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			centerShapeAtOrigin(getSpecialEndComp().get(0));
+			positionShape();
 
 			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth
@@ -2570,7 +2624,7 @@ public class AllenMatchStick extends MatchStick {
 	/**
     genMatchStick with nComp components
     The first component generated is set as the baseComp
-    The rest of the components are all set as special ends. 
+    The rest of the components are all set as special ends.
 	 */
 	public boolean genMatchStick_comp(int nComp)
 	{
@@ -2596,22 +2650,22 @@ public class AllenMatchStick extends MatchStick {
 			if ( showDebug)
 				System.out.println("adding new MAxis on, now # " +  nowComp);
 			randNdx = stickMath_lib.rand01();
-			if (randNdx < PROB_addToEndorJunc)
+			if (randNdx < getPROB_addToEndorJunc())
 			{
-				if (getnJuncPt() == 0 || stickMath_lib.rand01() < PROB_addToEnd_notJunc)
+				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
 					addSuccess = Add_MStick(nowComp, 1);
 				else
 					addSuccess = Add_MStick(nowComp, 2);
 			}
 			else
 			{
-				if (stickMath_lib.rand01() < PROB_addTiptoBranch)
+				if (stickMath_lib.rand01() < getPROB_addTiptoBranch())
 					addSuccess = Add_MStick(nowComp, 3);
 				else
 					addSuccess = Add_MStick(nowComp, 4);
 			}
 			if (addSuccess == true) { // otherwise, we'll run this while loop again, and re-generate this component
-				getSpecialEndComp().add(nowComp); //we add this as specialEndComp so we can create a noisemap for it. 
+				getSpecialEndComp().add(nowComp); //we add this as specialEndComp so we can create a noisemap for it.
 				nowComp ++;
 			}
 			if (nowComp == nComp+1)
@@ -2970,7 +3024,7 @@ Adding a new MAxisArc to a MatchStick
 		decideLeafBranch();
 		List<Integer> choosableList = new LinkedList<Integer>();
 		for (int i = 0; i < getnComponent(); i++) {
-			if (LeafBranch[i] == true) {
+			if (getLeafBranch()[i] == true) {
 				choosableList.add(i);
 			}
 		}
@@ -2980,12 +3034,12 @@ Adding a new MAxisArc to a MatchStick
 
 	public boolean vetLeaf(int leafIndx) {
 		try {
-			
+
 			AllenTubeComp toVet = this.getComp()[leafIndx];
 			Vector3d tangent = toVet.getmAxisInfo().getmTangent()[toVet.getmAxisInfo().getTransRotHis_rotCenter()];
 			boolean orientationCheck = vetLeafOrientation(tangent);
 			return orientationCheck;
-			
+
 		} catch (Exception e) {
 			return false;
 		}
@@ -3005,10 +3059,10 @@ Adding a new MAxisArc to a MatchStick
 	}
 
 	/**
-	 * 
+	 *
 	 * @param angles: angles[0]: alpha/theta; angles[1]: beta/phi in spherical coordinates
 	 * alpha/theta: angle of projection to x-y plane. Angle from x axis to y-axis
-	 * beta/psi: angle between vector and z-axis. 
+	 * beta/psi: angle between vector and z-axis.
 	 * @return
 	 */
 	private boolean isLeafTooBackFacing(double[] angles) {
@@ -3033,21 +3087,21 @@ Adding a new MAxisArc to a MatchStick
 	/**
 	 * function check if the MStick is inside a BOX or not <BR>
 	 * ( to prevent a shape extend too much outside one dimension)
-	 * 
+	 *
 	 * ADDED BY Allen Chen: checks if too small as well.
 	 * Change detection to see if any of the vec points are outside the box rather than
-	 * using radius method. 
+	 * using radius method.
 	 */
 
 	protected boolean validMStickSize() {
-		
+
 		double maxRadius = getScaleForMAxisShape(); // degree
 		double screenDist = 500;
 		double minRadius = getMinScaleForMAxisShape();
 		double maxBoundInMm = screenDist * Math.tan(maxRadius * Math.PI / 180 / 2);
 		double minBoundInMm = screenDist * Math.tan(minRadius * Math.PI / 180 / 2);
 		int i, j;
-		
+
 		//Point3d ori = new Point3d(0.0, 0.0, 0.0);
 		//double dis;
 		//double maxDis = 0;
@@ -3063,12 +3117,12 @@ Adding a new MAxisArc to a MatchStick
 				//dis = comp[i].vect_info[j].distance(ori);
 
 				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
-//					System.err.println("AC:71923: TOO BIG");
+//					System.err.println("TOO BIG");
 //					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
 				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
-//					System.err.println("AC:71923: TOO BIG");
+//					System.err.println("TOO BIG");
 //					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
 					return false;
 				}
@@ -3078,7 +3132,8 @@ Adding a new MAxisArc to a MatchStick
 					maxY = Math.abs(yLocation);
 			}
 		}
-		if (maxX < minBoundInMm || maxY < minBoundInMm) {
+		if (maxX < minBoundInMm && maxY < minBoundInMm) {
+//			System.err.println("TOO SMALL");
 //			System.out.println("AC:71923: " + maxX);
 //			System.out.println("AC:71923: " + maxY);
 			return false;
@@ -3127,12 +3182,12 @@ Adding a new MAxisArc to a MatchStick
 			getJuncPt()[i] = new JuncPt_struct();
 			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
-		this.setObj1(in.getObj1()); 
+		this.setObj1(in.getObj1());
 
 		for (i=1; i<=getnComponent(); i++)
-			LeafBranch[i] = in.LeafBranch[i];
+			getLeafBranch()[i] = in.getLeafBranch()[i];
 	}
-	
+
 
 
 	public void genMatchStickFromFile(String fname, double[] rotation) {
@@ -3202,6 +3257,38 @@ Adding a new MAxisArc to a MatchStick
 		genMatchStickFromShapeSpec(inSpec, new double[] {0,0,0});
 	}
 
+	public void genAllenMatchStickFromMatchStickFile(String fname){
+		String in_specStr;
+		StringBuffer fileData = new StringBuffer(100000);
+		try
+		{
+			BufferedReader reader = new BufferedReader(
+					new FileReader(fname));
+			char[] buf = new char[1024];
+			int numRead=0;
+			while((numRead=reader.read(buf)) != -1){
+				String readData = String.valueOf(buf, 0, numRead);
+				//System.out.println(readData);
+				fileData.append(readData);
+				buf = new char[1024];
+
+			}
+			reader.close();
+		}
+		catch (Exception e)
+		{
+			System.out.println("error in read XML spec file");
+			System.out.println(e);
+		}
+
+		in_specStr = fileData.toString();
+
+		MStickSpec inSpec = new MStickSpec();
+		inSpec = MStickSpec.fromXml(in_specStr);
+
+		super.genMatchStickFromShapeSpec(inSpec, new double[] {0,0,0});
+	}
+
 
 	/**
 	 *    genMatchStickFrom spec data
@@ -3211,7 +3298,7 @@ Adding a new MAxisArc to a MatchStick
 	{
 		// i can't see how inSpec is changed by this function
 		//but it seems to be the case........
-		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos. 
+		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos.
 		cleanData();
 
 		// 1. general info
@@ -3220,7 +3307,7 @@ Adding a new MAxisArc to a MatchStick
 		int i, j, k;
 
 		// 1.5 AC Info
-		setSpecialEnd(inSpec.getmAxis().getSpecialEnd());
+		setSpecialEnd(new LinkedList<>(inSpec.getmAxis().getSpecialEnd()));
 		setSpecialEndComp(inSpec.getmAxis().getSpecialEndComp());
 		setBaseComp(inSpec.getmAxis().getBaseComp());
 
@@ -3239,19 +3326,19 @@ Adding a new MAxisArc to a MatchStick
 					// System.out.print(comp[i].radInfo[j][k] + " " );
 				}
 			//System.out.println(" " );
+
 			getComp()[i].getmAxisInfo().setArcLen(inSpec.getmAxis().getTube()[i].getmAxis_arcLen());
 			getComp()[i].getmAxisInfo().setRad(inSpec.getmAxis().getTube()[i].getmAxis_rad());
 			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());
 			//System.out.println("branchPt " + comp[i].mAxisInfo.branchPt);
 
-			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt()); 
+			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt());
 			getComp()[i].getmAxisInfo().setTransRotHis_rotCenter(inSpec.getmAxis().getTube()[i].getTransRotHis_rotCenter());
 			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().set(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
 			//getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
 			getComp()[i].getmAxisInfo().getTransRotHis_finalTangent().set(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
 			//getComp()[i].getmAxisInfo().setTransRotHis_finalTangent(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
 			getComp()[i].getmAxisInfo().setTransRotHis_devAngle(inSpec.getmAxis().getTube()[i].getTransRotHis_devAngle());
-
 		}
 
 		// 3. endPt info
@@ -3325,7 +3412,14 @@ Adding a new MAxisArc to a MatchStick
 		// again, or we should do it!
 		//        this.finalRotateAllPoints( finalRotation[0], finalRotation[1], finalRotation[2]);
 
-		boolean res = smoothizeMStick();
+		boolean res;
+		try {
+			res = smoothizeMStick();
+		} catch (NullPointerException e) {
+			res = true;
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		if ( res == false) {
 			System.out.println("Fail to smooth while using info from a shapeSpec");
 			System.out.println("THIS SHOULD NOT HAPPEN");
@@ -3351,33 +3445,33 @@ Adding a new MAxisArc to a MatchStick
 		if ( res == true)
 		{
 			return;
-			//            if ( inSpec.getNVect() < 10) // this might happen, not sure
-			//            {
-			////                System.out.println("no old smooth vertex info yet");
-			//                return;
-			//            }
-			//            Point3d[] oriVecList = inSpec.getVectInfo();
-			//            double vect_dist = 0.0;
-			//            int nVect1 = this.obj1.nVect;
-			//            int nVect2 = inSpec.getNVect();
-			//            System.out.println("      vec # check " + nVect1 + " " + nVect2);
-			//            if ( nVect1 != nVect2)
-			//            {
-			//                res = false;
-			//                System.out.println("            vec # unmatch");
-			//            }
-			//            if ( res == true)
-			//            {
-			//                for (i= 1; i<= this.obj1.nVect; i++)
-			//                {
-			//                    Point3d p1 = new Point3d(obj1.vect_info[i]);
-			//                    Point3d p2 = oriVecList[i];
-			//                    vect_dist += p1.distance(p2);
-			//                }
-			//                System.out.println("            total vect dist is :" + vect_dist);
-			//                if ( vect_dist > 5.0)
-			//                    res = false;
-			//            }
+//			            if ( inSpec.getNVect() < 10) // this might happen, not sure
+//			            {
+//			//                System.out.println("no old smooth vertex info yet");
+//			                return;
+//			            }
+//			            Point3d[] oriVecList = inSpec.getVectInfo();
+//			            double vect_dist = 0.0;
+//			            int nVect1 = this.obj1.nVect;
+//			            int nVect2 = inSpec.getNVect();
+//			            System.out.println("      vec # check " + nVect1 + " " + nVect2);
+//			            if ( nVect1 != nVect2)
+//			            {
+//			                res = false;
+//			                System.out.println("            vec # unmatch");
+//			            }
+//			            if ( res == true)
+//			            {
+//			                for (i= 1; i<= this.obj1.nVect; i++)
+//			                {
+//			                    Point3d p1 = new Point3d(obj1.vect_info[i]);
+//			                    Point3d p2 = oriVecList[i];
+//			                    vect_dist += p1.distance(p2);
+//			                }
+//			                System.out.println("            total vect dist is :" + vect_dist);
+//			                if ( vect_dist > 5.0)
+//			                    res = false;
+//			            }
 		}
 
 		boolean tryFlip = true;
@@ -3419,7 +3513,7 @@ Adding a new MAxisArc to a MatchStick
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = getObj1().nVect;
+					int nVect1 = getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -3429,7 +3523,7 @@ Adding a new MAxisArc to a MatchStick
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -3533,7 +3627,7 @@ Adding a new MAxisArc to a MatchStick
 					{
 						Point3d[] oriVecList = inSpec.getVectInfo();
 						double vect_dist = 0.0;
-						int nVect1 = getObj1().nVect;
+						int nVect1 = getObj1().getnVect();
 						int nVect2 = inSpec.getNVect();
 						System.out.println("vec # check " + nVect1 + " " + nVect2);
 						if ( nVect1 != nVect2)
@@ -3543,7 +3637,7 @@ Adding a new MAxisArc to a MatchStick
 						}
 						if ( res == true)
 						{
-							for (i= 1; i<= getObj1().nVect; i++)
+							for (i= 1; i<= getObj1().getnVect(); i++)
 							{
 								Point3d p1 = new Point3d(getObj1().vect_info[i]);
 								Point3d p2 = oriVecList[i];
@@ -3634,7 +3728,7 @@ Adding a new MAxisArc to a MatchStick
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = this.getObj1().nVect;
+					int nVect1 = this.getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -3644,7 +3738,7 @@ Adding a new MAxisArc to a MatchStick
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -3813,12 +3907,13 @@ Adding a new MAxisArc to a MatchStick
          * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
          * to be approx half the size.
          */
-        double scale = maxImageDimensionDegrees /1.5;
-        double minScale = maxImageDimensionDegrees /2.5;
+//        double scale = maxImageDimensionDegrees /1.5;
+		double scale = maxImageDimensionDegrees;
+        double minScale = scale/2;
         setScale(minScale, scale);
 
         //CONTRAST
-        double contrast = 1;
+        double contrast = 0.5;
         setContrast(contrast);
 
         //COLOR
@@ -3829,4 +3924,405 @@ Adding a new MAxisArc to a MatchStick
         setTextureType("SHADE");
 
     }
+
+	/**
+	 A public function that will start generating an offspring of this existing shape
+	 The parent is the current shape.
+	 The result will be stored in this object
+
+	  While we've not reached a legal specified mutation
+	  	1. Decide if we're going to add or remove limbs
+
+	  	2. Determines which limbs are leafs and which are not
+
+	  	3. Decides for each limb, whether to do nothing, replace whole, do a fine change, or remove it
+	  	Probability depends on whether the limb is a leaf or not (we shouldn't remove a center limb or completely replace it)
+
+	  	4. Checks if the number of changes that are occuring is not too big or small
+	  	IF everything is fine, we break out of the loop
+
+
+	  Mutation Process Loop (If at any point, a mutation fails, we retry)
+	  	1. Make a backup of the specified changes
+
+	  	2. Removal mutations
+
+	  	3. Whole change mutations
+	  	4. Fine change mutations
+
+	  	5. Add mutations - local loop to try multiple times
+
+	  	6. Mutate junction radii
+
+	  Post - Process
+
+	  	1. Check size of mstick
+
+	  	2. Change final rotation
+
+	  	3. Smoothize
+
+	 */
+	public boolean mutate(int debugParam) {
+		final int MaxMutateTryTimes = 10;
+		final int MaxAddTubeTryTimes = 15;
+		final int MaxCompNum = 4;
+		final int MinCompNum = 2;
+		final int MaxDeletionNum = 1;
+
+		// 4 possible task for each tube
+		// [ 1.nothing 2.replace whole 3. fine chg 4. Remove it]
+		// The distribution will be different for center & leaf stick
+		double[] prob_leaf = {0.4, 0.6, 0.8, 1.0};
+		//double[] prob_center = {0.6, 0.8, 1.0, 1.0};
+		double[] prob_center = {0.6, 0.6, 1.0, 1.0};
+		double[] prob_addNewTube = { 0.3333, 0.6666, 1.0}; // 1/3 no add , 1/3 add 1, 1/3 add 2 tubes
+
+		if ( this.getnComponent() <=3) {
+			prob_addNewTube[0] = 0.3;
+			prob_addNewTube[1] = 1.0;
+		} else if ( this.getnComponent() >=4 && this.getnComponent() <=5) {
+			prob_addNewTube[0] = 0.5;
+			prob_addNewTube[1] = 1.0;
+		} else if ( this.getnComponent() >=6) {
+			prob_addNewTube[0] = 0.7;
+			prob_addNewTube[1] = 1.0;
+		}
+
+		this.decideLeafBranch();
+
+		int i;
+		int old_nComp;
+		int[] task4Tube = new int[getnComponent()+1];
+		int[] task4Tube_backup = new int[getnComponent()+1];
+		int nAddTube, nRemoveTube, nResultTube;
+		// 1. decide what kind of modification should go on
+		int nChgTotal;
+		int minChgTotal = 2;
+		int maxChgTotal = 3;
+		while (true) {
+			boolean noChgFlg = true;
+			for (i=1; i<=getnComponent(); i++) {
+				if (getLeafBranch()[i] == true)
+					task4Tube[i] = stickMath_lib.pickFromProbDist(prob_leaf);
+				else
+					task4Tube[i] = stickMath_lib.pickFromProbDist(prob_center);
+
+				if (task4Tube[i] != 1)
+					noChgFlg = false; // at least one chg will occur
+			}
+			nAddTube = stickMath_lib.pickFromProbDist(prob_addNewTube) - 1;
+			nRemoveTube =0;
+			for (i=1; i<=getnComponent(); i++)
+				if (task4Tube[i] == 4)
+					nRemoveTube++;
+			nResultTube = getnComponent() + nAddTube - nRemoveTube;
+
+			// calculate nChgTotal
+			nChgTotal = 0;
+			for (i=1; i<=getnComponent(); i++)
+				if (task4Tube[i] != 1)
+					nChgTotal++;
+			nChgTotal += nAddTube;
+			// so the # of nChgTotal means the # of tubes been ( modified or removed) + # of tube added
+			if ( nChgTotal > maxChgTotal || nChgTotal < minChgTotal)
+			{
+				//if ( showDebug)
+				//  System.out.println("nChgtotal is now " + nChgTotal);
+				continue; // we don't want to small or too big change
+			}
+			if ( noChgFlg == false && nResultTube <= MaxCompNum  && nResultTube >= MinCompNum
+					&& nRemoveTube <= MaxDeletionNum ) // a legal condition
+				break;
+		}
+
+		//debug
+		if (debugParam == 1) {
+			//only remove 1 component each time
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			while (true) {
+				i =stickMath_lib.randInt(1, getnComponent());
+				if (getLeafBranch()[i] == true) {
+					task4Tube[i] = 4;
+					break;
+				}
+			}
+			nRemoveTube = 1;
+			nAddTube = 0;
+		} else if ( debugParam == 2) {
+			nRemoveTube = 0;
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			nAddTube = 1;
+		} else if ( debugParam == 3) {
+			nRemoveTube = 0;
+			nAddTube = 0;
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			int randComp  = stickMath_lib.randInt(1, getnComponent());
+			task4Tube[randComp] = 2;
+		} else if ( debugParam == 4) {
+			nRemoveTube = 0;
+			nAddTube = 0;
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = 1;
+			int randComp  =stickMath_lib.randInt(1, getnComponent());
+			task4Tube[randComp] = 3;
+		}
+
+		// Now start the part of really doing the morphing
+
+		// Dec 24th 2008.
+		// At this point, we decide what kind of morphing to do
+		// but, sometimes, some details will fail.
+		// what I would like to do is try the morph several times before give up
+
+		// March 10th 2009.
+		// This is a bug I found after recording for a while
+		// everytime we should load the task4Tube from the back
+		// since if we re-do the mutate, the task4Tube might already
+		// change during the previous manipulation.
+
+		for (i=1; i<=getnComponent(); i++)
+			task4Tube_backup[i] = task4Tube[i];
+
+		int mutateTryTimes = 1;
+		boolean successMutateTillNow;
+		for (mutateTryTimes = 1; mutateTryTimes <= MaxMutateTryTimes; mutateTryTimes++) {
+			//load the backup of task4Tube
+			for (i=1; i<=getnComponent(); i++)
+				task4Tube[i] = task4Tube_backup[i];
+
+			successMutateTillNow = true;
+			//1. remove the stick
+			boolean[] removeFlg = new boolean[getnComponent()+1];
+			for (i=1; i<=getnComponent(); i++)
+				if (task4Tube[i] == 4)
+					removeFlg[i] = true;
+			old_nComp = getnComponent(); // since this number will chg later in removeComponent
+			// 2. fine tune and replacement
+			// 2.1 remap the task4Tube
+			if (nRemoveTube > 0) // else , we can skip this procedure
+				this.removeComponent(removeFlg);
+
+			int counter = 1;
+			for (i=1; i<= old_nComp; i++)
+				if ( task4Tube[i] != 4)
+					task4Tube[counter++] = task4Tube[i];
+
+			// 2.2 really doing the fine tune & replace
+			for (i=1; i<= getnComponent(); i++) {
+				boolean res = true;
+				if (task4Tube[i] == 2) // replace
+					res = this.replaceComponent(i);
+				if (task4Tube[i] == 3) // fine tune
+					res = this.fineTuneComponent(i);
+
+				// if res == false, we want to go out to big Trial loop & try again
+				if (!res) {
+					successMutateTillNow = false;
+				}
+			}
+			if ( successMutateTillNow == false) continue;
+
+			// 3. Add new tube on the shape
+			// we will try to add several times locally
+			if (nAddTube > 0) {
+				AllenMatchStick tempStoreStick = new AllenMatchStick();
+				tempStoreStick.copyFrom(this);
+				int addtube_trytime = 0;
+				while (true) {
+					boolean res = this.addTubeMutation(nAddTube);
+					if (res)
+						break;
+					else {
+						addtube_trytime++;
+						if ( addtube_trytime > MaxAddTubeTryTimes) {
+							successMutateTillNow = false;
+							break;
+						}
+					}
+					this.copyFrom(tempStoreStick);
+				}
+			}
+			if (!successMutateTillNow)
+				continue;
+
+			// 5. reassign the radius value at junction point
+			this.MutateSUB_reAssignJunctionRadius();
+
+			// 6. translate the shape, so that the first component is centered at origin.
+			//            this.centerShapeAtOrigin(-1);
+
+			if (!this.validMStickSize())
+				successMutateTillNow = false;
+
+			if (!successMutateTillNow)
+				continue;
+
+			this.changeFinalRotation();
+
+			return this.smoothizeMStick();
+		}
+
+		return false;
+	}
+
+	@Override
+	protected void addTube(int i){
+		getComp()[i] = new AllenTubeComp();
+	}
+
+	public AllenMStickData getMStickData(){
+		AllenMStickData data = new AllenMStickData();
+
+		//TODO: WE HAVE TO BECAREFUL OF SIDE EFFECTS OF THIS METHOD. Must be the last thing.
+		modifyMStickFinalInfoForAnalysis();
+
+		AllenMStickSpec analysisMStickSpec = new AllenMStickSpec();
+		analysisMStickSpec.setMStickInfo(this);
+
+		data.setAnalysisMStickSpec(analysisMStickSpec);
+		data.setShaftData(getShaftData());
+		data.setTerminationData(getTerminationData());
+		data.setJunctionData(getJunctionData());
+
+		return data;
+	}
+
+	private List<JunctionData> getJunctionData() {
+		List<JunctionData> junctionDatas = new LinkedList<>();
+		for (int i=1; i<=getNJuncPt(); i++){
+			JunctionData junctionData = new JunctionData();
+
+			//Position - Spherical Coordinates
+			JuncPt_struct juncPt = getJuncPt()[i];
+			Point3d junctionCenterCartesian = juncPt.getPos();
+			SphericalCoordinates junctionPositionSpherical = CoordinateConverter.cartesianToSpherical(junctionCenterCartesian);
+			junctionData.angularPosition = junctionPositionSpherical.getAngularCoordinates();
+			junctionData.radialPosition = junctionPositionSpherical.r;
+
+			//Angle Bisector Direction
+			junctionData.angleBisectorDirection = new LinkedList<AngularCoordinates>();
+			//for every pair
+			for(int j=1; j<=juncPt.getnComp(); j++){
+				for(int k=j+1; k<=juncPt.getnComp(); k++){
+					Vector3d[] junctionTangents = new Vector3d[]{juncPt.getTangent()[j], juncPt.getTangent()[k]};
+					Vector3d bisectorTangent = calculateBisectorVector(junctionTangents);
+					SphericalCoordinates bisectorTangentSpherical = CoordinateConverter.cartesianToSpherical(bisectorTangent);
+					junctionData.angleBisectorDirection.add(bisectorTangentSpherical.getAngularCoordinates());
+				}
+			}
+
+			//Radius
+			junctionData.radius = juncPt.getRad();
+
+			//Junction Subtense
+			junctionData.angularSubtense = new LinkedList<AngularCoordinates>();
+			//for every pair
+			for(int j=1; j<=juncPt.getnComp(); j++){
+				for(int k=j+1; k<=juncPt.getnComp(); k++){
+					SphericalCoordinates angle1 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[j]);
+					SphericalCoordinates angle2 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[k]);
+					double theta = angleDiff(angle1.theta, angle2.theta);
+					double phi = angleDiff(angle1.phi, angle2.phi);
+					AngularCoordinates subtense = new AngularCoordinates(theta, phi);
+					junctionData.angularSubtense.add(subtense);
+				}
+			}
+
+			//TODO: Planar Rotation
+
+			//
+			junctionDatas.add(junctionData);
+		}
+		return junctionDatas;
+	}
+
+	private List<TerminationData> getTerminationData() {
+		List<TerminationData> terminationDatas = new LinkedList<>();
+		for (int i=1; i<= getNEndPt(); i++){
+			TerminationData terminationData = new TerminationData();
+			EndPt_struct endPt = getEndPt()[i];
+
+			//Position - Spherical Coordinates
+			Point3d terminationPositionCartesian = endPt.getPos();
+			SphericalCoordinates terminationSphericalCoordinates = CoordinateConverter.cartesianToSpherical(terminationPositionCartesian);
+			terminationData.angularPosition = terminationSphericalCoordinates.getAngularCoordinates();
+			terminationData.radialPosition = terminationSphericalCoordinates.r;
+
+			//Direction
+			Vector3d directionCartesian = endPt.getTangent();
+			terminationData.direction = CoordinateConverter.cartesianToSpherical(directionCartesian).getAngularCoordinates();
+
+			//Radius
+			terminationData.radius = endPt.getRad();
+
+			//
+			terminationDatas.add(terminationData);
+		}
+		return terminationDatas;
+	}
+
+	private List<ShaftData> getShaftData() {
+		List<ShaftData> shaftDatas = new LinkedList<>();
+		for (int i=1; i<=getNComponent(); i++){
+			ShaftData shaftData = new ShaftData();
+			AllenTubeComp tube = getComp()[i];
+			AllenMAxisArc mAxis = tube.getmAxisInfo();
+
+			//Position - Spherical Coordinates
+			Point3d shaftCenterCartesian = mAxis.getmPts()[26];
+			SphericalCoordinates shaftCenterSpherical = CoordinateConverter.cartesianToSpherical(shaftCenterCartesian);
+			shaftData.angularPosition = shaftCenterSpherical.getAngularCoordinates();
+			shaftData.radialPosition = shaftCenterSpherical.r;
+
+			//Orientation
+			Vector3d orientationCartesian = mAxis.getmTangent()[26];
+			SphericalCoordinates orientationSpherical = CoordinateConverter.cartesianToSpherical(orientationCartesian);
+			shaftData.orientation = orientationSpherical.getAngularCoordinates();
+
+			//Radius
+			shaftData.radius = tube.getRadInfo()[1][1];
+
+			//Length
+			shaftData.length = mAxis.getArcLen();
+
+			//Curvature
+			shaftData.curvature = 1.0 / mAxis.getRad();
+
+			//
+			shaftDatas.add(shaftData);
+		}
+		return shaftDatas;
+	}
+
+	private double angleDiff(double angle1, double angle2) {
+		double diff = angle1 - angle2;
+		while(diff < 0){
+			diff+=2*Math.PI;
+		}
+		while(diff>2*Math.PI){
+			diff-=2*Math.PI;
+		}
+		return diff;
+	}
+
+	private Vector3d calculateBisectorVector(Vector3d[] bisectedVectors) {
+		Vector3d bisectorTangent = new Vector3d(0,0,0);
+		for(Vector3d tangent: bisectedVectors){
+			tangent.normalize();
+			bisectorTangent.add(tangent);
+		}
+		if(!bisectorTangent.equals(new Vector3d(0,0,0)))
+			bisectorTangent.normalize();
+		else{
+			//If the vector completely cancel each other out, we will get a divide by
+			//zero error. In this case, add a small pertubation to avoid a crash.
+			bisectorTangent.add(new Vector3d(0.000001, 0.000001, 0.000001));
+			bisectorTangent.normalize();
+		}
+		return bisectorTangent;
+	}
 }
