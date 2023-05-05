@@ -16,7 +16,7 @@ import org.xper.util.FileUtil;
 public class MStickPngTrialGenerator {
 	public static void main(String[] args) {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-				FileUtil.loadConfigClass("experiment.ga.config_class"));
+				FileUtil.loadConfigClass("experiment.config_class"));
 
 		MStickPngBlockGen gen = context.getBean(MStickPngBlockGen.class);
 

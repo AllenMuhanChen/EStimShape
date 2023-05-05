@@ -7,17 +7,20 @@ import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.lwjgl.opengl.GL11;
+import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.stick.MAxisArc;
+import org.xper.drawing.stick.stickMath_lib;
 
 /**
  * I created this class soley to be able to write a new genSiilarArc (genMetricSimilarArc) that
- * only changes length, orientation, and radius (of whole limb) slightly. 
- * 
+ * only changes length, orientation, and radius (of whole limb) slightly.
+ *
  * This class should not generate any new fields and should be completely compatible with
- * its superclass. 
+ * its superclass.
  * @author r2_allen
  *
  */
@@ -51,7 +54,7 @@ public class AllenMAxisArc extends MAxisArc {
 	}
 
 	/**
-	 * Constructor for generating an upsampled MAXis arc. 
+	 * Constructor for generating an upsampled MAXis arc.
 	 * @param maxStep
 	 */
 	public AllenMAxisArc(int maxStep) {
@@ -128,7 +131,6 @@ public class AllenMAxisArc extends MAxisArc {
 	/**
 	 * @param inArc
 	 * @param alignedPt
-	 * @param volatileRate
 	 */
 	public void genQualitativeMorphArc( AllenMAxisArc inArc,int alignedPt,  QualitativeMorphParams qmp) {
 		boolean showDebug = false;
@@ -143,7 +145,7 @@ public class AllenMAxisArc extends MAxisArc {
 		double newRad = inArc.getRad();
 		double newArcLen = inArc.getArcLen();
 		Vector3d newTangent = new Vector3d(inArc.getmTangent()[ inArc.getTransRotHis_rotCenter()]);
-		double newDevAngle = inArc.getTransRotHis_devAngle();	
+		double newDevAngle = inArc.getTransRotHis_devAngle();
 		//
 		//TODO: Implement all of these parameters
 
@@ -169,7 +171,7 @@ public class AllenMAxisArc extends MAxisArc {
 
 		//4. rotation (along tangent axis)
 		if(qmp.curvRotQualMorph.isRotationFlag()) {
-			newDevAngle = qmp.curvRotQualMorph.getNewRotation();	
+			newDevAngle = qmp.curvRotQualMorph.getNewRotation();
 		}
 
 		// use the new required vlaue to generate and transROt the mAxisArc
@@ -184,17 +186,17 @@ public class AllenMAxisArc extends MAxisArc {
 		else {
 			finalPos = new Point3d(inArc.getmPts()[alignedPt]);
 		}
-		// 
+		//
 //		transRotMAxis(alignedPt, finalPos, inArc.getTransRotHis_rotCenter(), newTangent, newDevAngle);
 		transRotMAxis(alignedPt, finalPos, alignedPt, newTangent, newDevAngle);
-		
+
 
 		//		//AC DEBUG - Testing Rotation  metrics
 		//		System.out.println("AC858913: " + normal.x + ", " + normal.y + ", " + normal.z);
 		//		double[] normalAngles = QualitativeMorph.Vector2Angles(normal); //in spherical coords
 		//		System.out.println("AC50193: " + normalAngles[0] * 180 / Math.PI);
 		//		System.out.println("AC50194: " + normalAngles[1] * 180 / Math.PI);
-		//		
+		//
 		//AC DEBUG
 		//Point3d oriPos = inArc.mPts[alignedPt];
 		//Point3d testPos = this.mPts[alignedPt];
@@ -222,7 +224,7 @@ public class AllenMAxisArc extends MAxisArc {
 			//// 				double dist = mPts[i].distance( inArc.mPts[i]);
 			//// 				if (dist > 0.01)
 			//						System.out.println("MPts["+i+"]: " + this.mPts[i] + " " + inArc.mPts[i]);
-			//				
+			//
 			//			}
 			//System.out.println("MPts[3]: " + this.mPts[3] + " " + inArc.mPts[3]);
 			//System.out.println("MPts[20]: " + this.mPts[20] + " " + inArc.mPts[20]);
@@ -235,7 +237,6 @@ public class AllenMAxisArc extends MAxisArc {
 	/**
 	 * @param inArc
 	 * @param alignedPt
-	 * @param volatileRate
 	 */
 	public void genMetricSimilarArc( AllenMAxisArc inArc,int alignedPt,  MetricMorphParams mmp) {
 		boolean showDebug = false;
@@ -250,11 +251,11 @@ public class AllenMAxisArc extends MAxisArc {
 		double newRad = inArc.getRad();
 		double newArcLen = inArc.getArcLen();
 		Vector3d newTangent = new Vector3d(inArc.getmTangent()[ inArc.getTransRotHis_rotCenter()]);
-		double newDevAngle = inArc.getTransRotHis_devAngle();	
+		double newDevAngle = inArc.getTransRotHis_devAngle();
 
 		// 1. ArcLen
 		/*
-		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen 
+		 * AC: Modified random length assignment to limit it within a percentage bound of original arcLen
 		 */
 		if(mmp.lengthFlag) {
 			double oriArcLen = inArc.getArcLen();
@@ -281,7 +282,7 @@ public class AllenMAxisArc extends MAxisArc {
 		if(mmp.rotationFlag) {
 			double oldDevAngle = inArc.getTransRotHis_devAngle();
 			mmp.rotationMagnitude.oldValue = oldDevAngle;
-			newDevAngle = mmp.rotationMagnitude.calculateMagnitude();	
+			newDevAngle = mmp.rotationMagnitude.calculateMagnitude();
 		}
 
 		// use the new required vlaue to generate and transROt the mAxisArc
@@ -296,7 +297,7 @@ public class AllenMAxisArc extends MAxisArc {
 		else {
 			finalPos = new Point3d( inArc.getmPts()[alignedPt]);
 		}
-		// 
+		//
 		transRotMAxis(alignedPt, finalPos, inArc.getTransRotHis_rotCenter(), newTangent, newDevAngle);
 		//	Point3d finalPos = new Point3d(0.0,0.0,0.0);
 		//	this.transRotMAxis( 26, finalPos, inArc.transRotHis_rotCenter, newTangent, newDevAngle);
@@ -329,7 +330,7 @@ public class AllenMAxisArc extends MAxisArc {
 			//// 				double dist = mPts[i].distance( inArc.mPts[i]);
 			//// 				if (dist > 0.01)
 			//						System.out.println("MPts["+i+"]: " + this.mPts[i] + " " + inArc.mPts[i]);
-			//				
+			//
 			//			}
 			//System.out.println("MPts[3]: " + this.mPts[3] + " " + inArc.mPts[3]);
 			//System.out.println("MPts[20]: " + this.mPts[20] + " " + inArc.mPts[20]);
@@ -340,18 +341,18 @@ public class AllenMAxisArc extends MAxisArc {
 	}
 
 	// An important routine that will rotate and translate the MAxis Pts and tangent to new location
-	// More precisely,	
-	// seperate rotation of tangent into two step, first always rotate the rotCenter tangent to [1 0 0 ], 
+	// More precisely,
+	// seperate rotation of tangent into two step, first always rotate the rotCenter tangent to [1 0 0 ],
 	// then rotate to the final tangent, the reason to do so is some tricky thing about deviateAngle
 
-	//Summary: June 2008	
+	//Summary: June 2008
 	// Do two step rotation, and then rotate along tangent direction ( by deviateAngle)
 	// Finally do the translation
 	/**
 		 translate and rotate the MAxis to wanted condition
 
 
-		 MODIFICATION BY ALLEN CHEN: 
+		 MODIFICATION BY ALLEN CHEN:
 		 have devAngle specified in params be absolute
 		 Meaning we specify the final rotation we want it to be
 
@@ -361,16 +362,17 @@ public class AllenMAxisArc extends MAxisArc {
 		 @param finalTangent Vector3d, the tangent direction where the rotCenter Pt will face
 		 @param deviateAngle double btw 0 ~ 2PI , the angle to rotate along the tangent direction
 	 */
+	@Override
 	public void transRotMAxis(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
 	{
 
-		//	 	System.out.println("transRot mAxis procedure:");
+		//	 	System.out.println("AllenMAXis transRot mAxis procedure:");
 		//	 	System.out.println("final pos: "+finalPos + "final tangent: "+finalTangent);
 
 		int i;
 		Point3d oriPt = new Point3d();
 		Vector3d nowvec = new Vector3d(0,0,0);
-		Transform3D transMat = new Transform3D(); 	
+		Transform3D transMat = new Transform3D();
 		Vector3d oriTangent = getmTangent()[rotCenter];
 
 		/// 1. rotate to [0 0 1]
@@ -386,10 +388,10 @@ public class AllenMAxisArc extends MAxisArc {
 		boolean skipRotate = false;
 		//July 24 2009, should we remove Angle == Math.PI
 		if ( Angle == 0.0 || Angle == Math.PI) // no need to turn
-			//if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+//			if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
 		{
 			skipRotate = true;
-			//	 		System.out.println("Skip first rotation");
+				 		System.out.println("Skip first rotation");
 			//	 		System.out.println("ori Tangent: " + oriTangent);
 			//	 		System.out.println("inter tangent: " + interTangent);
 			//	 		System.out.println("rad of the arc is " + rad);
@@ -405,23 +407,31 @@ public class AllenMAxisArc extends MAxisArc {
 			{
 				// rotate annd translate every mPts
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec); 
+				transMat.transform(nowvec);
 				getmPts()[i].add(nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;             
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
 				// rotate the Tangent vector along the maxis
-				transMat.transform(getmTangent()[i]);             		
+				transMat.transform(getmTangent()[i]);
 			}
 		}
 
 		//1.6 AC Define our normal angle
-		normal = new Vector3d(0,1,0);
+//		normal = new Vector3d(0,1,0);
 
-		//System.out.println( mPts[30] + "  " + mPts[32]);   
-		//System.out.println("tangent[1] is at : "+ mTangent[1]);   
+		//System.out.println( mPts[30] + "  " + mPts[32]);
+		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 		/// 2. rotate to targetTangent
 
-		oriTangent.set( interTangent);   
+
+		//CALCULATE NORMAL
+		normal = new Vector3d(0, 1, 0);
+		Vector3d rotAxis = new Vector3d();
+		double x = Math.cos(deviateAngle);
+		double y = Math.sin(deviateAngle);
+		Vector3d finalNormal = new Vector3d(x,y,0);
+
+		oriTangent.set( interTangent);
 		Angle = oriTangent.angle(finalTangent);
 		RotAxis.cross(oriTangent, finalTangent);
 		RotAxis.normalize();
@@ -456,35 +466,65 @@ public class AllenMAxisArc extends MAxisArc {
 			{
 				// rotate annd translate every mPts
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec); 
-				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt			
-				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;             
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
 				// rotate the Tangent vector along the maxis
-				transMat.transform(getmTangent()[i]);             		
+				transMat.transform(getmTangent()[i]);
 			}
 			//AC ADDITION:
 			transMat.transform(normal);
+			transMat.transform(finalNormal);
 		}
-		//System.out.println("tangent[1] is at : "+ mTangent[1]);      
+		//System.out.println("tangent[1] is at : "+ mTangent[1]);
 		//System.out.println("mPts[1] is at : "+ mPts[1]);
 		/// 3. rotate along the tangent axis by deviate Angle
-		double nowDeviateAngle = 0;
-		if (  getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
+		double nowDeviateAngle = deviateAngle;
+//		if ( getRad() < 100000 ) // if the mAxisArc is a str8 line, no need to do this part
+		if(true)
 		{
+//			System.err.println("Before Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
+//			//ROTATE OPPOSITE OF CURRENT DEV ANGLE TO RETURN TO ZERO
+//			oriPt.set(getmPts()[rotCenter]);
+//
+//			nowDeviateAngle = getTransRotHis_devAngle();
+//			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, -nowDeviateAngle);
+//
+//			transMat.setRotation(axisInfo);
+//			System.err.println("Angle Rotate to Original: " + axisInfo.getAngle());
+//			for (i = 1 ; i <= getMaxStep(); i++)
+//			{
+//				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+//				transMat.transform(nowvec);
+//				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+//
+//				transMat.transform(getmTangent()[i]);
+//			}
+//			System.err.println("After Angle Rotate to Original: " + getmTangent()[alignedPt].toString());
+
+
+
+			//ROTATE TO DESIRED DEV ANGLE
 			oriPt.set(getmPts()[rotCenter]);
-			nowDeviateAngle = deviateAngle;
-			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, nowDeviateAngle);   		
+			rotAxis.cross(normal, finalNormal);
+			rotAxis.normalize();
+			AxisAngle4d axisInfo = new AxisAngle4d(rotAxis, normal.angle(finalNormal));
+
+//			transMat.setRotation(axisInfo);
+//			nowDeviateAngle = deviateAngle;
+//			axisInfo = new AxisAngle4d(finalTangent, nowDeviateAngle);
 			transMat.setRotation(axisInfo);
 			for (i = 1 ; i <= getMaxStep(); i++)
 			{
 				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				transMat.transform(nowvec); 
-				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt		
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-				transMat.transform(getmTangent()[i]);             	             				
+				transMat.transform(getmTangent()[i]);
 			}
 			//AC ADDITION:
-			transMat.transform(normal);
+//			transMat.transform(this.normal);
+			this.normal = finalNormal;
 		} else {
 			nowDeviateAngle = getTransRotHis_devAngle();
 		}
@@ -503,7 +543,7 @@ public class AllenMAxisArc extends MAxisArc {
 		setTransRotHis_rotCenter(rotCenter);
 
 		// July 24 2009, this is the key point
-		// change from = to set in May , so we should not have the 
+		// change from = to set in May , so we should not have the
 		// wrongly finalTangent probblem in the future
 		//transRotHis_finalPos = finalPos;
 		//		getTransRotHis_finalPos().set(finalPos);
@@ -518,7 +558,7 @@ public class AllenMAxisArc extends MAxisArc {
 
 	public Point3d[] constructUpSampledMpts(int numSamples) {
 
-		
+
 		AllenMAxisArc upSampledArc = new AllenMAxisArc(numSamples);
 		upSampledArc.copyParamsForUpSample(this);
 		upSampledArc.genArc();
@@ -529,7 +569,7 @@ public class AllenMAxisArc extends MAxisArc {
 		Vector3d finalTangent = new Vector3d(upSampledArc.getTransRotHis_finalTangent());
 		double devAngle = upSampledArc.getTransRotHis_devAngle();
 
-		
+
 //		int alignedPt = upSampledArc.getTransRotHis_rotCenter();
 //		Point3d finalPos = new Point3d(getmPts()[getTransRotHis_alignedPt()]);
 //		int rotCenter = alignedPt;
@@ -541,12 +581,12 @@ public class AllenMAxisArc extends MAxisArc {
 //		System.out.println("AC UP-SAMPLE ALIGNED PT: " + alignedPt);
 //		System.out.println("AC ORIGINAL FINALPOS: " + getTransRotHis_finalPos());
 //		System.out.println("AC UP-SAMPLE FINALPOS: " + finalPos);
-//		
+//
 //		System.out.println("AC ROT CENTER: " + getTransRotHis_rotCenter());
 //		System.out.println("AC UP-SAMPLE ROT CENTER: " + rotCenter);
 //		System.out.println("AC ORIGINAL TANGENT: " + getTransRotHis_finalTangent());
 //		System.out.println("AC UP-SAMPLE TANGENT: " + finalTangent);
-		
+
 		upSampledArc.transRotMAxis(alignedPt, finalPos, rotCenter, finalTangent, devAngle);
 
 //		System.out.println("AC AFTER-ROTATE FINALPOS: " + upSampledArc.getTransRotHis_finalPos());
@@ -556,7 +596,7 @@ public class AllenMAxisArc extends MAxisArc {
 
 	/**
 	 * Gen an Arc with the object's current parameters. Rad and ArcLen should already
-	 * be specified. 
+	 * be specified.
 	 */
 	public void genArc() {
 		int step;
@@ -571,7 +611,7 @@ public class AllenMAxisArc extends MAxisArc {
 
 				getmPts()[step]= new Point3d(0,0, nowu* getArcLen());
 				getmTangent()[step]= new Vector3d(0,0,1);
-				getLocalArcLen()[step] = getArcLen();      
+				getLocalArcLen()[step] = getArcLen();
 				//				System.out.println(upSampledMpts[step]);
 			}
 		}
@@ -601,6 +641,182 @@ public class AllenMAxisArc extends MAxisArc {
 
 
 	}
+
+	public void genSimilarArc(AllenMAxisArc inArc,int alignedPt,  double volatileRate) {
+		boolean showDebug = false;
+		if ( showDebug)
+			System.out.println("In MAxisArc.genSimilarArc()");
+		double RadView = 5.0;
+		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
+		// Nov 20th, the orientation change seems to be too large
+		// since this is used to generate similar tube, we should make it more narrow
+		double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
+		boolean[] chgFlg = new boolean[5];
+		int i;
+		//possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
+		// 0. decide what parameters to chg
+		while (true) {
+			for (i=1; i<=4; i++) {
+				chgFlg[i] = false;
+				if ( stickMath_lib.rand01() < volatileRate)
+					chgFlg[i] = true;
+			}
+			int a = 3;
+			if ( a == 3) break;
+			//debug
+			if (inArc.getRad() <= 0.6 * RadView) {
+				if ( chgFlg[1] != false || chgFlg[2] != false || chgFlg[3] != false || chgFlg[4] != false)
+					break;
+			}
+			else { // the in Arc is str8 line, then we don't want only devAngle chg, (which is not prominent) {
+				if ( chgFlg[1] !=false || chgFlg[2] !=false || chgFlg[3] !=false)
+					break;
+			}
+		}
+
+		if (showDebug) {
+			System.out.println("the modification of mAxis are:");
+			for (i=1; i<=4; i++) System.out.print(" "+ chgFlg[i]);
+			System.out.println("");
+		}
+
+
+		double newRad = inArc.getRad();
+		double newArcLen = inArc.getArcLen();
+		Vector3d newTangent = new Vector3d(inArc.getmTangent()[ inArc.getTransRotHis_rotCenter()]);
+		double newDevAngle = inArc.getTransRotHis_devAngle();
+
+		// 1. mAxisCurvature
+		if ( chgFlg[1] == true) {
+			double totalRange;
+			double oriRad = inArc.getRad();
+			if ( oriRad <= 0.6 * RadView )  { // origianlly small Rad arc
+				double[] prob = {0.5, 1.0};
+				int choice = stickMath_lib.pickFromProbDist( prob);
+				if ( choice == 1) {
+					while (true) {
+						newRad = (stickMath_lib.rand01() * 0.4 + 0.2) * RadView;
+						totalRange = 0.4 * RadView;
+						if ( Math.abs( newRad - oriRad) > 0.2 * totalRange )
+							break;
+					}
+				}
+				else // chg to medium curvature regime
+					newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView;
+			}
+			else if ( oriRad <= 6.0 * RadView) { // originall in medium regime
+				double[] prob = {0.25, 0.75, 1.0};
+				int choice = stickMath_lib.pickFromProbDist( prob);
+				if (choice == 1)
+					newRad = (stickMath_lib.rand01() * 0.4 + 0.2) * RadView;
+				else if ( choice == 2) {
+					while (true) {
+						newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView;
+						totalRange = 5.4 * RadView;
+						if ( Math.abs(newRad - oriRad) > 0.2 * totalRange)
+							break;
+					}
+				}
+				else if ( choice == 3)
+					newRad = 100000.0;
+			}
+			else {// str8 original curvature
+				//always chg to medium curvature
+				newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView;
+			}
+		} // mAxisCurvature if
+
+		// 2. ArcLen
+		if ( chgFlg[2] == true) {
+			double oriArcLen = inArc.getArcLen();
+			double length_lb = 2.0;
+			double length_ub = Math.min( Math.PI * newRad, RadView);
+			double l_range = length_ub - length_lb;
+			while (true) { //pick value btw length_lb, length_ub, but not very near or very far from original value
+				newArcLen = stickMath_lib.randDouble( length_lb, length_ub);
+				if ( oriArcLen > length_ub || oriArcLen < length_lb) // no need to nearby check
+					break;
+				if ( Math.abs( newArcLen - oriArcLen) >= 0.2 * l_range &&
+						Math.abs( newArcLen - oriArcLen) <= 0.4 * l_range )
+					break;
+			}
+		}
+
+		// 3. orientation
+		if ( chgFlg[3] == true) {
+			Vector3d oriTangent = new Vector3d( inArc.getmTangent()[inArc.getTransRotHis_rotCenter()]);
+			while (true) {
+				newTangent = stickMath_lib.randomUnitVec();
+				double angle = newTangent.angle(oriTangent);
+				if ( angle >= orientationAngleRange[0] && angle <= orientationAngleRange[1]) // 15 ~ 30 degree
+					break;
+			}
+		}
+		// 4. devAngle
+		if ( chgFlg[4] == true)
+		{
+			double oriDevAngle = inArc.getTransRotHis_devAngle();
+			double diff = stickMath_lib.randDouble( Math.PI/6.0, Math.PI/3.0); // this diff is btw  30 - 60 degree
+			if ( stickMath_lib.rand01() < 0.5)
+				newDevAngle = oriDevAngle - diff;
+			else
+				newDevAngle = oriDevAngle + diff;
+		}
+
+
+		// use the new required vlaue to generate and transROt the mAxisArc
+
+		this.genArc(newRad, newArcLen); // the variable will be saved in this function
+
+		Point3d finalPos = new Point3d( inArc.getmPts()[alignedPt]);
+		//
+		this.transRotMAxis( alignedPt, finalPos, inArc.getTransRotHis_rotCenter(), newTangent, newDevAngle);
+// 	Point3d finalPos = new Point3d(0.0,0.0,0.0);
+// 	this.transRotMAxis( 26, finalPos, inArc.transRotHis_rotCenter, newTangent, newDevAngle);
+
+		if (showDebug)
+		{
+			System.out.println("rad    : " + inArc.getRad() + " -> " + newRad);
+			System.out.println("arcLen : " + inArc.getArcLen() + " -> " + newArcLen);
+			System.out.println("ori    : " + inArc.getmTangent()[inArc.getTransRotHis_rotCenter()] + " -> " + newTangent);
+			System.out.println("	angle btw is " + inArc.getmTangent()[inArc.getTransRotHis_rotCenter()].angle(newTangent));
+			System.out.println("devAng : " + inArc.getTransRotHis_devAngle() + " -> " + newDevAngle);
+			int rotCenter = inArc.getTransRotHis_rotCenter();
+			System.out.println("ori rot center "+  rotCenter + " pos " + inArc.getmPts()[rotCenter] + "\ntan: "+ inArc.getmTangent()[rotCenter]);
+			System.out.println("NEW rot center "+  rotCenter + " pos " + this.getmPts()[rotCenter] + "\ntan: "+ this.getmTangent()[rotCenter]);
+			System.out.println("the input alignedPt is " + alignedPt);
+// 			for (i=1; i<=51; i++)
+// 			{
+// // 				double dist = mPts[i].distance( inArc.mPts[i]);
+// // 				if (dist > 0.01)
+// 						System.out.println("MPts["+i+"]: " + this.mPts[i] + " " + inArc.mPts[i]);
+//
+// 			}
+			//System.out.println("MPts[3]: " + this.mPts[3] + " " + inArc.mPts[3]);
+			//System.out.println("MPts[20]: " + this.mPts[20] + " " + inArc.mPts[20]);
+
+			System.out.println("");
+		}
+
+	}
+
+	public void drawNormal(float red, float green, float blue)
+	{
+		//use the oGL draw line function to draw out the mAxisArc
+		int i;
+		GL11.glColor3f(red, green, blue);
+		GL11.glBegin(GL11.GL_LINE_STRIP);
+
+		for (i=1; i<= getNormal().length(); i++)
+		{
+			//GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
+			GL11.glVertex3d(getNormal().x, getNormal().y, getNormal().z);
+		}
+
+		GL11.glEnd();
+
+	}
+
 
 	public Vector3d getNormal() {
 		return normal;

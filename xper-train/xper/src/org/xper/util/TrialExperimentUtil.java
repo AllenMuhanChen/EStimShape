@@ -8,7 +8,6 @@ import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideRunner;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
-import org.xper.classic.TrialRunner;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
@@ -71,7 +70,7 @@ public class TrialExperimentUtil {
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime,
-				slideEventListeners);
+				slideEventListeners, currentTask.getTaskId());
 
 		// wait for current slide to finish
 		do {
@@ -99,7 +98,7 @@ public class TrialExperimentUtil {
 		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
 		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
 						currentContext.getAnimationFrameIndex(),
-						slideEventListeners);
+						slideEventListeners, currentTask.getTaskId());
 		currentContext.setAnimationFrameIndex(0);
 		
 		return TrialResult.SLIDE_OK;
@@ -119,7 +118,7 @@ public class TrialExperimentUtil {
 			return result;
 		}
 
-		result = runner.runSlide();
+		result = runner.runSlide((SlideTrialExperimentState) stateObject, threadHelper);
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
 		}
@@ -313,8 +312,8 @@ public class TrialExperimentUtil {
 		}
 	}	
 
-	public static void pauseExperiment(TrialExperimentState state,
-			ThreadHelper threadHelper) {
+	public static void pauseUntilRunReceived(TrialExperimentState state,
+											 ThreadHelper threadHelper) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
 		while (state.isPause()) {
 			ThreadUtil.sleepOrPinUtil(timeUtil.currentTimeMicros()
@@ -338,7 +337,7 @@ public class TrialExperimentUtil {
 					state.getExperimentEventListeners());
 
 			while (!threadHelper.isDone()) {
-				pauseExperiment(state, threadHelper);
+				pauseUntilRunReceived(state, threadHelper);
 				if (threadHelper.isDone()) {
 					break;
 				}

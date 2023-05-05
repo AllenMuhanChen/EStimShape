@@ -50,13 +50,15 @@ public class MatchStick implements Drawable {
 	protected RGBColor stimColor = new RGBColor(1,1,1);
 
 	private boolean doCenterObject = false;
+	private boolean showDebug = false;
+	protected boolean showComponents = false;
 
 	public MatchStick()
 	{
 	}
 
 	/**
-        clean the old storage of information
+	 clean the old storage of information
 	 */
 	protected void cleanData()
 	{
@@ -65,11 +67,11 @@ public class MatchStick implements Drawable {
 		setnJuncPt(0);
 	}
 	/**
-        genMatchStick with random # of components
+	 genMatchStick with random # of components
 	 */
 
 	/**
-        copy the whole structure
+	 copy the whole structure
 	 */
 	public void copyFrom(MatchStick in)
 	{
@@ -78,7 +80,7 @@ public class MatchStick implements Drawable {
 		setnComponent(in.getnComponent());
 
 		for (i=1; i<=getnComponent(); i++) {
-			getComp()[i] = new TubeComp();
+			addTube(i);
 			getComp()[i].copyFrom(in.getComp()[i]);
 		}
 		this.setnEndPt(in.getnEndPt());
@@ -91,7 +93,7 @@ public class MatchStick implements Drawable {
 			getJuncPt()[i] = new JuncPt_struct();
 			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
-		this.setObj1(in.getObj1()); 
+		this.setObj1(in.getObj1());
 
 		for (i=1; i<=getnComponent(); i++)
 			getLeafBranch()[i] = in.getLeafBranch()[i];
@@ -173,7 +175,7 @@ public class MatchStick implements Drawable {
 	{
 		// i can't see how inSpec is changed by this function
 		//but it seems to be the case........
-		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos. 
+		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos.
 		cleanData();
 
 		// 1. general info
@@ -187,7 +189,7 @@ public class MatchStick implements Drawable {
 		{
 			//debug
 			//System.out.println("comp " + i + " : ");
-			getComp()[i] = new TubeComp();
+			addTube(i);
 			getComp()[i].setBranchUsed(inSpec.getmAxis().getTube()[i].isBranchUsed());
 			getComp()[i].setConnectType(inSpec.getmAxis().getTube()[i].getConnectType());
 			for (j=0; j<3; j++)
@@ -202,7 +204,7 @@ public class MatchStick implements Drawable {
 			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());
 			//System.out.println("branchPt " + comp[i].mAxisInfo.branchPt);
 
-			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt()); 
+			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt());
 			getComp()[i].getmAxisInfo().setTransRotHis_rotCenter(inSpec.getmAxis().getTube()[i].getTransRotHis_rotCenter());
 			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().set(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
 			//getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
@@ -377,7 +379,7 @@ public class MatchStick implements Drawable {
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = getObj1().nVect;
+					int nVect1 = getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -387,7 +389,7 @@ public class MatchStick implements Drawable {
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -491,7 +493,7 @@ public class MatchStick implements Drawable {
 					{
 						Point3d[] oriVecList = inSpec.getVectInfo();
 						double vect_dist = 0.0;
-						int nVect1 = getObj1().nVect;
+						int nVect1 = getObj1().getnVect();
 						int nVect2 = inSpec.getNVect();
 						System.out.println("vec # check " + nVect1 + " " + nVect2);
 						if ( nVect1 != nVect2)
@@ -501,7 +503,7 @@ public class MatchStick implements Drawable {
 						}
 						if ( res == true)
 						{
-							for (i= 1; i<= getObj1().nVect; i++)
+							for (i= 1; i<= getObj1().getnVect(); i++)
 							{
 								Point3d p1 = new Point3d(getObj1().vect_info[i]);
 								Point3d p2 = oriVecList[i];
@@ -592,7 +594,7 @@ public class MatchStick implements Drawable {
 				{
 					Point3d[] oriVecList = inSpec.getVectInfo();
 					double vect_dist = 0.0;
-					int nVect1 = this.getObj1().nVect;
+					int nVect1 = this.getObj1().getnVect();
 					int nVect2 = inSpec.getNVect();
 					System.out.println("vec # check " + nVect1 + " " + nVect2);
 					if ( nVect1 != nVect2)
@@ -602,7 +604,7 @@ public class MatchStick implements Drawable {
 					}
 					if ( res == true)
 					{
-						for (i= 1; i<= getObj1().nVect; i++)
+						for (i= 1; i<= getObj1().getnVect(); i++)
 						{
 							Point3d p1 = new Point3d(getObj1().vect_info[i]);
 							Point3d p2 = oriVecList[i];
@@ -725,6 +727,23 @@ public class MatchStick implements Drawable {
 		System.out.println("final tan" + getComp()[4].getmAxisInfo().getTransRotHis_finalTangent());
 	}
 
+	protected void applyTranslation(Vector3d shiftVec) {
+		for (int i=1; i<= getnComponent(); i++)
+		{
+			Point3d finalPos = new Point3d();
+			finalPos.add(getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
+			getComp()[i].translateComp(finalPos);
+		}
+		for (int i=1; i<=getnJuncPt(); i++)
+		{
+			getJuncPt()[i].getPos().add(shiftVec);
+		}
+		for (int i=1; i<=getnEndPt(); i++)
+		{
+			getEndPt()[i].getPos().add(shiftVec);
+		}
+	}
+
 	public void genMatchStickRand()
 	{
 		int nComp;
@@ -733,7 +752,7 @@ public class MatchStick implements Drawable {
 		//double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
 		double[] nCompDist = PARAM_nCompDist;
 		nComp = stickMath_lib.pickFromProbDist(nCompDist);
-		
+
 		cleanData();
 		//  debug
 		//  nComp = 4;
@@ -780,10 +799,9 @@ public class MatchStick implements Drawable {
 
 	public void drawSkeleton() {
 		int i;
-		boolean showComponents = false;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
-				float[][] colorCode= {  
+				float[][] colorCode= {
 						{1.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 0.0f},
 						{0.0f, 1.0f, 0.0f},
@@ -791,7 +809,7 @@ public class MatchStick implements Drawable {
 						{0.0f, 1.0f, 1.0f},
 						{1.0f, 0.0f, 1.0f},
 						{1.0f, 1.0f, 0.0f},
-						{0.4f, 0.1f, 0.6f} 
+						{0.4f, 0.1f, 0.6f}
 				};
 
 
@@ -802,11 +820,10 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-    genMatchStick with nComp components
+	 genMatchStick with nComp components
 	 */
 	public boolean genMatchStick_comp(int nComp)
 	{
-		boolean showDebug = false;
 		//        System.out.println("  Start random MAxis Shape gen...");
 		if ( showDebug)
 			System.out.println("Generate new random mStick, with " + nComp + " components");
@@ -815,7 +832,7 @@ public class MatchStick implements Drawable {
 		//comp = new TubeComp[nComp+1];
 
 		for (i=1; i<=nComp; i++)
-			getComp()[i] = new TubeComp();
+			addTube(i);
 		// 1. create first component at the center of the space.
 		createFirstComp();
 		// 2. sequentially adding new components
@@ -888,8 +905,8 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-      function check if the MStick is inside a BOX or not <BR>
-      ( to prevent a shape extend too much outside one dimension)
+	 function check if the MStick is inside a BOX or not <BR>
+	 ( to prevent a shape extend too much outside one dimension)
 	 */
 	protected boolean validMStickSize()
 	{
@@ -917,7 +934,6 @@ public class MatchStick implements Drawable {
 	{
 		int nComp = this.getnComponent();
 		boolean[][] connect = new boolean[nComp*2+1][nComp*2+1];
-		boolean showDebug = false;
 		// 1. build up the connection map
 		int i, j, k, m;
 		int a,b, cpt1, cpt2, part_a, part_b;
@@ -1073,12 +1089,11 @@ public class MatchStick implements Drawable {
 
 	}
 	/**
-        Sub function of finalTubeCollsionCheck
-        This function calculate if part of two tubes are too near to each other or not
+	 Sub function of finalTubeCollsionCheck
+	 This function calculate if part of two tubes are too near to each other or not
 	 */
 	private boolean finalTubeCollisionCheck_SUB_checkCloseness( int compA, int part1, int compB, int part2)
 	{
-		boolean showDebug = false;
 		double tolerance, nowdist;
 		int nSamplePts = 51;
 		int midPt = (nSamplePts+1)/2;
@@ -1122,8 +1137,8 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        Assign the radius value to the Match Stick.
-        The radius value will be randomly chosen in reasonable range
+	 Assign the radius value to the Match Stick.
+	 The radius value will be randomly chosen in reasonable range
 	 */
 	protected void RadiusAssign(int nPreserve)
 	{
@@ -1254,12 +1269,11 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-         check if the first several mAxisArc are too nearby to each other
-         @param firstNComp specify till what component, we want to check
+	 check if the first several mAxisArc are too nearby to each other
+	 @param firstNComp specify till what component, we want to check
 	 */
 	protected boolean checkSkeletonNearby(int firstNComp)
 	{
-		boolean showDebug = false;
 		int nComp = firstNComp;
 		boolean[][] connect = new boolean[25][25]; //make it large enough for 8 component, not a large waste of space
 
@@ -1374,12 +1388,11 @@ public class MatchStick implements Drawable {
 		return check_res; // return true if there is closeness found
 	}
 	/**
-        Check if two component skeleton are too nearby or not
-        A function that be used in checkSkeletonNearby ONLY!
+	 Check if two component skeleton are too nearby or not
+	 A function that be used in checkSkeletonNearby ONLY!
 	 */
 	private boolean checkSkeletonNearby_checkCloseness(int compA, int part1, int compB, int part2)
 	{
-		boolean showDebug = false;
 		final double NearByFactor = 7.0;
 		double tolerance, nowdist;
 		tolerance =  (getComp()[compA].getmAxisInfo().getArcLen() /NearByFactor + getComp()[compB].getmAxisInfo().getArcLen()/NearByFactor);
@@ -1435,9 +1448,9 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        Adding a new MAxisArc to a MatchStick
-        @param nowComp the index of the new added mAxis
-        @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
+	 Adding a new MAxisArc to a MatchStick
+	 @param nowComp the index of the new added mAxis
+	 @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
 	 */
 	protected boolean Add_MStick(int nowComp, int type)
 	{
@@ -1449,7 +1462,6 @@ public class MatchStick implements Drawable {
 		// 4. type == 4: B2E conneciton
 
 		//shared variable Delcaration
-		boolean showDebug = false;
 		//final double TangentSaveZone = Math.PI / 4.0;
 		int i;
 		int trialCount = 1; // an indicator that if something try too many time, then just give up
@@ -1539,7 +1551,7 @@ public class MatchStick implements Drawable {
 			trialCount = 1;
 			while (true)
 			{
-				
+
 				finalTangent = stickMath_lib.randomUnitVec();
 				boolean flag = true;
 				for (i=1; i<= getJuncPt()[nowPtNdx].getnTangent(); i++)
@@ -1547,15 +1559,15 @@ public class MatchStick implements Drawable {
 					if ( finalTangent.angle(getJuncPt()[nowPtNdx].getTangent()[i]) <= getTangentSaveZone()){
 						flag = false;
 					}
-					
+
 				}
 				if (flag == true) // i.e. all the tangent at this junction is ok for this new tangent
 					break;
 				if ( trialCount++ == 150) {
 					return false;
 				}
-					
-				
+
+
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
@@ -1578,7 +1590,7 @@ public class MatchStick implements Drawable {
 		}
 		else if (type == 3) //end-to-branch connection
 		{
-			
+
 			// 1. select a existing comp, with free branch
 			int pickedComp;
 			while(true)
@@ -1706,7 +1718,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-         Deal with the creation of first MAxisArc component
+	 Deal with the creation of first MAxisArc component
 	 */
 	protected void createFirstComp() // create the first component of the MStick
 	{
@@ -1732,9 +1744,9 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-    A public function that will start generating an offspring of this existing shape
-        The parent is the current shape.
-        The result will be stored in this object
+	 A public function that will start generating an offspring of this existing shape
+	 The parent is the current shape.
+	 The result will be stored in this object
 	 */
 	public boolean mutate(int debugParam) {
 		final int MaxMutateTryTimes = 10;
@@ -1781,7 +1793,7 @@ public class MatchStick implements Drawable {
 				else
 					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
 
-				if (task4Tube[i] != 1) 
+				if (task4Tube[i] != 1)
 					noChgFlg = false; // at least one chg will occur
 			}
 			nAddTube = stickMath_lib.pickFromProbDist( prob_addNewTube) - 1;
@@ -1919,7 +1931,7 @@ public class MatchStick implements Drawable {
 					this.copyFrom(tempStoreStick);
 				}
 			}
-			if (!successMutateTillNow) 
+			if (!successMutateTillNow)
 				continue;
 
 			// 5. reassign the radius value at junction point
@@ -1928,7 +1940,7 @@ public class MatchStick implements Drawable {
 			// 6. translate the shape, so that the first component is centered at origin.
 			//            this.centerShapeAtOrigin(-1);
 
-			if (!this.validMStickSize()) 
+			if (!this.validMStickSize())
 				successMutateTillNow = false;
 
 			if (!successMutateTillNow)
@@ -1981,7 +1993,7 @@ public class MatchStick implements Drawable {
 		int minChgTotal = nTimes;
 		int maxChgTotal = nTimes;
 		while (true) {
-			boolean noChgFlg = true;	
+			boolean noChgFlg = true;
 			nChgTotal = 0;
 			doScaleMorph = false;
 
@@ -1991,7 +2003,7 @@ public class MatchStick implements Drawable {
 				nChgTotal++;
 			}
 
-			if ( noChgFlg == false && nChgTotal >= minChgTotal && nChgTotal <= maxChgTotal) 
+			if ( noChgFlg == false && nChgTotal >= minChgTotal && nChgTotal <= maxChgTotal)
 				break;
 
 			for (i=1; i<=getnComponent(); i++) {
@@ -2000,7 +2012,7 @@ public class MatchStick implements Drawable {
 				else
 					task4Tube[i] = stickMath_lib.pickFromProbDist( prob_center);
 
-				if (task4Tube[i] != 1) 
+				if (task4Tube[i] != 1)
 					noChgFlg = false; // at least one chg will occur
 			}
 
@@ -2139,7 +2151,7 @@ public class MatchStick implements Drawable {
 					this.copyFrom(tempStoreStick);
 				}
 			}
-			if (!successMutateTillNow) 
+			if (!successMutateTillNow)
 				continue;
 
 			// 5. reassign the radius value at junction point
@@ -2148,7 +2160,7 @@ public class MatchStick implements Drawable {
 			// 6. translate the shape, so that the first component is centered at origin.
 			//            this.centerShapeAtOrigin(-1);
 
-			if (!this.validMStickSize()) 
+			if (!this.validMStickSize())
 				successMutateTillNow = false;
 
 			if (!successMutateTillNow)
@@ -2164,7 +2176,7 @@ public class MatchStick implements Drawable {
 	/**
 	 *   A function that randomly rotate the final object in a limit range
 	 */
-	private boolean changeFinalRotation()
+	protected boolean changeFinalRotation()
 	{
 		double degX, degY, degZ, sum_deg;
 		// randomly +/- ? degree to newLogInfo rotation
@@ -2211,7 +2223,6 @@ public class MatchStick implements Drawable {
 	 */
 	protected int findBestTubeToCenter()
 	{
-		boolean showDebug = false;
 		int i, j, k, a,b;
 		int maxTreeLevel = 1;
 		int[] treeLevel = new int[getnComponent()+1];
@@ -2330,56 +2341,34 @@ public class MatchStick implements Drawable {
 	public void centerShapeAtOrigin(int decidedCenterTube)
 	{
 		try {
-		boolean showDebug = false;
-		int i;
-		int compToCenter = decidedCenterTube;
-		if ( compToCenter == -1){ // no preference
-			compToCenter = findBestTubeToCenter();
-		}
-		Point3d origin = new Point3d(0.0, 0.0, 0.0);
+			showDebug = false;
+			int compToCenter = decidedCenterTube;
+			if (compToCenter == -1){ // no preference
+				compToCenter = findBestTubeToCenter();
+			}
+			Point3d origin = new Point3d(0.0, 0.0, 0.0);
 
-		setNowCenterTube(compToCenter);
-		//Point3d nowComp1Center =   new Point3d(comp[compToCenter].mAxisInfo.mPts[comp[compToCenter].mAxisInfo.branchPt]);
-		// Dec 26th, change .branchPt to .MiddlePT (i.e. always at middle)
-		int midPtIndex = 26;
-		Point3d nowComp1Center =     new Point3d(getComp()[compToCenter].getmAxisInfo().getmPts()[midPtIndex]);
-		Vector3d shiftVec = new Vector3d();
-		shiftVec.sub(origin, nowComp1Center);
-		//        System.out.println("comp to center "+ compToCenter);
-		//        System.out.println(nowComp1Center);
-		if ( origin.distance(nowComp1Center) > 0.001)
-		{
-			if ( showDebug)
-				System.out.println("shift to make it center at origin!");
-			Point3d finalPos =new Point3d();
+			setNowCenterTube(compToCenter);
+			int midPtIndex = 26;
+			Point3d nowComp1Center =     new Point3d(getComp()[compToCenter].getmAxisInfo().getmPts()[midPtIndex]);
+			Vector3d shiftVec = new Vector3d();
+			shiftVec.sub(origin, nowComp1Center);
+			if ( origin.distance(nowComp1Center) > 0.001)
+			{
+				if ( showDebug)
+					System.out.println("shift to make it center at origin!");
 
-			for (i=1; i<= getnComponent(); i++)
-			{
-				finalPos.add(getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
-				getComp()[i].translateComp( finalPos);
+				applyTranslation(shiftVec);
 			}
-			//also, all JuncPt and EndPt
-			for (i=1; i<=getnJuncPt(); i++)
-			{
-				getJuncPt()[i].getPos().add(shiftVec);
-			}
-			for (i=1; i<=getnEndPt(); i++)
-			{
-				getEndPt()[i].getPos().add(shiftVec);
-			}
-			//I'll call this check seperately
-			//if ( this.validMStickSize() ==  false)
-			//              return false;
-		}
-		//return true;
+			//return true;
 		}catch (Exception e) {
 			System.out.println("Centering failed for some reason.");
 			e.printStackTrace();
 		}
 	}
 	/**
-        reAssign the junction radius value
-        One of the last function call by mutate()
+	 reAssign the junction radius value
+	 One of the last function call by mutate()
 	 */
 	protected void MutateSUB_reAssignJunctionRadius()
 	{
@@ -2504,8 +2493,8 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        subFunction of: (replaceComponent, fineTuneComponent) <BR>
-        Will determine the relation of each component to the target component
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the relation of each component to the target component
 	 */
 	protected int[] MutationSUB_compRelation2Target(int targetComp)
 	{
@@ -2556,9 +2545,9 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-           subFunction of: (replaceComponent, fineTuneComponent) <BR>
-        Will determine the radius of the modified component
-        If there is value in [][] oriValue, it is the radius value of the original component
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the radius of the modified component
+	 If there is value in [][] oriValue, it is the radius value of the original component
 	 */
 	protected void MutationSUB_radAssign2NewComp( int targetComp, double[][] oriValue)
 	{
@@ -2666,7 +2655,7 @@ public class MatchStick implements Drawable {
 					getComp()[nowComp].getRadInfo()[2][1] = nowRad;
 				}
 				else // middle u value
-				System.out.println( "error in endPt radius assignment");
+					System.out.println( "error in endPt radius assignment");
 			}
 
 		//set intermediate pt if not assigned yet
@@ -2725,8 +2714,8 @@ public class MatchStick implements Drawable {
 		}
 	}
 	/**
-        subFunction of: (replaceComponent, fineTuneComponent) <BR>
-        Will determine the Hinge Pt to stay still
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the Hinge Pt to stay still
 	 */
 	protected int MutationSUB_determineHinge(int targetComp)
 	{
@@ -2768,7 +2757,7 @@ public class MatchStick implements Drawable {
 		return alignedPt;
 	}
 	/**
-        replace one of the component with a total new tube
+	 replace one of the component with a total new tube
 	 */
 	protected boolean replaceComponent(int id)
 	{
@@ -2926,7 +2915,7 @@ public class MatchStick implements Drawable {
 				//set the component to its new role
 				boolean branchUsed = this.getComp()[id].isBranchUsed();
 				int connectType = this.getComp()[id].getConnectType();
-				this.getComp()[id] = new TubeComp();
+				addTube(id);
 				this.getComp()[id].initSet( nowArc, branchUsed, connectType);
 				boolean closeHit = this.checkSkeletonNearby( getnComponent());
 				if (closeHit == false) // a safe skeleton
@@ -3002,7 +2991,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        Fine tune the parameters of one of the component.
+	 Fine tune the parameters of one of the component.
 	 */
 	protected boolean fineTuneComponent(int id)
 	{
@@ -3059,7 +3048,7 @@ public class MatchStick implements Drawable {
 					tangentTrialTimes++;
 					this.copyFrom(old_MStick);
 					// random get a new MAxisArc
-					nowArc = new MAxisArc();
+					nowArc = newArc();
 					nowArc.genSimilarArc( this.getComp()[id].getmAxisInfo(), alignedPt,volatileRate);
 					// use this function to generate a similar arc
 
@@ -3170,7 +3159,7 @@ public class MatchStick implements Drawable {
 				//set the component to its new role
 				boolean branchUsed = this.getComp()[id].isBranchUsed();
 				int connectType = this.getComp()[id].getConnectType();
-				this.getComp()[id] = new TubeComp();
+				addTube(id);
 				this.getComp()[id].initSet( nowArc, branchUsed, connectType);
 				if (showDebug)
 					System.out.println("In fine tune: tube to modify # " +id +" now check skeleton");
@@ -3252,10 +3241,14 @@ public class MatchStick implements Drawable {
 		return true;
 	}
 
+	protected MAxisArc newArc() {
+		return new MAxisArc();
+	}
+
 	/**
-        function that add new tube in the mutation process
+	 function that add new tube in the mutation process
 	 */
-	private boolean addTubeMutation(int nAddTube)
+	protected boolean addTubeMutation(int nAddTube)
 	{
 		int add_trial = 0;
 		boolean showDebug = false;
@@ -3267,7 +3260,7 @@ public class MatchStick implements Drawable {
 		int i;
 
 		for (i= getnComponent()+1; i<= getnComponent()+1 + nAddTube-1; i++)
-			getComp()[i] = new TubeComp();
+			addTube(i);
 
 		// 1. sequentially adding new components
 
@@ -3336,8 +3329,12 @@ public class MatchStick implements Drawable {
 
 	}
 
+	protected void addTube(int i) {
+		getComp()[i] = new TubeComp();
+	}
+
 	/**
-        Remove the component from this shape ( the component to remove is indexed by removeFlg bool array
+	 Remove the component from this shape ( the component to remove is indexed by removeFlg bool array
 	 */
 	protected void removeComponent(boolean[] removeFlg)
 	{
@@ -3435,7 +3432,7 @@ public class MatchStick implements Drawable {
 	}
 
 	/**
-        A private function that will decide which components are leaf branch, which are NOT
+	 A private function that will decide which components are leaf branch, which are NOT
 	 */
 	protected void decideLeafBranch()
 	{
@@ -3524,6 +3521,121 @@ public class MatchStick implements Drawable {
 
 	}
 
+	protected Transform3D getRotation(double angle, Vector3d rotAxis) {
+		AxisAngle4d axisInfo = new AxisAngle4d(rotAxis, angle);
+		Transform3D transMat = new Transform3D();
+		transMat.setRotation(axisInfo);
+		return transMat;
+	}
+
+	protected double toRadians(double angle) {
+		return (angle / 180) * Math.PI;
+	}
+
+	public void modifyEndPtFinalInfoForAnalysis(){
+		// end of the change of component info
+		for (int endPtIndx=1; endPtIndx<=getNEndPt(); endPtIndx++){
+			EndPt_struct endPt = getEndPt()[endPtIndx];
+
+			//Rotation
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if (rotVec[0] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[0]), new Vector3d(1,0,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Y
+			if (rotVec[1] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[1]),
+						new Vector3d(0,1,0));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+
+			//Rot Z
+			if (rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[2]),
+						new Vector3d(0,0,1));
+				//Pos
+				transMat.transform(endPt.getPos());
+				//Tangent
+				transMat.transform(endPt.getTangent());
+			}
+			endPt.getTangent().negate();
+
+			//Scale
+			//Pos
+			endPt.getPos().scale(this.getScaleForMAxisShape());
+
+			//Rad
+			endPt.setRad(endPt.getRad()*getScaleForMAxisShape());
+
+		}
+	}
+
+	public void modifyJuncPtFinalInfoForAnalysis(){
+		for (int juncPtIndx = 1; juncPtIndx <= getNJuncPt(); juncPtIndx++) {
+			JuncPt_struct juncPt = getJuncPt()[juncPtIndx];
+
+			//Rotate
+			double[] rotVec = new double[3];
+			rotVec[0] = this.getFinalRotation()[0];
+			rotVec[1] = this.getFinalRotation()[1];
+			rotVec[2] = this.getFinalRotation()[2];
+			//Rot X
+			if(rotVec[0] != 0.0) {
+				Transform3D transMat = getRotation(rotVec[0], new Vector3d(1, 0, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+			//Rot Y
+			if(rotVec[1] != 0.0) {
+				Transform3D transMat = getRotation(toRadians(rotVec[1]), new Vector3d(0, 1, 0));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+			//Rot Z
+			if(rotVec[2] != 0.0){
+				Transform3D transMat = getRotation(toRadians(rotVec[2]), new Vector3d(0, 0, 1));
+				//Pos
+				transMat.transform(juncPt.getPos());
+				//Tangent
+				for (int compIndx = 1; compIndx <= juncPt.getnComp(); compIndx++) {
+					transMat.transform(juncPt.getTangent()[compIndx]);
+				}
+			}
+			//Scale
+			//Pos
+			juncPt.getPos().scale(getScaleForMAxisShape());
+			//Radius
+			juncPt.setRad(juncPt.getRad()*getScaleForMAxisShape());
+		}
+	}
+
+	public void modifyMStickFinalInfoForAnalysis(){
+		modifyMAxisFinalInfo();
+		modifyEndPtFinalInfoForAnalysis();
+		modifyJuncPtFinalInfoForAnalysis();
+		//TODO: apply transformations to normal, and other stuff
+	}
+
 	/*
 	 *   calculate the center position of the shape
 	 *   which can be used to calculate the relative x,y,z for others
@@ -3532,15 +3644,15 @@ public class MatchStick implements Drawable {
 	{
 		Point3d center = new Point3d(0,0,0);
 		int i;
-		for (i=1; i<= getObj1().nVect; i++)
+		for (i=1; i<= getObj1().getnVect(); i++)
 		{
 			center.x  += getObj1().vect_info[i].x;
 			center.y  += getObj1().vect_info[i].y;
 			center.z  += getObj1().vect_info[i].z;
 		}
-		center.x /= getObj1().nVect;
-		center.y /= getObj1().nVect;
-		center.z /= getObj1().nVect;
+		center.x /= getObj1().getnVect();
+		center.y /= getObj1().getnVect();
+		center.z /= getObj1().getnVect();
 		// July 30 2009
 		//there are two ways
 		// 1. the avg of all points on the mesh
@@ -3575,7 +3687,7 @@ public class MatchStick implements Drawable {
 	 *   This function should only be called in the analysis
 	 *   (after the electrophysio exp...)
 	 */
-	private void modifyMAxisFinalInfo()
+	protected void modifyMAxisFinalInfo()
 	{
 		//May 21st , I want to do the same
 		// rotate, scale, and translateinZ for the components
@@ -3596,64 +3708,51 @@ public class MatchStick implements Drawable {
 
 		for (i=1; i<= this.getnComponent(); i++)
 		{
-			// 1. scale up the (r1,r2,r3), rad(1/k), and arcLen
-			for (j=0; j<3; j++)
-			{
-				// comp[i].radInfo[j][0] should keep the same ( which is u index)
-				getComp()[i].getRadInfo()[j][1] *= this.getScaleForMAxisShape();
-			}
-
-			getComp()[i].getmAxisInfo().setArcLen(getComp()[i].getmAxisInfo().getArcLen() * this.getScaleForMAxisShape());
-			getComp()[i].getmAxisInfo().setRad(getComp()[i].getmAxisInfo().getRad() * this.getScaleForMAxisShape());
-			getComp()[i].getmAxisInfo().curvature = 1.0 / getComp()[i].getmAxisInfo().getRad();
-			//rotate and scale for finalPos
-			// rotate and 'no' sclae for finalTangent
+			scaleComps(i);
 
 
 			// 1. rot X
+			TubeComp tubeComp = getComp()[i];
+			MAxisArc mAxisArc = tubeComp.getmAxisInfo();
 			if ( rotVec[0] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(1,0,0);
-				double Angle = (rotVec[0] /180.0 ) *Math.PI;
-				AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-				Transform3D transMat = new Transform3D();
-				transMat.setRotation(axisInfo);
+				double Angle = toRadians(rotVec[0]);
+				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
 				{
-					transMat.transform(getComp()[i].getmAxisInfo().getmPts()[j]);
-					transMat.transform(getComp()[i].getmAxisInfo().getmTangent()[j]);
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
 				}
-				for (j=1; j<=getComp()[i].getnVect(); j++)
+				for (j=1; j<= tubeComp.getnVect(); j++)
 				{
-					transMat.transform(getComp()[i].getVect_info()[j]);
-					transMat.transform(getComp()[i].getNormMat_info()[j]);
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
 				}
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalPos());
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
 
 			}
 			// 2. rot Y
 			if ( rotVec[1] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(0,1,0);
-				double Angle = (rotVec[1] /180.0 ) *Math.PI;
-				AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-				Transform3D transMat = new Transform3D();
-				transMat.setRotation(axisInfo);
+				double Angle = toRadians(rotVec[1]);
+				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
 				{
-					transMat.transform(getComp()[i].getmAxisInfo().getmPts()[j]);
-					transMat.transform(getComp()[i].getmAxisInfo().getmTangent()[j]);
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
 				}
-				for (j=1; j<=getComp()[i].getnVect(); j++)
+				for (j=1; j<= tubeComp.getnVect(); j++)
 				{
-					transMat.transform(getComp()[i].getVect_info()[j]);
-					transMat.transform(getComp()[i].getNormMat_info()[j]);
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
 				}
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalPos());
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
 
 			}
 
@@ -3661,55 +3760,70 @@ public class MatchStick implements Drawable {
 			if ( rotVec[2] != 0.0)
 			{
 				Vector3d RotAxis = new Vector3d(0,0,1);
-				double Angle = (rotVec[2] /180.0 ) *Math.PI;
-				AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-				Transform3D transMat = new Transform3D();
-				transMat.setRotation(axisInfo);
+				double Angle = toRadians(rotVec[2]);
+				Transform3D transMat = getRotation(Angle, RotAxis);
 
 				for (j=1; j<=51; j++)
 				{
-					transMat.transform(getComp()[i].getmAxisInfo().getmPts()[j]);
-					transMat.transform(getComp()[i].getmAxisInfo().getmTangent()[j]);
+					transMat.transform(mAxisArc.getmPts()[j]);
+					transMat.transform(mAxisArc.getmTangent()[j]);
 				}
-				for (j=1; j<=getComp()[i].getnVect(); j++)
+				for (j=1; j<= tubeComp.getnVect(); j++)
 				{
-					transMat.transform(getComp()[i].getVect_info()[j]);
-					transMat.transform(getComp()[i].getNormMat_info()[j]);
+					transMat.transform(tubeComp.getVect_info()[j]);
+					transMat.transform(tubeComp.getNormMat_info()[j]);
 				}
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalPos());
-				transMat.transform(getComp()[i].getmAxisInfo().getTransRotHis_finalTangent());
+				transMat.transform(mAxisArc.getTransRotHis_finalPos());
+				transMat.transform(mAxisArc.getTransRotHis_finalTangent());
 
 			}
+			for (j=1; j<=51; j++)
+			{
+//				mAxisArc.getmTangent()[j].negate();
+			}
+
 
 			for (j=0; j<=51; j++)
 			{
-				getComp()[i].getmAxisInfo().getmPts()[j].scale(this.getScaleForMAxisShape());
+				mAxisArc.getmPts()[j].scale(this.getScaleForMAxisShape());
 				// comp[i].mAxisInfo.mPts[j].add(this.finalShiftinDepth);
 			}
 
-			for (j=1; j<=getComp()[i].getnVect(); j++)
+			for (j=1; j<= tubeComp.getnVect(); j++)
 			{
-				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
+//				getComp()[i].getVect_info()[j].scale(this.getScaleForMAxisShape());
 				// comp[i].vect_info[j].add(finalShiftinDepth);
 			}
-			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().scale(this.getScaleForMAxisShape());
+			mAxisArc.getTransRotHis_finalPos().scale(this.getScaleForMAxisShape());
 			// comp[i].mAxisInfo.transRotHis_finalPos.add(this.finalShiftinDepth);
 			// no scale/add for the tangent, since it is a unit vector
 
 			// don't change the devAngle
 			//comp[i].mAxisInfo.transRotHis_devAngle =
 		}
-
-
-
-
-		// end of the change of component info
-
-
-
 	}
+
+
+	private void scaleComps(int i) {
+		int j;
+		// 1. scale up the (r1,r2,r3), rad(1/k), and arcLen
+		for (j=0; j<3; j++)
+		{
+			// comp[i].radInfo[j][0] should keep the same ( which is u index)
+			getComp()[i].getRadInfo()[j][1] *= this.getScaleForMAxisShape();
+		}
+
+		getComp()[i].getmAxisInfo().setArcLen(getComp()[i].getmAxisInfo().getArcLen() * this.getScaleForMAxisShape());
+		getComp()[i].getmAxisInfo().setRad(getComp()[i].getmAxisInfo().getRad() * this.getScaleForMAxisShape());
+		getComp()[i].getmAxisInfo().setCurvature(1.0 / getComp()[i].getmAxisInfo().getRad());
+		//rotate and scale for finalPos
+
+
+		// rotate and 'no' sclae for finalTangent
+	}
+
 	/**
-        function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
+	 function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
 	 */
 
 	public boolean smoothizeMStick()
@@ -3731,9 +3845,11 @@ public class MatchStick implements Drawable {
 		for (i=2; i<= getnComponent(); i++) {
 			int target = i;
 			boolean res  = false;
-			res = nowObj.objectMerge( MObj[target], false); 
-			if (res == false)
+			res = nowObj.objectMerge( MObj[target], false);
+			if (res == false) {
+				System.err.println("FAIL AT OBJECT MERGE");
 				return false;
+			}
 		}
 
 		// 3. general smooth afterward
@@ -3745,13 +3861,13 @@ public class MatchStick implements Drawable {
 
 		this.getObj1().rotateMesh(getFinalRotation());
 		//this.getObj1().scaleTheObj(scaleForMAxisShape*3);
-		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE 
+		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
 		/*
 		 * If the *3 is not removed, the printed images will all be zoomed in by factor of 3
 		 * Also, I believe this scaling my scaleForMAXisShape is what gives all of the dimmensionless
-		 * units of length in the MatchStick units for the first time. 
+		 * units of length in the MatchStick units for the first time.
 		 */
-		
+
 		if (isDoCenterObject())
 			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
 
@@ -4284,10 +4400,10 @@ public class MatchStick implements Drawable {
 	}
 	public double getFinalShiftInDepth(int i) {
 		switch(i) {
-		case 0: return getFinalShiftinDepth().x;
-		case 1: return getFinalShiftinDepth().y;
-		case 2: return getFinalShiftinDepth().z;
-		default: return 0;
+			case 0: return getFinalShiftinDepth().x;
+			case 1: return getFinalShiftinDepth().y;
+			case 2: return getFinalShiftinDepth().z;
+			default: return 0;
 		}
 	}
 
@@ -4447,6 +4563,3 @@ public class MatchStick implements Drawable {
 		return doCenterObject;
 	}
 }
-
-
-

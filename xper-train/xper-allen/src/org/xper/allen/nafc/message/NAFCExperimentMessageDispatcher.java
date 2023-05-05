@@ -13,8 +13,8 @@ import org.xper.allen.nafc.console.NAFCTrialStatistics;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;
-import org.xper.classic.vo.TrialStatistics;
 import org.xper.db.vo.BehMsgEntry;
+import org.xper.db.vo.TrialMessage;
 import org.xper.exception.OverflowException;
 import org.xper.exception.RuntimeIOException;
 import org.xper.util.SocketUtil;
@@ -78,7 +78,6 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	@Override
 	public void sampleOff(long timestamp) {
 		enqueue(timestamp, "SampleOff", "");
-		trialStat.setSampleSuccess(trialStat.getSampleSuccess()+1);
 	}
 
 	@Override
@@ -93,6 +92,7 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 		NAFCChoiceMessage sampleMsg = new NAFCChoiceMessage(currentTask.getChoiceSpecId(), currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize(), currentTask.getRewardPolicy());
 		String msg = sampleMsg.toXml();
 		enqueue(timestamp, "ChoicesOn", msg);
+		trialStat.setSampleSuccess(trialStat.getSampleSuccess()+1);
 	}
 
 	@Override

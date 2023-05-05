@@ -49,8 +49,7 @@ public class JuncPt_struct {
 
       /**
        * AC: 
-       * Return the index in comp[100] associated with a certain comp  
-       * @param comp
+       * Return the index in comp[100] associated with a certain comp
        * @return
        */
       public int getIndexOfComp(int compId) {

@@ -18,14 +18,14 @@ class SubField(trial_field.Field):
 
 class StartField(trial_field.Field):
 
-    def retrieveValue(self, when):
+    def get(self, when):
         self.value = when.start
 
 class WhenField(trial_field.Field):
     def __init__(self):
         self.name = "tstamps"
 
-    def retrieveValue(self, when):
+    def get(self, when):
         self.value = when.tuple()
 
 class TestField(TestCase):

@@ -4,12 +4,13 @@ import java.util.List;
 
 import org.xper.Dependency;
 import org.xper.classic.SlideEventListener;
+import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
 import org.xper.experiment.TaskDataSource;
 import org.xper.eye.EyeTargetSelector;
 
-public class SaccadeTrialExperimentState extends TrialExperimentState {
+public class SaccadeTrialExperimentState extends SlideTrialExperimentState {
 	@Dependency
 	List<? extends SlideEventListener> slideEventListeners;
 	@Dependency

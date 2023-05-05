@@ -12,6 +12,7 @@ import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.config.IntanConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.IConsolePlugin;
@@ -36,12 +37,13 @@ public class RFPlotConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
+	@Autowired IntanConfig intanConfig;
 
-	@ExternalValue("rfplot.default_png_path")
-	public String defaultPngPath;
+	@ExternalValue("rfplot.png_library_path_generator")
+	public String pngLibraryPath_generator;
 
-	@ExternalValue("rfplot.png_library_path")
-	public String pngLibraryPath;
+	@ExternalValue("rfplot.png_library_path_experiment")
+	public String pngLibraryPath_experiment;
 
 	@Bean
 	public PerspectiveRenderer rfRenderer () {
@@ -71,7 +73,7 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
-		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject(defaultPngPath));
+		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject(pngPathScroller().getFirstPath()));
 		return refObjMap;
 	}
 
@@ -92,9 +94,18 @@ public class RFPlotConfig {
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Path", new PngPathScroller(pngLibraryPath));
+		map.put("Path", pngPathScroller());
 		map.put("Size", new PngSizeScroller());
 		return map;
+	}
+
+	@Bean
+	public PngPathScroller pngPathScroller() {
+		PngPathScroller scroller = new PngPathScroller();
+		scroller.setLibraryPath_generator(pngLibraryPath_generator);
+		scroller.setLibraryPath_experiment(pngLibraryPath_experiment);
+		scroller.init();
+		return scroller;
 	}
 
 	@Bean
@@ -149,6 +160,7 @@ public class RFPlotConfig {
 		listeners.add(classicConfig.messageDispatcherController());
 		listeners.add(classicConfig.eyeZeroLogger());
 		listeners.add(classicConfig.experimentCpuBinder());
+		listeners.add(intanConfig.intanMessageDispatcher());
 		return listeners;
 	}
 	
@@ -165,6 +177,7 @@ public class RFPlotConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
+		trialEventListener.add(intanConfig.intanMessageDispatcher());
 		return trialEventListener;
 	}
 

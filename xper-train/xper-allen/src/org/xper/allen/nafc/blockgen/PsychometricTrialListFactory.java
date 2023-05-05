@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.blockgen;
 
+import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.psychometric.*;
 
 import java.io.File;
@@ -32,12 +33,12 @@ public class PsychometricTrialListFactory implements TrialListFactory {
 
 
     @Override
-    public List<Trial> createTrials() {
+    public List<Stim> createTrials() {
         List<NumberOfDistractorsForPsychometricTrial> numDistractors = this.numDistractors;
 
         fetchSetInfo();
 
-        List<Trial> trials = new LinkedList<>();
+        List<Stim> stims = new LinkedList<>();
         for(long setId:setIds)
             for(int stimId:stimIds)
                 for(int i=0; i<numTrialsPerImage; i++){
@@ -46,11 +47,11 @@ public class PsychometricTrialListFactory implements TrialListFactory {
                             numDistractors.get(i),
                             new PsychometricIds(setId, stimId, stimIds)
                     );
-                    trials.add(new PsychometricTrial(
+                    stims.add(new PsychometricStim(
                             generator,
                             psychometricTrialParameters));
                 }
-        return trials;
+        return stims;
     }
 
     int numSets;

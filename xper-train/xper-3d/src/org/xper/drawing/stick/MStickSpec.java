@@ -2,9 +2,7 @@ package org.xper.drawing.stick;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.FileWriter;
 
 import javax.vecmath.Point3d;
@@ -201,8 +199,8 @@ public class MStickSpec {
         compPosTanStr = "";
         for (int i=1; i<=getNComponent(); i++) {
             MAxisArc tempArc = tubes[i].getmAxisInfo();
-            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," + 
-                    tempArc.curvature + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
+            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," +
+                    tempArc.getCurvature() + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
             for (int j=1; j<=51; j++) {
                 compPosTanStr = compPosTanStr + tempArc.getmPts()[j].x + "," + tempArc.getmPts()[j].y + "," + 
                         tempArc.getmPts()[j].z + "," + tempArc.getmTangent()[j].x + "," + 
@@ -217,7 +215,7 @@ public class MStickSpec {
 
     public Point3d[] getVectInfo()
     {
-        int nVect = this.vertex.nVect;
+        int nVect = this.vertex.getnVect();
         int i;
         Point3d[] vect = new Point3d[ nVect+1];
         ByteArrayInputStream bis1 = new ByteArrayInputStream (vertex.vect_bArray);
@@ -238,7 +236,7 @@ public class MStickSpec {
     }
 
     public Vector3d[] getNormMatInfo() {
-        int nVect = this.vertex.nVect;
+        int nVect = this.vertex.getnVect();
         Vector3d[] normMat = new Vector3d[ nVect+1];
         ByteArrayInputStream bis2 = new ByteArrayInputStream (vertex.normMat_bArray);
         DataInputStream dis2 = new DataInputStream (bis2);
@@ -263,7 +261,7 @@ public class MStickSpec {
         // TODO Auto-generated method stub
         ByteArrayInputStream bis3 = new ByteArrayInputStream (vertex.fac_bArray);
         DataInputStream dis3 = new DataInputStream (bis3);
-        int nFac = this.vertex.nFac;
+        int nFac = this.vertex.getnFac();
         int[][] facInfo =new int[ nFac][3];
         int i, j;
 
@@ -307,10 +305,10 @@ public class MStickSpec {
 
     public int getNFac() {
         // TODO Auto-generated method stub
-        return this.vertex.nFac;
+        return this.vertex.getnFac();
     }
     public int getNVect(){
-        return this.vertex.nVect;
+        return this.vertex.getnVect();
     }
 
     public int getNComponent(){

@@ -15,37 +15,36 @@ import org.xper.eye.zero.EyeZeroAdjustable;
  */
 public class NAFCEyeMonitorController extends EyeMonitorController{
 
-	public void trialComplete(long timestamp, TrialContext context) {
-//		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
-//			adj.updateEyeWindow();
-//		}
-//		stopEyeZeroSignalCollection();
-	}
-	
-	/**
-	 * We no longer want to calculateNewEyeZero() here. Instead we do it after fixation success. 
-	 */
-		public void trialStop(long timestamp, TrialContext context) {
-			if (getEyeSampler().isRunning()) {
-				getEyeSampler().stop();
-			}
-		}
-	
+	@Override
 	public void fixationSucceed(long timestamp, TrialContext context) {
-		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
-			adj.updateEyeWindow();
-		}
 		for (EyeZeroAdjustable dev : getEyeDeviceWithAdjustableZero()) {
 			dev.calculateNewEyeZero();
 		}
 		stopEyeZeroSignalCollection();
 	}
-	
 
+	public void trialComplete(long timestamp, TrialContext context) {
+		for (EyeWindowAdjustable adj : getEyeWindowAdjustable()) {
+			adj.updateEyeWindow();
+		}
+	}
+	
+	/**
+	 * We no longer want to calculateNewEyeZero() here. Instead we do it after fixation success. 
+	 */
+	@Override
+		public void trialStop(long timestamp, TrialContext context) {
+			if (getEyeSampler().isRunning()) {
+				getEyeSampler().stop();
+			}
+		}
+
+	@Override
 	public void eyeInHoldFail(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();
 	}
-	
+
+	@Override
 	public void eyeInBreak(long timestamp, TrialContext context) {
 		stopEyeZeroSignalCollection();
 	}

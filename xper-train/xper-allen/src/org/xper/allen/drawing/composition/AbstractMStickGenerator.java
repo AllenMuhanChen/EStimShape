@@ -18,7 +18,8 @@ public abstract class AbstractMStickGenerator{
 		super();
 	}
 
-	protected void makeAttemptsToGenerate() {
+	protected void
+	makeAttemptsToGenerate() {
 		int nTries = 0;
 	
 		while (nTries<maxAttempts) {

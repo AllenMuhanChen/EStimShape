@@ -28,25 +28,7 @@ import org.xper.acq.ni.NiAnalogSamplingDevice;
 import org.xper.acq.ni.NiDigitalPortOutDevice;
 import org.xper.acq.vo.ComediChannelSpec;
 import org.xper.acq.vo.NiChannelSpec;
-import org.xper.classic.DataAcqController;
-import org.xper.classic.DynamicJuiceUpdater;
-import org.xper.classic.ExperimentProfiler;
-import org.xper.classic.EyeMonitorController;
-import org.xper.classic.JuiceController;
-import org.xper.classic.TrialSyncController;
-import org.xper.classic.JvmManager;
-import org.xper.classic.MarkEveryStepTrialDrawingController;
-import org.xper.classic.MarkStimTrialDrawingController;
-import org.xper.classic.SlideEventListener;
-import org.xper.classic.SlideEventLogger;
-import org.xper.classic.SlideTrialExperiment;
-import org.xper.classic.TrialDrawingController;
-import org.xper.classic.TrialEventListener;
-import org.xper.classic.TrialEventLogger;
-import org.xper.classic.TrialExperimentConsoleRenderer;
-import org.xper.classic.TrialExperimentEyeController;
-import org.xper.classic.TrialExperimentMessageDispatcher;
-import org.xper.classic.TrialExperimentMessageHandler;
+import org.xper.classic.*;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentConsoleModel;
@@ -224,9 +206,22 @@ public class ClassicConfig {
 	public Experiment experiment () {
 		SlideTrialExperiment xper = new SlideTrialExperiment();
 		xper.setStateObject(experimentState());
+		xper.setTrialRunner(slideTrialRunner());
 		return xper;
 	}
-	
+
+	@Bean
+	public SlideTrialRunner slideTrialRunner() {
+		ClassicSlideTrialRunner slideTrialRunner = new ClassicSlideTrialRunner();
+		slideTrialRunner.setSlideRunner(slideRunner());
+		return slideTrialRunner;
+	}
+
+	@Bean
+	public ClassicSlideRunner slideRunner() {
+		return new ClassicSlideRunner();
+	}
+
 	@Bean
 	public SlideTrialExperimentState experimentState () {
 		SlideTrialExperimentState state = new SlideTrialExperimentState ();

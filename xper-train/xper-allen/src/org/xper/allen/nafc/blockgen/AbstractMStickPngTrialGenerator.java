@@ -4,16 +4,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.Dependency;
+import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
-import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
-import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
 
-public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGenerator {
-
-	@Dependency
-	protected AllenDbUtil dbUtil;
+public abstract class AbstractMStickPngTrialGenerator<T extends Stim> extends AbstractTrialGenerator<T> {
 	@Dependency
 	protected TimeUtil globalTimeUtil;
 	@Dependency
@@ -31,6 +26,16 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 		super();
 	}
 
+	@Override
+	protected void init() {
+		pngMaker.createDrawerWindow();
+	}
+
+	@Override
+	protected void tearDown() {
+		pngMaker.close();
+	}
+
 	public List<String> convertPathsToExperiment(List<String> generatorPaths) {
 		LinkedList<String> expPaths = new LinkedList<String>();
 		for(int s=0; s<generatorPaths.size(); s++) {
@@ -41,18 +46,10 @@ public abstract class AbstractMStickPngTrialGenerator extends AbstractTrialGener
 	}
 
 	public String convertPathToExperiment(String generatorPath) {
-	
+
 		String newPath = generatorPath.replace(getGeneratorPngPath(), getExperimentPngPath());
-	
+
 		return newPath;
-	}
-
-	public AllenDbUtil getDbUtil() {
-		return dbUtil;
-	}
-
-	public void setDbUtil(AllenDbUtil dbUtil) {
-		this.dbUtil = dbUtil;
 	}
 
 	public TimeUtil getGlobalTimeUtil() {
