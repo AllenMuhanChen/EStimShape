@@ -39,6 +39,17 @@ public class ExperimentMatchStickTest {
         secondMStick.setProperties(30);
         secondMStick.genSecondMatchStick(firstMStick, 1);
         drawPng(secondMStick, 3L);
+
+        ExperimentMatchStick thirdMStick = new ExperimentMatchStick();
+        thirdMStick.setProperties(30);
+        thirdMStick.genMorphedDrivingCompMatchStick(firstMStick, 1);
+        drawPng(thirdMStick, 4L);
+
+        ExperimentMatchStick fourthMStick = new ExperimentMatchStick();
+        fourthMStick.setProperties(30);
+        fourthMStick.genMorphedDrivingCompMatchStick(secondMStick, 1);
+        drawPng(fourthMStick, 5L);
+
     }
 
     private void drawPng(MatchStick matchStick, long id) {
