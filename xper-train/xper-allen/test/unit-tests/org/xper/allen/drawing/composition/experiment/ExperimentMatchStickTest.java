@@ -8,7 +8,6 @@ import org.xper.util.ResourceUtil;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.*;
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class ExperimentMatchStickTest {
@@ -30,11 +29,16 @@ public class ExperimentMatchStickTest {
     }
 
     @Test
-    public void test() {
+    public void test_msticks() {
         ExperimentMatchStick firstMStick = new ExperimentMatchStick();
         firstMStick.setProperties(30);
         firstMStick.genFirstMatchStick(baseMStick, 1);
         drawPng(firstMStick, 2L);
+
+        ExperimentMatchStick secondMStick = new ExperimentMatchStick();
+        secondMStick.setProperties(30);
+        secondMStick.genSecondMatchStick(firstMStick, 1);
+        drawPng(secondMStick, 3L);
     }
 
     private void drawPng(MatchStick matchStick, long id) {

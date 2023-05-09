@@ -3,11 +3,11 @@ package org.xper.allen.drawing.composition.morph;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class MorphDistributer {
+public class NormalMorphDistributer {
 
     private double sigma = 1.0/3.0;
 
-    public MorphDistributer(double sigma) {
+    public NormalMorphDistributer(double sigma) {
         this.sigma = sigma;
     }
 
