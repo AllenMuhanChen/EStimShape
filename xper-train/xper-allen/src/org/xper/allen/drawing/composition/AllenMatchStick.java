@@ -4265,6 +4265,10 @@ Adding a new MAxisArc to a MatchStick
 		return terminationDatas;
 	}
 
+	/**
+	 * Relies on the object being centered at center of mass
+	 * @return
+	 */
 	private List<ShaftData> getShaftData() {
 		List<ShaftData> shaftDatas = new LinkedList<>();
 		for (int i=1; i<=getNComponent(); i++){

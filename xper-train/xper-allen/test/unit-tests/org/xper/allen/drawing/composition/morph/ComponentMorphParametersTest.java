@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick.MorphException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,4 +39,6 @@ public class ComponentMorphParametersTest {
         // of 0.5, and there are 5 categories to distribute normalized magnitudes to)
         Assert.assertTrue(sum <= 2.5);
     }
+
+
 }

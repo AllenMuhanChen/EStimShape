@@ -23,9 +23,12 @@ public class IntanSpikeParentSelector implements ParentSelector{
     @Dependency
     SpikeRateAnalyzer spikeRateAnalyzer;
 
+    @Dependency
+    List<String> channels;
+
     private List<Long> previousGenerationIds;
 
-    public List<Long> selectParents(List<String> channels, String gaName) {
+    public List<Long> selectParents(String gaName) {
 
         //Read Recent Generation into list of taskIds
         GenerationTaskDoneList taskDoneList = dbUtil.readTaskDoneForGaAndGeneration(gaName, dbUtil.readTaskDoneMaxGenerationIdForGa(gaName));
@@ -103,5 +106,11 @@ public class IntanSpikeParentSelector implements ParentSelector{
         this.spikeRateAnalyzer = spikeRateAnalyzer;
     }
 
+    public List<String> getChannels() {
+        return channels;
+    }
 
+    public void setChannels(List<String> channels) {
+        this.channels = channels;
+    }
 }
