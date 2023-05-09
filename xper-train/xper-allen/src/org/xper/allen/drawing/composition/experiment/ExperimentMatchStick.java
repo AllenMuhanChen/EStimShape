@@ -1,11 +1,9 @@
 package org.xper.allen.drawing.composition.experiment;
 
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick.MorphException;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 
@@ -67,8 +65,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
 
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+        //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
         morphParametersForComponents.put(baseComponentIndex, new ComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
-
         while (true) {
             genMorphedMatchStick(morphParametersForComponents, firstMatchStick);
             try{
@@ -79,6 +77,24 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             }
         }
     }
+
+    public void genMorphedDrivingCompMatchStick(ExperimentMatchStick matchStickToMorph, int drivingComponentIndex){
+        Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+        //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
+        morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
+
+        while (true) {
+            genMorphedMatchStick(morphParametersForComponents, matchStickToMorph);
+            try{
+//                checkObjectCenteredPosition(calcObjCenteredPosForDrivingComp(matchStickToMorph, drivingComponentIndex));
+                break;
+            } catch (MorphException e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+
 
     /**
      * Verify that specified components of new matchStick are all in a similar object centered position
