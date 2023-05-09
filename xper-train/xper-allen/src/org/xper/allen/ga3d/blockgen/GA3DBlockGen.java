@@ -81,7 +81,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     private List<Trial> createMorphTrials(GA3DBlockGen generator, String gaName){
         List<Trial> trials = new LinkedList<>();
 
-        stimsToMorph = parentSelector.selectParents(channels, gaName);
+        stimsToMorph = parentSelector.selectParents(gaName);
 
         for (Long parentId: stimsToMorph){
             trials.add(new MorphTrial(generator, gaName, parentId));
@@ -172,7 +172,7 @@ public class GA3DBlockGen extends AbstractMStickPngTrialGenerator {
     @Override
     public void tearDown(){
         pngMaker.close();
-        trials = new LinkedList<>();
+        trialsForGA = new LinkedHashMap<String, List<Trial>>();
     }
 
     public MultiGaDbUtil getDbUtil() {

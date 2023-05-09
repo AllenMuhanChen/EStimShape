@@ -25,7 +25,8 @@ public class IntanSpikeParentSelectorTest {
         channels.add("B-000");
         channels.add("B-031");
 
-        List<Long> parents = parentSelector.selectParents(channels, "3DGA-1");
+        parentSelector.setChannels(channels);
+        List<Long> parents = parentSelector.selectParents("3DGA-1");
 
         assertEquals(12345, (long) parents.get(0));
         assertEquals(1, parents.size());
@@ -44,7 +45,8 @@ public class IntanSpikeParentSelectorTest {
         channels.add("B-000");
         channels.add("B-015");
 
-        List<Long> parents = parentSelector.selectParents(channels, "3DGA-1");
+        parentSelector.setChannels(channels);
+        List<Long> parents = parentSelector.selectParents("3DGA-1");
 
         assertEquals(12346, (long) parents.get(0));
         assertEquals(1, parents.size());
