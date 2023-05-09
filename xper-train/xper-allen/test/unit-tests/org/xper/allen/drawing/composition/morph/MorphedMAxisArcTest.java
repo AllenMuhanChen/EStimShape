@@ -13,8 +13,6 @@ import javax.vecmath.Vector3d;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
-
 public class MorphedMAxisArcTest {
     private TestDrawingWindow window;
     public static final Vector3d VIEW_ABOVE = new Vector3d(0, 1, 0);
@@ -35,7 +33,7 @@ public class MorphedMAxisArcTest {
         arc.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_ABOVE, 0);
 
         MorphedMAxisArc morphedArc = new MorphedMAxisArc();
-        ComponentMorphParameters morphParams = new ComponentMorphParameters(0.2, new MorphDistributer(1/3.0));
+        ComponentMorphParameters morphParams = new ComponentMorphParameters(0.2, new NormalMorphDistributer(1/3.0));
         morphedArc.genMorphedArc(arc, 1, morphParams);
 //        morphedArc.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_ABOVE, 0);
 

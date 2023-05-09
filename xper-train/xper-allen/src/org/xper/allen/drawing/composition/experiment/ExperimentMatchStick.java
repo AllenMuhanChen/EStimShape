@@ -2,26 +2,30 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
+import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
+import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick.MorphException;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 
 import javax.vecmath.Point3d;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class ExperimentMatchStick extends AllenMatchStick {
+public class ExperimentMatchStick extends MorphedMatchStick {
     protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI/8, Math.PI/8);
 
+    /**
+     * Generates a new matchStick from the base matchStick's driving component
+     * @param baseMatchStick
+     * @param drivingComponentIndex
+     */
     public void genFirstMatchStick(ExperimentMatchStick baseMatchStick, int drivingComponentIndex){
         // calculate the object centered position of the base matchStick's drivingComponent
-        Point3d drivingComponentMassCenter = baseMatchStick.getMassCenterForComponent(drivingComponentIndex);
-        SphericalCoordinates drivingComponentObjectCenteredPosition = CoordinateConverter.cartesianToSpherical(drivingComponentMassCenter);
-        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp = new HashMap<>();
-        objCenteredPosForDrivingComp.put(drivingComponentIndex, drivingComponentObjectCenteredPosition);
+        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp = calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
 
         while (true) {
             while (true) {
@@ -38,9 +42,42 @@ public class ExperimentMatchStick extends AllenMatchStick {
                 e.printStackTrace();
             }
         }
+    }
 
+    private Map<Integer, SphericalCoordinates> calcObjCenteredPosForDrivingComp(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
+        Point3d drivingComponentMassCenter = baseMatchStick.getMassCenterForComponent(drivingComponentIndex);
+        SphericalCoordinates drivingComponentObjectCenteredPosition = CoordinateConverter.cartesianToSpherical(drivingComponentMassCenter);
+        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp = new HashMap<>();
+        objCenteredPosForDrivingComp.put(drivingComponentIndex, drivingComponentObjectCenteredPosition);
+        return objCenteredPosForDrivingComp;
+    }
 
+    /**
+     * Generates a new matchStick from morphing the base component in the firstMatchStick
+     * @param firstMatchStick
+     */
+    public void genSecondMatchStick(ExperimentMatchStick firstMatchStick, int drivingComponentIndex){
+        int baseComponentIndex;
+        if (drivingComponentIndex == 1){
+            baseComponentIndex = 2;
+        } else if (drivingComponentIndex == 2) {
+            baseComponentIndex = 1;
+        } else {
+            throw new IllegalArgumentException("drivingComponentIndex must be 1 or 2");
+        }
 
+        Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+        morphParametersForComponents.put(baseComponentIndex, new ComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
+
+        while (true) {
+            genMorphedMatchStick(morphParametersForComponents, firstMatchStick);
+            try{
+                checkObjectCenteredPosition(calcObjCenteredPosForDrivingComp(firstMatchStick, drivingComponentIndex));
+                break;
+            } catch (MorphException e){
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -74,9 +111,6 @@ public class ExperimentMatchStick extends AllenMatchStick {
         centerCenterOfMassAtOrigin();
     }
 
-    public void genSecondMatchStick(ExperimentMatchStick firstMatchStick) {
-
-    }
 
     public Point3d getMassCenterForComponent(int componentIndex){
         Point3d cMass = new Point3d(0,0,0);
@@ -91,4 +125,8 @@ public class ExperimentMatchStick extends AllenMatchStick {
         return cMass;
     }
 
+    @Override
+    public double[] getPARAM_nCompDist() {
+        return PARAM_nCompDist;
+    }
 }

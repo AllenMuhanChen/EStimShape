@@ -59,7 +59,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void mutate() {
         Map<Integer, ComponentMorphParameters> morphParams = new HashMap<>();
-        morphParams.put(1, new ComponentMorphParameters(0.25, new MorphDistributer(1/3.0)));
+        morphParams.put(1, new ComponentMorphParameters(0.25, new NormalMorphDistributer(1/3.0)));
 //        morphParams.put(2, new ComponentMorphParameters(0.2));
 
 

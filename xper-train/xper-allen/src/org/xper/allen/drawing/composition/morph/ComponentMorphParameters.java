@@ -7,11 +7,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ComponentMorphParameters {
 
     public Double magnitude;
-    private MorphDistributer morphDistributer;
+    private NormalMorphDistributer normalMorphDistributer;
 
-    public ComponentMorphParameters(Double magnitude, MorphDistributer morphDistributer) {
+    public ComponentMorphParameters(Double magnitude, NormalMorphDistributer normalMorphDistributer) {
         this.magnitude = magnitude;
-        this.morphDistributer = morphDistributer;
+        this.normalMorphDistributer = normalMorphDistributer;
 
         distributeMagnitude();
     }
@@ -79,7 +79,7 @@ public class ComponentMorphParameters {
         magnitudes.add(curvatureMagnitude);
         magnitudes.add(radiusProfileMagnitude);
 
-        morphDistributer.distributeMagnitudeTo(magnitudes, magnitude);
+        normalMorphDistributer.distributeMagnitudeTo(magnitudes, magnitude);
 
 
         // Divide orientation magnitude by 2 because

@@ -17,11 +17,11 @@ public class PruningMatchStick extends MorphedMatchStick{
 
         componentsToMorph = chooseComponentsToMorph(numPreserve);
 
-        MorphDistributer morphDistributer = new MorphDistributer(1/3.0);
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
         // Construct MorphParameters for componentsToMorph
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
         for (Integer comp : componentsToMorph) {
-            ComponentMorphParameters params = new ComponentMorphParameters(magnitude, morphDistributer);
+            ComponentMorphParameters params = new ComponentMorphParameters(magnitude, normalMorphDistributer);
             paramsForComps.put(comp, params);
         }
 
