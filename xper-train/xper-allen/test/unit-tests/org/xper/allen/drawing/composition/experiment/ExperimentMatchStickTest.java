@@ -42,12 +42,12 @@ public class ExperimentMatchStickTest {
 
         ExperimentMatchStick thirdMStick = new ExperimentMatchStick();
         thirdMStick.setProperties(30);
-        thirdMStick.genMorphedDrivingCompMatchStick(firstMStick, 1);
+        thirdMStick.genThirdMatchStick(firstMStick, 1);
         drawPng(thirdMStick, 4L);
 
         ExperimentMatchStick fourthMStick = new ExperimentMatchStick();
         fourthMStick.setProperties(30);
-        fourthMStick.genMorphedDrivingCompMatchStick(secondMStick, 1);
+        fourthMStick.genFourthMatchStick(secondMStick, 1, thirdMStick);
         drawPng(fourthMStick, 5L);
 
     }

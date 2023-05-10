@@ -3,7 +3,6 @@ package org.xper.allen.nafc.blockgen.psychometric;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
-import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 
 import java.util.ArrayList;
@@ -12,10 +11,10 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class PsychometricImageSetGenerator {
-    private final PsychometricBlockGen psychometricBlockGen;
+    private final PsychometricTrainingBlockGen psychometricTrainingBlockGen;
 
-    public PsychometricImageSetGenerator(PsychometricBlockGen psychometricBlockGen) {
-        this.psychometricBlockGen = psychometricBlockGen;
+    public PsychometricImageSetGenerator(PsychometricTrainingBlockGen psychometricTrainingBlockGen) {
+        this.psychometricTrainingBlockGen = psychometricTrainingBlockGen;
     }
 
     public void generateImageSet(int numPerSet, double size, double percentChangePosition, int numRand) {
@@ -43,11 +42,11 @@ public class PsychometricImageSetGenerator {
 
         int numQMMorphs = numPerSet - 1;
         List<QualitativeMorphParams> qmps = new LinkedList<QualitativeMorphParams>();
-        PsychometricQualitativeMorphParameterGenerator qmpGenerator = new PsychometricQualitativeMorphParameterGenerator(psychometricBlockGen.getMaxImageDimensionDegrees());
+        PsychometricQualitativeMorphParameterGenerator qmpGenerator = new PsychometricQualitativeMorphParameterGenerator(psychometricTrainingBlockGen.getMaxImageDimensionDegrees());
         qmps = qmpGenerator.getQMP(numPerSet - 1 - numRand, percentChangePosition);
 
         //VETTING AND CHOOSING LEAF
-        psychometricBlockGen.getPngMaker().createDrawerWindow();
+        psychometricTrainingBlockGen.getPngMaker().createDrawerWindow();
 
         while (tryagain) {
             boolean firstObjSuccess = false;
@@ -55,7 +54,7 @@ public class PsychometricImageSetGenerator {
             for (int b = 0; b < restObjSuccess.length; b++) restObjSuccess[b] = false;
             boolean restOfObjsSuccess = false;
 
-            objs_base.setProperties(psychometricBlockGen.getMaxImageDimensionDegrees());
+            objs_base.setProperties(psychometricTrainingBlockGen.getMaxImageDimensionDegrees());
 
             //LEAF
             int randomLeaf = -1;
@@ -84,7 +83,7 @@ public class PsychometricImageSetGenerator {
             int nTries_obj = 0;
             while (nTries_obj < maxAttemptsPerObj) {
                 //				System.out.println("In Obj " + 0 + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
-                objs.get(0).setProperties(psychometricBlockGen.getMaxImageDimensionDegrees());
+                objs.get(0).setProperties(psychometricTrainingBlockGen.getMaxImageDimensionDegrees());
                 firstObjSuccess = objs.get(0).genMatchStickFromLeaf(randomLeaf, objs_base);
                 if (!firstObjSuccess) {
                     objs.set(0, new AllenMatchStick());
@@ -102,7 +101,7 @@ public class PsychometricImageSetGenerator {
                     while (nTries_obj < maxAttemptsPerObj) {
                         //						System.out.println("In Obj " + i + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
                         try {
-                            objs.get(i).setProperties(psychometricBlockGen.getMaxImageDimensionDegrees());
+                            objs.get(i).setProperties(psychometricTrainingBlockGen.getMaxImageDimensionDegrees());
                             if (stimTypes.get(i) == StimType.QM)
                                 restObjSuccess[i - 1] = objs.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs.get(0), qmps.get(i - 1));
                             else {
@@ -142,7 +141,7 @@ public class PsychometricImageSetGenerator {
         List<List<String>> labels = new LinkedList<List<String>>();
         List<Long> ids = new LinkedList<Long>();
 
-        long setId = psychometricBlockGen.getGlobalTimeUtil().currentTimeMicros();
+        long setId = psychometricTrainingBlockGen.getGlobalTimeUtil().currentTimeMicros();
         for (int i = 0; i < numPerSet; i++) {
             List<String> label = new ArrayList<String>();
             label.add(Integer.toString(i));
@@ -150,15 +149,15 @@ public class PsychometricImageSetGenerator {
             ids.add(setId);
         }
 
-        List<String> stimPaths = psychometricBlockGen.getPngMaker().createAndSaveBatchOfPNGs(objs, ids, labels, psychometricBlockGen.getGeneratorPsychometricPngPath());
+        List<String> stimPaths = psychometricTrainingBlockGen.getPngMaker().createAndSaveBatchOfPNGs(objs, ids, labels, psychometricTrainingBlockGen.getGeneratorPsychometricPngPath());
 
         //SAVE SPECS.TXT
         for (int k = 0; k < objs.size(); k++) {
             AllenMStickSpec spec = new AllenMStickSpec();
             spec.setMStickInfo(objs.get(k));
-            spec.writeInfo2File(psychometricBlockGen.getGeneratorPsychometricSpecPath() + "/" + ids.get(k) + "_" + labels.get(k).get(0), true);
+            spec.writeInfo2File(psychometricTrainingBlockGen.getGeneratorPsychometricSpecPath() + "/" + ids.get(k) + "_" + labels.get(k).get(0), true);
         }
-        psychometricBlockGen.getPngMaker().close();
+        psychometricTrainingBlockGen.getPngMaker().close();
     }
 
     private enum StimType {

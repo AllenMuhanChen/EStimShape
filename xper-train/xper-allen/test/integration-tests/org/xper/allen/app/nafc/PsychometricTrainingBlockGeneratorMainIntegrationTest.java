@@ -2,7 +2,7 @@ package org.xper.allen.app.nafc;
 
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.db.vo.TaskToDoEntry;
 import org.xper.util.FileUtil;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-public class PsychometricBlockGeneratorMainIntegrationTest {
+public class PsychometricTrainingBlockGeneratorMainIntegrationTest {
 
     String half = "0.5,0.5";
 
@@ -41,7 +41,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
     String eyeWinSize = "10";
 
 
-    private PsychometricBlockGen generator;
+    private PsychometricTrainingBlockGen generator;
     private AllenDbUtil dbUtil;
     private Long startTime;
     private Long endTime;
@@ -57,7 +57,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
 
-        generator = context.getBean(PsychometricBlockGen.class);
+        generator = context.getBean(PsychometricTrainingBlockGen.class);
 
 
         //ACT
@@ -77,7 +77,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-        generator = context.getBean(PsychometricBlockGen.class);
+        generator = context.getBean(PsychometricTrainingBlockGen.class);
 
 
         //ACT
@@ -97,7 +97,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-        generator = context.getBean(PsychometricBlockGen.class);
+        generator = context.getBean(PsychometricTrainingBlockGen.class);
         this.numRandTrials = "2";
         this.numPsychometricTrialsPerImage = "2";
         this.numRandDistractors="2";

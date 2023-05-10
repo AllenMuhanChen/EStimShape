@@ -4,14 +4,15 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.xper.Dependency;
+import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 /**
- * AbstractNoiseMapTrialGenerator IS a MStickPngTrialGenerator as well. 
+ * AbstractNoiseMapTrialGenerator IS a MStickPngTrialGenerator as well.
  * @author r2_allen
  *
  */
-public abstract class AbstractPsychometricTrialGenerator extends AbstractMStickPngTrialGenerator {
+public abstract class AbstractPsychometricTrialGenerator<T extends Stim> extends AbstractMStickPngTrialGenerator<T> {
 	@Dependency
 	String generatorPsychometricPngPath;
 	@Dependency
@@ -22,7 +23,7 @@ public abstract class AbstractPsychometricTrialGenerator extends AbstractMStickP
 	String experimentPsychometricNoiseMapPath;
 	@Dependency
 	String generatorPsychometricSpecPath;
-	
+
 	public AbstractPsychometricTrialGenerator() {
 		super();
 	}

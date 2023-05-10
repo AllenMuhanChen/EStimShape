@@ -1,12 +1,12 @@
 package org.xper.allen.drawing.composition.morph;
 
+import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusInfo;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
-import org.xper.drawing.stick.MatchStick;
 import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point3d;
@@ -35,7 +35,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
     private static final int NUM_ATTEMPTS_PER_ARC = 10;
     private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 5;
-    private MorphedMAxisArc newArc;
+    protected AllenMAxisArc newArc;
     private int[] compLabel;
     private MorphedMatchStick localBackup;
     private List<Integer> compsToPreserve = new ArrayList<>();
@@ -145,7 +145,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
 
         attemptToGenerateValidComponentSkeleton(id, morphParams);
-        updateEndPtsAndJunctions();
+        updateEndPtsAndJunctionPositions();
 
         attemptMutateRadius(id, morphParams);
 
@@ -175,7 +175,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         throw new MorphException("Failed to generate valid skeleton for using a morphed component " + id + " after " + NUM_ATTEMPTS_PER_SKELETON + " attempts.");
     }
 
-    private void updateComponentInfo(int id) {
+    protected void updateComponentInfo(int id) {
         boolean branchUsed = getComp()[id].isBranchUsed();
         int connectType = getComp()[id].getConnectType();
         double[][] oldRadInfo = getComp()[id].getRadInfo();
@@ -188,11 +188,12 @@ public class MorphedMatchStick extends AllenMatchStick {
 
     }
 
-    private void attemptSmoothizeMStick() {
+    protected void attemptSmoothizeMStick() {
         boolean res;
         try{
             res = smoothizeMStick();
         } catch(Exception e){
+            e.printStackTrace();
             throw new MorphException("Failed to smoothize the matchstick!");
         }
         if(!res){
@@ -207,7 +208,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
-    private void checkForTubeCollisions() {
+    protected void checkForTubeCollisions() {
         if (finalTubeCollisionCheck()){
             throw new MorphException("Tube collision check failed");
         }
@@ -236,7 +237,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
-    private void applyRadiusProfile(int id) throws MorphException{
+    protected void applyRadiusProfile(int id) throws MorphException{
         if (getComp()[id].RadApplied_Factory() == false){
             throw new MorphException("Radius profile failed when attempting to be applied to component " + id);
         }
@@ -247,7 +248,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         updateRadiusProfile(id, newRadiusProfile);
     }
 
-    private void updateRadiusProfile(int id, RadiusProfile newRadiusProfile) {
+    protected void updateRadiusProfile(int id, RadiusProfile newRadiusProfile) {
         // Update Junctions
         forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
@@ -446,7 +447,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         } // while loop
     }
 
-    private RadiusProfile retrieveOldRadiusProfile(int id) {
+    public RadiusProfile retrieveOldRadiusProfile(int id) {
         double[][] old_radInfo = new double[3][2];
         for (int i=0; i<3; i++)
             for (int j=0; j<2; j++) {
@@ -501,7 +502,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         return oldRadiusProfile;
     }
 
-    private void updateEndPtsAndJunctions() {
+    protected void updateEndPtsAndJunctionPositions() {
         for (int i=1; i<=getnEndPt(); i++)
         {
             Point3d newPos = new Point3d(  getComp()[ getEndPt()[i].getComp()].getmAxisInfo().getmPts()[ getEndPt()[i].getuNdx()]);
@@ -514,14 +515,14 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
-    private void checkForCollisions(int id) throws MorphException{
+    protected void checkForCollisions(int id) throws MorphException{
         boolean closeHit = checkSkeletonNearby(getNComponent());
         if (closeHit){
             throw new MorphException("Skeleton nearby");
         }
     }
 
-    private void updateJuncPtsForNewComp(int id) {
+    protected void updateJuncPtsForNewComp(int id) {
         forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
             public void accept(JuncPt_struct junction, Integer compIndx) {
@@ -578,7 +579,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         });
     }
 
-    private MorphedMAxisArc attemptToGenerateValidMorphedArc(int id, ComponentMorphParameters morphParams) {
+    private AllenMAxisArc attemptToGenerateValidMorphedArc(int id, ComponentMorphParameters morphParams) {
         MorphedMAxisArc arcToMorph = new MorphedMAxisArc(getComp()[id].getmAxisInfo());
         int numAttemptsToGenerateArc = 0;
         while(numAttemptsToGenerateArc < NUM_ATTEMPTS_PER_ARC){
@@ -598,7 +599,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
     }
 
-    private void checkJunctions(int id, MorphedMAxisArc newArc) throws MorphException{
+    protected void checkJunctions(int id, AllenMAxisArc newArc) throws MorphException{
         forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
             public void accept(JuncPt_struct junction, Integer compIndx) {
