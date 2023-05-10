@@ -33,12 +33,12 @@ public class PsychometricTrialListFactory implements TrialListFactory {
 
 
     @Override
-    public List<Stim> createTrials() {
+    public List<PsychometricStim> createTrials() {
         List<NumberOfDistractorsForPsychometricTrial> numDistractors = this.numDistractors;
 
         fetchSetInfo();
 
-        List<Stim> stims = new LinkedList<>();
+        List<PsychometricStim> stims = new LinkedList<>();
         for(long setId:setIds)
             for(int stimId:stimIds)
                 for(int i=0; i<numTrialsPerImage; i++){

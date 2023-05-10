@@ -1,7 +1,11 @@
 package org.xper.allen.drawing.composition.experiment;
 
+import org.xper.allen.drawing.composition.AllenMAxisArc;
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
+import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
+import org.xper.allen.drawing.composition.morph.MorphedMAxisArc;
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.util.CoordinateConverter;
@@ -16,6 +20,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI/8, Math.PI/8);
 
+
     /**
      * Generates a new matchStick from the base matchStick's driving component
      * @param baseMatchStick
@@ -23,7 +28,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      */
     public void genFirstMatchStick(ExperimentMatchStick baseMatchStick, int drivingComponentIndex){
         // calculate the object centered position of the base matchStick's drivingComponent
-        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp = calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
+        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
+                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
 
         while (true) {
             while (true) {
@@ -78,19 +84,71 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void genMorphedDrivingCompMatchStick(ExperimentMatchStick matchStickToMorph, int drivingComponentIndex){
+    public void genThirdMatchStick(ExperimentMatchStick firstMatchStick, int drivingComponentIndex){
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
         morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
 
         while (true) {
-            genMorphedMatchStick(morphParametersForComponents, matchStickToMorph);
+            genMorphedMatchStick(morphParametersForComponents, firstMatchStick);
             try{
 //                checkObjectCenteredPosition(calcObjCenteredPosForDrivingComp(matchStickToMorph, drivingComponentIndex));
                 break;
             } catch (MorphException e){
                 e.printStackTrace();
             }
+        }
+    }
+
+    public void genFourthMatchStick(ExperimentMatchStick secondMatchStick, int drivingComponentIndex, ExperimentMatchStick thirdMatchStick){
+        genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex);
+    }
+
+    public void genComponentSwappedMatchStick(AllenMatchStick matchStickToMorph, int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn) throws MorphException{
+        copyFrom(matchStickToMorph);
+        swapSkeleton(limbToSwapOut, matchStickContainingLimbToSwapIn, limbToSwapIn);
+        swapRadius(limbToSwapOut, matchStickContainingLimbToSwapIn, limbToSwapIn);
+        checkForTubeCollisions();
+
+        MutateSUB_reAssignJunctionRadius();
+        positionShape();
+        attemptSmoothizeMStick();
+    }
+
+    private void swapSkeleton(int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn) {
+        //SWAP SKELETON
+        try {
+            //swap arc
+            AllenTubeComp compToSwapIn = matchStickContainingLimbToSwapIn.getTubeComp(limbToSwapIn);
+            try {
+                newArc = compToSwapIn.getmAxisInfo();
+                checkJunctions(limbToSwapOut, newArc);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new MorphException("Cannot swap skeletons, causes collision");
+            }
+            //update
+            updateJuncPtsForNewComp(limbToSwapOut);
+            updateComponentInfo(limbToSwapOut);
+            checkForCollisions(limbToSwapOut);
+        } catch (MorphException e) {
+            e.printStackTrace();
+            throw new MorphException("Cannot swap skeletons, causes collision");
+        }
+
+        //UPDATE REST OF SKELETON
+        updateEndPtsAndJunctionPositions();
+    }
+
+    private void swapRadius(int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn) {
+        //SWAP RADIUS
+        try {
+            RadiusProfile newRadiusProfile = matchStickContainingLimbToSwapIn.retrieveOldRadiusProfile(limbToSwapIn);
+            updateRadiusProfile(limbToSwapOut, newRadiusProfile);
+            applyRadiusProfile(limbToSwapOut);
+        } catch (MorphException e){
+            throw new MorphException("Cannot swap radius");
         }
     }
 

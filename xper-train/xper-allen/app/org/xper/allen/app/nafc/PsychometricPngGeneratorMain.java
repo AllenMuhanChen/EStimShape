@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricImageSetGenerator;
 import org.xper.util.FileUtil;
 
@@ -21,32 +21,32 @@ import org.xper.util.FileUtil;
 public class PsychometricPngGeneratorMain {
 
 	public static void main(String[] args) {
-		
+
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.config_class"));
 
-		PsychometricBlockGen gen = context.getBean(PsychometricBlockGen.class);
-		
+		PsychometricTrainingBlockGen gen = context.getBean(PsychometricTrainingBlockGen.class);
+
 		try {
 			List<String> argsList = Arrays.asList(args);
 			ListIterator<String> iterator = argsList.listIterator();
-			
+
 			int numSets = Integer.parseInt(iterator.next());
 			int numPerSet = Integer.parseInt(iterator.next());
 			double size = Double.parseDouble(iterator.next());
 			double percentChangePosition = Double.parseDouble(iterator.next());
 			int numRand = Integer.parseInt(iterator.next());
-			
+
 			for(int set=0; set<numSets; set++) {
 				PsychometricImageSetGenerator imageSetGenerator = new PsychometricImageSetGenerator(gen);
 				imageSetGenerator.generateImageSet(numPerSet, size, percentChangePosition, numRand);
 			}
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
-		
+
+
 	}
 
 

@@ -1,10 +1,12 @@
 package org.xper.allen.nafc.blockgen.psychometric;
 
+
+import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.PsychometricTrialListFactory;
 import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
 import org.xper.allen.nafc.blockgen.rand.RandTrialListFactory;
 
-public class PsychometricBlockGen extends AbstractPsychometricTrialGenerator {
+public class PsychometricTrainingBlockGen extends AbstractPsychometricTrialGenerator<Stim> {
 
     private PsychometricFactoryParameters psychometricFactoryParameters;
     private RandFactoryParameters randFactoryParameters;

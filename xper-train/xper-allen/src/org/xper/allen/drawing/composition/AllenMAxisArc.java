@@ -387,8 +387,8 @@ public class AllenMAxisArc extends MAxisArc {
 
 		boolean skipRotate = false;
 		//July 24 2009, should we remove Angle == Math.PI
-		if ( Angle == 0.0 || Angle == Math.PI) // no need to turn
-//			if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+//		if ( Angle == 0.0 || Angle == Math.PI) // no need to turn
+			if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
 		{
 			skipRotate = true;
 				 		System.out.println("Skip first rotation");

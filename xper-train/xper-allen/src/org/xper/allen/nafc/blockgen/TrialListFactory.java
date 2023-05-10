@@ -4,6 +4,6 @@ import org.xper.allen.Stim;
 
 import java.util.List;
 
-public interface TrialListFactory {
-    List<Stim> createTrials();
+public interface TrialListFactory<T extends Stim> {
+    List<T> createTrials();
 }

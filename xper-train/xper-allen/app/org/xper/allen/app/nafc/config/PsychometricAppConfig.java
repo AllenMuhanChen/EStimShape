@@ -8,24 +8,15 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.springframework.config.java.support.ConfigurationSupport;
-import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.NAFCConfig;
-import org.xper.allen.config.RewardButtonConfig;
-import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
-import org.xper.allen.nafc.console.NAFCExperimentConsole;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
-import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.drawing.renderer.PerspectiveRenderer;
-import org.xper.utils.RGBColor;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -72,8 +63,8 @@ public class PsychometricAppConfig{
 	}
 
 	@Bean
-	public PsychometricBlockGen psychometricPngGenerator() {
-		PsychometricBlockGen gen = new PsychometricBlockGen();
+	public PsychometricTrainingBlockGen psychometricPngGenerator() {
+		PsychometricTrainingBlockGen gen = new PsychometricTrainingBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
