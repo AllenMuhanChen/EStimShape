@@ -10,7 +10,7 @@ import org.xper.Dependency;
 public class IntanRecordingController {
 
     @Dependency
-    private IntanClient intanClient;
+    protected IntanClient intanClient;
 
     @Dependency
     private String defaultSavePath;
