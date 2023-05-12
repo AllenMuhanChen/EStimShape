@@ -67,12 +67,12 @@ public class TestConfig {
     }
 
     @Bean
-    public IntanController intanController() {
-        IntanController intanController = new IntanController();
-        intanController.setIntanClient(intanClient());
-        intanController.setDefaultSavePath(intanDefaultSavePath);
-        intanController.setDefaultBaseFileName(intanDefaultBaseFilename);
-        return intanController;
+    public IntanRecordingController intanController() {
+        IntanRecordingController intanRecordingController = new IntanRecordingController();
+        intanRecordingController.setIntanClient(intanClient());
+        intanRecordingController.setDefaultSavePath(intanDefaultSavePath);
+        intanRecordingController.setDefaultBaseFileName(intanDefaultBaseFilename);
+        return intanRecordingController;
     }
 
     @Bean

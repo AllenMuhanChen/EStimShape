@@ -3,14 +3,16 @@ package org.xper.intan;
 import org.xper.Dependency;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
-import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.exception.RemoteException;
 import org.xper.experiment.listener.ExperimentEventListener;
 
+/**
+ * Controls what trial events and experiment events trigger what events in IntanController.
+ */
 public class IntanMessageDispatcher implements TrialEventListener, ExperimentEventListener{
 
     @Dependency
-    IntanController intanController;
+    IntanRecordingController intanRecordingController;
 
     @Dependency
     IntanFileNamingStrategy fileNamingStrategy;
@@ -24,7 +26,7 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
 
     private void tryConnection() {
         try {
-            intanController.connect();
+            intanRecordingController.connect();
             connected = true;
         } catch (RemoteException e){
             System.err.println("Could not connect to Intan, disabling Intan functionality");
@@ -35,8 +37,8 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
     @Override
     public void experimentStop(long timestamp) {
         if (connected) {
-            intanController.stop();
-            intanController.disconnect();
+            intanRecordingController.stop();
+            intanRecordingController.disconnect();
         }
         connected = false;
     }
@@ -45,16 +47,14 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
     public void trialInit(long timestamp, TrialContext context) {
         if (connected) {
             fileNamingStrategy.rename(context);
-            intanController.record();
-        } else{
-//            tryConnection();
+            intanRecordingController.record();
         }
     }
 
     @Override
     public void trialStop(long timestamp, TrialContext context) {
         if (connected)
-            intanController.stopRecording();
+            intanRecordingController.stopRecording();
     }
 
     @Override
@@ -97,12 +97,12 @@ public class IntanMessageDispatcher implements TrialEventListener, ExperimentEve
 
     }
 
-    public IntanController getIntanController() {
-        return intanController;
+    public IntanRecordingController getIntanController() {
+        return intanRecordingController;
     }
 
-    public void setIntanController(IntanController intanController) {
-        this.intanController = intanController;
+    public void setIntanController(IntanRecordingController intanRecordingController) {
+        this.intanRecordingController = intanRecordingController;
     }
 
     public IntanFileNamingStrategy getFileNamingStrategy() {

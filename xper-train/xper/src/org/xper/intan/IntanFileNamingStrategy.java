@@ -13,15 +13,15 @@ import org.xper.classic.vo.TrialContext;
  */
 public abstract class IntanFileNamingStrategy {
     @Dependency
-    IntanController intanController;
+    IntanRecordingController intanRecordingController;
 
     public abstract void rename(TrialContext context);
 
-    public IntanController getIntanController() {
-        return intanController;
+    public IntanRecordingController getIntanController() {
+        return intanRecordingController;
     }
 
-    public void setIntanController(IntanController intanController) {
-        this.intanController = intanController;
+    public void setIntanController(IntanRecordingController intanRecordingController) {
+        this.intanRecordingController = intanRecordingController;
     }
 }

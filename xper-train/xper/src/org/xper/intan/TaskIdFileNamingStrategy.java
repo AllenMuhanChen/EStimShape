@@ -10,6 +10,6 @@ public class TaskIdFileNamingStrategy extends IntanFileNamingStrategy{
     @Override
     public void rename(TrialContext context) {
         long taskId = context.getCurrentTask().getTaskId();
-        intanController.setBaseFilename(Long.toString(taskId));
+        intanRecordingController.setBaseFilename(Long.toString(taskId));
     }
 }

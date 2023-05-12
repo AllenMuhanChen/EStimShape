@@ -1,10 +1,8 @@
 package org.xper.intan;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.classic.vo.TrialContext;
 import org.xper.time.TestingTimeUtil;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
@@ -18,7 +16,7 @@ import static org.junit.Assert.assertTrue;
 public class IntanTest {
 
     private static IntanClient intanClient;
-    private static IntanController intanController;
+    private static IntanRecordingController intanRecordingController;
 
     private static final TestingTimeUtil timeUtil = new TestingTimeUtil();
 
@@ -38,8 +36,8 @@ public class IntanTest {
         FileUtil.loadTestSystemProperties("/xper.properties.test");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
         intanClient = context.getBean(IntanClient.class);
-        intanController = context.getBean(IntanController.class);
-        intanController.connect();
+        intanRecordingController = context.getBean(IntanRecordingController.class);
+        intanRecordingController.connect();
     }
 
     @Test
@@ -48,20 +46,20 @@ public class IntanTest {
         intanClient.clear("Filename.Path");
 
         timeUtil.tic();
-        intanController.record();
+        intanRecordingController.record();
         timeUtil.toc();
         System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         ThreadUtil.sleep(1000);
 
         timeUtil.tic();
-        intanController.stop();
+        intanRecordingController.stop();
         timeUtil.toc();
         System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         //TODO: assert that the file(s) were created?
-        assertEquals(intanController.getDefaultSavePath(), intanClient.get("Filename.Path"));
-        assertEquals(intanController.getDefaultBaseFileName(), intanClient.get("Filename.BaseFilename"));
+        assertEquals(intanRecordingController.getDefaultSavePath(), intanClient.get("Filename.Path"));
+        assertEquals(intanRecordingController.getDefaultBaseFileName(), intanClient.get("Filename.BaseFilename"));
     }
 
     @Test
@@ -91,11 +89,11 @@ public class IntanTest {
 
     @Test
     public void intan_switches_from_recording_to_playback(){
-        intanController.record();
-        intanController.stopRecording();
+        intanRecordingController.record();
+        intanRecordingController.stopRecording();
 
         assertTrue(intanClient.get("RunMode").equalsIgnoreCase("Run"));
 
-        intanController.stop();
+        intanRecordingController.stop();
     }
 }

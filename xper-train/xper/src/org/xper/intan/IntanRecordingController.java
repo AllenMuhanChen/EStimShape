@@ -1,14 +1,13 @@
 package org.xper.intan;
 
 import org.xper.Dependency;
-import org.xper.util.ThreadUtil;
 
 /**
  * @author Allen Chen
  *
  * Provides experiment-relevant control of Intan
  */
-public class IntanController {
+public class IntanRecordingController {
 
     @Dependency
     private IntanClient intanClient;

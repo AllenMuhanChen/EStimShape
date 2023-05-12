@@ -4,12 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.springframework.config.java.util.DefaultScopes;
-import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.intan.*;
-
-import java.util.LinkedList;
-import java.util.List;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -40,12 +35,12 @@ public class IntanConfig {
     }
 
     @Bean
-    public IntanController intanController() {
-        IntanController intanController = new IntanController();
-        intanController.setIntanClient(intanClient());
-        intanController.setDefaultSavePath(intanDefaultSavePath);
-        intanController.setDefaultBaseFileName(intanDefaultBaseFilename);
-        return intanController;
+    public IntanRecordingController intanController() {
+        IntanRecordingController intanRecordingController = new IntanRecordingController();
+        intanRecordingController.setIntanClient(intanClient());
+        intanRecordingController.setDefaultSavePath(intanDefaultSavePath);
+        intanRecordingController.setDefaultBaseFileName(intanDefaultBaseFilename);
+        return intanRecordingController;
     }
 
     @Bean
