@@ -84,10 +84,10 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void genThirdMatchStick(ExperimentMatchStick firstMatchStick, int drivingComponentIndex){
+    public void genThirdMatchStick(ExperimentMatchStick firstMatchStick, int drivingComponentIndex, double magnitude){
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
+        morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
 
         while (true) {
             genMorphedMatchStick(morphParametersForComponents, firstMatchStick);
