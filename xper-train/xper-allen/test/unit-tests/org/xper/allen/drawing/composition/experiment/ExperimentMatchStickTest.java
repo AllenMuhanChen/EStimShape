@@ -42,7 +42,7 @@ public class ExperimentMatchStickTest {
 
         ExperimentMatchStick thirdMStick = new ExperimentMatchStick();
         thirdMStick.setProperties(30);
-        thirdMStick.genThirdMatchStick(firstMStick, 1);
+        thirdMStick.genThirdMatchStick(firstMStick, 1, 0.5);
         drawPng(thirdMStick, 4L);
 
         ExperimentMatchStick fourthMStick = new ExperimentMatchStick();
