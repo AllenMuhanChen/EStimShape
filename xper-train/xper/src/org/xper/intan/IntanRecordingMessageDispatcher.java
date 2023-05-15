@@ -9,7 +9,7 @@ import org.xper.experiment.listener.ExperimentEventListener;
 /**
  * Controls what trial events and experiment events trigger what events in IntanController.
  */
-public class IntanMessageDispatcher implements TrialEventListener, ExperimentEventListener{
+public class IntanRecordingMessageDispatcher implements TrialEventListener, ExperimentEventListener{
 
     @Dependency
     IntanRecordingController intanRecordingController;

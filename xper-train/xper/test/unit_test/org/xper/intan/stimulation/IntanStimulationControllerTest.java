@@ -62,11 +62,11 @@ public class IntanStimulationControllerTest {
     public void testPulse(){
         Map<RHSChannel, Collection<Parameter>> parametersForChannels = new LinkedHashMap<>();
         parametersForChannels.put(RHSChannel.B025, Arrays.asList(
-                new Parameter<String>("Polarity", "NegativeFirst"),
-                new Parameter<Double>("FirstPhaseAmplitudeMicroAmps", 50.0),
-                new Parameter<Double>("SecondPhaseAmplitudeMicroAmps", 50.0),
-                new Parameter<Double>("FirstPhaseDurationMicroseconds", 5000.0),
-                new Parameter<Double>("SecondPhaseDurationMicroseconds", 5000.0)
+                new Parameter<>("Polarity", "NegativeFirst"),
+                new Parameter<>("FirstPhaseAmplitudeMicroAmps", 50.0),
+                new Parameter<>("SecondPhaseAmplitudeMicroAmps", 50.0),
+                new Parameter<>("FirstPhaseDurationMicroseconds", 5000.0),
+                new Parameter<>("SecondPhaseDurationMicroseconds", 5000.0)
                 ));
 
     controller.setupStimulationFor(parametersForChannels);
