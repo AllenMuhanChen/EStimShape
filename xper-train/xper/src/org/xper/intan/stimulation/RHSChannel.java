@@ -1,4 +1,4 @@
-package org.xper.intan;
+package org.xper.intan.stimulation;
 
 public enum RHSChannel {
     // RHS Channels from A000 to D031

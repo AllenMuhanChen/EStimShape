@@ -1,6 +1,8 @@
-package org.xper.intan;
+package org.xper.intan.stimulation;
 
 import org.xper.Dependency;
+import org.xper.intan.IntanRecordingController;
+import org.xper.intan.Parameter;
 
 import java.util.Collection;
 import java.util.Map;
@@ -8,7 +10,7 @@ import java.util.Map;
 /**
  * Provides experiment-relevant control of Intan for stimulation and recording
  */
-public class IntanStimulationController extends IntanRecordingController{
+public class IntanStimulationController extends IntanRecordingController {
 
 
     /**
