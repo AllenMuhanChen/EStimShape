@@ -1,6 +1,5 @@
 package org.xper.intan;
 
-import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -16,27 +15,27 @@ import static org.junit.Assert.assertTrue;
  * @author Allen Chen
  *
  */
-public class IntanMessageDispatcherTest {
+public class IntanRecordingMessageDispatcherTest {
 
-    private static IntanMessageDispatcher intanMessageDispatcher;
+    private static IntanRecordingMessageDispatcher intanRecordingMessageDispatcher;
     private static IntanClient intanClient;
 
     @BeforeClass
     public static void set_up(){
         FileUtil.loadTestSystemProperties("/xper.properties.test");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
-        intanMessageDispatcher = context.getBean(IntanMessageDispatcher.class);
+        intanRecordingMessageDispatcher = context.getBean(IntanRecordingMessageDispatcher.class);
         intanClient = context.getBean(IntanClient.class);
     }
 
     @Test
     public void do_not_crash_when_intan_not_connected(){
-        intanMessageDispatcher.experimentStop(0); //disconnects Intan
+        intanRecordingMessageDispatcher.experimentStop(0); //disconnects Intan
 
-        intanMessageDispatcher.trialInit(0, new TrialContext());
-        intanMessageDispatcher.trialStop(0, new TrialContext());
+        intanRecordingMessageDispatcher.trialInit(0, new TrialContext());
+        intanRecordingMessageDispatcher.trialStop(0, new TrialContext());
 
-        intanMessageDispatcher.experimentStart(0);
+        intanRecordingMessageDispatcher.experimentStart(0);
     }
 
     @Test
@@ -46,9 +45,9 @@ public class IntanMessageDispatcherTest {
         testTask.setTaskId(1);
         testContext.setCurrentTask(testTask);
 
-        intanMessageDispatcher.experimentStart(0);
-        intanMessageDispatcher.trialInit(0, testContext);
-        intanMessageDispatcher.trialStop(0, testContext);
+        intanRecordingMessageDispatcher.experimentStart(0);
+        intanRecordingMessageDispatcher.trialInit(0, testContext);
+        intanRecordingMessageDispatcher.trialStop(0, testContext);
 
         assertTrue(intanClient.get("Filename.BaseFilename").equals("1"));
     }
@@ -64,24 +63,24 @@ public class IntanMessageDispatcherTest {
         testTask.setTaskId(1);
         testContext.setCurrentTask(testTask);
 
-        intanMessageDispatcher.experimentStart(0);
+        intanRecordingMessageDispatcher.experimentStart(0);
 
-        intanMessageDispatcher.trialInit(0, testContext);
-        intanMessageDispatcher.trialStop(0, testContext);
+        intanRecordingMessageDispatcher.trialInit(0, testContext);
+        intanRecordingMessageDispatcher.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
         testTask.setTaskId(2);
         testContext.setCurrentTask(testTask);
-        intanMessageDispatcher.trialInit(0, testContext);
-        intanMessageDispatcher.trialStop(0, testContext);
+        intanRecordingMessageDispatcher.trialInit(0, testContext);
+        intanRecordingMessageDispatcher.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
         testTask.setTaskId(3);
         testContext.setCurrentTask(testTask);
-        intanMessageDispatcher.trialInit(0, testContext);
-        intanMessageDispatcher.trialStop(0, testContext);
+        intanRecordingMessageDispatcher.trialInit(0, testContext);
+        intanRecordingMessageDispatcher.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
-        intanMessageDispatcher.experimentStop(0);
+        intanRecordingMessageDispatcher.experimentStop(0);
     }
 }

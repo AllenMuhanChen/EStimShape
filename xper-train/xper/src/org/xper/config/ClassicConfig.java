@@ -82,7 +82,6 @@ import org.xper.eye.win.RampEyeWindowAlgorithm;
 import org.xper.eye.zero.EyeZeroAdjustable;
 import org.xper.eye.zero.EyeZeroMessageListener;
 import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
-import org.xper.intan.IntanMessageDispatcher;
 import org.xper.juice.AnalogJuice;
 import org.xper.juice.DynamicJuice;
 import org.xper.juice.mock.NullDynamicJuice;
@@ -100,25 +99,25 @@ public class ClassicConfig {
 
 	@ExternalValue("console.eye_simulation")
 	public boolean consoleEyeSimulation;
-	
+
 	@ExternalValue("console.host")
 	public String consoleHost;
-	
+
 	@ExternalValue("experiment.cpu")
 	public Integer experimentCpu;
-	
+
 	@ExternalValue("experiment.monkey_window_fullscreen")
 	public boolean monkeyWindowFullScreen;
-	
+
 	@ExternalValue("experiment.mark_every_step")
 	public boolean markEveryStep;
-	
+
 	@ExternalValue("experiment.host")
 	public String experimentHost;
-	
+
 	@ExternalValue("experiment.acq_offline")
 	public boolean experimentAcqOffline;
-	
+
 	@Bean
 	public TaskScene taskScene() {
 		BlankTaskScene scene = new BlankTaskScene();
@@ -133,17 +132,17 @@ public class ClassicConfig {
 	@Bean
 	public ExperimentConsole experimentConsole () {
 		ExperimentConsole console = new ExperimentConsole();
-		
+
 		console.setPaused(xperExperimentInitialPause());
 		console.setConsoleRenderer(consoleRenderer());
 		console.setMonkeyScreenDimension(monkeyWindow().getScreenDimension());
 		console.setModel(experimentConsoleModel());
 		console.setCanvasScaleFactor(3);
-		
+
 		ExperimentMessageReceiver receiver = messageReceiver();
 		// register itself to avoid circular reference
 		receiver.addMessageReceiverEventListener(console);
-		
+
 		return console;
 	}
 
@@ -158,25 +157,25 @@ public class ClassicConfig {
 		// messageReceiverEventListeners.add(console);
 		receiver.setMessageReceiverEventListeners(messageReceiverEventListeners);
 		receiver.setMessageHandler(messageHandler());
-		
+
 		return receiver;
 	}
-	
+
 	@Bean
 	public ExperimentConsoleModel experimentConsoleModel () {
 		ExperimentConsoleModel model = new ExperimentConsoleModel();
 		model.setMessageReceiver(messageReceiver());
 		model.setLocalTimeUtil(baseConfig.localTimeUtil());
-		
+
 		HashMap<String, MappingAlgorithm> eyeMappingAlgorithm = new HashMap<String, MappingAlgorithm>();
 		eyeMappingAlgorithm.put(xperLeftIscanId(), leftIscanMappingAlgorithm());
 		eyeMappingAlgorithm.put(xperRightIscanId(), rightIscanMappingAlgorithm());
 		model.setEyeMappingAlgorithm(eyeMappingAlgorithm);
-		
+
 		model.setExperimentRunnerClient(experimentRunnerClient());
 		model.setChannelMap(iscanChannelMap());
 		model.setMessageHandler(messageHandler());
-		
+
 		if (consoleEyeSimulation || acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			// socket sampling server for eye simulation
 			SocketSamplingDeviceServer server = new SocketSamplingDeviceServer();
@@ -188,12 +187,12 @@ public class ClassicConfig {
 			data.put(xperRightIscanXChannel(), new Double(0));
 			data.put(xperRightIscanYChannel(), new Double(0));
 			server.setCurrentChannelData(data);
-			
+
 			model.setSamplingServer(server);
 		}
 		return model;
 	}
-	
+
 	@Bean
 	public ExperimentRunner experimentRunner () {
 		ExperimentRunner runner = new ExperimentRunner();
@@ -201,7 +200,7 @@ public class ClassicConfig {
 		runner.setExperiment(experiment());
 		return runner;
 	}
-	
+
 	@Bean
 	public Experiment experiment () {
 		SlideTrialExperiment xper = new SlideTrialExperiment();
@@ -247,19 +246,19 @@ public class ClassicConfig {
 		state.setDelayAfterTrialComplete(xperDelayAfterTrialComplete());
 		return state;
 	}
-	
+
 	@Bean
 	public TaskDoneCache taskDoneCache () {
 		BatchTaskDoneCache cache = new BatchTaskDoneCache(10);
 		cache.setDbUtil(baseConfig.dbUtil());
 		return cache;
 	}
-	
+
 	@Bean
 	public TaskDataSource taskDataSource() {
 		return databaseTaskDataSource();
 	}
-	
+
 	@Bean
 	public DatabaseTaskDataSource databaseTaskDataSource () {
 		DatabaseTaskDataSource source = new DatabaseTaskDataSource();
@@ -268,14 +267,14 @@ public class ClassicConfig {
 		source.setUngetBehavior(UngetPolicy.HEAD);
 		return source;
 	}
-	
-	@Bean 
+
+	@Bean
 	public DatabaseTaskDataSourceController databaseTaskDataSourceController () {
 		DatabaseTaskDataSourceController controller = new DatabaseTaskDataSourceController();
 		controller.setTaskDataSource(databaseTaskDataSource());
 		return controller;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<ExperimentEventListener> experimentEventListeners () {
 		List<ExperimentEventListener> listeners =  new LinkedList<ExperimentEventListener>();
@@ -288,7 +287,7 @@ public class ClassicConfig {
 		listeners.add(intanConfig.intanMessageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<SlideEventListener> slideEventListeners () {
 		List<SlideEventListener> listeners = new LinkedList<SlideEventListener>();
@@ -297,7 +296,7 @@ public class ClassicConfig {
 		listeners.add(messageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
@@ -313,17 +312,17 @@ public class ClassicConfig {
 			trialEventListener.add(dynamicJuiceUpdater());
 		}
 		trialEventListener.add(intanConfig.intanMessageDispatcher());
-		
+
 		return trialEventListener;
 	}
-	
+
 	@Bean
 	public JvmManager jvmManager() {
 		JvmManager manager = new JvmManager();
 		manager.setLocalTimeUtil(baseConfig.localTimeUtil());
 		return manager;
 	}
-	
+
 	@Bean
 	public DataAcqController dataAcqController() {
 		DataAcqController controller = new DataAcqController();
@@ -331,13 +330,13 @@ public class ClassicConfig {
 		controller.setOffline(acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE));
 		return controller;
 	}
-	
+
 	@Bean
 	public SocketDataAcqClient dataAcqClient() {
 		SocketDataAcqClient client = new SocketDataAcqClient(acqConfig.acqServerHost);
 		return client;
 	}
-	
+
 	@Bean
 	public TrialDrawingController drawingController() {
 		MarkStimTrialDrawingController controller;
@@ -351,7 +350,7 @@ public class ClassicConfig {
 		controller.setFixationOnWithStimuli(xperFixationOnWithStimuli());
 		return controller;
 	}
-	
+
 	@Bean
 	public TrialEventListener juiceController() {
 		JuiceController controller = new JuiceController();
@@ -362,7 +361,7 @@ public class ClassicConfig {
 		}
 		return controller;
 	}
-	
+
 	@Bean
 	public TrialEventListener trialSyncController() {
 		TrialSyncController controller = new TrialSyncController();
@@ -373,7 +372,7 @@ public class ClassicConfig {
 		}
 		return controller;
 	}
-	
+
 	@Bean
 	public AbstractRenderer experimentGLRenderer () {
 		PerspectiveRenderer renderer = new PerspectiveRenderer();
@@ -384,7 +383,7 @@ public class ClassicConfig {
 		renderer.setPupilDistance(xperMonkeyPupilDistance());
 		return renderer;
 	}
-	
+
 	@Bean
 	public AlternatingScreenMarker screenMarker() {
 		AlternatingScreenMarker marker = new AlternatingScreenMarker();
@@ -392,7 +391,7 @@ public class ClassicConfig {
 		marker.setViewportIndex(xperScreenMarkerViewportIndex());
 		return marker;
 	}
-	
+
 	@Bean
 	public TrialExperimentConsoleRenderer consoleRenderer () {
 		TrialExperimentConsoleRenderer renderer = new TrialExperimentConsoleRenderer();
@@ -404,7 +403,7 @@ public class ClassicConfig {
 		renderer.setSquare(new Square());
 		return renderer;
 	}
-	
+
 	@Bean
 	public FixationPoint consoleFixationPoint() {
 		FixationPoint fixation = new FixationPoint();
@@ -413,7 +412,7 @@ public class ClassicConfig {
 		fixation.setFixationPosition(xperFixationPosition());
 		return fixation;
 	}
-	
+
 	@Bean
 	public AbstractRenderer consoleGLRenderer () {
 		PerspectiveRenderer renderer = new PerspectiveRenderer();
@@ -424,7 +423,7 @@ public class ClassicConfig {
 		renderer.setPupilDistance(xperMonkeyPupilDistance());
 		return renderer;
 	}
-	
+
 	@Bean
 	public TrialExperimentMessageHandler  messageHandler() {
 		TrialExperimentMessageHandler messageHandler = new TrialExperimentMessageHandler();
@@ -439,13 +438,13 @@ public class ClassicConfig {
 		messageHandler.setEyeZero(eyeZero);
 		return messageHandler;
 	}
-	
+
 	@Bean
 	public ExperimentRunnerClient experimentRunnerClient() {
 		ExperimentRunnerClient client = new ExperimentRunnerClient(experimentHost);
 		return client;
 	}
-	
+
 	@Bean
 	public FixationPoint experimentFixationPoint() {
 		FixationPoint f = new FixationPoint ();
@@ -454,7 +453,7 @@ public class ClassicConfig {
 		f.setSize(xperFixationPointSize());
 		return f;
 	}
-	
+
 	@Bean
 	public MonkeyWindow monkeyWindow() {
 		MonkeyWindow win = new MonkeyWindow();
@@ -463,7 +462,7 @@ public class ClassicConfig {
 		win.setPixelFormat(new PixelFormat(0, 8, 1, 4));
 		return win;
 	}
-	
+
 	@Bean
 	public CpuBinder experimentCpuBinder () {
 		CpuBinder binder = new CpuBinder();
@@ -472,32 +471,32 @@ public class ClassicConfig {
 		binder.setCpuSet(cpuSet);
 		return binder;
 	}
-	
+
 	@Bean
 	public TrialEventLogger trialEventLogger() {
 		TrialEventLogger logger = new TrialEventLogger();
 		return logger;
 	}
-	
+
 	@Bean
 	public SlideEventLogger slideEventLogger() {
 		SlideEventLogger logger = new SlideEventLogger();
 		return logger;
 	}
-	
+
 	@Bean
 	public MessageDispatcherController messageDispatcherController() {
 		MessageDispatcherController controller = new MessageDispatcherController();
 		controller.setMessageDispatcher(messageDispatcher());
 		return controller;
 	}
-	
+
 	@Bean
 	public ExperimentProfiler experimentProfiler() {
 		ExperimentProfiler profiler = new ExperimentProfiler();
 		return profiler;
 	}
-	
+
 	@Bean
 	public EyeMonitorController eyeMonitorController() {
 		EyeMonitorController controller = new EyeMonitorController();
@@ -506,14 +505,14 @@ public class ClassicConfig {
 		controller.setEyeDeviceWithAdjustableZero(eyeZeroAdjustables());
 		return controller;
 	}
-	
+
 	@Bean
 	public SocketSamplingDeviceClient samplingDeviceClient() {
 		SocketSamplingDeviceClient client = new SocketSamplingDeviceClient(consoleHost);
 		client.setLocalTimeUtil(baseConfig.localTimeUtil());
 		return client;
 	}
-	
+
 	@Bean
 	public DefaultEyeSampler eyeSampler() {
 		DefaultEyeSampler sampler = new DefaultEyeSampler();
@@ -534,7 +533,7 @@ public class ClassicConfig {
 		sampler.setLocalTimeUtil(baseConfig.localTimeUtil());
 		return sampler;
 	}
-	
+
 	@Bean
 	public NiAnalogSamplingDevice niAnalogSamplingDevice() {
 		NiAnalogSamplingDevice device = new NiAnalogSamplingDevice();
@@ -548,7 +547,7 @@ public class ClassicConfig {
 		device.setInputChannels(inputChannels);
 		return device;
 	}
-	
+
 	@Bean
 	public ComediAnalogSamplingDevice comediAnalogSamplingDevice() {
 		ComediAnalogSamplingDevice device = new ComediAnalogSamplingDevice();
@@ -562,7 +561,7 @@ public class ClassicConfig {
 		device.setInputChannels(inputChannels);
 		return device;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public HashMap<String, EyeDevice> eyeSamplerDevices () {
 		HashMap<String, EyeDevice> devices = new HashMap<String, EyeDevice> ();
@@ -570,14 +569,14 @@ public class ClassicConfig {
 		devices.put(xperRightIscanId(), rightIscan());
 		return devices;
 	}
-	
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<EyeSamplerEventListener> eyeSamplerEventListeners () {
 		List<EyeSamplerEventListener> sampleListeners = new LinkedList<EyeSamplerEventListener>();
 		sampleListeners.add(eyeMonitor());
 		return sampleListeners;
 	}
-	
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<EyeZeroAdjustable> eyeZeroAdjustables () {
 		List<EyeZeroAdjustable> adjustables = new LinkedList<EyeZeroAdjustable>();
@@ -585,7 +584,7 @@ public class ClassicConfig {
 		adjustables.add(rightIscan());
 		return adjustables;
 	}
-	
+
 	@Bean
 	public IscanDevice leftIscan() {
 		IscanDevice iscan = new IscanDevice();
@@ -600,7 +599,7 @@ public class ClassicConfig {
 		iscan.setLocalTimeUtil(baseConfig.localTimeUtil());
 		return iscan;
 	}
-	
+
 	@Bean
 	public IscanDevice rightIscan() {
 		IscanDevice iscan = new IscanDevice();
@@ -615,14 +614,14 @@ public class ClassicConfig {
 		iscan.setLocalTimeUtil(baseConfig.localTimeUtil());
 		return iscan;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeDeviceMessageListener> eyeDeviceMessageListeners () {
 		List<EyeDeviceMessageListener> listeners = new LinkedList<EyeDeviceMessageListener>();
 		listeners.add(messageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeZeroMessageListener> eyeZeroMessageListeners () {
 		List<EyeZeroMessageListener> listeners = new LinkedList<EyeZeroMessageListener>();
@@ -630,7 +629,7 @@ public class ClassicConfig {
 		listeners.add(eyeZeroLogger());
 		return listeners;
 	}
-	
+
 	@Bean
 	public EyeZeroLogger eyeZeroLogger() {
 		EyeZeroLogger logger = new EyeZeroLogger();
@@ -638,14 +637,14 @@ public class ClassicConfig {
 		logger.setDbVariableMap(xperEyeZeroIdDbVariableMap());
 		return logger;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeWindowAdjustable> eyeWindowAdjustables () {
 		List<EyeWindowAdjustable> adjustables = new LinkedList<EyeWindowAdjustable>();
 		adjustables.add(eyeMonitor());
 		return adjustables;
 	}
-	
+
 	@Bean
 	public DefaultEyeMonitor eyeMonitor() {
 		DefaultEyeMonitor monitor = new DefaultEyeMonitor ();
@@ -659,7 +658,7 @@ public class ClassicConfig {
 		monitor.setLocalTimeUtil(baseConfig.localTimeUtil());
 		return monitor;
 	}
-	
+
 	@Bean
 	public EyeInStrategy eyeInStrategy () {
 		AnyEyeInStategy strategy = new AnyEyeInStategy();
@@ -669,7 +668,7 @@ public class ClassicConfig {
 		strategy.setEyeDevices(devices);
 		return strategy;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeEventListener> eyeEventListeners() {
 		List<EyeEventListener> listeners = new LinkedList<EyeEventListener> ();
@@ -678,20 +677,20 @@ public class ClassicConfig {
 		listeners.add(messageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeWindowMessageListener> eyeWindowMessageListeners () {
 		List<EyeWindowMessageListener> listeners = new LinkedList<EyeWindowMessageListener>();
 		listeners.add(messageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean
 	public EyeEventLogger eyeEventLogger() {
 		EyeEventLogger logger = new EyeEventLogger();
 		return logger;
 	}
-	
+
 	@Bean
 	public TrialExperimentMessageDispatcher messageDispatcher() {
 		TrialExperimentMessageDispatcher dispatcher = new TrialExperimentMessageDispatcher();
@@ -699,14 +698,14 @@ public class ClassicConfig {
 		dispatcher.setDbUtil(baseConfig.dbUtil());
 		return dispatcher;
 	}
-	
+
 	@Bean
 	public TrialExperimentEyeController eyeController() {
 		TrialExperimentEyeController controller = new TrialExperimentEyeController();
 		controller.setLocalTimeUtil(baseConfig.localTimeUtil());
 		return controller;
 	}
-	
+
 	@Bean
 	public RampEyeWindowAlgorithm eyeWindowAlgorithm() {
 		RampEyeWindowAlgorithm algo = new RampEyeWindowAlgorithm();
@@ -714,10 +713,10 @@ public class ClassicConfig {
 		algo.setInitialWindowSize(xperEyeWindowAlgorithmInitialWindowSize());
 		algo.setRampLength(xperEyeWindowAlgorithmRampLength());
 		algo.init();
-		
+
 		return algo;
 	}
-	
+
 	@Bean
 	public DynamicJuiceUpdater dynamicJuiceUpdater() {
 		DynamicJuiceUpdater updater = new DynamicJuiceUpdater();
@@ -725,8 +724,8 @@ public class ClassicConfig {
 		updater.setVariableContainer(baseConfig.systemVariableContainer());
 		return updater;
 	}
-	
-	@Bean 
+
+	@Bean
 	public DynamicJuice xperDynamicJuice() {
 		AnalogJuice juice = new AnalogJuice();
 		juice.setBonusDelay(xperJuiceBonusDelay());
@@ -743,8 +742,8 @@ public class ClassicConfig {
 		}
 		return juice;
 	}
-	
-	@Bean 
+
+	@Bean
 	public AnalogTrialSync xperTrialSync() {
 		AnalogTrialSync trialSync = new AnalogTrialSync();
 		if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NI)) {
@@ -757,28 +756,28 @@ public class ClassicConfig {
 		}
 		return trialSync;
 	}
-	
+
 	@Bean
 	public NiAnalogSWOutDevice niAnalogJuiceDevice() {
 		NiAnalogSWOutDevice device = new NiAnalogSWOutDevice();
 		device.setDeviceString(xperDevice());
 		List<NiChannelSpec> channels = new ArrayList<NiChannelSpec>();
 		channels.add(xperNiJuiceChannelSpec());
-		device.setOutputChannels(channels);		
+		device.setOutputChannels(channels);
 		return device;
 	}
-	
+
 	// --------------------------------
 	ComediAnalogSWOutDevice device = new ComediAnalogSWOutDevice();;
 	List<ComediChannelSpec> channels = new ArrayList<ComediChannelSpec>();
-	
+
 	@Bean
 	public ComediAnalogSWOutDevice comediAnalogJuiceDevice() {
 		ComediAnalogSWOutDevice device = new ComediAnalogSWOutDevice();;
 		List<ComediChannelSpec> channels = new ArrayList<ComediChannelSpec>();
 		device.setDeviceString(xperDevice());
 		channels.add(xperComediJuiceChannelSpec());
-		device.setOutputChannels(channels);		
+		device.setOutputChannels(channels);
 		return device;
 	}
 
@@ -788,22 +787,22 @@ public class ClassicConfig {
 		List<ComediChannelSpec> channels = new ArrayList<ComediChannelSpec>();
 		device.setDeviceString(xperDevice());
 		channels.add(xperComediTrialSyncChannelSpec());
-		device.setOutputChannels(channels);		
+		device.setOutputChannels(channels);
 		return device;
 	}
-	
+
 	//--------------------------------
-	
+
 	@Bean
 	public NiAnalogSWOutDevice niAnalogTrialSyncDevice() {
 		NiAnalogSWOutDevice device = new NiAnalogSWOutDevice();
 		device.setDeviceString(xperDevice());
 		List<NiChannelSpec> channels = new ArrayList<NiChannelSpec>();
 		channels.add(xperNiTrialSyncChannelSpec());
-		device.setOutputChannels(channels);		
+		device.setOutputChannels(channels);
 		return device;
 	}
-	
+
 	@Bean
 	public NiDigitalPortOutDevice niDigitalPortJuiceDevice() {
 		NiDigitalPortOutDevice device = new NiDigitalPortOutDevice();
@@ -813,7 +812,7 @@ public class ClassicConfig {
 		device.setPorts(ports);
 		return device;
 	}
-	
+
 	@Bean
 	public ComediDigitalPortOutDevice comediDigitalPortJuiceDevice() {
 		ComediDigitalPortOutDevice device = new ComediDigitalPortOutDevice();
@@ -823,12 +822,12 @@ public class ClassicConfig {
 		device.setPorts(ports);
 		return device;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Boolean xperRightIscanEyeZeroUpdateEnabled () {
 		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_right_iscan_eye_zero_update_enabled", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Boolean xperLeftIscanEyeZeroUpdateEnabled () {
 		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_left_iscan_eye_zero_update_enabled", 0));
@@ -858,10 +857,10 @@ public class ClassicConfig {
 		spec.setChannel(xperLeftIscanXChannel().shortValue());
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_max_value", 0)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_min_value", 0)));
-		
+
 		return spec;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public ComediChannelSpec xperLeftIscanXChannelComediSpec() {
 		ComediChannelSpec spec = new ComediChannelSpec();
@@ -869,7 +868,7 @@ public class ClassicConfig {
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_max_value", 0)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_min_value", 0)));
 		spec.setAref(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_reference", 0));
-		
+
 		return spec;
 	}
 
@@ -879,10 +878,10 @@ public class ClassicConfig {
 		spec.setChannel(xperLeftIscanYChannel().shortValue());
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_max_value", 1)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_min_value", 1)));
-		
+
 		return spec;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public ComediChannelSpec xperLeftIscanYChannelComediSpec() {
 		ComediChannelSpec spec = new ComediChannelSpec();
@@ -890,7 +889,7 @@ public class ClassicConfig {
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_max_value", 1)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_min_value", 1)));
 		spec.setAref(baseConfig.systemVariableContainer().get("xper_left_iscan_channel_reference", 1));
-		
+
 		return spec;
 	}
 
@@ -900,10 +899,10 @@ public class ClassicConfig {
 		spec.setChannel(xperRightIscanXChannel().shortValue());
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_max_value", 0)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_min_value", 0)));
-		
+
 		return spec;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public ComediChannelSpec xperRightIscanXChannelComediSpec() {
 		ComediChannelSpec spec = new ComediChannelSpec();
@@ -911,7 +910,7 @@ public class ClassicConfig {
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_max_value", 0)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_min_value", 0)));
 		spec.setAref(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_reference", 0));
-		
+
 		return spec;
 	}
 
@@ -921,10 +920,10 @@ public class ClassicConfig {
 		spec.setChannel(xperRightIscanYChannel().shortValue());
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_max_value", 1)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_min_value", 1)));
-		
+
 		return spec;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public ComediChannelSpec xperRightIscanYChannelComediSpec() {
 		ComediChannelSpec spec = new ComediChannelSpec();
@@ -932,7 +931,7 @@ public class ClassicConfig {
 		spec.setMaxValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_max_value", 1)));
 		spec.setMinValue(Double.parseDouble(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_min_value", 1)));
 		spec.setAref(baseConfig.systemVariableContainer().get("xper_right_iscan_channel_reference", 1));
-		
+
 		return spec;
 	}
 
@@ -1021,7 +1020,7 @@ public class ClassicConfig {
 	public Integer xperInterTrialInterval() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_inter_trial_interval", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperDelayAfterTrialComplete() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_delay_after_trial_complete", 0));
@@ -1061,7 +1060,7 @@ public class ClassicConfig {
 	public Boolean xperDoEmptyTask() {
 		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_do_empty_task", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Boolean xperMonkeyScreenInverted() {
 		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_monkey_screen_inverted", 0));
@@ -1075,7 +1074,7 @@ public class ClassicConfig {
 		spec.setMinValue(xperJuiceChannelMinValue());
 		return spec;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public NiChannelSpec xperNiTrialSyncChannelSpec() {
 		NiChannelSpec spec = new NiChannelSpec();
@@ -1084,17 +1083,17 @@ public class ClassicConfig {
 		spec.setMinValue(xperJuiceChannelMinValue());
 		return spec;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public ComediChannelSpec xperComediJuiceChannelSpec() {
 		ComediChannelSpec spec = new ComediChannelSpec();
-		spec.setChannel(xperJuiceChannel().shortValue()); 
+		spec.setChannel(xperJuiceChannel().shortValue());
 		spec.setMaxValue(xperJuiceChannelMaxValue());
 		spec.setMinValue(xperJuiceChannelMinValue());
 		spec.setAref(xperJuiceChannelReference());
 		return spec;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public ComediChannelSpec xperComediTrialSyncChannelSpec() {
 		ComediChannelSpec spec = new ComediChannelSpec();
@@ -1109,12 +1108,12 @@ public class ClassicConfig {
 	public Integer xperJuiceChannel() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_juice_channel", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperTrialSyncChannel() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_fixation_sync_channel", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public String xperTrialSyncChannelReference() {
 		return baseConfig.systemVariableContainer().get("xper_fixation_sync_channel_reference", 0);
@@ -1124,7 +1123,7 @@ public class ClassicConfig {
 	public Double xperJuiceChannelMinValue() {
 		return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_juice_channel_min_value", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public String xperJuiceChannelReference() {
 		return baseConfig.systemVariableContainer().get("xper_juice_channel_reference", 0);
@@ -1174,7 +1173,7 @@ public class ClassicConfig {
 	public MappingAlgorithm rightIscanMappingAlgorithm() {
 		LinearMappingAlgorithm algorithm = new LinearMappingAlgorithm();
 		algorithm.setSxh(xperRightIscanMappingAlgorithmSxh());
-		algorithm.setSxv(xperRightIscanMappingAlgorithmSxv());  
+		algorithm.setSxv(xperRightIscanMappingAlgorithmSxv());
 		algorithm.setSyh(xperRightIscanMappingAlgorithmSyh());
 		algorithm.setSyv(xperRightIscanMappingAlgorithmSyv());
 		return algorithm;
@@ -1361,13 +1360,13 @@ public class ClassicConfig {
 	public Double xperEyeWindowAlgorithmBaseWindowSize() {
 		return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_eye_window_algorithm_base_window_size", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Boolean xperFixationOnWithStimuli() {
 		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_fixation_on_with_stimuli", 0));
 	}
 
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public RGBColor xperStimColorBackground() {
 		RGBColor bColor = new RGBColor();
@@ -1376,7 +1375,7 @@ public class ClassicConfig {
 		bColor.setBlue(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_background", 2)));
 		return bColor;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public RGBColor xperStimColorForeground() {
 		RGBColor fColor = new RGBColor();
@@ -1385,5 +1384,5 @@ public class ClassicConfig {
 		fColor.setBlue(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_foreground", 2)));
 		return fColor;
 	}
-	
+
 }
