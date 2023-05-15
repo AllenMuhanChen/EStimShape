@@ -2,6 +2,7 @@ package org.xper.intan;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.xper.XperConfig;
 import org.xper.time.DefaultTimeUtil;
 
 import java.util.*;
@@ -15,6 +16,10 @@ public class IntanStimulationControllerTest {
 
     @Before
     public void setUp() throws Exception {
+        List<String> libs = new ArrayList<String>();
+        libs.add("xper");
+        new XperConfig("", libs);
+
         intanClient = new IntanClient();
         intanClient.setTimeUtil(new DefaultTimeUtil());
         intanClient.setHost("172.30.9.78");
@@ -26,6 +31,7 @@ public class IntanStimulationControllerTest {
         controller.setDefaultParameters(defaultParameters());
 
         controller.connect();
+        assertTrue(controller.getIntanClient().get("b-000.maintainampsettle").equals("True"));
     }
 
     @Test
@@ -36,14 +42,21 @@ public class IntanStimulationControllerTest {
 
     @Test
     public void testStimulationSetup(){
-        Map<RHSChannel, Parameter> parametersForChannels = new LinkedHashMap<>();
-        parametersForChannels.put(RHSChannel.B000, new Parameter("Polarity", "NegativeFirst"));
-//        controller.setupStimulationFor();
+        Map<RHSChannel, Collection<Parameter>> parametersForChannels = new LinkedHashMap<>();
+        parametersForChannels.put(RHSChannel.B000, Arrays.asList(new Parameter<String>("Polarity", "NegativeFirst")));
+
+        controller.setupStimulationFor(parametersForChannels);
+
+        String stim_enabled = controller.getIntanClient().get("b-000.stimenabled");
+        assertTrue(stim_enabled.equals("True"));
+
+        assertTrue(controller.getIntanClient().get("b-000.polarity").equals("NegativeFirst"));
     }
 
     private List<Parameter> defaultParameters(){
         List<Parameter> parameters = new LinkedList<>();
         parameters.add(new Parameter("MaintainAmpSettle", "True"));
+
 
         return parameters;
   }

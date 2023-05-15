@@ -144,5 +144,7 @@ public class IntanRecordingController {
         this.defaultBaseFileName = defaultBaseFileName;
     }
 
-
+    public IntanClient getIntanClient() {
+        return intanClient;
+    }
 }
