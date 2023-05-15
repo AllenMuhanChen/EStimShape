@@ -21,7 +21,7 @@ public class IntanStimulationController extends IntanRecordingController{
         for (RHSChannel channel : parametersForChannel.keySet()){
             enableStimulationOn(channel);
             setDefaultParametersOn(channel);
-            setupTriggerSourceOn(channel);
+            setTriggerSourceOn(channel);
             setStimWaveformParametersOn(channel, parametersForChannel.get(channel));
         }
     }
@@ -49,7 +49,7 @@ public class IntanStimulationController extends IntanRecordingController{
         }
     }
 
-    private void setupTriggerSourceOn(RHSChannel channel) {
+    private void setTriggerSourceOn(RHSChannel channel) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".source", "keypressf1");
     }
 
