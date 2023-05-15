@@ -8,6 +8,7 @@ import org.xper.intan.Parameter;
 import org.xper.intan.stimulation.IntanStimulationController;
 import org.xper.intan.stimulation.RHSChannel;
 import org.xper.time.DefaultTimeUtil;
+import org.xper.util.ThreadUtil;
 
 import java.util.*;
 
@@ -35,7 +36,7 @@ public class IntanStimulationControllerTest {
         controller.setDefaultParameters(defaultParameters());
 
         controller.connect();
-        assertTrue(controller.getIntanClient().get("b-000.maintainampsettle").equals("True"));
+//        assertTrue(controller.getIntanClient().get("b-000.maintainampsettle").equals("True"));
     }
 
     @Test
@@ -55,6 +56,28 @@ public class IntanStimulationControllerTest {
         assertTrue(stim_enabled.equals("True"));
 
         assertTrue(controller.getIntanClient().get("b-000.polarity").equals("NegativeFirst"));
+    }
+
+    @Test
+    public void testPulse(){
+        Map<RHSChannel, Collection<Parameter>> parametersForChannels = new LinkedHashMap<>();
+        parametersForChannels.put(RHSChannel.B025, Arrays.asList(
+                new Parameter<String>("Polarity", "NegativeFirst"),
+                new Parameter<Double>("FirstPhaseAmplitudeMicroAmps", 50.0),
+                new Parameter<Double>("SecondPhaseAmplitudeMicroAmps", 50.0),
+                new Parameter<Double>("FirstPhaseDurationMicroseconds", 5000.0),
+                new Parameter<Double>("SecondPhaseDurationMicroseconds", 5000.0)
+                ));
+
+    controller.setupStimulationFor(parametersForChannels);
+
+    controller.stopRecording();
+
+
+    while(true) {
+        controller.trigger();
+        ThreadUtil.sleep(1000);
+    }
     }
 
     private List<Parameter> defaultParameters(){

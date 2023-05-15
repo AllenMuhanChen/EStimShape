@@ -26,9 +26,11 @@ public class IntanStimulationController extends IntanRecordingController {
             setTriggerSourceOn(channel);
             setStimWaveformParametersOn(channel, parametersForChannel.get(channel));
         }
+
+        uploadParameters(parametersForChannel.keySet());
     }
 
-    public void uploadParameters(Collection<RHSChannel> channels){
+    private void uploadParameters(Collection<RHSChannel> channels){
         for (RHSChannel channel : channels){
             intanClient.execute("uploadstimparameters", tcpNameForIntanChannel(channel));
         }

@@ -59,7 +59,15 @@ public class IntanClient {
         waitFor(new Condition() {
             @Override
             public boolean check() {
-                return get(parameter).equalsIgnoreCase(value);
+                try {
+                    // Try to parse as doubles and compare
+                    double d1 = Double.parseDouble(get(parameter));
+                    double d2 = Double.parseDouble(value);
+                    return d1 == d2;
+                } catch(NumberFormatException e) {
+                    // If parsing fails, compare as strings
+                    return get(parameter).equalsIgnoreCase(value);
+                }
             }
         });
     }
