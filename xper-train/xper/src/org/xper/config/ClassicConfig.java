@@ -294,6 +294,7 @@ public class ClassicConfig {
 		listeners.add(slideEventLogger());
 		listeners.add(experimentProfiler());
 		listeners.add(messageDispatcher());
+		listeners.add(intanConfig.intanMessageDispatcher());
 		return listeners;
 	}
 
@@ -311,8 +312,6 @@ public class ClassicConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(dynamicJuiceUpdater());
 		}
-		trialEventListener.add(intanConfig.intanMessageDispatcher());
-
 		return trialEventListener;
 	}
 

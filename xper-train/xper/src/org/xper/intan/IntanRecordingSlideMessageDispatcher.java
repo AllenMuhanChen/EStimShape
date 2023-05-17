@@ -10,14 +10,14 @@ import org.xper.experiment.listener.ExperimentEventListener;
 /**
  * Controls what trial events and experiment events trigger what events in IntanController.
  */
-public class IntanRecordingSlideMessageDispatcher implements SlideEventListener, TrialEventListener, ExperimentEventListener{
+public class IntanRecordingSlideMessageDispatcher implements SlideEventListener, ExperimentEventListener{
 
     @Dependency
     private
     IntanRecordingController intanController;
 
     @Dependency
-    IntanFileNamingStrategy fileNamingStrategy;
+    IntanFileNamingStrategy<Long> fileNamingStrategy;
 
     private boolean connected = false;
 
@@ -31,7 +31,8 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
 
     @Override
     public void slideOff(int index, long timestamp, int frameCount, long taskId) {
-
+        if (connected)
+            getIntanController().stopRecording();
     }
 
     @Override
@@ -58,56 +59,6 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
         connected = false;
     }
 
-    @Override
-    public void trialInit(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void trialStop(long timestamp, TrialContext context) {
-        if (connected)
-            getIntanController().stopRecording();
-    }
-
-    @Override
-    public void trialStart(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void fixationPointOn(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void initialEyeInFail(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void initialEyeInSucceed(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void eyeInHoldFail(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void fixationSucceed(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void eyeInBreak(long timestamp, TrialContext context) {
-
-    }
-
-    @Override
-    public void trialComplete(long timestamp, TrialContext context) {
-
-    }
 
     public IntanRecordingController getIntanController() {
         return intanController;

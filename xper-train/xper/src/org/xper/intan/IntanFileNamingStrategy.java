@@ -8,7 +8,8 @@ import org.xper.classic.vo.TrialContext;
  *
  * To make your own NamingStrategy, make a new class that extends this one
  * and implement rename(). The new class should declare
- * the data type with NewFileNamingStrategy<Type>
+ * the data type that you want to pass to the strategy
+ * with NewFileNamingStrategy extends IntanFileNamingStrategy<Type>
  */
 public abstract class IntanFileNamingStrategy<T> {
     @Dependency
