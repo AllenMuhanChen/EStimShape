@@ -5,11 +5,10 @@ import org.xper.classic.vo.TrialContext;
 /**
  * @author Allen Chen
  */
-public class TaskIdFileNamingStrategy extends IntanFileNamingStrategy{
+public class TaskIdFileNamingStrategy extends IntanFileNamingStrategy<Long>{
 
     @Override
-    public void rename(TrialContext context) {
-        long taskId = context.getCurrentTask().getTaskId();
-        intanRecordingController.setBaseFilename(Long.toString(taskId));
+    public void rename(Long parameter) {
+        intanRecordingController.setBaseFilename(parameter.toString());
     }
 }

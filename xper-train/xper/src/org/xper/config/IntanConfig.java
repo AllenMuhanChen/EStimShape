@@ -27,11 +27,11 @@ public class IntanConfig {
     public String intanDefaultBaseFilename;
 
     @Bean
-    public IntanRecordingMessageDispatcher intanMessageDispatcher(){
-        IntanRecordingMessageDispatcher intanRecordingMessageDispatcher = new IntanRecordingMessageDispatcher();
-        intanRecordingMessageDispatcher.setFileNamingStrategy(intanFileNamingStrategy());
-        intanRecordingMessageDispatcher.setIntanController(intanController());
-        return intanRecordingMessageDispatcher;
+    public IntanRecordingSlideMessageDispatcher intanMessageDispatcher(){
+        IntanRecordingSlideMessageDispatcher intanRecordingSlideMessageDispatcher = new IntanRecordingSlideMessageDispatcher();
+        intanRecordingSlideMessageDispatcher.setFileNamingStrategy(intanFileNamingStrategy());
+        intanRecordingSlideMessageDispatcher.setIntanController(intanController());
+        return intanRecordingSlideMessageDispatcher;
     }
 
     @Bean
