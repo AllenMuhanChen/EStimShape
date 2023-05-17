@@ -53,7 +53,7 @@ public class IntanConfig {
     }
 
     @Bean
-    public IntanFileNamingStrategy intanFileNamingStrategy(){
+    public TaskIdFileNamingStrategy intanFileNamingStrategy(){
         TaskIdFileNamingStrategy strategy = new TaskIdFileNamingStrategy();
         strategy.setIntanController(intanController());
         return strategy;
