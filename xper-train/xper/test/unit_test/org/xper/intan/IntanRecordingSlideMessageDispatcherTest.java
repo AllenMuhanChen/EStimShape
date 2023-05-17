@@ -32,44 +32,72 @@ public class IntanRecordingSlideMessageDispatcherTest {
     public void do_not_crash_when_intan_not_connected(){
         intanRecordingSlideMessageDispatcher.experimentStop(0); //disconnects Intan
 
-        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
-        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
+        intanRecordingSlideMessageDispatcher.trialInit(0, new TrialContext());
+        intanRecordingSlideMessageDispatcher.trialStop(0, new TrialContext());
 
         intanRecordingSlideMessageDispatcher.experimentStart(0);
     }
 
     @Test
     public void trial_init_renames_base_filename_to_taskId(){
+        TrialContext testContext = new TrialContext();
+        ExperimentTask testTask = new ExperimentTask();
+        testTask.setTaskId(1);
+        testContext.setCurrentTask(testTask);
+
         intanRecordingSlideMessageDispatcher.experimentStart(0);
-        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
+        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
+        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
         assertTrue(intanClient.get("Filename.BaseFilename").equals("1"));
-        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
         intanRecordingSlideMessageDispatcher.experimentStop(0);
     }
 
-    /**
-     * Quickly run three trials to test file saving.
-     */
+    @Ignore
+    @Test
+    public void slide_writes_taskId_to_live_notes(){
+        TrialContext testContext = new TrialContext();
+        ExperimentTask testTask = new ExperimentTask();
+        testTask.setTaskId(1);
+        testContext.setCurrentTask(testTask);
+
+        intanRecordingSlideMessageDispatcher.experimentStart(0);
+        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
+        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
+        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+        intanRecordingSlideMessageDispatcher.experimentStop(0);
+
+        //Now manually go see if the livesnotes txt file was created on the Intan Machine.
+    }
+
+
     @Ignore
     @Test
     public void run_multiple_trials(){
+        TrialContext testContext = new TrialContext();
+        ExperimentTask testTask = new ExperimentTask();
+        testTask.setTaskId(1);
+        testContext.setCurrentTask(testTask);
+
         intanRecordingSlideMessageDispatcher.experimentStart(0);
 
-        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
-        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
+        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
+        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
-
-        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 2);
-        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 2);
+        testTask.setTaskId(2);
+        testContext.setCurrentTask(testTask);
+        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
+        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
-        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 3);
-        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 3);
+        testTask.setTaskId(3);
+        testContext.setCurrentTask(testTask);
+        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
+        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
         intanRecordingSlideMessageDispatcher.experimentStop(0);
 
-        // NOW manually verify that the files were created on the intan computer
+        //Now manually go see if these files were created on the Intan Machine.
     }
 }
