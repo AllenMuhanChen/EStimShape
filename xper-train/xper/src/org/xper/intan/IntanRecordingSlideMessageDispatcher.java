@@ -83,7 +83,6 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
     }
 
 
-
     @Override
     public void trialStart(long timestamp, TrialContext context) {
 
@@ -123,7 +122,6 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
     public void trialComplete(long timestamp, TrialContext context) {
 
     }
-
 
     public IntanRecordingController getIntanController() {
         return intanController;
