@@ -113,6 +113,11 @@ public class IntanClient {
         }
     }
 
+    public void writeNote(String note) {
+        String msg = "livenotes " + note;
+        out.println(msg);
+    }
+
     private String readResponse(String parameter) throws IOException {
         long startTime = timeUtil.currentTimeMicros();
         while (timeUtil.currentTimeMicros() < startTime + TIME_OUT_MS*1000){

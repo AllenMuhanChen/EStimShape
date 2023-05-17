@@ -9,8 +9,14 @@ import org.xper.experiment.listener.ExperimentEventListener;
 
 /**
  * Controls what trial events and experiment events trigger what events in IntanController.
+ *
+ * experimentStart: connect to Intan
+ * trialInit: start recording (starting a new data file)
+ * slideOn: write a liveNote to Intan to tell what the taskId is
+ * trialStop: stop recording
+ * experimentStop: disconnect from Intan
  */
-public class IntanRecordingSlideMessageDispatcher implements SlideEventListener, ExperimentEventListener{
+public class IntanRecordingSlideMessageDispatcher implements SlideEventListener, TrialEventListener, ExperimentEventListener{
 
     @Dependency
     private
@@ -22,22 +28,42 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
     private boolean connected = false;
 
     @Override
-    public void slideOn(int index, long timestamp, long taskId) {
+    public void experimentStart(long timestamp) {
+        tryConnection();
+    }
+
+
+    @Override
+    public void trialInit(long timestamp, TrialContext context) {
         if (connected) {
-            fileNamingStrategy.rename(taskId);
+            long trialName = context.getCurrentTask().getTaskId();
+            fileNamingStrategy.rename(trialName);
             getIntanController().record();
         }
     }
 
     @Override
-    public void slideOff(int index, long timestamp, int frameCount, long taskId) {
+    public void slideOn(int index, long timestamp, long taskId) {
+        if (connected){
+            String note = Long.toString(taskId);
+            getIntanController().writeNote(note);
+        }
+    }
+
+    @Override
+    public void trialStop(long timestamp, TrialContext context) {
         if (connected)
             getIntanController().stopRecording();
     }
 
+
     @Override
-    public void experimentStart(long timestamp) {
-        tryConnection();
+    public void experimentStop(long timestamp) {
+        if (connected) {
+            getIntanController().stop();
+            getIntanController().disconnect();
+        }
+        connected = false;
     }
 
     private void tryConnection() {
@@ -50,13 +76,52 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
         }
     }
 
+
     @Override
-    public void experimentStop(long timestamp) {
-        if (connected) {
-            getIntanController().stop();
-            getIntanController().disconnect();
-        }
-        connected = false;
+    public void slideOff(int index, long timestamp, int frameCount, long taskId) {
+
+    }
+
+
+
+    @Override
+    public void trialStart(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
+    public void fixationPointOn(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
+    public void initialEyeInFail(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
+    public void initialEyeInSucceed(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
+    public void eyeInHoldFail(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
+    public void fixationSucceed(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
+    public void eyeInBreak(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
+    public void trialComplete(long timestamp, TrialContext context) {
+
     }
 
 
@@ -75,6 +140,5 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
     public void setFileNamingStrategy(IntanFileNamingStrategy<Object> fileNamingStrategy) {
         this.fileNamingStrategy = fileNamingStrategy;
     }
-
 
 }
