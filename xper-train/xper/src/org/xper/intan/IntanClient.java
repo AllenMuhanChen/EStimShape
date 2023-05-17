@@ -16,7 +16,7 @@ import java.nio.CharBuffer;
 /**
  * @author Allen Chen
  *
- * Provides basic tcp communication with Intan, like connecting, get, set and executing commands
+ * Provides basic tcp communication with Intan, like connecting, get, set, liveNotes, and executing commands
  */
 public class IntanClient {
     static final int QUERY_INTERVAL_MS = 10;
