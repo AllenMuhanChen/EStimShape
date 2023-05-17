@@ -32,23 +32,19 @@ public class IntanRecordingSlideMessageDispatcherTest {
     public void do_not_crash_when_intan_not_connected(){
         intanRecordingSlideMessageDispatcher.experimentStop(0); //disconnects Intan
 
-        intanRecordingSlideMessageDispatcher.trialInit(0, new TrialContext());
-        intanRecordingSlideMessageDispatcher.trialStop(0, new TrialContext());
+        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
+        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
 
         intanRecordingSlideMessageDispatcher.experimentStart(0);
     }
 
     @Test
     public void trial_init_renames_base_filename_to_taskId(){
-        TrialContext testContext = new TrialContext();
-        ExperimentTask testTask = new ExperimentTask();
-        testTask.setTaskId(1);
-        testContext.setCurrentTask(testTask);
-
         intanRecordingSlideMessageDispatcher.experimentStart(0);
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
-
+        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
+        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
+        ThreadUtil.sleep(500);
+        intanRecordingSlideMessageDispatcher.experimentStop(0);
         assertTrue(intanClient.get("Filename.BaseFilename").equals("1"));
     }
 
@@ -58,27 +54,19 @@ public class IntanRecordingSlideMessageDispatcherTest {
     @Ignore
     @Test
     public void run_multiple_trials(){
-        TrialContext testContext = new TrialContext();
-        ExperimentTask testTask = new ExperimentTask();
-        testTask.setTaskId(1);
-        testContext.setCurrentTask(testTask);
-
         intanRecordingSlideMessageDispatcher.experimentStart(0);
 
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
+        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
         ThreadUtil.sleep(500);
 
-        testTask.setTaskId(2);
-        testContext.setCurrentTask(testTask);
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+
+        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 2);
+        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 2);
         ThreadUtil.sleep(500);
 
-        testTask.setTaskId(3);
-        testContext.setCurrentTask(testTask);
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 3);
+        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 3);
         ThreadUtil.sleep(500);
 
         intanRecordingSlideMessageDispatcher.experimentStop(0);

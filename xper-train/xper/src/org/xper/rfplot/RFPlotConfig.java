@@ -138,20 +138,20 @@ public class RFPlotConfig {
 		taskDataSource.setRefObjMap(refObjMap());
 		return taskDataSource;
 	}
-	
+
 	@Bean
 	public TaskDoneCache taskDoneCache () {
 		NullTaskDoneCache cache = new NullTaskDoneCache();
 		return cache;
 	}
-	
-	@Bean 
+
+	@Bean
 	public RFPlotTaskDataSourceController taskDataSourceController () {
 		RFPlotTaskDataSourceController controller = new RFPlotTaskDataSourceController();
 		controller.setTaskDataSource(taskDataSource());
 		return controller;
 	}
-	
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<ExperimentEventListener> experimentEventListeners () {
 		List<ExperimentEventListener> listeners =  new LinkedList<ExperimentEventListener>();
@@ -163,7 +163,7 @@ public class RFPlotConfig {
 		listeners.add(intanConfig.intanMessageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
@@ -177,7 +177,6 @@ public class RFPlotConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
-		trialEventListener.add(intanConfig.intanMessageDispatcher());
 		return trialEventListener;
 	}
 
