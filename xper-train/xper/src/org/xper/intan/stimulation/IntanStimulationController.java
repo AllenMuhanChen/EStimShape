@@ -17,9 +17,9 @@ public class IntanStimulationController extends IntanRecordingController {
      * Default Parameters that are true for every trial and channel throughout the entire experiment
      */
     @Dependency
-    Collection<Parameter> defaultParameters;
+    Collection<Parameter<Object>> defaultParameters;
 
-    public void setupStimulationFor(Map<RHSChannel, Collection<Parameter>> parametersForChannel){
+    public void setupStimulationFor(Map<RHSChannel, Collection<Parameter<Object>>> parametersForChannel){
         for (RHSChannel channel : parametersForChannel.keySet()){
             enableStimulationOn(channel);
             setDefaultParametersOn(channel);
@@ -57,7 +57,7 @@ public class IntanStimulationController extends IntanRecordingController {
         intanClient.set(tcpNameForIntanChannel(channel) + ".source", "keypressf1");
     }
 
-    private void setStimWaveformParametersOn(RHSChannel channel, Collection<Parameter> stimulationParameters){
+    private void setStimWaveformParametersOn(RHSChannel channel, Collection<Parameter<Object>> stimulationParameters){
         for (Parameter parameter : stimulationParameters){
             intanClient.set(tcpNameForIntanChannel(channel) + "." + parameter.getKey().toLowerCase(), parameter.getValue().toString().toLowerCase());
         }
@@ -71,11 +71,11 @@ public class IntanStimulationController extends IntanRecordingController {
         return channelName;
     }
 
-    public Collection<Parameter> getDefaultParameters() {
+    public Collection<Parameter<Object>> getDefaultParameters() {
         return defaultParameters;
     }
 
-    public void setDefaultParameters(Collection<Parameter> defaultParameters) {
+    public void setDefaultParameters(Collection<Parameter<Object>> defaultParameters) {
         this.defaultParameters = defaultParameters;
     }
 }

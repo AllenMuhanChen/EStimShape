@@ -17,7 +17,7 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
     IntanRecordingController intanController;
 
     @Dependency
-    IntanFileNamingStrategy<Long> fileNamingStrategy;
+    IntanFileNamingStrategy<Object> fileNamingStrategy;
 
     private boolean connected = false;
 
@@ -68,11 +68,11 @@ public class IntanRecordingSlideMessageDispatcher implements SlideEventListener,
         this.intanController = intanRecordingController;
     }
 
-    public IntanFileNamingStrategy getFileNamingStrategy() {
+    public IntanFileNamingStrategy<Object> getFileNamingStrategy() {
         return fileNamingStrategy;
     }
 
-    public void setFileNamingStrategy(IntanFileNamingStrategy fileNamingStrategy) {
+    public void setFileNamingStrategy(IntanFileNamingStrategy<Object> fileNamingStrategy) {
         this.fileNamingStrategy = fileNamingStrategy;
     }
 
