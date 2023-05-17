@@ -8,7 +8,7 @@ import org.xper.exception.RemoteException;
 import org.xper.experiment.listener.ExperimentEventListener;
 
 /**
- * Controls what trial events and experiment events trigger what events in IntanController.
+ * Controls what trial, slide and experiment events trigger what methods in IntanRecordingController.
  *
  * experimentStart: connect to Intan
  * trialInit: start recording (starting a new data file)

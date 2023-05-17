@@ -5,7 +5,10 @@ import org.xper.Dependency;
 /**
  * @author Allen Chen
  *
- * Provides experiment-relevant control of Intan
+ * Provides experiment-relevant control of Intan:
+ * - starting and stopping recording
+ * - changing save path / filename
+ * - live notes
  */
 public class IntanRecordingController {
 

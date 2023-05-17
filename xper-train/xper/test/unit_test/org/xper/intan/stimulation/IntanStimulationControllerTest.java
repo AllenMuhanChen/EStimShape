@@ -4,9 +4,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xper.XperConfig;
 import org.xper.intan.IntanClient;
-import org.xper.intan.Parameter;
-import org.xper.intan.stimulation.IntanStimulationController;
-import org.xper.intan.stimulation.RHSChannel;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.util.ThreadUtil;
 

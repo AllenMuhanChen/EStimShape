@@ -1,4 +1,4 @@
-package org.xper.intan;
+package org.xper.intan.stimulation;
 
 public class Parameter<T> {
     private final String key;
