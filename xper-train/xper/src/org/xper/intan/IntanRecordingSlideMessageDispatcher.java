@@ -1,6 +1,7 @@
 package org.xper.intan;
 
 import org.xper.Dependency;
+import org.xper.classic.SlideEventListener;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.TrialContext;
 import org.xper.exception.RemoteException;
@@ -9,15 +10,29 @@ import org.xper.experiment.listener.ExperimentEventListener;
 /**
  * Controls what trial events and experiment events trigger what events in IntanController.
  */
-public class IntanRecordingMessageDispatcher implements TrialEventListener, ExperimentEventListener{
+public class IntanRecordingSlideMessageDispatcher implements SlideEventListener, TrialEventListener, ExperimentEventListener{
 
     @Dependency
-    IntanRecordingController intanRecordingController;
+    private
+    IntanRecordingController intanController;
 
     @Dependency
     IntanFileNamingStrategy fileNamingStrategy;
 
     private boolean connected = false;
+
+    @Override
+    public void slideOn(int index, long timestamp, long taskId) {
+        if (connected) {
+            fileNamingStrategy.rename(taskId);
+            getIntanController().record();
+        }
+    }
+
+    @Override
+    public void slideOff(int index, long timestamp, int frameCount, long taskId) {
+
+    }
 
     @Override
     public void experimentStart(long timestamp) {
@@ -26,7 +41,7 @@ public class IntanRecordingMessageDispatcher implements TrialEventListener, Expe
 
     private void tryConnection() {
         try {
-            intanRecordingController.connect();
+            getIntanController().connect();
             connected = true;
         } catch (RemoteException e){
             System.err.println("Could not connect to Intan, disabling Intan functionality");
@@ -37,24 +52,21 @@ public class IntanRecordingMessageDispatcher implements TrialEventListener, Expe
     @Override
     public void experimentStop(long timestamp) {
         if (connected) {
-            intanRecordingController.stop();
-            intanRecordingController.disconnect();
+            getIntanController().stop();
+            getIntanController().disconnect();
         }
         connected = false;
     }
 
     @Override
     public void trialInit(long timestamp, TrialContext context) {
-        if (connected) {
-            fileNamingStrategy.rename(context);
-            intanRecordingController.record();
-        }
+
     }
 
     @Override
     public void trialStop(long timestamp, TrialContext context) {
         if (connected)
-            intanRecordingController.stopRecording();
+            getIntanController().stopRecording();
     }
 
     @Override
@@ -98,11 +110,11 @@ public class IntanRecordingMessageDispatcher implements TrialEventListener, Expe
     }
 
     public IntanRecordingController getIntanController() {
-        return intanRecordingController;
+        return intanController;
     }
 
     public void setIntanController(IntanRecordingController intanRecordingController) {
-        this.intanRecordingController = intanRecordingController;
+        this.intanController = intanRecordingController;
     }
 
     public IntanFileNamingStrategy getFileNamingStrategy() {
@@ -112,4 +124,6 @@ public class IntanRecordingMessageDispatcher implements TrialEventListener, Expe
     public void setFileNamingStrategy(IntanFileNamingStrategy fileNamingStrategy) {
         this.fileNamingStrategy = fileNamingStrategy;
     }
+
+
 }

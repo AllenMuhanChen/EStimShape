@@ -7,15 +7,14 @@ import org.xper.classic.vo.TrialContext;
  * @author Allen Chen
  *
  * To make your own NamingStrategy, make a new class that extends this one
- * and implement rename(). You can use context to get any information you need
- * about the trial/experiment and IntanController to get the pre-set savePath and
- * baseFilename.
+ * and implement rename(). The new class should declare
+ * the data type with NewFileNamingStrategy<Type>
  */
-public abstract class IntanFileNamingStrategy {
+public abstract class IntanFileNamingStrategy<T> {
     @Dependency
     IntanRecordingController intanRecordingController;
 
-    public abstract void rename(TrialContext context);
+    public abstract void rename(T parameter);
 
     public IntanRecordingController getIntanController() {
         return intanRecordingController;
