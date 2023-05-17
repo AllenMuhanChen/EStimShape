@@ -62,6 +62,9 @@ public class IntanRecordingController {
         intanClient.set("Filename.BaseFilename", baseFilename);
     }
 
+    public void writeNote(String note){
+        intanClient.writeNote(note);
+    }
     /**
      * @param mode: "Run", "Stop", "Record", or "Trigger"
      */
