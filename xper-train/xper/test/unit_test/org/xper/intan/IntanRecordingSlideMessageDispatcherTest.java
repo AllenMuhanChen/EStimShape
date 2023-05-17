@@ -42,10 +42,9 @@ public class IntanRecordingSlideMessageDispatcherTest {
     public void trial_init_renames_base_filename_to_taskId(){
         intanRecordingSlideMessageDispatcher.experimentStart(0);
         intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
-        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
-        ThreadUtil.sleep(500);
-        intanRecordingSlideMessageDispatcher.experimentStop(0);
         assertTrue(intanClient.get("Filename.BaseFilename").equals("1"));
+        intanRecordingSlideMessageDispatcher.slideOff(0, 0, 0, 1);
+        intanRecordingSlideMessageDispatcher.experimentStop(0);
     }
 
     /**
@@ -70,5 +69,7 @@ public class IntanRecordingSlideMessageDispatcherTest {
         ThreadUtil.sleep(500);
 
         intanRecordingSlideMessageDispatcher.experimentStop(0);
+
+        // NOW manually verify that the files were created on the intan computer
     }
 }

@@ -47,8 +47,8 @@ public class IntanStimulationControllerTest {
 
     @Test
     public void testStimulationSetup(){
-        Map<RHSChannel, Collection<Parameter>> parametersForChannels = new LinkedHashMap<>();
-        parametersForChannels.put(RHSChannel.B000, Arrays.asList(new Parameter<String>("Polarity", "NegativeFirst")));
+        Map<RHSChannel, Collection<Parameter<Object>>> parametersForChannels = new LinkedHashMap<>();
+        parametersForChannels.put(RHSChannel.B000, Collections.singleton(new Parameter<>("Polarity", "NegativeFirst")));
 
         controller.setupStimulationFor(parametersForChannels);
 
@@ -60,7 +60,7 @@ public class IntanStimulationControllerTest {
 
     @Test
     public void testPulse(){
-        Map<RHSChannel, Collection<Parameter>> parametersForChannels = new LinkedHashMap<>();
+        Map<RHSChannel, Collection<Parameter<Object>>> parametersForChannels = new LinkedHashMap<>();
         parametersForChannels.put(RHSChannel.B025, Arrays.asList(
                 new Parameter<>("Polarity", "NegativeFirst"),
                 new Parameter<>("FirstPhaseAmplitudeMicroAmps", 50.0),
@@ -80,9 +80,9 @@ public class IntanStimulationControllerTest {
     }
     }
 
-    private List<Parameter> defaultParameters(){
-        List<Parameter> parameters = new LinkedList<>();
-        parameters.add(new Parameter("MaintainAmpSettle", "True"));
+    private List<Parameter<Object>> defaultParameters(){
+        List<Parameter<Object>> parameters = new LinkedList<>();
+        parameters.add(new Parameter<>("MaintainAmpSettle", "True"));
 
 
         return parameters;
