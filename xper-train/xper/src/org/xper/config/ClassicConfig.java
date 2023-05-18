@@ -92,11 +92,12 @@ import org.xper.trialsync.mock.NullTrialSync;
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import({AcqConfig.class, IntanConfig.class})
+@Import({AcqConfig.class, IntanRHDConfig.class})
 public class ClassicConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired BaseConfig baseConfig;
-	@Autowired IntanConfig intanConfig;
+	@Autowired
+	IntanRHDConfig intanConfig;
 
 	@ExternalValue("console.eye_simulation")
 	public boolean consoleEyeSimulation;

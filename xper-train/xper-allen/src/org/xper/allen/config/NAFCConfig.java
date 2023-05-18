@@ -19,7 +19,7 @@ import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.allen.intan.NAFCTrialIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
-import org.xper.config.IntanConfig;
+import org.xper.config.*;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.intan.EStimEventListener;
@@ -36,9 +36,6 @@ import org.xper.allen.nafc.message.NAFCJuiceController;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.classic.TrialEventListener;
-import org.xper.config.AcqConfig;
-import org.xper.config.BaseConfig;
-import org.xper.config.ClassicConfig;
 import org.xper.console.MessageReceiverEventListener;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.object.BlankScreen;
@@ -68,7 +65,8 @@ public class NAFCConfig {
 	@Autowired BaseConfig baseConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired AcqConfig acqConfig;
-	@Autowired IntanConfig intanConfig;
+	@Autowired
+	IntanRHSConfig intanConfig;
 
 	@ExternalValue("jdbc.driver")
 	public String jdbcDriver;
@@ -387,27 +385,12 @@ public class NAFCConfig {
 	public NAFCTrialIntanStimulationRecordingController intanController() {
 		NAFCTrialIntanStimulationRecordingController intanController = new NAFCTrialIntanStimulationRecordingController();
 		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
-		intanController.setIntan(intan());
+		intanController.setIntan(intanConfig.intan());
 		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled);
 		intanController.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
 		return intanController;
 	}
 
-	@Bean
-	public ManualTriggerIntanRHS intan(){
-		ManualTriggerIntanRHS intanRHS = new ManualTriggerIntanRHS();
-		intanRHS.setIntanClient(intanConfig.intanClient());
-		intanRHS.setDefaultSavePath(intanConfig.intanDefaultSavePath);
-		intanRHS.setDefaultBaseFileName(intanConfig.intanDefaultBaseFilename);
-		intanRHS.setDefaultParameters(defaultRHSParameters());
-		return intanRHS;
-	}
-
-	@Bean
-	public Collection<Parameter<Object>> defaultRHSParameters() {
-		Collection<Parameter<Object>> defaultParameters = new ArrayList<Parameter<Object>>();
-		return defaultParameters;
-	}
 
 	@Bean
 	public NAFCTrialDrawingController drawingController() {

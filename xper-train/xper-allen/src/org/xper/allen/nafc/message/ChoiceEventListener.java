@@ -1,12 +1,12 @@
 package org.xper.allen.nafc.message;
 
-import org.xper.classic.vo.TrialContext;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
 
 public interface ChoiceEventListener {
-	public void sampleOn(long timestamp, TrialContext context);
+	public void sampleOn(long timestamp, NAFCTrialContext context);
 	public void sampleOff(long timestamp);
 	public void sampleEyeInHoldFail(long timestamp);
-	public void choicesOn(long timestamp, TrialContext context);
+	public void choicesOn(long timestamp, NAFCTrialContext context);
 	public void choicesOff(long timestamp);
 	public void choiceSelectionEyeFail(long timestamp);
 	public void choiceSelectionSuccess(long timestamp, int choice);

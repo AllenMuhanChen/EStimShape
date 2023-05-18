@@ -9,6 +9,8 @@ import org.xper.Dependency;
  * - starting and stopping recording
  * - changing save path / filename
  * - live notes
+ *
+ * This CAN be used with an Intan RHS board, but will only provide the recording functionality.
  */
 public class IntanRHD {
 
