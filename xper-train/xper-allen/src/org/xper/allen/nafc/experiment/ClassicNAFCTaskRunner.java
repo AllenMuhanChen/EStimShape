@@ -14,19 +14,17 @@ import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.time.TimeUtil;
-import org.xper.util.IntanUtil;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.IntPredicate;
 
 @SuppressWarnings("StatementWithEmptyBody")
-public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
+public class ClassicNAFCTaskRunner implements NAFCSlideRunner {
     private int punishmentDelayTime = 0; //Gets initialized to 0, if punishment should be applied, it's incremented, reset to zero after trial interval.
 
-    public NAFCTrialResult runSlide(NAFCExperimentState stateObject, NAFCTrialContext context) {
+    public NAFCTrialResult runTask(NAFCExperimentState stateObject, NAFCTrialContext context) {
             NAFCExperimentTask currentTask = stateObject.getCurrentTask();
             TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();
             TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
@@ -42,9 +40,11 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
 
 
                 // draw the slide
-                result = doSlide(stateObject);
+                result = doNAFCTask(stateObject);
 
                 //Check if Sample Hold was Successful
+                    // If sample hold was succesful, but target was wrong,
+                    // we count this as a trial failure
                 if (sampleHoldSuccessful(result)){
                     return result;
                 }
@@ -92,7 +92,7 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         context.setTargetEyeWindowSize(targetEyeWinSize);
     }
 
-    public NAFCTrialResult doSlide(NAFCExperimentState stateObject) {
+    public NAFCTrialResult doNAFCTask(NAFCExperimentState stateObject) {
         NAFCTrialDrawingController drawingController = stateObject.getDrawingController();
         NAFCExperimentTask currentTask = stateObject.getCurrentTask();
         NAFCTrialContext currentContext = stateObject.getCurrentContext();
@@ -108,12 +108,6 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
 
 
         //ESTIMULATOR
-        /*
-         * EStims are meant to be sent out at the beginning of the trial with time padding added to the EStimSpec in order to match timing
-         * with visual stimuli.
-         */
-//        sendEStims(stateObject);
-//        sendEStimTrigger(stateObject);
         SimpleEStimEventUtil.prepareEStim(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
 
         //show SAMPLE after delay
@@ -325,27 +319,6 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         });
     }
 
-//    /**
-//     * ESTIMULATOR
-//     * Send string of params for estim over to Intan
-//     */
-//    public void sendEStims (NAFCExperimentState state) {
-//        try {
-//            IntanUtil intanUtil = state.getIntanUtil();
-//            EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimSpec();
-//            //EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
-//            System.out.println("Sending EStimSpecs to Intan");
-//            try {
-//                intanUtil.send(eStimsToString(eStimObjData));
-//                System.out.println("EStimSpecs Successfully Sent");
-//            } catch (IOException e) {
-//                System.out.println("Cannot Send EStimSpecs");
-//            }
-//        }
-//        catch (NullPointerException e){
-//            System.out.println("Cannot Send EStims Because There Is No Trial");
-//        }
-//    }
 
     private String eStimsToString(EStimObjDataEntry eStimObjData){
         ArrayList<EStimParameter> eStimParams= new ArrayList<>();
@@ -386,22 +359,6 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         return output;
     }
 
-    /**
-     * ESTIMULATOR
-     * Send trigger for estim over to Intan
-     *
-     */
-    public void sendEStimTrigger(NAFCExperimentState state){
-        IntanUtil intanUtil = state.getIntanUtil();
-        System.out.println("Sending Trigger");
-        try {
-            intanUtil.trigger();
-            System.out.println("Trigger Successfully Sent");
-        } catch (Exception e) {
-            System.out.println("Cannot Send Trigger");
-        }
-
-    }
 
     private void resetPunishment() {
         setPunishmentDelayTime(0);
