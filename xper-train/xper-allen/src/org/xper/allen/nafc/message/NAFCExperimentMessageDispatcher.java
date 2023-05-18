@@ -11,6 +11,7 @@ import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.intan.SimpleEStimMessage;
 import org.xper.allen.nafc.console.NAFCTrialStatistics;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;
 import org.xper.db.vo.BehMsgEntry;
@@ -67,7 +68,7 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	}
 
 	@Override
-	public void sampleOn(long timestamp, TrialContext context) {
+	public void sampleOn(long timestamp, NAFCTrialContext context) {
 		NAFCExperimentTask currentTask = (NAFCExperimentTask) context.getCurrentTask();
 		NAFCSampleMessage sampleMsg = new NAFCSampleMessage(currentTask.getSampleSpecId());
 		String msg = sampleMsg.toXml();
@@ -87,7 +88,7 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	}
 
 	@Override
-	public void choicesOn(long timestamp, TrialContext context) {
+	public void choicesOn(long timestamp, NAFCTrialContext context) {
 		NAFCExperimentTask currentTask = (NAFCExperimentTask) context.getCurrentTask();
 		NAFCChoiceMessage sampleMsg = new NAFCChoiceMessage(currentTask.getChoiceSpecId(), currentTask.getTargetEyeWinCoords(), currentTask.getTargetEyeWinSize(), currentTask.getRewardPolicy());
 		String msg = sampleMsg.toXml();

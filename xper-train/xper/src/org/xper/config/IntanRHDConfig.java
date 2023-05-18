@@ -5,16 +5,11 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.intan.*;
-import org.xper.intan.stimulation.ManualTriggerIntanRHS;
-import org.xper.intan.stimulation.Parameter;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-public class IntanConfig {
+public class IntanRHDConfig {
 
     @Autowired
     BaseConfig baseConfig;
@@ -34,8 +29,7 @@ public class IntanConfig {
     @ExternalValue("intan.default_base_filename")
     public String intanDefaultBaseFilename;
 
-    @ExternalValue("intan.estim.enabled")
-    public boolean intanEStimEnabled;
+
 
     @Bean
     public IntanRecordingController intanController(){

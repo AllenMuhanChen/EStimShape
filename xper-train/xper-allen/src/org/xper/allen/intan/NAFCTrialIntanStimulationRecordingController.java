@@ -2,9 +2,13 @@ package org.xper.allen.intan;
 
 import org.xper.Dependency;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
+import org.xper.allen.nafc.experiment.NAFCTrialContext;
+import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.classic.vo.TrialContext;
 import org.xper.intan.IntanRecordingController;
 import org.xper.intan.stimulation.*;
+
+import java.util.Arrays;
 
 /**
  * Handles Recording and Stimulation for NAFC experiments.
@@ -13,7 +17,7 @@ import org.xper.intan.stimulation.*;
  * the timing of these things rather than just relying on slide, trial or experiment events.
  *
  */
-public class NAFCTrialIntanStimulationRecordingController extends IntanRecordingController implements EStimEventListener
+public class NAFCTrialIntanStimulationRecordingController extends IntanRecordingController implements EStimEventListener, ChoiceEventListener
 {
 	@Dependency
 	private
@@ -51,6 +55,19 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 		}
 	}
 
+	@Override
+	public void sampleOn(long timestamp, NAFCTrialContext context) {
+		if (toRecord()){
+			String note = Long.toString(context.getCurrentTask().getSampleSpecId());
+			getIntan().writeNote(note);
+		}
+	}
+
+	@Override
+	public void sampleOff(long timestamp) {
+
+	}
+
 	public ManualTriggerIntanRHS getIntan() {
 		return intan;
 	}
@@ -65,5 +82,55 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 
 	public void setIntan(ManualTriggerIntanRHS intan) {
 		this.intan = intan;
+	}
+
+
+	@Override
+	public void sampleEyeInHoldFail(long timestamp) {
+
+	}
+
+	@Override
+	public void choicesOn(long timestamp, NAFCTrialContext context) {
+		if (toRecord()){
+			long[] choiceSpecIds = context.getCurrentTask().getChoiceSpecId();
+			String note = Arrays.toString(choiceSpecIds);
+			getIntan().writeNote(note);
+		}
+	}
+
+	@Override
+	public void choicesOff(long timestamp) {
+
+	}
+
+	@Override
+	public void choiceSelectionEyeFail(long timestamp) {
+
+	}
+
+	@Override
+	public void choiceSelectionSuccess(long timestamp, int choice) {
+
+	}
+
+	@Override
+	public void choiceSelectionNull(long timestamp) {
+
+	}
+
+	@Override
+	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
+
+	}
+
+	@Override
+	public void choiceSelectionIncorrect(long timestamp, int[] rewardList) {
+
+	}
+
+	@Override
+	public void choiceSelectionDefaultCorrect(long timestamp) {
+
 	}
 }

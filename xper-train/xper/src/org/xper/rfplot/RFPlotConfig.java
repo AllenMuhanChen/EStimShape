@@ -12,7 +12,7 @@ import org.xper.classic.TrialEventListener;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.config.IntanConfig;
+import org.xper.config.IntanRHDConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.IConsolePlugin;
@@ -37,7 +37,8 @@ public class RFPlotConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
-	@Autowired IntanConfig intanConfig;
+	@Autowired
+	IntanRHDConfig intanConfig;
 
 	@ExternalValue("rfplot.png_library_path_generator")
 	public String pngLibraryPath_generator;
