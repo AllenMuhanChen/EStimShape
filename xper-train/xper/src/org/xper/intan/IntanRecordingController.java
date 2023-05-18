@@ -1,156 +1,137 @@
 package org.xper.intan;
 
 import org.xper.Dependency;
+import org.xper.classic.TrialEventListener;
+import org.xper.classic.vo.TrialContext;
+import org.xper.exception.RemoteException;
+import org.xper.experiment.listener.ExperimentEventListener;
 
 /**
- * @author Allen Chen
+ * Controls what trial and experiment events trigger what methods in IntanRecordingController.
  *
- * Provides experiment-relevant control of Intan:
- * - starting and stopping recording
- * - changing save path / filename
- * - live notes
+ * experimentStart: connect to Intan
+ * trialInit: start recording (starting a new data file)
+ * slideOn: write a liveNote to Intan to tell what the taskId is
+ * trialStop: stop recording
+ * experimentStop: disconnect from Intan
  */
-public class IntanRecordingController {
+public class IntanRecordingController implements TrialEventListener, ExperimentEventListener {
 
     @Dependency
-    protected IntanClient intanClient;
+    protected boolean recordingEnabled;
 
     @Dependency
-    private String defaultSavePath;
+    protected IntanFileNamingStrategy<Long> fileNamingStrategy;
 
     @Dependency
-    private String defaultBaseFileName;
+    private IntanRHD intan;
 
-    public void connect() {
-        intanClient.connect();
+    protected boolean connected = false;
+
+    @Override
+    public void experimentStart(long timestamp) {
+        tryConnection();
     }
 
-    public void disconnect() {
-        intanClient.disconnect();
-    }
-
-    public void record(){
-        //path has not been set yet in the Intan software
-        if(intanClient.isBlank("Filename.Path")){
-            setSavePath(defaultSavePath);
-        }
-        //baseFileName has not been set yet in the Intan software
-        if(intanClient.isBlank("Filename.BaseFilename")){
-            setBaseFilename(defaultBaseFileName);
-        }
-        runMode("Record");
-    }
-
-    /**
-     * Stop saving of data to disk and playback of neural data
-     */
-    public void stop(){
-        runMode("Stop");
-    }
-
-    /**
-     * Stops saving of data to disk but keeps playback of neural data going
-     */
-    public void stopRecording(){
-        runMode("Run");
-    }
-
-    public void setSavePath(String path) {
-        runMode("Stop"); //runMode needs to be Stop before Path can be changed
-        intanClient.set("Filename.Path", path);
-    }
-
-    public void setBaseFilename(String baseFilename){
-        runMode("Stop");
-        intanClient.set("Filename.BaseFilename", baseFilename);
-    }
-
-    public void writeNote(String note){
-        intanClient.writeNote(note);
-    }
-    /**
-     * @param mode: "Run", "Stop", "Record", or "Trigger"
-     */
-    private void runMode(String mode) {
-        if(mode.equalsIgnoreCase("Stop")){
-            setMode(mode);
-        } else{
-            setMode("Stop"); //Can only set to Run, Record, or Trigger if current mode is Stop
-            setMode(mode);
-        }
-
-    }
-
-    private void setMode(String mode) {
-        if (!isRunMode(mode)) {
-            waitForUpload();
-            intanClient.set("runmode", mode);
+    @Override
+    public void trialInit(long timestamp, TrialContext context) {
+        if (toRecord()) {
+            long trialName = context.getCurrentTask().getTaskId();
+            fileNamingStrategy.rename(trialName);
+            getIntan().record();
         }
     }
 
-    /**
-     * @param mode: "Run", "Stop", "Record", or "Trigger"
-     */
-    private boolean isRunMode(String mode) {
-        String currentMode = intanClient.get("runmode");
-        if (currentMode.equalsIgnoreCase(mode)) {
-            return true;
-        } else {
-            return false;
+    protected boolean toRecord() {
+        return connected && recordingEnabled;
+    }
+
+    @Override
+    public void trialStop(long timestamp, TrialContext context) {
+        if (toRecord())
+            getIntan().stopRecording();
+    }
+
+    @Override
+    public void experimentStop(long timestamp) {
+        if (toRecord()) {
+            getIntan().stop();
+            getIntan().disconnect();
+        }
+        connected = false;
+    }
+
+    private void tryConnection() {
+        try {
+            getIntan().connect();
+            connected = true;
+        } catch (RemoteException e) {
+            System.err.println("Could not connect to Intan, disabling Intan functionality");
+            connected = false;
         }
     }
 
-    /**
-     * Setting Run Mode will fail when an upload isTrue in progress, so it's
-     * necessary to wait for any uploads to finish first before running any set run mode
-     * commands
-     */
-    private void waitForUpload() {
-        intanClient.waitFor(new Condition() {
-            @Override
-            public boolean check() {
-                return !isUploadInProgress();
-            }
-        });
+    @Override
+    public void trialStart(long timestamp, TrialContext context) {
+
     }
 
-    private boolean isUploadInProgress() {
-        String uploadInProgress = intanClient.get("uploadinprogress");
-        if (uploadInProgress.equalsIgnoreCase("True"))
-            return true;
-        else
-            return false;
+    @Override
+    public void fixationPointOn(long timestamp, TrialContext context) {
+
     }
 
-    public String getSavePath(){
-        return intanClient.get("Filename.Path");
+    @Override
+    public void initialEyeInFail(long timestamp, TrialContext context) {
+
     }
 
-    public String getBaseFilename(){
-        return intanClient.get("Filename.Path");
+    @Override
+    public void initialEyeInSucceed(long timestamp, TrialContext context) {
+
     }
 
-    public void setIntanClient(IntanClient intanClient) {
-        this.intanClient = intanClient;
+    @Override
+    public void eyeInHoldFail(long timestamp, TrialContext context) {
+
     }
 
-    public String getDefaultSavePath() {
-        return defaultSavePath;
+    @Override
+    public void fixationSucceed(long timestamp, TrialContext context) {
+
     }
 
-    public void setDefaultSavePath(String defaultPath) {
-        this.defaultSavePath = defaultPath;
+    @Override
+    public void eyeInBreak(long timestamp, TrialContext context) {
+
     }
 
-    public String getDefaultBaseFileName() {
-        return defaultBaseFileName;
+    @Override
+    public void trialComplete(long timestamp, TrialContext context) {
+
     }
 
-    public void setDefaultBaseFileName(String defaultBaseFileName) {
-        this.defaultBaseFileName = defaultBaseFileName;
+    public boolean isRecordingEnabled() {
+        return recordingEnabled;
     }
 
-    public IntanClient getIntanClient() {
-        return intanClient;
+    public void setRecordingEnabled(boolean recordingEnabled) {
+        this.recordingEnabled = recordingEnabled;
+    }
+
+    public IntanRHD getIntan() {
+        return intan;
+    }
+
+    public void setIntan(IntanRHD intanRHD) {
+        this.intan = intanRHD;
+    }
+
+    public IntanFileNamingStrategy<Long> getFileNamingStrategy() {
+        return fileNamingStrategy;
+    }
+
+    public void setFileNamingStrategy(IntanFileNamingStrategy<Long> fileNamingStrategy) {
+        this.fileNamingStrategy = fileNamingStrategy;
     }
 }

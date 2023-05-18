@@ -15,27 +15,27 @@ import static org.junit.Assert.assertTrue;
  * @author Allen Chen
  *
  */
-public class IntanRecordingSlideMessageDispatcherTest {
+public class SlideTrialIntanRecordingControllerTest {
 
-    private static IntanRecordingSlideMessageDispatcher intanRecordingSlideMessageDispatcher;
+    private static SlideTrialIntanRecordingController slideTrialIntanRecordingController;
     private static IntanClient intanClient;
 
     @BeforeClass
     public static void set_up(){
         FileUtil.loadTestSystemProperties("/xper.properties.test");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
-        intanRecordingSlideMessageDispatcher = context.getBean(IntanRecordingSlideMessageDispatcher.class);
+        slideTrialIntanRecordingController = context.getBean(SlideTrialIntanRecordingController.class);
         intanClient = context.getBean(IntanClient.class);
     }
 
     @Test
     public void do_not_crash_when_intan_not_connected(){
-        intanRecordingSlideMessageDispatcher.experimentStop(0); //disconnects Intan
+        slideTrialIntanRecordingController.experimentStop(0); //disconnects Intan
 
-        intanRecordingSlideMessageDispatcher.trialInit(0, new TrialContext());
-        intanRecordingSlideMessageDispatcher.trialStop(0, new TrialContext());
+        slideTrialIntanRecordingController.trialInit(0, new TrialContext());
+        slideTrialIntanRecordingController.trialStop(0, new TrialContext());
 
-        intanRecordingSlideMessageDispatcher.experimentStart(0);
+        slideTrialIntanRecordingController.experimentStart(0);
     }
 
     @Test
@@ -45,11 +45,11 @@ public class IntanRecordingSlideMessageDispatcherTest {
         testTask.setTaskId(1);
         testContext.setCurrentTask(testTask);
 
-        intanRecordingSlideMessageDispatcher.experimentStart(0);
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+        slideTrialIntanRecordingController.experimentStart(0);
+        slideTrialIntanRecordingController.trialInit(0, testContext);
+        slideTrialIntanRecordingController.trialStop(0, testContext);
         assertTrue(intanClient.get("Filename.BaseFilename").equals("1"));
-        intanRecordingSlideMessageDispatcher.experimentStop(0);
+        slideTrialIntanRecordingController.experimentStop(0);
     }
 
     @Ignore
@@ -60,11 +60,11 @@ public class IntanRecordingSlideMessageDispatcherTest {
         testTask.setTaskId(1);
         testContext.setCurrentTask(testTask);
 
-        intanRecordingSlideMessageDispatcher.experimentStart(0);
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.slideOn(0, 0, 1);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
-        intanRecordingSlideMessageDispatcher.experimentStop(0);
+        slideTrialIntanRecordingController.experimentStart(0);
+        slideTrialIntanRecordingController.trialInit(0, testContext);
+        slideTrialIntanRecordingController.slideOn(0, 0, 1);
+        slideTrialIntanRecordingController.trialStop(0, testContext);
+        slideTrialIntanRecordingController.experimentStop(0);
 
         //Now manually go see if the livesnotes txt file was created on the Intan Machine.
     }
@@ -78,25 +78,25 @@ public class IntanRecordingSlideMessageDispatcherTest {
         testTask.setTaskId(1);
         testContext.setCurrentTask(testTask);
 
-        intanRecordingSlideMessageDispatcher.experimentStart(0);
+        slideTrialIntanRecordingController.experimentStart(0);
 
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+        slideTrialIntanRecordingController.trialInit(0, testContext);
+        slideTrialIntanRecordingController.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
         testTask.setTaskId(2);
         testContext.setCurrentTask(testTask);
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+        slideTrialIntanRecordingController.trialInit(0, testContext);
+        slideTrialIntanRecordingController.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
         testTask.setTaskId(3);
         testContext.setCurrentTask(testTask);
-        intanRecordingSlideMessageDispatcher.trialInit(0, testContext);
-        intanRecordingSlideMessageDispatcher.trialStop(0, testContext);
+        slideTrialIntanRecordingController.trialInit(0, testContext);
+        slideTrialIntanRecordingController.trialStop(0, testContext);
         ThreadUtil.sleep(500);
 
-        intanRecordingSlideMessageDispatcher.experimentStop(0);
+        slideTrialIntanRecordingController.experimentStop(0);
 
         //Now manually go see if these files were created on the Intan Machine.
     }

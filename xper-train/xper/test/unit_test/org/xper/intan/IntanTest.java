@@ -16,7 +16,7 @@ import static org.junit.Assert.assertTrue;
 public class IntanTest {
 
     private static IntanClient intanClient;
-    private static IntanRecordingController intanRecordingController;
+    private static IntanRHD intanRHD;
 
     private static final TestingTimeUtil timeUtil = new TestingTimeUtil();
 
@@ -36,8 +36,8 @@ public class IntanTest {
         FileUtil.loadTestSystemProperties("/xper.properties.test");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
         intanClient = context.getBean(IntanClient.class);
-        intanRecordingController = context.getBean(IntanRecordingController.class);
-        intanRecordingController.connect();
+        intanRHD = context.getBean(IntanRHD.class);
+        intanRHD.connect();
     }
 
     @Test
@@ -46,20 +46,20 @@ public class IntanTest {
         intanClient.clear("Filename.Path");
 
         timeUtil.tic();
-        intanRecordingController.record();
+        intanRHD.record();
         timeUtil.toc();
         System.out.println("Time to Start Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         ThreadUtil.sleep(1000);
 
         timeUtil.tic();
-        intanRecordingController.stop();
+        intanRHD.stop();
         timeUtil.toc();
         System.out.println("Time to Stop Recording: " + timeUtil.elapsedTimeMillis() + " ms");
 
         //TODO: assert that the file(s) were created?
-        assertEquals(intanRecordingController.getDefaultSavePath(), intanClient.get("Filename.Path"));
-        assertEquals(intanRecordingController.getDefaultBaseFileName(), intanClient.get("Filename.BaseFilename"));
+        assertEquals(intanRHD.getDefaultSavePath(), intanClient.get("Filename.Path"));
+        assertEquals(intanRHD.getDefaultBaseFileName(), intanClient.get("Filename.BaseFilename"));
     }
 
     @Test
@@ -89,11 +89,11 @@ public class IntanTest {
 
     @Test
     public void intan_switches_from_recording_to_playback(){
-        intanRecordingController.record();
-        intanRecordingController.stopRecording();
+        intanRHD.record();
+        intanRHD.stopRecording();
 
         assertTrue(intanClient.get("RunMode").equalsIgnoreCase("Run"));
 
-        intanRecordingController.stop();
+        intanRHD.stop();
     }
 }

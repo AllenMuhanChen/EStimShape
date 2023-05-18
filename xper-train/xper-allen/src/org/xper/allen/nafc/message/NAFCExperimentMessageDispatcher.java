@@ -159,6 +159,11 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 
 	}
 
+	@Override
+	public void prepareEStim(long timestamp, TrialContext currentContext) {
+
+	}
+
 	public void trialComplete(long timestamp, TrialContext context) {
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		long stimSpecId = task.getStimId();

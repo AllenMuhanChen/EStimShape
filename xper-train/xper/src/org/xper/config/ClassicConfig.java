@@ -284,7 +284,7 @@ public class ClassicConfig {
 		listeners.add(dataAcqController());
 		listeners.add(eyeZeroLogger());
 		listeners.add(experimentCpuBinder());
-		listeners.add(intanConfig.intanMessageDispatcher());
+		listeners.add(intanConfig.intanRecordingMessageDispatcher());
 		return listeners;
 	}
 
@@ -294,7 +294,7 @@ public class ClassicConfig {
 		listeners.add(slideEventLogger());
 		listeners.add(experimentProfiler());
 		listeners.add(messageDispatcher());
-		listeners.add(intanConfig.intanMessageDispatcher());
+		listeners.add(intanConfig.intanRecordingMessageDispatcher());
 		return listeners;
 	}
 

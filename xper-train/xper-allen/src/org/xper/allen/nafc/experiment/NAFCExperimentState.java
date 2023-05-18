@@ -16,8 +16,6 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	@Dependency
 	List<? extends EStimEventListener> eStimEventListeners;
 	@Dependency
-	IntanUtil intanUtil;
-	@Dependency
 	NAFCTrialDrawingController drawingController;
 	@Dependency
 	boolean repeatIncorrectTrials;
@@ -72,15 +70,6 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 
 	public void setBlankTargetScreenDisplayTime(int blankTargetScreenDisplayTime) {
 		this.blankTargetScreenDisplayTime = blankTargetScreenDisplayTime;
-	}
-
-
-	public IntanUtil getIntanUtil() {
-		return intanUtil;
-	}
-
-	public void setIntanUtil(IntanUtil intanUtil) {
-		this.intanUtil = intanUtil;
 	}
 
 	public List<? extends EStimEventListener> geteStimEventListeners() {
