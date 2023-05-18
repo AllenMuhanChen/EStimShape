@@ -27,7 +27,6 @@ import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
 import org.xper.util.TrialExperimentUtil;
 
-import org.xper.util.IntanUtil;
 import org.xper.drawing.Coordinates2D;
 
 public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
@@ -57,7 +56,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners, currentTask.getTaskId());
 
 		//ESTIMULATOR
-		sendEStimTrigger(stateObject);
+//		sendEStimTrigger(stateObject);
 		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
 		System.out.println("Fired");
 		//Eye on Target Logic
@@ -119,7 +118,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
-		sendEStims(stateObject);
+//		sendEStims(stateObject);
 		result = runner.runSlide(stateObject, threadHelper);
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
@@ -159,57 +158,57 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		}
 		state.setCurrentContext(null);
 	}
-	/**
-	 * ESTIMULATOR
-	 * Send string of params for estim over to Intan
-	 * @param state
-	 * @throws Exception
-	 * @throws SQLException
-	 * @throws UnknownHostException
-	 * @throws SocketException
-	 */
-	public static void sendEStims (SaccadeExperimentState state) {
-		try {
-		IntanUtil intanUtil = state.getIntanUtil();
-		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimSpec();
-		System.out.println(eStimsToString(eStimObjData));
-			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
-			System.out.println("Sending EStimSpecs to Intan");
-			System.out.println(eStimsToString(eStimObjData));
-			try {
-				intanUtil.send(eStimsToString(eStimObjData));
-				System.out.println("EStimSpecs Successfully Sent");
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		catch (NullPointerException e){
-		System.out.println("Cannot Send EStims Because There Is No Trial");
-		}
-	}
-
-	/**
-	 * ESTIMULATOR
-	 * Send trigger for estim over to Intan
-	 * @throws Exception
-	 * @throws SQLException
-	 * @throws UnknownHostException
-	 * @throws SocketException
-	 *
-	 */
-	public static void sendEStimTrigger(SaccadeExperimentState state){
-		IntanUtil intanUtil = state.getIntanUtil();
-		System.out.println("Sending Trigger");
-		try {
-			intanUtil.trigger();
-			System.out.println("Trigger Successfully Sent");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-	}
+//	/**
+//	 * ESTIMULATOR
+//	 * Send string of params for estim over to Intan
+//	 * @param state
+//	 * @throws Exception
+//	 * @throws SQLException
+//	 * @throws UnknownHostException
+//	 * @throws SocketException
+//	 */
+//	public static void sendEStims (SaccadeExperimentState state) {
+//		try {
+//		IntanUtil intanUtil = state.getIntanUtil();
+////		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimSpec();
+//		System.out.println(eStimsToString(eStimObjData));
+//			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+//			System.out.println("Sending EStimSpecs to Intan");
+//			System.out.println(eStimsToString(eStimObjData));
+//			try {
+//				intanUtil.send(eStimsToString(eStimObjData));
+//				System.out.println("EStimSpecs Successfully Sent");
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
+//		catch (NullPointerException e){
+//		System.out.println("Cannot Send EStims Because There Is No Trial");
+//		}
+//	}
+//
+//	/**
+//	 * ESTIMULATOR
+//	 * Send trigger for estim over to Intan
+//	 * @throws Exception
+//	 * @throws SQLException
+//	 * @throws UnknownHostException
+//	 * @throws SocketException
+//	 *
+//	 */
+//	public static void sendEStimTrigger(SaccadeExperimentState state){
+//		IntanUtil intanUtil = state.getIntanUtil();
+//		System.out.println("Sending Trigger");
+//		try {
+//			intanUtil.trigger();
+//			System.out.println("Trigger Successfully Sent");
+//		} catch (Exception e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//
+//	}
 
 	private static String eStimsToString(EStimObjDataEntry eStimObjData){
 		ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();

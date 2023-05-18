@@ -95,17 +95,17 @@ public class SimpleEStimConfig {
 	public String getJdbcUrl() {
 		return jdbcUrl;
 	}
-	@Bean
-	public IntanUtil intanUtil() {
-		IntanUtil iUtil = null;
-		try {
-		iUtil = new IntanUtil();
-		} catch (Exception e) {
-			System.out.println("WARNING: IntanUtil could not be initialized");
-			e.printStackTrace();
-		}
-		return iUtil;
-	}
+//	@Bean
+//	public IntanUtil intanUtil() {
+//		IntanUtil iUtil = null;
+//		try {
+//		iUtil = new IntanUtil();
+//		} catch (Exception e) {
+//			System.out.println("WARNING: IntanUtil could not be initialized");
+//			e.printStackTrace();
+//		}
+//		return iUtil;
+//	}
 
 	@Bean
 	public TaskScene taskScene() {
@@ -295,8 +295,7 @@ public class SimpleEStimConfig {
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
-		//Intan Stuff
-		state.setIntanUtil(intanUtil());
+
 		return state;
 	}
 

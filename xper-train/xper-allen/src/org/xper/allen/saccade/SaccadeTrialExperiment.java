@@ -24,14 +24,14 @@ import org.xper.util.TrialRunner;
 
 /**
  * Format of StimSpec:
- * 
+ *
  * <StimSpec animation="true"> ... </StimSpec>
- * 
+ *
  * If attribute animation is false or missing, the stimulus is treated as a
  * static slide.
- * 
+ *
  * @author wang
- * 
+ *
  */
 public class SaccadeTrialExperiment implements Experiment {
 	static Logger logger = Logger.getLogger(SaccadeTrialExperiment.class);
@@ -47,7 +47,7 @@ public class SaccadeTrialExperiment implements Experiment {
 
 	@Dependency
 	int blankTargetScreenDisplayTime; //in ms
-	
+
 	public boolean isRunning() {
 		return threadHelper.isRunning();
 	}
@@ -79,9 +79,9 @@ public class SaccadeTrialExperiment implements Experiment {
 					/*
 					TrialExperimentUtil.checkCurrentTaskAnimation(stateObject);
 					*/
-					
 
-					
+
+
 					// run trial
 					return SaccadeTrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
@@ -92,7 +92,7 @@ public class SaccadeTrialExperiment implements Experiment {
 							TimeUtil globalTimeClient = stateObject.getGlobalTimeClient();
 							List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
 							TrialResult result;
-							
+
 							try {
 								try {
 									//target info -AC
@@ -110,18 +110,18 @@ public class SaccadeTrialExperiment implements Experiment {
 								}
 
 								for (int i = 0; i < slidePerTrial; i++) {
-									
+
 									// draw the slide
 									result = SaccadeTrialExperimentUtil.doSlide(i, stateObject);
-									
-									
+
+
 									// Trial done successfully
 									if (currentTask != null) {
 										taskDoneCache.put(currentTask, globalTimeClient
 												.currentTimeMicros(), false);
 										currentTask = null;
 										stateObject.setCurrentTask(currentTask);
-										
+
 									}
 
 								}
@@ -136,9 +136,9 @@ public class SaccadeTrialExperiment implements Experiment {
 								}
 							}
 						}
-						
-					}); // end of TrialExperimentUtil.runTrial 
-					// end of TrialRunner.runTrial	
+
+					}); // end of TrialExperimentUtil.runTrial
+					// end of TrialRunner.runTrial
 				} finally {
 					try {
 						SaccadeTrialExperimentUtil.cleanupTrial(stateObject);
@@ -156,13 +156,6 @@ public class SaccadeTrialExperiment implements Experiment {
 		if (isRunning()) {
 			threadHelper.stop();
 			threadHelper.join();
-		}
-		try {
-			System.out.println("SHUTTING DOWN SERIAl PORT");
-			stateObject.getIntanUtil().shutdown();
-			System.out.println("SERIAL PORT SHUT DOWN");
-		} catch (SerialPortException e) {
-			e.printStackTrace();
 		}
 	}
 

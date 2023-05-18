@@ -15,8 +15,7 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	List<? extends TargetEventListener> targetEventListeners;
 	@Dependency
 	List<? extends EStimEventListener> eStimEventListeners;
-	@Dependency
-	IntanUtil intanUtil;
+
 
 	int blankTargetScreenDisplayTime;
 
@@ -54,13 +53,6 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 		this.targetEventListeners = targetEventListeners;
 	}
 
-	public IntanUtil getIntanUtil() {
-		return intanUtil;
-	}
-
-	public void setIntanUtil(IntanUtil intanUtil) {
-		this.intanUtil = intanUtil;
-	}
 
 	public List<? extends EStimEventListener> geteStimEventListeners() {
 		return eStimEventListeners;

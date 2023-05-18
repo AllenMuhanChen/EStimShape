@@ -114,13 +114,6 @@ public class NAFCTrialExperiment implements Experiment {
 			threadHelper.stop();
 			threadHelper.join();
 		}
-		try {
-			System.out.println("SHUTTING DOWN SERIAl PORT");
-			stateObject.getIntanUtil().shutdown();
-			System.out.println("SERIAL PORT SHUT DOWN");
-		} catch (SerialPortException e) {
-			e.printStackTrace();
-		}
 	}
 
 	public NAFCTrialRunner getTrialRunner() {

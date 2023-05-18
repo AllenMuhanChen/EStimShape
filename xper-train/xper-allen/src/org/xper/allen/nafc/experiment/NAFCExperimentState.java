@@ -6,7 +6,7 @@ import org.xper.Dependency;
 import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.eye.EyeTargetSelector;
-import org.xper.util.IntanUtil;
+
 
 public class NAFCExperimentState extends NAFCTrialExperimentState{
 	@Dependency
