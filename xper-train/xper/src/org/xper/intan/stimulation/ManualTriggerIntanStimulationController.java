@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Provides experiment-relevant control of Intan for stimulation and recording
  */
-public class IntanStimulationController extends IntanRecordingController {
+public class ManualTriggerIntanStimulationController extends IntanRecordingController {
 
 
     /**
