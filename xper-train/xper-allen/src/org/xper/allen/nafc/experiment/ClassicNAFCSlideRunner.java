@@ -114,8 +114,7 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
          */
 //        sendEStims(stateObject);
 //        sendEStimTrigger(stateObject);
-        SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
-        System.out.println("EStim Fired");
+        SimpleEStimEventUtil.prepareEStim(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
 
         //show SAMPLE after delay
         long blankOnLocalTime = timeUtil.currentTimeMicros();
@@ -124,6 +123,8 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         }while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()* 1000L);
 
         //SHOW SAMPLE
+        SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
+        System.out.println("EStim Fired");
         drawingController.showSample(currentTask, currentContext); //THIS is called by prepare fixation
         long sampleOnLocalTime = timeUtil.currentTimeMicros();
         currentContext.setSampleOnTime(sampleOnLocalTime);

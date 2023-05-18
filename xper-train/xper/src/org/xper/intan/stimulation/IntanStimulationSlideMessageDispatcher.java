@@ -5,14 +5,14 @@ import org.xper.intan.IntanRecordingSlideMessageDispatcher;
 
 public class IntanStimulationSlideMessageDispatcher extends IntanRecordingSlideMessageDispatcher {
     @Dependency
-    IntanStimulationController intanController;
+    ManualTriggerIntanStimulationController intanController;
 
     @Override
-    public IntanStimulationController getIntanController() {
+    public ManualTriggerIntanStimulationController getIntanController() {
         return intanController;
     }
 
-    public void setIntanController(IntanStimulationController intanController) {
+    public void setIntanController(ManualTriggerIntanStimulationController intanController) {
         this.intanController = intanController;
     }
 }

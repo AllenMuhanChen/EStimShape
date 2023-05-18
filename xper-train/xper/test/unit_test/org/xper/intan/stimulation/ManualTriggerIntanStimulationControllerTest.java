@@ -8,15 +8,14 @@ import org.xper.intan.IntanClient;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.util.ThreadUtil;
 
-import java.nio.channels.Channel;
 import java.util.*;
 
 import static org.junit.Assert.*;
 
-public class IntanStimulationControllerTest {
+public class ManualTriggerIntanStimulationControllerTest {
 
     private IntanClient intanClient;
-    private IntanStimulationController controller;
+    private ManualTriggerIntanStimulationController controller;
 
     @Before
     public void setUp() throws Exception {
@@ -30,7 +29,7 @@ public class IntanStimulationControllerTest {
         intanClient.setPort(5000);
 
 
-        controller = new IntanStimulationController();
+        controller = new ManualTriggerIntanStimulationController();
         controller.setIntanClient(intanClient);
         controller.setDefaultParameters(defaultParameters());
 
@@ -48,7 +47,7 @@ public class IntanStimulationControllerTest {
 
     @Test
     public void tcpNameForIntanChannel() {
-        String channelString = IntanStimulationController.tcpNameForIntanChannel(RHSChannel.A000);
+        String channelString = ManualTriggerIntanStimulationController.tcpNameForIntanChannel(RHSChannel.A000);
         assertEquals("a-000", channelString);
     }
 
