@@ -18,15 +18,36 @@ public class IntanStimulationController extends IntanRecordingController {
     @Dependency
     Collection<Parameter<Object>> defaultParameters;
 
-    public void setupStimulationFor(Map<RHSChannel, Collection<Parameter<Object>>> parametersForChannel){
-        for (RHSChannel channel : parametersForChannel.keySet()){
+    public void setupStimulationFor(EStimParameters eStimParameters){
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = eStimParameters.geteStimParametersForChannels();
+        for (RHSChannel channel : parametersForChannels.keySet()){
             enableStimulationOn(channel);
             setDefaultParametersOn(channel);
             setTriggerSourceOn(channel);
-            setStimWaveformParametersOn(channel, parametersForChannel.get(channel));
+
+            ChannelEStimParameters channelEStimParameters = parametersForChannels.get(channel);
+            setStimPulseTrainParametersOn(channel, channelEStimParameters.getPulseTrainParameters());
+            setStimWaveformParametersOn(channel, channelEStimParameters.getWaveformParameters());
         }
 
-        uploadParameters(parametersForChannel.keySet());
+        uploadParameters(parametersForChannels.keySet());
+    }
+
+    private void setStimPulseTrainParametersOn(RHSChannel channel, PulseTrainParameters pulseTrainParameters) {
+        intanClient.set(tcpNameForIntanChannel(channel) + ".pulseortrain", pulseTrainParameters.pulseRepetition.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".numberofstimpulses", Integer.toString(pulseTrainParameters.numRepetitions));
+        intanClient.set(tcpNameForIntanChannel(channel) + ".pulsetrainperiodmicroseconds", Double.toString(pulseTrainParameters.pulseTrainPeriod));
+        intanClient.set(tcpNameForIntanChannel(channel) + ".refractoryperiodmicroseconds", Double.toString(pulseTrainParameters.postStimRefractoryPeriod));
+    }
+
+    private void setStimWaveformParametersOn(RHSChannel channel, WaveformParameters waveformParameters){
+        intanClient.set(tcpNameForIntanChannel(channel) + ".shape", waveformParameters.shape.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".polarity", waveformParameters.polarity.toString());
+        intanClient.set(tcpNameForIntanChannel(channel) + ".firstphasedurationmicroseconds", Double.toString(waveformParameters.d1));
+        intanClient.set(tcpNameForIntanChannel(channel) + ".secondphasedurationmicroseconds", Double.toString(waveformParameters.d2));
+        intanClient.set(tcpNameForIntanChannel(channel) + ".interphasedelaymicroseconds", Double.toString(waveformParameters.dp));
+        intanClient.set(tcpNameForIntanChannel(channel) + ".firstphaseamplitudemicroamps", Double.toString(waveformParameters.a1));
+        intanClient.set(tcpNameForIntanChannel(channel) + ".secondphaseamplitudemicroamps", Double.toString(waveformParameters.a2));
     }
 
     private void uploadParameters(Collection<RHSChannel> channels){
@@ -56,11 +77,7 @@ public class IntanStimulationController extends IntanRecordingController {
         intanClient.set(tcpNameForIntanChannel(channel) + ".source", "keypressf1");
     }
 
-    private void setStimWaveformParametersOn(RHSChannel channel, Collection<Parameter<Object>> stimulationParameters){
-        for (Parameter parameter : stimulationParameters){
-            intanClient.set(tcpNameForIntanChannel(channel) + "." + parameter.getKey().toLowerCase(), parameter.getValue().toString().toLowerCase());
-        }
-    }
+
 
     public static String tcpNameForIntanChannel(RHSChannel channel){
         // turn ENUM into string all lower case, with hypen between channel

@@ -1,30 +1,28 @@
 package org.xper.allen.nafc.experiment;
 
-import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
-import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.ExperimentTask;
 
 /**
  * Holds information that goes to both the drawing controller (in the form of a string XML. It is the job of the Graphics Object to decode this, like RFPlotGaussianObject)
- * and the rest of the code. 
+ * and the rest of the code.
  * @author allenchen
  *
  */
 public class NAFCExperimentTask extends ExperimentTask {
-	
+
 	Coordinates2D[] targetEyeWinCoords;
 	double[] targetEyeWinSize;
 	//double[] duration;
-	EStimObjDataEntry eStimObjDataEntry;
+	String eStimSpec;
 	String sampleSpec;
 	String[] choiceSpec;
 	long sampleSpecId;
 	long[] choiceSpecId;
 	RewardPolicy rewardPolicy;
 	int[] rewardList;
-	
-	
+
+
 	public String getSampleSpec() {
 		return sampleSpec;
 	}
@@ -55,7 +53,7 @@ public class NAFCExperimentTask extends ExperimentTask {
 	public void setTargetEyeWinCoords(Coordinates2D[] targetEyeWinCoords) {
 		this.targetEyeWinCoords = targetEyeWinCoords;
 	}
-	
+
 	public double[] getTargetEyeWinSize() {
 		return targetEyeWinSize;
 	}
@@ -72,12 +70,12 @@ public class NAFCExperimentTask extends ExperimentTask {
 		return duration;
 	}
 */
-	public EStimObjDataEntry geteStimObjDataEntry() {
-		return eStimObjDataEntry;
+	public String geteStimSpec() {
+		return eStimSpec;
 	}
 
-	public void seteStimObjDataEntry(EStimObjDataEntry eStimObjDataEntry) {
-		this.eStimObjDataEntry = eStimObjDataEntry;
+	public void seteStimSpec(String eStimSpec) {
+		this.eStimSpec = eStimSpec;
 	}
 
 	public RewardPolicy getRewardPolicy() {
@@ -111,7 +109,7 @@ public class NAFCExperimentTask extends ExperimentTask {
 	public void setRewardList(int[] rewardList) {
 		this.rewardList = rewardList;
 	}
-	
-	
+
+
 
 }

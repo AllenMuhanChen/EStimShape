@@ -3,10 +3,8 @@ package org.xper.allen.nafc.experiment;
 import java.util.List;
 
 import org.xper.Dependency;
-import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.nafc.message.ChoiceEventListener;
-import org.xper.allen.saccade.console.TargetEventListener;
-import org.xper.classic.TrialDrawingController;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.util.IntanUtil;
 
@@ -16,7 +14,7 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	@Dependency
 	List<? extends ChoiceEventListener> choiceEventListeners;
 	@Dependency
-	List<? extends SimpleEStimEventListener> eStimEventListeners;
+	List<? extends EStimEventListener> eStimEventListeners;
 	@Dependency
 	IntanUtil intanUtil;
 	@Dependency
@@ -30,7 +28,7 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 
 	int blankTargetScreenDisplayTime;
 	int punishmentDelayTime;
-	
+
 	public EyeTargetSelector getTargetSelector() {
 		return targetSelector;
 	}
@@ -50,12 +48,12 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	public void setTargetSelector(EyeTargetSelector targetSelector) {
 		this.targetSelector = targetSelector;
 	}
-	
-	
+
+
 	public NAFCExperimentTask getCurrentTask() {
 		return (NAFCExperimentTask) currentTask;
 	}
-	
+
 	public NAFCTrialDrawingController getDrawingController() {
 		return drawingController;
 	}
@@ -75,7 +73,7 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	public void setBlankTargetScreenDisplayTime(int blankTargetScreenDisplayTime) {
 		this.blankTargetScreenDisplayTime = blankTargetScreenDisplayTime;
 	}
-	
+
 
 	public IntanUtil getIntanUtil() {
 		return intanUtil;
@@ -85,11 +83,11 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 		this.intanUtil = intanUtil;
 	}
 
-	public List<? extends SimpleEStimEventListener> geteStimEventListeners() {
+	public List<? extends EStimEventListener> geteStimEventListeners() {
 		return eStimEventListeners;
 	}
 
-	public void seteStimEventListeners(List<? extends SimpleEStimEventListener> eStimEventListeners) {
+	public void seteStimEventListeners(List<? extends EStimEventListener> eStimEventListeners) {
 		this.eStimEventListeners = eStimEventListeners;
 	}
 

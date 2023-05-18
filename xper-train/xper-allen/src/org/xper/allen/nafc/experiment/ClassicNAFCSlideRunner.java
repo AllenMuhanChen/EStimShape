@@ -1,7 +1,7 @@
 package org.xper.allen.nafc.experiment;
 
 import org.xper.allen.intan.EStimParameter;
-import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.allen.nafc.eye.NAFCEyeTargetSelectorConcurrentDriver;
 import org.xper.allen.nafc.eye.NAFCTargetSelectorResult;
@@ -97,7 +97,7 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         NAFCExperimentTask currentTask = stateObject.getCurrentTask();
         NAFCTrialContext currentContext = stateObject.getCurrentContext();
         List<? extends ChoiceEventListener> choiceEventListeners = stateObject.getChoiceEventListeners();
-        List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
+        List<? extends EStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
         EyeTargetSelector targetSelector = stateObject.getTargetSelector();
         TimeUtil timeUtil = stateObject.getLocalTimeUtil();
         EyeController eyeController = stateObject.getEyeController();
@@ -112,8 +112,8 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
          * EStims are meant to be sent out at the beginning of the trial with time padding added to the EStimSpec in order to match timing
          * with visual stimuli.
          */
-        sendEStims(stateObject);
-        sendEStimTrigger(stateObject);
+//        sendEStims(stateObject);
+//        sendEStimTrigger(stateObject);
         SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
         System.out.println("EStim Fired");
 
@@ -331,7 +331,7 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
     public void sendEStims (NAFCExperimentState state) {
         try {
             IntanUtil intanUtil = state.getIntanUtil();
-            EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+            EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimSpec();
             //EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
             System.out.println("Sending EStimSpecs to Intan");
             try {
@@ -431,5 +431,3 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         this.punishmentDelayTime = punishmentDelayTime;
     }
 }
-
-
