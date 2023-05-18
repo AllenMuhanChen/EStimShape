@@ -3,7 +3,8 @@ package org.xper.allen.intan;
 import org.xper.Dependency;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.classic.vo.TrialContext;
-import org.xper.intan.IntanRecordingSlideMessageDispatcher;
+import org.xper.intan.IntanRecordingController;
+import org.xper.intan.SlideTrialIntanRecordingController;
 import org.xper.intan.stimulation.*;
 
 /**
@@ -13,26 +14,30 @@ import org.xper.intan.stimulation.*;
  * the timing of these things rather than just relying on slide, trial or experiment events.
  *
  */
-public class IntanNAFCMessageDispatcher extends IntanRecordingSlideMessageDispatcher implements EStimEventListener
+public class NAFCTrialIntanStimulationRecordingController extends IntanRecordingController implements EStimEventListener
 {
 	@Dependency
-	ManualTriggerIntanStimulationController intanStimulationController;
+	private
+	ManualTriggerIntanRHS intan;
+
+	@Dependency
+	boolean eStimEnabled;
 
 	private boolean validEStimParameters = false;
 
 	@Override
 	public void prepareEStim(long timestamp, TrialContext context) {
 		validEStimParameters = false;
-		if (connected) {
+		if (connected & eStimEnabled) {
 			NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 			String eStimSpec = task.geteStimSpec();
 			try {
 				EStimParameters eStimParameters = EStimParameters.fromXml(eStimSpec);
-				intanStimulationController.setupStimulationFor(eStimParameters);
+				getIntan().setupStimulationFor(eStimParameters);
 				validEStimParameters = true;
 			} catch (Exception e) {
 				validEStimParameters = false;
-				System.err.println("Could not parse eStimSpec! EStim disabled this trial");
+				System.err.println("ERROR!!! Could not parse EStimSpec! EStim disabled this trial");
 				e.printStackTrace();
 			}
 		}
@@ -40,11 +45,30 @@ public class IntanNAFCMessageDispatcher extends IntanRecordingSlideMessageDispat
 
 	@Override
 	public void eStimOn(long timestamp, TrialContext context) {
-		if (connected) {
+		if (connected & eStimEnabled) {
 			if (validEStimParameters) {
-				intanStimulationController.trigger();
+				getIntan().trigger();
 			}
 		}
 	}
 
+	public ManualTriggerIntanRHS getIntan() {
+		return intan;
+	}
+
+	public void setIntanStimulationController(ManualTriggerIntanRHS intanController) {
+		this.setIntan(intanController);
+	}
+
+	public boolean iseStimEnabled() {
+		return eStimEnabled;
+	}
+
+	public void seteStimEnabled(boolean eStimEnabled) {
+		this.eStimEnabled = eStimEnabled;
+	}
+
+	public void setIntan(ManualTriggerIntanRHS intan) {
+		this.intan = intan;
+	}
 }

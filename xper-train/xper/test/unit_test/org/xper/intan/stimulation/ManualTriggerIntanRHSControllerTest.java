@@ -12,10 +12,10 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
-public class ManualTriggerIntanStimulationControllerTest {
+public class ManualTriggerIntanRHSControllerTest {
 
     private IntanClient intanClient;
-    private ManualTriggerIntanStimulationController controller;
+    private ManualTriggerIntanRHS controller;
 
     @Before
     public void setUp() throws Exception {
@@ -29,7 +29,7 @@ public class ManualTriggerIntanStimulationControllerTest {
         intanClient.setPort(5000);
 
 
-        controller = new ManualTriggerIntanStimulationController();
+        controller = new ManualTriggerIntanRHS();
         controller.setIntanClient(intanClient);
         controller.setDefaultParameters(defaultParameters());
 
@@ -47,7 +47,7 @@ public class ManualTriggerIntanStimulationControllerTest {
 
     @Test
     public void tcpNameForIntanChannel() {
-        String channelString = ManualTriggerIntanStimulationController.tcpNameForIntanChannel(RHSChannel.A000);
+        String channelString = ManualTriggerIntanRHS.tcpNameForIntanChannel(RHSChannel.A000);
         assertEquals("a-000", channelString);
     }
 

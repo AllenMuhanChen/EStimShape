@@ -18,6 +18,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.allen.intan.NAFCTrialIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
 import org.xper.config.IntanConfig;
@@ -55,7 +56,6 @@ import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
 import org.xper.juice.mock.NullDynamicJuice;
-import org.xper.util.IntanUtil;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
 
@@ -92,17 +92,7 @@ public class NAFCConfig {
 	public String getJdbcUrl() {
 		return jdbcUrl;
 	}
-	@Bean
-	public IntanUtil intanUtil() {
-		IntanUtil iUtil = null;
-		try {
-		iUtil = new IntanUtil();
-		} catch (Exception e) {
-			System.out.println("WARNING: IntanUtil could not be initialized");
-			//e.printStackTrace();
-		}
-		return iUtil;
-	}
+
 
 
 	/**
@@ -326,15 +316,9 @@ public class NAFCConfig {
 		//Training Assist
 		state.setRepeatIncorrectTrials(xperRepeatIncorrectTrials());
 		state.setShowAnswer(xperShowAnswer());
-		//Intan Stuff
-		try {
-		state.setIntanUtil(intanUtil());
-		} catch (Exception e) {
-			System.out.println("Cant set IntanUtil");
-
-		}
 		return state;
 	}
+
 
 
 	@Bean (scope = DefaultScopes.PROTOTYPE)
@@ -350,7 +334,7 @@ public class NAFCConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
-		trialEventListener.add(intanConfig.intanMessageDispatcher());
+		trialEventListener.add(intanConfig.intanRecordingMessageDispatcher());
 		return trialEventListener;
 	}
 
@@ -397,11 +381,22 @@ public class NAFCConfig {
 	public List<EStimEventListener> eStimEventListeners(){
 		List<EStimEventListener> listeners = new LinkedList<EStimEventListener>();
 		listeners.add((EStimEventListener) messageDispatcher());
+		listeners.add(intanStimulationRecordingDispatcher());
 		return listeners;
 	}
 
+	@Bean
+	public NAFCTrialIntanStimulationRecordingController intanStimulationRecordingDispatcher() {
+		NAFCTrialIntanStimulationRecordingController dispatcher = new NAFCTrialIntanStimulationRecordingController();
+		dispatcher.seteStimEnabled(intanConfig.intanEStimEnabled);
+		dispatcher.setIntanStimulationController(intanConfig.intanRHSController());
+		dispatcher.setRecordingEnabled(intanConfig.intanRecordingEnabled);
+		dispatcher.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
+		return dispatcher;
+	}
 
-	private NAFCTrialDrawingController drawingController() {
+	@Bean
+	public NAFCTrialDrawingController drawingController() {
 		NAFCMarkStimTrialDrawingController controller;
 		if (markEveryStep) {
 			controller = new NAFCMarkEveryStepTrialDrawingController();

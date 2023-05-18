@@ -1,7 +1,6 @@
 package org.xper.intan;
 
 import org.xper.Dependency;
-import org.xper.classic.vo.TrialContext;
 
 /**
  * @author Allen Chen
@@ -13,15 +12,15 @@ import org.xper.classic.vo.TrialContext;
  */
 public abstract class IntanFileNamingStrategy<T> {
     @Dependency
-    IntanRecordingController intanRecordingController;
+    IntanRHD intanRHD;
 
     public abstract void rename(T parameter);
 
-    public IntanRecordingController getIntanController() {
-        return intanRecordingController;
+    public IntanRHD getIntanController() {
+        return intanRHD;
     }
 
-    public void setIntanController(IntanRecordingController intanRecordingController) {
-        this.intanRecordingController = intanRecordingController;
+    public void setIntanController(IntanRHD intanRHD) {
+        this.intanRHD = intanRHD;
     }
 }

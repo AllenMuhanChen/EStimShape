@@ -1,15 +1,17 @@
 package org.xper.intan.stimulation;
 
 import org.xper.Dependency;
-import org.xper.intan.IntanRecordingController;
+import org.xper.intan.IntanRHD;
 
 import java.util.Collection;
 import java.util.Map;
 
 /**
  * Provides experiment-relevant control of Intan for stimulation and recording
+ *
+ * This class should be used for when the user wants to manually trigger stimulation
  */
-public class ManualTriggerIntanStimulationController extends IntanRecordingController {
+public class ManualTriggerIntanRHS extends IntanRHD {
 
 
     /**
