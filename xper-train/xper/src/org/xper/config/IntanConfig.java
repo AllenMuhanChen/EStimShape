@@ -37,35 +37,17 @@ public class IntanConfig {
     @ExternalValue("intan.estim.enabled")
     public boolean intanEStimEnabled;
 
-
-
     @Bean
-    public ManualTriggerIntanRHS intanRHSController(){
-        ManualTriggerIntanRHS intanRHSController = new ManualTriggerIntanRHS();
-        intanRHSController.setIntanClient(intanClient());
-        intanRHSController.setDefaultSavePath(intanDefaultSavePath);
-        intanRHSController.setDefaultBaseFileName(intanDefaultBaseFilename);
-        intanRHSController.setDefaultParameters(defaultRHSParameters());
-        return intanRHSController;
+    public IntanRecordingController intanController(){
+        IntanRecordingController intanController = new IntanRecordingController();
+        intanController.setIntan(intan());
+        intanController.setRecordingEnabled(intanRecordingEnabled);
+        intanController.setFileNamingStrategy(intanFileNamingStrategy());
+        return intanController;
     }
 
     @Bean
-    public Collection<Parameter<Object>> defaultRHSParameters() {
-        Collection<Parameter<Object>> defaultParameters = new ArrayList<Parameter<Object>>();
-        return defaultParameters;
-    }
-
-    @Bean
-    public SlideTrialIntanRecordingController intanRecordingMessageDispatcher(){
-        SlideTrialIntanRecordingController slideTrialIntanRecordingController = new SlideTrialIntanRecordingController();
-        slideTrialIntanRecordingController.setRecordingEnabled(intanRecordingEnabled);
-        slideTrialIntanRecordingController.setFileNamingStrategy(intanFileNamingStrategy());
-        slideTrialIntanRecordingController.setIntan(intanRecordingController());
-        return slideTrialIntanRecordingController;
-    }
-
-    @Bean
-    public IntanRHD intanRecordingController() {
+    public IntanRHD intan() {
         IntanRHD intanRHD = new IntanRHD();
         intanRHD.setIntanClient(intanClient());
         intanRHD.setDefaultSavePath(intanDefaultSavePath);
@@ -85,7 +67,7 @@ public class IntanConfig {
     @Bean
     public TaskIdFileNamingStrategy intanFileNamingStrategy(){
         TaskIdFileNamingStrategy strategy = new TaskIdFileNamingStrategy();
-        strategy.setIntanController(intanRecordingController());
+        strategy.setIntanController(intan());
         return strategy;
     }
 

@@ -4,7 +4,6 @@ import org.xper.Dependency;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.classic.vo.TrialContext;
 import org.xper.intan.IntanRecordingController;
-import org.xper.intan.SlideTrialIntanRecordingController;
 import org.xper.intan.stimulation.*;
 
 /**
@@ -54,10 +53,6 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 
 	public ManualTriggerIntanRHS getIntan() {
 		return intan;
-	}
-
-	public void setIntanStimulationController(ManualTriggerIntanRHS intanController) {
-		this.setIntan(intanController);
 	}
 
 	public boolean iseStimEnabled() {

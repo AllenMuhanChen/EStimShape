@@ -11,7 +11,6 @@ import org.xper.experiment.listener.ExperimentEventListener;
  *
  * experimentStart: connect to Intan
  * trialInit: start recording (starting a new data file)
- * slideOn: write a liveNote to Intan to tell what the taskId is
  * trialStop: stop recording
  * experimentStop: disconnect from Intan
  */

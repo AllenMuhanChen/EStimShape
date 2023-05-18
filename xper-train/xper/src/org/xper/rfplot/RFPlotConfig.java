@@ -160,7 +160,7 @@ public class RFPlotConfig {
 		listeners.add(classicConfig.messageDispatcherController());
 		listeners.add(classicConfig.eyeZeroLogger());
 		listeners.add(classicConfig.experimentCpuBinder());
-		listeners.add(intanConfig.intanRecordingMessageDispatcher());
+		listeners.add(intanConfig.intanController());
 		return listeners;
 	}
 
