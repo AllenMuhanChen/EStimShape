@@ -324,27 +324,27 @@ public class ClassicNAFCSlideRunner implements NAFCSlideRunner {
         });
     }
 
-    /**
-     * ESTIMULATOR
-     * Send string of params for estim over to Intan
-     */
-    public void sendEStims (NAFCExperimentState state) {
-        try {
-            IntanUtil intanUtil = state.getIntanUtil();
-            EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimSpec();
-            //EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
-            System.out.println("Sending EStimSpecs to Intan");
-            try {
-                intanUtil.send(eStimsToString(eStimObjData));
-                System.out.println("EStimSpecs Successfully Sent");
-            } catch (IOException e) {
-                System.out.println("Cannot Send EStimSpecs");
-            }
-        }
-        catch (NullPointerException e){
-            System.out.println("Cannot Send EStims Because There Is No Trial");
-        }
-    }
+//    /**
+//     * ESTIMULATOR
+//     * Send string of params for estim over to Intan
+//     */
+//    public void sendEStims (NAFCExperimentState state) {
+//        try {
+//            IntanUtil intanUtil = state.getIntanUtil();
+//            EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimSpec();
+//            //EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+//            System.out.println("Sending EStimSpecs to Intan");
+//            try {
+//                intanUtil.send(eStimsToString(eStimObjData));
+//                System.out.println("EStimSpecs Successfully Sent");
+//            } catch (IOException e) {
+//                System.out.println("Cannot Send EStimSpecs");
+//            }
+//        }
+//        catch (NullPointerException e){
+//            System.out.println("Cannot Send EStims Because There Is No Trial");
+//        }
+//    }
 
     private String eStimsToString(EStimObjDataEntry eStimObjData){
         ArrayList<EStimParameter> eStimParams= new ArrayList<>();

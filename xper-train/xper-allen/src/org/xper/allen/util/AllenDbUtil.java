@@ -131,39 +131,41 @@ public class AllenDbUtil extends DbUtil {
 						e.get_post_stim_charge_recovery_off() });
 	}
 
-	public EStimObjDataEntry readEStimObjData(long estimId) {
-		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
-		return jt.queryForObject(
-				" select id, chans, post_trigger_delay, trig_src, pulse_repetition, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, enable_amp_settle, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, enable_charge_recovery, post_stim_charge_recovery_on, post_stim_charge_recovery_off from EStimObjData where id = ? ",
-				new ParameterizedRowMapper<EStimObjDataEntry>() {
-					public EStimObjDataEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
-						EStimObjDataEntry e = new EStimObjDataEntry();
-						e.setChans(rs.getString("chans"));
-						e.set_post_trigger_delay(rs.getInt("post_trigger_delay"));
-						e.set_trig_src(rs.getString("trig_src"));
-						e.setPulse_repetition(rs.getString("pulse_repetition"));
-						e.set_num_pulses(rs.getInt("num_pulses"));
-						e.set_pulse_train_period(rs.getFloat("pulse_train_period"));
-						e.set_post_stim_refractory_period(rs.getFloat("post_stim_refractory_period"));
-						e.set_stim_shape(rs.getString("stim_shape"));
-						e.set_stim_polarity(rs.getString("stim_polarity"));
-						e.set_d1(rs.getFloat("d1"));
-						e.set_d2(rs.getFloat("d2"));
-						e.set_dp(rs.getFloat("dp"));
-						e.set_a1(rs.getFloat("a1"));
-						e.set_a2(rs.getFloat("a2"));
-						e.setEnable_amp_settle(rs.getBoolean("enable_amp_settle"));
-						e.set_pre_stim_amp_settle(rs.getFloat("pre_stim_amp_settle"));
-						e.set_post_stim_amp_settle(rs.getFloat("post_stim_amp_settle"));
-						e.set_maintain_amp_settle_during_pulse_train(
-								rs.getBoolean("maintain_amp_settle_during_pulse_train"));
-						e.setEnable_charge_recovery(rs.getBoolean("enable_charge_recovery"));
-						e.set_post_stim_charge_recovery_on(rs.getFloat("post_stim_charge_recovery_on"));
-						e.set_post_stim_charge_recovery_off(rs.getFloat("post_stim_charge_recovery_off"));
-						return e;
-					}
-				}, estimId);
-	}
+
+
+//	public EStimObjDataEntry readEStimObjData(long estimId) {
+//		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
+//		return jt.queryForObject(
+//				" select id, chans, post_trigger_delay, trig_src, pulse_repetition, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, enable_amp_settle, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, enable_charge_recovery, post_stim_charge_recovery_on, post_stim_charge_recovery_off from EStimObjData where id = ? ",
+//				new ParameterizedRowMapper<EStimObjDataEntry>() {
+//					public EStimObjDataEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
+//						EStimObjDataEntry e = new EStimObjDataEntry();
+//						e.setChans(rs.getString("chans"));
+//						e.set_post_trigger_delay(rs.getInt("post_trigger_delay"));
+//						e.set_trig_src(rs.getString("trig_src"));
+//						e.setPulse_repetition(rs.getString("pulse_repetition"));
+//						e.set_num_pulses(rs.getInt("num_pulses"));
+//						e.set_pulse_train_period(rs.getFloat("pulse_train_period"));
+//						e.set_post_stim_refractory_period(rs.getFloat("post_stim_refractory_period"));
+//						e.set_stim_shape(rs.getString("stim_shape"));
+//						e.set_stim_polarity(rs.getString("stim_polarity"));
+//						e.set_d1(rs.getFloat("d1"));
+//						e.set_d2(rs.getFloat("d2"));
+//						e.set_dp(rs.getFloat("dp"));
+//						e.set_a1(rs.getFloat("a1"));
+//						e.set_a2(rs.getFloat("a2"));
+//						e.setEnable_amp_settle(rs.getBoolean("enable_amp_settle"));
+//						e.set_pre_stim_amp_settle(rs.getFloat("pre_stim_amp_settle"));
+//						e.set_post_stim_amp_settle(rs.getFloat("post_stim_amp_settle"));
+//						e.set_maintain_amp_settle_during_pulse_train(
+//								rs.getBoolean("maintain_amp_settle_during_pulse_train"));
+//						e.setEnable_charge_recovery(rs.getBoolean("enable_charge_recovery"));
+//						e.set_post_stim_charge_recovery_on(rs.getFloat("post_stim_charge_recovery_on"));
+//						e.set_post_stim_charge_recovery_off(rs.getFloat("post_stim_charge_recovery_off"));
+//						return e;
+//					}
+//				}, estimId);
+//	}
 //========================BlockSpec=============================================
 	public BlockSpec readBlockSpec(long blockId) {
 		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
@@ -201,6 +203,21 @@ public class AllenDbUtil extends DbUtil {
 						return so;
 					}
 				}, StimObjId);
+	}
+
+
+	public StimSpecEntry readEStimObjData(long EStimObjId) {
+		SimpleJdbcTemplate jt = new SimpleJdbcTemplate(dataSource);
+		return jt.queryForObject(
+				" select id, spec from EStimObjData where id = ? ",
+				new ParameterizedRowMapper<StimSpecEntry>() {
+					public StimSpecEntry mapRow(ResultSet rs, int rowNum) throws SQLException {
+						StimSpecEntry so = new StimSpecEntry();
+						so.setStimId(rs.getLong("id"));
+						so.setSpec(rs.getString("spec"));
+						return so;
+					}
+				}, EStimObjId);
 	}
 //=================New ReadStimSpec to pass correct Ids to readExperimentTasks
 
@@ -269,7 +286,7 @@ public class AllenDbUtil extends DbUtil {
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						task.setDuration(ss.getDuration());
 						//TODO: EStimObjData
-						task.seteStimObjDataEntry(readEStimObjData(ss.geteStimObjData()[0]));
+						task.seteStimSpec(readEStimObjData(ss.geteStimObjData()[0]).getSpec());
 						task.setTaskId(rs.getLong("task_id"));
 						task.setXfmId(rs.getLong("xfm_id"));
 						task.setXfmSpec(rs.getString("xfm_spec"));
@@ -332,10 +349,10 @@ public class AllenDbUtil extends DbUtil {
 						task.setTargetEyeWinSize(ss.getTargetEyeWinSize());
 						//TODO: EStimObjData
 						try{
-							task.seteStimSpec(readEStimObjData(ss.geteStimObjData()[0]));
+							task.seteStimSpec(readEStimObjData(ss.geteStimObjData()[0]).getSpec());
 						} catch(Exception e){
 							System.out.println("No EStimObjData Found.");
-							task.seteStimSpec(new EStimObjDataEntry());
+							task.seteStimSpec("");
 						}
 						task.setTaskId(rs.getLong("task_id"));
 						task.setXfmId(rs.getLong("xfm_id"));

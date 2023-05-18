@@ -171,7 +171,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	public static void sendEStims (SaccadeExperimentState state) {
 		try {
 		IntanUtil intanUtil = state.getIntanUtil();
-		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
+		EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimSpec();
 		System.out.println(eStimsToString(eStimObjData));
 			//EStimObjDataEntry eStimObjData = state.getCurrentTask().geteStimObjDataEntry();
 			System.out.println("Sending EStimSpecs to Intan");
