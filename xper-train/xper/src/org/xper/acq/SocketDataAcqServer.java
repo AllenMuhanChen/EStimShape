@@ -14,8 +14,8 @@ import org.xper.time.TimeServer;
 
 public class SocketDataAcqServer {
 	static Logger logger = Logger.getLogger(SocketDataAcqServer.class);
-	
-	@Dependency 
+
+	@Dependency
 	AcqDeviceController acqDeviceController;
 	@Dependency
 	TimeServer timeServer;
@@ -96,7 +96,7 @@ public class SocketDataAcqServer {
 		try {
 			server = new ServerSocket(port, backlog, InetAddress.getByName(host));
 			System.out.println("SocketDataAcqServer started on host " + host + " port " + port);
-			
+
 			while (!done) {
 				handleCommand();
 			}
@@ -117,7 +117,7 @@ public class SocketDataAcqServer {
 		timeServer.start();
 		listen();
 	}
-	
+
 	public void shutdown() {
 		if (!server.isClosed()) {
 			SocketDataAcqClient client = new SocketDataAcqClient("localhost", port);
@@ -164,6 +164,6 @@ public class SocketDataAcqServer {
 	public void setHost(String host) {
 		this.host = host;
 	}
-	
-	
+
+
 }

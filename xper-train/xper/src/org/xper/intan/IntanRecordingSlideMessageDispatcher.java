@@ -19,13 +19,13 @@ import org.xper.experiment.listener.ExperimentEventListener;
 public class IntanRecordingSlideMessageDispatcher implements SlideEventListener, TrialEventListener, ExperimentEventListener{
 
     @Dependency
-    private
+    protected
     IntanRecordingController intanController;
 
     @Dependency
-    IntanFileNamingStrategy<Long> fileNamingStrategy;
+    protected IntanFileNamingStrategy<Long> fileNamingStrategy;
 
-    private boolean connected = false;
+    protected boolean connected = false;
 
     @Override
     public void experimentStart(long timestamp) {

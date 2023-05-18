@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.xper.allen.intan.EStimParameter;
-import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
 import org.xper.allen.saccade.console.SaccadeEventUtil;
 import org.xper.allen.saccade.console.TargetEventListener;
@@ -37,12 +37,12 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		SaccadeTrialContext currentContext = (SaccadeTrialContext) stateObject.getCurrentContext();
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
 		List<? extends TargetEventListener> targetEventListeners = stateObject.getTargetEventListeners();
-		List<? extends SimpleEStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
+		List<? extends EStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
 		EyeTargetSelector targetSelector = stateObject.getTargetSelector();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
-		
 
-		
+
+
 		TargetSelectorResult selectorResult;
 
 		//show current slide after a delay (blank time)
@@ -55,7 +55,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setCurrentSlideOnTime(slideOnLocalTime);
 		EventUtil.fireSlideOnEvent(i, slideOnLocalTime, slideEventListeners, currentTask.getTaskId());
-		
+
 		//ESTIMULATOR
 		sendEStimTrigger(stateObject);
 		SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
@@ -63,7 +63,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		//Eye on Target Logic
 		//eye selector
 		EyeTargetSelectorConcurrentDriver selectorDriver = new EyeTargetSelectorConcurrentDriver(targetSelector, timeUtil);
-		currentContext.setTargetOnTime(currentContext.getCurrentSlideOnTime()); 
+		currentContext.setTargetOnTime(currentContext.getCurrentSlideOnTime());
 
 
 		//Sleep for the duration of the start delay
@@ -71,7 +71,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 
 		//start(Coordinates2D[] targetCenter, double[] targetWinSize, long deadlineIntialEyeIn, long eyeHoldTime)
 		selectorDriver.start(new Coordinates2D[] {currentContext.getTargetPos()}, new double[] {currentContext.getTargetEyeWindowSize()},
-				currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000 
+				currentContext.getTargetOnTime() + stateObject.getTimeAllowedForInitialTargetSelection()*1000
 				+ stateObject.getTargetSelectionStartDelay() * 1000, stateObject.getRequiredTargetSelectionHoldTime() * 1000);
 		SaccadeEventUtil.fireTargetOnEvent(timeUtil.currentTimeMicros(), targetEventListeners, currentContext);
 
@@ -81,7 +81,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		selectorDriver.stop();
 
 		SaccadeEventUtil.fireTargetOffEvent(timeUtil.currentTimeMicros(), targetEventListeners);
-		
+
 		selectorResult = selectorDriver.getResult();
 		if (selectorResult.getSelectionStatusResult() == TrialResult.TARGET_SELECTION_EYE_FAIL) {
 			SaccadeEventUtil.fireTargetSelectionEyeFailEvent(timeUtil.currentTimeMicros(), targetEventListeners);
@@ -103,7 +103,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		currentContext.setCurrentSlideOffTime(slideOffLocalTime);
 		EventUtil.fireSlideOffEvent(i, slideOffLocalTime,
 				/*
-				 * TODO: Animation frame stuff may not be needed 
+				 * TODO: Animation frame stuff may not be needed
 				 */
 				currentContext.getAnimationFrameIndex(),
 				slideEventListeners, currentTask.getTaskId());
@@ -141,13 +141,13 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 				.getTrialEventListeners();
 
 		// unget failed task
-		
+
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
-			
+
 			state.setCurrentTask(null);
 		}
-		 
+
 
 		// trial stop
 		if (currentContext != null) {
@@ -163,10 +163,10 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	 * ESTIMULATOR
 	 * Send string of params for estim over to Intan
 	 * @param state
-	 * @throws Exception 
-	 * @throws SQLException 
-	 * @throws UnknownHostException 
-	 * @throws SocketException 
+	 * @throws Exception
+	 * @throws SQLException
+	 * @throws UnknownHostException
+	 * @throws SocketException
 	 */
 	public static void sendEStims (SaccadeExperimentState state) {
 		try {
@@ -192,25 +192,25 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 	/**
 	 * ESTIMULATOR
 	 * Send trigger for estim over to Intan
-	 * @throws Exception 
-	 * @throws SQLException 
-	 * @throws UnknownHostException 
-	 * @throws SocketException 
-	 * 
+	 * @throws Exception
+	 * @throws SQLException
+	 * @throws UnknownHostException
+	 * @throws SocketException
+	 *
 	 */
 	public static void sendEStimTrigger(SaccadeExperimentState state){
 		IntanUtil intanUtil = state.getIntanUtil();
 		System.out.println("Sending Trigger");
 		try {
-			intanUtil.trigger();	
+			intanUtil.trigger();
 			System.out.println("Trigger Successfully Sent");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
-	
+
 	private static String eStimsToString(EStimObjDataEntry eStimObjData){
 		ArrayList<EStimParameter> eStimParams= new ArrayList<EStimParameter>();
 		eStimParams.add(new EStimParameter("chans",eStimObjData.getChans()));
@@ -234,7 +234,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 		eStimParams.add(new EStimParameter("enable_charge_recovery",eStimObjData.isEnable_charge_recovery()));
 		eStimParams.add(new EStimParameter("post_stim_charge_recovery_on",eStimObjData.get_post_stim_charge_recovery_on()));
 		eStimParams.add(new EStimParameter("post_stim_charge_recovery_off",eStimObjData.get_post_stim_charge_recovery_off()));
-		
+
 		String output = new String();
 		int loopindx = 0;
 		for (EStimParameter param:eStimParams) {
@@ -245,7 +245,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 			output = output.concat(",");
 			output = output.concat(param.getValue());
 			loopindx++;
-			
+
 		}
 		return output;
 	}

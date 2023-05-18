@@ -3,7 +3,7 @@ package org.xper.allen.saccade;
 import java.util.List;
 
 import org.xper.Dependency;
-import org.xper.allen.intan.SimpleEStimEventListener;
+import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.saccade.console.TargetEventListener;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.util.IntanUtil;
@@ -14,12 +14,12 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	@Dependency
 	List<? extends TargetEventListener> targetEventListeners;
 	@Dependency
-	List<? extends SimpleEStimEventListener> eStimEventListeners;
+	List<? extends EStimEventListener> eStimEventListeners;
 	@Dependency
 	IntanUtil intanUtil;
-	
+
 	int blankTargetScreenDisplayTime;
-	
+
 	public EyeTargetSelector getTargetSelector() {
 		return targetSelector;
 	}
@@ -27,12 +27,12 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	public void setTargetSelector(EyeTargetSelector targetSelector) {
 		this.targetSelector = targetSelector;
 	}
-	
-	
+
+
 	public SaccadeExperimentTask getCurrentTask() {
 		return (SaccadeExperimentTask) currentTask;
 	}
-	
+
 	public void setCurrentTask(SaccadeExperimentTask currentTask) {
 		this.currentTask = currentTask;
 	}
@@ -44,7 +44,7 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 	public void setBlankTargetScreenDisplayTime(int blankTargetScreenDisplayTime) {
 		this.blankTargetScreenDisplayTime = blankTargetScreenDisplayTime;
 	}
-	
+
 
 	public List<? extends TargetEventListener> getTargetEventListeners() {
 		return targetEventListeners;
@@ -62,12 +62,12 @@ public class SaccadeExperimentState extends SaccadeTrialExperimentState{
 		this.intanUtil = intanUtil;
 	}
 
-	public List<? extends SimpleEStimEventListener> geteStimEventListeners() {
+	public List<? extends EStimEventListener> geteStimEventListeners() {
 		return eStimEventListeners;
 	}
 
-	public void seteStimEventListeners(List<? extends SimpleEStimEventListener> eStimEventListeners) {
+	public void seteStimEventListeners(List<? extends EStimEventListener> eStimEventListeners) {
 		this.eStimEventListeners = eStimEventListeners;
 	}
-	
+
 }

@@ -1,12 +1,14 @@
 package org.xper.intan.stimulation;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.XperConfig;
 import org.xper.intan.IntanClient;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.util.ThreadUtil;
 
+import java.nio.channels.Channel;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -36,6 +38,14 @@ public class IntanStimulationControllerTest {
 //        assertTrue(controller.getIntanClient().get("b-000.maintainampsettle").equals("True"));
     }
 
+    @Ignore
+    @Test
+    public void enumToStringTest(){
+        PulseRepetition pulseRepetition = PulseRepetition.PulseTrain;
+        String pulseRepetitionString = pulseRepetition.toString();
+        assertEquals("PulseTrain", pulseRepetitionString);
+    }
+
     @Test
     public void tcpNameForIntanChannel() {
         String channelString = IntanStimulationController.tcpNameForIntanChannel(RHSChannel.A000);
@@ -44,10 +54,29 @@ public class IntanStimulationControllerTest {
 
     @Test
     public void testStimulationSetup(){
-        Map<RHSChannel, Collection<Parameter<Object>>> parametersForChannels = new LinkedHashMap<>();
-        parametersForChannels.put(RHSChannel.B000, Collections.singleton(new Parameter<>("Polarity", "NegativeFirst")));
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
+        WaveformParameters waveformParameters = new WaveformParameters(
+                StimulationShape.Biphasic,
+                StimulationPolarity.NegativeFirst,
+                5000.0,
+                5000.0,
+                1000.0,
+                50.0,
+                50.0
+        );
 
-        controller.setupStimulationFor(parametersForChannels);
+        PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
+                PulseRepetition.SinglePulse,
+                1,
+                0.0,
+                0.0
+        );
+
+        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(waveformParameters, pulseTrainParameters);
+        parametersForChannels.put(RHSChannel.B000, channelEStimParameters);
+        EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
+
+        controller.setupStimulationFor(eStimParameters);
 
         String stim_enabled = controller.getIntanClient().get("b-000.stimenabled");
         assertTrue(stim_enabled.equals("True"));
@@ -57,16 +86,29 @@ public class IntanStimulationControllerTest {
 
     @Test
     public void testPulse(){
-        Map<RHSChannel, Collection<Parameter<Object>>> parametersForChannels = new LinkedHashMap<>();
-        parametersForChannels.put(RHSChannel.B025, Arrays.asList(
-                new Parameter<>("Polarity", "NegativeFirst"),
-                new Parameter<>("FirstPhaseAmplitudeMicroAmps", 50.0),
-                new Parameter<>("SecondPhaseAmplitudeMicroAmps", 50.0),
-                new Parameter<>("FirstPhaseDurationMicroseconds", 5000.0),
-                new Parameter<>("SecondPhaseDurationMicroseconds", 5000.0)
-                ));
+        Map<RHSChannel, ChannelEStimParameters> parametersForChannels = new LinkedHashMap<>();
+        WaveformParameters waveformParameters = new WaveformParameters(
+                StimulationShape.Biphasic,
+                StimulationPolarity.NegativeFirst,
+                5000.0,
+                5000.0,
+                1000.0,
+                50.0,
+                50.0
+        );
 
-    controller.setupStimulationFor(parametersForChannels);
+        PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
+                PulseRepetition.SinglePulse,
+                1,
+                0.0,
+                0.0
+        );
+
+        ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(waveformParameters, pulseTrainParameters);
+        parametersForChannels.put(RHSChannel.B025, channelEStimParameters);
+        EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
+
+    controller.setupStimulationFor(eStimParameters);
 
     controller.stopRecording();
 

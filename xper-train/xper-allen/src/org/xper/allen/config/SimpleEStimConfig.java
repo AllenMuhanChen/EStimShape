@@ -20,8 +20,7 @@ import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
-import org.xper.allen.intan.SimpleEStimEventListener;
-import org.xper.allen.intan.SimpleEStimMessageDispatcher;
+import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.saccade.SaccadeDatabaseTaskDataSource;
 import org.xper.allen.saccade.SaccadeExperimentState;
 import org.xper.allen.saccade.SaccadeJuiceController;
@@ -70,29 +69,29 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 public class SimpleEStimConfig {
 
 	@Autowired BaseConfig baseConfig;
-	@Autowired ClassicConfig classicConfig;	
+	@Autowired ClassicConfig classicConfig;
 	@Autowired AcqConfig acqConfig;
-	
-	
+
+
 	@ExternalValue("jdbc.driver")
 	public String jdbcDriver;
-	
+
 	@ExternalValue("jdbc.url")
 	public String jdbcUrl;
-	
+
 	@ExternalValue("jdbc.username")
 	public String jdbcUserName;
 
 	@ExternalValue("jdbc.password")
 	public String jdbcPassword;
-	
-	
+
+
 	@ExternalValue("experiment.monkey_window_fullscreen")
 	public boolean monkeyWindowFullScreen;
-	
+
 	@ExternalValue("experiment.mark_every_step")
 	public boolean markEveryStep;
-	
+
 	public String getJdbcUrl() {
 		return jdbcUrl;
 	}
@@ -107,7 +106,7 @@ public class SimpleEStimConfig {
 		}
 		return iUtil;
 	}
-	
+
 	@Bean
 	public TaskScene taskScene() {
 		BlankTaskScene scene = new BlankTaskScene();
@@ -124,7 +123,7 @@ public class SimpleEStimConfig {
 		dbUtil.setDataSource(dataSource());
 		return dbUtil;
 	}
-	
+
 	@Bean
 	public AllenXMLUtil allenXMLUtil() {
 		AllenXMLUtil xmlUtil = new AllenXMLUtil();
@@ -133,35 +132,35 @@ public class SimpleEStimConfig {
 	@Bean
 	public SaccadeExperimentConsole experimentConsole () {
 		SaccadeExperimentConsole console = new SaccadeExperimentConsole();
-		
+
 		console.setPaused(classicConfig.xperExperimentInitialPause());
 		console.setConsoleRenderer(consoleRenderer());
 		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
 		console.setModel(experimentConsoleModel());
 		console.setCanvasScaleFactor(3);
-		
+
 		ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
 		// register itself to avoid circular reference
 		receiver.addMessageReceiverEventListener(console);
-		
+
 		return console;
 	}
-	
+
 	@Bean
 	public SaccadeExperimentConsoleModel experimentConsoleModel () {
 		SaccadeExperimentConsoleModel model = new SaccadeExperimentConsoleModel();
 		model.setMessageReceiver(classicConfig.messageReceiver());
 		model.setLocalTimeUtil(baseConfig.localTimeUtil());
-		
+
 		HashMap<String, MappingAlgorithm> eyeMappingAlgorithm = new HashMap<String, MappingAlgorithm>();
 		eyeMappingAlgorithm.put(classicConfig.xperLeftIscanId(), classicConfig.leftIscanMappingAlgorithm());
 		eyeMappingAlgorithm.put(classicConfig.xperRightIscanId(), classicConfig.rightIscanMappingAlgorithm());
 		model.setEyeMappingAlgorithm(eyeMappingAlgorithm);
-		
+
 		model.setExperimentRunnerClient(classicConfig.experimentRunnerClient());
 		model.setChannelMap(classicConfig.iscanChannelMap());
 		model.setMessageHandler(messageHandler());
-		
+
 		if (classicConfig.consoleEyeSimulation || acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			// socket sampling server for eye simulation
 			SocketSamplingDeviceServer server = new SocketSamplingDeviceServer();
@@ -173,12 +172,12 @@ public class SimpleEStimConfig {
 			data.put(classicConfig.xperRightIscanXChannel(), new Double(0));
 			data.put(classicConfig.xperRightIscanYChannel(), new Double(0));
 			server.setCurrentChannelData(data);
-			
+
 			model.setSamplingServer(server);
 		}
 		return model;
 	}
-	
+
 	@Bean
 	public SaccadeExperimentConsoleRenderer consoleRenderer () {
 		SaccadeExperimentConsoleRenderer renderer = new SaccadeExperimentConsoleRenderer();
@@ -195,7 +194,7 @@ public class SimpleEStimConfig {
 		renderer.setSquare(new Square());
 		return renderer;
 	}
-	
+
 	@Bean
 	public SaccadeExperimentMessageHandler  messageHandler() {
 		SaccadeExperimentMessageHandler messageHandler = new SaccadeExperimentMessageHandler();
@@ -210,18 +209,18 @@ public class SimpleEStimConfig {
 		messageHandler.setEyeZero(eyeZero);
 		return messageHandler;
 	}
-	
+
 	@Bean
 	public AbstractRenderer consoleGLRenderer () {
 		PerspectiveRenderer renderer = new PerspectiveRenderer();
 		renderer.setDistance(classicConfig.xperMonkeyScreenDistance());
 		renderer.setDepth(classicConfig.xperMonkeyScreenDepth());
 		renderer.setHeight(classicConfig.xperMonkeyScreenHeight());
-		renderer.setWidth(classicConfig.xperMonkeyScreenWidth()/2); //AC Change: divide xperMonkeyScreenWidth by 2 to account for two XScreen aspect ratio change. 
+		renderer.setWidth(classicConfig.xperMonkeyScreenWidth()/2); //AC Change: divide xperMonkeyScreenWidth by 2 to account for two XScreen aspect ratio change.
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}
-	
+
 	@Bean
 	public DataSource dataSource() {
 		ComboPooledDataSource source = new ComboPooledDataSource();
@@ -235,7 +234,7 @@ public class SimpleEStimConfig {
 		source.setPassword(jdbcPassword);
 		return source;
 	}
-	
+
 	@Bean
 	public SaccadeDatabaseTaskDataSource databaseTaskDataSource() {
 		SaccadeDatabaseTaskDataSource source = new SaccadeDatabaseTaskDataSource();
@@ -244,7 +243,7 @@ public class SimpleEStimConfig {
 		source.setUngetBehavior(UngetPolicy.TAIL);
 		return source;
 	}
-	
+
 	@Bean
 	public ExperimentRunner experimentRunner () {
 		ExperimentRunner runner = new ExperimentRunner();
@@ -252,7 +251,7 @@ public class SimpleEStimConfig {
 		runner.setExperiment(experiment());
 		return runner;
 	}
-	
+
 	@Bean
 	public SaccadeTrialExperiment experiment() {
 		SaccadeTrialExperiment xper = new SaccadeTrialExperiment();
@@ -283,8 +282,8 @@ public class SimpleEStimConfig {
 		state.setRequiredEyeInHoldTime(classicConfig.xperRequiredEyeInHoldTime());
 		//state.setSlidePerTrial(classicConfig.xperSlidePerTrial());
 		//state.setSlideLength(classicConfig.xperSlideLength());
-		
-		
+
+
 		state.setInterSlideInterval(classicConfig.xperInterSlideInterval());
 		state.setDoEmptyTask(classicConfig.xperDoEmptyTask());
 		state.setSleepWhileWait(true);
@@ -292,7 +291,7 @@ public class SimpleEStimConfig {
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		//Target Stuff
 		state.setTargetSelector(eyeTargetSelector());
-		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());  
+		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
@@ -300,8 +299,8 @@ public class SimpleEStimConfig {
 		state.setIntanUtil(intanUtil());
 		return state;
 	}
-	
-	
+
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
@@ -316,11 +315,11 @@ public class SimpleEStimConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
-		
+
 		return trialEventListener;
 	}
 
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<TargetEventListener> targetEventListeners () {
 		List<TargetEventListener> listeners = new LinkedList<TargetEventListener>();
@@ -328,8 +327,8 @@ public class SimpleEStimConfig {
 		listeners.add((TargetEventListener) juiceController());
 		return listeners;
 	}
-	
-	
+
+
 	@Bean
 	public SaccadeExperimentMessageDispatcher messageDispatcher() {
 		SaccadeExperimentMessageDispatcher dispatcher = new SaccadeExperimentMessageDispatcher();
@@ -337,7 +336,7 @@ public class SimpleEStimConfig {
 		dispatcher.setDbUtil(allenDbUtil());
 		return dispatcher;
 	}
-	
+
 	@Bean
 	public TrialEventListener juiceController() {
 		SaccadeJuiceController controller = new SaccadeJuiceController();
@@ -350,9 +349,9 @@ public class SimpleEStimConfig {
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public List<SimpleEStimEventListener> eStimEventListeners(){
-		List<SimpleEStimEventListener> listeners = new LinkedList<SimpleEStimEventListener>();
-		listeners.add((SimpleEStimEventListener) messageDispatcher());
+	public List<EStimEventListener> eStimEventListeners(){
+		List<EStimEventListener> listeners = new LinkedList<EStimEventListener>();
+		listeners.add((EStimEventListener) messageDispatcher());
 		return listeners;
 	}
 
@@ -379,7 +378,7 @@ public class SimpleEStimConfig {
 		selector.setTargetOutTimeThreshold(xperTargetSelectionEyeOutTimeThreshold());
 		return selector;
 	}
-	
+
 	@Bean (scope = DefaultScopes.PROTOTYPE)
 	public List<EyeSamplerEventListener> eyeSamplerEventListeners () {
 		List<EyeSamplerEventListener> sampleListeners = new LinkedList<EyeSamplerEventListener>();
@@ -387,7 +386,7 @@ public class SimpleEStimConfig {
 		sampleListeners.add(classicConfig.eyeMonitor());
 		return sampleListeners;
 	}
-	
+
 	@Bean
 	public EyeInStrategy targetSelectorEyeInStrategy() {
 		AnyEyeInStategy strategy = new AnyEyeInStategy();
@@ -397,7 +396,7 @@ public class SimpleEStimConfig {
 		strategy.setEyeDevices(devices);
 		return strategy;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperTargetSelectionEyeInTimeThreshold() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_target_selection_eye_in_time_threshold", 0));
@@ -407,28 +406,25 @@ public class SimpleEStimConfig {
 	public Long xperTimeAllowedForInitialTargetSelection() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_time_allowed_for_initial_target_selection", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperRequiredTargetSelectionHoldTime() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_required_target_selection_hold_time", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperTargetSelectionEyeOutTimeThreshold() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_target_selection_eye_out_time_threshold", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Long xperTargetSelectionEyeMonitorStartDelay() {
 		return Long.parseLong(baseConfig.systemVariableContainer().get("xper_target_selection_eye_monitor_start_delay", 0));
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperBlankTargetScreenDisplayTime() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_blank_target_screen_display_time", 0));
-	
+
 	}
 }
-
-
-	
