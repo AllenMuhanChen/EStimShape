@@ -50,8 +50,6 @@ import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
-import org.xper.intan.stimulation.ManualTriggerIntanRHS;
-import org.xper.intan.stimulation.Parameter;
 import org.xper.juice.mock.NullDynamicJuice;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
@@ -275,8 +273,8 @@ public class NAFCConfig {
 	}
 
 	@Bean
-	public ClassicNAFCSlideRunner slideRunner(){
-		return new ClassicNAFCSlideRunner();
+	public ClassicNAFCTaskRunner slideRunner(){
+		return new ClassicNAFCTaskRunner();
 	}
 
 	@Bean

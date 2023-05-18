@@ -17,7 +17,7 @@ import java.util.List;
 public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
     @Dependency
-    ClassicNAFCSlideRunner runner;
+    ClassicNAFCTaskRunner runner;
 
     public NAFCTrialResult runTrial(NAFCExperimentState stateObject, ThreadHelper threadHelper) {
         try {
@@ -37,8 +37,8 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
                 return result;
             }
 
-            //Run Slide
-            result = getRunner().runSlide(stateObject, context);
+            //Run NAFC Task
+            result = getRunner().runTask(stateObject, context);
             if (result != NAFCTrialResult.TRIAL_COMPLETE) {
                 return result;
             }
@@ -237,12 +237,11 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         return NAFCTrialResult.FIXATION_SUCCESS;
     }
 
-    public ClassicNAFCSlideRunner getRunner() {
+    public ClassicNAFCTaskRunner getRunner() {
         return runner;
     }
 
-    public void setRunner(ClassicNAFCSlideRunner runner) {
+    public void setRunner(ClassicNAFCTaskRunner runner) {
         this.runner = runner;
     }
 }
-
