@@ -23,14 +23,12 @@ public class IntanEStimNAFCMessageDispatcher extends IntanRecordingSlideMessageD
 			getIntanController().record();
 
 			Map<RHSChannel, Collection<Parameter<Object>>> parametersForChannels;
-			//TODO: get parametersForChannels from context
-			//try
 			NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 			String eStimSpec = task.geteStimSpec();
 			try {
 				EStimParameters eStimParameters = EStimParameters.fromXml(eStimSpec);
+				intanStimulationController.setupStimulationFor(eStimParameters);
 
-				intanStimulationController.setupStimulationFor(eStimParameters.geteStimParametersForChannels());
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.err.println("Could not parse eStimSpec");
@@ -41,7 +39,7 @@ public class IntanEStimNAFCMessageDispatcher extends IntanRecordingSlideMessageD
 
 	@Override
 	public void eStimOn(long timestamp, TrialContext context) {
-		intanStimulationController.
+		intanStimulationController.trigger();
 	}
 
 

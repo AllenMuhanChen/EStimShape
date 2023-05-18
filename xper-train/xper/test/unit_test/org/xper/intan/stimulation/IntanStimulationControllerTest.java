@@ -108,15 +108,14 @@ public class IntanStimulationControllerTest {
         parametersForChannels.put(RHSChannel.B025, channelEStimParameters);
         EStimParameters eStimParameters = new EStimParameters(parametersForChannels);
 
-    controller.setupStimulationFor(eStimParameters);
+        controller.setupStimulationFor(eStimParameters);
+        controller.stopRecording();
 
-    controller.stopRecording();
 
-
-    while(true) {
-        controller.trigger();
-        ThreadUtil.sleep(1000);
-    }
+        for(int i = 0; i < 30; i++) {
+            controller.trigger();
+            ThreadUtil.sleep(1000);
+        }
     }
 
     private List<Parameter<Object>> defaultParameters(){
