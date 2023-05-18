@@ -268,12 +268,12 @@ public class NAFCConfig {
 	@Bean
 	public ClassicNAFCTrialRunner trialRunner(){
 		ClassicNAFCTrialRunner trialRunner = new ClassicNAFCTrialRunner();
-		trialRunner.setRunner(slideRunner());
+		trialRunner.setRunner(taskRunner());
 		return trialRunner;
 	}
 
 	@Bean
-	public ClassicNAFCTaskRunner slideRunner(){
+	public ClassicNAFCTaskRunner taskRunner(){
 		return new ClassicNAFCTaskRunner();
 	}
 
@@ -283,7 +283,6 @@ public class NAFCConfig {
 		state.setLocalTimeUtil(baseConfig.localTimeUtil());
 		state.setTrialEventListeners(trialEventListeners());
 		state.setChoiceEventListeners(choiceEventListeners());
-		state.setSlideEventListeners(classicConfig.slideEventListeners());
 		state.seteStimEventListeners(eStimEventListeners());
 		state.setEyeController(classicConfig.eyeController());
 		state.setExperimentEventListeners(classicConfig.experimentEventListeners());
