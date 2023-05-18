@@ -11,8 +11,7 @@ import org.xper.experiment.TaskDataSource;
 import org.xper.eye.EyeTargetSelector;
 
 public class NAFCTrialExperimentState extends TrialExperimentState {
-	@Dependency
-	List<? extends SlideEventListener> slideEventListeners;
+
 	/*
 	@Dependency
 	protected int slidePerTrial;
@@ -43,13 +42,13 @@ public class NAFCTrialExperimentState extends TrialExperimentState {
 	@Dependency
 	TaskDataSource taskDataSource;
 
-	
-	
+
+
 	/**
 	 * in ms
 	 */
 	public static final int NO_TASK_SLEEP_INTERVAL = 10;
-	
+
 	public boolean isDoEmptyTask() {
 		return doEmptyTask;
 	}
@@ -82,19 +81,11 @@ public class NAFCTrialExperimentState extends TrialExperimentState {
 		this.slidePerTrial = slidePerTrial;
 	}
 */
-	public List<? extends SlideEventListener> getSlideEventListeners() {
-		return slideEventListeners;
-	}
 
-	public void setSlideEventListeners(
-			List<? extends SlideEventListener> slideEventListeners) {
-		this.slideEventListeners = slideEventListeners;
-	}
-	
 	public NAFCExperimentTask getCurrentTask() {
 		return (NAFCExperimentTask) currentTask;
 	}
-	
+
 	public void setCurrentTask(NAFCExperimentTask currentTask) {
 		this.currentTask = currentTask;
 	}
@@ -106,7 +97,7 @@ public class NAFCTrialExperimentState extends TrialExperimentState {
 	public void setTargetSelector(EyeTargetSelector targetController) {
 		this.targetSelector = targetController;
 	}
-	
+
 	public NAFCTrialContext getCurrentContext() {
 		return currentContext;
 	}
@@ -131,7 +122,7 @@ public class NAFCTrialExperimentState extends TrialExperimentState {
 		this.taskDataSource = taskDataSource;
 	}
 
-	
-	
+
+
 
 }

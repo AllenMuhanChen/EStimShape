@@ -47,10 +47,6 @@ public class NewGAMockExperiment {
 
         generator.generate(); //first gen
         assertEquals(1, (long) dbUtil.readMultiGAReadyGenerationInfo().getGenIdForGA(gaBaseName));
-
-//        GAConsole.main(emptyArgs);
-//        GAExperiment.main(emptyArgs);
-
     }
 
     @Test

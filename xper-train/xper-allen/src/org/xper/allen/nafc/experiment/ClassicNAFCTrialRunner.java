@@ -68,10 +68,10 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
     }
 
     public void checkCurrentTaskAnimation(NAFCExperimentState state) {
-        state.setAnimation(slideIsAnimation(state.getCurrentTask().getSampleSpec()));
+        state.setAnimation(isAnimation(state.getCurrentTask().getSampleSpec()));
     }
 
-    public static boolean slideIsAnimation(String xml) {
+    public static boolean isAnimation(String xml) {
         Document doc = XmlUtil.parseSpec(xml);
         return XmlUtil.isAnimation(doc, "/StimSpec");
     }
