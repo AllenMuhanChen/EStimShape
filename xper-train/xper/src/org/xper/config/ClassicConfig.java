@@ -82,6 +82,7 @@ import org.xper.eye.win.RampEyeWindowAlgorithm;
 import org.xper.eye.zero.EyeZeroAdjustable;
 import org.xper.eye.zero.EyeZeroMessageListener;
 import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
+import org.xper.intan.SlideTrialIntanRecordingController;
 import org.xper.juice.AnalogJuice;
 import org.xper.juice.DynamicJuice;
 import org.xper.juice.mock.NullDynamicJuice;
@@ -284,7 +285,7 @@ public class ClassicConfig {
 		listeners.add(dataAcqController());
 		listeners.add(eyeZeroLogger());
 		listeners.add(experimentCpuBinder());
-		listeners.add(intanConfig.intanRecordingMessageDispatcher());
+		listeners.add(intanController());
 		return listeners;
 	}
 
@@ -294,7 +295,7 @@ public class ClassicConfig {
 		listeners.add(slideEventLogger());
 		listeners.add(experimentProfiler());
 		listeners.add(messageDispatcher());
-		listeners.add(intanConfig.intanRecordingMessageDispatcher());
+		listeners.add(intanController());
 		return listeners;
 	}
 
@@ -313,6 +314,15 @@ public class ClassicConfig {
 			trialEventListener.add(dynamicJuiceUpdater());
 		}
 		return trialEventListener;
+	}
+
+	@Bean
+	public SlideTrialIntanRecordingController intanController(){
+		SlideTrialIntanRecordingController slideTrialIntanRecordingController = new SlideTrialIntanRecordingController();
+		slideTrialIntanRecordingController.setRecordingEnabled(intanConfig.intanRecordingEnabled);
+		slideTrialIntanRecordingController.setIntan(intanConfig.intan());
+		slideTrialIntanRecordingController.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
+		return slideTrialIntanRecordingController;
 	}
 
 	@Bean

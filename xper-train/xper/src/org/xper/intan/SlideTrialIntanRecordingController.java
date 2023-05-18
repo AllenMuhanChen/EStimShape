@@ -7,7 +7,9 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.exception.RemoteException;
 import org.xper.experiment.listener.ExperimentEventListener;
 
-
+/**
+ * slideOn: write a liveNote to Intan to tell what the taskId is
+ */
 public class SlideTrialIntanRecordingController extends IntanRecordingController implements SlideEventListener {
 
     @Override

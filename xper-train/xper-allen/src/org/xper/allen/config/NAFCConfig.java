@@ -2,9 +2,7 @@ package org.xper.allen.config;
 
 
 import java.beans.PropertyVetoException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import javax.sql.DataSource;
 
@@ -55,6 +53,8 @@ import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
+import org.xper.intan.stimulation.ManualTriggerIntanRHS;
+import org.xper.intan.stimulation.Parameter;
 import org.xper.juice.mock.NullDynamicJuice;
 
 import com.mchange.v2.c3p0.ComboPooledDataSource;
@@ -334,7 +334,7 @@ public class NAFCConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
-		trialEventListener.add(intanConfig.intanRecordingMessageDispatcher());
+		trialEventListener.add(intanController());
 		return trialEventListener;
 	}
 
@@ -375,24 +375,38 @@ public class NAFCConfig {
 		return controller;
 	}
 
-
-
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EStimEventListener> eStimEventListeners(){
 		List<EStimEventListener> listeners = new LinkedList<EStimEventListener>();
 		listeners.add((EStimEventListener) messageDispatcher());
-		listeners.add(intanStimulationRecordingDispatcher());
+		listeners.add(intanController());
 		return listeners;
 	}
 
 	@Bean
-	public NAFCTrialIntanStimulationRecordingController intanStimulationRecordingDispatcher() {
-		NAFCTrialIntanStimulationRecordingController dispatcher = new NAFCTrialIntanStimulationRecordingController();
-		dispatcher.seteStimEnabled(intanConfig.intanEStimEnabled);
-		dispatcher.setIntanStimulationController(intanConfig.intanRHSController());
-		dispatcher.setRecordingEnabled(intanConfig.intanRecordingEnabled);
-		dispatcher.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
-		return dispatcher;
+	public NAFCTrialIntanStimulationRecordingController intanController() {
+		NAFCTrialIntanStimulationRecordingController intanController = new NAFCTrialIntanStimulationRecordingController();
+		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
+		intanController.setIntan(intan());
+		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled);
+		intanController.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
+		return intanController;
+	}
+
+	@Bean
+	public ManualTriggerIntanRHS intan(){
+		ManualTriggerIntanRHS intanRHS = new ManualTriggerIntanRHS();
+		intanRHS.setIntanClient(intanConfig.intanClient());
+		intanRHS.setDefaultSavePath(intanConfig.intanDefaultSavePath);
+		intanRHS.setDefaultBaseFileName(intanConfig.intanDefaultBaseFilename);
+		intanRHS.setDefaultParameters(defaultRHSParameters());
+		return intanRHS;
+	}
+
+	@Bean
+	public Collection<Parameter<Object>> defaultRHSParameters() {
+		Collection<Parameter<Object>> defaultParameters = new ArrayList<Parameter<Object>>();
+		return defaultParameters;
 	}
 
 	@Bean
