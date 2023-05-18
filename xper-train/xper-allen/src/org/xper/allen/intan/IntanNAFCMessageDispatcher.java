@@ -16,28 +16,35 @@ import org.xper.intan.stimulation.*;
 public class IntanNAFCMessageDispatcher extends IntanRecordingSlideMessageDispatcher implements EStimEventListener
 {
 	@Dependency
-	ManualTriggerIntanStimulationController manualTriggerIntanStimulationController;
+	ManualTriggerIntanStimulationController intanStimulationController;
 
+	private boolean validEStimParameters = false;
 
 	@Override
 	public void prepareEStim(long timestamp, TrialContext context) {
+		validEStimParameters = false;
 		if (connected) {
 			NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 			String eStimSpec = task.geteStimSpec();
 			try {
 				EStimParameters eStimParameters = EStimParameters.fromXml(eStimSpec);
-				manualTriggerIntanStimulationController.setupStimulationFor(eStimParameters);
-
+				intanStimulationController.setupStimulationFor(eStimParameters);
+				validEStimParameters = true;
 			} catch (Exception e) {
+				validEStimParameters = false;
+				System.err.println("Could not parse eStimSpec! EStim disabled this trial");
 				e.printStackTrace();
-				System.err.println("Could not parse eStimSpec");
 			}
 		}
 	}
 
 	@Override
 	public void eStimOn(long timestamp, TrialContext context) {
-		manualTriggerIntanStimulationController.trigger();
+		if (connected) {
+			if (validEStimParameters) {
+				intanStimulationController.trigger();
+			}
+		}
 	}
 
 }

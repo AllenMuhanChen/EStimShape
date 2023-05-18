@@ -33,6 +33,7 @@ public class ManualTriggerIntanStimulationController extends IntanRecordingContr
         uploadParameters(parametersForChannels.keySet());
     }
 
+
     private void setStimPulseTrainParametersOn(RHSChannel channel, PulseTrainParameters pulseTrainParameters) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".pulseortrain", pulseTrainParameters.pulseRepetition.toString());
         intanClient.set(tcpNameForIntanChannel(channel) + ".numberofstimpulses", Integer.toString(pulseTrainParameters.numRepetitions));
@@ -59,12 +60,14 @@ public class ManualTriggerIntanStimulationController extends IntanRecordingContr
 
     public void trigger(){
         intanClient.execute("manualstimtriggerpulse f1");
-
     }
 
     private void enableStimulationOn(RHSChannel channel) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".stimenabled", "true");
+    }
 
+    private void disableStimulationOn(RHSChannel channel) {
+        intanClient.set(tcpNameForIntanChannel(channel) + ".stimenabled", "false");
     }
 
     private void setDefaultParametersOn(RHSChannel channel) {
