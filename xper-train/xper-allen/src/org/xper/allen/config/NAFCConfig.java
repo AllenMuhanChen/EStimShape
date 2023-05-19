@@ -57,7 +57,7 @@ import com.mchange.v2.c3p0.ComboPooledDataSource;
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import({ClassicConfig.class, RewardButtonConfig.class})
+@Import({ClassicConfig.class, RewardButtonConfig.class, IntanRHSConfig.class})
 public class NAFCConfig {
 	@Autowired RewardButtonConfig rewardButtonConfig;
 	@Autowired BaseConfig baseConfig;
@@ -383,7 +383,7 @@ public class NAFCConfig {
 		NAFCTrialIntanStimulationRecordingController intanController = new NAFCTrialIntanStimulationRecordingController();
 		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
 		intanController.setIntan(intanConfig.intan());
-		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled);
+		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled());
 		intanController.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
 		return intanController;
 	}

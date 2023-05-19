@@ -92,4 +92,9 @@ public class SaccadeExperimentMessageDispatcher extends TrialExperimentMessageDi
 		enqueue(timestamp, "EStimOn", msg);
 	}
 
+	@Override
+	public void prepareEStim(long timestamp, TrialContext currentContext) {
+
+	}
+
 }

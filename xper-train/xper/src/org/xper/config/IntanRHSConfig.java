@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.xper.intan.IntanFileNamingStrategy;
 import org.xper.intan.IntanRHD;
 import org.xper.intan.stimulation.ManualTriggerIntanRHS;
 import org.xper.intan.stimulation.Parameter;
@@ -16,7 +17,7 @@ import java.util.Collection;
 @AnnotationDrivenConfig
 
 @Import({IntanRHDConfig.class})
-public class IntanRHSConfig extends IntanRHDConfig {
+public class IntanRHSConfig{
     @Autowired
     IntanRHDConfig rhdConfig;
 
@@ -37,5 +38,15 @@ public class IntanRHSConfig extends IntanRHDConfig {
     public Collection<Parameter<Object>> defaultRHSParameters() {
         Collection<Parameter<Object>> defaultParameters = new ArrayList<Parameter<Object>>();
         return defaultParameters;
+    }
+
+    @Bean
+    public boolean intanRecordingEnabled() {
+        return rhdConfig.intanRecordingEnabled;
+    }
+
+    @Bean
+    public IntanFileNamingStrategy<Long> intanFileNamingStrategy() {
+        return rhdConfig.intanFileNamingStrategy();
     }
 }
