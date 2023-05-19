@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricImageSetGenerator;
 import org.xper.util.FileUtil;
 
@@ -25,7 +25,7 @@ public class PsychometricPngGeneratorMain {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.config_class"));
 
-		PsychometricTrainingBlockGen gen = context.getBean(PsychometricTrainingBlockGen.class);
+		PsychometricBlockGen gen = context.getBean(PsychometricBlockGen.class);
 
 		try {
 			List<String> argsList = Arrays.asList(args);

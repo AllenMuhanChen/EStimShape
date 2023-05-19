@@ -2,12 +2,10 @@ package org.xper.allen.nafc.blockgen;
 
 import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.psychometric.*;
+import org.xper.intan.stimulation.EStimParameters;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,6 +14,7 @@ public class PsychometricTrialListFactory implements TrialListFactory {
     private final List<NumberOfDistractorsForPsychometricTrial> numDistractors;
     private final int numTrialsPerImage;
     private final List<NoisyTrialParameters> trialParameters;
+    private final Map<Long, EStimParameters> eStimParametersForSetIds;
     AbstractPsychometricTrialGenerator generator;
     PsychometricFactoryParameters parameters;
 
@@ -23,9 +22,9 @@ public class PsychometricTrialListFactory implements TrialListFactory {
         this.generator = generator;
         this.parameters = parameters;
         numDistractors = parameters.getNumDistractors();
-
         numTrialsPerImage = parameters.getNumTrialsPerImage();
         trialParameters = parameters.getTrialParameters();
+        eStimParametersForSetIds = parameters.geteStimParametersForSetIds();
     }
 
     private List<Long> setIds;
@@ -45,7 +44,8 @@ public class PsychometricTrialListFactory implements TrialListFactory {
                     PsychometricTrialParameters psychometricTrialParameters = new PsychometricTrialParameters(
                             trialParameters.get(i),
                             numDistractors.get(i),
-                            new PsychometricIds(setId, stimId, stimIds)
+                            new PsychometricIds(setId, stimId, stimIds),
+                            eStimParametersForSetIds.get(setId)
                     );
                     stims.add(new PsychometricStim(
                             generator,

@@ -13,6 +13,7 @@ import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.allen.Stim;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.intan.stimulation.EStimParameters;
 
 /**
  * callMain Class to write a PsychometricTrial to the database.
@@ -23,6 +24,10 @@ public class PsychometricStim implements Stim {
 	 */
 	private AbstractPsychometricTrialGenerator generator;
 	private PsychometricTrialParameters trialParameters;
+	private EStimParameters eStimParameters;
+	private EStimParameters eStimParameters1;
+
+	private long[] eStimObjData;
 
 	public PsychometricStim(
 			AbstractPsychometricTrialGenerator noisyMStickPngPsychometricBlockGen,
@@ -50,7 +55,7 @@ public class PsychometricStim implements Stim {
 	private Psychometric<AllenMatchStick> matchSticks = new Psychometric<AllenMatchStick>();;
 	private Psychometric<Long> stimObjIds;
 
-	
+
 	/**
 	 * Called before write() in order to do preallocation of parameters
 	 * before the trial is assigned a taskId and written to the database
@@ -61,7 +66,10 @@ public class PsychometricStim implements Stim {
 	}
 
 	private void assignPsychometricPaths() {
-		PsychometricPathAssigner psychometricPathAssigner = new PsychometricPathAssigner(trialParameters.getPsychometricIds(), trialParameters.getNumDistractors().getNumPsychometricDistractors(), generator);
+		PsychometricPathAssigner psychometricPathAssigner = new PsychometricPathAssigner
+				(trialParameters.getPsychometricIds(),
+				 trialParameters.getNumDistractors().getNumPsychometricDistractors(),
+				 generator);
 		psychometricPathAssigner.assign();
 		pngPaths = psychometricPathAssigner.getExperimentPngPaths();
 		specPaths = psychometricPathAssigner.getSpecPaths();
@@ -77,6 +85,7 @@ public class PsychometricStim implements Stim {
 		assignCoords();
 		writeStimObjDataSpecs();
 		assignTaskId();
+		writeEStimObjData();
 
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
 				getStimId(),
@@ -84,12 +93,18 @@ public class PsychometricStim implements Stim {
 				trialParameters,
 				coords,
 				numChoices,
-				stimObjIds);
+				stimObjIds,
+				eStimObjData);
 
 		stimSpecWriter.writeStimSpec();
 
 	}
 
+	private void writeEStimObjData() {
+		EStimParameters eStimParameters = trialParameters.geteStimParameters();
+		eStimObjData = new long[] {taskId};
+		dbUtil.writeEStimObjData(taskId, eStimParameters.toXml(), "");
+	}
 
 	private void assignStimObjIds() {
 		StimObjIdAssignerForPsychometricTrials stimObjIdAssigner = new StimObjIdAssignerForPsychometricTrials(generator.getGlobalTimeUtil(), trialParameters.getNumDistractors());
@@ -104,7 +119,7 @@ public class PsychometricStim implements Stim {
 	}
 
 	private void generateNoiseMap() {
-		PsychometricNoiseMapGenerator psychometricNoiseMapGenerator = 
+		PsychometricNoiseMapGenerator psychometricNoiseMapGenerator =
 				new PsychometricNoiseMapGenerator(
 						matchSticks.getSample(),
 						stimObjIds.getSample(),
@@ -114,7 +129,7 @@ public class PsychometricStim implements Stim {
 		noiseMapPath = psychometricNoiseMapGenerator.getExperimentNoiseMapPath();
 	}
 
-	
+
 	List<AllenMatchStick> objs_randDistractors = new LinkedList<AllenMatchStick>();
 
 	private void generateRandDistractors() {
@@ -124,7 +139,7 @@ public class PsychometricStim implements Stim {
 			mStickSpecs.addRandDistractor(randGenerator.getMStickSpec());
 		}
 	}
-	
+
 
 	private void drawRandDistractorsPNGs() {
 		AllenPNGMaker pngMaker = generator.getPngMaker();
@@ -143,7 +158,7 @@ public class PsychometricStim implements Stim {
 				trialParameters.getSampleDistanceLims(),
 				trialParameters.getNumDistractors(),
 				trialParameters.getChoiceDistanceLims());
-		
+
 
 		coords = coordAssigner.getCoords();
 	}

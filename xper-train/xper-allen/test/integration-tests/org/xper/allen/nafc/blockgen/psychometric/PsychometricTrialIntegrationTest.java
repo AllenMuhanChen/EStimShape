@@ -25,7 +25,7 @@ import org.xper.util.FileUtil;
 import javax.vecmath.Point2d;
 
 public class PsychometricTrialIntegrationTest {
-	PsychometricTrainingBlockGen generator;
+	PsychometricBlockGen generator;
 	int numPsychometricDistractors;
 	int numRandDistractors;
 	NumberOfDistractorsForPsychometricTrial numDistractors;
@@ -85,7 +85,7 @@ public class PsychometricTrialIntegrationTest {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.config_class"));
 
-		generator = (PsychometricTrainingBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
+		generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
 		TestTimeUtil timeUtil = new TestTimeUtil();
 		generator.setGlobalTimeUtil(timeUtil);
 		sampleId = timeUtil.getTestTime();

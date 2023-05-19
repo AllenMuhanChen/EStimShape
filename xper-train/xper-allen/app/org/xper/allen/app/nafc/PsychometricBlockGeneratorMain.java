@@ -3,7 +3,7 @@ package org.xper.allen.app.nafc;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.*;
 import org.xper.allen.nafc.blockgen.psychometric.NoisyTrialParameters;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockParameters;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricFactoryParameters;
 import org.xper.allen.nafc.blockgen.rand.NumberOfDistractorsForRandTrial;
@@ -12,11 +12,10 @@ import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
 import org.xper.allen.nafc.vo.NoiseForm;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.intan.stimulation.EStimParameters;
 import org.xper.util.FileUtil;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class PsychometricBlockGeneratorMain extends TrialArgReader {
 
@@ -24,7 +23,7 @@ public class PsychometricBlockGeneratorMain extends TrialArgReader {
 		JavaConfigApplicationContext context = new JavaConfigApplicationContext(
 				FileUtil.loadConfigClass("experiment.config_class"));
 
-		PsychometricTrainingBlockGen gen = context.getBean(PsychometricTrainingBlockGen.class);
+		PsychometricBlockGen gen = context.getBean(PsychometricBlockGen.class);
 
 		try {
 			PsychometricBlockGenInputTranslator translator = new PsychometricBlockGenInputTranslator(gen);
@@ -40,7 +39,7 @@ public class PsychometricBlockGeneratorMain extends TrialArgReader {
 	public static class PsychometricBlockGenInputTranslator extends TrialArgReader {
 
 		private static final NoiseForm defaultPsychometricNoiseForm = NoiseFormer.getNoiseForm(NoiseType.PRE_JUNC);
-		private final PsychometricTrainingBlockGen generator;
+		private final PsychometricBlockGen generator;
 		private int numPsychometricTrialsPerImage;
 		private int numRandTrials;
 		private TypeFrequency<Integer> numPsychometricDistractorsTF;
@@ -58,7 +57,7 @@ public class PsychometricBlockGeneratorMain extends TrialArgReader {
 		private double eyeWinSize;
 		private NAFCTrialParameters nafcTrialParameters;
 
-		public PsychometricBlockGenInputTranslator(PsychometricTrainingBlockGen generator) {
+		public PsychometricBlockGenInputTranslator(PsychometricBlockGen generator) {
 			this.generator = generator;
 		}
 
@@ -131,7 +130,7 @@ public class PsychometricBlockGeneratorMain extends TrialArgReader {
 			}
 
 			PsychometricFactoryParameters psychometricFactorParameters =
-					PsychometricFactoryParameters.create(
+					PsychometricFactoryParameters.createWithNoEStim(
 							numPsychometricTrialsPerImage, trialParameters, numDistractors);
 			return psychometricFactorParameters;
 		}
