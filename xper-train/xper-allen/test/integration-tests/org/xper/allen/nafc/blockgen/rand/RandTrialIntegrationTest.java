@@ -13,7 +13,7 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.time.TestTimeUtil;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
@@ -67,7 +67,7 @@ public class RandTrialIntegrationTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
 
-        generator = (PsychometricTrainingBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
+        generator = (PsychometricBlockGen) context.getBean(AbstractPsychometricTrialGenerator.class);
         TestTimeUtil timeUtil = new TestTimeUtil();
         generator.setGlobalTimeUtil(timeUtil);
         sampleId = timeUtil.getTestTime();

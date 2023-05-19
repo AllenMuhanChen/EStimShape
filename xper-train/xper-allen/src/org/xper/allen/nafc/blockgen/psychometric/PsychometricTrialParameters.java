@@ -4,16 +4,19 @@ import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.allen.nafc.vo.NoiseParameters;
+import org.xper.intan.stimulation.EStimParameters;
 
 public class PsychometricTrialParameters extends NoisyTrialParameters{
 
     private NumberOfDistractorsForPsychometricTrial numDistractors;
     private PsychometricIds psychometricIds;
+    private EStimParameters eStimParameters;
 
-    public PsychometricTrialParameters(NoisyTrialParameters other, NumberOfDistractorsForPsychometricTrial numDistractors, PsychometricIds psychometricIds) {
+    public PsychometricTrialParameters(NoisyTrialParameters other, NumberOfDistractorsForPsychometricTrial numDistractors, PsychometricIds psychometricIds, EStimParameters eStimParameters) {
         super(other);
         this.numDistractors = numDistractors;
         this.psychometricIds = psychometricIds;
+        this.eStimParameters = eStimParameters;
     }
 
     static{
@@ -34,5 +37,13 @@ public class PsychometricTrialParameters extends NoisyTrialParameters{
 
     public void setPsychometricIds(PsychometricIds psychometricIds) {
         this.psychometricIds = psychometricIds;
+    }
+
+    public EStimParameters geteStimParameters() {
+        return eStimParameters;
+    }
+
+    public void seteStimParameters(EStimParameters eStimParameters) {
+        this.eStimParameters = eStimParameters;
     }
 }

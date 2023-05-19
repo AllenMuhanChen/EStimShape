@@ -118,19 +118,6 @@ public class AllenDbUtil extends DbUtil {
 	}
 
 
-	//=====================EStimObjData========================================
-	public void writeEStimObjData(long id, EStimObjDataEntry e) {
-		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.update(
-				"insert into EStimObjData (id, chans, post_trigger_delay, trig_src, pulse_repetition, num_pulses, pulse_train_period, post_stim_refractory_period, stim_shape, stim_polarity, d1, d2, dp, a1, a2, enable_amp_settle, pre_stim_amp_settle, post_stim_amp_settle, maintain_amp_settle_during_pulse_train, enable_charge_recovery, post_stim_charge_recovery_on, post_stim_charge_recovery_off) values (?, ?, ?, ?, ?, ?, ?, ? ,? ,? ,? ,? ,? ,? ,?, ?, ?, ?, ?, ?, ?, ?)",
-				new Object[] { id, e.getChans(), e.get_post_trigger_delay(), e.get_trig_src(),e.getPulse_repetition(), e.get_num_pulses(),
-						e.get_pulse_train_period(), e.get_post_stim_refractory_period(), e.get_stim_shape(),
-						e.get_stim_polarity(), e.get_d1(), e.get_d2(), e.get_dp(), e.get_a1(), e.get_a2(), e.isEnable_amp_settle(),
-						e.get_pre_stim_amp_settle(), e.get_post_stim_amp_settle(),
-						e.get_maintain_amp_settle_during_pulse_train(), e.isEnable_charge_recovery(), e.get_post_stim_charge_recovery_on(),
-						e.get_post_stim_charge_recovery_off() });
-	}
-
 
 
 //	public EStimObjDataEntry readEStimObjData(long estimId) {
@@ -219,6 +206,13 @@ public class AllenDbUtil extends DbUtil {
 					}
 				}, EStimObjId);
 	}
+
+	public void writeEStimObjData(long id, String spec, String data) {
+		JdbcTemplate jt = new JdbcTemplate(dataSource);
+		jt.update("insert into EStimObjData (id, spec, data) values (?, ?, ?)",
+				new Object[] { id, spec, data });
+	}
+
 //=================New ReadStimSpec to pass correct Ids to readExperimentTasks
 
 	public StimSpecEntry readStimSpec(long StimSpecId) {

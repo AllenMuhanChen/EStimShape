@@ -20,6 +20,19 @@ public class NAFCStimSpecWriter {
 
 	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
 							  NoisyTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+							  NAFC<Long> stimObjIds, long[] eStimObjData) {
+		super();
+		this.taskId = taskId;
+		this.dbUtil = dbUtil;
+		this.trialParameters = trialParameters;
+		this.coords = coords;
+		this.numChoices = numChoices;
+		this.stimObjIds = stimObjIds;
+		this.eStimObjData = eStimObjData;
+	}
+
+	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
+							  NoisyTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
 							  NAFC<Long> stimObjIds) {
 		super();
 		this.taskId = taskId;
@@ -28,6 +41,7 @@ public class NAFCStimSpecWriter {
 		this.coords = coords;
 		this.numChoices = numChoices;
 		this.stimObjIds = stimObjIds;
+		this.eStimObjData = new long[]{1};
 	}
 
 	private long[] eStimObjData;
@@ -36,11 +50,11 @@ public class NAFCStimSpecWriter {
 	private List<Coordinates2D> targetEyeWinCoords = new ArrayList<Coordinates2D>();
 	private double[] targetEyeWinSizes;
 	private long[] choiceIds;
-	
+
 	public void writeStimSpec() {
 		assignEyeWindowCoordinates();
 		assignTargetEyeWindowSizes();
-		writeEStimObjData();
+		writeRewardPolicy();
 		assignChoiceIds();
 		writeSpec();
 	}
@@ -56,16 +70,15 @@ public class NAFCStimSpecWriter {
 			targetEyeWinSizes[j] = trialParameters.getEyeWinSize();
 		}
 	}
-	
-	private void writeEStimObjData() {
-		eStimObjData = new long[] {1};
+
+	private void writeRewardPolicy() {
 		rewardPolicy = RewardPolicy.LIST;
 		rewardList = new int[] {0};
 	}
-	
+
 	/**
 	 * choiceId along with rewardPolicy is matched with rewardList ids to determine if a trial is correct
-	 * or incorrect. 
+	 * or incorrect.
 	 */
 	private void assignChoiceIds() {
 		choiceIds = new long[numChoices];
@@ -74,7 +87,7 @@ public class NAFCStimSpecWriter {
 			choiceIds[distractorIdIndx+1] = stimObjIds.getAllDistractors().get(distractorIdIndx);
 		}
 	}
-	
+
 	private void writeSpec() {
 		NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(
 				targetEyeWinCoords.toArray(new Coordinates2D[0]),

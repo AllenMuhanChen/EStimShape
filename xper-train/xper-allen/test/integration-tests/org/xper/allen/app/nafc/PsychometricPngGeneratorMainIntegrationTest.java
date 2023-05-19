@@ -2,7 +2,7 @@ package org.xper.allen.app.nafc;
 
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.util.FileUtil;
 
 import java.io.File;
@@ -22,7 +22,7 @@ public class PsychometricPngGeneratorMainIntegrationTest {
     private String numPerSet;
     private String size;
     private String percentChangePosition;
-    private PsychometricTrainingBlockGen gen;
+    private PsychometricBlockGen gen;
 
     @Test
     public void classic_use_case_generates_pngs(){
@@ -30,7 +30,7 @@ public class PsychometricPngGeneratorMainIntegrationTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
 
-        gen = context.getBean(PsychometricTrainingBlockGen.class);
+        gen = context.getBean(PsychometricBlockGen.class);
 
         numSets = "1";
         numPerSet = "3";

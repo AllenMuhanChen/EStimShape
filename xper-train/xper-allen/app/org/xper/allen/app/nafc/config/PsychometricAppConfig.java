@@ -11,7 +11,7 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.drawing.composition.qualitativemorphs.PsychometricQualitativeMorphParameterGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -63,8 +63,8 @@ public class PsychometricAppConfig{
 	}
 
 	@Bean
-	public PsychometricTrainingBlockGen psychometricPngGenerator() {
-		PsychometricTrainingBlockGen gen = new PsychometricTrainingBlockGen();
+	public PsychometricBlockGen psychometricPngGenerator() {
+		PsychometricBlockGen gen = new PsychometricBlockGen();
 		gen.setDbUtil(config.allenDbUtil());
 		gen.setGlobalTimeUtil(acqConfig.timeClient());
 		gen.setGeneratorPngPath(mStickPngConfig.generatorPngPath);

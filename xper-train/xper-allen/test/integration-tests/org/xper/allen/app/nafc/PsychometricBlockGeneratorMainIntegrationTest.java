@@ -2,7 +2,7 @@ package org.xper.allen.app.nafc;
 
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.psychometric.PsychometricTrainingBlockGen;
+import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.db.vo.TaskToDoEntry;
 import org.xper.util.FileUtil;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-public class PsychometricTrainingBlockGeneratorMainIntegrationTest {
+public class PsychometricBlockGeneratorMainIntegrationTest {
 
     String half = "0.5,0.5";
 
@@ -41,7 +41,7 @@ public class PsychometricTrainingBlockGeneratorMainIntegrationTest {
     String eyeWinSize = "10";
 
 
-    private PsychometricTrainingBlockGen generator;
+    private PsychometricBlockGen generator;
     private AllenDbUtil dbUtil;
     private Long startTime;
     private Long endTime;
@@ -51,17 +51,28 @@ public class PsychometricTrainingBlockGeneratorMainIntegrationTest {
 
 
     @Test
-    public void generates_classic_use_case_trials(){
+    public void generates_experiment_use_case_trials(){
         startTime = System.currentTimeMillis()*1000;
         FileUtil.loadTestSystemProperties("/xper.properties.psychometric");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
 
-        generator = context.getBean(PsychometricTrainingBlockGen.class);
+        generator = context.getBean(PsychometricBlockGen.class);
+
+    }
+
+    @Test
+    public void generates_training_use_case_trials(){
+        startTime = System.currentTimeMillis()*1000;
+        FileUtil.loadTestSystemProperties("/xper.properties.psychometric");
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(
+                FileUtil.loadConfigClass("experiment.config_class"));
+
+        generator = context.getBean(PsychometricBlockGen.class);
 
 
         //ACT
-        PsychometricBlockGeneratorMain.main(classicArgs());
+        PsychometricBlockGeneratorMain.main(trainingArgs());
 
         //ASSERTs
         //Test Number of Trials in Database
@@ -77,7 +88,7 @@ public class PsychometricTrainingBlockGeneratorMainIntegrationTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-        generator = context.getBean(PsychometricTrainingBlockGen.class);
+        generator = context.getBean(PsychometricBlockGen.class);
 
 
         //ACT
@@ -97,7 +108,7 @@ public class PsychometricTrainingBlockGeneratorMainIntegrationTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-        generator = context.getBean(PsychometricTrainingBlockGen.class);
+        generator = context.getBean(PsychometricBlockGen.class);
         this.numRandTrials = "2";
         this.numPsychometricTrialsPerImage = "2";
         this.numRandDistractors="2";
@@ -114,7 +125,18 @@ public class PsychometricTrainingBlockGeneratorMainIntegrationTest {
         generates_correct_distribution_of_trials();
     }
 
-    private String[] classicArgs(){
+    private String[] experimentArgs(){
+        this.numRandTrials = "0";
+        this.numPsychometricTrialsPerImage = "2";
+        this.numPsychometricDistractors = "3";
+        this.numPsychometricDistractorsFreqs = "1.0";
+        this.numPsychometricRandDistractors = "0";
+        this.numPyschometricRandDistractorsFreqs = "1.0";
+
+        return getArgs();
+    }
+
+    private String[] trainingArgs(){
         this.numRandTrials = "2";
         this.numPsychometricTrialsPerImage = "2";
         return getArgs();
