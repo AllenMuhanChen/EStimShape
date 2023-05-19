@@ -41,10 +41,6 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
         }
     }
 
-    protected boolean toRecord() {
-        return connected && recordingEnabled;
-    }
-
     @Override
     public void trialStop(long timestamp, TrialContext context) {
         if (toRecord())
@@ -68,6 +64,10 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
             System.err.println("Could not connect to Intan, disabling Intan functionality");
             connected = false;
         }
+    }
+
+    protected boolean toRecord() {
+        return connected && recordingEnabled;
     }
 
     @Override

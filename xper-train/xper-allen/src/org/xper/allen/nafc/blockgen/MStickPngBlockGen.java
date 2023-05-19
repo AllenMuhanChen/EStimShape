@@ -30,7 +30,7 @@ import org.xper.utils.RGBColor;
 import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWithinRadii;
 
 /**
- * Generate MSticks, convert to Png. 
+ * Generate MSticks, convert to Png.
  * @author r2_allen
  *
  */
@@ -65,8 +65,8 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 	 *  Generate trials where:
 	 *  Sample: Generated matchstick from a randomly generated limb
 	 *  Match:  Morphed version of sample where starter limb is slightly morphed (metric morph)
-	 *  Distractors: completely random match sticks. 
-	 */	
+	 *  Distractors: completely random match sticks.
+	 */
 
 	public MStickPngBlockGen() {
 	}
@@ -76,36 +76,36 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 
 	public void generate(int numTrials,
 			Integer[] numDistractorsTypes, double[] numDistractorsFrequencies,
-			double sampleScaleUpperLim, double sampleRadiusLowerLim, 
-			double sampleRadiusUpperLim, 
-			double eyeWinSize, 
-			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
+			double sampleScaleUpperLim, double sampleRadiusLowerLim,
+			double sampleRadiusUpperLim,
+			double eyeWinSize,
+			double choiceRadiusLowerLim, double choiceRadiusUpperLim,
 			double distractorDistanceLowerLim, double distractorDistanceUpperLim,
-			double distractorScaleUpperLim, 
+			double distractorScaleUpperLim,
 			int numMMCategories,
 			Integer[] numQMDistractorsTypes, double[] numQMDistractorsFrequencies,
 			Integer[] numQMCategoriesTypes, double[] numQMCategoriesFrequencies) { //
-		
+
 		int[] numDistractorsNumTrials = frequencyToNumTrials(numDistractorsFrequencies, numTrials);
 		int[] numQMDistractorsNumTrials = frequencyToNumTrials(numQMDistractorsFrequencies, numTrials);
 		int[] numQMCategoriesNumTrials = frequencyToNumTrials(numQMCategoriesFrequencies, numTrials);
 
-		
+
 		generate(numDistractorsTypes, numDistractorsNumTrials,
-				sampleScaleUpperLim, sampleRadiusLowerLim, sampleRadiusUpperLim, 
-				eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim, 
+				sampleScaleUpperLim, sampleRadiusLowerLim, sampleRadiusUpperLim,
+				eyeWinSize, choiceRadiusLowerLim, choiceRadiusUpperLim,
 				 distractorDistanceLowerLim,
 				distractorDistanceUpperLim,
 				distractorScaleUpperLim, numMMCategories, numQMDistractorsTypes, numQMDistractorsNumTrials,
 				numQMCategoriesTypes, numQMCategoriesNumTrials);
 	}
-	
-	
+
+
 	public void generate(Integer[] numDistractors_types, int[] numDistractors_numTrials,
-			double sampleScaleUpperLim, double sampleRadiusLowerLim, 
-			double sampleRadiusUpperLim, double eyeWinSize, 
-			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
-			double distractorDistanceLowerLim, 
+			double sampleScaleUpperLim, double sampleRadiusLowerLim,
+			double sampleRadiusUpperLim, double eyeWinSize,
+			double choiceRadiusLowerLim, double choiceRadiusUpperLim,
+			double distractorDistanceLowerLim,
 			double distractorDistanceUpperLim,
 			double distractorScaleUpperLim, double metricMorphMagnitude,
 			Integer[] numQMDistractors_types, int[] numQMDistractors_numTrials,
@@ -170,7 +170,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 		//GENERATION
 		try {
 			/**
-			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked. 
+			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
 			 */
 			genId = getDbUtil().readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
@@ -185,16 +185,16 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			int numCategoriesMorphed = numCategoriesMorphedTrialList.get(i);
 
 
-			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF 
+			//GENERATE BASE (leaf to morph + other limbs), SAMPLE, AND MATCH WITHIN LOOP TO MAKE SURE IF
 			//GENERATE MATCH/SAMPLE FAILS, WE START OVER STARTING AT BASE
 			boolean tryagain = true;
 			int nTries = 0;
 
 
-			//SETTING MORPHS - we never want to change our morph because of a fail. Otherwise probability distribution of morph types will be skewed. 
+			//SETTING MORPHS - we never want to change our morph because of a fail. Otherwise probability distribution of morph types will be skewed.
 			QualitativeMorphParams qmp = qmpGenerator.getQMP(numCategoriesMorphed);
 			MetricMorphParams mmp = mmpGenerator.getMMP(sampleScaleUpperLim, metricMorphMagnitude);
-			
+
 			while (tryagain){
 				boolean leafSuccess = false;
 				boolean sampleSuccess = false;
@@ -207,7 +207,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 				int randomLeaf=-1;
 				int maxAttempts_leaf=5;
 				int nTries_leaf=0;
-				{ 
+				{
 					while(nTries_leaf<maxAttempts_leaf) {
 						System.out.println("In Leaf");
 						objs_base.get(i).genMatchStickRand();
@@ -242,17 +242,18 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 				}
 
 				//MATCH: GENERATING MATCHSTICK
-				int leafToMorphIndx = objs_sample.get(i).getSpecialEndComp().get(0);
+				int leafToMorphIndx = -1;
 				if(sampleSuccess){
+					leafToMorphIndx = objs_sample.get(i).getSpecialEndComp().get(0);
 					int maxAttempts_match = 3;
 					int nTries_match = 0;
-					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf(); 
+					//int leafToMorphIndx = objs_sample.get(i).chooseRandLeaf();
 					//boolean maintainTangent = true;
 					while(nTries_match<maxAttempts_match) {
 						System.out.println("In Match");
 						try{
 							setProperties(objs_match.get(i));
-							//Generate MMPs here 
+							//Generate MMPs here
 							matchSuccess = objs_match.get(i).genMetricMorphedLeafMatchStick(leafToMorphIndx, objs_sample.get(i), mmp);
 						} catch(Exception e){
 							e.printStackTrace();
@@ -358,14 +359,14 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 			ids.add(sampleId);
 			ids.add(matchId);
 			ids.addAll(distractorIds);
-			pngMaker.createAndSaveBatchOfPNGs(objs, ids, null);
+			pngMaker.createAndSaveBatchOfPNGs(objs, ids, generatorPngPath);
 
 			for(int k=0; k<objs.size(); k++) {
 				AllenMStickSpec spec = new AllenMStickSpec();
 				spec.setMStickInfo(objs.get(k));
 				spec.writeInfo2File(generatorSpecPath + "/" + ids.get(k), true);
 			}
-			
+
 			//SPECIFYING LOCATION
 			int numChoices = numQMDistractors+numRandDistractors+1; //#Distractors + Match
 			Coordinates2D sampleCoords = randomCoordsWithinRadii(sampleRadiusLowerLim, sampleRadiusUpperLim);
@@ -447,11 +448,11 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 	 */
 	private void setProperties(AllenMatchStick obj) {
 		//OBJECT PROPERTIES
-		//SETTING SIZES 
+		//SETTING SIZES
 		/**
 		 * With this strategy of scale setting, we set our maxImageDimensionDegrees to
 		 * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
-		 * to be approx half the size. 
+		 * to be approx half the size.
 		 */
 		double scale = maxImageDimensionDegrees/1.5;
 		double minScale = maxImageDimensionDegrees/2.5;

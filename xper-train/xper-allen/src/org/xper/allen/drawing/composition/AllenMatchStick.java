@@ -1995,8 +1995,8 @@ public class AllenMatchStick extends MatchStick {
 			//DEFINE SPECIAL END TO BE THE END THAT IS NOT PREVIOUSLY A JUNC
 			if(getSpecialEndComp().isEmpty())
 				getSpecialEndComp().add(1);
-			if(getSpecialEnd().isEmpty());
-			getSpecialEnd().add(1);
+			if(getSpecialEnd().isEmpty())
+				getSpecialEnd().add(1);
 
 			int seComp = getSpecialEndComp().get(0);
 			int seUNdx = specialEnd.getuNdx();
