@@ -19,7 +19,7 @@ import java.nio.CharBuffer;
  * Provides basic tcp communication with Intan, like connecting, get, set, liveNotes, and executing commands
  */
 public class IntanClient {
-    static final int QUERY_INTERVAL_MS = 10;
+    static final int QUERY_INTERVAL_MS = 100;
     static final int TIME_OUT_MS = 1000;
 
     @Dependency
@@ -55,21 +55,21 @@ public class IntanClient {
         String msg = "set " + parameter + " " + value;
         out.println(msg);
 
-        //Wait until the correct value has been set
-        waitFor(new Condition() {
-            @Override
-            public boolean check() {
-                try {
-                    // Try to parse as doubles and compare
-                    double d1 = Double.parseDouble(get(parameter));
-                    double d2 = Double.parseDouble(value);
-                    return d1 == d2;
-                } catch(NumberFormatException e) {
-                    // If parsing fails, compare as strings
-                    return get(parameter).equalsIgnoreCase(value);
-                }
-            }
-        });
+//        //Wait until the correct value has been set
+//        waitFor(new Condition() {
+//            @Override
+//            public boolean check() {
+//                try {
+//                    // Try to parse as doubles and compare
+//                    double d1 = Double.parseDouble(get(parameter));
+//                    double d2 = Double.parseDouble(value);
+//                    return d1 == d2;
+//                } catch(NumberFormatException e) {
+//                    // If parsing fails, compare as strings
+//                    return get(parameter).equalsIgnoreCase(value);
+//                }
+//            }
+//        });
     }
 
     /**
@@ -79,8 +79,9 @@ public class IntanClient {
      * moving on because there is latency with setting operations.
      */
     public void waitFor(Condition condition) {
+        long startingTime = timeUtil.currentTimeMicros();
         ThreadUtil.sleep(QUERY_INTERVAL_MS);
-        while (!condition.check()) {
+        while (!condition.check() && timeUtil.currentTimeMicros() < startingTime + TIME_OUT_MS*1000) {
             ThreadUtil.sleep(QUERY_INTERVAL_MS);
         }
     }

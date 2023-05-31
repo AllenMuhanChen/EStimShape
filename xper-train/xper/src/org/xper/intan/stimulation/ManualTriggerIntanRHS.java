@@ -61,7 +61,7 @@ public class ManualTriggerIntanRHS extends IntanRHD {
 
 
     public void trigger(){
-        intanClient.execute("manualstimtriggerpulse f1");
+        intanClient.execute("manualstimtriggerpulse", "f1");
     }
 
     private void enableStimulationOn(RHSChannel channel) {

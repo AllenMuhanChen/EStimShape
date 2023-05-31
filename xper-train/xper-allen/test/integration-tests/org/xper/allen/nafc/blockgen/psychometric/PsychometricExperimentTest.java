@@ -4,6 +4,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.xper.allen.app.Console;
+import org.xper.allen.app.Experiment;
 import org.xper.allen.drawing.composition.noisy.NoisePositions;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
@@ -14,16 +16,14 @@ import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.util.AllenDbUtil;
+
 import org.xper.intan.stimulation.*;
 import org.xper.util.FileUtil;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class PsychometricExperimentTest {
-
+    private final String[] emptyArgs = {""};
     private PsychometricBlockGen gen;
     private AllenDbUtil dbUtil;
 
@@ -55,12 +55,19 @@ public class PsychometricExperimentTest {
                 8.0
         );
         NoisyTrialParameters noisyTrialParameters = new NoisyTrialParameters(noiseParameters, nafcTrialParameters);
-        List<NoisyTrialParameters> trialParameters = Collections.singletonList(noisyTrialParameters);
+
+        List<NoisyTrialParameters> trialParameters = new ArrayList<>();
+        for (int i=0; i < numTrialsPerImage; i++){
+            trialParameters.add(noisyTrialParameters);
+        }
 
         NumberOfDistractorsForPsychometricTrial numberOfDistractorsForPsychometricTrial = new NumberOfDistractorsForPsychometricTrial(
                 3,
                 0);
-        List<NumberOfDistractorsForPsychometricTrial> numPsychometricDistractors = Collections.singletonList(numberOfDistractorsForPsychometricTrial);
+        List<NumberOfDistractorsForPsychometricTrial> numPsychometricDistractors = new ArrayList<>();
+        for (int i=0; i < numTrialsPerImage; i++){
+            numPsychometricDistractors.add(numberOfDistractorsForPsychometricTrial);
+        }
 
 
 
@@ -78,8 +85,8 @@ public class PsychometricExperimentTest {
         PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
                 PulseRepetition.SinglePulse,
                 1,
-                0.0,
-                10.0
+                10.0,
+                1.0
         );
 
         eStimParametersForChannels.put(RHSChannel.B025, new ChannelEStimParameters(waveformParameters, pulseTrainParameters));
@@ -103,6 +110,13 @@ public class PsychometricExperimentTest {
 
 
         gen.setUp(psychometricBlockParameters);
+        gen.generate();
+    }
+
+    @Test
+    public void startExperiment(){
+        Console.main(emptyArgs);
+        Experiment.main(emptyArgs);
     }
 
     private void prepDb() {

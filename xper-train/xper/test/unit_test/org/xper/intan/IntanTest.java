@@ -36,7 +36,7 @@ public class IntanTest {
         FileUtil.loadTestSystemProperties("/xper.properties.test");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
         intanClient = context.getBean(IntanClient.class);
-        intanRHD = context.getBean(IntanRHD.class);
+        intanRHD = context.getBean(IntanRHD.class, "intan");
         intanRHD.connect();
     }
 

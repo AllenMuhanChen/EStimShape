@@ -80,7 +80,7 @@ public class PsychometricTrialListFactory implements TrialListFactory {
         setIds = new ArrayList<Long>();
         stimIds = new ArrayList<Integer>();
         for(String filename: filenames) {
-            Pattern p = Pattern.compile("([0-9]{16})_(\\d)");
+            Pattern p = Pattern.compile("([0-9]{1,16})_(\\d)");
             Matcher m = p.matcher(filename);
 
             if(m.find()) {
