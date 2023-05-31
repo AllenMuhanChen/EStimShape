@@ -1,0 +1,50 @@
+package org.xper.fixtrain;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.XperConfig;
+import org.xper.console.ExperimentConsole;
+import org.xper.exception.ExperimentSetupException;
+import org.xper.experiment.ExperimentRunner;
+import org.xper.util.FileUtil;
+import org.xper.util.ThreadUtil;
+
+import java.util.Properties;
+
+public class FixTrainTest {
+
+    private JavaConfigApplicationContext context;
+
+    @Before
+    public void setUp() throws Exception {
+        loadTestSystemProperties("/xper.properties.fixtrain");
+
+        context = new JavaConfigApplicationContext(
+                FileUtil.loadConfigClass("fixcal.config_class", FixTrainConfig.class));
+    }
+
+    @Test
+    public void experiment() {
+        ExperimentRunner runner = context.getBean(ExperimentRunner.class);
+        runner.run();
+        ThreadUtil.sleep(1000000);
+    }
+
+    @Test
+    public void console(){
+        ExperimentConsole console = context.getBean(ExperimentConsole.class);
+        console.run();
+        ThreadUtil.sleep(1000000);
+    }
+
+    public static void loadTestSystemProperties(String xper_properties) {
+        Properties props = new Properties(System.getProperties());
+        try {
+            props.load(XperConfig.class.getResourceAsStream(xper_properties));
+        } catch (Exception e) {
+            throw new ExperimentSetupException("Cannot find " + xper_properties + " file.", e);
+        }
+        System.setProperties(props);
+    }
+}

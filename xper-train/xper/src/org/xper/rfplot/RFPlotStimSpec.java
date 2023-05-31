@@ -23,21 +23,21 @@ public class RFPlotStimSpec {
 
 	boolean animation = true;
 	transient static XStream s;
-	
+
 	static {
 		s = new XStream();
 		s.alias("StimSpec", RFPlotStimSpec.class);
 		s.useAttributeFor("animation", boolean.class);
 	}
-	
+
 	public String toXml () {
 		return RFPlotStimSpec.toXml(this);
 	}
-	
+
 	public static String toXml (RFPlotStimSpec spec) {
 		return s.toXML(spec);
 	}
-	
+
 	public static RFPlotStimSpec fromXml (String xml) {
 		if (xml == null) return null;
 		RFPlotStimSpec spec = (RFPlotStimSpec)s.fromXML(xml);
@@ -54,7 +54,7 @@ public class RFPlotStimSpec {
 	public static String getStimSpecFromRFPlotDrawable(RFPlotDrawable drawable){
 		return RFPlotStimSpec.fromRFPlotDrawable(drawable).toXml();
 	}
-	
+
 	public String getStimClass() {
 		return stimClass;
 	}

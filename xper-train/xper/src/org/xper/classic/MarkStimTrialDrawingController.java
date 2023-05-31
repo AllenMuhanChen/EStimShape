@@ -25,7 +25,7 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 			taskScene.drawBlank(context, fixationOnWithStimuli, true);
 		}
 	}
-	
+
 	protected void animateTaskScene(ExperimentTask task, Context context) {
 		if (task != null) {
 			taskScene.drawTask(context, fixationOnWithStimuli);
@@ -56,7 +56,7 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 		taskScene.drawBlank(context, true, false);
 	}
 
-	public void fixationOn(TrialContext context) {;
+	public void fixationOn(TrialContext context) {
 		getWindow().swapBuffers();
 	}
 
@@ -123,7 +123,7 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 	public void trialStop(TrialContext context) {
 		taskScene.trialStop(context);
 	}
-	
+
 	public boolean isFixationOnWithStimuli() {
 		return fixationOnWithStimuli;
 	}
