@@ -112,7 +112,12 @@ public class ClassicSlideRunner implements SlideRunner {
         drawingController.showSlide(currentTask, currentContext);
         long slideOnLocalTime = timeUtil.currentTimeMicros();
         currentContext.setCurrentSlideOnTime(slideOnLocalTime);
-        long taskId = currentTask.getTaskId();
+        long taskId;
+        try {
+            taskId = currentTask.getTaskId();
+        } catch (NullPointerException e){
+            taskId = timeUtil.currentTimeMicros();
+        }
         EventUtil.fireSlideOnEvent(i, slideOnLocalTime,
                 slideEventListeners, taskId);
 

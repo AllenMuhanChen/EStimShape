@@ -163,7 +163,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         // wait for initial eye in
         boolean success = eyeController
                 .waitInitialEyeIn(fixationPointOnLocalTime
-                        + state.getTimeAllowedForInitialEyeIn() * 1000);
+                        + state.getTimeAllowedForInitialEyeIn() * 1000L);
 
         if (!success) {
             // eye fail to get in
@@ -176,9 +176,9 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         }
 
         // got initial eye in
-        long eyeInitialInLoalTime = timeUtil.currentTimeMicros();
-        currentContext.setInitialEyeInTime(eyeInitialInLoalTime);
-        EventUtil.fireInitialEyeInSucceedEvent(eyeInitialInLoalTime,
+        long eyeInitialInLocalTime = timeUtil.currentTimeMicros();
+        currentContext.setInitialEyeInTime(eyeInitialInLocalTime);
+        EventUtil.fireInitialEyeInSucceedEvent(eyeInitialInLocalTime,
                 trialEventListeners, currentContext);
 
         // prepare first slide
@@ -187,7 +187,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         drawingController.prepareFirstSlide(currentTask, currentContext);
 
         // wait for eye hold
-        success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
+        success = eyeController.waitEyeInAndHold(eyeInitialInLocalTime
                 + state.getRequiredEyeInHoldTime() * 1000);
 
         if (!success) {
