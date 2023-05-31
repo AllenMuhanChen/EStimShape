@@ -125,7 +125,7 @@ public class PsychometricTrialIntegrationTest {
 						size,
 						eyeWinSize,
 						noiseParameters);
-		PsychometricTrialParameters psychometricTrialParameters = new PsychometricTrialParameters(trialParameters, numDistractors, psychometricIds);
+		PsychometricTrialParameters psychometricTrialParameters = new PsychometricTrialParameters(trialParameters, numDistractors, psychometricIds, null);
 		trial = new PsychometricTrial(generator, psychometricTrialParameters);
 	}
 

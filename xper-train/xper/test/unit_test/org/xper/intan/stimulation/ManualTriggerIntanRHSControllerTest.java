@@ -99,8 +99,8 @@ public class ManualTriggerIntanRHSControllerTest {
         PulseTrainParameters pulseTrainParameters = new PulseTrainParameters(
                 PulseRepetition.SinglePulse,
                 1,
-                0.0,
-                0.0
+                10.0,
+                1.0
         );
 
         ChannelEStimParameters channelEStimParameters = new ChannelEStimParameters(waveformParameters, pulseTrainParameters);

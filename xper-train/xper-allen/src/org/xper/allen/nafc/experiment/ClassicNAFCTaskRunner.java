@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.function.IntPredicate;
 
 @SuppressWarnings("StatementWithEmptyBody")
-public class ClassicNAFCTaskRunner implements NAFCSlideRunner {
+public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
     private int punishmentDelayTime = 0; //Gets initialized to 0, if punishment should be applied, it's incremented, reset to zero after trial interval.
 
     public NAFCTrialResult runTask(NAFCExperimentState stateObject, NAFCTrialContext context) {

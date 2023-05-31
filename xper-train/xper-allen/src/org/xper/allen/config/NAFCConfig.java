@@ -43,6 +43,7 @@ import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
 import org.xper.exception.DbException;
 import org.xper.experiment.DatabaseTaskDataSource.UngetPolicy;
+import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.eye.RobustEyeTargetSelector;
 import org.xper.eye.listener.EyeSamplerEventListener;
 import org.xper.eye.mapping.MappingAlgorithm;
@@ -285,7 +286,7 @@ public class NAFCConfig {
 		state.setChoiceEventListeners(choiceEventListeners());
 		state.seteStimEventListeners(eStimEventListeners());
 		state.setEyeController(classicConfig.eyeController());
-		state.setExperimentEventListeners(classicConfig.experimentEventListeners());
+		state.setExperimentEventListeners(experimentEventListeners());
 		state.setTaskDataSource(databaseTaskDataSource());
 		state.setTaskDoneCache(classicConfig.taskDoneCache());
 		state.setGlobalTimeClient(acqConfig.timeClient());
@@ -314,6 +315,18 @@ public class NAFCConfig {
 		return state;
 	}
 
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public List<ExperimentEventListener> experimentEventListeners () {
+		List<ExperimentEventListener> listeners =  new LinkedList<ExperimentEventListener>();
+		listeners.add(messageDispatcher());
+		listeners.add(classicConfig.databaseTaskDataSourceController());
+		listeners.add(classicConfig.messageDispatcherController());
+		listeners.add(classicConfig.dataAcqController());
+		listeners.add(classicConfig.eyeZeroLogger());
+		listeners.add(classicConfig.experimentCpuBinder());
+		listeners.add(intanStimController());
+		return listeners;
+	}
 
 
 	@Bean (scope = DefaultScopes.PROTOTYPE)
@@ -329,7 +342,7 @@ public class NAFCConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(classicConfig.dynamicJuiceUpdater());
 		}
-		trialEventListener.add(intanController());
+		trialEventListener.add(intanStimController());
 		return trialEventListener;
 	}
 
@@ -347,6 +360,7 @@ public class NAFCConfig {
 		List<ChoiceEventListener> listeners = new LinkedList<ChoiceEventListener>();
 		listeners.add(messageDispatcher());
 		listeners.add(juiceController());
+		listeners.add(intanStimController());
 		return listeners;
 	}
 
@@ -374,12 +388,12 @@ public class NAFCConfig {
 	public List<EStimEventListener> eStimEventListeners(){
 		List<EStimEventListener> listeners = new LinkedList<EStimEventListener>();
 		listeners.add((EStimEventListener) messageDispatcher());
-		listeners.add(intanController());
+		listeners.add(intanStimController());
 		return listeners;
 	}
 
 	@Bean
-	public NAFCTrialIntanStimulationRecordingController intanController() {
+	public NAFCTrialIntanStimulationRecordingController intanStimController() {
 		NAFCTrialIntanStimulationRecordingController intanController = new NAFCTrialIntanStimulationRecordingController();
 		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
 		intanController.setIntan(intanConfig.intan());

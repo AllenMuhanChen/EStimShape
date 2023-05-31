@@ -286,7 +286,7 @@ public class ClassicConfig {
 		listeners.add(dataAcqController());
 		listeners.add(eyeZeroLogger());
 		listeners.add(experimentCpuBinder());
-		listeners.add(intanController());
+		listeners.add(intanRecordingController());
 		return listeners;
 	}
 
@@ -296,7 +296,7 @@ public class ClassicConfig {
 		listeners.add(slideEventLogger());
 		listeners.add(experimentProfiler());
 		listeners.add(messageDispatcher());
-		listeners.add(intanController());
+		listeners.add(intanRecordingController());
 		return listeners;
 	}
 
@@ -318,7 +318,7 @@ public class ClassicConfig {
 	}
 
 	@Bean
-	public SlideTrialIntanRecordingController intanController(){
+	public SlideTrialIntanRecordingController intanRecordingController(){
 		SlideTrialIntanRecordingController slideTrialIntanRecordingController = new SlideTrialIntanRecordingController();
 		slideTrialIntanRecordingController.setRecordingEnabled(intanConfig.intanRecordingEnabled);
 		slideTrialIntanRecordingController.setIntan(intanConfig.intan());

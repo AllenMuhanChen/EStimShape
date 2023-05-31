@@ -3,7 +3,7 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_dev_220404
+jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_dev_230519
 
 
 jdbc.username=xper_rw
@@ -16,7 +16,7 @@ jdbc.password=up2nite
 acq.config_class=
 
 # JK
-#  
+#
 experiment.config_class=org.xper.allen.app.nafc.config.PsychometricAppConfig
 experiment.ga.config_class=org.xper.allen.config.ThreeDGAConfig
 
@@ -39,17 +39,17 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running generator
-generator.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404
+generator.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
 #path of computer running experiment
-experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/experiment/pngs_dev_220404
+experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/experiment/pngs_dev_230519
 #path of location for specs to be saved
-generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_220404/specs
+generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_230519/specs
 
-generator.psychometric.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404_psychometric
-generator.psychometric.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_220404/noisemaps_dev_220404_psychometric
-generator.psychometric.spec_path = /home/r2_allen/Documents/EStimShape/dev_220404/specs_psychometric
-experiment.psychometric.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/experiment/pngs_dev_220404_psychometric
-experiment.psychometric.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_220404/experiment/noisemaps_dev_220404_psychometric
+generator.psychometric.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519_psychometric
+generator.psychometric.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_230519/noisemaps_dev_230519_psychometric
+generator.psychometric.spec_path = /home/r2_allen/Documents/EStimShape/dev_230519/specs_psychometric
+experiment.psychometric.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/experiment/pngs_dev_230519_psychometric
+experiment.psychometric.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_230519/experiment/noisemaps_dev_230519_psychometric
 
 
 acq.server_host=localhost
@@ -87,8 +87,10 @@ mock.matlab_spike_function_name=RandomSpike
 #############################################################################
 # intan
 #############################################################################
+intan.recording.enabled = true
 intan.host=172.30.9.78
 intan.port.command=5000
 intan.default_save_path=/home/i2_allen/Documents/Test
 intan.default_base_filename=TestRecording
-generator.spike_dat_path=/home/r2_allen/Documents/EStimShape/dev_220404/spikefiles_dev_220404
+intan.estim.enabled = true
+generator.spike_dat_path=/home/r2_allen/Documents/EStimShape/dev_230519/spikefiles_dev_230519
