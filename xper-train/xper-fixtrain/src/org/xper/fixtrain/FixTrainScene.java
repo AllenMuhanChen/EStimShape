@@ -64,12 +64,12 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
             if (xfm == null) {
                 obj.draw(context);
             } else {
+
                 GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
-                GL11.glColor3f(xfm.getColor().getRed(), xfm.getColor().getGreen(), xfm.getColor().getBlue());
                 GL11.glPushMatrix();
-//                GL11.glTranslated(fixationPosition.getX(), fixationPosition.getY(), 1.0);
-                GL11.glRotatef(xfm.getRotation(), 0.0f, 0.0f, 1.0f);
+                GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0);
                 GL11.glScaled(xfm.getScale().getX(), xfm.getScale().getY(), 1.0);
+                System.err.println(xfm.getScale().getX());
 
                 obj.draw(context);
 
@@ -91,6 +91,16 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
 
     @Override
     public void setTask(ExperimentTask task) {
+
+    }
+
+
+    @Override
+    public void trialStart(long timestamp, TrialContext context) {
+        trialSucceed.set(false);
+        fireCalibrationPointSetupEvent(timestamp, context);
+
+        ExperimentTask task = context.getCurrentTask();
         spec = FixTrainStimSpec.fromXml(task.getStimSpec());
         if (spec != null) {
             FixTrainDrawable obj = currentFixationPoint();
@@ -103,14 +113,6 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
             obj.setSpec(spec.getStimSpec());
         }
         xfm = FixTrainXfmSpec.fromXml(task.getXfmSpec());
-    }
-
-
-    @Override
-    public void trialStart(long timestamp, TrialContext context) {
-        trialSucceed.set(false);
-        fireCalibrationPointSetupEvent(timestamp, context);
-
     }
 
     private void fireCalibrationPointSetupEvent(long timestamp, TrialContext context) {

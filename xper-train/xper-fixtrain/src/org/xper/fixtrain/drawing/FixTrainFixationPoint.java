@@ -32,10 +32,10 @@ public class FixTrainFixationPoint extends FixTrainDrawable{
     private void drawVertexes(Coordinates2D posInMm) {
         double z = 0;
 
-        GL11.glColor4f(color.getRed(), color.getGreen(), color.getBlue(), 1f);
-
         GL11.glPushMatrix();
         GL11.glTranslated(posInMm.getX(), posInMm.getY(), z);
+        GL11.glColor3f(color.getRed(), color.getGreen(), color.getBlue());
+
         if (solid) {
             GL11.glBegin(GL11.GL_QUADS);
         } else {

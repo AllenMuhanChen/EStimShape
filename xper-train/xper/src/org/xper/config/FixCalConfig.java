@@ -60,10 +60,10 @@ public class FixCalConfig {
 	@Autowired ClassicConfig classicConfig;
 	@Autowired AcqConfig acqConfig;
 	@Autowired BaseConfig baseConfig;
-	
+
 	@ExternalValue("fixcal.screen_setup")
 	public String fixcalScreenSetup;
-	
+
 	@Bean
 	public EyeInStrategy eyeInStrategy () {
 		StereoEyeInStrategy strategy = new StereoEyeInStrategy();
@@ -78,7 +78,7 @@ public class FixCalConfig {
 		xper.setStateObject(experimentState());
 		return xper;
 	}
-	
+
 	@Bean
 	public SlideTrialExperimentState experimentState () {
 		SlideTrialExperimentState state = new SlideTrialExperimentState ();
@@ -104,7 +104,7 @@ public class FixCalConfig {
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		return state;
 	}
-	
+
 	@Bean
 	public FixationCalibration taskScene() {
 		FixationCalibration scene = new FixationCalibration();
@@ -147,7 +147,7 @@ public class FixCalConfig {
 			throw new ExperimentSetupException("Invalid screen setup: " + fixcalScreenSetup);
 		}
 	}
-	
+
 	@Bean
 	public FixationPoint experimentFixationPoint() {
 		FixationPoint f = new FixationPoint ();
@@ -155,22 +155,22 @@ public class FixCalConfig {
 		f.setSize(classicConfig.xperFixationPointSize());
 		return f;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Boolean xperRightIscanEyeZeroUpdateEnabled () {
 		return false;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Boolean xperLeftIscanEyeZeroUpdateEnabled () {
 		return false;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Boolean xperFixationOnWithStimuli() {
 		return true;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeDeviceMessageListener> eyeDeviceMessageListeners () {
 		List<EyeDeviceMessageListener> listeners = new LinkedList<EyeDeviceMessageListener>();
@@ -178,17 +178,17 @@ public class FixCalConfig {
 		listeners.add(messageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean
 	public NullTaskDoneCache taskDoneCache() {
 		return new NullTaskDoneCache();
 	}
-	
+
 	@Bean
 	public NullTaskDataSource taskDataSource() {
 		return new NullTaskDataSource();
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<ExperimentEventListener> experimentEventListeners () {
 		List<ExperimentEventListener> listeners =  new LinkedList<ExperimentEventListener>();
@@ -198,15 +198,16 @@ public class FixCalConfig {
 		listeners.add(classicConfig.experimentCpuBinder());
 		return listeners;
 	}
-	
+
+
 	@Bean
 	public MessageDispatcherController messageDispatcherController() {
 		MessageDispatcherController controller = new MessageDispatcherController();
 		controller.setMessageDispatcher(messageDispatcher());
 		return controller;
 	}
-	
-	
+
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<TrialEventListener> trialEventListeners () {
 		List<TrialEventListener> listeners = new LinkedList<TrialEventListener>();
@@ -223,17 +224,17 @@ public class FixCalConfig {
 		}
 		return listeners;
 	}
-	
 
-	
+
+
 	@Bean
 	public FixCalMessageDispatcher messageDispatcher() {
 		FixCalMessageDispatcher dispatcher = new FixCalMessageDispatcher();
 		dispatcher.setHost(classicConfig.experimentHost);
 		dispatcher.setDbUtil(baseConfig.dbUtil());
-		return dispatcher; 
+		return dispatcher;
 	}
-	
+
 	@Bean
 	public FixCalConsoleRenderer consoleRenderer () {
 		FixCalConsoleRenderer renderer = new FixCalConsoleRenderer();
@@ -245,7 +246,7 @@ public class FixCalConfig {
 		renderer.setSquare(new Square());
 		return renderer;
 	}
-	
+
 	@Bean
 	public FixCalMessageHandler messageHandler () {
 		FixCalMessageHandler messageHandler = new FixCalMessageHandler();
@@ -270,25 +271,25 @@ public class FixCalConfig {
 		// messageReceiverEventListeners.add(console);
 		receiver.setMessageReceiverEventListeners(messageReceiverEventListeners);
 		receiver.setMessageHandler(messageHandler());
-		
+
 		return receiver;
 	}
-	
+
 	@Bean
 	public ExperimentConsoleModel experimentConsoleModel () {
 		ExperimentConsoleModel model = new ExperimentConsoleModel();
 		model.setMessageReceiver(messageReceiver());
 		model.setLocalTimeUtil(baseConfig.localTimeUtil());
-		
+
 		HashMap<String, MappingAlgorithm> eyeMappingAlgorithm = new HashMap<String, MappingAlgorithm>();
 		eyeMappingAlgorithm.put(classicConfig.xperLeftIscanId(), classicConfig.leftIscanMappingAlgorithm());
 		eyeMappingAlgorithm.put(classicConfig.xperRightIscanId(), classicConfig.rightIscanMappingAlgorithm());
 		model.setEyeMappingAlgorithm(eyeMappingAlgorithm);
-		
+
 		model.setExperimentRunnerClient(classicConfig.experimentRunnerClient());
 		model.setChannelMap(classicConfig.iscanChannelMap());
 		model.setMessageHandler(messageHandler());
-		
+
 		if (classicConfig.consoleEyeSimulation || acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			// socket sampling server for eye simulation
 			SocketSamplingDeviceServer server = new SocketSamplingDeviceServer();
@@ -300,19 +301,19 @@ public class FixCalConfig {
 			data.put(classicConfig.xperRightIscanXChannel(), new Double(0));
 			data.put(classicConfig.xperRightIscanYChannel(), new Double(0));
 			server.setCurrentChannelData(data);
-			
+
 			model.setSamplingServer(server);
 		}
 		return model;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeWindowMessageListener> eyeWindowMessageListeners () {
 		List<EyeWindowMessageListener> listeners = new LinkedList<EyeWindowMessageListener>();
 		listeners.add(messageDispatcher());
 		return listeners;
 	}
-	
+
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public List<EyeEventListener> eyeEventListeners() {
 		List<EyeEventListener> listeners = new LinkedList<EyeEventListener> ();
@@ -321,6 +322,6 @@ public class FixCalConfig {
 		listeners.add(messageDispatcher());
 		return listeners;
 	}
-	
-	
+
+
 }

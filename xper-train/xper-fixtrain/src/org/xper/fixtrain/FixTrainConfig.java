@@ -14,9 +14,13 @@ import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.config.FixCalConfig;
+import org.xper.console.ExperimentConsole;
+import org.xper.console.ExperimentMessageReceiver;
+import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.object.BlankScreen;
+import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.MessageDispatcherController;
 import org.xper.experiment.mock.NullTaskDataSource;
@@ -26,6 +30,8 @@ import org.xper.eye.vo.EyeWindow;
 import org.xper.fixcal.FixCalEventListener;
 import org.xper.fixcal.FixCalMessageDispatcher;
 import org.xper.fixcal.FixCalMessageHandler;
+import org.xper.fixtrain.console.FixTrainClient;
+import org.xper.fixtrain.console.FixTrainConsolePlugin;
 import org.xper.fixtrain.drawing.FixTrainDrawable;
 import org.xper.fixtrain.drawing.FixTrainFixationPoint;
 
@@ -90,8 +96,25 @@ public class FixTrainConfig {
         listeners.add(messageDispatcher());
         listeners.add(messageDispatcherController());
         listeners.add(classicConfig.experimentCpuBinder());
+        listeners.add(taskDataSourceController());
         return listeners;
     }
+
+    @Bean
+    public FixTrainTaskDataSourceController taskDataSourceController(){
+        FixTrainTaskDataSourceController controller = new FixTrainTaskDataSourceController();
+        controller.setTaskDataSource((FixTrainTaskDataSource) taskDataSource());
+        return controller;
+    }
+
+    @Bean
+    public TaskDataSource taskDataSource() {
+        FixTrainTaskDataSource taskDataSource = new FixTrainTaskDataSource();
+        taskDataSource.setHost(classicConfig.experimentHost);
+        taskDataSource.setFixTrainObjectMap(fixTrainObjectMap());
+        return taskDataSource;
+    }
+
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public List<TrialEventListener> trialEventListeners () {
@@ -163,16 +186,46 @@ public class FixTrainConfig {
         return dispatcher;
     }
 
+    @Bean
+    public ExperimentConsole experimentConsole () {
+        ExperimentConsole console = new ExperimentConsole();
+
+        console.setPaused(classicConfig.xperExperimentInitialPause());
+        console.setConsoleRenderer(classicConfig.consoleRenderer());
+        console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
+        console.setModel(classicConfig.experimentConsoleModel());
+        console.setCanvasScaleFactor(3);
+
+        ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
+        // register itself to avoid circular reference
+        receiver.addMessageReceiverEventListener(console);
+
+        List<IConsolePlugin> plugins = new LinkedList<>();
+        plugins.add(fixTrainConsolePlugin());
+        console.setConsolePlugins(plugins);
+        return console;
+    }
+
+    @Bean
+    public FixTrainConsolePlugin fixTrainConsolePlugin(){
+        FixTrainConsolePlugin plugin = new FixTrainConsolePlugin();
+        plugin.setClient(fixTrainClient());
+        plugin.setFixTrainObjectMap(fixTrainObjectMap());
+        return plugin;
+    }
+
+    @Bean
+    public FixTrainClient fixTrainClient(){
+        FixTrainClient client = new FixTrainClient();
+        client.setHost(classicConfig.experimentHost);
+        return client;
+    }
 
     @Bean
     public NullTaskDoneCache taskDoneCache() {
         return new NullTaskDoneCache();
     }
 
-    @Bean
-    public NullTaskDataSource taskDataSource() {
-        return new NullTaskDataSource();
-    }
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public Boolean xperFixationOnWithStimuli() {

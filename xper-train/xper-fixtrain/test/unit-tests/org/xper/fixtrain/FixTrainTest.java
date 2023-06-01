@@ -25,7 +25,11 @@ public class FixTrainTest {
     }
 
     @Test
-    public void experiment() {
+    public void main() {
+        ExperimentConsole console = context.getBean(ExperimentConsole.class);
+        console.run();
+
+
         ExperimentRunner runner = context.getBean(ExperimentRunner.class);
         runner.run();
         ThreadUtil.sleep(1000000);
@@ -35,8 +39,16 @@ public class FixTrainTest {
     public void console(){
         ExperimentConsole console = context.getBean(ExperimentConsole.class);
         console.run();
+        ThreadUtil.sleep(100000);
+    }
+
+    @Test
+    public void experiment(){
+        ExperimentRunner runner = context.getBean(ExperimentRunner.class);
+        runner.run();
         ThreadUtil.sleep(1000000);
     }
+
 
     public static void loadTestSystemProperties(String xper_properties) {
         Properties props = new Properties(System.getProperties());
