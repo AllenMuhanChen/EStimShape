@@ -1,11 +1,11 @@
-package org.xper.drawing;
+package org.xper.fixtrain.drawing;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
 import org.xper.XperConfig;
-import org.xper.alden.drawing.drawables.BaseWindow;
-import org.xper.alden.drawing.drawables.Drawable;
-import org.xper.alden.drawing.renderer.PerspectiveRenderer;
+import org.xper.drawing.Context;
+import org.xper.drawing.Drawable;
+import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.util.ThreadUtil;
 
 import java.util.ArrayList;
@@ -16,32 +16,10 @@ public class TestDrawingWindow {
     public PerspectiveRenderer renderer;
 
     public void draw(Drawable drawable){
-        renderer.draw(drawable);
+        renderer.draw(drawable, new Context());
         window.swapBuffers();
     }
 
-    public void animateRotation(List<Drawable> drawables, float angle, double numFrames){
-        for (int frameNum = 0; frameNum< numFrames; frameNum++) {
-            int finalFrameNum = frameNum;
-            renderer.draw(new Drawable() {
-                @Override
-                public void draw() {
-                    GL11.glPushMatrix();
-                    GL11.glMatrixMode(GL11.GL_MODELVIEW);
-                    GL11.glRotatef(finalFrameNum*angle, 1f, 1f, 1f);
-                    for (Drawable drawable:drawables)
-                        drawable.draw();
-                }
-            });
-            GL11.glPopMatrix();
-            window.swapBuffers();
-            GL11.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-            GL11.glFlush();
-            ThreadUtil.sleep(Math.round((1/60.0)*1000));
-        }
-
-    }
 
 
     public static TestDrawingWindow createDrawerWindow() {
@@ -68,9 +46,8 @@ public class TestDrawingWindow {
         window.create();
 
         renderer = new PerspectiveRenderer();
-        //renderer = new OrthographicRenderer();
         renderer.setDepth(6000);
-        renderer.setDistance(500); //TODO: stitch this into generator so it is a dependency
+        renderer.setDistance(500);
         renderer.setPupilDistance(50);
         renderer.setHeight(100);
         renderer.setWidth(100);

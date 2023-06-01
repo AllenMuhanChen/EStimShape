@@ -64,7 +64,6 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
             if (xfm == null) {
                 obj.draw(context);
             } else {
-
                 GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
                 GL11.glPushMatrix();
                 GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0);
