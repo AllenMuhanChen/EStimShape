@@ -1,15 +1,15 @@
 package org.xper.fixtrain;
 
 import com.thoughtworks.xstream.XStream;
-import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.fixtrain.drawing.FixTrainDrawable;
 
 public class FixTrainStimSpec {
     /**
-     * Class name of the RFPlotObject
+     * Class name of the FixTrainObject
      */
     String stimClass;
     /**
-     * Spec for the RFPlotObject
+     * Spec for the FixTrainObject
      */
     String stimSpec;
 
@@ -44,15 +44,15 @@ public class FixTrainStimSpec {
         return spec;
     }
 
-    public static FixTrainStimSpec fromRFPlotDrawable(RFPlotDrawable drawable){
+    public static FixTrainStimSpec fromFixTrainDrawable(FixTrainDrawable drawable){
         String stimSpec = drawable.getSpec();
         String stimClass = drawable.getClass().getName();
 
         return new FixTrainStimSpec(stimClass, stimSpec);
     }
 
-    public static String getStimSpecFromRFPlotDrawable(RFPlotDrawable drawable){
-        return FixTrainStimSpec.fromRFPlotDrawable(drawable).toXml();
+    public static String getStimSpecFromFixTrainDrawable(FixTrainDrawable drawable){
+        return FixTrainStimSpec.fromFixTrainDrawable(drawable).toXml();
     }
 
     public String getStimClass() {

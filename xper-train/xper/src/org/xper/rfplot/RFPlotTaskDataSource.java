@@ -20,10 +20,10 @@ import org.xper.util.ThreadHelper;
 
 public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	static Logger logger = Logger.getLogger(RFPlotTaskDataSource.class);
-	
+
 	public static final int DEFAULT_RF_PLOT_TASK_DATA_SOURCE_PORT = 8892;
 	private static final int DEFAULT_BACK_LOG = 10;
-	
+
 	@Dependency
 	int port = DEFAULT_RF_PLOT_TASK_DATA_SOURCE_PORT;
 	@Dependency
@@ -40,20 +40,20 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	public void setBacklog(int backlog) {
 		this.backlog = backlog;
 	}
-	
+
 	public static final int RFPLOT_STOP = 0;
 	public static final int RFPLOT_STIM_SPEC = 1;
 	public static final int RFPLOT_XFM_SPEC = 2;
-	
+
 	ServerSocket server = null;
-	
+
 	AtomicReference<ExperimentTask> currentTask = new AtomicReference<ExperimentTask>();
 	ThreadHelper threadHelper = new ThreadHelper("RFPlotTaskDataSource", this);
-	
+
 	public boolean isRunning() {
 		return threadHelper.isRunning();
 	}
-	
+
 	public RFPlotTaskDataSource (int port, int backlog) {
 		this.port = port;
 		this.backlog = backlog;
@@ -61,11 +61,12 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	public RFPlotTaskDataSource (int backlog) {
 		this(DEFAULT_RF_PLOT_TASK_DATA_SOURCE_PORT, backlog);
 	}
-	
+
 	public RFPlotTaskDataSource () {
 		this(DEFAULT_RF_PLOT_TASK_DATA_SOURCE_PORT, DEFAULT_BACK_LOG);
 	}
 
+	@Override
 	public ExperimentTask getNextTask() {
 		ExperimentTask task = currentTask.get();
 		if (task == null){
@@ -105,7 +106,7 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 			threadHelper.join();
 		}
 	}
-	
+
 	private void handleRequest() throws IOException {
 		Socket con = null;
 		try {
@@ -122,7 +123,7 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 				}
 
 				switch (response) {
-				case RFPLOT_STIM_SPEC: 
+				case RFPLOT_STIM_SPEC:
 					task.setStimSpec(spec);
 					break;
 				case RFPLOT_XFM_SPEC:
@@ -132,7 +133,7 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 				currentTask.set(task);
 			}
 			input.close();
-			
+
 		} catch (SocketTimeoutException e) {
 		} finally {
 			try {
@@ -150,9 +151,9 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 		try {
 			server = new ServerSocket(port, backlog, InetAddress.getByName(host));
 			System.out.println("RFPlotTaskDataSource started on host " + host + " port " + port);
-			
+
 			threadHelper.started();
-			
+
 			while (!threadHelper.isDone()) {
 				handleRequest();
 			}

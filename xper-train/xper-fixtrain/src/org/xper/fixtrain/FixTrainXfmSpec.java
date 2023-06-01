@@ -14,14 +14,17 @@ public class FixTrainXfmSpec {
 
     transient static XStream s;
 
-    static FixTrainXfmSpec defaultXmlSpec;
+    static final FixTrainXfmSpec defaultXmlSpec;
 
+    public static FixTrainXfmSpec defaultXfmSpec(){
+        return defaultXmlSpec;
+    }
     static {
         s = new XStream();
-        s.alias("RFPlotXfmSpec", FixTrainXfmSpec.class);
+        s.alias("FixTrainXfmSpec", FixTrainXfmSpec.class);
 
         defaultXmlSpec = new FixTrainXfmSpec();
-        defaultXmlSpec.setColor(new RGBColor(0f, 0f, 0f));
+        defaultXmlSpec.setColor(new RGBColor(1f, 0f, 0f));
         defaultXmlSpec.setScale(new Coordinates2D(1.0, 1.0));
         defaultXmlSpec.setRotation(0f);
         defaultXmlSpec.setTranslation(new Coordinates2D(0, 0));
