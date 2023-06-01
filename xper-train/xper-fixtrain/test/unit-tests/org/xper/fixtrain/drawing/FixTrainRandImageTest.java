@@ -3,6 +3,7 @@ package org.xper.fixtrain.drawing;
 import org.junit.Before;
 import org.junit.Test;
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
 import org.xper.util.ThreadUtil;
 
@@ -22,8 +23,7 @@ public class FixTrainRandImageTest {
 
     @Test
     public void draws_from_img_dir_properly(){
-        FixTrainRandImage img = new FixTrainRandImage();
-        img.setSpec(imageDirectoryPath);
+        FixTrainRandImage img = new FixTrainRandImage(imageDirectoryPath);
 
         for (int i = 0 ; i < 10 ; i++) {
             window.draw(new Drawable() {
@@ -33,6 +33,7 @@ public class FixTrainRandImageTest {
                 }
             });
             ThreadUtil.sleep(500);
+            img.next(new Coordinates2D(0,0));
         }
     }
 

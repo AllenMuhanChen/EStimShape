@@ -8,13 +8,20 @@ public abstract class FixTrainDrawable {
     public abstract void draw(Context context);
     public abstract void setSpec (String spec);
 
-    public Coordinates2D getFixationPosition() {
-        return fixationPosition;
-    }
-
-    public void setFixationPosition(Coordinates2D fixationPosition) {
+    /**
+     * Updates the location of the fixation drawable, and updates
+     * the drawable itself is the updateDrawable method is implemented.
+     * @param fixationPosition
+     */
+    public void next(Coordinates2D fixationPosition){
         this.fixationPosition = fixationPosition;
+        updateDrawable();
     }
+    /**
+     * Some drawables should be updated on every trial/calibration point.
+     * This method is responsible for updating the drawable.
+     */
+    protected abstract void updateDrawable();
 
     public abstract String getSpec();
 }

@@ -7,6 +7,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.fixtrain.FixTrainStimSpec;
 import org.xper.fixtrain.FixTrainXfmSpec;
 import org.xper.fixtrain.drawing.FixTrainDrawable;
+import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.gui.CyclicIterator;
 
 import javax.swing.*;
@@ -35,7 +36,19 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
+            String nextStimType = stimTypeSpecs.next();
+            changeStimType(nextStimType);
+        }
+        if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)){
+            String prevStimType = stimTypeSpecs.previous();
+            changeStimType(prevStimType);
+        }
+    }
 
+    private void changeStimType(String nextStimType) {
+        this.currentStimType = nextStimType;
+        updateToCurrentStimType();
     }
 
     private void updateToCurrentStimType(){
@@ -112,7 +125,8 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
 
     @Override
     public String getPluginName() {
-        return null;
+        return "fixation training";
+
     }
 
     @Override
@@ -122,12 +136,15 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
 
     @Override
     public List<KeyStroke> getCommandKeys() {
-        return new LinkedList<>();
+        List<KeyStroke> keys = new LinkedList<KeyStroke>();
+        keys.add(KeyStroke.getKeyStroke(KeyEvent.VK_A, 0));
+        keys.add(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0));
+        return keys;
     }
 
     @Override
     public String getPluginHelp() {
-        return "null";
+        return "FixTrain";
     }
 
     @Override

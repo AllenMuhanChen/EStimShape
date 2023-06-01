@@ -5,7 +5,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.fixtrain.drawing.TranslatableResizableImages;
 
 /**
- * For drawing a specific image you have in mind.
+ * For drawing a specific image.
  */
 public class FixTrainImage extends FixTrainDrawable{
 
@@ -27,6 +27,11 @@ public class FixTrainImage extends FixTrainDrawable{
     @Override
     public void setSpec(String spec) {
         this.spec = ImageSpec.fromXml(spec);
+    }
+
+    @Override
+    protected void updateDrawable() {
+
     }
 
     @Override

@@ -141,7 +141,7 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
         double y = calibrationPoints[currentPointIndex].getY()
                 * calibrationDegree;
         Coordinates2D calibrationPointPositionDegrees = new Coordinates2D(x, y);
-        currentFixationPoint().setFixationPosition(calibrationPointPositionDegrees);
+        currentFixationPoint().next(calibrationPointPositionDegrees);
         eyeMonitor.setEyeWinCenter(calibrationPointPositionDegrees);
     }
 
