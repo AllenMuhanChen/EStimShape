@@ -1,10 +1,7 @@
 package org.xper.fixtrain;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.config.java.annotation.Bean;
-import org.springframework.config.java.annotation.Configuration;
-import org.springframework.config.java.annotation.Import;
-import org.springframework.config.java.annotation.Lazy;
+import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
@@ -34,6 +31,7 @@ import org.xper.fixtrain.console.FixTrainClient;
 import org.xper.fixtrain.console.FixTrainConsolePlugin;
 import org.xper.fixtrain.drawing.FixTrainDrawable;
 import org.xper.fixtrain.drawing.FixTrainFixationPoint;
+import org.xper.fixtrain.drawing.FixTrainRandImage;
 
 import java.util.*;
 
@@ -48,6 +46,33 @@ public class FixTrainConfig {
     AcqConfig acqConfig;
     @Autowired
     BaseConfig baseConfig;
+
+
+    @ExternalValue("fixtrain.image_directory")
+    public String imageDirectory;
+
+    @Bean
+    public Map<String, FixTrainDrawable> fixTrainObjectMap() {
+        Map<String, FixTrainDrawable> map = new LinkedHashMap<>();
+        map.put(FixTrainRandImage.class.getName(), defaultRandImage());
+        map.put(FixTrainFixationPoint.class.getName(), defaultFixationPoint());
+        return map;
+    }
+
+    @Bean
+    public FixTrainDrawable defaultRandImage() {
+        FixTrainRandImage randImage = new FixTrainRandImage(imageDirectory);
+        return randImage;
+    }
+
+    @Bean
+    public FixTrainFixationPoint defaultFixationPoint() {
+        int size = 10;
+        RGBColor color = new RGBColor(1f, 1f, 0f);
+        boolean solid = true;
+
+        return new FixTrainFixationPoint(size, color, solid);
+    }
 
     @Bean
     public SlideTrialExperimentState experimentState () {
@@ -146,22 +171,6 @@ public class FixTrainConfig {
         eyeZero.put(classicConfig.xperRightIscanId(), classicConfig.xperRightIscanEyeZero());
         messageHandler.setEyeZero(eyeZero);
         return messageHandler;
-    }
-
-    @Bean
-    public Map<String, FixTrainDrawable> fixTrainObjectMap() {
-        Map<String, FixTrainDrawable> map = new LinkedHashMap<>();
-        map.put(FixTrainFixationPoint.class.getName(), defaultFixationPoint());
-        return map;
-    }
-
-    @Bean
-    public FixTrainFixationPoint defaultFixationPoint() {
-        int size = 10;
-        RGBColor color = new RGBColor(1f, 1f, 0f);
-        boolean solid = true;
-
-        return new FixTrainFixationPoint(size, color, solid);
     }
 
     @Bean

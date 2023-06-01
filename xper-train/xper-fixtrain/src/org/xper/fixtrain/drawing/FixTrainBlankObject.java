@@ -14,6 +14,11 @@ public class FixTrainBlankObject extends FixTrainDrawable {
     }
 
     @Override
+    protected void updateDrawable() {
+
+    }
+
+    @Override
     public String getSpec() {
         return null;
     }

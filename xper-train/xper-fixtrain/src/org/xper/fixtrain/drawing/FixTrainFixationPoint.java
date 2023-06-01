@@ -77,6 +77,11 @@ public class FixTrainFixationPoint extends FixTrainDrawable{
     }
 
     @Override
+    public void updateDrawable() {
+        //do nothing, we want to keep the same fixation point
+    }
+
+    @Override
     public String getSpec() {
         return toXml();
     }
