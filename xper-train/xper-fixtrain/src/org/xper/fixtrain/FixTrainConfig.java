@@ -11,7 +11,6 @@ import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.config.FixCalConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.IConsolePlugin;
@@ -21,13 +20,11 @@ import org.xper.drawing.object.BlankScreen;
 import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.MessageDispatcherController;
-import org.xper.experiment.mock.NullTaskDataSource;
 import org.xper.experiment.mock.NullTaskDoneCache;
 import org.xper.eye.vo.EyeDeviceReading;
 import org.xper.eye.vo.EyeWindow;
 import org.xper.fixcal.FixCalEventListener;
 import org.xper.fixcal.FixCalMessageDispatcher;
-import org.xper.fixcal.FixCalMessageHandler;
 import org.xper.fixtrain.console.FixTrainClient;
 import org.xper.fixtrain.console.FixTrainConsolePlugin;
 import org.xper.fixtrain.drawing.FixTrainDrawable;
@@ -170,7 +167,7 @@ public class FixTrainConfig {
 
     @Bean
     public TrialExperimentMessageHandler messageHandler () {
-        FixCalMessageHandler messageHandler = new FixCalMessageHandler();
+        FixTrainMessageHandler messageHandler = new FixTrainMessageHandler();
         HashMap<String, EyeDeviceReading> eyeDeviceReading = new HashMap<String, EyeDeviceReading>();
         eyeDeviceReading.put(classicConfig.xperLeftIscanId(), classicConfig.zeroEyeDeviceReading());
         eyeDeviceReading.put(classicConfig.xperRightIscanId(), classicConfig.zeroEyeDeviceReading());
