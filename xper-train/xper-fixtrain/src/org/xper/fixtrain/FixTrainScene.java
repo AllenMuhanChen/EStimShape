@@ -89,6 +89,7 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
     public void trialStart(long timestamp, TrialContext context) {
         trialSucceed.set(false);
         if (spec==null) { //first trial of the experiment won't have a spec yet
+            //and there's no previous trialStop to set this info.
             updateFixationSpec(context);
         }
         fireCalibrationPointSetupEvent(timestamp, context);
