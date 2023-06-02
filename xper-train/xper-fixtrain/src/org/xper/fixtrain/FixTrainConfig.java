@@ -51,23 +51,25 @@ public class FixTrainConfig {
     @ExternalValue("fixtrain.image_directory")
     public String imageDirectory;
 
+    @ExternalValue("fixtrain.default_size")
+    public double defaultSize;
+
     @Bean
-    public Map<String, FixTrainDrawable> fixTrainObjectMap() {
-        Map<String, FixTrainDrawable> map = new LinkedHashMap<>();
+    public Map<String, FixTrainDrawable<?>> fixTrainObjectMap() {
+        Map<String, FixTrainDrawable<?>> map = new LinkedHashMap<>();
         map.put(FixTrainRandImage.class.getName(), defaultRandImage());
         map.put(FixTrainFixationPoint.class.getName(), defaultFixationPoint());
         return map;
     }
 
     @Bean
-    public FixTrainDrawable defaultRandImage() {
-        FixTrainRandImage randImage = new FixTrainRandImage(imageDirectory);
-        return randImage;
+    public FixTrainRandImage defaultRandImage() {
+        return new FixTrainRandImage(imageDirectory, new Coordinates2D(defaultSize, defaultSize));
     }
 
     @Bean
     public FixTrainFixationPoint defaultFixationPoint() {
-        int size = 10;
+        double size = defaultSize;
         RGBColor color = new RGBColor(1f, 1f, 0f);
         boolean solid = true;
 

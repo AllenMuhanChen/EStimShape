@@ -21,18 +21,18 @@ import java.util.Map;
 
 public class FixTrainConsolePlugin implements IConsolePlugin {
     @Dependency
-    Map<String, FixTrainDrawable> fixTrainObjectMap;
+    Map<String, FixTrainDrawable<?>> fixTrainObjectMap;
 
     @Dependency
     FixTrainClient client;
 
-    private final static double SCALE_FACTOR = 0.25;
+    private final static double SCALE_FACTOR = 0.1;
 
     private String currentStimType;
-    private String currentStimSpec;
+    private FixTrainDrawable<?> currentStim;
     private String currentXfmSpec;
     private CyclicIterator<String> stimTypeSpecs;
-    private double currentScaleFactor;
+
 
     @Override
     public void handleKeyStroke(KeyStroke k) {
@@ -52,8 +52,8 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
     }
 
     private void updateToCurrentStimType(){
-        FixTrainDrawable drawable = fixTrainObjectMap.get(currentStimType);
-        currentStimSpec = FixTrainStimSpec.getStimSpecFromFixTrainDrawable(drawable);
+        currentStim = fixTrainObjectMap.get(currentStimType);
+        String currentStimSpec = FixTrainStimSpec.getStimSpecFromFixTrainDrawable(currentStim);
         client.changeStim(currentStimSpec);
         System.out.println("Stim type changed to " + currentStimType);
     }
@@ -99,28 +99,28 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
 
     private void updateSize(int clicks) {
         if (clicks != 0) {
+            double scaleFactor = 1.0;
             if (clicks > 0) {
                 for (int i = 0; i < clicks; i++) {
-                    currentScaleFactor = nextSize(currentScaleFactor);
+                    scaleFactor = nextSize(scaleFactor);
                 }
             } else{
-                currentScaleFactor = previousSize(currentScaleFactor);
+                scaleFactor = previousSize(scaleFactor);
             }
-            FixTrainXfmSpec newXfm = FixTrainXfmSpec.fromXml(currentXfmSpec);
-            newXfm.setScale(new Coordinates2D(currentScaleFactor, currentScaleFactor));
-            currentXfmSpec = newXfm.toXml();
-            client.changeXfm(currentXfmSpec);
-            System.out.println("Scale changed to " + currentScaleFactor);
-
+            currentStim = fixTrainObjectMap.get(currentStimType);
+            currentStim.scaleSize(scaleFactor);
+            String currentStimSpec = FixTrainStimSpec.getStimSpecFromFixTrainDrawable(currentStim);
+            client.changeStim(currentStimSpec);
+            System.out.println("Size changed to " + currentStim.getSize().toString());
         }
     }
 
     private double nextSize(double currentScaleFactor) {
-        return currentScaleFactor + (SCALE_FACTOR);
+        return 1.0 + SCALE_FACTOR;
     }
 
     private double previousSize(double currentScaleFactor) {
-        return currentScaleFactor - (1.0-SCALE_FACTOR);
+        return 1.0 - SCALE_FACTOR;
     }
 
     @Override
@@ -152,11 +152,11 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
 
     }
 
-    public Map<String, FixTrainDrawable> getFixTrainObjectMap() {
+    public Map<String, FixTrainDrawable<?>> getFixTrainObjectMap() {
         return fixTrainObjectMap;
     }
 
-    public void setFixTrainObjectMap(Map<String, FixTrainDrawable> fixTrainObjectMap) {
+    public void setFixTrainObjectMap(Map<String, FixTrainDrawable<?>> fixTrainObjectMap) {
         this.fixTrainObjectMap = fixTrainObjectMap;
     }
 

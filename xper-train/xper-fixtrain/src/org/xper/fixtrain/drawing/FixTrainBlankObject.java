@@ -2,7 +2,7 @@ package org.xper.fixtrain.drawing;
 
 import org.xper.drawing.Context;
 
-public class FixTrainBlankObject extends FixTrainDrawable {
+public class FixTrainBlankObject extends FixTrainDrawable<Object> {
     @Override
     public void draw(Context context) {
 
@@ -14,7 +14,17 @@ public class FixTrainBlankObject extends FixTrainDrawable {
     }
 
     @Override
-    protected void updateDrawable() {
+    public void scaleSize(double scale) {
+
+    }
+
+    @Override
+    public Object getSize() {
+        return null;
+    }
+
+    @Override
+    protected void nextDrawable() {
 
     }
 

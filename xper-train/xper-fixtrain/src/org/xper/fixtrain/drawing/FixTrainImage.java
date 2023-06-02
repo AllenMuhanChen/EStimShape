@@ -7,7 +7,7 @@ import org.xper.fixtrain.drawing.TranslatableResizableImages;
 /**
  * For drawing a specific image.
  */
-public class FixTrainImage extends FixTrainDrawable{
+public class FixTrainImage extends FixTrainDrawable<Coordinates2D>{
 
     private ImageSpec spec;
     private TranslatableResizableImages images;
@@ -30,7 +30,17 @@ public class FixTrainImage extends FixTrainDrawable{
     }
 
     @Override
-    protected void updateDrawable() {
+    public void scaleSize(double scale) {
+        spec.setDimensions(new Coordinates2D(spec.getDimensions().getX() * scale, spec.getDimensions().getY() * scale));
+    }
+
+    @Override
+    public Coordinates2D getSize() {
+        return spec.getDimensions();
+    }
+
+    @Override
+    protected void nextDrawable() {
 
     }
 

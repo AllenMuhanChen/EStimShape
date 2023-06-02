@@ -44,14 +44,14 @@ public class FixTrainStimSpec {
         return spec;
     }
 
-    public static FixTrainStimSpec fromFixTrainDrawable(FixTrainDrawable drawable){
+    public static FixTrainStimSpec fromFixTrainDrawable(FixTrainDrawable<?> drawable){
         String stimSpec = drawable.getSpec();
         String stimClass = drawable.getClass().getName();
 
         return new FixTrainStimSpec(stimClass, stimSpec);
     }
 
-    public static String getStimSpecFromFixTrainDrawable(FixTrainDrawable drawable){
+    public static String getStimSpecFromFixTrainDrawable(FixTrainDrawable<?> drawable){
         return FixTrainStimSpec.fromFixTrainDrawable(drawable).toXml();
     }
 
