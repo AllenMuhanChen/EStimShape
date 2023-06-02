@@ -6,6 +6,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.classic.TrialEventListener;
+import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
@@ -117,7 +118,6 @@ public class FixTrainConfig {
         scene.setBlankScreen(new BlankScreen());
         scene.setMarker(classicConfig.screenMarker());
         scene.setFixTrainObjectMap(fixTrainObjectMap());
-        scene.setCalibrationDegree(calibrationDegree);
         scene.setEyeMonitor(classicConfig.eyeMonitor());
         scene.setFixCalEventListeners(fixCalEventListeners());
         return scene;
@@ -146,6 +146,7 @@ public class FixTrainConfig {
         FixTrainTaskDataSource taskDataSource = new FixTrainTaskDataSource();
         taskDataSource.setHost(classicConfig.experimentHost);
         taskDataSource.setFixTrainObjectMap(fixTrainObjectMap());
+        taskDataSource.setCalibrationDegree(calibrationDegree);
         return taskDataSource;
     }
 
@@ -168,7 +169,7 @@ public class FixTrainConfig {
     }
 
     @Bean
-    public FixCalMessageHandler messageHandler () {
+    public TrialExperimentMessageHandler messageHandler () {
         FixCalMessageHandler messageHandler = new FixCalMessageHandler();
         HashMap<String, EyeDeviceReading> eyeDeviceReading = new HashMap<String, EyeDeviceReading>();
         eyeDeviceReading.put(classicConfig.xperLeftIscanId(), classicConfig.zeroEyeDeviceReading());
@@ -230,6 +231,7 @@ public class FixTrainConfig {
         FixTrainConsolePlugin plugin = new FixTrainConsolePlugin();
         plugin.setClient(fixTrainClient());
         plugin.setFixTrainObjectMap(fixTrainObjectMap());
+        plugin.setCalibrationDegree(calibrationDegree);
         return plugin;
     }
 
@@ -266,4 +268,13 @@ public class FixTrainConfig {
         return false;
     }
 
+    @Bean
+    public Double xperEyeWindowAlgorithmBaseWindowSize() {
+        return 45.0;
+    }
+
+    @Bean
+    public Double xperEyeWindowAlgorithmInitialWindowSize() {
+        return 45.0;
+    }
 }
