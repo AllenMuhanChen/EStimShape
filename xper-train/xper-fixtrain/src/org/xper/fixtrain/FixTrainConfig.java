@@ -54,7 +54,14 @@ public class FixTrainConfig {
     @ExternalValue("fixtrain.default_size")
     public double defaultSize;
 
+    @ExternalValue("fixtrain.calibration_degree")
+    public double calibrationDegree;
+
     @Bean
+    /*
+     * Note: fixTrainObjectMap is not shared between console and experiment. They will have asynchronous
+     * states
+     */
     public Map<String, FixTrainDrawable<?>> fixTrainObjectMap() {
         Map<String, FixTrainDrawable<?>> map = new LinkedHashMap<>();
         map.put(FixTrainRandImage.class.getName(), defaultRandImage());
@@ -110,7 +117,7 @@ public class FixTrainConfig {
         scene.setBlankScreen(new BlankScreen());
         scene.setMarker(classicConfig.screenMarker());
         scene.setFixTrainObjectMap(fixTrainObjectMap());
-        scene.setCalibrationDegree(5.0);
+        scene.setCalibrationDegree(calibrationDegree);
         scene.setEyeMonitor(classicConfig.eyeMonitor());
         scene.setFixCalEventListeners(fixCalEventListeners());
         return scene;
@@ -191,9 +198,10 @@ public class FixTrainConfig {
 
     @Bean
     public FixCalMessageDispatcher messageDispatcher() {
-        FixCalMessageDispatcher dispatcher = new FixCalMessageDispatcher();
+        FixTrainMessageDispatcher dispatcher = new FixTrainMessageDispatcher();
         dispatcher.setHost(classicConfig.experimentHost);
         dispatcher.setDbUtil(baseConfig.dbUtil());
+        dispatcher.setFixTrainObjectMap(fixTrainObjectMap());
         return dispatcher;
     }
 

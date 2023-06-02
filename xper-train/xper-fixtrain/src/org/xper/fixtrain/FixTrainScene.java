@@ -39,7 +39,7 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
 
     private FixTrainStimSpec spec;
 
-    private Coordinates2D[] calibrationPoints = new Coordinates2D[] {
+    private final Coordinates2D[] calibrationPoints = new Coordinates2D[] {
             new Coordinates2D(0, 0), new Coordinates2D(1, 0),
             new Coordinates2D(-1, 0), new Coordinates2D(0, 1),
             new Coordinates2D(0, -1) };

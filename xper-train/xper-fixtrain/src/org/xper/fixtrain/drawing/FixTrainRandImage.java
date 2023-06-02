@@ -9,8 +9,8 @@ import java.io.File;
 public class FixTrainRandImage extends FixTrainDrawable<Coordinates2D> {
 
     private File directory;
-    private String currentImgPath;
     private Coordinates2D dimensions;
+    private String currentImgPath;
 
     public FixTrainRandImage(File directory, Coordinates2D defaultDimensions) {
         this.directory = directory;
