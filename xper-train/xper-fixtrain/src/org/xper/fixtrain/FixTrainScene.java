@@ -13,7 +13,6 @@ import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.eye.EyeMonitor;
 import org.xper.eye.listener.EyeDeviceMessageListener;
 import org.xper.fixcal.FixCalEventListener;
-import org.xper.fixtrain.drawing.FixTrainBlankObject;
 import org.xper.fixtrain.drawing.FixTrainDrawable;
 import org.xper.fixtrain.drawing.FixTrainFixationPoint;
 import org.xper.util.EventUtil;

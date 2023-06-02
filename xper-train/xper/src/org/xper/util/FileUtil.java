@@ -16,7 +16,7 @@ import org.xper.exception.ExperimentSetupException;
 import org.xper.exception.FileURLFormatException;
 import org.xper.exception.RuntimeIOException;
 
-public class FileUtil {	
+public class FileUtil {
 	static {
 		loadSystemProperties();
 		configClassPath();
@@ -30,7 +30,7 @@ public class FileUtil {
 		 */
 		public boolean visitDirectory (File f);
 	}
-	
+
 	public static void addJarFilesToClassPath(List<File> fileList) {
 	      URLClassLoader sysloader = (URLClassLoader) ClassLoader.getSystemClassLoader();
 	      Class<?> sysclass = URLClassLoader.class;
@@ -45,13 +45,13 @@ public class FileUtil {
 	         throw new RuntimeIOException("Error, could not add URL to system classloader");
 	      }
 	   }
-	
+
 	public static List<File> getDistJarFileList(String xperDistPath) {
 		final ArrayList<File> result = new ArrayList<File>();
 		FileUtil.FileVisitor visitor = new FileUtil.FileVisitor(){
 			public boolean visitDirectory(File f) {
 				String name = f.getName();
-				if (!name.startsWith(".")) {					
+				if (!name.startsWith(".")) {
 					return true;
 				} else {
 					return false;
@@ -67,7 +67,7 @@ public class FileUtil {
 		FileUtil.walkDirectories(new File(xperDistPath), visitor);
 		return result;
 	}
-	
+
 	public static void configClassPath() {
 		String basePath = FileUtil.fileUrlToPath(FileUtil.getCodeSourceUrl(XperConfig.class));
 		if (FileUtil.isFile(basePath)) {
@@ -77,10 +77,10 @@ public class FileUtil {
 			addJarFilesToClassPath(jarFileList);
 		}
 	}
-	
+
 	public static void walkDirectories(File base, FileVisitor visitor) {
 		if (base.isDirectory()) {
-			if (visitor.visitDirectory(base)) {		
+			if (visitor.visitDirectory(base)) {
 				File [] all = base.listFiles();
 				for (File f : all) {
 					walkDirectories(f, visitor);
@@ -90,11 +90,11 @@ public class FileUtil {
 			visitor.visitFile(base);
 		}
 	}
-	
+
 	public static Class<?> loadConfigClass (String propName) {
 		return loadConfigClass(propName, null);
 	}
-	
+
 	public static Class<?> loadConfigClass (String propName, Class<?> defaultClass) {
 		String className = System.getProperty(propName);
 		if (className == null || className.trim().length() == 0) {
@@ -111,7 +111,7 @@ public class FileUtil {
 			}
 		}
 	}
-	
+
 	public static void loadSystemProperties () {
 		Properties props = new Properties(System.getProperties());
 		try {
@@ -136,19 +136,19 @@ public class FileUtil {
 		File f = new File(path);
 		return f.isFile();
 	}
-	
+
 	public static String getParent (String path) {
 		File f = new File(path);
 		return f.getParent();
 	}
-	
+
 	public static URL getUrlForObject (Class<?> claz) {
 		String name = claz.getName();
 		int index = name.lastIndexOf('.');
 		name = name.substring(index + 1) + ".class";
 		return claz.getResource(name);
 	}
-	
+
 	public static String fileUrlToPath (URL url) {
 		String proto = url.getProtocol();
 		if (proto.equals("file")) {
@@ -162,7 +162,7 @@ public class FileUtil {
 			throw new FileURLFormatException("Incorrect protocol: " + proto);
 		}
 	}
-	
+
 	public static URL getCodeSourceUrl (Class<?> claz) {
 		URL path = claz.getProtectionDomain().getCodeSource().getLocation();
 		return path;
