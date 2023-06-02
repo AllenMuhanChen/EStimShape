@@ -7,6 +7,7 @@ import org.xper.XperConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.exception.ExperimentSetupException;
 import org.xper.experiment.ExperimentRunner;
+import org.xper.util.DbUtil;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
 
@@ -22,6 +23,8 @@ public class FixTrainTest {
 
         context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("fixcal.config_class", FixTrainConfig.class));
+        DbUtil dbUtil = context.getBean(DbUtil.class);
+        System.out.println(dbUtil.toString());
     }
 
     @Test
@@ -52,6 +55,7 @@ public class FixTrainTest {
 
     public static void loadTestSystemProperties(String xper_properties) {
         Properties props = new Properties(System.getProperties());
+        System.setProperties(props);
         try {
             props.load(XperConfig.class.getResourceAsStream(xper_properties));
         } catch (Exception e) {

@@ -5,6 +5,9 @@ import org.xper.drawing.RGBColor;
 
 import com.thoughtworks.xstream.XStream;
 
+/**
+ * deprecated
+ */
 public class FixTrainXfmSpec {
 
     Coordinates2D translation;
