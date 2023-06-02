@@ -13,12 +13,16 @@ public class FixTrainStimSpec {
      */
     String stimSpec;
 
+    double calibrationDegree;
+
     public FixTrainStimSpec() {
     }
 
-    public FixTrainStimSpec(String stimClass, String stimSpec) {
+
+    public FixTrainStimSpec(String stimClass, String stimSpec, double calibrationDegree) {
         this.stimClass = stimClass;
         this.stimSpec = stimSpec;
+        this.calibrationDegree = calibrationDegree;
     }
 
     boolean animation = true;
@@ -44,15 +48,15 @@ public class FixTrainStimSpec {
         return spec;
     }
 
-    public static FixTrainStimSpec fromFixTrainDrawable(FixTrainDrawable<?> drawable){
+    public static FixTrainStimSpec fromFixTrainDrawable(FixTrainDrawable<?> drawable, double calibrationDegree) {
         String stimSpec = drawable.getSpec();
         String stimClass = drawable.getClass().getName();
 
-        return new FixTrainStimSpec(stimClass, stimSpec);
+        return new FixTrainStimSpec(stimClass, stimSpec, calibrationDegree);
     }
 
-    public static String getStimSpecFromFixTrainDrawable(FixTrainDrawable<?> drawable){
-        return FixTrainStimSpec.fromFixTrainDrawable(drawable).toXml();
+    public static String getStimSpecFromFixTrainDrawable(FixTrainDrawable<?> drawable, double calibrationDegree ) {
+        return FixTrainStimSpec.fromFixTrainDrawable(drawable, calibrationDegree).toXml();
     }
 
     public String getStimClass() {
@@ -66,5 +70,13 @@ public class FixTrainStimSpec {
     }
     public void setStimSpec(String stimSpec) {
         this.stimSpec = stimSpec;
+    }
+
+    public double getCalibrationDegree() {
+        return calibrationDegree;
+    }
+
+    public void setCalibrationDegree(double calibrationDegree) {
+        this.calibrationDegree = calibrationDegree;
     }
 }

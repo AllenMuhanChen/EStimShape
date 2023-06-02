@@ -29,13 +29,13 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
     Map<String, FixTrainDrawable<?>> fixTrainObjectMap;
 
     @Dependency
-    double calibrationDegree;
-
-    @Dependency
     List<FixCalEventListener> fixCalEventListeners;
 
     @Dependency
     EyeMonitor eyeMonitor;
+
+    @Dependency
+    double calibrationDegree;
 
     private FixTrainStimSpec spec;
 
@@ -80,12 +80,21 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
 
     }
 
+    @Override
+    public void trialInit(long timestamp, TrialContext context) {
+
+    }
 
     @Override
     public void trialStart(long timestamp, TrialContext context) {
         trialSucceed.set(false);
+        if (spec==null) { //first trial of the experiment won't have a spec yet
+            updateFixationSpec(context);
+        }
         fireCalibrationPointSetupEvent(timestamp, context);
+    }
 
+    private void updateFixationSpec(TrialContext context) {
         ExperimentTask task = context.getCurrentTask();
         spec = FixTrainStimSpec.fromXml(task.getStimSpec());
         if (spec != null) {
@@ -93,10 +102,7 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
             if (obj != null) {
                 obj.setSpec(spec.getStimSpec());
             }
-        } else{
-            String objClass = FixTrainFixationPoint.class.getName();
-            FixTrainDrawable<?> obj = fixTrainObjectMap.get(objClass);
-            obj.setSpec(spec.getStimSpec());
+
         }
     }
 
@@ -111,6 +117,7 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
 
     @Override
     public void trialStop(long timestamp, TrialContext context) {
+        updateFixationSpec(context);
         if (trialSucceed.get()) {
             setupCalibrationPoint();
         }
@@ -122,6 +129,9 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
     }
 
     private void setupCalibrationPoint() {
+        if (spec!=null) {
+            calibrationDegree = spec.getCalibrationDegree();
+        }
         double x = calibrationPoints[currentPointIndex].getX()
                 * calibrationDegree;
         double y = calibrationPoints[currentPointIndex].getY()
@@ -138,11 +148,6 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
     }
 
 
-
-    @Override
-    public void trialInit(long timestamp, TrialContext context) {
-
-    }
 
     @Override
     public void drawStimulus(Context context) {
@@ -202,13 +207,6 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
         this.fixTrainObjectMap = fixTrainObjectMap;
     }
 
-    public double getCalibrationDegree() {
-        return calibrationDegree;
-    }
-
-    public void setCalibrationDegree(double calibrationDegree) {
-        this.calibrationDegree = calibrationDegree;
-    }
 
     public List<FixCalEventListener> getFixCalEventListeners() {
         return fixCalEventListeners;
@@ -224,5 +222,13 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
 
     public void setEyeMonitor(EyeMonitor eyeMonitor) {
         this.eyeMonitor = eyeMonitor;
+    }
+
+    public double getCalibrationDegree() {
+        return calibrationDegree;
+    }
+
+    public void setCalibrationDegree(double calibrationDegree) {
+        this.calibrationDegree = calibrationDegree;
     }
 }

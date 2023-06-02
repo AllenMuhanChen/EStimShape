@@ -37,6 +37,9 @@ public class FixTrainTaskDataSource implements TaskDataSource, Threadable {
     @Dependency
     Map<String, FixTrainDrawable<?>> fixTrainObjectMap;
 
+    @Dependency
+    double calibrationDegree;
+
     ServerSocket server = null;
     AtomicReference<ExperimentTask> currentTask = new AtomicReference<ExperimentTask>();
     ThreadHelper threadHelper = new ThreadHelper("FixTrainTaskDataSource", this);
@@ -49,12 +52,8 @@ public class FixTrainTaskDataSource implements TaskDataSource, Threadable {
         }
         if (task.getStimSpec() == null) {
             FixTrainDrawable<?> firstStimObj = getFirstStimObj();
-            task.setStimSpec(FixTrainStimSpec.getStimSpecFromFixTrainDrawable(firstStimObj));
+            task.setStimSpec(FixTrainStimSpec.getStimSpecFromFixTrainDrawable(firstStimObj, calibrationDegree));
         }
-        if (task.getXfmSpec() == null){
-            task.setXfmSpec(FixTrainXfmSpec.fromXml(null).toXml());
-        }
-
         currentTask.set(task);
         return currentTask.get();
 
@@ -185,5 +184,13 @@ public class FixTrainTaskDataSource implements TaskDataSource, Threadable {
 
     public void setFixTrainObjectMap(Map<String, FixTrainDrawable<?>> fixTrainObjectMap) {
         this.fixTrainObjectMap = fixTrainObjectMap;
+    }
+
+    public double getCalibrationDegree() {
+        return calibrationDegree;
+    }
+
+    public void setCalibrationDegree(double calibrationDegree) {
+        this.calibrationDegree = calibrationDegree;
     }
 }
