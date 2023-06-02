@@ -7,7 +7,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.renderer.AbstractRenderer;
 
-public class FixTrainFixationPoint extends FixTrainDrawable{
+public class FixTrainFixationPoint extends FixTrainDrawable<Double>{
 
     double size;
     RGBColor color;
@@ -17,7 +17,6 @@ public class FixTrainFixationPoint extends FixTrainDrawable{
         this.size = size;
         this.color = color;
         this.solid = solid;
-        this.fixationPosition = new Coordinates2D(0,0);
     }
 
     @Override
@@ -77,8 +76,18 @@ public class FixTrainFixationPoint extends FixTrainDrawable{
     }
 
     @Override
-    public void updateDrawable() {
+    public void nextDrawable() {
         //do nothing, we want to keep the same fixation point
+    }
+
+    @Override
+    public void scaleSize(double scale) {
+        this.size = size * scale;
+    }
+
+    @Override
+    public Double getSize() {
+        return size;
     }
 
     @Override

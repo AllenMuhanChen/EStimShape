@@ -27,7 +27,7 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
         ExperimentEventListener {
 
     @Dependency
-    Map<String, FixTrainDrawable> fixTrainObjectMap;
+    Map<String, FixTrainDrawable<?>> fixTrainObjectMap;
 
     @Dependency
     double calibrationDegree;
@@ -62,6 +62,7 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
         FixTrainDrawable obj = currentFixationPoint();
         if (obj != null) {
             if (xfm == null) {
+                GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0);
                 obj.draw(context);
             } else {
                 GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
@@ -102,13 +103,13 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
         ExperimentTask task = context.getCurrentTask();
         spec = FixTrainStimSpec.fromXml(task.getStimSpec());
         if (spec != null) {
-            FixTrainDrawable obj = currentFixationPoint();
+            FixTrainDrawable<?> obj = currentFixationPoint();
             if (obj != null) {
                 obj.setSpec(spec.getStimSpec());
             }
         } else{
             String objClass = FixTrainFixationPoint.class.getName();
-            FixTrainDrawable obj = fixTrainObjectMap.get(objClass);
+            FixTrainDrawable<?> obj = fixTrainObjectMap.get(objClass);
             obj.setSpec(spec.getStimSpec());
         }
         xfm = FixTrainXfmSpec.fromXml(task.getXfmSpec());
@@ -208,11 +209,11 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
         drawable.setSpec("");
     }
 
-    public Map<String, FixTrainDrawable> getFixTrainObjectMap() {
+    public Map<String, FixTrainDrawable<?>> getFixTrainObjectMap() {
         return fixTrainObjectMap;
     }
 
-    public void setFixTrainObjectMap(Map<String, FixTrainDrawable> fixTrainObjectMap) {
+    public void setFixTrainObjectMap(Map<String, FixTrainDrawable<?>> fixTrainObjectMap) {
         this.fixTrainObjectMap = fixTrainObjectMap;
     }
 

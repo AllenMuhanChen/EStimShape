@@ -35,7 +35,7 @@ public class FixTrainTaskDataSource implements TaskDataSource, Threadable {
     String host;
 
     @Dependency
-    Map<String, FixTrainDrawable> fixTrainObjectMap;
+    Map<String, FixTrainDrawable<?>> fixTrainObjectMap;
 
     ServerSocket server = null;
     AtomicReference<ExperimentTask> currentTask = new AtomicReference<ExperimentTask>();
@@ -48,7 +48,7 @@ public class FixTrainTaskDataSource implements TaskDataSource, Threadable {
             task = new ExperimentTask();
         }
         if (task.getStimSpec() == null) {
-            FixTrainDrawable firstStimObj = getFirstStimObj();
+            FixTrainDrawable<?> firstStimObj = getFirstStimObj();
             task.setStimSpec(FixTrainStimSpec.getStimSpecFromFixTrainDrawable(firstStimObj));
         }
         if (task.getXfmSpec() == null){
@@ -61,8 +61,8 @@ public class FixTrainTaskDataSource implements TaskDataSource, Threadable {
     }
 
 
-    private FixTrainDrawable getFirstStimObj() {
-        return (FixTrainDrawable) fixTrainObjectMap.values().toArray()[0];
+    private FixTrainDrawable<?> getFirstStimObj() {
+        return (FixTrainDrawable<?>) fixTrainObjectMap.values().toArray()[0];
     }
 
     @Override
@@ -179,11 +179,11 @@ public class FixTrainTaskDataSource implements TaskDataSource, Threadable {
         this.host = host;
     }
 
-    public Map<String, FixTrainDrawable> getFixTrainObjectMap() {
+    public Map<String, FixTrainDrawable<?>> getFixTrainObjectMap() {
         return fixTrainObjectMap;
     }
 
-    public void setFixTrainObjectMap(Map<String, FixTrainDrawable> fixTrainObjectMap) {
+    public void setFixTrainObjectMap(Map<String, FixTrainDrawable<?>> fixTrainObjectMap) {
         this.fixTrainObjectMap = fixTrainObjectMap;
     }
 }

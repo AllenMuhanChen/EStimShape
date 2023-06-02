@@ -23,7 +23,7 @@ public class FixTrainRandImageTest {
 
     @Test
     public void draws_from_img_dir_properly(){
-        FixTrainRandImage img = new FixTrainRandImage(imageDirectoryPath);
+        FixTrainRandImage img = new FixTrainRandImage(imageDirectoryPath, new Coordinates2D(10,10));
 
         for (int i = 0 ; i < 10 ; i++) {
             window.draw(new Drawable() {
