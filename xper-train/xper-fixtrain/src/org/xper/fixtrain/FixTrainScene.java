@@ -39,7 +39,6 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
     EyeMonitor eyeMonitor;
 
     private FixTrainStimSpec spec;
-    private FixTrainXfmSpec xfm;
 
     private Coordinates2D[] calibrationPoints = new Coordinates2D[] {
             new Coordinates2D(0, 0), new Coordinates2D(1, 0),
@@ -59,27 +58,15 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
     }
 
     private void drawFixation(Context context) {
-        FixTrainDrawable obj = currentFixationPoint();
+        FixTrainDrawable<?> obj = currentFixationPoint();
         if (obj != null) {
-            if (xfm == null) {
-                GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0);
-                obj.draw(context);
-            } else {
-                GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
-                GL11.glPushMatrix();
-                GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0);
-                GL11.glScaled(xfm.getScale().getX(), xfm.getScale().getY(), 1.0);
-                System.err.println(xfm.getScale().getX());
+            GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0);
+            obj.draw(context);
 
-                obj.draw(context);
-
-                GL11.glPopMatrix();
-                GL11.glPopAttrib();
-            }
         }
     }
 
-    private FixTrainDrawable currentFixationPoint() {
+    private FixTrainDrawable<?> currentFixationPoint() {
         String objClass;
         if (spec != null) {
             objClass = spec.getStimClass();
@@ -112,7 +99,6 @@ public class FixTrainScene extends AbstractTaskScene implements TrialEventListen
             FixTrainDrawable<?> obj = fixTrainObjectMap.get(objClass);
             obj.setSpec(spec.getStimSpec());
         }
-        xfm = FixTrainXfmSpec.fromXml(task.getXfmSpec());
     }
 
     private void fireCalibrationPointSetupEvent(long timestamp, TrialContext context) {

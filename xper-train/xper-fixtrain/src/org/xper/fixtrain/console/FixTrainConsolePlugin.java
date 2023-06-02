@@ -30,7 +30,6 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
 
     private String currentStimType;
     private FixTrainDrawable<?> currentStim;
-    private String currentXfmSpec;
     private CyclicIterator<String> stimTypeSpecs;
 
 
@@ -67,7 +66,6 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
     public void startPlugin() {
         stimTypeSpecs = new CyclicIterator<String>(fixTrainObjectMap.keySet());
         currentStimType = stimTypeSpecs.first();
-        currentXfmSpec = FixTrainXfmSpec.defaultXfmSpec().toXml();
     }
 
     @Override
