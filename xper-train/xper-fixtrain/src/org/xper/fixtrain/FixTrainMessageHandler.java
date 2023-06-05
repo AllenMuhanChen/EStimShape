@@ -7,7 +7,6 @@ import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.db.vo.BehMsgEntry;
 import org.xper.drawing.Coordinates2D;
 import org.xper.eye.vo.EyeWindow;
-import org.xper.fixtrain.FixTrainMessageDispatcher.FixTrainCalibrationPointSetupMessage;
 
 public class FixTrainMessageHandler extends TrialExperimentMessageHandler {
     static Logger logger = Logger.getLogger(FixTrainMessageHandler.class);

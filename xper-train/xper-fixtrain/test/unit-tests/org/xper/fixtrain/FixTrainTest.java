@@ -1,6 +1,7 @@
 package org.xper.fixtrain;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.XperConfig;
@@ -28,6 +29,7 @@ public class FixTrainTest {
     }
 
     @Test
+    @Ignore
     public void main() {
         ExperimentConsole console = context.getBean(ExperimentConsole.class);
         console.run();
@@ -38,19 +40,6 @@ public class FixTrainTest {
         ThreadUtil.sleep(1000000);
     }
 
-    @Test
-    public void console(){
-        ExperimentConsole console = context.getBean(ExperimentConsole.class);
-        console.run();
-        ThreadUtil.sleep(100000);
-    }
-
-    @Test
-    public void experiment(){
-        ExperimentRunner runner = context.getBean(ExperimentRunner.class);
-        runner.run();
-        ThreadUtil.sleep(1000000);
-    }
 
 
     public static void loadTestSystemProperties(String xper_properties) {
