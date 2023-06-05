@@ -64,6 +64,8 @@ public class FixTrainConfig {
     /*
      * Note: fixTrainObjectMap is not shared between console and experiment. They will have asynchronous
      * states
+     *
+     * To change which object is the default, change the order of the map (first = default)
      */
     public Map<String, FixTrainDrawable<?>> fixTrainObjectMap() {
         Map<String, FixTrainDrawable<?>> map = new LinkedHashMap<>();
