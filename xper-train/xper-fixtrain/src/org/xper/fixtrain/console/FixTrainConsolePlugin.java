@@ -16,7 +16,9 @@ import java.util.List;
 import java.util.Map;
 
 public class FixTrainConsolePlugin implements IConsolePlugin {
-    public static final int MAX_CALIBRATION_DEGREE = 30;
+    @Dependency
+    public double MAX_CALIBRATION_DEGREE = 30;
+
     @Dependency
     Map<String, FixTrainDrawable<?>> fixTrainObjectMap;
 
@@ -190,5 +192,13 @@ public class FixTrainConsolePlugin implements IConsolePlugin {
 
     public void setCalibrationDegree(double calibrationDegree) {
         this.calibrationDegree = calibrationDegree;
+    }
+
+    public double getMAX_CALIBRATION_DEGREE() {
+        return MAX_CALIBRATION_DEGREE;
+    }
+
+    public void setMAX_CALIBRATION_DEGREE(double MAX_CALIBRATION_DEGREE) {
+        this.MAX_CALIBRATION_DEGREE = MAX_CALIBRATION_DEGREE;
     }
 }
