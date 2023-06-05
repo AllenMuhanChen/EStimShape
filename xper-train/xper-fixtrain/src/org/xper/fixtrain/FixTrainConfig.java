@@ -249,6 +249,7 @@ public class FixTrainConfig {
         plugin.setClient(fixTrainClient());
         plugin.setFixTrainObjectMap(fixTrainObjectMap());
         plugin.setCalibrationDegree(calibrationDegree);
+        plugin.setMAX_CALIBRATION_DEGREE(30);
         return plugin;
     }
 
