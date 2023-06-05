@@ -10,7 +10,6 @@ import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
 
 import static org.junit.Assert.*;
-import static org.xper.fixtrain.FixTrainTest.loadTestSystemProperties;
 
 public class FixTrainTaskDataSourceTest {
 
@@ -18,8 +17,6 @@ public class FixTrainTaskDataSourceTest {
 
     @Before
     public void setUp() throws Exception {
-        loadTestSystemProperties("/xper.properties.fixtrain");
-
         context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("fixcal.config_class", FixTrainConfig.class));
 

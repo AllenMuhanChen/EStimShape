@@ -20,8 +20,6 @@ public class FixTrainTest {
 
     @Before
     public void setUp() throws Exception {
-        loadTestSystemProperties("/xper.properties.fixtrain");
-
         context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("fixcal.config_class", FixTrainConfig.class));
         DbUtil dbUtil = context.getBean(DbUtil.class);
@@ -40,16 +38,4 @@ public class FixTrainTest {
         ThreadUtil.sleep(1000000);
     }
 
-
-
-    public static void loadTestSystemProperties(String xper_properties) {
-        Properties props = new Properties(System.getProperties());
-        System.setProperties(props);
-        try {
-            props.load(XperConfig.class.getResourceAsStream(xper_properties));
-        } catch (Exception e) {
-            throw new ExperimentSetupException("Cannot find " + xper_properties + " file.", e);
-        }
-        System.setProperties(props);
-    }
 }
