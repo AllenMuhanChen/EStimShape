@@ -51,7 +51,7 @@ public class FixTrainMessageHandler extends TrialExperimentMessageHandler {
             eyeIn.set(false);
             return true;
         }
-        else if ("FixTrainPointSetup".equals(msg.getType())) {
+        else if ("CalibrationPointSetup".equals(msg.getType())) {
             FixTrainCalibrationPointSetupMessage m = FixTrainCalibrationPointSetupMessage.fromXml(msg.getMsg());
             Coordinates2D pos = m.getFixationPosition();
             fixationPosition.set(pos);
