@@ -5,6 +5,7 @@ import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
+import org.xper.classic.JuiceController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.TrialExperimentMessageHandler;
 import org.xper.classic.vo.SlideTrialExperimentState;
@@ -30,6 +31,7 @@ import org.xper.fixtrain.console.FixTrainConsolePlugin;
 import org.xper.fixtrain.drawing.FixTrainDrawable;
 import org.xper.fixtrain.drawing.FixTrainFixationPoint;
 import org.xper.fixtrain.drawing.FixTrainRandImage;
+import org.xper.juice.mock.NullDynamicJuice;
 
 import java.util.*;
 
@@ -54,6 +56,9 @@ public class FixTrainConfig {
 
     @ExternalValue("fixtrain.calibration_degree")
     public double calibrationDegree;
+
+    @ExternalValue("fixtrain.juice")
+    public boolean juiceEnabled;
 
     @Bean
     /*
@@ -156,13 +161,28 @@ public class FixTrainConfig {
         listeners.add(classicConfig.trialEventLogger());
         listeners.add(classicConfig.experimentProfiler());
         listeners.add(messageDispatcher());
-        listeners.add(classicConfig.juiceController());
+        listeners.add(juiceController());
         listeners.add(classicConfig.trialSyncController());
         listeners.add(classicConfig.jvmManager());
         if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
             listeners.add(classicConfig.dynamicJuiceUpdater());
         }
         return listeners;
+    }
+
+    @Bean
+    public TrialEventListener juiceController() {
+        JuiceController controller = new JuiceController();
+        if (acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
+            controller.setJuice(new NullDynamicJuice());
+        }
+        else if (!juiceEnabled){
+            controller.setJuice(new NullDynamicJuice());
+        }
+        else {
+            controller.setJuice(classicConfig.xperDynamicJuice());
+        }
+        return controller;
     }
 
     @Bean
