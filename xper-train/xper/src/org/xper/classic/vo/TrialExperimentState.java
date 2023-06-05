@@ -47,15 +47,15 @@ public class TrialExperimentState {
 	boolean sleepWhileWait = true;
 	@Dependency
 	TimeUtil localTimeUtil;
-	
+
 	@Dependency
 	long timeAllowedForInitialTargetSelection;
 	@Dependency
 	long requiredTargetSelectionHoldTime;
 	@Dependency
 	long targetSelectionStartDelay;
-	
-	
+
+
 	AtomicBoolean pause = new AtomicBoolean(false);
 	/**
 	 * Current task being presented. When done, set it to null so that when
@@ -131,10 +131,14 @@ public class TrialExperimentState {
 			System.out.println("Resume experiment.");
 		}
 		this.pause.set(pause);
-		
+
 		if (currentContext != null) {
-			while (currentContext.getTrialStopTime() < currentContext.getTrialStartTime()) {
-				ThreadUtil.sleep(100);
+			try {
+				while (currentContext.getTrialStopTime() < currentContext.getTrialStartTime()) {
+					ThreadUtil.sleep(100);
+				}
+			} catch (NullPointerException e) {
+				e.printStackTrace();
 			}
 		}
 	}
