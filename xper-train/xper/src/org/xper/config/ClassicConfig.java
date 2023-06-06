@@ -96,8 +96,7 @@ import org.xper.trialsync.mock.NullTrialSync;
 public class ClassicConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired BaseConfig baseConfig;
-	@Autowired
-	IntanRHDConfig intanConfig;
+	@Autowired IntanRHDConfig intanConfig;
 
 	@ExternalValue("console.eye_simulation")
 	public boolean consoleEyeSimulation;

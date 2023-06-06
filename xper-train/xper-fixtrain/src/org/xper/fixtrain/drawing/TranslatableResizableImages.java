@@ -161,6 +161,7 @@ public class TranslatableResizableImages {
         try {
             File imageFile = new File(pathname);
             BufferedImage img = ImageIO.read(imageFile);
+
             getImgWidth().add(textureIndex, img.getWidth());
             getImgHeight().add(textureIndex, img.getHeight());
             //			System.out.println("loaded image : " + imgWidth + ", " + imgHeight);
@@ -174,11 +175,11 @@ public class TranslatableResizableImages {
 
             //
             //bgr2rgb(src);
-            abgr2rgba(src);
+
 
 
             //pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
-            ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
+
 
 
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(textureIndex));
@@ -188,12 +189,16 @@ public class TranslatableResizableImages {
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
             GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
 
-            if(pixels.remaining() % 3 == 0) {
+            if(src.length % 3 == 0) {
                 // only for RGB
-                GL11.glTexImage2D( GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, img.getWidth(), img.getHeight(), 0,  GL11.GL_RGBA,  GL11.GL_UNSIGNED_BYTE, pixels);
+                bgr2rgb(src);
+                ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
+                GL11.glTexImage2D( GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGB, img.getWidth(), img.getHeight(), 0,  GL11.GL_RGB,  GL11.GL_UNSIGNED_BYTE, pixels);
                 //GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, img.getWidth(), img.getHeight(), 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
             } else {
                 // RGBA
+                abgr2rgba(src);
+                ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(src.length).put(src, 0x00000000, src.length).flip();
                 GL11.glTexImage2D( GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, img.getWidth(), img.getHeight(), 0,  GL11.GL_RGBA,  GL11.GL_UNSIGNED_BYTE, pixels);
             }
 
@@ -239,6 +244,16 @@ public class TranslatableResizableImages {
 			target[i+0x00000003] = (byte) 255;
 			*/
         }
+    }
+
+    protected void bgr2rgb(byte[] target){
+        	byte tmpBlueVal;
+
+        	for(int i=0x00000000; i<target.length; i+=0x00000003) {
+        		tmpBlueVal = target[i];
+        		target[i] = target[i+0x00000002];
+        		target[i+0x00000002] = tmpBlueVal;
+        	}
     }
 
     protected void changeAlpha(byte[] target, byte alpha) {

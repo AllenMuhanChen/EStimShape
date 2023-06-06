@@ -5,7 +5,7 @@ import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.fixtrain.FixTrainStimSpec;
 import org.xper.fixtrain.drawing.FixTrainDrawable;
-import org.xper.rfplot.gui.CyclicIterator;
+
 
 import javax.swing.*;
 import java.awt.event.KeyEvent;

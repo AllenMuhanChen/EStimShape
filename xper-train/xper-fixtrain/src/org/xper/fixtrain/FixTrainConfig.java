@@ -82,7 +82,7 @@ public class FixTrainConfig {
     @Bean
     public FixTrainFixationPoint defaultFixationPoint() {
         double size = defaultSize;
-        RGBColor color = new RGBColor(1f, 1f, 0f);
+        RGBColor color = classicConfig.xperFixationPointColor();
         boolean solid = true;
 
         return new FixTrainFixationPoint(size, color, solid);
