@@ -68,6 +68,8 @@ public class FixTrainMessageHandler extends TrialExperimentMessageHandler {
         }
     }
 
+
+
     public Coordinates2D getFixationPosition() {
         return fixationPosition.get();
     }

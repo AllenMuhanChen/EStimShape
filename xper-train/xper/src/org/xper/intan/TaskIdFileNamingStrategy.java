@@ -6,7 +6,7 @@ package org.xper.intan;
 public class TaskIdFileNamingStrategy extends IntanFileNamingStrategy<Long>{
 
     @Override
-    public void rename(Long parameter) {
-        intanRHD.setBaseFilename(parameter.toString());
+    public void rename(Long taskId) {
+        intanRHD.setBaseFilename(taskId.toString());
     }
 }
