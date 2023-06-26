@@ -16,11 +16,11 @@ public abstract class IntanFileNamingStrategy<T> {
 
     public abstract void rename(T parameter);
 
-    public IntanRHD getIntanController() {
+    public IntanRHD getIntan() {
         return intanRHD;
     }
 
-    public void setIntanController(IntanRHD intanRHD) {
+    public void setIntan(IntanRHD intanRHD) {
         this.intanRHD = intanRHD;
     }
 }

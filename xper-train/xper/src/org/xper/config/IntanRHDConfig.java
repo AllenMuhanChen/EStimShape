@@ -59,9 +59,9 @@ public class IntanRHDConfig {
     }
 
     @Bean
-    public TaskIdFileNamingStrategy intanFileNamingStrategy(){
+    public IntanFileNamingStrategy<Long> intanFileNamingStrategy(){
         TaskIdFileNamingStrategy strategy = new TaskIdFileNamingStrategy();
-        strategy.setIntanController(intan());
+        strategy.setIntan(intan());
         return strategy;
     }
 

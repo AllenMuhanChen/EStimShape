@@ -87,7 +87,7 @@ public class TestConfig {
     @Bean
     public IntanFileNamingStrategy intanFileNamingStrategy(){
         TaskIdFileNamingStrategy strategy = new TaskIdFileNamingStrategy();
-        strategy.setIntanController(intanController());
+        strategy.setIntan(intanController());
         return strategy;
     }
 
