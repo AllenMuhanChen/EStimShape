@@ -81,6 +81,7 @@ public class TestConfig {
         intanClient.setHost(intanHost);
         intanClient.setPort(Integer.parseInt(intanCommandPort));
         intanClient.setTimeUtil(baseConfig.localTimeUtil());
+
         return intanClient;
     }
 

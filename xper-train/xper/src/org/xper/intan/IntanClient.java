@@ -55,21 +55,21 @@ public class IntanClient {
         String msg = "set " + parameter + " " + value;
         out.println(msg);
 
-//        //Wait until the correct value has been set
-//        waitFor(new Condition() {
-//            @Override
-//            public boolean check() {
-//                try {
-//                    // Try to parse as doubles and compare
-//                    double d1 = Double.parseDouble(get(parameter));
-//                    double d2 = Double.parseDouble(value);
-//                    return d1 == d2;
-//                } catch(NumberFormatException e) {
-//                    // If parsing fails, compare as strings
-//                    return get(parameter).equalsIgnoreCase(value);
-//                }
-//            }
-//        });
+        //Wait until the correct value has been set
+        waitFor(new Condition() {
+            @Override
+            public boolean check() {
+                try {
+                    // Try to parse as doubles and compare
+                    double d1 = Double.parseDouble(get(parameter));
+                    double d2 = Double.parseDouble(value);
+                    return d1 == d2;
+                } catch(NumberFormatException e) {
+                    // If parsing fails, compare as strings
+                    return get(parameter).equalsIgnoreCase(value);
+                }
+            }
+        });
     }
 
     /**

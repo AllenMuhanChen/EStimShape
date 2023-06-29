@@ -25,6 +25,7 @@ public class SlideTrialIntanRecordingControllerTest {
         FileUtil.loadTestSystemProperties("/xper.properties.test");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
         slideTrialIntanRecordingController = context.getBean(SlideTrialIntanRecordingController.class);
+        slideTrialIntanRecordingController.recordingEnabled = true;
         intanClient = context.getBean(IntanClient.class);
     }
 
