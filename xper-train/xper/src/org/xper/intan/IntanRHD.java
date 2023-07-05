@@ -82,7 +82,6 @@ public class IntanRHD {
             runMode("Stop"); //Can only set to Run, Record, or Trigger if current mode is Stop
             setMode(mode);
         }
-
     }
 
     private void setMode(String mode) {
