@@ -1,7 +1,7 @@
 package org.xper.allen.ga;
 
 import org.xper.Dependency;
-import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.ArrayList;
@@ -67,8 +67,8 @@ public class SamplingSelectionProcess {
     private List<Child> convertToChildren(List<Long> stimIds) {
         List<Child> children = new ArrayList<>();
         for (Long stimId : stimIds) {
-            children.add(new Child(stimId, Regime.ONE));
-            children.add(new Child(stimId, Regime.TWO));
+            children.add(new Child(stimId, MutationType.ONE, 1.0));
+            children.add(new Child(stimId, MutationType.TWO, 1.0));
         }
 
         return children;

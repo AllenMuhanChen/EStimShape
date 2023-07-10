@@ -4,7 +4,7 @@ import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.xper.Dependency;
 import org.xper.allen.ga.regimescore.LineageMaxResponseSource;
-import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.ga.regimescore.RegimeScoreSource;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.allen.util.TikTok;
@@ -42,14 +42,14 @@ public class SlotSelectionProcess {
      * assigned to that regime.
      */
     @Dependency
-    Map<Regime, UnivariateRealFunction> slotFunctionForRegimes;
+    Map<MutationType, UnivariateRealFunction> slotFunctionForRegimes;
 
     /**
      * Once slots are assigned to lineages and regimes, this function maps the response rate of a parent
      * to likelihood that the parent should be selected based on the regime.
      */
     @Dependency
-    Map<Regime, UnivariateRealFunction> fitnessFunctionForRegimes;
+    Map<MutationType, UnivariateRealFunction> fitnessFunctionForRegimes;
 
     @Dependency
     SpikeRateSource spikeRateSource;
@@ -236,7 +236,7 @@ public class SlotSelectionProcess {
 
                     // select parents
                     TikTok selectingParentsTimer = new TikTok("Selecting parents");
-                    selectedParents.add(new Child(probabilitiesForParentIds.sampleWithReplacement(), slot.getRegime()));
+                    selectedParents.add(new Child(probabilitiesForParentIds.sampleWithReplacement(), slot.getRegime(),1.0 ));
                     selectingParentsTimer.stop();
 
                 }
@@ -249,14 +249,14 @@ public class SlotSelectionProcess {
         Integer numSlotsForLineage = slotsForLineage.size();
 
         //calculate how many slotsForLineage to assign to each regime
-        Map<Regime, Integer> numSlotsForRegimes = assignNumSlotsToRegimes(regimeScore, numSlotsForLineage);
+        Map<MutationType, Integer> numSlotsForRegimes = assignNumSlotsToRegimes(regimeScore, numSlotsForLineage);
 
         //populate slotsForLineage for regimes
         Iterator<Slot> slotsIterator = slotsForLineage.iterator();
-        for (Regime regime : numSlotsForRegimes.keySet()) {
+        for (MutationType mutationType : numSlotsForRegimes.keySet()) {
             int numSlotsAssigned = 0;
-            while(numSlotsAssigned < numSlotsForRegimes.get(regime)) {
-                slotsIterator.next().setRegime(regime);
+            while(numSlotsAssigned < numSlotsForRegimes.get(mutationType)) {
+                slotsIterator.next().setRegime(mutationType);
                 numSlotsAssigned++;
             }
 
@@ -295,32 +295,32 @@ public class SlotSelectionProcess {
         return slotsForLineages;
     }
 
-    private Map<Regime, Integer> assignNumSlotsToRegimes(Double regimeScore, Integer numSlotsForLineage) {
-        Map<Regime, Double> slotScoreForRegimes = calculateSlotScoresForRegimes(regimeScore);
+    private Map<MutationType, Integer> assignNumSlotsToRegimes(Double regimeScore, Integer numSlotsForLineage) {
+        Map<MutationType, Double> slotScoreForRegimes = calculateSlotScoresForRegimes(regimeScore);
 
-        ProbabilityTable<Regime> probabilitiesForRegimes =
+        ProbabilityTable<MutationType> probabilitiesForRegimes =
                 new ProbabilityTable<>(slotScoreForRegimes);
 
         return drawSlotsForRegimes(probabilitiesForRegimes, numSlotsForLineage);
     }
 
-    private Map<Regime, Double> calculateSlotScoresForRegimes(Double regimeScore) {
-        Map<Regime, Double> slotScoreForRegimes = new LinkedHashMap<>();
-        for (Regime regime : slotFunctionForRegimes.keySet()) {
-            UnivariateRealFunction slotFunction = slotFunctionForRegimes.get(regime);
+    private Map<MutationType, Double> calculateSlotScoresForRegimes(Double regimeScore) {
+        Map<MutationType, Double> slotScoreForRegimes = new LinkedHashMap<>();
+        for (MutationType mutationType : slotFunctionForRegimes.keySet()) {
+            UnivariateRealFunction slotFunction = slotFunctionForRegimes.get(mutationType);
             Double slotScore = plugIntoFunction(slotFunction, regimeScore);
-            slotScoreForRegimes.put(regime, slotScore);
+            slotScoreForRegimes.put(mutationType, slotScore);
         }
         return slotScoreForRegimes;
     }
 
-    private Map<Regime, Integer> drawSlotsForRegimes(ProbabilityTable<Regime> probabilitiesForRegimes, Integer numSlotsForLineage) {
-        Map<Regime, Integer> numSlotsForRegimes = new LinkedHashMap<>();
+    private Map<MutationType, Integer> drawSlotsForRegimes(ProbabilityTable<MutationType> probabilitiesForRegimes, Integer numSlotsForLineage) {
+        Map<MutationType, Integer> numSlotsForRegimes = new LinkedHashMap<>();
         for (int i = 0; i < numSlotsForLineage; i++) {
-            Regime regime = probabilitiesForRegimes.sampleWithReplacement();
-            numSlotsForRegimes.putIfAbsent(regime, 0);
-            Integer numSlotsForRegime = numSlotsForRegimes.get(regime);
-            numSlotsForRegimes.put(regime, numSlotsForRegime + 1);
+            MutationType mutationType = probabilitiesForRegimes.sampleWithReplacement();
+            numSlotsForRegimes.putIfAbsent(mutationType, 0);
+            Integer numSlotsForRegime = numSlotsForRegimes.get(mutationType);
+            numSlotsForRegimes.put(mutationType, numSlotsForRegime + 1);
         }
         return numSlotsForRegimes;
     }
@@ -340,7 +340,7 @@ public class SlotSelectionProcess {
 
     public static class Slot {
         private Long lineageId;
-        private Regime regime;
+        private MutationType mutationType;
 
         public Slot(Long lineageId) {
             this.lineageId = lineageId;
@@ -354,12 +354,12 @@ public class SlotSelectionProcess {
             this.lineageId = lineageId;
         }
 
-        public Regime getRegime() {
-            return regime;
+        public MutationType getRegime() {
+            return mutationType;
         }
 
-        public void setRegime(Regime regime) {
-            this.regime = regime;
+        public void setRegime(MutationType mutationType) {
+            this.mutationType = mutationType;
         }
     }
 
@@ -395,19 +395,19 @@ public class SlotSelectionProcess {
         this.slotFunctionForLineage = slotFunctionForLineage;
     }
 
-    public Map<Regime, UnivariateRealFunction> getSlotFunctionForRegimes() {
+    public Map<MutationType, UnivariateRealFunction> getSlotFunctionForRegimes() {
         return slotFunctionForRegimes;
     }
 
-    public void setSlotFunctionForRegimes(Map<Regime, UnivariateRealFunction> slotFunctionForRegimes) {
+    public void setSlotFunctionForRegimes(Map<MutationType, UnivariateRealFunction> slotFunctionForRegimes) {
         this.slotFunctionForRegimes = slotFunctionForRegimes;
     }
 
-    public Map<Regime, UnivariateRealFunction> getFitnessFunctionForRegimes() {
+    public Map<MutationType, UnivariateRealFunction> getFitnessFunctionForRegimes() {
         return fitnessFunctionForRegimes;
     }
 
-    public void setFitnessFunctionForRegimes(Map<Regime, UnivariateRealFunction> fitnessFunctionForRegimes) {
+    public void setFitnessFunctionForRegimes(Map<MutationType, UnivariateRealFunction> fitnessFunctionForRegimes) {
         this.fitnessFunctionForRegimes = fitnessFunctionForRegimes;
     }
 

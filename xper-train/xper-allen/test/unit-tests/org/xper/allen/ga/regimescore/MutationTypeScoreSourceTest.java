@@ -12,7 +12,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-public class RegimeScoreSourceTest {
+public class MutationTypeScoreSourceTest {
 
     private RegimeScoreSource regimeScoreSource;
 

@@ -4,7 +4,7 @@ import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.junit.Before;
 import org.junit.Test;
-import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.ga.regimescore.RegimeScoreSource;
 import org.xper.allen.util.MultiGaDbUtil;
 
@@ -63,9 +63,9 @@ public class SlotSelectionProcessTest {
         int regime1Count = 0;
         int regime2Count = 0;
         for (Child child : children) {
-            if (child.getRegime() == Regime.ONE) {
+            if (child.getMutationType() == MutationType.ONE) {
                 regime1Count++;
-            } else if (child.getRegime() == Regime.TWO) {
+            } else if (child.getMutationType() == MutationType.TWO) {
                 regime2Count++;
             }
         }
@@ -90,17 +90,17 @@ public class SlotSelectionProcessTest {
      * Regime One is the only option when regime score is one
      * Regime Two is the only option when regime score is two
      */
-    private Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
-        Map<Regime, UnivariateRealFunction> output = new LinkedHashMap<>();
+    private Map<MutationType, UnivariateRealFunction> slotFunctionForRegimes() {
+        Map<MutationType, UnivariateRealFunction> output = new LinkedHashMap<>();
 
-        output.put(Regime.ONE, x->{
+        output.put(MutationType.ONE, x->{
             if (x==1){
                 return 1;
             } else {
                 return 0;
             }
         });
-        output.put(Regime.TWO, x->{
+        output.put(MutationType.TWO, x->{
             if (x==2){
                 return 1;
             } else {
@@ -127,16 +127,16 @@ public class SlotSelectionProcessTest {
      * For simplicity, we have only two regimes. Have the fitness function be the same for both, which is just the same as the spikeRate
      * @return
      */
-    private Map<Regime, UnivariateRealFunction> mockFitnessFunction() {
-        Map<Regime, UnivariateRealFunction> output = new LinkedHashMap<>();
+    private Map<MutationType, UnivariateRealFunction> mockFitnessFunction() {
+        Map<MutationType, UnivariateRealFunction> output = new LinkedHashMap<>();
 
-        output.put(Regime.ONE, new UnivariateRealFunction() {
+        output.put(MutationType.ONE, new UnivariateRealFunction() {
             @Override
             public double value(double spikeRate) throws FunctionEvaluationException {
                 return spikeRate;
             }
         });
-        output.put(Regime.TWO, new UnivariateRealFunction() {
+        output.put(MutationType.TWO, new UnivariateRealFunction() {
             @Override
             public double value(double spikeRate) throws FunctionEvaluationException {
                 return spikeRate;

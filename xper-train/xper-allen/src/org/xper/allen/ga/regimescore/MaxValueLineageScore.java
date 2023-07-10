@@ -29,7 +29,7 @@ public class MaxValueLineageScore implements LineageScoreSource {
     @Override
     public Double getLineageScore(Long lineageId) {
         // get all stim_ids from lineageId of type RAND
-        String stimType = STIM_TYPE_FOR_REGIME.get(Regime.ZERO);
+        String stimType = STIM_TYPE_FOR_REGIME.get(MutationType.ZERO);
         List<Long> stimIds = dbUtil.readStimIdsFromLineageAndType(lineageId, stimType);
 
         // find spike rates of all stim_ids

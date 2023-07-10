@@ -9,7 +9,7 @@ import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XYSeries;
 import org.knowm.xchart.style.Styler;
 import org.xper.allen.config.NewGAConfig;
-import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point2d;
@@ -61,10 +61,10 @@ public class FunctionTest {
     @Test
     public void test_slot_functions_for_regimes() throws FunctionEvaluationException {
         XYChart chart = initChart();
-        Map<Regime, UnivariateRealFunction> slotFunctions = config.slotFunctionForRegimes();
-        for (Regime regime : slotFunctions.keySet()) {
-            UnivariateRealFunction function = slotFunctions.get(regime);
-            addFunctionToChart(function,chart,  "Slot Function For Regime " + regime, 0.0, 4.0);
+        Map<MutationType, UnivariateRealFunction> slotFunctions = config.slotFunctionForRegimes();
+        for (MutationType mutationType : slotFunctions.keySet()) {
+            UnivariateRealFunction function = slotFunctions.get(mutationType);
+            addFunctionToChart(function,chart,  "Slot Function For Regime " + mutationType, 0.0, 4.0);
         }
         show(chart);
     }

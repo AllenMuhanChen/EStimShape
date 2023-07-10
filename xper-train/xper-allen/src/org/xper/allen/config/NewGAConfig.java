@@ -101,9 +101,9 @@ public class NewGAConfig {
 
 
     @Bean
-    public Map<Regime, UnivariateRealFunction> slotFunctionForRegimes() {
-        Map<Regime, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
-        slotFunctionForRegimes.put(Regime.ZERO, new UnivariateRealFunction() {
+    public Map<MutationType, UnivariateRealFunction> slotFunctionForRegimes() {
+        Map<MutationType, UnivariateRealFunction> slotFunctionForRegimes = new HashMap<>();
+        slotFunctionForRegimes.put(MutationType.ZERO, new UnivariateRealFunction() {
             @Override
             public double value(double v) throws FunctionEvaluationException {
                 if (v < 1.0){
@@ -113,9 +113,9 @@ public class NewGAConfig {
                 }
             }
         });
-        slotFunctionForRegimes.put(Regime.ONE, squareFunction(1.0, 2.0));
-        slotFunctionForRegimes.put(Regime.TWO, squareFunction(2.0, 3.0));
-        slotFunctionForRegimes.put(Regime.THREE, squareFunction(3.0, 4.0));
+        slotFunctionForRegimes.put(MutationType.ONE, squareFunction(1.0, 2.0));
+        slotFunctionForRegimes.put(MutationType.TWO, squareFunction(2.0, 3.0));
+        slotFunctionForRegimes.put(MutationType.THREE, squareFunction(3.0, 4.0));
         return slotFunctionForRegimes;
     }
 
@@ -170,17 +170,17 @@ public class NewGAConfig {
     }
 
     @Bean
-    public Map<Regime, UnivariateRealFunction> fitnessFunctionForRegimes() {
-        Map<Regime, UnivariateRealFunction> fitnessFunctionsForRegimes = new HashMap<>();
-        fitnessFunctionsForRegimes.put(Regime.ZERO, new UnivariateRealFunction() {
+    public Map<MutationType, UnivariateRealFunction> fitnessFunctionForRegimes() {
+        Map<MutationType, UnivariateRealFunction> fitnessFunctionsForRegimes = new HashMap<>();
+        fitnessFunctionsForRegimes.put(MutationType.ZERO, new UnivariateRealFunction() {
             @Override
             public double value(double v) throws FunctionEvaluationException {
                 return 1.0;
             }
         });
-        fitnessFunctionsForRegimes.put(Regime.ONE, fitnessFunctionForRegimeOne());
-        fitnessFunctionsForRegimes.put(Regime.TWO, fitnessFunctionForRegimeTwo());
-        fitnessFunctionsForRegimes.put(Regime.THREE, fitnessFunctionForRegimeThree());
+        fitnessFunctionsForRegimes.put(MutationType.ONE, fitnessFunctionForRegimeOne());
+        fitnessFunctionsForRegimes.put(MutationType.TWO, fitnessFunctionForRegimeTwo());
+        fitnessFunctionsForRegimes.put(MutationType.THREE, fitnessFunctionForRegimeThree());
         return fitnessFunctionsForRegimes;
     }
 
@@ -258,7 +258,7 @@ public class NewGAConfig {
         oneToTwo.setSpikeRateSource(spikeRateSource());
         oneToTwo.setMaxResponseSource(maxResponseSource());
         oneToTwo.setNormalizedRangeThresholdSource(regimeOneToTwoRangeThreshold());
-        oneToTwo.setStimType(STIM_TYPE_FOR_REGIME.get(Regime.ONE));
+        oneToTwo.setStimType(STIM_TYPE_FOR_REGIME.get(MutationType.ONE));
         return oneToTwo;
     }
 
@@ -275,7 +275,7 @@ public class NewGAConfig {
     @Bean
     public LineageScoreSource regimeTwoToThree() {
         ParentChildThresholdScoreSource twoToThree = new ParentChildThresholdScoreSource();
-        twoToThree.setStimType(STIM_TYPE_FOR_REGIME.get(Regime.TWO));
+        twoToThree.setStimType(STIM_TYPE_FOR_REGIME.get(MutationType.TWO));
         twoToThree.setDbUtil(dbUtil());
         twoToThree.setNumPairThresholdSource(regimeTwoToThreePairThreshold());
         twoToThree.setParentResponseThresholdSource(regimeTwoToThreeParentThreshold());
@@ -314,7 +314,7 @@ public class NewGAConfig {
     @Bean
     public LineageScoreSource regimeThreeToFour() {
         ParentChildBinThresholdsScoreSource threeToFour = new ParentChildBinThresholdsScoreSource();
-        threeToFour.setStimType(STIM_TYPE_FOR_REGIME.get(Regime.THREE));
+        threeToFour.setStimType(STIM_TYPE_FOR_REGIME.get(MutationType.THREE));
         threeToFour.setDbUtil(dbUtil());
         threeToFour.setParentResponseThresholdSource(regimeThreeToFourParentThreshold());
         threeToFour.setNumPairThresholdSourcesForBins(regimeThreeToFourPairThresholds());
