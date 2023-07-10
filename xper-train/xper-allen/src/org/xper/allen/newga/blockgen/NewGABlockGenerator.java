@@ -4,7 +4,7 @@ import org.xper.Dependency;
 import org.xper.allen.ga.Child;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.SlotSelectionProcess;
-import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
 import org.xper.allen.util.TikTok;
@@ -16,15 +16,15 @@ public class NewGABlockGenerator extends GABlockGenerator {
     public static String gaBaseName = "New3D";
 
 
-    public static final Map<Regime, String> STIM_TYPE_FOR_REGIME = createMap();
+    public static final Map<MutationType, String> STIM_TYPE_FOR_REGIME = createMap();
 
-    private static Map<Regime, String> createMap() {
-        HashMap<Regime, String> stimTypeForRegime = new HashMap<Regime, String>();
-        stimTypeForRegime.put(Regime.ZERO, "RegimeZero");
-        stimTypeForRegime.put(Regime.ONE, "RegimeOne");
-        stimTypeForRegime.put(Regime.TWO, "RegimeTwo");
-        stimTypeForRegime.put(Regime.THREE, "RegimeThree");
-        stimTypeForRegime.put(Regime.FOUR, "RegimeFour");
+    private static Map<MutationType, String> createMap() {
+        HashMap<MutationType, String> stimTypeForRegime = new HashMap<MutationType, String>();
+        stimTypeForRegime.put(MutationType.ZERO, "RegimeZero");
+        stimTypeForRegime.put(MutationType.ONE, "RegimeOne");
+        stimTypeForRegime.put(MutationType.TWO, "RegimeTwo");
+        stimTypeForRegime.put(MutationType.THREE, "RegimeThree");
+        stimTypeForRegime.put(MutationType.FOUR, "RegimeFour");
         return Collections.unmodifiableMap(stimTypeForRegime);
     }
 
@@ -63,25 +63,25 @@ public class NewGABlockGenerator extends GABlockGenerator {
         List<Child> selectedParents = slotSelectionProcess.select(getGaBaseName());
         selecingParentsTimer.stop();
         for (Child child: selectedParents) {
-            System.out.println("Attemptins regime " + child.getRegime() + " for parent " + child.getParentId() + "");
-            if (child.getRegime().equals(Regime.ZERO)) {
+            System.out.println("Attemptins regime " + child.getMutationType() + " for parent " + child.getParentId() + "");
+            if (child.getMutationType().equals(MutationType.ZERO)) {
                 TikTok timer = new TikTok("Adding Regime Zero Stim");
                 System.out.println("Adding Regime Zero Stim");
                 getStims().add(new RegimeZeroStim(this, initialSize, initialCoords));
                 timer.stop();
             }
-            else if (child.getRegime().equals(Regime.ONE)) {
+            else if (child.getMutationType().equals(MutationType.ONE)) {
                 TikTok timer = new TikTok("Adding Regime One Stim");
                 System.out.println("Adding Regime One Stim");
                 getStims().add(new RegimeOneStim(this, child.getParentId()));
                 timer.stop();
             }
-            else if (child.getRegime().equals(Regime.TWO)) {
+            else if (child.getMutationType().equals(MutationType.TWO)) {
                 TikTok timer = new TikTok("Adding Regime Two Stim");
                 System.out.println("Adding Regime Two Stim");
                 getStims().add(new RegimeTwoStim(this, child.getParentId()));
                 timer.stop();
-            } else if (child.getRegime().equals(Regime.THREE)) {
+            } else if (child.getMutationType().equals(MutationType.THREE)) {
                 TikTok timer = new TikTok("Adding Regime Three Stim");
                 System.out.println("Adding Regime Three Stim");
                 getStims().add(new RegimeThreeStim(this, child.getParentId()));

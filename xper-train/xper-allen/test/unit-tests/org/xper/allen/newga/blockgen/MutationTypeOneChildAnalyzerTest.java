@@ -2,7 +2,7 @@ package org.xper.allen.newga.blockgen;
 
 import org.junit.Before;
 
-public class RegimeOneChildAnalyzerTest {
+public class MutationTypeOneChildAnalyzerTest {
 
     @Before
     public void setUp() throws Exception {

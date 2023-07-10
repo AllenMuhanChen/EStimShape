@@ -3,7 +3,7 @@ package org.xper.allen.newga.blockgen;
 import org.xper.allen.drawing.composition.morph.PruningMatchStick.PruningMStickData;
 import org.xper.allen.ga.Branch;
 import org.xper.allen.ga.SpikeRateSource;
-import org.xper.allen.ga.regimescore.Regime;
+import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.util.MultiGaDbUtil;
 
 import java.util.*;
@@ -93,7 +93,7 @@ public class RegimeThreeComponentChooser {
         // Find closest regime two ancestor if it has one.
         Branch<Long> closestRegimeTwoAncestor = lineageTree.find(parentId);
         boolean hasRegimeTwoAncestor = true;
-        while(!getStimTypeFor(closestRegimeTwoAncestor).equals(STIM_TYPE_FOR_REGIME.get(Regime.TWO))) {
+        while(!getStimTypeFor(closestRegimeTwoAncestor).equals(STIM_TYPE_FOR_REGIME.get(MutationType.TWO))) {
             Branch<Long> parent = lineageTree.findParentOf(closestRegimeTwoAncestor.getIdentifier());
             if (!(parent == null)) {
                 closestRegimeTwoAncestor = parent;
@@ -113,7 +113,7 @@ public class RegimeThreeComponentChooser {
 
             System.err.println("Closest Regime Two Uncles: " + closestRegimeTwoUncles);
             for (Long uncle : closestRegimeTwoUncles) {
-                if (dbUtil.readStimTypeFor(uncle).equals(STIM_TYPE_FOR_REGIME.get(Regime.TWO))) {
+                if (dbUtil.readStimTypeFor(uncle).equals(STIM_TYPE_FOR_REGIME.get(MutationType.TWO))) {
                     if (dbUtil.readGenIdForStimId(uncle) < dbUtil.readLatestGenIdForLineage(lineageId)) {
                         family.add(uncle);
                     }
@@ -129,7 +129,7 @@ public class RegimeThreeComponentChooser {
             Branch<Long> familyTree = lineageTree.find(parentId);
             Collection<Branch<Long>> immediateChildren = familyTree.getChildren();
             for (Branch<Long> child : immediateChildren) {
-                if (dbUtil.readStimTypeFor(child.getIdentifier()).equals(STIM_TYPE_FOR_REGIME.get(Regime.TWO))) {
+                if (dbUtil.readStimTypeFor(child.getIdentifier()).equals(STIM_TYPE_FOR_REGIME.get(MutationType.TWO))) {
                     if (dbUtil.readGenIdForStimId(child.getIdentifier()) < dbUtil.readLatestGenIdForLineage(lineageId)) {
                         family.add(child.getIdentifier());
                     }
@@ -146,7 +146,7 @@ public class RegimeThreeComponentChooser {
             familyTree.forEach(new Consumer<Branch<Long>>() {
                 @Override
                 public void accept(Branch<Long> branch) {
-                    if (dbUtil.readStimTypeFor(branch.getIdentifier()).equals(STIM_TYPE_FOR_REGIME.get(Regime.TWO))) {
+                    if (dbUtil.readStimTypeFor(branch.getIdentifier()).equals(STIM_TYPE_FOR_REGIME.get(MutationType.TWO))) {
                         if (dbUtil.readGenIdForStimId(branch.getIdentifier()) < dbUtil.readLatestGenIdForLineage(lineageId)) {
                             family.add(branch.getIdentifier());
                         }
@@ -162,7 +162,7 @@ public class RegimeThreeComponentChooser {
             lineageTree.forEach(new Consumer<Branch<Long>>() {
                 @Override
                 public void accept(Branch<Long> branch) {
-                    if (dbUtil.readStimTypeFor(branch.getIdentifier()).equals(STIM_TYPE_FOR_REGIME.get(Regime.TWO))) {
+                    if (dbUtil.readStimTypeFor(branch.getIdentifier()).equals(STIM_TYPE_FOR_REGIME.get(MutationType.TWO))) {
                         if (dbUtil.readGenIdForStimId(branch.getIdentifier()) < dbUtil.readLatestGenIdForLineage(lineageId)) {
                             family.add(branch.getIdentifier());
                         }
