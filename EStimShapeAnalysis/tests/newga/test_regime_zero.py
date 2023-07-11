@@ -17,7 +17,7 @@ class TestRegimeZeroTransitioner(unittest.TestCase):
 
         # The t-test should find that the response rates are significantly higher than the spontaneous firing rate,
         # so should_transition should return True
-        self.assertTrue(self.transitioner.should_transition(stimuli))
+        self.assertTrue(self.transitioner.should_transition(null))
 
         # Generate some stimuli with low response rates
         stimuli = [Stimulus("Test") for _ in range(30)]
@@ -26,7 +26,7 @@ class TestRegimeZeroTransitioner(unittest.TestCase):
 
         # The t-test should find that the response rates are not significantly different from the spontaneous firing rate,
         # so should_transition should return False
-        self.assertFalse(self.transitioner.should_transition(stimuli))
+        self.assertFalse(self.transitioner.should_transition(null))
 
 
 if __name__ == '__main__':

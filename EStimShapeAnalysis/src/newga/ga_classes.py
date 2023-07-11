@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+
+
 class Stimulus:
     def __init__(self, mutation_type, parent=None, mutation_magnitude=None, response_rate=None):
         self.parent = parent
@@ -19,6 +21,9 @@ class Stimulus:
         """
         self.mutation_magnitude = mutation_magnitude
 
+    def __eq__(self, o: object) -> bool:
+        return self.__dict__ == o.__dict__
+
 
 class Lineage:
     def __init__(self, founder, regimes):
@@ -32,14 +37,14 @@ class Lineage:
         using the current regime.
         """
         current_regime = self.regimes[self.current_regime_index]
-        return current_regime.generate_batch(self.stimuli, batch_size)
+        self.stimuli.append(current_regime.generate_batch(self, batch_size))
 
-    def check_for_regime_transition(self):
+    def check_for_regime_trasnsition(self):
         """
         Check if this lineage should transition to a new regime based on its performance.
         """
         current_regime = self.regimes[self.current_regime_index]
-        if current_regime.should_transition(self.stimuli):
+        if current_regime.should_transition(self):
             self.current_regime_index += 1
 
 
@@ -50,41 +55,42 @@ class Regime:
         self.mutation_magnitude_assigner = mutation_magnitude_assigner
         self.regime_transitioner = regime_transitioner
 
-    def generate_batch(self, stimuli, batch_size):
+    def generate_batch(self, lineage: Lineage, batch_size: int):
         """
         Generate a new batch of stimuli by selecting parents and assigning mutation types and magnitudes.
         """
-        parents = self.parent_selector.select_parents(stimuli, batch_size)
-        return [Stimulus(self.mutation_assigner.assign_mutation(), parent=parent,
-                         mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude())
+        parents = self.parent_selector.select_parents(lineage.stimuli, batch_size)
+        return [Stimulus(self.mutation_assigner.assign_mutation(lineage),
+                         parent=parent,
+                         mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(lineage, parent))
                 for parent in parents]
 
-    def should_transition(self, stimuli):
+    def should_transition(self, lineage: Lineage):
         """
         Check if a lineage should transition to a new regime based on its performance.
         """
-        return self.regime_transitioner.should_transition(stimuli)
+        return self.regime_transitioner.should_transition(lineage)
 
 
 class ParentSelector(ABC):
     @abstractmethod
-    def select_parents(self, stimuli, batch_size):
+    def select_parents(self, lineage: Lineage, batch_size: int):
         pass
 
 
 class MutationAssigner(ABC):
     @abstractmethod
-    def assign_mutation(self):
+    def assign_mutation(self, lineage: Lineage):
         pass
 
 
 class MutationMagnitudeAssigner(ABC):
     @abstractmethod
-    def assign_mutation_magnitude(self):
+    def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus) -> float:
         pass
 
 
 class RegimeTransitioner(ABC):
     @abstractmethod
-    def should_transition(self, stimuli):
+    def should_transition(self, lineage):
         pass
