@@ -30,6 +30,7 @@ class Lineage:
         self.stimuli = [founder]
         self.regimes = regimes
         self.current_regime_index = 0
+        self.gen_id = 0
 
     def generate_new_batch(self, batch_size):
         """
@@ -38,6 +39,7 @@ class Lineage:
         """
         current_regime = self.regimes[self.current_regime_index]
         self.stimuli.append(current_regime.generate_batch(self, batch_size))
+        self.gen_id += 1
 
     def regime_transition(self):
         """

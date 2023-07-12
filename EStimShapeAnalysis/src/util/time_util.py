@@ -26,7 +26,7 @@ def today() -> When:
 
 def days_ago(x):
     start = __unix(datetime.date.today() - datetime.timedelta(days=x))
-    stop = __now()
+    stop = now()
     when = When(start, stop)
 
 
@@ -35,7 +35,7 @@ def all():
     return when
 
 
-def __now():
+def now():
     return round(time.time() * 1000000)
 
 
