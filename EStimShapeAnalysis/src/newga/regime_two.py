@@ -7,7 +7,6 @@ from src.newga.ga_classes import ParentSelector, MutationAssigner, RegimeTransit
 class RegimeTwoParentSelector(ParentSelector):
     """
     Samples from the top x stimuli that pass a threshold across a lineage.
-
     """
 
     def __init__(self, percentage_of_max_threshold, x):

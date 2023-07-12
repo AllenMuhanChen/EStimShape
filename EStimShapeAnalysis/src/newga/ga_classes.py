@@ -39,7 +39,7 @@ class Lineage:
         current_regime = self.regimes[self.current_regime_index]
         self.stimuli.append(current_regime.generate_batch(self, batch_size))
 
-    def check_for_regime_trasnsition(self):
+    def regime_transition(self):
         """
         Check if this lineage should transition to a new regime based on its performance.
         """
