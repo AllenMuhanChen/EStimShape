@@ -11,7 +11,7 @@ class TestRegimeZeroTransitioner(unittest.TestCase):
 
     def test_should_transition(self):
         # Generate some stimuli with high response rates
-        stimuli = [Stimulus("Test") for _ in range(30)]
+        stimuli = [Stimulus(None, "Test") for _ in range(30)]
         for stimulus in stimuli:
             stimulus.set_response_rate(20)
 
@@ -20,7 +20,7 @@ class TestRegimeZeroTransitioner(unittest.TestCase):
         self.assertTrue(self.transitioner.should_transition(null))
 
         # Generate some stimuli with low response rates
-        stimuli = [Stimulus("Test") for _ in range(30)]
+        stimuli = [Stimulus(None, "Test") for _ in range(30)]
         for stimulus in stimuli:
             stimulus.set_response_rate(10)
 

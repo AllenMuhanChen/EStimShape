@@ -1,8 +1,14 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
+import xml.etree.ElementTree as ET
+
+from util import time_util
 
 
 class Stimulus:
-    def __init__(self, mutation_type, parent=None, mutation_magnitude=None, response_rate=None):
+    def __init__(self, stim_id: int, mutation_type: str, parent: Stimulus = None, mutation_magnitude: float = None,
+                 response_rate=None):
+        self.id = stim_id
         self.parent = parent
         self.mutation_type = mutation_type
         self.mutation_magnitude = mutation_magnitude
@@ -26,28 +32,78 @@ class Stimulus:
 
 
 class Lineage:
-    def __init__(self, founder, regimes):
+    def __init__(self, founder: Stimulus, regimes: [Regime]):
+        self.id = founder.id
         self.stimuli = [founder]
+        self.tree = Node(founder)
         self.regimes = regimes
         self.current_regime_index = 0
         self.gen_id = 0
 
-    def generate_new_batch(self, batch_size):
+    def generate_new_batch(self, batch_size: int) -> None:
         """
         Generate a new batch of stimuli by selecting parents and assigning mutation types
         using the current regime.
         """
         current_regime = self.regimes[self.current_regime_index]
-        self.stimuli.append(current_regime.generate_batch(self, batch_size))
+
+        # Select parents from the current
+        new_children = current_regime.generate_batch(self, batch_size)
+        self.stimuli.append(new_children)
+        for child in new_children:
+            self.tree.add_child_to(child.parent, child)
+
         self.gen_id += 1
 
-    def regime_transition(self):
+    def regime_transition(self) -> None:
         """
         Check if this lineage should transition to a new regime based on its performance.
         """
         current_regime = self.regimes[self.current_regime_index]
         if current_regime.should_transition(self):
             self.current_regime_index += 1
+
+
+class Node:
+    def __init__(self, data):
+        self.data = data
+        self.children = []
+
+    def add_child(self, node):
+        self.children.append(node)
+
+    def add_child_to(self, parent_data, child_data):
+        parent = self.find(parent_data)
+        parent.add_child(child_data)
+
+    def apply_to_children(self, function):
+        for child in self.children:
+            function(child)
+            child.apply_to_children(function)
+
+    def find(self, parent_data):
+        if self.data == parent_data:
+            return self
+        for child in self.children:
+            found = child.find(parent_data)
+            if found:
+                return found
+
+    def to_xml(self):
+        root = ET.Element("Node")
+        root.text = str(self.data)
+        for child in self.children:
+            root.append(ET.fromstring(child.to_xml()))
+        return ET.tostring(root, encoding='unicode')
+
+    @classmethod
+    def from_xml(cls, xml_str):
+        root = ET.fromstring(xml_str)
+        node = cls(root.text)
+        for child_xml in root.findall('Node'):
+            child_node = cls.from_xml(ET.tostring(child_xml, encoding='unicode'))
+            node.add_child(child_node)
+        return node
 
 
 class Regime:
@@ -62,8 +118,7 @@ class Regime:
         Generate a new batch of stimuli by selecting parents and assigning mutation types and magnitudes.
         """
         parents = self.parent_selector.select_parents(lineage.stimuli, batch_size)
-        return [Stimulus(self.mutation_assigner.assign_mutation(lineage),
-                         parent=parent,
+        return [Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage), parent=parent,
                          mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(lineage, parent))
                 for parent in parents]
 
