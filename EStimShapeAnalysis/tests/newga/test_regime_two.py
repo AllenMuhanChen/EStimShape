@@ -8,8 +8,8 @@ class TestRegimeTwoParentSelector(unittest.TestCase):
         self.selector = RegimeTwoParentSelector(0.5, 2)
 
     def test_select_parents(self):
-        lineage = Lineage(Stimulus("Test", 1), [])
-        lineage.stimuli = [Stimulus("Test", response_rate=i) for i in range(1, 11)]
+        lineage = Lineage(Stimulus(None, "Test", 1), [])
+        lineage.stimuli = [Stimulus(None, "Test", response_rate=i) for i in range(1, 11)]
         parents = self.selector.select_parents(lineage, 3)
 
         # Test that select_parents returns the correct number of parents.
@@ -20,11 +20,11 @@ class TestRegimeTwoParentSelector(unittest.TestCase):
 
     def test_select_parents_threshold(self):
         # Test that select_parents returns only parents that have passed the threshold
-        lineage = Lineage(Stimulus("Test", 1), [])
-        lineage.stimuli = [Stimulus("Test", response_rate=i) for i in range(1, 11)]
-        lineage.stimuli[0].parent = Stimulus("Test", response_rate=9)
+        lineage = Lineage(Stimulus(None, "Test", 1), [])
+        lineage.stimuli = [Stimulus(None, "Test", response_rate=i) for i in range(1, 11)]
+        lineage.stimuli[0].parent = Stimulus(None, "Test", response_rate=9)
         lineage.stimuli[0].response_rate = 10
-        lineage.stimuli[1].parent = Stimulus("Test", response_rate=10)
+        lineage.stimuli[1].parent = Stimulus(None, "Test", response_rate=10)
         lineage.stimuli[1].response_rate = 2
         parents = self.selector.select_parents(lineage, 3)
         self.assertTrue(all(parent.response_rate in [10] for parent in parents))
@@ -35,27 +35,27 @@ class TestRegimeTwoTransitioner(unittest.TestCase):
         self.transitioner = RegimeTwoTransitioner(2, 2)
 
     def test_should_transition(self):
-        lineage = Lineage(Stimulus(1, 1), [])
-        lineage.stimuli = [Stimulus("Test") for i in range(1, 5)]
+        lineage = Lineage(Stimulus(None, 1, 1), [])
+        lineage.stimuli = [Stimulus(None, "Test") for i in range(1, 5)]
 
         # Create a parent-child pair with a high response rate ratio.
-        lineage.stimuli[0].parent = Stimulus(1, response_rate=10)
+        lineage.stimuli[0].parent = Stimulus(None, 1, response_rate=10)
         lineage.stimuli[0].response_rate = 10
 
         # Create a parent-child pair with a low response rate ratio.
-        lineage.stimuli[1].parent = Stimulus(2, response_rate=10)
+        lineage.stimuli[1].parent = Stimulus(None, 2, response_rate=10)
         lineage.stimuli[1].response_rate = 2
 
         self.assertFalse(self.transitioner.should_transition(lineage))
 
         # Create a parent-child pair with a high response rate ratio.
-        lineage.stimuli[2].parent = Stimulus(3, response_rate=10)
+        lineage.stimuli[2].parent = Stimulus(None, 3, response_rate=10)
         lineage.stimuli[2].response_rate = 10
 
         self.assertFalse(self.transitioner.should_transition(lineage))
 
         # Create a parent-child pair with a low response rate ratio.
-        lineage.stimuli[3].parent = Stimulus(4, response_rate=10)
+        lineage.stimuli[3].parent = Stimulus(None, 4, response_rate=10)
         lineage.stimuli[3].response_rate = 2
 
         self.assertTrue(self.transitioner.should_transition(lineage))
