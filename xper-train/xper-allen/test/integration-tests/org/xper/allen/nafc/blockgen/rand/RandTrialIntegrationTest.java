@@ -38,7 +38,7 @@ public class RandTrialIntegrationTest {
     Lims noiseChance;
 
     RandNoisyTrialParameters trialParameters;
-    RandTrial trial;
+    RandStim trial;
 
 
     private int numQMDistractors;
@@ -104,7 +104,7 @@ public class RandTrialIntegrationTest {
                 numDistractors,
                 numMorphCategories);
 
-        trial = new RandTrial(
+        trial = new RandStim(
                 generator,
                 trialParameters);
 
@@ -114,11 +114,11 @@ public class RandTrialIntegrationTest {
     public void generates_classic_random_trial() {
         //Arrange
         given_classic_test_trial();
-        RandTrial randTrial = new RandTrial(generator, trialParameters);
+        RandStim randTrial = new RandStim(generator, trialParameters);
 
         //Act
         randTrial.preWrite();
-        randTrial.write();
+        randTrial.writeStim();
 
         //Assert
         thenDrawsPngs();
