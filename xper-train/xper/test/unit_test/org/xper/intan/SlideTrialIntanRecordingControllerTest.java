@@ -22,8 +22,8 @@ public class SlideTrialIntanRecordingControllerTest {
 
     @BeforeClass
     public static void set_up(){
-        FileUtil.loadTestSystemProperties("/xper.properties.test");
-        JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("test.experiment.config_class"));
+//        FileUtil.loadTestSystemProperties("/xper.properties.test");
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"));
         slideTrialIntanRecordingController = context.getBean(SlideTrialIntanRecordingController.class);
         slideTrialIntanRecordingController.recordingEnabled = true;
         intanClient = context.getBean(IntanClient.class);
@@ -63,7 +63,22 @@ public class SlideTrialIntanRecordingControllerTest {
 
         slideTrialIntanRecordingController.experimentStart(0);
         slideTrialIntanRecordingController.trialInit(0, testContext);
+
         slideTrialIntanRecordingController.slideOn(0, 0, 1);
+        int inter_slide_interval = 500;
+        ThreadUtil.sleep(inter_slide_interval);
+        slideTrialIntanRecordingController.slideOff(0, 0, 1, 1);
+
+        slideTrialIntanRecordingController.slideOn(0, 0, 2);
+        ThreadUtil.sleep(inter_slide_interval);
+        slideTrialIntanRecordingController.slideOff(0, 0, 1, 2);
+
+        slideTrialIntanRecordingController.slideOn(0, 0, 3);
+        ThreadUtil.sleep(inter_slide_interval);
+        slideTrialIntanRecordingController.slideOff(0, 0, 1, 3);
+
+
+
         slideTrialIntanRecordingController.trialStop(0, testContext);
         slideTrialIntanRecordingController.experimentStop(0);
 

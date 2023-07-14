@@ -12,6 +12,12 @@ import org.xper.experiment.listener.ExperimentEventListener;
  */
 public class SlideTrialIntanRecordingController extends IntanRecordingController implements SlideEventListener {
 
+    /**
+     * Live notes cannot be more accurate than 300 ms due to the communication delay of USB
+     * @param index
+     * @param timestamp
+     * @param taskId
+     */
     @Override
     public void slideOn(int index, long timestamp, long taskId) {
         if (toRecord()){
