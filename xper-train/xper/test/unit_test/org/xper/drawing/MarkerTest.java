@@ -36,10 +36,14 @@ public class MarkerTest {
     @Test
     public void draw_marker() {
         drawingController.init();
-        drawingController.trialStart(new TrialContext());
-//        drawingController.fixationOn(new TrialContext());
+        while (true) {
+            drawingController.trialStart(new TrialContext());
+            ThreadUtil.sleep(1000);
+            drawingController.trialStop(new TrialContext());
+        }
 
-        ThreadUtil.sleep(100000);
+
+
 
     }
 }
