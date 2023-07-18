@@ -9,29 +9,49 @@ def fetch_spike_tstamps_from_file(spike_file_path):
     return spike_tstamps_for_channels
 
 
+def filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, tstamps_for_stim_ids, stim_id):
+    passed_filter = []
+    tstamps = tstamps_for_stim_ids[stim_id]
+    for channel in spike_tstamps_for_channels:
+        for spike_tstamp in channel:
+            if spike_tstamp >= tstamps[0] or spike_tstamp <= tstamps[1]:
+                passed_filter.append(spike_tstamp)
+    return passed_filter
+
+
 class ResponseParser:
-    def __init__(self, intan_spike_path):
-        self.intan_spike_path = intan_spike_path
+    def __init__(self, base_intan_path: str):
+        self.intan_spike_path = base_intan_path
 
-    def parse_spike_count(self, stim_id):
-        spike_file_path = self.stim_id_to_path(stim_id)
-        spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(spike_file_path)
-        digital_in = read_digitalin_file(self.path_to_digital_in(stim_id))
-        stim_tstamps = get_epochs(spike_file_path)
-        stim_id_for_tstamps = map_stim_id_to_tstamps(stim_tstamps, self.path_to_notes(stim_id))
-        return filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, stim_tstamps)
+    def parse_avg_spike_count_for_stim(self, stim_id):
+        # Find the taks_ids for a stim_id
 
-    def path_to_spike(self, stim_id):
+        # Parse all the spike counts
+        # Add each to response_vector
+
+        # average the spike counts
+        # Assign as response
         pass
 
-    def path_to_digital_in(self, stim_id):
+    def parse_spike_count_for_task(self, task_id):
+        spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(self.path_to_spike(task_id))
+        digital_in = read_digitalin_file(self.path_to_digital_in(task_id))
+        stim_tstamps_from_markers = get_epochs(digital_in[0], digital_in[1])
+        stim_id_for_tstamps = map_stim_id_to_tstamps(self.path_to_notes(task_id), stim_tstamps_from_markers)
+        spikes_for_channels = filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, stim_id_for_tstamps, task_id)
+        return len(spikes_for_channels)
+
+    def path_to_spike(self, stim_id: int) -> str:
         pass
 
-    def path_to_notes(self, stim_id):
+    def path_to_digital_in(self, stim_id: int) -> str:
+        pass
+
+    def path_to_notes(self, stim_id: int) -> str:
         pass
 
 
-def map_stim_id_to_tstamp(input_data: str, time_indices: list) -> dict:
+def map_stim_id_to_tstamps(input_data: str, time_indices: list) -> dict:
     # Check if the input is a file path
     if os.path.isfile(input_data):
         with open(input_data, 'r') as file:
