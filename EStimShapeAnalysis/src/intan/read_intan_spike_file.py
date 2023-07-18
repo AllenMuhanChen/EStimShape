@@ -61,7 +61,7 @@ def read_intan_spike_file(full_file_name, no_artifacts=True) -> list[list]:
     channelList = readString(fid).split(",")
     customChannelList = readString(fid).split(",")
 
-    sampleRate, = struct.unpack('<f', fid.read(4))
+    sample_rate, = struct.unpack('<f', fid.read(4))
 
     samplesPreDetect, = struct.unpack('<I', fid.read(4))
     samplesPostDetect, = struct.unpack('<I', fid.read(4))
@@ -105,7 +105,7 @@ def read_intan_spike_file(full_file_name, no_artifacts=True) -> list[list]:
         if spikeID == 128 and no_artifacts:
             continue
 
-        timestampSeconds = timestamp / sampleRate
+        timestampSeconds = timestamp / sample_rate
 
         spikes[index][2].append(timestampSeconds)
         spikes[index][3].append(spikeID)
@@ -116,7 +116,7 @@ def read_intan_spike_file(full_file_name, no_artifacts=True) -> list[list]:
     # Close data file
     fid.close()
 
-    return spikes
+    return spikes, sample_rate
 
     #
     # if snapshotsPresent:
