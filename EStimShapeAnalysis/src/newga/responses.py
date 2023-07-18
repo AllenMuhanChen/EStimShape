@@ -1,8 +1,10 @@
+import os
+
 from intan.read_intan_spike_file import read_intan_spike_file, read_digitalin_file
 
 
 def fetch_spike_tstamps_from_file(spike_file_path):
-    spike_matrix = read_intan_spike_file(spike_file_path)
+    spike_matrix, sample_rate = read_intan_spike_file(spike_file_path)
     spike_tstamps_for_channels = spike_matrix_to_spike_tstamps_for_channels(spike_matrix)
     return spike_tstamps_for_channels
 
@@ -16,6 +18,7 @@ class ResponseParser:
         spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(spike_file_path)
         digital_in = read_digitalin_file(self.path_to_digital_in(stim_id))
         stim_tstamps = get_epochs(spike_file_path)
+        stim_id_for_tstamps = map_stim_id_to_tstamps(stim_tstamps, self.path_to_notes(stim_id))
         return filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, stim_tstamps)
 
     def path_to_spike(self, stim_id):
@@ -23,6 +26,51 @@ class ResponseParser:
 
     def path_to_digital_in(self, stim_id):
         pass
+
+    def path_to_notes(self, stim_id):
+        pass
+
+
+def map_stim_id_to_tstamp(input_data: str, time_indices: list) -> dict:
+    # Check if the input is a file path
+    if os.path.isfile(input_data):
+        with open(input_data, 'r') as file:
+            data = file.read()
+    else:
+        data = input_data
+
+    # Convert the raw text data into a list of tuples (tstamp, stim_id)
+    tstamp_and_stim_id_from_livenotes = []
+    for line in data.strip().split('\n\n'):
+        parts = line.split(',')
+        tstamp = int(parts[0].strip())
+        stim_id = int(parts[2].strip())
+        tstamp_and_stim_id_from_livenotes.append((tstamp, stim_id))
+
+    # Sort the tstamp_and_stim_id_from_livenotes by tstamp
+    tstamp_and_stim_id_from_livenotes.sort()
+
+    # Initialize the dictionary to store the result
+    result = {}
+
+    # For each tuple in time_indices, find the record with the closest tstamp
+    for start, end in time_indices:
+        # Find the record with the tstamp closest to start
+        closest_tstamp = None
+        closest_stim_id = None
+        for tstamp, stim_id in tstamp_and_stim_id_from_livenotes:
+            if stim_id not in result and (closest_tstamp is None or abs(tstamp - start) < abs(closest_tstamp - start)):
+                closest_tstamp = tstamp
+                closest_stim_id = stim_id
+
+        # If no match is found, raise an error
+        if closest_stim_id is None:
+            raise ValueError(f"No match found for start time {start}")
+
+        # Otherwise, add it to the result
+        result[closest_stim_id] = start
+
+    return result
 
 
 def get_epochs(marker1_data, marker2_data, false_data_correction_duration=2):
@@ -34,30 +82,37 @@ def get_epochs(marker1_data, marker2_data, false_data_correction_duration=2):
 
         if current_marker == 1:
             # Starting an epoch for marker 1
-            if marker1_data[i] and start_time is None and not false_positive(i, marker1_data, false_data_correction_duration):
+            if marker1_data[i] and start_time is None and not false_positive(i, marker1_data,
+                                                                             false_data_correction_duration):
                 start_time = i
             # Ending an epoch for marker 1
-            elif is_end_of_epoch(i, marker1_data) and epoch_ongoing(start_time) and not false_negative(i, false_data_correction_duration,
+            elif is_end_of_epoch(i, marker1_data) and epoch_ongoing(start_time) and not false_negative(i,
+                                                                                                       false_data_correction_duration,
                                                                                                        marker1_data):
                 epochs.append((start_time, i))
                 start_time = None
                 current_marker = 2
             # Can't end epoch for marker 1 because it's too short
-            elif is_end_of_epoch(i, marker1_data) and epoch_ongoing(start_time) and false_negative(i, false_data_correction_duration,
+            elif is_end_of_epoch(i, marker1_data) and epoch_ongoing(start_time) and false_negative(i,
+                                                                                                   false_data_correction_duration,
                                                                                                    marker2_data):
-                print("Detected false negative for marker 1 at time {}".format(i+1))
+                print("Detected false negative for marker 1 at time {}".format(i + 1))
 
         else:
-            if marker2_data[i] and start_time is None and not false_positive(i, marker2_data, false_data_correction_duration):
+            if marker2_data[i] and start_time is None and not false_positive(i, marker2_data,
+                                                                             false_data_correction_duration):
                 start_time = i
-            elif is_end_of_epoch(i, marker2_data) and epoch_ongoing(start_time) and not false_negative(i, false_data_correction_duration, marker2_data):
+            elif is_end_of_epoch(i, marker2_data) and epoch_ongoing(start_time) and not false_negative(i,
+                                                                                                       false_data_correction_duration,
+                                                                                                       marker2_data):
                 epochs.append((start_time, i))
                 start_time = None
                 current_marker = 1
                 # Can't end epoch for marker 1 because it's too short
-            elif is_end_of_epoch(i, marker2_data) and epoch_ongoing(start_time) and false_negative(i, false_data_correction_duration,
+            elif is_end_of_epoch(i, marker2_data) and epoch_ongoing(start_time) and false_negative(i,
+                                                                                                   false_data_correction_duration,
                                                                                                    marker2_data):
-                print("Detected false negative for marker 2 at time {}".format(i+1))
+                print("Detected false negative for marker 2 at time {}".format(i + 1))
 
     return epochs
 
