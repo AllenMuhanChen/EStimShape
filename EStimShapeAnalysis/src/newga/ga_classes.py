@@ -7,11 +7,13 @@ from util import time_util
 
 class Stimulus:
     def __init__(self, stim_id: int, mutation_type: str, parent: Stimulus = None, mutation_magnitude: float = None,
+                 response_vector=None,
                  response_rate=None):
         self.id = stim_id
         self.parent = parent
         self.mutation_type = mutation_type
         self.mutation_magnitude = mutation_magnitude
+        self.response_vector = response_vector
         self.response_rate = response_rate
         self.mutation_magnitude = None
 

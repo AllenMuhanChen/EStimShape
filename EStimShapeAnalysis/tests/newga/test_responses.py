@@ -4,12 +4,16 @@ from unittest import TestCase
 from matplotlib import pyplot as plt
 
 from intan.read_intan_spike_file import read_digitalin_file
-from newga.responses import ResponseParser, fetch_spike_tstamps_from_file, get_epochs, map_stim_id_to_tstamp
+from newga.responses import ResponseParser, fetch_spike_tstamps_from_file, get_epochs, map_stim_id_to_tstamps
 
 import itertools
 
 
 class TestResponseRetriever(TestCase):
+
+    def test_parse_spike_count(self):
+        base_intan_path = "sftp://172.30.9.78/home/i2_allen/Documents/Test"
+        response_parser = ResponseParser(base_intan_path)
 
     def test_retrieve_responses(self):
         responses = fetch_spike_tstamps_from_file(
@@ -33,7 +37,7 @@ class TestResponseRetriever(TestCase):
 
         notes = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/newga/mock-trial/notes.txt"
 
-        stamps_for_stim_id = map_stim_id_to_tstamp(notes, stim_tstamps)
+        stamps_for_stim_id = map_stim_id_to_tstamps(notes, stim_tstamps)
         print(stamps_for_stim_id)
 
         expected = {1: 3919, 2: 19424, 3: 34421}
@@ -93,17 +97,18 @@ class TestResponseRetriever(TestCase):
         """
         time_indices = [(1500, 2500), (2500, 3500), (3500, 4500), (4500, 5500)]
         expected_result = {1: 1500, 2: 2500, 3: 3500, 4: 4500}
-        self.assertEqual(map_stim_id_to_tstamp(data, time_indices), expected_result)
+        self.assertEqual(map_stim_id_to_tstamps(data, time_indices), expected_result)
 
         # Test with time_indices for start being before expected
         time_indices = [(500, 1500), (1500, 2500), (2500, 3500), (3500, 4500)]
         expected_result = {1: 500, 2: 1500, 3: 2500, 4: 3500}
-        self.assertEqual(map_stim_id_to_tstamp(data, time_indices), expected_result)
+        self.assertEqual(map_stim_id_to_tstamps(data, time_indices), expected_result)
 
         # Test with time_indices for start being after expected
         time_indices = [(1500, 2500), (2500, 3500), (3500, 4500), (5000, 6000)]
         expected_result = {1: 1500, 2: 2500, 3: 3500, 4: 5000}
-        self.assertEqual(map_stim_id_to_tstamp(data, time_indices), expected_result)
+        self.assertEqual(map_stim_id_to_tstamps(data, time_indices), expected_result)
+
 
 def plot_bool_array(arr, new_figure=True):
     if new_figure:
