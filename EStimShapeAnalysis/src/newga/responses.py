@@ -1,4 +1,4 @@
-from intan.read_intan_spike_file import read_intan_spike_file
+from intan.read_intan_spike_file import read_intan_spike_file, read_digitalin_file
 
 
 def fetch_spike_tstamps_from_file(spike_file_path):
@@ -14,11 +14,14 @@ class ResponseParser:
     def parse_spike_count(self, stim_id):
         spike_file_path = self.stim_id_to_path(stim_id)
         spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(spike_file_path)
-        digital_in = read_digitalin_file(self.digitalin_file_path(stim_id))
+        digital_in = read_digitalin_file(self.path_to_digital_in(stim_id))
         stim_tstamps = get_epochs(spike_file_path)
         return filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, stim_tstamps)
 
-    def path_to_stim_id(self, stim_id):
+    def path_to_spike(self, stim_id):
+        pass
+
+    def path_to_digital_in(self, stim_id):
         pass
 
 

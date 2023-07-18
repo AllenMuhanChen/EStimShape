@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="jmatlink">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/xper-sach-xper/lib/jmatlink/jmatlink.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
