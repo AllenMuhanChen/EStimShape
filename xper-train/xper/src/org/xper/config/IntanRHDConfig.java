@@ -29,7 +29,8 @@ public class IntanRHDConfig {
     @ExternalValue("intan.default_base_filename")
     public String intanDefaultBaseFilename;
 
-
+    @ExternalValue("intan.remote_directory")
+    public String intanRemoteDirectory;
 
     @Bean
     public IntanRecordingController intanController(){
@@ -61,6 +62,7 @@ public class IntanRHDConfig {
     @Bean
     public IntanFileNamingStrategy<Long> intanFileNamingStrategy(){
         TaskIdFileNamingStrategy strategy = new TaskIdFileNamingStrategy();
+        strategy.setBaseNetworkPath(intanRemoteDirectory);
         strategy.setIntan(intan());
         return strategy;
     }

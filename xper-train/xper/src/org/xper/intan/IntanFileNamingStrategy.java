@@ -14,7 +14,20 @@ public abstract class IntanFileNamingStrategy<T> {
     @Dependency
     IntanRHD intanRHD;
 
-    public abstract void rename(T parameter);
+    public void rename(T parameter){
+        String baseFilename = nameBaseFile(parameter);
+        if (baseFilename != null){
+            intanRHD.setBaseFilename(baseFilename);
+        }
+        String savePath = nameSavePath(parameter);
+        if (savePath != null) {
+            intanRHD.setSavePath(savePath);
+        }
+    }
+
+    protected abstract String nameBaseFile(T parameter);
+
+    protected abstract String nameSavePath(T parameter);
 
     public IntanRHD getIntan() {
         return intanRHD;
