@@ -36,7 +36,7 @@ class ResponseParser:
     def parse_spike_count_for_task(self, task_id):
         spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(self.path_to_spike(task_id))
         digital_in = read_digitalin_file(self.path_to_digital_in(task_id))
-        stim_tstamps_from_markers = get_epochs(digital_in[0], digital_in[1])
+        stim_tstamps_from_markers = get_epochs_start_and_stop_indices(digital_in[0], digital_in[1])
         stim_id_for_tstamps = map_stim_id_to_tstamps(self.path_to_notes(task_id), stim_tstamps_from_markers)
         spikes_for_channels = filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, stim_id_for_tstamps, task_id)
         return len(spikes_for_channels)
@@ -73,7 +73,7 @@ def map_stim_id_to_tstamps(input_data: str, time_indices: list) -> dict:
     # Initialize the dictionary to store the result
     result = {}
 
-    # For each tuple in time_indices, find the record with the closest tstamp
+    # For each tuple in time_indices, find the one with the closest tstamp
     for start, end in time_indices:
         # Find the record with the tstamp closest to start
         closest_tstamp = None
@@ -93,7 +93,7 @@ def map_stim_id_to_tstamps(input_data: str, time_indices: list) -> dict:
     return result
 
 
-def get_epochs(marker1_data, marker2_data, false_data_correction_duration=2):
+def get_epochs_start_and_stop_indices(marker1_data, marker2_data, false_data_correction_duration=2) -> list[tuple[int, int]]:
     epochs = []
     start_time = None
     current_marker = determine_first_pulse(marker1_data, marker2_data)

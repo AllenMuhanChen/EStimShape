@@ -61,7 +61,7 @@ public class ThreeDGAConfig {
         MultiGATaskDataSource source = new MultiGATaskDataSource();
         source.setDbUtil(dbUtil());
         source.setQueryInterval(1000);
-        source.setUngetPolicy(DatabaseTaskDataSource.UngetPolicy.HEAD);
+        source.setUngetPolicy(DatabaseTaskDataSource.UngetPolicy.TAIL);
         source.setGaNames(generator().getGaNames());
         return source;
     }

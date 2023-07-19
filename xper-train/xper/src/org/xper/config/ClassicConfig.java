@@ -82,7 +82,9 @@ import org.xper.eye.win.RampEyeWindowAlgorithm;
 import org.xper.eye.zero.EyeZeroAdjustable;
 import org.xper.eye.zero.EyeZeroMessageListener;
 import org.xper.eye.zero.MovingAverageEyeZeroAlgorithm;
+import org.xper.intan.IntanFileNamingStrategy;
 import org.xper.intan.SlideTrialIntanRecordingController;
+import org.xper.intan.UpcomingTasksFileNamingStrategy;
 import org.xper.juice.AnalogJuice;
 import org.xper.juice.DynamicJuice;
 import org.xper.juice.mock.NullDynamicJuice;
@@ -118,6 +120,8 @@ public class ClassicConfig {
 
 	@ExternalValue("experiment.acq_offline")
 	public boolean experimentAcqOffline;
+
+
 
 	@Bean
 	public TaskScene taskScene() {
@@ -323,6 +327,16 @@ public class ClassicConfig {
 		slideTrialIntanRecordingController.setIntan(intanConfig.intan());
 		slideTrialIntanRecordingController.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
 		return slideTrialIntanRecordingController;
+	}
+
+	@Bean
+	public IntanFileNamingStrategy<Long> intanFileNamingStrategy(){
+		UpcomingTasksFileNamingStrategy strategy = new UpcomingTasksFileNamingStrategy();
+		strategy.setBaseNetworkPath(intanConfig.intanRemoteDirectory);
+		strategy.setNumTasks(xperSlidePerTrial());
+		strategy.setIntan(intanConfig.intan());
+		strategy.setDataSource(baseConfig.dataSource());
+		return strategy;
 	}
 
 	@Bean

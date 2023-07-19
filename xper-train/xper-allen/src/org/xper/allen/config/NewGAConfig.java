@@ -394,7 +394,7 @@ public class NewGAConfig {
         MultiGATaskDataSource source = new MultiGATaskDataSource();
         source.setDbUtil(dbUtil());
         source.setQueryInterval(1000);
-        source.setUngetPolicy(DatabaseTaskDataSource.UngetPolicy.HEAD);
+        source.setUngetPolicy(DatabaseTaskDataSource.UngetPolicy.TAIL);
         source.setGaNames(Collections.singletonList(generator().getGaBaseName()));
         return source;
     }

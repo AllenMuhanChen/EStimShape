@@ -24,7 +24,7 @@ public class DatabaseTaskDataSource implements TaskDataSource, Threadable {
 	@Dependency
 	protected  long queryInterval = DEFAULT_QUERY_INTERVAL;
 	@Dependency
-	protected  UngetPolicy ungetBehavior = UngetPolicy.HEAD;
+	protected  UngetPolicy ungetBehavior = UngetPolicy.TAIL;
 
 	protected  AtomicReference<LinkedList<ExperimentTask>> currentGeneration = new AtomicReference<LinkedList<ExperimentTask>>();
 	protected  ThreadHelper threadHelper = new ThreadHelper("DatabaseTaskDataSource", this);
