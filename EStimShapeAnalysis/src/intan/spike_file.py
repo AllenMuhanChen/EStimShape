@@ -150,3 +150,9 @@ def spike_matrix_to_spike_tstamps_for_channels(spike_matrix) -> dict[str: list[f
         responses = row[2]
         spike_dict[channel_name] = responses
     return spike_dict
+
+
+def fetch_spike_tstamps_from_file(spike_file_path: str) -> dict[str, list[float]]:
+    spike_matrix, sample_rate = read_intan_spike_file(spike_file_path)
+    spike_tstamps_for_channels = spike_matrix_to_spike_tstamps_for_channels(spike_matrix)
+    return spike_tstamps_for_channels

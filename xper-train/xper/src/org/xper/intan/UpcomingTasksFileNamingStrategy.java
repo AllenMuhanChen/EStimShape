@@ -18,7 +18,6 @@ public class UpcomingTasksFileNamingStrategy extends TaskIdFileNamingStrategy{
     @Dependency
     int numSlides;
 
-
     @Override
     protected String nameBaseFile(Long taskId) {
         int numUpcomingTasks = numSlides;

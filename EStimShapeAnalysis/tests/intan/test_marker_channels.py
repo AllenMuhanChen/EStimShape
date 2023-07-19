@@ -83,4 +83,4 @@ def plot_epochs_on_bool_array(arr, epochs, new_figure=True):
     for start, end in epochs:
         plt.axvspan(start, end, alpha=0.2, color='red')  # change color and transparency as needed
 
-    plt.show()
+
