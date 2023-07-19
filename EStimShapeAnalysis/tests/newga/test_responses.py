@@ -1,15 +1,16 @@
 import unittest
 from unittest import TestCase
+from unittest.mock import patch
 
 from matplotlib import pyplot as plt
 
-from intan.read_intan_spike_file import read_digitalin_file
-from newga.responses import ResponseParser, fetch_spike_tstamps_from_file, get_epochs_start_and_stop_indices, map_stim_id_to_tstamps
+from intan.spike_file import read_digitalin_file
+from intan.responses import ResponseParser, fetch_spike_tstamps_from_file, find_folders_with_id
+from intan.livenotes import map_stim_id_to_tstamps
+from intan.marker_channels import get_epochs_start_and_stop_indices
 
-import itertools
 
-
-class TestResponseRetriever(TestCase):
+class TestResponseModuleFunctions(TestCase):
 
     def test_parse_spike_count(self):
         base_intan_path = "sftp://172.30.9.78/home/i2_allen/Documents/Test"
@@ -108,6 +109,43 @@ class TestResponseRetriever(TestCase):
         time_indices = [(1500, 2500), (2500, 3500), (3500, 4500), (5000, 6000)]
         expected_result = {1: 1500, 2: 2500, 3: 3500, 4: 5000}
         self.assertEqual(map_stim_id_to_tstamps(data, time_indices), expected_result)
+
+
+class TestFindFoldersWithID(unittest.TestCase):
+
+    @patch('os.walk')
+    def test_find_folders_with_id(self, mock_os_walk):
+        # Set up mock os.walk to return a predefined list of directories
+        mock_os_walk.return_value = [
+            ('/root', ['1_2_3__20230719_1200', '3_4_5_6__20230719_1300'], []),
+            ('/root/1_2_3__20230719_1200', [], []),
+            ('/root/3_4_5_6__20230719_1300', [], []),
+        ]
+
+        # Test that the function correctly finds directories with the id '2'
+        self.assertEqual(
+            find_folders_with_id('/root', 2),
+            ['/root/1_2_3__20230719_1200']
+        )
+
+        # Test that the function correctly finds directories with the id '4'
+        self.assertEqual(
+            find_folders_with_id('/root', 4),
+            ['/root/3_4_5_6__20230719_1300']
+        )
+
+        # Test that the function returns an empty list when the id is not found
+        self.assertEqual(
+            find_folders_with_id('/root', 7),
+            []
+        )
+
+        #Test that the function returns a list with two elements when a file contains two
+        #instances of the id
+        self.assertEqual(
+            find_folders_with_id('/root', 3),
+            ['/root/1_2_3__20230719_1200', '/root/3_4_5_6__20230719_1300']
+        )
 
 
 def plot_bool_array(arr, new_figure=True):
