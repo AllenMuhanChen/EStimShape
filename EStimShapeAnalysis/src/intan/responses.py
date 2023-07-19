@@ -1,29 +1,16 @@
 import os
+from datetime import datetime
+from typing import Dict, List
 
 from intan.livenotes import map_stim_id_to_epochs_with_livenotes
-from intan.marker_channels import get_epochs_start_and_stop_indices, read_digitalin_file, epoch_using_marker_channels
-from intan.spike_file import read_intan_spike_file, spike_matrix_to_spike_tstamps_for_channels
-
-
-def fetch_spike_tstamps_from_file(spike_file_path: str) -> dict[str, tuple[int, int]]:
-    spike_matrix, sample_rate = read_intan_spike_file(spike_file_path)
-    spike_tstamps_for_channels = spike_matrix_to_spike_tstamps_for_channels(spike_matrix)
-    return spike_tstamps_for_channels
-
-
-def filter_spikes_with_epochs(spike_tstamps_for_channels: dict[str, tuple[int, int]], tstamps_for_stim_ids, stim_id):
-    passed_filter = []
-    tstamps = tstamps_for_stim_ids[stim_id]
-    for channel in spike_tstamps_for_channels:
-        for spike_tstamp in channel:
-            if spike_tstamp >= tstamps[0] or spike_tstamp <= tstamps[1]:
-                passed_filter.append(spike_tstamp)
-    return passed_filter
+from intan.marker_channels import epoch_using_marker_channels
+from intan.spike_file import fetch_spike_tstamps_from_file
 
 
 class ResponseParser:
     def __init__(self, base_intan_path: str):
         self.intan_spike_path = base_intan_path
+        self.intan_spike_path = os.path.join(self.intan_spike_path, get_current_date())
 
     def parse_avg_spike_count_for_stim(self, stim_id):
         # Find the taks_ids for a stim_id
@@ -36,30 +23,57 @@ class ResponseParser:
         pass
 
     def parse_spike_count_for_task(self, task_id):
-        spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(self.path_to_spike(task_id))
-        stim_tstamps_from_markers = epoch_using_marker_channels(self.path_to_digital_in(task_id))
-        stim_id_for_tstamps = map_stim_id_to_epochs_with_livenotes(self.path_to_notes(task_id), stim_tstamps_from_markers)
-        spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, stim_id_for_tstamps, task_id)
-        return len(spikes_for_channels)
+        spike_tstamps_for_channels = fetch_spike_tstamps_from_file(self.path_to_spike_file(task_id))
+        stim_epochs_from_markers = epoch_using_marker_channels(self.path_to_digital_in(task_id))
+        stim_id_for_epochs = map_stim_id_to_epochs_with_livenotes(self.path_to_notes(task_id),
+                                                                  stim_epochs_from_markers)
+        spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, stim_id_for_epochs, task_id)
+        return len(spikes_for_channels['B-025'])
 
     def path_to_trial(self, task_id) -> str:
         paths_to_trial = find_folders_with_id(self.intan_spike_path, task_id)
         if len(paths_to_trial) == 1:
             return paths_to_trial[0]
-        else:
+        elif len(paths_to_trial) > 1:
             # find the most recent one based on timestamps on files
             date_times = [date_time_for_folder(path) for path in paths_to_trial]
             return paths_to_trial[date_times.index(max(date_times))]
+        else:
+            raise ValueError(f"Task id {task_id} not found in {self.intan_spike_path}")
 
-    def path_to_spike(self, stim_id: int) -> str:
+    def path_to_spike_file(self, stim_id: int) -> str:
         path_to_trial = self.path_to_trial(stim_id)
-        pass
+        return os.path.join(path_to_trial, "spike.dat")
 
     def path_to_digital_in(self, stim_id: int) -> str:
-        pass
+        path_to_trial = self.path_to_trial(stim_id)
+        return os.path.join(path_to_trial, "digitalin.dat")
 
     def path_to_notes(self, stim_id: int) -> str:
-        pass
+        path_to_trial = self.path_to_trial(stim_id)
+        return os.path.join(path_to_trial, "notes.txt")
+
+
+def get_current_date():
+    # Get current date
+    now = datetime.now()
+
+    # Format the date as "YYYY-MM-DD"
+    return now.strftime("%Y-%m-%d")
+
+
+def filter_spikes_with_epochs(spike_tstamps_for_channels: dict[str, list[float]],
+                              epochs_for_stim_ids: dict[int, tuple[int, int]], stim_id: int, sample_rate=30000) -> dict[str, list[float]]:
+    filtered_spikes_for_channels = {}
+    epoch = epochs_for_stim_ids[stim_id]
+    for channel, tstamps in spike_tstamps_for_channels.items():
+        passed_filter = []
+        for spike_tstamp in tstamps:
+            spike_index = int(spike_tstamp * sample_rate)
+            if epoch[0] <= spike_index <= epoch[1]:
+                passed_filter.append(spike_tstamp)
+        filtered_spikes_for_channels[channel] = passed_filter
+    return filtered_spikes_for_channels
 
 
 def find_folders_with_id(root_directory, id: int) -> list[str]:
