@@ -1,7 +1,6 @@
 import os
 import struct
-
-import numpy as np
+from typing import Tuple, List, Any
 
 
 # Version 3.0, 11 February 2021
@@ -23,7 +22,7 @@ import numpy as np
 # denote different identified spikes (1, 2, 3, etc.).  If spike snapshots
 # were saved then they are contained in the fifth column.
 
-def read_intan_spike_file(full_file_name, no_artifacts=True) -> list[list]:
+def read_intan_spike_file(full_file_name, no_artifacts=True) -> tuple[list[list[Any]], float]:
     """
     # Spike data from N channels are loaded into an N x M list named
     # 'spikes', where M = 5 if spike snapshots were saved, otherwise M = 4.
@@ -129,27 +128,6 @@ def read_intan_spike_file(full_file_name, no_artifacts=True) -> list[list]:
     # plt.show()
 
 
-def read_digitalin_file(full_file_name):
-    fid = open(full_file_name, 'rb')
-    filesize = os.path.getsize(full_file_name)
-
-    num_samples = filesize // 2  # uint16 = 2 bytes
-
-    digital_word = np.fromfile(fid, dtype=np.uint16, count=num_samples)
-    fid.close()
-
-    # Get the digital inputs for channel 0 and 1
-    digital_input_ch0 = (digital_word & (2**0)) > 0
-    digital_input_ch1 = (digital_word & (2**1)) > 0
-
-    return [digital_input_ch0, digital_input_ch1]
-
-
-def isolate_digital_input(digital_word, ch):
-    digital_input_ch = (digital_word & (2 ** ch)) > 0
-    return digital_input_ch
-
-
 def readString(fid):
     resultStr = ""
     ch, = struct.unpack('<c', fid.read(1))
@@ -158,10 +136,11 @@ def readString(fid):
         ch, = struct.unpack('<c', fid.read(1))
     return resultStr
 
+
 # If the function is called with the "noartifacts" parameter, all spikes with spike ID = 128 are ignored.
 # readIntanSpikeFile("artifacts")
 # #readIntanSpikeFile("noartifacts")
-def spike_matrix_to_spike_tstamps_for_channels(spike_matrix):
+def spike_matrix_to_spike_tstamps_for_channels(spike_matrix) -> dict[str: list[float]]:
     """
     Convert spike data into a dictionary of channel names and responses.
     """
