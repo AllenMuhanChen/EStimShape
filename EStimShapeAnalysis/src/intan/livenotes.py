@@ -1,13 +1,24 @@
 import os
 
 
-def map_stim_id_to_tstamps(input_data: str, time_indices: list) -> dict:
+def map_stim_id_to_epochs_with_livenotes(livenotes_data: str, marker_channel_time_indices: list[tuple]) -> dict[int, tuple]:
+    """
+    Params:
+    livenotes_data: live_notes file in the form a path or the file string itself
+    marker_channel_time_indices: list of tuples (start, end) where start and end are the start and end time indices of the stimulus
+    based on marker_channel data
+
+    Returns:
+    mapping of the stim_ids in the livenotes with the real marker-channel based tuples (start, end)
+    based on closest matching between timestamp in livenotes and start time in marker-channel data
+
+    """
     # Check if the input is a file path
-    if os.path.isfile(input_data):
-        with open(input_data, 'r') as file:
+    if os.path.isfile(livenotes_data):
+        with open(livenotes_data, 'r') as file:
             data = file.read()
     else:
-        data = input_data
+        data = livenotes_data
 
     # Convert the raw text data into a list of tuples (tstamp, stim_id)
     tstamp_and_stim_id_from_livenotes = []
@@ -24,7 +35,7 @@ def map_stim_id_to_tstamps(input_data: str, time_indices: list) -> dict:
     result = {}
 
     # For each tuple in time_indices, find the one with the closest tstamp
-    for start, end in time_indices:
+    for start, end in marker_channel_time_indices:
         # Find the record with the tstamp closest to start
         closest_tstamp = None
         closest_stim_id = None

@@ -1,17 +1,17 @@
 import os
 
-from intan.livenotes import map_stim_id_to_tstamps
-from intan.marker_channels import get_epochs_start_and_stop_indices
-from intan.spike_file import read_intan_spike_file, read_digitalin_file, spike_matrix_to_spike_tstamps_for_channels
+from intan.livenotes import map_stim_id_to_epochs_with_livenotes
+from intan.marker_channels import get_epochs_start_and_stop_indices, read_digitalin_file, epoch_using_marker_channels
+from intan.spike_file import read_intan_spike_file, spike_matrix_to_spike_tstamps_for_channels
 
 
-def fetch_spike_tstamps_from_file(spike_file_path):
+def fetch_spike_tstamps_from_file(spike_file_path: str) -> dict[str, tuple[int, int]]:
     spike_matrix, sample_rate = read_intan_spike_file(spike_file_path)
     spike_tstamps_for_channels = spike_matrix_to_spike_tstamps_for_channels(spike_matrix)
     return spike_tstamps_for_channels
 
 
-def filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, tstamps_for_stim_ids, stim_id):
+def filter_spikes_with_epochs(spike_tstamps_for_channels: dict[str, tuple[int, int]], tstamps_for_stim_ids, stim_id):
     passed_filter = []
     tstamps = tstamps_for_stim_ids[stim_id]
     for channel in spike_tstamps_for_channels:
@@ -37,13 +37,12 @@ class ResponseParser:
 
     def parse_spike_count_for_task(self, task_id):
         spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(self.path_to_spike(task_id))
-        digital_in = read_digitalin_file(self.path_to_digital_in(task_id))
-        stim_tstamps_from_markers = get_epochs_start_and_stop_indices(digital_in[0], digital_in[1])
-        stim_id_for_tstamps = map_stim_id_to_tstamps(self.path_to_notes(task_id), stim_tstamps_from_markers)
-        spikes_for_channels = filter_spikes_with_stim_tstamps(spike_tstamps_for_channels, stim_id_for_tstamps, task_id)
+        stim_tstamps_from_markers = epoch_using_marker_channels(self.path_to_digital_in(task_id))
+        stim_id_for_tstamps = map_stim_id_to_epochs_with_livenotes(self.path_to_notes(task_id), stim_tstamps_from_markers)
+        spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, stim_id_for_tstamps, task_id)
         return len(spikes_for_channels)
 
-    def path_to_trial(self, task_id):
+    def path_to_trial(self, task_id) -> str:
         paths_to_trial = find_folders_with_id(self.intan_spike_path, task_id)
         if len(paths_to_trial) == 1:
             return paths_to_trial[0]
@@ -63,7 +62,7 @@ class ResponseParser:
         pass
 
 
-def find_folders_with_id(root_directory, id: int):
+def find_folders_with_id(root_directory, id: int) -> list[str]:
     matching_directories = []
 
     # List all directories under the root directory
@@ -87,7 +86,7 @@ def date_time_for_folder(folder_path: str) -> int:
     return int(date_time.replace('_', ''))
 
 
-def count_spikes_for_channels(spike_tstamps_for_channels):
+def count_spikes_for_channels(spike_tstamps_for_channels) -> dict[str, int]:
     spike_counts_for_channels = {}
     for channel_name, spike_tstamps in spike_tstamps_for_channels.items():
         spike_counts_for_channels[channel_name] = len(spike_tstamps)
