@@ -161,3 +161,13 @@ def readString(fid):
 # If the function is called with the "noartifacts" parameter, all spikes with spike ID = 128 are ignored.
 # readIntanSpikeFile("artifacts")
 # #readIntanSpikeFile("noartifacts")
+def spike_matrix_to_spike_tstamps_for_channels(spike_matrix):
+    """
+    Convert spike data into a dictionary of channel names and responses.
+    """
+    spike_dict = {}
+    for row in spike_matrix:
+        channel_name = row[0]
+        responses = row[2]
+        spike_dict[channel_name] = responses
+    return spike_dict
