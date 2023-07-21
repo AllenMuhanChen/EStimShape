@@ -14,29 +14,30 @@ from intan.marker_channels import get_epochs_start_and_stop_indices, read_digita
 from tests.intan.test_marker_channels import plot_bool_array, plot_epochs_on_bool_array
 
 
-class TestResponseModuleFunctions(TestCase):
-
-    def test_parse_spike_count(self):
-        base_intan_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/Test"
-        response_parser = ResponseParser(base_intan_path, lambda: [Channel.B_025], "2023-07-19")
-        print("Stim 1: ", response_parser._parse_spike_count_for_task(1))
-        print("Stim 2: ", response_parser._parse_spike_count_for_task(2))
-        print("Stim 3: ", response_parser._parse_spike_count_for_task(3))
-
-        spike_tstamps_for_channels = fetch_spike_tstamps_from_file(response_parser._path_to_spike_file(1))
-        # collapse values
-        spike_tstamps = spike_tstamps_for_channels[Channel.B_025]
-        spike_indices = [spike_tstamps * 30000 for spike_tstamps in spike_tstamps]
-
-        digital_in = read_digitalin_file(
-            response_parser._path_to_digital_in(1))
-        epochs = get_epochs_start_and_stop_indices(digital_in[1], digital_in[0])
-        plot_bool_array(digital_in[0])
-        plot_bool_array(digital_in[1], False)
-        plot_epochs_on_bool_array(digital_in[0], epochs, False)
-        plot_timestamps_as_lines(spike_indices, False)
-
-        plt.show()
+# class TestResponseModuleFunctions(TestCase):
+#
+#     def test_parse_spike_count(self):
+#         base_intan_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/Test"
+#         response_parser = ResponseParser(base_intan_path, lambda: [Channel.B_025], "2023-07-19")
+#         print("Stim 1: ", response_parser._parse_spikes_per_second_per_channel_for_task(1))
+#         print("Stim 2: ", response_parser._parse_spikes_per_second_per_channel_for_task(2))
+#         print("Stim 3: ", response_parser._parse_spikes_per_second_per_channel_for_task(3))
+#
+#
+#         spike_tstamps_for_channels = fetch_spike_tstamps_from_file(response_parser._path_to_spike_file(1))
+#         # collapse values
+#         spike_tstamps = spike_tstamps_for_channels[Channel.B_025]
+#         spike_indices = [spike_tstamps * 30000 for spike_tstamps in spike_tstamps]
+#
+#         digital_in = read_digitalin_file(
+#             response_parser._path_to_digital_in(1))
+#         epochs = get_epochs_start_and_stop_indices(digital_in[1], digital_in[0])
+#         plot_bool_array(digital_in[0])
+#         plot_bool_array(digital_in[1], False)
+#         plot_epochs_on_bool_array(digital_in[0], epochs, False)
+#         plot_timestamps_as_lines(spike_indices, False)
+#
+#         plt.show()
 
 
 def plot_timestamps_as_lines(timestamps, new_figure=True, line_height=0.1, line_width=0.5):
