@@ -8,13 +8,6 @@ from util import time_util
 
 
 class Stimulus:
-    id: int
-    parent: Stimulus
-    mutation_type: str
-    mutation_magnitude: float
-    response_vector: list[float]
-    response_rate: float
-    mutation_magnitude: float
 
     def __init__(self, stim_id: int, mutation_type: str, parent: Stimulus = None, mutation_magnitude: float = None,
                  response_vector=None,

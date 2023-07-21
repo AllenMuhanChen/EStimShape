@@ -13,9 +13,12 @@ from newga.multi_ga_db_util import MultiGaDbUtil
 
 class ResponseParser:
     """
-    Responsible for parsing the spike count from intan files and uploading them to the database
+    Responsible for parsing the spike count from intan files and uploading them to the database as
+    a list of spike counts for each channel.
     """
-    def __init__(self, base_intan_path: str, get_channels: Callable[[], List[Channel]], db_util: MultiGaDbUtil = None, date_YYYY_MM_DD: str = None):
+
+    def __init__(self, base_intan_path: str, get_channels: Callable[[], List[Channel]], db_util: MultiGaDbUtil = None,
+                 date_YYYY_MM_DD: str = None):
         if date_YYYY_MM_DD is None:
             self.date = get_current_date_as_YYYY_MM_DD()
         else:
@@ -34,9 +37,6 @@ class ResponseParser:
             spike_counts, task_ids = self._parse_spike_counts_for_stim(stim_id, ga_name)
             self.db_util.add_stim_responses(stim_id, task_ids, spike_counts)
             self.db_util.add_stim_channels(stim_id, self.channels)
-            # Average the spike counts
-            avg_spike_counts = np.average(spike_counts, axis=0)
-            self.db_util.update_stim_ga_info_response(stim_id, avg_spike_counts)
 
     def _parse_spike_counts_for_stim(self, stim_id: int, ga_name: str) -> tuple[list[int], list[int]]:
         # Find the taks_ids for a stim_id
