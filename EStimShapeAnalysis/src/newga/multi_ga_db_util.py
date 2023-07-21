@@ -76,6 +76,18 @@ class MultiGaDbUtil:
                 "INSERT INTO StimResponses (stim_id, task_id, response) VALUES (%s, %s, %s)",
                 (stim_id, task_id, response))
 
+    def read_responses_by_stim_id(self, stim_id: int):
+        self.conn.execute(
+            "SELECT response "
+            "FROM StimResponses "
+            "WHERE stim_id = %s",
+            (stim_id,))
+
+        rows = self.conn.fetch_all()
+        responses = [row[0] for row in rows]
+
+        return responses
+
     def add_stim_channels(self, stim_id: int, channels: list):
         for channel in channels:
             self.conn.execute(

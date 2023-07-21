@@ -37,6 +37,7 @@ class GeneticAlgorithm:
         elif self.gen_id > 1:
             self.response_parser.parse(self.name)
             # TODO: update lineages with new responses in database
+            self._update_lineages_with_new_responses()
             self._run_next_generation()
         else:
             raise ValueError("gen_id must be >= 1")
@@ -82,4 +83,12 @@ class GeneticAlgorithm:
 
         # Update generations
         self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)
+
+    def _update_lineages_with_new_responses(self):
+        for lineage in self.lineages:
+            for stim in lineage.stimuli:
+                stim.response_vector = self.db_util.read_responses_by_stim_id(stim.id)
+                stim.response_rate = self.db_util.get_response_rate(stim.id)
+                stim.mutation_magnitude = self.response_parser.get_mutation_magnitude(stim.id)
+
 
