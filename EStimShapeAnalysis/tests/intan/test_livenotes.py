@@ -15,7 +15,7 @@ class TestLiveNoteMapToMarkerChannels(TestCase):
         stamps_for_stim_id = map_stim_id_to_epochs_with_livenotes(notes, stim_tstamps)
         print(stamps_for_stim_id)
 
-        expected = {1: 3919, 2: 19424, 3: 34421}
+        expected = {1: (3919, 18966), 2: (19424, 33927), 3: (34421, 48964)}
         self.assertEqual(expected, stamps_for_stim_id)
 
     def test_map_stim_id_to_tstamp(self):
@@ -26,16 +26,16 @@ class TestLiveNoteMapToMarkerChannels(TestCase):
         4000, 00:00:03, 4\n\n
         """
         time_indices = [(1500, 2500), (2500, 3500), (3500, 4500), (4500, 5500)]
-        expected_result = {1: 1500, 2: 2500, 3: 3500, 4: 4500}
+        expected_result = {1: (1500, 2500), 2: (2500, 3500), 3: (3500, 4500), 4: (4500, 5500)}
         self.assertEqual(map_stim_id_to_epochs_with_livenotes(data, time_indices), expected_result)
 
         # Test with time_indices for start being before expected
         time_indices = [(500, 1500), (1500, 2500), (2500, 3500), (3500, 4500)]
-        expected_result = {1: 500, 2: 1500, 3: 2500, 4: 3500}
+        expected_result = {1: (500, 1500), 2: (1500, 2500), 3: (2500, 3500), 4: (3500, 4500)}
         self.assertEqual(map_stim_id_to_epochs_with_livenotes(data, time_indices), expected_result)
 
         # Test with time_indices for start being after expected
         time_indices = [(1500, 2500), (2500, 3500), (3500, 4500), (5000, 6000)]
-        expected_result = {1: 1500, 2: 2500, 3: 3500, 4: 5000}
+        expected_result = {1: (1500, 2500), 2: (2500, 3500), 3: (3500, 4500), 4: (5000, 6000)}
         self.assertEqual(map_stim_id_to_epochs_with_livenotes(data, time_indices), expected_result)
 

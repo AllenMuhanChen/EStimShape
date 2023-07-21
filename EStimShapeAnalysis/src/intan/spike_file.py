@@ -2,6 +2,8 @@ import os
 import struct
 from typing import Tuple, List, Any
 
+from intan.channels import Channel
+
 
 # Version 3.0, 11 February 2021
 
@@ -140,19 +142,27 @@ def readString(fid):
 # If the function is called with the "noartifacts" parameter, all spikes with spike ID = 128 are ignored.
 # readIntanSpikeFile("artifacts")
 # #readIntanSpikeFile("noartifacts")
-def spike_matrix_to_spike_tstamps_for_channels(spike_matrix) -> dict[str: list[float]]:
+def spike_matrix_to_spike_tstamps_for_channels(spike_matrix) -> dict[Channel: list[float]]:
     """
     Convert spike data into a dictionary of channel names and responses.
     """
     spike_dict = {}
     for row in spike_matrix:
-        channel_name = row[0]
+        channel_name = str_to_channel_enum(row[0])
         responses = row[2]
         spike_dict[channel_name] = responses
     return spike_dict
 
 
-def fetch_spike_tstamps_from_file(spike_file_path: str) -> dict[str, list[float]]:
+def str_to_channel_enum(str_value):
+    enum_name = str_value.replace('-', '_')
+    try:
+        return getattr(Channel, enum_name)
+    except AttributeError:
+        raise ValueError(f"{str_value} is not a valid member of {Channel.__name__}")
+
+
+def fetch_spike_tstamps_from_file(spike_file_path: str) -> dict[Channel, list[float]]:
     spike_matrix, sample_rate = read_intan_spike_file(spike_file_path)
     spike_tstamps_for_channels = spike_matrix_to_spike_tstamps_for_channels(spike_matrix)
     return spike_tstamps_for_channels

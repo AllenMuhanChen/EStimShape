@@ -1,11 +1,21 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
+from typing import Protocol
 
 from util import time_util
 
 
 class Stimulus:
+    id: int
+    parent: Stimulus
+    mutation_type: str
+    mutation_magnitude: float
+    response_vector: list[float]
+    response_rate: float
+    mutation_magnitude: float
+
     def __init__(self, stim_id: int, mutation_type: str, parent: Stimulus = None, mutation_magnitude: float = None,
                  response_vector=None,
                  response_rate=None):
@@ -15,19 +25,6 @@ class Stimulus:
         self.mutation_magnitude = mutation_magnitude
         self.response_vector = response_vector
         self.response_rate = response_rate
-        self.mutation_magnitude = None
-
-    def set_response_rate(self, response_rate):
-        """
-        Set the response rate of the stimulus. This should be called after the stimulus is tested.
-        """
-        self.response_rate = response_rate
-
-    def set_mutation_magnitude(self, mutation_magnitude):
-        """
-        Set the mutation magnitude of the stimulus. This should be called after the stimulus is tested.
-        """
-        self.mutation_magnitude = mutation_magnitude
 
     def __eq__(self, o: object) -> bool:
         return self.__dict__ == o.__dict__
@@ -109,7 +106,8 @@ class Node:
 
 
 class Regime:
-    def __init__(self, parent_selector, mutation_assigner, mutation_magnitude_assigner, regime_transitioner):
+    def __init__(self, parent_selector: ParentSelector, mutation_assigner: MutationAssigner,
+                 mutation_magnitude_assigner: MutationMagnitudeAssigner, regime_transitioner: RegimeTransitioner):
         self.parent_selector = parent_selector
         self.mutation_assigner = mutation_assigner
         self.mutation_magnitude_assigner = mutation_magnitude_assigner
@@ -131,25 +129,25 @@ class Regime:
         return self.regime_transitioner.should_transition(lineage)
 
 
-class ParentSelector(ABC):
+class ParentSelector(Protocol):
     @abstractmethod
     def select_parents(self, lineage: Lineage, batch_size: int):
         pass
 
 
-class MutationAssigner(ABC):
+class MutationAssigner(Protocol):
     @abstractmethod
     def assign_mutation(self, lineage: Lineage):
         pass
 
 
-class MutationMagnitudeAssigner(ABC):
+class MutationMagnitudeAssigner(Protocol):
     @abstractmethod
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus) -> float:
         pass
 
 
-class RegimeTransitioner(ABC):
+class RegimeTransitioner(Protocol):
     @abstractmethod
     def should_transition(self, lineage):
         pass
