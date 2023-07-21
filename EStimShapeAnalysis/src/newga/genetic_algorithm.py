@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from mysql.connector import DatabaseError
 
+from intan.responses import ResponseParser
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
 from util import time_util
@@ -16,12 +17,13 @@ class LineageDistributor:
 class GeneticAlgorithm:
 
     def __init__(self, name: str, regimes: [Regime], db_util: MultiGaDbUtil, trials_per_generation: int,
-                 lineage_distributor: LineageDistributor):
+                 lineage_distributor: LineageDistributor, response_parser: ResponseParser):
         self.name = name
         self.regimes = regimes
         self.db_util = db_util
         self.trials_per_generation = trials_per_generation
         self.lineage_distributor = lineage_distributor
+        self.response_parser = response_parser
 
         self.gen_id: int = 0
         self.lineages: list[Lineage] = []
@@ -33,7 +35,8 @@ class GeneticAlgorithm:
         if self.gen_id == 1:
             self._run_first_generation()
         elif self.gen_id > 1:
-            # TODO: retrieve responses from last generation
+            self.response_parser.parse(self.name)
+            # TODO: update lineages with new responses in database
             self._run_next_generation()
         else:
             raise ValueError("gen_id must be >= 1")

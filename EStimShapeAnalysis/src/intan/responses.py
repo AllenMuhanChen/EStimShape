@@ -1,38 +1,58 @@
 import os
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Callable
+
+import numpy as np
 
 from intan.channels import Channel
 from intan.livenotes import map_stim_id_to_epochs_with_livenotes
 from intan.marker_channels import epoch_using_marker_channels
 from intan.spike_file import fetch_spike_tstamps_from_file
+from newga.multi_ga_db_util import MultiGaDbUtil
 
 
 class ResponseParser:
-    def __init__(self, base_intan_path: str, channels: list[Channel] = None, date: str = None):
-        if date is None:
-            self.date = get_current_date()
+    """
+    Responsible for parsing the spike count from intan files and uploading them to the database
+    """
+    def __init__(self, base_intan_path: str, get_channels: Callable[[], List[Channel]], db_util: MultiGaDbUtil = None, date_YYYY_MM_DD: str = None):
+        if date_YYYY_MM_DD is None:
+            self.date = get_current_date_as_YYYY_MM_DD()
         else:
-            self.date = date
+            self.date = date_YYYY_MM_DD
         self.intan_spike_path = base_intan_path
         self.intan_spike_path = os.path.join(self.intan_spike_path, self.date)
-        self.channels = channels
+        self.channels = get_channels()
+        self.db_util = db_util
 
+    def parse(self, ga_name: str):
+        # Find all stim that need to be parsed
+        stims_to_parse = self.db_util.read_stims_with_no_response()
 
-    def parse_avg_spike_count_for_stim(self, stim_id):
-        pass
+        # For each stim, parse vector of spike counts, calculate average, and write to db
+        for stim_id in stims_to_parse:
+            spike_counts, task_ids = self._parse_spike_counts_for_stim(stim_id, ga_name)
+            self.db_util.add_stim_responses(stim_id, task_ids, spike_counts)
+            self.db_util.add_stim_channels(stim_id, self.channels)
+            # Average the spike counts
+            avg_spike_counts = np.average(spike_counts, axis=0)
+            self.db_util.update_stim_ga_info_response(stim_id, avg_spike_counts)
+
+    def _parse_spike_counts_for_stim(self, stim_id: int, ga_name: str) -> tuple[list[int], list[int]]:
         # Find the taks_ids for a stim_id
+        task_ids = self.db_util.read_task_done_ids_for_stim_id(ga_name, stim_id)
 
         # Parse all the spike counts
-        # Add each to response_vector
+        spike_counts = []
+        for task_id in task_ids:
+            spike_counts.append(self._parse_spike_count_for_task(task_id))
 
-        # average the spike counts
-        # Assign as response
+        return spike_counts, task_ids
 
-    def parse_spike_count_for_task(self, task_id):
-        spike_tstamps_for_channels = fetch_spike_tstamps_from_file(self.path_to_spike_file(task_id))
-        stim_epochs_from_markers = epoch_using_marker_channels(self.path_to_digital_in(task_id))
-        stim_id_for_epochs = map_stim_id_to_epochs_with_livenotes(self.path_to_notes(task_id),
+    def _parse_spike_count_for_task(self, task_id):
+        spike_tstamps_for_channels = fetch_spike_tstamps_from_file(self._path_to_spike_file(task_id))
+        stim_epochs_from_markers = epoch_using_marker_channels(self._path_to_digital_in(task_id))
+        stim_id_for_epochs = map_stim_id_to_epochs_with_livenotes(self._path_to_notes(task_id),
                                                                   stim_epochs_from_markers)
         spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, stim_id_for_epochs, task_id)
         # Count spikes for each channel
@@ -41,7 +61,7 @@ class ResponseParser:
             total_spike_count += len(spikes_for_channels[channel])
         return total_spike_count
 
-    def path_to_trial(self, task_id) -> str:
+    def _path_to_trial(self, task_id) -> str:
         paths_to_trial = find_folders_with_id(self.intan_spike_path, task_id)
         if len(paths_to_trial) == 1:
             return paths_to_trial[0]
@@ -52,20 +72,20 @@ class ResponseParser:
         else:
             raise ValueError(f"Task id {task_id} not found in {self.intan_spike_path}")
 
-    def path_to_spike_file(self, stim_id: int) -> str:
-        path_to_trial = self.path_to_trial(stim_id)
+    def _path_to_spike_file(self, stim_id: int) -> str:
+        path_to_trial = self._path_to_trial(stim_id)
         return os.path.join(path_to_trial, "spike.dat")
 
-    def path_to_digital_in(self, stim_id: int) -> str:
-        path_to_trial = self.path_to_trial(stim_id)
+    def _path_to_digital_in(self, stim_id: int) -> str:
+        path_to_trial = self._path_to_trial(stim_id)
         return os.path.join(path_to_trial, "digitalin.dat")
 
-    def path_to_notes(self, stim_id: int) -> str:
-        path_to_trial = self.path_to_trial(stim_id)
+    def _path_to_notes(self, stim_id: int) -> str:
+        path_to_trial = self._path_to_trial(stim_id)
         return os.path.join(path_to_trial, "notes.txt")
 
 
-def get_current_date() -> str:
+def get_current_date_as_YYYY_MM_DD() -> str:
     # Get current date
     now = datetime.now()
 
