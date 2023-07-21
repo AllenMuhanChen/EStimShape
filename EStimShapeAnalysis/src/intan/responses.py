@@ -2,17 +2,25 @@ import os
 from datetime import datetime
 from typing import Dict, List
 
+from intan.channels import Channel
 from intan.livenotes import map_stim_id_to_epochs_with_livenotes
 from intan.marker_channels import epoch_using_marker_channels
 from intan.spike_file import fetch_spike_tstamps_from_file
 
 
 class ResponseParser:
-    def __init__(self, base_intan_path: str):
+    def __init__(self, base_intan_path: str, channels: list[Channel] = None, date: str = None):
+        if date is None:
+            self.date = get_current_date()
+        else:
+            self.date = date
         self.intan_spike_path = base_intan_path
-        self.intan_spike_path = os.path.join(self.intan_spike_path, get_current_date())
+        self.intan_spike_path = os.path.join(self.intan_spike_path, self.date)
+        self.channels = channels
+
 
     def parse_avg_spike_count_for_stim(self, stim_id):
+        pass
         # Find the taks_ids for a stim_id
 
         # Parse all the spike counts
@@ -20,7 +28,6 @@ class ResponseParser:
 
         # average the spike counts
         # Assign as response
-        pass
 
     def parse_spike_count_for_task(self, task_id):
         spike_tstamps_for_channels = fetch_spike_tstamps_from_file(self.path_to_spike_file(task_id))
@@ -28,7 +35,11 @@ class ResponseParser:
         stim_id_for_epochs = map_stim_id_to_epochs_with_livenotes(self.path_to_notes(task_id),
                                                                   stim_epochs_from_markers)
         spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, stim_id_for_epochs, task_id)
-        return len(spikes_for_channels['B-025'])
+        # Count spikes for each channel
+        total_spike_count = 0
+        for channel in self.channels:
+            total_spike_count += len(spikes_for_channels[channel])
+        return total_spike_count
 
     def path_to_trial(self, task_id) -> str:
         paths_to_trial = find_folders_with_id(self.intan_spike_path, task_id)
@@ -54,7 +65,7 @@ class ResponseParser:
         return os.path.join(path_to_trial, "notes.txt")
 
 
-def get_current_date():
+def get_current_date() -> str:
     # Get current date
     now = datetime.now()
 
@@ -62,8 +73,9 @@ def get_current_date():
     return now.strftime("%Y-%m-%d")
 
 
-def filter_spikes_with_epochs(spike_tstamps_for_channels: dict[str, list[float]],
-                              epochs_for_stim_ids: dict[int, tuple[int, int]], stim_id: int, sample_rate=30000) -> dict[str, list[float]]:
+def filter_spikes_with_epochs(spike_tstamps_for_channels: dict[Channel, list[float]],
+                              epochs_for_stim_ids: dict[int, tuple[int, int]], stim_id: int, sample_rate=30000) -> dict[
+    Channel, list[float]]:
     filtered_spikes_for_channels = {}
     epoch = epochs_for_stim_ids[stim_id]
     for channel, tstamps in spike_tstamps_for_channels.items():
@@ -100,7 +112,7 @@ def date_time_for_folder(folder_path: str) -> int:
     return int(date_time.replace('_', ''))
 
 
-def count_spikes_for_channels(spike_tstamps_for_channels) -> dict[str, int]:
+def count_spikes_for_channels(spike_tstamps_for_channels) -> dict[Channel, int]:
     spike_counts_for_channels = {}
     for channel_name, spike_tstamps in spike_tstamps_for_channels.items():
         spike_counts_for_channels[channel_name] = len(spike_tstamps)
