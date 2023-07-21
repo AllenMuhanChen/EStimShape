@@ -67,37 +67,10 @@ class MultiGaDbUtil:
 
         return stim_ids
 
-    def add_stim_responses(self, stim_id: int, task_ids: list, responses: list):
-        if len(task_ids) != len(responses):
-            raise ValueError("The length of task_ids and spike_counts must be the same")
-
-        for task_id, response in zip(task_ids, responses):
-            self.conn.execute(
-                "INSERT INTO StimResponses (stim_id, task_id, response) VALUES (%s, %s, %s)",
-                (stim_id, task_id, response))
-
-    def read_responses_by_stim_id(self, stim_id: int):
+    def add_stim_response(self, stim_id: int, task_id: int, channel: str, spikes_per_second: float):
         self.conn.execute(
-            "SELECT response "
-            "FROM StimResponses "
-            "WHERE stim_id = %s",
-            (stim_id,))
-
-        rows = self.conn.fetch_all()
-        responses = [row[0] for row in rows]
-
-        return responses
-
-    def add_stim_channels(self, stim_id: int, channels: list):
-        for channel in channels:
-            self.conn.execute(
-                "INSERT INTO StimResponseChannels (stim_id, channel) VALUES (%s, %s)",
-                (stim_id, channel))
-
-    def update_stim_ga_info_response(self, stim_id: int, response: float):
-        self.conn.execute(
-            "UPDATE StimGaInfo SET response = %s WHERE stim_id = %s",
-            (response, stim_id))
+            "INSERT INTO StimResponses (stim_id, task_id, channel, spikes_per_second) VALUES (%s, %s, %s, %s)",
+            (stim_id, task_id, channel, spikes_per_second))
 
 class MultiGaGenerationInfo:
     def __init__(self, gen_id_for_ga=None):
