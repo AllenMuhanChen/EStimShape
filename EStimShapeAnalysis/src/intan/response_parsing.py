@@ -14,37 +14,57 @@ from newga.multi_ga_db_util import MultiGaDbUtil
 class ResponseParser:
     """
     Responsible for parsing the spike count from intan files and uploading them to the database as
-    a list of spike counts for each channel.
+    a spike count per second for each channel and task
     """
 
-    def __init__(self, base_intan_path: str, get_channels: Callable[[], List[Channel]], db_util: MultiGaDbUtil = None,
-                 date_YYYY_MM_DD: str = None):
+    def __init__(self, base_intan_path: str, db_util: MultiGaDbUtil = None, date_YYYY_MM_DD: str = None):
         if date_YYYY_MM_DD is None:
             self.date = get_current_date_as_YYYY_MM_DD()
         else:
             self.date = date_YYYY_MM_DD
         self.intan_spike_path = base_intan_path
         self.intan_spike_path = os.path.join(self.intan_spike_path, self.date)
-        self.channels = get_channels()
+        # self.channels = get_channels()
         self.db_util = db_util
 
-    def parse(self, ga_name: str):
-        # Find all stim that need to be parsed
+    def parse_to_db(self, ga_name: str):
+
         stims_to_parse = self.db_util.read_stims_with_no_response()
 
-        # For each stim, parse out spikes/second for each task and channel and write to db
+        task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
+
+        spike_rates_per_channel_per_task_per_stim = self.parse_spike_rate_per_channel_from(task_ids_for_stim_ids)
+
+        self.write_to_db(spike_rates_per_channel_per_task_per_stim)
+
+    def write_to_db(self, spike_rates_per_channel_per_task_for_stims):
+        for stim_id, spike_rates_per_channel_for_tasks in spike_rates_per_channel_per_task_for_stims.items():
+            for task_id, spikes_per_second_for_channels in spike_rates_per_channel_for_tasks.items():
+                for channel, spikes_per_second in spikes_per_second_for_channels.items():
+                    self.db_util.add_stim_response(stim_id, task_id, channel.value, spikes_per_second)
+
+    def _read_task_ids_per_stim_id_to_parse_from_db(self, ga_name, stims_to_parse) -> Dict[int, List[int]]:
+        task_ids_for_stim_ids: Dict[int, List[int]] = {}
         for stim_id in stims_to_parse:
-            self._parse_spike_per_second_for_stim(stim_id, ga_name)
+            task_ids = self.db_util.read_task_done_ids_for_stim_id(ga_name, stim_id)
+            task_ids_for_stim_ids[stim_id] = task_ids
+        return task_ids_for_stim_ids
 
-    def _parse_spike_per_second_for_stim(self, stim_id: int, ga_name: str):
-        # Find the taks_ids for a stim_id
-        task_ids = self.db_util.read_task_done_ids_for_stim_id(ga_name, stim_id)
+    def parse_spike_rate_per_channel_from(self, task_ids_for_stim_ids: Dict[int, List[int]]) -> Dict[int, Dict[int, Dict[Channel, float]]]:
+        spike_rates_per_channel_per_task_for_stims = {}
+        for stim_id, task_ids in task_ids_for_stim_ids.items():
+            spike_rates_per_channel_for_tasks = self._parse_spike_rates_for_task_ids(task_ids)
+            spike_rates_per_channel_per_task_for_stims[stim_id] = spike_rates_per_channel_for_tasks
+        return spike_rates_per_channel_per_task_for_stims
 
+    def _parse_spike_rates_for_task_ids(self, task_ids: List[int]) -> Dict[int, Dict[Channel, float]]:
         # For each task_id, parse the spike counts
+        spike_rates_per_channel_for_tasks = {}
         for task_id in task_ids:
-            self._parse_spikes_per_second_per_channel_for_task(task_id, stim_id)
+            spike_rates_per_channel_for_tasks[task_id] = self._parse_spike_rate_per_channel_for_task(task_id)
+        return spike_rates_per_channel_for_tasks
 
-    def _parse_spikes_per_second_per_channel_for_task(self, task_id, stim_id):
+    def _parse_spike_rate_per_channel_for_task(self, task_id):
         spike_tstamps_for_channels = fetch_spike_tstamps_from_file(self._path_to_spike_file(task_id))
         stim_epochs_from_markers = epoch_using_marker_channels(self._path_to_digital_in(task_id))
         epochs_for_stim_ids = map_stim_id_to_epochs_with_livenotes(self._path_to_notes(task_id),
@@ -52,9 +72,7 @@ class ResponseParser:
         spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, epochs_for_stim_ids, task_id)
         spikes_per_second_for_channels = calculate_spikes_per_second_for_channels(spikes_for_channels,
                                                                                   epochs_for_stim_ids)
-
-        for channel, spikes_per_second in spikes_per_second_for_channels.items():
-            self.db_util.add_stim_response(stim_id, task_id, channel.value, spikes_per_second)
+        return spikes_per_second_for_channels
 
     def _path_to_trial(self, task_id) -> str:
         paths_to_trial = find_folders_with_id(self.intan_spike_path, task_id)
@@ -78,6 +96,13 @@ class ResponseParser:
     def _path_to_notes(self, stim_id: int) -> str:
         path_to_trial = self._path_to_trial(stim_id)
         return os.path.join(path_to_trial, "notes.txt")
+
+    def calculate_spike_count_for_channels(self, spikes_for_channels):
+        spike_count_for_channels = {}
+        for channel, spikes in spikes_for_channels.items():
+            spike_count_for_channels[channel] = len(spikes)
+        return spike_count_for_channels
+
 
 
 def get_current_date_as_YYYY_MM_DD() -> str:
@@ -103,11 +128,12 @@ def filter_spikes_with_epochs(spike_tstamps_for_channels: dict[Channel, list[flo
     return filtered_spikes_for_channels
 
 
-def calculate_spikes_per_second_for_channels(spikes_for_channels, epochs_for_stim_ids) -> dict[Channel, float]:
+def calculate_spikes_per_second_for_channels(spikes_for_channels, epochs_for_stim_ids,
+                                             sample_rate=30000) -> dict[Channel, float]:
     spikes_per_second_for_channels = {}
     for stim_id, epoch in epochs_for_stim_ids.items():
         for channel, spikes in spikes_for_channels.items():
-            spikes_per_second_for_channels[channel] = len(spikes) / (epoch[1] - epoch[0])
+            spikes_per_second_for_channels[channel] = len(spikes) / (epoch[1]/sample_rate - epoch[0]/sample_rate)
     return spikes_per_second_for_channels
 
 
