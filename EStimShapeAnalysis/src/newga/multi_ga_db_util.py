@@ -32,10 +32,10 @@ class MultiGaDbUtil:
 
         self.conn.execute("UPDATE InternalState SET val = %s WHERE name = %s", (xml, name))
 
-    def write_lineage_ga_info(self, lineage_id: int, tree_spec: str, lineage_data: str):
+    def write_lineage_ga_info(self, lineage_id: int, tree_spec: str, lineage_data: str, gen_id: int, regime: str):
         self.conn.execute(
-            "INSERT INTO LineageGaInfo (lineageId, treeSpec, lineageData) VALUES (%s, %s, %s)",
-            (lineage_id, tree_spec, lineage_data))
+            "INSERT INTO LineageGaInfo (lineageId, treeSpec, lineageData, gen_id, regime) VALUES (%s, %s, %s, %s, %s)",
+            (lineage_id, tree_spec, lineage_data, gen_id, regime))
 
     def write_stim_ga_info(self, stim_id: int, parent_id: int, ga_name: str, gen_id: int, lineage_id: int,
                            stim_type: str):
@@ -89,6 +89,16 @@ class MultiGaDbUtil:
             "UPDATE StimGaInfo SET response = %s WHERE stim_id = %s",
             (response, stim_id))
 
+    def read_driving_response(self, stim_id: int):
+        self.conn.execute(
+            "SELECT response "
+            "FROM StimGaInfo "
+            "WHERE stim_id = %s",
+            (stim_id,))
+
+        response = self.conn.fetch_one()
+
+        return response
     def read_experiment_id(self, experiment_name):
         self.conn.execute("SELECT experiment_id FROM CurrentExperiments WHERE experiment_name = %s", (experiment_name,))
         experiment_id = self.conn.fetch_one()
@@ -122,8 +132,11 @@ class MultiGaDbUtil:
         cluster = [Channel[channel_as_string] for channel_as_string in cluster_as_strings]
         return cluster
 
-    def get_spikes_per_second(self, stim_id, channel):
-        self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s AND channel = %s",
+    def get_spikes_per_second_from(self, stim_id, channel=None):
+        if channel is None:
+            self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s", (stim_id,))
+        else:
+            self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s AND channel = %s",
                           (stim_id, channel))
         rows = self.conn.fetch_all()
         spikes_per_second_list = [row[0] for row in rows]
