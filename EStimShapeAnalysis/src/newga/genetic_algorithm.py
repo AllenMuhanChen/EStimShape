@@ -42,15 +42,13 @@ class GeneticAlgorithm:
         elif self.gen_id > 1:
             self.response_parser.parse_to_db(self.name)
             self.response_processor.process_to_db(self.name)
-            # TODO: read responses from database and process them
-            # TODO: update lineages with new responses in database
 
             self._update_lineages_with_new_responses()
             self._run_next_generation()
         else:
             raise ValueError("gen_id must be >= 1")
 
-        self._write_lineages_to_db()
+        self._update_db()
 
     def _update_db_with_new_experiment(self):
         self.experiment_id = time_util.now()
@@ -81,11 +79,12 @@ class GeneticAlgorithm:
             lineage.generate_new_batch(num_trials)
             lineage.regime_transition()
 
-    def _write_lineages_to_db(self) -> None:
+    def _update_db(self) -> None:
         # Write lineages
         for lineage in self.lineages:
             lineage_data = ""
-            self.db_util.write_lineage_ga_info(lineage.id, lineage.tree.to_xml(), lineage_data)
+            self.db_util.write_lineage_ga_info(lineage.id, lineage.tree.to_xml(), lineage_data, self.gen_id,
+                                               lineage.current_regime_index)
 
         # Write stimuli
         for lineage in self.lineages:
@@ -99,8 +98,5 @@ class GeneticAlgorithm:
     def _update_lineages_with_new_responses(self):
         for lineage in self.lineages:
             for stim in lineage.stimuli:
-                stim.response_vector = self.db_util.read_responses_by_stim_id(stim.id)
-                stim.response_rate = self.db_util.get_response_rate(stim.id)
-                stim.mutation_magnitude = self.response_parser.get_mutation_magnitude(stim.id)
-
-
+                stim.response_vector = self.db_util.get_spikes_per_second_from(stim.id)
+                stim.response_rate = self.db_util.read_driving_response(stim.id)
