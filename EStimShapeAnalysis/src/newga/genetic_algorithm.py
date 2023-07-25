@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import List
+
 from mysql.connector import DatabaseError
 
-from intan.responses import ResponseParser
+from intan.response_parsing import ResponseParser
+from intan.response_processing import ResponseProcessor
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
 from util import time_util
@@ -14,19 +18,18 @@ class LineageDistributor:
         pass
 
 
+@dataclass
 class GeneticAlgorithm:
+    name: str
+    regimes: List[Regime]
+    db_util: MultiGaDbUtil
+    trials_per_generation: int
+    lineage_distributor: LineageDistributor
+    response_parser: ResponseParser
+    response_processor: ResponseProcessor
 
-    def __init__(self, name: str, regimes: [Regime], db_util: MultiGaDbUtil, trials_per_generation: int,
-                 lineage_distributor: LineageDistributor, response_parser: ResponseParser):
-        self.name = name
-        self.regimes = regimes
-        self.db_util = db_util
-        self.trials_per_generation = trials_per_generation
-        self.lineage_distributor = lineage_distributor
-        self.response_parser = response_parser
-
-        self.gen_id: int = 0
-        self.lineages: list[Lineage] = []
+    gen_id: int = field(init=False, default=0)
+    lineages: List[Lineage] = field(init=False, default_factory=list)
 
     def run(self):
         self.gen_id = self._read_gen_id()
@@ -35,8 +38,11 @@ class GeneticAlgorithm:
         if self.gen_id == 1:
             self._run_first_generation()
         elif self.gen_id > 1:
-            self.response_parser.parse(self.name)
+            self.response_parser.parse_to_db(self.name)
+            self.response_processor.process_to_db(self.name)
+            # TODO: read responses from database and process them
             # TODO: update lineages with new responses in database
+
             self._update_lineages_with_new_responses()
             self._run_next_generation()
         else:
