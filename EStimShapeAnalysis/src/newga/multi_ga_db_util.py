@@ -55,12 +55,12 @@ class MultiGaDbUtil:
 
         return task_ids
 
-    def read_stims_with_no_response(self):
+    def read_stims_with_no_responses(self, ga_name: str):
         self.conn.execute(
             "SELECT s.stim_id "
             "FROM StimGaInfo s "
             "LEFT JOIN StimResponses r ON s.stim_id = r.stim_id "
-            "WHERE r.stim_id IS NULL")
+            "WHERE r.stim_id IS NULL AND s.ga_name = %s", (ga_name,))
 
         rows = self.conn.fetch_all()
         stim_ids = [row[0] for row in rows]
@@ -71,6 +71,17 @@ class MultiGaDbUtil:
         self.conn.execute(
             "INSERT INTO StimResponses (stim_id, task_id, channel, spikes_per_second) VALUES (%s, %s, %s, %s)",
             (stim_id, task_id, channel, spikes_per_second))
+
+    def read_stims_with_no_driving_response(self):
+        self.conn.execute(
+            "SELECT stim_id "
+            "FROM StimGaInfo "
+            "WHERE response IS NULL OR response = ''")
+
+        rows = self.conn.fetch_all()
+        stim_ids = [row[0] for row in rows]
+
+        return stim_ids
 
 class MultiGaGenerationInfo:
     def __init__(self, gen_id_for_ga=None):
