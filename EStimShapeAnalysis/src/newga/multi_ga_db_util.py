@@ -132,7 +132,7 @@ class MultiGaDbUtil:
         cluster = [Channel[channel_as_string] for channel_as_string in cluster_as_strings]
         return cluster
 
-    def get_spikes_per_second_from(self, stim_id, channel=None):
+    def read_responses_for(self, stim_id, channel=None):
         if channel is None:
             self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s", (stim_id,))
         else:

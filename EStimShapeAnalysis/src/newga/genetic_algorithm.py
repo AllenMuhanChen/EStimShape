@@ -98,5 +98,5 @@ class GeneticAlgorithm:
     def _update_lineages_with_new_responses(self):
         for lineage in self.lineages:
             for stim in lineage.stimuli:
-                stim.response_vector = self.db_util.get_spikes_per_second_from(stim.id)
+                stim.response_vector = self.db_util.read_responses_for(stim.id)
                 stim.response_rate = self.db_util.read_driving_response(stim.id)
