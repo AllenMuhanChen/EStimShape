@@ -28,6 +28,7 @@ class GeneticAlgorithm:
     response_parser: ResponseParser
     response_processor: ResponseProcessor
 
+    experiment_id: int = field(init=False, default=None)
     gen_id: int = field(init=False, default=0)
     lineages: List[Lineage] = field(init=False, default_factory=list)
 
@@ -36,6 +37,7 @@ class GeneticAlgorithm:
         self.gen_id += 1
 
         if self.gen_id == 1:
+            self._update_db_with_new_experiment()
             self._run_first_generation()
         elif self.gen_id > 1:
             self.response_parser.parse_to_db(self.name)
@@ -49,6 +51,10 @@ class GeneticAlgorithm:
             raise ValueError("gen_id must be >= 1")
 
         self._write_lineages_to_db()
+
+    def _update_db_with_new_experiment(self):
+        self.experiment_id = time_util.now()
+        self.db_util.update_experiment_id(self.name, self.experiment_id)
 
     def _read_gen_id(self):
         try:

@@ -1,5 +1,6 @@
 import xmltodict
 
+from intan.channels import Channel
 from util.connection import Connection
 
 
@@ -82,6 +83,52 @@ class MultiGaDbUtil:
         stim_ids = [row[0] for row in rows]
 
         return stim_ids
+
+    def update_driving_response(self, stim_id: int, response: float):
+        self.conn.execute(
+            "UPDATE StimGaInfo SET response = %s WHERE stim_id = %s",
+            (response, stim_id))
+
+    def read_experiment_id(self, experiment_name):
+        self.conn.execute("SELECT experiment_id FROM CurrentExperiments WHERE experiment_name = %s", (experiment_name,))
+        experiment_id = self.conn.fetch_one()
+        if experiment_id is None:
+            raise Exception(f"Could not find experiment with name {experiment_name}")
+        return experiment_id
+
+    def update_experiment_id(self, experiment_name, experiment_id):
+        self.conn.execute("UPDATE CurrentExperiments SET experiment_id = %s WHERE experiment_name = %s",
+                          (experiment_id, experiment_name))
+
+    def read_channels(self, experiment_id, gen_id):
+        self.conn.execute("SELECT channel FROM ClusterInfo WHERE experiment_id = %s AND gen_id = %s",
+                          (experiment_id, gen_id))
+        rows = self.conn.fetch_all()
+        channels = [row[0] for row in rows]
+        return channels
+
+    def read_current_cluster(self, ga_name) -> list[Channel]:
+        # Get current experiment_id
+        current_experiment_id = self.read_experiment_id(ga_name)
+
+        self.conn.execute("SELECT MAX(gen_id) FROM ClusterInfo WHERE experiment_id = %s",
+                          (current_experiment_id,))
+        most_recent_gen_id = self.conn.fetch_one()
+        if most_recent_gen_id is None:
+            raise Exception(f"Could not find gen_id for experiment_id {current_experiment_id}")
+
+        # select the current cluster by grouping largest gen_id
+        cluster_as_strings = self.read_channels(current_experiment_id, most_recent_gen_id)
+        cluster = [Channel[channel_as_string] for channel_as_string in cluster_as_strings]
+        return cluster
+
+    def get_spikes_per_second(self, stim_id, channel):
+        self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s AND channel = %s",
+                          (stim_id, channel))
+        rows = self.conn.fetch_all()
+        spikes_per_second_list = [row[0] for row in rows]
+        return spikes_per_second_list
+
 
 class MultiGaGenerationInfo:
     def __init__(self, gen_id_for_ga=None):
