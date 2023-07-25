@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from mysql.connector import DatabaseError
 
-from intan.responses import ResponseParser
+from intan.response_parsing import ResponseParser
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
 from util import time_util
@@ -35,8 +35,11 @@ class GeneticAlgorithm:
         if self.gen_id == 1:
             self._run_first_generation()
         elif self.gen_id > 1:
-            self.response_parser.parse(self.name)
+            self.response_parser.parse_to_db(self.name)
+            self.response_processor.process(self.name)
+            # TODO: read responses from database and process them
             # TODO: update lineages with new responses in database
+
             self._update_lineages_with_new_responses()
             self._run_next_generation()
         else:
