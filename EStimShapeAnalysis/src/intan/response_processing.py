@@ -35,7 +35,9 @@ class ResponseProcessor:
         # Fetch spike/s for each stim_id and channel
         responses_to_process_for_stims = {}
         for stim_id in stims_to_process:
+            responses = []
             for channel in channels_to_process:
-                responses = self.db_util.get_spikes_per_second(stim_id, channel)
-                responses_to_process_for_stims[stim_id] = responses
+                response = self.db_util.get_spikes_per_second(stim_id, channel)
+                responses.append(response)
+            responses_to_process_for_stims[stim_id] = responses
         return responses_to_process_for_stims
