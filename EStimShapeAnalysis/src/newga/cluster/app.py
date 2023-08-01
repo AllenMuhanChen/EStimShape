@@ -8,6 +8,7 @@ from matplotlib.figure import Figure
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector
 
+from intan.channels import Channel
 from newga.cluster.app_classes import ClusterManager
 
 MAX_GROUPS = 10
@@ -44,18 +45,39 @@ class ApplicationWindow(QWidget):
         self.high_dim_points_for_channels = self.data_loader.load_data()
 
         # Instance variables - clusters and management
-        self.cluster_manager = ClusterManager()
         self.lasso = None
         self.current_cluster = 1  # The group that will be assigned to the next selection
         self.num_clusters = 2  # Including the default cluster (no cluster)
         self.clusters_for_channels = None  # An array that stores the group number of each point
 
         # Process Data
-        self.reduced_points_for_reducer = self.cluster_manager.reduce_data([self.pca_reducer, self.mds_reducer],
+        self.reduced_points_for_reducer = self.reduce_data([self.pca_reducer, self.mds_reducer],
                                                                            self.high_dim_points_for_channels)
+
+        self.cluster_manager = ClusterManager(self.reduced_points_for_reducer[self.pca_reducer])
 
         # Create GUI
         self.create_gui()
+
+    def reduce_data(self, reducers, point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
+        ndim_points = list(point_to_reduce_for_channels.values())
+        # Concatenate all the data into a single 2D array
+        stacked_points = np.vstack(ndim_points)
+        reduced_points_for_reducer = {}
+        for reducer in reducers:
+            # Perform dimensionality reduction on all data
+            all_reduced_data = reducer.fit_transform(stacked_points)
+
+            # Split the reduced data back up into channels
+            reduced_data_for_channels = {}
+            start_index = 0
+            for channel_index, channel in enumerate(point_to_reduce_for_channels.keys()):
+                # Extract the part of all_reduced_data that corresponds to this channel
+                reduced_data = all_reduced_data[channel_index, :]
+                reduced_data_for_channels[channel] = reduced_data
+
+            reduced_points_for_reducer[reducer] = reduced_data_for_channels
+        return reduced_points_for_reducer
 
     def create_gui(self) -> None:
         # Create the GUI panels
@@ -75,7 +97,14 @@ class ApplicationWindow(QWidget):
         self.setLayout(layout)
 
     def plot(self, reducer) -> None:
-        self.cluster_manager.init_clusters_for_channels(reducer, self.current_reducer)
+        # Reset groups if the reducer has changed
+        if self.current_reducer != reducer:
+            self.current_cluster = 1
+
+        if self.clusters_for_channels is None:
+            self.clusters_for_channels = self.cluster_manager.init_clusters_for_channels_from()
+
+        # self.cluster_manager.init_clusters_for_channels(reducer, self.current_reducer)
         colors_per_point = self.cluster_manager.assign_cmap_colors_to_channels_based_on_cluster(
             self.reduced_points_for_reducer[reducer])
         reduced_points_x_y = self.prep_reduced_points_for_plotting(reducer)
@@ -262,7 +291,7 @@ class ApplicationWindow(QWidget):
         path = Path(verts)
         selected_channels = []
 
-        for channel, data in self.cluster_manager.reduced_points_for_reducer[self.current_reducer].items():
+        for channel, data in self.cluster_manager.reduced_point_for_channels.items():
             point = data  # since each channel corresponds to one point
             if path.contains_point(point):
                 selected_channels.append(channel)
