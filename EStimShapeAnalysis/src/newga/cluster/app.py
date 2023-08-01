@@ -119,7 +119,7 @@ class ApplicationWindow(QWidget):
         channel_map_ax = self.plot_channel_map()
         self._handle_dim_reduction_lasso_selection(dim_reduction_ax)
         self._handle_channel_mapping_selection(channel_map_ax)
-        self._draw_group_list()
+        self._draw_cluster_list()
 
     def _handle_dim_reduction_lasso_selection(self, ax) -> None:
         if self.lasso_selector_for_dim_reduction is not None:
@@ -240,36 +240,36 @@ class ApplicationWindow(QWidget):
 
     def make_cluster_control_panel(self) -> QBoxLayout:
         self.widget_cluster_list = self._make_group_list()
-        self.button_new_group = self._make_new_group_button()
-        self.button_delete_group = self._make_delete_group_button()
+        self.button_new_group = self._make_new_cluster_button()
+        self.button_delete_group = self._make_delete_cluster_button()
         group_panel = QVBoxLayout()
         group_panel.addWidget(self.button_new_group)
         group_panel.addWidget(self.button_delete_group)
         group_panel.addWidget(self.widget_cluster_list)
         return group_panel
 
-    def _make_delete_group_button(self) -> QPushButton:
-        delete_group_button = QPushButton('Delete Group')
-        delete_group_button.clicked.connect(self.on_delete_cluster)
-        return delete_group_button
+    def _make_delete_cluster_button(self) -> QPushButton:
+        delete_cluster_button = QPushButton('Delete Cluster')
+        delete_cluster_button.clicked.connect(self.on_delete_cluster)
+        return delete_cluster_button
 
-    def _make_new_group_button(self) -> QPushButton:
-        new_group_button = QPushButton('New Group')
-        new_group_button.clicked.connect(self.on_new_group)
-        return new_group_button
+    def _make_new_cluster_button(self) -> QPushButton:
+        new_cluster_button = QPushButton('New Cluster')
+        new_cluster_button.clicked.connect(self.on_new_cluster)
+        return new_cluster_button
 
     def _make_group_list(self) -> QListWidget:
         group_list = QListWidget()
-        group_list.itemClicked.connect(self.on_group_selected)
+        group_list.itemClicked.connect(self.on_cluster_selected)
         return group_list
 
-    def on_new_group(self) -> None:
+    def on_new_cluster(self) -> None:
         # Increment current_group, but don't assign it to any points yet
         self.cluster_manager.add_cluster()
-        self.current_cluster += 1
-        self._draw_group_list()
+        self.current_cluster = self.cluster_manager.num_clusters-1
+        self._draw_cluster_list()
 
-    def _draw_group_list(self) -> None:
+    def _draw_cluster_list(self) -> None:
         self.widget_cluster_list.clear()
         for i in range(self.cluster_manager.num_clusters):
             color = self.cluster_manager.get_qcolor_for_cluster(i)
@@ -277,18 +277,17 @@ class ApplicationWindow(QWidget):
             pixmap.fill(color)
             icon = QIcon(pixmap)
             if i == 0:
-                item = QListWidgetItem(icon, 'Ungrouped')
+                item = QListWidgetItem(icon, 'No Cluster')
             else:
-                item = QListWidgetItem(icon, 'Group {}'.format(i))
+                item = QListWidgetItem(icon, 'Cluster {}'.format(i))
             self.widget_cluster_list.addItem(item)
 
     def on_delete_cluster(self) -> None:
-        # Remove the current group from the groups array and the group list
         current_row = self.widget_cluster_list.currentRow()
         self.widget_cluster_list.takeItem(current_row)
         self.clusters_for_channels = self.cluster_manager.delete_cluster(current_row)
         self.current_cluster = current_row-1
-        self._draw_group_list()
+        self._draw_cluster_list()
         self.plot(self.current_reducer)
 
     def on_dim_reduction_lasso_select(self, verts: list[int]) -> None:
@@ -334,7 +333,7 @@ class ApplicationWindow(QWidget):
 
         self.plot(self.current_reducer)
 
-    def on_group_selected(self, item) -> None:
+    def on_cluster_selected(self, item) -> None:
         # Set the current group to the selected group
         self.current_cluster = self.widget_cluster_list.row(item)
 
