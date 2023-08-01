@@ -32,7 +32,7 @@ class ApplicationWindow(QWidget):
         self.canvas_dim_reduction = None
         self.figure_dim_reduction = None
         self.button_delete_group = None
-        self.widget_group_list = None
+        self.widget_cluster_list = None
         self.button_new_group = None
 
         # Dependency injection
@@ -81,10 +81,10 @@ class ApplicationWindow(QWidget):
 
     def create_gui(self) -> None:
         # Create the GUI panels
-        top_panel = self._make_reducer_mode_panel()
-        right_top_panel = self._make_group_panel()
-        left_panel = self._make_plot_panel()
-        right_bottom_panel = self._make_export_panel()
+        top_panel = self.make_reducer_mode_panel()
+        right_top_panel = self.make_cluster_control_panel()
+        left_panel = self.make_plot_panel()
+        right_bottom_panel = self.make_export_panel()
         # Layout the panels
         layout = QGridLayout()
         layout.addLayout(top_panel, 0, 0, 1, 2)
@@ -102,17 +102,17 @@ class ApplicationWindow(QWidget):
 
         colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
 
-        reduced_points_x_y = self.prep_reduced_points_for_plotting(reducer)
-        ax = self.plot_reduced_points(reduced_points_x_y, colors_per_point)
-        self.handle_lasso_selection(ax)
-        self.draw_group_list()
+        reduced_points_x_y = self._prep_reduced_points_for_plotting(reducer)
+        ax = self._plot_reduced_points(reduced_points_x_y, colors_per_point)
+        self._handle_lasso_selection(ax)
+        self._draw_group_list()
 
-    def handle_lasso_selection(self, ax) -> None:
+    def _handle_lasso_selection(self, ax) -> None:
         if self.lasso is not None:
             self.lasso.disconnect_events()
         self.lasso = CustomLassoSelector(ax, self.on_lasso_select)
 
-    def plot_reduced_points(self, reduced_points_x_y, colors_per_point):
+    def _plot_reduced_points(self, reduced_points_x_y, colors_per_point):
         # Plot the reduced data
         self.figure_dim_reduction.clear()
         ax = self.figure_dim_reduction.subplots()
@@ -122,28 +122,28 @@ class ApplicationWindow(QWidget):
         self.canvas_dim_reduction.draw()
         return ax
 
-    def prep_reduced_points_for_plotting(self, reducer):
+    def _prep_reduced_points_for_plotting(self, reducer):
         # Concatenate the reduced data arrays along the first axis
         reduced_points_for_channels = self.reduced_points_for_reducer[reducer]
         reduced_data_values = np.vstack(list(reduced_points_for_channels.values()))
         return reduced_data_values
 
-    def _make_export_panel(self):
-        button_export = self.make_export_button()
+    def make_export_panel(self):
+        button_export = self._make_export_button()
         export_panel = QVBoxLayout()
         export_panel.addWidget(button_export)
         return export_panel
 
-    def _make_plot_panel(self):
+    def make_plot_panel(self):
         self.figure_dim_reduction, self.canvas_dim_reduction = make_figure_and_canvas()
         return self.canvas_dim_reduction
 
-    def make_export_button(self) -> QPushButton:
+    def _make_export_button(self) -> QPushButton:
         export_button = QPushButton('Export')
         export_button.clicked.connect(self.on_export)
         return export_button
 
-    def _make_reducer_mode_panel(self) -> QBoxLayout:
+    def make_reducer_mode_panel(self) -> QBoxLayout:
         buttons = []
         for reducer in self.reducers:
             reducer_button = self._make_reducer_button(reducer.get_name(), reducer)
@@ -163,14 +163,14 @@ class ApplicationWindow(QWidget):
         self.plot(reducer)
         self.current_reducer = reducer
 
-    def _make_group_panel(self) -> QBoxLayout:
-        self.widget_group_list = self._make_group_list()
+    def make_cluster_control_panel(self) -> QBoxLayout:
+        self.widget_cluster_list = self._make_group_list()
         self.button_new_group = self._make_new_group_button()
         self.button_delete_group = self._make_delete_group_button()
         group_panel = QVBoxLayout()
         group_panel.addWidget(self.button_new_group)
         group_panel.addWidget(self.button_delete_group)
-        group_panel.addWidget(self.widget_group_list)
+        group_panel.addWidget(self.widget_cluster_list)
         return group_panel
 
     def _make_delete_group_button(self) -> QPushButton:
@@ -180,7 +180,7 @@ class ApplicationWindow(QWidget):
 
     def _make_new_group_button(self) -> QPushButton:
         new_group_button = QPushButton('New Group')
-        new_group_button.clicked.connect(self.new_group)
+        new_group_button.clicked.connect(self.on_new_group)
         return new_group_button
 
     def _make_group_list(self) -> QListWidget:
@@ -188,14 +188,14 @@ class ApplicationWindow(QWidget):
         group_list.itemClicked.connect(self.on_group_selected)
         return group_list
 
-    def new_group(self) -> None:
+    def on_new_group(self) -> None:
         # Increment current_group, but don't assign it to any points yet
         self.cluster_manager.add_cluster()
         self.current_cluster += 1
-        self.draw_group_list()
+        self._draw_group_list()
 
-    def draw_group_list(self) -> None:
-        self.widget_group_list.clear()
+    def _draw_group_list(self) -> None:
+        self.widget_cluster_list.clear()
         for i in range(self.cluster_manager.num_clusters):
             color = self.cluster_manager.get_qcolor_for_cluster(i)
             pixmap = QPixmap(20, 20)
@@ -205,15 +205,15 @@ class ApplicationWindow(QWidget):
                 item = QListWidgetItem(icon, 'Ungrouped')
             else:
                 item = QListWidgetItem(icon, 'Group {}'.format(i))
-            self.widget_group_list.addItem(item)
+            self.widget_cluster_list.addItem(item)
 
     def on_delete_cluster(self) -> None:
         # Remove the current group from the groups array and the group list
-        current_row = self.widget_group_list.currentRow()
-        self.widget_group_list.takeItem(current_row)
+        current_row = self.widget_cluster_list.currentRow()
+        self.widget_cluster_list.takeItem(current_row)
         self.clusters_for_channels = self.cluster_manager.delete_cluster(current_row)
         self.current_cluster = 1
-        self.draw_group_list()
+        self._draw_group_list()
         self.plot(self.current_reducer)
 
     def on_lasso_select(self, verts) -> None:
@@ -239,7 +239,7 @@ class ApplicationWindow(QWidget):
 
     def on_group_selected(self, item) -> None:
         # Set the current group to the selected group
-        self.current_cluster = self.widget_group_list.row(item)
+        self.current_cluster = self.widget_cluster_list.row(item)
 
     def on_export(self) -> None:
         channels_for_clusters = {}
