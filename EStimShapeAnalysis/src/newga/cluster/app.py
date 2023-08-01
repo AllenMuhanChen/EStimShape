@@ -203,7 +203,7 @@ class ApplicationWindow(QWidget):
         # Reset groups if the reducer has changed
         if self.current_reducer != reducer:
             self.clusters_for_channels = None
-            self.cluster_manager.set_current_cluster(1)
+            self.current_cluster = 1
         if self.clusters_for_channels is None:
             # Initialize the groups array the first time plot() is called
             self.clusters_for_channels = {channel: 0 for channel in self.high_dim_points_for_channels.keys()}
@@ -220,6 +220,7 @@ class ApplicationWindow(QWidget):
     def new_group(self) -> None:
         # Increment current_group, but don't assign it to any points yet
         self.cluster_manager.add_cluster()
+        self.current_cluster += 1
         self.draw_group_list()
 
     def draw_group_list(self) -> None:
@@ -241,6 +242,7 @@ class ApplicationWindow(QWidget):
         self.widget_group_list.takeItem(current_row)
         self.cluster_manager.delete_cluster(current_row)
         self.draw_group_list()
+        self.current_cluster -= 1
         self.plot(self.current_reducer)
 
     # def delete_cluster(self) -> None:
@@ -268,10 +270,10 @@ class ApplicationWindow(QWidget):
         # Check the mouse button used for lasso selection
         if self.lasso.button == 1:  # Left-click
             # Add selected points to the current group
-            self.clusters_for_channels = self.cluster_manager.add_channels_to_cluster(selected_channels)
+            self.clusters_for_channels = self.cluster_manager.add_channels_to_cluster(selected_channels, self.current_cluster)
         elif self.lasso.button == 3:  # Right-click
             # Remove selected points from the current group
-            self.clusters_for_channels = self.cluster_manager.remove_channels_from_cluster(selected_channels)
+            self.clusters_for_channels = self.cluster_manager.remove_channels_from_cluster(selected_channels, self.current_cluster)
 
         self.plot(self.current_reducer)
 
@@ -299,7 +301,7 @@ class ApplicationWindow(QWidget):
 
     def on_group_selected(self, item) -> None:
         # Set the current group to the selected group
-        self.cluster_manager.set_current_cluster(self.widget_group_list.row(item))
+        self.current_cluster = self.widget_group_list.row(item)
 
     def on_export(self) -> None:
         channels_for_clusters = {}

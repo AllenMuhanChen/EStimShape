@@ -44,20 +44,19 @@ class ClusterManager:
             # Initialize the groups array the first time plot() is called
             self.clusters_for_channels = {channel: 0 for channel in self.reduced_points_for_reducer[reducer].keys()}
 
-    def remove_channels_from_cluster(self, channels):
+    def remove_channels_from_cluster(self, channels, cluster):
         for channel in channels:
-            if self.clusters_for_channels[channel] == self.current_cluster:
+            if self.clusters_for_channels[channel] == cluster:
                 self.clusters_for_channels[channel] = 0
         return self.clusters_for_channels
 
-    def add_channels_to_cluster(self, channels):
+    def add_channels_to_cluster(self, channels, cluster):
         for channel in channels:
-            self.clusters_for_channels[channel] = self.current_cluster
+            self.clusters_for_channels[channel] = cluster
         return self.clusters_for_channels
 
     def delete_cluster(self, cluster) -> None:
         self.clusters_for_channels[self.clusters_for_channels == cluster] = 0
-        self.current_cluster -= 1
         self.num_clusters -= 1
 
         # Assign all current channels in that cluster to group 0
@@ -66,17 +65,13 @@ class ClusterManager:
                 self.clusters_for_channels[channel] = 0
 
         # Decrement the group numbers of all higher-numbered groups
-        for i in range(cluster + 1, self.current_cluster + 1):
+        for i in range(cluster + 1, self.num_clusters):
             for channel in self.clusters_for_channels.keys():
                 if self.clusters_for_channels[channel] == i:
                     self.clusters_for_channels[channel] = i - 1
 
     def add_cluster(self):
-        self.current_cluster += 1
         self.num_clusters += 1
-
-    def set_current_cluster(self, current_cluster):
-        self.current_cluster = current_cluster
 
     def assign_cmap_colors_to_channels_based_on_cluster(self, reduced_point_for_channels) -> \
             list[float]:
