@@ -9,8 +9,8 @@ MAX_GROUPS = 10
 
 
 class ClusterManager:
-    def __init__(self, reduced_points_for_reducer: dict):
-        self.reduced_point_for_channels = reduced_points_for_reducer
+    def __init__(self, reduced_point_for_channels: dict):
+        self.reduced_point_for_channels = reduced_point_for_channels
 
         self.num_clusters = 2
         self.clusters_for_channels: dict[Channel, int] = {}
