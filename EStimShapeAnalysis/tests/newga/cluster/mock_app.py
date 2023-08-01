@@ -6,12 +6,13 @@ from sklearn.datasets import make_blobs
 
 from intan.channels import Channel
 from newga.cluster.app import ApplicationWindow
+from newga.cluster.app_classes import DataLoader, DataExporter, ChannelMapper
 from newga.cluster.dimensionality_reduction import PCAReducer, MDSReducer
 import os
 
 
-class MockDataLoader:
-    def load_data(self):
+class MockDataLoader(DataLoader):
+    def load_data_for_channels(self):
         # Replace this with your actual mock data
         X, _ = make_blobs(n_samples=len(Channel), centers=3, n_features=100, random_state=42, shuffle=False)
 
@@ -22,19 +23,11 @@ class MockDataLoader:
         return data_for_channels
 
 
-class MockDataExporter:
-    def export_data(self, channels_for_clusters: dict[int, list[Channel]]):
+class MockDataExporter(DataExporter):
+    def export_channels_for_clusters(self, channels_for_clusters: dict[int, list[Channel]]):
         print(channels_for_clusters[1])
 
-
-def get_qapplication_instance():
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-    return app
-
-
-class MockChannelMapper:
+class MockChannelMapper(ChannelMapper):
     def __init__(self, channels):
         # Initialize the dictionary mapping channels to coordinates
         self.channel_map = {}
@@ -48,6 +41,15 @@ class MockChannelMapper:
     def get_coordinates(self, channel):
         # Return the coordinates for a given channel
         return self.channel_map.get(channel, None)
+
+
+def get_qapplication_instance():
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(sys.argv)
+    return app
+
+
 
 
 if __name__ == '__main__':

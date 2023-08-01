@@ -10,6 +10,21 @@ from intan.channels import Channel
 MAX_GROUPS = 10
 
 
+class DataLoader(Protocol):
+    def load_data_for_channels(self) -> dict[Channel, np.ndarray]:
+        pass
+
+
+class DataExporter(Protocol):
+    def export_channels_for_clusters(self, channels_for_clusters: dict[int, list[Channel]]):
+        pass
+
+
+class ChannelMapper(Protocol):
+    def get_coordinates(self, channel):
+        pass
+
+
 class ClusterManager:
     def __init__(self, channels: list[Channel]):
         self.channels = channels
@@ -43,7 +58,7 @@ class ClusterManager:
                 self.clusters_for_channels[channel] = 0
 
         # Decrement the group numbers of all higher-numbered groups
-        for i in range(cluster + 1, self.num_clusters+1):
+        for i in range(cluster + 1, self.num_clusters + 1):
             for channel in self.channels:
                 if self.clusters_for_channels[channel] == i:
                     self.clusters_for_channels[channel] = i - 1
@@ -68,12 +83,3 @@ class ClusterManager:
         color = self.get_cmap_color_for_cluster(i)
         color = QColor(int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))  # Convert to QColor
         return color
-
-class ChannelMapper:
-    def __init__(self, channels, coordinates):
-        # Initialize the dictionary mapping channels to coordinates
-        self.channel_map = dict(zip(channels, coordinates))
-
-    def get_coordinates(self, channel):
-        # Return the coordinates for a given channel
-        return self.channel_map.get(channel, None)

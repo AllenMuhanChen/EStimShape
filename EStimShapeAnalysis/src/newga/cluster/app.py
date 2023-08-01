@@ -11,7 +11,7 @@ from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector, RectangleSelector
 
 from intan.channels import Channel
-from newga.cluster.app_classes import ClusterManager
+from newga.cluster.app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper
 from newga.cluster.dimensionality_reduction import DimensionalityReducer
 
 MAX_GROUPS = 10
@@ -24,7 +24,7 @@ def make_figure_and_canvas():
 
 
 class ApplicationWindow(QWidget):
-    def __init__(self, data_loader, data_exporter, reducers: list[DimensionalityReducer], channel_mapper):
+    def __init__(self, data_loader: DataLoader, data_exporter: DataExporter, reducers: list[DimensionalityReducer], channel_mapper: ChannelMapper):
         super().__init__()
         # GUI elements
         self.annot_dim_reduction = None
@@ -48,7 +48,7 @@ class ApplicationWindow(QWidget):
         self.reduced_points_for_reducer = None
         self.current_reducer = None
         self.reduced_points_for_reducer = {}
-        self.high_dim_points_for_channels = self.data_loader.load_data()
+        self.high_dim_points_for_channels = self.data_loader.load_data_for_channels()
 
         # Process Data
         self.reduced_points_for_reducer = self.reduce_data(self.reducers,
@@ -92,7 +92,7 @@ class ApplicationWindow(QWidget):
         top_panel = self.make_reducer_mode_panel()
         right_top_panel = self.make_cluster_control_panel()
         middle_panel = self.make_dim_reduction_panel()
-        left_panel = self.make_channel_mapping_panel()
+        left_panel = self._make_channel_mapping_panel()
 
         right_bottom_panel = self.make_export_panel()
         # Layout the panels
@@ -116,7 +116,7 @@ class ApplicationWindow(QWidget):
 
         reduced_points_x_y = self._prep_reduced_points_for_plotting(reducer)
         dim_reduction_ax = self._plot_dim_reduction(reduced_points_x_y, colors_per_point)
-        channel_map_ax = self.plot_channel_map()
+        channel_map_ax = self._plot_channel_map()
         self._handle_dim_reduction_lasso_selection(dim_reduction_ax)
         self._handle_channel_mapping_selection(channel_map_ax)
         self._draw_cluster_list()
@@ -341,16 +341,16 @@ class ApplicationWindow(QWidget):
         channels_for_clusters = {}
         for channel, cluster in self.clusters_for_channels.items():
             channels_for_clusters[cluster] = channels_for_clusters.get(cluster, []) + [channel]
-        self.data_exporter.export_data(channels_for_clusters)
+        self.data_exporter.export_channels_for_clusters(channels_for_clusters)
 
-    def make_channel_mapping_panel(self):
+    def _make_channel_mapping_panel(self):
         # Create a new Figure and FigureCanvas for the channel map plot
         self.figure_channel_map, self.canvas_channel_map = make_figure_and_canvas()
         self.canvas_channel_map.mpl_connect("pick_event", self._on_pick_channel_map)
         self.canvas_channel_map.mpl_connect("figure_leave_event", self._on_leave_channel_map)
         return self.canvas_channel_map
 
-    def plot_channel_map(self):
+    def _plot_channel_map(self):
         # Clear the previous plot
         self.figure_channel_map.clear()
         self.scatter_channel_map = self.figure_channel_map.subplots()
