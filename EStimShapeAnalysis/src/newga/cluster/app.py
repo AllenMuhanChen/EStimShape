@@ -61,7 +61,7 @@ class ApplicationWindow(QWidget):
         # Create GUI
         self.create_gui()
 
-    def reduce_data(self, reducers, point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
+    def reduce_data(self, reducers: list[DimensionalityReducer], point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
         high_dim_points = list(point_to_reduce_for_channels.values())
         # Concatenate all the data into a single 2D array
         stacked_points = np.vstack(high_dim_points)
@@ -96,7 +96,7 @@ class ApplicationWindow(QWidget):
         layout.setColumnStretch(1, 1)  # Set stretch factor for column 1 (group_panel column) to 1
         self.setLayout(layout)
 
-    def plot(self, reducer) -> None:
+    def plot(self, reducer: DimensionalityReducer) -> None:
         if self.clusters_for_channels is None:
             self.clusters_for_channels = self.cluster_manager.init_clusters_for_channels_from()
 
@@ -112,7 +112,7 @@ class ApplicationWindow(QWidget):
             self.lasso.disconnect_events()
         self.lasso = CustomLassoSelector(ax, self.on_lasso_select)
 
-    def _plot_reduced_points(self, reduced_points_x_y, colors_per_point):
+    def _plot_reduced_points(self, reduced_points_x_y: np.ndarray, colors_per_point: list[float]):
         # Plot the reduced data
         self.figure_dim_reduction.clear()
         ax = self.figure_dim_reduction.subplots()
@@ -122,19 +122,19 @@ class ApplicationWindow(QWidget):
         self.canvas_dim_reduction.draw()
         return ax
 
-    def _prep_reduced_points_for_plotting(self, reducer):
+    def _prep_reduced_points_for_plotting(self, reducer: DimensionalityReducer):
         # Concatenate the reduced data arrays along the first axis
         reduced_points_for_channels = self.reduced_points_for_reducer[reducer]
         reduced_data_values = np.vstack(list(reduced_points_for_channels.values()))
         return reduced_data_values
 
-    def make_export_panel(self):
+    def make_export_panel(self) -> QBoxLayout:
         button_export = self._make_export_button()
         export_panel = QVBoxLayout()
         export_panel.addWidget(button_export)
         return export_panel
 
-    def make_plot_panel(self):
+    def make_plot_panel(self) -> QWidget:
         self.figure_dim_reduction, self.canvas_dim_reduction = make_figure_and_canvas()
         return self.canvas_dim_reduction
 
@@ -156,10 +156,10 @@ class ApplicationWindow(QWidget):
 
     def _make_reducer_button(self, reducer_name: str, reducer: DimensionalityReducer) -> QPushButton:
         button = QPushButton(reducer_name)
-        button.clicked.connect(partial(self._on_reducer, reducer))
+        button.clicked.connect(partial(self.on_reducer, reducer))
         return button
 
-    def _on_reducer(self, reducer: DimensionalityReducer):
+    def on_reducer(self, reducer: DimensionalityReducer):
         self.plot(reducer)
         self.current_reducer = reducer
 
@@ -216,7 +216,7 @@ class ApplicationWindow(QWidget):
         self._draw_group_list()
         self.plot(self.current_reducer)
 
-    def on_lasso_select(self, verts) -> None:
+    def on_lasso_select(self, verts: list[int]) -> None:
         path = Path(verts)
         selected_channels = []
 
