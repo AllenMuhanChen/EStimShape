@@ -1,5 +1,6 @@
 import sys
 
+import numpy as np
 from PyQt5.QtWidgets import QApplication
 from sklearn.datasets import make_blobs
 
@@ -19,15 +20,12 @@ class MockDataLoader:
         for index, channel in enumerate(Channel):
             data_for_channels[channel] = X[index]
         return data_for_channels
-        #
-        # data_for_channels = {}
-        # for i in range(32):
-        #     data_for_channels[Channel.A_000] = X[:, i]
 
 
 class MockDataExporter:
     def export_data(self, channels_for_clusters: dict[int, list[Channel]]):
         print(channels_for_clusters[1])
+
 
 def get_qapplication_instance():
     app = QApplication.instance()
@@ -36,9 +34,25 @@ def get_qapplication_instance():
     return app
 
 
+class MockChannelMapper:
+    def __init__(self, channels):
+        # Initialize the dictionary mapping channels to coordinates
+        self.channel_map = {}
+        for channel in channels:
+            prefix = channel.name[0]  # Get the first letter (A, B, C, or D)
+            index = int(channel.name.split('_')[1])  # Get the index after the underscore
+            x = ['A', 'B', 'C', 'D'].index(prefix) * 4 + index // 16  # x coordinate based on the letter and index
+            y = index % 16  # y coordinate based on the index
+            self.channel_map[channel] = np.array([x, y])
+
+    def get_coordinates(self, channel):
+        # Return the coordinates for a given channel
+        return self.channel_map.get(channel, None)
+
+
 if __name__ == '__main__':
     app = get_qapplication_instance()
-    window = ApplicationWindow(MockDataLoader(), MockDataExporter(), [PCAReducer(), MDSReducer()])
+    window = ApplicationWindow(MockDataLoader(), MockDataExporter(), [PCAReducer(), MDSReducer()],
+                               MockChannelMapper(Channel))
     window.show()
     app.exec_()
-

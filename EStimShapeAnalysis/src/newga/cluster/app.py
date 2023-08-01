@@ -8,7 +8,7 @@ from matplotlib import cm
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.path import Path
-from matplotlib.widgets import LassoSelector
+from matplotlib.widgets import LassoSelector, RectangleSelector
 
 from intan.channels import Channel
 from newga.cluster.app_classes import ClusterManager
@@ -24,7 +24,7 @@ def make_figure_and_canvas():
 
 
 class ApplicationWindow(QWidget):
-    def __init__(self, data_loader, data_exporter, reducers: list[DimensionalityReducer]):
+    def __init__(self, data_loader, data_exporter, reducers: list[DimensionalityReducer], channel_mapper):
         super().__init__()
         # GUI elements
         self.button_mds = None
@@ -39,6 +39,7 @@ class ApplicationWindow(QWidget):
         self.data_loader = data_loader
         self.data_exporter = data_exporter
         self.reducers = reducers
+        self.channel_mapper = channel_mapper
 
         # Instance variables - dim reduction
         self.channels = None
@@ -52,7 +53,8 @@ class ApplicationWindow(QWidget):
                                                            self.high_dim_points_for_channels)
 
         # Instance variables - cluster management
-        self.lasso = None
+        self.lasso_selector_for_dim_reduction = None
+        self.rectangle_selector_for_channel_mapping = None
         self.current_cluster = 1
         self.clusters_for_channels = None  # An array that stores the group number of each point
         # noinspection PyTypeChecker
@@ -61,7 +63,8 @@ class ApplicationWindow(QWidget):
         # Create GUI
         self.create_gui()
 
-    def reduce_data(self, reducers: list[DimensionalityReducer], point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
+    def reduce_data(self, reducers: list[DimensionalityReducer],
+                    point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
         high_dim_points = list(point_to_reduce_for_channels.values())
         # Concatenate all the data into a single 2D array
         stacked_points = np.vstack(high_dim_points)
@@ -83,17 +86,21 @@ class ApplicationWindow(QWidget):
         # Create the GUI panels
         top_panel = self.make_reducer_mode_panel()
         right_top_panel = self.make_cluster_control_panel()
-        left_panel = self.make_plot_panel()
+        middle_panel = self.make_dim_reduction_panel()
+        left_panel = self.make_mapping_panel()
+
         right_bottom_panel = self.make_export_panel()
         # Layout the panels
         layout = QGridLayout()
-        layout.addLayout(top_panel, 0, 0, 1, 2)
-        layout.addLayout(right_top_panel, 1, 1)
+        layout.addLayout(top_panel, 0, 0, 1, 3)
+        layout.addLayout(right_top_panel, 1, 2)
+        layout.addWidget(middle_panel, 1, 1)
         layout.addWidget(left_panel, 1, 0)
-        layout.addLayout(right_bottom_panel, 2, 1)
+        layout.addLayout(right_bottom_panel, 2, 2)
         # Set stretch factors
-        layout.setColumnStretch(0, 3)  # Set stretch factor for column 0 (canvas column) to 3
-        layout.setColumnStretch(1, 1)  # Set stretch factor for column 1 (group_panel column) to 1
+        layout.setColumnStretch(0, 1)  # Set stretch factor for column 0 (canvas column) to 3
+        layout.setColumnStretch(1, 3)  # Set stretch factor for column 1 (group_panel column) to 1
+        layout.setColumnStretch(2, 1)  # Set stretch factor for column 1 (group_panel column) to 1
         self.setLayout(layout)
 
     def plot(self, reducer: DimensionalityReducer) -> None:
@@ -103,14 +110,21 @@ class ApplicationWindow(QWidget):
         colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
 
         reduced_points_x_y = self._prep_reduced_points_for_plotting(reducer)
-        ax = self._plot_reduced_points(reduced_points_x_y, colors_per_point)
-        self._handle_lasso_selection(ax)
+        dim_reduction_ax = self._plot_reduced_points(reduced_points_x_y, colors_per_point)
+        channel_map_ax = self.plot_channel_map()
+        self._handle_dim_reduction_lasso_selection(dim_reduction_ax)
+        self._handle_channel_mapping_selection(channel_map_ax)
         self._draw_group_list()
 
-    def _handle_lasso_selection(self, ax) -> None:
-        if self.lasso is not None:
-            self.lasso.disconnect_events()
-        self.lasso = CustomLassoSelector(ax, self.on_lasso_select)
+    def _handle_dim_reduction_lasso_selection(self, ax) -> None:
+        if self.lasso_selector_for_dim_reduction is not None:
+            self.lasso_selector_for_dim_reduction.disconnect_events()
+        self.lasso_selector_for_dim_reduction = CustomLassoSelector(ax, self.on_dim_reduction_lasso_select)
+
+    def _handle_channel_mapping_selection(self, ax) -> None:
+        if self.rectangle_selector_for_channel_mapping is not None:
+            self.rectangle_selector_for_channel_mapping.disconnect_events()
+        self.rectangle_selector_for_channel_mapping = CustomRectangleSelector(ax, self.on_channel_map_rectangle_selector)
 
     def _plot_reduced_points(self, reduced_points_x_y: np.ndarray, colors_per_point: list[float]):
         # Plot the reduced data
@@ -119,7 +133,7 @@ class ApplicationWindow(QWidget):
 
         # Scatter plot with picker enabled
         self.sc = ax.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point,
-                        cmap=self.cluster_manager.color_map, picker=True)
+                             cmap=self.cluster_manager.color_map, picker=True)
 
         self.canvas_dim_reduction.draw()
 
@@ -129,7 +143,6 @@ class ApplicationWindow(QWidget):
                                  bbox=dict(boxstyle="round", fc="w"),
                                  arrowprops=dict(arrowstyle="->"))
         self.annot.set_visible(False)
-
 
         return ax
 
@@ -161,7 +174,7 @@ class ApplicationWindow(QWidget):
         export_panel.addWidget(button_export)
         return export_panel
 
-    def make_plot_panel(self) -> QWidget:
+    def make_dim_reduction_panel(self) -> QWidget:
         self.figure_dim_reduction, self.canvas_dim_reduction = make_figure_and_canvas()
         # Connect the hover event to the function _update_annotation
         self.canvas_dim_reduction.mpl_connect("pick_event", self._on_pick)
@@ -246,7 +259,7 @@ class ApplicationWindow(QWidget):
         self._draw_group_list()
         self.plot(self.current_reducer)
 
-    def on_lasso_select(self, verts: list[int]) -> None:
+    def on_dim_reduction_lasso_select(self, verts: list[int]) -> None:
         path = Path(verts)
         selected_channels = []
 
@@ -256,11 +269,33 @@ class ApplicationWindow(QWidget):
                 selected_channels.append(channel)
 
         # Check the mouse button used for lasso selection
-        if self.lasso.button == 1:  # Left-click
+        if self.lasso_selector_for_dim_reduction.button == 1:  # Left-click
             # Add selected points to the current group
             self.clusters_for_channels = self.cluster_manager.add_channels_to_cluster(selected_channels,
                                                                                       self.current_cluster)
-        elif self.lasso.button == 3:  # Right-click
+        elif self.lasso_selector_for_dim_reduction.button == 3:  # Right-click
+            # Remove selected points from the current group
+            self.clusters_for_channels = self.cluster_manager.remove_channels_from_cluster(selected_channels,
+                                                                                           self.current_cluster)
+
+        self.plot(self.current_reducer)
+
+    def on_channel_map_rectangle_selector(self, eclick, erelease) -> None:
+        # This method is called when the RectangleSelector captures a selection
+        x1, y1 = eclick.xdata, eclick.ydata
+        x2, y2 = erelease.xdata, erelease.ydata
+        selected_channels = []
+        for i, channel in enumerate(self.channels):
+            x, y = self.channel_mapper.get_coordinates(channel)
+            if min(x1, x2) < x < max(x1, x2) and min(y1, y2) < y < max(y1, y2):
+                # If the channel is inside the rectangle, add it to the selected channels
+                selected_channels.append(channel)
+
+        if self.rectangle_selector_for_channel_mapping.button == 1:  # Left-click
+            # Add selected points to the current group
+            self.clusters_for_channels = self.cluster_manager.add_channels_to_cluster(selected_channels,
+                                                                                      self.current_cluster)
+        elif self.rectangle_selector_for_channel_mapping.button == 3:  # Right-click
             # Remove selected points from the current group
             self.clusters_for_channels = self.cluster_manager.remove_channels_from_cluster(selected_channels,
                                                                                            self.current_cluster)
@@ -277,8 +312,41 @@ class ApplicationWindow(QWidget):
             channels_for_clusters[cluster] = channels_for_clusters.get(cluster, []) + [channel]
         self.data_exporter.export_data(channels_for_clusters)
 
+    def make_mapping_panel(self):
+        # Create a new Figure and FigureCanvas for the channel map plot
+        self.figure_channel_map = Figure()
+        self.canvas_channel_map = FigureCanvas(self.figure_channel_map)
+        return self.canvas_channel_map
+
+    def plot_channel_map(self):
+        # Clear the previous plot
+        self.figure_channel_map.clear()
+        ax = self.figure_channel_map.subplots()
+
+        # Get the colors for each channel based on its cluster
+        colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
+
+        # Plot each channel at its mapped coordinates
+        for i, channel in enumerate(self.channels):
+            x, y = self.channel_mapper.get_coordinates(channel)
+            color = colors_per_point[i]
+            ax.scatter([x], [y], color=color)
+
+        self.canvas_channel_map.draw()
+        return ax
+
 
 class CustomLassoSelector(LassoSelector):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.button = None
+
+    def press(self, event):
+        self.button = event.button
+        super().press(event)
+
+
+class CustomRectangleSelector(RectangleSelector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.button = None

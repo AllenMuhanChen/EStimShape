@@ -68,3 +68,12 @@ class ClusterManager:
         color = self.get_cmap_color_for_cluster(i)
         color = QColor(int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))  # Convert to QColor
         return color
+
+class ChannelMapper:
+    def __init__(self, channels, coordinates):
+        # Initialize the dictionary mapping channels to coordinates
+        self.channel_map = dict(zip(channels, coordinates))
+
+    def get_coordinates(self, channel):
+        # Return the coordinates for a given channel
+        return self.channel_map.get(channel, None)
