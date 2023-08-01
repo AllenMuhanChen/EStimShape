@@ -10,6 +10,8 @@ MAX_GROUPS = 10
 
 class ClusterManager:
     def __init__(self):
+        self.num_clusters = 2
+        self.current_cluster = 1
         self.reduced_points_for_reducer = {}
         self.clusters_for_channels: dict[Channel, list[int]] = {}
         self.color_map = cm.get_cmap('tab10', MAX_GROUPS)
@@ -42,29 +44,43 @@ class ClusterManager:
             # Initialize the groups array the first time plot() is called
             self.clusters_for_channels = {channel: 0 for channel in high_dim_points_for_channels.keys()}
 
-    def lasso_select(self, verts, current_cluster, lasso, reduced_points_for_reducer, current_reducer):
-        path = Path(verts)
-        selected_channels = []
-
-        for channel, data in reduced_points_for_reducer[current_reducer].items():
-            point = data  # since each channel corresponds to one point
-            if path.contains_point(point):
-                selected_channels.append(channel)
-
-        # Check the mouse button used for lasso selection
-        if lasso.button == 1:  # Left-click
-            # Add selected points to the current group
-            for channel in selected_channels:
-                self.clusters_for_channels[channel] = current_cluster
-        elif lasso.button == 3:  # Right-click
-            # Remove selected points from the current group
-            for channel in selected_channels:
-                if self.clusters_for_channels[channel] == current_cluster:
-                    self.clusters_for_channels[channel] = 0
+    def remove_channels_from_cluster(self, selected_channels):
+        for channel in selected_channels:
+            if self.clusters_for_channels[channel] == self.current_cluster:
+                self.clusters_for_channels[channel] = 0
         return self.clusters_for_channels
 
-    def assign_cmap_colors_to_channels_based_on_cluster(self, reduced_point_for_channels, clusters_for_channels) -> \
-    list[float]:
+    def add_channels_to_cluster(self, selected_channels):
+        for channel in selected_channels:
+            self.clusters_for_channels[channel] = self.current_cluster
+        return self.clusters_for_channels
+
+    def delete_cluster(self, cluster) -> None:
+        self.clusters_for_channels[self.clusters_for_channels == cluster] = 0
+        self.current_cluster -= 1
+        self.num_clusters -= 1
+
+        # Assign all current channels in that cluster to group 0
+        for channel in self.clusters_for_channels.keys():
+            if self.clusters_for_channels[channel] == cluster:
+                self.clusters_for_channels[channel] = 0
+
+        # Decrement the group numbers of all higher-numbered groups
+        for i in range(cluster + 1, self.current_cluster + 1):
+            for channel in self.clusters_for_channels.keys():
+                if self.clusters_for_channels[channel] == i:
+                    self.clusters_for_channels[channel] = i - 1
+
+
+    def step_current_cluster(self):
+        self.current_cluster += 1
+        self.num_clusters += 1
+
+    def set_current_cluster(self, current_cluster):
+        self.current_cluster = current_cluster
+
+    def assign_cmap_colors_to_channels_based_on_cluster(self, reduced_point_for_channels) -> \
+            list[float]:
         cmap_color_per_channel = []
         for channel, data in reduced_point_for_channels.items():
             assigned_cluster_for_current_channel = self.clusters_for_channels[channel]
