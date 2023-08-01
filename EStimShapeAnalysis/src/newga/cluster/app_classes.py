@@ -13,7 +13,7 @@ class ClusterManager:
         self.num_clusters = 2
         self.current_cluster = 1
         self.reduced_points_for_reducer = {}
-        self.clusters_for_channels: dict[Channel, list[int]] = {}
+        self.clusters_for_channels: dict[Channel, int] = {}
         self.color_map = cm.get_cmap('tab10', MAX_GROUPS)
 
     def reduce_data(self, reducers, point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
@@ -35,23 +35,23 @@ class ClusterManager:
             self.reduced_points_for_reducer[reducer] = reduced_data_for_channels
         return self.reduced_points_for_reducer
 
-    def init_clusters_for_channels(self, reducer, high_dim_points_for_channels, current_reducer) -> None:
+    def init_clusters_for_channels(self, reducer, current_reducer) -> None:
         # Reset groups if the reducer has changed
         if current_reducer != reducer:
             self.clusters_for_channels = None
             self.current_cluster = 1
         if self.clusters_for_channels is None:
             # Initialize the groups array the first time plot() is called
-            self.clusters_for_channels = {channel: 0 for channel in high_dim_points_for_channels.keys()}
+            self.clusters_for_channels = {channel: 0 for channel in self.reduced_points_for_reducer[reducer].keys()}
 
-    def remove_channels_from_cluster(self, selected_channels):
-        for channel in selected_channels:
+    def remove_channels_from_cluster(self, channels):
+        for channel in channels:
             if self.clusters_for_channels[channel] == self.current_cluster:
                 self.clusters_for_channels[channel] = 0
         return self.clusters_for_channels
 
-    def add_channels_to_cluster(self, selected_channels):
-        for channel in selected_channels:
+    def add_channels_to_cluster(self, channels):
+        for channel in channels:
             self.clusters_for_channels[channel] = self.current_cluster
         return self.clusters_for_channels
 
@@ -71,8 +71,7 @@ class ClusterManager:
                 if self.clusters_for_channels[channel] == i:
                     self.clusters_for_channels[channel] = i - 1
 
-
-    def step_current_cluster(self):
+    def add_cluster(self):
         self.current_cluster += 1
         self.num_clusters += 1
 

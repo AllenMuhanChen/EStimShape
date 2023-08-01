@@ -75,8 +75,7 @@ class ApplicationWindow(QWidget):
         self.setLayout(layout)
 
     def plot(self, reducer) -> None:
-        self.cluster_manager.init_clusters_for_channels(reducer, self.high_dim_points_for_channels,
-                                                        self.current_reducer)
+        self.cluster_manager.init_clusters_for_channels(reducer, self.current_reducer)
         colors_per_point = self.cluster_manager.assign_cmap_colors_to_channels_based_on_cluster(
             self.reduced_points_for_reducer[reducer])
         reduced_points_x_y = self.prep_reduced_points_for_plotting(reducer)
@@ -220,7 +219,7 @@ class ApplicationWindow(QWidget):
 
     def new_group(self) -> None:
         # Increment current_group, but don't assign it to any points yet
-        self.cluster_manager.step_current_cluster()
+        self.cluster_manager.add_cluster()
         self.draw_group_list()
 
     def draw_group_list(self) -> None:
