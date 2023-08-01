@@ -116,11 +116,38 @@ class ApplicationWindow(QWidget):
         # Plot the reduced data
         self.figure_dim_reduction.clear()
         ax = self.figure_dim_reduction.subplots()
-        # Scatter plot
-        ax.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point,
-                   cmap=self.cluster_manager.color_map)
+
+        # Scatter plot with picker enabled
+        self.sc = ax.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point,
+                        cmap=self.cluster_manager.color_map, picker=True)
+
         self.canvas_dim_reduction.draw()
+
+        # create and store the annotation artist but make it invisible
+        self.annot = ax.annotate("", xy=(0, 0), xytext=(20, 20),
+                                 textcoords="offset points",
+                                 bbox=dict(boxstyle="round", fc="w"),
+                                 arrowprops=dict(arrowstyle="->"))
+        self.annot.set_visible(False)
+
+
         return ax
+
+    def _on_pick(self, event):
+        # This function is called when the mouse is over a point
+        ind = event.ind[0]  # Get the index of the point
+        x, y = event.artist.get_offsets().data[ind]  # Get the coordinates of the point
+        # Update the position and text of the annotation
+        self.annot.xy = (x, y)
+        self.annot.set_text(str(self.channels[ind]).split('.')[-1])
+        self.annot.set_visible(True)
+        self.canvas_dim_reduction.draw()
+
+    def _on_leave(self, event):
+        # This function is called when the mouse leaves the figure
+        # Hide the annotation
+        self.annot.set_visible(False)
+        self.canvas_dim_reduction.draw()
 
     def _prep_reduced_points_for_plotting(self, reducer: DimensionalityReducer):
         # Concatenate the reduced data arrays along the first axis
@@ -136,6 +163,9 @@ class ApplicationWindow(QWidget):
 
     def make_plot_panel(self) -> QWidget:
         self.figure_dim_reduction, self.canvas_dim_reduction = make_figure_and_canvas()
+        # Connect the hover event to the function _update_annotation
+        self.canvas_dim_reduction.mpl_connect("pick_event", self._on_pick)
+        self.canvas_dim_reduction.mpl_connect("figure_leave_event", self._on_leave)
         return self.canvas_dim_reduction
 
     def _make_export_button(self) -> QPushButton:
