@@ -9,15 +9,15 @@ MAX_GROUPS = 10
 
 
 class ClusterManager:
-    def __init__(self, reduced_point_for_channels: dict):
-        self.reduced_point_for_channels = reduced_point_for_channels
+    def __init__(self, channels: list[Channel]):
+        self.channels = channels
 
         self.num_clusters = 2
         self.clusters_for_channels: dict[Channel, int] = {}
         self.color_map = cm.get_cmap('tab10', MAX_GROUPS)
 
     def init_clusters_for_channels_from(self):
-        self.clusters_for_channels = {channel: 0 for channel in self.reduced_point_for_channels.keys()}
+        self.clusters_for_channels = {channel: 0 for channel in self.channels}
         return self.clusters_for_channels
 
     def remove_channels_from_cluster(self, channels, cluster):
@@ -31,7 +31,7 @@ class ClusterManager:
             self.clusters_for_channels[channel] = cluster
         return self.clusters_for_channels
 
-    def delete_cluster(self, cluster) -> None:
+    def delete_cluster(self, cluster) -> dict[Channel, int]:
         self.clusters_for_channels[self.clusters_for_channels == cluster] = 0
         self.num_clusters -= 1
 
@@ -41,10 +41,11 @@ class ClusterManager:
                 self.clusters_for_channels[channel] = 0
 
         # Decrement the group numbers of all higher-numbered groups
-        for i in range(cluster + 1, self.num_clusters):
-            for channel in self.clusters_for_channels.keys():
+        for i in range(cluster + 1, self.num_clusters+1):
+            for channel in self.channels:
                 if self.clusters_for_channels[channel] == i:
                     self.clusters_for_channels[channel] = i - 1
+        return self.clusters_for_channels
 
     def add_cluster(self):
         self.num_clusters += 1
