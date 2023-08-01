@@ -9,40 +9,16 @@ MAX_GROUPS = 10
 
 
 class ClusterManager:
-    def __init__(self):
+    def __init__(self, reduced_points_for_reducer: dict):
+        self.reduced_point_for_channels = reduced_points_for_reducer
+
         self.num_clusters = 2
-        self.current_cluster = 1
-        self.reduced_points_for_reducer = {}
         self.clusters_for_channels: dict[Channel, int] = {}
         self.color_map = cm.get_cmap('tab10', MAX_GROUPS)
 
-    def reduce_data(self, reducers, point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
-        ndim_points = list(point_to_reduce_for_channels.values())
-        # Concatenate all the data into a single 2D array
-        stacked_points = np.vstack(ndim_points)
-        for reducer in reducers:
-            # Perform dimensionality reduction on all data
-            all_reduced_data = reducer.fit_transform(stacked_points)
-
-            # Split the reduced data back up into channels
-            reduced_data_for_channels = {}
-            start_index = 0
-            for channel_index, channel in enumerate(point_to_reduce_for_channels.keys()):
-                # Extract the part of all_reduced_data that corresponds to this channel
-                reduced_data = all_reduced_data[channel_index, :]
-                reduced_data_for_channels[channel] = reduced_data
-
-            self.reduced_points_for_reducer[reducer] = reduced_data_for_channels
-        return self.reduced_points_for_reducer
-
-    def init_clusters_for_channels(self, reducer, current_reducer) -> None:
-        # Reset groups if the reducer has changed
-        if current_reducer != reducer:
-            self.clusters_for_channels = None
-            self.current_cluster = 1
-        if self.clusters_for_channels is None:
-            # Initialize the groups array the first time plot() is called
-            self.clusters_for_channels = {channel: 0 for channel in self.reduced_points_for_reducer[reducer].keys()}
+    def init_clusters_for_channels_from(self):
+        self.clusters_for_channels = {channel: 0 for channel in self.reduced_point_for_channels.keys()}
+        return self.clusters_for_channels
 
     def remove_channels_from_cluster(self, channels, cluster):
         for channel in channels:
