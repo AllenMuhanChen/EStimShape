@@ -7,12 +7,12 @@ from intan.channels import Channel
 from newga.cluster.app import ApplicationWindow
 from newga.cluster.dimensionality_reduction import PCAReducer, MDSReducer
 import os
-os.environ.update({"QT_QPA_PLATFORM_PLUGIN_PATH": "/home/r2_allen/anaconda3/envs/3.11/lib/python3.11/site-packages/PyQt5/Qt5/plugins/platforms"})
+
 
 class MockDataLoader:
     def load_data(self):
         # Replace this with your actual mock data
-        X, _ = make_blobs(n_samples=len(Channel), centers=3, n_features=3, random_state=42, shuffle=False)
+        X, _ = make_blobs(n_samples=len(Channel), centers=3, n_features=100, random_state=42, shuffle=False)
 
         # Assign each data point to a channel from A_000 to A_031
         data_for_channels = {}
