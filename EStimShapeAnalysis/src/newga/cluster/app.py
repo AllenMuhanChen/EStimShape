@@ -158,7 +158,7 @@ class ApplicationWindow(QWidget):
         self.annot_dim_reduction.xy = (x, y)
         self.annot_dim_reduction.set_text(str(self.channels[ind]).split('.')[-1])
         self.annot_dim_reduction.set_visible(True)
-        self.canvas_dim_reduction.draw()
+
         # Show the corresponding annotation on the channel_map plot
         x_map, y_map = self.channel_mapper.get_coordinates(self.channels[ind])
         self.annot_channel_map.xy = (x_map, y_map)
@@ -179,7 +179,7 @@ class ApplicationWindow(QWidget):
         self.annot_channel_map.xy = (x, y)
         self.annot_channel_map.set_text(str(self.channels[channel_indx]).split('.')[-1])
         self.annot_channel_map.set_visible(True)
-        self.canvas_channel_map.draw()
+
         # Show the corresponding annotation on the dim_reduction plot
         x_dim, y_dim = self.reduced_points_for_reducer[self.current_reducer][self.channels[channel_indx]]
         self.annot_dim_reduction.xy = (x_dim, y_dim)
@@ -287,7 +287,7 @@ class ApplicationWindow(QWidget):
         current_row = self.widget_cluster_list.currentRow()
         self.widget_cluster_list.takeItem(current_row)
         self.clusters_for_channels = self.cluster_manager.delete_cluster(current_row)
-        self.current_cluster = 1
+        self.current_cluster = current_row-1
         self._draw_group_list()
         self.plot(self.current_reducer)
 
@@ -360,10 +360,9 @@ class ApplicationWindow(QWidget):
         colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
 
         # Plot each channel at its mapped coordinates
-        for i, channel in enumerate(self.channels):
-            x, y = self.channel_mapper.get_coordinates(channel)
-            color = colors_per_point[i]
-            self.scatter_channel_map.scatter([x], [y], color=color, picker=True)
+        x = [self.channel_mapper.get_coordinates(channel)[0] for channel in self.channels]
+        y = [self.channel_mapper.get_coordinates(channel)[1] for channel in self.channels]
+        self.scatter_channel_map.scatter(x, y, c=colors_per_point, picker=True)
 
         self.annot_channel_map = self.scatter_channel_map.annotate("", xy=(0, 0), xytext=(20, 20),
                                                                      textcoords="offset points",
