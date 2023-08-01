@@ -50,9 +50,9 @@ class ApplicationWindow(QWidget):
         self.num_clusters = 2  # Including the default cluster (no cluster)
         self.clusters_for_channels = None  # An array that stores the group number of each point
 
-
         # Process Data
-        self.reduced_points_for_reducer = self.cluster_manager.reduce_data([self.pca_reducer, self.mds_reducer], self.high_dim_points_for_channels)
+        self.reduced_points_for_reducer = self.cluster_manager.reduce_data([self.pca_reducer, self.mds_reducer],
+                                                                           self.high_dim_points_for_channels)
 
         # Create GUI
         self.create_gui()
@@ -75,8 +75,10 @@ class ApplicationWindow(QWidget):
         self.setLayout(layout)
 
     def plot(self, reducer) -> None:
-        self.cluster_manager.init_clusters_for_channels(reducer, self.high_dim_points_for_channels, self.current_reducer)
-        colors_per_point = self.cluster_manager.assign_cmap_colors_to_channels_based_on_cluster(self.reduced_points_for_reducer[reducer], self.clusters_for_channels)
+        self.cluster_manager.init_clusters_for_channels(reducer, self.high_dim_points_for_channels,
+                                                        self.current_reducer)
+        colors_per_point = self.cluster_manager.assign_cmap_colors_to_channels_based_on_cluster(
+            self.reduced_points_for_reducer[reducer])
         reduced_points_x_y = self.prep_reduced_points_for_plotting(reducer)
         ax = self.plot_reduced_points(reduced_points_x_y, colors_per_point)
         self.handle_lasso_selection(ax)
@@ -92,7 +94,8 @@ class ApplicationWindow(QWidget):
         self.figure_dim_reduction.clear()
         ax = self.figure_dim_reduction.subplots()
         # Scatter plot
-        ax.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point, cmap=self.cluster_manager.color_map)
+        ax.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point,
+                   cmap=self.cluster_manager.color_map)
         self.canvas_dim_reduction.draw()
         return ax
 
@@ -149,7 +152,7 @@ class ApplicationWindow(QWidget):
 
     def make_delete_group_button(self) -> QPushButton:
         delete_group_button = QPushButton('Delete Group')
-        delete_group_button.clicked.connect(self.delete_group)
+        delete_group_button.clicked.connect(self.delete_cluster)
         return delete_group_button
 
     def make_new_group_button(self) -> QPushButton:
@@ -201,7 +204,7 @@ class ApplicationWindow(QWidget):
         # Reset groups if the reducer has changed
         if self.current_reducer != reducer:
             self.clusters_for_channels = None
-            self.current_cluster = 1
+            self.cluster_manager.set_current_cluster(1)
         if self.clusters_for_channels is None:
             # Initialize the groups array the first time plot() is called
             self.clusters_for_channels = {channel: 0 for channel in self.high_dim_points_for_channels.keys()}
@@ -217,13 +220,12 @@ class ApplicationWindow(QWidget):
 
     def new_group(self) -> None:
         # Increment current_group, but don't assign it to any points yet
-        self.current_cluster += 1
-        self.num_clusters += 1
+        self.cluster_manager.step_current_cluster()
         self.draw_group_list()
 
     def draw_group_list(self) -> None:
         self.widget_group_list.clear()
-        for i in range(self.num_clusters):
+        for i in range(self.cluster_manager.num_clusters):
             color = self.cluster_manager.get_qcolor_for_cluster(i)
             pixmap = QPixmap(20, 20)
             pixmap.fill(color)
@@ -234,22 +236,46 @@ class ApplicationWindow(QWidget):
                 item = QListWidgetItem(icon, 'Group {}'.format(i))
             self.widget_group_list.addItem(item)
 
-    def delete_group(self) -> None:
+    def delete_cluster(self) -> None:
         # Remove the current group from the groups array and the group list
         current_row = self.widget_group_list.currentRow()
         self.widget_group_list.takeItem(current_row)
-        self.clusters_for_channels[self.clusters_for_channels == current_row] = 0
-        self.current_cluster -= 1
-        self.num_clusters -= 1
-        # Decrement the group numbers of all higher-numbered groups
-        for i in range(current_row + 1, self.current_cluster + 1):
-            self.clusters_for_channels[self.clusters_for_channels == i] = i - 1
+        self.cluster_manager.delete_cluster(current_row)
         self.draw_group_list()
         self.plot(self.current_reducer)
 
+    # def delete_cluster(self) -> None:
+    #     # Remove the current group from the groups array and the group list
+    #     current_row = self.widget_group_list.currentRow()
+    #     self.widget_group_list.takeItem(current_row)
+    #     self.clusters_for_channels[self.clusters_for_channels == current_row] = 0
+    #     self.current_cluster -= 1
+    #     self.num_clusters -= 1
+    #     # Decrement the group numbers of all higher-numbered groups
+    #     for i in range(current_row + 1, self.current_cluster + 1):
+    #         self.clusters_for_channels[self.clusters_for_channels == i] = i - 1
+    #     self.draw_group_list()
+    #     self.plot(self.current_reducer)
+
     def on_lasso_select(self, verts) -> None:
-        self.clusters_for_channels = self.cluster_manager.lasso_select(verts, self.current_cluster, self.lasso, self.reduced_points_for_reducer, self.current_reducer)
+        path = Path(verts)
+        selected_channels = []
+
+        for channel, data in self.cluster_manager.reduced_points_for_reducer[self.current_reducer].items():
+            point = data  # since each channel corresponds to one point
+            if path.contains_point(point):
+                selected_channels.append(channel)
+
+        # Check the mouse button used for lasso selection
+        if self.lasso.button == 1:  # Left-click
+            # Add selected points to the current group
+            self.clusters_for_channels = self.cluster_manager.add_channels_to_cluster(selected_channels)
+        elif self.lasso.button == 3:  # Right-click
+            # Remove selected points from the current group
+            self.clusters_for_channels = self.cluster_manager.remove_channels_from_cluster(selected_channels)
+
         self.plot(self.current_reducer)
+
     # def on_lasso_select(self, verts) -> None:
     #     path = Path(verts)
     #     selected_channels = []
@@ -274,7 +300,7 @@ class ApplicationWindow(QWidget):
 
     def on_group_selected(self, item) -> None:
         # Set the current group to the selected group
-        self.current_cluster = self.widget_group_list.row(item)
+        self.cluster_manager.set_current_cluster(self.widget_group_list.row(item))
 
     def on_export(self) -> None:
         channels_for_clusters = {}
