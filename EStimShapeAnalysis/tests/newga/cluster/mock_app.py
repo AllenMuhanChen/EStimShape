@@ -38,7 +38,7 @@ def get_qapplication_instance():
 
 if __name__ == '__main__':
     app = get_qapplication_instance()
-    window = ApplicationWindow(MockDataLoader(), MockDataExporter(), PCAReducer(), MDSReducer())
+    window = ApplicationWindow(MockDataLoader(), MockDataExporter(), [PCAReducer(), MDSReducer()])
     window.show()
     app.exec_()
 

@@ -1,3 +1,5 @@
+from typing import Protocol
+
 import numpy as np
 from PyQt5.QtGui import QColor
 from matplotlib import cm

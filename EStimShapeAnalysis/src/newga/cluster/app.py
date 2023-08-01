@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 from PyQt5.QtGui import QColor, QPixmap, QIcon
 from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QWidget, QHBoxLayout, QListWidget, QListWidgetItem, \
@@ -10,6 +12,7 @@ from matplotlib.widgets import LassoSelector
 
 from intan.channels import Channel
 from newga.cluster.app_classes import ClusterManager
+from newga.cluster.dimensionality_reduction import DimensionalityReducer
 
 MAX_GROUPS = 10
 
@@ -21,7 +24,7 @@ def make_figure_and_canvas():
 
 
 class ApplicationWindow(QWidget):
-    def __init__(self, data_loader, data_exporter, pca_reducer, mds_reducer):
+    def __init__(self, data_loader, data_exporter, reducers: list[DimensionalityReducer]):
         super().__init__()
         # GUI elements
         self.button_mds = None
@@ -35,8 +38,7 @@ class ApplicationWindow(QWidget):
         # Dependency injection
         self.data_loader = data_loader
         self.data_exporter = data_exporter
-        self.pca_reducer = pca_reducer
-        self.mds_reducer = mds_reducer
+        self.reducers = reducers
 
         # Instance variables - dim reduction
         self.channels = None
@@ -46,10 +48,10 @@ class ApplicationWindow(QWidget):
         self.high_dim_points_for_channels = self.data_loader.load_data()
 
         # Process Data
-        self.reduced_points_for_reducer = self.reduce_data([self.pca_reducer, self.mds_reducer],
+        self.reduced_points_for_reducer = self.reduce_data(self.reducers,
                                                            self.high_dim_points_for_channels)
 
-        # Instance variables - clusters and management
+        # Instance variables - cluster management
         self.lasso = None
         self.current_cluster = 1
         self.clusters_for_channels = None  # An array that stores the group number of each point
@@ -142,68 +144,49 @@ class ApplicationWindow(QWidget):
         return export_button
 
     def _make_reducer_mode_panel(self) -> QBoxLayout:
-        # Add PCA button
-        self.button_pca = self.make_pca_button()
-        # Add MDS button
-        self.button_mds = self.make_mds_button()
+        buttons = []
+        for reducer in self.reducers:
+            reducer_button = self._make_reducer_button(reducer.get_name(), reducer)
+            buttons.append(reducer_button)
+
         top_button_panel = QHBoxLayout()
-        top_button_panel.addWidget(self.button_pca)
-        top_button_panel.addWidget(self.button_mds)
+        for button in buttons:
+            top_button_panel.addWidget(button)
         return top_button_panel
 
-    def make_mds_button(self) -> QPushButton:
-        button_mds = QPushButton('MDS', self)
-        button_mds.clicked.connect(self.on_mds)  # connect button click to function
-        return button_mds
+    def _make_reducer_button(self, reducer_name: str, reducer: DimensionalityReducer) -> QPushButton:
+        button = QPushButton(reducer_name)
+        button.clicked.connect(partial(self._on_reducer, reducer))
+        return button
 
-    def make_pca_button(self) -> QPushButton:
-        button_pca = QPushButton('PCA', self)
-        button_pca.clicked.connect(self.on_pca)  # connect button click to function
-        return button_pca
+    def _on_reducer(self, reducer: DimensionalityReducer):
+        self.plot(reducer)
+        self.current_reducer = reducer
 
     def _make_group_panel(self) -> QBoxLayout:
-        self.widget_group_list = self.make_group_list()
-        self.button_new_group = self.make_new_group_button()
-        self.button_delete_group = self.make_delete_group_button()
+        self.widget_group_list = self._make_group_list()
+        self.button_new_group = self._make_new_group_button()
+        self.button_delete_group = self._make_delete_group_button()
         group_panel = QVBoxLayout()
         group_panel.addWidget(self.button_new_group)
         group_panel.addWidget(self.button_delete_group)
         group_panel.addWidget(self.widget_group_list)
         return group_panel
 
-    def make_delete_group_button(self) -> QPushButton:
+    def _make_delete_group_button(self) -> QPushButton:
         delete_group_button = QPushButton('Delete Group')
         delete_group_button.clicked.connect(self.on_delete_cluster)
         return delete_group_button
 
-    def make_new_group_button(self) -> QPushButton:
+    def _make_new_group_button(self) -> QPushButton:
         new_group_button = QPushButton('New Group')
         new_group_button.clicked.connect(self.new_group)
         return new_group_button
 
-    def make_group_list(self) -> QListWidget:
+    def _make_group_list(self) -> QListWidget:
         group_list = QListWidget()
         group_list.itemClicked.connect(self.on_group_selected)
         return group_list
-
-    def on_pca(self) -> None:
-        # Run PCA and plot the result
-        self.plot(self.pca_reducer)
-        self.current_reducer = self.pca_reducer
-
-    def on_mds(self) -> None:
-        # Run MDS and plot the result
-        self.plot(self.mds_reducer)
-        self.current_reducer = self.mds_reducer
-
-    def _init_clusters_for_channels(self, reducer) -> None:
-        # Reset groups if the reducer has changed
-        if self.current_reducer != reducer:
-            self.clusters_for_channels = None
-            self.current_cluster = 1
-        if self.clusters_for_channels is None:
-            # Initialize the groups array the first time plot() is called
-            self.clusters_for_channels = {channel: 0 for channel in self.channels}
 
     def new_group(self) -> None:
         # Increment current_group, but don't assign it to any points yet
