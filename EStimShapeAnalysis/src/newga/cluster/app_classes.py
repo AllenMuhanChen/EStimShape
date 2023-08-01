@@ -50,10 +50,10 @@ class ClusterManager:
     def add_cluster(self):
         self.num_clusters += 1
 
-    def assign_cmap_colors_to_channels_based_on_cluster(self, reduced_point_for_channels) -> \
+    def get_colormap_colors_per_channel_based_on_cluster(self) -> \
             list[float]:
         cmap_color_per_channel = []
-        for channel, data in reduced_point_for_channels.items():
+        for channel in self.channels:
             assigned_cluster_for_current_channel = self.clusters_for_channels[channel]
             cmap_color_per_channel.append(self.get_cmap_color_for_cluster(assigned_cluster_for_current_channel))
         return cmap_color_per_channel
