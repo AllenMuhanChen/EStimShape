@@ -27,6 +27,8 @@ class ApplicationWindow(QWidget):
     def __init__(self, data_loader, data_exporter, reducers: list[DimensionalityReducer], channel_mapper):
         super().__init__()
         # GUI elements
+        self.annot_dim_reduction = None
+        self.annot_channel_map = None
         self.button_mds = None
         self.button_pca = None
         self.canvas_dim_reduction = None
@@ -63,6 +65,9 @@ class ApplicationWindow(QWidget):
         # Create GUI
         self.create_gui()
 
+        # Create Annoations
+        # self.create_annotations()
+
     def reduce_data(self, reducers: list[DimensionalityReducer],
                     point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
         high_dim_points = list(point_to_reduce_for_channels.values())
@@ -87,7 +92,7 @@ class ApplicationWindow(QWidget):
         top_panel = self.make_reducer_mode_panel()
         right_top_panel = self.make_cluster_control_panel()
         middle_panel = self.make_dim_reduction_panel()
-        left_panel = self.make_mapping_panel()
+        left_panel = self.make_channel_mapping_panel()
 
         right_bottom_panel = self.make_export_panel()
         # Layout the panels
@@ -110,7 +115,7 @@ class ApplicationWindow(QWidget):
         colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
 
         reduced_points_x_y = self._prep_reduced_points_for_plotting(reducer)
-        dim_reduction_ax = self._plot_reduced_points(reduced_points_x_y, colors_per_point)
+        dim_reduction_ax = self._plot_dim_reduction(reduced_points_x_y, colors_per_point)
         channel_map_ax = self.plot_channel_map()
         self._handle_dim_reduction_lasso_selection(dim_reduction_ax)
         self._handle_channel_mapping_selection(channel_map_ax)
@@ -124,43 +129,70 @@ class ApplicationWindow(QWidget):
     def _handle_channel_mapping_selection(self, ax) -> None:
         if self.rectangle_selector_for_channel_mapping is not None:
             self.rectangle_selector_for_channel_mapping.disconnect_events()
-        self.rectangle_selector_for_channel_mapping = CustomRectangleSelector(ax, self.on_channel_map_rectangle_selector)
+        self.rectangle_selector_for_channel_mapping = CustomRectangleSelector(ax,
+                                                                              self.on_channel_map_rectangle_selector)
 
-    def _plot_reduced_points(self, reduced_points_x_y: np.ndarray, colors_per_point: list[float]):
+    def _plot_dim_reduction(self, reduced_points_x_y: np.ndarray, colors_per_point: list[float]):
         # Plot the reduced data
         self.figure_dim_reduction.clear()
-        ax = self.figure_dim_reduction.subplots()
+        self.scatter_dim_reduction = self.figure_dim_reduction.subplots()
 
         # Scatter plot with picker enabled
-        self.sc = ax.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point,
-                             cmap=self.cluster_manager.color_map, picker=True)
+        self.scatter_dim_reduction.scatter(reduced_points_x_y[:, 0], reduced_points_x_y[:, 1], c=colors_per_point,
+                                           cmap=self.cluster_manager.color_map, picker=True)
+
+
+        # Create the annotation for this plot
+        self.annot_dim_reduction = self.scatter_dim_reduction.annotate("", xy=(0, 0), xytext=(20, 20),
+                                               textcoords="offset points",
+                                               bbox=dict(boxstyle="round", fc="w"),
+                                               arrowprops=dict(arrowstyle="->"))
+        self.annot_dim_reduction.set_visible(False)
 
         self.canvas_dim_reduction.draw()
+        return self.scatter_dim_reduction
 
-        # create and store the annotation artist but make it invisible
-        self.annot = ax.annotate("", xy=(0, 0), xytext=(20, 20),
-                                 textcoords="offset points",
-                                 bbox=dict(boxstyle="round", fc="w"),
-                                 arrowprops=dict(arrowstyle="->"))
-        self.annot.set_visible(False)
-
-        return ax
-
-    def _on_pick(self, event):
-        # This function is called when the mouse is over a point
+    def _on_pick_dim_reduction(self, event):
         ind = event.ind[0]  # Get the index of the point
         x, y = event.artist.get_offsets().data[ind]  # Get the coordinates of the point
-        # Update the position and text of the annotation
-        self.annot.xy = (x, y)
-        self.annot.set_text(str(self.channels[ind]).split('.')[-1])
-        self.annot.set_visible(True)
+        self.annot_dim_reduction.xy = (x, y)
+        self.annot_dim_reduction.set_text(str(self.channels[ind]).split('.')[-1])
+        self.annot_dim_reduction.set_visible(True)
         self.canvas_dim_reduction.draw()
+        # Show the corresponding annotation on the channel_map plot
+        x_map, y_map = self.channel_mapper.get_coordinates(self.channels[ind])
+        self.annot_channel_map.xy = (x_map, y_map)
+        self.annot_channel_map.set_text(str(self.channels[ind]).split('.')[-1])
+        self.annot_channel_map.set_visible(True)
+        self.canvas_dim_reduction.draw()
+        self.canvas_channel_map.draw()
 
-    def _on_leave(self, event):
+    def _on_leave_dim_reduction(self, event):
         # This function is called when the mouse leaves the figure
         # Hide the annotation
-        self.annot.set_visible(False)
+        self.annot_dim_reduction.set_visible(False)
         self.canvas_dim_reduction.draw()
+
+    def _on_pick_channel_map(self, event):
+        channel_indx = event.ind[0]  # Get the index of the point
+        x, y = event.artist.get_offsets().data[channel_indx]  # Get the coordinates of the point
+        self.annot_channel_map.xy = (x, y)
+        self.annot_channel_map.set_text(str(self.channels[channel_indx]).split('.')[-1])
+        self.annot_channel_map.set_visible(True)
+        self.canvas_channel_map.draw()
+        # Show the corresponding annotation on the dim_reduction plot
+        x_dim, y_dim = self.reduced_points_for_reducer[self.current_reducer][self.channels[channel_indx]]
+        self.annot_dim_reduction.xy = (x_dim, y_dim)
+        self.annot_dim_reduction.set_text(str(self.channels[channel_indx]).split('.')[-1])
+        self.annot_dim_reduction.set_visible(True)
+        self.canvas_dim_reduction.draw()
+        self.canvas_channel_map.draw()
+
+    def _on_leave_channel_map(self, event):
+        # This function is called when the mouse leaves the figure
+        # Hide the annotation
+        self.annot_channel_map.set_visible(False)
+        self.canvas_channel_map.draw()
 
     def _prep_reduced_points_for_plotting(self, reducer: DimensionalityReducer):
         # Concatenate the reduced data arrays along the first axis
@@ -177,8 +209,8 @@ class ApplicationWindow(QWidget):
     def make_dim_reduction_panel(self) -> QWidget:
         self.figure_dim_reduction, self.canvas_dim_reduction = make_figure_and_canvas()
         # Connect the hover event to the function _update_annotation
-        self.canvas_dim_reduction.mpl_connect("pick_event", self._on_pick)
-        self.canvas_dim_reduction.mpl_connect("figure_leave_event", self._on_leave)
+        self.canvas_dim_reduction.mpl_connect("pick_event", self._on_pick_dim_reduction)
+        self.canvas_dim_reduction.mpl_connect("figure_leave_event", self._on_leave_dim_reduction)
         return self.canvas_dim_reduction
 
     def _make_export_button(self) -> QPushButton:
@@ -312,16 +344,17 @@ class ApplicationWindow(QWidget):
             channels_for_clusters[cluster] = channels_for_clusters.get(cluster, []) + [channel]
         self.data_exporter.export_data(channels_for_clusters)
 
-    def make_mapping_panel(self):
+    def make_channel_mapping_panel(self):
         # Create a new Figure and FigureCanvas for the channel map plot
-        self.figure_channel_map = Figure()
-        self.canvas_channel_map = FigureCanvas(self.figure_channel_map)
+        self.figure_channel_map, self.canvas_channel_map = make_figure_and_canvas()
+        self.canvas_channel_map.mpl_connect("pick_event", self._on_pick_channel_map)
+        self.canvas_channel_map.mpl_connect("figure_leave_event", self._on_leave_channel_map)
         return self.canvas_channel_map
 
     def plot_channel_map(self):
         # Clear the previous plot
         self.figure_channel_map.clear()
-        ax = self.figure_channel_map.subplots()
+        self.scatter_channel_map = self.figure_channel_map.subplots()
 
         # Get the colors for each channel based on its cluster
         colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
@@ -330,10 +363,16 @@ class ApplicationWindow(QWidget):
         for i, channel in enumerate(self.channels):
             x, y = self.channel_mapper.get_coordinates(channel)
             color = colors_per_point[i]
-            ax.scatter([x], [y], color=color)
+            self.scatter_channel_map.scatter([x], [y], color=color, picker=True)
+
+        self.annot_channel_map = self.scatter_channel_map.annotate("", xy=(0, 0), xytext=(20, 20),
+                                                                     textcoords="offset points",
+                                                                     bbox=dict(boxstyle="round", fc="w"),
+                                                                     arrowprops=dict(arrowstyle="->"))
+        self.annot_channel_map.set_visible(False)
 
         self.canvas_channel_map.draw()
-        return ax
+        return self.scatter_channel_map
 
 
 class CustomLassoSelector(LassoSelector):
