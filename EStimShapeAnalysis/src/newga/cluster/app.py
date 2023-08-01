@@ -98,9 +98,7 @@ class ApplicationWindow(QWidget):
         if self.clusters_for_channels is None:
             self.clusters_for_channels = self.cluster_manager.init_clusters_for_channels_from()
 
-        # self.cluster_manager.init_clusters_for_channels(reducer, self.current_reducer)
-        colors_per_point = self.cluster_manager.assign_cmap_colors_to_channels_based_on_cluster(
-            self.reduced_points_for_reducer[reducer])
+        colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
 
         reduced_points_x_y = self.prep_reduced_points_for_plotting(reducer)
         ax = self.plot_reduced_points(reduced_points_x_y, colors_per_point)
