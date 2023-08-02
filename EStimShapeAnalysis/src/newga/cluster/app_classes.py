@@ -1,5 +1,6 @@
-from typing import Protocol
+from typing import Protocol, Any
 
+import matplotlib.pyplot as plt
 import numpy as np
 from PyQt5.QtGui import QColor
 from matplotlib import cm
@@ -83,3 +84,36 @@ class ClusterManager:
         color = self.get_cmap_color_for_cluster(i)
         color = QColor(int(color[0] * 255), int(color[1] * 255), int(color[2] * 255))  # Convert to QColor
         return color
+
+
+class Annotator:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def init_annotations(ax: plt.Axes) -> plt.Annotation:
+        annotation = ax.annotate("", xy=(0, 0), xytext=(20, 20),
+                                 textcoords="offset points",
+                                 bbox=dict(boxstyle="round", fc="w"),
+                                 arrowprops=dict(arrowstyle="->"))
+        annotation.set_visible(False)
+        return annotation
+
+    @staticmethod
+    def show_annotation_at(x, y, text, annotated_axes: plt.Annotation) -> None:
+        """
+
+        :param x: location on axes
+        :param y: location on axes
+        :param text: label for annotation
+        :param annotated_axes: an axes object that has been annotated with ax.annotate. Get this from init_annotations
+        """
+        annotated_axes.xy = (x, y)
+        annotated_axes.set_text(text)
+        annotated_axes.set_visible(True)
+
+    @staticmethod
+    def hide_annotations_for(annotation: plt.Annotation):
+        annotation.set_visible(False)
+
+
