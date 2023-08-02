@@ -33,7 +33,7 @@ class ClusterManager:
         self.clusters_for_channels: dict[Channel, int] = {}
         self.color_map = cm.get_cmap('tab10', MAX_GROUPS)
 
-    def init_clusters_for_channels_from(self):
+    def init_clusters_for_channels(self):
         self.clusters_for_channels = {channel: 0 for channel in self.channels}
         return self.clusters_for_channels
 
