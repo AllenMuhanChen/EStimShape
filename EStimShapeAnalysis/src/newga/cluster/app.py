@@ -65,11 +65,10 @@ class ApplicationWindow(QWidget):
         # Create GUI
         self.create_gui()
 
-        # Create Annoations
-        # self.create_annotations()
+
 
     def reduce_data(self, reducers: list[DimensionalityReducer],
-                    point_to_reduce_for_channels: dict[Channel, list[np.ndarray]]):
+                    point_to_reduce_for_channels: dict[Channel, np.ndarray]):
         high_dim_points = list(point_to_reduce_for_channels.values())
         # Concatenate all the data into a single 2D array
         stacked_points = np.vstack(high_dim_points)
@@ -110,16 +109,19 @@ class ApplicationWindow(QWidget):
 
     def plot(self, reducer: DimensionalityReducer) -> None:
         if self.clusters_for_channels is None:
-            self.clusters_for_channels = self.cluster_manager.init_clusters_for_channels_from()
+            self.clusters_for_channels = self.cluster_manager.init_clusters_for_channels()
 
-        colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
-
-        reduced_points_x_y = self._prep_reduced_points_for_plotting(reducer)
-        dim_reduction_ax = self._plot_dim_reduction(reduced_points_x_y, colors_per_point)
+        dim_reduction_ax = self._plot_dim_reduction(reducer)
         channel_map_ax = self._plot_channel_map()
         self._handle_dim_reduction_lasso_selection(dim_reduction_ax)
         self._handle_channel_mapping_selection(channel_map_ax)
         self._draw_cluster_list()
+
+    def _plot_dim_reduction(self, reducer):
+        colors_per_point = self.cluster_manager.get_colormap_colors_per_channel_based_on_cluster()
+        reduced_points_x_y = self._prep_reduced_points_for_plotting(reducer)
+        dim_reduction_ax = self._plot_clustered_scatter(reduced_points_x_y, colors_per_point)
+        return dim_reduction_ax
 
     def _handle_dim_reduction_lasso_selection(self, ax) -> None:
         if self.lasso_selector_for_dim_reduction is not None:
@@ -132,7 +134,7 @@ class ApplicationWindow(QWidget):
         self.rectangle_selector_for_channel_mapping = CustomRectangleSelector(ax,
                                                                               self.on_channel_map_rectangle_selector)
 
-    def _plot_dim_reduction(self, reduced_points_x_y: np.ndarray, colors_per_point: list[float]):
+    def _plot_clustered_scatter(self, reduced_points_x_y: np.ndarray, colors_per_point: list[float]):
         # Plot the reduced data
         self.figure_dim_reduction.clear()
         self.scatter_dim_reduction = self.figure_dim_reduction.subplots()
