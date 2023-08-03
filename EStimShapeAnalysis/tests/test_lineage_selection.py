@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from newga.lineage_selection import RegimeType, ClassicLineageDistributor, filter_by_regime_past_one, \
+from newga.lineage_selection import RegimeType, DatabaseLineageDistributor, filter_by_regime_past, \
     distribute_equally_between
 from newga.multi_ga_db_util import MultiGaDbUtil
 
@@ -17,6 +17,9 @@ def mock_read_regime_for_lineage(lineage_id: int) -> str:
         return "REGIME_THREE"
 
 
+class TestClassicLineageDistributor(unittest.TestCase):
+    pass
+
 class TestRegimeEnum(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -29,7 +32,7 @@ class TestRegimeEnum(unittest.TestCase):
                                                                           [1, 1, 1, 5, 5, 5]]
         self.mock_db_util.read_driving_response = lambda stim_id: stim_id
 
-        self.distributor = ClassicLineageDistributor(self.mock_db_util, 40, [], 2)
+        self.distributor = DatabaseLineageDistributor(self.mock_db_util, 40, [], 2)
 
     def test_distribute_trials(self):
         # Qualifying Lineages:
@@ -63,7 +66,7 @@ class TestRegimeEnum(unittest.TestCase):
         lineage_ids = self.mock_db_util.read_lineage_ids_for_experiment_id(None)
         regime_for_lineages = {lineage_id: self.distributor._read_regime_for_lineage(lineage_id) for lineage_id in
                                lineage_ids}
-        lineages_with_regimes_past_one = filter_by_regime_past_one(regime_for_lineages)
+        lineages_with_regimes_past_one = filter_by_regime_past(1, regime_for_lineages)
 
         # Lineage Regimes:
         # Lineage 0: REGIME_ZERO
