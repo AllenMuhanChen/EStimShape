@@ -48,7 +48,8 @@ class RegimeOneParentSelector(ParentSelector):
     and adds them to the list of parents.
     """
 
-    def __init__(self, get_all_stimuli_func: Callable[[], List[Stimulus]], proportions: [float], bin_sample_sizes: [int]) -> None:
+    def __init__(self, get_all_stimuli_func: Callable[[], List[Stimulus]], proportions: [float],
+                 bin_sample_sizes: [int]) -> None:
         self.get_all_stimuli_func = get_all_stimuli_func
         self.proportions = proportions
         self.bin_sample_sizes = bin_sample_sizes
@@ -86,19 +87,21 @@ class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
         return np.random.choice(np.linspace(0, 1, len(lineage.stimuli)), p=probabilities)
 
 
+def calculate_peak_response(responses):
+    # Calculate the peak response for the current batch of stimuli as the average of the top 3 responses.
+
+    top_responses = sorted(responses, reverse=True)[:3]
+    return np.mean(top_responses)
+
+
 class RegimeOneTransitioner(RegimeTransitioner):
     def __init__(self, convergence_threshold):
         self.convergence_threshold = convergence_threshold
         self.previous_peak_response = None
 
-    @staticmethod
-    def _calculate_peak_response(lineage):
-        # Calculate the peak response for the current batch of stimuli as the average of the top 3 responses.
-        top_responses = sorted([s.response_rate for s in lineage.stimuli], reverse=True)[:3]
-        return np.mean(top_responses)
-
     def should_transition(self, lineage):
-        current_peak_response = self._calculate_peak_response(lineage)
+        responses = [s.response_rate for s in lineage.stimuli]
+        current_peak_response = calculate_peak_response(responses)
 
         if self.previous_peak_response is not None:
             # Calculate the change in the peak response.

@@ -37,6 +37,18 @@ class MultiGaDbUtil:
             "INSERT INTO LineageGaInfo (lineageId, treeSpec, lineageData, gen_id, regime) VALUES (%s, %s, %s, %s, %s)",
             (lineage_id, tree_spec, lineage_data, gen_id, regime))
 
+    def read_lineage_ids_for_experiment_id(self, experiment_id: int) -> list[int]:
+        self.conn.execute("SELECT lineageId FROM LineageGaInfo WHERE experimentId = %s", (experiment_id,))
+        return self.conn.fetch_all()
+
+    def read_regime_for_lineage(self, lineage_id: int) -> str:
+        self.conn.execute(
+            "SELECT regime FROM LineageGaInfo WHERE lineage_id = %s",
+            (lineage_id,)
+        )
+        regime_str = self.db_util.conn.fetch_one()
+        return regime_str
+
     def write_stim_ga_info(self, stim_id: int, parent_id: int, ga_name: str, gen_id: int, lineage_id: int,
                            stim_type: str):
         self.conn.execute(
@@ -99,6 +111,7 @@ class MultiGaDbUtil:
         response = self.conn.fetch_one()
 
         return response
+
     def read_experiment_id(self, experiment_name):
         self.conn.execute("SELECT experiment_id FROM CurrentExperiments WHERE experiment_name = %s", (experiment_name,))
         experiment_id = self.conn.fetch_one()
@@ -137,10 +150,16 @@ class MultiGaDbUtil:
             self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s", (stim_id,))
         else:
             self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s AND channel = %s",
-                          (stim_id, channel))
+                              (stim_id, channel))
         rows = self.conn.fetch_all()
         spikes_per_second_list = [row[0] for row in rows]
         return spikes_per_second_list
+
+    def read_stim_ids_for_lineage(self, lineage_id):
+        self.conn.execute("SELECT stim_id FROM StimGaInfo WHERE lineage_id = %s", (lineage_id,))
+        rows = self.conn.fetch_all()
+        stim_ids = [row[0] for row in rows]
+        return stim_ids
 
 
 class MultiGaGenerationInfo:
