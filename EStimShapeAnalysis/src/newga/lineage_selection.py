@@ -8,6 +8,7 @@ from newga.multi_ga_db_util import MultiGaDbUtil
 from enum import Enum
 
 from newga.regime_one import calculate_peak_response
+from util import time_util
 
 
 class RegimeType(Enum):
@@ -77,25 +78,34 @@ def get_peak_response_for(lineages: list[Lineage]) -> dict[Lineage, float]:
 
 @dataclass
 class ClassicLineageDistributor():
-    num_trials_per_generation: int
-    number_of_lineages_to_build: int
+    number_of_trials_per_generation: int
+    max_lineages_to_build: int
+    number_of_new_lineages_per_generation: int
 
     def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
-        regime_index_for_all_lineages = {lineage: RegimeType.from_index(lineage.current_regime_index) for lineage in
-                                         lineages}
         lineages_with_regimes_past_regime_one = filter_to_lineages_past_regime(1, lineages)
         qualifying_lineages = filter_by_high_peak_response(lineages_with_regimes_past_regime_one)
 
-        # If below threshold: distribute to all lineages equally
-        num_to_distribute_between = len(qualifying_lineages)
-        if num_to_distribute_between < self.number_of_lineages_to_build:
+        # If below threshold: distribute to all lineages equally and generate some new lineages
+        num_lineages_to_distribute_between = len(qualifying_lineages)
+        if num_lineages_to_distribute_between < self.max_lineages_to_build:
+
+            num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation - self.number_of_new_lineages_per_generation
             non_regime_zero_lineages = filter_to_lineages_past_regime(0, lineages)
             num_trials_for_lineages = distribute_equally_between(non_regime_zero_lineages,
-                                                                 self.num_trials_per_generation)
+                                                                 num_trials_to_distribute_to_existing_lineages)
+
+            # Generate new lineages to fill in the rest
+            for new_lineage_index in range(self.number_of_new_lineages_per_generation):
+                new_lineage = Lineage(time_util.now(), None)
+                num_trials_for_lineages[new_lineage] = 1
+
+        # IF above threshold: distribute to qualifying lineages equally and don't generate new lineages
         else:
+            num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation
             # Divide equally among qualifying lineages
             num_trials_for_lineages = distribute_equally_between(qualifying_lineages,
-                                                                 self.num_trials_per_generation)
+                                                                 num_trials_to_distribute_to_existing_lineages)
 
         return num_trials_for_lineages
 
