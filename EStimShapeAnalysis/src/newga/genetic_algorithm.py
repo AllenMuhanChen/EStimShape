@@ -8,6 +8,7 @@ from mysql.connector import DatabaseError
 from intan.response_parsing import ResponseParser
 from intan.response_processing import ResponseProcessor
 from newga.ga_classes import LineageDistributor
+from newga.lineage_selection import ClassicLineageDistributor
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
 from util import time_util
@@ -20,7 +21,7 @@ class GeneticAlgorithm:
     regimes: List[Regime]
     db_util: MultiGaDbUtil
     trials_per_generation: int
-    lineage_distributor: LineageDistributor
+    lineage_distributor: ClassicLineageDistributor
     response_parser: ResponseParser
     response_processor: ResponseProcessor
 
@@ -76,12 +77,8 @@ class GeneticAlgorithm:
             lineage.generate_new_batch(1)
 
     def _run_next_generation(self):
-        num_trials_for_lineage_ids = self.lineage_distributor.get_num_trials_for_lineage_ids(self.experiment_id)
-        for lineage_id, num_trials in num_trials_for_lineage_ids.items():
-            if self.check_if_existing_lineage(lineage_id):
-                lineage = self._get_lineage(lineage_id)
-            else:
-                lineage = self._create_lineage()
+        num_trials_for_lineages = self.lineage_distributor.get_num_trials_for_lineages(self.lineages)
+        for lineage, num_trials in num_trials_for_lineages.items():
             lineage.generate_new_batch(num_trials)
 
     def _create_lineage(self):
@@ -89,12 +86,6 @@ class GeneticAlgorithm:
         new_lineage = Lineage(founder_id, self.regimes)
         self.lineages.append(new_lineage)
         return new_lineage
-
-    def _get_lineage(self, lineage_id):
-        return [lineage for lineage in self.lineages if lineage.id == lineage_id][0]
-
-    def check_if_existing_lineage(self, lineage_id):
-        return lineage_id in [lineage.id for lineage in self.lineages]
 
     def construct_lineage_from_db(self, lineage_id: int) -> Lineage:
         pass
