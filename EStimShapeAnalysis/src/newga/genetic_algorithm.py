@@ -79,6 +79,9 @@ class GeneticAlgorithm:
     def _run_next_generation(self):
         num_trials_for_lineages = self.lineage_distributor.get_num_trials_for_lineages(self.lineages)
         for lineage, num_trials in num_trials_for_lineages.items():
+            if lineage not in self.lineages:
+                lineage.regimes = self.regimes
+                self.lineages.append(lineage)
             lineage.generate_new_batch(num_trials)
 
     def _create_lineage(self):
@@ -87,7 +90,10 @@ class GeneticAlgorithm:
         self.lineages.append(new_lineage)
         return new_lineage
 
-    def construct_lineage_from_db(self, lineage_id: int) -> Lineage:
+    def _construct_lineages_from_db(self):
+        pass
+
+    def _construct_lineage_from_db(self, lineage_id: int) -> Lineage:
         pass
 
     def _update_db(self) -> None:
