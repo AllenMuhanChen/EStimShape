@@ -7,19 +7,15 @@ from mysql.connector import DatabaseError
 
 from intan.response_parsing import ResponseParser
 from intan.response_processing import ResponseProcessor
+from newga.ga_classes import LineageDistributor
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
 from util import time_util
 
 
-class LineageDistributor:
-
-    def distribute(self, name) -> {Lineage: int}:
-        pass
-
-
 @dataclass
 class GeneticAlgorithm:
+    # Dependencies
     name: str
     regimes: List[Regime]
     db_util: MultiGaDbUtil
@@ -28,6 +24,7 @@ class GeneticAlgorithm:
     response_parser: ResponseParser
     response_processor: ResponseProcessor
 
+    # Instance Variables
     experiment_id: int = field(init=False, default=None)
     gen_id: int = field(init=False, default=0)
     lineages: List[Lineage] = field(init=False, default_factory=list)
@@ -40,15 +37,24 @@ class GeneticAlgorithm:
             self._update_db_with_new_experiment()
             self._run_first_generation()
         elif self.gen_id > 1:
+            # Could be run outside of this class
             self.response_parser.parse_to_db(self.name)
             self.response_processor.process_to_db(self.name)
+            #
 
+            self._construct_lineages_from_db()
             self._update_lineages_with_new_responses()
+            self._transition_lineages_if_needed()
+
             self._run_next_generation()
         else:
             raise ValueError("gen_id must be >= 1")
 
         self._update_db()
+
+    def _transition_lineages_if_needed(self):
+        for lineage in self.lineages:
+            lineage.transition_regimes_if_needed()
 
     def _update_db_with_new_experiment(self):
         self.experiment_id = time_util.now()
@@ -64,20 +70,34 @@ class GeneticAlgorithm:
     def _run_first_generation(self):
         # Initialize lineages
         for trial in range(self.trials_per_generation):
-            # generate id
-            founder_id = time_util.now()
-            self.lineages.append(Lineage(founder_id, self.regimes))
+            self._create_lineage()
 
-        # Run lineages
         for lineage in self.lineages:
-            lineage.generate_new_batch()
-            lineage.regime_transition()
+            lineage.generate_new_batch(1)
 
     def _run_next_generation(self):
-        num_trials_for_lineages = self.lineage_distributor.distribute(self.name)
-        for lineage, num_trials in num_trials_for_lineages.items():
+        num_trials_for_lineage_ids = self.lineage_distributor.get_num_trials_for_lineage_ids(self.experiment_id)
+        for lineage_id, num_trials in num_trials_for_lineage_ids.items():
+            if self.check_if_existing_lineage(lineage_id):
+                lineage = self._get_lineage(lineage_id)
+            else:
+                lineage = self._create_lineage()
             lineage.generate_new_batch(num_trials)
-            lineage.regime_transition()
+
+    def _create_lineage(self):
+        founder_id = time_util.now()
+        new_lineage = Lineage(founder_id, self.regimes)
+        self.lineages.append(new_lineage)
+        return new_lineage
+
+    def _get_lineage(self, lineage_id):
+        return [lineage for lineage in self.lineages if lineage.id == lineage_id][0]
+
+    def check_if_existing_lineage(self, lineage_id):
+        return lineage_id in [lineage.id for lineage in self.lineages]
+
+    def construct_lineage_from_db(self, lineage_id: int) -> Lineage:
+        pass
 
     def _update_db(self) -> None:
         # Write lineages
@@ -89,7 +109,8 @@ class GeneticAlgorithm:
         # Write stimuli
         for lineage in self.lineages:
             for stim in lineage.stimuli:
-                self.db_util.write_stim_ga_info(stim.id, stim.parent.id, self.name, lineage.gen_id, lineage.id,
+                self.db_util.write_stim_ga_info(stim.id, stim.parent.id, self.name, lineage.age_in_generations,
+                                                lineage.id,
                                                 stim.mutation_type)
 
         # Update generations

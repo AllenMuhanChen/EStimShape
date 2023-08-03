@@ -30,7 +30,7 @@ class Lineage:
         self.tree = Node(founder)
         self.regimes = regimes
         self.current_regime_index = 0
-        self.gen_id = 0
+        self.age_in_generations = 0
 
     def generate_new_batch(self, batch_size: int) -> None:
         """
@@ -45,9 +45,9 @@ class Lineage:
         for child in new_children:
             self.tree.add_child_to(child.parent, child)
 
-        self.gen_id += 1
+        self.age_in_generations += 1
 
-    def regime_transition(self) -> None:
+    def transition_regimes_if_needed(self) -> None:
         """
         Check if this lineage should transition to a new regime based on its performance.
         """
@@ -143,4 +143,10 @@ class MutationMagnitudeAssigner(Protocol):
 class RegimeTransitioner(Protocol):
     @abstractmethod
     def should_transition(self, lineage):
+        pass
+
+
+class LineageDistributor(Protocol):
+    @abstractmethod
+    def get_num_trials_for_lineage_ids(self, experiment_id: int) -> dict[int: int]:
         pass
