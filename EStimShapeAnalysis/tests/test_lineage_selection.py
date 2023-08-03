@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock
 
 from newga.lineage_selection import RegimeType, DatabaseLineageDistributor, filter_by_regime_past, \
-    distribute_equally_between
+    distribute_amount_equally_among
 from newga.multi_ga_db_util import MultiGaDbUtil
 
 
@@ -93,7 +93,7 @@ class TestRegimeEnum(unittest.TestCase):
         self.assertEqual(lineages_with_high_peak, [2, 3])
 
     def test_distribute_equally_between(self):
-        num_per_distributee = distribute_equally_between(["A", "B", "C"], 4)
+        num_per_distributee = distribute_amount_equally_among(["A", "B", "C"], amount=4)
         # assert total sum of values is 4
         sum = 0
         for distributee, num in num_per_distributee.items():
