@@ -26,9 +26,24 @@ class RegimeType(Enum):
         elif self == RegimeType.REGIME_THREE:
             return 3
 
+    @staticmethod
+    def from_index(index: int):
+        if index == 0:
+            return RegimeType.REGIME_ZERO
+        elif index == 1:
+            return RegimeType.REGIME_ONE
+        elif index == 2:
+            return RegimeType.REGIME_TWO
+        elif index == 3:
+            return RegimeType.REGIME_THREE
 
-def filter_by_regime_past_one(regime_for_lineages: dict[int, RegimeType]) -> list[int]:
-    return [lineage_id for lineage_id, regime in regime_for_lineages.items() if regime.to_index() > 1]
+
+def filter_by_regime_past(regime_index, regime_for_lineages: dict[int, RegimeType]) -> list[int]:
+    return [lineage_id for lineage_id, regime in regime_for_lineages.items() if regime.to_index() > regime_index]
+
+
+def filter_to_lineages_past_regime(regime_index: int, lineages: list[Lineage]) -> list[Lineage]:
+    return [lineage for lineage in lineages if lineage.current_regime_index > regime_index]
 
 
 def distribute_equally_between(distributees: list[Any], total: int) -> dict[Any: int]:
@@ -42,8 +57,51 @@ def distribute_equally_between(distributees: list[Any], total: int) -> dict[Any:
     return amount_for_distributees
 
 
+def filter_by_high_peak_response(lineages_with_regimes_past_regime_one, threshold=0.5):
+    peak_response_for_lineages = get_peak_response_for(lineages_with_regimes_past_regime_one)
+    max_peak_response = max(peak_response_for_lineages.values())
+    lineages_with_high_enough_peak_responses = [lineage_id for lineage_id, peak_response in
+                                                peak_response_for_lineages.items() if
+                                                peak_response >= threshold * max_peak_response]
+    return lineages_with_high_enough_peak_responses
+
+
+def get_peak_response_for(lineages: list[Lineage]) -> dict[Lineage, float]:
+    peak_response_for_lineages = {}
+    for lineage in lineages:
+        all_responses_in_lineage = [stimulus.response_rate for stimulus in lineage.stimuli]
+        peak = calculate_peak_response(all_responses_in_lineage)
+        peak_response_for_lineages[lineage] = peak
+    return peak_response_for_lineages
+
+
 @dataclass
-class ClassicLineageDistributor(LineageDistributor):
+class ClassicLineageDistributor():
+    num_trials_per_generation: int
+    number_of_lineages_to_build: int
+
+    def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
+        regime_index_for_all_lineages = {lineage: RegimeType.from_index(lineage.current_regime_index) for lineage in
+                                         lineages}
+        lineages_with_regimes_past_regime_one = filter_to_lineages_past_regime(1, lineages)
+        qualifying_lineages = filter_by_high_peak_response(lineages_with_regimes_past_regime_one)
+
+        # If below threshold: distribute to all lineages equally
+        num_to_distribute_between = len(qualifying_lineages)
+        if num_to_distribute_between < self.number_of_lineages_to_build:
+            non_regime_zero_lineages = filter_to_lineages_past_regime(0, lineages)
+            num_trials_for_lineages = distribute_equally_between(non_regime_zero_lineages,
+                                                                 self.num_trials_per_generation)
+        else:
+            # Divide equally among qualifying lineages
+            num_trials_for_lineages = distribute_equally_between(qualifying_lineages,
+                                                                 self.num_trials_per_generation)
+
+        return num_trials_for_lineages
+
+
+@dataclass
+class DatabaseLineageDistributor(LineageDistributor):
     # Dependencies
     db_util: MultiGaDbUtil
     num_trials_per_generation: int
@@ -56,7 +114,7 @@ class ClassicLineageDistributor(LineageDistributor):
 
         regime_for_all_lineages = {lineage_id: self._read_regime_for_lineage(lineage_id) for lineage_id in lineage_ids}
 
-        lineages_with_regimes_past_regime_one = filter_by_regime_past_one(regime_for_all_lineages)
+        lineages_with_regimes_past_regime_one = filter_by_regime_past(1, regime_for_all_lineages)
         qualifying_lineages = self._filter_by_high_peak_response(lineages_with_regimes_past_regime_one)
 
         # If below threshold: distribute to all lineages equally
