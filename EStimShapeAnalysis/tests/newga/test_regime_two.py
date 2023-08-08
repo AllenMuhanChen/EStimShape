@@ -1,5 +1,5 @@
 import unittest
-from src.newga.ga_classes import Stimulus, Lineage, Node
+from src.newga.ga_classes import Stimulus, Lineage, Node, LineageFactory
 from src.newga.regime_two import RegimeTwoParentSelector, RegimeTwoTransitioner
 
 
@@ -8,8 +8,7 @@ class TestRegimeTwoParentSelector(unittest.TestCase):
         self.selector = RegimeTwoParentSelector(0.5, 2)
 
     def test_select_parents(self):
-        lineage = Lineage(Stimulus(None, "Test"), [])
-        lineage.stimuli = [Stimulus(None, "Test", driving_response=i) for i in range(1, 11)]
+        lineage = LineageFactory.create_lineage_from_stimuli([Stimulus(None, "Test", driving_response=i) for i in range(1, 11)])
         parents = self.selector.select_parents(lineage, 3)
 
         # Test that select_parents returns the correct number of parents.
@@ -19,15 +18,13 @@ class TestRegimeTwoParentSelector(unittest.TestCase):
         self.assertTrue(all(parent.response_rate in [10, 9] for parent in parents))
 
     def test_select_parents_threshold(self):
-        # Test that select_parents returns only parents that have passed the threshold
-        lineage = Lineage(Stimulus(None, "Test"), [])
-        lineage.stimuli = [Stimulus(None, "Test", driving_response=i) for i in range(1, 11)]
-        lineage.stimuli[0].parent = Stimulus(None, "Test", driving_response=9)
-        lineage.stimuli[0].response_rate = 10
-        lineage.stimuli[1].parent = Stimulus(None, "Test", driving_response=10)
-        lineage.stimuli[1].response_rate = 2
+        # Test that select_parents returns only top 2 parents that have passed the threshold
+        # Which is either id 9 or 10 because we only get the top x. In this case x is 2
+        stimuli = [Stimulus(i, "Test", driving_response=i) for i in range(0, 11)]
+        lineage = LineageFactory.create_lineage_from_stimuli(stimuli)
         parents = self.selector.select_parents(lineage, 3)
-        self.assertTrue(all(parent.response_rate in [10] for parent in parents))
+        print([parent.response_rate for parent in parents])
+        self.assertTrue(all(parent.id in [9, 10] for parent in parents))
 
 
 class TestRegimeTwoTransitioner(unittest.TestCase):
@@ -47,7 +44,7 @@ class TestRegimeTwoTransitioner(unittest.TestCase):
         tree = Node(parent_stimulus)
         tree.add_child(child_stimulus_1)
         tree.add_child(child_stimulus_2)
-        lineage = Lineage(parent_stimulus, [], tree=tree)
+        lineage = LineageFactory.create_lineage_from_tree(tree)
 
         # The threshold is 2 high 2 low so we should not transition
         # because we only have 1 high 1 low.
@@ -59,7 +56,7 @@ class TestRegimeTwoTransitioner(unittest.TestCase):
         child_stimulus_4 = Stimulus(5, "Test", driving_response=2, parent_id=1)
         tree.add_child(child_stimulus_3)
         tree.add_child(child_stimulus_4)
-        lineage = Lineage(parent_stimulus, [], tree=tree)
+        lineage = LineageFactory.create_lineage_from_tree(tree)
 
         self.assertTrue(self.transitioner.should_transition(lineage))
 
