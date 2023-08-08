@@ -1,7 +1,7 @@
 # test_regime_zero.py
 
 import unittest
-from src.newga.ga_classes import Stimulus, Lineage, Node
+from src.newga.ga_classes import Stimulus, Lineage, Node, LineageFactory
 from src.newga.regime_zero import RegimeZeroTransitioner
 
 
@@ -15,7 +15,7 @@ class TestRegimeZeroTransitioner(unittest.TestCase):
         tree = Node(stimuli[0])
         for stimulus in stimuli[1:]:
             tree.add_child(stimulus)
-        lineage = Lineage(stimuli[0], [], tree=tree)
+        lineage = LineageFactory.create_lineage_from_tree(tree)
 
         # The t-test should find that the response rates are significantly higher than the spontaneous firing rate,
         # so should_transition should return True
@@ -26,7 +26,7 @@ class TestRegimeZeroTransitioner(unittest.TestCase):
         tree = Node(stimuli[0])
         for stimulus in stimuli[1:]:
             tree.add_child(stimulus)
-        lineage = Lineage(stimuli[0], [], tree=tree)
+        lineage = LineageFactory.create_lineage_from_tree(tree)
 
         # The t-test should find that the response rates are not significantly different from the spontaneous firing rate,
         # so should_transition should return False

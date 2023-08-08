@@ -2,41 +2,11 @@ from dataclasses import dataclass
 from random import random
 from typing import Any
 
-from newga.ga_classes import LineageDistributor, Lineage, Stimulus, Node, Regime
+from newga.ga_classes import LineageDistributor, Lineage, Regime, LineageFactory
 from newga.multi_ga_db_util import MultiGaDbUtil
 
-from enum import Enum
-
 from newga.regime_one import calculate_peak_response
-from util import time_util
-
-
-class RegimeType(Enum):
-    REGIME_ZERO = "REGIME_ZERO"
-    REGIME_ONE = "REGIME_ONE"
-    REGIME_TWO = "REGIME_TWO"
-    REGIME_THREE = "REGIME_THREE"
-
-    def to_index(self):
-        if self == RegimeType.REGIME_ZERO:
-            return 0
-        elif self == RegimeType.REGIME_ONE:
-            return 1
-        elif self == RegimeType.REGIME_TWO:
-            return 2
-        elif self == RegimeType.REGIME_THREE:
-            return 3
-
-    @staticmethod
-    def from_index(index: int):
-        if index == 0:
-            return RegimeType.REGIME_ZERO
-        elif index == 1:
-            return RegimeType.REGIME_ONE
-        elif index == 2:
-            return RegimeType.REGIME_TWO
-        elif index == 3:
-            return RegimeType.REGIME_THREE
+from newga.regime_type import RegimeType
 
 
 def filter_by_regime_past(regime_index, regime_for_lineages: dict[int, RegimeType]) -> list[int]:
@@ -81,6 +51,7 @@ class ClassicLineageDistributor():
     number_of_trials_per_generation: int
     max_lineages_to_build: int
     number_of_new_lineages_per_generation: int
+    regimes: list[Regime]
 
     def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
         lineages_with_regimes_past_regime_one = filter_to_lineages_past_regime(1, lineages=lineages)
@@ -91,7 +62,7 @@ class ClassicLineageDistributor():
         if num_lineages_to_distribute_between < self.max_lineages_to_build:
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation - self.number_of_new_lineages_per_generation
             num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages, num_trials_to_distribute_to_existing_lineages)
-            self.add_new_lineages(num_trials_for_lineages, self.number_of_new_lineages_per_generation)
+            num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages, self.number_of_new_lineages_per_generation)
 
         # IF above threshold: distribute to qualifying lineages equally and don't generate new lineages
         else:
@@ -104,8 +75,9 @@ class ClassicLineageDistributor():
 
     def add_new_lineages(self, num_trials_for_lineages: dict[Lineage: int], number_of_new_lineages):
         for new_lineage_index in range(number_of_new_lineages):
-            new_lineage = Lineage(time_util.now(), None)
+            new_lineage = LineageFactory.create_new_lineage(regimes=self.regimes)
             num_trials_for_lineages[new_lineage] = 1
+        return num_trials_for_lineages
 
     def distribute_to_non_regime_zero_lineages(self, lineages, number_of_trials_to_distribute):
         non_regime_zero_lineages = filter_to_lineages_past_regime(0, lineages=lineages)

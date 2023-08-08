@@ -7,8 +7,9 @@ from mysql.connector import DatabaseError
 
 from intan.response_parsing import ResponseParser
 from intan.response_processing import ResponseProcessor
-from newga.ga_classes import LineageDistributor, Node, Stimulus
+from newga.ga_classes import LineageDistributor, Node, Stimulus, LineageFactory
 from newga.lineage_selection import ClassicLineageDistributor
+from newga.regime_type import RegimeType
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
 from util import time_util
@@ -79,14 +80,14 @@ class GeneticAlgorithm:
     def _run_next_generation(self):
         num_trials_for_lineages = self.lineage_distributor.get_num_trials_for_lineages(self.lineages)
         for lineage, num_trials in num_trials_for_lineages.items():
+            # lineage distributor may create new lineages for new regime zero stimuli
+            # We should check for them here.
             if lineage not in self.lineages:
-                lineage.regimes = self.regimes
                 self.lineages.append(lineage)
             lineage.generate_new_batch(num_trials)
 
     def _create_lineage(self):
-        founder_id = time_util.now()
-        new_lineage = Lineage(founder_id, self.regimes)
+        new_lineage = LineageFactory.create_new_lineage(regimes=self.regimes)
         self.lineages.append(new_lineage)
         return new_lineage
 

@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from typing import Protocol, Any
 
+from newga.regime_type import RegimeType
 from util import time_util
 
 
@@ -37,14 +38,6 @@ class Lineage:
         self.regimes = regimes
         self.current_regime_index = 0
         self.age_in_generations = 0
-
-    # def __init__(self, lineage_id: int, regimes: [Regime], tree: Node):
-    #     self.id = lineage_id
-    #     self.regimes = regimes
-    #     self.tree = tree
-    #     self.stimuli = tree.to_list()
-    #     self.current_regime_index = 0
-    #     self.age_in_generations = 0
 
     def generate_new_batch(self, batch_size: int) -> None:
         """
@@ -194,3 +187,31 @@ class LineageDistributor(Protocol):
     @abstractmethod
     def get_num_trials_for_lineage_ids(self, experiment_id: int) -> dict[int: int]:
         pass
+
+
+class LineageFactory:
+    @staticmethod
+    def create_lineage_from_stimuli(stimuli: [Stimulus], regimes: [Regime] = None) -> Lineage:
+        tree = Node(stimuli[0])
+        for stimulus in stimuli[1:]:
+            if stimulus.parent_id is not None:
+                tree.add_child_to(stimulus.parent_id, Node(stimulus))
+            else:
+                print("Warning: stimulus with no parent. This should only happen in unit tests")
+                tree.add_child(Node(stimulus))
+
+        return Lineage(stimuli[0], regimes, tree)
+
+    @staticmethod
+    def create_lineage_from_tree(tree: Node, regimes: [Regime] = None) -> Lineage:
+        return Lineage(tree.data, regimes, tree=tree)
+
+    @staticmethod
+    def create_new_lineage_from_founder(founder: Stimulus, regimes = None) -> Lineage:
+        return Lineage(founder, regimes)
+
+    @staticmethod
+    def create_new_lineage(*, regimes) -> Lineage:
+        founder_id = time_util.now()
+        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value)
+        return LineageFactory.create_new_lineage_from_founder(founder, regimes)
