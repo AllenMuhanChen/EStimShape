@@ -7,14 +7,14 @@ from mysql.connector import DatabaseError
 
 from intan.response_parsing import ResponseParser
 from intan.response_processing import ResponseProcessor
-from newga.ga_classes import LineageDistributor
+from newga.ga_classes import LineageDistributor, Node, Stimulus
 from newga.lineage_selection import ClassicLineageDistributor
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
 from util import time_util
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GeneticAlgorithm:
     # Dependencies
     name: str
@@ -44,7 +44,7 @@ class GeneticAlgorithm:
             #
 
             self._construct_lineages_from_db()
-            self._update_lineages_with_new_responses()
+            # self._update_lineages_with_new_responses()
             self._transition_lineages_if_needed()
 
             self._run_next_generation()
@@ -91,7 +91,38 @@ class GeneticAlgorithm:
         return new_lineage
 
     def _construct_lineages_from_db(self):
-        pass
+        def stim_id_to_stimulus(stim_id: int) -> Stimulus:
+            stim_ga_info_entry = self.db_util.read_stim_ga_info_entry(stim_id)
+            mutation_type = stim_ga_info_entry.stim_type
+            response = stim_ga_info_entry.response
+            response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.name)
+            return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response)
+
+        def add_parent_to_stimulus(stim: Stimulus, parent: Stimulus):
+            stim.parent_id = parent.id
+
+        # Read lineageIds from this experiment_id and gen_id
+        lineage_ga_info_entries_for_this_generation = self.db_util.read_lineage_ga_info_for_experiment_id_and_gen_id(
+            self.experiment_id, self.gen_id)
+        for lineage_entry in lineage_ga_info_entries_for_this_generation:
+            lineage_id = lineage_entry.lineage_id
+
+            # Reconstruct tree of Stimulus objects from a tree_spec of stim_ids
+            tree_spec = lineage_entry.tree_spec
+            tree_of_stim_ids = Node.from_xml(tree_spec)
+            tree_of_stimuli = tree_of_stim_ids.new_tree_from_function(stim_id_to_stimulus)
+            tree_of_stimuli.have_parent_apply_to_children(add_parent_to_stimulus)
+
+            reconstructed_lineage = Lineage(
+                lineage_id,
+                self.regimes,
+                tree_of_stimuli)
+
+            self.lineages.append(reconstructed_lineage)
+
+        # For each lineage:
+        #   Read tree_spec from db and recreate Tree
+        #   Convert Tree to stimuli
 
     def _construct_lineage_from_db(self, lineage_id: int) -> Lineage:
         pass

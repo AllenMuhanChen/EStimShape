@@ -2,23 +2,23 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, Any
 
 from util import time_util
 
 
 class Stimulus:
 
-    def __init__(self, stim_id: int, mutation_type: str, parent: Stimulus = None, mutation_magnitude: float = None,
-                 response_vector=None,
-                 response_rate=None):
+    def __init__(self, stim_id: int, mutation_type: str, mutation_magnitude: float = None, response_vector=None,
+                 driving_response=None):
         self.id = stim_id
-        self.parent = parent
         self.mutation_type = mutation_type
         self.mutation_magnitude = mutation_magnitude
         self.response_vector = response_vector
-        self.response_rate = response_rate
+        self.response_rate = driving_response
 
+    def set_parent_id(self, parent_id: int) -> None:
+        self.parent = parent_id
     def __eq__(self, o: object) -> bool:
         return self.__dict__ == o.__dict__
 
@@ -31,6 +31,14 @@ class Lineage:
         self.regimes = regimes
         self.current_regime_index = 0
         self.age_in_generations = 0
+
+    # def __init__(self, lineage_id: int, regimes: [Regime], tree: Node):
+    #     self.id = lineage_id
+    #     self.regimes = regimes
+    #     self.tree = tree
+    #     self.stimuli = tree.to_list()
+    #     self.current_regime_index = 0
+    #     self.age_in_generations = 0
 
     def generate_new_batch(self, batch_size: int) -> None:
         """
@@ -55,6 +63,9 @@ class Lineage:
         if current_regime.should_transition(self):
             self.current_regime_index += 1
 
+    def get_parent_of(self, child: Stimulus) -> Stimulus:
+        return self.tree.find(child.parent).data
+
 
 class Node:
     def __init__(self, data):
@@ -73,7 +84,18 @@ class Node:
             function(child)
             child.apply_to_children(function)
 
-    def find(self, parent_data):
+    def new_tree_from_function(self, function: callable[[Any], None]):
+        new_tree = Node(function(self.data))
+        for child in self.children:
+            new_tree.add_child(child.new_tree_from_function(function))
+        return new_tree
+
+    def have_parent_apply_to_children(self, function: callable[[Node, Node], None]):
+        for child in self.children:
+            function(child, self)
+            child.have_parent_apply_to_children(function)
+
+    def find(self, parent_data) -> Node:
         if self.data == parent_data:
             return self
         for child in self.children:
@@ -97,6 +119,9 @@ class Node:
             node.add_child(child_node)
         return node
 
+    def to_list(self):
+        return [self.data] + [child.to_list() for child in self.children]
+
 
 class Regime:
     def __init__(self, parent_selector: ParentSelector, mutation_assigner: MutationAssigner,
@@ -110,8 +135,8 @@ class Regime:
         """
         Generate a new batch of stimuli by selecting parents and assigning mutation types and magnitudes.
         """
-        parents = self.parent_selector.select_parents(lineage.stimuli, batch_size)
-        return [Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage), parent=parent,
+        parents = self.parent_selector.select_parents(lineage, batch_size)
+        return [Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage),
                          mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(lineage, parent))
                 for parent in parents]
 
@@ -124,7 +149,7 @@ class Regime:
 
 class ParentSelector(Protocol):
     @abstractmethod
-    def select_parents(self, lineage: Lineage, batch_size: int):
+    def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
         pass
 
 

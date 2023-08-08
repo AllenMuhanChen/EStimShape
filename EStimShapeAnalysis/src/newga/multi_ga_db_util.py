@@ -1,3 +1,8 @@
+from __future__ import annotations
+from collections import namedtuple
+from dataclasses import dataclass, Field
+from typing import List, Tuple, Any
+
 import xmltodict
 
 from intan.channels import Channel
@@ -49,11 +54,38 @@ class MultiGaDbUtil:
         regime_str = self.db_util.conn.fetch_one()
         return regime_str
 
+    def read_lineage_ga_info_for_experiment_id_and_gen_id(self, experiment_id: int, gen_id: int) -> list[
+        LineageGaInfoEntry]:
+        self.conn.execute(
+            "SELECT lineageId, tree_spec, regime, lineage_data FROM LineageGaInfo WHERE experimentId = %s AND gen_id = %s",
+            (experiment_id, gen_id)
+        )
+        rows = self.conn.fetch_all()
+        output = []
+        for row in rows:
+            lineage_id, tree_spec, regime, lineage_data = row
+            output.append(
+                LineageGaInfoEntry(lineage_id=lineage_id, tree_spec=tree_spec, regime=regime, lineage_data=lineage_data,
+                                   gen_id=gen_id, experiment_id=experiment_id))
+        return output
+
     def write_stim_ga_info(self, stim_id: int, parent_id: int, ga_name: str, gen_id: int, lineage_id: int,
                            stim_type: str):
         self.conn.execute(
             "INSERT IGNORE INTO StimGaInfo (stimId, parentId, gaName, genId, lineageId, stimType) VALUES (%s, %s, %s, %s, %s, %s)",
             (stim_id, parent_id, ga_name, gen_id, lineage_id, stim_type))
+
+    def read_stim_ga_info_entry(self, stim_id: int) -> StimGaInfoEntry:
+        self.conn.execute(
+            "SELECT parentId, lineageId, stim_type, response FROM StimGaInfo WHERE stimId = %s",
+            (stim_id,))
+        row = self.conn.fetch_one()
+        if row is None:
+            return None
+        else:
+            parent_id, lineage_id, stim_type, response = row
+            return StimGaInfoEntry(stim_id=stim_id, parent_id=parent_id,
+                                   lineage_id=lineage_id, stim_type=stim_type)
 
     def read_task_done_ids_for_stim_id(self, ga_name: str, stim_id: int):
         self.conn.execute(
@@ -72,7 +104,7 @@ class MultiGaDbUtil:
         self.conn.execute(
             "SELECT s.stim_id "
             "FROM StimGaInfo s "
-            "LEFT JOIN StimResponses r ON s.stim_id = r.stim_id "
+            "LEFT JOIN ChannelResponses r ON s.stim_id = r.stim_id "
             "WHERE r.stim_id IS NULL AND s.ga_name = %s", (ga_name,))
 
         rows = self.conn.fetch_all()
@@ -80,9 +112,9 @@ class MultiGaDbUtil:
 
         return stim_ids
 
-    def add_stim_response(self, stim_id: int, task_id: int, channel: str, spikes_per_second: float):
+    def add_channel_response(self, stim_id: int, task_id: int, channel: str, spikes_per_second: float):
         self.conn.execute(
-            "INSERT INTO StimResponses (stim_id, task_id, channel, spikes_per_second) VALUES (%s, %s, %s, %s)",
+            "INSERT INTO ChannelResponses (stim_id, task_id, channel, spikes_per_second) VALUES (%s, %s, %s, %s)",
             (stim_id, task_id, channel, spikes_per_second))
 
     def read_stims_with_no_driving_response(self):
@@ -147,9 +179,9 @@ class MultiGaDbUtil:
 
     def read_responses_for(self, stim_id, channel=None):
         if channel is None:
-            self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s", (stim_id,))
+            self.conn.execute("SELECT spikes_per_second FROM ChannelResponses WHERE stim_id = %s", (stim_id,))
         else:
-            self.conn.execute("SELECT spikes_per_second FROM StimResponses WHERE stim_id = %s AND channel = %s",
+            self.conn.execute("SELECT spikes_per_second FROM ChannelResponses WHERE stim_id = %s AND channel = %s",
                               (stim_id, channel))
         rows = self.conn.fetch_all()
         spikes_per_second_list = [row[0] for row in rows]
@@ -160,6 +192,16 @@ class MultiGaDbUtil:
         rows = self.conn.fetch_all()
         stim_ids = [row[0] for row in rows]
         return stim_ids
+
+
+@dataclass(kw_only=True)
+class LineageGaInfoEntry:
+    lineage_id: int
+    tree_spec: str
+    lineage_data: str
+    experiment_id: int
+    gen_id: int
+    regime: str
 
 
 class MultiGaGenerationInfo:
@@ -181,3 +223,12 @@ class MultiGaGenerationInfo:
                     {'genIdForGA':
                          {'entry': [{'string': k, 'long': str(v)} for k, v in self.gen_id_for_ga.items()]}}}
         return xmltodict.unparse(data, pretty=True)
+
+
+@dataclass(kw_only=True)
+class StimGaInfoEntry:
+    stim_id: int
+    parent_id: int
+    lineage_id: int
+    stim_type: str
+    response: float

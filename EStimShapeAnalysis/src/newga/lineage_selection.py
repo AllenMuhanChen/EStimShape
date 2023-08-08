@@ -163,6 +163,8 @@ class DatabaseLineageDistributor(LineageDistributor):
             peak_response_for_lineages[lineage_id] = peak_response
         return peak_response_for_lineages
 
+
+
     # def read_lineages(self, lineage_ids: list[int]) -> list[Lineage]:
     #     lineages = []
     #     for lineage_id in lineage_ids:
