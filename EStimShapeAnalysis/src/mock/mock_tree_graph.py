@@ -355,15 +355,15 @@ def fetch_tree_spec(lineage_id):
 
 def parse_recursive_xml(xml_string):
     root = ET.fromstring(xml_string)
-    return _parse_recursive_xml_helper(root)
+    return _parse_recursive_xml_for_GABranch_class(root)
 
 
-def _parse_recursive_xml_helper(elem):
+def _parse_recursive_xml_for_GABranch_class(elem):
     result = {}
     if elem.tag == "GABranch":
         children = []
         for child_elem in elem.findall("children/GABranch"):
-            children.append(_parse_recursive_xml_helper(child_elem))
+            children.append(_parse_recursive_xml_for_GABranch_class(child_elem))
         result["children"] = children
         result["identifier"] = int(elem.find("identifier").text)
     return result
