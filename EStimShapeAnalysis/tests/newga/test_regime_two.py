@@ -1,5 +1,5 @@
 import unittest
-from src.newga.ga_classes import Stimulus, Lineage
+from src.newga.ga_classes import Stimulus, Lineage, Node
 from src.newga.regime_two import RegimeTwoParentSelector, RegimeTwoTransitioner
 
 
@@ -35,28 +35,31 @@ class TestRegimeTwoTransitioner(unittest.TestCase):
         self.transitioner = RegimeTwoTransitioner(2, 2)
 
     def test_should_transition(self):
-        lineage = Lineage(Stimulus(None, 1), [])
-        lineage.stimuli = [Stimulus(None, "Test") for i in range(1, 5)]
+
 
         # Create a parent-child pair with a high response rate ratio.
-        lineage.stimuli[0].parent = Stimulus(None, 1, driving_response=10)
-        lineage.stimuli[0].response_rate = 10
+        parent_stimulus = Stimulus(1, "Test", driving_response=10)
+        child_stimulus_1 = Stimulus(2, "Test", driving_response=10, parent_id=1)
+
 
         # Create a parent-child pair with a low response rate ratio.
-        lineage.stimuli[1].parent = Stimulus(None, 2, driving_response=10)
-        lineage.stimuli[1].response_rate = 2
+        child_stimulus_2 = Stimulus(3, "Test", driving_response=2, parent_id=1)
+        tree = Node(parent_stimulus)
+        tree.add_child(child_stimulus_1)
+        tree.add_child(child_stimulus_2)
+        lineage = Lineage(parent_stimulus, [], tree=tree)
 
+        # The threshold is 2 high 2 low so we should not transition
+        # because we only have 1 high 1 low.
         self.assertFalse(self.transitioner.should_transition(lineage))
 
-        # Create a parent-child pair with a high response rate ratio.
-        lineage.stimuli[2].parent = Stimulus(None, 3, driving_response=10)
-        lineage.stimuli[2].response_rate = 10
 
-        self.assertFalse(self.transitioner.should_transition(lineage))
-
-        # Create a parent-child pair with a low response rate ratio.
-        lineage.stimuli[3].parent = Stimulus(None, 4, driving_response=10)
-        lineage.stimuli[3].response_rate = 2
+        # The threshold is 2 high 2 low, so add two more stimuli to the lineage and we should transition now
+        child_stimulus_3 = Stimulus(4, "Test", driving_response=10, parent_id=1)
+        child_stimulus_4 = Stimulus(5, "Test", driving_response=2, parent_id=1)
+        tree.add_child(child_stimulus_3)
+        tree.add_child(child_stimulus_4)
+        lineage = Lineage(parent_stimulus, [], tree=tree)
 
         self.assertTrue(self.transitioner.should_transition(lineage))
 

@@ -10,24 +10,30 @@ from util import time_util
 class Stimulus:
 
     def __init__(self, stim_id: int, mutation_type: str, mutation_magnitude: float = None, response_vector=None,
-                 driving_response=None):
+                 driving_response=None, parent_id=None):
         self.id = stim_id
         self.mutation_type = mutation_type
         self.mutation_magnitude = mutation_magnitude
         self.response_vector = response_vector
         self.response_rate = driving_response
+        self.parent_id = parent_id
 
-    def set_parent_id(self, parent_id: int) -> None:
-        self.parent = parent_id
+    def set_parent(self, parent_id: int) -> None:
+        self.parent_id = parent_id
+
     def __eq__(self, o: object) -> bool:
         return self.__dict__ == o.__dict__
 
 
 class Lineage:
-    def __init__(self, founder: Stimulus, regimes: [Regime]):
+    def __init__(self, founder: Stimulus, regimes: [Regime], tree=None):
         self.id = founder.id
-        self.stimuli = [founder]
-        self.tree = Node(founder)
+        if tree is None:
+            self.stimuli = [founder]
+            self.tree = Node(founder)
+        else:
+            self.tree = tree
+            self.stimuli = tree.to_list()
         self.regimes = regimes
         self.current_regime_index = 0
         self.age_in_generations = 0
@@ -64,7 +70,7 @@ class Lineage:
             self.current_regime_index += 1
 
     def get_parent_of(self, child: Stimulus) -> Stimulus:
-        return self.tree.find(child.parent).data
+        return self.tree.find_node_that_satisfies(lambda node: node.data.id == child.parent_id).data
 
 
 class Node:
@@ -72,12 +78,14 @@ class Node:
         self.data = data
         self.children = []
 
-    def add_child(self, node):
+    def add_child(self, node: Node | Any):
+        if not isinstance(node, Node):
+            node = Node(node)
         self.children.append(node)
 
-    def add_child_to(self, parent_data, child_data):
+    def add_child_to(self, parent_data, child: Node):
         parent = self.find(parent_data)
-        parent.add_child(child_data)
+        parent.add_child(child)
 
     def apply_to_children(self, function):
         for child in self.children:
@@ -95,11 +103,19 @@ class Node:
             function(child, self)
             child.have_parent_apply_to_children(function)
 
-    def find(self, parent_data) -> Node:
+    def find(self, parent_data: Any) -> Node:
         if self.data == parent_data:
             return self
         for child in self.children:
             found = child.find(parent_data)
+            if found:
+                return found
+
+    def find_node_that_satisfies(self, function: callable[[Node], bool]) -> Node:
+        if function(self):
+            return self
+        for child in self.children:
+            found = child.find_node_that_satisfies(function)
             if found:
                 return found
 
@@ -120,7 +136,10 @@ class Node:
         return node
 
     def to_list(self):
-        return [self.data] + [child.to_list() for child in self.children]
+        result = [self.data]
+        for child in self.children:
+            result.extend(child.to_list())
+        return result
 
 
 class Regime:

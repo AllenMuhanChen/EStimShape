@@ -98,8 +98,8 @@ class GeneticAlgorithm:
             response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.name)
             return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response)
 
-        def add_parent_to_stimulus(stim: Stimulus, parent: Stimulus):
-            stim.parent_id = parent.id
+        def add_parent_to_stimulus(stim: Node, parent: Node):
+            stim.data.parent_id = parent.data.id
 
         # Read lineageIds from this experiment_id and gen_id
         lineage_ga_info_entries_for_this_generation = self.db_util.read_lineage_ga_info_for_experiment_id_and_gen_id(
@@ -114,15 +114,13 @@ class GeneticAlgorithm:
             tree_of_stimuli.have_parent_apply_to_children(add_parent_to_stimulus)
 
             reconstructed_lineage = Lineage(
-                lineage_id,
+                tree_of_stimuli.data,
                 self.regimes,
                 tree_of_stimuli)
 
             self.lineages.append(reconstructed_lineage)
 
-        # For each lineage:
-        #   Read tree_spec from db and recreate Tree
-        #   Convert Tree to stimuli
+
 
     def _construct_lineage_from_db(self, lineage_id: int) -> Lineage:
         pass
