@@ -1,6 +1,9 @@
 # regime_one.py
+from dataclasses import dataclass
 from typing import Callable, List
 
+from intan.response_processing import ResponseProcessor
+from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
 import numpy as np
@@ -53,17 +56,51 @@ class RegimeOneParentSelector(ParentSelector):
         self.get_all_stimuli_func = get_all_stimuli_func
         self.proportions = proportions
         self.bin_sample_sizes = bin_sample_sizes
-        self.rank_ordered_distribution = RankOrderedDistribution(self.get_all_stimuli_func(), self.proportions)
-        self.sampled_stimuli_from_all_lineages = self.rank_ordered_distribution.sample(bin_sample_sizes)
 
     def select_parents(self, lineage, batch_size):
+        rank_ordered_distribution = RankOrderedDistribution(self.get_all_stimuli_func(), self.proportions)
+        sampled_stimuli_from_all_lineages = rank_ordered_distribution.sample(self.bin_sample_sizes)
+
         # Identify the stimuli from the current lineage in the rank-ordered distribution
         parents = []
-        for bin in self.sampled_stimuli_from_all_lineages:
+        for bin in sampled_stimuli_from_all_lineages:
             for stimulus in bin:
                 if any([stimulus == stimulus_from_lineage for stimulus_from_lineage in lineage.stimuli]):
                     parents.append(stimulus)
         return parents
+
+
+@dataclass(kw_only=True)
+class GetAllStimuliFunc:
+    db_util: MultiGaDbUtil
+    ga_name: str
+    response_processor: ResponseProcessor
+
+    def __call__(self) -> List[Stimulus]:
+        # Find out current experiment_id
+        experiment_id = self.db_util.read_current_experiment_id(self.ga_name)
+
+        # Find all lineage_ids with that id
+        lineage_ids = self.db_util.read_lineage_ids_for_experiment_id(experiment_id)
+
+        # Find all stim ids for those lineage_ids
+        stim_ids = []
+        for lineage_id in lineage_ids:
+            stim_ids.extend(self.db_util.read_stim_ids_for_lineage(lineage_id))
+
+        # Read StimGaInfoEntry for each stim_id
+        def stim_id_to_stimulus(stim_id: int) -> Stimulus:
+            stim_ga_info_entry = self.db_util.read_stim_ga_info_entry(stim_id)
+            mutation_type = stim_ga_info_entry.stim_type
+            response = stim_ga_info_entry.response
+            response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.ga_name)
+            return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response)
+
+        stimuli = []
+        for stim_id in stim_ids:
+            stimuli.append(stim_id_to_stimulus(stim_id))
+
+        return stimuli
 
 
 class RegimeOneMutationAssigner(MutationAssigner):
@@ -77,13 +114,12 @@ class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus):
         # Calculate the response rates of the stimuli and normalize them to the range [0, 1].
         response_rates = np.array([s.response_rate for s in lineage.stimuli])
-        normalized_response_rates = (response_rates - np.min(response_rates)) / (
-                np.max(response_rates) - np.min(response_rates))
+        normalized_response_rates = [rate / max(response_rates) for rate in response_rates]
 
         # Assign mutation magnitudes probabilistically based on normalized response rates.
         # We subtract the normalized response rates from 1 so that higher ranked stimuli have higher probabilities of receiving smaller mutations.
-        probabilities = 1 - normalized_response_rates
-        probabilities /= probabilities.sum()  # Ensure probabilities sum to 1
+        scores = [1.1 - normalized_response_rate for normalized_response_rate in normalized_response_rates]
+        probabilities = [s / sum(scores) for s in scores]  # Ensure probabilities sum to 1
         return np.random.choice(np.linspace(0, 1, len(lineage.stimuli)), p=probabilities)
 
 

@@ -38,10 +38,14 @@ class ResponseParser:
         self.write_to_db(spike_rates_per_channel_per_task_per_stim)
 
     def write_to_db(self, spike_rates_per_channel_per_task_for_stims):
+        insert_data = []
         for stim_id, spike_rates_per_channel_for_tasks in spike_rates_per_channel_per_task_for_stims.items():
             for task_id, spikes_per_second_for_channels in spike_rates_per_channel_for_tasks.items():
                 for channel, spikes_per_second in spikes_per_second_for_channels.items():
-                    self.db_util.add_channel_response(stim_id, task_id, channel.value, spikes_per_second)
+                    row = (stim_id, task_id, channel.value, spikes_per_second)
+                    insert_data.append(row)
+
+        self.db_util.add_channel_responses_in_batch(insert_data)
 
     def _read_task_ids_per_stim_id_to_parse_from_db(self, ga_name, stims_to_parse) -> Dict[int, List[int]]:
         task_ids_for_stim_ids: Dict[int, List[int]] = {}
@@ -64,7 +68,7 @@ class ResponseParser:
             spike_rates_per_channel_for_tasks[task_id] = self._parse_spike_rate_per_channel_for_task(task_id)
         return spike_rates_per_channel_for_tasks
 
-    def _parse_spike_rate_per_channel_for_task(self, task_id):
+    def _parse_spike_rate_per_channel_for_task(self, task_id) -> dict[Channel, float]:
         spike_tstamps_for_channels = fetch_spike_tstamps_from_file(self._path_to_spike_file(task_id))
         stim_epochs_from_markers = epoch_using_marker_channels(self._path_to_digital_in(task_id))
         epochs_for_stim_ids = map_stim_id_to_epochs_with_livenotes(self._path_to_notes(task_id),

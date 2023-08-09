@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import List
 
@@ -39,6 +40,8 @@ class GeneticAlgorithm:
             self._update_db_with_new_experiment()
             self._run_first_generation()
         elif self.gen_id > 1:
+            # recover experiment_id
+            self.experiment_id = self.db_util.read_current_experiment_id(self.name)
             # Could be run outside of this class
             self.response_parser.parse_to_db(self.name)
             self.response_processor.process_to_db(self.name)
@@ -60,7 +63,7 @@ class GeneticAlgorithm:
 
     def _update_db_with_new_experiment(self):
         self.experiment_id = time_util.now()
-        self.db_util.update_experiment_id(self.name, self.experiment_id)
+        self.db_util.write_new_experiment_id(self.name, self.experiment_id)
 
     def _read_gen_id(self):
         try:
@@ -73,9 +76,10 @@ class GeneticAlgorithm:
         # Initialize lineages
         for trial in range(self.trials_per_generation):
             self._create_lineage()
+            time.sleep(1 / 1_000)
 
         for lineage in self.lineages:
-            lineage.generate_new_batch(1)
+            lineage.age_in_generations += 1
 
     def _run_next_generation(self):
         num_trials_for_lineages = self.lineage_distributor.get_num_trials_for_lineages(self.lineages)
@@ -102,49 +106,41 @@ class GeneticAlgorithm:
         def add_parent_to_stimulus(stim: Node, parent: Node):
             stim.data.parent_id = parent.data.id
 
-        # Read lineageIds from this experiment_id and gen_id
+        # Read lineageIds from this experiment_id and previous generation
         lineage_ga_info_entries_for_this_generation = self.db_util.read_lineage_ga_info_for_experiment_id_and_gen_id(
-            self.experiment_id, self.gen_id)
+            self.experiment_id, self.gen_id-1)
         for lineage_entry in lineage_ga_info_entries_for_this_generation:
             lineage_id = lineage_entry.lineage_id
 
             # Reconstruct tree of Stimulus objects from a tree_spec of stim_ids
             tree_spec = lineage_entry.tree_spec
             tree_of_stim_ids = Node.from_xml(tree_spec)
+            tree_of_stim_ids = tree_of_stim_ids.new_tree_from_function(lambda id: int(id))
             tree_of_stimuli = tree_of_stim_ids.new_tree_from_function(stim_id_to_stimulus)
             tree_of_stimuli.have_parent_apply_to_children(add_parent_to_stimulus)
 
-            reconstructed_lineage = Lineage(
-                tree_of_stimuli.data,
-                self.regimes,
-                tree_of_stimuli)
-
+            reconstructed_lineage = LineageFactory.create_lineage_from_tree(tree_of_stimuli, self.regimes)
             self.lineages.append(reconstructed_lineage)
-
-
-
-    def _construct_lineage_from_db(self, lineage_id: int) -> Lineage:
-        pass
 
     def _update_db(self) -> None:
         # Write lineages
         for lineage in self.lineages:
             lineage_data = ""
-            self.db_util.write_lineage_ga_info(lineage.id, lineage.tree.to_xml(), lineage_data, self.gen_id,
+            id_tree = lineage.tree.new_tree_from_function(lambda stimulus: stimulus.id)
+            self.db_util.write_lineage_ga_info(lineage.id, id_tree.to_xml(), lineage_data, self.experiment_id, self.gen_id,
                                                lineage.current_regime_index)
 
         # Write stimuli
         for lineage in self.lineages:
             for stim in lineage.stimuli:
-                self.db_util.write_stim_ga_info(stim.id, stim.parent.id, self.name, lineage.age_in_generations,
-                                                lineage.id,
-                                                stim.mutation_type)
+                self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id, lineage_id=lineage.id,
+                                                stim_type=stim.mutation_type)
 
         # Update generations
         self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)
 
-    def _update_lineages_with_new_responses(self):
-        for lineage in self.lineages:
-            for stim in lineage.stimuli:
-                stim.response_vector = self.db_util.read_responses_for(stim.id)
-                stim.response_rate = self.db_util.read_driving_response(stim.id)
+    # def _update_lineages_with_new_responses(self):
+    #     for lineage in self.lineages:
+    #         for stim in lineage.stimuli:
+    #             stim.response_vector = self.db_util.read_responses_for(stim.id)
+    #             stim.response_rate = self.db_util.read_driving_response(stim.id)

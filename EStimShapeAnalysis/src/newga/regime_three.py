@@ -1,4 +1,5 @@
 # regime_three.py
+import math
 from typing import Callable
 
 import numpy as np
@@ -31,10 +32,11 @@ class RegimeThreeParentSelector(ParentSelector):
     def select_parents(self, lineage, batch_size):
         # Calculate the sampling function.
         responses = [s.response_rate for s in lineage.stimuli]
-        sampling_func = self.sampling_func(responses)
+        normalized_responses = (responses - min(responses)) / (max(responses) - min(responses))
+        sampling_func = self.sampling_func(normalized_responses)
 
         # Calculate the fitness scores.
-        fitness_scores = [self.weight_func(r) / sampling_func(r) for r in responses]
+        fitness_scores = [self.weight_func(r) / sampling_func(r) for r in normalized_responses]
 
         # Normalize the fitness scores.
         fitness_scores /= np.sum(fitness_scores)
@@ -69,3 +71,23 @@ class RegimeThreeTransitioner(RegimeTransitioner):
         x = np.linspace(min(responses), max(responses), 1000)
         y = sampling_func(x)
         return not np.any(y < self.under_sampling_threshold)
+
+
+class HighEndSigmoid:
+    def __init__(self, steepness=15.0, offset=0.5):
+        """
+        :param steepness: Controls the steepness of the curve.
+        :param offset: Shifts the curve to favor the higher end.
+        """
+        self.steepness = steepness
+        self.offset = offset
+
+    def __call__(self, x: float) -> float:
+        """
+        Apply the sigmoid function.
+
+        :param x: A value between 0 and 1.
+        :return: A value between 0 and 1, favoring the higher end.
+        """
+        # Apply the sigmoid function with the given steepness and offset
+        return 1 / (1 + math.exp(-self.steepness * (x - self.offset)))
