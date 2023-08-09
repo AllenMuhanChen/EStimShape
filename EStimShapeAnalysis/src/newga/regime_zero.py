@@ -1,3 +1,5 @@
+import numpy as np
+
 from src.newga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
 from scipy import stats

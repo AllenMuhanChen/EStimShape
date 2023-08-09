@@ -5,7 +5,8 @@ import unittest
 from scipy.stats import gaussian_kde
 
 from src.newga.ga_classes import Stimulus, Lineage, LineageFactory
-from src.newga.regime_three import SmoothedSamplingFunction, RegimeThreeParentSelector, RegimeThreeTransitioner
+from src.newga.regime_three import SmoothedSamplingFunction, RegimeThreeParentSelector, RegimeThreeTransitioner, \
+    HighEndSigmoid
 
 
 class TestSamplingFunctionCalculator(unittest.TestCase):
@@ -75,3 +76,21 @@ class TestRegimeThreeTransitioner(unittest.TestCase):
 
         # We should not transition because there is under-sampling.
         self.assertFalse(self.transitioner.should_transition(lineage))
+
+class TestHighEndSigmoid(unittest.TestCase):
+    def test_sigmoid_plot(self):
+        sigmoid = HighEndSigmoid()
+
+        # Generate values to plot
+        x_values = np.linspace(0, 1, 100)
+        y_values = [sigmoid(x) for x in x_values]
+
+        # Plot the sigmoid
+        plt.plot(x_values, y_values)
+        plt.title("High-End Sigmoid Function")
+        plt.xlabel("Input (0-1)")
+        plt.ylabel("Output (0-1)")
+        plt.show()
+
+        # Verify some properties, like the value at 0.5 should be greater than 0.5
+        self.assertGreater(sigmoid(0.5), 0.5)

@@ -29,6 +29,8 @@ def distribute_amount_equally_among(distributees: list[Any], *, amount: int) -> 
 
 
 def filter_by_high_peak_response(lineages_with_regimes_past_regime_one, threshold=0.5):
+    if len(lineages_with_regimes_past_regime_one) == 0:
+        return []
     peak_response_for_lineages = get_peak_response_for(lineages_with_regimes_past_regime_one)
     max_peak_response = max(peak_response_for_lineages.values())
     lineages_with_high_enough_peak_responses = [lineage_id for lineage_id, peak_response in
@@ -46,7 +48,7 @@ def get_peak_response_for(lineages: list[Lineage]) -> dict[Lineage, float]:
     return peak_response_for_lineages
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ClassicLineageDistributor():
     number_of_trials_per_generation: int
     max_lineages_to_build: int

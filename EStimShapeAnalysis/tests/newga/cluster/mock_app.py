@@ -27,6 +27,7 @@ class MockDataExporter(DataExporter):
     def export_channels_for_clusters(self, channels_for_clusters: dict[int, list[Channel]]):
         print(channels_for_clusters[1])
 
+
 class MockChannelMapper(ChannelMapper):
     def __init__(self, channels):
         # Initialize the dictionary mapping channels to coordinates
@@ -48,8 +49,6 @@ def get_qapplication_instance():
     if app is None:
         app = QApplication(sys.argv)
     return app
-
-
 
 
 if __name__ == '__main__':

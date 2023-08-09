@@ -4,11 +4,11 @@ from typing import Callable
 from newga.multi_ga_db_util import MultiGaDbUtil
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ResponseProcessor:
     db_util: MultiGaDbUtil
-    response_processor: Callable[[list[float]], float]
-
+    task_combination_strategy: Callable[[list[float]], float]
+    cluster_combination_strategy: Callable[[list[float]], int]
     def process_to_db(self, ga_name: str) -> None:
         # Aggregate responses to process
         response_vectors_for_each_stim_id = self._get_response_vectors_from_clusters(ga_name)
@@ -22,11 +22,22 @@ class ResponseProcessor:
 
     def fetch_response_vector_for(self, stim_id, *, ga_name: str):
         channels = self.db_util.read_current_cluster(ga_name)
-        responses_for_stim_id = []
+        vector_per_channel = {}
         for channel in channels:
-            responses_per_task = self.db_util.read_responses_for(stim_id, channel=channel)
-            responses_for_stim_id.append(responses_per_task)
-        return responses_for_stim_id
+            responses_per_task = self.db_util.read_responses_for(stim_id, channel=channel.value)
+            vector_per_channel[channel] = responses_per_task
+        print(vector_per_channel)
+
+        response_vector = []
+        length_of_vectors = len(list(vector_per_channel.values())[0])
+        for i in range(length_of_vectors):
+            sum_for_task=0
+            for channel, vector in vector_per_channel.items():
+                sum_for_task += vector[i]
+            response_vector.append(sum_for_task)
+
+        response_vector = [float(f) for f in response_vector]
+        return response_vector
 
     def _get_response_vectors_from_clusters(self, ga_name) -> dict[int, list[float]]:
         stims_to_process = self.db_util.read_stims_with_no_driving_response()
@@ -41,7 +52,7 @@ class ResponseProcessor:
 
     def _process_responses(self, responses_to_process: dict[int, list[float]]) -> dict[int, float]:
         driving_responses_for_stim_ids = {}
-        for stim_id, responses_to_process in responses_to_process.items():
-            driving_response = self.response_processor(responses_to_process)
+        for stim_id, responses in responses_to_process.items():
+            driving_response = self.task_combination_strategy(responses)
             driving_responses_for_stim_ids[stim_id] = driving_response
         return driving_responses_for_stim_ids

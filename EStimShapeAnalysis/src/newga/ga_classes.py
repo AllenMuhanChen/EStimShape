@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from typing import Protocol, Any
+from typing import Protocol, Any, List, Tuple
 
 from newga.regime_type import RegimeType
 from util import time_util
@@ -26,6 +26,8 @@ class Stimulus:
         return self.__dict__ == o.__dict__
 
 
+
+
 class Lineage:
     def __init__(self, founder: Stimulus, regimes: [Regime], tree=None):
         self.id = founder.id
@@ -39,6 +41,8 @@ class Lineage:
         self.current_regime_index = 0
         self.age_in_generations = 0
 
+
+
     def generate_new_batch(self, batch_size: int) -> None:
         """
         Generate a new batch of stimuli by selecting parents and assigning mutation types
@@ -47,10 +51,10 @@ class Lineage:
         current_regime = self.regimes[self.current_regime_index]
 
         # Select parents from the current
-        new_children = current_regime.generate_batch(self, batch_size)
-        self.stimuli.append(new_children)
-        for child in new_children:
-            self.tree.add_child_to(child.parent, child)
+        parents, children = current_regime.generate_batch(self, batch_size)
+        self.stimuli.append(children)
+        for parent, child in zip(parents, children):
+            self.tree.add_child_to(parent, child=child)
 
         self.age_in_generations += 1
 
@@ -85,7 +89,7 @@ class Node:
             function(child)
             child.apply_to_children(function)
 
-    def new_tree_from_function(self, function: callable[[Any], None]):
+    def new_tree_from_function(self, function: callable[[Any], None]) -> Node:
         new_tree = Node(function(self.data))
         for child in self.children:
             new_tree.add_child(child.new_tree_from_function(function))
@@ -143,14 +147,18 @@ class Regime:
         self.mutation_magnitude_assigner = mutation_magnitude_assigner
         self.regime_transitioner = regime_transitioner
 
-    def generate_batch(self, lineage: Lineage, batch_size: int):
+    def generate_batch(self, lineage: Lineage, batch_size: int) -> tuple[list[Stimulus], list[Stimulus]]:
         """
         Generate a new batch of stimuli by selecting parents and assigning mutation types and magnitudes.
+        returns a dict with keys of children and value of their parents.
         """
         parents = self.parent_selector.select_parents(lineage, batch_size)
-        return [Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage),
-                         mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(lineage, parent))
-                for parent in parents]
+        new_children = [Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage),
+                             mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(lineage,
+                                                                                                           parent)) for
+                    parent in parents]
+
+        return parents, new_children
 
     def should_transition(self, lineage: Lineage):
         """
@@ -213,5 +221,5 @@ class LineageFactory:
     @staticmethod
     def create_new_lineage(*, regimes) -> Lineage:
         founder_id = time_util.now()
-        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value)
+        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value, parent_id=0)
         return LineageFactory.create_new_lineage_from_founder(founder, regimes)
