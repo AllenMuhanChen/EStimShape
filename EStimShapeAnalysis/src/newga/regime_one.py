@@ -4,6 +4,7 @@ from typing import Callable, List
 
 from intan.response_processing import ResponseProcessor
 from newga.multi_ga_db_util import MultiGaDbUtil
+from newga.regime_type import RegimeType
 from src.newga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
 import numpy as np
@@ -105,7 +106,7 @@ class GetAllStimuliFunc:
 
 class RegimeOneMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage):
-        return "RegimeOne"
+        return RegimeType.REGIME_ONE.value
 
 
 # regime_one.py

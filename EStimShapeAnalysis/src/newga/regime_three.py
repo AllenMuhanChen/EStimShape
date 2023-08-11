@@ -7,6 +7,7 @@ from scipy.ndimage import gaussian_filter1d
 from scipy.stats import gaussian_kde
 
 from newga.ga_classes import Lineage, Stimulus
+from newga.regime_type import RegimeType
 from src.newga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner
 
 
@@ -48,7 +49,7 @@ class RegimeThreeParentSelector(ParentSelector):
 
 class RegimeThreeMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage):
-        return "RegimeThree"
+        return RegimeType.REGIME_THREE.value
 
 
 class RegimeThreeMutationMagnitudeAssigner(MutationMagnitudeAssigner):
