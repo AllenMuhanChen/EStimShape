@@ -1,5 +1,6 @@
 import numpy as np
 
+from newga.regime_type import RegimeType
 from src.newga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner, \
     Lineage, Stimulus
 
@@ -26,7 +27,7 @@ class RegimeTwoParentSelector(ParentSelector):
 
 class RegimeTwoMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage):
-        return "RegimeTwo"
+        return RegimeType.REGIME_TWO.value
 
 
 class RegimeTwoMutationMagnitudeAssigner(MutationMagnitudeAssigner):
