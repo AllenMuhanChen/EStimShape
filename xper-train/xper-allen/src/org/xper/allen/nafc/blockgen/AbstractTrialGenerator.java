@@ -18,7 +18,7 @@ public abstract class AbstractTrialGenerator<T extends Stim> implements TrialGen
 	protected AllenDbUtil dbUtil;
 
 	protected Long genId;
-	private List<T> stims = new LinkedList<>();
+	protected List<T> stims = new LinkedList<>();
 
 	@Override
 	public void generate(){
