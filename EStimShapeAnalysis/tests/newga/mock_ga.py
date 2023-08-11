@@ -40,16 +40,18 @@ class MockGeneticAlgorithmConfig(GeneticAlgorithmConfig):
 
 
 class TestPythonOnlyMockWithNonNeuralResponse(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mock_config = MockGeneticAlgorithmConfig()
 
     def test_mock_ga(self):
-        mock_config = MockGeneticAlgorithmConfig()
-        ga = mock_config.genetic_algorithm()
+        ga = self.mock_config.genetic_algorithm()
         ga.run()
 
-    def test_mock_respose_parser(self):
-        mock_response_parser = MockResponseParser()
-        print(mock_response_parser._parse_spike_rate_per_channel_for_task(1))
 
+    def test_util_reset_db(self):
+        self.mock_config.db_util.conn.truncate("StimGaInfo")
+        self.mock_config.db_util.conn.truncate("LineageGaInfo")
+        self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
 if __name__ == '__main__':
     unittest.main()

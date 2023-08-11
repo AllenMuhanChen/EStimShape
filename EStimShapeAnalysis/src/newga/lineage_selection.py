@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 from random import random
 from typing import Any
@@ -79,6 +80,7 @@ class ClassicLineageDistributor():
         for new_lineage_index in range(number_of_new_lineages):
             new_lineage = LineageFactory.create_new_lineage(regimes=self.regimes)
             num_trials_for_lineages[new_lineage] = 1
+            time.sleep(.001)
         return num_trials_for_lineages
 
     def distribute_to_non_regime_zero_lineages(self, lineages, number_of_trials_to_distribute):

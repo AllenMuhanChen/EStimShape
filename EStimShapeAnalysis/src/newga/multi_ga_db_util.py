@@ -10,6 +10,8 @@ from util.connection import Connection
 
 
 class MultiGaDbUtil:
+    conn: Connection
+
     def __init__(self, connection: Connection):
         self.conn = connection
 
@@ -37,7 +39,8 @@ class MultiGaDbUtil:
 
         self.conn.execute("UPDATE InternalState SET val = %s WHERE name = %s", (xml, name))
 
-    def write_lineage_ga_info(self, lineage_id: int, tree_spec: str, lineage_data: str, experiment_id: int, gen_id: int, regime: str):
+    def write_lineage_ga_info(self, lineage_id: int, tree_spec: str, lineage_data: str, experiment_id: int, gen_id: int,
+                              regime: str):
         self.conn.execute(
             "INSERT INTO LineageGaInfo (lineage_id, tree_spec, lineage_data, experiment_id, gen_id, regime) VALUES (%s, %s, %s, %s, %s, %s)",
             (lineage_id, tree_spec, lineage_data, experiment_id, gen_id, regime))
@@ -73,7 +76,7 @@ class MultiGaDbUtil:
     def write_stim_ga_info(self, *, stim_id: int, parent_id: int, lineage_id: int,
                            stim_type: str):
         self.conn.execute(
-            "INSERT INTO StimGaInfo (stim_id, parent_id, lineage_id, stim_type) VALUES (%s, %s, %s, %s)",
+            "INSERT IGNORE INTO StimGaInfo (stim_id, parent_id, lineage_id, stim_type) VALUES (%s, %s, %s, %s)",
             (stim_id, parent_id, lineage_id, stim_type))
 
     def read_stim_ga_info_entry(self, stim_id: int) -> StimGaInfoEntry:
@@ -164,7 +167,9 @@ class MultiGaDbUtil:
         return response
 
     def read_current_experiment_id(self, experiment_name):
-        self.conn.execute("SELECT experiment_id FROM CurrentExperiments WHERE experiment_name = %s ORDER BY experiment_id desc", (experiment_name,))
+        self.conn.execute(
+            "SELECT experiment_id FROM CurrentExperiments WHERE experiment_name = %s ORDER BY experiment_id desc",
+            (experiment_name,))
         experiment_id = self.conn.fetch_one()
         if experiment_id is None:
             raise Exception(f"Could not find experiment with name {experiment_name}")
@@ -196,7 +201,7 @@ class MultiGaDbUtil:
         cluster = [Channel[channel_as_string] for channel_as_string in cluster_as_strings]
         return cluster
 
-    def read_responses_for(self, stim_id, channel: str=None):
+    def read_responses_for(self, stim_id, channel: str = None):
         if channel is None:
             self.conn.execute("SELECT spikes_per_second FROM ChannelResponses WHERE stim_id = %s", (stim_id,))
         else:
