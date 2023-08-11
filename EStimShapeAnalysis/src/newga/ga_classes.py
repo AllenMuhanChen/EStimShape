@@ -54,10 +54,11 @@ class Lineage:
 
         # Select parents from the current
         parents, children = current_regime.generate_batch(self, batch_size)
-        self.stimuli.extend(children)
-        for parent, child in zip(parents, children):
-            self.tree.add_child_to(parent, child=Node(child))
 
+        for parent, child in zip(parents, children):
+            child.parent_id = parent.id
+            self.tree.add_child_to(parent, child=Node(child))
+        self.stimuli.extend(children)
         self.age_in_generations += 1
 
     def transition_regimes_if_needed(self) -> None:
