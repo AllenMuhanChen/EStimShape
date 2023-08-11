@@ -28,8 +28,6 @@ class Stimulus:
         return self.__dict__ == o.__dict__
 
 
-
-
 class Lineage:
     def __init__(self, founder: Stimulus, regimes: [Regime], tree=None):
         self.id = founder.id
@@ -42,8 +40,6 @@ class Lineage:
         self.regimes = regimes
         self.current_regime_index = 0
         self.age_in_generations = 0
-
-
 
     def generate_new_batch(self, batch_size: int) -> None:
         """
@@ -220,11 +216,11 @@ class LineageFactory:
         return Lineage(tree.data, regimes, tree=tree)
 
     @staticmethod
-    def create_new_lineage_from_founder(founder: Stimulus, regimes = None) -> Lineage:
+    def create_new_lineage_from_founder(founder: Stimulus, regimes=None) -> Lineage:
         return Lineage(founder, regimes)
 
     @staticmethod
     def create_new_lineage(*, regimes) -> Lineage:
         founder_id = time_util.now()
-        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value, parent_id=0)
+        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value, parent_id=0, mutation_magnitude=None)
         return LineageFactory.create_new_lineage_from_founder(founder, regimes)

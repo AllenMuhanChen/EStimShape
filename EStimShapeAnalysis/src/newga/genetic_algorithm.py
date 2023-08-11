@@ -100,9 +100,10 @@ class GeneticAlgorithm:
         def stim_id_to_stimulus(stim_id: int) -> Stimulus:
             stim_ga_info_entry = self.db_util.read_stim_ga_info_entry(stim_id)
             mutation_type = stim_ga_info_entry.stim_type
+            mutation_magnitude = stim_ga_info_entry.mutation_magnitude
             response = stim_ga_info_entry.response
             response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.name)
-            return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response)
+            return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response, mutation_magnitude=mutation_magnitude)
 
         def add_parent_to_stimulus(stim: Node, parent: Node):
             stim.data.parent_id = parent.data.id
@@ -134,7 +135,7 @@ class GeneticAlgorithm:
         for lineage in self.lineages:
             for stim in lineage.stimuli:
                 self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id, lineage_id=lineage.id,
-                                                stim_type=stim.mutation_type)
+                                                stim_type=stim.mutation_type, mutation_magnitude=stim.mutation_magnitude)
 
         # Update generations
         self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)
