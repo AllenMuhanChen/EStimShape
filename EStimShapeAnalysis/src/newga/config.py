@@ -1,3 +1,7 @@
+from math import prod
+
+from numpy import mean
+
 from intan.response_parsing import ResponseParser
 from intan.response_processing import ResponseProcessor
 from newga.lineage_selection import ClassicLineageDistributor
@@ -80,7 +84,7 @@ class GeneticAlgorithmConfig:
 
     def make_response_processor(self) -> ResponseProcessor:
         return ResponseProcessor(db_util=self.db_util,
-                                 task_combination_strategy=sum,
+                                 task_combination_strategy=mean,
                                  cluster_combination_strategy=sum)
 
     def regime_two(self):
