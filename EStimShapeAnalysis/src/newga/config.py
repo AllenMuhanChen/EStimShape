@@ -25,22 +25,22 @@ class GeneticAlgorithmConfig:
     under_sampling_threshold = 3.0
 
     def __init__(self):
-        self.connection = self.connection()
-        self.db_util = self.db_util()
-        self.response_processor = self.response_processor()
-        self.regimes = self.regimes()
+        self.connection = self.make_connection()
+        self.db_util = self.make_db_util()
+        self.response_processor = self.make_response_processor()
+        self.regimes = self.make_regimes()
 
-    def genetic_algorithm(self) -> GeneticAlgorithm:
+    def make_genetic_algorithm(self) -> GeneticAlgorithm:
         ga = GeneticAlgorithm(name=self.ga_name,
                               regimes=self.regimes,
                               db_util=self.db_util,
                               trials_per_generation=self.num_trials_per_generation,
-                              lineage_distributor=self.lineage_distributor(),
-                              response_parser=self.response_parser(),
+                              lineage_distributor=self.make_lineage_distributor(),
+                              response_parser=self.make_response_parser(),
                               response_processor=self.response_processor)
         return ga
 
-    def regimes(self):
+    def make_regimes(self):
         return [self.regime_zero(),
                 self.regime_one(),
                 self.regime_two(),
@@ -78,7 +78,7 @@ class GeneticAlgorithmConfig:
                                  ga_name=self.ga_name,
                                  response_processor=self.response_processor)
 
-    def response_processor(self) -> ResponseProcessor:
+    def make_response_processor(self) -> ResponseProcessor:
         return ResponseProcessor(db_util=self.db_util,
                                  task_combination_strategy=sum,
                                  cluster_combination_strategy=sum)
@@ -122,26 +122,22 @@ class GeneticAlgorithmConfig:
     def get_under_sampling_threshold(self):
         return self.under_sampling_threshold
 
-    def response_parser(self):
+    def make_response_parser(self):
         return ResponseParser(self.base_intan_path,
                               self.db_util)
 
-    def lineage_distributor(self):
+    def make_lineage_distributor(self):
         return ClassicLineageDistributor(
             number_of_trials_per_generation=self.num_trials_per_generation,
             max_lineages_to_build=self.max_lineages_to_build,
             number_of_new_lineages_per_generation=self.number_of_new_lineages_per_generation,
             regimes=self.regimes)
 
-    def connection(self):
+    def make_connection(self):
         return Connection(self.database)
 
-    def db_util(self):
+    def make_db_util(self):
         return MultiGaDbUtil(self.connection)
-
-
-def get_all_stimuli_func():
-    pass
 
 
 def regime_one_bin_proportions():
@@ -156,5 +152,3 @@ def convergence_threshold():
     return 0.1
 
 
-def weight_func():
-    pass
