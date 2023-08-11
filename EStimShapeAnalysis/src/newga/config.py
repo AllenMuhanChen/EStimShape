@@ -84,7 +84,7 @@ class GeneticAlgorithmConfig:
 
     def make_response_processor(self) -> ResponseProcessor:
         return ResponseProcessor(db_util=self.db_util,
-                                 task_combination_strategy=mean,
+                                 repetition_combination_strategy=mean,
                                  cluster_combination_strategy=sum)
 
     def regime_two(self):

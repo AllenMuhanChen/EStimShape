@@ -23,7 +23,7 @@ class TestResponseProcessor(unittest.TestCase):
 
     def test_process_to_db(self):
         # Create an instance of ResponseProcessor
-        rp = ResponseProcessor(db_util=self.db_util_mock, task_combination_strategy=sum, cluster_combination_strategy=sum)
+        rp = ResponseProcessor(db_util=self.db_util_mock, repetition_combination_strategy=sum, cluster_combination_strategy=sum)
 
         # Call the process_to_db method
         rp.process_to_db('test_ga')

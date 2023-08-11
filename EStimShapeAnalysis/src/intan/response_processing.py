@@ -7,7 +7,7 @@ from newga.multi_ga_db_util import MultiGaDbUtil
 @dataclass(kw_only=True)
 class ResponseProcessor:
     db_util: MultiGaDbUtil
-    task_combination_strategy: Callable[[list[float]], float]
+    repetition_combination_strategy: Callable[[list[float]], float]
     cluster_combination_strategy: Callable[[list[float]], int]
     def process_to_db(self, ga_name: str) -> None:
         # Aggregate responses to process
@@ -52,6 +52,6 @@ class ResponseProcessor:
     def _process_responses(self, responses_to_process: dict[int, list[float]]) -> dict[int, float]:
         driving_responses_for_stim_ids = {}
         for stim_id, responses in responses_to_process.items():
-            driving_response = self.task_combination_strategy(responses)
+            driving_response = self.repetition_combination_strategy(responses)
             driving_responses_for_stim_ids[stim_id] = driving_response
         return driving_responses_for_stim_ids

@@ -32,7 +32,7 @@ class MockMultiGaDbUtil(MultiGaDbUtil):
      2. Does not need a cluster to be defined. It mocks out a fake clusters.
     """
     def read_current_cluster(self, ga_name) -> list[Channel]:
-        return [Channel.A_000, Channel.A_001]
+        return [Channel.A_000, Channel.A_001, Channel.A_002]
 
     def read_task_done_ids_for_stim_id(self, ga_name: str, stim_id: int):
         return [stim_id * scalar for scalar in [1, 2, 3, 4, 5]]
