@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import time
 from abc import ABC, abstractmethod
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -52,9 +54,9 @@ class Lineage:
 
         # Select parents from the current
         parents, children = current_regime.generate_batch(self, batch_size)
-        self.stimuli.append(children)
+        self.stimuli.extend(children)
         for parent, child in zip(parents, children):
-            self.tree.add_child_to(parent, child=child)
+            self.tree.add_child_to(parent, child=Node(child))
 
         self.age_in_generations += 1
 
@@ -153,11 +155,13 @@ class Regime:
         returns a dict with keys of children and value of their parents.
         """
         parents = self.parent_selector.select_parents(lineage, batch_size)
-        new_children = [Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage),
-                             mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(lineage,
-                                                                                                           parent)) for
-                    parent in parents]
-
+        new_children = []
+        for parent in parents:
+            new_children.append(Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage),
+                                         mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(
+                                             lineage,
+                                             parent)))
+            time.sleep(0.001)
         return parents, new_children
 
     def should_transition(self, lineage: Lineage):

@@ -26,7 +26,6 @@ class ResponseProcessor:
         for channel in channels:
             responses_per_task = self.db_util.read_responses_for(stim_id, channel=channel.value)
             vector_per_channel[channel] = responses_per_task
-        print(vector_per_channel)
 
         response_vector = []
         length_of_vectors = len(list(vector_per_channel.values())[0])

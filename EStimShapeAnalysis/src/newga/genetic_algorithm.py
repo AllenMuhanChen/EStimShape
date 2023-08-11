@@ -88,7 +88,8 @@ class GeneticAlgorithm:
             # We should check for them here.
             if lineage not in self.lineages:
                 self.lineages.append(lineage)
-            lineage.generate_new_batch(num_trials)
+            else:
+                lineage.generate_new_batch(num_trials)
 
     def _create_lineage(self):
         new_lineage = LineageFactory.create_new_lineage(regimes=self.regimes)
@@ -108,10 +109,8 @@ class GeneticAlgorithm:
 
         # Read lineageIds from this experiment_id and previous generation
         lineage_ga_info_entries_for_this_generation = self.db_util.read_lineage_ga_info_for_experiment_id_and_gen_id(
-            self.experiment_id, self.gen_id-1)
+            self.experiment_id, self.gen_id - 1)
         for lineage_entry in lineage_ga_info_entries_for_this_generation:
-            lineage_id = lineage_entry.lineage_id
-
             # Reconstruct tree of Stimulus objects from a tree_spec of stim_ids
             tree_spec = lineage_entry.tree_spec
             tree_of_stim_ids = Node.from_xml(tree_spec)
@@ -127,7 +126,8 @@ class GeneticAlgorithm:
         for lineage in self.lineages:
             lineage_data = ""
             id_tree = lineage.tree.new_tree_from_function(lambda stimulus: stimulus.id)
-            self.db_util.write_lineage_ga_info(lineage.id, id_tree.to_xml(), lineage_data, self.experiment_id, self.gen_id,
+            self.db_util.write_lineage_ga_info(lineage.id, id_tree.to_xml(), lineage_data, self.experiment_id,
+                                               self.gen_id,
                                                lineage.current_regime_index)
 
         # Write stimuli
