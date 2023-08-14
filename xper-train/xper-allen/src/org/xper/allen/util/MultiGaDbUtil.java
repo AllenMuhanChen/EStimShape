@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.RowCallbackHandler;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.StimGaInfo;
+import org.xper.allen.pga.StimGaInfoEntry;
 import org.xper.db.vo.*;
 import org.xper.exception.VariableNotFoundException;
 
@@ -368,6 +369,26 @@ public class MultiGaDbUtil extends AllenDbUtil {
         return result[0];
     }
 
+    public StimGaInfoEntry readStimGaInfoEntry(long stimId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        String sqlQuery = "SELECT parent_id, lineage_id, stim_type, response, mutation_magnitude FROM StimGaInfo WHERE stim_id = ?";
+        List<StimGaInfoEntry> entries = jt.query(sqlQuery, new Object[]{stimId}, (rs, rowNum) -> {
+            long parentId = rs.getLong("parent_id");
+            long lineageId = rs.getLong("lineage_id");
+            String stimType = rs.getString("stim_type");
+            double response = rs.getDouble("response");
+            Double mutationMagnitude = rs.getObject("mutation_magnitude", Double.class); // Allows for null values
+            return new StimGaInfoEntry(stimId, parentId, lineageId, stimType, response, mutationMagnitude);
+        });
+
+        if (entries.isEmpty()) {
+            throw new RuntimeException("Could not find StimGaInfo entry for stim_id " + stimId);
+        } else {
+            return entries.get(0); // Return the first (and likely only) entry
+        }
+    }
+
+
     public List<Long> readAllLineageIds(String gaName) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         final List<Long> result = new ArrayList<>();
@@ -403,6 +424,68 @@ public class MultiGaDbUtil extends AllenDbUtil {
                     }});
         return result[0];
     }
+
+    public List<Long> readLineageIdsForExperiment(long experimentId) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        List<Long> lineageIds = new ArrayList<>();
+        jt.query(
+                "SELECT lineage_id FROM LineageGaInfo WHERE experiment_id = ?",
+                new Object[]{experimentId},
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        lineageIds.add(rs.getLong("lineage_id"));
+                    }
+                });
+        return lineageIds;
+    }
+
+    public List<Long> findStimIdsWithoutStimSpec(List<Long> lineageIdsInThisExperiment) {
+        if (lineageIdsInThisExperiment == null || lineageIdsInThisExperiment.isEmpty()) {
+            return Collections.emptyList(); // Return an empty list if there are no lineage IDs
+        }
+
+        String inClause = String.join(",", Collections.nCopies(lineageIdsInThisExperiment.size(), "?"));
+        String sqlQuery =
+                "SELECT s.stim_id " +
+                        "FROM StimGaInfo s " +
+                        "LEFT JOIN StimSpec ss ON s.stim_id = ss.id " +
+                        "WHERE s.lineage_id IN (" + inClause + ") AND ss.id IS NULL";
+
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        List<Long> stimIdsWithoutStimSpec = new ArrayList<>();
+        jt.query(
+                sqlQuery,
+                lineageIdsInThisExperiment.toArray(),
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        stimIdsWithoutStimSpec.add(rs.getLong("stim_id"));
+                    }
+                });
+        return stimIdsWithoutStimSpec;
+    }
+
+
+    public Long readCurrentExperimentId(String experimentName) {
+        JdbcTemplate jt = new JdbcTemplate(dataSource);
+        List<Long> experimentIds = new ArrayList<>();
+        jt.query(
+                "SELECT experiment_id FROM CurrentExperiments WHERE experiment_name = ? ORDER BY experiment_id desc",
+                new Object[]{experimentName},
+                new RowCallbackHandler() {
+                    @Override
+                    public void processRow(ResultSet rs) throws SQLException {
+                        experimentIds.add(rs.getLong("experiment_id"));
+                    }
+                });
+        if (experimentIds.size() == 0) {
+            throw new RuntimeException("Could not find experiment with name " + experimentName);
+        } else {
+            return experimentIds.get(0); // Return the first experiment ID from the result
+        }
+    }
+
 
     public static class LineageGaInfo {
         Long lineageId;
