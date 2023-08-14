@@ -9,19 +9,19 @@ import org.xper.allen.ga.regimescore.MutationType;
 
 import java.util.List;
 
-import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
+import static org.xper.allen.newga.blockgen.SlotGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 public class RegimeThreeStim extends MorphedStim<MorphedMatchStick, AllenMStickData> {
 
-    private NewGABlockGenerator generator;
-    public RegimeThreeStim(NewGABlockGenerator generator, Long parentId) {
+    private SlotGABlockGenerator generator;
+    public RegimeThreeStim(SlotGABlockGenerator generator, Long parentId) {
         super(generator, parentId);
         this.generator = generator;
         this.stimType = STIM_TYPE_FOR_REGIME.get(MutationType.THREE);
     }
 
     @Override
-    protected MorphedMatchStick morphStim() {
+    protected MorphedMatchStick morphStim(double magnitude) {
         RegimeThreeComponentChooser chooser = new RegimeThreeComponentChooser(getGenerator().getDbUtil(), getGenerator().getSlotSelectionProcess().getSpikeRateSource());
         List<Integer> compsToMorph = chooser.choose(parentId, 1);
 
@@ -50,11 +50,11 @@ public class RegimeThreeStim extends MorphedStim<MorphedMatchStick, AllenMStickD
         mStickData = mStick.getMStickData();
     }
 
-    public NewGABlockGenerator getGenerator() {
+    public SlotGABlockGenerator getGenerator() {
         return generator;
     }
 
-    public void setGenerator(NewGABlockGenerator generator) {
+    public void setGenerator(SlotGABlockGenerator generator) {
         this.generator = generator;
     }
 }

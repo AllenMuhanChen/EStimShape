@@ -5,7 +5,7 @@ import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 
-import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
+import static org.xper.allen.newga.blockgen.SlotGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 public class OldRegimeThreeStim extends MorphedStim<GrowingMatchStick, AllenMStickData> {
 
@@ -15,7 +15,7 @@ public class OldRegimeThreeStim extends MorphedStim<GrowingMatchStick, AllenMSti
     }
 
     @Override
-    protected GrowingMatchStick morphStim() {
+    protected GrowingMatchStick morphStim(double magnitude) {
         GrowingMatchStick parentMStick = new GrowingMatchStick(1.0);
         parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");

@@ -11,11 +11,11 @@ public class RegimeTwoStim extends MorphedStim<PruningMatchStick, PruningMStickD
 
     public RegimeTwoStim(GABlockGenerator generator, Long parentId) {
         super(generator, parentId);
-        this.stimType = NewGABlockGenerator.STIM_TYPE_FOR_REGIME.get(MutationType.TWO);
+        this.stimType = SlotGABlockGenerator.STIM_TYPE_FOR_REGIME.get(MutationType.TWO);
     }
 
     @Override
-    protected PruningMatchStick morphStim() {
+    protected PruningMatchStick morphStim(double magnitude) {
         PruningMatchStick parentMStick = new PruningMatchStick();
         parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");

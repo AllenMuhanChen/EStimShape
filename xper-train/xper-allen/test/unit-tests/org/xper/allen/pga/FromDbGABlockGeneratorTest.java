@@ -27,5 +27,6 @@ public class FromDbGABlockGeneratorTest {
     @Test
     public void addTrials() {
         generator.addTrials();
+        System.out.println(generator.getStims().get(0));
     }
 }

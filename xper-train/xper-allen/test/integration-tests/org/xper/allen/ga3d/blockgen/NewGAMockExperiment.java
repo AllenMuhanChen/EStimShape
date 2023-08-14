@@ -6,9 +6,8 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.xper.allen.app.GAConsole;
 import org.xper.allen.app.GAExperiment;
-import org.xper.allen.newga.blockgen.NewGABlockGenerator;
+import org.xper.allen.newga.blockgen.SlotGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
-import org.xper.app.acq.AcqServer;
 import org.xper.util.FileUtil;
 
 import java.util.List;
@@ -19,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 public class NewGAMockExperiment {
     private final String[] emptyArgs = {""};
-    private NewGABlockGenerator generator;
+    private SlotGABlockGenerator generator;
     private MultiGaDbUtil dbUtil;
     private String gaBaseName;
 
@@ -28,7 +27,7 @@ public class NewGAMockExperiment {
         FileUtil.loadTestSystemProperties("/xper.properties.newga.mock");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
-        generator = context.getBean(NewGABlockGenerator.class);
+        generator = context.getBean(SlotGABlockGenerator.class);
 
         gaBaseName = generator.getGaBaseName();
         dbUtil = generator.getDbUtil();

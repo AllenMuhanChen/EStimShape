@@ -33,7 +33,7 @@ import org.xper.util.ThreadHelper;
 
 /**
  * Save messages to database, then broadcast them.
- * 
+ *
  * @author john
  *
  */
@@ -131,7 +131,7 @@ public class TrialExperimentMessageDispatcher implements ExperimentEventListener
 		enqueue(timestamp, "TrialComplete", "");
 		trialStat.setCompleteTrials(trialStat.getCompleteTrials() + 1);
 	}
-	
+
 	public void trialInit(long timestamp, TrialContext context) {
 		enqueue(timestamp, "TrialInit", "");
 	}
@@ -320,7 +320,7 @@ public class TrialExperimentMessageDispatcher implements ExperimentEventListener
 	public void setPort(int port) {
 		this.port = port;
 	}
-	
+
 	public String getHost() {
 		return host;
 	}

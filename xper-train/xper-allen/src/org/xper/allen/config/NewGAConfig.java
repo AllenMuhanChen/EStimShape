@@ -15,7 +15,7 @@ import org.xper.allen.ga.regimescore.RegimeScoreSource.RegimeTransition;
 import org.xper.allen.ga3d.blockgen.LinearSpline;
 import org.xper.allen.ga3d.blockgen.NaturalSpline;
 import org.xper.allen.ga3d.blockgen.Sigmoid;
-import org.xper.allen.newga.blockgen.NewGABlockGenerator;
+import org.xper.allen.newga.blockgen.SlotGABlockGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
@@ -23,7 +23,7 @@ import org.xper.experiment.DatabaseTaskDataSource;
 import javax.vecmath.Point2d;
 import java.util.*;
 
-import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
+import static org.xper.allen.newga.blockgen.SlotGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -44,8 +44,8 @@ public class NewGAConfig {
     public Integer numberOfRepetitionsPerStimulus;
 
     @Bean
-    public NewGABlockGenerator generator(){
-        NewGABlockGenerator generator = new NewGABlockGenerator();
+    public SlotGABlockGenerator generator(){
+        SlotGABlockGenerator generator = new SlotGABlockGenerator();
         generator.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
         generator.setExperimentPngPath(mStickPngConfig.experimentPngPath);
         generator.setGeneratorSpecPath(mStickPngConfig.generatorSpecPath);

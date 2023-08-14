@@ -4,19 +4,29 @@ import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
+
+import org.xper.allen.pga.RegimeZeroStim;
 import org.xper.allen.util.MultiGaDbUtil;
+import org.xper.drawing.Coordinates2D;
 
 import java.util.List;
 
-public class FromDbGABlockGenerator<T extends Stim> extends AbstractMStickPngTrialGenerator<T> {
-
+public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     @Dependency
     MultiGaDbUtil dbUtil;
 
     @Dependency
     Integer numTrialsPerStimulus;
 
+    @Dependency
+    private double initialSize;
+
+    @Dependency
+    private Coordinates2D intialCoords;
+
     String gaName = "New3D";
+
+
 
     @Override
     protected void addTrials() {
@@ -30,15 +40,30 @@ public class FromDbGABlockGenerator<T extends Stim> extends AbstractMStickPngTri
             StimGaInfoEntry stimInfo = dbUtil.readStimGaInfoEntry(stimId);
             RegimeType regimeType = RegimeType.valueOf(stimInfo.getStimType());
             double magnitude = stimInfo.getMutationMagnitude();
+            Long parentId = stimInfo.getParentId();
 
             System.out.println("StimId: " + stimId + " StimType: " + regimeType + " Magnitude: " + magnitude);
-        }
 
             // Create a new Stim object with the stim_type and magnitude (if applicable)
+            Stim stim;
+            if(regimeType.equals(RegimeType.REGIME_ZERO)){
+                stim = new RegimeZeroStim(this, initialSize, intialCoords);
+            }
+            else if(regimeType.equals(RegimeType.REGIME_ONE)){
+                stim = new RegimeOneStim(this, parentId, initialSize, intialCoords, magnitude);
+            }
+            else if(regimeType.equals(RegimeType.REGIME_TWO)){
+                stim = new RegimeTwoStim(this, parentId, initialSize, intialCoords);
+            }
+            else if(regimeType.equals(RegimeType.REGIME_THREE)){
+                stim = new RegimeThreeStim(this, parentId, initialSize, intialCoords, magnitude);
+            }
+            else{
+                throw new RuntimeException("Regime Type not recognized");
+            }
 
-
-
-
+            stims.add(stim);
+        }
     }
 
     @Override
@@ -56,5 +81,21 @@ public class FromDbGABlockGenerator<T extends Stim> extends AbstractMStickPngTri
 
     public void setNumTrialsPerStimulus(Integer numTrialsPerStimulus) {
         this.numTrialsPerStimulus = numTrialsPerStimulus;
+    }
+
+    public double getInitialSize() {
+        return initialSize;
+    }
+
+    public void setInitialSize(double initialSize) {
+        this.initialSize = initialSize;
+    }
+
+    public Coordinates2D getIntialCoords() {
+        return intialCoords;
+    }
+
+    public void setIntialCoords(Coordinates2D intialCoords) {
+        this.intialCoords = intialCoords;
     }
 }
