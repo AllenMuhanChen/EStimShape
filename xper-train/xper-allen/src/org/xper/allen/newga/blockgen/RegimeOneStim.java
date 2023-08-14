@@ -9,15 +9,13 @@ import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 
 public class RegimeOneStim extends MorphedStim<GrowingMatchStick, AllenMStickData> {
 
-
     public RegimeOneStim(GABlockGenerator generator, Long parentId) {
         super(generator, parentId);
-        this.stimType = NewGABlockGenerator.STIM_TYPE_FOR_REGIME.get(MutationType.ONE);
+        this.stimType = SlotGABlockGenerator.STIM_TYPE_FOR_REGIME.get(MutationType.ONE);
     }
 
-
     @Override
-    protected GrowingMatchStick morphStim() {
+    protected GrowingMatchStick morphStim(double magnitude) {
         //Generate MStick
         GrowingMatchStick parentMStick = new GrowingMatchStick();
         parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
@@ -25,7 +23,7 @@ public class RegimeOneStim extends MorphedStim<GrowingMatchStick, AllenMStickDat
 
         GrowingMatchStick childMStick = new GrowingMatchStick();
         childMStick.setProperties(generator.getMaxImageDimensionDegrees());
-        childMStick.genGrowingMatchStick(parentMStick, 0.3);
+        childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;
     }
 

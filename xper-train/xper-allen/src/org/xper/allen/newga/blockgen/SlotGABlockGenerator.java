@@ -12,7 +12,7 @@ import org.xper.drawing.Coordinates2D;
 
 import java.util.*;
 
-public class NewGABlockGenerator extends GABlockGenerator {
+public class SlotGABlockGenerator extends GABlockGenerator {
     public static String gaBaseName = "New3D";
 
 
@@ -49,7 +49,7 @@ public class NewGABlockGenerator extends GABlockGenerator {
         getStims().addAll(createRandStim(this, slotSelectionProcess.getNumChildrenToSelect(), initialSize, initialCoords));
     }
 
-    private List<ThreeDGAStim> createRandStim(NewGABlockGenerator generator, int numTrials, double size, Coordinates2D coords) {
+    private List<ThreeDGAStim> createRandStim(SlotGABlockGenerator generator, int numTrials, double size, Coordinates2D coords) {
         List<ThreeDGAStim> trials = new LinkedList<>();
         for (int i = 0; i < numTrials; i++) {
             trials.add(new RegimeZeroStim(generator, size, coords));

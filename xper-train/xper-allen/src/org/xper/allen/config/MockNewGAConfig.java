@@ -8,7 +8,7 @@ import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.ga.*;
 import org.xper.allen.ga.regimescore.*;
 import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
-import org.xper.allen.newga.blockgen.NewGABlockGenerator;
+import org.xper.allen.newga.blockgen.SlotGABlockGenerator;
 import org.xper.classic.SlideEventListener;
 import org.xper.classic.SlideTrialRunner;
 import org.xper.classic.TrialEventListener;
@@ -19,8 +19,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 @Configuration(defaultLazy = Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -73,7 +71,7 @@ public class MockNewGAConfig {
     public MockSpikeRateSource spikeRateSource(){
         MockSpikeRateSource spikeRateSource = new MockSpikeRateSource();
         spikeRateSource.setDbUtil(config.dbUtil());
-        spikeRateSource.setGaName(NewGABlockGenerator.gaBaseName);
+        spikeRateSource.setGaName(SlotGABlockGenerator.gaBaseName);
         return spikeRateSource;
     }
 

@@ -2,7 +2,6 @@ package org.xper.allen.newga.blockgen;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
@@ -43,7 +42,7 @@ public abstract class MorphedStim<T extends MorphedMatchStick, D extends AllenMS
     public void writeStim() {
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
-        T mStick = morphStim();
+        T mStick = morphStim(0.3);
 
         writeMStickData(mStick);
 
@@ -90,7 +89,7 @@ public abstract class MorphedStim<T extends MorphedMatchStick, D extends AllenMS
         mStickData = (D) mStick.getMStickData();
     }
 
-    protected abstract T morphStim();
+    protected abstract T morphStim(double magnitude);
 
     private Coordinates2D morphCoords(Coordinates2D parentCoords, double parentSize) {
         double dr = parentSize / 2;

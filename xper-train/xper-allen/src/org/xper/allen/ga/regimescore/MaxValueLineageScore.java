@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.xper.allen.newga.blockgen.NewGABlockGenerator.*;
+import static org.xper.allen.newga.blockgen.SlotGABlockGenerator.*;
 
 /**
  * Calculates the max response so far in a lineage and returns a number between 0-1

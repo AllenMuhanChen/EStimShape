@@ -9,7 +9,7 @@ import org.xper.allen.util.MultiGaDbUtil;
 import java.util.*;
 import java.util.function.Consumer;
 
-import static org.xper.allen.newga.blockgen.NewGABlockGenerator.STIM_TYPE_FOR_REGIME;
+import static org.xper.allen.newga.blockgen.SlotGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 public class RegimeThreeComponentChooser {
 
