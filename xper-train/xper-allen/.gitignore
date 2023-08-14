@@ -1,2 +1,8 @@
 /bin/
 /target/
+/class/org/xper/allen/ga3d/blockgen/GA3DLineageBlockGenerator.java~HEAD
+/src/org/xper/allen/ga3d/blockgen/GA3DLineageBlockGenerator.java~HEAD
+/class/org/xper/allen/nafc/blockgen/psychometric/PsychometricStim.java~HEAD
+/src/org/xper/allen/nafc/blockgen/psychometric/PsychometricStim.java~HEAD
+/test/class/org/xper/allen/nafc/blockgen/psychometric/PsychometricStimIntegrationTest.java~HEAD
+/test/integration-tests/org/xper/allen/nafc/blockgen/psychometric/PsychometricStimIntegrationTest.java~HEAD
