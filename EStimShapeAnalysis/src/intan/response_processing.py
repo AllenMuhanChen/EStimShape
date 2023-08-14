@@ -9,6 +9,7 @@ class ResponseProcessor:
     db_util: MultiGaDbUtil
     repetition_combination_strategy: Callable[[list[float]], float]
     cluster_combination_strategy: Callable[[list[float]], int]
+
     def process_to_db(self, ga_name: str) -> None:
         # Aggregate responses to process
         response_vectors_for_each_stim_id = self._get_response_vectors_from_clusters(ga_name)
@@ -30,7 +31,7 @@ class ResponseProcessor:
         response_vector = []
         length_of_vectors = len(list(vector_per_channel.values())[0])
         for i in range(length_of_vectors):
-            sum_for_task=0
+            sum_for_task = 0
             for channel, vector in vector_per_channel.items():
                 sum_for_task += vector[i]
             response_vector.append(sum_for_task)
