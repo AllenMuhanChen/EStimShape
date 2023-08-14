@@ -2,6 +2,7 @@ package org.xper.allen.util;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
 import org.xper.allen.ga.MultiGAExperimentTask;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.StimGaInfo;
@@ -372,13 +373,16 @@ public class MultiGaDbUtil extends AllenDbUtil {
     public StimGaInfoEntry readStimGaInfoEntry(long stimId) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
         String sqlQuery = "SELECT parent_id, lineage_id, stim_type, response, mutation_magnitude FROM StimGaInfo WHERE stim_id = ?";
-        List<StimGaInfoEntry> entries = jt.query(sqlQuery, new Object[]{stimId}, (rs, rowNum) -> {
-            long parentId = rs.getLong("parent_id");
-            long lineageId = rs.getLong("lineage_id");
-            String stimType = rs.getString("stim_type");
-            double response = rs.getDouble("response");
-            Double mutationMagnitude = rs.getObject("mutation_magnitude", Double.class); // Allows for null values
-            return new StimGaInfoEntry(stimId, parentId, lineageId, stimType, response, mutationMagnitude);
+        List<StimGaInfoEntry> entries = jt.query(sqlQuery, new Object[]{stimId}, new RowMapper() {
+            @Override
+            public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+                long parentId = rs.getLong("parent_id");
+                long lineageId = rs.getLong("lineage_id");
+                String stimType = rs.getString("stim_type");
+                double response = rs.getDouble("response");
+                Double mutationMagnitude = rs.getDouble("mutation_magnitude"); // Allows for null values
+                return new StimGaInfoEntry(stimId, parentId, lineageId, stimType, response, mutationMagnitude);
+            }
         });
 
         if (entries.isEmpty()) {

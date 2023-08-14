@@ -31,7 +31,7 @@ public class FromDbGABlockGenerator<T extends Stim> extends AbstractMStickPngTri
             RegimeType regimeType = RegimeType.valueOf(stimInfo.getStimType());
             double magnitude = stimInfo.getMutationMagnitude();
 
-
+            System.out.println("StimId: " + stimId + " StimType: " + regimeType + " Magnitude: " + magnitude);
         }
 
             // Create a new Stim object with the stim_type and magnitude (if applicable)
@@ -39,5 +39,22 @@ public class FromDbGABlockGenerator<T extends Stim> extends AbstractMStickPngTri
 
 
 
+    }
+
+    @Override
+    public MultiGaDbUtil getDbUtil() {
+        return dbUtil;
+    }
+
+    public void setDbUtil(MultiGaDbUtil dbUtil) {
+        this.dbUtil = dbUtil;
+    }
+
+    public Integer getNumTrialsPerStimulus() {
+        return numTrialsPerStimulus;
+    }
+
+    public void setNumTrialsPerStimulus(Integer numTrialsPerStimulus) {
+        this.numTrialsPerStimulus = numTrialsPerStimulus;
     }
 }
