@@ -33,7 +33,7 @@ public class ThreeDGAMockExperiment {
         generator = context.getBean(GA3DLineageBlockGenerator.class);
         dbUtil = generator.getDbUtil();
 
-        generator.setUp(20, NUM_TRIALS_PER_STIMULI, 5, new Coordinates2D(0,0), generator.channels);
+        generator.setUp(20,5, new Coordinates2D(0,0), generator.channels);
     }
 
     @Test

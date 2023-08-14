@@ -24,7 +24,7 @@ import org.xper.util.FileUtil;
 
 import javax.vecmath.Point2d;
 
-public class PsychometricTrialIntegrationTest {
+public class PsychometricStimIntegrationTest {
 	PsychometricBlockGen generator;
 	int numPsychometricDistractors;
 	int numRandDistractors;
@@ -41,7 +41,7 @@ public class PsychometricTrialIntegrationTest {
 	double eyeWinSize;
 	NoisyTrialParameters trialParameters;
 
-	PsychometricTrial trial;
+	PsychometricStim trial;
 	private Long sampleId;
 	private Long matchId;
 	private List<Long> psychometricDistractorIds;
@@ -60,7 +60,7 @@ public class PsychometricTrialIntegrationTest {
 
 		//Act
 		trial.preWrite();
-		trial.write();
+		trial.writeStim();
 
 		//Assert
 		thenPsychometricFilesFound();
@@ -126,7 +126,7 @@ public class PsychometricTrialIntegrationTest {
 						eyeWinSize,
 						noiseParameters);
 		PsychometricTrialParameters psychometricTrialParameters = new PsychometricTrialParameters(trialParameters, numDistractors, psychometricIds, null);
-		trial = new PsychometricTrial(generator, psychometricTrialParameters);
+		trial = new PsychometricStim(generator, psychometricTrialParameters);
 	}
 
 	private void thenPsychometricFilesFound() {

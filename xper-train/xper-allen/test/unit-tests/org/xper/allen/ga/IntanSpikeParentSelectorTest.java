@@ -1,7 +1,7 @@
 package org.xper.allen.ga;
 
 import org.junit.Test;
-import org.xper.allen.util.TestMultiGaDbUtil;
+
 import org.xper.util.ResourceUtil;
 
 import java.util.LinkedList;
@@ -54,9 +54,9 @@ public class IntanSpikeParentSelectorTest {
 
     private void setUpWithMaxSpikeRateAnalyzer() {
         IntanSpikeParentSelector parentSelector = new IntanSpikeParentSelector();
-        parentSelector.setDbUtil(new TestMultiGaDbUtil());
+//        parentSelector.setDbUtil(new TestMultiGaDbUtil());
         parentSelector.setSpikeDatDirectory(ResourceUtil.getResource("IntanSpikeParentSelector-spikeDatDirectory"));
-        parentSelector.setSpikeRateAnalyzer(new MaxSpikeRateAnalyzer());
+//        parentSelector.setSpikeRateAnalyzer(new MaxSpikeRateAnalyzer());
 
        this.parentSelector = parentSelector;
     }
