@@ -30,7 +30,6 @@ public class NormalMorphDistributer {
 
                 paramMagnitude.set(paramMagnitude.get() + randomMagnitude);
                 amountLeftToDistribute -= randomMagnitude;
-                System.out.println(amountLeftToDistribute);
             }
         }
 

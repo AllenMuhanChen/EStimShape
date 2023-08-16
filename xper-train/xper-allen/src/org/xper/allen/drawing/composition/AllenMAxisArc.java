@@ -391,7 +391,7 @@ public class AllenMAxisArc extends MAxisArc {
 			if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
 		{
 			skipRotate = true;
-				 		System.out.println("Skip first rotation");
+//				 		System.out.println("Skip first rotation");
 			//	 		System.out.println("ori Tangent: " + oriTangent);
 			//	 		System.out.println("inter tangent: " + interTangent);
 			//	 		System.out.println("rad of the arc is " + rad);
