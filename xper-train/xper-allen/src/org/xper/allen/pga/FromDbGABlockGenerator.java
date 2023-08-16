@@ -2,10 +2,8 @@ package org.xper.allen.pga;
 
 import org.xper.Dependency;
 import org.xper.allen.Stim;
-import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
-import org.xper.allen.pga.RegimeZeroStim;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 
@@ -24,7 +22,8 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     @Dependency
     private Coordinates2D intialCoords;
 
-    String gaName = "New3D";
+    @Dependency
+    String gaName;
 
 
 
@@ -47,16 +46,16 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             // Create a new Stim object with the stim_type and magnitude (if applicable)
             Stim stim;
             if(regimeType.equals(RegimeType.REGIME_ZERO)){
-                stim = new RegimeZeroStim(this, initialSize, intialCoords);
+                stim = new RegimeZeroStim(stimId, this, initialSize, intialCoords);
             }
             else if(regimeType.equals(RegimeType.REGIME_ONE)){
-                stim = new RegimeOneStim(this, parentId, initialSize, intialCoords, magnitude);
+                stim = new RegimeOneStim(stimId, this, parentId, initialSize, intialCoords, magnitude);
             }
             else if(regimeType.equals(RegimeType.REGIME_TWO)){
-                stim = new RegimeTwoStim(this, parentId, initialSize, intialCoords);
+                stim = new RegimeTwoStim(stimId, this, parentId, initialSize, intialCoords);
             }
             else if(regimeType.equals(RegimeType.REGIME_THREE)){
-                stim = new RegimeThreeStim(this, parentId, initialSize, intialCoords, magnitude);
+                stim = new RegimeThreeStim(stimId, this, parentId, initialSize, intialCoords, magnitude);
             }
             else{
                 throw new RuntimeException("Regime Type not recognized");
@@ -97,5 +96,13 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     public void setIntialCoords(Coordinates2D intialCoords) {
         this.intialCoords = intialCoords;
+    }
+
+    public String getGaName() {
+        return gaName;
+    }
+
+    public void setGaName(String gaName) {
+        this.gaName = gaName;
     }
 }

@@ -4,8 +4,8 @@ import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.drawing.Coordinates2D;
 
 public class RegimeTwoStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
-    public RegimeTwoStim(FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords) {
-        super(generator, parentId, size, coords);
+    public RegimeTwoStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords) {
+        super(stimId, generator, parentId, size, coords);
     }
 
     @Override

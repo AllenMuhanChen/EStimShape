@@ -17,16 +17,18 @@ public class FromDbGABlockGeneratorTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-        MultiGaDbUtil dbUtil = context.getBean(MultiGaDbUtil.class);
 
-        generator = new FromDbGABlockGenerator();
-        generator.setDbUtil(dbUtil);
-        generator.setNumTrialsPerStimulus(5);
+        generator = context.getBean(FromDbGABlockGenerator.class);
     }
 
     @Test
     public void addTrials() {
         generator.addTrials();
         System.out.println(generator.getStims().get(0));
+    }
+
+    @Test
+    public void run() {
+        generator.generate();
     }
 }
