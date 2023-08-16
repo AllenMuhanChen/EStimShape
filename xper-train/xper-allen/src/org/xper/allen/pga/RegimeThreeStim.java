@@ -7,8 +7,8 @@ import org.xper.drawing.Coordinates2D;
 public class RegimeThreeStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
 
-    public RegimeThreeStim(FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, double magnitude) {
-        super(generator, parentId, size, coords);
+    public RegimeThreeStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, double magnitude) {
+        super(stimId, generator, parentId, size, coords);
         this.magnitude = magnitude;
     }
 

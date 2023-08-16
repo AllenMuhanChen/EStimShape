@@ -1,18 +1,14 @@
 package org.xper.allen.pga;
 
-import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.drawing.Coordinates2D;
 
 public class RegimeOneStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
 
-    public RegimeOneStim(FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, double magnitude) {
-        super(generator, parentId, size, coords);
+    public RegimeOneStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, double magnitude) {
+        super(stimId, generator, parentId, size, coords);
         this.magnitude = magnitude;
     }
 

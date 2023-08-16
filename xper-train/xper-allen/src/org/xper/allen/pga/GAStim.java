@@ -18,7 +18,8 @@ public abstract class GAStim<T extends MorphedMatchStick, D extends AllenMStickD
     protected final Coordinates2D coords;
     protected Long stimId;
 
-    public GAStim(FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords) {
+        this.stimId = stimId;
         this.generator = generator;
         this.parentId = parentId;
         this.size = size;
@@ -32,7 +33,6 @@ public abstract class GAStim<T extends MorphedMatchStick, D extends AllenMStickD
 
     @Override
     public void writeStim() {
-        stimId = generator.getGlobalTimeUtil().currentTimeMicros();
         T mStick = createMStick();
         saveMStickSpec(mStick);
 
