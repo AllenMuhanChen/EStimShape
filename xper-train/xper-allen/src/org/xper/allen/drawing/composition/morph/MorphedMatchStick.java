@@ -29,7 +29,8 @@ public class MorphedMatchStick extends AllenMatchStick {
 //    protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
-
+    private double TangentSaveZone = 0; //Should be zero here, because we're manually specifying a new tangent
+    // with the morph parameters, so we don't need to check the relation to the old tangent.
 
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
@@ -64,8 +65,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 cleanData();
                 this.setObj1(null);
                 copyFrom(backup);
-                e.printStackTrace();
-                System.err.println("Failed to morph matchstick. Retrying...");
+                System.err.println("Failed to morph matchstick.");
+                System.err.println(e.getMessage());
+                System.err.println("Retrying to morph matchstick...");
             } finally{
                 numAttempts++;
             }
@@ -125,9 +127,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.out.println("Successfully morphed component " + componentIndex);
                 return;
             } catch (MorphException e) {
-                e.printStackTrace();
                 System.err.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams);
-                System.err.println("Retrying...");
+                System.err.println(e.getMessage());
+                System.err.println("Retrying to morph component");
                 System.err.println("Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_COMPONENT);
                 morphParams.redistribute();
             } finally {
@@ -138,11 +140,8 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void morphComponent(int id, ComponentMorphParameters morphParams) throws MorphException{
-        System.err.println("Morphing component " + id);
+        System.out.println("Morphing component " + id);
         compLabel = MutationSUB_compRelation2Target(id);
-        for (int i = 0; i < compLabel.length; i++) {
-            System.err.println("compLabel[" + i + "] = " + compLabel[i]);
-        }
 
         attemptToGenerateValidComponentSkeleton(id, morphParams);
         updateEndPtsAndJunctionPositions();
@@ -166,8 +165,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.out.println("Successfully generated valid skeleton for component " + id);
                 return;
             } catch (MorphException e){
-                e.printStackTrace();
-                System.out.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_SKELETON + " to generate valid skeleton for component " + id);
+                System.err.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_SKELETON + " to generate valid skeleton for component " + id);
+                System.err.println(e.getMessage());
+                System.err.println("Retrying to generate valid morphed arc");
             } finally {
                 numAttempts++;
             }
@@ -226,8 +226,10 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.out.println("Successfully generated valid radius for component " + id);
                 return;
             } catch (MorphException e){
+                System.err.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_RADIUS_PROFILE + " to generate valid radius for component " + id);
+                System.err.println(e.getMessage());
+                System.err.println("Retrying mutate radius");
                 copyFrom(backup);
-                e.printStackTrace();
             } finally {
                 numAttempts++;
             }
@@ -518,7 +520,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     protected void checkForCollisions(int id) throws MorphException{
         boolean closeHit = checkSkeletonNearby(getNComponent());
         if (closeHit){
-            throw new MorphException("Skeleton nearby");
+            throw new MorphException("Skeleton Collision Check Failed");
         }
     }
 
@@ -589,8 +591,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 checkJunctions(id, newArc);
                 return newArc;
             } catch (MorphException e){
-                System.err.println("Failed to generate a valid morphed arc. Attempting again...");
-                e.printStackTrace();
+                System.err.println("Failed to generate a valid morphed arc.");
+                System.err.println(e.getMessage());
+                System.err.println("Retrying generate a valid morphed arc");
             } finally {
                 numAttemptsToGenerateArc++;
             }
@@ -660,6 +663,16 @@ public class MorphedMatchStick extends AllenMatchStick {
                 endPtConsumer.accept(getEndPt()[i]);
             }
         }
+    }
+
+    @Override
+    public double getTangentSaveZone() {
+        return TangentSaveZone;
+    }
+
+    @Override
+    public void setTangentSaveZone(double tangentSaveZone) {
+        TangentSaveZone = tangentSaveZone;
     }
 
     public static class MorphException extends RuntimeException{
