@@ -149,7 +149,7 @@ def regime_one_bin_proportions():
 
 
 def regime_one_bin_sample_sizes():
-    return [8, 8, 8, 8, 8]
+    return [0.2, 0.2, 0.2, 0.2, 0.2]
 
 
 def convergence_threshold():

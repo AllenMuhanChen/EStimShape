@@ -14,25 +14,35 @@ from src.util.connection import Connection
 
 class RankOrderedDistribution:
     def __init__(self, stimuli: [Stimulus], proportions: [float]):
-        self.stimuli = sorted(stimuli, key=lambda s: s.response_rate, reverse=True)
+        self.stimuli = sorted(stimuli, key=lambda s: s.response_rate)
         self.proportions = proportions
+        if sum(proportions) != 1:
+            raise ValueError("The sum of proportions must equal 1.")
         self._generate_bins()
 
     def _generate_bins(self):
-        bins: [[Stimulus]]
-        # Determine the size of each bin based on the total number of stimuli.
         total_stimuli = len(self.stimuli)
-        bin_sizes = [int(total_stimuli * proportion) for proportion in self.proportions]
 
-        # Ensure the sum of bin_sizes equals total_stimuli.
-        # This handles potential rounding errors in the calculation of bin_sizes.
-        bin_sizes[-1] += total_stimuli - sum(bin_sizes)
+        # Combine bins if the number of stimuli is less than the number of bins.
+        bin_sizes = [0] * len(self.proportions)
+        if total_stimuli < len(self.proportions):
+            for i in range(total_stimuli):
+                bin_sizes[-(i + 1)] = 1
+        else:
+            bin_sizes = [int(total_stimuli * proportion) for proportion in self.proportions]
+
+        # Calculate the remainder and distribute it randomly between the bins.
+        remainder = total_stimuli - sum(bin_sizes)
+        if remainder > 0:
+            random_indices = np.random.choice(len(self.proportions), remainder, p=self.proportions)
+            for index in random_indices:
+                bin_sizes[index] += 1
 
         # Split the stimuli into bins.
         self.bins = []
         start = 0
         for size in bin_sizes:
-            self.bins.append(self.stimuli[start:start + size])
+            self.bins.append(self.stimuli[start: start+size])
             start += size
 
     def sample_from_bin(self, bin_index, num_samples) -> [Stimulus]:
@@ -40,7 +50,9 @@ class RankOrderedDistribution:
         random = np.random.choice(self.bins[bin_index], num_samples)
         return list(random)
 
-    def sample(self, bin_sample_sizes: [int]) -> [Stimulus]:
+    def sample(self, *, bin_sample_sizes: [int]) -> [Stimulus]:
+        if len(bin_sample_sizes) != len(self.bins):
+            raise ValueError("The number of bin sample sizes must equal the number of bins.")
         # Sample from all bins and concatenate the results.
         return [self.sample_from_bin(i, bin_sample_sizes[i]) for i in range(len(self.bins))]
 
@@ -53,14 +65,18 @@ class RegimeOneParentSelector(ParentSelector):
     """
 
     def __init__(self, get_all_stimuli_func: Callable[[], List[Stimulus]], proportions: [float],
-                 bin_sample_sizes: [int]) -> None:
+                 bin_sample_proportions: [int]) -> None:
         self.get_all_stimuli_func = get_all_stimuli_func
         self.proportions = proportions
-        self.bin_sample_sizes = bin_sample_sizes
+        self.bin_sample_sizes_proportions = bin_sample_proportions
+
+    def distribute_samples_to_bins(self, total_sample_size: int) -> [int]:
+        return [round(total_sample_size * proportion) for proportion in self.proportions]
 
     def select_parents(self, lineage, batch_size):
-        rank_ordered_distribution = RankOrderedDistribution(self.get_all_stimuli_func(), self.proportions)
-        sampled_stimuli_from_all_lineages = rank_ordered_distribution.sample(self.bin_sample_sizes)
+        rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
+        sampled_stimuli_from_all_lineages = rank_ordered_distribution.sample(
+            bin_sample_sizes=self.distribute_samples_to_bins(batch_size))
 
         # Identify the stimuli from the current lineage in the rank-ordered distribution
         parents = []
