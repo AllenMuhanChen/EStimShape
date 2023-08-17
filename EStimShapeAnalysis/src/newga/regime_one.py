@@ -54,7 +54,14 @@ class RankOrderedDistribution:
         if len(bin_sample_sizes) != len(self.bins):
             raise ValueError("The number of bin sample sizes must equal the number of bins.")
         # Sample from all bins and concatenate the results.
-        return [self.sample_from_bin(i, bin_sample_sizes[i]) for i in range(len(self.bins))]
+        samples = []
+        for i, bin in enumerate(self.bins):
+            # If the bin is empty, add the sample size to the next bin.
+            if len(bin) == 0 and i < len(self.bins) and bin_sample_sizes[i] > 0:
+                bin_sample_sizes[i+1] += bin_sample_sizes[i]
+            else:
+                samples.append(self.sample_from_bin(i, bin_sample_sizes[i]))
+        return samples
 
 
 class RegimeOneParentSelector(ParentSelector):
