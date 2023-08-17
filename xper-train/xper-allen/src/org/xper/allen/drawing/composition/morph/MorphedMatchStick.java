@@ -35,7 +35,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
     private static final int NUM_ATTEMPTS_PER_ARC = 10;
-    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 5;
+    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 2;
     protected AllenMAxisArc newArc;
     private int[] compLabel;
     private MorphedMatchStick localBackup;

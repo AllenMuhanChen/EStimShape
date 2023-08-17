@@ -48,7 +48,6 @@ class GeneticAlgorithm:
             #
 
             self._construct_lineages_from_db()
-            # self._update_lineages_with_new_responses()
             self._transition_lineages_if_needed()
 
             self._run_next_generation()
@@ -83,14 +82,22 @@ class GeneticAlgorithm:
 
     def _run_next_generation(self):
         num_trials_for_lineages = self.lineage_distributor.get_num_trials_for_lineages(self.lineages)
+        #sum all trials:
+        print("num_trials_for_lineages", sum(num_trials_for_lineages.values()))
+        sum_of_trials_added = 0
         for lineage, num_trials in num_trials_for_lineages.items():
+            sum_of_trials_added += num_trials
             # lineage distributor may create new lineages for new regime zero stimuli
             # We should check for them here.
             if lineage not in self.lineages:
                 self.lineages.append(lineage)
             else:
-                lineage.generate_new_batch(num_trials)
-
+                if num_trials > 0:
+                    initial_size = len(lineage.stimuli)
+                    print("Adding ", num_trials, " trials to lineage ", lineage.id)
+                    lineage.generate_new_batch(num_trials)
+                    print("Added ", len(lineage.stimuli) - initial_size, " trials to lineage ", lineage.id)
+        print("sum_of_trials_added", sum_of_trials_added)
     def _create_lineage(self):
         new_lineage = LineageFactory.create_new_lineage(regimes=self.regimes)
         self.lineages.append(new_lineage)

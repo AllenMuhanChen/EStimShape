@@ -63,6 +63,8 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
             stims.add(stim);
         }
+
+        System.err.println("Number of stims to generate: " + stims.size());
     }
 
     @Override
