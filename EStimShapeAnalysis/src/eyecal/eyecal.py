@@ -1,7 +1,7 @@
 import numpy as np
 
-from src.compile.trial_collector import TrialCollector
-from src.compile.trial_field import Field
+from compile.trial.trial_collector import TrialCollector
+from compile.trial.trial_field import Field
 from src.util.connection import Connection
 from src.util import time_util
 from src.util.time_util import When

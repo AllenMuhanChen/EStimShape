@@ -1,11 +1,7 @@
 import pandas
 import pandas as pd
-import numpy as np
 import matplotlib.pylab as plt
-import xmltodict
 import ast
-
-from src.compile import psychometric_compile
 
 if __name__ == '__main__':
 

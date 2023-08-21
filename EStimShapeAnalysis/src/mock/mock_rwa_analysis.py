@@ -7,11 +7,10 @@ import numpy as np
 import pandas as pd
 
 from src.analysis.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
-from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField, GaTypeField, GaLineageField, \
-    NewGaLineageField, NewGaNameField, RegimeScoreField
-from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
-from src.compile.trial_collector import TrialCollector
-from src.compile.trial_field import FieldList, get_data_from_trials
+from compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
+from compile.trial.matchstick_fields import ShaftField
+from compile.trial.trial_collector import TrialCollector
+from compile.trial.trial_field import FieldList, get_data_from_trials
 from src.util import time_util
 from src.util.connection import Connection
 from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
