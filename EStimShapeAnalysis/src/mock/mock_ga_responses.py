@@ -7,14 +7,14 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import double
-from scipy.stats import multivariate_normal
 
+from compile.task.base_database_fields import StimSpecIdField
+from compile.task.compile_task_id import TaskIdCollector
+from compile.task.matchstick_fields import ShaftField
+from compile.task.task_field import TaskFieldList, get_data_from_tasks
 from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
-from src.compile.classic_database_fields import StimSpecDataField, StimSpecIdField
-from src.compile.matchstick_fields import ShaftField, TerminationField, JunctionField
-from src.compile.trial_collector import TrialCollector
-from src.compile.trial_field import FieldList, get_data_from_trials
-from src.mock import mock_rwa_plot, mock_rwa_analysis
+from compile.trial.trial_collector import TrialCollector
+from compile.trial.trial_field import FieldList, get_data_from_trials
 from src.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from src.util import time_util
 from src.util.connection import Connection
@@ -23,9 +23,27 @@ from src.util.dictionary_util import flatten_dictionary, \
 from src.util.time_util import When
 
 
+def collect_task_ids(conn):
+    task_id_collector = TaskIdCollector(conn)
+    task_ids = task_id_collector.collect_task_ids()
+    return task_ids
+
+
+def compile_data_with_task_ids(conn, task_ids):
+    # Define the fields
+    #     fields = FieldList()
+    #     fields.append(StimSpecIdField(conn, "Id"))
+    #     fields.append(ShaftField(mstick_spec_data_source))
+    fields = TaskFieldList()
+    fields.append(StimSpecIdField(conn, "Id"))
+    fields.append(ShaftField(conn))
+    return get_data_from_tasks(fields, task_ids)
+
+
+
 def main():
     # PARAMETERS
-    conn = Connection("allen_estimshape_dev_221110")
+    conn = Connection("allen_estimshape_dev_230519")
 
     # conn.execute("TRUNCATE TABLE ExpLog")
 
@@ -56,8 +74,11 @@ def main():
     list_of_tuning_functions = [shaft_function, shaft_function]
 
     # PIPELINE
-    trial_tstamps = collect_trials(conn, time_util.all())
-    data = compile_data(conn, trial_tstamps)
+    # trial_tstamps = collect_trials(conn, time_util.all())
+    # data = compile_data(conn, trial_tstamps)
+
+    task_ids = collect_task_ids(conn)
+    data = compile_data_with_task_ids(conn, task_ids)
     data = condition_spherical_angles(data)
     data = hemisphericalize_orientation(data)
     response_rates = generate_responses(data, list_of_tuning_functions)
@@ -143,16 +164,16 @@ def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]
     return trial_collector.collect_trials()
 
 
-def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
-    mstick_spec_data_source = StimSpecDataField(conn)
-
-    fields = FieldList()
-    fields.append(StimSpecIdField(conn, "Id"))
-    fields.append(ShaftField(mstick_spec_data_source))
-    # fields.append(TerminationField(mstick_spec_data_source))
-    # fields.append(JunctionField(mstick_spec_data_source))
-
-    return get_data_from_trials(fields, trial_tstamps)
+# def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
+#     mstick_spec_data_source = StimSpecDataField(conn)
+#
+#     fields = FieldList()
+#     fields.append(StimSpecIdField(conn, "Id"))
+#     fields.append(ShaftField(mstick_spec_data_source))
+#     # fields.append(TerminationField(mstick_spec_data_source))
+#     # fields.append(JunctionField(mstick_spec_data_source))
+#
+#     return get_data_from_trials(fields, trial_tstamps)
 
 
 def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[TuningFunction]) -> list[dict[int, double]]:

@@ -1,6 +1,6 @@
 import xmltodict
 
-from src.compile.trial_field import DatabaseField
+from compile.trial.trial_field import DatabaseField
 from src.util.connection import Connection
 from src.util.time_util import When
 

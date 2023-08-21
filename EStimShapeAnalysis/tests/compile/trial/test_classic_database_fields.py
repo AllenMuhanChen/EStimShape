@@ -1,8 +1,8 @@
 from unittest import TestCase
 
-from src.compile.classic_database_fields import get_stim_spec_id, get_stim_spec_data, StimSpecDataField
-from src.compile.matchstick_fields import MatchStickField, ShaftField
-from src.compile.trial_field import FieldList, get_data_from_trials
+from compile.trial.classic_database_fields import StimSpecDataField
+from compile.trial.matchstick_fields import MatchStickField, ShaftField
+from compile.trial.trial_field import FieldList, get_data_from_trials
 from src.util.connection import Connection
 from src.util.time_util import When
 

@@ -64,6 +64,9 @@ class TestPythonOnlyMockWithNonNeuralResponse(unittest.TestCase):
         self.mock_config.db_util.conn.truncate("StimGaInfo")
         self.mock_config.db_util.conn.truncate("LineageGaInfo")
         self.mock_config.db_util.conn.truncate("StimSpec")
+        self.mock_config.db_util.conn.truncate("TaskToDo")
+        self.mock_config.db_util.conn.truncate("TaskDone")
+        self.mock_config.db_util.conn.truncate("BehMsg")
         self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
 

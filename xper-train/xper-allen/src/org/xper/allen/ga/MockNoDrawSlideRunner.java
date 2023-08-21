@@ -17,7 +17,7 @@ import org.xper.util.ThreadHelper;
 import java.util.List;
 
 
-public class MockClassicSlideRunner implements SlideRunner {
+public class MockNoDrawSlideRunner implements SlideRunner {
     @Override
     public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
         int slidePerTrial = stateObject.getSlidePerTrial();
@@ -75,7 +75,7 @@ public class MockClassicSlideRunner implements SlideRunner {
     }
 
     public static TrialResult doSlide (int i, SlideTrialExperimentState stateObject) {
-        TrialDrawingController drawingController = stateObject.getDrawingController();
+//        TrialDrawingController drawingController = stateObject.getDrawingController();
         ExperimentTask currentTask = stateObject.getCurrentTask();
         TrialContext currentContext = stateObject.getCurrentContext();
         List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();

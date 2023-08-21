@@ -4,8 +4,8 @@ import pandas as pd
 import numpy as np
 import xmltodict
 from src.util import table_util, connection
-from src.util.time_util import When, all, today
-from src.compile import trial_field as tf, trial_collector
+from src.util.time_util import When, today
+from compile.trial import trial_collector, trial_field as tf
 
 """DEPRECATED """
 

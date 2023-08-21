@@ -9,7 +9,7 @@ import org.xper.experiment.listener.ExperimentEventListener;
 public class DataAcqController implements TrialEventListener,
 		ExperimentEventListener {
 	static Logger logger = Logger.getLogger(DataAcqController.class);
-	
+
 	@Dependency
 	AcqDeviceController acqDeviceController;
 	@Dependency
@@ -35,7 +35,7 @@ public class DataAcqController implements TrialEventListener,
 
 	public void trialComplete(long timestamp, TrialContext context) {
 	}
-	
+
 	public void trialInit(long timestamp, TrialContext context) {
 		logger.info("Start acq server: " + (offline?"offline":"online"));
 		if (!offline) {

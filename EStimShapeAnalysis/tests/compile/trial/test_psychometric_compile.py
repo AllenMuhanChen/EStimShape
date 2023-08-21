@@ -2,7 +2,7 @@ from unittest import TestCase
 from src.util.time_util import When
 from src.util import time_util
 
-from src.compile import psychometric_compile as pc
+from compile.trial import psychometric_compile as pc
 
 PSYCHOMETRIC = When(1659208461019365, 1659208471171128)
 

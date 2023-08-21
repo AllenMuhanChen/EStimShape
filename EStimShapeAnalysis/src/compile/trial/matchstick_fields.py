@@ -1,10 +1,4 @@
-import math
-from typing import Callable
-
-import pandas as pd
-import xmltodict
-
-from src.compile.trial_field import Field, DatabaseField
+from compile.trial.trial_field import Field
 from src.util.time_util import When
 
 

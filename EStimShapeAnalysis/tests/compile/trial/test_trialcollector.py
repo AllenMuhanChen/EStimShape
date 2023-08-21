@@ -1,5 +1,5 @@
 from unittest import TestCase
-from src.compile.trial_collector import TrialCollector
+from compile.trial.trial_collector import TrialCollector
 from src.util.connection import Connection
 from src.util import time_util
 

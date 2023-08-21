@@ -1,8 +1,6 @@
 from unittest import TestCase
 
-import xmltodict
-
-from src.compile.matchstick_fields import MatchStickField, ShaftField, TerminationField, JunctionField
+from compile.trial.matchstick_fields import MatchStickField, ShaftField, TerminationField, JunctionField
 from src.util.time_util import When
 
 

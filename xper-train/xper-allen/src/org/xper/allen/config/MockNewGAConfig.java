@@ -62,8 +62,8 @@ public class MockNewGAConfig {
     }
 
     @Bean
-    public MockClassicSlideRunner slideRunner() {
-        return new MockClassicSlideRunner();
+    public MockNoDrawSlideRunner slideRunner() {
+        return new MockNoDrawSlideRunner();
     }
 
 

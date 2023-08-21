@@ -68,6 +68,42 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     }
 
     @Override
+    protected void updateReadyGeneration() {
+        getDbUtil().updateReadyGAsAndGenerationsInfo(gaName, genId);
+
+        System.out.println("Done Generating...");
+    }
+
+    @Override
+    /**
+     * No need to update GenId in this implementation, since Python handles it.
+     *
+     * We just need to read the genId from the database.
+     */
+    protected void updateGenId(){
+        Long genId;
+        try {
+            genId = getDbUtil().readMultiGAReadyGenerationInfo().getGenIdForGA(gaName);
+        } catch (Exception e) {
+            getDbUtil().writeReadyGAandGenerationInfo(gaName);
+            genId = 0L;
+        }
+        this.genId = genId;
+    }
+
+    @Override
+    protected void writeTrials(){
+        for (Stim stim : getStims()) {
+            stim.writeStim();
+            Long stimId = stim.getStimId();
+            for (int i = 0; i < numTrialsPerStimulus; i++) {
+                long taskId = getGlobalTimeUtil().currentTimeMicros();
+                dbUtil.writeTaskToDo(taskId, stimId, -1, gaName, genId);
+            }
+        }
+    }
+
+    @Override
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;
     }
