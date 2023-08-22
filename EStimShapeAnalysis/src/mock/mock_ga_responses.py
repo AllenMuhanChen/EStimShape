@@ -96,13 +96,12 @@ def main():
 def insert_to_channel_responses(conn, response_rates: list[dict], data: pd.DataFrame):
     for (stim_id, task_id), response_rate in zip(data[["StimId", "TaskId"]].values, response_rates):
         for channel, spikes_per_second in response_rate.items():
-            query = ("INSERT INTO ChannelResponses "
+            query = ("INSERT IGNORE INTO ChannelResponses "
                      "(stim_id, task_id, channel, spikes_per_second) "
                      "VALUES (%s, %s, %s, %s)")
             params = (int(stim_id), int(task_id), channel.value, float(spikes_per_second))
             conn.execute(query, params)
             conn.mydb.commit()
-
 
 
 class TuningFunction:
@@ -192,7 +191,8 @@ def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[Tuning
     channels = [Channel.A_000, Channel.A_001]
     for index, row in data.iterrows():
         responses.append(
-            {channels[unit]: tuning_function.get_response(row) for unit, tuning_function in enumerate(list_of_tuning_functions)})
+            {channels[unit]: tuning_function.get_response(row) for unit, tuning_function in
+             enumerate(list_of_tuning_functions)})
 
     return responses
 

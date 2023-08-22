@@ -2,11 +2,31 @@ import random
 import unittest
 from typing import Dict, List
 
+import numpy as np
+
 from intan.channels import Channel
 from intan.response_parsing import ResponseParser, get_current_date_as_YYYY_MM_DD
 from mock import mock_ga_responses
 from newga.config import GeneticAlgorithmConfig
 from newga.multi_ga_db_util import MultiGaDbUtil
+
+
+class TestPythonOnlyMockWithNonNeuralResponse(unittest.TestCase):
+    def setUp(self) -> None:
+        self.mock_config = FakeNeuronMockGeneticAlgorithmConfig()
+
+    def test_mock_ga(self):
+        ga = self.mock_config.make_genetic_algorithm()
+        ga.run()
+
+    def test_util_reset_db(self):
+        self.mock_config.db_util.conn.truncate("StimGaInfo")
+        self.mock_config.db_util.conn.truncate("LineageGaInfo")
+        self.mock_config.db_util.conn.truncate("StimSpec")
+        self.mock_config.db_util.conn.truncate("TaskToDo")
+        self.mock_config.db_util.conn.truncate("TaskDone")
+        self.mock_config.db_util.conn.truncate("BehMsg")
+        self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
 
 class MockResponseParser(ResponseParser):
@@ -56,36 +76,19 @@ class MockGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         return MockMultiGaDbUtil(self.connection)
 
 
-class TestPythonOnlyMockWithNonNeuralResponse(unittest.TestCase):
-    def setUp(self) -> None:
-        self.mock_config = FakeNeuronMockGeneticAlgorithmConfig()
-
-    def test_mock_ga(self):
-        ga = self.mock_config.make_genetic_algorithm()
-        ga.run()
-
-    def test_util_reset_db(self):
-        self.mock_config.db_util.conn.truncate("StimGaInfo")
-        self.mock_config.db_util.conn.truncate("LineageGaInfo")
-        self.mock_config.db_util.conn.truncate("StimSpec")
-        self.mock_config.db_util.conn.truncate("TaskToDo")
-        self.mock_config.db_util.conn.truncate("TaskDone")
-        self.mock_config.db_util.conn.truncate("BehMsg")
-        self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
     def setUp(self) -> None:
         self.mock_config = FakeNeuronMockGeneticAlgorithmConfig()
 
+
+    #1
     def test_mock_ga(self):
         ga = self.mock_config.make_genetic_algorithm()
         ga.run()
 
+    #0
     def test_util_reset_db(self):
         self.mock_config.db_util.conn.truncate("StimGaInfo")
         self.mock_config.db_util.conn.truncate("LineageGaInfo")
@@ -115,14 +118,12 @@ class FakeNeuronMockResponseParser(ResponseParser):
     """
 
     def __init__(self, db_util: MultiGaDbUtil = None):
-        # self.channels = get_channels()
+        self.repetition_combination_strategy = np.mean
         self.db_util = db_util
 
     def parse_to_db(self, ga_name: str) -> None:
-        try:
             mock_ga_responses.main()
-        except Exception as e:
-            print("Mock responses already exist, continuing...")
+
 
 
 class FakeNeuronMockMultiGaDbUtil(MultiGaDbUtil):
@@ -133,3 +134,23 @@ class FakeNeuronMockMultiGaDbUtil(MultiGaDbUtil):
 
     def read_current_cluster(self, ga_name) -> list[Channel]:
         return [Channel.A_000, Channel.A_001]
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
