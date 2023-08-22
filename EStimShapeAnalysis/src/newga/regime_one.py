@@ -23,7 +23,6 @@ class RankOrderedDistribution:
     def _generate_bins(self):
         total_stimuli = len(self.stimuli)
 
-        # Combine bins if the number of stimuli is less than the number of bins.
         bin_sizes = [0] * len(self.proportions)
         if total_stimuli < len(self.proportions):
             for i in range(total_stimuli):
@@ -42,26 +41,62 @@ class RankOrderedDistribution:
         self.bins = []
         start = 0
         for size in bin_sizes:
-            self.bins.append(self.stimuli[start: start+size])
+            self.bins.append(self.stimuli[start: start + size])
             start += size
 
-    def sample_from_bin(self, bin_index, num_samples) -> [Stimulus]:
-        # Use the corresponding sample size for this bin.
-        random = np.random.choice(self.bins[bin_index], num_samples)
-        return list(random)
+    def sample_total_amount_across_bins(self, bin_sample_probabilities: [float], total: int) -> [Stimulus]:
+        """
+        You specify a total number of samples and the proportion of samples you want from each bin.
+        This then samples the total number of samples from bins using the proportion
+        as a PROBABILITY of sampling from that bin.
 
-    def sample(self, *, bin_sample_sizes: [int]) -> [Stimulus]:
-        if len(bin_sample_sizes) != len(self.bins):
+        So the proportion assigned is not absolute, it is just a probability.
+        :param bin_sample_probabilities: relative likelihood of sampling from each bin
+        :param total: total number of samples to take
+        :return: list of samples
+        """
+        if len(bin_sample_probabilities) != len(self.bins):
+            raise ValueError("The number of bin sample proportions must equal the number of bins.")
+
+        # Remove the empty bins
+        non_empty_bins = [bin for bin in self.bins if len(bin) > 0]
+        non_empty_bin_sample_probabilities = [proportion for proportion, bin in zip(bin_sample_probabilities, self.bins) if
+                                              len(bin) > 0]
+
+        # Sample total amount
+        samples = []
+
+        # normalize bin_sample_proportions
+        non_empty_bin_sample_probabilities = [proportion / sum(non_empty_bin_sample_probabilities) for proportion in non_empty_bin_sample_probabilities]
+
+        # Sampling from the non-empty bins with replacement
+        for i in range(total):
+            bin_index = np.random.choice(len(non_empty_bins), p=non_empty_bin_sample_probabilities)
+            samples.append(np.random.choice(non_empty_bins[bin_index]))
+        return samples
+
+    def sample_amount_per_bin(self, *, amount_per_bin: [int]) -> [Stimulus]:
+        """
+        Samples a specific amount from each bin. If a bin is empty, it adds the sample size to the next bin.
+        :param amount_per_bin: the amount to sample from each bin
+        :return: list of samples
+        """
+        if len(amount_per_bin) != len(self.bins):
             raise ValueError("The number of bin sample sizes must equal the number of bins.")
         # Sample from all bins and concatenate the results.
         samples = []
         for i, bin in enumerate(self.bins):
             # If the bin is empty, add the sample size to the next bin.
-            if len(bin) == 0 and i < len(self.bins) and bin_sample_sizes[i] > 0:
-                bin_sample_sizes[i+1] += bin_sample_sizes[i]
+            if len(bin) == 0 and i < len(self.bins) and amount_per_bin[i] > 0:
+                amount_per_bin[i + 1] += amount_per_bin[i]
             else:
-                samples.append(self.sample_from_bin(i, bin_sample_sizes[i]))
+                samples.append(self._sample_from_bin(i, amount_per_bin[i]))
         return samples
+
+    def _sample_from_bin(self, bin_index, num_samples) -> [Stimulus]:
+        # Use the corresponding sample size for this bin.
+        random = np.random.choice(self.bins[bin_index], num_samples)
+        return list(random)
 
 
 class RegimeOneParentSelector(ParentSelector):
@@ -78,19 +113,26 @@ class RegimeOneParentSelector(ParentSelector):
         self.bin_sample_sizes_proportions = bin_sample_proportions
 
     def distribute_samples_to_bins(self, total_sample_size: int) -> [int]:
-        return [round(total_sample_size * proportion) for proportion in self.proportions]
+        # if total_sample_size
+        num_samples = [round(total_sample_size * proportion) for proportion in self.proportions]
+        # TODO: FIX THIS
+        remainder = total_sample_size - sum(num_samples)
+        if remainder > 0:
+            random_indices = np.random.choice(len(self.proportions), remainder, p=self.proportions)
+            for index in random_indices:
+                num_samples[index] += 1
+        return num_samples
 
     def select_parents(self, lineage, batch_size):
         rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
-        sampled_stimuli_from_all_lineages = rank_ordered_distribution.sample(
-            bin_sample_sizes=self.distribute_samples_to_bins(batch_size))
+        sampled_stimuli_from_all_lineages = rank_ordered_distribution.sample_total_amount_across_bins(
+            bin_sample_probabilities=self.bin_sample_sizes_proportions, total=batch_size)
 
         # Identify the stimuli from the current lineage in the rank-ordered distribution
         parents = []
-        for bin in sampled_stimuli_from_all_lineages:
-            for stimulus in bin:
-                if any([stimulus == stimulus_from_lineage for stimulus_from_lineage in lineage.stimuli]):
-                    parents.append(stimulus)
+        for stimulus in sampled_stimuli_from_all_lineages:
+            if any([stimulus == stimulus_from_lineage for stimulus_from_lineage in lineage.stimuli]):
+                parents.append(stimulus)
         return parents
 
 

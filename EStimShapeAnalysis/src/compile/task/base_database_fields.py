@@ -2,6 +2,13 @@ from compile.task.task_field import TaskField
 from util.connection import Connection
 
 
+class TaskIdField(TaskField):
+    def __init__(self, name: str = "TaskId"):
+        super().__init__(name)
+
+    def get(self, task_id: int) -> int:
+        return task_id
+
 class DatabaseField(TaskField):
     def __init__(self, conn: Connection, name: str = None):
         super().__init__(name)

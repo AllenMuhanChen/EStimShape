@@ -18,6 +18,19 @@ import unittest
 
 class TestRankOrderedDistributionEdges(unittest.TestCase):
 
+
+    def test_one_stimulus(self):
+        class Stimulus:
+            def __init__(self, response_rate):
+                self.response_rate = response_rate
+
+        stimuli = [Stimulus(0.8)]
+        proportions = [0.2, 0.3, 0.5]
+
+        rank_ordered_distribution = RankOrderedDistribution(stimuli, proportions)
+
+        # Check if the stimuli are placed in the correct bins
+        self.assertEqual(rank_ordered_distribution.bins[2][0], stimuli[0])
     # Test for the edge case of having too few stimuli for the specified proportions
     def test_few_stimuli(self):
         class Stimulus:
@@ -81,15 +94,15 @@ class TestRankOrderedDistribution(unittest.TestCase):
 
     def test_sample_from_bin(self):
         # Test that sampling from a bin returns the correct number of stimuli.
-        sampled_stimuli = self.rank_ordered_distribution.sample_from_bin(0, 1)
+        sampled_stimuli = self.rank_ordered_distribution._sample_from_bin(0, 1)
         self.assertEqual(len(sampled_stimuli), 1)
 
         # Test that the sampled stimuli are from the correct bin.
         self.assertIn(sampled_stimuli[0].response_rate, [1])
 
-    def test_sample(self):
+    def test_sample_exact_numbers_per_bin(self):
         # Test that sampling returns the correct number of stimuli.
-        sampled_stimuli = self.rank_ordered_distribution.sample(bin_sample_sizes=[1, 1, 1, 1, 1])
+        sampled_stimuli = self.rank_ordered_distribution.sample_amount_per_bin(amount_per_bin=[1, 1, 1, 1, 1])
         sampled_stimuli = np.squeeze(sampled_stimuli)
         self.assertEqual(len(sampled_stimuli), 5)
 
@@ -97,6 +110,14 @@ class TestRankOrderedDistribution(unittest.TestCase):
         expected_response_rate_ranges = [(1, 1), (2, 3), (4, 5), (6, 7), (8, 10)]
         for stimulus, (low, high) in zip(sampled_stimuli, expected_response_rate_ranges):
             self.assertTrue(low <= stimulus.response_rate <= high)
+
+    def test_sample_total_across_bins(self):
+        # Test that sampling returns the correct number of stimuli.
+        sampled_stimuli = self.rank_ordered_distribution.sample_total_amount_across_bins([0.1, 0.2, 0.2, 0.2, 0.3], 1)
+        self.assertEqual(len(sampled_stimuli), 1)
+
+
+
 
 
 class TestRegimeOneParentSelector(unittest.TestCase):

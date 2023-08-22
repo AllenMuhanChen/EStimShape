@@ -8,10 +8,11 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import double
 
-from compile.task.base_database_fields import StimSpecIdField
+from compile.task.base_database_fields import StimSpecIdField, TaskIdField
 from compile.task.compile_task_id import TaskIdCollector
 from compile.task.matchstick_fields import ShaftField
 from compile.task.task_field import TaskFieldList, get_data_from_tasks
+from intan.channels import Channel
 from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 from compile.trial.trial_collector import TrialCollector
 from compile.trial.trial_field import FieldList, get_data_from_trials
@@ -31,14 +32,11 @@ def collect_task_ids(conn):
 
 def compile_data_with_task_ids(conn, task_ids):
     # Define the fields
-    #     fields = FieldList()
-    #     fields.append(StimSpecIdField(conn, "Id"))
-    #     fields.append(ShaftField(mstick_spec_data_source))
     fields = TaskFieldList()
-    fields.append(StimSpecIdField(conn, "Id"))
+    fields.append(TaskIdField(name="TaskId"))
+    fields.append(StimSpecIdField(conn, name="StimId"))
     fields.append(ShaftField(conn))
     return get_data_from_tasks(fields, task_ids)
-
 
 
 def main():
@@ -87,12 +85,24 @@ def main():
     # plot_responses([response[1] for response in response_rates], data.iterrows())
 
     # EXPORT]
-    insert_to_exp_log(conn, response_rates, data["Id"])
+    insert_to_channel_responses(conn, response_rates, data)
 
     # DEBUG
     # mock_rwa_analysis.main()
     # mock_rwa_plot.main()
     # plt.show()
+
+
+def insert_to_channel_responses(conn, response_rates: list[dict], data: pd.DataFrame):
+    for (stim_id, task_id), response_rate in zip(data[["StimId", "TaskId"]].values, response_rates):
+        for channel, spikes_per_second in response_rate.items():
+            query = ("INSERT INTO ChannelResponses "
+                     "(stim_id, task_id, channel, spikes_per_second) "
+                     "VALUES (%s, %s, %s, %s)")
+            params = (int(stim_id), int(task_id), channel.value, float(spikes_per_second))
+            conn.execute(query, params)
+            conn.mydb.commit()
+
 
 
 class TuningFunction:
@@ -122,7 +132,7 @@ class ShaftTuningFunction(TuningFunction):
         periodic_indices = [0, 1, 3, 4]
         non_periodic_indices = [2, 5, 6, 7]
         mu = np.array(peak)
-        tuning_width = self.assign_tuning_width_from_range(fraction_of_range= 1.0/2.0)
+        tuning_width = self.assign_tuning_width_from_range(fraction_of_range=1.0 / 2.0)
         self.tuning_function = MultiCustomNormalTuningFunction(mu, tuning_width, periodic_indices, non_periodic_indices,
                                                                100)
 
@@ -179,10 +189,10 @@ def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]
 def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[TuningFunction]) -> list[dict[int, double]]:
     # for each row in data, generate a response using tuning functions
     responses = []
-
+    channels = [Channel.A_000, Channel.A_001]
     for index, row in data.iterrows():
         responses.append(
-            {unit: tuning_function.get_response(row) for unit, tuning_function in enumerate(list_of_tuning_functions)})
+            {channels[unit]: tuning_function.get_response(row) for unit, tuning_function in enumerate(list_of_tuning_functions)})
 
     return responses
 
