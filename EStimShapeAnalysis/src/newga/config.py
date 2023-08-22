@@ -63,7 +63,7 @@ class GeneticAlgorithmConfig:
 
     def spontaneous_firing_rate(self):
         # TODO: analyze real data to get this number
-        return 10
+        return 50
 
     def regime_one(self):
         return Regime(
@@ -145,11 +145,11 @@ class GeneticAlgorithmConfig:
 
 
 def regime_one_bin_proportions():
-    return [0.4, 0.2, 0.2, 0.1, 0.1]
+    return [0.1, 0.2, 0.2, 0.2, 0.2, 0.1]
 
 
 def regime_one_bin_sample_sizes():
-    return [0.2, 0.2, 0.2, 0.2, 0.2]
+    return [0.1, 0, 0.125, 0.175, 0.25, 0.35]
 
 
 def convergence_threshold():

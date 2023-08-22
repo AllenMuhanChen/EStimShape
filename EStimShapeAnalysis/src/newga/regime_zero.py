@@ -31,5 +31,5 @@ class RegimeZeroTransitioner(RegimeTransitioner):
     def should_transition(self, lineage):
         # Perform a one-sample t-test to determine whether the firing rate is significantly different from the spontaneous firing rate.
         firing_rates = lineage.stimuli[0].response_vector
-        t_stat, p_value = stats.ttest_1samp(firing_rates, self.spontaneous_firing_rate)
+        t_stat, p_value = stats.ttest_1samp(firing_rates, self.spontaneous_firing_rate, alternative="greater")
         return p_value < self.significance_level

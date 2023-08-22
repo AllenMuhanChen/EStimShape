@@ -23,14 +23,17 @@ public class FromDbGABlockGeneratorTest {
         generator = context.getBean(FromDbGABlockGenerator.class);
     }
 
+    //2
+    @Test
+    public void run() {
+        generator.generate();
+        runExp();
+    }
+
+    //3
     @Test
     public void runExp(){
         GAConsole.main(emptyArgs);
         GAExperiment.main(emptyArgs);
-    }
-
-    @Test
-    public void run() {
-        generator.generate();
     }
 }

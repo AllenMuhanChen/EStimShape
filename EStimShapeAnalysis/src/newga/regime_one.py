@@ -176,6 +176,8 @@ class RegimeOneMutationAssigner(MutationAssigner):
 # regime_one.py
 
 class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
+    min_magnitude = 0.1
+    max_magnitude = 0.5
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus):
         # Calculate the response rates of the stimuli and normalize them to the range [0, 1].
         response_rates = np.array([s.response_rate for s in lineage.stimuli])
@@ -185,7 +187,7 @@ class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
         # We subtract the normalized response rates from 1 so that higher ranked stimuli have higher probabilities of receiving smaller mutations.
         scores = [1.1 - normalized_response_rate for normalized_response_rate in normalized_response_rates]
         probabilities = [s / sum(scores) for s in scores]  # Ensure probabilities sum to 1
-        return np.random.choice(np.linspace(0, 1, len(lineage.stimuli)), p=probabilities)
+        return np.random.choice(np.linspace(self.min_magnitude, self.max_magnitude, len(lineage.stimuli)), p=probabilities)
 
 
 def calculate_peak_response(responses):
