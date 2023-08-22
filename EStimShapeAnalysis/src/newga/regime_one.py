@@ -115,7 +115,6 @@ class RegimeOneParentSelector(ParentSelector):
     def distribute_samples_to_bins(self, total_sample_size: int) -> [int]:
         # if total_sample_size
         num_samples = [round(total_sample_size * proportion) for proportion in self.proportions]
-        # TODO: FIX THIS
         remainder = total_sample_size - sum(num_samples)
         if remainder > 0:
             random_indices = np.random.choice(len(self.proportions), remainder, p=self.proportions)
