@@ -62,17 +62,22 @@ class ClassicLineageDistributor():
 
         # If below threshold: distribute to all lineages regime>0 equally and generate some new lineages
         num_qualifying_lineages = len(qualifying_lineages)
-        if num_qualifying_lineages < self.max_lineages_to_build:
+        if num_qualifying_lineages < self.max_lineages_to_build and len(lineages_with_regimes_past_regime_one) > 0:
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation - self.number_of_new_lineages_per_generation
             num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages, num_trials_to_distribute_to_existing_lineages)
             num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages, self.number_of_new_lineages_per_generation)
 
         # IF above threshold: distribute to qualifying lineages equally and don't generate new lineages
-        else:
+        elif num_qualifying_lineages >= self.max_lineages_to_build and len(lineages_with_regimes_past_regime_one) > 0:
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation
             # Divide equally among qualifying lineages
             num_trials_for_lineages = distribute_amount_equally_among(qualifying_lineages,
-                                                                      amount=num_trials_to_distribute_to_existing_lineages)
+                                                                              amount=num_trials_to_distribute_to_existing_lineages)
+        # If no lineages are past regime 0, generate all new lineages.
+        else:
+            num_trials_for_lineages = {}
+            num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages,
+                                                            self.number_of_trials_per_generation)
 
         return num_trials_for_lineages
 

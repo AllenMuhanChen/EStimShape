@@ -159,7 +159,7 @@ class GeneticAlgorithm:
                                                 gen_id=self.gen_id)
 
         # Update generations
-        self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)
+        # self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)
 
     # def _update_lineages_with_new_responses(self):
     #     for lineage in self.lineages:

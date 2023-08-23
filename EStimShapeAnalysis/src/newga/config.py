@@ -97,10 +97,11 @@ class GeneticAlgorithmConfig:
             RegimeTwoTransitioner(self.pair_threshold_high(), self.pair_threshold_low()))
 
     def pair_threshold_high(self):
-        return 10
+        return 3
 
+    # should be (n-1)*pair_threshold_high where n is max number of components
     def pair_threshold_low(self):
-        return 10
+        return 6
 
     def percentage_of_max_threshold(self):
         return 0.5
