@@ -35,7 +35,7 @@ class TestConstructLineages(unittest.TestCase):
 
         def mock_stim_ga_info_entry(stim_id: int) -> StimGaInfoEntry:
             return StimGaInfoEntry(stim_id=stim_id, parent_id=-1, lineage_id=0, stim_type="REGIME_ZERO",
-                                   response=self.db_util_mock.read_responses_for(stim_id))
+                                   response=self.db_util_mock.read_responses_for(stim_id), gen_id=0)
 
         self.db_util_mock.read_stim_ga_info_entry = mock_stim_ga_info_entry
 

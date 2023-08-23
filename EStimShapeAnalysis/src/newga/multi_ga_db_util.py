@@ -74,10 +74,10 @@ class MultiGaDbUtil:
         return output
 
     def write_stim_ga_info(self, *, stim_id: int, parent_id: int, lineage_id: int,
-                           stim_type: str, mutation_magnitude: float):
+                           stim_type: str, mutation_magnitude: float, gen_id: int):
         self.conn.execute(
-            "INSERT IGNORE INTO StimGaInfo (stim_id, parent_id, lineage_id, stim_type, mutation_magnitude) VALUES (%s, %s, %s, %s, %s)",
-            (stim_id, parent_id, lineage_id, stim_type, mutation_magnitude))
+            "INSERT IGNORE INTO StimGaInfo (stim_id, parent_id, lineage_id, stim_type, mutation_magnitude, gen_id) VALUES (%s, %s, %s, %s, %s, %s)",
+            (stim_id, parent_id, lineage_id, stim_type, mutation_magnitude, gen_id))
 
     def read_stim_ga_info_entry(self, stim_id: int) -> StimGaInfoEntry:
         def float_or_none(val: Any):
@@ -87,16 +87,17 @@ class MultiGaDbUtil:
                 return float(val)
 
         self.conn.execute(
-            "SELECT parent_id, lineage_id, stim_type, response, mutation_magnitude FROM StimGaInfo WHERE stim_id = %s",
+            "SELECT parent_id, lineage_id, stim_type, response, mutation_magnitude, gen_id FROM StimGaInfo WHERE stim_id = %s",
             (stim_id,))
         rows = self.conn.fetch_all()
         if rows is None:
             raise Exception(f"Could not find StimGaInfo entry for stim_id {stim_id}")
         else:
-            parent_id, lineage_id, stim_type, response, mutation_magnitude = rows[0]
+            parent_id, lineage_id, stim_type, response, mutation_magnitude, gen_id = rows[0]
             return StimGaInfoEntry(stim_id=int(stim_id), parent_id=int(parent_id),
                                    lineage_id=int(lineage_id), stim_type=str(stim_type),
-                                   response=float(response), mutation_magnitude=float_or_none(mutation_magnitude))
+                                   response=float(response), mutation_magnitude=float_or_none(mutation_magnitude),
+                                   gen_id=int(gen_id))
 
     def read_task_done_ids_for_stim_id(self, ga_name: str, stim_id: int):
         self.conn.execute(
@@ -264,3 +265,4 @@ class StimGaInfoEntry:
     stim_type: str
     response: float
     mutation_magnitude: float
+    gen_id: int

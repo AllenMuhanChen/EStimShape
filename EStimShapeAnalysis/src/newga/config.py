@@ -22,7 +22,7 @@ from util.connection import Connection
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
     database = "allen_estimshape_dev_230519"
-    num_trials_per_generation = 40
+    num_trials_per_generation = 20
     max_lineages_to_build = 3
     number_of_new_lineages_per_generation = 5
     base_intan_path = "/bleh"

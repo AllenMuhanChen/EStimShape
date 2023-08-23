@@ -198,29 +198,32 @@ def calculate_peak_response(responses):
 class RegimeOneTransitioner(RegimeTransitioner):
     def __init__(self, convergence_threshold):
         self.convergence_threshold = convergence_threshold
-        self.previous_peak_response = None
+        self.x = 3
         self.change = None
-        self.current_peak_response = None
+        self.peak_responses = None
 
     def should_transition(self, lineage):
-        responses = [s.response_rate for s in lineage.stimuli]
-        self.current_peak_response = calculate_peak_response(responses)
+        self.peak_responses = []
+        self.change = None
+        current_gen_id = lineage.gen_id
+        if current_gen_id > self.x:
+            for gen_id in range(current_gen_id-self.x, current_gen_id):
+                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id == gen_id]
+                self.peak_responses.append(calculate_peak_response(responses_in_generation))
 
-        if self.previous_peak_response is not None:
-            # Calculate the change in the peak response.
-            self.change = abs((self.current_peak_response - self.previous_peak_response) / self.previous_peak_response)
+            self.change = abs((self.peak_responses[-1] - self.peak_responses[0]) / self.x)
 
-            # Transition to the next regime if the change is below the convergence threshold.
             if self.change < self.convergence_threshold:
                 return True
-
-        # Update the previous peak response for the next batch.
-        self.previous_peak_response = self.current_peak_response
-
-        return False
+        else:
+            # Just calculate the peak for what we have so far so we can save this data.
+            for gen_id in range(1, current_gen_id):
+                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id == gen_id]
+                self.peak_responses.append(calculate_peak_response(responses_in_generation))
+            return False
 
     def get_transition_data(self, lineage):
-        data = {"current_peak_response": self.current_peak_response, "change": self.change}
+        data = {"current_peak_response": self.peak_responses, "change": self.change}
         return str(data)
 
 
