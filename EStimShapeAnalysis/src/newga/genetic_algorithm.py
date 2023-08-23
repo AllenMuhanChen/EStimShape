@@ -32,6 +32,11 @@ class GeneticAlgorithm:
     gen_id: int = field(init=False, default=0)
     lineages: List[Lineage] = field(init=False, default_factory=list)
 
+    def process_responses(self):
+        # Could be run outside of this class
+        self.response_parser.parse_to_db(self.name)
+        self.response_processor.process_to_db(self.name)
+
     def run(self):
         self.gen_id = self._read_gen_id()
         self.gen_id += 1
@@ -82,7 +87,7 @@ class GeneticAlgorithm:
 
     def _run_next_generation(self):
         num_trials_for_lineages = self.lineage_distributor.get_num_trials_for_lineages(self.lineages)
-        #sum all trials:
+        # sum all trials:
         print("num_trials_for_lineages", sum(num_trials_for_lineages.values()))
         sum_of_trials_added = 0
         for lineage, num_trials in num_trials_for_lineages.items():
@@ -98,6 +103,7 @@ class GeneticAlgorithm:
                     lineage.generate_new_batch(num_trials)
                     print("Added ", len(lineage.stimuli) - initial_size, " trials to lineage ", lineage.id)
         print("sum_of_trials_added", sum_of_trials_added)
+
     def _create_lineage(self):
         new_lineage = LineageFactory.create_new_lineage(regimes=self.regimes)
         self.lineages.append(new_lineage)
@@ -110,7 +116,8 @@ class GeneticAlgorithm:
             mutation_magnitude = stim_ga_info_entry.mutation_magnitude
             response = stim_ga_info_entry.response
             response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.name)
-            return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response, mutation_magnitude=mutation_magnitude)
+            return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response,
+                            mutation_magnitude=mutation_magnitude)
 
         def add_parent_to_stimulus(stim: Node, parent: Node):
             stim.data.parent_id = parent.data.id
@@ -125,16 +132,19 @@ class GeneticAlgorithm:
             tree_of_stim_ids = tree_of_stim_ids.new_tree_from_function(lambda id: int(id))
             tree_of_stimuli = tree_of_stim_ids.new_tree_from_function(stim_id_to_stimulus)
             tree_of_stimuli.have_parent_apply_to_children(add_parent_to_stimulus)
+            current_regime_index = int(lineage_entry.regime)
 
-            reconstructed_lineage = LineageFactory.create_lineage_from_tree(tree_of_stimuli, self.regimes)
+            reconstructed_lineage = (
+                LineageFactory.create_lineage_from_tree(tree_of_stimuli,
+                                                        regimes=self.regimes,
+                                                        current_regime_index=current_regime_index))
             self.lineages.append(reconstructed_lineage)
 
     def _update_db(self) -> None:
         # Write lineages
         for lineage in self.lineages:
-            lineage_data = ""
             id_tree = lineage.tree.new_tree_from_function(lambda stimulus: stimulus.id)
-            self.db_util.write_lineage_ga_info(lineage.id, id_tree.to_xml(), lineage_data, self.experiment_id,
+            self.db_util.write_lineage_ga_info(lineage.id, id_tree.to_xml(), lineage.lineage_data, self.experiment_id,
                                                self.gen_id,
                                                lineage.current_regime_index)
 
@@ -142,7 +152,8 @@ class GeneticAlgorithm:
         for lineage in self.lineages:
             for stim in lineage.stimuli:
                 self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id, lineage_id=lineage.id,
-                                                stim_type=stim.mutation_type, mutation_magnitude=stim.mutation_magnitude)
+                                                stim_type=stim.mutation_type,
+                                                mutation_magnitude=stim.mutation_magnitude)
 
         # Update generations
         self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)

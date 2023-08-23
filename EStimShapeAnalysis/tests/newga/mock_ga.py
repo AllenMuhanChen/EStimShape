@@ -76,19 +76,20 @@ class MockGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         return MockMultiGaDbUtil(self.connection)
 
 
-
-
 class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
     def setUp(self) -> None:
         self.mock_config = FakeNeuronMockGeneticAlgorithmConfig()
 
-
-    #1
+    # 1
     def test_mock_ga(self):
         ga = self.mock_config.make_genetic_algorithm()
         ga.run()
 
-    #0
+    def test_process_responses(self):
+        ga = self.mock_config.make_genetic_algorithm()
+        ga.process_responses()
+
+    # 0
     def test_util_reset_db(self):
         self.mock_config.db_util.conn.truncate("StimGaInfo")
         self.mock_config.db_util.conn.truncate("LineageGaInfo")
@@ -122,8 +123,7 @@ class FakeNeuronMockResponseParser(ResponseParser):
         self.db_util = db_util
 
     def parse_to_db(self, ga_name: str) -> None:
-            mock_ga_responses.main()
-
+        mock_ga_responses.main()
 
 
 class FakeNeuronMockMultiGaDbUtil(MultiGaDbUtil):
@@ -138,19 +138,3 @@ class FakeNeuronMockMultiGaDbUtil(MultiGaDbUtil):
 
 if __name__ == '__main__':
     unittest.main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

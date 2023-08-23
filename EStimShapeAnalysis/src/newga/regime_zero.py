@@ -27,9 +27,17 @@ class RegimeZeroTransitioner(RegimeTransitioner):
     def __init__(self, spontaneous_firing_rate, significance_level):
         self.spontaneous_firing_rate = spontaneous_firing_rate
         self.significance_level = significance_level
+        self.t_stat = None
+        self.p_value = None
 
     def should_transition(self, lineage):
         # Perform a one-sample t-test to determine whether the firing rate is significantly different from the spontaneous firing rate.
         firing_rates = lineage.stimuli[0].response_vector
-        t_stat, p_value = stats.ttest_1samp(firing_rates, self.spontaneous_firing_rate, alternative="greater")
-        return p_value < self.significance_level
+        self.t_stat, self.p_value = stats.ttest_1samp(firing_rates, self.spontaneous_firing_rate, alternative="greater")
+        return self.p_value < self.significance_level
+
+    def get_transition_data(self, lineage):
+        data = {"p_value": self.p_value, "t_stat": self.t_stat}
+        return str(data)
+
+

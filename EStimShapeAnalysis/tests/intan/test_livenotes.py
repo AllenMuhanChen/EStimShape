@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from intan.livenotes import map_stim_id_to_epochs_with_livenotes
+from intan.livenotes import map_task_id_to_epochs_with_livenotes
 from intan.marker_channels import read_digitalin_file, get_epochs_start_and_stop_indices
 
 
@@ -12,7 +12,7 @@ class TestLiveNoteMapToMarkerChannels(TestCase):
 
         notes = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/newga/mock-trial/notes.txt"
 
-        stamps_for_stim_id = map_stim_id_to_epochs_with_livenotes(notes, stim_tstamps)
+        stamps_for_stim_id = map_task_id_to_epochs_with_livenotes(notes, stim_tstamps)
         print(stamps_for_stim_id)
 
         expected = {1: (3919, 18966), 2: (19424, 33927), 3: (34421, 48964)}
@@ -27,15 +27,15 @@ class TestLiveNoteMapToMarkerChannels(TestCase):
         """
         time_indices = [(1500, 2500), (2500, 3500), (3500, 4500), (4500, 5500)]
         expected_result = {1: (1500, 2500), 2: (2500, 3500), 3: (3500, 4500), 4: (4500, 5500)}
-        self.assertEqual(map_stim_id_to_epochs_with_livenotes(data, time_indices), expected_result)
+        self.assertEqual(map_task_id_to_epochs_with_livenotes(data, time_indices), expected_result)
 
         # Test with time_indices for start being before expected
         time_indices = [(500, 1500), (1500, 2500), (2500, 3500), (3500, 4500)]
         expected_result = {1: (500, 1500), 2: (1500, 2500), 3: (2500, 3500), 4: (3500, 4500)}
-        self.assertEqual(map_stim_id_to_epochs_with_livenotes(data, time_indices), expected_result)
+        self.assertEqual(map_task_id_to_epochs_with_livenotes(data, time_indices), expected_result)
 
         # Test with time_indices for start being after expected
         time_indices = [(1500, 2500), (2500, 3500), (3500, 4500), (5000, 6000)]
         expected_result = {1: (1500, 2500), 2: (2500, 3500), 3: (3500, 4500), 4: (5000, 6000)}
-        self.assertEqual(map_stim_id_to_epochs_with_livenotes(data, time_indices), expected_result)
+        self.assertEqual(map_task_id_to_epochs_with_livenotes(data, time_indices), expected_result)
 
