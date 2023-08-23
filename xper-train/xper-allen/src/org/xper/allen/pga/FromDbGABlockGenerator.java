@@ -6,6 +6,7 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.exception.VariableNotFoundException;
 
 import java.util.List;
 
@@ -75,20 +76,15 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     }
 
     @Override
-    /**
-     * No need to update GenId in this implementation, since Python handles it.
-     *
-     * We just need to read the genId from the database.
-     */
-    protected void updateGenId(){
-        Long genId;
+    protected void updateGenId() {
         try {
-            genId = getDbUtil().readMultiGAReadyGenerationInfo().getGenIdForGA(gaName);
-        } catch (Exception e) {
-            getDbUtil().writeReadyGAandGenerationInfo(gaName);
-            genId = 0L;
+			/*
+			  Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
+			 */
+            genId = getDbUtil().readMultiGAReadyGenerationInfo().getGenIdForGA(gaName) + 1;
+        } catch (VariableNotFoundException e) {
+            getDbUtil().writeReadyGenerationInfo(0, 0);
         }
-        this.genId = genId;
     }
 
     @Override

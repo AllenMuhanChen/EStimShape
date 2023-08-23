@@ -31,6 +31,10 @@ public class MockNoDrawSlideRunner implements SlideRunner {
             for (int i = 0; i < slidePerTrial; i++) {
 
                 // draw the slide
+                if (stateObject.getCurrentTask() == null){
+                    return TrialResult.NO_MORE_TASKS;
+                }
+
                 TrialResult result = doSlide(i, stateObject);
                 if (result != TrialResult.SLIDE_OK) {
                     return result;

@@ -1,5 +1,8 @@
+import os
 import random
+import subprocess
 import unittest
+from time import sleep
 from typing import Dict, List
 
 import numpy as np
@@ -80,6 +83,15 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
     def setUp(self) -> None:
         self.mock_config = FakeNeuronMockGeneticAlgorithmConfig()
 
+    def test_ga_loop(self):
+        generation = 1
+        while generation < 10:
+            sleep(20)
+            ga = self.mock_config.make_genetic_algorithm()
+            ga.run()
+            run_trial_generator(generation)
+            generation += 1
+
     # 1
     def test_mock_ga(self):
         ga = self.mock_config.make_genetic_algorithm()
@@ -99,6 +111,19 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
         self.mock_config.db_util.conn.truncate("BehMsg")
         self.mock_config.db_util.conn.truncate("ChannelResponses")
         self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
+
+
+def run_trial_generator(generation):
+    output_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/tree_graph"
+    allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
+
+    output_file = os.path.join(output_dir, f"generation_{generation}.txt")
+    trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")
+    trial_generator_command = f"java -jar {trial_generator_path}"
+
+    with open(output_file, "w") as file:
+        result = subprocess.run(trial_generator_command, shell=True, stdout=file, stderr=subprocess.STDOUT, text=True)
+    return result.returncode
 
 
 class FakeNeuronMockGeneticAlgorithmConfig(GeneticAlgorithmConfig):

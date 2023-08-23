@@ -66,6 +66,8 @@ public class MockPGAConfig {
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public Boolean xperDoEmptyTask() {
-        return false;
+        return true;
     }
+
+
 }

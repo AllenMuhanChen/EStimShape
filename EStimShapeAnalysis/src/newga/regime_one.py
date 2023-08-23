@@ -207,8 +207,9 @@ class RegimeOneTransitioner(RegimeTransitioner):
         self.change = None
         current_gen_id = lineage.gen_id
         if current_gen_id > self.x:
-            for gen_id in range(current_gen_id-self.x, current_gen_id):
-                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id == gen_id]
+            #the current_gen_id actually doesn't have responses at this point, so we need to go back one more
+            for gen_id in range(current_gen_id-self.x-1, current_gen_id):
+                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
                 self.peak_responses.append(calculate_peak_response(responses_in_generation))
 
             self.change = abs((self.peak_responses[-1] - self.peak_responses[0]) / self.x)
@@ -217,8 +218,8 @@ class RegimeOneTransitioner(RegimeTransitioner):
                 return True
         else:
             # Just calculate the peak for what we have so far so we can save this data.
-            for gen_id in range(1, current_gen_id):
-                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id == gen_id]
+            for gen_id in range(1, current_gen_id-1):
+                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
                 self.peak_responses.append(calculate_peak_response(responses_in_generation))
             return False
 
