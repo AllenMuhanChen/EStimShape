@@ -82,8 +82,8 @@ class GeneticAlgorithm:
             self._create_lineage()
             time.sleep(1 / 1_000)
 
-        for lineage in self.lineages:
-            lineage.age_in_generations += 1
+        # for lineage in self.lineages:
+        #     lineage.age_in_generations += 1
 
     def _run_next_generation(self):
         num_trials_for_lineages = self.lineage_distributor.get_num_trials_for_lineages(self.lineages)
@@ -116,8 +116,9 @@ class GeneticAlgorithm:
             mutation_magnitude = stim_ga_info_entry.mutation_magnitude
             response = stim_ga_info_entry.response
             response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.name)
+            gen_id = stim_ga_info_entry.gen_id
             return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response,
-                            mutation_magnitude=mutation_magnitude)
+                            mutation_magnitude=mutation_magnitude, gen_id=gen_id)
 
         def add_parent_to_stimulus(stim: Node, parent: Node):
             stim.data.parent_id = parent.data.id
@@ -137,11 +138,12 @@ class GeneticAlgorithm:
             reconstructed_lineage = (
                 LineageFactory.create_lineage_from_tree(tree_of_stimuli,
                                                         regimes=self.regimes,
-                                                        current_regime_index=current_regime_index))
+                                                        current_regime_index=current_regime_index,
+                                                        gen_id=self.gen_id))
             self.lineages.append(reconstructed_lineage)
 
     def _update_db(self) -> None:
-        # Write lineages
+        # Write lineages - instructions for Java side of GA
         for lineage in self.lineages:
             id_tree = lineage.tree.new_tree_from_function(lambda stimulus: stimulus.id)
             self.db_util.write_lineage_ga_info(lineage.id, id_tree.to_xml(), lineage.lineage_data, self.experiment_id,
@@ -153,7 +155,8 @@ class GeneticAlgorithm:
             for stim in lineage.stimuli:
                 self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id, lineage_id=lineage.id,
                                                 stim_type=stim.mutation_type,
-                                                mutation_magnitude=stim.mutation_magnitude)
+                                                mutation_magnitude=stim.mutation_magnitude,
+                                                gen_id=self.gen_id)
 
         # Update generations
         self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)

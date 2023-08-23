@@ -13,13 +13,14 @@ from util import time_util
 class Stimulus:
 
     def __init__(self, stim_id: int, mutation_type: str, mutation_magnitude: float = None, response_vector=None,
-                 driving_response=None, parent_id=None):
+                 driving_response=None, parent_id=None, gen_id=None):
         self.id = stim_id
         self.mutation_type = mutation_type
         self.mutation_magnitude = mutation_magnitude
         self.response_vector = response_vector
         self.response_rate = driving_response
         self.parent_id = parent_id
+        self.gen_id = gen_id
 
     def set_parent(self, parent_id: int) -> None:
         self.parent_id = parent_id
@@ -29,7 +30,7 @@ class Stimulus:
 
 
 class Lineage:
-    def __init__(self, founder: Stimulus, regimes: [Regime], current_regime_index=0, tree=None):
+    def __init__(self, founder: Stimulus, regimes: [Regime], current_regime_index=0, tree=None, gen_id=1):
         self.id = founder.id
         if tree is None:
             self.stimuli = [founder]
@@ -40,7 +41,7 @@ class Lineage:
         self.lineage_data = None
         self.regimes = regimes
         self.current_regime_index = current_regime_index
-        self.age_in_generations = 0
+        self.gen_id = gen_id
 
     def generate_new_batch(self, batch_size: int) -> None:
         """
@@ -50,13 +51,12 @@ class Lineage:
         current_regime = self.regimes[self.current_regime_index]
 
         # Select parents from the current
-        parents, children = current_regime.generate_batch(self, batch_size)
+        parents, children = current_regime.generate_batch(self, batch_size, self.gen_id)
 
         for parent, child in zip(parents, children):
             child.parent_id = parent.id
             self.tree.add_child_to(parent, child=Node(child))
         self.stimuli.extend(children)
-        self.age_in_generations += 1
 
     def transition_regimes_if_needed(self) -> None:
         """
@@ -149,7 +149,7 @@ class Regime:
         self.mutation_magnitude_assigner = mutation_magnitude_assigner
         self.regime_transitioner = regime_transitioner
 
-    def generate_batch(self, lineage: Lineage, batch_size: int) -> tuple[list[Stimulus], list[Stimulus]]:
+    def generate_batch(self, lineage: Lineage, batch_size: int, gen_id: int) -> tuple[list[Stimulus], list[Stimulus]]:
         """
         Generate a new batch of stimuli by selecting parents and assigning mutation types and magnitudes.
         returns a dict with keys of children and value of their parents.
@@ -160,7 +160,8 @@ class Regime:
             new_children.append(Stimulus(time_util.now(), self.mutation_assigner.assign_mutation(lineage),
                                          mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(
                                              lineage,
-                                             parent)))
+                                             parent),
+                                         gen_id=gen_id))
             time.sleep(0.001)
         return parents, new_children
 
@@ -221,8 +222,8 @@ class LineageFactory:
         return Lineage(stimuli[0], regimes, tree)
 
     @staticmethod
-    def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Regime] = None) -> Lineage:
-        return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index)
+    def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Regime] = None, gen_id: int = None) -> Lineage:
+        return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index, gen_id=gen_id)
 
     @staticmethod
     def create_new_lineage_from_founder(founder: Stimulus, regimes=None) -> Lineage:
@@ -231,5 +232,5 @@ class LineageFactory:
     @staticmethod
     def create_new_lineage(*, regimes) -> Lineage:
         founder_id = time_util.now()
-        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value, parent_id=0, mutation_magnitude=None)
+        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value, parent_id=0, mutation_magnitude=None, gen_id=1)
         return LineageFactory.create_new_lineage_from_founder(founder, regimes)
