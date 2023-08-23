@@ -9,7 +9,7 @@ from intan.channels import Channel
 from intan.response_parsing import ResponseParser, find_folders_with_id
 
 from intan.spike_file import fetch_spike_tstamps_from_file
-from intan.livenotes import map_stim_id_to_epochs_with_livenotes
+from intan.livenotes import map_task_id_to_epochs_with_livenotes
 from intan.marker_channels import get_epochs_start_and_stop_indices, read_digitalin_file
 from tests.intan.test_marker_channels import plot_bool_array, plot_epochs_on_bool_array
 

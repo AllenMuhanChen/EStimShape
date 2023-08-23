@@ -1,7 +1,7 @@
 import os
 
 
-def map_stim_id_to_epochs_with_livenotes(livenotes_data: str, marker_channel_time_indices: list[tuple]) -> dict[int, tuple[int, int]]:
+def map_task_id_to_epochs_with_livenotes(livenotes_data: str, marker_channel_time_indices: list[tuple]) -> dict[int, tuple[int, int]]:
     """
     Params:
     livenotes_data: live_notes file in the form a path or the file string itself

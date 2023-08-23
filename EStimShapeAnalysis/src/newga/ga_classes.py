@@ -29,7 +29,7 @@ class Stimulus:
 
 
 class Lineage:
-    def __init__(self, founder: Stimulus, regimes: [Regime], tree=None):
+    def __init__(self, founder: Stimulus, regimes: [Regime], current_regime_index=0, tree=None):
         self.id = founder.id
         if tree is None:
             self.stimuli = [founder]
@@ -37,8 +37,9 @@ class Lineage:
         else:
             self.tree = tree
             self.stimuli = tree.to_list()
+        self.lineage_data = None
         self.regimes = regimes
-        self.current_regime_index = 0
+        self.current_regime_index = current_regime_index
         self.age_in_generations = 0
 
     def generate_new_batch(self, batch_size: int) -> None:
@@ -62,7 +63,9 @@ class Lineage:
         Check if this lineage should transition to a new regime based on its performance.
         """
         current_regime = self.regimes[self.current_regime_index]
-        if current_regime.should_transition(self):
+        should_transition = current_regime.should_transition(self)
+        self.lineage_data = current_regime.get_lineage_data(self)
+        if should_transition:
             self.current_regime_index += 1
 
     def get_parent_of(self, child: Stimulus) -> Stimulus:
@@ -167,6 +170,9 @@ class Regime:
         """
         return self.regime_transitioner.should_transition(lineage)
 
+    def get_lineage_data(self, lineage: Lineage):
+        return self.regime_transitioner.get_transition_data(lineage)
+
 
 class ParentSelector(Protocol):
     @abstractmethod
@@ -191,6 +197,9 @@ class RegimeTransitioner(Protocol):
     def should_transition(self, lineage):
         pass
 
+    def get_transition_data(self, lineage):
+        return "Test"
+
 
 class LineageDistributor(Protocol):
     @abstractmethod
@@ -212,8 +221,8 @@ class LineageFactory:
         return Lineage(stimuli[0], regimes, tree)
 
     @staticmethod
-    def create_lineage_from_tree(tree: Node, regimes: [Regime] = None) -> Lineage:
-        return Lineage(tree.data, regimes, tree=tree)
+    def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Regime] = None) -> Lineage:
+        return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index)
 
     @staticmethod
     def create_new_lineage_from_founder(founder: Stimulus, regimes=None) -> Lineage:

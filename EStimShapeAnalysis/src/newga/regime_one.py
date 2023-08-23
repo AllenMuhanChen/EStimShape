@@ -16,8 +16,6 @@ class RankOrderedDistribution:
     def __init__(self, stimuli: [Stimulus], proportions: [float]):
         self.stimuli = sorted(stimuli, key=lambda s: s.response_rate)
         self.proportions = proportions
-        if sum(proportions) != 1:
-            raise ValueError("The sum of proportions must equal 1.")
         self._generate_bins()
 
     def _generate_bins(self):
@@ -201,20 +199,28 @@ class RegimeOneTransitioner(RegimeTransitioner):
     def __init__(self, convergence_threshold):
         self.convergence_threshold = convergence_threshold
         self.previous_peak_response = None
+        self.change = None
+        self.current_peak_response = None
 
     def should_transition(self, lineage):
         responses = [s.response_rate for s in lineage.stimuli]
-        current_peak_response = calculate_peak_response(responses)
+        self.current_peak_response = calculate_peak_response(responses)
 
         if self.previous_peak_response is not None:
             # Calculate the change in the peak response.
-            change = abs((current_peak_response - self.previous_peak_response) / self.previous_peak_response)
+            self.change = abs((self.current_peak_response - self.previous_peak_response) / self.previous_peak_response)
 
             # Transition to the next regime if the change is below the convergence threshold.
-            if change < self.convergence_threshold:
+            if self.change < self.convergence_threshold:
                 return True
 
         # Update the previous peak response for the next batch.
-        self.previous_peak_response = current_peak_response
+        self.previous_peak_response = self.current_peak_response
 
         return False
+
+    def get_transition_data(self, lineage):
+        data = {"current_peak_response": self.current_peak_response, "change": self.change}
+        return str(data)
+
+

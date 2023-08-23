@@ -41,15 +41,21 @@ class RegimeTwoTransitioner(RegimeTransitioner):
         self.pair_threshold = {'high': pair_threshold_high, 'low': pair_threshold_low}
 
     def should_transition(self, lineage: Lineage):
-        pair_counts = {'high': 0, 'low': 0}
+        self.pair_counts = {'high': 0, 'low': 0}
         # Update the counts for high- and low-response pairs.
         for stimulus in lineage.stimuli:
             if stimulus.parent_id is not None:
                 ratio = min(stimulus.response_rate / lineage.get_parent_of(stimulus).response_rate, 1)
                 if ratio > 0.75:
-                    pair_counts['high'] += 1
+                    self.pair_counts['high'] += 1
                 elif ratio < 0.25:
-                    pair_counts['low'] += 1
+                    self.pair_counts['low'] += 1
         # Check if both counts have reached the threshold.
-        return pair_counts['high'] >= self.pair_threshold['high'] and pair_counts['low'] >= \
+        return self.pair_counts['high'] >= self.pair_threshold['high'] and self.pair_counts['low'] >= \
             self.pair_threshold['low']
+
+    def get_transition_data(self, lineage):
+        data = self.pair_counts
+        return str(data)
+
+

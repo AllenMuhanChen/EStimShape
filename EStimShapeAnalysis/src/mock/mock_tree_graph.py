@@ -19,7 +19,7 @@ import xml.etree.ElementTree as ET
 
 from tests.tree_graph.colored_test_tree_graph import ColoredTreeGraph
 
-conn = Connection("allen_estimshape_dev_221110")
+conn = Connection("allen_estimshape_dev_230519")
 
 
 def fetch_components_to_preserve_for_stim_id(stim_id):
@@ -203,7 +203,19 @@ class MockTreeGraphApp(TreeGraphApp):
 
 
 def get_all_lineages():
-    conn.execute("SELECT lineage_id FROM LineageGaInfo ORDER BY regime_score desc LIMIT 10")
+    query = """
+    SELECT LineageGaInfo.lineage_id
+    FROM (
+        SELECT lineage_id, MAX(gen_id) as max_gen_id
+        FROM LineageGaInfo
+        GROUP BY lineage_id
+    ) AS unique_lineages
+    JOIN LineageGaInfo ON LineageGaInfo.lineage_id = unique_lineages.lineage_id AND LineageGaInfo.gen_id = unique_lineages.max_gen_id
+    WHERE LineageGaInfo.regime > 0
+    ORDER BY LineageGaInfo.regime DESC
+    LIMIT 10
+    """
+    conn.execute(query)
     lineage_ids_as_list_of_tuples = conn.fetch_all()
     lineage_ids = [lineage_id[0] for lineage_id in lineage_ids_as_list_of_tuples]
     return lineage_ids
@@ -222,7 +234,7 @@ class MockTreeGraph(ColoredTreeGraph):
         edges = recursive_tree_to_edges(tree_spec)
         self.stim_ids = [stim_id for edge in edges for stim_id in edge]
         y_values_for_stim_ids = fetch_responses_for(self.stim_ids)
-        image_folder = "/home/r2_allen/Documents/EStimShape/dev_221110/pngs_dev_221110"
+        image_folder = "/home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519"
         edge_colors = get_edge_colors(edges)
         super().__init__(y_values_for_stim_ids, edges, edge_colors, image_folder)
         self.highlighted_nodes = []
@@ -292,11 +304,11 @@ class MockTreeGraph(ColoredTreeGraph):
 
 def get_edge_colors(edges: list[tuple[int, int]]):
     colors_for_regimes = {
-        "RegimeZero": "black",
-        "RegimeOne": "red",
-        "RegimeTwo": "blue",
-        "RegimeThree": "green",
-        "RegimeFour": "yellow",
+        "REGIME_ZERO": "black",
+        "REGIME_ONE": "red",
+        "REGIME_TWO": "blue",
+        "REGIME_THREE": "green",
+        "REGIME_FOUR": "yellow",
     }
 
     edge_colors = {}
@@ -337,6 +349,13 @@ def fetch_shaft_data_for_mstick(stim_id):
     return shaft_data
 
 
+def fetch_tree_spec(lineage_id):
+    conn.execute("SELECT tree_spec from LineageGaInfo where lineage_id = %s ORDER BY gen_id DESC LIMIT 1", (lineage_id,))
+    tree_spec = conn.fetch_one()
+    tree_spec = _parse_recursive_xml(tree_spec)
+    return tree_spec
+
+
 def recursive_tree_to_edges(tree):
     edges = []
     if "children" in tree:
@@ -346,28 +365,20 @@ def recursive_tree_to_edges(tree):
     return edges
 
 
-def fetch_tree_spec(lineage_id):
-    conn.execute("SELECT tree_spec from LineageGaInfo where lineage_id = %s", (lineage_id,))
-    tree_spec = conn.fetch_one()
-    tree_spec = parse_recursive_xml(tree_spec)
-    return tree_spec
-
-
-def parse_recursive_xml(xml_string):
+def _parse_recursive_xml(xml_string):
     root = ET.fromstring(xml_string)
-    return _parse_recursive_xml_for_GABranch_class(root)
+    return _parse_recursive_node(root)
 
 
-def _parse_recursive_xml_for_GABranch_class(elem):
-    result = {}
-    if elem.tag == "GABranch":
-        children = []
-        for child_elem in elem.findall("children/GABranch"):
-            children.append(_parse_recursive_xml_for_GABranch_class(child_elem))
-        result["children"] = children
-        result["identifier"] = int(elem.find("identifier").text)
-    return result
+def _parse_recursive_node(elem):
+    children = []
+    for child_elem in elem.findall('Node'):
+        children.append(_parse_recursive_node(child_elem))
 
+    return {
+        "identifier": int(elem.text),
+        "children": children
+    }
 
 def main():
     app = MockTreeGraphApp()
