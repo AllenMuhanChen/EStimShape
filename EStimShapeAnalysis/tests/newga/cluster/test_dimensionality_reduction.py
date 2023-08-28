@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import make_blobs
 from sklearn.metrics import silhouette_score
 
-from newga.cluster.dimensionality_reduction import PCAReducer, MDSReducer
+from newga.gui.cluster import PCAReducer, MDSReducer
 
 # Generate 3-dimensional dataset
 X, y = make_blobs(n_samples=100, centers=3, n_features=3, random_state=42)

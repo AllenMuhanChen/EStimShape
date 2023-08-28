@@ -5,10 +5,9 @@ from PyQt5.QtWidgets import QApplication
 from sklearn.datasets import make_blobs
 
 from intan.channels import Channel
-from newga.cluster.app import ApplicationWindow
-from newga.cluster.app_classes import DataLoader, DataExporter, ChannelMapper
-from newga.cluster.dimensionality_reduction import PCAReducer, MDSReducer
-import os
+from newga.gui.cluster.cluster_app import ClusterApplicationWindow
+from newga.gui.cluster.cluster_app_classes import DataLoader, DataExporter, ChannelMapper
+from newga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer
 
 
 class MockDataLoader(DataLoader):
@@ -53,7 +52,7 @@ def get_qapplication_instance():
 
 if __name__ == '__main__':
     app = get_qapplication_instance()
-    window = ApplicationWindow(MockDataLoader(), MockDataExporter(), [PCAReducer(), MDSReducer()],
-                               MockChannelMapper(Channel))
+    window = ClusterApplicationWindow(MockDataLoader(), MockDataExporter(), [PCAReducer(), MDSReducer()],
+                                      MockChannelMapper(Channel))
     window.show()
     app.exec_()
