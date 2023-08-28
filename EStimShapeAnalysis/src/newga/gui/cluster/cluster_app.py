@@ -1,18 +1,17 @@
 from functools import partial
 
 import numpy as np
-from PyQt5.QtGui import QColor, QPixmap, QIcon
-from PyQt5.QtWidgets import QApplication, QVBoxLayout, QPushButton, QWidget, QHBoxLayout, QListWidget, QListWidgetItem, \
+from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QWidget, QHBoxLayout, QListWidget, QListWidgetItem, \
     QGridLayout, QBoxLayout
-from matplotlib import cm
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector, RectangleSelector
 
 from intan.channels import Channel
-from newga.cluster.app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator
-from newga.cluster.dimensionality_reduction import DimensionalityReducer
+from newga.gui.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator
+from newga.gui.cluster.dimensionality_reduction import DimensionalityReducer
 
 MAX_GROUPS = 10
 
@@ -23,7 +22,7 @@ def make_figure_and_canvas():
     return figure, canvas
 
 
-class ApplicationWindow(QWidget):
+class ClusterApplicationWindow(QWidget):
     def __init__(self, data_loader: DataLoader, data_exporter: DataExporter, reducers: list[DimensionalityReducer],
                  channel_mapper: ChannelMapper):
         super().__init__()
