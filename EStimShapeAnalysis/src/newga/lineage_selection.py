@@ -50,34 +50,36 @@ def get_peak_response_for(lineages: list[Lineage]) -> dict[Lineage, float]:
 
 
 @dataclass(kw_only=True)
-class ClassicLineageDistributor():
+class ClassicLineageDistributor:
     number_of_trials_per_generation: int
     max_lineages_to_build: int
     number_of_new_lineages_per_generation: int
     regimes: list[Regime]
 
     def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
+        lineages_with_regimes_past_zero = filter_to_lineages_past_regime(0, lineages=lineages)
         lineages_with_regimes_past_regime_one = filter_to_lineages_past_regime(1, lineages=lineages)
         qualifying_lineages = filter_by_high_peak_response(lineages_with_regimes_past_regime_one)
 
         # If below threshold: distribute to all lineages regime>0 equally and generate some new lineages
         num_qualifying_lineages = len(qualifying_lineages)
-        if num_qualifying_lineages < self.max_lineages_to_build and len(lineages_with_regimes_past_regime_one) > 0:
+        num_trials_for_lineages = {}
+        if len(lineages_with_regimes_past_zero) == 0:
+            num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages,
+                                                            self.number_of_trials_per_generation)
+        elif num_qualifying_lineages < self.max_lineages_to_build:
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation - self.number_of_new_lineages_per_generation
             num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages, num_trials_to_distribute_to_existing_lineages)
             num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages, self.number_of_new_lineages_per_generation)
 
         # IF above threshold: distribute to qualifying lineages equally and don't generate new lineages
-        elif num_qualifying_lineages >= self.max_lineages_to_build and len(lineages_with_regimes_past_regime_one) > 0:
+        elif num_qualifying_lineages >= self.max_lineages_to_build:
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation
             # Divide equally among qualifying lineages
             num_trials_for_lineages = distribute_amount_equally_among(qualifying_lineages,
-                                                                              amount=num_trials_to_distribute_to_existing_lineages)
-        # If no lineages are past regime 0, generate all new lineages.
-        else:
-            num_trials_for_lineages = {}
-            num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages,
-                                                            self.number_of_trials_per_generation)
+                                                                      amount=num_trials_to_distribute_to_existing_lineages)
+
+
 
         return num_trials_for_lineages
 

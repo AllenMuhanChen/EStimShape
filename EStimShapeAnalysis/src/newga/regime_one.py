@@ -58,14 +58,16 @@ class RankOrderedDistribution:
 
         # Remove the empty bins
         non_empty_bins = [bin for bin in self.bins if len(bin) > 0]
-        non_empty_bin_sample_probabilities = [proportion for proportion, bin in zip(bin_sample_probabilities, self.bins) if
+        non_empty_bin_sample_probabilities = [proportion for proportion, bin in zip(bin_sample_probabilities, self.bins)
+                                              if
                                               len(bin) > 0]
 
         # Sample total amount
         samples = []
 
         # normalize bin_sample_proportions
-        non_empty_bin_sample_probabilities = [proportion / sum(non_empty_bin_sample_probabilities) for proportion in non_empty_bin_sample_probabilities]
+        non_empty_bin_sample_probabilities = [proportion / sum(non_empty_bin_sample_probabilities) for proportion in
+                                              non_empty_bin_sample_probabilities]
 
         # Sampling from the non-empty bins with replacement
         for i in range(total):
@@ -176,6 +178,7 @@ class RegimeOneMutationAssigner(MutationAssigner):
 class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
     min_magnitude = 0.1
     max_magnitude = 0.5
+
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus):
         # Calculate the response rates of the stimuli and normalize them to the range [0, 1].
         response_rates = np.array([s.response_rate for s in lineage.stimuli])
@@ -185,7 +188,8 @@ class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
         # We subtract the normalized response rates from 1 so that higher ranked stimuli have higher probabilities of receiving smaller mutations.
         scores = [1.1 - normalized_response_rate for normalized_response_rate in normalized_response_rates]
         probabilities = [s / sum(scores) for s in scores]  # Ensure probabilities sum to 1
-        return np.random.choice(np.linspace(self.min_magnitude, self.max_magnitude, len(lineage.stimuli)), p=probabilities)
+        return np.random.choice(np.linspace(self.min_magnitude, self.max_magnitude, len(lineage.stimuli)),
+                                p=probabilities)
 
 
 def calculate_peak_response(responses):
@@ -205,26 +209,31 @@ class RegimeOneTransitioner(RegimeTransitioner):
     def should_transition(self, lineage):
         self.peak_responses = []
         self.change = None
-        current_gen_id = lineage.gen_id
-        if current_gen_id > self.x:
-            #the current_gen_id actually doesn't have responses at this point, so we need to go back one more
-            for gen_id in range(current_gen_id-self.x-1, current_gen_id):
-                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
-                self.peak_responses.append(calculate_peak_response(responses_in_generation))
 
-            self.change = abs((self.peak_responses[-1] - self.peak_responses[0]) / self.x)
+        latest_gen_id = lineage.gen_id - 1
+        generations_analyzed = 0
+        gen_ids_to_analyze = []
 
-            if self.change < self.convergence_threshold:
-                return True
-        else:
-            # Just calculate the peak for what we have so far so we can save this data.
-            for gen_id in range(1, current_gen_id-1):
-                responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
-                self.peak_responses.append(calculate_peak_response(responses_in_generation))
+        while generations_analyzed < self.x and latest_gen_id > 0:
+            responses_in_generation = [s.response_rate for s in lineage.stimuli if s.gen_id == latest_gen_id]
+
+            if len(responses_in_generation) > 0:
+                gen_ids_to_analyze.append(latest_gen_id)
+                generations_analyzed += 1
+
+            latest_gen_id -= 1
+
+        if generations_analyzed < self.x:
+            # Not enough valid generations to analyze
             return False
+
+        for gen_id in gen_ids_to_analyze:
+            responses_up_to_and_including_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
+            self.peak_responses.append(calculate_peak_response(responses_up_to_and_including_generation))
+
+        self.change = abs((self.peak_responses[-1] - self.peak_responses[0]) / self.x)
+        return self.change < self.convergence_threshold
 
     def get_transition_data(self, lineage):
         data = {"current_peak_response": self.peak_responses, "change": self.change}
         return str(data)
-
-
