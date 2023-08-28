@@ -1,27 +1,27 @@
-Mon Aug 28 14:23:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Aug 28 14:23:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Aug 28 14:23:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Aug 28 14:23:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-StimId: 1693246998275324 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998276396 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998277456 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998278546 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998279638 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998280732 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998281823 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998282915 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998284007 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998285098 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998286192 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998287283 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998288375 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998289438 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998290609 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998291751 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998292846 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998294015 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998295184 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693246998296354 StimType: REGIME_ZERO Magnitude: 0.0
+Mon Aug 28 16:08:25 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Aug 28 16:08:25 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Aug 28 16:08:25 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Aug 28 16:08:25 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+StimId: 1693253304697414 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304698582 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304699731 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304700883 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304702032 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304703182 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304704333 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304705489 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304706643 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304707794 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304708942 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304710086 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304711230 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304712378 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304713522 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304714664 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304715807 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304716952 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304718095 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253304719227 StimType: REGIME_ZERO Magnitude: 0.0
 Number of stims to generate: 20
 creating and saving PNG...
 creating and saving PNG...

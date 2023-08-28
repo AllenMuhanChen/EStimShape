@@ -19,6 +19,37 @@ from src.newga.regime_zero import RegimeZeroParentSelector, RegimeZeroMutationAs
 from util.connection import Connection
 
 
+class GAVarParameterFetcher:
+    def __init__(self, connection: Connection):
+        self.connection = connection
+
+    def get_most_recent_experiment_and_gen_id(self):
+        # Get the maximum experiment_id first
+        self.connection.execute("SELECT MAX(experiment_id) FROM GAVar")
+        max_experiment_id = self.connection.fetch_one()
+
+        # Then get the maximum gen_id for that experiment_id
+        query = "SELECT MAX(gen_id) FROM GAVar WHERE experiment_id=%s"
+        self.connection.execute(query, (max_experiment_id,))
+        max_gen_id = self.connection.fetch_one()
+
+        return max_experiment_id, max_gen_id
+
+    def get_parameter(self, name, dtype=str):
+        experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id()
+        query = "SELECT value FROM GAVar WHERE name=%s AND experiment_id=%s AND gen_id=%s AND arr_ind = 0"
+        self.connection.execute(query, (name, experiment_id, gen_id))
+        result = self.connection.fetch_one()
+        return dtype(result)
+
+    def get_array_parameter(self, name, dtype=str):
+        experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id()
+        query = f"SELECT arr_ind, value FROM GAVar WHERE name = '{name}' AND experiment_id = {experiment_id} AND gen_id = {gen_id} ORDER BY arr_ind"
+        self.connection.execute(query)
+        result = self.connection.fetch_all()
+        return [dtype(value) for _, value in result]
+
+
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
     database = "allen_estimshape_dev_230519"
@@ -30,6 +61,7 @@ class GeneticAlgorithmConfig:
 
     def __init__(self):
         self.connection = self.make_connection()
+        self.var_fetcher = GAVarParameterFetcher(self.connection)
         self.db_util = self.make_db_util()
         self.response_processor = self.make_response_processor()
         self.regimes = self.make_regimes()
@@ -59,7 +91,7 @@ class GeneticAlgorithmConfig:
                           self.regime_zero_significance_threshold()))
 
     def regime_zero_significance_threshold(self):
-        return 0.05
+        return self.var_fetcher.get_parameter("regime_zero_transition_significance_threshold", dtype=float)
 
     def spontaneous_firing_rate(self):
         # TODO: analyze real data to get this number
@@ -155,5 +187,3 @@ def regime_one_bin_sample_sizes():
 
 def convergence_threshold():
     return 0.1
-
-
