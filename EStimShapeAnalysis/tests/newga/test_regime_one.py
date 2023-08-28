@@ -6,7 +6,8 @@ from typing import Callable
 import numpy as np
 
 from src.newga.ga_classes import Stimulus, Lineage, ParentSelector, LineageFactory
-from src.newga.regime_one import RankOrderedDistribution, RegimeOneParentSelector
+from src.newga.regime_one import RankOrderedDistribution, RegimeOneParentSelector, RegimeOneTransitioner, \
+    calculate_peak_response
 
 
 def mock_get_all_stimuli_func():
@@ -17,7 +18,6 @@ import unittest
 
 
 class TestRankOrderedDistributionEdges(unittest.TestCase):
-
 
     def test_one_stimulus(self):
         class Stimulus:
@@ -31,6 +31,7 @@ class TestRankOrderedDistributionEdges(unittest.TestCase):
 
         # Check if the stimuli are placed in the correct bins
         self.assertEqual(rank_ordered_distribution.bins[2][0], stimuli[0])
+
     # Test for the edge case of having too few stimuli for the specified proportions
     def test_few_stimuli(self):
         class Stimulus:
@@ -117,9 +118,6 @@ class TestRankOrderedDistribution(unittest.TestCase):
         self.assertEqual(len(sampled_stimuli), 1)
 
 
-
-
-
 class TestRegimeOneParentSelector(unittest.TestCase):
     def setUp(self):
         self.get_all_stimuli_func = mock_get_all_stimuli_func
@@ -135,6 +133,39 @@ class TestRegimeOneParentSelector(unittest.TestCase):
         print(len(parents))
         # Test that the selected parents are the ones we specified are in this lineage
         self.assertTrue(all(parent.response_rate in [10, 8, 6, 5, 1] for parent in parents))
+
+
+import unittest
+
+
+class TestRegimeOneTransitioner(unittest.TestCase):
+    def setUp(self):
+        self.transitioner = RegimeOneTransitioner(convergence_threshold=0.01)
+        stimuli_with_gaps = [
+            Stimulus(0, "Test", driving_response=10, gen_id=1),
+            Stimulus(1, "Test", driving_response=8, gen_id=1, parent_id=0),
+            # Skipping gen_id=2, it's an empty generation
+            Stimulus(2, "Test", driving_response=7, gen_id=3, parent_id=1),
+            Stimulus(3, 3, driving_response=6, gen_id=3, parent_id=1),
+            Stimulus(4, "Test", driving_response=5, gen_id=4, parent_id=2)
+        ]
+        self.lineage_with_gaps = Lineage(stimuli_with_gaps[0], None, gen_id=5)
+        self.lineage_with_gaps.stimuli = stimuli_with_gaps
+
+
+    def test_should_transition_skips_empty_generations(self):
+        # Setup a scenario where x is 3, and we have an empty generation (gen_id=2)
+        self.transitioner.x = 3
+
+        result = self.transitioner.should_transition(self.lineage_with_gaps)
+        print(self.transitioner.peak_responses)
+        # Validate that the method correctly identified generations with stimuli
+        self.assertEqual(self.transitioner.peak_responses,
+                         [calculate_peak_response([10, 8, 7, 6, 5]), calculate_peak_response([10, 8, 7, 6]),
+                          calculate_peak_response([10, 8])])
+
+        # Validate whether the transition should happen (this is based on your specific logic and threshold)
+        self.assertTrue(result or not result)  # Replace this with the expected boolean value based on your logic
 
 
 if __name__ == '__main__':

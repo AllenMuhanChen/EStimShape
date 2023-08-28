@@ -1,4 +1,6 @@
 import unittest
+
+from newga.regime_type import RegimeType
 from src.newga.ga_classes import Stimulus, Lineage, Node, LineageFactory
 from src.newga.regime_two import RegimeTwoParentSelector, RegimeTwoTransitioner
 
@@ -36,11 +38,11 @@ class TestRegimeTwoTransitioner(unittest.TestCase):
 
         # Create a parent-child pair with a high response rate ratio.
         parent_stimulus = Stimulus(1, "Test", driving_response=10)
-        child_stimulus_1 = Stimulus(2, "Test", driving_response=10, parent_id=1)
+        child_stimulus_1 = Stimulus(2, RegimeType.REGIME_TWO.value, driving_response=10, parent_id=1)
 
 
         # Create a parent-child pair with a low response rate ratio.
-        child_stimulus_2 = Stimulus(3, "Test", driving_response=2, parent_id=1)
+        child_stimulus_2 = Stimulus(3, RegimeType.REGIME_TWO.value, driving_response=2, parent_id=1)
         tree = Node(parent_stimulus)
         tree.add_child(child_stimulus_1)
         tree.add_child(child_stimulus_2)
@@ -52,8 +54,8 @@ class TestRegimeTwoTransitioner(unittest.TestCase):
 
 
         # The threshold is 2 high 2 low, so add two more stimuli to the lineage and we should transition now
-        child_stimulus_3 = Stimulus(4, "Test", driving_response=10, parent_id=1)
-        child_stimulus_4 = Stimulus(5, "Test", driving_response=2, parent_id=1)
+        child_stimulus_3 = Stimulus(4, RegimeType.REGIME_TWO.value, driving_response=10, parent_id=1)
+        child_stimulus_4 = Stimulus(5, RegimeType.REGIME_TWO.value, driving_response=2, parent_id=1)
         tree.add_child(child_stimulus_3)
         tree.add_child(child_stimulus_4)
         lineage = LineageFactory.create_lineage_from_tree(tree)

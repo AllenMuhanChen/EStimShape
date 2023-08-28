@@ -44,7 +44,7 @@ class RegimeTwoTransitioner(RegimeTransitioner):
         self.pair_counts = {'high': 0, 'low': 0}
         # Update the counts for high- and low-response pairs.
         for stimulus in lineage.stimuli:
-            if stimulus.parent_id is not None:
+            if stimulus.parent_id is not None and stimulus.mutation_type == RegimeType.REGIME_TWO.value:
                 ratio = min(stimulus.response_rate / lineage.get_parent_of(stimulus).response_rate, 1)
                 if ratio > 0.75:
                     self.pair_counts['high'] += 1
