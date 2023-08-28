@@ -85,15 +85,16 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
 
     def test_ga_loop(self):
         generation = 1
-        while generation < 10:
+        while generation < 15:
             sleep(20)
             ga = self.mock_config.make_genetic_algorithm()
             ga.run()
             run_trial_generator(generation)
             generation += 1
 
+
     # 1
-    def test_mock_ga(self):
+    def test_mock_ga_run_single_generation(self):
         ga = self.mock_config.make_genetic_algorithm()
         ga.run()
 

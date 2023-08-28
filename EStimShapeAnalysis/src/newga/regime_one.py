@@ -186,10 +186,13 @@ class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
 
         # Assign mutation magnitudes probabilistically based on normalized response rates.
         # We subtract the normalized response rates from 1 so that higher ranked stimuli have higher probabilities of receiving smaller mutations.
-        scores = [1.1 - normalized_response_rate for normalized_response_rate in normalized_response_rates]
-        probabilities = [s / sum(scores) for s in scores]  # Ensure probabilities sum to 1
-        return np.random.choice(np.linspace(self.min_magnitude, self.max_magnitude, len(lineage.stimuli)),
+        if len(normalized_response_rates) > 1:
+            scores = [1.1 - normalized_response_rate for normalized_response_rate in normalized_response_rates]
+            probabilities = [s / sum(scores) for s in scores]  # Ensure probabilities sum to 1
+            return np.random.choice(np.linspace(self.min_magnitude, self.max_magnitude, len(lineage.stimuli)),
                                 p=probabilities)
+        else:
+            return np.random.uniform(self.min_magnitude, self.max_magnitude)
 
 
 def calculate_peak_response(responses):

@@ -56,7 +56,7 @@ class RegimeThreeMutationAssigner(MutationAssigner):
 class RegimeThreeMutationMagnitudeAssigner(MutationMagnitudeAssigner):
 
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus) -> float:
-        pass
+        return 0.1
 
 
 class RegimeThreeTransitioner(RegimeTransitioner):
