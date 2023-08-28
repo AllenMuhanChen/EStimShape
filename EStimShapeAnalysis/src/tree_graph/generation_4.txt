@@ -1,89 +1,29 @@
-Mon Aug 28 14:25:07 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Aug 28 14:25:07 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Aug 28 14:25:07 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-Mon Aug 28 14:25:07 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
-StimId: 1693247106098316 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693247106099398 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693247106100541 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693247106101669 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693247106102762 StimType: REGIME_ZERO Magnitude: 0.0
-StimId: 1693247106104377 StimType: REGIME_ONE Magnitude: 0.4
-StimId: 1693247106105636 StimType: REGIME_ONE Magnitude: 0.43333
-StimId: 1693247106106889 StimType: REGIME_ONE Magnitude: 0.4
-StimId: 1693247106108132 StimType: REGIME_ONE Magnitude: 0.5
-StimId: 1693247106109308 StimType: REGIME_ONE Magnitude: 0.43333
-StimId: 1693247106110520 StimType: REGIME_ONE Magnitude: 0.4
-StimId: 1693247106112096 StimType: REGIME_ONE Magnitude: 0.16154
-StimId: 1693247106113326 StimType: REGIME_ONE Magnitude: 0.34615
-StimId: 1693247106114582 StimType: REGIME_ONE Magnitude: 0.31538
-StimId: 1693247106116132 StimType: REGIME_ONE Magnitude: 0.42
-StimId: 1693247106117336 StimType: REGIME_ONE Magnitude: 0.5
-StimId: 1693247106118566 StimType: REGIME_ONE Magnitude: 0.5
-StimId: 1693247106119985 StimType: REGIME_ONE Magnitude: 0.13393
-StimId: 1693247106121137 StimType: REGIME_ONE Magnitude: 0.26159
-StimId: 1693247106122251 StimType: REGIME_ONE Magnitude: 0.11932
+Mon Aug 28 16:10:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Aug 28 16:10:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Aug 28 16:10:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Mon Aug 28 16:10:19 EDT 2023 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+StimId: 1693253417737365 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253417738489 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253417739621 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253417740753 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253417741882 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1693253417743958 StimType: REGIME_ONE Magnitude: 0.27333
+StimId: 1693253417745235 StimType: REGIME_ONE Magnitude: 0.40667
+StimId: 1693253417746562 StimType: REGIME_ONE Magnitude: 0.11333
+StimId: 1693253417747890 StimType: REGIME_ONE Magnitude: 0.27333
+StimId: 1693253417749183 StimType: REGIME_ONE Magnitude: 0.34
+StimId: 1693253417750506 StimType: REGIME_ONE Magnitude: 0.15333
+StimId: 1693253417751805 StimType: REGIME_ONE Magnitude: 0.38
+StimId: 1693253417753146 StimType: REGIME_ONE Magnitude: 0.19333
+StimId: 1693253417754478 StimType: REGIME_ONE Magnitude: 0.39333
+StimId: 1693253417755800 StimType: REGIME_ONE Magnitude: 0.35333
+StimId: 1693253417757138 StimType: REGIME_ONE Magnitude: 0.32667
+StimId: 1693253417758469 StimType: REGIME_ONE Magnitude: 0.47333
+StimId: 1693253417759794 StimType: REGIME_ONE Magnitude: 0.14
+StimId: 1693253417761089 StimType: REGIME_ONE Magnitude: 0.36667
+StimId: 1693253417762385 StimType: REGIME_ONE Magnitude: 0.3
 Number of stims to generate: 20
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@7068e664
-Tube collision check failed
-Retrying to morph component
-Attempt 0 of 5
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-FAILED Attempt 0 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@4f704591
-Tube collision check failed
-Retrying to morph component
-Attempt 0 of 5
-Morphing component 2
-FAILED Attempt 0 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 1 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@4f704591
-Tube collision check failed
-Retrying to morph component
-Attempt 1 of 5
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
+Preserving components: 0 out of 3
 Morphing component 1
 FAILED Attempt 0 of 5 to generate valid skeleton for component 1
 Skeleton Collision Check Failed
@@ -93,103 +33,276 @@ Skeleton Collision Check Failed
 Retrying to generate valid morphed arc
 Successfully generated valid skeleton for component 1
 Successfully generated valid radius for component 1
-Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@6c2ed0cd
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@7068e664
 Tube collision check failed
 Retrying to morph component
 Attempt 0 of 5
-Morphing component 1
-FAILED Attempt 0 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
 Morphing component 2
 Successfully generated valid skeleton for component 2
 Successfully generated valid radius for component 2
 Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-FAILED Attempt 0 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 1 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 2 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 3 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 4 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@8576fa0
-Failed to generate valid skeleton for using a morphed component 2 after 5 attempts.
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@60db1c0e
+Tube collision check failed
 Retrying to morph component
 Attempt 0 of 5
-Morphing component 2
-FAILED Attempt 0 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 1 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 2 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 3 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 4 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@8576fa0
-Failed to generate valid skeleton for using a morphed component 2 after 5 attempts.
-Retrying to morph component
-Attempt 1 of 5
-Morphing component 2
-FAILED Attempt 0 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 1 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 2 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 3 of 5 to generate valid skeleton for component 2
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-FAILED Attempt 0 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 3
-Morphing component 1
-Successfully generated valid skeleton for component 1
-FAILED Attempt 0 of 2.0 to generate valid radius for component 1
-Radius profile failed when attempting to be applied to component 1
+Morphing component 3
+Successfully generated valid skeleton for component 3
+FAILED Attempt 0 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
 Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
+Retrying mutate radius
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@60db1c0e
+Failed to generate valid radius for using a morphed component 3 after 10 attempts.
+Retrying to morph component
+Attempt 1 of 5
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@60db1c0e
+Tube collision check failed
+Retrying to morph component
+Attempt 2 of 5
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 2 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 3 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 4 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@60db1c0e
+Failed to generate valid skeleton for using a morphed component 3 after 5 attempts.
+Retrying to morph component
+Attempt 3 of 5
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 2 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 3 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 4 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@60db1c0e
+Failed to generate valid skeleton for using a morphed component 3 after 5 attempts.
+Retrying to morph component
+Attempt 4 of 5
+Failed to morph matchstick.
+Did not successfully morph component 3 after 5 attempts.
+Retrying to morph matchstick...
+Preserving components: 0 out of 3
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+java.lang.NullPointerException
+	at javax.vecmath.Tuple3d.<init>(Tuple3d.java:91)
+	at javax.vecmath.Point3d.<init>(Point3d.java:74)
+	at org.xper.drawing.stick.MStickObj4Smooth.<init>(MStickObj4Smooth.java:313)
+	at org.xper.drawing.stick.MatchStick.smoothizeMStick(MatchStick.java:3836)
+	at org.xper.allen.drawing.composition.AllenMatchStick.genMatchStickFromShapeSpec(AllenMatchStick.java:3417)
+	at org.xper.allen.drawing.composition.AllenMatchStick.genMatchStickFromFile(AllenMatchStick.java:3257)
+	at org.xper.allen.pga.RegimeOneStim.createMStick(RegimeOneStim.java:21)
+	at org.xper.allen.pga.RegimeOneStim.createMStick(RegimeOneStim.java:1)
+	at org.xper.allen.pga.GAStim.writeStim(GAStim.java:36)
+	at org.xper.allen.pga.FromDbGABlockGenerator.writeTrials(FromDbGABlockGenerator.java:93)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:16)
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@20435c40
+Tube collision check failed
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 2
+Successfully generated valid skeleton for component 2
+FAILED Attempt 0 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@20435c40
+Failed to generate valid radius for using a morphed component 2 after 10 attempts.
+Retrying to morph component
+Attempt 1 of 5
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@573906eb
+Tube collision check failed
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 2 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 3 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 4 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@34c01041
+Failed to generate valid skeleton for using a morphed component 3 after 5 attempts.
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@34c01041
+Tube collision check failed
+Retrying to morph component
+Attempt 1 of 5
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 3
+FAILED Attempt 0 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
+Retrying mutate radius
+Successfully generated valid radius for component 3
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@34c01041
+Tube collision check failed
+Retrying to morph component
+Attempt 2 of 5
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 3
+FAILED Attempt 0 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
+Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
+Retrying mutate radius
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@34c01041
+Failed to generate valid radius for using a morphed component 3 after 10 attempts.
+Retrying to morph component
+Attempt 3 of 5
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+creating and saving PNG...
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@22ffa91a
+Tube collision check failed
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@22ffa91a
+Tube collision check failed
+Retrying to morph component
+Attempt 1 of 5
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@22ffa91a
+Tube collision check failed
+Retrying to morph component
+Attempt 2 of 5
+Morphing component 1
+Successfully generated valid skeleton for component 1
 Successfully generated valid radius for component 1
 Successfully morphed component 1
 Morphing component 2
@@ -204,53 +317,9 @@ Successfully generated valid skeleton for component 3
 Successfully generated valid radius for component 3
 Successfully morphed component 3
 creating and saving PNG...
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@340da44c
-Tube collision check failed
-Retrying to morph component
-Attempt 0 of 5
+Preserving components: 0 out of 3
 Morphing component 1
 FAILED Attempt 0 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 1 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 2 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 3 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 4 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@340da44c
-Failed to generate valid skeleton for using a morphed component 1 after 5 attempts.
-Retrying to morph component
-Attempt 1 of 5
-Morphing component 1
-FAILED Attempt 0 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 1 of 5 to generate valid skeleton for component 1
-Skeleton Collision Check Failed
-Retrying to generate valid morphed arc
-FAILED Attempt 2 of 5 to generate valid skeleton for component 1
 Skeleton Collision Check Failed
 Retrying to generate valid morphed arc
 Successfully generated valid skeleton for component 1
@@ -266,78 +335,22 @@ Retrying to generate valid morphed arc
 Successfully generated valid skeleton for component 2
 Successfully generated valid radius for component 2
 Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-creating and saving PNG...
-creating and saving PNG...
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
-Preserving components: 0 out of 3
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2a65bb85
-Tube collision check failed
+Morphing component 3
+Successfully generated valid skeleton for component 3
+FAILED Attempt 0 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
+Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
+Retrying mutate radius
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@3d97a632
+Failed to generate valid radius for using a morphed component 3 after 10 attempts.
 Retrying to morph component
 Attempt 0 of 5
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
 Morphing component 3
 Successfully generated valid skeleton for component 3
 Successfully generated valid radius for component 3
 Successfully morphed component 3
-creating and saving PNG...
-Preserving components: 0 out of 2
-Morphing component 1
-Successfully generated valid skeleton for component 1
-Successfully generated valid radius for component 1
-Successfully morphed component 1
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@5217f3d0
-Tube collision check failed
-Retrying to morph component
-Attempt 0 of 5
-Morphing component 2
-Successfully generated valid skeleton for component 2
-Successfully generated valid radius for component 2
-Successfully morphed component 2
-creating and saving PNG...
 creating and saving PNG...
 Preserving components: 0 out of 3
 Morphing component 1
@@ -355,5 +368,380 @@ Retrying to generate valid morphed arc
 Successfully generated valid skeleton for component 3
 Successfully generated valid radius for component 3
 Successfully morphed component 3
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+FAILED Attempt 0 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2a8d39c4
+Failed to generate valid radius for using a morphed component 2 after 10 attempts.
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 2
+Successfully generated valid skeleton for component 2
+FAILED Attempt 0 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2a8d39c4
+Failed to generate valid radius for using a morphed component 2 after 10 attempts.
+Retrying to morph component
+Attempt 1 of 5
+Morphing component 2
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 2
+FAILED Attempt 0 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2a8d39c4
+Failed to generate valid radius for using a morphed component 2 after 10 attempts.
+Retrying to morph component
+Attempt 2 of 5
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2a8d39c4
+Tube collision check failed
+Retrying to morph component
+Attempt 3 of 5
+Morphing component 2
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2a8d39c4
+Tube collision check failed
+Retrying to morph component
+Attempt 4 of 5
+Failed to morph matchstick.
+Did not successfully morph component 2 after 5 attempts.
+Retrying to morph matchstick...
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2a8d39c4
+Tube collision check failed
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+java.lang.NullPointerException
+	at javax.vecmath.Tuple3d.<init>(Tuple3d.java:91)
+	at javax.vecmath.Point3d.<init>(Point3d.java:74)
+	at org.xper.drawing.stick.MStickObj4Smooth.<init>(MStickObj4Smooth.java:313)
+	at org.xper.drawing.stick.MatchStick.smoothizeMStick(MatchStick.java:3836)
+	at org.xper.allen.drawing.composition.AllenMatchStick.genMatchStickFromShapeSpec(AllenMatchStick.java:3417)
+	at org.xper.allen.drawing.composition.AllenMatchStick.genMatchStickFromFile(AllenMatchStick.java:3257)
+	at org.xper.allen.pga.RegimeOneStim.createMStick(RegimeOneStim.java:21)
+	at org.xper.allen.pga.RegimeOneStim.createMStick(RegimeOneStim.java:1)
+	at org.xper.allen.pga.GAStim.writeStim(GAStim.java:36)
+	at org.xper.allen.pga.FromDbGABlockGenerator.writeTrials(FromDbGABlockGenerator.java:93)
+	at org.xper.allen.nafc.blockgen.AbstractTrialGenerator.generate(AbstractTrialGenerator.java:30)
+	at org.xper.allen.app.newga.MockNewGATrialGenerator.main(MockNewGATrialGenerator.java:16)
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@5778826f
+Tube collision check failed
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+FAIL AT OBJECT MERGE
+Failed to morph matchstick.
+Failed to smoothize the matchstick!
+Retrying to morph matchstick...
+Preserving components: 0 out of 3
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 2 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+ In radius assign, ERROR: rMax < rMin
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@1643d68f
+Tube collision check failed
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 2
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 2
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 2 of 5 to generate valid skeleton for component 2
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 3
+FAILED Attempt 0 of 2.0 to generate valid radius for component 3
+Radius profile failed when attempting to be applied to component 3
+Retrying mutate radius
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 2 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@74bdc168
+Tube collision check failed
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@74bdc168
+Tube collision check failed
+Retrying to morph component
+Attempt 1 of 5
+Morphing component 1
+Successfully generated valid skeleton for component 1
+FAILED Attempt 0 of 2.0 to generate valid radius for component 1
+Radius profile failed when attempting to be applied to component 1
+Retrying mutate radius
+FAILED Attempt 1 of 2.0 to generate valid radius for component 1
+Radius profile failed when attempting to be applied to component 1
+Retrying mutate radius
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@74bdc168
+Failed to generate valid radius for using a morphed component 1 after 10 attempts.
+Retrying to morph component
+Attempt 2 of 5
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+FAILED Attempt 0 of 2.0 to generate valid radius for component 2
+Radius profile failed when attempting to be applied to component 2
+Retrying mutate radius
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+FAILED Attempt 0 of 5 to generate valid skeleton for component 3
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+FAILED Attempt 0 of 5 to generate valid skeleton for component 2
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+Preserving components: 0 out of 3
+Morphing component 1
+FAILED Attempt 0 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 1 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 2 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 3 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+FAILED Attempt 4 of 5 to generate valid skeleton for component 1
+Skeleton Collision Check Failed
+Retrying to generate valid morphed arc
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2c5d601e
+Failed to generate valid skeleton for using a morphed component 1 after 5 attempts.
+Retrying to morph component
+Attempt 0 of 5
+Morphing component 1
+Successfully generated valid skeleton for component 1
+Successfully generated valid radius for component 1
+Successfully morphed component 1
+Morphing component 2
+Successfully generated valid skeleton for component 2
+Successfully generated valid radius for component 2
+Successfully morphed component 2
+Morphing component 3
+Successfully generated valid skeleton for component 3
+Successfully generated valid radius for component 3
+Successfully morphed component 3
+creating and saving PNG...
+creating and saving PNG...
 creating and saving PNG...
 Done Generating...
