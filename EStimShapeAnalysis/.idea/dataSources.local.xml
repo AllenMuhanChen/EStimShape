@@ -15,6 +15,7 @@
           <node kind="schema">
             <name qname="@" />
             <name qname="20230822_training" />
+            <name qname="20230908_recording" />
             <name qname="photo_metadata" />
           </node>
         </introspection-scope>
