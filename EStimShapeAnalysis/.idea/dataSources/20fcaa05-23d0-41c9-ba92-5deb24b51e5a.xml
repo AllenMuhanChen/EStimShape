@@ -1167,6 +1167,8 @@ sys|schema||mysql.sys|localhost|TRIGGER|G</Grants>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="305" parent="1" name="20230908_recording">
+      <IntrospectionTimestamp>2023-09-11.12:41:09</IntrospectionTimestamp>
+      <LocalIntrospectionTimestamp>2023-09-11.20:41:09</LocalIntrospectionTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="306" parent="1" name="fixtrain">
@@ -1268,623 +1270,941 @@ sys|schema||mysql.sys|localhost|TRIGGER|G</Grants>
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="334" parent="312" name="finalStimuliTable">
+    <table id="334" parent="305" name="AcqData">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="335" parent="312" name="monkeys">
+    <table id="335" parent="305" name="AcqSession">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="336" parent="312" name="monkeysCoord">
+    <table id="336" parent="305" name="BehMsg">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="337" parent="312" name="monkeysUnknown">
+    <table id="337" parent="305" name="BehMsgEye">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="338" parent="312" name="photos">
+    <table id="338" parent="305" name="InternalState">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="339" parent="312" name="singleMonkeyCropHeight">
+    <table id="339" parent="305" name="StimSpec">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="340" parent="312" name="singleMonkey_20230907">
+    <table id="340" parent="305" name="SystemVar">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <table id="341" parent="312" name="toysCoord">
+    <table id="341" parent="305" name="TaskDone">
       <Engine>InnoDB</Engine>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </table>
-    <view id="342" parent="312" name="combined_view">
+    <table id="342" parent="305" name="TaskToDo">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="343" parent="305" name="XfmSpec">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="344" parent="312" name="finalStimuliTable">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="345" parent="312" name="monkeys">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="346" parent="312" name="monkeysCoord">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="347" parent="312" name="monkeysUnknown">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="348" parent="312" name="photos">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="349" parent="312" name="singleMonkeyCropHeight">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="350" parent="312" name="singleMonkey_20230907">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <table id="351" parent="312" name="toysCoord">
+      <Engine>InnoDB</Engine>
+      <CollationName>utf8mb4_0900_ai_ci</CollationName>
+    </table>
+    <view id="352" parent="312" name="combined_view">
       <Definer>xper_rw@%</Definer>
       <SourceTextLength>634</SourceTextLength>
     </view>
-    <view id="343" parent="312" name="monkey_count">
+    <view id="353" parent="312" name="monkey_count">
       <Definer>xper_rw@%</Definer>
       <SourceTextLength>285</SourceTextLength>
     </view>
-    <view id="344" parent="312" name="monkey_photos">
+    <view id="354" parent="312" name="monkey_photos">
       <Definer>xper_rw@%</Definer>
       <SourceTextLength>362</SourceTextLength>
     </view>
-    <view id="345" parent="312" name="monkeysCoord_photos">
+    <view id="355" parent="312" name="monkeysCoord_photos">
       <Definer>xper_rw@%</Definer>
       <SourceTextLength>397</SourceTextLength>
     </view>
-    <column id="346" parent="324" name="tstamp">
+    <column id="356" parent="324" name="tstamp">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="347" parent="324" name="data">
+    <column id="357" parent="324" name="data">
       <DasType>longblob|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <index id="348" parent="324" name="PRIMARY">
+    <index id="358" parent="324" name="PRIMARY">
       <ColNames>tstamp</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="349" parent="324" name="PRIMARY">
+    <key id="359" parent="324" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="350" parent="325" name="start_time">
+    <column id="360" parent="325" name="start_time">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="351" parent="325" name="stop_time">
+    <column id="361" parent="325" name="stop_time">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <index id="352" parent="325" name="PRIMARY">
+    <index id="362" parent="325" name="PRIMARY">
       <ColNames>start_time</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="353" parent="325" name="PRIMARY">
+    <key id="363" parent="325" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="354" parent="326" name="tstamp">
+    <column id="364" parent="326" name="tstamp">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="355" parent="326" name="type">
+    <column id="365" parent="326" name="type">
       <DasType>varchar(255)|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="356" parent="326" name="msg">
+    <column id="366" parent="326" name="msg">
       <DasType>longtext|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <index id="357" parent="326" name="PRIMARY">
+    <index id="367" parent="326" name="PRIMARY">
       <ColNames>tstamp
 type</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="358" parent="326" name="PRIMARY">
+    <key id="368" parent="326" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="359" parent="327" name="tstamp">
+    <column id="369" parent="327" name="tstamp">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="360" parent="327" name="type">
+    <column id="370" parent="327" name="type">
       <DasType>varchar(255)|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="361" parent="327" name="msg">
+    <column id="371" parent="327" name="msg">
       <DasType>longtext|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <index id="362" parent="327" name="PRIMARY">
+    <index id="372" parent="327" name="PRIMARY">
       <ColNames>tstamp
 type</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="363" parent="327" name="PRIMARY">
+    <key id="373" parent="327" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="364" parent="328" name="name">
+    <column id="374" parent="328" name="name">
       <DasType>varchar(255)|0s</DasType>
       <DefaultExpression>&apos;&apos;</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="365" parent="328" name="arr_ind">
+    <column id="375" parent="328" name="arr_ind">
       <DasType>int|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="366" parent="328" name="val">
+    <column id="376" parent="328" name="val">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <index id="367" parent="328" name="PRIMARY">
+    <index id="377" parent="328" name="PRIMARY">
       <ColNames>name
 arr_ind</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="368" parent="328" name="PRIMARY">
+    <key id="378" parent="328" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="369" parent="329" name="id">
+    <column id="379" parent="329" name="id">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="370" parent="329" name="spec">
+    <column id="380" parent="329" name="spec">
       <DasType>longtext|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <index id="371" parent="329" name="PRIMARY">
+    <index id="381" parent="329" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="372" parent="329" name="PRIMARY">
+    <key id="382" parent="329" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="373" parent="330" name="name">
+    <column id="383" parent="330" name="name">
       <DasType>varchar(255)|0s</DasType>
       <DefaultExpression>&apos;&apos;</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="374" parent="330" name="arr_ind">
+    <column id="384" parent="330" name="arr_ind">
       <DasType>int|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="375" parent="330" name="tstamp">
+    <column id="385" parent="330" name="tstamp">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>3</Position>
     </column>
-    <column id="376" parent="330" name="val">
+    <column id="386" parent="330" name="val">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <index id="377" parent="330" name="PRIMARY">
+    <index id="387" parent="330" name="PRIMARY">
       <ColNames>name
 arr_ind
 tstamp</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="378" parent="330" name="PRIMARY">
+    <key id="388" parent="330" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="379" parent="331" name="tstamp">
+    <column id="389" parent="331" name="tstamp">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="380" parent="331" name="task_id">
+    <column id="390" parent="331" name="task_id">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="381" parent="331" name="part_done">
+    <column id="391" parent="331" name="part_done">
       <DasType>tinyint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>3</Position>
     </column>
-    <index id="382" parent="331" name="PRIMARY">
+    <index id="392" parent="331" name="PRIMARY">
       <ColNames>tstamp</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="383" parent="331" name="PRIMARY">
+    <key id="393" parent="331" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="384" parent="332" name="task_id">
+    <column id="394" parent="332" name="task_id">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="385" parent="332" name="stim_id">
+    <column id="395" parent="332" name="stim_id">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="386" parent="332" name="xfm_id">
+    <column id="396" parent="332" name="xfm_id">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>3</Position>
     </column>
-    <column id="387" parent="332" name="gen_id">
+    <column id="397" parent="332" name="gen_id">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>4</Position>
     </column>
-    <column id="388" parent="332" name="lin_id">
+    <column id="398" parent="332" name="lin_id">
       <DasType>bigint|0s</DasType>
       <Position>5</Position>
     </column>
-    <index id="389" parent="332" name="PRIMARY">
+    <index id="399" parent="332" name="PRIMARY">
       <ColNames>task_id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="390" parent="332" name="PRIMARY">
+    <key id="400" parent="332" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="391" parent="333" name="id">
+    <column id="401" parent="333" name="id">
       <DasType>bigint|0s</DasType>
       <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="392" parent="333" name="spec">
+    <column id="402" parent="333" name="spec">
       <DasType>longtext|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <index id="393" parent="333" name="PRIMARY">
+    <index id="403" parent="333" name="PRIMARY">
       <ColNames>id</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="394" parent="333" name="PRIMARY">
+    <key id="404" parent="333" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="395" parent="334" name="file_name">
-      <DasType>text|0s</DasType>
-      <Position>1</Position>
-    </column>
-    <column id="396" parent="334" name="monkey_id">
+    <column id="405" parent="334" name="tstamp">
       <DasType>bigint|0s</DasType>
-      <Position>2</Position>
-    </column>
-    <column id="397" parent="334" name="jpg_id">
-      <DasType>bigint|0s</DasType>
-      <Position>3</Position>
-    </column>
-    <column id="398" parent="334" name="monkey_name">
-      <DasType>text|0s</DasType>
-      <Position>4</Position>
-    </column>
-    <column id="399" parent="334" name="head_crop_height">
-      <DasType>bigint|0s</DasType>
-      <Position>5</Position>
-    </column>
-    <column id="400" parent="335" name="monkey_id">
-      <DasType>int|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="401" parent="335" name="jpg_id">
-      <DasType>int|0s</DasType>
+    <column id="406" parent="334" name="data">
+      <DasType>longblob|0s</DasType>
+      <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="402" parent="335" name="monkey_name">
-      <DasType>text|0s</DasType>
-      <Position>3</Position>
-    </column>
-    <foreign-key id="403" parent="335" name="fk_monkeys_1">
-      <ColNames>jpg_id</ColNames>
-      <RefColNames>jpg_id</RefColNames>
-      <RefTableName>photos</RefTableName>
-    </foreign-key>
-    <index id="404" parent="335" name="PRIMARY">
-      <ColNames>monkey_id</ColNames>
+    <index id="407" parent="334" name="PRIMARY">
+      <ColNames>tstamp</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="405" parent="335" name="fk_monkeys_1_idx">
-      <ColNames>jpg_id</ColNames>
-      <Type>btree</Type>
-    </index>
-    <key id="406" parent="335" name="PRIMARY">
+    <key id="408" parent="334" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="407" parent="336" name="monkey_id">
-      <DasType>int|0s</DasType>
+    <column id="409" parent="335" name="start_time">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="408" parent="336" name="body">
-      <DasType>text|0s</DasType>
+    <column id="410" parent="335" name="stop_time">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="409" parent="336" name="face">
-      <DasType>text|0s</DasType>
-      <Position>3</Position>
-    </column>
-    <foreign-key id="410" parent="336" name="fk_monkeysCoord_1">
-      <ColNames>monkey_id</ColNames>
-      <RefColNames>monkey_id</RefColNames>
-      <RefTableName>monkeys</RefTableName>
-    </foreign-key>
-    <index id="411" parent="336" name="PRIMARY">
-      <ColNames>monkey_id</ColNames>
+    <index id="411" parent="335" name="PRIMARY">
+      <ColNames>start_time</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="412" parent="336" name="PRIMARY">
+    <key id="412" parent="335" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="413" parent="337" name="monkey_id">
-      <DasType>int|0s</DasType>
+    <column id="413" parent="336" name="tstamp">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="414" parent="337" name="unknown_guess">
-      <DasType>text|0s</DasType>
+    <column id="414" parent="336" name="type">
+      <DasType>varchar(255)|0s</DasType>
+      <NotNull>1</NotNull>
       <Position>2</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <foreign-key id="415" parent="337" name="fk_monkeysUnknown_1">
-      <ColNames>monkey_id</ColNames>
-      <RefColNames>monkey_id</RefColNames>
-      <RefTableName>monkeys</RefTableName>
-    </foreign-key>
-    <index id="416" parent="337" name="PRIMARY">
-      <ColNames>monkey_id</ColNames>
+    <column id="415" parent="336" name="msg">
+      <DasType>longtext|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
+    </column>
+    <index id="416" parent="336" name="PRIMARY">
+      <ColNames>tstamp
+type</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="417" parent="337" name="PRIMARY">
+    <key id="417" parent="336" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="418" parent="338" name="jpg_id">
-      <DasType>int|0s</DasType>
+    <column id="418" parent="337" name="tstamp">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="419" parent="338" name="file_name">
-      <DasType>text|0s</DasType>
+    <column id="419" parent="337" name="type">
+      <DasType>varchar(255)|0s</DasType>
+      <NotNull>1</NotNull>
       <Position>2</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="420" parent="338" name="sd_card">
-      <DasType>text|0s</DasType>
+    <column id="420" parent="337" name="msg">
+      <DasType>longtext|0s</DasType>
+      <NotNull>1</NotNull>
       <Position>3</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="421" parent="338" name="date_taken">
-      <DasType>date|0s</DasType>
-      <Position>4</Position>
-    </column>
-    <column id="422" parent="338" name="monkey_group">
-      <DasType>text|0s</DasType>
-      <Position>5</Position>
-    </column>
-    <column id="423" parent="338" name="orientation">
-      <DasType>text|0s</DasType>
-      <Position>6</Position>
-    </column>
-    <column id="424" parent="338" name="contents">
-      <DasType>text|0s</DasType>
-      <Position>7</Position>
-    </column>
-    <index id="425" parent="338" name="PRIMARY">
-      <ColNames>jpg_id</ColNames>
+    <index id="421" parent="337" name="PRIMARY">
+      <ColNames>tstamp
+type</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <key id="426" parent="338" name="PRIMARY">
+    <key id="422" parent="337" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="427" parent="339" name="file_name">
-      <DasType>text|0s</DasType>
-      <Position>1</Position>
-    </column>
-    <column id="428" parent="339" name="monkey_id">
-      <DasType>bigint|0s</DasType>
-      <Position>2</Position>
-    </column>
-    <column id="429" parent="339" name="jpg_id">
-      <DasType>bigint|0s</DasType>
-      <Position>3</Position>
-    </column>
-    <column id="430" parent="339" name="monkey_name">
-      <DasType>text|0s</DasType>
-      <Position>4</Position>
-    </column>
-    <column id="431" parent="339" name="head_crop_height">
-      <DasType>bigint|0s</DasType>
-      <Position>5</Position>
-    </column>
-    <column id="432" parent="340" name="file_name">
-      <DasType>text|0s</DasType>
-      <Position>1</Position>
-    </column>
-    <column id="433" parent="340" name="monkey_id">
-      <DasType>bigint|0s</DasType>
-      <Position>2</Position>
-    </column>
-    <column id="434" parent="340" name="jpg_id">
-      <DasType>bigint|0s</DasType>
-      <Position>3</Position>
-    </column>
-    <column id="435" parent="340" name="monkey_name">
-      <DasType>text|0s</DasType>
-      <Position>4</Position>
-    </column>
-    <column id="436" parent="340" name="head_crop_height">
-      <DasType>bigint|0s</DasType>
-      <Position>5</Position>
-    </column>
-    <column id="437" parent="341" name="toy_id">
-      <DasType>int|0s</DasType>
+    <column id="423" parent="338" name="name">
+      <DasType>varchar(255)|0s</DasType>
+      <DefaultExpression>&apos;&apos;</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="438" parent="341" name="jpg_id">
+    <column id="424" parent="338" name="arr_ind">
       <DasType>int|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="439" parent="341" name="toy">
+    <column id="425" parent="338" name="val">
       <DasType>text|0s</DasType>
+      <NotNull>1</NotNull>
       <Position>3</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
     </column>
-    <column id="440" parent="341" name="coordinates">
-      <DasType>text|0s</DasType>
-      <Position>4</Position>
-    </column>
-    <foreign-key id="441" parent="341" name="fk_toysCoord_1">
-      <ColNames>jpg_id</ColNames>
-      <RefColNames>jpg_id</RefColNames>
-      <RefTableName>photos</RefTableName>
-    </foreign-key>
-    <index id="442" parent="341" name="PRIMARY">
-      <ColNames>toy_id</ColNames>
+    <index id="426" parent="338" name="PRIMARY">
+      <ColNames>name
+arr_ind</ColNames>
       <Type>btree</Type>
       <Unique>1</Unique>
     </index>
-    <index id="443" parent="341" name="fk_toysCoord_1_idx">
-      <ColNames>jpg_id</ColNames>
-      <Type>btree</Type>
-    </index>
-    <key id="444" parent="341" name="PRIMARY">
+    <key id="427" parent="338" name="PRIMARY">
       <NameSurrogate>1</NameSurrogate>
       <Primary>1</Primary>
       <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
     </key>
-    <column id="445" parent="342" name="monkey_id">
-      <DasType>int|0s</DasType>
+    <column id="428" parent="339" name="id">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="446" parent="342" name="body">
-      <DasType>text|0s</DasType>
+    <column id="429" parent="339" name="spec">
+      <DasType>longtext|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
+    </column>
+    <index id="430" parent="339" name="PRIMARY">
+      <ColNames>id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="431" parent="339" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="432" parent="340" name="name">
+      <DasType>varchar(255)|0s</DasType>
+      <DefaultExpression>&apos;&apos;</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
+    </column>
+    <column id="433" parent="340" name="arr_ind">
+      <DasType>int|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
       <Position>2</Position>
     </column>
-    <column id="447" parent="342" name="face">
-      <DasType>text|0s</DasType>
+    <column id="434" parent="340" name="tstamp">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
       <Position>3</Position>
     </column>
-    <column id="448" parent="342" name="monkey_name">
+    <column id="435" parent="340" name="val">
       <DasType>text|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
+    </column>
+    <index id="436" parent="340" name="PRIMARY">
+      <ColNames>name
+arr_ind
+tstamp</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="437" parent="340" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="438" parent="341" name="tstamp">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="439" parent="341" name="task_id">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+    </column>
+    <column id="440" parent="341" name="part_done">
+      <DasType>tinyint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+    </column>
+    <index id="441" parent="341" name="PRIMARY">
+      <ColNames>tstamp</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="442" parent="341" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="443" parent="342" name="task_id">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="444" parent="342" name="stim_id">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+    </column>
+    <column id="445" parent="342" name="xfm_id">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+    </column>
+    <column id="446" parent="342" name="gen_id">
+      <DasType>bigint|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
+      <NotNull>1</NotNull>
       <Position>4</Position>
     </column>
-    <column id="449" parent="342" name="file_name">
-      <DasType>text|0s</DasType>
+    <column id="447" parent="342" name="lin_id">
+      <DasType>bigint|0s</DasType>
       <Position>5</Position>
     </column>
-    <column id="450" parent="342" name="jpg_id">
-      <DasType>int|0s</DasType>
-      <NotNull>1</NotNull>
-      <Position>6</Position>
-    </column>
-    <column id="451" parent="343" name="file_name">
-      <DasType>text|0s</DasType>
-      <Position>1</Position>
-    </column>
-    <column id="452" parent="343" name="jpg_id">
-      <DasType>int|0s</DasType>
-      <NotNull>1</NotNull>
-      <Position>2</Position>
-    </column>
-    <column id="453" parent="343" name="number_of_monkey">
+    <index id="448" parent="342" name="PRIMARY">
+      <ColNames>task_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="449" parent="342" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="450" parent="343" name="id">
       <DasType>bigint|0s</DasType>
-      <NotNull>1</NotNull>
-      <Position>3</Position>
-    </column>
-    <column id="454" parent="344" name="jpg_id">
-      <DasType>int|0s</DasType>
+      <DefaultExpression>0</DefaultExpression>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="455" parent="344" name="file_name">
+    <column id="451" parent="343" name="spec">
+      <DasType>longtext|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+      <CollationName>utf8mb3_unicode_ci</CollationName>
+    </column>
+    <index id="452" parent="343" name="PRIMARY">
+      <ColNames>id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="453" parent="343" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="454" parent="344" name="file_name">
       <DasType>text|0s</DasType>
+      <Position>1</Position>
+    </column>
+    <column id="455" parent="344" name="monkey_id">
+      <DasType>bigint|0s</DasType>
       <Position>2</Position>
     </column>
-    <column id="456" parent="344" name="monkey_id">
-      <DasType>int|0s</DasType>
-      <NotNull>1</NotNull>
+    <column id="456" parent="344" name="jpg_id">
+      <DasType>bigint|0s</DasType>
       <Position>3</Position>
     </column>
     <column id="457" parent="344" name="monkey_name">
       <DasType>text|0s</DasType>
       <Position>4</Position>
     </column>
-    <column id="458" parent="345" name="monkey_id">
+    <column id="458" parent="344" name="head_crop_height">
+      <DasType>bigint|0s</DasType>
+      <Position>5</Position>
+    </column>
+    <column id="459" parent="345" name="monkey_id">
       <DasType>int|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
     </column>
-    <column id="459" parent="345" name="body">
-      <DasType>text|0s</DasType>
+    <column id="460" parent="345" name="jpg_id">
+      <DasType>int|0s</DasType>
       <Position>2</Position>
     </column>
-    <column id="460" parent="345" name="face">
+    <column id="461" parent="345" name="monkey_name">
       <DasType>text|0s</DasType>
       <Position>3</Position>
     </column>
-    <column id="461" parent="345" name="file_name">
+    <foreign-key id="462" parent="345" name="fk_monkeys_1">
+      <ColNames>jpg_id</ColNames>
+      <RefColNames>jpg_id</RefColNames>
+      <RefTableName>photos</RefTableName>
+    </foreign-key>
+    <index id="463" parent="345" name="PRIMARY">
+      <ColNames>monkey_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <index id="464" parent="345" name="fk_monkeys_1_idx">
+      <ColNames>jpg_id</ColNames>
+      <Type>btree</Type>
+    </index>
+    <key id="465" parent="345" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="466" parent="346" name="monkey_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="467" parent="346" name="body">
+      <DasType>text|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="468" parent="346" name="face">
+      <DasType>text|0s</DasType>
+      <Position>3</Position>
+    </column>
+    <foreign-key id="469" parent="346" name="fk_monkeysCoord_1">
+      <ColNames>monkey_id</ColNames>
+      <RefColNames>monkey_id</RefColNames>
+      <RefTableName>monkeys</RefTableName>
+    </foreign-key>
+    <index id="470" parent="346" name="PRIMARY">
+      <ColNames>monkey_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="471" parent="346" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="472" parent="347" name="monkey_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="473" parent="347" name="unknown_guess">
+      <DasType>text|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <foreign-key id="474" parent="347" name="fk_monkeysUnknown_1">
+      <ColNames>monkey_id</ColNames>
+      <RefColNames>monkey_id</RefColNames>
+      <RefTableName>monkeys</RefTableName>
+    </foreign-key>
+    <index id="475" parent="347" name="PRIMARY">
+      <ColNames>monkey_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="476" parent="347" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="477" parent="348" name="jpg_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="478" parent="348" name="file_name">
+      <DasType>text|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="479" parent="348" name="sd_card">
+      <DasType>text|0s</DasType>
+      <Position>3</Position>
+    </column>
+    <column id="480" parent="348" name="date_taken">
+      <DasType>date|0s</DasType>
+      <Position>4</Position>
+    </column>
+    <column id="481" parent="348" name="monkey_group">
+      <DasType>text|0s</DasType>
+      <Position>5</Position>
+    </column>
+    <column id="482" parent="348" name="orientation">
+      <DasType>text|0s</DasType>
+      <Position>6</Position>
+    </column>
+    <column id="483" parent="348" name="contents">
+      <DasType>text|0s</DasType>
+      <Position>7</Position>
+    </column>
+    <index id="484" parent="348" name="PRIMARY">
+      <ColNames>jpg_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <key id="485" parent="348" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="486" parent="349" name="file_name">
+      <DasType>text|0s</DasType>
+      <Position>1</Position>
+    </column>
+    <column id="487" parent="349" name="monkey_id">
+      <DasType>bigint|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="488" parent="349" name="jpg_id">
+      <DasType>bigint|0s</DasType>
+      <Position>3</Position>
+    </column>
+    <column id="489" parent="349" name="monkey_name">
+      <DasType>text|0s</DasType>
+      <Position>4</Position>
+    </column>
+    <column id="490" parent="349" name="head_crop_height">
+      <DasType>bigint|0s</DasType>
+      <Position>5</Position>
+    </column>
+    <column id="491" parent="350" name="file_name">
+      <DasType>text|0s</DasType>
+      <Position>1</Position>
+    </column>
+    <column id="492" parent="350" name="monkey_id">
+      <DasType>bigint|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="493" parent="350" name="jpg_id">
+      <DasType>bigint|0s</DasType>
+      <Position>3</Position>
+    </column>
+    <column id="494" parent="350" name="monkey_name">
+      <DasType>text|0s</DasType>
+      <Position>4</Position>
+    </column>
+    <column id="495" parent="350" name="head_crop_height">
+      <DasType>bigint|0s</DasType>
+      <Position>5</Position>
+    </column>
+    <column id="496" parent="351" name="toy_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="497" parent="351" name="jpg_id">
+      <DasType>int|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="498" parent="351" name="toy">
+      <DasType>text|0s</DasType>
+      <Position>3</Position>
+    </column>
+    <column id="499" parent="351" name="coordinates">
+      <DasType>text|0s</DasType>
+      <Position>4</Position>
+    </column>
+    <foreign-key id="500" parent="351" name="fk_toysCoord_1">
+      <ColNames>jpg_id</ColNames>
+      <RefColNames>jpg_id</RefColNames>
+      <RefTableName>photos</RefTableName>
+    </foreign-key>
+    <index id="501" parent="351" name="PRIMARY">
+      <ColNames>toy_id</ColNames>
+      <Type>btree</Type>
+      <Unique>1</Unique>
+    </index>
+    <index id="502" parent="351" name="fk_toysCoord_1_idx">
+      <ColNames>jpg_id</ColNames>
+      <Type>btree</Type>
+    </index>
+    <key id="503" parent="351" name="PRIMARY">
+      <NameSurrogate>1</NameSurrogate>
+      <Primary>1</Primary>
+      <UnderlyingIndexName>PRIMARY</UnderlyingIndexName>
+    </key>
+    <column id="504" parent="352" name="monkey_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="505" parent="352" name="body">
+      <DasType>text|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="506" parent="352" name="face">
+      <DasType>text|0s</DasType>
+      <Position>3</Position>
+    </column>
+    <column id="507" parent="352" name="monkey_name">
+      <DasType>text|0s</DasType>
+      <Position>4</Position>
+    </column>
+    <column id="508" parent="352" name="file_name">
+      <DasType>text|0s</DasType>
+      <Position>5</Position>
+    </column>
+    <column id="509" parent="352" name="jpg_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>6</Position>
+    </column>
+    <column id="510" parent="353" name="file_name">
+      <DasType>text|0s</DasType>
+      <Position>1</Position>
+    </column>
+    <column id="511" parent="353" name="jpg_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>2</Position>
+    </column>
+    <column id="512" parent="353" name="number_of_monkey">
+      <DasType>bigint|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+    </column>
+    <column id="513" parent="354" name="jpg_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="514" parent="354" name="file_name">
+      <DasType>text|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="515" parent="354" name="monkey_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>3</Position>
+    </column>
+    <column id="516" parent="354" name="monkey_name">
+      <DasType>text|0s</DasType>
+      <Position>4</Position>
+    </column>
+    <column id="517" parent="355" name="monkey_id">
+      <DasType>int|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>1</Position>
+    </column>
+    <column id="518" parent="355" name="body">
+      <DasType>text|0s</DasType>
+      <Position>2</Position>
+    </column>
+    <column id="519" parent="355" name="face">
+      <DasType>text|0s</DasType>
+      <Position>3</Position>
+    </column>
+    <column id="520" parent="355" name="file_name">
       <DasType>text|0s</DasType>
       <Position>4</Position>
     </column>

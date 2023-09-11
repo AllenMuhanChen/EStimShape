@@ -11,16 +11,16 @@ from src.util.time_util import When
 
 class Connection:
 
-    def __init__(self, database, password="up2nite"):
+    def __init__(self, database, password="up2nite", host="172.30.6.80"):
         self.database = database
         self.password = password
-        self.connect(database, password)
+        self.connect(database, password, host)
         self.lock = threading.Lock()
 
-    def connect(self, database, password):
+    def connect(self, database, password, host):
         self.my_cursor = None
         self.mydb = mysql.connector.connect(
-            host="172.30.6.80",
+            host=host,
             user="xper_rw",
             password=password,
             database=database,

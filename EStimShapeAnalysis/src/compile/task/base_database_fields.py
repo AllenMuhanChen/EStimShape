@@ -39,7 +39,7 @@ class StimSpecField(StimSpecIdField):
     def __init__(self, conn: Connection, name: str = "StimSpec"):
         super().__init__(conn, name)
 
-    def get(self, task_id: int):
+    def get(self, task_id: int) -> str:
         # Execute the query to get the StimSpec based on task_id
         # Note: Replace the query with the appropriate one for your schema
         stim_id = super().get(task_id)
