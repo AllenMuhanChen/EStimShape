@@ -15,7 +15,7 @@ class TaskField:
             self.name = name
 
     def get(self, task_id: int):
-        raise NotImplementedError("Not Implemented")
+        return task_id
 
 
 class TaskFieldList(List[TaskField]):

@@ -54,7 +54,8 @@ class ResponseParser:
             task_ids_for_stim_ids[stim_id] = task_ids
         return task_ids_for_stim_ids
 
-    def parse_spike_rate_per_channel_from(self, task_ids_for_stim_ids: Dict[int, List[int]]) -> Dict[int, Dict[int, Dict[Channel, float]]]:
+    def parse_spike_rate_per_channel_from(self, task_ids_for_stim_ids: Dict[int, List[int]]) -> Dict[
+        int, Dict[int, Dict[Channel, float]]]:
         spike_rates_per_channel_per_task_for_stims = {}
         for stim_id, task_ids in task_ids_for_stim_ids.items():
             spike_rates_per_channel_for_tasks = self._parse_spike_rates_for_task_ids(task_ids)
@@ -69,11 +70,12 @@ class ResponseParser:
         return spike_rates_per_channel_for_tasks
 
     def _parse_spike_rate_per_channel_for_task(self, task_id) -> dict[Channel, float]:
-        spike_tstamps_for_channels = fetch_spike_tstamps_from_file(self._path_to_spike_file(task_id))
+        spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(self._path_to_spike_file(task_id))
         stim_epochs_from_markers = epoch_using_marker_channels(self._path_to_digital_in(task_id))
         epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(self._path_to_notes(task_id),
                                                                    stim_epochs_from_markers)
-        spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, epochs_for_task_ids, task_id)
+        spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, epochs_for_task_ids, task_id,
+                                                        sample_rate=sample_rate)
         spikes_per_second_for_channels = calculate_spikes_per_second_for_channels(spikes_for_channels,
                                                                                   epochs_for_task_ids)
         return spikes_per_second_for_channels
@@ -108,7 +110,6 @@ class ResponseParser:
         return spike_count_for_channels
 
 
-
 def get_current_date_as_YYYY_MM_DD() -> str:
     # Get current date
     now = datetime.now()
@@ -118,7 +119,8 @@ def get_current_date_as_YYYY_MM_DD() -> str:
 
 
 def filter_spikes_with_epochs(spike_tstamps_for_channels: dict[Channel, list[float]],
-                              epochs_for_task_ids: dict[int, tuple[int, int]], task_id: int, sample_rate=30000) -> dict[
+                              epochs_for_task_ids: dict[int, tuple[int, int]], task_id: int,
+                              sample_rate: float = 30000) -> dict[
     Channel, list[float]]:
     filtered_spikes_for_channels = {}
     epoch = epochs_for_task_ids[task_id]
@@ -137,7 +139,7 @@ def calculate_spikes_per_second_for_channels(spikes_for_channels, epochs_for_sti
     spikes_per_second_for_channels = {}
     for stim_id, epoch in epochs_for_stim_ids.items():
         for channel, spikes in spikes_for_channels.items():
-            spikes_per_second_for_channels[channel] = len(spikes) / (epoch[1]/sample_rate - epoch[0]/sample_rate)
+            spikes_per_second_for_channels[channel] = len(spikes) / (epoch[1] / sample_rate - epoch[0] / sample_rate)
     return spikes_per_second_for_channels
 
 

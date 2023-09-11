@@ -25,7 +25,7 @@ class TestResponseParser(unittest.TestCase):
     def test_plot_spikes(self):
         response_parser = ResponseParser(self.base_intan_path, None, "2023-07-19")
 
-        spike_tstamps_for_channels = fetch_spike_tstamps_from_file(response_parser._path_to_spike_file(1))
+        spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(response_parser._path_to_spike_file(1))
         # collapse values
         spike_tstamps = spike_tstamps_for_channels[Channel.B_025]
         spike_indices = [spike_tstamps * 30000 for spike_tstamps in spike_tstamps]
