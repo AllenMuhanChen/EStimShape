@@ -35,7 +35,7 @@ class GAVarParameterFetcher:
 
         return max_experiment_id, max_gen_id
 
-    def get_parameter(self, name, dtype=str):
+    def get(self, name, dtype=str):
         experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id()
         query = "SELECT value FROM GAVar WHERE name=%s AND experiment_id=%s AND gen_id=%s AND arr_ind = 0"
         self.connection.execute(query, (name, experiment_id, gen_id))
@@ -91,23 +91,32 @@ class GeneticAlgorithmConfig:
                           self.regime_zero_significance_threshold()))
 
     def regime_zero_significance_threshold(self):
-        return self.var_fetcher.get_parameter("regime_zero_transition_significance_threshold", dtype=float)
+        return self.var_fetcher.get("regime_zero_transition_significance_threshold", dtype=float)
 
     def spontaneous_firing_rate(self):
         # TODO: analyze real data to get this number
-        return 50
+        return self.var_fetcher.get("regime_zero_transition_spontaneous_firing_rate", dtype=float)
 
     def regime_one(self):
         return Regime(
             RegimeOneParentSelector(
                 self.get_all_stimuli_func(),
-                regime_one_bin_proportions(),
-                regime_one_bin_sample_sizes()),
+                self.regime_one_bin_proportions(),
+                self.regime_one_bin_sample_sizes()),
             RegimeOneMutationAssigner(),
             RegimeOneMutationMagnitudeAssigner(),
             RegimeOneTransitioner(
-                convergence_threshold()
+                self.convergence_threshold()
             ))
+
+    def regime_one_bin_proportions(self):
+        return self.var_fetcher.get_array_parameter("regime_one_selection_bin_proportions", dtype=float)
+
+    def regime_one_bin_sample_sizes(self):
+        return self.var_fetcher.get_array_parameter("regime_one_selection_bin_sample_size_proportions", dtype=float)
+
+    def convergence_threshold(self):
+        return self.var_fetcher.get("regime_one_transition_convergence_threshold", dtype=float)
 
     def get_all_stimuli_func(self):
         return GetAllStimuliFunc(db_util=self.db_util,
@@ -118,6 +127,8 @@ class GeneticAlgorithmConfig:
         return ResponseProcessor(db_util=self.db_util,
                                  repetition_combination_strategy=mean,
                                  cluster_combination_strategy=sum)
+
+    # should be (n-1)*pair_threshold_high where n is max number of components
 
     def regime_two(self):
         return Regime(
@@ -131,7 +142,6 @@ class GeneticAlgorithmConfig:
     def pair_threshold_high(self):
         return 3
 
-    # should be (n-1)*pair_threshold_high where n is max number of components
     def pair_threshold_low(self):
         return 6
 
@@ -175,15 +185,3 @@ class GeneticAlgorithmConfig:
 
     def make_db_util(self):
         return MultiGaDbUtil(self.connection)
-
-
-def regime_one_bin_proportions():
-    return [0.1, 0.2, 0.2, 0.2, 0.2, 0.1]
-
-
-def regime_one_bin_sample_sizes():
-    return [0.1, 0, 0.125, 0.175, 0.25, 0.35]
-
-
-def convergence_threshold():
-    return 0.1
