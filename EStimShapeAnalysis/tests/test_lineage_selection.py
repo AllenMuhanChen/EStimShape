@@ -35,6 +35,18 @@ class TestRegimeEnum(unittest.TestCase):
 
         self.distributor = DatabaseLineageDistributor(self.mock_db_util, 40, [], 2)
 
+    def test_distribute_max(self):
+        # Qualifying Lineages:
+        # Lineage 2
+        # Lineage 3
+        # If above threshold for num to build then distribute equally between those that qualify:
+        num_trials_for_lineages = self.distributor.get_num_trials_for_lineage_ids("Test")
+        self.assertEqual(num_trials_for_lineages, {2: 20, 3: 20})
+
+        # If below threshold for num to build then distribute equally between all:
+        self.distributor.number_of_lineages_to_build = 3
+        num_trials_for_lineages = self.distributor.get_num_trials_for_lineage_ids("Test")
+        self.assertEqual(num_trials_for_lineages, {0: 10, 1: 10, 2: 10, 3: 10})
     def test_distribute_trials(self):
         # Qualifying Lineages:
         # Lineage 2

@@ -7,16 +7,16 @@ from src.newga.ga_classes import ParentSelector, MutationAssigner, RegimeTransit
 
 class RegimeTwoParentSelector(ParentSelector):
     """
-    Samples from the top x stimuli that pass a threshold across a lineage.
+    Samples from the top x (num_to_select) stimuli that pass a threshold across a lineage.
     """
 
-    def __init__(self, percentage_of_max_threshold, x):
+    def __init__(self, percentage_of_max_threshold, num_to_select):
         self.percentage_of_max_threshold = percentage_of_max_threshold
-        self.x = x
+        self.num_to_select = num_to_select
 
     def select_parents(self, lineage, batch_size):
         # Select the top x stimuli from the lineage based on their response rate.
-        top_stimuli = sorted(lineage.stimuli, key=lambda s: s.response_rate, reverse=True)[:self.x]
+        top_stimuli = sorted(lineage.stimuli, key=lambda s: s.response_rate, reverse=True)[:self.num_to_select]
         # Filter out any stimuli that fall below a certain percentage of the max response rate.
         max_response_rate = top_stimuli[0].response_rate
         threshold = max_response_rate * self.percentage_of_max_threshold  # Adjust this value as necessary.

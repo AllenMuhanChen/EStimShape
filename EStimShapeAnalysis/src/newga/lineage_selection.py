@@ -51,10 +51,15 @@ def get_peak_response_for(lineages: list[Lineage]) -> dict[Lineage, float]:
 
 @dataclass(kw_only=True)
 class ClassicLineageDistributor:
+    """
+    max_lineages_to_explore: maximum number of lineages past regime zero to explore in regime one
+    max_lineages_to_build: maximum number of lineages past regime one to build in regime two and three
+    """
     number_of_trials_per_generation: int
     max_lineages_to_build: int
     number_of_new_lineages_per_generation: int
     regimes: list[Regime]
+    max_lineages_to_explore: int
 
     def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
         lineages_with_regimes_past_zero = filter_to_lineages_past_regime(0, lineages=lineages)
@@ -69,7 +74,7 @@ class ClassicLineageDistributor:
                                                             self.number_of_trials_per_generation)
         elif num_qualifying_lineages < self.max_lineages_to_build:
             num_trials_to_distribute_to_existing_lineages = self.number_of_trials_per_generation - self.number_of_new_lineages_per_generation
-            num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages, num_trials_to_distribute_to_existing_lineages)
+            num_trials_for_lineages = self.distribute_to_non_regime_zero_lineages(lineages, num_trials_to_distribute_to_existing_lineages, max_lineages=self.max_lineages_to_explore)
             num_trials_for_lineages = self.add_new_lineages(num_trials_for_lineages, self.number_of_new_lineages_per_generation)
 
         # IF above threshold: distribute to qualifying lineages equally and don't generate new lineages
@@ -90,8 +95,13 @@ class ClassicLineageDistributor:
             time.sleep(.001)
         return num_trials_for_lineages
 
-    def distribute_to_non_regime_zero_lineages(self, lineages, number_of_trials_to_distribute):
+    def distribute_to_non_regime_zero_lineages(self, lineages, number_of_trials_to_distribute, max_lineages=None):
         non_regime_zero_lineages = filter_to_lineages_past_regime(0, lineages=lineages)
+        if max_lineages is not None:
+            #sort by peak response and get only the top max
+            peak_response_for_lineages = get_peak_response_for(non_regime_zero_lineages)
+            non_regime_zero_lineages = sorted(non_regime_zero_lineages, key=lambda lineage: peak_response_for_lineages[lineage], reverse=True)
+            non_regime_zero_lineages = non_regime_zero_lineages[:max_lineages]
         num_trials_for_lineages = distribute_amount_equally_among(non_regime_zero_lineages, amount=number_of_trials_to_distribute)
         return num_trials_for_lineages
 
@@ -103,6 +113,7 @@ class DatabaseLineageDistributor(LineageDistributor):
     num_trials_per_generation: int
     regimes: list[Regime]
     number_of_lineages_to_build: int
+    max_lineages: int
 
     def get_num_trials_for_lineage_ids(self, experiment_id: int) -> dict[int: int]:
         # Read lineages from database and what regime they are on

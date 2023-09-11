@@ -1,4 +1,5 @@
 from math import prod
+from typing import Any
 
 from numpy import mean
 
@@ -35,14 +36,14 @@ class GAVarParameterFetcher:
 
         return max_experiment_id, max_gen_id
 
-    def get(self, name, dtype=str):
+    def get(self, name, dtype=str) -> Any:
         experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id()
         query = "SELECT value FROM GAVar WHERE name=%s AND experiment_id=%s AND gen_id=%s AND arr_ind = 0"
         self.connection.execute(query, (name, experiment_id, gen_id))
         result = self.connection.fetch_one()
         return dtype(result)
 
-    def get_array_parameter(self, name, dtype=str):
+    def get_array_parameter(self, name, dtype=str) -> list:
         experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id()
         query = f"SELECT arr_ind, value FROM GAVar WHERE name = '{name}' AND experiment_id = {experiment_id} AND gen_id = {gen_id} ORDER BY arr_ind"
         self.connection.execute(query)
@@ -54,10 +55,7 @@ class GeneticAlgorithmConfig:
     ga_name = "New3D"
     database = "allen_estimshape_dev_230519"
     num_trials_per_generation = 20
-    max_lineages_to_build = 3
-    number_of_new_lineages_per_generation = 5
     base_intan_path = "/bleh"
-    under_sampling_threshold = 3.0
 
     def __init__(self):
         self.connection = self.make_connection()
@@ -134,40 +132,41 @@ class GeneticAlgorithmConfig:
         return Regime(
             RegimeTwoParentSelector(
                 self.percentage_of_max_threshold(),
-                self.x()),
+                self.num_to_select()),
             RegimeTwoMutationAssigner(),
             RegimeTwoMutationMagnitudeAssigner(),
             RegimeTwoTransitioner(self.pair_threshold_high(), self.pair_threshold_low()))
 
+    def percentage_of_max_threshold(self):
+        return self.var_fetcher.get("regime_two_selection_percentage_of_max_threshold", dtype=float)
+
+    def num_to_select(self):
+        return self.var_fetcher.get("regime_two_selection_num_to_select", dtype=int)
+
     def pair_threshold_high(self):
-        return 3
+        return self.var_fetcher.get("regime_two_transition_pair_threshold_high", dtype=int)
 
     def pair_threshold_low(self):
-        return 6
-
-    def percentage_of_max_threshold(self):
-        return 0.5
-
-    def x(self):
-        return 5
+        return self.var_fetcher.get("regime_two_transition_pair_threshold_low", dtype=int)
 
     def regime_three(self):
         return Regime(
             RegimeThreeParentSelector(
                 self.weight_func(),
-                self.bandwidth()),
+                self.sampling_smoothing_bandwidt()),
             RegimeThreeMutationAssigner(),
             RegimeThreeMutationMagnitudeAssigner(),
-            RegimeThreeTransitioner(self.get_under_sampling_threshold(), bandwidth=self.bandwidth()))
+            RegimeThreeTransitioner(self.get_under_sampling_threshold(), bandwidth=self.sampling_smoothing_bandwidt()))
 
     def weight_func(self):
-        return HighEndSigmoid(steepness=15.0, offset=0.5)
+        return HighEndSigmoid(steepness=self.var_fetcher.get("regime_three_selection_weight_func_sigmoid_steepness", dtype=float),
+                              offset=self.var_fetcher.get("regime_three_selection_weight_func_sigmoid_offset", dtype=float))
 
-    def bandwidth(self):
-        return 0.15
+    def sampling_smoothing_bandwidt(self):
+        return self.var_fetcher.get("regime_three_selection_sampling_smoothing_bandwidth", dtype=float)
 
     def get_under_sampling_threshold(self):
-        return self.under_sampling_threshold
+        return self.var_fetcher.get("regime_three_transition_under_sampling_threshold", dtype=float)
 
     def make_response_parser(self):
         return ResponseParser(self.base_intan_path,
@@ -176,9 +175,19 @@ class GeneticAlgorithmConfig:
     def make_lineage_distributor(self):
         return ClassicLineageDistributor(
             number_of_trials_per_generation=self.num_trials_per_generation,
-            max_lineages_to_build=self.max_lineages_to_build,
-            number_of_new_lineages_per_generation=self.number_of_new_lineages_per_generation,
-            regimes=self.regimes)
+            max_lineages_to_build=self.max_lineages_to_build(),
+            number_of_new_lineages_per_generation=self.num_new_lineages_per_generation(),
+            regimes=self.regimes,
+            max_lineages_to_explore=self.max_lineages_to_explore())
+
+    def max_lineages_to_explore(self):
+        return self.var_fetcher.get("lineage_distribution_max_lineages_to_explore", dtype=int)
+
+    def max_lineages_to_build(self):
+        return self.var_fetcher.get("lineage_distribution_max_lineages_to_build", dtype=int)
+
+    def num_new_lineages_per_generation(self):
+        return self.var_fetcher.get("lineage_distribution_num_new_lineages_per_generation", dtype=int)
 
     def make_connection(self):
         return Connection(self.database)
