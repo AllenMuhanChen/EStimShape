@@ -162,7 +162,7 @@ def str_to_channel_enum(str_value):
         raise ValueError(f"{str_value} is not a valid member of {Channel.__name__}")
 
 
-def fetch_spike_tstamps_from_file(spike_file_path: str) -> dict[Channel, list[float]]:
+def fetch_spike_tstamps_from_file(spike_file_path: str) -> tuple[Any, float]:
     spike_matrix, sample_rate = read_intan_spike_file(spike_file_path)
     spike_tstamps_for_channels = spike_matrix_to_spike_tstamps_for_channels(spike_matrix)
-    return spike_tstamps_for_channels
+    return spike_tstamps_for_channels, sample_rate
