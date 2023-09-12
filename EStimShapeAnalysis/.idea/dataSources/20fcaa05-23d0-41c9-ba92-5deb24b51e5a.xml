@@ -1167,8 +1167,8 @@ sys|schema||mysql.sys|localhost|TRIGGER|G</Grants>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="305" parent="1" name="20230908_recording">
-      <IntrospectionTimestamp>2023-09-11.12:41:09</IntrospectionTimestamp>
-      <LocalIntrospectionTimestamp>2023-09-11.20:41:09</LocalIntrospectionTimestamp>
+      <IntrospectionTimestamp>2023-09-12.05:07:08</IntrospectionTimestamp>
+      <LocalIntrospectionTimestamp>2023-09-12.13:07:08</LocalIntrospectionTimestamp>
       <CollationName>utf8mb4_0900_ai_ci</CollationName>
     </schema>
     <schema id="306" parent="1" name="fixtrain">

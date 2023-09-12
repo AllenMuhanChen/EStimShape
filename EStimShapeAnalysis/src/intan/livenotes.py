@@ -23,10 +23,13 @@ def map_task_id_to_epochs_with_livenotes(livenotes_data: str, marker_channel_tim
     # Convert the raw text data into a list of tuples (tstamp, stim_id)
     tstamp_and_stim_id_from_livenotes = []
     for line in data.strip().split('\n\n'):
-        parts = line.split(',')
-        tstamp = int(parts[0].strip())
-        stim_id = int(parts[2].strip())
-        tstamp_and_stim_id_from_livenotes.append((tstamp, stim_id))
+        try:
+            parts = line.split(',')
+            tstamp = int(parts[0].strip())
+            stim_id = int(parts[2].strip())
+            tstamp_and_stim_id_from_livenotes.append((tstamp, stim_id))
+        except ValueError:
+            pass
 
     # Sort the tstamp_and_stim_id_from_livenotes by tstamp
     tstamp_and_stim_id_from_livenotes.sort()
@@ -46,7 +49,7 @@ def map_task_id_to_epochs_with_livenotes(livenotes_data: str, marker_channel_tim
 
         # If no match is found, raise an error
         if closest_stim_id is None:
-            raise ValueError(f"No match found for start time {start}")
+            print(f"No match found for start time {start} found in marker channels")
 
         # Otherwise, add it to the result
         result[closest_stim_id] = (start, end)
