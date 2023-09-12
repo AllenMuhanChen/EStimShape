@@ -9,6 +9,7 @@ class TaskIdField(TaskField):
     def get(self, task_id: int) -> int:
         return task_id
 
+
 class DatabaseField(TaskField):
     def __init__(self, conn: Connection, name: str = None):
         super().__init__(name)
