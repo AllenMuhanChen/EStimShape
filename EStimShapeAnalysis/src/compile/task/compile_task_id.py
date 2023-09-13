@@ -34,19 +34,28 @@ class PngSlideIdCollector:
         # Unpack the start and end times from the tuple
         start_time, end_time = time_range
 
-        # Modify the SQL query to include a WHERE clause for the tstamp range
+        # Fetch all messages in the time range
         self.conn.execute(
-            f"SELECT msg FROM BehMsg WHERE type = 'SlideOff' AND tstamp BETWEEN {start_time} AND {end_time}"
+            f"SELECT tstamp, type, msg FROM BehMsg WHERE tstamp BETWEEN {start_time} AND {end_time} ORDER BY tstamp ASC"
         )
 
-        slide_off_msgs = self.conn.fetch_all()
+        all_msgs = self.conn.fetch_all()
+
+        slide_off = None
         task_ids = []
-        for msg in slide_off_msgs:
-            slide_event_dict = xmltodict.parse(msg[0])
-            try:
-                task_id = int(slide_event_dict['PngSlideEvent']['taskId'])
-                task_ids.append(task_id)
-            except KeyError:
-                print("Ignored a non-PNG slide event")
+        for tstamp, msg_type, msg in all_msgs:
+            if msg_type == 'SlideOff':
+                slide_off = xmltodict.parse(msg)
+            elif msg_type == 'TrialComplete' and slide_off:
+                try:
+                    task_id = int(slide_off['PngSlideEvent']['taskId'])
+                    task_ids.append(task_id)
+                except KeyError:
+                    print("Ignored a non-PNG slide event")
+                slide_off = None
+            elif msg_type == 'TrialStop':
+                slide_off = None
+
         return task_ids
+
 
