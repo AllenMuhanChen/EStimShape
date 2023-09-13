@@ -33,12 +33,11 @@ class MonkeyIdField(FileNameField):
 
     def get(self, task_id: int):
         filename = super().get(task_id)
-        # read monkey_id for file_name
-        query = "SELECT monkey_id FROM photo_metadata.finalStimuliTable WHERE file_name = %s"
-        params = (filename,)
-        self.conn_photo.execute(query, params)
-        monkey_id = self.conn_photo.fetch_one()
-
+        try:
+            monkey_id = re.search(r'(\d+)\.', filename).group(1)
+        except AttributeError:
+            monkey_id = None
+            print("WARNING! No monkey_id found for file_name: " + str(filename))
         return monkey_id
 
 
@@ -50,7 +49,7 @@ class MonkeyNameField(MonkeyIdField):
     def get(self, task_id: int) -> str:
         monkey_id = super().get(task_id)
         # read monkey_name for monkey_id
-        query = "SELECT monkey_name FROM photo_metadata.finalStimuliTable WHERE monkey_id = %s"
+        query = "SELECT monkey_name FROM photo_metadata.combined_view WHERE monkey_id = %s"
         params = (monkey_id,)
         self.conn_photo.execute(query, params)
         monkey_name = self.conn_photo.fetch_one()
@@ -58,19 +57,24 @@ class MonkeyNameField(MonkeyIdField):
         return monkey_name
 
 
-class JpgIdField(FileNameField):
+class JpgIdField(MonkeyIdField):
 
     def __init__(self, *, conn_xper: Connection, conn_photo: Connection, name: str = "JpgId"):
-        super().__init__(conn_xper=conn_xper, name=name)
-        self.conn_photo = conn_photo
+        super().__init__(conn_xper=conn_xper, conn_photo=conn_photo, name=name)
+
 
     def get(self, task_id: int) -> int:
-        filename = super().get(task_id)
+        monkey_id = super().get(task_id)
         # read jpg_id for file_name
-        query = "SELECT jpg_id FROM photo_metadata.finalStimuliTable WHERE file_name = %s"
-        params = (filename,)
+        query = "SELECT jpg_id FROM photo_metadata.combined_view WHERE monkey_id = %s"
+        params = (monkey_id,)
         self.conn_photo.execute(query, params)
-        jpg_id = int(self.conn_photo.fetch_one())
+        result = self.conn_photo.fetch_one()
+        if result:
+            jpg_id = int(result)
+        else:
+            jpg_id = None
+            print("WARNING! No jpg_id found for monkey_id: " + str(monkey_id))
 
         return jpg_id
 

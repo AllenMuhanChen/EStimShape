@@ -18,20 +18,20 @@ class When:
 
 
 def today() -> When:
-    today = __unix(datetime.date.today())
-    tomorrow = __unix(datetime.date.today() + datetime.timedelta(days=1))
+    today = to_unix(datetime.date.today())
+    tomorrow = to_unix(datetime.date.today() + datetime.timedelta(days=1))
     when = When(today, tomorrow)
     return when
 
 
 def days_ago(x):
-    start = __unix(datetime.date.today() - datetime.timedelta(days=x))
+    start = to_unix(datetime.date.today() - datetime.timedelta(days=x))
     stop = now()
     when = When(start, stop)
 
 
 def all():
-    when = When(0, __unix(datetime.date.fromisoformat('3022-01-01')))
+    when = When(0, to_unix(datetime.date.fromisoformat('3022-01-01')))
     return when
 
 
@@ -39,5 +39,5 @@ def now():
     return round(time.time() * 1000000)
 
 
-def __unix(datetime: datetime.datetime):
+def to_unix(datetime: datetime.datetime):
     return round(time.mktime(datetime.timetuple()) * 1000000)
