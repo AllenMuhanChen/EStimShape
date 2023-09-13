@@ -66,19 +66,23 @@ class EpochStartStopField(TaskField):
 
 def find_matching_directories(root_folder: str, target_number: int) -> list:
     """
-    Search through a folder to find directories that start with the given target_number.
+    Search through a folder to find directories that start with the given target_number,
+    sorted based on the text that comes after the target_number and underscore.
 
     Parameters:
         root_folder (str): The path of the folder to search in.
-        target_number (str): The target number to search for.
+        target_number (int): The target number to search for.
 
     Returns:
-        list: A list of full directory paths that match the target_number.
+        list: A list of full directory paths that match the target_number, sorted by the text after the number.
     """
     matching_dirs = []
     for dirname in os.listdir(root_folder):
         if re.match(f'^{str(target_number)}_', dirname):
             full_path = os.path.join(root_folder, dirname)
             matching_dirs.append(full_path)
+
+    # Sort the list based on the portion of the directory name that comes after the target_number and underscore
+    matching_dirs.sort(key=lambda x: x.split(f'{target_number}_')[-1])
 
     return matching_dirs
