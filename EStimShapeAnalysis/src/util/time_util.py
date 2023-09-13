@@ -39,5 +39,5 @@ def now():
     return round(time.time() * 1000000)
 
 
-def to_unix(datetime: datetime.datetime):
-    return round(time.mktime(datetime.timetuple()) * 1000000)
+def to_unix(dt: datetime.datetime):
+    return round(time.mktime(dt.timetuple()) * 1000000)
