@@ -36,10 +36,6 @@ def compile_data(day: date = date.today(),
     filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
     save_path = os.path.join(save_dir, filename)
     data.to_pickle(save_path)
-    # with open(save_path, "w") as file:
-    #     file.write(jsonpickle.encode(data))
-    #     file.close()
-    # data.to_csv(save_path)
 
     return data
 

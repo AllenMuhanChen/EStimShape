@@ -1,7 +1,9 @@
 import jsonpickle
+import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+matplotlib.use("Qt5Agg")
 
 from intan.channels import Channel
 
@@ -22,82 +24,66 @@ def plot_channel(path_to_data_pickle_file, channel):
     plot_individual_monkeys(channel_data)
     plot_average_among_groups(channel_data)
 
+    plt.show()
+
 
 def plot_individual_monkeys(channel_data):
-    # Sample DataFrame 'channel_data' with 'MonkeyGroup', 'MonkeyName', and 'BinnedSpikeRates'
-
-    # Count the number of unique MonkeyGroups and MonkeyNames
     num_groups = channel_data['MonkeyGroup'].nunique()
-    max_monkeys_per_group = channel_data.groupby('MonkeyGroup')['MonkeyName'].nunique().max()
+    unique_monkey_groups = channel_data['MonkeyGroup'].dropna().unique().tolist()
 
-    # Create a figure with subplots
-    fig, axes = plt.subplots(nrows=num_groups, ncols=max_monkeys_per_group, figsize=(15, 10))
+    # Create a new figure
+    fig = plt.figure(figsize=(15, 10))
 
-    # Ensure axes is a 2D array for consistent indexing
-    if num_groups == 1:
-        axes = np.expand_dims(axes, axis=0)
-    if max_monkeys_per_group == 1:
-        axes = np.expand_dims(axes, axis=1)
-
-    # Initialize subplot counter for each group
-    subplot_counter = {}
-
-    # Find the global maximum spike rate across all groups and monkeys
+    row_idx = 0
     global_max_spike_rate = channel_data['BinnedSpikeRates'].apply(lambda x: max(x) if x is not None else 0).max()
-
-    # Find the number of bins (assuming you already have this from your previous calculations)
     num_bins = len(channel_data['BinnedSpikeRates'].iloc[0])
-
-    # Create an array representing the proportion of the total time for each bin
     x_proportion = np.linspace(0, 1, num_bins)
 
-    # Loop through each unique MonkeyGroup and MonkeyName
-    for (group_name, monkey_name), group_data in channel_data.groupby(['MonkeyGroup', 'MonkeyName']):
-        # Get the appropriate row index for the MonkeyGroup
-        row_idx = channel_data['MonkeyGroup'].dropna().unique().tolist().index(group_name)
+    legend_handles_labels = None
+    for group_name in unique_monkey_groups:
+        group_data = channel_data[channel_data['MonkeyGroup'] == group_name]
+        unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
 
-        # Initialize or update subplot counter for this group
-        subplot_counter[group_name] = subplot_counter.get(group_name, 0)
-        col_idx = subplot_counter[group_name]
-        subplot_counter[group_name] += 1
+        for col_idx, monkey_name in enumerate(unique_monkeys):
+            monkey_data = group_data[group_data['MonkeyName'] == monkey_name]
 
-        # Get the axis for this subplot
-        ax = axes[row_idx, col_idx] if isinstance(axes, np.ndarray) else axes
+            ax = fig.add_subplot(num_groups, len(unique_monkeys), row_idx * len(unique_monkeys) + col_idx + 1)
 
-        # Calculate mean and standard error for binned spike rates
-        spike_rate_arrays = np.vstack(group_data['BinnedSpikeRates'])
-        mean_spike_rates = np.mean(spike_rate_arrays, axis=0)
-        std_spike_rates = np.std(spike_rate_arrays, axis=0)
+            spike_rate_arrays = np.vstack(monkey_data['BinnedSpikeRates'])
+            mean_spike_rates = np.mean(spike_rate_arrays, axis=0)
+            std_spike_rates = np.std(spike_rate_arrays, axis=0)
 
-        # Plot individual traces
-        for spike_rates in spike_rate_arrays:
-            ax.plot(x_proportion, spike_rates, color='gray', alpha=0.3)
+            for spike_rates in spike_rate_arrays:
+                ax.plot(x_proportion, spike_rates, color='black', alpha=1.0)
 
-            # Plot mean trace with error bars
-            # Plot mean trace with error bars
-        ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='blue', label='Mean')
+            err_bar = ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='blue', alpha=0.75,
+                                  label='Mean')
 
-        # Add title and labels
-        ax.set_title(f'Monkey: {monkey_name}')
-        ax.set_xlabel('Proportion of Total Time')
-        ax.set_ylabel('Spike Rate')
-        ax.legend()
+            ax.set_ylim(0, global_max_spike_rate)
+            ax.set_title(f"{monkey_name}")
 
-        # Set the same y-range for all subplots
-        ax.set_ylim(0, global_max_spike_rate)
+            # Collect legend handles and labels from one of the axes
+            if legend_handles_labels is None:
+                legend_handles_labels = ([err_bar], ["Mean"])
+                # Add a label for the MonkeyGroup on the left side
 
-    # Add a title for each MonkeyGroup
-    for i, group_name in enumerate(channel_data['MonkeyGroup'].dropna().unique()):
-        axes[i, 0].set_ylabel(f'MonkeyGroup: {group_name}', rotation=0, labelpad=60, verticalalignment='center',
-                              fontsize=12)
+                # Correctly position the label for the MonkeyGroup on the left side
+        subplot_height = 1 / num_groups
+        vertical_position = 1 - (row_idx * subplot_height + subplot_height / 2)
+        fig.text(0.08, vertical_position, f'{group_name}', ha='center', va='center',
+                 rotation='vertical')
+        row_idx += 1
 
-    # # Remove empty subplots
-    # for i in range(num_groups):
-    #     for j in range(subplot_counter.get(group_name, 0), max_monkeys_per_group):
-    #         fig.delaxes(axes[i, j])
+    # Add a single x-axis label at the bottom
+    fig.text(0.5, 0.04, 'Proportion of Total Time', ha='center', va='center')
+    # Add a single y-axis label on the left
+    fig.text(0.04, 0.5, 'Spike Rate', ha='center', va='center', rotation='vertical')
 
-    plt.tight_layout()
-    plt.show()
+    # Add a single legend at the top-right corner
+    fig.legend(*legend_handles_labels, loc='upper right')
+
+    plt.subplots_adjust(hspace=0.5, wspace=1.0)
+    # plt.show()
 
 
 def plot_average_among_groups(channel_data):
@@ -125,7 +111,7 @@ def plot_average_among_groups(channel_data):
         x_proportion = np.linspace(0, 1, num_bins)
 
         # Plot the mean trace with error bars
-        ax.errorbar(x_proportion, mean_spike_rates, yerr=std_err_spike_rates, label=f'Group: {group_name}')
+        ax.errorbar(x_proportion, mean_spike_rates, yerr=std_err_spike_rates, label=f'Group: {group_name}', alpha=0.75)
 
     # Add labels, title, and legend
     ax.set_xlabel('Proportion of Total Time')
@@ -134,7 +120,7 @@ def plot_average_among_groups(channel_data):
     ax.legend()
 
     # Show the plot
-    plt.show()
+
 
 
 def calculate_binned_spike_rate(spikes, epoch, num_bins):
