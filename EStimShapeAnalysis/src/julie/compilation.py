@@ -3,6 +3,7 @@ from datetime import datetime, time, date
 
 import jsonpickle
 import numpy as np
+import pytz
 
 from compile.task.compile_task_id import PngSlideIdCollector
 from compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, JpgIdField, \
@@ -18,8 +19,9 @@ import matplotlib.pyplot as plt
 
 def main():
     # Main Parameters
-    compile_data(day=date(2023, 9, 12),
-                 start_time=time(16, 0, 0))
+    compile_data(day=date(2023, 9, 13),
+                 start_time=time(14, 0, 0),
+                 end_time=time(14, 50, 0))
 
 
 def compile_data(day: date = date.today(),
@@ -52,15 +54,20 @@ def collect_raw_data(*, day: date, start_time: time, end_time: time):
     intan_data_path = os.path.join(intan_base_path, day_path)
 
     # Collect task IDS
-    task_id_collector = PngSlideIdCollector(conn_xper)
-    task_ids = task_id_collector.collect_task_ids()
 
+    timezone = pytz.timezone('US/Eastern')
     start_datetime = datetime.combine(day, start_time)
+    start_datetime = timezone.localize(start_datetime)
     start_unix = time_util.to_unix(start_datetime)
+
     end_datetime = datetime.combine(day, end_time)
+    end_datetime = timezone.localize(end_datetime)
     end_unix = time_util.to_unix(end_datetime)
 
-    task_ids = [task_id for task_id in task_ids if start_unix <= task_id <= end_unix]
+    task_id_collector = PngSlideIdCollector(conn_xper)
+    time_range = (start_unix, end_unix)
+    task_ids = task_id_collector.collect_complete_task_ids(time_range)
+
 
     # Task Fields
     fields = TaskFieldList()
