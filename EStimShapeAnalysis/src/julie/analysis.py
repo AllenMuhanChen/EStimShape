@@ -7,19 +7,16 @@ from intan.channels import Channel
 
 
 def main():
-    pickle_to_read = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/2023-09-12_16-00-00_to_23-59-59.pk1"
-    data = pd.read_pickle(pickle_to_read)
+    plot_channel("/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/2023-09-12_16-00-00_to_23-59-59.pk1",
+                 channel=Channel.C_021)
 
+
+def plot_channel(path_to_data_pickle_file, channel):
+    data = pd.read_pickle(path_to_data_pickle_file)
     ## CHANNEL SPECIFIC ANALYSIS
-    channel = Channel.C_021
     num_bins = 10
-
     channel_data = extract_target_channel_data(channel, data)
-
     channel_data = calculate_spikerates_per_bin(channel_data, channel, num_bins)
-
-    print(channel_data['MonkeyName'])
-    print(channel_data['MonkeyGroup'])
 
     ## PLOTTING
     plot_individual_monkeys(channel_data)
