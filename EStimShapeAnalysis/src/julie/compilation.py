@@ -115,6 +115,7 @@ def collect_raw_data_new_file_per_trial(*, day: date, start_time: time, end_time
     fields.append(EpochStartStopField(intan_data_path=intan_data_path))
     # Get data
     data = get_data_from_tasks(fields, task_ids)
+    print(data.to_string())
     return data
 
 

@@ -4,7 +4,7 @@ from typing import Dict, List
 from compile.task.task_field import TaskField
 from intan import spike_file, spike_parsing
 from intan.channels import Channel
-from intan.livenotes import map_unique_task_id_to_epochs_with_livenotes
+from intan.livenotes import map_unique_task_id_to_epochs_with_livenotes, map_task_id_to_epochs_with_livenotes
 from intan.marker_channels import epoch_using_marker_channels
 from intan.spike_parsing import get_current_date_as_YYYY_MM_DD, filter_spikes_with_epochs
 import os
@@ -28,7 +28,7 @@ class SpikeTimesForChannelsField(TaskField):
         spike_tstamps_for_channels, sample_rate = spike_file.fetch_spike_tstamps_from_file(spike_path)
 
         stim_epochs_from_markers = epoch_using_marker_channels(digital_in_path)
-        epochs_for_task_ids = map_unique_task_id_to_epochs_with_livenotes(notes_path,
+        epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(notes_path,
                                                                           stim_epochs_from_markers)
         spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels,
                                                                          epochs_for_task_ids, task_id,
@@ -56,7 +56,7 @@ class EpochStartStopField(TaskField):
 
         _, sample_rate = spike_file.fetch_spike_tstamps_from_file(spike_path)
         stim_epochs_from_markers = epoch_using_marker_channels(digital_in_path)
-        epochs_for_task_ids = map_unique_task_id_to_epochs_with_livenotes(notes_path,
+        epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(notes_path,
                                                                           stim_epochs_from_markers)
         epoch = epochs_for_task_ids[task_id]
         epoch_start = epoch[0] / sample_rate
