@@ -9,25 +9,25 @@ from intan.channels import Channel
 
 
 def main():
-    plot_channel("/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/2023-09-13_14-00-00_to_16-00-00.pk1",
-                 channel=Channel.C_010)
+    plot_channel("/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/2023-09-13_17-00-00_to_17-59-00.pk1",
+                 channel=Channel.C_024)
 
 
 def plot_channel(path_to_data_pickle_file, channel):
     data = pd.read_pickle(path_to_data_pickle_file)
     ## CHANNEL SPECIFIC ANALYSIS
-    num_bins = 10
+    num_bins = 20
     channel_data = extract_target_channel_data(channel, data)
     channel_data = calculate_spikerates_per_bin(channel_data, channel, num_bins)
 
     ## PLOTTING
-    plot_individual_monkeys(channel_data)
-    plot_average_among_groups(channel_data)
+    plot_individual_monkeys(channel_data, channel)
+    plot_average_among_groups(channel_data, channel)
 
     plt.show()
 
 
-def plot_individual_monkeys(channel_data):
+def plot_individual_monkeys(channel_data, channel):
     num_groups = channel_data['MonkeyGroup'].nunique()
     unique_monkey_groups = channel_data['MonkeyGroup'].dropna().unique().tolist()
 
@@ -54,9 +54,9 @@ def plot_individual_monkeys(channel_data):
             std_spike_rates = np.std(spike_rate_arrays, axis=0)
 
             for spike_rates in spike_rate_arrays:
-                ax.plot(x_proportion, spike_rates, color='black', alpha=1.0)
+                ax.plot(x_proportion, spike_rates, color='black', alpha=0.6)
 
-            err_bar = ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='blue', alpha=0.75,
+            err_bar = ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='orange', alpha=0.75,
                                   label='Mean')
 
             ax.set_ylim(0, global_max_spike_rate)
@@ -79,6 +79,10 @@ def plot_individual_monkeys(channel_data):
     # Add a single y-axis label on the left
     fig.text(0.04, 0.5, 'Spike Rate', ha='center', va='center', rotation='vertical')
 
+    # Add a super title
+    fig.suptitle(f'Individual Monkey Spike Rates: Channel: {channel.value}')
+
+
     # Add a single legend at the top-right corner
     fig.legend(*legend_handles_labels, loc='upper right')
 
@@ -86,7 +90,7 @@ def plot_individual_monkeys(channel_data):
     # plt.show()
 
 
-def plot_average_among_groups(channel_data):
+def plot_average_among_groups(channel_data, channel):
     # Group the data by MonkeyGroup
     grouped_data = channel_data.groupby('MonkeyGroup')['BinnedSpikeRates'].apply(
         lambda x: np.vstack(x)
@@ -116,7 +120,7 @@ def plot_average_among_groups(channel_data):
     # Add labels, title, and legend
     ax.set_xlabel('Proportion of Total Time')
     ax.set_ylabel('Average Spike Rate')
-    ax.set_title('Average Spike Rates Among Groups')
+    ax.set_title(f'Average Spike Rates Among Groups: Channel: {channel.value}')
     ax.legend()
 
     # Show the plot
