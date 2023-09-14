@@ -5,7 +5,7 @@ from typing import Dict, List, Callable
 import numpy as np
 
 from intan.channels import Channel
-from intan.livenotes import map_task_id_to_epochs_with_livenotes
+from intan.livenotes import map_unique_task_id_to_epochs_with_livenotes
 from intan.marker_channels import epoch_using_marker_channels
 from intan.spike_file import fetch_spike_tstamps_from_file
 from newga.multi_ga_db_util import MultiGaDbUtil
@@ -72,8 +72,8 @@ class ResponseParser:
     def _parse_spike_rate_per_channel_for_task(self, task_id) -> dict[Channel, float]:
         spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(self._path_to_spike_file(task_id))
         stim_epochs_from_markers = epoch_using_marker_channels(self._path_to_digital_in(task_id))
-        epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(self._path_to_notes(task_id),
-                                                                   stim_epochs_from_markers)
+        epochs_for_task_ids = map_unique_task_id_to_epochs_with_livenotes(self._path_to_notes(task_id),
+                                                                          stim_epochs_from_markers)
         spikes_for_channels = filter_spikes_with_epochs(spike_tstamps_for_channels, epochs_for_task_ids, task_id,
                                                         sample_rate=sample_rate)
         spikes_per_second_for_channels = calculate_spikes_per_second_for_channels(spikes_for_channels,

@@ -8,7 +8,7 @@ from typing import Dict, List
 import numpy as np
 
 from intan.channels import Channel
-from intan.response_parsing import ResponseParser, get_current_date_as_YYYY_MM_DD
+from intan.spike_parsing import ResponseParser, get_current_date_as_YYYY_MM_DD
 from mock import mock_ga_responses
 from newga.config import GeneticAlgorithmConfig
 from newga.multi_ga_db_util import MultiGaDbUtil

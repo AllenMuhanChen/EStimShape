@@ -3,7 +3,7 @@ from typing import Any
 
 from numpy import mean
 
-from intan.response_parsing import ResponseParser
+from intan.spike_parsing import ResponseParser
 from intan.response_processing import ResponseProcessor
 from newga.lineage_selection import ClassicLineageDistributor
 from newga.multi_ga_db_util import MultiGaDbUtil
