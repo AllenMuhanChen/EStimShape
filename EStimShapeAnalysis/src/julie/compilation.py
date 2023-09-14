@@ -20,8 +20,8 @@ import matplotlib.pyplot as plt
 def main():
     # Main Parameters
     compile_data(day=date(2023, 9, 13),
-                 start_time=time(14, 0, 0),
-                 end_time=time(14, 50, 0))
+                 start_time=time(17, 0, 0),
+                 end_time=time(17, 59, 0))
 
 
 def compile_data(day: date = date.today(),
