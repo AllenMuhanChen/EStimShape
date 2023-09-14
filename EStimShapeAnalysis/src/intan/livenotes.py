@@ -16,31 +16,27 @@ def map_task_id_to_epochs_with_livenotes(livenotes_data: str,
     stim_ids.sort()
 
     result = {}
-    # for each marker channel pulse start and end time
-    for start, end in marker_channel_time_indices:
-        closest_tstamp = None
-        closest_stim_id = None
+
+    # Loop through each stim_id and find the closest marker channel to it
+    # that has a following 'Trial Complete' event
+    for tstamp, stim_id in stim_ids:
+        closest_start = None
+        closest_end = None
         following_event = None
 
-        # loop through each stim_id and find the closest one to the start time
-        # that has a following 'Trial Complete' event
-        for tstamp, stim_id in stim_ids:
-            if closest_tstamp is None or abs(tstamp - start) < abs(closest_tstamp - start):
-                closest_tstamp = tstamp
-                closest_stim_id = stim_id
-                idx = events.index((tstamp, str(stim_id)))  # Find the index of this stim_id in the original events list
-                if idx < len(events) - 1:
-                    following_event = events[idx + 1][1]  # Get the following event
+        idx = events.index((tstamp, str(stim_id)))  # Find the index of this stim_id in the original events list
+        if idx < len(events) - 1:
+            following_event = events[idx + 1][1]  # Get the following event
 
+        # Only proceed if the following event is 'Trial Complete'
+        if following_event == 'Trial Complete':
+            for start, end in marker_channel_time_indices:
+                if closest_start is None or abs(tstamp - start) < abs(tstamp - closest_start):
+                    closest_start = start
+                    closest_end = end
 
-        if (closest_stim_id is not None
-                and following_event == 'Trial Complete'
-                and result.get(closest_stim_id) is None):
-            result[closest_stim_id] = (start, end)
-            stim_ids.remove((closest_tstamp, closest_stim_id))
-
-        elif closest_stim_id is None:
-            print(f"No match found for start time {start} found in marker channels")
+            if closest_start is not None and result.get(stim_id) is None:
+                result[stim_id] = (closest_start, closest_end)
 
     return result
 

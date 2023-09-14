@@ -4,7 +4,7 @@ from typing import Dict, List
 from compile.task.task_field import TaskField
 from intan import spike_file, spike_parsing
 from intan.channels import Channel
-from intan.livenotes import map_unique_task_id_to_epochs_with_livenotes, map_task_id_to_epochs_with_livenotes
+from intan.livenotes import map_task_id_to_epochs_with_livenotes
 from intan.marker_channels import epoch_using_marker_channels
 from intan.spike_parsing import get_current_date_as_YYYY_MM_DD, filter_spikes_with_epochs
 import os

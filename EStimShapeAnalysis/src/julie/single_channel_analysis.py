@@ -10,8 +10,9 @@ from intan.channels import Channel
 
 
 def main():
-    plot_channel("/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/2023-09-13_17-00-00_to_17-59-00.pk1",
-                 channel=Channel.C_005)
+    path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/1694720022291780_230914_153342.pk1"
+    plot_channel(path,
+                 channel=Channel.C_030)
 
 
 def plot_channel(path_to_data_pickle_file, channel):
