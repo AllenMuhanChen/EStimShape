@@ -1,3 +1,5 @@
+import os
+
 import jsonpickle
 import matplotlib
 import numpy as np
@@ -10,21 +12,43 @@ from intan.channels import Channel
 
 
 def main():
-    path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/1694720022291780_230914_153342.pk1"
-    plot_channel(path,
-                 channel=Channel.C_030)
+    experiment_data_filename = "1694801146439198_230915_140547.pk1"
+    file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
+    plot_channel(file_path,
+                 channel=Channel.C_012)
 
 
 def plot_channel(path_to_data_pickle_file, channel):
     data = pd.read_pickle(path_to_data_pickle_file)
-    ## CHANNEL SPECIFIC ANALYSIS
+
+
+    ## DATA CLEANING FOR OUTLIERS
+    cleaned_data = remove_outliers(data)
+
+    ## BIN SPIKES
     num_bins = 20
-    channel_data = extract_target_channel_data(channel, data)
-    channel_data = calculate_spikerates_per_bin(channel_data, channel, num_bins)
+    binned_data = calculate_spikerates_per_bin(data, channel, num_bins)
+
+    ## CHANNEL SPECIFIC ANALYSIS
+    channel_data = extract_target_channel_data(channel, binned_data)
 
     ## PLOTTING
-    plot_individual_monkeys(channel_data, channel)
-    plot_average_among_groups(channel_data, channel)
+    individual_plot = plot_individual_monkeys(channel_data, channel)
+    group_plot = plot_average_among_groups(channel_data, channel)
+
+    ## SAVE PLOTS
+    base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
+    experiment_name = path_to_data_pickle_file.split("/")[-1].split(".")[0]
+    save_dir = os.path.join(base_save_dir, experiment_name)
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Save individual plot
+    individual_save_path = os.path.join(save_dir, f"{channel.name}_individual.png")
+    individual_plot.savefig(individual_save_path)
+
+    # Save group plot
+    group_save_path = os.path.join(save_dir, f"{channel.name}_group.png")
+    group_plot.savefig(group_save_path)
 
     plt.show()
 
@@ -32,6 +56,7 @@ def plot_channel(path_to_data_pickle_file, channel):
 def plot_individual_monkeys(channel_data, channel):
     num_groups = channel_data['MonkeyGroup'].nunique()
     unique_monkey_groups = channel_data['MonkeyGroup'].dropna().unique().tolist()
+    N = len(channel_data)
 
     # Create a new figure
     fig = plt.figure(figsize=(15, 10))
@@ -52,17 +77,20 @@ def plot_individual_monkeys(channel_data, channel):
             ax = fig.add_subplot(num_groups, len(unique_monkeys), row_idx * len(unique_monkeys) + col_idx + 1)
 
             spike_rate_arrays = np.vstack(monkey_data['BinnedSpikeRates'])
+            num_traces = spike_rate_arrays.shape[0]  # Number of rows in spike_rate_arrays is the number of traces
             mean_spike_rates = np.mean(spike_rate_arrays, axis=0)
             std_spike_rates = np.std(spike_rate_arrays, axis=0)
 
             for spike_rates in spike_rate_arrays:
-                ax.plot(x_proportion, spike_rates, color='black', alpha=0.6)
+                ax.plot(x_proportion, spike_rates, color='black', alpha=0.3)
 
             err_bar = ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='orange', alpha=0.75,
                                   label='Mean')
 
             ax.set_ylim(0, global_max_spike_rate)
             ax.set_title(f"{monkey_name}")
+            # Add the number of traces to the top middle of each subplot
+            ax.text(0.5, 0.85, f'n={num_traces}', transform=ax.transAxes, ha='center', va='bottom')
 
             # Collect legend handles and labels from one of the axes
             if legend_handles_labels is None:
@@ -80,7 +108,8 @@ def plot_individual_monkeys(channel_data, channel):
     fig.text(0.5, 0.04, 'Proportion of Total Time', ha='center', va='center')
     # Add a single y-axis label on the left
     fig.text(0.04, 0.5, 'Spike Rate', ha='center', va='center', rotation='vertical')
-
+    # Add total number of traces under the legend
+    fig.text(0.99, 0.95, f'N: {N}', ha='right', va='bottom')
     # Add a super title
     fig.suptitle(f'Individual Monkey Spike Rates: Channel: {channel.value}')
 
@@ -89,7 +118,8 @@ def plot_individual_monkeys(channel_data, channel):
     fig.legend(*legend_handles_labels, loc='upper right')
 
     plt.subplots_adjust(hspace=0.5, wspace=1.0)
-    # plt.show()
+
+    return fig
 
 
 def plot_average_among_groups(channel_data, channel):
@@ -125,7 +155,7 @@ def plot_average_among_groups(channel_data, channel):
     ax.set_title(f'Average Spike Rates Among Groups: Channel: {channel.value}')
     ax.legend()
 
-    # Show the plot
+    return fig
 
 
 
