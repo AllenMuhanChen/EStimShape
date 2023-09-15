@@ -21,16 +21,10 @@ def main():
 def plot_channel(path_to_data_pickle_file, channel):
     data = pd.read_pickle(path_to_data_pickle_file)
 
-
-    ## DATA CLEANING FOR OUTLIERS
-    cleaned_data = remove_outliers(data)
-
-    ## BIN SPIKES
-    num_bins = 20
-    binned_data = calculate_spikerates_per_bin(data, channel, num_bins)
-
     ## CHANNEL SPECIFIC ANALYSIS
-    channel_data = extract_target_channel_data(channel, binned_data)
+    num_bins = 20
+    channel_data = extract_target_channel_data(channel, data)
+    channel_data = calculate_spikerates_per_bin(channel_data, channel, num_bins)
 
     ## PLOTTING
     individual_plot = plot_individual_monkeys(channel_data, channel)
@@ -51,6 +45,11 @@ def plot_channel(path_to_data_pickle_file, channel):
     group_plot.savefig(group_save_path)
 
     plt.show()
+
+
+
+
+
 
 
 def plot_individual_monkeys(channel_data, channel):
