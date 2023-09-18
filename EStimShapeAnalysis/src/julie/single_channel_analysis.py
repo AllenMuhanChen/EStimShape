@@ -12,14 +12,18 @@ from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "1694801146439198_230915_140547.pk1"
+    experiment_data_filename = "1694809452469250_230915_162413.pk1"
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     plot_channel(file_path,
-                 channel=Channel.C_012)
+                 channel=Channel.C_014)
 
 
 def plot_channel(path_to_data_pickle_file, channel):
     data = pd.read_pickle(path_to_data_pickle_file)
+
+    ## NOISE FILTERING
+    # data = remove_noisy_data(data, 10, 100)
+
 
     ## CHANNEL SPECIFIC ANALYSIS
     num_bins = 20
@@ -46,11 +50,56 @@ def plot_channel(path_to_data_pickle_file, channel):
 
     plt.show()
 
+def remove_noisy_data(df: pd.DataFrame, num_bins: int, threshold: float, channel_threshold: int) -> pd.DataFrame:
+    """
+    Remove rows from the DataFrame where the spike rate in any of the bins
+    for a threshold number of channels exceeds a user-set threshold.
 
+    Parameters:
+    - df: DataFrame containing spikes data. Each row should contain a dictionary
+          of channels to timestamps of spikes.
+    - num_bins: Number of bins to divide the spikes into.
+    - threshold: User-set threshold for spike rate.
+    - channel_threshold: User-set threshold for the number of channels to consider a row noisy.
 
+    Returns:
+    - Filtered DataFrame.
+    """
 
+    # Initialize an empty list to keep track of row indices to drop
+    rows_to_drop = []
 
+    # Loop through each row in the DataFrame
+    for index, row in df.iterrows():
+        spikes_dict = row['spikes']  # Assuming the spikes are stored in a column named 'spikes'
 
+        noisy_channels = 0  # Counter for channels exceeding the spike rate threshold
+
+        # Loop through each channel
+        for channel, timestamps in spikes_dict.items():
+            # Bin the spikes
+            max_time = max(timestamps) if timestamps else 0
+            min_time = min(timestamps) if timestamps else 0
+            bin_edges = np.linspace(min_time, max_time, num_bins + 1)
+            binned_spikes, _ = np.histogram(timestamps, bins=bin_edges)
+
+            # Calculate the spike rate for each bin
+            bin_width = (max_time - min_time) / num_bins
+            spike_rates = binned_spikes / bin_width
+
+            # Check if any bin has spike rate above the threshold
+            if any(rate > threshold for rate in spike_rates):
+                noisy_channels += 1
+
+                # Check if the number of noisy channels exceeds the threshold
+                if noisy_channels >= channel_threshold:
+                    rows_to_drop.append(index)
+                    break  # No need to check other channels for this row
+
+    # Drop the rows
+    df_filtered = df.drop(rows_to_drop)
+
+    return df_filtered
 
 def plot_individual_monkeys(channel_data, channel):
     num_groups = channel_data['MonkeyGroup'].nunique()
@@ -62,6 +111,7 @@ def plot_individual_monkeys(channel_data, channel):
 
     row_idx = 0
     global_max_spike_rate = channel_data['BinnedSpikeRates'].apply(lambda x: max(x) if x is not None else 0).max()
+    ymax = 50
     num_bins = len(channel_data['BinnedSpikeRates'].iloc[0])
     x_proportion = np.linspace(0, 1, num_bins)
 
@@ -75,21 +125,7 @@ def plot_individual_monkeys(channel_data, channel):
 
             ax = fig.add_subplot(num_groups, len(unique_monkeys), row_idx * len(unique_monkeys) + col_idx + 1)
 
-            spike_rate_arrays = np.vstack(monkey_data['BinnedSpikeRates'])
-            num_traces = spike_rate_arrays.shape[0]  # Number of rows in spike_rate_arrays is the number of traces
-            mean_spike_rates = np.mean(spike_rate_arrays, axis=0)
-            std_spike_rates = np.std(spike_rate_arrays, axis=0)
-
-            for spike_rates in spike_rate_arrays:
-                ax.plot(x_proportion, spike_rates, color='black', alpha=0.3)
-
-            err_bar = ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='orange', alpha=0.75,
-                                  label='Mean')
-
-            ax.set_ylim(0, global_max_spike_rate)
-            ax.set_title(f"{monkey_name}")
-            # Add the number of traces to the top middle of each subplot
-            ax.text(0.5, 0.85, f'n={num_traces}', transform=ax.transAxes, ha='center', va='bottom')
+            err_bar = plot_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax)
 
             # Collect legend handles and labels from one of the axes
             if legend_handles_labels is None:
@@ -112,13 +148,55 @@ def plot_individual_monkeys(channel_data, channel):
     # Add a super title
     fig.suptitle(f'Individual Monkey Spike Rates: Channel: {channel.value}')
 
-
     # Add a single legend at the top-right corner
     fig.legend(*legend_handles_labels, loc='upper right')
 
     plt.subplots_adjust(hspace=0.5, wspace=1.0)
 
+    fig.canvas.mpl_connect('button_press_event', on_click)
     return fig
+
+def plot_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax):
+    spike_rate_arrays = np.vstack(monkey_data['BinnedSpikeRates'])
+    num_traces = spike_rate_arrays.shape[0]  # Number of rows in spike_rate_arrays is the number of traces
+    mean_spike_rates = np.mean(spike_rate_arrays, axis=0)
+    std_spike_rates = np.std(spike_rate_arrays, axis=0)
+    for spike_rates in spike_rate_arrays:
+        ax.plot(x_proportion, spike_rates, color='black', alpha=0.3)
+    err_bar = ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='orange', alpha=0.75,
+                          label='Mean')
+    ax.set_ylim(0, ymax)
+    ax.set_title(f"{monkey_name}")
+    # Add the number of traces to the top middle of each subplot
+    ax.text(0.5, 0.85, f'n={num_traces}', transform=ax.transAxes, ha='center', va='bottom')
+    return err_bar
+
+
+def on_click(event):
+    ax = event.inaxes
+    if ax is not None:
+        fig, new_ax = plt.subplots()
+        all_xdata = [line.get_xdata() for line in ax.lines[:-1]]  # Exclude the last line which is mean
+        all_ydata = [line.get_ydata() for line in ax.lines[:-1]]  # Exclude the last line which is mean
+
+        for xdata, ydata in zip(all_xdata, all_ydata):
+            new_ax.plot(xdata, ydata, color='gray', alpha=0.3)
+
+        mean_xdata = ax.lines[-1].get_xdata()
+        mean_ydata = ax.lines[-1].get_ydata()
+        # err_lines = ax.collections[0].get_paths()  # Assuming the error bars are the first collection
+
+        # upper_err = err_lines[1].vertices[:, 1]  # The second path in the collection is the upper error bar
+        # lower_err = err_lines[0].vertices[:, 1]  # The first path in the collection is the lower error bar
+        # std_err = (upper_err - lower_err) / 2
+
+        # print("Shapes:", std_err.shape, mean_ydata.shape)  # Debugging line
+
+        new_ax.errorbar(mean_xdata, mean_ydata,  color='orange', alpha=0.75, label='Mean')
+
+        new_ax.set_title(ax.get_title())
+        new_ax.set_ylim(ax.get_ylim())
+        plt.show()
 
 
 def plot_average_among_groups(channel_data, channel):
@@ -155,7 +233,6 @@ def plot_average_among_groups(channel_data, channel):
     ax.legend()
 
     return fig
-
 
 
 def calculate_binned_spike_rate(spikes, epoch, num_bins):
