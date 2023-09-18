@@ -25,7 +25,7 @@ def main():
     compile_data(day=date(2023, 9, 15),
                  start_time=time(15, 10, 0),
                  end_time=time(16, 7, 0),
-                 experiment_filename="1694801146439198_230915_140547")
+                 experiment_filename="1694809452469250_230915_162413")
 
     # compile_data(day=date(2023, 9, 13),
     #              start_time=time(17, 0, 0),
