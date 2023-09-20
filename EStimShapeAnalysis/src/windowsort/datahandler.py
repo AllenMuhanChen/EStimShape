@@ -28,16 +28,18 @@ class DataImporter:
         # Use your existing read_amplifier_data function
         self.voltages_by_channel = read_amplifier_data(amplifier_dat_path, amplifier_channels)
 
+
 class DataExporter:
     def __init__(self, *, save_directory):
-        self.thresholded_spikes_by_channel = {}  # Keyed by channel, each value is a list of spike times
+        self.thresholded_spike_indices_by_channel = {}  # Keyed by channel, each value is a list of spike times
         self.save_directory = save_directory
         self.filename = os.path.join(self.save_directory, "thresholded_spikes.pkl")
-    def update_thresholded_spikes(self, channel, thresholded_spikes):
-        self.thresholded_spikes_by_channel[channel] = thresholded_spikes
+
+    def update_thresholded_spikes(self, channel, thresholded_spike_indices):
+        self.thresholded_spike_indices_by_channel[channel] = thresholded_spike_indices
 
     def export_data(self):
         with open(self.filename, 'wb') as f:
-            pickle.dump(self.thresholded_spikes_by_channel, f)
-        print(f"Saved thresholded spikes to {self.filename}")
-        # print(self.thresholded_spikes_by_channel)
+            pickle.dump(self.thresholded_spike_indices_by_channel, f)
+        # print(f"Saved {len(self.thresholded_spikes_by_channel.items())} thresholded spikes to {self.filename}")
+        print(self.thresholded_spike_indices_by_channel)
