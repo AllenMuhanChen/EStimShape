@@ -1,4 +1,6 @@
 import os
+import pickle
+
 import numpy as np
 
 from intan.amplifiers import read_amplifier_data
@@ -6,7 +8,7 @@ from intan.channels import Channel
 from intan.rhd import load_intan_rhd_format
 
 
-class DataHandler:
+class DataImporter:
     def __init__(self, intan_file_directory):
         self.intan_file_directory = intan_file_directory
         self.voltages_by_channel: dict[Channel, np.ndarray] = {}
@@ -26,3 +28,16 @@ class DataHandler:
         # Use your existing read_amplifier_data function
         self.voltages_by_channel = read_amplifier_data(amplifier_dat_path, amplifier_channels)
 
+class DataExporter:
+    def __init__(self, *, save_directory):
+        self.thresholded_spikes_by_channel = {}  # Keyed by channel, each value is a list of spike times
+        self.save_directory = save_directory
+        self.filename = os.path.join(self.save_directory, "thresholded_spikes.pkl")
+    def update_thresholded_spikes(self, channel, thresholded_spikes):
+        self.thresholded_spikes_by_channel[channel] = thresholded_spikes
+
+    def export_data(self):
+        with open(self.filename, 'wb') as f:
+            pickle.dump(self.thresholded_spikes_by_channel, f)
+        print(f"Saved thresholded spikes to {self.filename}")
+        # print(self.thresholded_spikes_by_channel)

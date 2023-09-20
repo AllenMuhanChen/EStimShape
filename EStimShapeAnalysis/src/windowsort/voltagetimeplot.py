@@ -1,7 +1,9 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSlider, QSpinBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSlider, QSpinBox, QPushButton
 import numpy as np
 from pyqtgraph import PlotWidget, PlotDataItem, LinearRegionItem, InfiniteLine
+
+from windowsort.datahandler import DataExporter
 
 
 class VoltageTimePlot(QWidget):
@@ -112,14 +114,16 @@ class TimeScrubber(QWidget):
 
 
 class ThresholdedSpikePlot(QWidget):
-    def __init__(self, data_handler):
+    def __init__(self, data_handler, data_exporter):
         super(ThresholdedSpikePlot, self).__init__()
         self.data_handler = data_handler
+        self.data_exporter = data_exporter
         self.current_threshold_value = None
         self.current_start_time = 0
         self.current_max_spikes = 10  # Default value
         self.initUI()
         self.plotItems = []  # List to keep track of PlotDataItems
+        self.current_channel = 0
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -159,22 +163,24 @@ class ThresholdedSpikePlot(QWidget):
 
         threshold_value = self.current_threshold_value
 
-        channel_name = list(self.data_handler.voltages_by_channel.keys())[0]
+        channel_name = list(self.data_handler.voltages_by_channel.keys())[self.current_channel]
         voltages = self.data_handler.voltages_by_channel[channel_name]
 
         # Find spikes that cross the threshold
         above_threshold = voltages > threshold_value
-        crossing_points = np.where(np.diff(above_threshold))[0]
+        crossing_points = np.where(np.diff(above_threshold))[self.current_channel]
+        self.data_exporter.update_thresholded_spikes(self.current_channel, crossing_points)
         crossing_points = crossing_points[self.current_start_time:self.current_start_time + self.current_max_spikes]
 
         # Plot a small window around each crossing point
         window_size = 50  # For example, 50 samples on either side of the spike
         for point in crossing_points:
-            start = max(0, point - window_size)
+            start = max(self.current_channel, point - window_size)
             end = min(len(voltages), point + window_size)
             plotItem = PlotDataItem(voltages[start:end], pen='r')
             self.plotWidget.addItem(plotItem)
             self.plotItems.append(plotItem)  # Add to list
+
 
 class SpikeScrubber(QWidget):
     def __init__(self, thresholdedSpikePlot):
@@ -209,3 +215,23 @@ class SpikeScrubber(QWidget):
         self.thresholdedSpikePlot.current_start_time = self.slider.value()
         self.thresholdedSpikePlot.current_max_spikes = self.maxSpikesBox.value()
         self.thresholdedSpikePlot.updatePlotWithSettings()
+
+
+
+class ExportPanel(QWidget):
+    def __init__(self, data_exporter):
+        super(ExportPanel, self).__init__()
+        self.data_exporter = data_exporter
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        self.exportButton = QPushButton("Export Data")
+        self.exportButton.clicked.connect(self.onExportClicked)
+
+        layout.addWidget(self.exportButton)
+        self.setLayout(layout)
+
+    def onExportClicked(self):
+        self.data_exporter.export_data()

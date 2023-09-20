@@ -2,16 +2,17 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QApplication
 import sys
 import os
 
-from windowsort.datahandler import DataHandler
-from windowsort.voltagetimeplot import VoltageTimePlot, TimeScrubber, ThresholdedSpikePlot, SpikeScrubber
+from windowsort.datahandler import DataImporter, DataExporter
+from windowsort.voltagetimeplot import VoltageTimePlot, TimeScrubber, ThresholdedSpikePlot, SpikeScrubber, ExportPanel
 
 
 class MainWindow(QMainWindow):
     def __init__(self, data_directory):
         super(MainWindow, self).__init__()
 
-        # Initialize DataHandler
-        self.data_handler = DataHandler(data_directory)
+        # Initialize Dependencies
+        self.data_handler = DataImporter(data_directory)
+        self.data_exporter = DataExporter(save_directory=data_directory)
 
         # Initialize UI
         self.initUI()
@@ -26,15 +27,21 @@ class MainWindow(QMainWindow):
 
         self.voltage_time_plot = VoltageTimePlot(self.data_handler)
         layout.addWidget(self.voltage_time_plot)
-
         self.time_scrubber = TimeScrubber(self.voltage_time_plot)
         layout.addWidget(self.time_scrubber)
 
-        self.thresholded_spike_plot = ThresholdedSpikePlot(self.data_handler)
+
+        self.thresholded_spike_plot = ThresholdedSpikePlot(self.data_handler, self.data_exporter)
         layout.addWidget(self.thresholded_spike_plot)
         self.voltage_time_plot.thresholdedSpikePlot = self.thresholded_spike_plot
         self.spike_scrubber = SpikeScrubber(self.thresholded_spike_plot)
         layout.addWidget(self.spike_scrubber)
+
+        self.exportPanel = ExportPanel(self.data_exporter)
+        layout.addWidget(self.exportPanel)
+
+        # Add to main layout
+        layout.addWidget(self.exportPanel)
         central_widget.setLayout(layout)
 
 
