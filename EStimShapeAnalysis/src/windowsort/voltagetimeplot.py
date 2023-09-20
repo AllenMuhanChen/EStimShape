@@ -91,6 +91,48 @@ class VoltageTimePlot(QWidget):
     # Additional methods for zooming, setting threshold, etc., can be added
 
 
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider, QSpinBox, QLabel
+
+class ThresholdControlPanel(QWidget):
+    def __init__(self, voltage_time_plot):
+        super(ThresholdControlPanel, self).__init__()
+        self.voltage_time_plot = voltage_time_plot
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        self.thresholdLabel = QLabel("Threshold Value:")
+        layout.addWidget(self.thresholdLabel)
+
+        # Initialize Slider
+        self.thresholdSlider = QSlider(Qt.Horizontal)
+        self.thresholdSlider.setRange(-200, 200)  # Set your own range
+        self.thresholdSlider.setValue(-80)  # Initial value
+        layout.addWidget(self.thresholdSlider)
+
+        # Initialize SpinBox
+        self.thresholdSpinBox = QSpinBox()
+        self.thresholdSpinBox.setRange(-200, 200)  # Set your own range
+        self.thresholdSpinBox.setValue(-80)  # Initial value
+        layout.addWidget(self.thresholdSpinBox)
+
+        self.setLayout(layout)
+
+        # Connect Slider and SpinBox to update together
+        self.thresholdSlider.valueChanged.connect(self.thresholdSpinBox.setValue)
+        self.thresholdSpinBox.valueChanged.connect(self.thresholdSlider.setValue)
+
+        # Connect to update the threshold line in VoltageTimePlot
+        self.thresholdSlider.valueChanged.connect(self.updateThresholdLine)
+        self.thresholdSpinBox.valueChanged.connect(self.updateThresholdLine)
+
+    def updateThresholdLine(self):
+        new_threshold_value = self.thresholdSlider.value()
+        self.voltage_time_plot.threshold_line.setValue(new_threshold_value)
+        self.voltage_time_plot.onThresholdChanged()
+
 class TimeScrubber(QWidget):
     def __init__(self, voltage_time_plot):
         super(TimeScrubber, self).__init__()
