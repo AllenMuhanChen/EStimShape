@@ -6,6 +6,8 @@ from pyqtgraph import PlotWidget, PlotDataItem, LinearRegionItem
 class VoltageTimePlot(QWidget):
     def __init__(self, data_handler):
         super(VoltageTimePlot, self).__init__()
+        self.max_voltage = None
+        self.min_voltage = None
         self.data_handler = data_handler
         self.initUI()
 
@@ -27,25 +29,30 @@ class VoltageTimePlot(QWidget):
         # Initialize the plot with data
         self.updatePlot()
 
-    def updatePlot(self, start_time=0, window_size=100):
+    def updatePlot(self, start_time_seconds=0, window_size_seconds=100):
         channel_name = list(self.data_handler.voltages_by_channel.keys())[0]
         voltages = self.data_handler.voltages_by_channel[channel_name]
         sample_rate = self.data_handler.sample_rate
 
         # Calculate the indices for the time window
-        start_index = int(start_time * sample_rate)
-        end_index = int((start_time + window_size / 1000) * sample_rate)
+        start_index = int(start_time_seconds * sample_rate)
+        end_index = int((start_time_seconds + window_size_seconds) * sample_rate)
 
         # Extract the subset of data for the time window
         voltages_subset = voltages[start_index:end_index]
-        times_subset = np.linspace(start_time, start_time + window_size / 1000, len(voltages_subset))
+        times_subset = np.linspace(start_time_seconds, start_time_seconds + window_size_seconds / 1000, len(voltages_subset))
 
         # Update the main plot
         self.plot.setData(times_subset, voltages_subset)
 
         # Update the axes limits to fit the plotted data
         self.plotWidget.setXRange(min(times_subset), max(times_subset))
-        self.plotWidget.setYRange(min(voltages_subset), max(voltages_subset))
+
+        if self.min_voltage is None or self.max_voltage is None:
+            self.min_voltage = min(voltages)
+            self.max_voltage = max(voltages)
+
+        self.plotWidget.setYRange(self.min_voltage, self.max_voltage)
     # Additional methods for zooming, setting threshold, etc., can be added
 
 
@@ -63,8 +70,9 @@ class TimeScrubber(QWidget):
         self.slider = QSlider(Qt.Horizontal)
 
         self.windowSizeBox = QSpinBox()
-        self.windowSizeBox.setSuffix(" ms")
-        self.windowSizeBox.setValue(100)  # Set initial window size to 100 ms
+        self.windowSizeBox.setSuffix(" s")
+        self.windowSizeBox.setValue(50)  # Set initial window size to 100 s
+        self.windowSizeBox.setRange(1, 1000)
 
         hbox.addWidget(self.label)
         hbox.addWidget(self.slider)
@@ -74,11 +82,18 @@ class TimeScrubber(QWidget):
         layout.addLayout(hbox)
         self.setLayout(layout)
 
-        self.slider.setRange(0, 100)  # Set actual range based on data
+        # Get total time duration based on the first channel in the dataset
+        channel_name = list(self.voltage_time_plot.data_handler.voltages_by_channel.keys())[0]
+        total_samples = len(self.voltage_time_plot.data_handler.voltages_by_channel[channel_name])
+        total_time_seconds = (total_samples / self.voltage_time_plot.data_handler.sample_rate)
+
+        self.slider.setRange(0, int(total_time_seconds))  # Set range based on actual data
+        self.slider.setValue(0)  # Set initial position
+
         self.slider.valueChanged.connect(self.updateMainPlot)
         self.windowSizeBox.valueChanged.connect(self.updateMainPlot)
 
     def updateMainPlot(self):
-        start_time = self.slider.value() / 1000  # Convert from ms to seconds
-        window_size = self.windowSizeBox.value()  # In ms
+        start_time = self.slider.value()
+        window_size = self.windowSizeBox.value()
         self.voltage_time_plot.updatePlot(start_time, window_size)
