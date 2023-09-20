@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSlider, QSpinBox, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSlider, QSpinBox, QPushButton, QComboBox
 import numpy as np
 from pyqtgraph import PlotWidget, PlotDataItem, LinearRegionItem, InfiniteLine
 
@@ -8,12 +8,14 @@ from windowsort.datahandler import DataExporter
 
 
 class VoltageTimePlot(QWidget):
+    current_channel = None
     def __init__(self, data_handler):
         super(VoltageTimePlot, self).__init__()
         self.max_voltage = None
         self.min_voltage = None
         self.data_handler = data_handler
         self.initUI()
+        self.current_channel = None
 
         # Add threshold line
         self.threshold_line = InfiniteLine(angle=0, movable=True, pos=-80)
@@ -39,7 +41,9 @@ class VoltageTimePlot(QWidget):
         self.updatePlot()
 
     def updatePlot(self, start_time_seconds=0, window_size_seconds=100):
-        channel_name = list(self.data_handler.voltages_by_channel.keys())[0]
+        if self.current_channel is None:
+            return
+        channel_name = self.current_channel
         voltages = self.data_handler.voltages_by_channel[channel_name]
         sample_rate = self.data_handler.sample_rate
 
@@ -134,15 +138,15 @@ class ThresholdedSpikePlot(QWidget):
 
         self.setLayout(layout)
 
-
     def updatePlotWithSettings(self):
         # Clear the existing plot items
         for item in self.plotItems:
             self.plotWidget.removeItem(item)
         self.plotItems.clear()
 
+        if self.current_threshold_value is None:
+            return  # Exit if the threshold is not set yet
         threshold_value = self.current_threshold_value
-
 
         voltages = self.data_handler.voltages_by_channel[self.current_channel]
 
@@ -150,7 +154,8 @@ class ThresholdedSpikePlot(QWidget):
         above_threshold = voltages < threshold_value
         crossing_indices = np.where(np.diff(above_threshold))[0]
         self.data_exporter.update_thresholded_spikes(self.current_channel, crossing_indices)
-        subset_of_crossing_indices = crossing_indices[self.current_start_time:self.current_start_time + self.current_max_spikes]
+        subset_of_crossing_indices = crossing_indices[
+                                     self.current_start_time:self.current_start_time + self.current_max_spikes]
 
         # Plot a small window around each crossing point
         window_size = 50  # For example, 50 samples on either side of the spike
@@ -197,7 +202,6 @@ class SpikeScrubber(QWidget):
         self.thresholdedSpikePlot.updatePlotWithSettings()
 
 
-
 class ExportPanel(QWidget):
     def __init__(self, data_exporter):
         super(ExportPanel, self).__init__()
@@ -215,3 +219,33 @@ class ExportPanel(QWidget):
 
     def onExportClicked(self):
         self.data_exporter.export_data()
+
+
+class ChannelSelectionPanel(QWidget):
+    def __init__(self, voltage_time_plot, thresholded_spike_plot):
+        super(ChannelSelectionPanel, self).__init__()
+        self.voltage_time_plot = voltage_time_plot
+        self.thresholded_spike_plot = thresholded_spike_plot
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+
+        self.channelComboBox = QComboBox()
+        channel_list = list(self.voltage_time_plot.data_handler.voltages_by_channel.keys())
+        self.channelComboBox.addItems([channel.value for channel in channel_list])
+
+        layout.addWidget(QLabel("Select Channel:"))
+        layout.addWidget(self.channelComboBox)
+
+        self.setLayout(layout)
+
+        self.channelComboBox.currentIndexChanged.connect(self.onChannelChanged)
+
+    def onChannelChanged(self):
+        selected_channel = Channel(self.channelComboBox.currentText())
+        print("Selected channel: " + selected_channel.value)
+        self.voltage_time_plot.current_channel = selected_channel
+        self.thresholded_spike_plot.current_channel = selected_channel
+        self.voltage_time_plot.updatePlot()
+        self.thresholded_spike_plot.updatePlotWithSettings()
