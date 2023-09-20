@@ -7,8 +7,24 @@ from intan.channels import Channel
 from windowsort.datahandler import DataExporter
 
 
+def threshold_spikes(threshold_value, voltages):
+    # Find spikes that cross the threshold
+    above_threshold = voltages < threshold_value
+    crossing_indices = np.where(np.diff(above_threshold))[0]
+
+    # Calculate the first derivative of the voltages
+    voltage_derivative = np.diff(voltages)
+
+    # Filter out indices where the derivative is positive or zero
+    # This ensures that we only count spikes where the voltage is decreasing
+    filtered_indices = [idx for idx in crossing_indices if voltage_derivative[idx] < 0]
+
+    return np.array(filtered_indices)
+
+
 class VoltageTimePlot(QWidget):
     current_channel = None
+
     def __init__(self, data_handler):
         super(VoltageTimePlot, self).__init__()
         self.max_voltage = None
@@ -150,9 +166,8 @@ class ThresholdedSpikePlot(QWidget):
 
         voltages = self.data_handler.voltages_by_channel[self.current_channel]
 
-        # Find spikes that cross the threshold
-        above_threshold = voltages < threshold_value
-        crossing_indices = np.where(np.diff(above_threshold))[0]
+        crossing_indices = threshold_spikes(threshold_value, voltages)
+
         self.data_exporter.update_thresholded_spikes(self.current_channel, crossing_indices)
         subset_of_crossing_indices = crossing_indices[
                                      self.current_start_time:self.current_start_time + self.current_max_spikes]
