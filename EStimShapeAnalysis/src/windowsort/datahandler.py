@@ -33,7 +33,7 @@ class DataImporter:
 
     def preprocess_data(self):
         for channel, voltages in self.voltages_by_channel.items():
-            self.voltages_by_channel[channel] = self.highpass_filter(voltages)
+            self.voltages_by_channel[channel] = self.highpass_filter(voltages, cutoff=300)
 
     def butter_highpass(self, cutoff, fs, order=5):
         nyquist = 0.5 * fs
@@ -45,6 +45,7 @@ class DataImporter:
         b, a = self.butter_highpass(cutoff, self.sample_rate, order=order)
         y = filtfilt(b, a, data)
         return y
+
 
 class DataExporter:
     def __init__(self, *, save_directory):

@@ -4,7 +4,7 @@ import os
 
 from windowsort.datahandler import DataImporter, DataExporter
 from windowsort.voltagetimeplot import VoltageTimePlot, TimeScrubber, ThresholdedSpikePlot, SpikeScrubber, ExportPanel, \
-    ChannelSelectionPanel
+    ChannelSelectionPanel, ThresholdControlPanel
 
 
 class MainWindow(QMainWindow):
@@ -31,7 +31,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.voltage_time_plot)
         self.time_scrubber = TimeScrubber(self.voltage_time_plot)
         layout.addWidget(self.time_scrubber)
-
+        self.thresholdControlPanel = ThresholdControlPanel(self.voltage_time_plot)
+        layout.addWidget(self.thresholdControlPanel)
 
         # Thresholded Spikes
         self.thresholded_spike_plot = ThresholdedSpikePlot(self.data_handler, self.data_exporter)
