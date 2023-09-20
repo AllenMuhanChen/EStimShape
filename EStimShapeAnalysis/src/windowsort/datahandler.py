@@ -2,6 +2,7 @@ import os
 import pickle
 
 import numpy as np
+from scipy.signal import butter, filtfilt
 
 from intan.amplifiers import read_amplifier_data
 from intan.channels import Channel
@@ -27,7 +28,23 @@ class DataImporter:
         self.sample_rate = data['frequency_parameters']['amplifier_sample_rate']
         # Use your existing read_amplifier_data function
         self.voltages_by_channel = read_amplifier_data(amplifier_dat_path, amplifier_channels)
+        # Preprocess the data after reading it
+        self.preprocess_data()
 
+    def preprocess_data(self):
+        for channel, voltages in self.voltages_by_channel.items():
+            self.voltages_by_channel[channel] = self.highpass_filter(voltages)
+
+    def butter_highpass(self, cutoff, fs, order=5):
+        nyquist = 0.5 * fs
+        normal_cutoff = cutoff / nyquist
+        b, a = butter(order, normal_cutoff, btype='high', analog=False)
+        return b, a
+
+    def highpass_filter(self, data, cutoff=300, order=5):
+        b, a = self.butter_highpass(cutoff, self.sample_rate, order=order)
+        y = filtfilt(b, a, data)
+        return y
 
 class DataExporter:
     def __init__(self, *, save_directory):
