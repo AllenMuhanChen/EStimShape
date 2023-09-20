@@ -12,21 +12,87 @@ from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "1694809452469250_230915_162413.pk1"
+    experiment_data_filename = "2023-09-12_16-00-00_to_23-59-59.pk1"
+    experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
-    plot_channel(file_path,
-                 channel=Channel.C_014)
+    raw_data = pd.read_pickle(file_path)
+    # plot_channel_histograms(raw_data,
+    #                         channel=Channel.C_025)
+    plot_raster_for_monkeys(raw_data, channel=Channel.C_026,
+                            experiment_name=experiment_name)
 
 
-def plot_channel(path_to_data_pickle_file, channel):
-    data = pd.read_pickle(path_to_data_pickle_file)
+def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
+    channel_data = extract_target_channel_data(channel, raw_data)
+    unique_monkey_groups = channel_data['MonkeyGroup'].dropna().unique().tolist()
+    N = len(channel_data)
 
+    max_rows = 0
+    for group_name in unique_monkey_groups:
+        group_data = channel_data[channel_data['MonkeyGroup'] == group_name]
+        unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
+        max_rows = max(max_rows, len(unique_monkeys))
+
+    fig = plt.figure(figsize=(15 * len(unique_monkey_groups), 35 * max_rows))
+
+    row_idx = 0
+
+    for col_idx, group_name in enumerate(unique_monkey_groups):
+        group_data = channel_data[channel_data['MonkeyGroup'] == group_name]
+        unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
+
+        for row_idx, monkey_name in enumerate(unique_monkeys):
+            monkey_data = group_data[group_data['MonkeyName'] == monkey_name]
+
+            ax = fig.add_subplot(max_rows, len(unique_monkey_groups), row_idx * len(unique_monkey_groups) + col_idx + 1)
+
+            filtered_spike_times_list = []
+            for idx, row in monkey_data.iterrows():
+                spike_times = row[f'SpikeTimes_{channel.value}']
+                epoch_start, epoch_stop = row['EpochStartStop']
+
+                # Filter spikes based on EpochStartStop and subtract the epoch start time
+                filtered_spike_times = [spike - epoch_start for spike in spike_times if
+                                        epoch_start <= spike <= epoch_stop]
+                filtered_spike_times_list.append(filtered_spike_times)
+
+            ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.25)
+            ax.set_xlim(0, 1.0)
+            ax.set_yticks([len(filtered_spike_times_list)])
+            # Place the title text to the right of the subplot
+            ax.text(1.05, 0.5, f"{monkey_name}", transform=ax.transAxes, ha='left', va='center', fontsize=14)
+
+        fig.text(0.5 / len(unique_monkey_groups) + col_idx / len(unique_monkey_groups), 0.95, f'{group_name}',
+                 ha='center', va='center')
+
+    # fig.text(0.5, 0.01, 'Monkey Groups', ha='center', va='center')
+    fig.text(0.5, 0.05, 'Time (s)', ha='center', va='center', rotation='horizontal')
+    fig.text(0.99, 0.95, f'N: {N}', ha='right', va='bottom')
+    fig.suptitle(f'Raster Plots for Individual Monkeys: Channel: {channel.value}')
+
+    plt.subplots_adjust(hspace=1.0, wspace=1.0)
+    plt.show()
+
+    ## SAVE PLOTS
+    base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
+    if experiment_name is not None:
+        save_dir = os.path.join(base_save_dir, experiment_name)
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Save individual plot
+        individual_save_path = os.path.join(save_dir, f"{channel.name}_raster.png")
+        fig.savefig(individual_save_path)
+
+
+    return fig
+
+
+def plot_channel_histograms(data, channel):
     ## NOISE FILTERING
     # data = remove_noisy_data(data, 10, 100)
 
-
     ## CHANNEL SPECIFIC ANALYSIS
-    num_bins = 20
+    num_bins = 10
     channel_data = extract_target_channel_data(channel, data)
     channel_data = calculate_spikerates_per_bin(channel_data, channel, num_bins)
 
@@ -35,20 +101,21 @@ def plot_channel(path_to_data_pickle_file, channel):
     group_plot = plot_average_among_groups(channel_data, channel)
 
     ## SAVE PLOTS
-    base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
-    experiment_name = path_to_data_pickle_file.split("/")[-1].split(".")[0]
-    save_dir = os.path.join(base_save_dir, experiment_name)
-    os.makedirs(save_dir, exist_ok=True)
-
+    # base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
+    # experiment_name = path_to_data_pickle_file.split("/")[-1].split(".")[0]
+    # save_dir = os.path.join(base_save_dir, experiment_name)
+    # os.makedirs(save_dir, exist_ok=True)
+    #
     # Save individual plot
-    individual_save_path = os.path.join(save_dir, f"{channel.name}_individual.png")
-    individual_plot.savefig(individual_save_path)
-
+    # individual_save_path = os.path.join(save_dir, f"{channel.name}_individual.png")
+    # individual_plot.savefig(individual_save_path)
+    #
     # Save group plot
-    group_save_path = os.path.join(save_dir, f"{channel.name}_group.png")
-    group_plot.savefig(group_save_path)
+    # group_save_path = os.path.join(save_dir, f"{channel.name}_group.png")
+    # group_plot.savefig(group_save_path)
 
     plt.show()
+
 
 def remove_noisy_data(df: pd.DataFrame, num_bins: int, threshold: float, channel_threshold: int) -> pd.DataFrame:
     """
@@ -100,6 +167,7 @@ def remove_noisy_data(df: pd.DataFrame, num_bins: int, threshold: float, channel
     df_filtered = df.drop(rows_to_drop)
 
     return df_filtered
+
 
 def plot_individual_monkeys(channel_data, channel):
     num_groups = channel_data['MonkeyGroup'].nunique()
@@ -153,8 +221,9 @@ def plot_individual_monkeys(channel_data, channel):
 
     plt.subplots_adjust(hspace=0.5, wspace=1.0)
 
-    fig.canvas.mpl_connect('button_press_event', on_click)
+    fig.canvas.mpl_connect('button_press_event', on_click_histo)
     return fig
+
 
 def plot_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax):
     spike_rate_arrays = np.vstack(monkey_data['BinnedSpikeRates'])
@@ -162,9 +231,9 @@ def plot_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax):
     mean_spike_rates = np.mean(spike_rate_arrays, axis=0)
     std_spike_rates = np.std(spike_rate_arrays, axis=0)
     for spike_rates in spike_rate_arrays:
-        ax.plot(x_proportion, spike_rates, color='black', alpha=0.3)
+        ax.plot(x_proportion, spike_rates, color='black', alpha=0.3, linewidth=0.75)
     err_bar = ax.errorbar(x_proportion, mean_spike_rates, yerr=std_spike_rates, color='orange', alpha=0.75,
-                          label='Mean')
+                          label='Mean', elinewidth=0.8)
     ax.set_ylim(0, ymax)
     ax.set_title(f"{monkey_name}")
     # Add the number of traces to the top middle of each subplot
@@ -172,7 +241,7 @@ def plot_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax):
     return err_bar
 
 
-def on_click(event):
+def on_click_histo(event):
     ax = event.inaxes
     if ax is not None:
         fig, new_ax = plt.subplots()
@@ -192,7 +261,7 @@ def on_click(event):
 
         # print("Shapes:", std_err.shape, mean_ydata.shape)  # Debugging line
 
-        new_ax.errorbar(mean_xdata, mean_ydata,  color='orange', alpha=0.75, label='Mean')
+        new_ax.errorbar(mean_xdata, mean_ydata, color='orange', alpha=0.75, label='Mean')
 
         new_ax.set_title(ax.get_title())
         new_ax.set_ylim(ax.get_ylim())
@@ -235,24 +304,6 @@ def plot_average_among_groups(channel_data, channel):
     return fig
 
 
-def calculate_binned_spike_rate(spikes, epoch, num_bins):
-    if spikes is None or epoch is None:
-        return [0.0] * num_bins
-
-    start_time, end_time = epoch
-    total_duration = end_time - start_time
-    bin_duration = total_duration / num_bins
-    binned_spike_rates = []
-
-    for i in range(num_bins):
-        bin_start = start_time + i * bin_duration
-        bin_end = bin_start + bin_duration
-        spike_rate = calculate_spike_rate(spikes, (bin_start, bin_end))
-        binned_spike_rates.append(spike_rate)
-
-    return np.array(binned_spike_rates)
-
-
 def calculate_spike_rate(spikes: list, time_range: tuple) -> float:
     """
     Calculate the spike rate between two timestamps.
@@ -292,6 +343,24 @@ def calculate_spikerates_per_bin(channel_data, channel, num_bins):
         axis=1
     )
     return channel_data
+
+
+def calculate_binned_spike_rate(spikes, epoch, num_bins):
+    if spikes is None or epoch is None:
+        return [0.0] * num_bins
+
+    start_time, end_time = epoch
+    total_duration = end_time - start_time
+    bin_duration = total_duration / num_bins
+    binned_spike_rates = []
+
+    for i in range(num_bins):
+        bin_start = start_time + i * bin_duration
+        bin_end = bin_start + bin_duration
+        spike_rate = calculate_spike_rate(spikes, (bin_start, bin_end))
+        binned_spike_rates.append(spike_rate)
+
+    return np.array(binned_spike_rates)
 
 
 if __name__ == '__main__':
