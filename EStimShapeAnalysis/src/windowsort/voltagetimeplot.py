@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSlider, 
 import numpy as np
 from pyqtgraph import PlotWidget, PlotDataItem, LinearRegionItem, InfiniteLine
 
+from intan.channels import Channel
 from windowsort.datahandler import DataExporter
 
 
@@ -123,7 +124,7 @@ class ThresholdedSpikePlot(QWidget):
         self.current_max_spikes = 10  # Default value
         self.initUI()
         self.plotItems = []  # List to keep track of PlotDataItems
-        self.current_channel = 0
+        self.current_channel = Channel.C_000
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -133,27 +134,6 @@ class ThresholdedSpikePlot(QWidget):
 
         self.setLayout(layout)
 
-    def updatePlot(self, threshold_value):
-        # Clear the existing plot items
-        for item in self.plotItems:
-            self.plotWidget.removeItem(item)
-        self.plotItems.clear()
-
-        channel_name = list(self.data_handler.voltages_by_channel.keys())[0]
-        voltages = self.data_handler.voltages_by_channel[channel_name]
-
-        # Find spikes that cross the threshold
-        above_threshold = voltages > threshold_value
-        crossing_points = np.where(np.diff(above_threshold))[0]
-
-        # Plot a small window around each crossing point
-        window_size = 50  # For example, 50 samples on either side of the spike
-        for point in crossing_points:
-            start = max(0, point - window_size)
-            end = min(len(voltages), point + window_size)
-            plotItem = PlotDataItem(voltages[start:end], pen='r')
-            self.plotWidget.addItem(plotItem)
-            self.plotItems.append(plotItem)  # Add to list
 
     def updatePlotWithSettings(self):
         # Clear the existing plot items
@@ -163,19 +143,19 @@ class ThresholdedSpikePlot(QWidget):
 
         threshold_value = self.current_threshold_value
 
-        channel_name = list(self.data_handler.voltages_by_channel.keys())[self.current_channel]
-        voltages = self.data_handler.voltages_by_channel[channel_name]
+
+        voltages = self.data_handler.voltages_by_channel[self.current_channel]
 
         # Find spikes that cross the threshold
-        above_threshold = voltages > threshold_value
-        crossing_points = np.where(np.diff(above_threshold))[self.current_channel]
-        self.data_exporter.update_thresholded_spikes(self.current_channel, crossing_points)
-        crossing_points = crossing_points[self.current_start_time:self.current_start_time + self.current_max_spikes]
+        above_threshold = voltages < threshold_value
+        crossing_indices = np.where(np.diff(above_threshold))[0]
+        self.data_exporter.update_thresholded_spikes(self.current_channel, crossing_indices)
+        subset_of_crossing_indices = crossing_indices[self.current_start_time:self.current_start_time + self.current_max_spikes]
 
         # Plot a small window around each crossing point
         window_size = 50  # For example, 50 samples on either side of the spike
-        for point in crossing_points:
-            start = max(self.current_channel, point - window_size)
+        for point in subset_of_crossing_indices:
+            start = max(0, point - window_size)
             end = min(len(voltages), point + window_size)
             plotItem = PlotDataItem(voltages[start:end], pen='r')
             self.plotWidget.addItem(plotItem)
