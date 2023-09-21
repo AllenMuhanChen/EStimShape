@@ -1,26 +1,10 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QSlider, QSpinBox, QPushButton, QComboBox
+from PyQt5.QtWidgets import QHBoxLayout, QComboBox
 import numpy as np
-from pyqtgraph import PlotWidget, PlotDataItem, LinearRegionItem, InfiniteLine
+from pyqtgraph import PlotWidget, LinearRegionItem, InfiniteLine
 
 from intan.channels import Channel
-from windowsort.datahandler import DataExporter
-
-
-def threshold_spikes(threshold_value, voltages):
-    # Find spikes that cross the threshold
-    above_threshold = voltages < threshold_value
-    crossing_indices = np.where(np.diff(above_threshold))[0]
-
-    # Calculate the first derivative of the voltages
-    voltage_derivative = np.diff(voltages)
-
-    # Filter out indices where the derivative is positive or zero
-    # This ensures that we only count spikes where the voltage is decreasing
-    filtered_indices = [idx for idx in crossing_indices if voltage_derivative[idx] < 0]
-
-    return np.array(filtered_indices)
-
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider, QSpinBox, QLabel
 
 class VoltageTimePlot(QWidget):
     current_channel = None
@@ -91,8 +75,7 @@ class VoltageTimePlot(QWidget):
     # Additional methods for zooming, setting threshold, etc., can be added
 
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider, QSpinBox, QLabel
+
 
 class ThresholdControlPanel(QWidget):
     def __init__(self, voltage_time_plot):
@@ -174,108 +157,6 @@ class TimeScrubber(QWidget):
         start_time = self.slider.value()
         window_size = self.windowSizeBox.value()
         self.voltage_time_plot.updatePlot(start_time, window_size)
-
-
-class ThresholdedSpikePlot(QWidget):
-    def __init__(self, data_handler, data_exporter):
-        super(ThresholdedSpikePlot, self).__init__()
-        self.data_handler = data_handler
-        self.data_exporter = data_exporter
-        self.current_threshold_value = None
-        self.current_start_time = 0
-        self.current_max_spikes = 10  # Default value
-        self.initUI()
-        self.plotItems = []  # List to keep track of PlotDataItems
-        self.current_channel = Channel.C_000
-
-    def initUI(self):
-        layout = QVBoxLayout()
-
-        self.plotWidget = PlotWidget()
-        layout.addWidget(self.plotWidget)
-
-        self.setLayout(layout)
-
-    def updatePlotWithSettings(self):
-        # Clear the existing plot items
-        for item in self.plotItems:
-            self.plotWidget.removeItem(item)
-        self.plotItems.clear()
-
-        if self.current_threshold_value is None:
-            return  # Exit if the threshold is not set yet
-        threshold_value = self.current_threshold_value
-
-        voltages = self.data_handler.voltages_by_channel[self.current_channel]
-
-        crossing_indices = threshold_spikes(threshold_value, voltages)
-
-        self.data_exporter.update_thresholded_spikes(self.current_channel, crossing_indices)
-        subset_of_crossing_indices = crossing_indices[
-                                     self.current_start_time:self.current_start_time + self.current_max_spikes]
-
-        # Plot a small window around each crossing point
-        window_size = 50  # For example, 50 samples on either side of the spike
-        for point in subset_of_crossing_indices:
-            start = max(0, point - window_size)
-            end = min(len(voltages), point + window_size)
-            plotItem = PlotDataItem(voltages[start:end], pen='r')
-            self.plotWidget.addItem(plotItem)
-            self.plotItems.append(plotItem)  # Add to list
-
-
-class SpikeScrubber(QWidget):
-    def __init__(self, thresholdedSpikePlot):
-        super(SpikeScrubber, self).__init__()
-        self.thresholdedSpikePlot = thresholdedSpikePlot
-        self.initUI()
-
-    def initUI(self):
-        layout = QVBoxLayout()
-        hbox = QHBoxLayout()
-
-        self.label = QLabel("Time Start:")
-        self.slider = QSlider(Qt.Horizontal)
-
-        self.maxSpikesBox = QSpinBox()
-        self.maxSpikesBox.setSuffix(" spikes")
-        self.maxSpikesBox.setValue(50)  # Initial value
-        self.maxSpikesBox.setRange(1, 100)  # Adjust as needed
-
-        hbox.addWidget(self.label)
-        hbox.addWidget(self.slider)
-        hbox.addWidget(QLabel("Max Spikes:"))
-        hbox.addWidget(self.maxSpikesBox)
-
-        layout.addLayout(hbox)
-        self.setLayout(layout)
-
-        self.slider.valueChanged.connect(self.updateSpikePlot)
-        self.maxSpikesBox.valueChanged.connect(self.updateSpikePlot)
-
-    def updateSpikePlot(self):
-        self.thresholdedSpikePlot.current_start_time = self.slider.value()
-        self.thresholdedSpikePlot.current_max_spikes = self.maxSpikesBox.value()
-        self.thresholdedSpikePlot.updatePlotWithSettings()
-
-
-class ExportPanel(QWidget):
-    def __init__(self, data_exporter):
-        super(ExportPanel, self).__init__()
-        self.data_exporter = data_exporter
-        self.initUI()
-
-    def initUI(self):
-        layout = QVBoxLayout()
-
-        self.exportButton = QPushButton("Export Data")
-        self.exportButton.clicked.connect(self.onExportClicked)
-
-        layout.addWidget(self.exportButton)
-        self.setLayout(layout)
-
-    def onExportClicked(self):
-        self.data_exporter.export_data()
 
 
 class ChannelSelectionPanel(QWidget):
