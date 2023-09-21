@@ -202,32 +202,17 @@ from PyQt5.QtWidgets import QComboBox, QPushButton, QVBoxLayout, QWidget, QLabel
 
 
 class LogicalRulesPanel(QWidget):
-    def __init__(self, thresholded_spike_plot, parent=None):
-        super(LogicalRulesPanel, self).__init__(parent)
+    def __init__(self, thresholded_spike_plot):
+        super(LogicalRulesPanel, self).__init__(thresholded_spike_plot)
         self.thresholded_spike_plot = thresholded_spike_plot
-
         self.layout = QVBoxLayout()
-        self.units_layouts = []  # List to keep track of the layouts for each unit
+        self.units_layouts = []  # Store unit layouts to update later
 
         self.add_unit_button = QPushButton("Add New Unit")
         self.add_unit_button.clicked.connect(self.add_new_unit)
-
         self.layout.addWidget(self.add_unit_button)
 
         self.setLayout(self.layout)
-
-    def generate_dropdowns(self):
-        """
-        Generate a list of QComboBox objects for logical operations.
-        The number of dropdowns depends on the number of windows.
-        """
-        dropdowns = []
-        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
-        for _ in range(num_windows - 1):  # -1 because n windows have n-1 intersections
-            dropdown = QComboBox()
-            dropdown.addItems(["AND", "OR", "NOT"])
-            dropdowns.append(dropdown)
-        return dropdowns
 
     def add_new_unit(self):
         unit_layout = QHBoxLayout()
@@ -235,17 +220,56 @@ class LogicalRulesPanel(QWidget):
         unit_label = QLabel("Unit: ")
         unit_layout.addWidget(unit_label)
 
-        dropdowns = self.generate_dropdowns()
+        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
 
-        for dropdown in dropdowns:
-            unit_layout.addWidget(dropdown)
+        if num_windows > 1:
+            for i in range(num_windows - 1):
+                dropdown = QComboBox()
+                dropdown.addItems(["AND", "OR", "NOT"])
+                window_label = QLabel(f"W{i + 1}")
 
+                unit_layout.addWidget(window_label)
+                unit_layout.addWidget(dropdown)
+
+            # Add the last window label
+            last_window_label = QLabel(f"W{num_windows}")
+            unit_layout.addWidget(last_window_label)
+        elif num_windows == 1:
+            # Just add one window label if there's only one window
+            single_window_label = QLabel(f"W1")
+            unit_layout.addWidget(single_window_label)
+
+        self.units_layouts.append(unit_layout)  # Store this layout to update later
         self.layout.addLayout(unit_layout)
-        self.units_layouts.append(unit_layout)  #
 
     def update_unit_dropdowns(self):
         """Update dropdowns in each unit layout to match the current number of windows."""
+        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
+
+        # Clear each unit layout and rebuild it
         for unit_layout in self.units_layouts:
-            dropdowns = self.generate_dropdowns()
-            for dropdown in dropdowns:
-                unit_layout.addWidget(dropdown)
+            for i in reversed(range(unit_layout.count())):
+                widget = unit_layout.itemAt(i).widget()
+                if widget is not None:
+                    widget.deleteLater()
+
+            unit_label = QLabel("Unit: ")
+            unit_layout.addWidget(unit_label)
+
+            if num_windows > 1:
+                for i in range(num_windows - 1):
+                    dropdown = QComboBox()
+                    dropdown.addItems(["AND", "OR", "NOT"])
+                    window_label = QLabel(f"W{i + 1}")
+
+                    unit_layout.addWidget(window_label)
+                    unit_layout.addWidget(dropdown)
+
+                # Add the last window label
+                last_window_label = QLabel(f"W{num_windows}")
+                unit_layout.addWidget(last_window_label)
+            elif num_windows == 1:
+                # Just add one window label if there's only one window
+                single_window_label = QLabel(f"W1")
+                unit_layout.addWidget(single_window_label)
+
