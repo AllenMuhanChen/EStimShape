@@ -1,9 +1,9 @@
-from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QApplication
+from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QApplication, QHBoxLayout
 import sys
 import os
 
 from windowsort.datahandler import DataImporter, DataExporter
-from windowsort.timeampwindow import ExtendedThresholdedSpikePlot
+from windowsort.timeampwindow import ExtendedThresholdedSpikePlot, LogicalRulesPanel
 from windowsort.voltage import VoltageTimePlot, TimeScrubber, ChannelSelectionPanel, ThresholdControlPanel
 from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber, ExportPanel
 
@@ -20,9 +20,12 @@ class MainWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Voltage Trace GUI")
+        self.setWindowTitle("Time Amp Window Sort GUI")
 
         central_widget = QWidget()
+        main_layout = QHBoxLayout()
+
+        # FIRST COLUMN
         self.setCentralWidget(central_widget)
 
         layout = QVBoxLayout()
@@ -51,7 +54,22 @@ class MainWindow(QMainWindow):
         self.channel_selection_pannel = ChannelSelectionPanel(self.voltage_time_plot, self.thresholded_spike_plot)
         layout.insertWidget(0, self.channel_selection_pannel)  # Inserts at the top of the layout
 
-        central_widget.setLayout(layout)
+        main_layout.addLayout(layout)
+
+        # Second column layout for Time-Amp window controls
+        time_amp_layout = QVBoxLayout()
+
+        # Logical Rules
+        logical_rules_panel = LogicalRulesPanel(self.thresholded_spike_plot)
+        time_amp_layout.addWidget(logical_rules_panel)
+        self.thresholded_spike_plot.set_logical_rules_panel(logical_rules_panel)
+        # Add more Time-Amp related widgets to time_amp_layout if needed
+
+        # Add the second column layout to the main layout
+        main_layout.addLayout(time_amp_layout)
+
+        central_widget.setLayout(main_layout)
+
 
 
 # Main function to run the application
