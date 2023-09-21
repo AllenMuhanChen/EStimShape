@@ -3,6 +3,7 @@ import sys
 import os
 
 from windowsort.datahandler import DataImporter, DataExporter
+from windowsort.timeampwindow import ExtendedThresholdedSpikePlot
 from windowsort.voltage import VoltageTimePlot, TimeScrubber, ChannelSelectionPanel, ThresholdControlPanel
 from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber, ExportPanel
 
@@ -35,7 +36,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.thresholdControlPanel)
 
         # Thresholded Spikes
-        self.thresholded_spike_plot = ThresholdedSpikePlot(self.data_handler, self.data_exporter)
+        self.thresholded_spike_plot = ExtendedThresholdedSpikePlot(self.data_handler, self.data_exporter)
         layout.addWidget(self.thresholded_spike_plot)
         self.voltage_time_plot.thresholdedSpikePlot = self.thresholded_spike_plot
         self.spike_scrubber = SpikeScrubber(self.thresholded_spike_plot)
@@ -58,9 +59,9 @@ def main():
     app = QApplication(sys.argv)
 
     # Define the data directory here
-    date = "2023-09-15"
-    # exp_name = "1694529683452000_230912_144921"
-    exp_name = "1694801146439198_230915_140547"
+    date = "2023-09-12"
+    exp_name = "1694529683452000_230912_144921"
+    # exp_name = "1694801146439198_230915_140547"
     data_directory = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/%s/%s/" % (
     date, exp_name)
 
