@@ -11,9 +11,11 @@ class ThresholdedSpikePlot(QWidget):
         super(ThresholdedSpikePlot, self).__init__()
         self.data_handler = data_handler
         self.data_exporter = data_exporter
+
+        self.crossing_indices = None
         self.current_threshold_value = None
         self.current_start_index = 0
-        self.current_max_spikes = 10  # Default value
+        self.current_max_spikes = 50  # Default value
         self.initUI()
         self.plotItems = []  # List to keep track of PlotDataItems
         self.current_channel = Channel.C_000
@@ -38,13 +40,13 @@ class ThresholdedSpikePlot(QWidget):
 
         voltages = self.data_handler.voltages_by_channel[self.current_channel]
 
-        crossing_indices = threshold_spikes(threshold_value, voltages)
+        self.crossing_indices = threshold_spikes(threshold_value, voltages)
 
         # SAVE DATA
-        self.data_exporter.update_thresholded_spikes(self.current_channel, crossing_indices)
+        self.data_exporter.update_thresholded_spikes(self.current_channel, self.crossing_indices)
 
         # PLOT SUBSET OF DATA
-        subset_of_crossing_indices = crossing_indices[
+        subset_of_crossing_indices = self.crossing_indices[
                                      self.current_start_index:self.current_start_index + self.current_max_spikes]
 
         # Plot a small window around each crossing point
@@ -67,17 +69,20 @@ class SpikeScrubber(QWidget):
         layout = QVBoxLayout()
         hbox = QHBoxLayout()
 
-        self.label = QLabel("Time Start:")
+        self.label = QLabel("Index Start:")
         self.slider = QSlider(Qt.Horizontal)
+        self.total_spikes_label = QLabel("Total Spikes: 0")  # Initialize with 0
+
 
         self.maxSpikesBox = QSpinBox()
         self.maxSpikesBox.setSuffix(" spikes")
         self.maxSpikesBox.setValue(50)  # Initial value
-        self.maxSpikesBox.setRange(1, 100)  # Adjust as needed
+        self.maxSpikesBox.setRange(1, 200)  # Adjust as needed
 
         hbox.addWidget(self.label)
         hbox.addWidget(self.slider)
-        hbox.addWidget(QLabel("Max Spikes:"))
+        hbox.addWidget(self.total_spikes_label)
+        hbox.addWidget(QLabel("Max To Display:"))
         hbox.addWidget(self.maxSpikesBox)
 
         layout.addLayout(hbox)
@@ -88,8 +93,12 @@ class SpikeScrubber(QWidget):
 
     def updateSpikePlot(self):
         self.thresholdedSpikePlot.current_start_index = self.slider.value()
-        self.thresholdedSpikePlot.current_max_spikes = self.maxSpikesBox.value()
+        self.thresholdedSpikePlot.current_max_spikes_to_display = self.maxSpikesBox.value()
         self.thresholdedSpikePlot.updatePlotWithSettings()
+
+        # Update the total number of spikes
+        total_spikes = len(self.thresholdedSpikePlot.crossing_indices)  # Assuming crossing_indices is a numpy array
+        self.total_spikes_label.setText(f"Total Spikes: {total_spikes}")
 
 
 class ExportPanel(QWidget):
