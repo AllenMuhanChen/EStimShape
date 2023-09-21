@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import itertools
 import math
 
-from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF
+from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF, pyqtSignal
 from PyQt5.QtGui import QPen, QColor
-from PyQt5.QtWidgets import QVBoxLayout, QGraphicsEllipseItem, QGraphicsItem
+from PyQt5.QtWidgets import QVBoxLayout, QGraphicsEllipseItem, QGraphicsItem, QWidget, QPushButton, QHBoxLayout, QLabel, \
+    QComboBox
 from pyqtgraph import InfiniteLine, PlotDataItem, PlotWidget
 
 from windowsort.spikes import ThresholdedSpikePlot
@@ -40,8 +43,9 @@ class ControlPoint(QGraphicsEllipseItem):
 
 
 class AmpTimeWindow(QGraphicsItem):
-    def __init__(self, x, y_min, y_max, color, aspect_ratio, parent=None):
+    def __init__(self, x, y_min, y_max, color, aspect_ratio, parent=None, parent_plot=None):
         super(AmpTimeWindow, self).__init__(parent)
+        self.parent_plot = parent_plot
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
@@ -96,6 +100,7 @@ class AmpTimeWindow(QGraphicsItem):
         try:
             self.y_min, self.y_max = self.control_points[0].y(), self.control_points[1].y()
             self.update()  # Redraw
+            self.parent_plot.windowUpdated.emit()
         except IndexError:
             pass
 
@@ -122,11 +127,14 @@ class CustomPlotWidget(PlotWidget):
 
 
 class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
+    windowUpdated = pyqtSignal()
     def __init__(self, data_handler, data_exporter):
         super(ExtendedThresholdedSpikePlot, self).__init__(data_handler, data_exporter)
         self.logical_rules_panel = None
+        self.logical_rules = []
         self.amp_time_windows = []
         self.next_color = color_generator()
+        self.windowUpdated.connect(self.evaluateRules)
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -137,7 +145,7 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
 
     def addAmpTimeWindow(self, x, y_min, y_max, aspect_ratio):
         color = next(self.next_color)
-        new_window = AmpTimeWindow(x, y_min, y_max, color, aspect_ratio)
+        new_window = AmpTimeWindow(x, y_min, y_max, color, aspect_ratio, parent_plot=self)
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
         self.logical_rules_panel.update_unit_dropdowns()  # Update the dropdowns
@@ -151,46 +159,72 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
                     break  # Assuming only one item can be selected at a time
 
     def plot_spike_with_color(self, start, end, middle, voltages):
-        print("Plot_spikes_with_color_called")
         # Determine color based on logical rules
         color = 'r'  # default color
         spike_index = start  # or however you wish to define this
         time = start / self.data_handler.sample_rate  # or however you wish to define this
 
         for rule in self.logical_rules:
-            if rule.evaluate(spike_index, time, self.amp_time_windows):
-                color = 'g'  # or some other color based on rule
+            if rule.evaluate(spike_index, voltages, self.amp_time_windows):
+                color = rule.color
                 break
 
         super().plot_spike(start, end, middle, voltages, color)
 
-    def addLogicalRule(self, rule_expression):
-        new_rule = LogicalRule(rule_expression)
+    def addLogicalRule(self, rule: LogicalRule):
+        new_rule = rule
         self.logical_rules.append(new_rule)
 
     def evaluateRules(self):
-        for spike in self.spikes:  # Assuming self.spikes is a list of your spikes
-            for rule in self.logical_rules:
-                if rule.evaluate(spike, self.amp_time_windows):
-                    spike.unit = 'Some Unit'  # Assign a unit to the spike based on the rule
+        try:
+            voltages = self.data_handler.voltages_by_channel[self.current_channel]
+            subset_of_crossing_indices = self.crossing_indices[
+                                         self.current_start_index:self.current_start_index + self.current_max_spikes]
+
+            for point in subset_of_crossing_indices:
+                start = max(0, point - self.spike_window_radius_in_indices)
+                end = min(len(voltages), point + self.spike_window_radius_in_indices)
+                middle = point
+
+                # Here, we'll use the custom plot_spike_with_color method to plot the spike
+                self.plot_spike_with_color(start, end, middle, voltages)
+        except TypeError:
+            pass
 
     def updatePlot(self):
         super().updatePlot()  # Call the base class method first
-        # Additional code to plot based on amp_time_windows and logical_rules
+        self.evaluateRules()
 
     def set_logical_rules_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
 
+
 # In LogicalRule class
 class LogicalRule:
-    def __init__(self, expression):
-        self.expression = expression  # Expression can now be something like "W1 and not W2"
+    def __init__(self, expression, unit, color):
+        self.expression = expression  # Expression can be something like "W1 and not W2"
+        self.unit = unit  # Unit identifier, e.g., "Unit 1"
+        self.color = color  # Color for the unit, e.g., 'green'
 
     def evaluate(self, index_of_spike, voltages, amp_time_windows):
+        # If there's only one window, return its result directly
+        if len(amp_time_windows) == 1:
+            return amp_time_windows[0].is_spike_in_window(index_of_spike, voltages)
+
+        # Otherwise, evaluate the logical expression
         window_results = {}
         for idx, window in enumerate(amp_time_windows):
-            window_results[f'W{idx + 1}'] = window.is_spike_in_window(index_of_spike, voltages)
-        return eval(self.expression, {}, window_results)
+            window_results[f'w{idx + 1}'] = window.is_spike_in_window(index_of_spike, voltages)
+
+        # Convert the expression to lowercase to make it Python-compatible
+        python_compatible_expression = self.expression.lower()
+        print(python_compatible_expression)
+
+        try:
+            result = eval(python_compatible_expression, {}, window_results)
+        except SyntaxError:
+            result = False
+        return result
 
 
 def color_generator():
@@ -198,13 +232,14 @@ def color_generator():
     return itertools.cycle(colors)
 
 
-from PyQt5.QtWidgets import QComboBox, QPushButton, QVBoxLayout, QWidget, QLabel, QHBoxLayout
-
-
 class LogicalRulesPanel(QWidget):
     def __init__(self, thresholded_spike_plot):
         super(LogicalRulesPanel, self).__init__(thresholded_spike_plot)
         self.thresholded_spike_plot = thresholded_spike_plot
+
+        self.unit_counter = 1  # to generate unique unit identifiers
+        self.current_color = None
+        self.unit_colors = color_generator()  # to generate unique colors for units
         self.layout = QVBoxLayout()
         self.units_layouts = []  # Store unit layouts to update later
 
@@ -215,10 +250,28 @@ class LogicalRulesPanel(QWidget):
         self.setLayout(self.layout)
 
     def add_new_unit(self):
+        self.unit_counter += 1
+        self.current_color = next(self.unit_colors)
+
         unit_layout = QHBoxLayout()
         self.populate_unit_layout(unit_layout)
+
+        # Create the LogicalRule instance
+
         self.units_layouts.append(unit_layout)  # Store this layout to update later
         self.layout.addLayout(unit_layout)
+
+    def generate_expression(self, dropdowns):
+        expression_parts = []
+        for i, dropdown in enumerate(dropdowns):
+            operator = dropdown.currentText()
+            expression_parts.append(f"W{i + 1} {operator}")
+
+        # Add the last window
+        if len(dropdowns) > 0:
+            expression_parts.append(f"W{len(dropdowns) + 1}")
+
+        return ' '.join(expression_parts)
 
     def update_unit_dropdowns(self):
         """Update dropdowns in each unit layout to match the current number of windows."""
@@ -233,6 +286,8 @@ class LogicalRulesPanel(QWidget):
     def populate_unit_layout(self, unit_layout):
         unit_label = QLabel("Unit: ")
         unit_layout.addWidget(unit_label)
+
+        dropdowns = []
 
         num_windows = len(self.thresholded_spike_plot.amp_time_windows)
         if num_windows > 0:
@@ -253,7 +308,7 @@ class LogicalRulesPanel(QWidget):
                 dropdown = QComboBox()
                 dropdown.addItems(["AND", "OR", "NOT"])
                 unit_layout.addWidget(dropdown)
-
+                dropdowns.append(dropdown)
                 window_label = QLabel(f"W{i + 2}")
 
                 # Set the background color of the label
@@ -267,5 +322,12 @@ class LogicalRulesPanel(QWidget):
 
                 unit_layout.addWidget(wrapper)
 
+        self.expression = self.generate_expression(dropdowns)
+        print(self.expression)
+        unit = f"Unit {self.unit_counter}"
 
+        rule = LogicalRule(self.expression, unit, self.current_color)
+        self.thresholded_spike_plot.addLogicalRule(rule)
+        self.thresholded_spike_plot.evaluateRules()  # Evaluate the rules for all spikes
 
+        return dropdowns
