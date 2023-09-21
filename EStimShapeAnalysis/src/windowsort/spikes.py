@@ -58,7 +58,8 @@ class ThresholdedSpikePlot(QWidget):
         for point in subset_of_crossing_indices:
             start = max(0, point - self.spike_window_radius_in_indices)
             end = min(len(voltages), point + self.spike_window_radius_in_indices)
-            self.plot_spike(start, end, voltages)
+            middle = point
+            self.plot_spike(start, end, middle, voltages)
 
         # Set the y-limits of the plot
         self.set_y_axis_limits()
@@ -67,8 +68,10 @@ class ThresholdedSpikePlot(QWidget):
         if self.min_max_voltage[0] != np.inf and self.min_max_voltage[1] != -np.inf:
             self.plotWidget.setYRange(self.min_max_voltage[0], self.min_max_voltage[1])
 
-    def plot_spike(self, start, end, voltage, color='r'):
-        plotItem = PlotDataItem(voltage[start:end], pen=color)
+    def plot_spike(self, start, end, middle, voltages, color='r'):
+        x_axis = np.arange(start, end)
+        x_axis = x_axis - middle  # Center the spike
+        plotItem = PlotDataItem(x_axis, voltages[start:end], pen=color)
         self.plotWidget.addItem(plotItem)
         self.plotItems.append(plotItem)
 
