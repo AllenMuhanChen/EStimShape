@@ -46,6 +46,7 @@ class AmpTimeWindow(QGraphicsItem):
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
         self.x = x
+        print("x: ", x)
         self.y_min = y_min
         self.y_max = y_max
         self.color = color
@@ -59,6 +60,21 @@ class AmpTimeWindow(QGraphicsItem):
             control_point.setPos(self.x, y)
             control_point.setFlag(QGraphicsEllipseItem.ItemIsMovable)
             self.control_points.append(control_point)
+            print("y: ", y)
+
+    def is_spike_in_window(self, index_of_spike, voltages):
+        offset_index = int(self.x)
+        y_min, y_max = self.y_min, self.y_max
+
+        # Calculate the index in the voltage array to check
+        check_index = index_of_spike + offset_index
+
+        # Make sure the index is within bounds
+        if 0 <= check_index < len(voltages):
+            voltage_to_check = voltages[check_index]
+            return y_min <= voltage_to_check <= y_max
+        else:
+            return False
 
     def paint(self, painter, option, widget=None):
         self.pen = QPen(QColor(self.color))
@@ -133,11 +149,8 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
                     self.amp_time_windows.remove(window)
                     break  # Assuming only one item can be selected at a time
 
-    def addLogicalRule(self, rule_expression):
-        new_rule = LogicalRule(rule_expression)
-        self.logical_rules.append(new_rule)
-
-    def plot_spike_with_color(self, start, end, voltage):
+    def plot_spike_with_color(self, start, end, middle, voltages):
+        print("Plot_spikes_with_color_called")
         # Determine color based on logical rules
         color = 'r'  # default color
         spike_index = start  # or however you wish to define this
@@ -148,27 +161,34 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
                 color = 'g'  # or some other color based on rule
                 break
 
-        super().plot_spike(start, end, voltage, color)
+        super().plot_spike(start, end, middle, voltages, color)
+
+    def addLogicalRule(self, rule_expression):
+        new_rule = LogicalRule(rule_expression)
+        self.logical_rules.append(new_rule)
 
     def evaluateRules(self):
-        # Logic to evaluate rules on spikes
-        # This can be used in updatePlot method
-        pass
+        for spike in self.spikes:  # Assuming self.spikes is a list of your spikes
+            for rule in self.logical_rules:
+                if rule.evaluate(spike, self.amp_time_windows):
+                    spike.unit = 'Some Unit'  # Assign a unit to the spike based on the rule
 
     def updatePlot(self):
         super().updatePlot()  # Call the base class method first
         # Additional code to plot based on amp_time_windows and logical_rules
 
 
-def color_generator():
-    colors = ['green', 'blue', 'purple', 'orange', 'pink']
-    return itertools.cycle(colors)
-
-
+# In LogicalRule class
 class LogicalRule:
     def __init__(self, expression):
-        self.expression = expression  # A lambda function or other callable
+        self.expression = expression  # Expression can now be something like "W1 and not W2"
 
-    def evaluate(self, spike_index, time, amp_time_windows):
-        # Evaluate the rule for the given spike
-        return self.expression(spike_index, time, amp_time_windows)
+    def evaluate(self, index_of_spike, voltages, amp_time_windows):
+        window_results = {}
+        for idx, window in enumerate(amp_time_windows):
+            window_results[f'W{idx + 1}'] = window.is_spike_in_window(index_of_spike, voltages)
+        return eval(self.expression, {}, window_results)
+
+def color_generator():
+    colors = ['green', 'cyan', 'magenta', 'orange', 'pink']
+    return itertools.cycle(colors)
