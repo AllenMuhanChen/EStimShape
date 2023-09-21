@@ -6,19 +6,22 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
+from julie import rasters
+
 matplotlib.use("Qt5Agg")
 
 from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "2023-09-12_16-00-00_to_23-59-59.pk1"
+    # experiment_data_filename = "1694801146439198_230915_140547.pk1"
+    experiment_data_filename= "1695232474891270_230920_master_merge.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
     # plot_channel_histograms(raw_data,
-    #                         channel=Channel.C_025)
-    plot_raster_for_monkeys(raw_data, channel=Channel.C_026,
+    #                         channel=Channel.C_028)
+    plot_raster_for_monkeys(raw_data, channel=Channel.C_012,
                             experiment_name=experiment_name)
 
 
@@ -33,9 +36,8 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
         unique_monkeys = group_data['MonkeyName'].dropna().unique().tolist()
         max_rows = max(max_rows, len(unique_monkeys))
 
-    fig = plt.figure(figsize=(15 * len(unique_monkey_groups), 35 * max_rows))
+    fig = plt.figure(figsize=(15 * len(unique_monkey_groups), 45 * max_rows))
 
-    row_idx = 0
 
     for col_idx, group_name in enumerate(unique_monkey_groups):
         group_data = channel_data[channel_data['MonkeyGroup'] == group_name]
@@ -56,7 +58,7 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
                                         epoch_start <= spike <= epoch_stop]
                 filtered_spike_times_list.append(filtered_spike_times)
 
-            ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.25)
+            ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.5)
             ax.set_xlim(0, 1.0)
             ax.set_yticks([len(filtered_spike_times_list)])
             # Place the title text to the right of the subplot
