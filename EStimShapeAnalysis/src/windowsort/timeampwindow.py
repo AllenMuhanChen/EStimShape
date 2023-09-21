@@ -216,60 +216,56 @@ class LogicalRulesPanel(QWidget):
 
     def add_new_unit(self):
         unit_layout = QHBoxLayout()
-
-        unit_label = QLabel("Unit: ")
-        unit_layout.addWidget(unit_label)
-
-        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
-
-        if num_windows > 1:
-            for i in range(num_windows - 1):
-                dropdown = QComboBox()
-                dropdown.addItems(["AND", "OR", "NOT"])
-                window_label = QLabel(f"W{i + 1}")
-
-                unit_layout.addWidget(window_label)
-                unit_layout.addWidget(dropdown)
-
-            # Add the last window label
-            last_window_label = QLabel(f"W{num_windows}")
-            unit_layout.addWidget(last_window_label)
-        elif num_windows == 1:
-            # Just add one window label if there's only one window
-            single_window_label = QLabel(f"W1")
-            unit_layout.addWidget(single_window_label)
-
+        self.populate_unit_layout(unit_layout)
         self.units_layouts.append(unit_layout)  # Store this layout to update later
         self.layout.addLayout(unit_layout)
 
     def update_unit_dropdowns(self):
         """Update dropdowns in each unit layout to match the current number of windows."""
-        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
-
         # Clear each unit layout and rebuild it
         for unit_layout in self.units_layouts:
             for i in reversed(range(unit_layout.count())):
                 widget = unit_layout.itemAt(i).widget()
                 if widget is not None:
                     widget.deleteLater()
+            self.populate_unit_layout(unit_layout)
 
-            unit_label = QLabel("Unit: ")
-            unit_layout.addWidget(unit_label)
+    def populate_unit_layout(self, unit_layout):
+        unit_label = QLabel("Unit: ")
+        unit_layout.addWidget(unit_label)
 
-            if num_windows > 1:
-                for i in range(num_windows - 1):
-                    dropdown = QComboBox()
-                    dropdown.addItems(["AND", "OR", "NOT"])
-                    window_label = QLabel(f"W{i + 1}")
+        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
+        if num_windows > 0:
+            # Add the first window
+            window = self.thresholded_spike_plot.amp_time_windows[0]
+            color = window.color
+            single_window_label = QLabel(f"W1")
+            single_window_label.setStyleSheet(f"background-color: {color};")
 
-                    unit_layout.addWidget(window_label)
-                    unit_layout.addWidget(dropdown)
+            wrapper = QWidget()
+            wrapper_layout = QVBoxLayout()
+            wrapper_layout.addWidget(single_window_label, alignment=Qt.AlignCenter)
+            wrapper.setLayout(wrapper_layout)
 
-                # Add the last window label
-                last_window_label = QLabel(f"W{num_windows}")
-                unit_layout.addWidget(last_window_label)
-            elif num_windows == 1:
-                # Just add one window label if there's only one window
-                single_window_label = QLabel(f"W1")
-                unit_layout.addWidget(single_window_label)
+            unit_layout.addWidget(wrapper)
+
+            for i, window in enumerate(self.thresholded_spike_plot.amp_time_windows[1:]):
+                dropdown = QComboBox()
+                dropdown.addItems(["AND", "OR", "NOT"])
+                unit_layout.addWidget(dropdown)
+
+                window_label = QLabel(f"W{i + 2}")
+
+                # Set the background color of the label
+                color = window.color
+                window_label.setStyleSheet(f"background-color: {color};")
+
+                wrapper = QWidget()
+                wrapper_layout = QVBoxLayout()
+                wrapper_layout.addWidget(window_label, alignment=Qt.AlignCenter)
+                wrapper.setLayout(wrapper_layout)
+
+                unit_layout.addWidget(wrapper)
+
+
 
