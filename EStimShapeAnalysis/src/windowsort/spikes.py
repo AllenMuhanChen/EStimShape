@@ -4,11 +4,12 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, 
 from pyqtgraph import PlotWidget, PlotDataItem
 
 from intan.channels import Channel
+from windowsort.datahandler import DataExporter
 from windowsort.threshold import threshold_spikes
 
 
 class ThresholdedSpikePlot(QWidget):
-    def __init__(self, data_handler, data_exporter):
+    def __init__(self, data_handler, data_exporter: DataExporter):
         super(ThresholdedSpikePlot, self).__init__()
         self.data_handler = data_handler
         self.data_exporter = data_exporter
