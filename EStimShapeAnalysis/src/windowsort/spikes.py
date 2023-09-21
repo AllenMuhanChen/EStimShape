@@ -1,3 +1,4 @@
+import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSpinBox, QPushButton
 from pyqtgraph import PlotWidget, PlotDataItem
@@ -11,7 +12,9 @@ class ThresholdedSpikePlot(QWidget):
         super(ThresholdedSpikePlot, self).__init__()
         self.data_handler = data_handler
         self.data_exporter = data_exporter
+        self.spike_window_radius_in_indices = 50
 
+        self.min_max_voltage = None
         self.crossing_indices = None
         self.current_threshold_value = None
         self.current_start_index = 0
@@ -28,7 +31,7 @@ class ThresholdedSpikePlot(QWidget):
 
         self.setLayout(layout)
 
-    def updatePlotWithSettings(self):
+    def updatePlot(self):
         # Clear the existing plot items
         for item in self.plotItems:
             self.plotWidget.removeItem(item)
@@ -42,6 +45,10 @@ class ThresholdedSpikePlot(QWidget):
 
         self.crossing_indices = threshold_spikes(threshold_value, voltages)
 
+        # Calculate the min_max voltage if it is not set yet
+        if self.min_max_voltage is None:
+            self.min_max_voltage = self.calculate_min_max(voltages, self.spike_window_radius_in_indices)
+
         # SAVE DATA
         self.data_exporter.update_thresholded_spikes(self.current_channel, self.crossing_indices)
 
@@ -50,13 +57,30 @@ class ThresholdedSpikePlot(QWidget):
                                      self.current_start_index:self.current_start_index + self.current_max_spikes]
 
         # Plot a small window around each crossing point
-        window_size = 50  # For example, 50 samples on either side of the spike
         for point in subset_of_crossing_indices:
-            start = max(0, point - window_size)
-            end = min(len(voltages), point + window_size)
+            start = max(0, point - self.spike_window_radius_in_indices)
+            end = min(len(voltages), point + self.spike_window_radius_in_indices)
             plotItem = PlotDataItem(voltages[start:end], pen='r')
             self.plotWidget.addItem(plotItem)
             self.plotItems.append(plotItem)  # Add to list
+
+        # Set the y-limits of the plot
+        if self.min_max_voltage[0] != np.inf and self.min_max_voltage[1] != -np.inf:
+            self.plotWidget.setYRange(self.min_max_voltage[0], self.min_max_voltage[1])
+
+    def on_channel_changed(self):
+        self.min_max_voltage = None  # Reset the min_max voltage
+
+    def calculate_min_max(self, voltages, window_radius_in_indices):
+        min_spike_voltage = np.inf
+        max_spike_voltage = -np.inf
+        for point in self.crossing_indices:
+            start = max(0, point - window_radius_in_indices)
+            end = min(len(voltages), point + window_radius_in_indices)
+            # Update min and max voltage if necessary
+            min_spike_voltage = min(min_spike_voltage, np.min(voltages[start:end]))
+            max_spike_voltage = max(max_spike_voltage, np.max(voltages[start:end]))
+        return min_spike_voltage, max_spike_voltage
 
 
 class SpikeScrubber(QWidget):
@@ -72,7 +96,6 @@ class SpikeScrubber(QWidget):
         self.label = QLabel("Index Start:")
         self.slider = QSlider(Qt.Horizontal)
         self.total_spikes_label = QLabel("Total Spikes: 0")  # Initialize with 0
-
 
         self.maxSpikesBox = QSpinBox()
         self.maxSpikesBox.setSuffix(" spikes")
@@ -94,7 +117,7 @@ class SpikeScrubber(QWidget):
     def updateSpikePlot(self):
         self.thresholdedSpikePlot.current_start_index = self.slider.value()
         self.thresholdedSpikePlot.current_max_spikes_to_display = self.maxSpikesBox.value()
-        self.thresholdedSpikePlot.updatePlotWithSettings()
+        self.thresholdedSpikePlot.updatePlot()
 
         # Update the total number of spikes
         total_spikes = len(self.thresholdedSpikePlot.crossing_indices)  # Assuming crossing_indices is a numpy array

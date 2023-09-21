@@ -30,11 +30,6 @@ class VoltageTimePlot(QWidget):
         self.plot = self.plotWidget.plot()
         layout.addWidget(self.plotWidget)
 
-        # Add scrub bar (LinearRegionItem) below the main plot
-        self.scrubRegion = LinearRegionItem()
-        self.scrubRegion.setZValue(10)
-        self.plotWidget.addItem(self.scrubRegion)
-
         self.setLayout(layout)
 
         # Initialize the plot with data
@@ -71,7 +66,7 @@ class VoltageTimePlot(QWidget):
     def onThresholdChanged(self):
         threshold_value = self.threshold_line.value()
         self.thresholdedSpikePlot.current_threshold_value = threshold_value
-        self.thresholdedSpikePlot.updatePlotWithSettings()  # Assume start_time and max_spikes are available
+        self.thresholdedSpikePlot.updatePlot()  # Assume start_time and max_spikes are available
     # Additional methods for zooming, setting threshold, etc., can be added
 
 
@@ -186,4 +181,6 @@ class ChannelSelectionPanel(QWidget):
         self.voltage_time_plot.current_channel = selected_channel
         self.thresholded_spike_plot.current_channel = selected_channel
         self.voltage_time_plot.updatePlot()
-        self.thresholded_spike_plot.updatePlotWithSettings()
+
+        self.thresholded_spike_plot.updatePlot()
+        self.thresholded_spike_plot.on_channel_changed()
