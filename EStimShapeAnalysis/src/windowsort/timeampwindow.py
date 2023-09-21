@@ -11,10 +11,12 @@ from windowsort.spikes import ThresholdedSpikePlot
 from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsItem
+
+
 class ControlPoint(QGraphicsEllipseItem):
     def __init__(self, x, y, aspect_ratio, parent=None):
         self.radius = 0.5
-        aspect_ratio = aspect_ratio/math.pi
+        aspect_ratio = aspect_ratio / math.pi
         scaled_radius_x = self.radius / aspect_ratio
         scaled_radius_y = self.radius * aspect_ratio
         super(ControlPoint, self).__init__(
@@ -40,11 +42,15 @@ class ControlPoint(QGraphicsEllipseItem):
 class AmpTimeWindow(QGraphicsItem):
     def __init__(self, x, y_min, y_max, color, aspect_ratio, parent=None):
         super(AmpTimeWindow, self).__init__(parent)
+        self.setFlag(QGraphicsItem.ItemIsMovable)
+        self.setFlag(QGraphicsItem.ItemIsSelectable)
+
         self.x = x
         self.y_min = y_min
         self.y_max = y_max
         self.color = color
         self.control_points = []
+
 
         # Create control points (small circles)
         for y in [y_min, y_max]:
@@ -54,7 +60,6 @@ class AmpTimeWindow(QGraphicsItem):
             control_point.setFlag(QGraphicsEllipseItem.ItemIsMovable)
             self.control_points.append(control_point)
 
-
     def paint(self, painter, option, widget=None):
         self.pen = QPen(QColor(self.color))
         self.pen.setWidth(0)
@@ -62,7 +67,14 @@ class AmpTimeWindow(QGraphicsItem):
         painter.drawLine(QPointF(self.x, self.y_min), QPointF(self.x, self.y_max))
 
     def boundingRect(self):
-        return QRectF(self.x - 10, self.y_min - 10, 20, self.y_max - self.y_min + 20)
+        y_center = (self.y_min + self.y_max) / 2
+        y_range = self.y_max - self.y_min
+        y_margin = y_range * 0.5  # 25% towards the center from each control point
+
+        new_y_min = y_center - y_margin
+        new_y_max = y_center + y_margin
+
+        return QRectF(self.x - 1, new_y_min, 2, new_y_max - new_y_min)
 
     def updateLine(self):
         # Update the line based on the new position of control points
@@ -71,6 +83,14 @@ class AmpTimeWindow(QGraphicsItem):
             self.update()  # Redraw
         except IndexError:
             pass
+
+    def itemChange(self, change, value):
+        if change == QGraphicsItem.ItemPositionChange:
+            dx = value.x() - self.x
+            self.x += dx
+            for control_point in self.control_points:
+                control_point.setPos(control_point.x() + dx, control_point.y())
+        return super(AmpTimeWindow, self).itemChange(change, value)
 
 
 class CustomPlotWidget(PlotWidget):
