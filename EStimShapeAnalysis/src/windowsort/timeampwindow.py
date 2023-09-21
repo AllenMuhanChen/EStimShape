@@ -52,7 +52,6 @@ class AmpTimeWindow(QGraphicsItem):
         self.color = color
         self.control_points = []
 
-
         # Create control points (small circles)
         for y in [y_min, y_max]:
             control_point = ControlPoint(self.x, y, aspect_ratio, self)
@@ -125,6 +124,7 @@ class CustomPlotWidget(PlotWidget):
 class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
     def __init__(self, data_handler, data_exporter):
         super(ExtendedThresholdedSpikePlot, self).__init__(data_handler, data_exporter)
+        self.logical_rules_panel = None
         self.amp_time_windows = []
         self.next_color = color_generator()
 
@@ -140,6 +140,7 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
         new_window = AmpTimeWindow(x, y_min, y_max, color, aspect_ratio)
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
+        self.logical_rules_panel.update_unit_dropdowns()  # Update the dropdowns
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Backspace, Qt.Key_Delete):
@@ -177,6 +178,8 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
         super().updatePlot()  # Call the base class method first
         # Additional code to plot based on amp_time_windows and logical_rules
 
+    def set_logical_rules_panel(self, logical_rules_panel):
+        self.logical_rules_panel = logical_rules_panel
 
 # In LogicalRule class
 class LogicalRule:
@@ -189,6 +192,60 @@ class LogicalRule:
             window_results[f'W{idx + 1}'] = window.is_spike_in_window(index_of_spike, voltages)
         return eval(self.expression, {}, window_results)
 
+
 def color_generator():
     colors = ['green', 'cyan', 'magenta', 'orange', 'pink']
     return itertools.cycle(colors)
+
+
+from PyQt5.QtWidgets import QComboBox, QPushButton, QVBoxLayout, QWidget, QLabel, QHBoxLayout
+
+
+class LogicalRulesPanel(QWidget):
+    def __init__(self, thresholded_spike_plot, parent=None):
+        super(LogicalRulesPanel, self).__init__(parent)
+        self.thresholded_spike_plot = thresholded_spike_plot
+
+        self.layout = QVBoxLayout()
+        self.units_layouts = []  # List to keep track of the layouts for each unit
+
+        self.add_unit_button = QPushButton("Add New Unit")
+        self.add_unit_button.clicked.connect(self.add_new_unit)
+
+        self.layout.addWidget(self.add_unit_button)
+
+        self.setLayout(self.layout)
+
+    def generate_dropdowns(self):
+        """
+        Generate a list of QComboBox objects for logical operations.
+        The number of dropdowns depends on the number of windows.
+        """
+        dropdowns = []
+        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
+        for _ in range(num_windows - 1):  # -1 because n windows have n-1 intersections
+            dropdown = QComboBox()
+            dropdown.addItems(["AND", "OR", "NOT"])
+            dropdowns.append(dropdown)
+        return dropdowns
+
+    def add_new_unit(self):
+        unit_layout = QHBoxLayout()
+
+        unit_label = QLabel("Unit: ")
+        unit_layout.addWidget(unit_label)
+
+        dropdowns = self.generate_dropdowns()
+
+        for dropdown in dropdowns:
+            unit_layout.addWidget(dropdown)
+
+        self.layout.addLayout(unit_layout)
+        self.units_layouts.append(unit_layout)  #
+
+    def update_unit_dropdowns(self):
+        """Update dropdowns in each unit layout to match the current number of windows."""
+        for unit_layout in self.units_layouts:
+            dropdowns = self.generate_dropdowns()
+            for dropdown in dropdowns:
+                unit_layout.addWidget(dropdown)
