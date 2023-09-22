@@ -150,6 +150,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         self.plotWidget.addItem(new_window)
         self.logical_rules_panel.update_unit_dropdowns()  # Update the dropdowns
         self.windowUpdated.emit()
+        self.sortSpikes()
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Backspace, Qt.Key_Delete):
@@ -315,10 +316,7 @@ class UnitPanel:
     def populate(self):
         self.unit_layout = QHBoxLayout()
 
-        # Add a Delete button
-        delete_button = QPushButton("Delete Unit")
-        delete_button.clicked.connect(lambda: self.delete_func(self))
-        self.unit_layout.addWidget(delete_button)
+        self.add_delete_button()
 
         # Add unit name and set the background color
         label = QLabel(f"Unit {self.unit_counter}")
@@ -333,6 +331,12 @@ class UnitPanel:
         self.create_unit()
         self.populate_unit_dropboxes()
         self.parent_layout.addLayout(self.unit_layout)
+
+    def add_delete_button(self):
+        # Add a Delete button
+        delete_button = QPushButton("Delete Unit")
+        delete_button.clicked.connect(lambda: self.delete_func(self))
+        self.unit_layout.addWidget(delete_button)
 
     def create_wrapped_label(self, unit_name_label):
         wrapper = QWidget()
@@ -373,7 +377,7 @@ class UnitPanel:
                 window_label.setStyleSheet(f"background-color: {next(window_color_iterator)};")
                 self.unit_layout.addWidget(self.create_wrapped_label(window_label))
 
-        self.thresholded_spike_plot.sortSpikes()
+        self.update_expression()
 
     def create_unit(self):
         self.expression = self.generate_expression(self.dropdowns)
@@ -422,12 +426,12 @@ class UnitPanel:
 
 
 class SortPanel(QWidget):
-    unit_rules: List[UnitPanel]
+    unit_panels: List[UnitPanel]
 
     def __init__(self, thresholded_spike_plot):
         super(SortPanel, self).__init__(thresholded_spike_plot)
         self.thresholded_spike_plot = thresholded_spike_plot
-        self.unit_rules = []
+        self.unit_panels = []
         self.unit_counter = 0  # to generate unique unit identifiers
         self.current_color = None
         self.unit_colors = unit_color_generator()  # to generate unique colors for units
@@ -448,7 +452,7 @@ class SortPanel(QWidget):
         self.current_color = next(self.unit_colors)
         new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot, self.delete_unit)
         new_unit_panel.populate()
-        self.unit_rules.append(new_unit_panel)
+        self.unit_panels.append(new_unit_panel)
 
     def generate_expression(self, dropdowns):
         expression_parts = []
@@ -476,9 +480,11 @@ class SortPanel(QWidget):
     def update_unit_dropdowns(self):
         """Update dropdowns in each unit layout to match the current number of windows."""
         # Clear each unit layout and rebuild it
-        for unit_rule in self.unit_rules:
-            unit_rule.clear_unit_layout()  # Clear the existing widgets and dropdowns
-            unit_rule.populate_unit_dropboxes()  # Repopulate the widgets and dropdowns
+        for unit_panel in self.unit_panels:
+            unit_panel.clear_unit_layout()  # Clear the existing widgets and dropdowns
+            unit_panel.add_delete_button()
+            unit_panel.populate_unit_dropboxes()  # Repopulate the widgets and dropdowns
+
 
     def get_window_colors(self):
         window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
@@ -487,7 +493,7 @@ class SortPanel(QWidget):
     def delete_unit(self, unit_panel):
         """Delete a specific unit."""
         # Remove unit from the list
-        self.unit_rules.remove(unit_panel)
+        self.unit_panels.remove(unit_panel)
 
         # Actually remove the unit from data
         self.thresholded_spike_plot.removeUnit(unit_panel.unit.unit_name)
@@ -498,3 +504,5 @@ class SortPanel(QWidget):
 
         # Repopulate remaining units
         self.update_unit_dropdowns()
+
+        self.thresholded_spike_plot.sortSpikes()
