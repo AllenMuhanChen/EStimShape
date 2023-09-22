@@ -15,7 +15,7 @@ class OneFileParser:
         notes_path = os.path.join(intan_file_path, "notes.txt")
 
         spike_tstamps_for_channels, sample_rate = fetch_spike_tstamps_from_file(spike_path)
-        stim_epochs_from_markers = epoch_using_marker_channels(digital_in_path)
+        stim_epochs_from_markers = epoch_using_marker_channels(digital_in_path, false_negative_correction_duration=800)
         epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(notes_path,
                                                                           stim_epochs_from_markers)
 

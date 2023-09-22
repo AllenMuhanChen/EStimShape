@@ -16,13 +16,13 @@ from intan.channels import Channel
 def main():
     # experiment_data_filename = "1694801146439198_230915_140547.pk1"
     # experiment_data_filename= "1695326404335201_230921_160004.pk1"
-    experiment_data_filename = "1695324049218232_230921_152049&1695325515951716_230921_154516_round4.pk1"
+    experiment_data_filename = "1695411976234126_230922_154616.pk1"
     # experiment_data_filename = "1695321732194837_230921_144212&1695323223259853_230921_150703_round3.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
  #   plot_channel_histograms(raw_data, channel=Channel.C_013)
-    plot_raster_for_monkeys(raw_data, channel=Channel.C_005,
+    plot_raster_for_monkeys(raw_data, channel=Channel.C_018,
                             experiment_name=experiment_name)
 
 
