@@ -3,7 +3,7 @@ import sys
 import os
 
 from windowsort.datahandler import DataImporter, DataExporter
-from windowsort.timeampwindow import SortSpikePlot, LogicalRulesPanel
+from windowsort.timeampwindow import SortSpikePlot, SortPanel
 from windowsort.voltage import VoltageTimePlot, TimeScrubber, ChannelSelectionPanel, ThresholdControlPanel
 from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber, ExportPanel
 
@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
         time_amp_layout = QVBoxLayout()
 
         # Logical Rules
-        logical_rules_panel = LogicalRulesPanel(self.thresholded_spike_plot)
+        logical_rules_panel = SortPanel(self.thresholded_spike_plot)
         time_amp_layout.addWidget(logical_rules_panel)
         self.thresholded_spike_plot.set_logical_rules_panel(logical_rules_panel)
         # Add more Time-Amp related widgets to time_amp_layout if needed
