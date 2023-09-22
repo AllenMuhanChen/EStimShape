@@ -260,6 +260,7 @@ class Unit:
             processed_expression = processed_expression.replace("false", "False")
 
         return processed_expression
+
     @staticmethod
     def process_ignore_operators(expression: str) -> str:
         processed_expression = expression
@@ -287,7 +288,7 @@ class LogicalRulesPanel(QWidget):
         super(LogicalRulesPanel, self).__init__(thresholded_spike_plot)
         self.thresholded_spike_plot = thresholded_spike_plot
 
-        self.unit_counter = 1  # to generate unique unit identifiers
+        self.unit_counter = 0  # to generate unique unit identifiers
         self.current_color = None
         self.unit_colors = unit_color_generator()  # to generate unique colors for units
         self.layout = QVBoxLayout()
@@ -315,9 +316,6 @@ class LogicalRulesPanel(QWidget):
 
         unit_layout = QHBoxLayout()
         self.populate_unit_layout(unit_layout)
-
-        # Create the LogicalRule instance
-
         self.units_layouts.append(unit_layout)  # Store this layout to update later
         self.layout.addLayout(unit_layout)
 
@@ -355,8 +353,22 @@ class LogicalRulesPanel(QWidget):
             self.populate_unit_layout(unit_layout)
 
     def populate_unit_layout(self, unit_layout):
-        unit_label = QLabel("Unit: ")
-        unit_layout.addWidget(unit_label)
+        # Create a QLabel for the unit name
+        unit_name = f"Unit {self.unit_counter}"
+        unit_name_label = QLabel(unit_name)
+        unit_name_label.setStyleSheet(f"background-color: {self.current_color};")
+
+        # Create a QWidget wrapper to style the background color
+        wrapper = QWidget()
+        wrapper_layout = QVBoxLayout()
+        wrapper_layout.addWidget(unit_name_label, alignment=Qt.AlignCenter)
+        wrapper.setLayout(wrapper_layout)
+
+        # Style the wrapper with the unit color
+        # wrapper.
+
+        # Insert it to the beginning of the layout
+        unit_layout.insertWidget(0, wrapper)
 
         self.dropdowns = []
 
