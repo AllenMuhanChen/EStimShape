@@ -214,7 +214,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         # Set the y-limits of the plot
         self.set_y_axis_limits()
 
-    def set_logical_rules_panel(self, logical_rules_panel):
+    def set_sort_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
 
     def updateUnit(self, updated_unit: Unit):
@@ -226,6 +226,9 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
     def get_window_colors(self):
         return [window.color for window in self.amp_time_windows]
+
+    def removeUnit(self, unit_name):
+        self.units = [unit for unit in self.units if unit.unit_name != unit_name]
 
 
 class Unit:
@@ -292,22 +295,30 @@ def unit_color_generator():
     return itertools.cycle(colors)
 
 
-class UnitController:
+class UnitPanel:
     """
-    subpanel within UnitPanel that controls a single unit
+    subpanel within SortPanel that controls a single unit
     """
 
-    def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot):
+    def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot, delete_func):
         self.unit = None
         self.unit_counter = unit_counter
         self.unit_color = unit_color
         self.parent_layout = parent_layout
+        self.delete_func = delete_func
         self.thresholded_spike_plot = thresholded_spike_plot
         self.dropdowns = []
         self.expression = None
 
+
+
     def populate(self):
         self.unit_layout = QHBoxLayout()
+
+        # Add a Delete button
+        delete_button = QPushButton("Delete Unit")
+        delete_button.clicked.connect(lambda: self.delete_func(self))
+        self.unit_layout.addWidget(delete_button)
 
         # Add unit name and set the background color
         label = QLabel(f"Unit {self.unit_counter}")
@@ -331,6 +342,10 @@ class UnitController:
         return wrapper
 
     def populate_unit_dropboxes(self):
+        if self.unit_layout is None:
+            print("Warning: Attempting to populate a layout that no longer exists.")
+            return
+
         window_colors = self.thresholded_spike_plot.get_window_colors()
         window_color_iterator = itertools.cycle(window_colors)
         num_windows = len(self.thresholded_spike_plot.amp_time_windows)
@@ -362,8 +377,8 @@ class UnitController:
 
     def create_unit(self):
         self.expression = self.generate_expression(self.dropdowns)
-        unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
-        self.thresholded_spike_plot.addUnit(unit)
+        self.unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
+        self.thresholded_spike_plot.addUnit(self.unit)
 
     def generate_expression(self, dropdowns):
         if not dropdowns:  # Check if the list is empty
@@ -393,16 +408,21 @@ class UnitController:
         self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
 
     def clear_unit_layout(self):
-        """Clear existing widgets and dropdowns from the unit layout."""
-        for i in reversed(range(self.unit_layout.count())):
-            widget = self.unit_layout.itemAt(i).widget()
-            if widget is not None:
-                widget.deleteLater()
-        self.dropdowns.clear()
+        try:
+            """Clear existing widgets and dropdowns from the unit layout."""
+            for i in reversed(range(self.unit_layout.count())):
+                widget = self.unit_layout.itemAt(i).widget()
+                if widget is not None:
+                    widget.deleteLater()
+
+            self.dropdowns.clear()
+        except RuntimeError:
+            pass
+
 
 
 class SortPanel(QWidget):
-    unit_rules: List[UnitController]
+    unit_rules: List[UnitPanel]
 
     def __init__(self, thresholded_spike_plot):
         super(SortPanel, self).__init__(thresholded_spike_plot)
@@ -413,16 +433,10 @@ class SortPanel(QWidget):
         self.unit_colors = unit_color_generator()  # to generate unique colors for units
         self.layout = QVBoxLayout()
 
+        # Add a button for adding new units
         self.add_unit_button = QPushButton("Add New Unit")
         self.add_unit_button.clicked.connect(self.add_new_unit)
         self.layout.addWidget(self.add_unit_button)
-
-        # Add a button for triggering recalculation
-        self.recalculate_button = QPushButton("Recalculate Windows")
-        self.recalculate_button.clicked.connect(self.emit_recalculate_windows)
-
-        # Add the button to the layout
-        self.layout.addWidget(self.recalculate_button)
 
         self.setLayout(self.layout)
 
@@ -432,9 +446,9 @@ class SortPanel(QWidget):
     def add_new_unit(self):
         self.unit_counter += 1
         self.current_color = next(self.unit_colors)
-        new_unit_rule = UnitController(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot)
-        new_unit_rule.populate()
-        self.unit_rules.append(new_unit_rule)
+        new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot, self.delete_unit)
+        new_unit_panel.populate()
+        self.unit_rules.append(new_unit_panel)
 
     def generate_expression(self, dropdowns):
         expression_parts = []
@@ -469,3 +483,18 @@ class SortPanel(QWidget):
     def get_window_colors(self):
         window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
         return window_colors
+
+    def delete_unit(self, unit_panel):
+        """Delete a specific unit."""
+        # Remove unit from the list
+        self.unit_rules.remove(unit_panel)
+
+        # Actually remove the unit from data
+        self.thresholded_spike_plot.removeUnit(unit_panel.unit.unit_name)
+
+        # Clear and delete layout
+        unit_panel.clear_unit_layout()
+        del unit_panel
+
+        # Repopulate remaining units
+        self.update_unit_dropdowns()
