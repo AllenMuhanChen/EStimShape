@@ -291,9 +291,11 @@ def unit_color_generator():
     return itertools.cycle(colors)
 
 
-class UnitRule:
-    def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot, window_colors=None):
-        self.window_colors = window_colors
+class UnitController:
+    """
+    subpanel within UnitPanel that controls a single unit
+    """
+    def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot):
         self.unit = None
         self.unit_counter = unit_counter
         self.unit_color = unit_color
@@ -316,8 +318,7 @@ class UnitRule:
         self.unit_layout.addWidget(wrapper)
 
         self.create_unit()
-        self.window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
-        self.populate_unit_layout(window_colors=self.window_colors)
+        self.populate_unit_dropboxes()
         self.parent_layout.addLayout(self.unit_layout)
 
     def create_wrapped_label(self, unit_name_label):
@@ -327,7 +328,7 @@ class UnitRule:
         wrapper.setLayout(wrapper_layout)
         return wrapper
 
-    def populate_unit_layout(self, window_colors=None):
+    def populate_unit_dropboxes(self):
         window_colors=self.thresholded_spike_plot.get_window_colors()
         window_color_iterator = itertools.cycle(window_colors)
         num_windows = len(self.thresholded_spike_plot.amp_time_windows)
@@ -339,7 +340,6 @@ class UnitRule:
             self.dropdowns.append(first_window_dropdown)
 
             # Add the label for the first window
-            first_window_color = window_colors[0] if window_colors else "default_color"
             first_window_label = QLabel("W1")
             first_window_label.setStyleSheet(f"background-color: {next(window_color_iterator)};")
             self.unit_layout.addWidget(self.create_wrapped_label(first_window_label))
@@ -399,7 +399,7 @@ class UnitRule:
                 widget.deleteLater()
         self.dropdowns.clear()
 class LogicalRulesPanel(QWidget):
-    unit_rules: List[UnitRule]
+    unit_rules: List[UnitController]
 
     def __init__(self, thresholded_spike_plot):
         super(LogicalRulesPanel, self).__init__(thresholded_spike_plot)
@@ -429,7 +429,7 @@ class LogicalRulesPanel(QWidget):
     def add_new_unit(self):
         self.unit_counter += 1
         self.current_color = next(self.unit_colors)
-        new_unit_rule = UnitRule(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot, window_colors=self.get_window_colors())
+        new_unit_rule = UnitController(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot)
         new_unit_rule.populate()
         self.unit_rules.append(new_unit_rule)
 
@@ -458,11 +458,10 @@ class LogicalRulesPanel(QWidget):
 
     def update_unit_dropdowns(self):
         """Update dropdowns in each unit layout to match the current number of windows."""
-        window_colors = self.get_window_colors()
         # Clear each unit layout and rebuild it
         for unit_rule in self.unit_rules:
             unit_rule.clear_unit_layout()  # Clear the existing widgets and dropdowns
-            unit_rule.populate_unit_layout(window_colors=window_colors)  # Repopulate the widgets and dropdowns
+            unit_rule.populate_unit_dropboxes()  # Repopulate the widgets and dropdowns
 
     def get_window_colors(self):
         window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
