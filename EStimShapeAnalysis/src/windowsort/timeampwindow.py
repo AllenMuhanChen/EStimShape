@@ -35,6 +35,10 @@ class AmpTimeWindow(QGraphicsItem):
         self.setPos(x, y)
 
     def paint(self, painter, option, widget=None):
+        """For some reason the drawn x and y locations are ALWAYS a factor of 2 off from
+        the x and y location our mouse is on the plot. I have no idea why.
+
+        To correct for this, we take the drawn locations and multiply by two to correct for this. """
         y_min = self.pos().y() - self.height / 2
         y_max = self.pos().y() + self.height / 2
         self.pen = QPen(QColor(self.color))
@@ -83,8 +87,10 @@ class AmpTimeWindow(QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = (int(value.x()) / 2)  # Halve the x-coordinate
-            new_y = value.y() / 2  # Keep the y-coordinate as is
+            new_x = int(value.x())  # Halve the x-coordinate and lock it to ints
+            new_y = value.y()  # Keep the y-coordinate as is
+
+            self.emit_window_updated()
             return QPointF(new_x, new_y)
         return super(AmpTimeWindow, self).itemChange(change, value)
 
