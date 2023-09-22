@@ -16,6 +16,8 @@ from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsItem
 
+from windowsort.threshold import threshold_spikes
+
 
 class AmpTimeWindow(QGraphicsItem):
     def __init__(self, x, y, height, color, parent=None, parent_plot=None):
@@ -151,11 +153,10 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     self.amp_time_windows.remove(window)
                     break  # Assuming only one item can be selected at a time
 
-    def plot_spike_with_color(self, start, end, middle, voltages):
-        # Determine color based on logical rules
+    def sort_and_plot_spike(self, start, end, middle, voltages):
+        print("Plotting spike with color")
         color = 'r'  # default color
         spike_index = round(middle)  # or however you wish to define this
-        # print("spike_index: ", spike_index)
 
         for unit in self.units:
             if unit.sort_spike(index_of_spike=spike_index, voltages=voltages, amp_time_windows=self.amp_time_windows):
@@ -180,13 +181,29 @@ class SortSpikePlot(ThresholdedSpikePlot):
                 middle = point
 
                 # Here, we'll use the custom plot_spike_with_color method to plot the spike
-                self.plot_spike_with_color(start, end, middle, voltages)
+                self.sort_and_plot_spike(start, end, middle, voltages)
         except TypeError:
             pass
 
     def updatePlot(self):
-        super().updatePlot()  # Call the base class method first
+        print("Updating plot")
+        self.clear_plot()
+
+        if self.current_threshold_value is None:
+            return  # Exit if the threshold is not set yet
+        threshold_value = self.current_threshold_value
+
+        voltages = self.data_handler.voltages_by_channel[self.current_channel]
+        self.crossing_indices = threshold_spikes(threshold_value, voltages)
+
+        # Calculate the min_max voltage if it is not set yet
+        if self.min_max_voltage is None:
+            self.min_max_voltage = self.calculate_min_max(voltages, self.spike_window_radius_in_indices)
+
         self.sortSpikes()
+
+        # Set the y-limits of the plot
+        self.set_y_axis_limits()
 
     def set_logical_rules_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
@@ -211,13 +228,13 @@ class Unit:
         # Convert the expression to lowercase to make it Python-compatible
         python_compatible_expression = self.logical_expression.lower()
         python_compatible_expression = self.process_ignore_operators(python_compatible_expression)
-        print(python_compatible_expression)
+        # print(python_compatible_expression)
 
         try:
             result = eval(python_compatible_expression, {}, window_results)
         except SyntaxError:
             result = False
-            print("Invalid expression")
+            # print("Invalid expression")
         return result
 
     @staticmethod
