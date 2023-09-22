@@ -57,13 +57,10 @@ class MainWindow(QMainWindow):
         self.channel_selection_pannel = ChannelSelectionPanel(self.voltage_time_plot, self.thresholded_spike_plot)
         threshold_layout.insertWidget(0, self.channel_selection_pannel)  # Inserts at the top of the layout
 
-
-
-
         # Logical Rules
-        logical_rules_panel = SortPanel(self.thresholded_spike_plot)
-        spike_sort_layout.insertWidget(0, logical_rules_panel)
-        self.thresholded_spike_plot.set_logical_rules_panel(logical_rules_panel)
+        spike_sort_panel = SortPanel(self.thresholded_spike_plot)
+        spike_sort_layout.insertWidget(0, spike_sort_panel)
+        self.thresholded_spike_plot.set_sort_panel(spike_sort_panel)
         # Add more Time-Amp related widgets to spike_sort_layout if needed
 
         # Add the second column layout to the main layout
