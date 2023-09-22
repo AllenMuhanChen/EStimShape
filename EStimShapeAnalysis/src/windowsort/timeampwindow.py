@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import math
+from typing import List
 
 from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF, pyqtSignal, QTimer, QVariant
 from PyQt5.QtGui import QPen, QColor
@@ -16,7 +17,6 @@ from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsItem
 
 
-
 class AmpTimeWindow(QGraphicsItem):
     def __init__(self, x, y, height, color, parent=None, parent_plot=None):
         super(AmpTimeWindow, self).__init__(parent)
@@ -26,19 +26,20 @@ class AmpTimeWindow(QGraphicsItem):
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
         self.height = height  # Height of the line
-        self.color = color    # Color of the line
+        self.color = color  # Color of the line
 
-        print("clicked x: ", x, "clicked y: ", y)
+        # The values we will compare voltages of spikes to in order to sort them
+        self.sort_ymax = None
+        self.sort_ymin = None
+        self.sort_x = None
+
         # Correct the initial position so that the line is centered on the mouse
-        y = (y/2)
-        # x = round(x)/2
-        print("corrected x: ", x, "corrected y: ", y)
-        # x = x/2
+        y = (y / 2)
         # Set the initial position in scene coordinates
         self.setPos(x, y)
-        self.update_units_for_sorting()
+        self.calculate_x_y_for_sorting()
 
-    def update_units_for_sorting(self):
+    def calculate_x_y_for_sorting(self):
         self.sort_x = self.pos().x() * 2
         self.sort_ymin = self.pos().y() * 2 - self.height / 2
         self.sort_ymax = self.pos().y() * 2 + self.height / 2
@@ -55,7 +56,7 @@ class AmpTimeWindow(QGraphicsItem):
         painter.setPen(self.pen)
         painter.drawLine(QPointF(self.pos().x(), y_min), QPointF(self.pos().x(), y_max))
 
-        self.update_units_for_sorting()
+        self.calculate_x_y_for_sorting()
 
     def boundingRect(self):
         y_center = (self.y_min() + self.y_max()) / 2
@@ -72,12 +73,12 @@ class AmpTimeWindow(QGraphicsItem):
 
     def y_max(self):
         return self.pos().y() + self.height / 2
+
     def emit_window_updated(self):
         self.parent_plot.windowUpdated.emit()
 
     def is_spike_in_window(self, index_of_spike, voltages):
         offset_index = int(self.sort_x)
-
 
         # Calculate the index in the voltage array to check
         check_index = index_of_spike + offset_index
@@ -91,7 +92,8 @@ class AmpTimeWindow(QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = int(value.x())/2.0  #  lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
+            new_x = int(
+                value.x()) / 2.0  # lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
             new_y = value.y()  # Keep the y-coordinate as is
 
             self.emit_window_updated()
@@ -113,16 +115,18 @@ class CustomPlotWidget(PlotWidget):
         super(CustomPlotWidget, self).mousePressEvent(event)
 
 
-class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
+class SortSpikePlot(ThresholdedSpikePlot):
     windowUpdated = pyqtSignal()
+    units: List[Unit]
+    amp_time_windows: List[AmpTimeWindow]
 
     def __init__(self, data_handler, data_exporter):
-        super(ExtendedThresholdedSpikePlot, self).__init__(data_handler, data_exporter)
+        super(SortSpikePlot, self).__init__(data_handler, data_exporter)
         self.logical_rules_panel = None
-        self.logical_rules = []
+        self.units = []
         self.amp_time_windows = []
         self.next_color = color_generator()
-        self.windowUpdated.connect(self.evaluateRules)
+        self.windowUpdated.connect(self.sortSpikes)
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -153,18 +157,18 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
         spike_index = round(middle)  # or however you wish to define this
         # print("spike_index: ", spike_index)
 
-        for rule in self.logical_rules:
-            if rule.evaluate(spike_index, voltages, self.amp_time_windows):
-                color = rule.color
+        for unit in self.units:
+            if unit.sort_spike(index_of_spike=spike_index, voltages=voltages, amp_time_windows=self.amp_time_windows):
+                color = unit.color
                 break
 
         super().plot_spike(start, end, middle, voltages, color)
 
-    def addLogicalRule(self, rule: LogicalRule):
+    def addUnit(self, rule: Unit):
         new_rule = rule
-        self.logical_rules.append(new_rule)
+        self.units.append(new_rule)
 
-    def evaluateRules(self):
+    def sortSpikes(self):
         try:
             voltages = self.data_handler.voltages_by_channel[self.current_channel]
             subset_of_crossing_indices = self.crossing_indices[
@@ -182,20 +186,19 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
 
     def updatePlot(self):
         super().updatePlot()  # Call the base class method first
-        self.evaluateRules()
+        self.sortSpikes()
 
     def set_logical_rules_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
 
 
-# In LogicalRule class
-class LogicalRule:
-    def __init__(self, expression, unit, color):
-        self.expression = expression  # Expression can be something like "W1 and not W2"
-        self.unit = unit  # Unit identifier, e.g., "Unit 1"
+class Unit:
+    def __init__(self, logical_expression, unit_name, color):
+        self.logical_expression = logical_expression  # Expression can be something like "W1 and not W2"
+        self.unit_name = unit_name  # Unit identifier, e.g., "Unit 1"
         self.color = color  # Color for the unit, e.g., 'green'
 
-    def evaluate(self, index_of_spike, voltages, amp_time_windows):
+    def sort_spike(self, *, index_of_spike, voltages, amp_time_windows):
         # If there's only one window, return its result directly
         if len(amp_time_windows) == 1:
             return amp_time_windows[0].is_spike_in_window(index_of_spike, voltages)
@@ -206,7 +209,7 @@ class LogicalRule:
             window_results[f'w{idx + 1}'] = window.is_spike_in_window(index_of_spike, voltages)
 
         # Convert the expression to lowercase to make it Python-compatible
-        python_compatible_expression = self.expression.lower()
+        python_compatible_expression = self.logical_expression.lower()
         python_compatible_expression = self.process_ignore_operators(python_compatible_expression)
         print(python_compatible_expression)
 
@@ -344,9 +347,9 @@ class LogicalRulesPanel(QWidget):
         print(self.expression)
         unit = f"Unit {self.unit_counter}"
 
-        rule = LogicalRule(self.expression, unit, self.current_color)
-        self.thresholded_spike_plot.addLogicalRule(rule)
-        self.thresholded_spike_plot.evaluateRules()  # Evaluate the rules for all spikes
+        unit = Unit(self.expression, unit, self.current_color)
+        self.thresholded_spike_plot.addUnit(unit)
+        self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
 
         return self.dropdowns
 
@@ -356,5 +359,5 @@ class LogicalRulesPanel(QWidget):
         print(f"Updated expression: {self.expression}")
 
         # Update the logical rule with the new expression
-        self.thresholded_spike_plot.logical_rules[-1].expression = self.expression
-        self.thresholded_spike_plot.evaluateRules()  # Evaluate the rules for all spikes
+        self.thresholded_spike_plot.units[-1].logical_expression = self.expression
+        self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
