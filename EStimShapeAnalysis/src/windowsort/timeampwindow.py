@@ -207,13 +207,26 @@ class LogicalRule:
 
         # Convert the expression to lowercase to make it Python-compatible
         python_compatible_expression = self.expression.lower()
+        python_compatible_expression = self.process_ignore_operators(python_compatible_expression)
         print(python_compatible_expression)
 
         try:
             result = eval(python_compatible_expression, {}, window_results)
         except SyntaxError:
             result = False
+            print("Invalid expression")
         return result
+
+    @staticmethod
+    def process_ignore_operators(expression: str) -> str:
+        processed_expression = expression
+        # Find all occurrences of "IGNORE Wx" and replace with "True AND"
+        for i in range(1, 10):  # Assuming up to W9 for this example
+            ignore_str = f"ignore w{i}"
+            if ignore_str in processed_expression:
+                processed_expression = processed_expression.replace(ignore_str, "and True")
+
+        return processed_expression
 
 
 def color_generator():
@@ -291,7 +304,7 @@ class LogicalRulesPanel(QWidget):
         unit_label = QLabel("Unit: ")
         unit_layout.addWidget(unit_label)
 
-        dropdowns = []
+        self.dropdowns = []
 
         num_windows = len(self.thresholded_spike_plot.amp_time_windows)
         if num_windows > 0:
@@ -310,9 +323,10 @@ class LogicalRulesPanel(QWidget):
 
             for i, window in enumerate(self.thresholded_spike_plot.amp_time_windows[1:]):
                 dropdown = QComboBox()
-                dropdown.addItems(["AND", "OR", "NOT"])
+                dropdown.addItems(["AND", "OR", "AND NOT", "IGNORE"])
+                dropdown.currentIndexChanged.connect(self.update_expression)
                 unit_layout.addWidget(dropdown)
-                dropdowns.append(dropdown)
+                self.dropdowns.append(dropdown)
                 window_label = QLabel(f"W{i + 2}")
 
                 # Set the background color of the label
@@ -326,7 +340,7 @@ class LogicalRulesPanel(QWidget):
 
                 unit_layout.addWidget(wrapper)
 
-        self.expression = self.generate_expression(dropdowns)
+        self.expression = self.generate_expression(self.dropdowns)
         print(self.expression)
         unit = f"Unit {self.unit_counter}"
 
@@ -334,4 +348,13 @@ class LogicalRulesPanel(QWidget):
         self.thresholded_spike_plot.addLogicalRule(rule)
         self.thresholded_spike_plot.evaluateRules()  # Evaluate the rules for all spikes
 
-        return dropdowns
+        return self.dropdowns
+
+    def update_expression(self):
+        """Update the logical expression based on the current dropdown selections."""
+        self.expression = self.generate_expression(self.dropdowns)
+        print(f"Updated expression: {self.expression}")
+
+        # Update the logical rule with the new expression
+        self.thresholded_spike_plot.logical_rules[-1].expression = self.expression
+        self.thresholded_spike_plot.evaluateRules()  # Evaluate the rules for all spikes
