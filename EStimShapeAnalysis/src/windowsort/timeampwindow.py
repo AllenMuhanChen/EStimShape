@@ -29,7 +29,7 @@ class AmpTimeWindow(QGraphicsItem):
         self.throttle_timer = QTimer()
         self.throttle_timer.setSingleShot(True)
         self.throttle_timer.timeout.connect(self.emit_window_updated)
-        # self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
         self.height = height  # Height of the line
         self.color = color  # Color of the line
@@ -45,24 +45,6 @@ class AmpTimeWindow(QGraphicsItem):
         self.setPos(x, y)
         self.calculate_x_y_for_sorting()
 
-    def mousePressEvent(self, event):
-        self.setCursor(Qt.ClosedHandCursor)
-        self.drag_start_pos = event.pos()
-        super(AmpTimeWindow, self).mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        drag_vector = event.pos() - self.drag_start_pos
-        self.setPos(self.pos() + drag_vector)
-
-        self.calculate_x_y_for_sorting()
-        if not self.throttle_timer.isActive():
-            self.throttle_timer.start(100)  # emit_window_updated will be called after 100 ms
-        super(AmpTimeWindow, self).mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        self.emit_window_updated()
-        self.setCursor(Qt.ArrowCursor)
-        super(AmpTimeWindow, self).mouseReleaseEvent(event)
 
     def calculate_x_y_for_sorting(self):
         self.sort_x = self.pos().x() * 2
@@ -121,7 +103,9 @@ class AmpTimeWindow(QGraphicsItem):
                 value.x()) / 2.0  # lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
             new_y = value.y()  # Keep the y-coordinate as is
 
-            self.emit_window_updated()
+            if not self.throttle_timer.isActive():
+                self.throttle_timer.start(100)  # emit_window_updated will be called after 100 ms
+
             return QPointF(new_x, new_y)
         return super(AmpTimeWindow, self).itemChange(change, value)
 
