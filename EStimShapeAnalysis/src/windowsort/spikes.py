@@ -34,9 +34,7 @@ class ThresholdedSpikePlot(QWidget):
 
     def updatePlot(self):
         # Clear the existing plot items
-        for item in self.plotItems:
-            self.plotWidget.removeItem(item)
-        self.plotItems.clear()
+        self.clear_plot()
 
         if self.current_threshold_value is None:
             return  # Exit if the threshold is not set yet
@@ -64,6 +62,11 @@ class ThresholdedSpikePlot(QWidget):
 
         # Set the y-limits of the plot
         self.set_y_axis_limits()
+
+    def clear_plot(self):
+        for item in self.plotItems:
+            self.plotWidget.removeItem(item)
+        self.plotItems.clear()
 
     def set_y_axis_limits(self):
         if self.min_max_voltage[0] != np.inf and self.min_max_voltage[1] != -np.inf:
