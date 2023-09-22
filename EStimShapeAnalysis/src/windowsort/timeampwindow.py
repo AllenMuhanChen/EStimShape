@@ -45,7 +45,6 @@ class AmpTimeWindow(QGraphicsItem):
         self.setPos(x, y)
         self.calculate_x_y_for_sorting()
 
-
     def calculate_x_y_for_sorting(self):
         self.sort_x = self.pos().x() * 2
         self.sort_ymin = self.pos().y() * 2 - self.height / 2
@@ -218,6 +217,15 @@ class SortSpikePlot(ThresholdedSpikePlot):
     def set_logical_rules_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
 
+    def updateUnit(self, updated_unit: Unit):
+        for i, unit in enumerate(self.units):
+            if unit.unit_name == updated_unit.unit_name:
+                self.units[i] = updated_unit
+                return
+        print(f"Unit {updated_unit.unit_name} not found.")
+
+    def get_window_colors(self):
+        return [window.color for window in self.amp_time_windows]
 
 class Unit:
     def __init__(self, logical_expression, unit_name, color):
@@ -274,25 +282,133 @@ class Unit:
 
 
 def color_generator():
-    colors = ['green', 'cyan', 'magenta', 'orange', 'pink']
+    colors = ['green', 'cyan', 'magenta']
     return itertools.cycle(colors)
 
 
 def unit_color_generator():
-    colors = ['pink', 'blue']
+    colors = ['pink', 'blue', 'orange']
     return itertools.cycle(colors)
 
 
+class UnitRule:
+    def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot, window_colors=None):
+        self.window_colors = window_colors
+        self.unit = None
+        self.unit_counter = unit_counter
+        self.unit_color = unit_color
+        self.parent_layout = parent_layout
+        self.thresholded_spike_plot = thresholded_spike_plot
+        self.dropdowns = []
+        self.expression = None
+
+    def populate(self):
+        self.unit_layout = QHBoxLayout()
+
+        # Add unit name and set the background color
+        label = QLabel(f"Unit {self.unit_counter}")
+        label.setStyleSheet(f"background-color: {self.unit_color};")
+
+        # Contain the label within a wrapper
+        wrapper = self.create_wrapped_label(label)
+
+        # Add the wrapper to the unit layout
+        self.unit_layout.addWidget(wrapper)
+
+        self.create_unit()
+        self.window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
+        self.populate_unit_layout(window_colors=self.window_colors)
+        self.parent_layout.addLayout(self.unit_layout)
+
+    def create_wrapped_label(self, unit_name_label):
+        wrapper = QWidget()
+        wrapper_layout = QVBoxLayout()
+        wrapper_layout.addWidget(unit_name_label, alignment=Qt.AlignCenter)
+        wrapper.setLayout(wrapper_layout)
+        return wrapper
+
+    def populate_unit_layout(self, window_colors=None):
+        window_colors=self.thresholded_spike_plot.get_window_colors()
+        window_color_iterator = itertools.cycle(window_colors)
+        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
+        if num_windows > 0:
+            first_window_dropdown = QComboBox()
+            first_window_dropdown.addItems(["INCLUDE", "IGNORE", "NOT"])
+            self.unit_layout.addWidget(first_window_dropdown)
+            first_window_dropdown.currentIndexChanged.connect(self.update_expression)  # Connect the signal
+            self.dropdowns.append(first_window_dropdown)
+
+            # Add the label for the first window
+            first_window_color = window_colors[0] if window_colors else "default_color"
+            first_window_label = QLabel("W1")
+            first_window_label.setStyleSheet(f"background-color: {next(window_color_iterator)};")
+            self.unit_layout.addWidget(self.create_wrapped_label(first_window_label))
+
+            for i, window in enumerate(self.thresholded_spike_plot.amp_time_windows[1:]):
+                dropdown = QComboBox()
+                dropdown.addItems(["AND", "OR", "AND NOT", "IGNORE"])
+                dropdown.currentIndexChanged.connect(self.update_expression)  # Connect the signal
+                self.unit_layout.addWidget(dropdown)
+                self.dropdowns.append(dropdown)
+
+                # Add the label for this window
+                window_label = QLabel(f"W{i + 2}")
+                window_label.setStyleSheet(f"background-color: {next(window_color_iterator)};")
+                self.unit_layout.addWidget(self.create_wrapped_label(window_label))
+
+        self.thresholded_spike_plot.sortSpikes()
+
+    def create_unit(self):
+        self.expression = self.generate_expression(self.dropdowns)
+        unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
+        self.thresholded_spike_plot.addUnit(unit)
+
+    def generate_expression(self, dropdowns):
+        if not dropdowns:  # Check if the list is empty
+            return ""
+        expression_parts = []
+        first_operator = dropdowns[0].currentText()
+        if first_operator == "INCLUDE":
+            expression_parts.append(f"W1")
+        elif first_operator == "IGNORE":
+            expression_parts.append(f"True")
+        elif first_operator == "NOT":
+            expression_parts.append(f"not W1")
+
+        for i, dropdown in enumerate(dropdowns[1:]):
+            operator = dropdown.currentText()
+            expression_parts.append(f"{operator} W{i + 2}")
+
+        return ' '.join(expression_parts)
+
+    def update_expression(self):
+        """Update the logical expression based on the current dropdown selections."""
+        if not self.dropdowns:  # Check if the list is empty
+            return
+        self.expression = self.generate_expression(self.dropdowns)
+        updated_unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
+        self.thresholded_spike_plot.updateUnit(updated_unit)
+        self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
+
+
+    def clear_unit_layout(self):
+        """Clear existing widgets and dropdowns from the unit layout."""
+        for i in reversed(range(self.unit_layout.count())):
+            widget = self.unit_layout.itemAt(i).widget()
+            if widget is not None:
+                widget.deleteLater()
+        self.dropdowns.clear()
 class LogicalRulesPanel(QWidget):
+    unit_rules: List[UnitRule]
+
     def __init__(self, thresholded_spike_plot):
         super(LogicalRulesPanel, self).__init__(thresholded_spike_plot)
         self.thresholded_spike_plot = thresholded_spike_plot
-
+        self.unit_rules = []
         self.unit_counter = 0  # to generate unique unit identifiers
         self.current_color = None
         self.unit_colors = unit_color_generator()  # to generate unique colors for units
         self.layout = QVBoxLayout()
-        self.units_layouts = []  # Store unit layouts to update later
 
         self.add_unit_button = QPushButton("Add New Unit")
         self.add_unit_button.clicked.connect(self.add_new_unit)
@@ -313,11 +429,9 @@ class LogicalRulesPanel(QWidget):
     def add_new_unit(self):
         self.unit_counter += 1
         self.current_color = next(self.unit_colors)
-
-        unit_layout = QHBoxLayout()
-        self.populate_unit_layout(unit_layout)
-        self.units_layouts.append(unit_layout)  # Store this layout to update later
-        self.layout.addLayout(unit_layout)
+        new_unit_rule = UnitRule(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot, window_colors=self.get_window_colors())
+        new_unit_rule.populate()
+        self.unit_rules.append(new_unit_rule)
 
     def generate_expression(self, dropdowns):
         expression_parts = []
@@ -334,7 +448,7 @@ class LogicalRulesPanel(QWidget):
         # Handle the rest of the dropdowns
         for i, dropdown in enumerate(dropdowns[1:]):
             operator = dropdown.currentText()
-            expression_parts.append(f"{operator} W{i+2}")
+            expression_parts.append(f"{operator} W{i + 2}")
 
         # Add the last window
         # if len(dropdowns) > 0:
@@ -344,90 +458,12 @@ class LogicalRulesPanel(QWidget):
 
     def update_unit_dropdowns(self):
         """Update dropdowns in each unit layout to match the current number of windows."""
+        window_colors = self.get_window_colors()
         # Clear each unit layout and rebuild it
-        for unit_layout in self.units_layouts:
-            for i in reversed(range(unit_layout.count())):
-                widget = unit_layout.itemAt(i).widget()
-                if widget is not None:
-                    widget.deleteLater()
-            self.populate_unit_layout(unit_layout)
+        for unit_rule in self.unit_rules:
+            unit_rule.clear_unit_layout()  # Clear the existing widgets and dropdowns
+            unit_rule.populate_unit_layout(window_colors=window_colors)  # Repopulate the widgets and dropdowns
 
-    def populate_unit_layout(self, unit_layout):
-        # Create a QLabel for the unit name
-        unit_name = f"Unit {self.unit_counter}"
-        unit_name_label = QLabel(unit_name)
-        unit_name_label.setStyleSheet(f"background-color: {self.current_color};")
-
-        # Create a QWidget wrapper to style the background color
-        wrapper = QWidget()
-        wrapper_layout = QVBoxLayout()
-        wrapper_layout.addWidget(unit_name_label, alignment=Qt.AlignCenter)
-        wrapper.setLayout(wrapper_layout)
-
-        # Style the wrapper with the unit color
-        # wrapper.
-
-        # Insert it to the beginning of the layout
-        unit_layout.insertWidget(0, wrapper)
-
-        self.dropdowns = []
-
-        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
-        if num_windows > 0:
-            # Add a dropdown for the first window to toggle its boolean value
-            first_window_dropdown = QComboBox()
-            first_window_dropdown.addItems(["INCLUDE", "IGNORE", "NOT"])
-            first_window_dropdown.currentIndexChanged.connect(self.update_expression)
-            unit_layout.addWidget(first_window_dropdown)
-            self.dropdowns.append(first_window_dropdown)
-
-            # Add the first window
-            window = self.thresholded_spike_plot.amp_time_windows[0]
-            color = window.color
-            single_window_label = QLabel(f"W1")
-            single_window_label.setStyleSheet(f"background-color: {color};")
-
-            wrapper = QWidget()
-            wrapper_layout = QVBoxLayout()
-            wrapper_layout.addWidget(single_window_label, alignment=Qt.AlignCenter)
-            wrapper.setLayout(wrapper_layout)
-
-            unit_layout.addWidget(wrapper)
-
-            for i, window in enumerate(self.thresholded_spike_plot.amp_time_windows[1:]):
-                dropdown = QComboBox()
-                dropdown.addItems(["AND", "OR", "AND NOT", "IGNORE"])
-                dropdown.currentIndexChanged.connect(self.update_expression)
-                unit_layout.addWidget(dropdown)
-                self.dropdowns.append(dropdown)
-                window_label = QLabel(f"W{i + 2}")
-
-                # Set the background color of the label
-                color = window.color
-                window_label.setStyleSheet(f"background-color: {color};")
-
-                wrapper = QWidget()
-                wrapper_layout = QVBoxLayout()
-                wrapper_layout.addWidget(window_label, alignment=Qt.AlignCenter)
-                wrapper.setLayout(wrapper_layout)
-
-                unit_layout.addWidget(wrapper)
-
-        self.expression = self.generate_expression(self.dropdowns)
-        print(self.expression)
-        unit = f"Unit {self.unit_counter}"
-
-        unit = Unit(self.expression, unit, self.current_color)
-        self.thresholded_spike_plot.addUnit(unit)
-        self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
-
-        return self.dropdowns
-
-    def update_expression(self):
-        """Update the logical expression based on the current dropdown selections."""
-        self.expression = self.generate_expression(self.dropdowns)
-        print(f"Updated expression: {self.expression}")
-
-        # Update the logical rule with the new expression
-        self.thresholded_spike_plot.units[-1].logical_expression = self.expression
-        self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
+    def get_window_colors(self):
+        window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
+        return window_colors
