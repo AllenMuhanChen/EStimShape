@@ -28,45 +28,48 @@ class MainWindow(QMainWindow):
         # FIRST COLUMN
         self.setCentralWidget(central_widget)
 
-        layout = QVBoxLayout()
+        # Two Columns
+        threshold_layout = QVBoxLayout()
+        spike_plot_layout = QVBoxLayout()
+        spike_sort_layout = QVBoxLayout()
 
         # Voltage Time Plot
         self.voltage_time_plot = VoltageTimePlot(self.data_handler)
-        layout.addWidget(self.voltage_time_plot)
+        threshold_layout.addWidget(self.voltage_time_plot)
         self.time_scrubber = TimeScrubber(self.voltage_time_plot)
-        layout.addWidget(self.time_scrubber)
+        threshold_layout.addWidget(self.time_scrubber)
         self.thresholdControlPanel = ThresholdControlPanel(self.voltage_time_plot)
-        layout.addWidget(self.thresholdControlPanel)
+        threshold_layout.addWidget(self.thresholdControlPanel)
 
         # Thresholded Spikes
         self.thresholded_spike_plot = SortSpikePlot(self.data_handler, self.data_exporter)
-        layout.addWidget(self.thresholded_spike_plot)
+        spike_plot_layout.addWidget(self.thresholded_spike_plot)
         self.voltage_time_plot.thresholdedSpikePlot = self.thresholded_spike_plot
         self.spike_scrubber = SpikeScrubber(self.thresholded_spike_plot)
-        layout.addWidget(self.spike_scrubber)
+        spike_plot_layout.addWidget(self.spike_scrubber)
 
         # Exporting
         self.exportPanel = ExportPanel(self.data_exporter)
-        layout.addWidget(self.exportPanel)
-        layout.addWidget(self.exportPanel)
+        threshold_layout.addWidget(self.exportPanel)
+        threshold_layout.addWidget(self.exportPanel)
 
         # Channel Selection
         self.channel_selection_pannel = ChannelSelectionPanel(self.voltage_time_plot, self.thresholded_spike_plot)
-        layout.insertWidget(0, self.channel_selection_pannel)  # Inserts at the top of the layout
+        threshold_layout.insertWidget(0, self.channel_selection_pannel)  # Inserts at the top of the layout
 
-        main_layout.addLayout(layout)
 
-        # Second column layout for Time-Amp window controls
-        time_amp_layout = QVBoxLayout()
+
 
         # Logical Rules
         logical_rules_panel = SortPanel(self.thresholded_spike_plot)
-        time_amp_layout.addWidget(logical_rules_panel)
+        spike_sort_layout.insertWidget(0, logical_rules_panel)
         self.thresholded_spike_plot.set_logical_rules_panel(logical_rules_panel)
-        # Add more Time-Amp related widgets to time_amp_layout if needed
+        # Add more Time-Amp related widgets to spike_sort_layout if needed
 
         # Add the second column layout to the main layout
-        main_layout.addLayout(time_amp_layout)
+        main_layout.addLayout(threshold_layout)
+        main_layout.addLayout(spike_plot_layout)
+        main_layout.addLayout(spike_sort_layout)
 
         central_widget.setLayout(main_layout)
 
