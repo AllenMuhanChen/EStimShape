@@ -22,10 +22,10 @@ from intan.one_file_spike_parsing import OneFileParser
 
 def main():
     # Main Parameters
-    compile_data(day=date(2023, 9, 20),
+    compile_data(day=date(2023, 9, 21),
                  start_time=time(15, 10, 0),
                  end_time=time(16, 7, 0),
-                 experiment_filename="1695241340595740_230920_162221")
+                 experiment_filename="1695320228865138_230921_141709")
 
 
     # compile_data(day=date(2023, 9, 13),
