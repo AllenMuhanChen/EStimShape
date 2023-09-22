@@ -111,13 +111,16 @@ class AmpTimeWindow(QGraphicsItem):
     def keyPressEvent(self, event):
         if self.isSelected():
             if event.key() == Qt.Key_Up:
-                self.height += 5  # Increase height when the Up arrow key is pressed
+                self.height += 1  # Increase height when the Up arrow key is pressed
             elif event.key() == Qt.Key_Down:
-                self.height = max(5, self.height - 5)  # Decrease height when the Down arrow key is pressed, with a minimum limit
+                self.height = max(1,
+                                  self.height - 1)  # Decrease height when the Down arrow key is pressed, with a minimum limit
             # Redraw the item to reflect the new height
             self.update()
             # Emit the signal to update the plot
             self.emit_window_updated()
+
+
 class CustomPlotWidget(PlotWidget):
     def __init__(self, parent=None):
         super(CustomPlotWidget, self).__init__(parent)
@@ -180,6 +183,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     window.update()
                     # Emit the signal to update the plot
                     window.emit_window_updated()
+
     def sort_and_plot_spike(self, start, end, middle, voltages):
         color = 'r'  # default color
         spike_index = round(middle)  # or however you wish to define this
@@ -272,13 +276,12 @@ class Unit:
         python_compatible_expression = self.logical_expression.lower()
         python_compatible_expression = self.upper_case_true_false(python_compatible_expression)
         python_compatible_expression = self.process_ignore_operators(python_compatible_expression)
-        print(python_compatible_expression)
 
         try:
             result = eval(python_compatible_expression, {}, window_results)
         except SyntaxError:
             result = False
-            # print("Invalid expression")
+            print("Invalid expression: ", python_compatible_expression)
         return result
 
     @staticmethod
@@ -330,8 +333,6 @@ class UnitPanel:
         self.thresholded_spike_plot = thresholded_spike_plot
         self.dropdowns = []
         self.expression = None
-
-
 
     def populate(self):
         self.unit_layout = QHBoxLayout()
@@ -444,13 +445,13 @@ class UnitPanel:
             pass
 
 
-
 class SortPanel(QWidget):
     unit_panels: List[UnitPanel]
 
-    def __init__(self, thresholded_spike_plot):
+    def __init__(self, thresholded_spike_plot, data_exporter):
         super(SortPanel, self).__init__(thresholded_spike_plot)
         self.thresholded_spike_plot = thresholded_spike_plot
+        self.data_exporter = data_exporter
         self.unit_panels = []
         self.unit_counter = 0  # to generate unique unit identifiers
         self.current_color = None
@@ -462,6 +463,11 @@ class SortPanel(QWidget):
         self.add_unit_button.clicked.connect(self.add_new_unit)
         self.layout.addWidget(self.add_unit_button)
 
+        # Add Export button
+        self.export_button = QPushButton("Export Sorted Spikes")
+        self.export_button.clicked.connect(self.export_sorted_spikes)
+        self.layout.addWidget(self.export_button)
+
         self.setLayout(self.layout)
 
     def emit_recalculate_windows(self):
@@ -470,7 +476,8 @@ class SortPanel(QWidget):
     def add_new_unit(self):
         self.unit_counter += 1
         self.current_color = next(self.unit_colors)
-        new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot, self.delete_unit)
+        new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot,
+                                   self.delete_unit)
         new_unit_panel.populate()
         self.unit_panels.append(new_unit_panel)
 
@@ -505,7 +512,6 @@ class SortPanel(QWidget):
             unit_panel.add_delete_button()
             unit_panel.populate_unit_dropboxes()  # Repopulate the widgets and dropdowns
 
-
     def get_window_colors(self):
         window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
         return window_colors
@@ -526,3 +532,33 @@ class SortPanel(QWidget):
         self.update_unit_dropdowns()
 
         self.thresholded_spike_plot.sortSpikes()
+
+    def export_sorted_spikes(self):
+        channel = self.thresholded_spike_plot.current_channel
+        voltages = self.thresholded_spike_plot.data_handler.voltages_by_channel[channel]
+
+        self.thresholded_spike_plot.updatePlot()  # Make sure the data is updated
+
+        sorted_spikes_by_unit = {}
+
+        # Pre-compute the crossing indices for the current channel
+        threshold_value = self.thresholded_spike_plot.current_threshold_value
+        crossing_indices = threshold_spikes(threshold_value, voltages)
+
+        for unit in self.thresholded_spike_plot.units:
+            sorted_spikes = []  # List to hold the sorted spikes for this unit
+
+            for point in crossing_indices:
+                spike_index = round(point)  # or however you wish to define this
+
+                # Check if the spike belongs to the current unit
+                if unit.sort_spike(index_of_spike=spike_index, voltages=voltages,
+                                   amp_time_windows=self.thresholded_spike_plot.amp_time_windows):
+                    sorted_spikes.append(spike_index)
+
+            sorted_spikes_by_unit[unit.unit_name] = sorted_spikes
+
+
+
+        # Use the DataExporter to save the sorted spikes
+        self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel)

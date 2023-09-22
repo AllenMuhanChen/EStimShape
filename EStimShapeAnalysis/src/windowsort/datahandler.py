@@ -1,5 +1,6 @@
 import os
 import pickle
+from typing import Dict
 
 import numpy as np
 from scipy.signal import butter, filtfilt
@@ -50,14 +51,23 @@ class DataImporter:
 class DataExporter:
     def __init__(self, *, save_directory):
         self.thresholded_spike_indices_by_channel = {}  # Keyed by channel, each value is a list of spike times
+        self.sorted_spikes_by_unit_by_channel = {}  # Keyed by channel, each value is a dict of unit name to spike times
         self.save_directory = save_directory
-        self.filename = os.path.join(self.save_directory, "thresholded_spikes.pkl")
+
 
     def update_thresholded_spikes(self, channel, thresholded_spike_indices):
         self.thresholded_spike_indices_by_channel[channel] = thresholded_spike_indices
 
     def export_data(self):
-        with open(self.filename, 'wb') as f:
+        filename = os.path.join(self.save_directory, "thresholded_spikes.pkl")
+        with open(filename, 'wb') as f:
             pickle.dump(self.thresholded_spike_indices_by_channel, f)
         # print(f"Saved {len(self.thresholded_spikes_by_channel.items())} thresholded spikes to {self.filename}")
         print(self.thresholded_spike_indices_by_channel)
+
+    def save_sorted_spikes(self, spikes_by_unit: Dict[str, np.ndarray], channel: Channel):
+        self.sorted_spikes_by_unit_by_channel[channel] = spikes_by_unit
+        filename = os.path.join(self.save_directory, "sorted_spikes.pkl")
+        with open(filename, 'wb') as f:
+            pickle.dump(self.sorted_spikes_by_unit_by_channel, f)
+        print(self.sorted_spikes_by_unit_by_channel)
