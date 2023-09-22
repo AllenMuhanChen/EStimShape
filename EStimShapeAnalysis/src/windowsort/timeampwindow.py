@@ -28,11 +28,20 @@ class AmpTimeWindow(QGraphicsItem):
         self.height = height  # Height of the line
         self.color = color    # Color of the line
 
+        print("clicked x: ", x, "clicked y: ", y)
         # Correct the initial position so that the line is centered on the mouse
-        # y -= self.height / 2
-        x = x/2
+        y = (y/2)
+        # x = round(x)/2
+        print("corrected x: ", x, "corrected y: ", y)
+        # x = x/2
         # Set the initial position in scene coordinates
         self.setPos(x, y)
+        self.update_units_for_sorting()
+
+    def update_units_for_sorting(self):
+        self.sort_x = self.pos().x() * 2
+        self.sort_ymin = self.pos().y() * 2 - self.height / 2
+        self.sort_ymax = self.pos().y() * 2 + self.height / 2
 
     def paint(self, painter, option, widget=None):
         """For some reason the drawn x and y locations are ALWAYS a factor of 2 off from
@@ -46,12 +55,7 @@ class AmpTimeWindow(QGraphicsItem):
         painter.setPen(self.pen)
         painter.drawLine(QPointF(self.pos().x(), y_min), QPointF(self.pos().x(), y_max))
 
-
-        self.sort_x = self.pos().x() * 2
-        self.sort_ymin = self.pos().y() * 2 - self.height/2
-        self.sort_ymax = self.pos().y() * 2 + self.height/2
-
-        print("sort x: ", self.sort_x, "sort y_min: ", self.sort_ymin, "sort y_max: ", self.sort_ymax)
+        self.update_units_for_sorting()
 
     def boundingRect(self):
         y_center = (self.y_min() + self.y_max()) / 2
@@ -87,7 +91,7 @@ class AmpTimeWindow(QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = int(value.x())  # Halve the x-coordinate and lock it to ints
+            new_x = int(value.x())/2.0  #  lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
             new_y = value.y()  # Keep the y-coordinate as is
 
             self.emit_window_updated()
