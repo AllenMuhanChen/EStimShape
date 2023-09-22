@@ -108,7 +108,16 @@ class AmpTimeWindow(QGraphicsItem):
             return QPointF(new_x, new_y)
         return super(AmpTimeWindow, self).itemChange(change, value)
 
-
+    def keyPressEvent(self, event):
+        if self.isSelected():
+            if event.key() == Qt.Key_Up:
+                self.height += 5  # Increase height when the Up arrow key is pressed
+            elif event.key() == Qt.Key_Down:
+                self.height = max(5, self.height - 5)  # Decrease height when the Down arrow key is pressed, with a minimum limit
+            # Redraw the item to reflect the new height
+            self.update()
+            # Emit the signal to update the plot
+            self.emit_window_updated()
 class CustomPlotWidget(PlotWidget):
     def __init__(self, parent=None):
         super(CustomPlotWidget, self).__init__(parent)
@@ -159,7 +168,18 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     self.plotWidget.removeItem(window)
                     self.amp_time_windows.remove(window)
                     break  # Assuming only one item can be selected at a time
-
+        elif event.key() in (Qt.Key_Up, Qt.Key_Down):
+            for window in self.amp_time_windows:
+                if window.isSelected():
+                    if event.key() == Qt.Key_Up:
+                        window.height += 5  # Increase height when the Up arrow key is pressed
+                    elif event.key() == Qt.Key_Down:
+                        window.height = max(5,
+                                            window.height - 5)  # Decrease height when the Down arrow key is pressed, with a minimum limit
+                    # Redraw the item to reflect the new height
+                    window.update()
+                    # Emit the signal to update the plot
+                    window.emit_window_updated()
     def sort_and_plot_spike(self, start, end, middle, voltages):
         color = 'r'  # default color
         spike_index = round(middle)  # or however you wish to define this

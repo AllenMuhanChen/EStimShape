@@ -8,13 +8,17 @@ from intan.marker_channels import get_epochs_start_and_stop_indices, read_digita
 class TestEpoch(TestCase):
     def test_get_epochs(self):
         digital_in = read_digitalin_file(
-            "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/newga/mock-trial/digitalin.dat")
+            "/run/user/1003/gvfs/sftp:host=172.30.6.58/home/connorlab/Documents/IntanData/2023-09-22/1695411976234126_230922_154616/digitalin.dat")
         epochs = get_epochs_start_and_stop_indices(digital_in[1], digital_in[0])
 
         print(epochs)
-        plot_bool_array(digital_in[0])
-        plot_bool_array(digital_in[1], False)
-        plot_epochs_on_bool_array(digital_in[0], epochs, False)
+        for epoch in epochs:
+            print((epoch[1] - epoch[0]))
+        plot_bool_array(digital_in[0][50000:2500000])
+        plot_bool_array(digital_in[1][50000:2500000], False)
+        print("number of trials: ", len(epochs))
+        # plot_epochs_on_bool_array(digital_in[0], epochs, False)
+        plt.show()
 
     def test_get_epochs_glitches(self):
         # Create some glitchless test data
@@ -27,7 +31,7 @@ class TestEpoch(TestCase):
         expected_epochs = [(2, 4), (5, 7), (10, 12)]
 
         # Test the function on glitchless data
-        epochs = get_epochs_start_and_stop_indices(marker1_data, marker2_data, false_data_correction_duration=3)
+        epochs = get_epochs_start_and_stop_indices(marker1_data, marker2_data, false_negative_correction_duration=3)
         self.assertEqual(expected_epochs, epochs)
 
         # Create some glitchy test data with false negatives in the middle of pulses
@@ -43,7 +47,7 @@ class TestEpoch(TestCase):
         expected_epochs = [(0, 4), (5, 9), (10, 12)]
 
         # Test the function on glitchy data
-        epochs = get_epochs_start_and_stop_indices(marker1_data_false_negative, marker2_data_false_negative, false_data_correction_duration=3)
+        epochs = get_epochs_start_and_stop_indices(marker1_data_false_negative, marker2_data_false_negative, false_negative_correction_duration=3)
         self.assertEqual(expected_epochs, epochs)
 
         # Create some glitchy test data with false positives
@@ -58,7 +62,7 @@ class TestEpoch(TestCase):
         expected_epochs = [(2, 4), (5, 7), (10, 12)]
 
         # Test the function on glitchy data
-        epochs = get_epochs_start_and_stop_indices(marker1_data_false_positive, marker2_data_false_positive, false_data_correction_duration=3)
+        epochs = get_epochs_start_and_stop_indices(marker1_data_false_positive, marker2_data_false_positive, false_negative_correction_duration=3)
         self.assertEqual(expected_epochs, epochs)
 
 

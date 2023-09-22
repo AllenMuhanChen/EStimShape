@@ -3,18 +3,17 @@ import os
 import numpy as np
 
 
-def epoch_using_marker_channels(digitalin_path, false_data_correction_duration=2) -> list[tuple[int, int]]:
+def epoch_using_marker_channels(digitalin_path, false_negative_correction_duration=40, false_positive_correction_duration=2) -> list[tuple[int, int]]:
     """
-
     :param digitalin_path: path to digitalin.dat file
-    :param false_data_correction_duration: the number of samples to check before or after a state switch to identify false negatives or positives
+    :param false_negative_correction_duration: the number of samples to check before or after a state switch to identify false negatives or positives
     :return: list of tuples of start and stop indices for each epoch
     """
     digitalin = read_digitalin_file(digitalin_path)
-    return get_epochs_start_and_stop_indices(digitalin[0], digitalin[1], false_data_correction_duration)
+    return get_epochs_start_and_stop_indices(digitalin[0], digitalin[1], false_negative_correction_duration, false_positive_correction_duration)
 
 
-def get_epochs_start_and_stop_indices(marker1_data, marker2_data, false_data_correction_duration=2) -> list[
+def get_epochs_start_and_stop_indices(marker1_data, marker2_data, false_negative_correction_duration=2, false_positive_correction_duration=2) -> list[
     tuple[int, int]]:
     epochs = []
     start_time = None
@@ -25,35 +24,29 @@ def get_epochs_start_and_stop_indices(marker1_data, marker2_data, false_data_cor
         if current_marker == 1:
             # Starting an epoch for marker 1
             if marker1_data[i] and start_time is None and not false_positive(i, marker1_data,
-                                                                             false_data_correction_duration):
+                                                                             false_positive_correction_duration):
                 start_time = i
             # Ending an epoch for marker 1
-            elif is_end_of_epoch(i, marker1_data) and epoch_ongoing(start_time) and not false_negative(i,
-                                                                                                       false_data_correction_duration,
-                                                                                                       marker1_data):
-                epochs.append((start_time, i))
-                start_time = None
-                current_marker = 2
-            # Can't end epoch for marker 1 because it's too short
-            elif is_end_of_epoch(i, marker1_data) and epoch_ongoing(start_time) and false_negative(i,
-                                                                                                   false_data_correction_duration,
-                                                                                                   marker2_data):
+            if not false_negative(i, false_negative_correction_duration, marker1_data):
+                if is_end_of_epoch(i, marker1_data) and epoch_ongoing(start_time):
+                    epochs.append((start_time, i))
+                    start_time = None
+                    current_marker = 2
+            # Can't end epoch for marker 1 because silence period afterwards is too short
+            else:
                 print("Detected false negative for marker 1 at time {}".format(i + 1))
 
         else:
             if marker2_data[i] and start_time is None and not false_positive(i, marker2_data,
-                                                                             false_data_correction_duration):
+                                                                             false_positive_correction_duration):
                 start_time = i
-            elif is_end_of_epoch(i, marker2_data) and epoch_ongoing(start_time) and not false_negative(i,
-                                                                                                       false_data_correction_duration,
-                                                                                                       marker2_data):
-                epochs.append((start_time, i))
-                start_time = None
-                current_marker = 1
+            if not false_negative(i, false_negative_correction_duration, marker2_data):
+                if is_end_of_epoch(i, marker2_data) and epoch_ongoing(start_time):
+                    epochs.append((start_time, i))
+                    start_time = None
+                    current_marker = 1
                 # Can't end epoch for marker 1 because it's too short
-            elif is_end_of_epoch(i, marker2_data) and epoch_ongoing(start_time) and false_negative(i,
-                                                                                                   false_data_correction_duration,
-                                                                                                   marker2_data):
+            else:
                 print("Detected false negative for marker 2 at time {}".format(i + 1))
 
     return epochs
