@@ -237,8 +237,9 @@ class Unit:
 
         # Convert the expression to lowercase to make it Python-compatible
         python_compatible_expression = self.logical_expression.lower()
+        python_compatible_expression = self.upper_case_true_false(python_compatible_expression)
         python_compatible_expression = self.process_ignore_operators(python_compatible_expression)
-        # print(python_compatible_expression)
+        print(python_compatible_expression)
 
         try:
             result = eval(python_compatible_expression, {}, window_results)
@@ -247,6 +248,18 @@ class Unit:
             # print("Invalid expression")
         return result
 
+    @staticmethod
+    def upper_case_true_false(expression: str) -> str:
+        processed_expression = expression
+        # Find all occurrences of "True" and replace with "True"
+        if "true" in processed_expression:
+            processed_expression = processed_expression.replace("true", "True")
+
+        # Find all occurrences of "False" and replace with "False"
+        if "false" in processed_expression:
+            processed_expression = processed_expression.replace("false", "False")
+
+        return processed_expression
     @staticmethod
     def process_ignore_operators(expression: str) -> str:
         processed_expression = expression
@@ -310,13 +323,24 @@ class LogicalRulesPanel(QWidget):
 
     def generate_expression(self, dropdowns):
         expression_parts = []
-        for i, dropdown in enumerate(dropdowns):
+
+        # Handle the first dropdown separately (YES or NO)
+        first_operator = dropdowns[0].currentText()
+        if first_operator == "INCLUDE":
+            expression_parts.append(f"W1")
+        elif first_operator == "IGNORE":
+            expression_parts.append(f"True")
+        elif first_operator == "NOT":
+            expression_parts.append(f"not W1")
+
+        # Handle the rest of the dropdowns
+        for i, dropdown in enumerate(dropdowns[1:]):
             operator = dropdown.currentText()
-            expression_parts.append(f"W{i + 1} {operator}")
+            expression_parts.append(f"{operator} W{i+2}")
 
         # Add the last window
-        if len(dropdowns) > 0:
-            expression_parts.append(f"W{len(dropdowns) + 1}")
+        # if len(dropdowns) > 0:
+        #     expression_parts.append(f"W{len(dropdowns)}")
 
         return ' '.join(expression_parts)
 
@@ -338,6 +362,13 @@ class LogicalRulesPanel(QWidget):
 
         num_windows = len(self.thresholded_spike_plot.amp_time_windows)
         if num_windows > 0:
+            # Add a dropdown for the first window to toggle its boolean value
+            first_window_dropdown = QComboBox()
+            first_window_dropdown.addItems(["INCLUDE", "IGNORE", "NOT"])
+            first_window_dropdown.currentIndexChanged.connect(self.update_expression)
+            unit_layout.addWidget(first_window_dropdown)
+            self.dropdowns.append(first_window_dropdown)
+
             # Add the first window
             window = self.thresholded_spike_plot.amp_time_windows[0]
             color = window.color
