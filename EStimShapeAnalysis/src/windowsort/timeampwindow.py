@@ -227,6 +227,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
     def get_window_colors(self):
         return [window.color for window in self.amp_time_windows]
 
+
 class Unit:
     def __init__(self, logical_expression, unit_name, color):
         self.logical_expression = logical_expression  # Expression can be something like "W1 and not W2"
@@ -295,6 +296,7 @@ class UnitController:
     """
     subpanel within UnitPanel that controls a single unit
     """
+
     def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot):
         self.unit = None
         self.unit_counter = unit_counter
@@ -329,7 +331,7 @@ class UnitController:
         return wrapper
 
     def populate_unit_dropboxes(self):
-        window_colors=self.thresholded_spike_plot.get_window_colors()
+        window_colors = self.thresholded_spike_plot.get_window_colors()
         window_color_iterator = itertools.cycle(window_colors)
         num_windows = len(self.thresholded_spike_plot.amp_time_windows)
         if num_windows > 0:
@@ -390,7 +392,6 @@ class UnitController:
         self.thresholded_spike_plot.updateUnit(updated_unit)
         self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
 
-
     def clear_unit_layout(self):
         """Clear existing widgets and dropdowns from the unit layout."""
         for i in reversed(range(self.unit_layout.count())):
@@ -398,11 +399,13 @@ class UnitController:
             if widget is not None:
                 widget.deleteLater()
         self.dropdowns.clear()
-class LogicalRulesPanel(QWidget):
+
+
+class SortPanel(QWidget):
     unit_rules: List[UnitController]
 
     def __init__(self, thresholded_spike_plot):
-        super(LogicalRulesPanel, self).__init__(thresholded_spike_plot)
+        super(SortPanel, self).__init__(thresholded_spike_plot)
         self.thresholded_spike_plot = thresholded_spike_plot
         self.unit_rules = []
         self.unit_counter = 0  # to generate unique unit identifiers
