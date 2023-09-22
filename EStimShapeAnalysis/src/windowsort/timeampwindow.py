@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import math
 
-from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF, pyqtSignal
+from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF, pyqtSignal, QTimer, QVariant
 from PyQt5.QtGui import QPen, QColor
 from PyQt5.QtWidgets import QVBoxLayout, QGraphicsEllipseItem, QGraphicsItem, QWidget, QPushButton, QHBoxLayout, QLabel, \
     QComboBox
@@ -16,58 +16,60 @@ from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsItem
 
 
-class ControlPoint(QGraphicsEllipseItem):
-    def __init__(self, x, y, aspect_ratio, parent=None):
-        self.radius = 0.5
-        aspect_ratio = aspect_ratio / math.pi
-        scaled_radius_x = self.radius / aspect_ratio
-        scaled_radius_y = self.radius * aspect_ratio
-        super(ControlPoint, self).__init__(
-            QRectF(-scaled_radius_x, -scaled_radius_y, 2 * scaled_radius_x, 2 * scaled_radius_y), parent
-        )
-        self.setFlag(QGraphicsItem.ItemIsMovable)
-        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
-        # Set the brush and pen color to be the same as the parent line
-        color = QColor(parent.color)
-        self.setBrush(color)
-        self.setPen(QPen(Qt.transparent))
-        self.setPos(x, y)
-
-    def itemChange(self, change, value):
-        if change == QGraphicsItem.ItemPositionChange:
-            new_pos = value
-            new_pos.setX(self.parentItem().x)
-            self.parentItem().updateLine()
-            return new_pos
-        return super(ControlPoint, self).itemChange(change, value)
-
 
 class AmpTimeWindow(QGraphicsItem):
-    def __init__(self, x, y_min, y_max, color, aspect_ratio, parent=None, parent_plot=None):
+    def __init__(self, x, y, height, color, parent=None, parent_plot=None):
         super(AmpTimeWindow, self).__init__(parent)
         self.parent_plot = parent_plot
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
+        self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
-        self.x = x
-        print("x: ", x)
-        self.y_min = y_min
-        self.y_max = y_max
-        self.color = color
-        self.control_points = []
+        self.height = height  # Height of the line
+        self.color = color    # Color of the line
 
-        # Create control points (small circles)
-        for y in [y_min, y_max]:
-            control_point = ControlPoint(self.x, y, aspect_ratio, self)
-            control_point.setBrush(QColor(self.color))
-            control_point.setPos(self.x, y)
-            control_point.setFlag(QGraphicsEllipseItem.ItemIsMovable)
-            self.control_points.append(control_point)
-            print("y: ", y)
+        # Correct the initial position so that the line is centered on the mouse
+        # y -= self.height / 2
+        x = x/2
+        # Set the initial position in scene coordinates
+        self.setPos(x, y)
+
+    def paint(self, painter, option, widget=None):
+        y_min = self.pos().y() - self.height / 2
+        y_max = self.pos().y() + self.height / 2
+        self.pen = QPen(QColor(self.color))
+        self.pen.setWidth(0)
+        painter.setPen(self.pen)
+        painter.drawLine(QPointF(self.pos().x(), y_min), QPointF(self.pos().x(), y_max))
+
+
+        self.sort_x = self.pos().x() * 2
+        self.sort_ymin = self.pos().y() * 2 - self.height/2
+        self.sort_ymax = self.pos().y() * 2 + self.height/2
+
+        print("sort x: ", self.sort_x, "sort y_min: ", self.sort_ymin, "sort y_max: ", self.sort_ymax)
+
+    def boundingRect(self):
+        y_center = (self.y_min() + self.y_max()) / 2
+        y_range = self.y_max() - self.y_min()
+        y_margin = y_range * 0.5  # 25% towards the center from each control point
+
+        new_y_min = y_center - y_margin
+        new_y_max = y_center + y_margin
+
+        return QRectF(self.pos().x() - 1, new_y_min, 2, new_y_max - new_y_min)
+
+    def y_min(self):
+        return self.pos().y() - self.height / 2
+
+    def y_max(self):
+        return self.pos().y() + self.height / 2
+    def emit_window_updated(self):
+        self.parent_plot.windowUpdated.emit()
 
     def is_spike_in_window(self, index_of_spike, voltages):
-        offset_index = int(self.x)
-        y_min, y_max = self.y_min, self.y_max
+        offset_index = int(self.sort_x)
+
 
         # Calculate the index in the voltage array to check
         check_index = index_of_spike + offset_index
@@ -75,41 +77,15 @@ class AmpTimeWindow(QGraphicsItem):
         # Make sure the index is within bounds
         if 0 <= check_index < len(voltages):
             voltage_to_check = voltages[check_index]
-            return y_min <= voltage_to_check <= y_max
+            return self.sort_ymin <= voltage_to_check <= self.sort_ymax
         else:
             return False
 
-    def paint(self, painter, option, widget=None):
-        self.pen = QPen(QColor(self.color))
-        self.pen.setWidth(0)
-        painter.setPen(self.pen)
-        painter.drawLine(QPointF(self.x, self.y_min), QPointF(self.x, self.y_max))
-
-    def boundingRect(self):
-        y_center = (self.y_min + self.y_max) / 2
-        y_range = self.y_max - self.y_min
-        y_margin = y_range * 0.5  # 25% towards the center from each control point
-
-        new_y_min = y_center - y_margin
-        new_y_max = y_center + y_margin
-
-        return QRectF(self.x - 1, new_y_min, 2, new_y_max - new_y_min)
-
-    def updateLine(self):
-        # Update the line based on the new position of control points
-        try:
-            self.y_min, self.y_max = self.control_points[0].y(), self.control_points[1].y()
-            self.update()  # Redraw
-            self.parent_plot.windowUpdated.emit()
-        except IndexError:
-            pass
-
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            dx = value.x() - self.x
-            self.x += dx
-            for control_point in self.control_points:
-                control_point.setPos(control_point.x() + dx, control_point.y())
+            new_x = (int(value.x()) / 2)  # Halve the x-coordinate
+            new_y = value.y() / 2  # Keep the y-coordinate as is
+            return QPointF(new_x, new_y)
         return super(AmpTimeWindow, self).itemChange(change, value)
 
 
@@ -120,14 +96,16 @@ class CustomPlotWidget(PlotWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and event.modifiers() == Qt.ShiftModifier:
+            print("event pos: " + str(event.pos()))
             pos = self.plotItem.vb.mapSceneToView(event.pos())
             aspect_ratio = self.plotItem.vb.width() / self.plotItem.vb.height()
-            self.parent.addAmpTimeWindow(pos.x(), pos.y() - 20, pos.y() + 20, aspect_ratio)
+            self.parent.addAmpTimeWindow(pos.x(), pos.y(), 40)
         super(CustomPlotWidget, self).mousePressEvent(event)
 
 
 class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
     windowUpdated = pyqtSignal()
+
     def __init__(self, data_handler, data_exporter):
         super(ExtendedThresholdedSpikePlot, self).__init__(data_handler, data_exporter)
         self.logical_rules_panel = None
@@ -143,12 +121,13 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
         layout.addWidget(self.plotWidget)
         self.setLayout(layout)
 
-    def addAmpTimeWindow(self, x, y_min, y_max, aspect_ratio):
+    def addAmpTimeWindow(self, x, y, height):
         color = next(self.next_color)
-        new_window = AmpTimeWindow(x, y_min, y_max, color, aspect_ratio, parent_plot=self)
+        new_window = AmpTimeWindow(x, y, height, color, parent_plot=self)
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
         self.logical_rules_panel.update_unit_dropdowns()  # Update the dropdowns
+        self.windowUpdated.emit()
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Backspace, Qt.Key_Delete):
@@ -161,8 +140,8 @@ class ExtendedThresholdedSpikePlot(ThresholdedSpikePlot):
     def plot_spike_with_color(self, start, end, middle, voltages):
         # Determine color based on logical rules
         color = 'r'  # default color
-        spike_index = start  # or however you wish to define this
-        time = start / self.data_handler.sample_rate  # or however you wish to define this
+        spike_index = round(middle)  # or however you wish to define this
+        # print("spike_index: ", spike_index)
 
         for rule in self.logical_rules:
             if rule.evaluate(spike_index, voltages, self.amp_time_windows):
@@ -232,6 +211,11 @@ def color_generator():
     return itertools.cycle(colors)
 
 
+def unit_color_generator():
+    colors = ['pink', 'blue']
+    return itertools.cycle(colors)
+
+
 class LogicalRulesPanel(QWidget):
     def __init__(self, thresholded_spike_plot):
         super(LogicalRulesPanel, self).__init__(thresholded_spike_plot)
@@ -239,7 +223,7 @@ class LogicalRulesPanel(QWidget):
 
         self.unit_counter = 1  # to generate unique unit identifiers
         self.current_color = None
-        self.unit_colors = color_generator()  # to generate unique colors for units
+        self.unit_colors = unit_color_generator()  # to generate unique colors for units
         self.layout = QVBoxLayout()
         self.units_layouts = []  # Store unit layouts to update later
 
@@ -247,7 +231,17 @@ class LogicalRulesPanel(QWidget):
         self.add_unit_button.clicked.connect(self.add_new_unit)
         self.layout.addWidget(self.add_unit_button)
 
+        # Add a button for triggering recalculation
+        self.recalculate_button = QPushButton("Recalculate Windows")
+        self.recalculate_button.clicked.connect(self.emit_recalculate_windows)
+
+        # Add the button to the layout
+        self.layout.addWidget(self.recalculate_button)
+
         self.setLayout(self.layout)
+
+    def emit_recalculate_windows(self):
+        self.thresholded_spike_plot.windowUpdated.emit()
 
     def add_new_unit(self):
         self.unit_counter += 1
