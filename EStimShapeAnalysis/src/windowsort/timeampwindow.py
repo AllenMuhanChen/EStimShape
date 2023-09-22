@@ -26,9 +26,9 @@ class AmpTimeWindow(QGraphicsItem):
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
-        self.throttle_timer = QTimer()
-        self.throttle_timer.setSingleShot(True)
-        self.throttle_timer.timeout.connect(self.emit_window_updated)
+        self.window_update_timer = QTimer()
+        self.window_update_timer.setSingleShot(True)
+        self.window_update_timer.timeout.connect(self.emit_window_updated)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
         self.height = height  # Height of the line
@@ -103,8 +103,8 @@ class AmpTimeWindow(QGraphicsItem):
                 value.x()) / 2.0  # lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
             new_y = value.y()  # Keep the y-coordinate as is
 
-            if not self.throttle_timer.isActive():
-                self.throttle_timer.start(100)  # emit_window_updated will be called after 100 ms
+            if not self.window_update_timer.isActive():
+                self.window_update_timer.start(100)  # emit_window_updated will be called after 100 ms
 
             return QPointF(new_x, new_y)
         return super(AmpTimeWindow, self).itemChange(change, value)
@@ -161,15 +161,18 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     break  # Assuming only one item can be selected at a time
 
     def sort_and_plot_spike(self, start, end, middle, voltages):
-        print("Plotting spike with color")
         color = 'r'  # default color
         spike_index = round(middle)  # or however you wish to define this
 
+        num_units_matched = 0
         for unit in self.units:
             if unit.sort_spike(index_of_spike=spike_index, voltages=voltages, amp_time_windows=self.amp_time_windows):
+                num_units_matched += 1
                 color = unit.color
-                break
 
+            if num_units_matched > 1:
+                print("Warning: more than one unit matched the spike at index " + str(spike_index))
+                color = 'white'
         super().plot_spike(start, end, middle, voltages, color)
 
     def addUnit(self, rule: Unit):
@@ -193,7 +196,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
             pass
 
     def updatePlot(self):
-        print("Updating plot")
+
         self.clear_plot()
 
         if self.current_threshold_value is None:
