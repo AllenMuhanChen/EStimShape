@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
         threshold_layout.insertWidget(0, self.channel_selection_pannel)  # Inserts at the top of the layout
 
         # Logical Rules
-        spike_sort_panel = SortPanel(self.thresholded_spike_plot)
+        spike_sort_panel = SortPanel(self.thresholded_spike_plot, self.data_exporter)
         spike_sort_layout.insertWidget(0, spike_sort_panel)
         self.thresholded_spike_plot.set_sort_panel(spike_sort_panel)
         # Add more Time-Amp related widgets to spike_sort_layout if needed
