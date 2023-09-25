@@ -35,6 +35,9 @@ class AmpTimeWindow(QGraphicsItem):
         self.color = color  # Color of the line
         self.setZValue(1)
 
+        self.pen = QPen(QColor(self.color))
+        self.pen.setWidthF(0.25)
+
         # The values we will compare voltages of spikes to in order to sort them
         self.sort_ymax = None
         self.sort_ymin = None
@@ -58,12 +61,10 @@ class AmpTimeWindow(QGraphicsItem):
         To correct for this, we take the drawn locations and multiply by two to correct for this. """
         y_min = self.pos().y() - self.height / 2
         y_max = self.pos().y() + self.height / 2
-        self.pen = QPen(QColor(self.color))
-        self.pen.setWidthF(0.25)
+
         painter.setPen(self.pen)
         painter.drawLine(QPointF(self.pos().x(), y_min), QPointF(self.pos().x(), y_max))
 
-        self.calculate_x_y_for_sorting()
 
     def boundingRect(self):
         y_center = (self.y_min() + self.y_max()) / 2
@@ -85,6 +86,8 @@ class AmpTimeWindow(QGraphicsItem):
         self.parent_plot.windowUpdated.emit()
 
     def is_spike_in_window(self, index_of_spike, voltages):
+        self.calculate_x_y_for_sorting()
+
         offset_index = int(self.sort_x)
 
         # Calculate the index in the voltage array to check
