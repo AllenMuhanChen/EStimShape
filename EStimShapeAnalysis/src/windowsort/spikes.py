@@ -130,28 +130,29 @@ class SpikeScrubber(QWidget):
         self.setLayout(layout)
 
         self.slider.valueChanged.connect(self.updateSpikePlot)
-        self.slider.setPageStep(self.current_max_spikes)
+        self.slider.setSingleStep(self.current_max_spikes)  # Set single step size
         self.maxSpikesBox.editingFinished.connect(self.updateMaxSpikes)
 
     def updateSpikePlot(self):
-        new_value = (self.slider.value() // self.current_max_spikes) * self.current_max_spikes
-        self.slider.setValue(new_value)  # Set the slider to the rounded-down value
+        rounded_value = (self.slider.value() // self.current_max_spikes) * self.current_max_spikes
+        self.slider.setValue(rounded_value)  # This will set the slider to the rounded value
 
-        self.spike_plot.current_start_index = new_value
+        self.spike_plot.current_start_index = self.slider.value()
         self.spike_plot.current_max_spikes = self.current_max_spikes
         self.spike_plot.updatePlot()
 
         # Update the total number of spikes
         if self.spike_plot.crossing_indices is None:
-            total_spikes = 0
+            self.total_spikes = 0
         else:
-            total_spikes = len(self.spike_plot.crossing_indices)  # Assuming crossing_indices is a numpy array
+            self.total_spikes = len(self.spike_plot.crossing_indices)  # Assuming crossing_indices is a numpy array
+            self.slider.setMaximum(self.total_spikes)
 
-        self.total_spikes_label.setText(f"Total Spikes: {total_spikes}")
+        self.total_spikes_label.setText(f"Total Spikes: {self.total_spikes}")
 
     def updateMaxSpikes(self):
         self.current_max_spikes = self.maxSpikesBox.value()
-        self.slider.setPageStep(self.current_max_spikes)
+        self.slider.setSingleStep(self.current_max_spikes)
         self.updateSpikePlot()
 
 class ExportPanel(QWidget):
