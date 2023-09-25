@@ -19,7 +19,7 @@ class ThresholdedSpikePlot(QWidget):
         self.crossing_indices = None
         self.current_threshold_value = None
         self.current_start_index = 0
-        self.current_max_spikes = 50  # Default value
+        self.current_max_spikes = 10  # Default value
         self.initUI()
         self.plotItems = []  # List to keep track of PlotDataItems
         self.current_channel = Channel.C_000
@@ -97,7 +97,7 @@ class ThresholdedSpikePlot(QWidget):
 class SpikeScrubber(QWidget):
     def __init__(self, thresholdedSpikePlot):
         super(SpikeScrubber, self).__init__()
-        self.thresholdedSpikePlot = thresholdedSpikePlot
+        self.spike_plot = thresholdedSpikePlot
         self.initUI()
 
     def initUI(self):
@@ -126,12 +126,12 @@ class SpikeScrubber(QWidget):
         self.maxSpikesBox.valueChanged.connect(self.updateSpikePlot)
 
     def updateSpikePlot(self):
-        self.thresholdedSpikePlot.current_start_index = self.slider.value()
-        self.thresholdedSpikePlot.current_max_spikes_to_display = self.maxSpikesBox.value()
-        self.thresholdedSpikePlot.updatePlot()
+        self.spike_plot.current_start_index = self.slider.value()
+        self.spike_plot.current_max_spikes = self.maxSpikesBox.value()
+        self.spike_plot.updatePlot()
 
         # Update the total number of spikes
-        total_spikes = len(self.thresholdedSpikePlot.crossing_indices)  # Assuming crossing_indices is a numpy array
+        total_spikes = len(self.spike_plot.crossing_indices)  # Assuming crossing_indices is a numpy array
         self.total_spikes_label.setText(f"Total Spikes: {total_spikes}")
 
 

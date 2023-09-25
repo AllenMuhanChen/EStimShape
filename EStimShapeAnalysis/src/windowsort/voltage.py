@@ -65,8 +65,8 @@ class VoltageTimePlot(QWidget):
 
     def onThresholdChanged(self):
         threshold_value = self.threshold_line.value()
-        self.thresholdedSpikePlot.current_threshold_value = threshold_value
-        self.thresholdedSpikePlot.updatePlot()  # Assume start_time and max_spikes are available
+        self.spike_plot.current_threshold_value = threshold_value
+        self.spike_plot.updatePlot()  # Assume start_time and max_spikes are available
     # Additional methods for zooming, setting threshold, etc., can be added
 
 
