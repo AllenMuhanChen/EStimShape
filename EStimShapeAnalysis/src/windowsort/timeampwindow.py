@@ -344,19 +344,20 @@ class UnitPanel:
 
         self.add_delete_button()
 
-        # Add unit name and set the background color
-        label = QLabel(f"Unit {self.unit_counter}")
-        label.setStyleSheet(f"background-color: {self.unit_color};")
-
-        # Contain the label within a wrapper
-        wrapper = create_wrapped_label(label)
-
-        # Add the wrapper to the unit layout
-        self.unit_layout.addWidget(wrapper)
+        self.add_unit_label()
 
         self.create_unit()
         self.populate_unit_dropboxes()
         self.parent_layout.addLayout(self.unit_layout)
+
+    def add_unit_label(self):
+        # Add unit name and set the background color
+        label = QLabel(f"Unit {self.unit_counter}")
+        label.setStyleSheet(f"background-color: {self.unit_color};")
+        # Contain the label within a wrapper
+        wrapper = create_wrapped_label(label)
+        # Add the wrapper to the unit layout
+        self.unit_layout.addWidget(wrapper)
 
     def add_delete_button(self):
         # Add a Delete button
@@ -379,6 +380,9 @@ class UnitPanel:
         if self.unit_layout is None:
             print("Warning: Attempting to populate a layout that no longer exists.")
             return
+
+        #
+
 
         # Store current dropdown states
         window_colors = self.spike_plot.get_window_colors()
@@ -525,6 +529,7 @@ class SortPanel(QWidget):
         # Clear each unit layout and rebuild it
         for unit_panel in self.unit_panels:
             unit_panel.clear_unit_layout()  # Clear the existing widgets and dropdowns
+            unit_panel.add_unit_label()
             unit_panel.add_delete_button()
             unit_panel.populate_unit_dropboxes()  # Repopulate the widgets and dropdowns
 
