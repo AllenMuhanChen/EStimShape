@@ -1,4 +1,7 @@
+import time
+
 import numpy as np
+from PyQt5 import sip
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSpinBox, QPushButton
 from pyqtgraph import PlotWidget, PlotDataItem
@@ -71,6 +74,7 @@ class ThresholdedSpikePlot(QWidget):
     def clear_plot(self):
         for item in self.plotItems:
             self.plotWidget.removeItem(item)
+            sip.delete(item)
         self.plotItems.clear()
 
     def set_y_axis_limits(self):
@@ -138,8 +142,15 @@ class SpikeScrubber(QWidget):
         self.slider.setValue(rounded_value)  # This will set the slider to the rounded value
 
         self.spike_plot.current_start_index = self.slider.value()
-        self.spike_plot.current_max_spikes = self.current_max_spikes
+
+        # This weird double updatePlot is a temp workaround a glitch
+        # Where scrubbing through spikes after you've changed or added a lot of windows
+        # causes crazy lag.
+        # self.spike_plot.current_max_spikes = 5
+        # self.spike_plot.updatePlot()
+        self.spike_plot.current_max_spikes = self.current_max_spikes  # Reset the current max spikes
         self.spike_plot.updatePlot()
+        #
 
         # Update the total number of spikes
         if self.spike_plot.crossing_indices is None:
@@ -154,6 +165,7 @@ class SpikeScrubber(QWidget):
         self.current_max_spikes = self.maxSpikesBox.value()
         self.slider.setSingleStep(self.current_max_spikes)
         self.updateSpikePlot()
+
 
 class ExportPanel(QWidget):
     def __init__(self, data_exporter):

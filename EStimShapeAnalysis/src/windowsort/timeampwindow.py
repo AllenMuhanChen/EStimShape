@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import math
+import time
 from typing import List
 
 from PyQt5.QtCore import Qt, QRectF, QPointF, QSizeF, pyqtSignal, QTimer, QVariant
@@ -64,7 +65,6 @@ class AmpTimeWindow(QGraphicsItem):
 
         painter.setPen(self.pen)
         painter.drawLine(QPointF(self.pos().x(), y_min), QPointF(self.pos().x(), y_max))
-
 
     def boundingRect(self):
         y_center = (self.y_min() + self.y_max()) / 2
@@ -163,7 +163,6 @@ class SortSpikePlot(ThresholdedSpikePlot):
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
         self.logical_rules_panel.update_unit_dropdowns()  # Update the dropdowns
-        self.windowUpdated.emit()
         self.sortSpikes()
 
     def keyPressEvent(self, event):
@@ -172,6 +171,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
                 if window.isSelected():
                     self.plotWidget.removeItem(window)
                     self.amp_time_windows.remove(window)
+                    window.emit_window_updated()
                     break  # Assuming only one item can be selected at a time
         elif event.key() in (Qt.Key_Up, Qt.Key_Down):
             for window in self.amp_time_windows:
@@ -229,6 +229,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
             return  # Exit if the threshold is not set yet
 
         voltages = self.data_handler.voltages_by_channel[self.current_channel]
+
         # Calculate the min_max voltage if it is not set yet
         if self.min_max_voltage is None:
             self.min_max_voltage = self.calculate_min_max(voltages, self.spike_window_radius_in_indices)
@@ -237,6 +238,9 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
         # Set the y-limits of the plot
         self.set_y_axis_limits()
+
+
+
 
     def set_sort_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
@@ -278,7 +282,7 @@ class Unit:
 
         try:
             result = eval(python_compatible_expression, {}, window_results)
-        except SyntaxError:
+        except:
             result = False
             print("Invalid expression: ", python_compatible_expression)
         return result
@@ -385,7 +389,6 @@ class UnitPanel:
             return
 
         #
-
 
         # Store current dropdown states
         window_colors = self.spike_plot.get_window_colors()
