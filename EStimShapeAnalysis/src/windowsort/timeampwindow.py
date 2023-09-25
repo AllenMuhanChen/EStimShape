@@ -144,7 +144,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         self.logical_rules_panel = None
         self.units = []
         self.amp_time_windows = []
-        self.next_color = color_generator()
+        self.next_color = window_color_generator()
         self.windowUpdated.connect(self.sortSpikes)
 
     def initUI(self):
@@ -305,13 +305,13 @@ class Unit:
         return processed_expression
 
 
-def color_generator():
-    colors = ['green', 'cyan', 'magenta']
+def window_color_generator():
+    colors = ['green', 'cyan', 'magenta', 'blue', 'darkGreen', 'darkCyan', 'darkMagenta', 'darkBlue']
     return itertools.cycle(colors)
 
 
 def unit_color_generator():
-    colors = ['pink', 'blue', 'orange']
+    colors = ['pink', 'yellow', 'orange']
     return itertools.cycle(colors)
 
 
