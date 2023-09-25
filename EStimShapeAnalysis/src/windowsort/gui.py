@@ -38,14 +38,14 @@ class MainWindow(QMainWindow):
         threshold_layout.addWidget(self.voltage_time_plot)
         self.time_scrubber = TimeScrubber(self.voltage_time_plot)
         threshold_layout.addWidget(self.time_scrubber)
-        self.thresholdControlPanel = ThresholdControlPanel(self.voltage_time_plot)
-        threshold_layout.addWidget(self.thresholdControlPanel)
+        self.threshold_control_panel = ThresholdControlPanel(self.voltage_time_plot)
+        threshold_layout.addWidget(self.threshold_control_panel)
 
         # Thresholded Spikes
-        self.thresholded_spike_plot = SortSpikePlot(self.data_handler, self.data_exporter)
-        spike_plot_layout.addWidget(self.thresholded_spike_plot)
-        self.voltage_time_plot.thresholdedSpikePlot = self.thresholded_spike_plot
-        self.spike_scrubber = SpikeScrubber(self.thresholded_spike_plot)
+        self.spike_plot = SortSpikePlot(self.data_handler, self.data_exporter)
+        spike_plot_layout.addWidget(self.spike_plot)
+        self.voltage_time_plot.spike_plot = self.spike_plot
+        self.spike_scrubber = SpikeScrubber(self.spike_plot)
         spike_plot_layout.addWidget(self.spike_scrubber)
 
         # Exporting
@@ -54,13 +54,13 @@ class MainWindow(QMainWindow):
         threshold_layout.addWidget(self.exportPanel)
 
         # Channel Selection
-        self.channel_selection_pannel = ChannelSelectionPanel(self.voltage_time_plot, self.thresholded_spike_plot)
+        self.channel_selection_pannel = ChannelSelectionPanel(self.voltage_time_plot, self.spike_plot)
         threshold_layout.insertWidget(0, self.channel_selection_pannel)  # Inserts at the top of the layout
 
         # Logical Rules
-        spike_sort_panel = SortPanel(self.thresholded_spike_plot, self.data_exporter)
+        spike_sort_panel = SortPanel(self.spike_plot, self.data_exporter)
         spike_sort_layout.insertWidget(0, spike_sort_panel)
-        self.thresholded_spike_plot.set_sort_panel(spike_sort_panel)
+        self.spike_plot.set_sort_panel(spike_sort_panel)
         # Add more Time-Amp related widgets to spike_sort_layout if needed
 
         # Add the second column layout to the main layout
