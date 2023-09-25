@@ -37,6 +37,13 @@ def compile_data(day: date = None,
                  start_time: time = None,
                  end_time: time = None,
                  experiment_filename: str = None):
+    """
+    if providing experiment_filename, only day is required. start and end_time can be provided to speed up code but is optional.
+        -this is for compiling from a single file per experiment.
+
+    if NOT providing experiment_filename, day, start_time, and end_time are required
+        - this is for compiling data from a single file per trial.
+    """
 
     if experiment_filename is not None:
         data = collect_raw_data_single_file_for_experiment(day=day, start_time=time(0, 0, 0), end_time=time(23, 59, 59),
