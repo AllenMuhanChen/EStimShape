@@ -330,7 +330,7 @@ class UnitPanel:
         self.unit_color = unit_color
         self.parent_layout = parent_layout
         self.delete_func = delete_func
-        self.thresholded_spike_plot = thresholded_spike_plot
+        self.spike_plot = thresholded_spike_plot
         self.dropdowns = []
         self.expression = None
 
@@ -371,9 +371,9 @@ class UnitPanel:
             print("Warning: Attempting to populate a layout that no longer exists.")
             return
 
-        window_colors = self.thresholded_spike_plot.get_window_colors()
+        window_colors = self.spike_plot.get_window_colors()
         window_color_iterator = itertools.cycle(window_colors)
-        num_windows = len(self.thresholded_spike_plot.amp_time_windows)
+        num_windows = len(self.spike_plot.amp_time_windows)
         if num_windows > 0:
             first_window_dropdown = QComboBox()
             first_window_dropdown.addItems(["INCLUDE", "IGNORE", "NOT"])
@@ -386,7 +386,7 @@ class UnitPanel:
             first_window_label.setStyleSheet(f"background-color: {next(window_color_iterator)};")
             self.unit_layout.addWidget(self.create_wrapped_label(first_window_label))
 
-            for i, window in enumerate(self.thresholded_spike_plot.amp_time_windows[1:]):
+            for i, window in enumerate(self.spike_plot.amp_time_windows[1:]):
                 dropdown = QComboBox()
                 dropdown.addItems(["AND", "OR", "AND NOT", "IGNORE"])
                 dropdown.currentIndexChanged.connect(self.update_expression)  # Connect the signal
@@ -403,7 +403,7 @@ class UnitPanel:
     def create_unit(self):
         self.expression = self.generate_expression(self.dropdowns)
         self.unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
-        self.thresholded_spike_plot.addUnit(self.unit)
+        self.spike_plot.addUnit(self.unit)
 
     def generate_expression(self, dropdowns):
         if not dropdowns:  # Check if the list is empty
@@ -429,8 +429,8 @@ class UnitPanel:
             return
         self.expression = self.generate_expression(self.dropdowns)
         updated_unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
-        self.thresholded_spike_plot.updateUnit(updated_unit)
-        self.thresholded_spike_plot.sortSpikes()  # Evaluate the rules for all spikes
+        self.spike_plot.updateUnit(updated_unit)
+        self.spike_plot.sortSpikes()  # Evaluate the rules for all spikes
 
     def clear_unit_layout(self):
         try:
@@ -450,7 +450,7 @@ class SortPanel(QWidget):
 
     def __init__(self, thresholded_spike_plot, data_exporter):
         super(SortPanel, self).__init__(thresholded_spike_plot)
-        self.thresholded_spike_plot = thresholded_spike_plot
+        self.spike_plot = thresholded_spike_plot
         self.data_exporter = data_exporter
         self.unit_panels = []
         self.unit_counter = 0  # to generate unique unit identifiers
@@ -471,12 +471,12 @@ class SortPanel(QWidget):
         self.setLayout(self.layout)
 
     def emit_recalculate_windows(self):
-        self.thresholded_spike_plot.windowUpdated.emit()
+        self.spike_plot.windowUpdated.emit()
 
     def add_new_unit(self):
         self.unit_counter += 1
         self.current_color = next(self.unit_colors)
-        new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.layout, self.thresholded_spike_plot,
+        new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.layout, self.spike_plot,
                                    self.delete_unit)
         new_unit_panel.populate()
         self.unit_panels.append(new_unit_panel)
@@ -513,7 +513,7 @@ class SortPanel(QWidget):
             unit_panel.populate_unit_dropboxes()  # Repopulate the widgets and dropdowns
 
     def get_window_colors(self):
-        window_colors = [window.color for window in self.thresholded_spike_plot.amp_time_windows]
+        window_colors = [window.color for window in self.spike_plot.amp_time_windows]
         return window_colors
 
     def delete_unit(self, unit_panel):
@@ -522,7 +522,7 @@ class SortPanel(QWidget):
         self.unit_panels.remove(unit_panel)
 
         # Actually remove the unit from data
-        self.thresholded_spike_plot.removeUnit(unit_panel.unit.unit_name)
+        self.spike_plot.removeUnit(unit_panel.unit.unit_name)
 
         # Clear and delete layout
         unit_panel.clear_unit_layout()
@@ -531,21 +531,21 @@ class SortPanel(QWidget):
         # Repopulate remaining units
         self.update_unit_dropdowns()
 
-        self.thresholded_spike_plot.sortSpikes()
+        self.spike_plot.sortSpikes()
 
     def export_sorted_spikes(self):
-        channel = self.thresholded_spike_plot.current_channel
-        voltages = self.thresholded_spike_plot.data_handler.voltages_by_channel[channel]
+        channel = self.spike_plot.current_channel
+        voltages = self.spike_plot.data_handler.voltages_by_channel[channel]
 
-        self.thresholded_spike_plot.updatePlot()  # Make sure the data is updated
+        self.spike_plot.updatePlot()  # Make sure the data is updated
 
         sorted_spikes_by_unit = {}
 
         # Pre-compute the crossing indices for the current channel
-        threshold_value = self.thresholded_spike_plot.current_threshold_value
+        threshold_value = self.spike_plot.current_threshold_value
         crossing_indices = threshold_spikes(threshold_value, voltages)
 
-        for unit in self.thresholded_spike_plot.units:
+        for unit in self.spike_plot.units:
             sorted_spikes = []  # List to hold the sorted spikes for this unit
 
             for point in crossing_indices:
@@ -553,7 +553,7 @@ class SortPanel(QWidget):
 
                 # Check if the spike belongs to the current unit
                 if unit.sort_spike(index_of_spike=spike_index, voltages=voltages,
-                                   amp_time_windows=self.thresholded_spike_plot.amp_time_windows):
+                                   amp_time_windows=self.spike_plot.amp_time_windows):
                     sorted_spikes.append(spike_index)
 
             sorted_spikes_by_unit[unit.unit_name] = sorted_spikes
