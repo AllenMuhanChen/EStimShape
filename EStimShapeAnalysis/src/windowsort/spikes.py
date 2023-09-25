@@ -9,7 +9,7 @@ from windowsort.threshold import threshold_spikes
 
 
 class ThresholdedSpikePlot(QWidget):
-    def __init__(self, data_handler, data_exporter: DataExporter):
+    def __init__(self, data_handler, data_exporter: DataExporter, default_max_spikes=50):
         super(ThresholdedSpikePlot, self).__init__()
         self.data_handler = data_handler
         self.data_exporter = data_exporter
@@ -19,7 +19,7 @@ class ThresholdedSpikePlot(QWidget):
         self.crossing_indices = None
         self.current_threshold_value = None
         self.current_start_index = 0
-        self.current_max_spikes = 10  # Default value
+        self.current_max_spikes = default_max_spikes  # Default value
         self.initUI()
         self.plotItems = []  # List to keep track of PlotDataItems
         self.current_channel = Channel.C_000
@@ -95,9 +95,10 @@ class ThresholdedSpikePlot(QWidget):
 
 
 class SpikeScrubber(QWidget):
-    def __init__(self, thresholdedSpikePlot):
+    def __init__(self, thresholdedSpikePlot, default_max_spikes: int = 50):
         super(SpikeScrubber, self).__init__()
         self.spike_plot = thresholdedSpikePlot
+        self.default_max_spikes = 50
         self.initUI()
 
     def initUI(self):
@@ -110,7 +111,8 @@ class SpikeScrubber(QWidget):
 
         self.maxSpikesBox = QSpinBox()
         self.maxSpikesBox.setSuffix(" spikes")
-        self.maxSpikesBox.setValue(50)  # Initial value
+
+        self.maxSpikesBox.setValue(self.default_max_spikes)  # Initial value
         self.maxSpikesBox.setRange(1, 200)  # Adjust as needed
 
         hbox.addWidget(self.label)
@@ -123,7 +125,7 @@ class SpikeScrubber(QWidget):
         self.setLayout(layout)
 
         self.slider.valueChanged.connect(self.updateSpikePlot)
-        self.maxSpikesBox.valueChanged.connect(self.updateSpikePlot)
+        self.maxSpikesBox.editingFinished.connect(self.updateSpikePlot)
 
     def updateSpikePlot(self):
         self.spike_plot.current_start_index = self.slider.value()
