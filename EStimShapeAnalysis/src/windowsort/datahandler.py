@@ -64,9 +64,22 @@ class DataExporter:
         # print(f"Saved {len(self.thresholded_spikes_by_channel.items())} thresholded spikes to {self.filename}")
         print(self.thresholded_spike_indices_by_channel)
 
-    def save_sorted_spikes(self, spikes_by_unit: Dict[str, np.ndarray], channel: Channel):
-        self.sorted_spikes_by_unit_by_channel[channel] = spikes_by_unit
+    def save_sorted_spikes(self, spikes_by_unit: Dict[str, np.ndarray], channel):
         filename = os.path.join(self.save_directory, "sorted_spikes.pkl")
+
+        # First, check if the file already exists.
+        if os.path.exists(filename):
+            # Load the existing data.
+            with open(filename, 'rb') as f:
+                existing_data = pickle.load(f)
+        else:
+            existing_data = {}
+
+        # Update the specific channel's data in-memory.
+        existing_data[channel] = spikes_by_unit
+
+        # Now, save the updated data back to the file.
         with open(filename, 'wb') as f:
-            pickle.dump(self.sorted_spikes_by_unit_by_channel, f)
-        print(self.sorted_spikes_by_unit_by_channel)
+            pickle.dump(existing_data, f)
+
+        print(existing_data)
