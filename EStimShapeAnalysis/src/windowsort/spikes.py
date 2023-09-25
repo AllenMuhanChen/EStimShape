@@ -141,6 +141,8 @@ class SpikeScrubber(QWidget):
         total_spikes = len(self.spike_plot.crossing_indices)  # Assuming crossing_indices is a numpy array
         self.total_spikes_label.setText(f"Total Spikes: {total_spikes}")
 
+        # Update the slider's maximum value
+        self.slider.setMaximum(total_spikes)
 
 class ExportPanel(QWidget):
     def __init__(self, data_exporter):
