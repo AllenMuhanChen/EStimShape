@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def threshold_spikes(threshold_value, voltages):
+def threshold_spikes_absolute(threshold_value, voltages):
     # Find spikes that cross the threshold
     above_threshold = voltages < threshold_value
     crossing_indices = np.where(np.diff(above_threshold))[0]

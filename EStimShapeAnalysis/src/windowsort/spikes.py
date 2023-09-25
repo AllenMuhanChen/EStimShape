@@ -5,7 +5,7 @@ from pyqtgraph import PlotWidget, PlotDataItem
 
 from intan.channels import Channel
 from windowsort.datahandler import DataExporter
-from windowsort.threshold import threshold_spikes
+from windowsort.threshold import threshold_spikes_absolute
 
 
 class ThresholdedSpikePlot(QWidget):
@@ -40,9 +40,9 @@ class ThresholdedSpikePlot(QWidget):
             return  # Exit if the threshold is not set yet
         threshold_value = self.current_threshold_value
 
-        voltages = self.data_handler.voltages_by_channel[self.current_channel]
+        # self.threshold_spikes(threshold_value)
 
-        self.crossing_indices = threshold_spikes(threshold_value, voltages)
+        voltages = self.data_handler.voltages_by_channel[self.current_channel]
 
         # Calculate the min_max voltage if it is not set yet
         if self.min_max_voltage is None:
@@ -62,6 +62,11 @@ class ThresholdedSpikePlot(QWidget):
 
         # Set the y-limits of the plot
         self.set_y_axis_limits()
+
+    def threshold_spikes(self, threshold_value):
+        self.current_threshold_value = threshold_value
+        voltages = self.data_handler.voltages_by_channel[self.current_channel]
+        self.crossing_indices = threshold_spikes_absolute(threshold_value, voltages)
 
     def clear_plot(self):
         for item in self.plotItems:

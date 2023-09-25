@@ -6,16 +6,19 @@ from intan.channels import Channel
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider, QSpinBox, QLabel
 
-class VoltageTimePlot(QWidget):
-    current_channel = None
+from windowsort.spikes import ThresholdedSpikePlot
 
+
+class VoltageTimePlot(QWidget):
+    current_channel: Channel = None
+    spike_plot: ThresholdedSpikePlot = None
     def __init__(self, data_handler):
         super(VoltageTimePlot, self).__init__()
         self.max_voltage = None
         self.min_voltage = None
         self.data_handler = data_handler
         self.initUI()
-        self.current_channel = None
+
 
         # Add threshold line
         self.threshold_line = InfiniteLine(angle=0, movable=True, pos=-80)
@@ -65,7 +68,7 @@ class VoltageTimePlot(QWidget):
 
     def onThresholdChanged(self):
         threshold_value = self.threshold_line.value()
-        self.spike_plot.current_threshold_value = threshold_value
+        self.spike_plot.threshold_spikes(threshold_value)
         self.spike_plot.updatePlot()  # Assume start_time and max_spikes are available
     # Additional methods for zooming, setting threshold, etc., can be added
 

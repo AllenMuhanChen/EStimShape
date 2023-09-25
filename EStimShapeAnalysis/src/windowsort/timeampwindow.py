@@ -16,7 +16,7 @@ from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QBrush, QColor, QPen
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsItem
 
-from windowsort.threshold import threshold_spikes
+from windowsort.threshold import threshold_spikes_absolute
 
 
 class AmpTimeWindow(QGraphicsItem):
@@ -225,11 +225,8 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
         if self.current_threshold_value is None:
             return  # Exit if the threshold is not set yet
-        threshold_value = self.current_threshold_value
 
         voltages = self.data_handler.voltages_by_channel[self.current_channel]
-        self.crossing_indices = threshold_spikes(threshold_value, voltages)
-
         # Calculate the min_max voltage if it is not set yet
         if self.min_max_voltage is None:
             self.min_max_voltage = self.calculate_min_max(voltages, self.spike_window_radius_in_indices)
@@ -543,7 +540,7 @@ class SortPanel(QWidget):
 
         # Pre-compute the crossing indices for the current channel
         threshold_value = self.spike_plot.current_threshold_value
-        crossing_indices = threshold_spikes(threshold_value, voltages)
+        crossing_indices = threshold_spikes_absolute(threshold_value, voltages)
 
         for unit in self.spike_plot.units:
             sorted_spikes = []  # List to hold the sorted spikes for this unit
