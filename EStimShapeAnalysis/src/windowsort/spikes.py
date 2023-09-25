@@ -103,7 +103,7 @@ class SpikeScrubber(QWidget):
     def __init__(self, thresholdedSpikePlot, default_max_spikes: int = 50):
         super(SpikeScrubber, self).__init__()
         self.spike_plot = thresholdedSpikePlot
-        self.default_max_spikes = 50
+        self.current_max_spikes = 50
         self.initUI()
 
     def initUI(self):
@@ -117,7 +117,7 @@ class SpikeScrubber(QWidget):
         self.maxSpikesBox = QSpinBox()
         self.maxSpikesBox.setSuffix(" spikes")
 
-        self.maxSpikesBox.setValue(self.default_max_spikes)  # Initial value
+        self.maxSpikesBox.setValue(self.current_max_spikes)  # Initial value
         self.maxSpikesBox.setRange(1, 200)  # Adjust as needed
 
         hbox.addWidget(self.label)
@@ -130,19 +130,29 @@ class SpikeScrubber(QWidget):
         self.setLayout(layout)
 
         self.slider.valueChanged.connect(self.updateSpikePlot)
-        self.maxSpikesBox.editingFinished.connect(self.updateSpikePlot)
+        self.slider.setPageStep(self.current_max_spikes)
+        self.maxSpikesBox.editingFinished.connect(self.updateMaxSpikes)
 
     def updateSpikePlot(self):
-        self.spike_plot.current_start_index = self.slider.value()
-        self.spike_plot.current_max_spikes = self.maxSpikesBox.value()
+        new_value = (self.slider.value() // self.current_max_spikes) * self.current_max_spikes
+        self.slider.setValue(new_value)  # Set the slider to the rounded-down value
+
+        self.spike_plot.current_start_index = new_value
+        self.spike_plot.current_max_spikes = self.current_max_spikes
         self.spike_plot.updatePlot()
 
         # Update the total number of spikes
-        total_spikes = len(self.spike_plot.crossing_indices)  # Assuming crossing_indices is a numpy array
+        if self.spike_plot.crossing_indices is None:
+            total_spikes = 0
+        else:
+            total_spikes = len(self.spike_plot.crossing_indices)  # Assuming crossing_indices is a numpy array
+
         self.total_spikes_label.setText(f"Total Spikes: {total_spikes}")
 
-        # Update the slider's maximum value
-        self.slider.setMaximum(total_spikes)
+    def updateMaxSpikes(self):
+        self.current_max_spikes = self.maxSpikesBox.value()
+        self.slider.setPageStep(self.current_max_spikes)
+        self.updateSpikePlot()
 
 class ExportPanel(QWidget):
     def __init__(self, data_exporter):
