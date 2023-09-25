@@ -13,7 +13,7 @@ class ThresholdedSpikePlot(QWidget):
         super(ThresholdedSpikePlot, self).__init__()
         self.data_handler = data_handler
         self.data_exporter = data_exporter
-        self.spike_window_radius_in_indices = 50
+        self.spike_window_radius_in_indices = 25
 
         self.min_max_voltage = None
         self.crossing_indices = None
