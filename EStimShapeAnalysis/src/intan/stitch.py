@@ -54,6 +54,13 @@ class IntanFileStitcher:
         for filename in auxiliary_files:
             self.copy_auxiliary_files(filename, output_folder)
 
+        self.create_merge_info(output_folder)
+
+    def create_merge_info(self, output_folder):
+        with open(os.path.join(output_folder, "mergeinfo.txt"), 'w') as f:
+            for folder in self.folder_paths:
+                folder_name = os.path.basename(folder)
+                f.write(f"{folder_name}\n")
 
 def open_gui():
     root = tk.Tk()
