@@ -148,7 +148,21 @@ class SortSpikePlot(ThresholdedSpikePlot):
         self.units = []
         self.amp_time_windows = []
         self.next_color = window_color_generator()
-        self.windowUpdated.connect(self.sortSpikes)
+        self.windowUpdated.connect(self.on_window_adjustments)
+
+    def on_window_adjustments(self):
+        """
+        Called when the user adjusts the amp time windows. (i.e moving, resizing)
+        :return:
+        """
+        self.sortSpikes()
+
+    def update_dropdowns(self):
+        """
+        Called when the user adds or deletes a window.
+        :return:
+        """
+        self.logical_rules_panel.update_unit_dropdowns()
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -162,7 +176,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         new_window = AmpTimeWindow(x, y, height, color, parent_plot=self)
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
-        self.logical_rules_panel.update_unit_dropdowns()  # Update the dropdowns
+        self.update_dropdowns()
         self.sortSpikes()
 
     def keyPressEvent(self, event):
@@ -171,7 +185,8 @@ class SortSpikePlot(ThresholdedSpikePlot):
                 if window.isSelected():
                     self.plotWidget.removeItem(window)
                     self.amp_time_windows.remove(window)
-                    window.emit_window_updated()
+                    self.on_window_adjustments()
+                    self.update_dropdowns()
                     break  # Assuming only one item can be selected at a time
         elif event.key() in (Qt.Key_Up, Qt.Key_Down):
             for window in self.amp_time_windows:
@@ -184,7 +199,8 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     # Redraw the item to reflect the new height
                     window.update()
                     # Emit the signal to update the plot
-                    window.emit_window_updated()
+                    # window.emit_window_updated()
+                    self.on_window_adjustments()
 
     def sort_and_plot_spike(self, start, end, middle, voltages):
         color = 'r'  # default color
@@ -222,7 +238,6 @@ class SortSpikePlot(ThresholdedSpikePlot):
             pass
 
     def updatePlot(self):
-
         self.clear_plot()
 
         if self.current_threshold_value is None:
