@@ -25,7 +25,7 @@ def main():
     compile_data(day=date(2023, 9, 22),
                  start_time=time(15, 10, 0),
                  end_time=time(16, 7, 0),
-                 experiment_filename="1695407135093171_230922_142535")
+                 experiment_filename="1695413856827412_230922_161737")
 
 
     # compile_data(day=date(2023, 9, 13),
@@ -57,7 +57,7 @@ def compile_data(day: date = None,
     data = data[data['SpikeTimes'].notna()]
 
     # Save Data
-    save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie"
+    save_dir = "/compiled/julie"
     # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
     save_path = os.path.join(save_dir, filename)
     data.to_pickle(save_path)
@@ -76,7 +76,7 @@ def collect_raw_data_single_file_for_experiment(*, day: date, start_time: time, 
     intan_file_path = os.path.join(intan_data_path, experiment_name)
 
     # Determine Start and End Unix Times to Collect Data From
-    start_unix, end_unix = calc_start_and_end_unix_times(day, end_time, start_time)
+    start_unix, end_unix = calc_start_and_end_unix_times(day, start_time, end_time)
 
     # Collect task Ids
     task_id_collector = PngSlideIdCollector(conn_xper)
@@ -85,7 +85,7 @@ def collect_raw_data_single_file_for_experiment(*, day: date, start_time: time, 
 
     # Parse Spikes
     parser = OneFileParser()
-    spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id = parser.parse(intan_file_path)
+    spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_file_path)
 
     # Task Fields
     fields = TaskFieldList()
@@ -101,7 +101,7 @@ def collect_raw_data_single_file_for_experiment(*, day: date, start_time: time, 
     return data
 
 
-def calc_start_and_end_unix_times(day, end_time, start_time):
+def calc_start_and_end_unix_times(day, start_time, end_time):
     timezone = pytz.timezone('US/Eastern')
     start_datetime = datetime.combine(day, start_time)
     start_datetime = timezone.localize(start_datetime)
@@ -125,7 +125,7 @@ def collect_raw_data_new_file_per_trial(*, day: date = date.today(), start_time:
 
     # Collect task IDS
 
-    start_unix, end_unix = calc_start_and_end_unix_times(day, end_time, start_time)
+    start_unix, end_unix = calc_start_and_end_unix_times(day, start_time, end_time)
 
     task_id_collector = PngSlideIdCollector(conn_xper)
     time_range = (start_unix, end_unix)

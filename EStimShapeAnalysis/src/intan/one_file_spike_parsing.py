@@ -35,4 +35,4 @@ class OneFileParser:
             epoch_end = epoch[1] / sample_rate
             epoch_start_stop_times_by_task_id[task_id] = (epoch_start, epoch_end)
             filtered_spikes_for_channels_by_task_id[task_id] = filtered_spikes_for_channels
-        return filtered_spikes_for_channels_by_task_id, epoch_start_stop_times_by_task_id
+        return filtered_spikes_for_channels_by_task_id, epoch_start_stop_times_by_task_id, sample_rate
