@@ -49,9 +49,9 @@ class MainWindow(QMainWindow):
         spike_plot_layout.addWidget(self.spike_scrubber)
 
         # Exporting
-        self.exportPanel = ExportPanel(self.data_exporter)
-        threshold_layout.addWidget(self.exportPanel)
-        threshold_layout.addWidget(self.exportPanel)
+        self.export_panel = ExportPanel(self.data_exporter)
+        threshold_layout.addWidget(self.export_panel)
+        threshold_layout.addWidget(self.export_panel)
 
         # Channel Selection
         self.channel_selection_pannel = ChannelSelectionPanel(self.voltage_time_plot, self.spike_plot)
@@ -77,9 +77,9 @@ def main():
     app = QApplication(sys.argv)
 
     # Define the data directory here
-    date = "2023-09-12"
-    exp_name = "1694529683452000_230912_144921"
-    # exp_name = "1694801146439198_230915_140547"
+    date = "2023-09-15"
+    # exp_name = "1694529683452000_230912_144921"
+    exp_name = "1694801146439198_230915_140547"
     data_directory = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/%s/%s/" % (
     date, exp_name)
 
