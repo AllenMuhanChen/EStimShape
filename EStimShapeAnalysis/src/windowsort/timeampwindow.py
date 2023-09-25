@@ -33,6 +33,7 @@ class AmpTimeWindow(QGraphicsItem):
 
         self.height = height  # Height of the line
         self.color = color  # Color of the line
+        self.setZValue(1)
 
         # The values we will compare voltages of spikes to in order to sort them
         self.sort_ymax = None
@@ -58,7 +59,7 @@ class AmpTimeWindow(QGraphicsItem):
         y_min = self.pos().y() - self.height / 2
         y_max = self.pos().y() + self.height / 2
         self.pen = QPen(QColor(self.color))
-        self.pen.setWidth(0)
+        self.pen.setWidthF(0.25)
         painter.setPen(self.pen)
         painter.drawLine(QPointF(self.pos().x(), y_min), QPointF(self.pos().x(), y_max))
 
