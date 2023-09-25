@@ -54,7 +54,6 @@ class DataExporter:
         self.sorted_spikes_by_unit_by_channel = {}  # Keyed by channel, each value is a dict of unit name to spike times
         self.save_directory = save_directory
 
-
     def update_thresholded_spikes(self, channel, thresholded_spike_indices):
         self.thresholded_spike_indices_by_channel[channel] = thresholded_spike_indices
 
