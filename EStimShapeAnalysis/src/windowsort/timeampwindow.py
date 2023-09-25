@@ -129,9 +129,7 @@ class CustomPlotWidget(PlotWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and event.modifiers() == Qt.ShiftModifier:
-            print("event pos: " + str(event.pos()))
             pos = self.plotItem.vb.mapSceneToView(event.pos())
-            aspect_ratio = self.plotItem.vb.width() / self.plotItem.vb.height()
             self.parent.addAmpTimeWindow(pos.x(), pos.y(), 40)
         super(CustomPlotWidget, self).mousePressEvent(event)
 
@@ -317,12 +315,21 @@ def unit_color_generator():
     return itertools.cycle(colors)
 
 
+def create_wrapped_label(unit_name_label):
+    wrapper = QWidget()
+    wrapper_layout = QVBoxLayout()
+    wrapper_layout.addWidget(unit_name_label, alignment=Qt.AlignCenter)
+    wrapper.setLayout(wrapper_layout)
+    return wrapper
+
+
 class UnitPanel:
     """
     subpanel within SortPanel that controls a single unit
     """
 
     def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot, delete_func):
+        self.states_by_dropdown_index = {}
         self.unit = None
         self.unit_counter = unit_counter
         self.unit_color = unit_color
@@ -342,7 +349,7 @@ class UnitPanel:
         label.setStyleSheet(f"background-color: {self.unit_color};")
 
         # Contain the label within a wrapper
-        wrapper = self.create_wrapped_label(label)
+        wrapper = create_wrapped_label(label)
 
         # Add the wrapper to the unit layout
         self.unit_layout.addWidget(wrapper)
@@ -357,21 +364,28 @@ class UnitPanel:
         delete_button.clicked.connect(lambda: self.delete_func(self))
         self.unit_layout.addWidget(delete_button)
 
-    def create_wrapped_label(self, unit_name_label):
-        wrapper = QWidget()
-        wrapper_layout = QVBoxLayout()
-        wrapper_layout.addWidget(unit_name_label, alignment=Qt.AlignCenter)
-        wrapper.setLayout(wrapper_layout)
-        return wrapper
+    def cache_dropdown_states(self):
+        for dropdown_index, dropdown in enumerate(self.dropdowns):
+            self.states_by_dropdown_index[dropdown_index] = dropdown.currentIndex()
+
+    def restore_dropdown_states(self):
+        try:
+            for dropdown_index, choice_index in self.states_by_dropdown_index.items():
+                self.dropdowns[dropdown_index].setCurrentIndex(choice_index)
+        except Exception:
+            pass
 
     def populate_unit_dropboxes(self):
         if self.unit_layout is None:
             print("Warning: Attempting to populate a layout that no longer exists.")
             return
 
+        # Store current dropdown states
         window_colors = self.spike_plot.get_window_colors()
         window_color_iterator = itertools.cycle(window_colors)
         num_windows = len(self.spike_plot.amp_time_windows)
+
+        # Populate the unit layouts with dropdowns and labels
         if num_windows > 0:
             first_window_dropdown = QComboBox()
             first_window_dropdown.addItems(["INCLUDE", "IGNORE", "NOT"])
@@ -382,7 +396,7 @@ class UnitPanel:
             # Add the label for the first window
             first_window_label = QLabel("W1")
             first_window_label.setStyleSheet(f"background-color: {next(window_color_iterator)};")
-            self.unit_layout.addWidget(self.create_wrapped_label(first_window_label))
+            self.unit_layout.addWidget(create_wrapped_label(first_window_label))
 
             for i, window in enumerate(self.spike_plot.amp_time_windows[1:]):
                 dropdown = QComboBox()
@@ -394,7 +408,10 @@ class UnitPanel:
                 # Add the label for this window
                 window_label = QLabel(f"W{i + 2}")
                 window_label.setStyleSheet(f"background-color: {next(window_color_iterator)};")
-                self.unit_layout.addWidget(self.create_wrapped_label(window_label))
+                self.unit_layout.addWidget(create_wrapped_label(window_label))
+
+            # Restore dropdown states if any exist
+            self.restore_dropdown_states()
 
         self.update_expression()
 
@@ -425,6 +442,7 @@ class UnitPanel:
         """Update the logical expression based on the current dropdown selections."""
         if not self.dropdowns:  # Check if the list is empty
             return
+        self.cache_dropdown_states()
         self.expression = self.generate_expression(self.dropdowns)
         updated_unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
         self.spike_plot.updateUnit(updated_unit)
@@ -555,8 +573,6 @@ class SortPanel(QWidget):
                     sorted_spikes.append(spike_index)
 
             sorted_spikes_by_unit[unit.unit_name] = sorted_spikes
-
-
 
         # Use the DataExporter to save the sorted spikes
         self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel)
