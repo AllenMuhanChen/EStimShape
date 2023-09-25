@@ -122,7 +122,7 @@ class SpikeScrubber(QWidget):
         self.maxSpikesBox.setSuffix(" spikes")
 
         self.maxSpikesBox.setValue(self.current_max_spikes)  # Initial value
-        self.maxSpikesBox.setRange(1, 200)  # Adjust as needed
+        self.maxSpikesBox.setRange(1, 300)  # Adjust as needed
 
         hbox.addWidget(self.label)
         hbox.addWidget(self.slider)
@@ -158,6 +158,7 @@ class SpikeScrubber(QWidget):
         else:
             self.total_spikes = len(self.spike_plot.crossing_indices)  # Assuming crossing_indices is a numpy array
             self.slider.setMaximum(self.total_spikes)
+            # self.maxSpikesBox.setMaximum(self.total_spikes)
 
         self.total_spikes_label.setText(f"Total Spikes: {self.total_spikes}")
 
