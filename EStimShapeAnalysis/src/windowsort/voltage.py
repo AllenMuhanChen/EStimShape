@@ -100,11 +100,11 @@ class ThresholdControlPanel(QWidget):
 
         # Connect Slider and SpinBox to update together
         self.thresholdSlider.valueChanged.connect(self.thresholdSpinBox.setValue)
-        self.thresholdSpinBox.valueChanged.connect(self.thresholdSlider.setValue)
+        self.thresholdSpinBox.editingFinished.connect(self.thresholdSlider.setValue)
 
         # Connect to update the threshold line in VoltageTimePlot
         self.thresholdSlider.valueChanged.connect(self.updateThresholdLine)
-        self.thresholdSpinBox.valueChanged.connect(self.updateThresholdLine)
+        self.thresholdSpinBox.editingFinished.connect(self.updateThresholdLine)
 
     def updateThresholdLine(self):
         new_threshold_value = self.thresholdSlider.value()

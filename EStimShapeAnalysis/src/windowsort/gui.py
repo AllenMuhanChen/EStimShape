@@ -41,11 +41,12 @@ class MainWindow(QMainWindow):
         self.threshold_control_panel = ThresholdControlPanel(self.voltage_time_plot)
         threshold_layout.addWidget(self.threshold_control_panel)
 
-        # Thresholded Spikes
-        self.spike_plot = SortSpikePlot(self.data_handler, self.data_exporter)
+        # Spike Plot
+        default_max_spikes = 50
+        self.spike_plot = SortSpikePlot(self.data_handler, self.data_exporter, default_max_spikes=default_max_spikes)
         spike_plot_layout.addWidget(self.spike_plot)
         self.voltage_time_plot.spike_plot = self.spike_plot
-        self.spike_scrubber = SpikeScrubber(self.spike_plot)
+        self.spike_scrubber = SpikeScrubber(self.spike_plot, default_max_spikes=default_max_spikes)
         spike_plot_layout.addWidget(self.spike_scrubber)
 
         # Exporting

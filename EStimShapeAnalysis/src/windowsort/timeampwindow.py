@@ -140,8 +140,8 @@ class SortSpikePlot(ThresholdedSpikePlot):
     units: List[Unit]
     amp_time_windows: List[AmpTimeWindow]
 
-    def __init__(self, data_handler, data_exporter):
-        super(SortSpikePlot, self).__init__(data_handler, data_exporter)
+    def __init__(self, data_handler, data_exporter, default_max_spikes=50):
+        super(SortSpikePlot, self).__init__(data_handler, data_exporter, default_max_spikes=default_max_spikes)
         self.logical_rules_panel = None
         self.units = []
         self.amp_time_windows = []
