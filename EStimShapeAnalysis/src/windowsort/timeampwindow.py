@@ -158,7 +158,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         Called when the user adds or deletes a window.
         :return:
         """
-        self.logical_rules_panel.update_panels()
+        self.logical_rules_panel.on_window_number_change()
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -250,9 +250,6 @@ class SortSpikePlot(ThresholdedSpikePlot):
         # Set the y-limits of the plot
         self.set_y_axis_limits()
 
-
-
-
     def set_sort_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
 
@@ -273,5 +270,3 @@ class SortSpikePlot(ThresholdedSpikePlot):
 def window_color_generator():
     colors = ['green', 'cyan', 'magenta', 'blue', 'darkGreen', 'darkCyan', 'darkMagenta', 'darkBlue']
     return itertools.cycle(colors)
-
-

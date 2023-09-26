@@ -4,7 +4,7 @@ import itertools
 from typing import List
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QFrame
 
 from windowsort.threshold import threshold_spikes_absolute
 
@@ -16,25 +16,22 @@ class Unit:
         self.color = color  # Color for the unit, e.g., 'green'
 
     def sort_spike(self, *, index_of_spike, voltages, amp_time_windows):
-        # If there's only one window, return its result directly
-        if len(amp_time_windows) == 1:
-            return amp_time_windows[0].is_spike_in_window(index_of_spike, voltages)
-
-        # Otherwise, evaluate the logical expression
+        # Generate a dictionary of window results
         window_results = {}
         for idx, window in enumerate(amp_time_windows):
             window_results[f'w{idx + 1}'] = window.is_spike_in_window(index_of_spike, voltages)
 
-        # Convert the expression to lowercase to make it Python-compatible
-        python_compatible_expression = self.logical_expression.lower()
-        python_compatible_expression = self.upper_case_true_false(python_compatible_expression)
-        python_compatible_expression = self.process_ignore_operators(python_compatible_expression)
-
+        # Try to evaluate the logical expression
         try:
+            python_compatible_expression = self.logical_expression.lower()
+            python_compatible_expression = self.upper_case_true_false(python_compatible_expression)
+            python_compatible_expression = self.process_ignore_operators(python_compatible_expression)
+
             result = eval(python_compatible_expression, {}, window_results)
-        except:
+        except Exception as e:
+            print(f"Invalid expression: {self.logical_expression}, Error: {e}")
             result = False
-            print("Invalid expression: ", python_compatible_expression)
+
         return result
 
     @staticmethod
@@ -62,6 +59,171 @@ class Unit:
         return processed_expression
 
 
+class SortPanel(QWidget):
+    unit_panels: List[DropdownUnitPanel]
+
+    def __init__(self, thresholded_spike_plot, data_exporter):
+        super(SortPanel, self).__init__(thresholded_spike_plot)
+        self.spike_plot = thresholded_spike_plot
+        self.data_exporter = data_exporter
+        self.unit_panels = []
+        self.unit_counter = 0  # to generate unique unit identifiers
+        self.current_color = None
+        self.unit_colors = unit_color_generator()  # to generate unique colors for units
+        self.layout = QVBoxLayout()
+
+
+        # Add a button for adding new units
+        self.add_unit_button = QPushButton("Add New Unit")
+        self.add_unit_button.clicked.connect(self.add_new_unit)
+        self.layout.addWidget(self.add_unit_button)
+
+        # Add a legend for window colors
+        self.legend_layout = QVBoxLayout()
+        self.legend_container = QWidget()
+        self.legend_container.setLayout(self.legend_layout)
+        self.legend_container.setMaximumHeight(50)  # Set maximum height
+        self.layout.addWidget(self.legend_container)
+
+        # Unit panels
+        self.unit_panels_layout = QVBoxLayout()
+        self.layout.addLayout(self.unit_panels_layout)
+
+        # Add Export button
+        self.export_button = QPushButton("Export Sorted Spikes")
+        self.export_button.clicked.connect(self.export_sorted_spikes)
+        self.layout.addWidget(self.export_button)
+
+        self.setLayout(self.layout)
+
+    def update_legend(self):
+        """Update the legend to match the current window colors."""
+
+        # Clear the existing legend
+        for i in reversed(range(self.legend_layout.count())):
+            layout_item = self.legend_layout.itemAt(i)
+            if layout_item.layout() is not None:
+                # Delete all widgets from the layout
+                for j in reversed(range(layout_item.layout().count())):
+                    widget = layout_item.layout().itemAt(j).widget()
+                    if widget is not None:
+                        widget.deleteLater()
+                # Remove the layout itself
+                layout_item.layout().deleteLater()
+
+        # Add new color squares and text to the legend
+        window_colors = self.get_window_colors()
+        for idx, color in enumerate(window_colors):
+            unit_row_layout = QHBoxLayout()
+            unit_row_layout.setSpacing(0)  # Reduce the spacing between widgets within the row
+            unit_row_layout.setContentsMargins(0, 0, 0, 0)  # Reduce the margins for this row
+
+            square = QFrame()
+            square.setFixedSize(10, 10)
+            square.setStyleSheet(f"QWidget {{ background-color: {color}; }}")
+            unit_row_layout.addWidget(square)
+
+            label = QLabel(f"W{idx + 1}")
+            unit_row_layout.addWidget(label)
+
+            self.legend_layout.addLayout(unit_row_layout)
+
+
+    def emit_recalculate_windows(self):
+        self.spike_plot.windowUpdated.emit()
+
+    def add_new_unit(self):
+        self.unit_counter += 1
+        self.current_color = next(self.unit_colors)
+        new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.unit_panels_layout, self.spike_plot,
+                                           self.delete_unit)
+        new_unit_panel.populate()
+        self.unit_panels.append(new_unit_panel)
+
+    def generate_expression(self, dropdowns):
+        expression_parts = []
+
+        # Handle the first dropdown separately (YES or NO)
+        first_operator = dropdowns[0].currentText()
+        if first_operator == "INCLUDE":
+            expression_parts.append(f"W1")
+        elif first_operator == "IGNORE":
+            expression_parts.append(f"True")
+        elif first_operator == "NOT":
+            expression_parts.append(f"not W1")
+
+        # Handle the rest of the dropdowns
+        for i, dropdown in enumerate(dropdowns[1:]):
+            operator = dropdown.currentText()
+            expression_parts.append(f"{operator} W{i + 2}")
+
+        # Add the last window
+        # if len(dropdowns) > 0:
+        #     expression_parts.append(f"W{len(dropdowns)}")
+
+        return ' '.join(expression_parts)
+
+    def on_window_number_change(self):
+        """Update dropdowns in each unit layout to match the current number of windows."""
+        self.update_legend()
+        # Clear each unit layout and rebuild it
+        for unit_panel in self.unit_panels:
+            # unit_panel.clear_unit_layout()  # Clear the existing widgets and dropdowns
+            # unit_panel.add_unit_label()
+            # unit_panel.add_delete_button()
+            # unit_panel.populate_unit_panel()  # Repopulate the widgets and dropdowns
+            pass
+
+    def get_window_colors(self):
+        window_colors = [window.color for window in self.spike_plot.amp_time_windows]
+        return window_colors
+
+    def delete_unit(self, unit_panel):
+        """Delete a specific unit."""
+        # Remove unit from the list
+        self.unit_panels.remove(unit_panel)
+
+        # Actually remove the unit from data
+        self.spike_plot.removeUnit(unit_panel.unit.unit_name)
+
+        # Clear and delete layout
+        unit_panel.clear_unit_layout()
+        del unit_panel
+
+        # Repopulate remaining units
+        self.on_window_number_change()
+
+        self.spike_plot.sortSpikes()
+
+    def export_sorted_spikes(self):
+        channel = self.spike_plot.current_channel
+        voltages = self.spike_plot.data_handler.voltages_by_channel[channel]
+
+        self.spike_plot.updatePlot()  # Make sure the data is updated
+
+        sorted_spikes_by_unit = {}
+
+        # Pre-compute the crossing indices for the current channel
+        threshold_value = self.spike_plot.current_threshold_value
+        crossing_indices = threshold_spikes_absolute(threshold_value, voltages)
+
+        for unit in self.spike_plot.units:
+            sorted_spikes = []  # List to hold the sorted spikes for this unit
+
+            for point in crossing_indices:
+                spike_index = round(point)  # or however you wish to define this
+
+                # Check if the spike belongs to the current unit
+                if unit.sort_spike(index_of_spike=spike_index, voltages=voltages,
+                                   amp_time_windows=self.spike_plot.amp_time_windows):
+                    sorted_spikes.append(spike_index)
+
+            sorted_spikes_by_unit[unit.unit_name] = sorted_spikes
+
+        # Use the DataExporter to save the sorted spikes
+        self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel)
+
+
 def unit_color_generator():
     colors = ['pink', 'yellow', 'orange']
     return itertools.cycle(colors)
@@ -74,6 +236,74 @@ def create_wrapped_label(unit_name_label):
     wrapper.setLayout(wrapper_layout)
     return wrapper
 
+from PyQt5.QtWidgets import QLineEdit
+
+class UnitPanel:
+    """
+    subpanel within SortPanel that controls a single unit
+    """
+
+    def __init__(self, unit_counter, unit_color, parent_layout, thresholded_spike_plot, delete_func):
+        self.unit = None
+        self.unit_counter = unit_counter
+        self.unit_color = unit_color
+        self.parent_layout = parent_layout
+        self.delete_func = delete_func
+        self.spike_plot = thresholded_spike_plot
+        self.expression_line_edit = None  # The text box for manually entering expressions
+        self.expression = None
+
+    def populate(self):
+        self.unit_layout = QHBoxLayout()
+
+        self.add_delete_button()
+        self.add_unit_label()
+
+        self.populate_unit_panel()  # Add the text box for manually entering expressions
+        self.create_unit()
+
+        self.parent_layout.addLayout(self.unit_layout)
+
+    def add_unit_label(self):
+        label = QLabel(f"Unit {self.unit_counter}")
+        label.setStyleSheet(f"background-color: {self.unit_color};")
+        wrapper = create_wrapped_label(label)
+        self.unit_layout.addWidget(wrapper)
+
+    def add_delete_button(self):
+        delete_button = QPushButton("Delete Unit")
+        delete_button.clicked.connect(lambda: self.delete_func(self))
+        self.unit_layout.addWidget(delete_button)
+
+    def populate_unit_panel(self):
+        self.expression_line_edit = QLineEdit()
+        self.expression_line_edit.setPlaceholderText("Enter expression (e.g., W1 and not W2)")
+        self.expression_line_edit.editingFinished.connect(self.update_expression_from_text_box)
+        try:
+            print("Expression: " + self.expression)
+        except:
+            print("Expression not set yet")
+        self.unit_layout.addWidget(self.expression_line_edit)
+
+    def update_expression_from_text_box(self):
+        self.expression = self.expression_line_edit.text()
+        updated_unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
+        self.spike_plot.updateUnit(updated_unit)
+        self.spike_plot.sortSpikes()
+
+    def create_unit(self):
+        self.unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
+        self.spike_plot.addUnit(self.unit)
+
+    def clear_unit_layout(self):
+        """Clear existing widgets from the unit layout."""
+        for i in reversed(range(self.unit_layout.count())):
+            widget = self.unit_layout.itemAt(i).widget()
+            if widget is not None:
+                # Remove widget from layout and delete
+                self.unit_layout.removeWidget(widget)
+                widget.deleteLater()
+        self.parent_layout.removeItem(self.unit_layout)
 
 class DropdownUnitPanel:
     """
@@ -99,7 +329,7 @@ class DropdownUnitPanel:
         self.add_unit_label()
 
         self.create_unit()
-        self.populate_unit_dropboxes()
+        self.populate_unit_panel()
         self.parent_layout.addLayout(self.unit_layout)
 
     def add_unit_label(self):
@@ -128,7 +358,7 @@ class DropdownUnitPanel:
         except Exception:
             pass
 
-    def populate_unit_dropboxes(self):
+    def populate_unit_panel(self):
         if self.unit_layout is None:
             print("Warning: Attempting to populate a layout that no longer exists.")
             return
@@ -214,121 +444,3 @@ class DropdownUnitPanel:
             self.dropdowns.clear()
         except RuntimeError:
             pass
-
-
-class SortPanel(QWidget):
-    unit_panels: List[DropdownUnitPanel]
-
-    def __init__(self, thresholded_spike_plot, data_exporter):
-        super(SortPanel, self).__init__(thresholded_spike_plot)
-        self.spike_plot = thresholded_spike_plot
-        self.data_exporter = data_exporter
-        self.unit_panels = []
-        self.unit_counter = 0  # to generate unique unit identifiers
-        self.current_color = None
-        self.unit_colors = unit_color_generator()  # to generate unique colors for units
-        self.layout = QVBoxLayout()
-
-        # Add a button for adding new units
-        self.add_unit_button = QPushButton("Add New Unit")
-        self.add_unit_button.clicked.connect(self.add_new_unit)
-        self.layout.addWidget(self.add_unit_button)
-
-        # Add Export button
-        self.export_button = QPushButton("Export Sorted Spikes")
-        self.export_button.clicked.connect(self.export_sorted_spikes)
-        self.layout.addWidget(self.export_button)
-
-        self.setLayout(self.layout)
-
-    def emit_recalculate_windows(self):
-        self.spike_plot.windowUpdated.emit()
-
-    def add_new_unit(self):
-        self.unit_counter += 1
-        self.current_color = next(self.unit_colors)
-        new_unit_panel = DropdownUnitPanel(self.unit_counter, self.current_color, self.layout, self.spike_plot,
-                                           self.delete_unit)
-        new_unit_panel.populate()
-        self.unit_panels.append(new_unit_panel)
-
-    def generate_expression(self, dropdowns):
-        expression_parts = []
-
-        # Handle the first dropdown separately (YES or NO)
-        first_operator = dropdowns[0].currentText()
-        if first_operator == "INCLUDE":
-            expression_parts.append(f"W1")
-        elif first_operator == "IGNORE":
-            expression_parts.append(f"True")
-        elif first_operator == "NOT":
-            expression_parts.append(f"not W1")
-
-        # Handle the rest of the dropdowns
-        for i, dropdown in enumerate(dropdowns[1:]):
-            operator = dropdown.currentText()
-            expression_parts.append(f"{operator} W{i + 2}")
-
-        # Add the last window
-        # if len(dropdowns) > 0:
-        #     expression_parts.append(f"W{len(dropdowns)}")
-
-        return ' '.join(expression_parts)
-
-    def update_panels(self):
-        """Update dropdowns in each unit layout to match the current number of windows."""
-        # Clear each unit layout and rebuild it
-        for unit_panel in self.unit_panels:
-            unit_panel.clear_unit_layout()  # Clear the existing widgets and dropdowns
-            unit_panel.add_unit_label()
-            unit_panel.add_delete_button()
-            unit_panel.populate_unit_dropboxes()  # Repopulate the widgets and dropdowns
-
-    def get_window_colors(self):
-        window_colors = [window.color for window in self.spike_plot.amp_time_windows]
-        return window_colors
-
-    def delete_unit(self, unit_panel):
-        """Delete a specific unit."""
-        # Remove unit from the list
-        self.unit_panels.remove(unit_panel)
-
-        # Actually remove the unit from data
-        self.spike_plot.removeUnit(unit_panel.unit.unit_name)
-
-        # Clear and delete layout
-        unit_panel.clear_unit_layout()
-        del unit_panel
-
-        # Repopulate remaining units
-        self.update_panels()
-
-        self.spike_plot.sortSpikes()
-
-    def export_sorted_spikes(self):
-        channel = self.spike_plot.current_channel
-        voltages = self.spike_plot.data_handler.voltages_by_channel[channel]
-
-        self.spike_plot.updatePlot()  # Make sure the data is updated
-
-        sorted_spikes_by_unit = {}
-
-        # Pre-compute the crossing indices for the current channel
-        threshold_value = self.spike_plot.current_threshold_value
-        crossing_indices = threshold_spikes_absolute(threshold_value, voltages)
-
-        for unit in self.spike_plot.units:
-            sorted_spikes = []  # List to hold the sorted spikes for this unit
-
-            for point in crossing_indices:
-                spike_index = round(point)  # or however you wish to define this
-
-                # Check if the spike belongs to the current unit
-                if unit.sort_spike(index_of_spike=spike_index, voltages=voltages,
-                                   amp_time_windows=self.spike_plot.amp_time_windows):
-                    sorted_spikes.append(spike_index)
-
-            sorted_spikes_by_unit[unit.unit_name] = sorted_spikes
-
-        # Use the DataExporter to save the sorted spikes
-        self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel)
