@@ -3,7 +3,9 @@ import os
 import matplotlib
 import pandas as pd
 from matplotlib import pyplot as plt
+
 matplotlib.use("Qt5Agg")
+
 
 def main():
     file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-22/230922_round3/compiled.pk1"
@@ -12,6 +14,7 @@ def main():
     for unit, data in raw_data['SpikeTimes'][0].items():
         plot_raster_for_monkeys(raw_data, unit, experiment_name=experiment_name)
     plt.show()
+
 
 def extract_target_unit_data(unit, data):
     # Get SpikeTimes for channel

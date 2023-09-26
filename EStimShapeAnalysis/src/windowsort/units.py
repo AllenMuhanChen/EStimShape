@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import itertools
+import pickle
 from typing import List
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QFrame
 
+from windowsort.spikes import ThresholdedSpikePlot
 from windowsort.threshold import threshold_spikes_absolute
+
 
 
 class Unit:
@@ -62,6 +65,7 @@ class Unit:
 class SortPanel(QWidget):
     unit_panels: List[DropdownUnitPanel]
 
+
     def __init__(self, thresholded_spike_plot, data_exporter):
         super(SortPanel, self).__init__(thresholded_spike_plot)
         self.spike_plot = thresholded_spike_plot
@@ -72,6 +76,10 @@ class SortPanel(QWidget):
         self.unit_colors = unit_color_generator()  # to generate unique colors for units
         self.layout = QVBoxLayout()
 
+        # Add a button for loading Sorting Configuration
+        self.load_config_button = QPushButton("Load Sorting Configuration")
+        self.load_config_button.clicked.connect(self.load_sorting_config)
+        self.layout.addWidget(self.load_config_button)
 
         # Add a button for adding new units
         self.add_unit_button = QPushButton("Add New Unit")
@@ -137,7 +145,21 @@ class SortPanel(QWidget):
         self.current_color = next(self.unit_colors)
         new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.unit_panels_layout, self.spike_plot,
                                            self.delete_unit)
+
         new_unit_panel.populate()
+        self.unit_panels.append(new_unit_panel)
+
+    def load_unit(self, unit: Unit):
+        self.unit_counter += 1
+        self.current_color = unit.color
+        new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.unit_panels_layout, self.spike_plot,
+                                           self.delete_unit)
+
+
+        new_unit_panel.expression = unit.logical_expression
+        new_unit_panel.populate()
+        new_unit_panel.expression_line_edit.setText(unit.logical_expression)
+
         self.unit_panels.append(new_unit_panel)
 
     def generate_expression(self, dropdowns):
@@ -222,7 +244,31 @@ class SortPanel(QWidget):
 
         # Use the DataExporter to save the sorted spikes
         self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel)
+        self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units)
 
+        # Add the load_sorting_config method
+
+    def load_sorting_config(self):
+        channel = self.spike_plot.current_channel
+        print(f"Loading sorting config for channel {channel}")
+        config = self.data_exporter.load_sorting_config(channel)
+        if config:
+            self.spike_plot.clear_amp_time_windows()
+            self.spike_plot.clearUnits()
+
+            for x, y_min, y_max in config['amp_time_windows']:
+                y = (y_max + y_min)/2
+                height = y_max - y_min
+                self.spike_plot.addAmpTimeWindow(x, y, height)
+
+            self.unit_counter = 0
+            for logical_expression, unit_name, color in config['units']:
+                unit = Unit(logical_expression, unit_name, color)
+                self.load_unit(unit)
+
+
+            self.spike_plot.updatePlot()
+            self.spike_plot.sortSpikes()
 
 def unit_color_generator():
     colors = ['pink', 'yellow', 'orange']

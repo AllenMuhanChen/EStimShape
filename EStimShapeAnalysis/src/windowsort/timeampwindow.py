@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 from typing import List
 
+from PyQt5 import sip
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QVBoxLayout
 from pyqtgraph import PlotWidget
@@ -50,6 +51,13 @@ class AmpTimeWindow(QGraphicsItem):
         self.sort_x = self.pos().x() * 2
         self.sort_ymin = self.pos().y() * 2 - self.height / 2
         self.sort_ymax = self.pos().y() * 2 + self.height / 2
+
+    @staticmethod
+    def sort_x_y_to_draw(sort_x, sort_ymin, sort_ymax):
+        x = sort_x / 2
+        height = sort_ymax - sort_ymin
+        y = (sort_ymin + height / 2) / 2
+        return QPointF(x, y)
 
     def paint(self, painter, option, widget=None):
         """For some reason the drawn x and y locations are ALWAYS a factor of 2 off from
@@ -266,6 +274,16 @@ class SortSpikePlot(ThresholdedSpikePlot):
     def removeUnit(self, unit_name):
         self.units = [unit for unit in self.units if unit.unit_name != unit_name]
 
+    def clear_amp_time_windows(self):
+        self.next_color = window_color_generator()
+        for window in self.amp_time_windows:
+            self.plotWidget.removeItem(window)
+            sip.delete(window)
+
+        self.amp_time_windows = []
+
+    def clearUnits(self):
+        self.units = []  # Assuming this is your list of units
 
 def window_color_generator():
     colors = ['green', 'cyan', 'magenta', 'blue', 'darkGreen', 'darkCyan', 'darkMagenta', 'darkBlue']

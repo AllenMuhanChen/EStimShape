@@ -83,3 +83,31 @@ class DataExporter:
             pickle.dump(existing_data, f)
 
         print(existing_data)
+
+    def save_sorting_config(self, channel, amp_time_windows, units):
+        filename = os.path.join(self.save_directory, 'sorting_config.pkl')
+        try:
+            with open(filename, 'rb') as f:
+                all_configs = pickle.load(f)
+        except FileNotFoundError:
+            all_configs = {}
+
+        all_configs[channel] = {
+            'amp_time_windows': [(window.sort_x, window.sort_ymin, window.sort_ymax) for window in amp_time_windows],
+            'units': [(unit.logical_expression, unit.unit_name, unit.color) for unit in units]
+        }
+
+        with open(filename, 'wb') as f:
+            pickle.dump(all_configs, f)
+
+        print("Saved sorting configs to: ", filename)
+
+    def load_sorting_config(self, channel: Channel):
+        try:
+            filename = os.path.join(self.save_directory,'sorting_config.pkl')
+            with open(filename, 'rb') as f:
+                all_configs = pickle.load(f)
+            return all_configs.get(channel, None)
+        except FileNotFoundError:
+            print("Configuration file not found.")
+            return None
