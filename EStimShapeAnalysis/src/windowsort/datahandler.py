@@ -84,7 +84,7 @@ class DataExporter:
 
         print(existing_data)
 
-    def save_sorting_config(self, channel, amp_time_windows, units):
+    def save_sorting_config(self, channel, amp_time_windows, units, threshold):
         filename = os.path.join(self.save_directory, 'sorting_config.pkl')
         try:
             with open(filename, 'rb') as f:
@@ -94,7 +94,8 @@ class DataExporter:
 
         all_configs[channel] = {
             'amp_time_windows': [(window.sort_x, window.sort_ymin, window.sort_ymax) for window in amp_time_windows],
-            'units': [(unit.logical_expression, unit.unit_name, unit.color) for unit in units]
+            'units': [(unit.logical_expression, unit.unit_name, unit.color) for unit in units],
+            'threshold': threshold
         }
 
         with open(filename, 'wb') as f:

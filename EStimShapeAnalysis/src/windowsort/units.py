@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 
 from windowsort.spikes import ThresholdedSpikePlot
 from windowsort.threshold import threshold_spikes_absolute
-
+from windowsort.voltage import VoltageTimePlot
 
 
 class Unit:
@@ -66,10 +66,11 @@ class SortPanel(QWidget):
     unit_panels: List[DropdownUnitPanel]
 
 
-    def __init__(self, thresholded_spike_plot, data_exporter):
+    def __init__(self, thresholded_spike_plot, data_exporter, voltage_time_plot: VoltageTimePlot):
         super(SortPanel, self).__init__(thresholded_spike_plot)
         self.spike_plot = thresholded_spike_plot
         self.data_exporter = data_exporter
+        self.voltage_time_plot = voltage_time_plot
         self.unit_panels = []
         self.unit_counter = 0  # to generate unique unit identifiers
         self.current_color = None
@@ -245,7 +246,7 @@ class SortPanel(QWidget):
 
         # Use the DataExporter to save the sorted spikes
         self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel)
-        self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units)
+        self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units, self.spike_plot.current_threshold_value)
 
         # Add the load_sorting_config method
 
@@ -254,9 +255,15 @@ class SortPanel(QWidget):
         print(f"Loading sorting config for channel {channel}")
         config = self.data_exporter.load_sorting_config(channel)
         if config:
+            # Add threshold
+            threshold = config['threshold']
+            self.voltage_time_plot.update_threshold(threshold)
+            self.voltage_time_plot.threshold_line.setValue(threshold)
+
             self.spike_plot.clear_amp_time_windows()
             self.spike_plot.clearUnits()
 
+            # Add the amp time windows
             for x, y_min, y_max in config['amp_time_windows']:
                 y = (y_max + y_min)/2
                 height = y_max - y_min
