@@ -22,10 +22,10 @@ from intan.one_file_spike_parsing import OneFileParser
 
 def main():
     # Main Parameters
-    compile_data(day=date(2023, 9, 22),
+    compile_data(day=date(2023, 9, 26),
                  start_time=time(15, 10, 0),
                  end_time=time(16, 7, 0),
-                 experiment_filename="1695413856827412_230922_161737")
+                 experiment_filename="1695755745068500_230926_151545")
 
 
     # compile_data(day=date(2023, 9, 13),
@@ -57,7 +57,7 @@ def compile_data(day: date = None,
     data = data[data['SpikeTimes'].notna()]
 
     # Save Data
-    save_dir = "/compiled/julie"
+    save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie"
     # filename = f"{day.strftime('%Y-%m-%d')}_{start_time.strftime('%H-%M-%S')}_to_{end_time.strftime('%H-%M-%S')}.pk1"
     save_path = os.path.join(save_dir, filename)
     data.to_pickle(save_path)

@@ -8,12 +8,12 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-21/230921_round5/compiled.pk1"
+    file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-26/230926_round1/compiled.pk1"
     experiment_name = os.path.basename(os.path.dirname(file_path))
     raw_data = pd.read_pickle(file_path).reset_index(drop=True)
     for unit, data in raw_data['SpikeTimes'][0].items():
         plot_raster_for_monkeys(raw_data, unit, experiment_name=experiment_name)
-    plt.show()
+    # plt.show()
 
 
 def extract_target_unit_data(unit, data):
@@ -56,7 +56,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
                 filtered_spike_times_list.append(filtered_spike_times)
 
             ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.5)
-            ax.set_xlim(0, 1.0)
+            ax.set_xlim(0, 2.0)
             ax.set_yticks([len(filtered_spike_times_list)])
             # Place the title text to the right of the subplot
             ax.text(1.05, 0.5, f"{monkey_name}", transform=ax.transAxes, ha='left', va='center', fontsize=14)
@@ -70,7 +70,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
     fig.suptitle(f'Raster Plots for Individual Monkeys: Channel: {unit}')
 
     plt.subplots_adjust(hspace=1.0, wspace=1.0)
-
+    plt.show()
     ## SAVE PLOTS
     base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
     if experiment_name is not None:
@@ -78,7 +78,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
         os.makedirs(save_dir, exist_ok=True)
 
         # Save individual plot
-        individual_save_path = os.path.join(save_dir, f"{unit}_raster.png")
+        individual_save_path = os.path.join(save_dir, f"{unit}_sorted_raster.png")
         fig.savefig(individual_save_path)
 
     return fig

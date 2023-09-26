@@ -36,16 +36,16 @@ class DataImporter:
         for channel, voltages in self.voltages_by_channel.items():
             self.voltages_by_channel[channel] = self.highpass_filter(voltages, cutoff=300)
 
+    def highpass_filter(self, data, cutoff=300, order=5):
+        b, a = self.butter_highpass(cutoff, self.sample_rate, order=order)
+        y = filtfilt(b, a, data)
+        return y
+
     def butter_highpass(self, cutoff, fs, order=5):
         nyquist = 0.5 * fs
         normal_cutoff = cutoff / nyquist
         b, a = butter(order, normal_cutoff, btype='high', analog=False)
         return b, a
-
-    def highpass_filter(self, data, cutoff=300, order=5):
-        b, a = self.butter_highpass(cutoff, self.sample_rate, order=order)
-        y = filtfilt(b, a, data)
-        return y
 
 
 class DataExporter:
