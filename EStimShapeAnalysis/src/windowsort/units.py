@@ -146,7 +146,7 @@ class SortPanel(QWidget):
         new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.unit_panels_layout, self.spike_plot,
                                            self.delete_unit)
 
-        new_unit_panel.populate()
+        new_unit_panel.populate_with_new_unit()
         self.unit_panels.append(new_unit_panel)
 
     def load_unit(self, unit: Unit):
@@ -156,8 +156,9 @@ class SortPanel(QWidget):
                                            self.delete_unit)
 
 
+
         new_unit_panel.expression = unit.logical_expression
-        new_unit_panel.populate()
+        new_unit_panel.populate_with_existing_unit(unit)
         new_unit_panel.expression_line_edit.setText(unit.logical_expression)
 
         self.unit_panels.append(new_unit_panel)
@@ -299,19 +300,32 @@ class UnitPanel:
         self.expression_line_edit = None  # The text box for manually entering expressions
         self.expression = None
 
-    def populate(self):
+    def populate_with_new_unit(self):
         self.unit_layout = QHBoxLayout()
+
+        self.create_unit()
+        self.add_delete_button()
+        self.add_unit_label()
+
+        self.populate_unit_panel()  # Add the text box for manually entering expressions
+
+        self.parent_layout.addLayout(self.unit_layout)
+
+    def populate_with_existing_unit(self, unit):
+        self.unit_layout = QHBoxLayout()
+        self.unit = unit
+        self.spike_plot.addUnit(self.unit)
 
         self.add_delete_button()
         self.add_unit_label()
 
         self.populate_unit_panel()  # Add the text box for manually entering expressions
-        self.create_unit()
 
         self.parent_layout.addLayout(self.unit_layout)
 
+
     def add_unit_label(self):
-        label = QLabel(f"Unit {self.unit_counter}")
+        label = QLabel(self.unit.unit_name)
         label.setStyleSheet(f"background-color: {self.unit_color};")
         wrapper = create_wrapped_label(label)
         self.unit_layout.addWidget(wrapper)
@@ -333,7 +347,8 @@ class UnitPanel:
 
     def update_expression_from_text_box(self):
         self.expression = self.expression_line_edit.text()
-        updated_unit = Unit(self.expression, f"Unit {self.unit_counter}", self.unit_color)
+        updated_unit = Unit(self.expression, self.unit.unit_name, self.unit_color)
+        print(f"Updating unit {self.unit.unit_name} with expression {self.expression}")
         self.spike_plot.updateUnit(updated_unit)
         self.spike_plot.sortSpikes()
 
