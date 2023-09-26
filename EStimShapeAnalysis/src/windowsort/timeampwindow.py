@@ -266,6 +266,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
             if unit.unit_name == updated_unit.unit_name:
                 self.units[i] = updated_unit
                 return
+        print(self.units)
         print(f"Unit {updated_unit.unit_name} not found.")
 
     def get_window_colors(self):
