@@ -80,8 +80,8 @@ def main():
 
 
     # Define the data directory here
-    date = "2023-09-21"
-    exp_name = "230921_round5"
+    date = "2023-09-26"
+    exp_name = "230926_round1"
     # date = "2023-09-12"
     # exp_name = "1694529683452000_230912_144921"
     data_directory = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/%s/%s/" % (
