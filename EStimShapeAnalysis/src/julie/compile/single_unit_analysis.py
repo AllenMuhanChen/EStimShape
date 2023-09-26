@@ -6,10 +6,11 @@ from matplotlib import pyplot as plt
 matplotlib.use("Qt5Agg")
 
 def main():
-    file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-22/round3/compiled.pk1"
+    file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-22/230922_round3/compiled.pk1"
+    experiment_name = os.path.basename(os.path.dirname(file_path))
     raw_data = pd.read_pickle(file_path).reset_index(drop=True)
     for unit, data in raw_data['SpikeTimes'][0].items():
-        plot_raster_for_monkeys(raw_data, unit)
+        plot_raster_for_monkeys(raw_data, unit, experiment_name=experiment_name)
     plt.show()
 
 def extract_target_unit_data(unit, data):
@@ -66,17 +67,16 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
     fig.suptitle(f'Raster Plots for Individual Monkeys: Channel: {unit}')
 
     plt.subplots_adjust(hspace=1.0, wspace=1.0)
-    # plt.show()
 
-    # ## SAVE PLOTS
-    # base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
-    # if experiment_name is not None:
-    #     save_dir = os.path.join(base_save_dir, experiment_name)
-    #     os.makedirs(save_dir, exist_ok=True)
-    #
-    #     # Save individual plot
-    #     individual_save_path = os.path.join(save_dir, f"{unit}_raster.png")
-    #     fig.savefig(individual_save_path)
+    ## SAVE PLOTS
+    base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
+    if experiment_name is not None:
+        save_dir = os.path.join(base_save_dir, experiment_name)
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Save individual plot
+        individual_save_path = os.path.join(save_dir, f"{unit}_raster.png")
+        fig.savefig(individual_save_path)
 
     return fig
 
