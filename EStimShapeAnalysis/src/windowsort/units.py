@@ -91,7 +91,7 @@ class SortPanel(QWidget):
         self.legend_layout = QVBoxLayout()
         self.legend_container = QWidget()
         self.legend_container.setLayout(self.legend_layout)
-        self.legend_container.setMaximumHeight(50)  # Set maximum height
+        self.legend_container.setMaximumHeight(200)  # Set maximum height
         self.layout.addWidget(self.legend_container)
 
         # Unit panels
@@ -124,7 +124,7 @@ class SortPanel(QWidget):
         window_colors = self.get_window_colors()
         for idx, color in enumerate(window_colors):
             unit_row_layout = QHBoxLayout()
-            unit_row_layout.setSpacing(0)  # Reduce the spacing between widgets within the row
+            unit_row_layout.setSpacing(10)  # Reduce the spacing between widgets within the row
             unit_row_layout.setContentsMargins(0, 0, 0, 0)  # Reduce the margins for this row
 
             square = QFrame()
@@ -152,7 +152,7 @@ class SortPanel(QWidget):
 
     def load_unit(self, unit: Unit):
         self.unit_counter += 1
-        self.current_color = unit.color
+        self.current_color = next(self.unit_colors)
         new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.unit_panels_layout, self.spike_plot,
                                            self.delete_unit)
 

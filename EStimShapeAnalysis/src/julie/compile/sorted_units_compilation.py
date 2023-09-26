@@ -15,8 +15,8 @@ from util.connection import Connection
 
 
 def main():
-    compile_data(experiment_name="round3",
-                 day=date(2023, 9, 22))
+    compile_data(experiment_name="230921_round5",
+                 day=date(2023, 9, 21))
 
 
 def compile_data(*, experiment_name: str, day: date):
@@ -38,7 +38,7 @@ def compile_data(*, experiment_name: str, day: date):
     # Collect Epoch Start Stop Times - INTAN
     sample_rate = load_intan_rhd_format.read_data(rhd_file_path)["frequency_parameters"]['amplifier_sample_rate']
     stim_epochs_from_markers = epoch_using_marker_channels(digital_in_path,
-                                                           false_negative_correction_duration=800)
+                                                           false_negative_correction_duration=10)
     epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(notes_path,
                                                                stim_epochs_from_markers)
 
@@ -83,6 +83,8 @@ class EpochStartStopTimesField(TaskField):
             epoch_stop_index = self.epoch_start_stop_by_task_id[task_id][1]
             epoch_start_time = epoch_start_index / self.sample_rate
             epoch_stop_time = epoch_stop_index / self.sample_rate
+            if epoch_start_time - epoch_stop_time < 1:
+                print("Warning, epoch start and stop times are less than 1 second apart.")
             return epoch_start_time, epoch_stop_time
         except KeyError:
             return None
