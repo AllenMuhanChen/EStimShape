@@ -3,7 +3,8 @@ import sys
 import os
 
 from windowsort.datahandler import DataImporter, DataExporter
-from windowsort.timeampwindow import SortSpikePlot, SortPanel
+from windowsort.timeampwindow import SortSpikePlot
+from windowsort.units import SortPanel
 from windowsort.voltage import VoltageTimePlot, TimeScrubber, ChannelSelectionPanel, ThresholdControlPanel
 from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber, ExportPanel
 
