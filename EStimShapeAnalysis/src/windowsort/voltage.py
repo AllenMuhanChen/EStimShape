@@ -23,7 +23,7 @@ class VoltageTimePlot(QWidget):
         # Add threshold line
         self.threshold_line = InfiniteLine(angle=0, movable=True, pos=-80)
         self.plotWidget.addItem(self.threshold_line)
-        self.threshold_line.sigDragged.connect(self.onThresholdChanged)
+        self.threshold_line.sigDragged.connect(self.onThresholdLineChanged)
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -66,11 +66,13 @@ class VoltageTimePlot(QWidget):
 
         self.plotWidget.setYRange(self.min_voltage, self.max_voltage)
 
-    def onThresholdChanged(self):
+    def onThresholdLineChanged(self):
         threshold_value = self.threshold_line.value()
+        self.update_threshold(threshold_value)
+
+    def update_threshold(self, threshold_value):
         self.spike_plot.threshold_spikes(threshold_value)
         self.spike_plot.updatePlot()  # Assume start_time and max_spikes are available
-    # Additional methods for zooming, setting threshold, etc., can be added
 
 
 class ThresholdControlPanel(QWidget):
@@ -104,13 +106,13 @@ class ThresholdControlPanel(QWidget):
         self.thresholdSpinBox.editingFinished.connect(self.thresholdSlider.setValue)
 
         # Connect to update the threshold line in VoltageTimePlot
-        self.thresholdSlider.valueChanged.connect(self.updateThresholdLine)
-        self.thresholdSpinBox.editingFinished.connect(self.updateThresholdLine)
+        self.thresholdSlider.valueChanged.connect(self.onThresholdSliderChanged)
+        self.thresholdSpinBox.editingFinished.connect(self.onThresholdSliderChanged)
 
-    def updateThresholdLine(self):
+    def onThresholdSliderChanged(self):
         new_threshold_value = self.thresholdSlider.value()
         self.voltage_time_plot.threshold_line.setValue(new_threshold_value)
-        self.voltage_time_plot.onThresholdChanged()
+        self.voltage_time_plot.onThresholdLineChanged()
 
 
 class TimeScrubber(QWidget):
