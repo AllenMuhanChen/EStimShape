@@ -8,7 +8,7 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-22/230922_round3/compiled.pk1"
+    file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-21/230921_round5/compiled.pk1"
     experiment_name = os.path.basename(os.path.dirname(file_path))
     raw_data = pd.read_pickle(file_path).reset_index(drop=True)
     for unit, data in raw_data['SpikeTimes'][0].items():
