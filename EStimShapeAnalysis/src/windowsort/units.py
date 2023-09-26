@@ -5,7 +5,8 @@ import pickle
 from typing import List
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QFrame
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QFrame, QFileDialog, \
+    QInputDialog
 
 from windowsort.spikes import ThresholdedSpikePlot
 from windowsort.threshold import threshold_spikes_absolute
@@ -221,21 +222,37 @@ class SortPanel(QWidget):
 
     def export_sorted_spikes(self):
         channel = self.spike_plot.current_channel
+        sorted_spikes_by_unit = self.sort_all_spikes(channel)
+
+        file_extension = self.query_file_extension()
+        print(file_extension)
+
+        # Use the DataExporter to save the sorted spikes
+        self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel, extension=file_extension)
+        self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units, self.spike_plot.current_threshold_value, extension=file_extension)
+
+        # Add the load_sorting_config method
+
+    def query_file_extension(self):
+        # Open Input Dialog to get the filename extension
+        text, ok = QInputDialog.getText(self, 'Input Dialog', 'Enter filename extension:', QLineEdit.Normal, "")
+
+        if ok and text:
+            return text
+
+
+    def sort_all_spikes(self, channel):
         voltages = self.spike_plot.data_handler.voltages_by_channel[channel]
-
         self.spike_plot.updatePlot()  # Make sure the data is updated
-
         sorted_spikes_by_unit = {}
-
         # Pre-compute the crossing indices for the current channel
         threshold_value = self.spike_plot.current_threshold_value
         crossing_indices = threshold_spikes_absolute(threshold_value, voltages)
-
         for unit in self.spike_plot.units:
             sorted_spikes = []  # List to hold the sorted spikes for this unit
 
             for point in crossing_indices:
-                spike_index = round(point)  # or however you wish to define this
+                spike_index = round(point)
 
                 # Check if the spike belongs to the current unit
                 if unit.sort_spike(index_of_spike=spike_index, voltages=voltages,
@@ -243,17 +260,12 @@ class SortPanel(QWidget):
                     sorted_spikes.append(spike_index)
 
             sorted_spikes_by_unit[unit.unit_name] = sorted_spikes
-
-        # Use the DataExporter to save the sorted spikes
-        self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel)
-        self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units, self.spike_plot.current_threshold_value)
-
-        # Add the load_sorting_config method
+        return sorted_spikes_by_unit
 
     def load_sorting_config(self):
         channel = self.spike_plot.current_channel
         print(f"Loading sorting config for channel {channel}")
-        config = self.data_exporter.load_sorting_config(channel)
+        config = self.data_exporter.load_sorting_config(channel, self)
         if config:
             # Add threshold
             threshold = config['threshold']

@@ -3,6 +3,7 @@ import pickle
 from typing import Dict
 
 import numpy as np
+from PyQt5.QtWidgets import QFileDialog, QWidget
 from scipy.signal import butter, filtfilt
 
 from intan.amplifiers import read_amplifier_data
@@ -64,8 +65,14 @@ class DataExporter:
         # print(f"Saved {len(self.thresholded_spikes_by_channel.items())} thresholded spikes to {self.filename}")
         print(self.thresholded_spike_indices_by_channel)
 
-    def save_sorted_spikes(self, spikes_by_unit: Dict[str, np.ndarray], channel):
-        filename = os.path.join(self.save_directory, "sorted_spikes.pkl")
+    def save_sorted_spikes(self, spikes_by_unit: Dict[str, np.ndarray], channel, extension=None):
+        base_filename = "sorted_spikes"
+        if extension is not None:
+            filename = base_filename + "_" + extension + ".pkl"
+        else:
+            filename = base_filename + ".pkl"
+
+        filename = os.path.join(self.save_directory, filename)
 
         # First, check if the file already exists.
         if os.path.exists(filename):
@@ -84,8 +91,15 @@ class DataExporter:
 
         print(existing_data)
 
-    def save_sorting_config(self, channel, amp_time_windows, units, threshold):
-        filename = os.path.join(self.save_directory, 'sorting_config.pkl')
+    def save_sorting_config(self, channel, amp_time_windows, units, threshold, extension=None):
+        base_filename = "sorting_config"
+        if extension is not None:
+            filename = base_filename + "_" + extension + ".pkl"
+        else:
+            filename = base_filename + ".pkl"
+        filename = os.path.join(self.save_directory, filename)
+
+        filename = os.path.join(self.save_directory, filename)
         try:
             with open(filename, 'rb') as f:
                 all_configs = pickle.load(f)
@@ -103,12 +117,21 @@ class DataExporter:
 
         print("Saved sorting configs to: ", filename)
 
-    def load_sorting_config(self, channel: Channel):
-        try:
-            filename = os.path.join(self.save_directory,'sorting_config.pkl')
-            with open(filename, 'rb') as f:
-                all_configs = pickle.load(f)
-            return all_configs.get(channel, None)
-        except FileNotFoundError:
-            print("Configuration file not found.")
-            return None
+    def load_sorting_config(self, channel: Channel, parent_widget: QWidget):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        filename, _ = QFileDialog.getOpenFileName(parent_widget, "Open File", self.save_directory,
+                                                  "Sorting Config Files (sorting_config*.pkl);;All Files (*)",
+                                                  options=options)
+
+        if filename:
+            try:
+                with open(filename, 'rb') as f:
+                    all_configs = pickle.load(f)
+                return all_configs.get(channel, None)
+            except FileNotFoundError:
+                print(f"Configuration file {filename} not found.")
+                return None
+            except Exception as e:
+                print(f"An error occurred while loading the configuration file: {e}")
+                return None
