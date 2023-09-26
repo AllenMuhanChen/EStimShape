@@ -12,13 +12,13 @@ from windowsort.spikes import ThresholdedSpikePlot
 class VoltageTimePlot(QWidget):
     current_channel: Channel = None
     spike_plot: ThresholdedSpikePlot = None
+
     def __init__(self, data_handler):
         super(VoltageTimePlot, self).__init__()
         self.max_voltage = None
         self.min_voltage = None
         self.data_handler = data_handler
         self.initUI()
-
 
         # Add threshold line
         self.threshold_line = InfiniteLine(angle=0, movable=True, pos=-80)
@@ -73,8 +73,6 @@ class VoltageTimePlot(QWidget):
     # Additional methods for zooming, setting threshold, etc., can be added
 
 
-
-
 class ThresholdControlPanel(QWidget):
     def __init__(self, voltage_time_plot):
         super(ThresholdControlPanel, self).__init__()
@@ -113,6 +111,7 @@ class ThresholdControlPanel(QWidget):
         new_threshold_value = self.thresholdSlider.value()
         self.voltage_time_plot.threshold_line.setValue(new_threshold_value)
         self.voltage_time_plot.onThresholdChanged()
+
 
 class TimeScrubber(QWidget):
     def __init__(self, voltage_time_plot):
