@@ -276,10 +276,8 @@ class SortPanel(QWidget):
             self.spike_plot.clearUnits()
 
             # Add the amp time windows
-            for x, y_min, y_max in config['amp_time_windows']:
-                y = (y_max + y_min)/2
-                height = y_max - y_min
-                self.spike_plot.addAmpTimeWindow(x, y, height)
+            for window in config['amp_time_windows']:
+                self.spike_plot.loadAmpTimeWindow(window)
 
             self.unit_counter = 0
             for logical_expression, unit_name, color in config['units']:

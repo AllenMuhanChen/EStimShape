@@ -100,9 +100,8 @@ class AmpTimeWindow(QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = round(
-                value.x()*2) / 2.0  # lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
-            new_y = value.y()  # Keep the y-coordinate as is
+            new_x = int(value.x()*2)/2
+            new_y = value.y()
 
             if not self.window_update_timer.isActive():
                 self.window_update_timer.start(100)  # emit_window_updated will be called after 100 ms

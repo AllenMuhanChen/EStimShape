@@ -22,6 +22,15 @@ class DriftSpikePlot(SortSpikePlot):
         self.update_dropdowns()
         self.sortSpikes()
 
+    def loadAmpTimeWindow(self, time_control_points):
+        color = next(self.next_color)
+        new_window = DriftingAmpTimeWindow.create_from_time_control_points(time_control_points, color, parent_plot=self,
+                                                                          spike_scrubber=self.spike_scrubber)
+        self.amp_time_windows.append(new_window)
+        self.plotWidget.addItem(new_window)
+        self.update_dropdowns()
+        self.sortSpikes()
+
 
 class DriftingAmpTimeWindow(AmpTimeWindow):
     current_index: int
@@ -38,6 +47,23 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
         if spike_scrubber:
             self.connect_to_spike_scrubber()
 
+    @staticmethod
+    def create_from_time_control_points(time_control_points, color, parent_plot=None, spike_scrubber=None):
+        # Create a new DriftingAmpTimeWindow from a dictionary of time_control_points
+        # time_control_points: {index: {'height': height, 'x': x, 'y': y}}
+        # parent_plot: the parent plot of the new window
+        # spike_scrubber: the spike scrubber to connect to
+        # Returns: a new DriftingAmpTimeWindow
+        first_control_point = time_control_points[0]
+        first_x = first_control_point['x']
+        first_y = first_control_point['y']
+        first_height = first_control_point['height']
+        new_window = DriftingAmpTimeWindow(first_x, first_y, first_height, color, parent_plot=parent_plot,
+                                           spike_scrubber=spike_scrubber)
+        new_window.time_control_points = time_control_points
+
+        return new_window
+
     def keyPressEvent(self, event):
         super().keyPressEvent(event)
         if self.isSelected():
@@ -51,7 +77,7 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = int(value.x()*2)/2
+            new_x = int(value.x() * 2) / 2
             new_y = value.y()
 
             # Find the closest preceding time index to self.current_index
@@ -59,11 +85,12 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
                 closest_time_index = max(k for k in self.time_control_points.keys() if k <= self.current_index)
 
                 # Update the height, x, and y values at the closest time index
-                self.time_control_points[closest_time_index]['height'] = self.height  # assuming self.height is up-to-date
+                self.time_control_points[closest_time_index][
+                    'height'] = self.height  # assuming self.height is up-to-date
                 self.time_control_points[closest_time_index]['x'] = new_x
                 self.time_control_points[closest_time_index]['y'] = new_y
             except AttributeError:
-                pass #itemChange called before init finished?
+                pass  # itemChange called before init finished?
 
             if not self.window_update_timer.isActive():
                 self.window_update_timer.start(100)  # emit_window_updated will be called after 100 ms
