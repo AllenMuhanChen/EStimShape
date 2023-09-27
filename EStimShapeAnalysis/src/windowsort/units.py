@@ -19,11 +19,11 @@ class Unit:
         self.unit_name = unit_name  # Unit identifier, e.g., "Unit 1"
         self.color = color  # Color for the unit, e.g., 'green'
 
-    def sort_spike(self, *, index_of_spike, voltages, amp_time_windows):
+    def sort_spike(self, *, spike_voltage_index, index_of_spike, voltages, amp_time_windows):
         # Generate a dictionary of window results
         window_results = {}
         for idx, window in enumerate(amp_time_windows):
-            window_results[f'w{idx + 1}'] = window.is_spike_in_window(index_of_spike, voltages)
+            window_results[f'w{idx + 1}'] = window.is_spike_in_window(spike_voltage_index, index_of_spike, voltages)
 
         # Try to evaluate the logical expression
         try:
@@ -259,13 +259,14 @@ class SortPanel(QWidget):
         for unit in self.spike_plot.units:
             sorted_spikes = []  # List to hold the sorted spikes for this unit
 
-            for point in crossing_indices:
-                spike_index = round(point)
+            for crossing_point_index, point in enumerate(crossing_indices):
+                spike_voltage_index = round(point) #index in the voltage data
+
 
                 # Check if the spike belongs to the current unit
-                if unit.sort_spike(index_of_spike=spike_index, voltages=voltages,
+                if unit.sort_spike(spike_voltage_index=spike_voltage_index, index_of_spike=crossing_point_index, voltages=voltages,
                                    amp_time_windows=self.spike_plot.amp_time_windows):
-                    sorted_spikes.append(spike_index)
+                    sorted_spikes.append(spike_voltage_index)
 
             sorted_spikes_by_unit[unit.unit_name] = sorted_spikes
         return sorted_spikes_by_unit
