@@ -8,7 +8,6 @@ from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QVBoxLayout
 from pyqtgraph import PlotWidget
 
-
 from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber
 
 from PyQt5.QtCore import QRectF, QPointF
@@ -72,7 +71,7 @@ class AmpTimeWindow(QGraphicsItem):
         new_y_min = y_center - y_margin
         new_y_max = y_center + y_margin
 
-        return QRectF(self.pos().x()-0.5, new_y_min, 1, new_y_max - new_y_min)
+        return QRectF(self.pos().x() - 0.5, new_y_min, 1, new_y_max - new_y_min)
 
     def y_min(self):
         return self.pos().y() - self.height / 2
@@ -100,7 +99,7 @@ class AmpTimeWindow(QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = int(value.x()*2)/2
+            new_x = int(value.x() * 2) / 2
             new_y = value.y()
 
             if not self.window_update_timer.isActive():
@@ -130,11 +129,11 @@ class CustomPlotWidget(PlotWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and event.modifiers() == Qt.ShiftModifier:
             pos = self.plotItem.vb.mapSceneToView(event.pos())
-            self.parent.addAmpTimeWindow(round(pos.x())/2, pos.y(), 40)
+            self.parent.addAmpTimeWindow(round(pos.x()) / 2, pos.y(), 40)
         super(CustomPlotWidget, self).mousePressEvent(event)
 
     def keyPressEvent(self, event):
-        #propagate keypresses to children
+        # propagate keypresses to children
         for child in self.plotItem.items:
             child.keyPressEvent(event)
 
@@ -144,6 +143,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
     units: List[Unit]
     amp_time_windows: List[AmpTimeWindow]
     spike_scrubber: SpikeScrubber
+
     def __init__(self, data_handler, data_exporter, default_max_spikes=50):
         super(SortSpikePlot, self).__init__(data_handler, data_exporter, default_max_spikes=default_max_spikes)
         self.logical_rules_panel = None
@@ -206,13 +206,14 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     # window.emit_window_updated()
                     self.on_window_adjustments()
 
-    def sort_and_plot_spike(self, start, end, middle, voltages, index_of_spike):
+    def sort_and_plot_spike(self, start, end, middle, voltages, spike_number):
         color = 'r'  # default color
         spike_index_in_voltage = round(middle)  # or however you wish to define this
 
         num_units_matched = 0
         for unit in self.units:
-            if unit.sort_spike(spike_voltage_index=spike_index_in_voltage, index_of_spike=index_of_spike, voltages=voltages, amp_time_windows=self.amp_time_windows):
+            if unit.sort_spike(voltage_index_of_spike=spike_index_in_voltage, spike_number=spike_number,
+                               voltages=voltages, amp_time_windows=self.amp_time_windows):
                 num_units_matched += 1
                 color = unit.color
 
@@ -236,8 +237,9 @@ class SortSpikePlot(ThresholdedSpikePlot):
                 end = min(len(voltages), point + self.spike_window_radius_in_indices)
                 middle = point
                 start_index = self.current_start_index
-                index_of_spike = index_of_crossing + start_index
-                self.sort_and_plot_spike(start, end, middle, voltages, index_of_spike)
+                spike_number = index_of_crossing + start_index
+                # We have to add the start index to the spike number to get the correct spike number in the entire recording
+                self.sort_and_plot_spike(start, end, middle, voltages, spike_number)
         except TypeError:
             pass
 
@@ -285,6 +287,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
     def clear_units(self):
         self.units = []  # Assuming this is your list of units
+
 
 def window_color_generator():
     colors = ['green', 'cyan', 'magenta', 'blue', 'darkGreen', 'darkCyan', 'darkMagenta', 'darkBlue']
