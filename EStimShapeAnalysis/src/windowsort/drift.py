@@ -101,7 +101,6 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
     def update_current_index(self, new_index):
         self.current_index = new_index
         self.update_drawing_and_sorting()
-        print("Current index: ", self.current_index)
 
     def connect_to_spike_scrubber(self):
         self.spike_scrubber.currentIndexChanged.connect(self.update_current_index)

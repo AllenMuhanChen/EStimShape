@@ -66,7 +66,6 @@ class Unit:
 class SortPanel(QWidget):
     unit_panels: List[DropdownUnitPanel]
 
-
     def __init__(self, thresholded_spike_plot, data_exporter, voltage_time_plot: VoltageTimePlot):
         super(SortPanel, self).__init__(thresholded_spike_plot)
         self.spike_plot = thresholded_spike_plot
@@ -138,7 +137,6 @@ class SortPanel(QWidget):
 
             self.legend_layout.addLayout(unit_row_layout)
 
-
     def emit_recalculate_windows(self):
         self.spike_plot.windowUpdated.emit()
 
@@ -146,7 +144,7 @@ class SortPanel(QWidget):
         self.unit_counter += 1
         self.current_color = next(self.unit_colors)
         new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.unit_panels_layout, self.spike_plot,
-                                           self.delete_unit)
+                                   self.delete_unit)
 
         new_unit_panel.populate_with_new_unit()
         self.unit_panels.append(new_unit_panel)
@@ -155,9 +153,7 @@ class SortPanel(QWidget):
         self.unit_counter += 1
         self.current_color = next(self.unit_colors)
         new_unit_panel = UnitPanel(self.unit_counter, self.current_color, self.unit_panels_layout, self.spike_plot,
-                                           self.delete_unit)
-
-
+                                   self.delete_unit)
 
         new_unit_panel.expression = unit.logical_expression
         new_unit_panel.populate_with_existing_unit(unit)
@@ -220,6 +216,18 @@ class SortPanel(QWidget):
 
         self.spike_plot.sortSpikes()
 
+    def clear_all_unitpanels(self):
+        """Delete all units."""
+        to_delete = []
+        for unit_panel in self.unit_panels:
+            to_delete.append(unit_panel)
+        for unit_panel in to_delete:
+            self.delete_unit(unit_panel)
+        self.unit_colors = unit_color_generator()
+        self.unit_counter = 0
+
+
+
     def export_sorted_spikes(self):
         channel = self.spike_plot.current_channel
         sorted_spikes_by_unit = self.sort_all_spikes(channel)
@@ -229,9 +237,10 @@ class SortPanel(QWidget):
 
         # Use the DataExporter to save the sorted spikes
         self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel, extension=file_extension)
-        self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units, self.spike_plot.current_threshold_value, extension=file_extension)
+        self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units,
+                                               self.spike_plot.current_threshold_value, extension=file_extension)
 
-        # Add the load_sorting_config method
+
 
     def query_file_extension(self):
         # Open Input Dialog to get the filename extension
@@ -239,7 +248,6 @@ class SortPanel(QWidget):
 
         if ok and text:
             return text
-
 
     def sort_all_spikes(self, channel):
         voltages = self.spike_plot.data_handler.voltages_by_channel[channel]
@@ -272,8 +280,9 @@ class SortPanel(QWidget):
             self.voltage_time_plot.update_threshold(threshold)
             self.voltage_time_plot.threshold_line.setValue(threshold)
 
+            self.clear_all_unitpanels()
             self.spike_plot.clear_amp_time_windows()
-            self.spike_plot.clearUnits()
+            self.spike_plot.clear_units()
 
             # Add the amp time windows
             for window in config['amp_time_windows']:
@@ -284,9 +293,9 @@ class SortPanel(QWidget):
                 unit = Unit(logical_expression, unit_name, color)
                 self.load_unit(unit)
 
-
             self.spike_plot.updatePlot()
             self.spike_plot.sortSpikes()
+
 
 def unit_color_generator():
     colors = ['pink', 'yellow', 'orange']
@@ -300,7 +309,9 @@ def create_wrapped_label(unit_name_label):
     wrapper.setLayout(wrapper_layout)
     return wrapper
 
+
 from PyQt5.QtWidgets import QLineEdit
+
 
 class UnitPanel:
     """
@@ -339,7 +350,6 @@ class UnitPanel:
         self.populate_unit_panel()  # Add the text box for manually entering expressions
 
         self.parent_layout.addLayout(self.unit_layout)
-
 
     def add_unit_label(self):
         label = QLabel(self.unit.unit_name)
@@ -382,6 +392,7 @@ class UnitPanel:
                 self.unit_layout.removeWidget(widget)
                 widget.deleteLater()
         self.parent_layout.removeItem(self.unit_layout)
+
 
 class DropdownUnitPanel:
     """

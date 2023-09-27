@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         spike_sort_panel = SortPanel(self.spike_plot, self.data_exporter, self.voltage_time_plot)
         spike_sort_layout.insertWidget(0, spike_sort_panel)
         self.spike_plot.set_sort_panel(spike_sort_panel)
+        self.channel_selection_pannel.sort_panel = spike_sort_panel
         # Add more Time-Amp related widgets to spike_sort_layout if needed
 
         # Add the second column layout to the main layout
