@@ -19,11 +19,19 @@ class Unit:
         self.unit_name = unit_name  # Unit identifier, e.g., "Unit 1"
         self.color = color  # Color for the unit, e.g., 'green'
 
-    def sort_spike(self, *, spike_voltage_index, index_of_spike, voltages, amp_time_windows):
+    def sort_spike(self, *, voltage_index_of_spike, spike_number, voltages, amp_time_windows):
+        """
+        
+        :param voltage_index_of_spike: the index in voltage array where the spike occured 
+        :param spike_number: number spike it is in the experiment (e.g., 1st, 2nd, 3rd, etc.)
+        :param voltages: 
+        :param amp_time_windows: 
+        :return: 
+        """
         # Generate a dictionary of window results
         window_results = {}
         for idx, window in enumerate(amp_time_windows):
-            window_results[f'w{idx + 1}'] = window.is_spike_in_window(spike_voltage_index, index_of_spike, voltages)
+            window_results[f'w{idx + 1}'] = window.is_spike_in_window(voltage_index_of_spike, spike_number, voltages)
 
         # Try to evaluate the logical expression
         try:
@@ -264,7 +272,7 @@ class SortPanel(QWidget):
 
 
                 # Check if the spike belongs to the current unit
-                if unit.sort_spike(spike_voltage_index=spike_voltage_index, index_of_spike=crossing_point_index, voltages=voltages,
+                if unit.sort_spike(voltage_index_of_spike=spike_voltage_index, spike_number=crossing_point_index, voltages=voltages,
                                    amp_time_windows=self.spike_plot.amp_time_windows):
                     sorted_spikes.append(spike_voltage_index)
 

@@ -90,7 +90,8 @@ class DataExporter:
         with open(filename, 'wb') as f:
             pickle.dump(existing_data, f)
 
-        print(existing_data)
+        for unit_name, spikes in spikes_by_unit.items():
+            print(f"Saved {len(spikes)} spikes for unit {unit_name} to {filename}")
 
     def save_sorting_config(self, channel, amp_time_windows: List[DriftingAmpTimeWindow], units, threshold, extension=None):
         base_filename = "sorting_config"
