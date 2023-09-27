@@ -72,7 +72,7 @@ class AmpTimeWindow(QGraphicsItem):
         new_y_min = y_center - y_margin
         new_y_max = y_center + y_margin
 
-        return QRectF(self.pos().x() - 1, new_y_min, 2, new_y_max - new_y_min)
+        return QRectF(self.pos().x()-0.5, new_y_min, 1, new_y_max - new_y_min)
 
     def y_min(self):
         return self.pos().y() - self.height / 2
@@ -100,8 +100,8 @@ class AmpTimeWindow(QGraphicsItem):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = int(
-                value.x()) / 2.0  # lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
+            new_x = round(
+                value.x()*2) / 2.0  # lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
             new_y = value.y()  # Keep the y-coordinate as is
 
             if not self.window_update_timer.isActive():
@@ -131,7 +131,7 @@ class CustomPlotWidget(PlotWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and event.modifiers() == Qt.ShiftModifier:
             pos = self.plotItem.vb.mapSceneToView(event.pos())
-            self.parent.addAmpTimeWindow(pos.x(), pos.y(), 40)
+            self.parent.addAmpTimeWindow(round(pos.x())/2, pos.y(), 40)
         super(CustomPlotWidget, self).mousePressEvent(event)
 
     def keyPressEvent(self, event):

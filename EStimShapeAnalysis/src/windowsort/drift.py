@@ -15,7 +15,7 @@ class DriftSpikePlot(SortSpikePlot):
 
     def addAmpTimeWindow(self, x, y, height):
         color = next(self.next_color)
-        new_window = TimeIndexedAmpTimeWindow(x, y, height, color, parent_plot=self, spike_scrubber=self.spike_scrubber)
+        new_window = DriftingAmpTimeWindow(x, y, height, color, parent_plot=self, spike_scrubber=self.spike_scrubber)
 
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
@@ -23,7 +23,7 @@ class DriftSpikePlot(SortSpikePlot):
         self.sortSpikes()
 
 
-class TimeIndexedAmpTimeWindow(AmpTimeWindow):
+class DriftingAmpTimeWindow(AmpTimeWindow):
     current_index: int
 
     def __init__(self, x, y, height, color, parent_plot=None, spike_scrubber=None):
@@ -51,9 +51,8 @@ class TimeIndexedAmpTimeWindow(AmpTimeWindow):
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
-            new_x = int(
-                value.x()) / 2.0  # lock it to ints and divide by 2 to allow for moving one integer at a time (because of weird scaling)
-            new_y = value.y()  # Keep the y-coordinate as is
+            new_x = int(value.x()*2)/2
+            new_y = value.y()
 
             # Find the closest preceding time index to self.current_index
             try:
