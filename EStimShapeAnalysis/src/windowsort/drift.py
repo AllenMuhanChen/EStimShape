@@ -82,14 +82,16 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
 
             # Find the closest preceding time index to self.current_index
             try:
-                closest_time_index = max(k for k in self.time_control_points.keys() if k <= self.current_index)
-
+                # closest_time_index = max(k for k in self.time_control_points.keys() if k <= self.current_index)
+                closest_time_control_point, index = self.closest_proceeding_time_control(self.current_index)
+                print("Changing time_control_point with index: " + str(index))
                 # Update the height, x, and y values at the closest time index
-                self.time_control_points[closest_time_index][
+                closest_time_control_point[
                     'height'] = self.height  # assuming self.height is up-to-date
-                self.time_control_points[closest_time_index]['x'] = new_x
-                self.time_control_points[closest_time_index]['y'] = new_y
+                closest_time_control_point['x'] = new_x
+                closest_time_control_point['y'] = new_y
             except AttributeError:
+                print("AttributeError: itemChange called before init finished?")
                 pass  # itemChange called before init finished?
 
             if not self.window_update_timer.isActive():
@@ -147,3 +149,28 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
 
             # Trigger a re-draw (this calls the paint method)
             self.update()
+
+    def is_spike_in_window(self, spike_voltage_index, index_of_spike, voltages):
+        #convert index_of_spike to ordered index
+        print("is_spike_in_window called with index_of_spike: " + str(index_of_spike))
+        time_control_point, index = self.closest_proceeding_time_control(index_of_spike)
+        print("time_control_point: " + str(time_control_point) + " index: " + str(index))
+        x = time_control_point['x']
+        y = time_control_point['y']
+        height = time_control_point['height']
+
+        sort_x = x*2
+        sort_ymin = y*2 - height / 2
+        sort_ymax = y*2 + height / 2
+
+        offset_index = int(sort_x)
+
+        # Calculate the index in the voltage array to check
+        check_index = spike_voltage_index + offset_index
+
+        # Make sure the index is within bounds
+        if 0 <= check_index < len(voltages):
+            voltage_to_check = voltages[check_index]
+            return sort_ymin <= voltage_to_check <= sort_ymax
+        else:
+            return False

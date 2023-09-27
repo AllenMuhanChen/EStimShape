@@ -83,7 +83,7 @@ class AmpTimeWindow(QGraphicsItem):
     def emit_window_updated(self):
         self.parent_plot.windowUpdated.emit()
 
-    def is_spike_in_window(self, index_of_spike, voltages):
+    def is_spike_in_window(self, spike_voltage_index, index_of_spike, voltages):
         self.calculate_x_y_for_sorting()
 
         offset_index = int(self.sort_x)
@@ -206,18 +206,18 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     # window.emit_window_updated()
                     self.on_window_adjustments()
 
-    def sort_and_plot_spike(self, start, end, middle, voltages):
+    def sort_and_plot_spike(self, start, end, middle, voltages, index_of_spike):
         color = 'r'  # default color
-        spike_index = round(middle)  # or however you wish to define this
+        spike_index_in_voltage = round(middle)  # or however you wish to define this
 
         num_units_matched = 0
         for unit in self.units:
-            if unit.sort_spike(index_of_spike=spike_index, voltages=voltages, amp_time_windows=self.amp_time_windows):
+            if unit.sort_spike(spike_voltage_index=spike_index_in_voltage, index_of_spike=index_of_spike, voltages=voltages, amp_time_windows=self.amp_time_windows):
                 num_units_matched += 1
                 color = unit.color
 
             if num_units_matched > 1:
-                print("Warning: more than one unit matched the spike at index " + str(spike_index))
+                print("Warning: more than one unit matched the spike at index " + str(spike_index_in_voltage))
                 color = 'white'
         super().plot_spike(start, end, middle, voltages, color)
 
@@ -231,12 +231,13 @@ class SortSpikePlot(ThresholdedSpikePlot):
             subset_of_crossing_indices = self.crossing_indices[
                                          self.current_start_index:self.current_start_index + self.current_max_spikes]
 
-            for point in subset_of_crossing_indices:
+            for index_of_crossing, point in enumerate(subset_of_crossing_indices):
                 start = max(0, point - self.spike_window_radius_in_indices)
                 end = min(len(voltages), point + self.spike_window_radius_in_indices)
                 middle = point
-
-                self.sort_and_plot_spike(start, end, middle, voltages)
+                start_index = self.current_start_index
+                index_of_spike = index_of_crossing + start_index
+                self.sort_and_plot_spike(start, end, middle, voltages, index_of_spike)
         except TypeError:
             pass
 

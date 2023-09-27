@@ -42,8 +42,8 @@ def compile_data(*, experiment_name: str, day: date):
     epochs_for_task_ids = map_task_id_to_epochs_with_livenotes(notes_path,
                                                                stim_epochs_from_markers)
 
-    # Collect Sorted Spikes - SPIKE SORTER
-    sorted_spikes = read_pickle(os.path.join(intan_file_path, "sorted_spikes.pkl"))
+    # # Collect Sorted Spikes - SPIKE SORTER
+    # sorted_spikes = read_pickle(os.path.join(intan_file_path, "sorted_spikes.pkl"))
 
     # Collect task Ids
     task_id_collector = PngSlideIdCollector(conn_xper)
@@ -58,13 +58,13 @@ def compile_data(*, experiment_name: str, day: date):
     fields.append(MonkeyNameField(conn_xper=conn_xper, conn_photo=conn_photo))
     fields.append(MonkeyGroupField(conn_xper=conn_xper, conn_photo=conn_photo))
     fields.append(EpochStartStopTimesField(epochs_for_task_ids, sample_rate))
-    fields.append(SortedSpikeTStampField(sorted_spikes, sample_rate, epochs_for_task_ids))
+    # fields.append(SortedSpikeTStampField(sorted_spikes, sample_rate, epochs_for_task_ids))
 
     # Get data
-    data = get_data_from_tasks(fields, task_ids)
+    data = fields.to_data(task_ids)
 
-    # Clean rows with empty SpikeTimes
-    data = data[data['SpikeTimes'].notna()]
+    # Clean rows with empty EpochStartStop
+    data = data[data['EpochStartStop'].notna()]
     save_path = os.path.join(intan_file_path, "compiled.pk1")
     data.to_pickle(save_path)
 
@@ -83,7 +83,7 @@ class EpochStartStopTimesField(TaskField):
             epoch_stop_index = self.epoch_start_stop_by_task_id[task_id][1]
             epoch_start_time = epoch_start_index / self.sample_rate
             epoch_stop_time = epoch_stop_index / self.sample_rate
-            if epoch_start_time - epoch_stop_time < 1:
+            if epoch_stop_time - epoch_start_time < 1:
                 print("Warning, epoch start and stop times are less than 1 second apart.")
             return epoch_start_time, epoch_stop_time
         except KeyError:
