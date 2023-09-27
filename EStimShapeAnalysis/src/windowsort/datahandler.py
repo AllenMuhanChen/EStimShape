@@ -1,6 +1,6 @@
 import os
 import pickle
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np
 from PyQt5.QtWidgets import QFileDialog, QWidget
@@ -9,6 +9,7 @@ from scipy.signal import butter, filtfilt
 from intan.amplifiers import read_amplifier_data
 from intan.channels import Channel
 from intan.rhd import load_intan_rhd_format
+from windowsort.drift import DriftingAmpTimeWindow
 
 
 class DataImporter:
@@ -91,7 +92,7 @@ class DataExporter:
 
         print(existing_data)
 
-    def save_sorting_config(self, channel, amp_time_windows, units, threshold, extension=None):
+    def save_sorting_config(self, channel, amp_time_windows: List[DriftingAmpTimeWindow], units, threshold, extension=None):
         base_filename = "sorting_config"
         if extension is not None:
             filename = base_filename + "_" + extension + ".pkl"
@@ -107,7 +108,7 @@ class DataExporter:
             all_configs = {}
 
         all_configs[channel] = {
-            'amp_time_windows': [(window.sort_x, window.sort_ymin, window.sort_ymax) for window in amp_time_windows],
+            'amp_time_windows': [window.time_control_points for window in amp_time_windows],
             'units': [(unit.logical_expression, unit.unit_name, unit.color) for unit in units],
             'threshold': threshold
         }
