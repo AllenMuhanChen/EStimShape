@@ -282,7 +282,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
         self.amp_time_windows = []
 
-    def clearUnits(self):
+    def clear_units(self):
         self.units = []  # Assuming this is your list of units
 
 def window_color_generator():

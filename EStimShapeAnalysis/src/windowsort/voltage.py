@@ -159,10 +159,11 @@ class TimeScrubber(QWidget):
 
 
 class ChannelSelectionPanel(QWidget):
+    sort_panel = None
     def __init__(self, voltage_time_plot, thresholded_spike_plot):
         super(ChannelSelectionPanel, self).__init__()
         self.voltage_time_plot = voltage_time_plot
-        self.thresholded_spike_plot = thresholded_spike_plot
+        self.spike_plot = thresholded_spike_plot
         self.initUI()
 
     def initUI(self):
@@ -181,10 +182,18 @@ class ChannelSelectionPanel(QWidget):
 
     def onChannelChanged(self):
         selected_channel = Channel(self.channelComboBox.currentText())
+        #CLEAR STUFF:
+        self.spike_plot.clear_units()
+        self.spike_plot.clear_amp_time_windows()
+        self.sort_panel.clear_all_unitpanels()
+
         print("Selected channel: " + selected_channel.value)
         self.voltage_time_plot.current_channel = selected_channel
-        self.thresholded_spike_plot.current_channel = selected_channel
+        self.spike_plot.current_channel = selected_channel
         self.voltage_time_plot.updatePlot()
 
-        self.thresholded_spike_plot.updatePlot()
-        self.thresholded_spike_plot.on_channel_changed()
+        self.spike_plot.updatePlot()
+        self.spike_plot.on_channel_changed()
+
+
+
