@@ -2,7 +2,7 @@ import time
 
 import numpy as np
 from PyQt5 import sip
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSpinBox, QPushButton
 from pyqtgraph import PlotWidget, PlotDataItem
 
@@ -104,11 +104,13 @@ class ThresholdedSpikePlot(QWidget):
 
 
 class SpikeScrubber(QWidget):
+    currentIndexChanged = pyqtSignal(int)
     def __init__(self, thresholdedSpikePlot, default_max_spikes: int = 50):
         super(SpikeScrubber, self).__init__()
         self.spike_plot = thresholdedSpikePlot
         self.current_max_spikes = 50
         self.initUI()
+
 
     def initUI(self):
         layout = QVBoxLayout()
@@ -142,6 +144,7 @@ class SpikeScrubber(QWidget):
         self.slider.setValue(rounded_value)  # This will set the slider to the rounded value
 
         self.spike_plot.current_start_index = self.slider.value()
+        self.currentIndexChanged.emit(self.slider.value())
 
         # This weird double updatePlot is a temp workaround a glitch
         # Where scrubbing through spikes after you've changed or added a lot of windows
