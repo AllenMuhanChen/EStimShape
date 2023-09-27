@@ -11,6 +11,10 @@ def main():
     file_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/2023-09-26/230926_round1/compiled.pk1"
     experiment_name = os.path.basename(os.path.dirname(file_path))
     raw_data = pd.read_pickle(file_path).reset_index(drop=True)
+
+    # TODO: specify which sorting pickle to use and which units to plot, then add them to dataframe
+
+
     for unit, data in raw_data['SpikeTimes'][0].items():
         plot_raster_for_monkeys(raw_data, unit, experiment_name=experiment_name)
     # plt.show()

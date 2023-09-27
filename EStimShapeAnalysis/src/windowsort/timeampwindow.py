@@ -8,7 +8,8 @@ from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import QVBoxLayout
 from pyqtgraph import PlotWidget
 
-from windowsort.spikes import ThresholdedSpikePlot
+
+from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber
 
 from PyQt5.QtCore import QRectF, QPointF
 from PyQt5.QtGui import QColor, QPen
@@ -19,7 +20,7 @@ from windowsort.units import Unit
 
 class AmpTimeWindow(QGraphicsItem):
     def __init__(self, x, y, height, color, parent=None, parent_plot=None):
-        super(AmpTimeWindow, self).__init__(parent)
+        super().__init__(parent)
         self.parent_plot = parent_plot
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
@@ -51,13 +52,6 @@ class AmpTimeWindow(QGraphicsItem):
         self.sort_x = self.pos().x() * 2
         self.sort_ymin = self.pos().y() * 2 - self.height / 2
         self.sort_ymax = self.pos().y() * 2 + self.height / 2
-
-    @staticmethod
-    def sort_x_y_to_draw(sort_x, sort_ymin, sort_ymax):
-        x = sort_x / 2
-        height = sort_ymax - sort_ymin
-        y = (sort_ymin + height / 2) / 2
-        return QPointF(x, y)
 
     def paint(self, painter, option, widget=None):
         """For some reason the drawn x and y locations are ALWAYS a factor of 2 off from
@@ -140,15 +134,21 @@ class CustomPlotWidget(PlotWidget):
             self.parent.addAmpTimeWindow(pos.x(), pos.y(), 40)
         super(CustomPlotWidget, self).mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        #propagate keypresses to children
+        for child in self.plotItem.items:
+            child.keyPressEvent(event)
+
 
 class SortSpikePlot(ThresholdedSpikePlot):
     windowUpdated = pyqtSignal()
     units: List[Unit]
     amp_time_windows: List[AmpTimeWindow]
-
+    spike_scrubber: SpikeScrubber
     def __init__(self, data_handler, data_exporter, default_max_spikes=50):
         super(SortSpikePlot, self).__init__(data_handler, data_exporter, default_max_spikes=default_max_spikes)
         self.logical_rules_panel = None
+        self.spike_scrubber = None
         self.units = []
         self.amp_time_windows = []
         self.next_color = window_color_generator()
@@ -178,13 +178,14 @@ class SortSpikePlot(ThresholdedSpikePlot):
     def addAmpTimeWindow(self, x, y, height):
         color = next(self.next_color)
         new_window = AmpTimeWindow(x, y, height, color, parent_plot=self)
+
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
         self.update_dropdowns()
         self.sortSpikes()
 
     def keyPressEvent(self, event):
-        if event.key() in (Qt.Key_Backspace, Qt.Key_Delete):
+        if event.key() == Qt.Key_Delete:
             for window in self.amp_time_windows:
                 if window.isSelected():
                     self.plotWidget.removeItem(window)
@@ -236,7 +237,6 @@ class SortSpikePlot(ThresholdedSpikePlot):
                 end = min(len(voltages), point + self.spike_window_radius_in_indices)
                 middle = point
 
-                # Here, we'll use the custom plot_spike_with_color method to plot the spike
                 self.sort_and_plot_spike(start, end, middle, voltages)
         except TypeError:
             pass

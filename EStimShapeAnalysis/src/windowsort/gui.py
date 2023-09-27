@@ -3,6 +3,7 @@ import sys
 import os
 
 from windowsort.datahandler import DataImporter, DataExporter
+from windowsort.drift import DriftSpikePlot
 from windowsort.timeampwindow import SortSpikePlot
 from windowsort.units import SortPanel
 from windowsort.voltage import VoltageTimePlot, TimeScrubber, ChannelSelectionPanel, ThresholdControlPanel
@@ -44,11 +45,12 @@ class MainWindow(QMainWindow):
 
         # Spike Plot
         default_max_spikes = 50
-        self.spike_plot = SortSpikePlot(self.data_handler, self.data_exporter, default_max_spikes=default_max_spikes)
+        self.spike_plot = DriftSpikePlot(self.data_handler, self.data_exporter, default_max_spikes=default_max_spikes)
         spike_plot_layout.addWidget(self.spike_plot)
         self.voltage_time_plot.spike_plot = self.spike_plot
         self.spike_scrubber = SpikeScrubber(self.spike_plot, default_max_spikes=default_max_spikes)
         spike_plot_layout.addWidget(self.spike_scrubber)
+        self.spike_plot.spike_scrubber = self.spike_scrubber
 
         # Exporting
         self.export_panel = ExportPanel(self.data_exporter)
