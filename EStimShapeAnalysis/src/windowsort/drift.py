@@ -62,6 +62,9 @@ class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
 
     def keyPressEvent(self, event):
         super().keyPressEvent(event)
+
+        dx = 1
+        dy = 2
         if self.isSelected():
             if event.key() == Qt.Key_Up:
                 self.height += 2  # Increase height when the Up arrow key is pressed
@@ -76,6 +79,15 @@ class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
                 if self.current_spike_number != 0:
                     self.remove_time_control_point()
                 # Redraw the item to reflect the new height
+            elif event.key() == Qt.Key_W:
+                self.moveBy(0, dy)
+            elif event.key() == Qt.Key_S:
+                self.moveBy(0, -dy)
+            elif event.key() == Qt.Key_A:
+                self.moveBy(-dx, 0)
+            elif event.key() == Qt.Key_D:
+                self.moveBy(dx, 0)
+
             self.update()
             self.update_control_point(self.x(), self.y())
             # Emit the signal to update the plot
@@ -83,6 +95,7 @@ class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
 
 
     def itemChange(self, change, value):
+        print("itemChange called")
         if change == QGraphicsItem.ItemPositionChange:
             new_x = int(value.x() * 2) / 2
             new_y = value.y()
