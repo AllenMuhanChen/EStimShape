@@ -12,7 +12,7 @@ from windowsort.units import Unit, SortPanel
 
 
 class SnapshotPlot(ThresholdedSpikePlot):
-    def __init__(self, data_handler, data_exporter, sort_panel: SortPanel, default_max_spikes=50):
+    def __init__(self, data_handler, data_exporter, sort_panel: SortPanel, default_max_spikes=200):
         super(SnapshotPlot, self).__init__(data_handler, data_exporter, default_max_spikes=default_max_spikes)
 
         # Reference to SortPanel for accessing sort_all_spikes method and units
@@ -48,7 +48,6 @@ class SnapshotPlot(ThresholdedSpikePlot):
         self.save_plot_button = QPushButton('Save Plot')
         self.save_plot_button.clicked.connect(self.save_plot)
         self.layout().addWidget(self.save_plot_button)
-
 
     def updateUnitControl(self):
         # Remove old checkboxes from the layout if they exist
@@ -89,8 +88,6 @@ class SnapshotPlot(ThresholdedSpikePlot):
         self.legend.clear()
         self.units_in_legend.clear()
 
-    import random
-
     def plot_spikes_for_unit(self, unit, spike_indices):
         # Fetch the color for this unit; could be dynamically assigned or fetched from the unit object
         color = unit.color
@@ -101,8 +98,7 @@ class SnapshotPlot(ThresholdedSpikePlot):
 
         # Check if the number of spikes exceeds max_spikes, and if so, sample randomly
 
-        if len(spike_indices) > self.current_max_spikes:
-            spike_indices = random.sample(spike_indices, self.current_max_spikes)
+        spike_indices = self.subsample_spikes(spike_indices)
 
         # Loop through each spike index and plot the corresponding voltage trace
         for spike_index in spike_indices:
@@ -125,10 +121,15 @@ class SnapshotPlot(ThresholdedSpikePlot):
                 self.legend.addItem(plot_item, unit.unit_name)
                 self.units_in_legend.add(unit.unit_name)
 
+    def subsample_spikes(self, spike_indices):
+        total_spikes = len(spike_indices)
+        if total_spikes > self.current_max_spikes:
+            step_size = total_spikes // self.current_max_spikes
+            spike_indices = spike_indices[::step_size][:self.current_max_spikes]
+        return spike_indices
+
     def toggle_unit_visibility(self):
         self.update_unit_visibility()
-
-
 
     def update_unit_visibility(self):
         # Loop through checkboxes to find which units should be visible
@@ -185,7 +186,7 @@ class SnapshotPlot(ThresholdedSpikePlot):
     def save_plot(self):
         # Generate the filename based on selected units
         selected_units = [unit.unit_name for unit in self.units if self.unit_is_visible(unit.unit_name)]
-        filename = "spike_snapshot_"+'_'.join(selected_units) + '.png'
+        filename = "spike_snapshot_" + '_'.join(selected_units) + '.png'
 
         # Combine with the save_directory from data_exporter
         full_path = os.path.join(self.data_exporter.save_directory, filename)
@@ -193,4 +194,3 @@ class SnapshotPlot(ThresholdedSpikePlot):
         # Save the plot
         exporter = pyqtgraph.exporters.ImageExporter(self.plotWidget.plotItem)
         exporter.export(full_path)
-
