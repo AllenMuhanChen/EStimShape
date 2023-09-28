@@ -13,8 +13,8 @@ matplotlib.use("Qt5Agg")
 
 def main():
     date = "2023-09-26"
-    round = "230926_round1"
-    sorted_spikes_filename = "sorted_spikes_triphasic_only.pkl"
+    round = "230926_round2"
+    sorted_spikes_filename = "sorted_spikes.pkl"
 
     cortana_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana"
     round_path = os.path.join(cortana_path, date, round)
@@ -75,7 +75,7 @@ def calculate_spike_timestamps(df: pd.DataFrame, spike_indices_by_unit_by_channe
 def extract_target_unit_data(unit, data):
     # Get SpikeTimes for channel
     unit_data = data.copy()
-    unit_data[f'SpikeTimes_{unit}'] = data['SpikeTimes'].apply(lambda x: x[unit])
+    unit_data[f'SpikeTimes_{unit}'] = data['SpikeTimes'].apply(lambda x: x[unit] if unit in x else [])
     return unit_data
 
 
@@ -112,7 +112,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
                 filtered_spike_times_list.append(filtered_spike_times)
 
             ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.5)
-            ax.set_xlim(0, 1.0)
+            ax.set_xlim(0, 2.0)
             ax.set_yticks([len(filtered_spike_times_list)])
             # Place the title text to the right of the subplot
             ax.text(1.05, 0.5, f"{monkey_name}", transform=ax.transAxes, ha='left', va='center', fontsize=14)
