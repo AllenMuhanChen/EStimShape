@@ -1,6 +1,7 @@
 import random
 
 import numpy as np
+from PyQt5 import sip
 from PyQt5.QtWidgets import QCheckBox, QSlider, QLabel, QLineEdit, QPushButton
 from pyqtgraph import PlotDataItem
 
@@ -16,6 +17,7 @@ class SnapshotPlot(ThresholdedSpikePlot):
         self.sort_panel = sort_panel
 
         self.unit_visibility = {}
+        self.plotItemsByUnit = {}
         self.unit_checkboxes = []
 
         # Additional UI elements for SnapshotPlot
@@ -63,9 +65,6 @@ class SnapshotPlot(ThresholdedSpikePlot):
         # Fetch sorted spikes using sort_all_spikes from SortPanel
         channel = self.sort_panel.spike_plot.current_channel
         sorted_spikes = self.sort_panel.sort_all_spikes(channel)
-        print(sorted_spikes)
-        # Clear the existing plot
-        self.clear_plot()
 
         # Loop through sorted spikes and plot them
         for unit in self.units:
@@ -85,6 +84,7 @@ class SnapshotPlot(ThresholdedSpikePlot):
         voltages = self.data_handler.voltages_by_channel[channel]
 
         # Check if the number of spikes exceeds max_spikes, and if so, sample randomly
+
         if len(spike_indices) > self.current_max_spikes:
             spike_indices = random.sample(spike_indices, self.current_max_spikes)
 
@@ -100,15 +100,12 @@ class SnapshotPlot(ThresholdedSpikePlot):
             # Create and add a PlotDataItem
             plot_item = PlotDataItem(x_axis, voltages[start:end], pen=color)
             self.plotWidget.addItem(plot_item)
-
-            # Keep track of PlotDataItems if necessary
-            self.plotItems.append(plot_item)
+            if unit.unit_name not in self.plotItemsByUnit:
+                self.plotItemsByUnit[unit.unit_name] = []
+            self.plotItemsByUnit[unit.unit_name].append(plot_item)
 
     def toggle_unit_visibility(self):
         self.update_unit_visibility()
-
-        # Update the plot based on new visibility settings
-        self.updateSnapshotPlot()
 
     def update_unit_visibility(self):
         # Loop through checkboxes to find which units should be visible
@@ -119,7 +116,14 @@ class SnapshotPlot(ThresholdedSpikePlot):
             else:
                 self.set_unit_hidden(unit_name)
 
+        for unit_name, plot_items in self.plotItemsByUnit.items():
+            is_visible = self.unit_is_visible(unit_name)
+            for plot in plot_items:
+                print("Setting plot visibility to", is_visible)
+                plot.setVisible(is_visible)
+
     def set_max_spikes(self):
+
         # Get the current max_spikes value from the textbox
         try:
             max_spikes = int(self.max_spikes_textbox.text())
@@ -131,7 +135,13 @@ class SnapshotPlot(ThresholdedSpikePlot):
         self.current_max_spikes = max_spikes  # or some other appropriate action
 
         # Update the plot to reflect this new max_spikes value
+        self.clear_plot()
         self.updateSnapshotPlot()
+
+    def clear_plot(self):
+        for item in self.plotWidget.items():
+            self.plotWidget.removeItem(item)
+        self.plotItemsByUnit.clear()
 
     def unit_is_visible(self, unit_name):
         return self.unit_visibility.get(unit_name, False)
@@ -141,3 +151,4 @@ class SnapshotPlot(ThresholdedSpikePlot):
 
     def set_unit_hidden(self, unit_name):
         self.unit_visibility[unit_name] = False
+
