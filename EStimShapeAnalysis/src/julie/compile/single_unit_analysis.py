@@ -13,7 +13,7 @@ matplotlib.use("Qt5Agg")
 
 def main():
     date = "2023-09-26"
-    round = "230926_round2"
+    round = "230926_round3"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
     cortana_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana"
@@ -21,7 +21,6 @@ def main():
     compiled_trials_filepath = os.path.join(round_path, "compiled.pk1")
     experiment_name = os.path.basename(os.path.dirname(compiled_trials_filepath))
     raw_trial_data = pd.read_pickle(compiled_trials_filepath).reset_index(drop=True)
-
 
     # TODO: specify which sorting pickle to use and which units to plot, then add them to dataframe
     rhd_file_path = os.path.join(round_path, "info.rhd")
@@ -52,25 +51,26 @@ def calculate_spike_timestamps(df: pd.DataFrame, spike_indices_by_unit_by_channe
         epoch_start, epoch_stop = epoch_start_stop
         spikes_tstamps_by_unit = {}
 
-        for channel, spike_indices_by_unit in spike_indices_by_unit_by_channel.items():
+        for channel, spike_indices_by_unit in reversed(spike_indices_by_unit_by_channel.items()):
             for unit_name, spike_indices in spike_indices_by_unit.items():
                 new_unit_name = f"{channel}_{unit_name}"
 
                 # Filter and convert spike indices to timestamps
                 spike_times = [spike_index / sample_rate for spike_index in spike_indices]
+                valid_spike_times = []
                 valid_spike_times = [
                     spike_time
                     for spike_time in spike_times
                     if epoch_start <= spike_time < epoch_stop
                 ]
 
-                if valid_spike_times:
-                    spikes_tstamps_by_unit[new_unit_name] = valid_spike_times
+                spikes_tstamps_by_unit[new_unit_name] = valid_spike_times
 
         return spikes_tstamps_by_unit
 
     df['SpikeTimes'] = df['EpochStartStop'].apply(single_row_calculation)
     return df
+
 
 def extract_target_unit_data(unit, data):
     # Get SpikeTimes for channel
