@@ -59,7 +59,7 @@ class DataExporter:
     def update_thresholded_spikes(self, channel, thresholded_spike_indices):
         self.thresholded_spike_indices_by_channel[channel] = thresholded_spike_indices
 
-    def export_data(self):
+    def save_thresholded_spikes(self):
         filename = os.path.join(self.save_directory, "thresholded_spikes.pkl")
         with open(filename, 'wb') as f:
             pickle.dump(self.thresholded_spike_indices_by_channel, f)
