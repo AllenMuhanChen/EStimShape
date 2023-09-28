@@ -9,7 +9,7 @@ from scipy.signal import butter, filtfilt
 from intan.amplifiers import read_amplifier_data
 from intan.channels import Channel
 from intan.rhd import load_intan_rhd_format
-from windowsort.drift import DriftingTimeAmpWindow
+from windowsort.drift import DriftingTimeAmplitudeWindow
 
 
 class DataImporter:
@@ -93,7 +93,7 @@ class DataExporter:
         for unit_name, spikes in spikes_by_unit.items():
             print(f"Saved {len(spikes)} spikes for unit {unit_name} to {filename}")
 
-    def save_sorting_config(self, channel, amp_time_windows: List[DriftingTimeAmpWindow], units, threshold, extension=None):
+    def save_sorting_config(self, channel, amp_time_windows: List[DriftingTimeAmplitudeWindow], units, threshold, extension=None):
         base_filename = "sorting_config"
         if extension is not None:
             filename = base_filename + "_" + extension + ".pkl"
