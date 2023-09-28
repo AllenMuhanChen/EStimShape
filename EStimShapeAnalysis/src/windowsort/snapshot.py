@@ -1,10 +1,12 @@
+import os
 import random
 
 import numpy as np
+import pyqtgraph
 from PyQt5 import sip
 from PyQt5.QtWidgets import QCheckBox, QSlider, QLabel, QLineEdit, QPushButton
 from pyqtgraph import PlotDataItem
-
+from pyqtgraph.exporters import ImageExporter
 from windowsort.spikes import ThresholdedSpikePlot
 from windowsort.units import Unit, SortPanel
 
@@ -22,6 +24,8 @@ class SnapshotPlot(ThresholdedSpikePlot):
 
         # Additional UI elements for SnapshotPlot
         self.initSnapshotUI()
+        self.units_in_legend = set()
+        self.legend = self.plotWidget.addLegend(offset=(-30, 5))
 
     def initSnapshotUI(self):
 
@@ -29,15 +33,22 @@ class SnapshotPlot(ThresholdedSpikePlot):
         self.updateUnitControl()
 
         # Create an 'Update Plot' button
-        self.update_plot_button = QPushButton('Update Plot')
+        self.update_plot_button = QPushButton('Update Snapshot Plot')
         self.update_plot_button.clicked.connect(self.updateSnapshotPlot)
         self.layout().addWidget(self.update_plot_button)
 
         # Placeholder for max spikes control as a QLineEdit (textbox)
         self.max_spikes_textbox = QLineEdit()
         self.max_spikes_textbox.editingFinished.connect(self.set_max_spikes)
+        self.max_spikes_textbox.setText(str(self.current_max_spikes))
         self.layout().addWidget(QLabel("Max Spikes:"))
         self.layout().addWidget(self.max_spikes_textbox)
+
+        # Add Save Plot button
+        self.save_plot_button = QPushButton('Save Plot')
+        self.save_plot_button.clicked.connect(self.save_plot)
+        self.layout().addWidget(self.save_plot_button)
+
 
     def updateUnitControl(self):
         # Remove old checkboxes from the layout if they exist
@@ -59,6 +70,7 @@ class SnapshotPlot(ThresholdedSpikePlot):
             self.unit_checkboxes.append(checkbox)
 
     def updateSnapshotPlot(self):
+        self.clear_legend()
         self.updateUnitControl()
         self.update_unit_visibility()
         print("Updating Snapshot Plot")
@@ -72,6 +84,10 @@ class SnapshotPlot(ThresholdedSpikePlot):
             spikes = sorted_spikes[unit_name]
             if self.unit_is_visible(unit_name):  # Check if this unit is supposed to be visible
                 self.plot_spikes_for_unit(unit, spikes)
+
+    def clear_legend(self):
+        self.legend.clear()
+        self.units_in_legend.clear()
 
     import random
 
@@ -104,8 +120,15 @@ class SnapshotPlot(ThresholdedSpikePlot):
                 self.plotItemsByUnit[unit.unit_name] = []
             self.plotItemsByUnit[unit.unit_name].append(plot_item)
 
+            # Add this unit to the legend only if it's not already there
+            if unit.unit_name not in self.units_in_legend:
+                self.legend.addItem(plot_item, unit.unit_name)
+                self.units_in_legend.add(unit.unit_name)
+
     def toggle_unit_visibility(self):
         self.update_unit_visibility()
+
+
 
     def update_unit_visibility(self):
         # Loop through checkboxes to find which units should be visible
@@ -119,8 +142,15 @@ class SnapshotPlot(ThresholdedSpikePlot):
         for unit_name, plot_items in self.plotItemsByUnit.items():
             is_visible = self.unit_is_visible(unit_name)
             for plot in plot_items:
-                print("Setting plot visibility to", is_visible)
                 plot.setVisible(is_visible)
+
+                # Update the legend
+                if is_visible and unit_name not in self.units_in_legend:
+                    self.legend.addItem(plot_items[0], unit_name)  # Assuming at least one plot_item exists
+                    self.units_in_legend.add(unit_name)
+                elif not is_visible and unit_name in self.units_in_legend:
+                    self.legend.removeItem(unit_name)
+                    self.units_in_legend.remove(unit_name)
 
     def set_max_spikes(self):
 
@@ -151,4 +181,16 @@ class SnapshotPlot(ThresholdedSpikePlot):
 
     def set_unit_hidden(self, unit_name):
         self.unit_visibility[unit_name] = False
+
+    def save_plot(self):
+        # Generate the filename based on selected units
+        selected_units = [unit.unit_name for unit in self.units if self.unit_is_visible(unit.unit_name)]
+        filename = "spike_snapshot_"+'_'.join(selected_units) + '.png'
+
+        # Combine with the save_directory from data_exporter
+        full_path = os.path.join(self.data_exporter.save_directory, filename)
+
+        # Save the plot
+        exporter = pyqtgraph.exporters.ImageExporter(self.plotWidget.plotItem)
+        exporter.export(full_path)
 
