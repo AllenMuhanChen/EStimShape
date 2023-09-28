@@ -187,4 +187,4 @@ class ExportPanel(QWidget):
         self.setLayout(layout)
 
     def onExportClicked(self):
-        self.data_exporter.export_data()
+        self.data_exporter.save_thresholded_spikes()
