@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QGraphicsItem
 from windowsort.units import Unit
 
 
-class TimeAmpWindow(QGraphicsItem):
+class TimeAmplitudeWindow(QGraphicsItem):
     def __init__(self, x, y, height, color, parent=None, parent_plot=None):
         super().__init__(parent)
         self.parent_plot = parent_plot
@@ -106,7 +106,7 @@ class TimeAmpWindow(QGraphicsItem):
                 self.window_update_timer.start(100)  # emit_window_updated will be called after 100 ms
 
             return QPointF(new_x, new_y)
-        return super(TimeAmpWindow, self).itemChange(change, value)
+        return super(TimeAmplitudeWindow, self).itemChange(change, value)
 
     def keyPressEvent(self, event):
         if self.isSelected():
@@ -141,7 +141,7 @@ class CustomPlotWidget(PlotWidget):
 class SortSpikePlot(ThresholdedSpikePlot):
     windowUpdated = pyqtSignal()
     units: List[Unit]
-    amp_time_windows: List[TimeAmpWindow]
+    amp_time_windows: List[TimeAmplitudeWindow]
     spike_scrubber: SpikeScrubber
 
     def __init__(self, data_handler, data_exporter, default_max_spikes=50):
@@ -176,7 +176,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
     def addAmpTimeWindow(self, x, y, height):
         color = next(self.next_color)
-        new_window = TimeAmpWindow(x, y, height, color, parent_plot=self)
+        new_window = TimeAmplitudeWindow(x, y, height, color, parent_plot=self)
 
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
