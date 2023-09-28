@@ -31,7 +31,7 @@ class TimeAmplitudeWindow(QGraphicsItem):
 
         self.height = height  # Height of the line
         self.color = color  # Color of the line
-        self.setZValue(1)
+        self.setZValue(1) # We want this drawing to be on top of everything else
 
         self.pen = QPen(QColor(self.color))
         self.pen.setWidthF(0.25)
@@ -48,15 +48,16 @@ class TimeAmplitudeWindow(QGraphicsItem):
         self.calculate_x_y_for_sorting()
 
     def calculate_x_y_for_sorting(self):
+        """For some reason the drawn x and y locations are ALWAYS a factor of 2 off from
+            the x and y location our mouse is on the plot. I have no idea why.
+
+            To correct for this, we take the drawn locations and multiply by two to correct for this. """
+
         self.sort_x = self.pos().x() * 2
         self.sort_ymin = self.pos().y() * 2 - self.height / 2
         self.sort_ymax = self.pos().y() * 2 + self.height / 2
 
     def paint(self, painter, option, widget=None):
-        """For some reason the drawn x and y locations are ALWAYS a factor of 2 off from
-        the x and y location our mouse is on the plot. I have no idea why.
-
-        To correct for this, we take the drawn locations and multiply by two to correct for this. """
         y_min = self.pos().y() - self.height / 2
         y_max = self.pos().y() + self.height / 2
 
@@ -111,10 +112,10 @@ class TimeAmplitudeWindow(QGraphicsItem):
     def keyPressEvent(self, event):
         if self.isSelected():
             if event.key() == Qt.Key_Up:
-                self.height += 1  # Increase height when the Up arrow key is pressed
+                self.height += 5  # Increase height when the Up arrow key is pressed
             elif event.key() == Qt.Key_Down:
                 self.height = max(1,
-                                  self.height - 1)  # Decrease height when the Down arrow key is pressed, with a minimum limit
+                                  self.height - 5)  # Decrease height when the Down arrow key is pressed, with a minimum limit
             # Redraw the item to reflect the new height
             self.update()
             # Emit the signal to update the plot
@@ -192,19 +193,20 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     self.on_window_adjustments()
                     self.update_dropdowns()
                     break  # Assuming only one item can be selected at a time
-        elif event.key() in (Qt.Key_Up, Qt.Key_Down):
-            for window in self.amp_time_windows:
-                if window.isSelected():
-                    if event.key() == Qt.Key_Up:
-                        window.height += 5  # Increase height when the Up arrow key is pressed
-                    elif event.key() == Qt.Key_Down:
-                        window.height = max(5,
-                                            window.height - 5)  # Decrease height when the Down arrow key is pressed, with a minimum limit
-                    # Redraw the item to reflect the new height
-                    window.update()
-                    # Emit the signal to update the plot
-                    # window.emit_window_updated()
-                    self.on_window_adjustments()
+        # elif event.key() in (Qt.Key_Up, Qt.Key_Down):
+        #     for window in self.amp_time_windows:
+        #         if window.isSelected():
+        #             if event.key() == Qt.Key_Up:
+        #                 window.height += 5  # Increase height when the Up arrow key is pressed
+        #             elif event.key() == Qt.Key_Down:
+        #                 window.height = max(5,
+        #                                     window.height - 5)  # Decrease height when the Down arrow key is pressed, with a minimum limit
+        #             # Redraw the item to reflect the new height
+        #             window.update()
+        #             self.update()
+        #             # Emit the signal to update the plot
+        #             # window.emit_window_updated()
+        #             self.on_window_adjustments()
 
     def sort_and_plot_spike(self, start, end, middle, voltages, spike_number):
         color = 'r'  # default color
