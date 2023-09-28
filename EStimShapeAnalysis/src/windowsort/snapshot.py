@@ -33,7 +33,7 @@ class SnapshotPlot(ThresholdedSpikePlot):
 
         # Placeholder for max spikes control as a QLineEdit (textbox)
         self.max_spikes_textbox = QLineEdit()
-        self.max_spikes_textbox.textEdited.connect(self.set_max_spikes)
+        self.max_spikes_textbox.editingFinished.connect(self.set_max_spikes)
         self.layout().addWidget(QLabel("Max Spikes:"))
         self.layout().addWidget(self.max_spikes_textbox)
 
@@ -81,7 +81,8 @@ class SnapshotPlot(ThresholdedSpikePlot):
         color = unit.color
 
         # Fetch the voltages for the current channel
-        voltages = self.data_handler.voltages_by_channel[self.current_channel]
+        channel = self.sort_panel.spike_plot.current_channel
+        voltages = self.data_handler.voltages_by_channel[channel]
 
         # Check if the number of spikes exceeds max_spikes, and if so, sample randomly
         if len(spike_indices) > self.current_max_spikes:
