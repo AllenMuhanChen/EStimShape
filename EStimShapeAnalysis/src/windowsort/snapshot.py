@@ -70,6 +70,7 @@ class SnapshotPlot(ThresholdedSpikePlot):
 
     def updateSnapshotPlot(self):
         self.clear_legend()
+        self.clear_plot()
         self.updateUnitControl()
         self.update_unit_visibility()
         print("Updating Snapshot Plot")
@@ -185,8 +186,9 @@ class SnapshotPlot(ThresholdedSpikePlot):
 
     def save_plot(self):
         # Generate the filename based on selected units
+        channel_name = str(self.sort_panel.spike_plot.current_channel)
         selected_units = [unit.unit_name for unit in self.units if self.unit_is_visible(unit.unit_name)]
-        filename = "spike_snapshot_" + '_'.join(selected_units) + '.png'
+        filename = channel_name + "_spike_snapshot_" + '_'.join(selected_units) + '.png'
 
         # Combine with the save_directory from data_exporter
         full_path = os.path.join(self.data_exporter.save_directory, filename)

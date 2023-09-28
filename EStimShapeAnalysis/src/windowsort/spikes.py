@@ -64,7 +64,7 @@ class ThresholdedSpikePlot(QWidget):
             self.plot_spike(start, end, middle, voltages)
 
         # Set the y-limits of the plot
-        self.set_y_axis_limits()
+        self.set_axis_limits()
 
     def threshold_spikes(self, threshold_value):
         self.current_threshold_value = threshold_value
@@ -77,9 +77,10 @@ class ThresholdedSpikePlot(QWidget):
             sip.delete(item) #delete from C++ memory
         self.plotItems.clear()
 
-    def set_y_axis_limits(self):
+    def set_axis_limits(self):
         if self.min_max_voltage[0] != np.inf and self.min_max_voltage[1] != -np.inf:
             self.plotWidget.setYRange(self.min_max_voltage[0], self.min_max_voltage[1])
+        self.plotWidget.setXRange(-self.spike_window_radius_in_indices, self.spike_window_radius_in_indices)
 
     def plot_spike(self, start, end, middle, voltages, color='r'):
         x_axis = np.arange(start, end)

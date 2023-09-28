@@ -258,7 +258,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         self.sortSpikes()
 
         # Set the y-limits of the plot
-        self.set_y_axis_limits()
+        self.set_axis_limits()
 
     def set_sort_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
