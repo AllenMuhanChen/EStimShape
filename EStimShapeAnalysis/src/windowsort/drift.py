@@ -2,7 +2,7 @@ from PyQt5.QtCore import pyqtSlot, QPointF, Qt
 from PyQt5.QtWidgets import QGraphicsItem
 
 from windowsort.spikes import SpikeScrubber
-from windowsort.timeampwindow import AmpTimeWindow, SortSpikePlot
+from windowsort.timeampwindow import TimeAmpWindow, SortSpikePlot
 
 
 class DriftSpikePlot(SortSpikePlot):
@@ -15,7 +15,7 @@ class DriftSpikePlot(SortSpikePlot):
 
     def addAmpTimeWindow(self, x, y, height):
         color = next(self.next_color)
-        new_window = DriftingAmpTimeWindow(x, y, height, color, parent_plot=self, spike_scrubber=self.spike_scrubber)
+        new_window = DriftingTimeAmpWindow(x, y, height, color, parent_plot=self, spike_scrubber=self.spike_scrubber)
 
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
@@ -24,15 +24,15 @@ class DriftSpikePlot(SortSpikePlot):
 
     def loadAmpTimeWindow(self, time_control_points):
         color = next(self.next_color)
-        new_window = DriftingAmpTimeWindow.create_from_time_control_points(time_control_points, color, parent_plot=self,
-                                                                          spike_scrubber=self.spike_scrubber)
+        new_window = DriftingTimeAmpWindow.create_from_time_control_points(time_control_points, color, parent_plot=self,
+                                                                           spike_scrubber=self.spike_scrubber)
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
         self.update_dropdowns()
         self.sortSpikes()
 
 
-class DriftingAmpTimeWindow(AmpTimeWindow):
+class DriftingTimeAmpWindow(TimeAmpWindow):
     current_spike_number: int
 
     def __init__(self, x, y, height, color, parent_plot=None, spike_scrubber=None):
@@ -58,7 +58,7 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
         first_x = first_control_point['x']
         first_y = first_control_point['y']
         first_height = first_control_point['height']
-        new_window = DriftingAmpTimeWindow(first_x, first_y, first_height, color, parent_plot=parent_plot,
+        new_window = DriftingTimeAmpWindow(first_x, first_y, first_height, color, parent_plot=parent_plot,
                                            spike_scrubber=spike_scrubber)
         new_window.time_control_points = time_control_points
 
@@ -95,7 +95,7 @@ class DriftingAmpTimeWindow(AmpTimeWindow):
                 self.window_update_timer.start(100)  # emit_window_updated will be called after 100 ms
 
             return QPointF(new_x, new_y)
-        return super(AmpTimeWindow, self).itemChange(change, value)
+        return super(TimeAmpWindow, self).itemChange(change, value)
 
     def update_current_spike_number(self, new_spike_number):
         self.current_spike_number = new_spike_number
