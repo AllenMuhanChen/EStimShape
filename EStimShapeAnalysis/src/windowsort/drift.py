@@ -50,10 +50,6 @@ class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
     @staticmethod
     def create_from_time_control_points(time_control_points, color, parent_plot=None, spike_scrubber=None):
         # Create a new DriftingAmpTimeWindow from a dictionary of time_control_points
-        # time_control_points: {index: {'height': height, 'x': x, 'y': y}}
-        # parent_plot: the parent plot of the new window
-        # spike_scrubber: the spike scrubber to connect to
-        # Returns: a new DriftingAmpTimeWindow
         first_control_point = time_control_points[0]
         first_x = first_control_point['x']
         first_y = first_control_point['y']
@@ -67,35 +63,49 @@ class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
     def keyPressEvent(self, event):
         super().keyPressEvent(event)
         if self.isSelected():
-            if event.key() == Qt.Key_Space:
+            if event.key() == Qt.Key_Up:
+                self.height += 2  # Increase height when the Up arrow key is pressed
+            elif event.key() == Qt.Key_Down:
+                self.height = max(1,
+                                  self.height - 2)  # Decrease height when the Down arrow key is pressed, with a minimum limit
+            elif event.key() == Qt.Key_Space:
                 # Create a new time_control_point with the current attributes
                 self.add_time_control_point()
                 print("Added time control point at spike_number {}".format(self.current_spike_number))
             elif event.key() == Qt.Key_Backspace:
                 if self.current_spike_number != 0:
                     self.remove_time_control_point()
+                # Redraw the item to reflect the new height
+            self.update()
+            self.update_control_point(self.x(), self.y())
+            # Emit the signal to update the plot
+            self.emit_window_updated()
+
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
             new_x = int(value.x() * 2) / 2
             new_y = value.y()
 
-            try:
-                closest_time_control_point, spike_number = self.closest_proceeding_time_control(self.current_spike_number)
-                # Update the height, x, and y values at the closest time index
-                closest_time_control_point[
-                    'height'] = self.height  # assuming self.height is up-to-date
-                closest_time_control_point['x'] = new_x
-                closest_time_control_point['y'] = new_y
-            except AttributeError:
-                print("AttributeError: itemChange called before init finished?")
-                pass  # itemChange called before init finished?
+            self.update_control_point(new_x, new_y)
 
             if not self.window_update_timer.isActive():
                 self.window_update_timer.start(100)  # emit_window_updated will be called after 100 ms
 
             return QPointF(new_x, new_y)
         return super(TimeAmplitudeWindow, self).itemChange(change, value)
+
+    def update_control_point(self, x, y):
+        try:
+            closest_time_control_point, spike_number = self.closest_proceeding_time_control(self.current_spike_number)
+            # Update the height, x, and y values at the closest time index
+            closest_time_control_point[
+                'height'] = self.height  # assuming self.height is up-to-date
+            closest_time_control_point['x'] = x
+            closest_time_control_point['y'] = y
+        except AttributeError:
+            print("AttributeError: itemChange called before init finished?")
+            pass  # itemChange called before init finished?
 
     def update_current_spike_number(self, new_spike_number):
         self.current_spike_number = new_spike_number
