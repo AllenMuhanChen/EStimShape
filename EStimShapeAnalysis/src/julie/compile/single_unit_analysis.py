@@ -12,8 +12,8 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    date = "2023-09-26"
-    round = "230926_round3"
+    date = "2023-09-29"
+    round = "230929_round2"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
     cortana_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana"
@@ -112,7 +112,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
                 filtered_spike_times_list.append(filtered_spike_times)
 
             ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.5)
-            ax.set_xlim(0, 1.0)
+            ax.set_xlim(0, 2.0)
             ax.set_yticks([len(filtered_spike_times_list)])
             # Place the title text to the right of the subplot
             ax.text(1.05, 0.5, f"{monkey_name}", transform=ax.transAxes, ha='left', va='center', fontsize=14)
@@ -134,7 +134,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
         os.makedirs(save_dir, exist_ok=True)
 
         # Save individual plot
-        individual_save_path = os.path.join(save_dir, f"{unit}_sorted_raster.png")
+        individual_save_path = os.path.join(save_dir, f"{experiment_name}_{unit}_sorted_raster.png")
         fig.savefig(individual_save_path)
 
     return fig

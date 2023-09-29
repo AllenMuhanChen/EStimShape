@@ -14,24 +14,25 @@ from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "1696006131701656_230929_124853&1696006848799165_230929_130049&1696007509945401_230929_131150_round1.pk1"
+    experiment_data_filename = "1696014092472010_230929_150132_round1.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
  #   plot_channel_histograms(raw_data, channel=Channel.C_013)
-    channels = [Channel.C_029,
+    channels = [Channel.C_018,
+                Channel.C_029,
                 Channel.C_024,
-                Channel.C_028,
-                Channel.C_004,
-                Channel.C_011,
-                Channel.C_019,
-                Channel.C_009,
+                Channel.C_003,
                 Channel.C_027,
-                Channel.C_020,
-                Channel.C_005,
-                Channel.C_021,
-                Channel.C_010,
-                Channel.C_006
+                Channel.C_009,
+                Channel.C_026,
+                Channel.C_006,
+                # Channel.C_026,
+                # Channel.C_020,
+                # Channel.C_010,
+                # Channel.C_021,
+                # Channel.C_025,
+                # Channel.C_006
                 ]
     for channel in channels:
         print("Working on channel %s" % channel)
