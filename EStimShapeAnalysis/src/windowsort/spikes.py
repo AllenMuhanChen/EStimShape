@@ -78,8 +78,8 @@ class ThresholdedSpikePlot(QWidget):
         self.plotItems.clear()
 
     def set_axis_limits(self):
-        if self.min_max_voltage[0] != np.inf and self.min_max_voltage[1] != -np.inf:
-            self.plotWidget.setYRange(self.min_max_voltage[0], self.min_max_voltage[1])
+        # if self.min_max_voltage[0] != np.inf and self.min_max_voltage[1] != -np.inf:
+        #     self.plotWidget.setYRange(self.min_max_voltage[0], self.min_max_voltage[1])
         self.plotWidget.setXRange(-self.spike_window_radius_in_indices, self.spike_window_radius_in_indices)
 
     def plot_spike(self, start, end, middle, voltages, color='r'):

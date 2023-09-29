@@ -63,7 +63,7 @@ class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
     def keyPressEvent(self, event):
         super().keyPressEvent(event)
 
-        dx = 1
+        dx = 0.5
         dy = 2
         if self.isSelected():
             if event.key() == Qt.Key_Up:
@@ -95,7 +95,6 @@ class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
 
 
     def itemChange(self, change, value):
-        print("itemChange called")
         if change == QGraphicsItem.ItemPositionChange:
             new_x = int(value.x() * 2) / 2
             new_y = value.y()

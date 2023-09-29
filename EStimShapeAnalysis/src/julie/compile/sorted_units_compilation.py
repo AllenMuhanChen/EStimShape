@@ -15,8 +15,8 @@ from util.connection import Connection
 
 
 def main():
-    compile_data(experiment_name="230926_round3",
-                 day=date(2023, 9, 26))
+    compile_data(experiment_name="230928_round_1",
+                 day=date(2023, 9, 28))
 
 
 def compile_data(*, experiment_name: str, day: date):
