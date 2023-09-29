@@ -6,7 +6,7 @@ import numpy as np
 from PyQt5.QtWidgets import QFileDialog, QWidget
 from scipy.signal import butter, filtfilt
 
-from intan.amplifiers import read_amplifier_data
+from intan.amplifiers import read_amplifier_data, read_amplifier_data_with_memmap
 from intan.channels import Channel
 from intan.rhd import load_intan_rhd_format
 from windowsort.drift import DriftingTimeAmplitudeWindow
@@ -30,7 +30,7 @@ class DataImporter:
         amplifier_channels = data['amplifier_channels']
         self.sample_rate = data['frequency_parameters']['amplifier_sample_rate']
         # Use your existing read_amplifier_data function
-        self.voltages_by_channel = read_amplifier_data(amplifier_dat_path, amplifier_channels)
+        self.voltages_by_channel = read_amplifier_data_with_memmap(amplifier_dat_path, amplifier_channels)
         # Preprocess the data after reading it
         self.preprocess_data()
 
