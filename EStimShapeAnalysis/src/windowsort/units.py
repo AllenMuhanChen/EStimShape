@@ -222,6 +222,8 @@ class SortPanel(QWidget):
         # Repopulate remaining units
         self.on_window_number_change()
 
+        self.unit_counter -= 1
+
         self.spike_plot.sortSpikes()
 
     def clear_all_unitpanels(self):

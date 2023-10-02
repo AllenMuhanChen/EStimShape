@@ -14,7 +14,7 @@ from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "1696014092472010_230929_150132_round1.pk1"
+    experiment_data_filename = "1695748214323644_230926_131015.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
