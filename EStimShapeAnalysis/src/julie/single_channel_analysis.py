@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from julie import rasters
+
 
 matplotlib.use("Qt5Agg")
 
