@@ -75,7 +75,7 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
                 filtered_spike_times_list.append(filtered_spike_times)
 
             ax.eventplot(filtered_spike_times_list, color='black', linewidths=0.5)
-            ax.set_xlim(0, 1.0)
+            ax.set_xlim(0, 2.0)
             ax.set_yticks([len(filtered_spike_times_list)])
             # Place the title text to the right of the subplot
             ax.text(1.05, 0.5, f"{monkey_name}", transform=ax.transAxes, ha='left', va='center', fontsize=14)
