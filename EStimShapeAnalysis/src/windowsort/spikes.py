@@ -136,15 +136,15 @@ class SpikeScrubber(QWidget):
         layout.addLayout(hbox)
         self.setLayout(layout)
 
-        self.slider.valueChanged.connect(self.updateSpikePlot)
+        self.slider.valueChanged.connect(self._update_spike_plot)
         self.slider.setSingleStep(self.current_max_spikes)  # Set single step size
-        self.maxSpikesBox.editingFinished.connect(self.updateMaxSpikes)
+        self.maxSpikesBox.editingFinished.connect(self._update_max_spikes)
 
     def updateValue(self, value):
         self.slider.setValue(value)
         self.slider.valueChanged.emit(value)
 
-    def updateSpikePlot(self):
+    def _update_spike_plot(self):
         rounded_value = (self.slider.value() // self.current_max_spikes) * self.current_max_spikes
         self.slider.setValue(rounded_value)  # This will set the slider to the rounded value
 
@@ -170,10 +170,10 @@ class SpikeScrubber(QWidget):
 
         self.total_spikes_label.setText(f"Total Spikes: {self.total_spikes}")
 
-    def updateMaxSpikes(self):
+    def _update_max_spikes(self):
         self.current_max_spikes = self.maxSpikesBox.value()
         self.slider.setSingleStep(self.current_max_spikes)
-        self.updateSpikePlot()
+        self._update_spike_plot()
 
 
 class ExportPanel(QWidget):
