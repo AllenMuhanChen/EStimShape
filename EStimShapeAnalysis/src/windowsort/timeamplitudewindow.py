@@ -192,7 +192,18 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     self.amp_time_windows.remove(window)
                     self.on_window_adjustments()
                     self.update_dropdowns()
-                    break  # Assuming only one item can be selected at a time
+                    break
+        elif event.key() in (Qt.Key_Left, Qt.Key_Right):
+            current_spike_number = self.spike_scrubber.slider.value()
+            step_size = self.spike_scrubber.slider.singleStep()
+            if event.key() == Qt.Key_Left:
+                new_spike_number = max(0, current_spike_number - step_size)
+                self.spike_scrubber.updateValue(new_spike_number)
+            elif event.key() == Qt.Key_Right:
+                new_spike_number = min(self.spike_scrubber.slider.maximum(), current_spike_number + step_size)
+                self.spike_scrubber.updateValue(new_spike_number)
+
+
         # elif event.key() in (Qt.Key_Up, Qt.Key_Down):
         #     for window in self.amp_time_windows:
         #         if window.isSelected():
