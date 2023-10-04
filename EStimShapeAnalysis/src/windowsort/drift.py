@@ -59,12 +59,12 @@ class MarkedSlider(QSlider):
         # Check if left mouse button was pressed
         if e.button() == Qt.LeftButton:
             value = self._pixel_to_value(e.x())
-            closest_tick = self.find_closest_tick(value)
+            closest_tick = self._find_closest_tick(value)
             if closest_tick is not None:
                 self.setValue(closest_tick)
                 self.valueChanged.emit(closest_tick)
 
-    def find_closest_tick(self, value):
+    def _find_closest_tick(self, value):
         """
         Finds the tick closest to the given value.
         """
@@ -95,6 +95,8 @@ class MarkedSlider(QSlider):
             for tick_location in tick_locations:
                 pixel_x = self._value_to_pixel(tick_location)
                 painter.setPen(QColor(color))
+                painter.setBrush(QColor(color))
+                painter.setOpacity(0.5)
                 width = self.marker_width
                 height = 10
                 painter.drawRect(int(pixel_x - width / 2), 0, width, height)
@@ -108,7 +110,7 @@ class MarkedSlider(QSlider):
         """
         Convert a pixel position to a slider value.
         """
-        return int((pixel / self.width()) * (self.maximum() - self.minimum()) + self.minimum())
+        return round((pixel / self.width()) * (self.maximum() - self.minimum()) + self.minimum())
 
 class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
     current_spike_number: int
