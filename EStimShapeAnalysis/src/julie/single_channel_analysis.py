@@ -98,8 +98,10 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
         os.makedirs(save_dir, exist_ok=True)
 
         # Save individual plot
-        individual_save_path = os.path.join(save_dir, f"{channel.name}_raster.png")
-        fig.savefig(individual_save_path)
+        individual_save_path_png = os.path.join(save_dir, f"{channel.name}_raster.png")
+        individual_save_path_svg = os.path.join(save_dir, f"{channel.name}_raster.svg")
+        fig.savefig(individual_save_path_png)
+        fig.savefig(individual_save_path_svg)
 
 
     return fig
