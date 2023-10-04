@@ -3,7 +3,7 @@ import sys
 import os
 
 from windowsort.datahandler import DataImporter, DataExporter
-from windowsort.drift import DriftSpikePlot, MarkedSlider
+from windowsort.drift import DriftSpikePlot, WindowMarkedSlider
 from windowsort.snapshot import SnapshotPlot
 from windowsort.timeamplitudewindow import SortSpikePlot
 from windowsort.units import SortPanel
@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         self.spike_plot = DriftSpikePlot(self.data_handler, self.data_exporter, default_max_spikes=default_max_spikes)
         spike_plot_column.addWidget(self.spike_plot)
         self.voltage_time_plot.spike_plot = self.spike_plot
-        self.spike_slider = MarkedSlider(self.spike_plot)
+        self.spike_slider = WindowMarkedSlider(self.spike_plot)
         self.spike_scrubber = SpikeScrubber(self.spike_plot, default_max_spikes=default_max_spikes, slider=self.spike_slider)
         spike_plot_column.addWidget(self.spike_scrubber)
         self.spike_plot.spike_scrubber = self.spike_scrubber
