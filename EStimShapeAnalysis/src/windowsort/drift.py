@@ -38,7 +38,7 @@ class DriftSpikePlot(SortSpikePlot):
         self.sortSpikes()
 
 
-class MarkedSlider(QSlider):
+class WindowMarkedSlider(QSlider):
     windows: List[DriftingTimeAmplitudeWindow]
 
     def __init__(self, spike_plot: DriftSpikePlot, orientation=Qt.Horizontal, parent=None):
@@ -48,13 +48,13 @@ class MarkedSlider(QSlider):
 
     def paintEvent(self, e):
         # Let QSlider handle its own painting first
-        super(MarkedSlider, self).paintEvent(e)
+        super(WindowMarkedSlider, self).paintEvent(e)
 
         self._draw_ticks()
 
     def mousePressEvent(self, e):
         # Let QSlider handle its own event first
-        super(MarkedSlider, self).mousePressEvent(e)
+        super(WindowMarkedSlider, self).mousePressEvent(e)
 
         # Check if left mouse button was pressed
         if e.button() == Qt.LeftButton:
@@ -111,6 +111,7 @@ class MarkedSlider(QSlider):
         Convert a pixel position to a slider value.
         """
         return round((pixel / self.width()) * (self.maximum() - self.minimum()) + self.minimum())
+
 
 class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
     current_spike_number: int
