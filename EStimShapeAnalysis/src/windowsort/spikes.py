@@ -18,7 +18,6 @@ class ThresholdedSpikePlot(QWidget):
         self.data_exporter = data_exporter
         self.spike_window_radius_in_indices = 25
 
-
         self.min_max_voltage = None
         self.crossing_indices = None
         self.current_threshold_value = None
@@ -108,11 +107,15 @@ class ThresholdedSpikePlot(QWidget):
 class SpikeScrubber(QWidget):
     currentIndexChanged = pyqtSignal(int)
 
-    def __init__(self, thresholdedSpikePlot, default_max_spikes: int = 50):
+    def __init__(self, thresholdedSpikePlot, default_max_spikes: int = 50, slider=None):
         super(SpikeScrubber, self).__init__()
         self.spike_plot = thresholdedSpikePlot
         self.current_max_spikes = 50
-        self.page_multiplier = 2
+        self.page_multiplier = 5
+        if slider == None:
+            self.slider = QSlider(Qt.Horizontal)
+        else:
+            self.slider = slider
         self._init_ui()
 
     def updateValue(self, value):
@@ -124,7 +127,7 @@ class SpikeScrubber(QWidget):
         hbox = QHBoxLayout()
 
         self.label = QLabel("Index Start:")
-        self.slider = QSlider(Qt.Horizontal)
+
         self.total_spikes_label = QLabel("Total Spikes: 0")  # Initialize with 0
 
         self.maxSpikesBox = QSpinBox()
