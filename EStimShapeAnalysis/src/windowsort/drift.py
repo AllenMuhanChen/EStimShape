@@ -1,5 +1,9 @@
+from __future__ import annotations
+from typing import List
+
 from PyQt5.QtCore import pyqtSlot, QPointF, Qt
-from PyQt5.QtWidgets import QGraphicsItem
+from PyQt5.QtGui import QPainter, QColor
+from PyQt5.QtWidgets import QGraphicsItem, QSlider
 
 from windowsort.spikes import SpikeScrubber
 from windowsort.timeamplitudewindow import TimeAmplitudeWindow, SortSpikePlot
@@ -34,8 +38,81 @@ class DriftSpikePlot(SortSpikePlot):
         self.sortSpikes()
 
 
+class MarkedSlider(QSlider):
+    windows: List[DriftingTimeAmplitudeWindow]
+
+    def __init__(self, spike_plot: DriftSpikePlot, orientation=Qt.Horizontal, parent=None):
+        super().__init__(orientation, parent)
+        self.spike_plot = spike_plot
+        self.marker_width = 2
+
+    def paintEvent(self, e):
+        # Let QSlider handle its own painting first
+        super(MarkedSlider, self).paintEvent(e)
+
+        self._draw_ticks()
+
+    def mousePressEvent(self, e):
+        # Let QSlider handle its own event first
+        super(MarkedSlider, self).mousePressEvent(e)
+
+        # Check if left mouse button was pressed
+        if e.button() == Qt.LeftButton:
+            value = self._pixel_to_value(e.x())
+            closest_tick = self.find_closest_tick(value)
+            if closest_tick is not None:
+                self.setValue(closest_tick)
+                self.valueChanged.emit(closest_tick)
+
+    def find_closest_tick(self, value):
+        """
+        Finds the tick closest to the given value.
+        """
+        closest_tick = None
+        min_dist = float('inf')  # start with "infinity" as the minimum distance
+
+        # Search through all windows and all ticks
+        for window in self.windows:
+            control_points = window.time_control_points
+            tick_locations = list(control_points.keys())
+
+            for tick_location in tick_locations:
+                dist = abs(tick_location - value)
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_tick = tick_location
+
+        return closest_tick
+
+    def _draw_ticks(self):
+        painter = QPainter(self)
+        self.windows = self.spike_plot.amp_time_windows
+        for window in self.windows:
+            color = window.color
+            control_points = window.time_control_points
+            tick_locations = list(control_points.keys())
+
+            for tick_location in tick_locations:
+                pixel_x = self._value_to_pixel(tick_location)
+                painter.setPen(QColor(color))
+                width = self.marker_width
+                height = 10
+                painter.drawRect(int(pixel_x - width / 2), 0, width, height)
+        painter.end()
+
+    def _value_to_pixel(self, value):
+        # Convert a slider value to a pixel position.
+        return int(((value - self.minimum()) / (self.maximum() - self.minimum())) * self.width())
+
+    def _pixel_to_value(self, pixel):
+        """
+        Convert a pixel position to a slider value.
+        """
+        return int((pixel / self.width()) * (self.maximum() - self.minimum()) + self.minimum())
+
 class DriftingTimeAmplitudeWindow(TimeAmplitudeWindow):
     current_spike_number: int
+    time_control_points: dict
 
     def __init__(self, x, y, height, color, parent_plot=None, spike_scrubber=None):
         super().__init__(x, y, height, color, parent_plot=parent_plot)
