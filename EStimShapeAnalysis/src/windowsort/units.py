@@ -297,7 +297,7 @@ class SortPanel(QWidget):
 
             # Add the amp time windows
             for window in config['amp_time_windows']:
-                self.spike_plot.loadAmpTimeWindow(window)
+                self.spike_plot.load_amp_time_window(window)
 
             self.unit_counter = 0
             for logical_expression, unit_name, color in config['units']:

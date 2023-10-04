@@ -130,7 +130,7 @@ class CustomPlotWidget(PlotWidget):
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton and event.modifiers() == Qt.ShiftModifier:
             pos = self.plotItem.vb.mapSceneToView(event.pos())
-            self.parent.addAmpTimeWindow(round(pos.x()) / 2, pos.y(), 40)
+            self.parent.add_amp_time_window(round(pos.x()) / 2, pos.y(), 40)
         super(CustomPlotWidget, self).mousePressEvent(event)
 
     def keyPressEvent(self, event):
@@ -175,7 +175,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         layout.addWidget(self.plotWidget)
         self.setLayout(layout)
 
-    def addAmpTimeWindow(self, x, y, height):
+    def add_amp_time_window(self, x, y, height):
         color = next(self.next_color)
         new_window = TimeAmplitudeWindow(x, y, height, color, parent_plot=self)
 
