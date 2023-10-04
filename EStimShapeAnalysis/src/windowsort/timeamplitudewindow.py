@@ -168,7 +168,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
         """
         self.logical_rules_panel.on_window_number_change()
 
-    def initUI(self):
+    def _init_ui(self):
         layout = QVBoxLayout()
         self.plotWidget = CustomPlotWidget(self)
         # self.plotWidget.getPlotItem().setAspectLocked(True)  # Lock the aspect ratio
@@ -233,7 +233,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
             if num_units_matched > 1:
                 print("Warning: more than one unit matched the spike at index " + str(spike_index_in_voltage))
                 color = 'white'
-        super().plot_spike(start, end, middle, voltages, color)
+        super()._plot_spike(start, end, middle, voltages, color)
 
     def addUnit(self, rule: Unit):
         new_rule = rule
@@ -266,7 +266,7 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
         # Calculate the min_max voltage if it is not set yet
         if self.min_max_voltage is None:
-            self.min_max_voltage = self.calculate_min_max(voltages, self.spike_window_radius_in_indices)
+            self.min_max_voltage = self._calculate_min_max(voltages, self.spike_window_radius_in_indices)
 
         self.sortSpikes()
 

@@ -23,17 +23,9 @@ class ThresholdedSpikePlot(QWidget):
         self.current_threshold_value = None
         self.current_start_index = 0
         self.current_max_spikes = default_max_spikes  # Default value
-        self.initUI()
+        self._init_ui()
         self.plotItems = []  # List to keep track of PlotDataItems
         self.current_channel = Channel.C_000
-
-    def initUI(self):
-        layout = QVBoxLayout()
-
-        self.plotWidget = PlotWidget()
-        layout.addWidget(self.plotWidget)
-
-        self.setLayout(layout)
 
     def updatePlot(self):
         # Clear the existing plot items
@@ -49,7 +41,7 @@ class ThresholdedSpikePlot(QWidget):
 
         # Calculate the min_max voltage if it is not set yet
         if self.min_max_voltage is None:
-            self.min_max_voltage = self.calculate_min_max(voltages, self.spike_window_radius_in_indices)
+            self.min_max_voltage = self._calculate_min_max(voltages, self.spike_window_radius_in_indices)
 
         # SAVE DATA
         self.data_exporter.update_thresholded_spikes(self.current_channel, self.crossing_indices)
@@ -61,7 +53,7 @@ class ThresholdedSpikePlot(QWidget):
             start = max(0, point - self.spike_window_radius_in_indices)
             end = min(len(voltages), point + self.spike_window_radius_in_indices)
             middle = point
-            self.plot_spike(start, end, middle, voltages)
+            self._plot_spike(start, end, middle, voltages)
 
         # Set the y-limits of the plot
         self.set_axis_limits()
@@ -74,7 +66,7 @@ class ThresholdedSpikePlot(QWidget):
     def clear_plot(self):
         for item in self.plotItems:
             self.plotWidget.removeItem(item)
-            sip.delete(item) #delete from C++ memory
+            sip.delete(item)  # delete from C++ memory
         self.plotItems.clear()
 
     def set_axis_limits(self):
@@ -82,17 +74,25 @@ class ThresholdedSpikePlot(QWidget):
         #     self.plotWidget.setYRange(self.min_max_voltage[0], self.min_max_voltage[1])
         self.plotWidget.setXRange(-self.spike_window_radius_in_indices, self.spike_window_radius_in_indices)
 
-    def plot_spike(self, start, end, middle, voltages, color='r'):
+    def on_channel_changed(self):
+        self.min_max_voltage = None  # Reset the min_max voltage
+
+    def _init_ui(self):
+        layout = QVBoxLayout()
+
+        self.plotWidget = PlotWidget()
+        layout.addWidget(self.plotWidget)
+
+        self.setLayout(layout)
+
+    def _plot_spike(self, start, end, middle, voltages, color='r'):
         x_axis = np.arange(start, end)
         x_axis = x_axis - middle  # Center the spike
         plotItem = PlotDataItem(x_axis, voltages[start:end], pen=color)
         self.plotWidget.addItem(plotItem)
         self.plotItems.append(plotItem)
 
-    def on_channel_changed(self):
-        self.min_max_voltage = None  # Reset the min_max voltage
-
-    def calculate_min_max(self, voltages, window_radius_in_indices):
+    def _calculate_min_max(self, voltages, window_radius_in_indices):
         min_spike_voltage = np.inf
         max_spike_voltage = -np.inf
         for point in self.crossing_indices:
@@ -106,14 +106,18 @@ class ThresholdedSpikePlot(QWidget):
 
 class SpikeScrubber(QWidget):
     currentIndexChanged = pyqtSignal(int)
+
     def __init__(self, thresholdedSpikePlot, default_max_spikes: int = 50):
         super(SpikeScrubber, self).__init__()
         self.spike_plot = thresholdedSpikePlot
         self.current_max_spikes = 50
-        self.initUI()
+        self._init_ui()
 
+    def updateValue(self, value):
+        self.slider.setValue(value)
+        self.slider.valueChanged.emit(value)
 
-    def initUI(self):
+    def _init_ui(self):
         layout = QVBoxLayout()
         hbox = QHBoxLayout()
 
@@ -139,10 +143,6 @@ class SpikeScrubber(QWidget):
         self.slider.valueChanged.connect(self._update_spike_plot)
         self.slider.setSingleStep(self.current_max_spikes)  # Set single step size
         self.maxSpikesBox.editingFinished.connect(self._update_max_spikes)
-
-    def updateValue(self, value):
-        self.slider.setValue(value)
-        self.slider.valueChanged.emit(value)
 
     def _update_spike_plot(self):
         rounded_value = (self.slider.value() // self.current_max_spikes) * self.current_max_spikes
