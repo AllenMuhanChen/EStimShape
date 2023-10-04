@@ -3,7 +3,7 @@ import time
 import numpy as np
 from PyQt5 import sip
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSpinBox, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSpinBox, QPushButton, QAbstractSlider
 from pyqtgraph import PlotWidget, PlotDataItem
 
 from intan.channels import Channel
@@ -17,6 +17,7 @@ class ThresholdedSpikePlot(QWidget):
         self.data_handler = data_handler
         self.data_exporter = data_exporter
         self.spike_window_radius_in_indices = 25
+
 
         self.min_max_voltage = None
         self.crossing_indices = None
@@ -111,6 +112,7 @@ class SpikeScrubber(QWidget):
         super(SpikeScrubber, self).__init__()
         self.spike_plot = thresholdedSpikePlot
         self.current_max_spikes = 50
+        self.page_multiplier = 2
         self._init_ui()
 
     def updateValue(self, value):
@@ -142,6 +144,7 @@ class SpikeScrubber(QWidget):
 
         self.slider.valueChanged.connect(self._update_spike_plot)
         self.slider.setSingleStep(self.current_max_spikes)  # Set single step size
+        self.slider.setPageStep(self.current_max_spikes * self.page_multiplier)  # Set page step size
         self.maxSpikesBox.editingFinished.connect(self._update_max_spikes)
 
     def _update_spike_plot(self):
@@ -173,6 +176,7 @@ class SpikeScrubber(QWidget):
     def _update_max_spikes(self):
         self.current_max_spikes = self.maxSpikesBox.value()
         self.slider.setSingleStep(self.current_max_spikes)
+        self.slider.setPageStep(self.current_max_spikes * self.page_multiplier)
         self._update_spike_plot()
 
 

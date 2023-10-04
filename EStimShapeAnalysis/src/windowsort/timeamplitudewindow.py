@@ -5,7 +5,7 @@ from typing import List
 
 from PyQt5 import sip
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QVBoxLayout, QAbstractSlider
 from pyqtgraph import PlotWidget
 
 from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber
@@ -194,14 +194,23 @@ class SortSpikePlot(ThresholdedSpikePlot):
                     self.update_dropdowns()
                     break
         elif event.key() in (Qt.Key_Left, Qt.Key_Right):
-            current_spike_number = self.spike_scrubber.slider.value()
-            step_size = self.spike_scrubber.slider.singleStep()
-            if event.key() == Qt.Key_Left:
-                new_spike_number = max(0, current_spike_number - step_size)
-                self.spike_scrubber.updateValue(new_spike_number)
-            elif event.key() == Qt.Key_Right:
-                new_spike_number = min(self.spike_scrubber.slider.maximum(), current_spike_number + step_size)
-                self.spike_scrubber.updateValue(new_spike_number)
+            if event.modifiers() & Qt.ShiftModifier:
+                if event.key() == Qt.Key_Left:
+                    self.spike_scrubber.slider.triggerAction(QAbstractSlider.SliderPageStepSub)
+
+                elif event.key() == Qt.Key_Right:
+                    self.spike_scrubber.slider.triggerAction(QAbstractSlider.SliderPageStepAdd)
+
+            else:
+                if event.key() == Qt.Key_Left:
+                    self.spike_scrubber.slider.triggerAction(QAbstractSlider.SliderSingleStepSub)
+
+                elif event.key() == Qt.Key_Right:
+                    self.spike_scrubber.slider.triggerAction(QAbstractSlider.SliderSingleStepAdd)
+
+
+
+
 
 
         # elif event.key() in (Qt.Key_Up, Qt.Key_Down):
