@@ -140,6 +140,10 @@ class SpikeScrubber(QWidget):
         self.slider.setSingleStep(self.current_max_spikes)  # Set single step size
         self.maxSpikesBox.editingFinished.connect(self.updateMaxSpikes)
 
+    def updateValue(self, value):
+        self.slider.setValue(value)
+        self.slider.valueChanged.emit(value)
+
     def updateSpikePlot(self):
         rounded_value = (self.slider.value() // self.current_max_spikes) * self.current_max_spikes
         self.slider.setValue(rounded_value)  # This will set the slider to the rounded value
