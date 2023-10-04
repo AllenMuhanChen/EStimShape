@@ -37,6 +37,7 @@ def read_amplifier_data_with_memmap(file_path, amplifier_channels):
 
     # Convert the data to microvolts and populate the dictionary
     for i, channel_info in enumerate(amplifier_channels):
+        print(f"Reading channel {i}...")
         native_channel_name = channel_info.get("native_channel_name", f"Channel_{i}")
         channel_data = fp[:, i] * 0.195  # Conversion to microvolts
         channel_to_data[Channel(native_channel_name)] = channel_data
