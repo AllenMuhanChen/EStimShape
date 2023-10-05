@@ -31,6 +31,7 @@ class TimeAmplitudeWindow(QGraphicsItem):
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
         # Drag and Drop Timer
+        self.drag_delay = 300
         self.drag_started = False
         self.drag_timer = QTimer()
         self.drag_timer.setSingleShot(True)
@@ -133,7 +134,7 @@ class TimeAmplitudeWindow(QGraphicsItem):
 
     def mousePressEvent(self, event):
         self.drag_started = False
-        self.drag_timer.start(300)  # 300 ms delay before dragging can start
+        self.drag_timer.start(self.drag_delay)  # 300 ms delay before dragging can start
         super(TimeAmplitudeWindow, self).mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
