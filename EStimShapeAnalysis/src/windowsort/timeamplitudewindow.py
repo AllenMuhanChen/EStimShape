@@ -186,12 +186,12 @@ class SortSpikePlot(ThresholdedSpikePlot):
         """
         self.sortSpikes()
 
-    def update_dropdowns(self):
+    def update_unit_panel_expressions(self, deleted_window_number=None):
         """
         Called when the user adds or deletes a window.
         :return:
         """
-        self.logical_rules_panel.on_window_number_change()
+        self.logical_rules_panel.on_window_number_change(deleted_window_number=deleted_window_number)
 
     def _init_ui(self):
         layout = QVBoxLayout()
@@ -206,17 +206,17 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
-        self.update_dropdowns()
+        self.update_unit_panel_expressions()
         self.sortSpikes()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Delete:
-            for window in self.amp_time_windows:
+            for window_index,window in enumerate(self.amp_time_windows):
                 if window.isSelected():
                     self.plotWidget.removeItem(window)
                     self.amp_time_windows.remove(window)
                     self.on_window_adjustments()
-                    self.update_dropdowns()
+                    self.update_unit_panel_expressions(deleted_window_number=window_index+1)
                     break
         elif event.key() in (Qt.Key_Left, Qt.Key_Right):
             if event.modifiers() & Qt.ShiftModifier:

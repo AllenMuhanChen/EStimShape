@@ -24,7 +24,7 @@ class DriftSpikePlot(SortSpikePlot):
 
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
-        self.update_dropdowns()
+        self.update_unit_panel_expressions()
         self.sortSpikes()
 
     def load_amp_time_window(self, time_control_points):
@@ -34,7 +34,7 @@ class DriftSpikePlot(SortSpikePlot):
                                                                                  spike_scrubber=self.spike_scrubber)
         self.amp_time_windows.append(new_window)
         self.plotWidget.addItem(new_window)
-        self.update_dropdowns()
+        self.update_unit_panel_expressions()
         self.sortSpikes()
 
 
