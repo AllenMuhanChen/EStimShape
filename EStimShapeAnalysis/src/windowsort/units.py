@@ -73,7 +73,7 @@ class Unit:
 
 
 class SortPanel(QWidget):
-    unit_panels: List[DropdownUnitPanel]
+    unit_panels: List[UnitPanel]
 
     def __init__(self, thresholded_spike_plot, data_exporter, voltage_time_plot: VoltageTimePlot):
         super(SortPanel, self).__init__(thresholded_spike_plot)
@@ -203,6 +203,9 @@ class SortPanel(QWidget):
 
         self._update_legend()
 
+        for unit_panel in self.unit_panels:
+            unit_panel.update_expression_from_text_box()
+
 
     def _on_window_deleted(self, deleted_window_number: int):
         """
@@ -263,7 +266,7 @@ class SortPanel(QWidget):
         window_numbers = []
 
         # Loop through all windows and extract their numbers
-        for window_index,window in enumerate(self.spike_plot.amp_time_windows):
+        for window_index, window in enumerate(self.spike_plot.amp_time_windows):
             # Assume window labels are in the form "W1", "W2", etc.
             window_number = window_index + 1
             window_numbers.append(window_number)
@@ -311,8 +314,6 @@ class SortPanel(QWidget):
         self.unit_colors = unit_color_generator()
         self.unit_counter = 0
 
-
-
     def export_sorted_spikes(self):
         channel = self.spike_plot.current_channel
         sorted_spikes_by_unit = self.sort_all_spikes(channel)
@@ -324,8 +325,6 @@ class SortPanel(QWidget):
         self.data_exporter.save_sorted_spikes(sorted_spikes_by_unit, channel, extension=file_extension)
         self.data_exporter.save_sorting_config(channel, self.spike_plot.amp_time_windows, self.spike_plot.units,
                                                self.spike_plot.current_threshold_value, extension=file_extension)
-
-
 
     def query_file_extension(self):
         # Open Input Dialog to get the filename extension
@@ -345,11 +344,11 @@ class SortPanel(QWidget):
             sorted_spikes = []  # List to hold the sorted spikes for this unit
 
             for crossing_point_index, point in enumerate(crossing_indices):
-                spike_voltage_index = round(point) #index in the voltage data
-
+                spike_voltage_index = round(point)  # index in the voltage data
 
                 # Check if the spike belongs to the current unit
-                if unit.sort_spike(voltage_index_of_spike=spike_voltage_index, spike_number=crossing_point_index, voltages=voltages,
+                if unit.sort_spike(voltage_index_of_spike=spike_voltage_index, spike_number=crossing_point_index,
+                                   voltages=voltages,
                                    amp_time_windows=self.spike_plot.amp_time_windows):
                     sorted_spikes.append(spike_voltage_index)
 
