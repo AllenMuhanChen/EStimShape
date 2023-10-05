@@ -116,7 +116,7 @@ class SortPanel(QWidget):
 
         self.setLayout(self.layout)
 
-    def update_legend(self):
+    def _update_legend(self):
         """Update the legend to match the current window colors."""
 
         # Clear the existing legend
@@ -201,18 +201,18 @@ class SortPanel(QWidget):
             # Detect if the number of windows decreased:
             self._on_window_deleted(deleted_window_number)
 
-        self.update_legend()
+        self._update_legend()
 
 
-    def _on_window_deleted(self, deleted_window: int):
+    def _on_window_deleted(self, deleted_window_number: int):
         """
         Handle updates after a window is deleted.
 
-        :param deleted_window: The number of the deleted window.
+        :param deleted_window_number: The number of the deleted window.
         """
         for unit_panel in self.unit_panels:
-            old_expression = unit_panel.unit.logical_expression
-            new_expression = self.update_expression(old_expression, deleted_window)
+            old_expression = unit_panel.expression
+            new_expression = self._generate_new_expression_for_deletion(old_expression, deleted_window_number)
 
             # Update internal expression
             unit_panel.unit.logical_expression = new_expression
@@ -222,7 +222,7 @@ class SortPanel(QWidget):
                 # If using UnitPanel, update the QLineEdit text
                 unit_panel.expression_line_edit.setText(new_expression)
 
-    def update_expression(self, old_expression: str, deleted_window: int) -> str:
+    def _generate_new_expression_for_deletion(self, old_expression: str, deleted_window: int) -> str:
         """
         Update a logical expression after a window is deleted.
 
@@ -243,14 +243,14 @@ class SortPanel(QWidget):
                 return f"W{window_number - 1}"
             # If the window number is equal to the deleted window, replace it with "False"
             elif window_number == deleted_window:
-                return "False"
+                return "True"
             # Otherwise, keep it as is
             else:
                 return f"W{window_number}"
 
         # Replace all window references in the old expression
         new_expression = pattern.sub(replacer, old_expression)
-
+        print(new_expression)
         return new_expression
 
     def _detect_deleted_window(self):
