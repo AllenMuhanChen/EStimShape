@@ -24,14 +24,21 @@ class TimeAmplitudeWindow(QGraphicsItem):
         self.setFlag(QGraphicsItem.ItemIsMovable)
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
+        # Window Updating
         self.window_update_timer = QTimer()
         self.window_update_timer.setSingleShot(True)
         self.window_update_timer.timeout.connect(self.emit_window_updated)
         self.setFlag(QGraphicsItem.ItemSendsGeometryChanges)
 
+        # Drag and Drop Timer
+        self.drag_started = False
+        self.drag_timer = QTimer()
+        self.drag_timer.setSingleShot(True)
+        self.drag_timer.timeout.connect(self._start_drag)
+
         self.height = height  # Height of the line
         self.color = color  # Color of the line
-        self.setZValue(1) # We want this drawing to be on top of everything else
+        self.setZValue(1)  # We want this drawing to be on top of everything else
 
         self.pen = QPen(QColor(self.color))
         self.pen.setWidthF(0.25)
@@ -121,6 +128,23 @@ class TimeAmplitudeWindow(QGraphicsItem):
             # Emit the signal to update the plot
             self.emit_window_updated()
 
+    def _start_drag(self):
+        self.drag_started = True
+
+    def mousePressEvent(self, event):
+        self.drag_started = False
+        self.drag_timer.start(300)  # 300 ms delay before dragging can start
+        super(TimeAmplitudeWindow, self).mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.drag_started:
+            super(TimeAmplitudeWindow, self).mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self.drag_timer.stop()  # stop the timer if the mouse is released before the drag starts
+        self.drag_started = False
+        super(TimeAmplitudeWindow, self).mouseReleaseEvent(event)
+
 
 class CustomPlotWidget(PlotWidget):
     def __init__(self, parent=None):
@@ -207,26 +231,6 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
                 elif event.key() == Qt.Key_Right:
                     self.spike_scrubber.slider.triggerAction(QAbstractSlider.SliderSingleStepAdd)
-
-
-
-
-
-
-        # elif event.key() in (Qt.Key_Up, Qt.Key_Down):
-        #     for window in self.amp_time_windows:
-        #         if window.isSelected():
-        #             if event.key() == Qt.Key_Up:
-        #                 window.height += 5  # Increase height when the Up arrow key is pressed
-        #             elif event.key() == Qt.Key_Down:
-        #                 window.height = max(5,
-        #                                     window.height - 5)  # Decrease height when the Down arrow key is pressed, with a minimum limit
-        #             # Redraw the item to reflect the new height
-        #             window.update()
-        #             self.update()
-        #             # Emit the signal to update the plot
-        #             # window.emit_window_updated()
-        #             self.on_window_adjustments()
 
     def sort_and_plot_spike(self, start, end, middle, voltages, spike_number):
         color = 'r'  # default color
