@@ -16,7 +16,7 @@ def main():
     round = "231003_round4"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
-    cortana_path = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana"
+    cortana_path = "/home/r2_allen/Documents/JulieIntanData/Cortana"
     round_path = os.path.join(cortana_path, date, round)
     compiled_trials_filepath = os.path.join(round_path, "compiled.pk1")
     experiment_name = os.path.basename(os.path.dirname(compiled_trials_filepath))

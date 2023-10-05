@@ -91,13 +91,12 @@ def main():
 
 
     # Define the data directory here
-    # date = "2023-10-03"
-    # exp_name = "231003_round4"
-    date = "2023-09-12"
-    exp_name = "1694529683452000_230912_144921"
-    data_directory = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana/%s/%s/" % (
+    date = "2023-10-03"
+    exp_name = "231003_round4"
+    # date = "2023-09-12"
+    # exp_name = "1694529683452000_230912_144921"
+    data_directory = "/home/r2_allen/Documents/JulieIntanData/Cortana/%s/%s/" % (
     date, exp_name)
-
     print("Loading App")
 
     mainWin = MainWindow(data_directory)
