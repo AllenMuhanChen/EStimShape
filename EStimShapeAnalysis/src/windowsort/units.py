@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import pickle
 from typing import List
+import re
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QFrame, QFileDialog, \
@@ -111,6 +112,8 @@ class SortPanel(QWidget):
         self.export_button.clicked.connect(self.export_sorted_spikes)
         self.layout.addWidget(self.export_button)
 
+        self.previous_window_count = 0
+
         self.setLayout(self.layout)
 
     def update_legend(self):
@@ -192,16 +195,88 @@ class SortPanel(QWidget):
 
         return ' '.join(expression_parts)
 
-    def on_window_number_change(self):
+    def on_window_number_change(self, deleted_window_number=None):
         """Update dropdowns in each unit layout to match the current number of windows."""
+        if deleted_window_number is not None:
+            # Detect if the number of windows decreased:
+            self._on_window_deleted(deleted_window_number)
+
         self.update_legend()
-        # Clear each unit layout and rebuild it
+
+
+    def _on_window_deleted(self, deleted_window: int):
+        """
+        Handle updates after a window is deleted.
+
+        :param deleted_window: The number of the deleted window.
+        """
         for unit_panel in self.unit_panels:
-            # unit_panel.clear_unit_layout()  # Clear the existing widgets and dropdowns
-            # unit_panel.add_unit_label()
-            # unit_panel.add_delete_button()
-            # unit_panel.populate_unit_panel()  # Repopulate the widgets and dropdowns
-            pass
+            old_expression = unit_panel.unit.logical_expression
+            new_expression = self.update_expression(old_expression, deleted_window)
+
+            # Update internal expression
+            unit_panel.unit.logical_expression = new_expression
+
+            # Update displayed expression
+            if isinstance(unit_panel, UnitPanel):
+                # If using UnitPanel, update the QLineEdit text
+                unit_panel.expression_line_edit.setText(new_expression)
+
+    def update_expression(self, old_expression: str, deleted_window: int) -> str:
+        """
+        Update a logical expression after a window is deleted.
+
+        :param old_expression: The original expression to be updated.
+        :param deleted_window: The number of the deleted window.
+        :return: The updated expression.
+        """
+        # Pattern to find window references like "W1", "W2", etc.
+        # can be lower case as well
+        pattern = re.compile(r"W(\d+)", re.IGNORECASE)
+
+        def replacer(match):
+            # Extract the window number
+            window_number = int(match.group(1))
+
+            # If the window number is higher than the deleted window, decrement it
+            if window_number > deleted_window:
+                return f"W{window_number - 1}"
+            # If the window number is equal to the deleted window, replace it with "False"
+            elif window_number == deleted_window:
+                return "False"
+            # Otherwise, keep it as is
+            else:
+                return f"W{window_number}"
+
+        # Replace all window references in the old expression
+        new_expression = pattern.sub(replacer, old_expression)
+
+        return new_expression
+
+    def _detect_deleted_window(self):
+        """
+        Detect which window number was deleted by finding a gap in the sequence.
+
+        :return: The number of the deleted window.
+        """
+        # Create a list to store the window numbers
+        window_numbers = []
+
+        # Loop through all windows and extract their numbers
+        for window_index,window in enumerate(self.spike_plot.amp_time_windows):
+            # Assume window labels are in the form "W1", "W2", etc.
+            window_number = window_index + 1
+            window_numbers.append(window_number)
+
+        # Find the gap in the sequence of window numbers
+        window_numbers.sort()
+        for idx, num in enumerate(window_numbers):
+            if idx + 1 != num:
+                # We found a gap! The deleted window number is idx + 1
+                return idx + 1
+
+        # If no gap was found, return None or handle this case as appropriate for your application
+        return None
 
     def get_window_colors(self):
         window_colors = [window.color for window in self.spike_plot.amp_time_windows]
