@@ -14,23 +14,34 @@ from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "1696367719246571_231003_171519&1696369421224313_231003_174341_round4.pk1"
+    experiment_data_filename = "1696443467116217_231004_141747_round4.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
  #   plot_channel_histograms(raw_data, channel=Channel.C_013)
-    channels = [Channel.C_013,
-                Channel.C_024,
+    channels = [Channel.C_024,
+                Channel.C_003,
+                Channel.C_028,
+                Channel.C_022,
                 Channel.C_012,
+                Channel.C_010,
+                Channel.C_025,
+                Channel.C_005,
+                Channel.C_021,
+                Channel.C_006,
+                Channel.C_018,
+                Channel.C_007,
                 Channel.C_019,
                 Channel.C_004,
                 Channel.C_027,
-                Channel.C_006,
+                Channel.C_009,
+                Channel.C_011,
+                Channel.C_020,
+                Channel.C_005,
                 Channel.C_026,
-                Channel.C_010,
-                Channel.C_025,
-                Channel.C_021,
-                Channel.C_007,
+                # Channel.C_023,
+                # Channel.C_006,
+                # Channel.C_025,
                 # Channel.C_006
                 ]
     for channel in channels:
@@ -100,7 +111,7 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
         # Save individual plot
         individual_save_path_png = os.path.join(save_dir, f"{channel.name}_raster.png")
         individual_save_path_svg = os.path.join(save_dir, f"{channel.name}_raster.svg")
-        fig.savefig(individual_save_path_png)
+        # fig.savefig(individual_save_path_png)
         fig.savefig(individual_save_path_svg)
 
 
