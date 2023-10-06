@@ -211,12 +211,12 @@ class SortSpikePlot(ThresholdedSpikePlot):
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Delete:
-            for window_index,window in enumerate(self.amp_time_windows):
+            for window_index, window in enumerate(self.amp_time_windows):
                 if window.isSelected():
                     self.plotWidget.removeItem(window)
                     self.amp_time_windows.remove(window)
                     self.on_window_adjustments()
-                    self.update_unit_panel_expressions(deleted_window_number=window_index+1)
+                    self.update_unit_panel_expressions(deleted_window_number=window_index + 1)
                     break
         elif event.key() in (Qt.Key_Left, Qt.Key_Right):
             if event.modifiers() & Qt.ShiftModifier:
@@ -283,9 +283,6 @@ class SortSpikePlot(ThresholdedSpikePlot):
             self.min_max_voltage = self._calculate_min_max(voltages, self.spike_window_radius_in_indices)
 
         self.sortSpikes()
-
-        # Set the y-limits of the plot
-        self.set_axis_limits()
 
     def set_sort_panel(self, logical_rules_panel):
         self.logical_rules_panel = logical_rules_panel
