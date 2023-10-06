@@ -91,10 +91,10 @@ def main():
 
 
     # Define the data directory here
-    # date = "2023-10-05"
-    # exp_name = "231005_round1"
-    date = "2023-09-12"
-    exp_name = "1694529683452000_230912_144921"
+    date = "2023-10-05"
+    exp_name = "231005_round1"
+    # date = "2023-09-12"
+    # exp_name = "1694529683452000_230912_144921"
     data_directory = "/home/r2_allen/Documents/JulieIntanData/Cortana/%s/%s/" % (
     date, exp_name)
     print("Loading App")
