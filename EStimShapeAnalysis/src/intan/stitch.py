@@ -66,7 +66,7 @@ def open_gui():
     root = tk.Tk()
     root.withdraw()  # Hide the main window
 
-    default_folder = "/run/user/1003/gvfs/smb-share:server=connorhome.local,share=connorhome/Julie/IntanData/Cortana"
+    default_folder = "/home/r2_allen/Documents/JulieIntanData/Cortana"
     # default_folder = "/run/user/1003/gvfs/sftp:host=172.30.6.58/home/connorlab/Documents/IntanData"
 
     folder_paths = tkfilebrowser.askopendirnames(initialdir=default_folder, title="Select Folders to Stitch")
