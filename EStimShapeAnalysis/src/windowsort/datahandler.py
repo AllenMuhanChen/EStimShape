@@ -6,7 +6,7 @@ import numpy as np
 from PyQt5.QtWidgets import QFileDialog, QWidget
 from scipy.signal import butter, filtfilt
 
-from intan.amplifiers import read_amplifier_data, read_amplifier_data_with_memmap
+from intan.amplifiers import read_amplifier_data, read_amplifier_data_with_memmap, read_amplifier_data_with_mmap
 from intan.channels import Channel
 from intan.rhd import load_intan_rhd_format
 from windowsort.drift import DriftingTimeAmplitudeWindow
@@ -33,15 +33,15 @@ class DataImporter:
         # Check if preprocessed data already exists
         if os.path.exists(self.preprocessed_dat_path):
             print("Preprocessed data found. Loading...")
-            self.voltages_by_channel = read_amplifier_data_with_memmap(self.preprocessed_dat_path, amplifier_channels)
+            self.voltages_by_channel = read_amplifier_data_with_mmap(self.preprocessed_dat_path, amplifier_channels)
         else:
             print("Preprocessed data not found. Preprocessing and saving...")
             # Load original data
-            self.voltages_by_channel = read_amplifier_data_with_memmap(amplifier_dat_path, amplifier_channels)
+            self.voltages_by_channel = read_amplifier_data_with_mmap(amplifier_dat_path, amplifier_channels)
             # Preprocess and save the data
             self.preprocess_data()
             del self.voltages_by_channel  # Delete the original data to save memory
-            self.voltages_by_channel = read_amplifier_data_with_memmap(self.preprocessed_dat_path, amplifier_channels)
+            self.voltages_by_channel = read_amplifier_data_with_mmap(self.preprocessed_dat_path, amplifier_channels)
 
 
     def preprocess_data(self):

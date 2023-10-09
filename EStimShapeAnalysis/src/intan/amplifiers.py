@@ -1,3 +1,5 @@
+import mmap
+
 import numpy as np
 import os
 
@@ -6,6 +8,47 @@ from intan.channels import Channel
 import numpy as np
 from intan.channels import Channel  # Assuming you have this import
 import os
+
+
+def read_amplifier_data_with_mmap(file_path, amplifier_channels):
+    """
+    Reads amplifier data from a binary file and maps it to memory using mmap.
+    Creates a dictionary mapping each native_channel_name to its vector of spikes.
+
+    Parameters:
+    - file_path: str, path to the amplifier.dat file
+    - amplifier_channels: list of dicts, amplifier channel information
+
+    Returns:
+    - channel_to_data: dict, mapping from native_channel_name to spike data in microvolts
+    """
+    # Extract the number of channels
+    num_channels = len(amplifier_channels)
+
+    # Get file size in bytes
+    fileinfo = os.path.getsize(file_path)
+
+    # Calculate the number of samples
+    num_samples = fileinfo // (num_channels * 2)  # int16 = 2 bytes
+
+    # Initialize an empty dictionary to store the mapping
+    channel_to_data = {}
+
+    # Open the file and map it to memory
+    with open(file_path, 'rb') as f:
+        mmapped_file = mmap.mmap(f.fileno(), length=0, access=mmap.ACCESS_READ)
+
+        # Create a NumPy array that views the mmapped data
+        data = np.frombuffer(mmapped_file, dtype=np.int16).reshape((num_samples, num_channels))
+
+        # Convert the data to microvolts and populate the dictionary
+        for i, channel_info in enumerate(amplifier_channels):
+            print(f"Reading channel {i}...")
+            native_channel_name = channel_info.get("native_channel_name", f"Channel_{i}")
+            channel_data = data[:, i] * 0.195  # Conversion to microvolts
+            channel_to_data[Channel(native_channel_name)] = channel_data
+
+    return channel_to_data
 
 
 def read_amplifier_data_with_memmap(file_path, amplifier_channels):
