@@ -6,7 +6,7 @@ import numpy as np
 from PyQt5.QtWidgets import QFileDialog, QWidget
 from scipy.signal import butter, filtfilt
 
-from intan.amplifiers import read_amplifier_data, read_amplifier_data_with_memmap, read_amplifier_data_with_mmap
+from intan.amplifiers import read_amplifier_data_with_mmap
 from intan.channels import Channel
 from intan.rhd import load_intan_rhd_format
 from windowsort.drift import DriftingTimeAmplitudeWindow

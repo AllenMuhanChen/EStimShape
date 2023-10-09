@@ -10,6 +10,22 @@ from windowsort.units import SortPanel
 from windowsort.voltage import VoltageTimePlot, TimeScrubber, ChannelSelectionPanel, ThresholdControlPanel
 from windowsort.spikes import ThresholdedSpikePlot, SpikeScrubber, ExportPanel
 
+# Main function to run the application
+def main():
+    app = QApplication(sys.argv)
+
+    # Define the data directory here
+    date = "2023-10-04"
+    exp_name = "231004_round4"
+    # date = "2023-09-12"
+    # exp_name = "1694529683452000_230912_144921"
+    data_directory = "/home/r2_allen/Documents/JulieIntanData/Cortana/%s/%s/" % (
+    date, exp_name)
+    print("Loading App")
+
+    mainWin = MainWindow(data_directory)
+    mainWin.show()
+    sys.exit(app.exec_())
 
 class MainWindow(QMainWindow):
     def __init__(self, data_directory):
@@ -85,23 +101,7 @@ class MainWindow(QMainWindow):
 
 
 
-# Main function to run the application
-def main():
-    app = QApplication(sys.argv)
 
-
-    # Define the data directory here
-    date = "2023-09-29"
-    exp_name = "230929_round3"
-    # date = "2023-09-12"
-    # exp_name = "1694529683452000_230912_144921"
-    data_directory = "/home/r2_allen/Documents/JulieIntanData/Cortana/%s/%s/" % (
-    date, exp_name)
-    print("Loading App")
-
-    mainWin = MainWindow(data_directory)
-    mainWin.show()
-    sys.exit(app.exec_())
 
 
 if __name__ == '__main__':
