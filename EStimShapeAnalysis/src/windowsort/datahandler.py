@@ -20,34 +20,75 @@ class DataImporter:
         self.read_data()
 
     def read_data(self):
-        # Assuming info.rhd and amplifier.dat are in the same directory
+        # Paths for original and preprocessed data
         info_rhd_path = os.path.join(self.intan_file_directory, "info.rhd")
         amplifier_dat_path = os.path.join(self.intan_file_directory, "amplifier.dat")
+        self.preprocessed_dat_path = os.path.join(self.intan_file_directory, "preprocessed_data.dat")
 
         # Extract information from info.rhd
-        # Replace the following line with your actual method to read info.rhd
         data = load_intan_rhd_format.read_data(info_rhd_path)
         amplifier_channels = data['amplifier_channels']
         self.sample_rate = data['frequency_parameters']['amplifier_sample_rate']
-        # Use your existing read_amplifier_data function
-        self.voltages_by_channel = read_amplifier_data_with_memmap(amplifier_dat_path, amplifier_channels)
-        # Preprocess the data after reading it
-        self.preprocess_data()
+
+        # Check if preprocessed data already exists
+        if os.path.exists(self.preprocessed_dat_path):
+            print("Preprocessed data found. Loading...")
+            self.voltages_by_channel = read_amplifier_data_with_memmap(self.preprocessed_dat_path, amplifier_channels)
+        else:
+            print("Preprocessed data not found. Preprocessing and saving...")
+            # Load original data
+            self.voltages_by_channel = read_amplifier_data_with_memmap(amplifier_dat_path, amplifier_channels)
+            # Preprocess and save the data
+            self.preprocess_data()
+            del self.voltages_by_channel  # Delete the original data to save memory
+            self.voltages_by_channel = read_amplifier_data_with_memmap(self.preprocessed_dat_path, amplifier_channels)
+
 
     def preprocess_data(self):
-        for channel, voltages in self.voltages_by_channel.items():
-            self.voltages_by_channel[channel] = self.highpass_filter(voltages, cutoff=300)
+        # New dictionary to hold preprocessed data
+        preprocessed_data = {}
 
-    def highpass_filter(self, data, cutoff=300, order=5):
-        b, a = self.butter_highpass(cutoff, self.sample_rate, order=order)
+        # Iterate through channels, filter data, and store in new dict
+        for channel, voltages in self.voltages_by_channel.items():
+            filtered_voltages = self._highpass_filter(voltages, cutoff=300)
+            preprocessed_data[channel] = filtered_voltages.astype('int16')  # Convert back to int16
+
+        # Save preprocessed data to a new binary file
+        self._save_preprocessed_data(preprocessed_data, self.preprocessed_dat_path)
+
+    def _highpass_filter(self, data, cutoff=300, order=5):
+        b, a = self._butter_highpass(cutoff, self.sample_rate, order=order)
         y = filtfilt(b, a, data)
         return y
 
-    def butter_highpass(self, cutoff, fs, order=5):
+    def _butter_highpass(self, cutoff, fs, order=5):
         nyquist = 0.5 * fs
         normal_cutoff = cutoff / nyquist
         b, a = butter(order, normal_cutoff, btype='high', analog=False)
         return b, a
+
+    def _save_preprocessed_data(self, preprocessed_data, output_file_path, chunk_size=10000):
+        # Get the number of channels and samples
+        num_channels = len(preprocessed_data)
+        num_samples = len(next(iter(preprocessed_data.values())))
+
+        with open(output_file_path, 'wb') as f:  # 'wb' mode for binary writing
+            for start_idx in range(0, num_samples, chunk_size):
+                end_idx = start_idx + chunk_size
+
+                # Create an empty NumPy array to hold chunk of the data
+                current_chunk_size = min(chunk_size, num_samples - start_idx)
+                data_chunk = np.empty((current_chunk_size, num_channels), dtype='int16')
+
+                # Populate the chunk with your preprocessed data
+                for i, (channel, data) in enumerate(preprocessed_data.items()):
+                    # Convert the data to a format that, when multiplied by 0.195, gives the correct microvolt values
+                    data_chunk[:, i] = (data[start_idx:end_idx] / 0.195).astype('int16')
+
+                # Save the chunk to the binary file
+                f.write(data_chunk.tobytes())
+
+        print(f"Preprocessed Data saved to {output_file_path}.")
 
 
 class DataExporter:
