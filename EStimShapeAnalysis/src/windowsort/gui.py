@@ -92,7 +92,7 @@ def main():
 
     # Define the data directory here
     date = "2023-09-26"
-    exp_name = "230926_round1"
+    exp_name = "230926_round2"
     # date = "2023-09-12"
     # exp_name = "1694529683452000_230912_144921"
     data_directory = "/home/r2_allen/Documents/JulieIntanData/Cortana/%s/%s/" % (
