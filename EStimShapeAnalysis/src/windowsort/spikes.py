@@ -152,7 +152,7 @@ class SpikeScrubber(QWidget):
         # This weird double updatePlot is a temp workaround a glitch
         # Where scrubbing through spikes after you've changed or added a lot of windows
         # causes crazy lag.
-        self.spike_plot.current_max_spikes = 1
+        self.spike_plot.current_max_spikes = 0
         self.spike_plot.updatePlot()
         self.spike_plot.current_max_spikes = self.current_max_spikes  # Reset the current max spikes
         self.spike_plot.updatePlot()
