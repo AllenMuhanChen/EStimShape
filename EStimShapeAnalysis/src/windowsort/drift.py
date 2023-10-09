@@ -1,7 +1,8 @@
 from __future__ import annotations
+
 from typing import List
 
-from PyQt5.QtCore import pyqtSlot, QPointF, Qt
+from PyQt5.QtCore import QPointF, Qt
 from PyQt5.QtGui import QPainter, QColor
 from PyQt5.QtWidgets import QGraphicsItem, QSlider
 
