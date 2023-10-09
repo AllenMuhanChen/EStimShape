@@ -25,6 +25,7 @@ class TimeAmplitudeWindow(QGraphicsItem):
         self.setFlag(QGraphicsItem.ItemIsSelectable)
 
         # Window Updating
+        self.window_update_delay = 300
         self.window_update_timer = QTimer()
         self.window_update_timer.setSingleShot(True)
         self.window_update_timer.timeout.connect(self.emit_window_updated)
@@ -112,7 +113,7 @@ class TimeAmplitudeWindow(QGraphicsItem):
             new_y = value.y()
 
             if not self.window_update_timer.isActive():
-                self.window_update_timer.start(100)  # emit_window_updated will be called after 100 ms
+                self.window_update_timer.start(self.window_update_delay)  # emit_window_updated will be called after 100 ms
 
             return QPointF(new_x, new_y)
         return super(TimeAmplitudeWindow, self).itemChange(change, value)
