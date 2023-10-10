@@ -12,8 +12,8 @@ matplotlib.use("Qt5Agg")
 
 
 def main():
-    date = "2023-10-04"
-    round = "231004_round4"
+    date = "2023-10-05"
+    round = "231005_round2"
     sorted_spikes_filename = "sorted_spikes.pkl"
 
     cortana_path = "/home/r2_allen/Documents/JulieIntanData/Cortana"
