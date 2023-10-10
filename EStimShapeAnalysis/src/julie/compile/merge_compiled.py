@@ -5,9 +5,9 @@ import pandas as pd
 
 
 def main():
-    round_one = ["1696529435680284_231005_141036.pk1",
-                 "1696530952902561_231005_143553.pk1",
-                 "1696531607057233_231005_144647.pk1"]
+    round_one = ["1696954960635002_231010_122242_round1_1.pk1",
+                 "1696957097095212_231010_125817_round1_2.pk1",
+                 ]
     round_two = ["1696888890257195_231009_180130_round2_1.pk1",
                  "1696891705894032_231009_184826_round2_2.pk1"]
     round_three = ["1696440834320912_231004_133354.pk1",
@@ -16,7 +16,7 @@ def main():
                   "1696369421224313_231003_174341.pk1"]
     round_five = ["1695326404335201_230921_160004.pk1"]
 
-    experiment_data_filenames = round_two
+    experiment_data_filenames = round_one
 
     experiment_names = [experiment_data_filename.split(".")[0] for experiment_data_filename in
                         experiment_data_filenames]

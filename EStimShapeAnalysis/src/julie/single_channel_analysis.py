@@ -14,24 +14,24 @@ from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "1696888890257195_231009_180130_round2_1&1696891705894032_231009_184826_round2_2.pk1"
+    experiment_data_filename = "1696960537083205_231010_135537_round3.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
  #   plot_channel_histograms(raw_data, channel=Channel.C_013)
-    channels = [Channel.C_007,
+    channels = [Channel.C_002,
+                Channel.C_029,
+                Channel.C_018,
+                Channel.C_007,
                 Channel.C_024,
-                Channel.C_002,
-                Channel.C_019,
-                Channel.C_004,
-                Channel.C_025,
-                Channel.C_005,
-                # Channel.C_020,
-                # Channel.C_009,
-                # Channel.C_022,
-                # Channel.C_026,
-                # Channel.C_010,
-                # Channel.C_004,
+                Channel.C_028,
+                Channel.C_003,
+                Channel.C_027,
+                Channel.C_009,
+                Channel.C_022,
+                Channel.C_022,
+                Channel.C_011,
+                # Channel.C_013,
                 # Channel.C_004,
                 # Channel.C_027,
                 # Channel.C_009,
@@ -128,7 +128,7 @@ def plot_channel_histograms(data, channel):
     channel_data = calculate_spikerates_per_bin(channel_data, channel, num_bins)
 
     ## PLOTTING
-    individual_plot = plot_individual_monkeys(channel_data, channel)
+    individual_plot = plot_histograms_for_individual_monkeys(channel_data, channel)
     group_plot = plot_average_among_groups(channel_data, channel)
 
     ## SAVE PLOTS
@@ -148,59 +148,7 @@ def plot_channel_histograms(data, channel):
     plt.show()
 
 
-def remove_noisy_data(df: pd.DataFrame, num_bins: int, threshold: float, channel_threshold: int) -> pd.DataFrame:
-    """
-    Remove rows from the DataFrame where the spike rate in any of the bins
-    for a threshold number of channels exceeds a user-set threshold.
-
-    Parameters:
-    - df: DataFrame containing spikes data. Each row should contain a dictionary
-          of channels to timestamps of spikes.
-    - num_bins: Number of bins to divide the spikes into.
-    - threshold: User-set threshold for spike rate.
-    - channel_threshold: User-set threshold for the number of channels to consider a row noisy.
-
-    Returns:
-    - Filtered DataFrame.
-    """
-
-    # Initialize an empty list to keep track of row indices to drop
-    rows_to_drop = []
-
-    # Loop through each row in the DataFrame
-    for index, row in df.iterrows():
-        spikes_dict = row['spikes']  # Assuming the spikes are stored in a column named 'spikes'
-
-        noisy_channels = 0  # Counter for channels exceeding the spike rate threshold
-
-        # Loop through each channel
-        for channel, timestamps in spikes_dict.items():
-            # Bin the spikes
-            max_time = max(timestamps) if timestamps else 0
-            min_time = min(timestamps) if timestamps else 0
-            bin_edges = np.linspace(min_time, max_time, num_bins + 1)
-            binned_spikes, _ = np.histogram(timestamps, bins=bin_edges)
-
-            # Calculate the spike rate for each bin
-            bin_width = (max_time - min_time) / num_bins
-            spike_rates = binned_spikes / bin_width
-
-            # Check if any bin has spike rate above the threshold
-            if any(rate > threshold for rate in spike_rates):
-                noisy_channels += 1
-
-                # Check if the number of noisy channels exceeds the threshold
-                if noisy_channels >= channel_threshold:
-                    rows_to_drop.append(index)
-                    break  # No need to check other channels for this row
-
-    # Drop the rows
-    df_filtered = df.drop(rows_to_drop)
-
-    return df_filtered
-
-
-def plot_individual_monkeys(channel_data, channel):
+def plot_histograms_for_individual_monkeys(channel_data, channel):
     num_groups = channel_data['MonkeyGroup'].nunique()
     unique_monkey_groups = channel_data['MonkeyGroup'].dropna().unique().tolist()
     N = len(channel_data)
@@ -224,7 +172,7 @@ def plot_individual_monkeys(channel_data, channel):
 
             ax = fig.add_subplot(num_groups, len(unique_monkeys), row_idx * len(unique_monkeys) + col_idx + 1)
 
-            err_bar = plot_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax)
+            err_bar = plot_histogram_for_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax)
 
             # Collect legend handles and labels from one of the axes
             if legend_handles_labels is None:
@@ -256,7 +204,7 @@ def plot_individual_monkeys(channel_data, channel):
     return fig
 
 
-def plot_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax):
+def plot_histogram_for_single_monkey(ax, monkey_data, monkey_name, x_proportion, ymax):
     spike_rate_arrays = np.vstack(monkey_data['BinnedSpikeRates'])
     num_traces = spike_rate_arrays.shape[0]  # Number of rows in spike_rate_arrays is the number of traces
     mean_spike_rates = np.mean(spike_rate_arrays, axis=0)

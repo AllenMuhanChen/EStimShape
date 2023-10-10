@@ -16,7 +16,14 @@ class FileNameField(StimSpecField):
         stim_spec_dict = xmltodict.parse(stim_spec)
         picture_path = stim_spec_dict['StimSpec']['filePath']
         file_name = self.extract_filename_from_filepath(picture_path)
+        if self.is_new_monkey_picture(picture_path):
+            #add new_monkey_ to the filename
+            file_name = "new_monkey_" + file_name
+
         return file_name
+
+    def is_new_monkey_picture(self, path: str):
+        return "new_monkey" in path
 
     def extract_filename_from_filepath(self, filepath: str) -> str:
         match = re.search(r'([^/]+)$', filepath)
@@ -33,6 +40,8 @@ class MonkeyIdField(FileNameField):
 
     def get(self, task_id: int):
         filename = super().get(task_id)
+        if "new_monkey" in filename:
+            return -1
         try:
             monkey_id = re.search(r'(\d+)\.', filename).group(1)
         except AttributeError:
@@ -48,6 +57,8 @@ class MonkeyNameField(MonkeyIdField):
 
     def get(self, task_id: int) -> str:
         monkey_id = super().get(task_id)
+        if monkey_id == -1:
+            return "NewMonkey"
         # read monkey_name for monkey_id
         query = "SELECT monkey_name FROM photo_metadata.combined_view WHERE monkey_id = %s"
         params = (monkey_id,)
@@ -65,6 +76,8 @@ class JpgIdField(MonkeyIdField):
 
     def get(self, task_id: int) -> int:
         monkey_id = super().get(task_id)
+        if monkey_id == -1:
+            return -1
         # read jpg_id for file_name
         query = "SELECT jpg_id FROM photo_metadata.combined_view WHERE monkey_id = %s"
         params = (monkey_id,)
@@ -86,6 +99,8 @@ class MonkeyGroupField(JpgIdField):
 
         def get(self, task_id: int) -> str:
             jpg_id = super().get(task_id)
+            if jpg_id == -1:
+                return "Zombies"
             # read monkey_group for jpg_id
             query = "SELECT monkey_group FROM photo_metadata.photos WHERE jpg_id = %s"
             params = (jpg_id,)
