@@ -8,15 +8,15 @@ def main():
     round_one = ["1696529435680284_231005_141036.pk1",
                  "1696530952902561_231005_143553.pk1",
                  "1696531607057233_231005_144647.pk1"]
-    round_two = ["1695235028758768_230920_143709.pk1",
-                 "1695236893646702_230920_150814.pk1"]
+    round_two = ["1696888890257195_231009_180130_round2_1.pk1",
+                 "1696891705894032_231009_184826_round2_2.pk1"]
     round_three = ["1696440834320912_231004_133354.pk1",
                    "1696441588991973_231004_134629.pk1"]
     round_four = ["1696367719246571_231003_171519.pk1",
                   "1696369421224313_231003_174341.pk1"]
     round_five = ["1695326404335201_230921_160004.pk1"]
 
-    experiment_data_filenames = round_one
+    experiment_data_filenames = round_two
 
     experiment_names = [experiment_data_filename.split(".")[0] for experiment_data_filename in
                         experiment_data_filenames]

@@ -14,24 +14,24 @@ from intan.channels import Channel
 
 
 def main():
-    experiment_data_filename = "1696533600935676_231005_152001_round1.pk1"
+    experiment_data_filename = "1696888890257195_231009_180130_round2_1&1696891705894032_231009_184826_round2_2.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
  #   plot_channel_histograms(raw_data, channel=Channel.C_013)
     channels = [Channel.C_007,
-                Channel.C_018,
-                Channel.C_013,
-                Channel.C_029,
-                Channel.C_003,
-                Channel.C_012,
+                Channel.C_024,
+                Channel.C_002,
                 Channel.C_019,
-                Channel.C_020,
-                Channel.C_009,
-                Channel.C_022,
-                Channel.C_026,
-                Channel.C_010,
                 Channel.C_004,
+                Channel.C_025,
+                Channel.C_005,
+                # Channel.C_020,
+                # Channel.C_009,
+                # Channel.C_022,
+                # Channel.C_026,
+                # Channel.C_010,
+                # Channel.C_004,
                 # Channel.C_004,
                 # Channel.C_027,
                 # Channel.C_009,

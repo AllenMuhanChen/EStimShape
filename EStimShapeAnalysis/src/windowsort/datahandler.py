@@ -43,7 +43,6 @@ class DataImporter:
             del self.voltages_by_channel  # Delete the original data to save memory
             self.voltages_by_channel = read_amplifier_data_with_mmap(self.preprocessed_dat_path, amplifier_channels)
 
-
     def preprocess_data(self):
         # New dictionary to hold preprocessed data
         preprocessed_data = {}
@@ -134,7 +133,8 @@ class DataExporter:
         for unit_name, spikes in spikes_by_unit.items():
             print(f"Saved {len(spikes)} spikes for unit {unit_name} to {filename}")
 
-    def save_sorting_config(self, channel, amp_time_windows: List[DriftingTimeAmplitudeWindow], units, threshold, extension=None):
+    def save_sorting_config(self, channel, amp_time_windows: List[DriftingTimeAmplitudeWindow], units, threshold,
+                            extension=None):
         base_filename = "sorting_config"
         if extension is not None:
             filename = base_filename + "_" + extension + ".pkl"
