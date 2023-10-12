@@ -23,7 +23,9 @@ class FileNameField(StimSpecField):
         return file_name
 
     def is_new_monkey_picture(self, path: str):
-        return "new_monkey" in path
+        is_in_new_monkey_path = "new_monkey" in path
+        is_macaque_in_filename = "macaque" in path
+        return is_in_new_monkey_path or is_macaque_in_filename
 
     def extract_filename_from_filepath(self, filepath: str) -> str:
         match = re.search(r'([^/]+)$', filepath)
