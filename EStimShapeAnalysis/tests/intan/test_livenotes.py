@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from intan.livenotes import map_unique_task_id_to_epochs_with_livenotes
-from intan.marker_channels import read_digitalin_file, get_epochs_start_and_stop_indices
+from clat.intan.livenotes import map_unique_task_id_to_epochs_with_livenotes
+from clat.intan.marker_channels import read_digitalin_file, get_epochs_start_and_stop_indices
 
 
 class TestLiveNoteMapToMarkerChannels(TestCase):

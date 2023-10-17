@@ -1,16 +1,12 @@
 import os
 
-import jsonpickle
 import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
-
+from intan.channels import Channel
 
 matplotlib.use("Qt5Agg")
-
-from intan.channels import Channel
 
 
 def main():
@@ -18,7 +14,7 @@ def main():
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
     raw_data = pd.read_pickle(file_path)
- #   plot_channel_histograms(raw_data, channel=Channel.C_013)
+    #   plot_channel_histograms(raw_data, channel=Channel.C_013)
 
     channels = [Channel.C_017,
                 Channel.C_014,
@@ -51,8 +47,6 @@ def main():
                                 experiment_name=experiment_name)
 
 
-
-
 def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
     channel_data = extract_target_channel_data(channel, raw_data)
     unique_monkey_groups = channel_data['MonkeyGroup'].dropna().unique().tolist()
@@ -65,7 +59,6 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
         max_rows = max(max_rows, len(unique_monkeys))
 
     fig = plt.figure(figsize=(15 * len(unique_monkey_groups), 45 * max_rows))
-
 
     for col_idx, group_name in enumerate(unique_monkey_groups):
         group_data = channel_data[channel_data['MonkeyGroup'] == group_name]
@@ -114,7 +107,6 @@ def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
         individual_save_path_svg = os.path.join(save_dir, f"{channel.name}_raster.svg")
         # fig.savefig(individual_save_path_png)
         fig.savefig(individual_save_path_svg)
-
 
     return fig
 

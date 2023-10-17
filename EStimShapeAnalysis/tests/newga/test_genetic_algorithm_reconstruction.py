@@ -2,8 +2,8 @@ from __future__ import annotations
 import unittest
 from unittest.mock import Mock
 
-from intan.channels import Channel
-from intan.response_processing import ResponseProcessor
+from clat.intan.channels import Channel
+from clat.intan.response_processing import ResponseProcessor
 from newga.ga_classes import Node
 from newga.genetic_algorithm import GeneticAlgorithm
 from newga.multi_ga_db_util import LineageGaInfoEntry, StimGaInfoEntry

@@ -6,8 +6,8 @@ from typing import List
 
 from mysql.connector import DatabaseError
 
-from intan.spike_parsing import ResponseParser
-from intan.response_processing import ResponseProcessor
+from clat.intan.spike_parsing import ResponseParser
+from clat.intan.response_processing import ResponseProcessor
 from newga.ga_classes import LineageDistributor, Node, Stimulus, LineageFactory
 from newga.lineage_selection import ClassicLineageDistributor
 from newga.regime_type import RegimeType

@@ -4,16 +4,16 @@ from typing import Dict, List, Callable
 
 import numpy as np
 
-from intan.channels import Channel
-from intan.livenotes import map_unique_task_id_to_epochs_with_livenotes
-from intan.marker_channels import epoch_using_marker_channels
-from intan.spike_file import fetch_spike_tstamps_from_file
+from channels import Channel
+from livenotes import map_unique_task_id_to_epochs_with_livenotes
+from marker_channels import epoch_using_marker_channels
+from spike_file import fetch_spike_tstamps_from_file
 from newga.multi_ga_db_util import MultiGaDbUtil
 
 
 class ResponseParser:
     """
-    Responsible for parsing the spike count from intan files and uploading them to the database as
+    Responsible for parsing the spike count from clat.intan files and uploading them to the database as
     a spike count per second for each channel and task
     """
 

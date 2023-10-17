@@ -12,7 +12,7 @@ from clat.compile.task.base_database_fields import StimSpecIdField, TaskIdField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.matchstick_fields import ShaftField
 from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks
-from intan.channels import Channel
+from clat.intan.channels import Channel
 from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.trial.trial_field import FieldList, get_data_from_trials

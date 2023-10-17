@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider, QSpinBox, QPushButton, QAbstractSlider
 from pyqtgraph import PlotWidget, PlotDataItem
 
-from intan.channels import Channel
+from clat.intan.channels import Channel
 
 from windowsort.threshold import threshold_spikes_absolute
 

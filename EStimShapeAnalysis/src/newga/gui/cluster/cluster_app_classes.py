@@ -6,7 +6,7 @@ from PyQt5.QtGui import QColor
 from matplotlib import cm
 from matplotlib.path import Path
 
-from intan.channels import Channel
+from clat.intan.channels import Channel
 
 MAX_GROUPS = 10
 

@@ -9,7 +9,7 @@ from matplotlib.figure import Figure
 from matplotlib.path import Path
 from matplotlib.widgets import LassoSelector, RectangleSelector
 
-from intan.channels import Channel
+from clat.intan.channels import Channel
 from newga.gui.cluster.cluster_app_classes import ClusterManager, DataLoader, DataExporter, ChannelMapper, Annotator
 from newga.gui.cluster.dimensionality_reduction import DimensionalityReducer
 
