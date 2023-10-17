@@ -11,11 +11,11 @@ from compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdF
 from compile.trial.matchstick_fields import ShaftField
 from compile.trial.trial_collector import TrialCollector
 from compile.trial.trial_field import FieldList, get_data_from_trials
-from src.util import time_util
-from src.util.connection import Connection
-from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
+from util import time_util
+from util.connection import Connection
+from util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
     check_condition_on_subdictionaries
-from src.util.time_util import When
+from util.time_util import When
 
 
 def main():

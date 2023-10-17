@@ -9,7 +9,7 @@ from src.newga.ga_classes import Stimulus, ParentSelector, MutationAssigner, Mut
     RegimeTransitioner, Lineage
 import numpy as np
 
-from src.util.connection import Connection
+from util.connection import Connection
 
 
 class RankOrderedDistribution:

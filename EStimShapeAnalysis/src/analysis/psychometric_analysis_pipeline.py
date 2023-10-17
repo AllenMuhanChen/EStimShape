@@ -5,9 +5,9 @@ import pandas as pd
 from compile.trial.nafc_database_fields import TrialTypeField
 from compile.trial.trial_collector import TrialCollector
 from compile.trial.trial_field import FieldList, get_data_from_trials
-from src.util import time_util
-from src.util.connection import Connection
-from src.util.time_util import When
+from util import time_util
+from util.connection import Connection
+from util.time_util import When
 
 
 def collect_choice_trials(conn: Connection, when: When = time_util.all()) -> list[When]:

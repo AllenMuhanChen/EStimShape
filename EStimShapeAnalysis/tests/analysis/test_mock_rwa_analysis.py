@@ -6,9 +6,9 @@ from src.analysis.rwa import Binner
 from src.mock.mock_ga_responses import collect_trials
 from src.mock.mock_rwa_analysis import condition_theta_and_phi, condition_spherical_angles, condition_for_inside_bins, \
     compile_data
-from src.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
-from src.util import time_util
-from src.util.connection import Connection
+from util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
+from util import time_util
+from util.connection import Connection
 
 
 def random_number_between(min, max):

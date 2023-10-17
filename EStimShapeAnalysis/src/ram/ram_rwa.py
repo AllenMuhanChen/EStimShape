@@ -10,8 +10,8 @@ from src.analysis.rwa import rwa, AutomaticBinner, rwa, raw_data, get_next, comb
 from src.mock.mock_rwa_analysis import hemisphericalize, condition_theta_and_phi
 from src.mock.mock_rwa_plot import plot_shaft_rwa
 from src.ram import plot_ram
-from src.util import dictionary_util
-from tests.analysis.test_multidim_rwa import plot_data_and_rwa_variations
+from util import dictionary_util
+from analysis.test_multidim_rwa import plot_data_and_rwa_variations
 
 
 def load_data_by_lineage(data_path, stim_ids):

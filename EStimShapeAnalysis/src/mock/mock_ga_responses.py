@@ -17,11 +17,11 @@ from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuning
 from compile.trial.trial_collector import TrialCollector
 from compile.trial.trial_field import FieldList, get_data_from_trials
 from src.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
-from src.util import time_util
-from src.util.connection import Connection
-from src.util.dictionary_util import flatten_dictionary, \
+from util import time_util
+from util.connection import Connection
+from util.dictionary_util import flatten_dictionary, \
     extract_values_with_key_into_list
-from src.util.time_util import When
+from util.time_util import When
 
 
 def collect_task_ids(conn):

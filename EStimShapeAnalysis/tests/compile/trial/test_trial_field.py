@@ -3,7 +3,7 @@ from unittest import TestCase
 import pandas as pd
 
 from compile.trial import trial_field
-from src.util.time_util import When
+from util.time_util import When
 
 class DuckField:
     def __init__(self, quack):

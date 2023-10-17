@@ -5,7 +5,7 @@ import subprocess
 from time import sleep
 
 from src.mock import mock_ga_responses, mock_rwa_analysis, mock_rwa_plot, mock_tree_graph
-from src.util.connection import Connection
+from util.connection import Connection
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 xper_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/xper"

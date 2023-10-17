@@ -1,6 +1,6 @@
 import unittest
-from src.util import time_util, table_util
-from src.util.connection import Connection
+from util import time_util, table_util
+from util.connection import Connection
 
 
 class MyTestCase(unittest.TestCase):
