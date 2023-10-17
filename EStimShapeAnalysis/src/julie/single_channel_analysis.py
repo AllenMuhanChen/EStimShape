@@ -17,31 +17,31 @@ def main():
     #   plot_channel_histograms(raw_data, channel=Channel.C_013)
 
     channels = [
-                # Channel.C_017,
-                Channel.C_002,
-                # Channel.C_002,
-                # Channel.C_029,
-                # Channel.C_007,
-                # Channel.C_013,
-                # Channel.C_018,
-                # Channel.C_024,
-                # Channel.C_003,
-                # Channel.C_028,
-                # Channel.C_012,
-                # Channel.C_022,
-                # Channel.C_011,
-                # Channel.C_020,
-                # Channel.C_010,
-                # Channel.C_021,
-                # Channel.C_006,
-                # Channel.C_010,
-                # Channel.C_025,
-                # Channel.C_026,
-                # Channel.C_023,
-                # Channel.C_006,
-                # Channel.C_025,
-                # Channel.C_006
-                ]
+        # Channel.C_017,
+        Channel.C_002,
+        # Channel.C_002,
+        # Channel.C_029,
+        # Channel.C_007,
+        # Channel.C_013,
+        # Channel.C_018,
+        # Channel.C_024,
+        # Channel.C_003,
+        # Channel.C_028,
+        # Channel.C_012,
+        # Channel.C_022,
+        # Channel.C_011,
+        # Channel.C_020,
+        # Channel.C_010,
+        # Channel.C_021,
+        # Channel.C_006,
+        # Channel.C_010,
+        # Channel.C_025,
+        # Channel.C_026,
+        # Channel.C_023,
+        # Channel.C_006,
+        # Channel.C_025,
+        # Channel.C_006
+    ]
     for channel in channels:
         print("Working on channel %s" % channel)
         plot_raster_for_monkeys(raw_data, channel=channel,
@@ -310,8 +310,8 @@ def calculate_spike_rate(spikes: list, time_range: tuple) -> float:
 def extract_target_channel_data(channel: Channel, data):
     # Get SpikeTimes for channel
     channel_data = data.copy()
-    channel_data[f'SpikeTimes_{channel.value}'] = data['SpikeTimes'].apply(lambda x: x[next(filter(lambda key: key.value == channel.value, x.keys()), None)])
-
+    channel_data[f'SpikeTimes_{channel.value}'] = data['SpikeTimes'].apply(
+        lambda x: x[next(filter(lambda key: key.value == channel.value, x.keys()), None)])
 
     return channel_data
 
