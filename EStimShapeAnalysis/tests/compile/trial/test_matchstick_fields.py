@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from compile.trial.matchstick_fields import MatchStickField, ShaftField, TerminationField, JunctionField
-from util.time_util import When
+from clat.compile.trial.matchstick_fields import MatchStickField, ShaftField, TerminationField, JunctionField
+from clat.util.time_util import When
 
 
 class Test(TestCase):

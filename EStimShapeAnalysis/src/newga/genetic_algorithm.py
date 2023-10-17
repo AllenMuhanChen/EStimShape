@@ -13,7 +13,7 @@ from newga.lineage_selection import ClassicLineageDistributor
 from newga.regime_type import RegimeType
 from newga.multi_ga_db_util import MultiGaDbUtil
 from src.newga.ga_classes import Regime, Lineage
-from util import time_util
+from clat.util import time_util
 
 
 @dataclass(kw_only=True)

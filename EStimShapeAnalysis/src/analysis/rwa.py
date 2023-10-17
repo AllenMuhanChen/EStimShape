@@ -14,7 +14,7 @@ from numpy import float32
 from scipy.ndimage import fourier_gaussian
 from scipy.ndimage.filters import gaussian_filter
 
-from util.dictionary_util import extract_values_with_key_into_list
+from clat.util.dictionary_util import extract_values_with_key_into_list
 
 data_type = float32
 

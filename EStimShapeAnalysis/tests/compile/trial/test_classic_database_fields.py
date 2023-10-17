@@ -1,10 +1,10 @@
 from unittest import TestCase
 
-from compile.trial.classic_database_fields import StimSpecDataField
-from compile.trial.matchstick_fields import MatchStickField, ShaftField
-from compile.trial.trial_field import FieldList, get_data_from_trials
-from util.connection import Connection
-from util.time_util import When
+from clat.compile.trial.classic_database_fields import StimSpecDataField
+from clat.compile.trial.matchstick_fields import MatchStickField, ShaftField
+from clat.compile.trial.trial_field import FieldList, get_data_from_trials
+from clat.util.connection import Connection
+from clat.util.time_util import When
 
 
 def get_when(conn: Connection):

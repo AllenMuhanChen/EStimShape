@@ -17,7 +17,7 @@ from src.newga.regime_one import RegimeOneParentSelector, RegimeOneMutationAssig
     RegimeOneTransitioner, GetAllStimuliFunc
 from src.newga.regime_zero import RegimeZeroParentSelector, RegimeZeroMutationAssigner, \
     RegimeZeroMutationMagnitudeAssigner, RegimeZeroTransitioner
-from util.connection import Connection
+from clat.util.connection import Connection
 
 
 class GAVarParameterFetcher:

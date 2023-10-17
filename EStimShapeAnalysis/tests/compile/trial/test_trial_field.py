@@ -2,8 +2,8 @@ from unittest import TestCase
 
 import pandas as pd
 
-from compile.trial import trial_field
-from util.time_util import When
+from clat.compile.trial import trial_field
+from clat.util.time_util import When
 
 class DuckField:
     def __init__(self, quack):

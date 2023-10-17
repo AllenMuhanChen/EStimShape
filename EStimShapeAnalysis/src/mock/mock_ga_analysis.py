@@ -3,13 +3,13 @@ from __future__ import annotations
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import subplots
 
-from compile.trial.classic_database_fields import GaTypeField, GaLineageField, StimSpecIdField, StimSpecField
-from compile.trial.trial_field import FieldList, get_data_from_trials
+from clat.compile.trial.classic_database_fields import GaTypeField, GaLineageField, StimSpecIdField, StimSpecField
+from clat.compile.trial.trial_field import FieldList, get_data_from_trials
 from src.mock.mock_ga_responses import collect_trials
 from src.mock.mock_rwa_analysis import MockResponseField
-from util import time_util
-from util.connection import Connection
-from util.time_util import When
+from clat.util import time_util
+from clat.util.connection import Connection
+from clat.util.time_util import When
 
 
 def split_by_lineage(data):

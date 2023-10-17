@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from newga.multi_ga_db_util import MultiGaDbUtil
-from util.connection import Connection
+from clat.util.connection import Connection
 
 
 class TestMultiGaDbUtil(TestCase):

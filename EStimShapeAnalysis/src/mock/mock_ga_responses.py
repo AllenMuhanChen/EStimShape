@@ -8,20 +8,20 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import double
 
-from compile.task.base_database_fields import StimSpecIdField, TaskIdField
-from compile.task.compile_task_id import TaskIdCollector
-from compile.task.matchstick_fields import ShaftField
-from compile.task.task_field import TaskFieldList, get_data_from_tasks
+from clat.compile.task.base_database_fields import StimSpecIdField, TaskIdField
+from clat.compile.task.compile_task_id import TaskIdCollector
+from clat.compile.task.matchstick_fields import ShaftField
+from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks
 from intan.channels import Channel
 from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
-from compile.trial.trial_collector import TrialCollector
-from compile.trial.trial_field import FieldList, get_data_from_trials
+from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.trial.trial_field import FieldList, get_data_from_trials
 from src.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
-from util import time_util
-from util.connection import Connection
-from util.dictionary_util import flatten_dictionary, \
+from clat.util import time_util
+from clat.util.connection import Connection
+from clat.util.dictionary_util import flatten_dictionary, \
     extract_values_with_key_into_list
-from util.time_util import When
+from clat.util.time_util import When
 
 
 def collect_task_ids(conn):
