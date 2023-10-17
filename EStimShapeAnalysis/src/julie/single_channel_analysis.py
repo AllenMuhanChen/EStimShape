@@ -4,37 +4,38 @@ import matplotlib
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from intan.channels import Channel
+from clat.intan.channels import Channel
 
 matplotlib.use("Qt5Agg")
 
 
 def main():
-    experiment_data_filename = "1697058662909405_231011_171103_round3.pk1"
+    experiment_data_filename = "1697052348461980_231011_152549_round1.pk1"
     experiment_name = experiment_data_filename.split(".")[0]
     file_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/compiled/julie/%s" % experiment_data_filename
-    raw_data = pd.read_pickle(file_path)
+    raw_data = read_pickle(file_path)
     #   plot_channel_histograms(raw_data, channel=Channel.C_013)
 
-    channels = [Channel.C_017,
-                Channel.C_014,
+    channels = [
+                # Channel.C_017,
                 Channel.C_002,
-                Channel.C_029,
-                Channel.C_007,
-                Channel.C_013,
-                Channel.C_018,
-                Channel.C_024,
-                Channel.C_003,
-                Channel.C_028,
-                Channel.C_012,
-                Channel.C_022,
-                Channel.C_011,
-                Channel.C_020,
-                Channel.C_010,
-                Channel.C_021,
-                Channel.C_006,
-                Channel.C_010,
-                Channel.C_025,
+                # Channel.C_002,
+                # Channel.C_029,
+                # Channel.C_007,
+                # Channel.C_013,
+                # Channel.C_018,
+                # Channel.C_024,
+                # Channel.C_003,
+                # Channel.C_028,
+                # Channel.C_012,
+                # Channel.C_022,
+                # Channel.C_011,
+                # Channel.C_020,
+                # Channel.C_010,
+                # Channel.C_021,
+                # Channel.C_006,
+                # Channel.C_010,
+                # Channel.C_025,
                 # Channel.C_026,
                 # Channel.C_023,
                 # Channel.C_006,
@@ -45,6 +46,11 @@ def main():
         print("Working on channel %s" % channel)
         plot_raster_for_monkeys(raw_data, channel=channel,
                                 experiment_name=experiment_name)
+
+
+def read_pickle(file_path):
+    unpacked_pickle = pd.read_pickle(file_path).reset_index(drop=True)
+    return unpacked_pickle
 
 
 def plot_raster_for_monkeys(raw_data, channel, experiment_name=None):
@@ -301,10 +307,12 @@ def calculate_spike_rate(spikes: list, time_range: tuple) -> float:
     return spike_count / duration
 
 
-def extract_target_channel_data(channel, data):
+def extract_target_channel_data(channel: Channel, data):
     # Get SpikeTimes for channel
     channel_data = data.copy()
-    channel_data[f'SpikeTimes_{channel.value}'] = data['SpikeTimes'].apply(lambda x: x[channel])
+    channel_data[f'SpikeTimes_{channel.value}'] = data['SpikeTimes'].apply(lambda x: x[next(filter(lambda key: key.value == channel.value, x.keys()), None)])
+
+
     return channel_data
 
 
