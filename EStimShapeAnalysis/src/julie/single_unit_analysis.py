@@ -127,7 +127,7 @@ def plot_raster_for_monkeys(raw_data, unit, experiment_name=None):
     plt.subplots_adjust(hspace=1.0, wspace=1.0)
     plt.show()
     ## SAVE PLOTS
-    base_save_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/plots/julie"
+    base_save_dir = "/plots/julie"
     if experiment_name is not None:
         save_dir = os.path.join(base_save_dir, experiment_name)
         os.makedirs(save_dir, exist_ok=True)
