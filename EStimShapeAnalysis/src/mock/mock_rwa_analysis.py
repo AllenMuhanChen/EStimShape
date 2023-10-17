@@ -7,15 +7,15 @@ import numpy as np
 import pandas as pd
 
 from src.analysis.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
-from compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
-from compile.trial.matchstick_fields import ShaftField
-from compile.trial.trial_collector import TrialCollector
-from compile.trial.trial_field import FieldList, get_data_from_trials
-from util import time_util
-from util.connection import Connection
-from util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
+from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
+from clat.compile.trial.matchstick_fields import ShaftField
+from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.trial.trial_field import FieldList, get_data_from_trials
+from clat.util import time_util
+from clat.util.connection import Connection
+from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
     check_condition_on_subdictionaries
-from util.time_util import When
+from clat.util.time_util import When
 
 
 def main():

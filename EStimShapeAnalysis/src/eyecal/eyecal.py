@@ -1,11 +1,11 @@
 import numpy as np
 
-from compile.trial.trial_collector import TrialCollector
-from compile.trial.trial_field import Field
-from util.connection import Connection
-from util import time_util
-from util.time_util import When
-from util import table_util
+from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile.trial.trial_field import Field
+from clat.util.connection import Connection
+from clat.util import time_util
+from clat.util.time_util import When
+from clat.util import table_util
 from pandas import DataFrame
 database = "allen_estimshape_train_221020"
 

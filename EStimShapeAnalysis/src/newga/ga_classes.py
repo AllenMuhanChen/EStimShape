@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Protocol, Any, List, Tuple
 
 from newga.regime_type import RegimeType
-from util import time_util
+from clat.util import time_util
 
 
 class Stimulus:

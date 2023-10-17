@@ -1,13 +1,13 @@
 from unittest import TestCase
-from util.time_util import When
-from util import time_util
+from clat.util.time_util import When
+from clat.util import time_util
 
-from compile.trial import psychometric_compile as pc
+from clat.compile.trial import psychometric_compile as pc
 
 PSYCHOMETRIC = When(1659208461019365, 1659208471171128)
 
 RANDOM_CORRECT = When(1659126605490042, 1659126611270426)
-from util.connection import Connection
+from clat.util.connection import Connection
 
 class TestFields(TestCase):
     reader = Connection("allen_estimshape_test_220729", when=time_util.all())

@@ -1,8 +1,8 @@
 import unittest
 
-from compile.trial.nafc_database_fields import get_stim_spec_data, get_stim_spec_id
-from util.connection import Connection
-from util.time_util import When
+from clat.compile.trial.nafc_database_fields import get_stim_spec_data, get_stim_spec_id
+from clat.util.connection import Connection
+from clat.util.time_util import When
 
 
 class MyTestCase(unittest.TestCase):

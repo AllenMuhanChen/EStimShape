@@ -4,14 +4,14 @@ import re
 from datetime import date, time
 from typing import Optional
 
-from compile.task.compile_task_id import PngSlideIdCollector
-from compile.task.task_field import TaskFieldList, TaskField, get_data_from_tasks
-from compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, MonkeyGroupField
+from clat.compile.task.compile_task_id import PngSlideIdCollector
+from clat.compile.task.task_field import TaskFieldList, TaskField, get_data_from_tasks
+from clat.compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, MonkeyGroupField
 from intan.livenotes import map_task_id_to_epochs_with_livenotes
 from intan.marker_channels import epoch_using_marker_channels
 from intan.rhd import load_intan_rhd_format
 from julie.compile.manual_thresh_compilation import calc_start_and_end_unix_times
-from util.connection import Connection
+from clat.util.connection import Connection
 
 
 def main():

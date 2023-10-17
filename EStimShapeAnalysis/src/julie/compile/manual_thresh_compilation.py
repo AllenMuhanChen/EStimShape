@@ -5,17 +5,17 @@ import numpy as np
 import pytz
 
 
-from compile.task.compile_task_id import PngSlideIdCollector
-from compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, JpgIdField, \
+from clat.compile.task.compile_task_id import PngSlideIdCollector
+from clat.compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, JpgIdField, \
     MonkeyGroupField
-from compile.task.julie_intan_file_per_trial_fields import SpikeTimesForChannelsField, EpochStartStopField
-from compile.task.task_field import TaskFieldList, get_data_from_tasks, TaskField
-from compile.task.julie_intan_file_per_experiment_fields import SpikeTimesForChannelsField_Experiment, \
+from clat.compile.task.julie_intan_file_per_trial_fields import SpikeTimesForChannelsField, EpochStartStopField
+from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks, TaskField
+from clat.compile.task.julie_intan_file_per_experiment_fields import SpikeTimesForChannelsField_Experiment, \
     EpochStartStopField_Experiment
 from intan.channels import Channel
 from mock.mock_ga_responses import collect_task_ids
-from util import time_util
-from util.connection import Connection
+from clat.util import time_util
+from clat.util.connection import Connection
 import matplotlib.pyplot as plt
 from intan.one_file_spike_parsing import OneFileParser
 
