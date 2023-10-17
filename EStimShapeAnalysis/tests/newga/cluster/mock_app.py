@@ -4,7 +4,7 @@ import numpy as np
 from PyQt5.QtWidgets import QApplication
 from sklearn.datasets import make_blobs
 
-from intan.channels import Channel
+from clat.intan.channels import Channel
 from newga.gui.cluster.cluster_app import ClusterApplicationWindow
 from newga.gui.cluster.cluster_app_classes import DataLoader, DataExporter, ChannelMapper
 from newga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer

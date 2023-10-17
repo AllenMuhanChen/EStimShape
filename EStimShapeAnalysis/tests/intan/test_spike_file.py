@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from intan.spike_file import fetch_spike_tstamps_from_file
+from clat.intan.spike_file import fetch_spike_tstamps_from_file
 
 
 class Test(TestCase):

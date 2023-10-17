@@ -1,5 +1,5 @@
-from intan.amplifiers import read_amplifier_data
-from intan.rhd.load_intan_rhd_format import read_data
+from clat.intan.amplifiers import read_amplifier_data
+from clat.intan.rhd.load_intan_rhd_format import read_data
 
 
 class TestAmplifiers:

@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QHBoxLayout, QComboBox
 import numpy as np
 from pyqtgraph import PlotWidget, LinearRegionItem, InfiniteLine
 
-from intan.channels import Channel
+from clat.intan.channels import Channel
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSlider, QSpinBox, QLabel
 

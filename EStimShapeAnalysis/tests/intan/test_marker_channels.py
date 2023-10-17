@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from matplotlib import pyplot as plt
 
-from intan.marker_channels import get_epochs_start_and_stop_indices, read_digitalin_file
+from clat.intan.marker_channels import get_epochs_start_and_stop_indices, read_digitalin_file
 
 
 class TestEpoch(TestCase):

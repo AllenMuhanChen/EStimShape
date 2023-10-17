@@ -5,7 +5,7 @@ from typing import List, Tuple, Any
 
 import xmltodict
 
-from intan.channels import Channel
+from clat.intan.channels import Channel
 from clat.util.connection import Connection
 
 
