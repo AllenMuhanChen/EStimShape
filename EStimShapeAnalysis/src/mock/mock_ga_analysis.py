@@ -7,9 +7,9 @@ from compile.trial.classic_database_fields import GaTypeField, GaLineageField, S
 from compile.trial.trial_field import FieldList, get_data_from_trials
 from src.mock.mock_ga_responses import collect_trials
 from src.mock.mock_rwa_analysis import MockResponseField
-from src.util import time_util
-from src.util.connection import Connection
-from src.util.time_util import When
+from util import time_util
+from util.connection import Connection
+from util.time_util import When
 
 
 def split_by_lineage(data):

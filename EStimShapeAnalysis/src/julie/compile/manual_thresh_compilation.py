@@ -1,9 +1,9 @@
 import os
 from datetime import datetime, time, date
-
 import jsonpickle
 import numpy as np
 import pytz
+
 
 from compile.task.compile_task_id import PngSlideIdCollector
 from compile.task.julie_database_fields import FileNameField, MonkeyIdField, MonkeyNameField, JpgIdField, \

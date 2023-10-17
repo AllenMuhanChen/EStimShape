@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from compile.trial.matchstick_fields import MatchStickField, ShaftField, TerminationField, JunctionField
-from src.util.time_util import When
+from util.time_util import When
 
 
 class Test(TestCase):

@@ -1,7 +1,7 @@
 from unittest import TestCase
 from compile.trial.trial_collector import TrialCollector
-from src.util.connection import Connection
-from src.util import time_util
+from util.connection import Connection
+from util import time_util
 
 
 class TestTrialCollectorMethods(TestCase):

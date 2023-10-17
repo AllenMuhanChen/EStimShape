@@ -9,8 +9,8 @@ from scipy.ndimage import gaussian_filter
 
 from src.analysis.rwa import get_next
 from src.mock.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
-from src.util.connection import Connection
-from src.util.dictionary_util import flatten_dictionary, apply_function_to_subdictionaries_values_with_keys
+from util.connection import Connection
+from util.dictionary_util import flatten_dictionary, apply_function_to_subdictionaries_values_with_keys
 
 
 def main():

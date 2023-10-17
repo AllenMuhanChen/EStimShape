@@ -1,6 +1,6 @@
 import unittest
-from src.util import connection
-from src.util import time_util
+from util import connection
+from util import time_util
 
 
 class TestReaderMethods(unittest.TestCase):
