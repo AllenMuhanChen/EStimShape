@@ -14,7 +14,7 @@ import org.xper.rfplot.drawing.RFPlotDrawable;
 public class RFPlotScene extends AbstractTaskScene {
 	@Dependency
 	Map<String, RFPlotDrawable> rfObjectMap;
-	
+
 	RFPlotStimSpec spec;
 	RFPlotXfmSpec xfm;
 
@@ -42,24 +42,26 @@ public class RFPlotScene extends AbstractTaskScene {
 
 	public void drawStimulus(Context context) {
 		if (spec == null) return;
-		
+
 		String objClass = spec.getStimClass();
 		RFPlotDrawable obj = rfObjectMap.get(objClass);
 		if (obj != null) {
 			GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
-			GL11.glColor3f(xfm.getColor().getRed(), xfm.getColor().getGreen(), xfm.getColor().getBlue());
 			GL11.glPushMatrix();
+			GL11.glColor3f(xfm.getColor().getRed(), xfm.getColor().getGreen(), xfm.getColor().getBlue());
+
+
 			GL11.glTranslated(xfm.getTranslation().getX(), xfm.getTranslation().getY(), 1.0);
 			GL11.glRotatef(xfm.getRotation(), 0.0f, 0.0f, 1.0f);
 			GL11.glScaled(xfm.getScale().getX(), xfm.getScale().getY(), 1.0);
-			
+
 			obj.draw(context);
-			
+
 			GL11.glPopMatrix();
 			GL11.glPopAttrib();
 		}
 	}
-	
+
 	public Map<String, RFPlotDrawable> getRfObjectMap() {
 		return rfObjectMap;
 	}
