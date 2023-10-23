@@ -1,9 +1,9 @@
 package org.xper.rfplot;
 
 import org.junit.Test;
-import org.xper.rfplot.drawing.RFPlotPngObject;
+import org.xper.rfplot.drawing.RFPlotImgObject;
 import org.xper.rfplot.drawing.png.PngSpec;
-import org.xper.rfplot.gui.scroller.PngPathScroller;
+import org.xper.rfplot.gui.scroller.ImgPathScroller;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 import org.xper.util.ResourceUtil;
 
@@ -14,9 +14,9 @@ public class RFPlotStimModulatorTest {
     @Test
     public void png_path_scroller_test_next(){
         String resourcePath = ResourceUtil.getResource("RFPlotStimModulatorTest-TestLibrary");
-        PngPathScroller scroller = new PngPathScroller(resourcePath, resourcePath);
+        ImgPathScroller scroller = new ImgPathScroller(resourcePath, resourcePath);
 
-        RFPlotPngObject pngObject = new RFPlotPngObject(ResourceUtil.getResource("RFPlotStimModulatorTest-DefaultPng.png"));
+        RFPlotImgObject pngObject = new RFPlotImgObject(ResourceUtil.getResource("RFPlotStimModulatorTest-DefaultPng.png"));
 
         String firstPath = PngSpec.fromXml(pngObject.getSpec()).getPath();
         ScrollerParams newParams = scroller.next(new ScrollerParams(pngObject, null));

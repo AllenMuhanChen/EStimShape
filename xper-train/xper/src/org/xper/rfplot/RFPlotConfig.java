@@ -26,10 +26,10 @@ import org.xper.experiment.mock.NullTaskDoneCache;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotGaborObject;
-import org.xper.rfplot.drawing.RFPlotPngObject;
+import org.xper.rfplot.drawing.RFPlotImgObject;
 import org.xper.rfplot.gui.*;
 import org.xper.rfplot.gui.scroller.OrientationScroller;
-import org.xper.rfplot.gui.scroller.PngPathScroller;
+import org.xper.rfplot.gui.scroller.ImgPathScroller;
 import org.xper.rfplot.gui.scroller.SizeScroller;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
 
@@ -78,36 +78,36 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
-		refObjMap.put(RFPlotPngObject.class.getName(), new RFPlotPngObject(pngPathScroller().getFirstPath()));
+		refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
 		return refObjMap;
 	}
 
 	@Bean
 	public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
 		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
-		refModulatorMap.put(RFPlotPngObject.class.getName(), pngModulator());
+		refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
 		return refModulatorMap;
 	}
 
 
 	@Bean
-	public RFPlotStimModulator pngModulator(){
-		RFPlotStimModulator pngModulator = new RFPlotStimModulator(pngModeScrollerMap());
+	public RFPlotStimModulator imgModulator(){
+		RFPlotStimModulator pngModulator = new RFPlotStimModulator(imgModeScrollerMap());
 		return pngModulator;
 	}
 
 	@Bean
-	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
+	public LinkedHashMap<String, RFPlotScroller> imgModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Path", pngPathScroller());
+		map.put("Path", imgPathScroller());
 		map.put("Size", new SizeScroller());
 		map.put("Orientation", new OrientationScroller());
 		return map;
 	}
 
 	@Bean
-	public PngPathScroller pngPathScroller() {
-		PngPathScroller scroller = new PngPathScroller();
+	public ImgPathScroller imgPathScroller() {
+		ImgPathScroller scroller = new ImgPathScroller();
 		scroller.setLibraryPath_generator(pngLibraryPath_generator);
 		scroller.setLibraryPath_experiment(pngLibraryPath_experiment);
 		scroller.init();

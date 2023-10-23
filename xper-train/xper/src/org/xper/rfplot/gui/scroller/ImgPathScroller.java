@@ -6,14 +6,15 @@ import org.xper.rfplot.gui.CyclicIterator;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.Arrays;
+import java.util.Objects;
 
-public class PngPathScroller extends RFPlotScroller {
+public class ImgPathScroller extends RFPlotScroller {
 
     private String libraryPath_generator;
     private String libraryPath_experiment;
     CyclicIterator<File> pngs;
 
-    public PngPathScroller(String libraryPath_generator, String libraryPath_experiment) {
+    public ImgPathScroller(String libraryPath_generator, String libraryPath_experiment) {
         this.setLibraryPath_generator(libraryPath_generator);
         this.setLibraryPath_experiment(libraryPath_experiment);
 
@@ -28,7 +29,7 @@ public class PngPathScroller extends RFPlotScroller {
         }
     }
 
-    public PngPathScroller() {
+    public ImgPathScroller() {
     }
 
     public String getLibraryPath_generator() {
@@ -41,12 +42,18 @@ public class PngPathScroller extends RFPlotScroller {
 
     private void setPngsFromLibrary(String libraryPath) {
         File path = new File(libraryPath);
-        pngs = new CyclicIterator<>(Arrays.asList(path.listFiles(new FileFilter() {
+        pngs = new CyclicIterator<>(Arrays.asList(Objects.requireNonNull(path.listFiles(new FileFilter() {
             @Override
             public boolean accept(File pathname) {
-                return pathname.getAbsolutePath().contains(".png");
+                String lowerCaseName = pathname.getName().toLowerCase();
+                return lowerCaseName.endsWith(".png")
+                        || lowerCaseName.endsWith(".jpg")
+                        || lowerCaseName.endsWith(".jpeg")
+                        || lowerCaseName.endsWith(".bmp")
+                        || lowerCaseName.endsWith(".gif")
+                        || lowerCaseName.endsWith(".webp");
             }
-        })));
+        }))));
     }
 
     public String getFirstPath(){
