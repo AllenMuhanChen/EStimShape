@@ -5,6 +5,7 @@ import org.xper.console.ConsoleRenderer;
 import org.xper.console.IConsolePlugin;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.RGBColor;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
@@ -89,7 +90,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private void save(){
-        RFInfo rfInfo = new RFInfo(mm2deg(plotter.getHull()), mm2deg(plotter.getRFCenter()));
+        RGBColor currentColor = RFPlotXfmSpec.fromXml(xfmSpec).getColor();
+        V4RFInfo rfInfo = new V4RFInfo(mm2deg(plotter.getHull()), mm2deg(plotter.getRFCenter()), currentColor);
         dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
     }
 

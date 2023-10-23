@@ -10,6 +10,7 @@ public class RFInfo {
     List<Coordinates2D> outline;
     Coordinates2D center;
 
+
     public RFInfo(List<Coordinates2D> outline, Coordinates2D center) {
         this.outline = outline;
         this.center = center;
