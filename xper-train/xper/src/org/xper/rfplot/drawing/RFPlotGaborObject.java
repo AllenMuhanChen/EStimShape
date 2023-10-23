@@ -9,9 +9,9 @@ import org.xper.util.MathUtil;
 
 public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 	static final int STEPS = 1024;
-	
+
 	GaborSpec spec;
-	
+
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
@@ -37,7 +37,7 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 		ByteBuffer texture = ByteBuffer.allocateDirect(
 				w * w * Float.SIZE / 8).order(
 				ByteOrder.nativeOrder());
-		
+
 		double dist;
 		int i, j;
 
@@ -54,7 +54,7 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 			}
 		}
 		texture.flip();
-		
+
 		return texture;
 	}
 
@@ -136,7 +136,6 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 		GL11.glInterleavedArrays(GL11.GL_T2F_C3F_V3F, 0, array);
 
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
-
 		GL11.glTranslated(xCenter, yCenter, 0);
 		GL11.glRotatef((float) (orientation * 180 / Math.PI), 0.0f, 0.0f, 1.0f);
 

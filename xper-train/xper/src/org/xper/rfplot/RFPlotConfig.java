@@ -28,10 +28,7 @@ import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotGaborObject;
 import org.xper.rfplot.drawing.RFPlotImgObject;
 import org.xper.rfplot.gui.*;
-import org.xper.rfplot.gui.scroller.OrientationScroller;
-import org.xper.rfplot.gui.scroller.ImgPathScroller;
-import org.xper.rfplot.gui.scroller.SizeScroller;
-import org.xper.rfplot.gui.scroller.RFPlotScroller;
+import org.xper.rfplot.gui.scroller.*;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -85,10 +82,25 @@ public class RFPlotConfig {
 	@Bean
 	public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
 		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
+		refModulatorMap.put(RFPlotGaborObject.class.getName(), gaborModulator());
 		refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
 		return refModulatorMap;
 	}
 
+	@Bean
+	public RFPlotStimModulator gaborModulator() {
+		RFPlotStimModulator gaborModulator = new RFPlotStimModulator(gaborModeScrollerMap());
+		return gaborModulator;
+	}
+
+	@Bean
+	public LinkedHashMap<String, RFPlotScroller> gaborModeScrollerMap(){
+		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
+		map.put("Size", new SizeScroller());
+		map.put("Orientation", new OrientationScroller());
+		map.put("Color", new HueScroller());
+		return map;
+	}
 
 	@Bean
 	public RFPlotStimModulator imgModulator(){
@@ -96,12 +108,14 @@ public class RFPlotConfig {
 		return pngModulator;
 	}
 
+
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller> imgModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
 		map.put("Path", imgPathScroller());
 		map.put("Size", new SizeScroller());
 		map.put("Orientation", new OrientationScroller());
+		map.put("Hue", new HueScroller());
 		return map;
 	}
 

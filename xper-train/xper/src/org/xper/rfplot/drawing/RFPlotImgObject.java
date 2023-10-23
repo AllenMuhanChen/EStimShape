@@ -4,12 +4,13 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
+import org.xper.rfplot.drawing.png.RecolorableImages;
 import org.xper.rfplot.drawing.png.TranslatableResizableImages;
 
 public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
 
     private PngSpec spec;
-    private TranslatableResizableImages images;
+    private RecolorableImages images;
 
     private String defaultPath;
 
@@ -39,7 +40,7 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
         spec.setxCenter(0);
         spec.setyCenter(0);
 
-        images = new TranslatableResizableImages(1);
+        images = new RecolorableImages(1);
     }
 
     @Override
