@@ -6,14 +6,14 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.drawing.png.TranslatableResizableImages;
 
-public class RFPlotPngObject extends DefaultSpecRFPlotDrawable{
+public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
 
     private PngSpec spec;
     private TranslatableResizableImages images;
 
     private String defaultPath;
 
-    public RFPlotPngObject(String defaultPath) {
+    public RFPlotImgObject(String defaultPath) {
         this.defaultPath = defaultPath;
         setDefaultSpec();
     }
