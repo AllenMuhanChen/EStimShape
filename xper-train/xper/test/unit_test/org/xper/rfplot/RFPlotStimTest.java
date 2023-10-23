@@ -2,8 +2,8 @@ package org.xper.rfplot;
 
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.GaborSpec;
-import org.xper.rfplot.drawing.RFPlotGaborObject;
+import org.xper.rfplot.drawing.GratingSpec;
+import org.xper.rfplot.drawing.RFPlotGratingObject;
 import org.xper.util.ThreadUtil;
 
 import java.util.Random;
@@ -19,16 +19,16 @@ public class RFPlotStimTest {
 
     private static void streamRandomWalk() {
         RFPlotStimSpec stimSpec = new RFPlotStimSpec();
-        GaborSpec gaborSpec = new GaborSpec();
-        gaborSpec.setPhase(0);
-        gaborSpec.setFrequency(0.1);
-        gaborSpec.setOrientation(0);
-        gaborSpec.setAnimation(true);
-        gaborSpec.setSize(50);
-        gaborSpec.setXCenter(0);
-        gaborSpec.setYCenter(0);
-        stimSpec.setStimSpec(gaborSpec.toXml());
-        stimSpec.setStimClass(RFPlotGaborObject.class.getName());
+        GratingSpec gratingSpec = new GratingSpec();
+        gratingSpec.setPhase(0);
+        gratingSpec.setFrequency(0.1);
+        gratingSpec.setOrientation(0);
+        gratingSpec.setAnimation(true);
+        gratingSpec.setSize(50);
+        gratingSpec.setXCenter(0);
+        gratingSpec.setYCenter(0);
+        stimSpec.setStimSpec(gratingSpec.toXml());
+        stimSpec.setStimClass(RFPlotGratingObject.class.getName());
 
         RFPlotXfmSpec xfmSpec = RFPlotXfmSpec.fromXml(null);
         xfmSpec.setColor(new RGBColor(1.0f,1.0f,1.0f));

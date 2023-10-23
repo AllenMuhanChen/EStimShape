@@ -2,7 +2,7 @@ package org.xper.rfplot.drawing;
 
 import com.thoughtworks.xstream.XStream;
 
-public class GaborSpec {
+public class GratingSpec {
 	double xCenter;
 	double yCenter;
 	double orientation;
@@ -10,31 +10,31 @@ public class GaborSpec {
 	double phase;
 	double size;
 	boolean animation;
-	
+
 	transient static XStream s;
-	
+
 	static {
 		s = new XStream();
-		s.alias("StimSpec", GaborSpec.class);
+		s.alias("StimSpec", GratingSpec.class);
 		s.useAttributeFor("animation", boolean.class);
 	}
-	
+
 	public String toXml () {
-		return GaborSpec.toXml(this);
+		return GratingSpec.toXml(this);
 	}
-	
-	public static String toXml (GaborSpec spec) {
+
+	public static String toXml (GratingSpec spec) {
 		return s.toXML(spec);
 	}
-	
-	public static GaborSpec fromXml (String xml) {
-		GaborSpec g = (GaborSpec)s.fromXML(xml);
+
+	public static GratingSpec fromXml (String xml) {
+		GratingSpec g = (GratingSpec)s.fromXML(xml);
 		return g;
 	}
-	
-	public GaborSpec() {}
-	
-	public GaborSpec(GaborSpec d) {
+
+	public GratingSpec() {}
+
+	public GratingSpec(GratingSpec d) {
 		xCenter = d.getXCenter();
 		yCenter = d.getYCenter();
 		orientation = d.getOrientation();
@@ -43,7 +43,7 @@ public class GaborSpec {
 		size = d.getSize();
 		animation = d.isAnimation();
 	}
-	
+
 	public double getXCenter() {
 		return xCenter;
 	}
