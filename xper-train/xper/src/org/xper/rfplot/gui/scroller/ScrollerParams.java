@@ -1,4 +1,4 @@
-package org.xper.rfplot.gui;
+package org.xper.rfplot.gui.scroller;
 
 import org.xper.rfplot.RFPlotXfmSpec;
 import org.xper.rfplot.drawing.RFPlotDrawable;

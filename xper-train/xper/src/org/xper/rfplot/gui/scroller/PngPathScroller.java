@@ -1,6 +1,7 @@
-package org.xper.rfplot.gui;
+package org.xper.rfplot.gui.scroller;
 
 import org.xper.rfplot.drawing.png.PngSpec;
+import org.xper.rfplot.gui.CyclicIterator;
 
 import java.io.File;
 import java.io.FileFilter;

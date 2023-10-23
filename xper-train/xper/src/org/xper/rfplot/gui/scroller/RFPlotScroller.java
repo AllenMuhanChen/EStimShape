@@ -1,6 +1,6 @@
-package org.xper.rfplot.gui;
+package org.xper.rfplot.gui.scroller;
 
-import org.xper.rfplot.RFPlotClient;
+import org.xper.rfplot.gui.scroller.ScrollerParams;
 
 public abstract class RFPlotScroller {
 

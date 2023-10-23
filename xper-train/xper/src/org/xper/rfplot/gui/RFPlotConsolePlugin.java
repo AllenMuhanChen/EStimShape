@@ -9,6 +9,7 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.rfplot.gui.scroller.ScrollerParams;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
 

@@ -2,6 +2,8 @@ package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
 import org.xper.rfplot.RFPlotClient;
+import org.xper.rfplot.gui.scroller.RFPlotScroller;
+import org.xper.rfplot.gui.scroller.ScrollerParams;
 
 import java.util.LinkedHashMap;
 
