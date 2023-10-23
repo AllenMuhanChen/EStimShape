@@ -42,21 +42,21 @@ public class ProceduralMatchStickTest {
     }
 
     private void generateSet(long setId) {
-        drawPng(baseMStick, setId, 1L);
+        drawPng(baseMStick, setId, 0L);
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
         sampleMStick.setProperties(8);
         sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
-        drawPng(sampleMStick, setId, 2L);
+        drawPng(sampleMStick, setId, 1L);
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick();
         distractor1.setProperties(8);
         distractor1.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
-        drawPng(distractor1, setId, 3L);
+        drawPng(distractor1, setId, 2L);
 
         ProceduralMatchStick distractor2 = new ProceduralMatchStick();
         distractor2.setProperties(8);
         distractor2.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
-        drawPng(distractor2, setId, 4L);
+        drawPng(distractor2, setId, 3L);
     }
 
     private void drawPng(ExperimentMatchStick matchStick, long setId, long id) {

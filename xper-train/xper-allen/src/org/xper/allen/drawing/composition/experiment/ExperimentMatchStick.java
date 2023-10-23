@@ -36,7 +36,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             }
 
             try {
-                compareObjectCenteredPositionWith(objCenteredPosForDrivingComp);
+                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
                 break;
             } catch (ObjectCenteredPositionException e) {
                 System.out.println("Error with object centered position, retrying");
@@ -76,7 +76,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             genMorphedMatchStick(morphParametersForComponents, targetMatchStick);
             try {
                 Map<Integer, SphericalCoordinates> originalObjCenteredPos = calcObjCenteredPosForDrivingComp(targetMatchStick, drivingComponentIndex);
-                compareObjectCenteredPositionWith(originalObjCenteredPos);
+                compareObjectCenteredPositionTo(originalObjCenteredPos);
                 break;
             } catch (ObjectCenteredPositionException e) {
                 System.out.println("Object Centered Position is off. Retrying...");
@@ -94,7 +94,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         while (true) {
             genMorphedMatchStick(morphParametersForComponents, baseMatchStick);
             try {
-                compareObjectCenteredPositionWith(calcObjCenteredPosForDrivingComp(this, drivingComponentIndex));
+                compareObjectCenteredPositionTo(calcObjCenteredPosForDrivingComp(this, drivingComponentIndex));
                 break;
             } catch (ObjectCenteredPositionException e) {
                 System.out.println("Object Centered Position is off. Retrying...");
@@ -108,7 +108,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      * Verify that specified components of new matchStick are all in a similar object centered position
      * as the base matchStick's components
      */
-    public void compareObjectCenteredPositionWith(Map<Integer, SphericalCoordinates> toCompareToObjectCenteredPositionForComponents) {
+    public void compareObjectCenteredPositionTo(Map<Integer, SphericalCoordinates> toCompareToObjectCenteredPositionForComponents) {
         HashMap<Integer, SphericalCoordinates> actualObjectCenteredPositionForComponents = new HashMap<>();
         toCompareToObjectCenteredPositionForComponents.forEach(new BiConsumer<Integer, SphericalCoordinates>() {
             @Override
