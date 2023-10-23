@@ -25,7 +25,7 @@ import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.RFPlotGaborObject;
+import org.xper.rfplot.drawing.RFPlotGratingObject;
 import org.xper.rfplot.drawing.RFPlotImgObject;
 import org.xper.rfplot.gui.*;
 import org.xper.rfplot.gui.scroller.*;
@@ -74,23 +74,23 @@ public class RFPlotConfig {
 	public Map<String, RFPlotDrawable> namesForDrawables() {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
-		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
 		refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
+		refObjMap.put(RFPlotGratingObject.class.getName(), new RFPlotGratingObject());
 		return refObjMap;
 	}
 
 	@Bean
 	public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
 		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
-		refModulatorMap.put(RFPlotGaborObject.class.getName(), gaborModulator());
+		refModulatorMap.put(RFPlotGratingObject.class.getName(), gratingModulator());
 		refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
 		return refModulatorMap;
 	}
 
 	@Bean
-	public RFPlotStimModulator gaborModulator() {
-		RFPlotStimModulator gaborModulator = new RFPlotStimModulator(defaultScrollers());
-		return gaborModulator;
+	public RFPlotStimModulator gratingModulator() {
+		RFPlotStimModulator gratingModulator = new RFPlotStimModulator(defaultScrollers());
+		return gratingModulator;
 	}
 
 	@Bean

@@ -9,7 +9,7 @@ import org.xper.console.ExperimentConsole;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.XGLException;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.RFPlotGaborObject;
+import org.xper.rfplot.drawing.RFPlotGratingObject;
 import org.xper.rfplot.gui.RFPlotConsolePlugin;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
@@ -122,7 +122,7 @@ public class RFPlotConsolePluginTest {
         plugin.startPlugin();
 
         String actualStimSpec = client.getMockStim();
-        String expectedStimSpec = new RFPlotGaborObject().getSpec();
+        String expectedStimSpec = new RFPlotGratingObject().getSpec();
 
         String actualXfmSpec = client.getMockXfm();
         String expectedXfmSpec = new RFPlotXfmSpec().fromXml(null).toXml();
