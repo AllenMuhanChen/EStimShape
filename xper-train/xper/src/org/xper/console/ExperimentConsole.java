@@ -142,7 +142,6 @@ public class ExperimentConsole extends JFrame implements
 				public void actionPerformed(ActionEvent e) {
 					currentPlugin = p;
 					currentPlugin.onSwitchToPluginAction();
-					addPanel(currentPlugin.pluginPanel());
 				}
 			};
 			keyMap.put(token, tokenAction);
@@ -477,6 +476,9 @@ public class ExperimentConsole extends JFrame implements
 		eyeDeviceSelect.setSelectedIndex(1);
 		changeCurrentDeviceId((String) eyeDeviceSelect.getSelectedItem());
 
+		for (final IConsolePlugin p : consolePlugins) {
+			addPanel(p.pluginPanel());
+		}
 		pack();
     }
 
