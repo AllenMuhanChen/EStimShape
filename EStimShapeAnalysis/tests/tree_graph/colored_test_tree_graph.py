@@ -1,44 +1,7 @@
 from unittest import TestCase
-import base64
-import io
-import os
-import subprocess
 
-import dash
-from dash import dcc
-from dash import html
-from dash.dependencies import Input, Output
-import networkx as nx
-import plotly.graph_objects as go
-from PIL import Image
-from src.tree_graph import tree_graph
-from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp
-
-
-class ColoredTreeGraph(TreeGraph):
-    def __init__(self, y_values_for_stim_ids, edges, edge_colors, image_folder):
-        self.edge_colors = edge_colors
-        super().__init__(y_values_for_stim_ids, edges, image_folder)
-
-
-    def _create_edges(self, pos, tree):
-        print("COLORED EDGES CALLED")
-        self.ids_for_edge_traces = []
-        edge_traces = []
-        for edge in tree.edges():
-            x = [pos[edge[0]][0], pos[edge[1]][0], None]
-            y = [pos[edge[0]][1], pos[edge[1]][1], None]
-            color = self.edge_colors[edge]
-            edge_trace = go.Scatter(
-                name=str((edge[0], edge[1])),
-                x=x,
-                y=y,
-                mode="lines",
-                line=dict(width=2, color=color),
-                hoverinfo="none",
-            )
-            edge_traces.append(edge_trace)
-        return edge_traces
+from src.tree_graph.tree_graph import TreeGraphApp
+from tree_graph.tree_graph import ColoredTreeGraph
 
 
 class TestColoredTreeGraph(TestCase):

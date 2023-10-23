@@ -1,11 +1,9 @@
 package org.xper.allen.drawing.composition.experiment;
 
-import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
-import org.xper.allen.drawing.composition.morph.MorphedMAxisArc;
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.util.CoordinateConverter;
@@ -16,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class ExperimentMatchStick extends MorphedMatchStick {
+public class TwobyTwoExperimentMatchStick extends MorphedMatchStick {
     protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI/8, Math.PI/8);
 
@@ -26,7 +24,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      * @param baseMatchStick
      * @param drivingComponentIndex
      */
-    public void genFirstMatchStick(ExperimentMatchStick baseMatchStick, int drivingComponentIndex){
+    public void genFirstMatchStick(TwobyTwoExperimentMatchStick baseMatchStick, int drivingComponentIndex){
         // calculate the object centered position of the base matchStick's drivingComponent
         Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
                 calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
@@ -48,7 +46,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    private Map<Integer, SphericalCoordinates> calcObjCenteredPosForDrivingComp(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
+    private Map<Integer, SphericalCoordinates> calcObjCenteredPosForDrivingComp(TwobyTwoExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
         Point3d drivingComponentMassCenter = baseMatchStick.getMassCenterForComponent(drivingComponentIndex);
         SphericalCoordinates drivingComponentObjectCenteredPosition = CoordinateConverter.cartesianToSpherical(drivingComponentMassCenter);
         Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp = new HashMap<>();
@@ -60,7 +58,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      * Generates a new matchStick from morphing the base component in the firstMatchStick
      * @param firstMatchStick
      */
-    public void genSecondMatchStick(ExperimentMatchStick firstMatchStick, int drivingComponentIndex){
+    public void genSecondMatchStick(TwobyTwoExperimentMatchStick firstMatchStick, int drivingComponentIndex){
         int baseComponentIndex;
         if (drivingComponentIndex == 1){
             baseComponentIndex = 2;
@@ -84,7 +82,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void genThirdMatchStick(ExperimentMatchStick firstMatchStick, int drivingComponentIndex, double magnitude){
+    public void genThirdMatchStick(TwobyTwoExperimentMatchStick firstMatchStick, int drivingComponentIndex, double magnitude){
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
         morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
@@ -100,7 +98,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void genFourthMatchStick(ExperimentMatchStick secondMatchStick, int drivingComponentIndex, ExperimentMatchStick thirdMatchStick){
+    public void genFourthMatchStick(TwobyTwoExperimentMatchStick secondMatchStick, int drivingComponentIndex, TwobyTwoExperimentMatchStick thirdMatchStick){
         genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex);
     }
 

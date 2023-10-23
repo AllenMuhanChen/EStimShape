@@ -9,7 +9,7 @@ import numpy as np
 
 from clat.intan.channels import Channel
 from clat.intan.spike_parsing import ResponseParser, get_current_date_as_YYYY_MM_DD
-from mock import mock_ga_responses
+from mockga import mock_ga_responses
 from newga.config import GeneticAlgorithmConfig
 from newga.multi_ga_db_util import MultiGaDbUtil
 

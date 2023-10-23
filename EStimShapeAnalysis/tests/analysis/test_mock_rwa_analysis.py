@@ -3,8 +3,8 @@ from random import random
 from unittest import TestCase
 
 from src.analysis.rwa import Binner
-from src.mock.mock_ga_responses import collect_trials
-from src.mock.mock_rwa_analysis import condition_theta_and_phi, condition_spherical_angles, condition_for_inside_bins, \
+from src.mockga.mock_ga_responses import collect_trials
+from src.mockga.mock_rwa_analysis import condition_theta_and_phi, condition_spherical_angles, condition_for_inside_bins, \
     compile_data
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 from clat.util import time_util
