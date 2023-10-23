@@ -3,11 +3,11 @@ package org.xper.rfplot.gui.scroller;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.RFPlotXfmSpec;
 
-public class PngSizeScroller extends RFPlotScroller {
+public class SizeScroller extends RFPlotScroller {
 
     public final static double SCALE_FACTOR = .1;
 
-    public PngSizeScroller() {
+    public SizeScroller() {
     }
 
     @Override
