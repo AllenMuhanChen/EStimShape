@@ -34,10 +34,10 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     RFPlotClient client;
 
     @Dependency
-    Map<String, RFPlotDrawable> refObjectMap;
+    Map<String, RFPlotDrawable> namesForDrawables;
 
     @Dependency
-    Map<String, RFPlotStimModulator> refModulatorMap;
+    Map<String, RFPlotStimModulator> modulatorsForDrawables;
 
     @Dependency
     ConsoleRenderer consoleRenderer;
@@ -68,12 +68,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             changeStimType(previousType);
         }
         if (KeyStroke.getKeyStroke(KeyEvent.VK_D, 0).equals(k)){
-            RFPlotStimModulator modulator = refModulatorMap.get(stimType);
+            RFPlotStimModulator modulator = modulatorsForDrawables.get(stimType);
             modulator.nextMode();
             scrollerModeLabel.setText(modulator.getMode());
         }
         if (KeyStroke.getKeyStroke(KeyEvent.VK_A, 0).equals(k)){
-            RFPlotStimModulator modulator = refModulatorMap.get(stimType);
+            RFPlotStimModulator modulator = modulatorsForDrawables.get(stimType);
             modulator.previousMode();
             scrollerModeLabel.setText(modulator.getMode());
         }
@@ -84,7 +84,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void changeStimType(String stimType) {
         this.stimType = stimType;
-        RFPlotDrawable firstStimObj = refObjectMap.get(stimType);
+        RFPlotDrawable firstStimObj = namesForDrawables.get(stimType);
         stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
         client.changeRFPlotStim(stimSpec);
     }
@@ -120,13 +120,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private void init() {
-        stimTypeSpecs = new CyclicIterator<String>(refObjectMap.keySet());
+        stimTypeSpecs = new CyclicIterator<String>(namesForDrawables.keySet());
         stimType = stimTypeSpecs.first();
     }
 
     @Override
     public void onSwitchToPluginAction() {
-        if(refObjectMap.get(stimType) instanceof RFPlotBlankObject)
+        if(namesForDrawables.get(stimType) instanceof RFPlotBlankObject)
             changeStimType(stimTypeSpecs.next());
     }
 
@@ -198,13 +198,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     public void handleMouseWheel(MouseWheelEvent e) {
 
         int clicks = e.getWheelRotation();
-        RFPlotStimModulator modulator = refModulatorMap.get(stimType);
+        RFPlotStimModulator modulator = modulatorsForDrawables.get(stimType);
 
         if (modulator.hasScrollers()) {
             if (clicks > 0) {
                 for (int i = 0; i < clicks; i++) {
                     ScrollerParams newParams = modulator.previous(new ScrollerParams(
-                            refObjectMap.get(stimType),
+                            namesForDrawables.get(stimType),
                             RFPlotXfmSpec.fromXml(xfmSpec)
                     ));
                     updateFromScroller(newParams);
@@ -212,7 +212,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             } else {
                 for (int i = 0; i > clicks; i--) {
                     ScrollerParams newParams = modulator.next(new ScrollerParams(
-                            refObjectMap.get(stimType),
+                            namesForDrawables.get(stimType),
                             RFPlotXfmSpec.fromXml(xfmSpec)
                     ));
                     updateFromScroller(newParams);
@@ -288,12 +288,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         this.client = client;
     }
 
-    public Map<String, RFPlotDrawable> getRefObjectMap() {
-        return refObjectMap;
+    public Map<String, RFPlotDrawable> getNamesForDrawables() {
+        return namesForDrawables;
     }
 
-    public void setRefObjectMap(Map<String, RFPlotDrawable> refObjectMap) {
-        this.refObjectMap = refObjectMap;
+    public void setNamesForDrawables(Map<String, RFPlotDrawable> namesForDrawables) {
+        this.namesForDrawables = namesForDrawables;
     }
 
     public ConsoleRenderer getConsoleRenderer() {
@@ -304,12 +304,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         this.consoleRenderer = consoleRenderer;
     }
 
-    public Map<String, RFPlotStimModulator> getRefModulatorMap() {
-        return refModulatorMap;
+    public Map<String, RFPlotStimModulator> getModulatorsForDrawables() {
+        return modulatorsForDrawables;
     }
 
-    public void setRefModulatorMap(Map<String, RFPlotStimModulator> refModulatorMap) {
-        this.refModulatorMap = refModulatorMap;
+    public void setModulatorsForDrawables(Map<String, RFPlotStimModulator> modulatorsForDrawables) {
+        this.modulatorsForDrawables = modulatorsForDrawables;
     }
 
     public RFPlotDrawer getPlotter() {
