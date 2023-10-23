@@ -21,7 +21,6 @@ public class ImgPathScroller extends RFPlotScroller {
         setPngsFromLibrary(libraryPath_generator);
     }
     public void init(){
-        System.err.println(libraryPath_generator);
         try {
             setPngsFromLibrary(libraryPath_experiment);
         } catch (Exception e){

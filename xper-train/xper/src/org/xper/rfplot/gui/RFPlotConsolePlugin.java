@@ -86,7 +86,6 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         RFPlotDrawable firstStimObj = refObjectMap.get(stimType);
         stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj);
         client.changeRFPlotStim(stimSpec);
-        System.err.println(stimType);
     }
 
     private void save(){
@@ -197,13 +196,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     public void handleMouseWheel(MouseWheelEvent e) {
 
         int clicks = e.getWheelRotation();
-        System.err.println(clicks);
         RFPlotStimModulator modulator = refModulatorMap.get(stimType);
 
         if (modulator.hasScrollers()) {
             if (clicks > 0) {
                 for (int i = 0; i < clicks; i++) {
-                    ScrollerParams newParams = modulator.next(new ScrollerParams(
+                    ScrollerParams newParams = modulator.previous(new ScrollerParams(
                             refObjectMap.get(stimType),
                             RFPlotXfmSpec.fromXml(xfmSpec)
                     ));
@@ -211,7 +209,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 }
             } else {
                 for (int i = 0; i > clicks; i--) {
-                    ScrollerParams newParams = modulator.previous(new ScrollerParams(
+                    ScrollerParams newParams = modulator.next(new ScrollerParams(
                             refObjectMap.get(stimType),
                             RFPlotXfmSpec.fromXml(xfmSpec)
                     ));
