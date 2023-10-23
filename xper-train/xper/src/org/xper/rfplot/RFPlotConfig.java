@@ -89,17 +89,8 @@ public class RFPlotConfig {
 
 	@Bean
 	public RFPlotStimModulator gaborModulator() {
-		RFPlotStimModulator gaborModulator = new RFPlotStimModulator(gaborModeScrollerMap());
+		RFPlotStimModulator gaborModulator = new RFPlotStimModulator(defaultScrollers());
 		return gaborModulator;
-	}
-
-	@Bean
-	public LinkedHashMap<String, RFPlotScroller> gaborModeScrollerMap(){
-		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Size", new SizeScroller());
-		map.put("Orientation", new OrientationScroller());
-		map.put("Color", new HueScroller());
-		return map;
 	}
 
 	@Bean
@@ -113,6 +104,13 @@ public class RFPlotConfig {
 	public LinkedHashMap<String, RFPlotScroller> imgModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
 		map.put("Path", imgPathScroller());
+		map.putAll(defaultScrollers());
+		return map;
+	}
+
+	@Bean
+	public LinkedHashMap<String, RFPlotScroller> defaultScrollers() {
+		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
 		map.put("Size", new SizeScroller());
 		map.put("Orientation", new OrientationScroller());
 		map.put("Hue", new HueScroller());
