@@ -28,8 +28,9 @@ import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotGaborObject;
 import org.xper.rfplot.drawing.RFPlotPngObject;
 import org.xper.rfplot.gui.*;
+import org.xper.rfplot.gui.scroller.OrientationScroller;
 import org.xper.rfplot.gui.scroller.PngPathScroller;
-import org.xper.rfplot.gui.scroller.PngSizeScroller;
+import org.xper.rfplot.gui.scroller.SizeScroller;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
 
 @Configuration(defaultLazy=Lazy.TRUE)
@@ -64,7 +65,7 @@ public class RFPlotConfig {
 	@Bean
 	public TaskScene taskScene() {
 		RFPlotScene scene = new RFPlotScene();
-		scene.setRfObjectMap(refObjMap());
+		scene.setRfObjectMap(namesForDrawables());
 		scene.setRenderer(rfRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setBlankScreen(new BlankScreen());
@@ -73,7 +74,7 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public Map<String, RFPlotDrawable> refObjMap() {
+	public Map<String, RFPlotDrawable> namesForDrawables() {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotGaborObject.class.getName(), new RFPlotGaborObject());
@@ -82,7 +83,7 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public Map<String, RFPlotStimModulator> refModulatorMap(){
+	public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
 		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
 		refModulatorMap.put(RFPlotPngObject.class.getName(), pngModulator());
 		return refModulatorMap;
@@ -99,7 +100,8 @@ public class RFPlotConfig {
 	public LinkedHashMap<String, RFPlotScroller> pngModeScrollerMap(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
 		map.put("Path", pngPathScroller());
-		map.put("Size", new PngSizeScroller());
+		map.put("Size", new SizeScroller());
+		map.put("Orientation", new OrientationScroller());
 		return map;
 	}
 
@@ -116,8 +118,8 @@ public class RFPlotConfig {
 	public RFPlotConsolePlugin rfPlotConsolePlugin(){
 		RFPlotConsolePlugin plugin = new RFPlotConsolePlugin();
 		plugin.setClient(rfPlotClient());
-		plugin.setRefObjectMap(refObjMap());
-		plugin.setRefModulatorMap(refModulatorMap());
+		plugin.setRefObjectMap(namesForDrawables());
+		plugin.setRefModulatorMap(modulatorsForDrawables());
 		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
 		plugin.setPlotter(rfPlotter());
 		plugin.setDbUtil(baseConfig.dbUtil());
@@ -139,7 +141,7 @@ public class RFPlotConfig {
 	public RFPlotTaskDataSource taskDataSource() {
 		RFPlotTaskDataSource taskDataSource = new RFPlotTaskDataSource();
 		taskDataSource.setHost(classicConfig.experimentHost);
-		taskDataSource.setRefObjMap(refObjMap());
+		taskDataSource.setRefObjMap(namesForDrawables());
 		return taskDataSource;
 	}
 
