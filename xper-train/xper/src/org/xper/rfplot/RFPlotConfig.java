@@ -28,6 +28,9 @@ import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotGaborObject;
 import org.xper.rfplot.drawing.RFPlotPngObject;
 import org.xper.rfplot.gui.*;
+import org.xper.rfplot.gui.scroller.PngPathScroller;
+import org.xper.rfplot.gui.scroller.PngSizeScroller;
+import org.xper.rfplot.gui.scroller.RFPlotScroller;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource

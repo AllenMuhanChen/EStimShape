@@ -5,7 +5,6 @@ import org.xper.rfplot.gui.CyclicIterator;
 
 import java.util.List;
 import java.util.LinkedList;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
