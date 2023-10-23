@@ -14,7 +14,7 @@ public class SizeScroller extends RFPlotScroller {
     public ScrollerParams next(ScrollerParams scrollerParams){
         RFPlotXfmSpec xfmSpec = scrollerParams.getXfmSpec();
         Coordinates2D currentScale = xfmSpec.getScale();
-        xfmSpec.setScale(new Coordinates2D(currentScale.getX()-SCALE_FACTOR, currentScale.getY()-SCALE_FACTOR));
+        xfmSpec.setScale(new Coordinates2D(currentScale.getX()+SCALE_FACTOR, currentScale.getY()+SCALE_FACTOR));
         scrollerParams.setXfmSpec(xfmSpec);
         return scrollerParams;
     }
@@ -23,7 +23,7 @@ public class SizeScroller extends RFPlotScroller {
     public ScrollerParams previous(ScrollerParams scrollerParams){
         RFPlotXfmSpec xfmSpec = scrollerParams.getXfmSpec();
         Coordinates2D currentScale = xfmSpec.getScale();
-        xfmSpec.setScale(new Coordinates2D(currentScale.getX()+SCALE_FACTOR, currentScale.getY()+SCALE_FACTOR));
+        xfmSpec.setScale(new Coordinates2D(currentScale.getX()-SCALE_FACTOR, currentScale.getY()-SCALE_FACTOR));
         scrollerParams.setXfmSpec(xfmSpec);
         return scrollerParams;
     }

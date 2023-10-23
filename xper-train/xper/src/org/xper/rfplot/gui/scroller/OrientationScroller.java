@@ -10,7 +10,7 @@ public class OrientationScroller extends RFPlotScroller{
     public ScrollerParams next(ScrollerParams scrollerParams) {
         RFPlotXfmSpec xfmSpec = scrollerParams.getXfmSpec();
         float currentRotation = xfmSpec.getRotation();
-        float newRotation = currentRotation + dr;
+        float newRotation = currentRotation - dr;
         xfmSpec.setRotation(newRotation);
         scrollerParams.setXfmSpec(xfmSpec);
         return scrollerParams;
@@ -20,7 +20,7 @@ public class OrientationScroller extends RFPlotScroller{
     public ScrollerParams previous(ScrollerParams scrollerParams) {
         RFPlotXfmSpec xfmSpec = scrollerParams.getXfmSpec();
         float currentRotation = xfmSpec.getRotation();
-        float newRotation = currentRotation - dr;
+        float newRotation = currentRotation + dr;
         xfmSpec.setRotation(newRotation);
         scrollerParams.setXfmSpec(xfmSpec);
         return scrollerParams;

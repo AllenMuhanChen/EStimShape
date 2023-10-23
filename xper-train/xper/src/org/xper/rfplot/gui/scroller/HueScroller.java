@@ -8,7 +8,7 @@ import static org.xper.rfplot.drawing.png.HSLUtils.isPureWhite;
 
 public class HueScroller extends RFPlotScroller {
 
-    private static final float HUE_INCREMENT = 0.1f;  // Adjust this value based on your needs
+    private static final float HUE_INCREMENT = 0.05f;  // Adjust this value based on your needs
 
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
