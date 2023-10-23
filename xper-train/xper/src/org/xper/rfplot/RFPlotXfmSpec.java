@@ -21,7 +21,7 @@ public class RFPlotXfmSpec {
 		s.alias("RFPlotXfmSpec", RFPlotXfmSpec.class);
 
 		defaultXmlSpec = new RFPlotXfmSpec();
-		defaultXmlSpec.setColor(new RGBColor(1f, 1f, 1f));
+		defaultXmlSpec.setColor(new RGBColor(1.0f, 1.0f, 1.0f));
 		defaultXmlSpec.setScale(new Coordinates2D(1.0, 1.0));
 		defaultXmlSpec.setRotation(0f);
 		defaultXmlSpec.setTranslation(new Coordinates2D(0, 0));

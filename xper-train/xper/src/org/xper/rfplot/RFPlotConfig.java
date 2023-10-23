@@ -116,6 +116,8 @@ public class RFPlotConfig {
 		map.put("Size", new SizeScroller());
 		map.put("Orientation", new OrientationScroller());
 		map.put("Hue", new HueScroller());
+		map.put("Saturation", new SaturationScroller());
+		map.put("Lightness", new LightnessScroller());
 		return map;
 	}
 
