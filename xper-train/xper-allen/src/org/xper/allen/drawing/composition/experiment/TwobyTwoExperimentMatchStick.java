@@ -156,9 +156,9 @@ public class TwobyTwoExperimentMatchStick extends MorphedMatchStick {
      * Verify that specified components of new matchStick are all in a similar object centered position
      * as the base matchStick's components
      */
-    public void checkObjectCenteredPosition(Map<Integer, SphericalCoordinates> targetObjectCenteredPositionForComponents){
+    public void checkObjectCenteredPosition(Map<Integer, SphericalCoordinates> toCompareToObjectCenteredPositionForComponents){
         HashMap<Integer, SphericalCoordinates> actualObjectCenteredPositionForComponents = new HashMap<>();
-        targetObjectCenteredPositionForComponents.forEach(new BiConsumer<Integer, SphericalCoordinates>() {
+        toCompareToObjectCenteredPositionForComponents.forEach(new BiConsumer<Integer, SphericalCoordinates>() {
             @Override
             public void accept(Integer integer, SphericalCoordinates sphericalCoordinates) {
                 Point3d massCenter = getMassCenterForComponent(integer);
@@ -166,13 +166,13 @@ public class TwobyTwoExperimentMatchStick extends MorphedMatchStick {
             }
         });
 
-        targetObjectCenteredPositionForComponents.forEach(new BiConsumer<Integer, SphericalCoordinates>() {
+        toCompareToObjectCenteredPositionForComponents.forEach(new BiConsumer<Integer, SphericalCoordinates>() {
             @Override
-            public void accept(Integer integer, SphericalCoordinates sphericalCoordinates) {
-                SphericalCoordinates actualObjecctCenteredPosition = actualObjectCenteredPositionForComponents.get(integer);
-                if (Math.abs(actualObjecctCenteredPosition.r - sphericalCoordinates.r) > objCenteredPositionTolerance.r ||
-                        Math.abs(actualObjecctCenteredPosition.theta - sphericalCoordinates.theta) > objCenteredPositionTolerance.theta ||
-                        Math.abs(actualObjecctCenteredPosition.phi - sphericalCoordinates.phi) > objCenteredPositionTolerance.phi){
+            public void accept(Integer compIndex, SphericalCoordinates sphericalCoordinates) {
+                SphericalCoordinates actualObjectCenteredPosition = actualObjectCenteredPositionForComponents.get(compIndex);
+                if (Math.abs(actualObjectCenteredPosition.r - sphericalCoordinates.r) > objCenteredPositionTolerance.r ||
+                        Math.abs(actualObjectCenteredPosition.theta - sphericalCoordinates.theta) > objCenteredPositionTolerance.theta ||
+                        Math.abs(actualObjectCenteredPosition.phi - sphericalCoordinates.phi) > objCenteredPositionTolerance.phi){
                     throw new MorphException("Object Centered Position is off.");
                 }
             }
