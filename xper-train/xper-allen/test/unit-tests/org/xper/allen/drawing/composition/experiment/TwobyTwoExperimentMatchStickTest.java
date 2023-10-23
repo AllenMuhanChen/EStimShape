@@ -43,17 +43,17 @@ public class TwobyTwoExperimentMatchStickTest {
     public void test_msticks() {
         TwobyTwoExperimentMatchStick firstMStick = new TwobyTwoExperimentMatchStick();
         firstMStick.setProperties(8);
-        firstMStick.genFirstMatchStick(baseMStick, 1);
+        firstMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
         drawPng(firstMStick, 2L);
 
         TwobyTwoExperimentMatchStick secondMStick = new TwobyTwoExperimentMatchStick();
         secondMStick.setProperties(8);
-        secondMStick.genSecondMatchStick(firstMStick, 1);
+        secondMStick.genNewBaseMatchStick(firstMStick, 1);
         drawPng(secondMStick, 3L);
 
         TwobyTwoExperimentMatchStick thirdMStick = new TwobyTwoExperimentMatchStick();
         thirdMStick.setProperties(8);
-        thirdMStick.genThirdMatchStick(firstMStick, 1, 0.5);
+        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 1, 0.5);
         drawPng(thirdMStick, 4L);
 
         TwobyTwoExperimentMatchStick fourthMStick = new TwobyTwoExperimentMatchStick();
