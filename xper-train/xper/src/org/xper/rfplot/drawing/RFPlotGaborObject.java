@@ -2,7 +2,9 @@ package org.xper.rfplot.drawing;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.util.MathUtil;
@@ -75,6 +77,12 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 		float texy;
 		float next_y, next_texy;
 
+		FloatBuffer currentColor = BufferUtils.createFloatBuffer(16);
+		GL11.glGetFloat(GL11.GL_CURRENT_COLOR, currentColor);
+		float r = currentColor.get(0);
+		float g = currentColor.get(1);
+		float b = currentColor.get(2);
+
 		for (int i = 0; i < STEPS; i++) {
 			cury = (float) (2.0 * size * i / STEPS - size);
 			next_y = (float) (2.0 * size * (i + 1) / STEPS - size);
@@ -87,9 +95,9 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 			array.putFloat(0.0f);
 			array.putFloat(texy);
 			// C3F
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
+			array.putFloat(r * color_ratio);
+			array.putFloat(g * color_ratio);
+			array.putFloat(b * color_ratio);
 			// V3F
 			array.putFloat((float) -size);
 			array.putFloat(cury);
@@ -99,9 +107,9 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 			array.putFloat(1.0f);
 			array.putFloat(texy);
 			// C3F
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
+			array.putFloat(r * color_ratio);
+			array.putFloat(g * color_ratio);
+			array.putFloat(b * color_ratio);
 			// V3F
 			array.putFloat((float) size);
 			array.putFloat(cury);
@@ -111,9 +119,9 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 			array.putFloat(1.0f);
 			array.putFloat(next_texy);
 			// C3F
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
+			array.putFloat(r * color_ratio);
+			array.putFloat(g * color_ratio);
+			array.putFloat(b * color_ratio);
 			// V3F
 			array.putFloat((float) size);
 			array.putFloat(next_y);
@@ -123,9 +131,9 @@ public class RFPlotGaborObject extends DefaultSpecRFPlotDrawable {
 			array.putFloat(0.0f);
 			array.putFloat(next_texy);
 			// C3F
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
-			array.putFloat(color_ratio);
+			array.putFloat(r * color_ratio);
+			array.putFloat(g * color_ratio);
+			array.putFloat(b * color_ratio);
 			// V3F
 			array.putFloat((float) -size);
 			array.putFloat(next_y);
