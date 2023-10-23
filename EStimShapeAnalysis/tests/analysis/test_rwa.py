@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, \
     RWAMatrix, AutomaticBinner, rwa
-from src.mock.mock_rwa_plot import slice_matrix
+from src.mockga.mock_rwa_plot import slice_matrix
 
 
 class Test(TestCase):

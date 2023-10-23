@@ -9,7 +9,7 @@ public class PsychometricExperimentImageSetGenerator {
     AbstractPsychometricTrialGenerator trialGenerator;
 
     public void generate(String pathToBaseStimulus){
-        ExperimentMatchStick baseMatchStick = new ExperimentMatchStick();
+        TwobyTwoExperimentMatchStick baseMatchStick = new TwobyTwoExperimentMatchStick();
         baseMatchStick.setProperties(trialGenerator.getMaxImageDimensionDegrees());
         baseMatchStick.genMatchStickFromFile(pathToBaseStimulus, new double[]{0,0,0});
 

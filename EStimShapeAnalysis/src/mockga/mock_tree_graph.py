@@ -12,12 +12,12 @@ import dash as DASH
 from dash.exceptions import PreventUpdate
 from plotly.graph_objs import Scatter
 from ast import literal_eval as make_tuple
-from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp
+from src.tree_graph.tree_graph import TreeGraph, TreeGraphApp, ColoredTreeGraph
 from clat.util.connection import Connection
 
 import xml.etree.ElementTree as ET
 
-from tests.tree_graph.colored_test_tree_graph import ColoredTreeGraph
+
 
 conn = Connection("allen_estimshape_dev_230519")
 

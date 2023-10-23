@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import xmltodict
 
-from src.mock.mock_tree_graph import fetch_tree_spec, _parse_recursive_xml, recursive_tree_to_edges, MockTreeGraph, \
+from src.mockga.mock_tree_graph import fetch_tree_spec, _parse_recursive_xml, recursive_tree_to_edges, MockTreeGraph, \
     MockTreeGraphApp
 from src.tree_graph.tree_graph import TreeGraphApp
 

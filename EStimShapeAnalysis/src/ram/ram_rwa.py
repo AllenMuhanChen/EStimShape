@@ -7,8 +7,8 @@ import xmltodict
 from matplotlib import pyplot as plt
 
 from src.analysis.rwa import rwa, AutomaticBinner, rwa, raw_data, get_next, combine_rwas
-from src.mock.mock_rwa_analysis import hemisphericalize, condition_theta_and_phi
-from src.mock.mock_rwa_plot import plot_shaft_rwa
+from src.mockga.mock_rwa_analysis import hemisphericalize, condition_theta_and_phi
+from src.mockga.mock_rwa_plot import plot_shaft_rwa
 from src.ram import plot_ram
 from clat.util import dictionary_util
 from analysis.test_multidim_rwa import plot_data_and_rwa_variations

@@ -7,7 +7,7 @@ import numpy as np
 from scipy.stats import multivariate_normal
 
 from src.analysis.rwa import Binner, rwa, raw_data, RWAMatrix, divide_and_allow_divide_by_zero, combine_rwas, get_next
-from src.mock.mock_rwa_plot import draw_one_d_field, get_indices_for_fields
+from src.mockga.mock_rwa_plot import draw_one_d_field, get_indices_for_fields
 
 
 def plot_data_and_rwa_variations(response_weighted_averages, summed_response_weighted, summed_unweighted):

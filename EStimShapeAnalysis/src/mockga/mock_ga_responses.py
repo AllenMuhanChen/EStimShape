@@ -16,7 +16,7 @@ from clat.intan.channels import Channel
 from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.trial.trial_field import FieldList, get_data_from_trials
-from src.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
+from src.mockga.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.dictionary_util import flatten_dictionary, \
