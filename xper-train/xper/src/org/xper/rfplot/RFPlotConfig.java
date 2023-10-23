@@ -134,8 +134,8 @@ public class RFPlotConfig {
 	public RFPlotConsolePlugin rfPlotConsolePlugin(){
 		RFPlotConsolePlugin plugin = new RFPlotConsolePlugin();
 		plugin.setClient(rfPlotClient());
-		plugin.setRefObjectMap(namesForDrawables());
-		plugin.setRefModulatorMap(modulatorsForDrawables());
+		plugin.setNamesForDrawables(namesForDrawables());
+		plugin.setModulatorsForDrawables(modulatorsForDrawables());
 		plugin.setConsoleRenderer(classicConfig.consoleRenderer());
 		plugin.setPlotter(rfPlotter());
 		plugin.setDbUtil(baseConfig.dbUtil());
