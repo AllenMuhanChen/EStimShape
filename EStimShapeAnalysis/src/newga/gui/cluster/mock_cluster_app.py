@@ -7,19 +7,23 @@ from sklearn.datasets import make_blobs
 from clat.intan.channels import Channel
 from newga.gui.cluster.cluster_app import ClusterApplicationWindow
 from newga.gui.cluster.cluster_app_classes import DataLoader, DataExporter, ChannelMapper
-from newga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer
+from newga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer
+from newga.gui.cluster.probe_mapping import DBCChannelMapper
 
 
 class MockDataLoader(DataLoader):
     def load_data_for_channels(self):
         # Replace this with your actual mock data
-        X, _ = make_blobs(n_samples=len(Channel), centers=3, n_features=100, random_state=42, shuffle=False)
+        X, _ = make_blobs(n_samples=len(self.channels_for_prefix("A")), centers=3, n_features=100, random_state=42, shuffle=False)
 
         # Assign each data point to a channel from A_000 to A_031
         data_for_channels = {}
-        for index, channel in enumerate(Channel):
+        for index, channel in enumerate(self.channels_for_prefix("A")):
             data_for_channels[channel] = X[index]
         return data_for_channels
+
+    def channels_for_prefix(cls, prefix: str):
+        return [channel for channel in Channel if channel.name.startswith(prefix)]
 
 
 class MockDataExporter(DataExporter):
@@ -52,7 +56,9 @@ def get_qapplication_instance():
 
 if __name__ == '__main__':
     app = get_qapplication_instance()
-    window = ClusterApplicationWindow(MockDataLoader(), MockDataExporter(), [PCAReducer(), MDSReducer()],
-                                      MockChannelMapper(Channel))
+    window = ClusterApplicationWindow(MockDataLoader(),
+                                      MockDataExporter(),
+                                      [PCAReducer(), MDSReducer(), TSNEReducer()],
+                                      DBCChannelMapper("A"))
     window.show()
     app.exec_()

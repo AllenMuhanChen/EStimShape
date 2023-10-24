@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout
 
-from tests.newga.cluster.mock_app import MockDataLoader, MockDataExporter, MockChannelMapper
+from newga.gui.cluster.mock_cluster_app import MockDataLoader, MockDataExporter, MockChannelMapper
 
 from clat.intan.channels import Channel
 from newga.gui.cluster.cluster_app import ClusterApplicationWindow

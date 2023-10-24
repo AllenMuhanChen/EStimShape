@@ -22,7 +22,7 @@ class DataExporter(Protocol):
 
 
 class ChannelMapper(Protocol):
-    def get_coordinates(self, channel):
+    def get_coordinates(self, channel: Channel) -> dict[Any, np.ndarray]:
         pass
 
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from sklearn.decomposition import PCA
-from sklearn.manifold import MDS
+from sklearn.manifold import MDS, TSNE
 import numpy as np
 
 
@@ -9,11 +9,11 @@ class DimensionalityReducer(ABC):
         self.n_components = n_components
 
     @abstractmethod
-    def fit_transform(self, X: np.ndarray):
+    def fit_transform(self, X: np.ndarray) -> np.ndarray:
         pass
 
     @abstractmethod
-    def get_name(self):
+    def get_name(self) -> str:
         pass
 
 
@@ -33,3 +33,12 @@ class MDSReducer(DimensionalityReducer):
 
     def get_name(self):
         return "MDS"
+
+
+class TSNEReducer(DimensionalityReducer):
+    def fit_transform(self, X: np.ndarray):
+        self.model = TSNE(n_components=self.n_components)
+        return self.model.fit_transform(X)
+
+    def get_name(self):
+        return "TSNE"
