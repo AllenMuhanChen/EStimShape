@@ -2,12 +2,13 @@ import sys
 
 import numpy as np
 from PyQt5.QtWidgets import QApplication
-from sklearn.datasets import make_blobs
+from sklearn.datasets import make_blobs, make_sparse_uncorrelated, make_classification
 
 from clat.intan.channels import Channel
 from newga.gui.cluster.cluster_app import ClusterApplicationWindow
 from newga.gui.cluster.cluster_app_classes import DataLoader, DataExporter, ChannelMapper
-from newga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer
+from newga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer, KernelPCAReducer, \
+    SparsePCAReducer
 from newga.gui.cluster.probe_mapping import DBCChannelMapper
 
 
@@ -15,6 +16,7 @@ class MockDataLoader(DataLoader):
     def load_data_for_channels(self):
         # Replace this with your actual mock data
         X, _ = make_blobs(n_samples=len(self.channels_for_prefix("A")), centers=3, n_features=100, random_state=42, shuffle=False)
+        # X, _ = make_classification(n_samples=len(self.channels_for_prefix("A")), n_features=100, n_informative=20, n_classes=3, n_clusters_per_class=1)
 
         # Assign each data point to a channel from A_000 to A_031
         data_for_channels = {}
@@ -58,7 +60,11 @@ if __name__ == '__main__':
     app = get_qapplication_instance()
     window = ClusterApplicationWindow(MockDataLoader(),
                                       MockDataExporter(),
-                                      [PCAReducer(), MDSReducer(), TSNEReducer()],
+                                      [PCAReducer(),
+                                       MDSReducer(),
+                                       TSNEReducer(),
+                                       KernelPCAReducer(),
+                                       SparsePCAReducer()],
                                       DBCChannelMapper("A"))
     window.show()
     app.exec_()
