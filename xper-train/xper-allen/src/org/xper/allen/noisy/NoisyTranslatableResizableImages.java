@@ -22,26 +22,26 @@ import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
 
 /**
- * Loads a noiseMap as a png, where the red value of each pixel represents 
- * the percentage chance a corresponding pixel should be random noise. 
- * 
+ * Loads a noiseMap as a png, where the red value of each pixel represents
+ * the percentage chance a corresponding pixel should be random noise.
+ *
  * Intended usage is to pre-generate all of the noise before stimulus presentation.
  * Storage of the noise is handled within OpenGL's BindTexture feature.
- * 
+ *
  * noiseIndx (which noise tex is drawn) is specified as a arguement to draw()
- * This is to give more control over when exactly noise is stepped 
- * (for the ability to slow down noise if for some reason is wanted) 
+ * This is to give more control over when exactly noise is stepped
+ * (for the ability to slow down noise if for some reason is wanted)
  *
  * One can easily make a new draw() method that steps through currentNoiseIndx
- * automatically if they wish. 
- * 
- * 
+ * automatically if they wish.
+ *
+ *
  * @author Allen Chen
  *
  */
 public class NoisyTranslatableResizableImages extends TranslatableResizableImages{
 	public boolean showTiming = false;
-	//	
+	//
 	private int numNoiseFrames;
 	private int numImageTextures;
 	private int srcLength;
@@ -78,7 +78,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		}
 	}
 	/**
-	 * Load noise percentages from png. 
+	 * Load noise percentages from png.
 	 * @param pathname
 	 */
 	public void loadNoise(String pathname) {
@@ -156,7 +156,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	}
 
 	/**
-	 * Draw from pre-loaded noise textures. 
+	 * Draw from pre-loaded noise textures.
 	 * @param context
 	 * @param textureIndex
 	 * @param location
@@ -194,24 +194,24 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 
 		float width = (float) context.getRenderer().deg2mm((float)dimensions.getWidth()); // texture.getImageWidth();
-		float height = (float) context.getRenderer().deg2mm((float)dimensions.getHeight()); // texture.getImageHeight();		
+		float height = (float) context.getRenderer().deg2mm((float)dimensions.getHeight()); // texture.getImageHeight();
 
 		float yOffset = -height / 2;	int imgWidth;
 		int imgHeight;
-		float xOffset = -width / 2; 
+		float xOffset = -width / 2;
 		//		GL11.glPushMatrix();
 		GL11.glTranslated(centermm.getX(), centermm.getY(), 0);
 		GL11.glColor3d(1.0, 1.0, 1.0);
 
-		GL11.glEnable(GL11.GL_TEXTURE_2D);  	
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(textureIndex));
-		/*	
+		/*
 		// from http://wiki.lwjgl.org/index.php?title=Multi-Texturing_with_GLSL
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGB, imgWidth, imgHeight, 0, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, pixels);
 		GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
-		 */	
+		 */
 
 		GL11.glBegin(GL11.GL_QUADS);
 		GL11.glTexCoord2f(0, 1);
@@ -234,7 +234,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		Coordinates2D centermm = new Coordinates2D(context.getRenderer().deg2mm(location.getX()), context.getRenderer().deg2mm(location.getY()));
 
 		float width = (float) context.getRenderer().deg2mm((float)dimensions.getWidth()); // texture.getImageWidth();
-		float height = (float) context.getRenderer().deg2mm((float)dimensions.getHeight()); // texture.getImageHeight();		
+		float height = (float) context.getRenderer().deg2mm((float)dimensions.getHeight()); // texture.getImageHeight();
 
 		float yOffset = -height / 2;	int imgWidth;
 		int imgHeight;
@@ -305,7 +305,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 
 
-			//			
+			//
 			//bgr2rgb(src);
 			abgr2rgba(src);
 
@@ -330,12 +330,12 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 				GL11.glTexImage2D( GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, img.getWidth(), img.getHeight(), 0,  GL11.GL_RGBA,  GL11.GL_UNSIGNED_BYTE, pixels);
 			}
 
-			//System.out.println("JK 5353 ImageStack:loadTexture() " + imageFile + " : " + textureIndex + 
-			//	    				" textureIds = " + textureIds.get(textureIndex));    		
+			//System.out.println("JK 5353 ImageStack:loadTexture() " + imageFile + " : " + textureIndex +
+			//	    				" textureIds = " + textureIds.get(textureIndex));
 
 			return getTextureIds().get(textureIndex);
 
-			//return 0; 
+			//return 0;
 
 		} catch(IOException e) {
 			e.printStackTrace();

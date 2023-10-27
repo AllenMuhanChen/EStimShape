@@ -31,9 +31,9 @@ public class AllenDrawingManager implements Drawable {
 
 	AllenPNGMaker pngMaker;
 
-	BaseWindow window;
+	public BaseWindow window;
 	@Dependency
-	AbstractRenderer renderer;
+	public AbstractRenderer renderer;
 
 
 	public AllenDrawingManager(int height, int width) {
@@ -43,7 +43,7 @@ public class AllenDrawingManager implements Drawable {
 	}
 
 	/**
-	 * Initializes a window to draw in. 
+	 * Initializes a window to draw in.
 	 */
 	public void init() {
 		window = new BaseWindow(width,height);
@@ -68,7 +68,7 @@ public class AllenDrawingManager implements Drawable {
 	}
 
 	/**
-	 * Draw single noise map using window that is already open. 
+	 * Draw single noise map using window that is already open.
 	 * @param obj
 	 * @param stimObjId
 	 * @param additionalLabels
@@ -93,7 +93,7 @@ public class AllenDrawingManager implements Drawable {
 	}
 
 	/**
-	 * Draws single png of obj using window that is already open. 
+	 * Draws single png of obj using window that is already open.
 	 * @param obj
 	 * @param stimObjId
 	 * @param labels
