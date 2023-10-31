@@ -32,11 +32,12 @@ public class GaussianNoiseMapCalculationTest {
         double sigmaX = 15;
         double sigmaY = 15;
         double amplitude = 1.0;
+        double background = 0.5;
 
         BufferedImage noiseMap = GaussianNoiseMapCalculation.generateGaussianNoiseMap(width, height,
                 centerX, centerY,
                 sigmaX, sigmaY,
-                amplitude);
+                amplitude, background);
 
         // Assertions
         assertEquals(width, noiseMap.getWidth());
