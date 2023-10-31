@@ -10,6 +10,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.noisy.NoisePositions;
 import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.vo.NoiseForm;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
@@ -23,6 +24,7 @@ import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
+import org.xper.util.ThreadUtil;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -38,6 +40,7 @@ public class ProceduralMatchStickTest {
     private AllenPNGMaker pngMaker;
     private TestDrawingWindow window;
     private AllenDrawingManager drawingManager;
+    private int numNoiseFrames;
 
     @Before
     public void setUp() throws Exception {
@@ -54,6 +57,7 @@ public class ProceduralMatchStickTest {
         drawingManager = new AllenDrawingManager(1000, 1000);
         drawingManager.setPngMaker(pngMaker);
 
+
         baseMStick = new TwobyTwoExperimentMatchStick();
         baseMStick.setProperties(8);
         baseMStick.genMatchStickRand();
@@ -69,35 +73,45 @@ public class ProceduralMatchStickTest {
     @Test
     public void drawNoisy(){
         drawingManager.init();
-        NoiseForm noiseForm = new NoiseForm(NoiseType.PRE_JUNC, new NoisePositions(0.0, 1.0));
-        baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0, 1)));
+        NoiseForm noiseForm = NoiseFormer.getNoiseForm(NoiseType.POST_JUNC);
+        baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0.5, 1.0)));
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
+        drawingManager.setBackgroundColor(0.0f,0.f, 0.f);
         drawingManager.drawStimulus(baseMStick, 0L, Collections.singletonList("Stim"));
+        drawingManager.setBackgroundColor(1.0f,0.f, 0.f);
         drawingManager.drawNoiseMap(baseMStick, 0L, Collections.singletonList("Noise"));
 
+        drawingManager.close();
+        ThreadUtil.sleep(100);
+        drawingManager.init();
+        drawingManager.setBackgroundColor(0.0f,0.f, 0.f);
 
-        NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(60, 1);
+        numNoiseFrames = 240;
+        NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1);
         image.initTextures();
 
         Context context = new Context();
         AbstractRenderer perspectiveRenderer = new PerspectiveRenderer();
-        perspectiveRenderer.setDepth(6000);
-        perspectiveRenderer.setDistance(500);
-        perspectiveRenderer.setHeight(190);
-        perspectiveRenderer.setWidth(190);
-        perspectiveRenderer.setPupilDistance(50);
+        perspectiveRenderer.setDepth(drawingManager.renderer.getDepth());
+        perspectiveRenderer.setDistance(drawingManager.renderer.getDistance());
+        perspectiveRenderer.setHeight(drawingManager.renderer.getHeight());
+        perspectiveRenderer.setWidth(drawingManager.renderer.getWidth());
+        perspectiveRenderer.setPupilDistance(drawingManager.renderer.getPupilDistance());
+
         context.setRenderer(perspectiveRenderer);
 
         BlankScreen blankScreen = new BlankScreen();
-        drawingManager.renderer.init(190, 190);
         image.loadTexture("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim.png", 0);
         image.loadNoise("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_noisemap_Noise.png");
-        for (int i=0; i<100; i++){
+
+
+        for (int i = 0; i< numNoiseFrames; i++){
             drawingManager.renderer.draw(new Drawable() {
                 @Override
                 public void draw() {
                     blankScreen.draw(null);
-                    image.draw(true, context, 0, new Coordinates2D(0.0,0.0), new ImageDimensions(50, 50));
+                    drawingManager.renderer.init();
+                    image.draw(true, context, 0, new Coordinates2D(0.0,0.0), new ImageDimensions(5, 5));
                     drawingManager.window.swapBuffers();
                 }
             });
