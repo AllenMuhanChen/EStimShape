@@ -26,6 +26,7 @@ import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -71,22 +72,22 @@ public class ProceduralMatchStickTest {
     }
 
     @Test
-    public void drawNoisy(){
+    public void drawNoisy() throws IOException {
         drawingManager.init();
         NoiseForm noiseForm = NoiseFormer.getNoiseForm(NoiseType.POST_JUNC);
         baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0.5, 1.0)));
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
-        drawingManager.setBackgroundColor(0.0f,0.f, 0.f);
+        drawingManager.setBackgroundColor(0.5f,0.5f, 0.5f);
         drawingManager.drawStimulus(baseMStick, 0L, Collections.singletonList("Stim"));
         drawingManager.setBackgroundColor(1.0f,0.f, 0.f);
-        drawingManager.drawNoiseMap(baseMStick, 0L, Collections.singletonList("Noise"));
+        drawingManager.drawGaussNoiseMap(baseMStick, 0L, Collections.singletonList("Noise"));
 
         drawingManager.close();
         ThreadUtil.sleep(100);
         drawingManager.init();
-        drawingManager.setBackgroundColor(0.0f,0.f, 0.f);
+        drawingManager.setBackgroundColor(0.5f,0.5f, 0.5f);
 
-        numNoiseFrames = 240;
+        numNoiseFrames = 360;
         NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1);
         image.initTextures();
 
@@ -109,14 +110,15 @@ public class ProceduralMatchStickTest {
             drawingManager.renderer.draw(new Drawable() {
                 @Override
                 public void draw() {
-                    blankScreen.draw(null);
-                    drawingManager.renderer.init();
-                    image.draw(true, context, 0, new Coordinates2D(0.0,0.0), new ImageDimensions(5, 5));
-                    drawingManager.window.swapBuffers();
+
+                        blankScreen.draw(null);
+                        drawingManager.renderer.init();
+                        image.draw(true, context, 0, new Coordinates2D(0.0, 0.0), new ImageDimensions(5, 5));
+                        drawingManager.window.swapBuffers();
                 }
             });
 
-            System.out.println("Frame " + i);
+//            System.out.println("Frame " + i);
         }
 
     }

@@ -1,5 +1,8 @@
 package org.xper.allen.drawing.composition;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,7 +14,10 @@ import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
+
+import javax.imageio.ImageIO;
 
 public class AllenDrawingManager implements Drawable {
 	Drawable stimObj;
@@ -91,6 +97,26 @@ public class AllenDrawingManager implements Drawable {
 
 		window.swapBuffers();
 		return pngMaker.saveImage(stimObjId,labels,height,width, imageFolderName);
+	}
+
+	public String drawGaussNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> additionalLabels) throws IOException {
+		LinkedList<String> labels = new LinkedList<>();
+		labels.add("noisemap");
+		labels.addAll(additionalLabels);
+
+		BufferedImage img = GaussianNoiseMapCalculation.generateGaussianNoiseMapFor(obj,
+				width, height,
+				150, 150,
+				1.0f, 0.25, renderer);
+		String path = imageFolderName + "/" + stimObjId;
+		for (String str:labels) {
+			if(!str.isEmpty())
+				path=path+"_"+str;
+		}
+		path=path+".png";
+		File ouptutFile = new File(path);
+		ImageIO.write(img, "png", ouptutFile);
+		return ouptutFile.getAbsolutePath();
 	}
 
 	/**

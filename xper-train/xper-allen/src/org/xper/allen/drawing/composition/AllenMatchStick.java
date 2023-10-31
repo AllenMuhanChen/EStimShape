@@ -1760,6 +1760,7 @@ public class AllenMatchStick extends MatchStick {
 		double leafArea = length*width;
 		return leafArea;
 	}
+
 	private Point3d[] getBoundingBox(int nVect, Point3d[] vect_info) {
 		Point3d[] box = new Point3d[2];
 		box[0] = new Point3d(5000,5000,5000);
