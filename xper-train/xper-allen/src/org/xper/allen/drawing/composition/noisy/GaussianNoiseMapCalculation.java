@@ -5,15 +5,18 @@ import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point3d;
+import javax.vecmath.Vector3d;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 import java.util.List;
 
 public class GaussianNoiseMapCalculation {
 
-    public static final double NOISE_RADIUS = 10;
+    public static final double NOISE_RADIUS_DEGREES = 5;
 
     public static BufferedImage generateGaussianNoiseMapFor(AllenMatchStick mStick,
                                                             int width, int height,
@@ -21,26 +24,87 @@ public class GaussianNoiseMapCalculation {
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer){
         List<Integer> specialEnds = mStick.getSpecialEndComp();
-        for (Integer compIndx: specialEnds){
-            Point3d point3d = mStick.getComp()[compIndx].getmAxisInfo().getmPts()[26];
-            AllenTubeComp allenTubeComp = mStick.getComp()[compIndx];
-            AllenMAxisArc arc = allenTubeComp.getmAxisInfo();
-            double mm_x = renderer.deg2mm(point3d.x);
-            double mm_y = renderer.deg2mm(point3d.y);
-            Coordinates2D world_x_y = renderer.coord2pixel(new Coordinates2D(mm_x, mm_y));
+        for (Integer specialCompIndx: specialEnds){
+            AllenTubeComp specialComp = mStick.getComp()[specialCompIndx];
+            AllenMAxisArc specialArc = specialComp.getmAxisInfo();
+            Point3d point3d = new Point3d();
 
-            double scaledX = world_x_y.getX();
-            double scaledY = world_x_y.getY();
+            for (JuncPt_struct junc: mStick.getJuncPt()){
+                if (junc != null) {
+                    int numMatch = Arrays.stream(junc.getComp()).filter(x -> x == specialCompIndx).toArray().length;
+                    if (numMatch == 1) {
+                        int junctionCompIndex = -1;
+                        int[] connectedComps = junc.getComp();
+                        for (int comp:connectedComps){
+                            if (comp==specialCompIndx && comp!=0){
+                                junctionCompIndex = comp;
+                            }
+                        }
+                        Vector3d tangent = junc.getTangent()[junctionCompIndex];
+                        tangent.negate();
+                        point3d = pointAlongTangent(junc.getPos(), tangent, NOISE_RADIUS_DEGREES);
+                    }
+                }
+            }
 
+
+//            Point3d point3d = specialArc.getmPts()[26];
+
+            Coordinates2D scaled = convertToPixelCoordinates(point3d, renderer);
 
             return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
-                    scaledX, scaledY,
-                    NOISE_RADIUS, amplitude,
+                    scaled.getX(), scaled.getY(),
+                    degToPixels(renderer, NOISE_RADIUS_DEGREES), amplitude,
                     sigmaX, sigmaY,
-                     background);
+                    background);
         }
         return null;
     }
+
+    private static double degToPixels(AbstractRenderer renderer, double degrees) {
+        double mm = renderer.deg2mm(degrees);
+        Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(mm, mm));
+        return pixels.getX();
+
+    }
+
+    /**
+     * Computes a point along the tangent from a given point.
+     *
+     * @param startPoint The starting point.
+     * @param tangent    The tangent vector (not required to be normalized).
+     * @param distance   The distance to move along the tangent.
+     * @return A new point along the tangent.
+     */
+    public static Point3d pointAlongTangent(Point3d startPoint, Vector3d tangent, double distance) {
+        // Normalize the tangent vector
+        Vector3d normalizedTangent = new Vector3d(tangent);
+        normalizedTangent.normalize();
+
+        // Scale the tangent by the distance
+        normalizedTangent.scale(distance);
+
+        // Compute the new point
+        Point3d newPoint = new Point3d(
+                startPoint.x + normalizedTangent.x,
+                startPoint.y + normalizedTangent.y,
+                startPoint.z + normalizedTangent.z
+        );
+
+        return newPoint;
+    }
+
+    private static Coordinates2D convertToPixelCoordinates(Point3d point3d, AbstractRenderer renderer) {
+        double mm_x = renderer.deg2mm(point3d.x);
+        double mm_y = renderer.deg2mm(point3d.y);
+        Coordinates2D world_x_y = renderer.coord2pixel(new Coordinates2D(mm_x, mm_y));
+
+        double scaledX = world_x_y.getX();
+        double scaledY = world_x_y.getY();
+        return new Coordinates2D(scaledX, scaledY);
+    }
+
+
 
     /**
      * Generates a noise map with a truncated Gaussian effect.
