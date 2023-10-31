@@ -102,9 +102,9 @@ public class AllenMatchStick extends MatchStick {
 
 
 	// VARIABLES FOR CONTRUCTING NOISE MAPS
-	private Lims noiseChanceBounds;
-	private NoiseType noiseType;
-	private NoisePositions noiseNormalizedPositions;
+	protected Lims noiseChanceBounds;
+	protected NoiseType noiseType;
+	protected NoisePositions noiseNormalizedPositions;
 
 
 	public AllenMatchStick() {
@@ -132,7 +132,7 @@ public class AllenMatchStick extends MatchStick {
 		drawSkeleton();
 	}
 
-	public void drawNoiseMap() {
+	public void drawGaussianNoiseMap(Map<Integer, GaussianNoiseParameters> noiseParametersForComps){
 		setTextureType("2D");
 		init();
 		try {
@@ -140,7 +140,22 @@ public class AllenMatchStick extends MatchStick {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		drawNoiseMapSkeleton();
+
+
+
+	}
+
+
+
+	public void drawGraphNoiseMap(NoiseMapCalculation noiseMap) {
+		setTextureType("2D");
+		init();
+		try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		drawNoiseMapSkeleton(noiseMap);
 
 	}
 
@@ -149,11 +164,10 @@ public class AllenMatchStick extends MatchStick {
 		this.noiseNormalizedPositions = noiseParameters.getNormalizedPositionBounds();
 	}
 
-	public void drawNoiseMapSkeleton() {
+	public void drawNoiseMapSkeleton(NoiseMapCalculation noiseMap) {
 		if(this.noiseType==NoiseType.NONE) {
 			return;
 		}
-		NoiseMapCalculation noiseMap = new NoiseMapCalculation(this, noiseChanceBounds, noiseNormalizedPositions);
 		//		for(int i=1; i<=getnComponent(); i++) {
 		//			getComp()[i].setLabel(i);
 		////			if(i==1)

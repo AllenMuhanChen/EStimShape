@@ -11,6 +11,7 @@ import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
+import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 
 public class AllenDrawingManager implements Drawable {
 	Drawable stimObj;
@@ -129,12 +130,12 @@ public class AllenDrawingManager implements Drawable {
 	public void drawNoiseMap(AllenMatchStick obj) {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
-		obj.drawNoiseMap();
+		obj.drawGraphNoiseMap(new NoiseMapCalculation(obj, obj.noiseChanceBounds, obj.noiseNormalizedPositions));
 	}
 
 	public void drawNoiseMap() {
 		if (nStim > 0) {
-			stimObjs.get(stimCounter).drawNoiseMap();
+			stimObjs.get(stimCounter).drawGraphNoiseMap(new NoiseMapCalculation(stimObjs.get(stimCounter), stimObjs.get(stimCounter).noiseChanceBounds, stimObjs.get(stimCounter).noiseNormalizedPositions));
 		}
 	}
 
