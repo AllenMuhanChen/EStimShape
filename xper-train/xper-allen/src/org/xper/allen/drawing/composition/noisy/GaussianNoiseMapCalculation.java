@@ -7,7 +7,9 @@ import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.JuncPt_struct;
 
+import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
+import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -42,7 +44,7 @@ public class GaussianNoiseMapCalculation {
                         }
                         Vector3d tangent = junc.getTangent()[junctionCompIndex];
                         tangent.negate();
-                        point3d = pointAlongTangent(junc.getPos(), tangent, NOISE_RADIUS_DEGREES);
+                        point3d = point3dAlong2dTangent(junc.getPos(), tangent, NOISE_RADIUS_DEGREES);
                     }
                 }
             }
@@ -67,31 +69,52 @@ public class GaussianNoiseMapCalculation {
         return pixels.getX();
 
     }
+    /**
+     * Projects a 3D vector onto 2D by dropping the z-component.
+     *
+     * @param vector The 3D vector.
+     * @return The 2D vector projection.
+     */
+    public static Vector2d projectTo2D(Vector3d vector) {
+        return new Vector2d(vector.x, vector.y);
+    }
 
     /**
-     * Computes a point along the tangent from a given point.
+     * Computes a point along the 2D tangent from a given 2D point.
      *
-     * @param startPoint The starting point.
-     * @param tangent    The tangent vector (not required to be normalized).
+     * @param startPoint The starting 2D point.
+     * @param tangent    The 2D tangent vector (not required to be normalized).
      * @param distance   The distance to move along the tangent.
-     * @return A new point along the tangent.
+     * @return A new 2D point along the tangent.
      */
-    public static Point3d pointAlongTangent(Point3d startPoint, Vector3d tangent, double distance) {
+    public static Point2d point2dAlongTangent(Point2d startPoint, Vector2d tangent, double distance) {
         // Normalize the tangent vector
-        Vector3d normalizedTangent = new Vector3d(tangent);
+        Vector2d normalizedTangent = new Vector2d(tangent);
         normalizedTangent.normalize();
 
         // Scale the tangent by the distance
         normalizedTangent.scale(distance);
 
         // Compute the new point
-        Point3d newPoint = new Point3d(
+        return new Point2d(
                 startPoint.x + normalizedTangent.x,
-                startPoint.y + normalizedTangent.y,
-                startPoint.z + normalizedTangent.z
+                startPoint.y + normalizedTangent.y
         );
+    }
 
-        return newPoint;
+    /**
+     * Computes a point along the 3D tangent from a given 3D point, with z set to 0.
+     *
+     * @param startPoint The starting 3D point.
+     * @param tangent    The 3D tangent vector (not required to be normalized).
+     * @param distance   The distance to move along the tangent.
+     * @return A new 3D point along the tangent with z set to 0.
+     */
+    public static Point3d point3dAlong2dTangent(Point3d startPoint, Vector3d tangent, double distance) {
+        Vector2d projectedTangent = projectTo2D(tangent);
+        Point2d start2d = new Point2d(startPoint.x, startPoint.y);
+        Point2d result2d = point2dAlongTangent(start2d, projectedTangent, distance);
+        return new Point3d(result2d.x, result2d.y, 0);
     }
 
     private static Coordinates2D convertToPixelCoordinates(Point3d point3d, AbstractRenderer renderer) {
