@@ -77,9 +77,9 @@ public class GaussianNoiseMapCalculation {
                     // Within the circle
                     redValue += noiseLevelRed;
                 } else {
-                    // Outside the circle
-                    double gaussValue = GaussianFunction.compute2DGaussian(x, y, centerX, centerY,
-                            sigmaX, sigmaY, 1.0);
+                    // Calculate Gaussian fade from the circle's edge
+                    double offsetDistance = distanceToCenter - circleRadius;
+                    double gaussValue = noiseLevel * Math.exp(-0.5 * (Math.pow(offsetDistance / sigmaX, 2) + Math.pow(offsetDistance / sigmaY, 2)));
                     redValue += (int) (Math.min(gaussValue, 1.0) * 255);
                 }
 
@@ -92,7 +92,6 @@ public class GaussianNoiseMapCalculation {
         }
         return noiseMap;
     }
-
 
     /**
      * Generates a Gaussian noise map based on the specified parameters.
