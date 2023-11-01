@@ -4,12 +4,15 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
 
+import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
+import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoisePositions;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
@@ -30,6 +33,8 @@ import org.xper.utils.RGBColor;
  *
  */
 public class AllenMatchStick extends MatchStick {
+
+
 
 	@Override
 	public boolean equals(Object obj) {
@@ -221,6 +226,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public void drawSkeleton() {
+//		this.showComponents = true;
 		int i;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
@@ -2162,6 +2168,7 @@ public class AllenMatchStick extends MatchStick {
 			int alignedPt = 1;
 			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
 			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
+//			oriTangent.negate(); //unsure if this breaks. tested for noise
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;
 			while (true)

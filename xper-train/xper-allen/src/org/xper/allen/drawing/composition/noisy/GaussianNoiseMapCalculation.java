@@ -1,11 +1,9 @@
 package org.xper.allen.drawing.composition.noisy;
 
 import org.xper.alden.drawing.renderer.AbstractRenderer;
-import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.composition.AllenTubeComp;
+import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
@@ -13,54 +11,26 @@ import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
-import java.util.Arrays;
-import java.util.List;
 
 public class GaussianNoiseMapCalculation {
 
-    public static final double NOISE_RADIUS_DEGREES = 5;
-
-    public static BufferedImage generateGaussianNoiseMapFor(AllenMatchStick mStick,
+    public static BufferedImage generateGaussianNoiseMapFor(ExperimentMatchStick mStick,
                                                             int width, int height,
                                                             double sigmaX, double sigmaY,
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer){
-        List<Integer> specialEnds = mStick.getSpecialEndComp();
-        for (Integer specialCompIndx: specialEnds){
-            AllenTubeComp specialComp = mStick.getComp()[specialCompIndx];
-            AllenMAxisArc specialArc = specialComp.getmAxisInfo();
-            Point3d point3d = new Point3d();
 
-            for (JuncPt_struct junc: mStick.getJuncPt()){
-                if (junc != null) {
-                    int numMatch = Arrays.stream(junc.getComp()).filter(x -> x == specialCompIndx).toArray().length;
-                    if (numMatch == 1) {
-                        int junctionCompIndex = -1;
-                        int[] connectedComps = junc.getComp();
-                        for (int comp:connectedComps){
-                            if (comp==specialCompIndx && comp!=0){
-                                junctionCompIndex = comp;
-                            }
-                        }
-                        Vector3d tangent = junc.getTangent()[junctionCompIndex];
-                        tangent.negate();
-                        point3d = point3dAlong2dTangent(junc.getPos(), tangent, NOISE_RADIUS_DEGREES);
-                    }
-                }
-            }
+        Point3d point3d = mStick.calculateNoiseOrigin();
 
 
-//            Point3d point3d = specialArc.getmPts()[26];
+        Coordinates2D scaled = convertToPixelCoordinates(point3d, renderer);
 
-            Coordinates2D scaled = convertToPixelCoordinates(point3d, renderer);
+        return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
+                scaled.getX(), scaled.getY(),
+                degToPixels(renderer, ExperimentMatchStick.NOISE_RADIUS_DEGREES), amplitude,
+                sigmaX, sigmaY,
+                background);
 
-            return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
-                    scaled.getX(), scaled.getY(),
-                    degToPixels(renderer, NOISE_RADIUS_DEGREES), amplitude,
-                    sigmaX, sigmaY,
-                    background);
-        }
-        return null;
     }
 
     private static double degToPixels(AbstractRenderer renderer, double degrees) {
@@ -100,21 +70,6 @@ public class GaussianNoiseMapCalculation {
                 startPoint.x + normalizedTangent.x,
                 startPoint.y + normalizedTangent.y
         );
-    }
-
-    /**
-     * Computes a point along the 3D tangent from a given 3D point, with z set to 0.
-     *
-     * @param startPoint The starting 3D point.
-     * @param tangent    The 3D tangent vector (not required to be normalized).
-     * @param distance   The distance to move along the tangent.
-     * @return A new 3D point along the tangent with z set to 0.
-     */
-    public static Point3d point3dAlong2dTangent(Point3d startPoint, Vector3d tangent, double distance) {
-        Vector2d projectedTangent = projectTo2D(tangent);
-        Point2d start2d = new Point2d(startPoint.x, startPoint.y);
-        Point2d result2d = point2dAlongTangent(start2d, projectedTangent, distance);
-        return new Point3d(result2d.x, result2d.y, 0);
     }
 
     private static Coordinates2D convertToPixelCoordinates(Point3d point3d, AbstractRenderer renderer) {

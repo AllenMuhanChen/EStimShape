@@ -73,19 +73,32 @@ public class ProceduralMatchStickTest {
 
     @Test
     public void drawNoisy() throws IOException {
+        ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
+        sampleMStick.setProperties(8);
+        sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
+//        System.out.println(baseMStick.getSpecialEndComp());
+//        System.out.println(baseMStick.getBaseComp());
         drawingManager.init();
-        NoiseForm noiseForm = NoiseFormer.getNoiseForm(NoiseType.POST_JUNC);
-        baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0.5, 1.0)));
+        boolean drawNewStim = true;
+        boolean drawNewNoise = true;
+
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
-        drawingManager.setBackgroundColor(0.5f,0.5f, 0.5f);
-        drawingManager.drawStimulus(baseMStick, 0L, Collections.singletonList("Stim"));
-        drawingManager.setBackgroundColor(1.0f,0.f, 0.f);
-        drawingManager.drawGaussNoiseMap(baseMStick, 0L, Collections.singletonList("Noise"));
+        if (drawNewStim) {
+
+            drawingManager.setBackgroundColor(0.5f, 0.5f, 0.5f);
+            drawingManager.drawStimulus(sampleMStick, 0L, Collections.singletonList("Stim"));
+            ThreadUtil.sleep(100);
+        }
+        if (drawNewNoise){
+            drawingManager.setBackgroundColor(1.0f, 0.f, 0.f);
+            drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"));
+        }
 
         drawingManager.close();
-        ThreadUtil.sleep(100);
         drawingManager.init();
-        drawingManager.setBackgroundColor(0.5f,0.5f, 0.5f);
+        drawingManager.setBackgroundColor(0.5f, 0.5f, 0.5f);
+        NoiseForm noiseForm = NoiseFormer.getNoiseForm(NoiseType.POST_JUNC);
+        baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0.5, 1.0)));
 
         numNoiseFrames = 360;
         NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1);
