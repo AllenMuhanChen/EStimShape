@@ -8,7 +8,7 @@ import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.noisy.NoisePositions;
+import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.vo.NoiseForm;
@@ -26,13 +26,11 @@ import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
 
+import javax.vecmath.Point3d;
 import java.io.IOException;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
-import static org.junit.Assert.*;
-import static org.lwjgl.opengl.GL11.*;
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class ProceduralMatchStickTest {
@@ -72,6 +70,69 @@ public class ProceduralMatchStickTest {
     }
 
     @Test
+    public void drawHull(){
+        ProceduralMatchStick testMStick = new ProceduralMatchStick();
+        testMStick.genMatchStickFromLeaf(1, baseMStick);
+
+        ArrayList<ConcaveHull.Point> drivingCompHull = calcHull(testMStick, 1);
+        ArrayList<ConcaveHull.Point> baseCompHull = calcHull(testMStick, 2);
+        window = TestDrawingWindow.createDrawerWindow();
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                GL11.glBegin(GL11.GL_LINE_LOOP); // Use GL_LINE_LOOP for the outline, GL_POLYGON to fill
+
+                for (ConcaveHull.Point point : drivingCompHull) {
+                    GL11.glVertex2d(point.getX(), point.getY());
+                }
+
+                GL11.glEnd();
+
+                GL11.glBegin(GL11.GL_LINE_LOOP); // Use GL_LINE_LOOP for the outline, GL_POLYGON to fill
+
+                for (ConcaveHull.Point point : baseCompHull) {
+                    GL11.glVertex2d(point.getX(), point.getY());
+                }
+
+                GL11.glEnd();
+
+
+                // Now, draw the circle
+                Point3d circle = testMStick.calculateNoiseOrigin(); // Replace with the circle's center X-coordinate
+
+                double radius = ExperimentMatchStick.NOISE_RADIUS_DEGREES;
+                int numSegments = 100; // Increase for a smoother circle
+
+                GL11.glBegin(GL11.GL_LINE_LOOP);
+                for (int i = 0; i < numSegments; i++) {
+                    double theta = 2.0 * Math.PI * i / numSegments; // Current angle
+                    double x = radius * Math.cos(theta); // Calculate the x component
+                    double y = radius * Math.sin(theta); // Calculate the y component
+                    GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
+                }
+                GL11.glEnd();
+            }
+        });
+        ThreadUtil.sleep(10000);
+        window.close();
+
+    }
+
+    private ArrayList<ConcaveHull.Point> calcHull(ProceduralMatchStick testMStick, int compIndx) {
+        Point3d[] compVect_info = testMStick.getComp()[compIndx].getVect_info();
+        ArrayList<ConcaveHull.Point> concaveHullPoints = new ArrayList<>();
+        for (Point3d point3d: compVect_info){
+            if (point3d != null){
+                concaveHullPoints.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+            }
+        }
+        ConcaveHull concaveHull = new ConcaveHull();
+
+        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 10);
+        return hullVertices;
+    }
+
+    @Test
     public void drawNoisy() throws IOException {
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
         sampleMStick.setProperties(8);
@@ -79,8 +140,8 @@ public class ProceduralMatchStickTest {
 //        System.out.println(baseMStick.getSpecialEndComp());
 //        System.out.println(baseMStick.getBaseComp());
         drawingManager.init();
-        boolean drawNewStim = true;
-        boolean drawNewNoise = true;
+        boolean drawNewStim = false;
+        boolean drawNewNoise = false;
 
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
         if (drawNewStim) {

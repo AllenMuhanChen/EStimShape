@@ -42,8 +42,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             }
 
             try {
-                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
                 checkInNoise(drivingComponentIndex);
+                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
                 break;
             } catch (ObjectCenteredPositionException e) {
                 System.out.println("Error with object centered position, retrying");
@@ -181,11 +181,16 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
         ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 10);
         Point3d noiseCenter = calculateNoiseOrigin();
+        List<Point2d> pointsOutside = new LinkedList<>();
         for (ConcaveHull.Point point: hullVertices){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
-                System.out.println("Found point outside of noise circle");
-                throw new NoiseException("Component " + compIndx + " is in noise");
+//                System.out.println("Found point outside of noise circle");
+                pointsOutside.add(new Point2d(point.getX(), point.getY()));
             }
+        }
+        System.out.println("Number of points outside of noise circle: " + pointsOutside.size() + " out of " + hullVertices.size());
+        if (pointsOutside.size() > 0){
+            throw new NoiseException("Found points outside of noise circle");
         }
 
 
@@ -231,9 +236,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                         int junctionUNdx = junc.getuNdx()[junctionBaseCompIndex];
                         Point3d startingPosition;
                         if (junctionUNdx == 1) {
-                            startingPosition = connectedMpts[6];
+                            startingPosition = connectedMpts[26];
                         } else {
-                            startingPosition = connectedMpts[45];
+                            startingPosition = connectedMpts[26];
                         }
 
                         point3d = pointAlong2dTangent(startingPosition, tangent, NOISE_RADIUS_DEGREES);
