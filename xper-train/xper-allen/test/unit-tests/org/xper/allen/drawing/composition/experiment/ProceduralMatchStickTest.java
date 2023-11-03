@@ -157,7 +157,7 @@ public class ProceduralMatchStickTest {
             sampleMStick.setProperties(8);
             sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
 
-            drawingManager.setBackgroundColor(0.5f, 0.5f, 0.5f);
+            drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
             drawingManager.drawStimulus(sampleMStick, 0L, Collections.singletonList("Stim"));
             AllenMStickSpec spec = new AllenMStickSpec();
             spec.setMStickInfo(sampleMStick);
