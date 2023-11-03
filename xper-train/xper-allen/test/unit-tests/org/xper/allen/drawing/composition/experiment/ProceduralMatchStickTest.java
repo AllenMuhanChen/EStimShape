@@ -2,9 +2,12 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.jzy3d.plot3d.rendering.image.GLImage;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.MJPEGCreator;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
@@ -26,11 +29,17 @@ import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
 
+import javax.imageio.ImageIO;
 import javax.vecmath.Point3d;
-import java.io.IOException;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
+import static org.xper.allen.drawing.composition.AllenPNGMaker.allocBytes;
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class ProceduralMatchStickTest {
@@ -134,23 +143,32 @@ public class ProceduralMatchStickTest {
 
     @Test
     public void drawNoisy() throws IOException {
-        ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
-        sampleMStick.setProperties(8);
-        sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
+
 //        System.out.println(baseMStick.getSpecialEndComp());
 //        System.out.println(baseMStick.getBaseComp());
         drawingManager.init();
-        boolean drawNewStim = false;
-        boolean drawNewNoise = false;
+        boolean drawNewStim = true;
+        boolean drawNewNoise = true;
 
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
+        ProceduralMatchStick sampleMStick;
         if (drawNewStim) {
+            sampleMStick = new ProceduralMatchStick();
+            sampleMStick.setProperties(8);
+            sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
 
             drawingManager.setBackgroundColor(0.5f, 0.5f, 0.5f);
             drawingManager.drawStimulus(sampleMStick, 0L, Collections.singletonList("Stim"));
+            AllenMStickSpec spec = new AllenMStickSpec();
+            spec.setMStickInfo(sampleMStick);
+            spec.writeInfo2File(testBin + "/" + 0 + "_" + "Stim", true);
             ThreadUtil.sleep(100);
+        } else {
+            sampleMStick = new ProceduralMatchStick();
+            sampleMStick.genMatchStickFromFile("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim_spec.xml");
+
         }
-        if (drawNewNoise){
+        if (drawNewNoise) {
             drawingManager.setBackgroundColor(1.0f, 0.f, 0.f);
             drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"));
         }
@@ -161,7 +179,7 @@ public class ProceduralMatchStickTest {
         NoiseForm noiseForm = NoiseFormer.getNoiseForm(NoiseType.POST_JUNC);
         baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0.5, 1.0)));
 
-        numNoiseFrames = 360;
+        numNoiseFrames = 60;
         NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1);
         image.initTextures();
 
@@ -179,23 +197,124 @@ public class ProceduralMatchStickTest {
         image.loadTexture("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim.png", 0);
         image.loadNoise("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_noisemap_Noise.png");
 
-
-        for (int i = 0; i< numNoiseFrames; i++){
+        // Add buffer to store the frames
+        List<BufferedImage> frames = new ArrayList<>();
+        for (int i = 0; i < numNoiseFrames; i++) {
+            int finalI = i;
             drawingManager.renderer.draw(new Drawable() {
                 @Override
                 public void draw() {
 
-                        blankScreen.draw(null);
-                        drawingManager.renderer.init();
-                        image.draw(true, context, 0, new Coordinates2D(0.0, 0.0), new ImageDimensions(5, 5));
-                        drawingManager.window.swapBuffers();
+                    blankScreen.draw(null);
+                    drawingManager.renderer.init();
+                    image.draw(true, context, 0, new Coordinates2D(0.0, 0.0), new ImageDimensions(5, 5));
+
+                    String filename = "frame_" + finalI;
+
+
+
+                    // Capture the frame
+                    byte[] imageData = screenShotBinary((int) drawingManager.window.getWidth(), (int) drawingManager.window.getHeight());
+                    BufferedImage frame = null;
+                    try{
+                        frame = convertToBufferedImage(imageData);
+                    } catch (IOException e){
+                        System.out.println("Error converting to buffered image");
+                    }
+                    frames.add(frame);
+
+                    if (finalI < numNoiseFrames) { // change this number to save more or fewer frames
+                        try {
+                            File outputfile = new File("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/test_mjpeg/frame_" + finalI + ".jpg");
+                            ImageIO.write(frame, "jpg", outputfile);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    drawingManager.window.swapBuffers();
+
                 }
             });
-
-//            System.out.println("Frame " + i);
         }
+//        MJPEGCreator.createMJPEG(frames, "/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim_recording.mjpg", 1.0f);
 
     }
+
+    private BufferedImage convertToBufferedImage(byte[] imageData) throws IOException {
+        InputStream in = new ByteArrayInputStream(imageData);
+        return ImageIO.read(in);
+    }
+
+    private byte[] screenShotBinary(int width, int height) {
+        ByteBuffer framebytes = allocBytes(width * height * 3);
+
+        // grab a copy of the current frame contents as RGB
+        GL11.glReadPixels(0, 0, width, height, GL11.GL_RGB, GL11.GL_UNSIGNED_BYTE, framebytes);
+
+        // Convert to BufferedImage of type TYPE_3BYTE_BGR, which is the type compatible with JPEG
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
+        byte[] buffer = new byte[width * height * 3];
+        framebytes.get(buffer);
+        byte[] imagePixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        System.arraycopy(buffer, 0, imagePixels, 0, buffer.length);
+
+        // Flip the image vertically
+        flipImage(image);
+
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", out); // Write as JPEG
+            return out.toByteArray();
+        } catch (IOException e) {
+            System.out.println("screenShot(): exception " + e);
+            return null;
+        }
+    }
+
+    public static void flipImage(BufferedImage image) {
+        for (int i = 0; i < image.getHeight() / 2; i++) {
+            int[] topRow = image.getRGB(0, i, image.getWidth(), 1, null, 0, image.getWidth());
+            int[] bottomRow = image.getRGB(0, image.getHeight() - i - 1, image.getWidth(), 1, null, 0, image.getWidth());
+            image.setRGB(0, i, image.getWidth(), 1, bottomRow, 0, image.getWidth());
+            image.setRGB(0, image.getHeight() - i - 1, image.getWidth(), 1, topRow, 0, image.getWidth());
+        }
+    }
+
+
+
+    private BufferedImage captureFrame(int width, int height) {
+        // Create a buffer to store the pixel data
+        ByteBuffer buffer = BufferUtils.createByteBuffer(width * height * 4);
+
+        // Read the pixels from the current OpenGL framebuffer in RGBA format
+        GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
+
+        // Prepare the buffer to be read
+        buffer.flip();
+
+        // Create a BufferedImage to store the result
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+        // Convert to array for faster processing
+        int[] pixels = new int[width * height];
+
+        // Flip the pixels vertically and convert to RGB
+        for (int i = 0; i < pixels.length; i++) {
+            int r = buffer.get() & 0xFF;
+            int g = buffer.get() & 0xFF;
+            int b = buffer.get() & 0xFF;
+            buffer.get(); // Skip the alpha byte
+            pixels[i] = (r << 16) | (g << 8) | b;
+        }
+
+        // Set the pixels of the image
+        image.setRGB(0, 0, width, height, pixels, 0, width);
+
+        return image;
+    }
+
+
 
     private void generateSet(long setId) {
         drawPng(baseMStick, setId, 0L);

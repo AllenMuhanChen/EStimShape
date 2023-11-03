@@ -236,9 +236,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                         int junctionUNdx = junc.getuNdx()[junctionBaseCompIndex];
                         Point3d startingPosition;
                         if (junctionUNdx == 1) {
-                            startingPosition = connectedMpts[26];
+                            startingPosition = connectedMpts[20];
                         } else {
-                            startingPosition = connectedMpts[26];
+                            startingPosition = connectedMpts[35];
                         }
 
                         point3d = pointAlong2dTangent(startingPosition, tangent, NOISE_RADIUS_DEGREES);

@@ -20,7 +20,7 @@ import org.xper.allen.util.DPIUtil;
 import org.xper.utils.RGBColor;
 
 public class AllenPNGMaker{
-	@Dependency 
+	@Dependency
 	private DPIUtil dpiUtil;
 	@Dependency
 	private RGBColor backColor;
@@ -173,11 +173,11 @@ public class AllenPNGMaker{
 
 	public String saveImage(long stimObjId, int height, int width,String imageFolderName) {
 		List<String> labels = new LinkedList<String>();
-		return saveImage(stimObjId, labels, height, width, imageFolderName);	
+		return saveImage(stimObjId, labels, height, width, imageFolderName);
 	}
 
 	public String saveImage(long stimObjId, List<String> labels, int height, int width,String imageFolderName) {
-		byte[] data = screenShotBinary(width,height);  
+		byte[] data = screenShotBinary(width,height);
 
 		String path = imageFolderName + "/" + stimObjId;
 		for (String str:labels) {
@@ -191,15 +191,34 @@ public class AllenPNGMaker{
 			fos.write(data);
 			fos.close();
 			return path;
-		} 
-		
+		}
+
 		catch (IOException e) {
 			e.printStackTrace();
 			return "Error: No Path";
 		}
 	}
 
-	private byte[] screenShotBinary(int width, int height) 
+	public String saveImage(String filename, int height, int width, String imageFolderName) {
+		byte[] data = screenShotBinary(width,height);
+
+		String path = imageFolderName + "/" + filename;
+		path=path+".png";
+
+		try {
+			FileOutputStream fos = new FileOutputStream(path);
+			fos.write(data);
+			fos.close();
+			return path;
+		}
+
+		catch (IOException e) {
+			e.printStackTrace();
+			return "Error: No Path";
+		}
+	}
+
+	private byte[] screenShotBinary(int width, int height)
 	{
 		ByteBuffer framebytes = allocBytes(width * height * 3);
 
