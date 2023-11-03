@@ -2,15 +2,14 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.alden.drawing.drawables.Drawable;
-import org.xper.allen.drawing.MJPEGCreator;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseFormer;
@@ -24,6 +23,7 @@ import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
+import org.xper.rfplot.ConvexHull;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
@@ -79,31 +79,50 @@ public class ProceduralMatchStickTest {
     }
 
     @Test
-    public void drawHull(){
+    public void drawHullAndNoiseCircle(){
         ProceduralMatchStick testMStick = new ProceduralMatchStick();
+        testMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         testMStick.genMatchStickFromLeaf(1, baseMStick);
 
-        ArrayList<ConcaveHull.Point> drivingCompHull = calcHull(testMStick, 1);
-        ArrayList<ConcaveHull.Point> baseCompHull = calcHull(testMStick, 2);
+        List<List<ConcaveHull.Point>> hulls = new ArrayList<>();
+        List<Boolean> isSpecial = new ArrayList<>();
+        for (int compIndx: testMStick.getCompList()){
+            if (compIndx != 0) {
+                hulls.add(calcHull(testMStick, compIndx));
+                if (testMStick.getSpecialEndComp().contains(compIndx)) {
+                    isSpecial.add(true);
+                } else {
+                    isSpecial.add(false);
+                }
+            }
+
+        }
+
+//        ArrayList<ConcaveHull.Point> drivingCompHull = calcHull(testMStick, baseMStick.getSpecialEndComp().get(0));
+//        ArrayList<ConcaveHull.Point> baseCompHull = calcHull(testMStick, 2);
         window = TestDrawingWindow.createDrawerWindow();
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                GL11.glBegin(GL11.GL_LINE_LOOP); // Use GL_LINE_LOOP for the outline, GL_POLYGON to fill
+                //Zoom in
+                GL11.glScalef(10, 10, 1);
+                int indx = 0;
+                for (List<ConcaveHull.Point> hull: hulls){
+                    if (isSpecial.get(indx)){
+                        //Color red
+                        GL11.glColor3f(1, 0, 0);
+                    } else{
+                        GL11.glColor3f(1, 1, 1);
+                    }
+                    GL11.glBegin(GL11.GL_LINE_LOOP); // Use GL_LINE_LOOP for the outline, GL_POLYGON to fill
 
-                for (ConcaveHull.Point point : drivingCompHull) {
-                    GL11.glVertex2d(point.getX(), point.getY());
+                    for (ConcaveHull.Point point : hull) {
+                        GL11.glVertex2d(point.getX(), point.getY());
+                    }
+
+                    GL11.glEnd();
+                    indx++;
                 }
-
-                GL11.glEnd();
-
-                GL11.glBegin(GL11.GL_LINE_LOOP); // Use GL_LINE_LOOP for the outline, GL_POLYGON to fill
-
-                for (ConcaveHull.Point point : baseCompHull) {
-                    GL11.glVertex2d(point.getX(), point.getY());
-                }
-
-                GL11.glEnd();
 
 
                 // Now, draw the circle
@@ -120,9 +139,12 @@ public class ProceduralMatchStickTest {
                     GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
                 }
                 GL11.glEnd();
+
+
+
             }
         });
-        ThreadUtil.sleep(10000);
+        ThreadUtil.sleep(100000);
         window.close();
 
     }
@@ -154,8 +176,10 @@ public class ProceduralMatchStickTest {
         ProceduralMatchStick sampleMStick;
         if (drawNewStim) {
             sampleMStick = new ProceduralMatchStick();
+            sampleMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(8);
             sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
+            System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
 
             drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
             drawingManager.drawStimulus(sampleMStick, 0L, Collections.singletonList("Stim"));
