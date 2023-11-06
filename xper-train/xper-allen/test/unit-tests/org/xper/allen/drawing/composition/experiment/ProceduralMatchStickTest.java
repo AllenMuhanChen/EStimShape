@@ -182,6 +182,7 @@ public class ProceduralMatchStickTest {
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
 
             drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
+//            drawingManager.setBackgroundColor(0.5f, 0.5f, 0.5f);
             drawingManager.drawStimulus(sampleMStick, 0L, Collections.singletonList("Stim"));
             AllenMStickSpec spec = new AllenMStickSpec();
             spec.setMStickInfo(sampleMStick);
@@ -198,8 +199,8 @@ public class ProceduralMatchStickTest {
         }
 
         drawingManager.close();
+        drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
         drawingManager.init();
-        drawingManager.setBackgroundColor(0.5f, 0.5f, 0.5f);
         NoiseForm noiseForm = NoiseFormer.getNoiseForm(NoiseType.POST_JUNC);
         baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0.5, 1.0)));
 

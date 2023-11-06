@@ -62,22 +62,6 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	}
 
 	/**
-	 * Noise the whole png
-	 * @param textureIndex
-	 */
-	public void loadNoise(int textureIndex) {
-		for(int i=0; i<numNoiseFrames;i++) {
-			byte[] noise = generateNoise();
-			ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(noise.length).put(noise, 0x00000000, noise.length).flip();
-			GL11.glEnable(GL11.GL_TEXTURE_2D);
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(numImageTextures+i));
-			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-			GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-			GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
-			GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, getImgWidth().get(textureIndex), getImgHeight().get(textureIndex), 0,  GL11.GL_RGBA,  GL11.GL_BYTE, pixels);
-		}
-	}
-	/**
 	 * Load noise percentages from png.
 	 * @param pathname
 	 */
@@ -111,8 +95,13 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 
 
+			byte[] noise = new byte[srcLength];
 			for(int i=0; i<numNoiseFrames;i++) {
-				byte[] noise = generateNoise(noiseMap);
+				if (i==0){
+					noise = generateNoise(noiseMap);
+				} else{
+					noise = generateTwinkleNoise(0.5, noise);
+				}
 				ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(noise.length).put(noise, 0x00000000, noise.length).flip();
 //				GL11.glEnable(GL11.GL_TEXTURE_2D);
 				GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(numImageTextures+i));
@@ -127,6 +116,27 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 			System.out.println("No NoiseMap found. Will present stimulus without noise");
 		}
 
+	}
+
+	private byte[] generateTwinkleNoise(double twinkleChance, byte[] previousNoise){
+		byte newPixels[] = new byte[srcLength];
+		for(int i=0x00000000; i<newPixels.length; i+=0x00000004) {
+			if (previousNoise[i + 0x00000003] == Byte.MAX_VALUE) {
+				if (r.nextDouble() < twinkleChance) {
+					byte newByte = (byte) r.nextInt(256);
+					newPixels[i + 0x00000000] = newByte;    //R
+					newPixels[i + 0x00000001] = newByte;    //G
+					newPixels[i + 0x00000002] = newByte;    //B
+					newPixels[i + 0x00000003] = Byte.MAX_VALUE; //A
+				} else {
+					newPixels[i + 0x00000000] = previousNoise[i + 0x00000000];    //R
+					newPixels[i + 0x00000001] = previousNoise[i + 0x00000001];    //G
+					newPixels[i + 0x00000002] = previousNoise[i + 0x00000002];    //B
+					newPixels[i + 0x00000003] = previousNoise[i + 0x00000003]; //A
+				}
+			}
+		}
+		return newPixels;
 	}
 
 	private byte[] generateNoise(List<Double> noiseMap) {
@@ -255,32 +265,6 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 
 		currentNoiseIndx++;
-	}
-
-	private byte[] generateNoise() {
-		//		int width = getImgWidth().get(textureIndex);
-		//		int height = getImgHeight().get(textureIndex);
-		byte pixels[] = new byte[srcLength];
-
-		for(int i=0x00000000; i<pixels.length; i+=0x00000004) {
-			if(r.nextDouble()<0.5) { //TODO: defer to map here.
-				byte newByte = (byte) r.nextInt(265);
-
-
-				//				System.out.println("AC99484893: " + newByte[0]);
-				pixels[i+0x00000000] = newByte;    //R
-				pixels[i+0x00000001] = newByte;    //G
-				pixels[i+0x00000002] = newByte;    //B
-				pixels[i+0x00000003] = Byte.MAX_VALUE;//A
-
-			}else { //set to all black, with zero alpha
-				pixels[i+0x00000000] = Byte.MIN_VALUE; //R
-				pixels[i+0x00000001] = Byte.MIN_VALUE; //G
-				pixels[i+0x00000002] = Byte.MIN_VALUE; //B
-				pixels[i+0x00000003] = Byte.MIN_VALUE; //A
-			}
-		}
-		return pixels;
 	}
 
 	public int loadTexture(String pathname, int textureIndex) {
