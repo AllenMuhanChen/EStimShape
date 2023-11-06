@@ -261,8 +261,6 @@ public class ProceduralMatchStickTest {
                 }
             });
         }
-//        MJPEGCreator.createMJPEG(frames, "/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim_recording.mjpg", 1.0f);
-
     }
 
     private BufferedImage convertToBufferedImage(byte[] imageData) throws IOException {

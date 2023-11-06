@@ -226,7 +226,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public void drawSkeleton() {
-		this.showComponents = true;
+//		this.showComponents = true;
 		int i;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {

@@ -42,7 +42,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
             try {
                 checkInNoise(drivingComponentIndex);
-//                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
+                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
                 break;
             } catch (ObjectCenteredPositionException e) {
                 System.out.println("Error with object centered position, retrying");
@@ -208,86 +208,18 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                     int numMatch = Arrays.stream(junc.getComp()).filter(x -> x == specialCompIndx).toArray().length;
                     if (numMatch == 1) {
                         if (junc.getnComp() == 2) {
-                            point3d = calcProjectionFromJunction(specialCompIndx, junc);
+                            point3d = calcProjectionFromSingleCompJunction(specialCompIndx, junc);
                         } else if (junc.getnComp() > 2){
-                            // Collect tangents for this junction - excluding special component
-                            List<Vector3d> connectedTangents = new LinkedList<>();
-                            List<Integer> indxForTangent = new LinkedList<>();
-                            int[] connectedComps = junc.getComp();
-                            for (int connectedCompIndx : connectedComps){
-                                if (connectedCompIndx != 0 && connectedCompIndx != specialCompIndx) {
-                                    Vector3d tangent = getJuncTangent(junc, connectedCompIndx);
-                                    connectedTangents.add(tangent);
-                                    indxForTangent.add(connectedCompIndx);
-                                }
-                            }
-
-                            // For every unique pair of tangents, find the external angle
-                            Map<List<Vector3d>, Double> externalAnglesForTangentPairs = new HashMap<>();
-                            Map<List<Vector3d>, List<Integer>> indicesForTangentPairs = new HashMap<>();
-                            for (int i = 0; i < connectedTangents.size(); i++){
-                                for (int j = i + 1; j < connectedTangents.size(); j++){
-                                    Vector3d tangent1 = connectedTangents.get(i);
-                                    Vector3d tangent2 = connectedTangents.get(j);
-                                    double externalAngle = 2*Math.PI - tangent1.angle(tangent2);
-                                    externalAnglesForTangentPairs.put(Arrays.asList(tangent1, tangent2), externalAngle);
-                                    int index1 = indxForTangent.get(i);
-                                    int index2 = indxForTangent.get(j);
-                                    indicesForTangentPairs.put(Arrays.asList(tangent1, tangent2), Arrays.asList(index1, index2));
-                                }
-                            }
-                            System.out.println(externalAnglesForTangentPairs);
-
-                            // Get the pair with the smallest external angle
-                            List<Vector3d> tangentPairWithSmallestExternalAngle = Collections.min(externalAnglesForTangentPairs.entrySet(), Comparator.comparingDouble(Map.Entry::getValue)).getKey();
-                            List<Integer> compIndicesForSmallestExternalAngle = indicesForTangentPairs.get(tangentPairWithSmallestExternalAngle);
-
-                            // Calculate bisector of smallest external angle
-                            Vector2d bisector = new Vector2d();
-                            Vector2d tangent1 = new Vector2d(tangentPairWithSmallestExternalAngle.get(0).x, tangentPairWithSmallestExternalAngle.get(0).y);
-                            Vector2d tangent2 = new Vector2d(tangentPairWithSmallestExternalAngle.get(1).x, tangentPairWithSmallestExternalAngle.get(1).y);
-                            tangent1.normalize();
-                            tangent2.normalize();
-                            bisector.add(tangent1);
-                            bisector.add(tangent2);
-                            bisector.normalize();
-                            bisector.negate();
-                            Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getX(), 0);
-
-                            // Calculate a starting point
-                            LinkedList<Point3d> startingPositions = new LinkedList<>();
-                            for (Integer compIndx: compIndicesForSmallestExternalAngle){
-                                Point3d startingPosition;
-                                int juncCompIndx = junc.getIndexOfComp(compIndx);
-                                int junctionUNdx = junc.getuNdx()[juncCompIndx];
-                                Point3d[] connectedMpts = getComp()[compIndx].getmAxisInfo().getmPts();
-                                if (junctionUNdx == 1) {
-                                    startingPosition = connectedMpts[20];
-                                } else {
-                                    startingPosition = connectedMpts[35];
-                                }
-                                startingPositions.add(startingPosition);
-                            }
-                            // Calculate average of starting positions
-                            Point3d averageStartingPosition = new Point3d();
-                            for (Point3d startingPosition: startingPositions){
-                                averageStartingPosition.add(startingPosition);
-                            }
-                            averageStartingPosition.scale(1.0/startingPositions.size());
-
-                            point3d = pointAlong2dTangent(averageStartingPosition, bisector_3d, NOISE_RADIUS_DEGREES);
+                            point3d = calcProjectionFromMultiCompJunction(specialCompIndx, junc);
                         }
                     }
-
-                    //TODO: numMatch > 1
                 }
             }
-            System.out.println(point3d);
         }
         return point3d;
     }
 
-    private Point3d calcProjectionFromJunction(Integer specialCompIndx, JuncPt_struct junc) {
+    private Point3d calcProjectionFromSingleCompJunction(Integer specialCompIndx, JuncPt_struct junc) {
         Point3d point3d;
         // Find some important info about the junction
         int junctionSpecialCompIndex = -1;
@@ -299,7 +231,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             }
             else if (comp != specialCompIndx && comp != 0)
                 junctionBaseCompIndex = comp;
-            }
+        }
         int baseCompIndx = junc.getComp()[junctionBaseCompIndex];
 
         // Find tangent to project along for noise origin
@@ -309,15 +241,87 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         int connectedCompIndx = junc.getComp()[junctionBaseCompIndex];
         Point3d[] connectedMpts = getComp()[connectedCompIndx].getmAxisInfo().getmPts();
         int junctionUNdx = junc.getuNdx()[junctionBaseCompIndex];
+        Point3d startingPosition = choosePositionAlongMAxisFromJuncUNdx(junctionUNdx, connectedMpts);
+
+        point3d = pointAlong2dTangent(startingPosition, tangent, NOISE_RADIUS_DEGREES);
+        return point3d;
+    }
+
+    private Point3d calcProjectionFromMultiCompJunction(Integer specialCompIndx, JuncPt_struct junc) {
+        Point3d point3d;
+        // Collect tangents for this junction - excluding special component
+        List<Vector3d> connectedTangents = new LinkedList<>();
+        List<Integer> indxForTangent = new LinkedList<>();
+        int[] connectedComps = junc.getComp();
+        for (int connectedCompIndx : connectedComps){
+            if (connectedCompIndx != 0 && connectedCompIndx != specialCompIndx) {
+                Vector3d tangent = getJuncTangent(junc, connectedCompIndx);
+                connectedTangents.add(tangent);
+                indxForTangent.add(connectedCompIndx);
+            }
+        }
+
+        // For every unique pair of tangents, find the external angle
+        Map<List<Vector3d>, Double> externalAnglesForTangentPairs = new HashMap<>();
+        Map<List<Vector3d>, List<Integer>> indicesForTangentPairs = new HashMap<>();
+        for (int i = 0; i < connectedTangents.size(); i++){
+            for (int j = i + 1; j < connectedTangents.size(); j++){
+                Vector3d tangent1 = connectedTangents.get(i);
+                Vector3d tangent2 = connectedTangents.get(j);
+                double externalAngle = 2*Math.PI - tangent1.angle(tangent2);
+                externalAnglesForTangentPairs.put(Arrays.asList(tangent1, tangent2), externalAngle);
+                int index1 = indxForTangent.get(i);
+                int index2 = indxForTangent.get(j);
+                indicesForTangentPairs.put(Arrays.asList(tangent1, tangent2), Arrays.asList(index1, index2));
+            }
+        }
+        System.out.println(externalAnglesForTangentPairs);
+
+        // Get the pair with the smallest external angle
+        List<Vector3d> tangentPairWithSmallestExternalAngle = Collections.min(externalAnglesForTangentPairs.entrySet(), Comparator.comparingDouble(Map.Entry::getValue)).getKey();
+        List<Integer> compIndicesForSmallestExternalAngle = indicesForTangentPairs.get(tangentPairWithSmallestExternalAngle);
+
+        // Calculate bisector of smallest external angle
+        Vector2d bisector = new Vector2d();
+        Vector2d tangent1 = new Vector2d(tangentPairWithSmallestExternalAngle.get(0).x, tangentPairWithSmallestExternalAngle.get(0).y);
+        Vector2d tangent2 = new Vector2d(tangentPairWithSmallestExternalAngle.get(1).x, tangentPairWithSmallestExternalAngle.get(1).y);
+        tangent1.normalize();
+        tangent2.normalize();
+        bisector.add(tangent1);
+        bisector.add(tangent2);
+        bisector.normalize();
+        bisector.negate();
+        Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getX(), 0);
+
+        // Calculate a starting point
+        LinkedList<Point3d> startingPositions = new LinkedList<>();
+        for (Integer compIndx: compIndicesForSmallestExternalAngle){
+            Point3d startingPosition;
+            int juncCompIndx = junc.getIndexOfComp(compIndx);
+            int junctionUNdx = junc.getuNdx()[juncCompIndx];
+            Point3d[] connectedMpts = getComp()[compIndx].getmAxisInfo().getmPts();
+            startingPosition = choosePositionAlongMAxisFromJuncUNdx(junctionUNdx, connectedMpts);
+            startingPositions.add(startingPosition);
+        }
+        // Calculate average of starting positions
+        Point3d averageStartingPosition = new Point3d();
+        for (Point3d startingPosition: startingPositions){
+            averageStartingPosition.add(startingPosition);
+        }
+        averageStartingPosition.scale(1.0/startingPositions.size());
+
+        point3d = pointAlong2dTangent(averageStartingPosition, bisector_3d, NOISE_RADIUS_DEGREES);
+        return point3d;
+    }
+
+    private Point3d choosePositionAlongMAxisFromJuncUNdx(int junctionUNdx, Point3d[] connectedMpts) {
         Point3d startingPosition;
         if (junctionUNdx == 1) {
             startingPosition = connectedMpts[20];
         } else {
             startingPosition = connectedMpts[35];
         }
-
-        point3d = pointAlong2dTangent(startingPosition, tangent, NOISE_RADIUS_DEGREES);
-        return point3d;
+        return startingPosition;
     }
 
     private Vector3d getJuncTangent(JuncPt_struct junc, int tangentOwnerIndx) {
