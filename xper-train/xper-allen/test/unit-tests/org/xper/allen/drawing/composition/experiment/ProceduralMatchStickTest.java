@@ -268,6 +268,24 @@ public class ProceduralMatchStickTest {
         }
     }
 
+    private void generateSet(long setId) {
+        drawPng(baseMStick, setId, 0L);
+        ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
+        sampleMStick.setProperties(8);
+        sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
+        drawPng(sampleMStick, setId, 1L);
+
+        ProceduralMatchStick distractor1 = new ProceduralMatchStick();
+        distractor1.setProperties(8);
+        distractor1.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
+        drawPng(distractor1, setId, 2L);
+
+        ProceduralMatchStick distractor2 = new ProceduralMatchStick();
+        distractor2.setProperties(8);
+        distractor2.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
+        drawPng(distractor2, setId, 3L);
+    }
+
     private BufferedImage convertToBufferedImage(byte[] imageData) throws IOException {
         InputStream in = new ByteArrayInputStream(imageData);
         return ImageIO.read(in);
@@ -318,57 +336,6 @@ public class ProceduralMatchStickTest {
     }
 
 
-
-    private BufferedImage captureFrame(int width, int height) {
-        // Create a buffer to store the pixel data
-        ByteBuffer buffer = BufferUtils.createByteBuffer(width * height * 4);
-
-        // Read the pixels from the current OpenGL framebuffer in RGBA format
-        GL11.glReadPixels(0, 0, width, height, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE, buffer);
-
-        // Prepare the buffer to be read
-        buffer.flip();
-
-        // Create a BufferedImage to store the result
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-
-        // Convert to array for faster processing
-        int[] pixels = new int[width * height];
-
-        // Flip the pixels vertically and convert to RGB
-        for (int i = 0; i < pixels.length; i++) {
-            int r = buffer.get() & 0xFF;
-            int g = buffer.get() & 0xFF;
-            int b = buffer.get() & 0xFF;
-            buffer.get(); // Skip the alpha byte
-            pixels[i] = (r << 16) | (g << 8) | b;
-        }
-
-        // Set the pixels of the image
-        image.setRGB(0, 0, width, height, pixels, 0, width);
-
-        return image;
-    }
-
-
-
-    private void generateSet(long setId) {
-        drawPng(baseMStick, setId, 0L);
-        ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
-        sampleMStick.setProperties(8);
-        sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
-        drawPng(sampleMStick, setId, 1L);
-
-        ProceduralMatchStick distractor1 = new ProceduralMatchStick();
-        distractor1.setProperties(8);
-        distractor1.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
-        drawPng(distractor1, setId, 2L);
-
-        ProceduralMatchStick distractor2 = new ProceduralMatchStick();
-        distractor2.setProperties(8);
-        distractor2.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
-        drawPng(distractor2, setId, 3L);
-    }
 
     private void drawPng(ExperimentMatchStick matchStick, long setId, long id) {
 //        pngMaker = new AllenPNGMaker(500, 500);

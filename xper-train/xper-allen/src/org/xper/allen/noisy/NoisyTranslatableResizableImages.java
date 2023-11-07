@@ -87,11 +87,10 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 				int red;
 				if(src[i]<0) {
 					red = (int)src[i]+256;
-					probability = (double)red/255.0;
 				} else {
-					red = (int)src[i];
-					probability = (double) red/255.0;
+					red = src[i];
 				}
+				probability = (double)red/255.0;
 				noiseMap.add(probability);
 			}
 
