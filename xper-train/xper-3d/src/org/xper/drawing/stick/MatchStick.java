@@ -1,6 +1,7 @@
 
 package org.xper.drawing.stick;
 
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.nio.FloatBuffer;
@@ -4417,6 +4418,12 @@ public class MatchStick implements Drawable {
 
 	public void setStimColor(RGBColor color) {
 		this.stimColor = color;
+	}
+
+	public void setStimColor(Color color){
+		//convert from 0-255 to 0-1
+		this.stimColor = new RGBColor(color.getRed()/255.0, color.getGreen()/255.0, color.getBlue()/255.0);
+
 	}
 
 	public void setDoCenterObject(boolean doCenterObject) {

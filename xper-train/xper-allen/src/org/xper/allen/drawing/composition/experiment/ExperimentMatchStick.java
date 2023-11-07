@@ -42,7 +42,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
             try {
                 checkInNoise(drivingComponentIndex);
-                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
+//                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
                 break;
             } catch (ObjectCenteredPositionException e) {
                 System.out.println("Error with object centered position, retrying");

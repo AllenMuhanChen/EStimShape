@@ -9,7 +9,6 @@ import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseFormer;
@@ -23,14 +22,15 @@ import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
-import org.xper.rfplot.ConvexHull;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
+import org.xper.utils.RGBColor;
 
 import javax.imageio.ImageIO;
 import javax.vecmath.Point3d;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.*;
@@ -169,8 +169,9 @@ public class ProceduralMatchStickTest {
 //        System.out.println(baseMStick.getSpecialEndComp());
 //        System.out.println(baseMStick.getBaseComp());
         drawingManager.init();
-        boolean drawNewStim = true;
+        boolean drawNewStim = false;
         boolean drawNewNoise = true;
+        Color color = new Color(1.0f, 1.0f, 0.7f);
 
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
         ProceduralMatchStick sampleMStick;
@@ -178,6 +179,7 @@ public class ProceduralMatchStickTest {
             sampleMStick = new ProceduralMatchStick();
             sampleMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(8);
+            sampleMStick.setStimColor(color);
             sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
 
@@ -194,7 +196,7 @@ public class ProceduralMatchStickTest {
 
         }
         if (drawNewNoise) {
-            drawingManager.setBackgroundColor(1.0f, 0.f, 0.f);
+            drawingManager.setBackgroundColor(1f,0,0);
             drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"));
         }
 
@@ -220,7 +222,9 @@ public class ProceduralMatchStickTest {
 
         BlankScreen blankScreen = new BlankScreen();
         image.loadTexture("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim.png", 0);
-        image.loadNoise("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_noisemap_Noise.png");
+
+        image.loadNoise("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_noisemap_Noise.png",
+                color);
 
         // Add buffer to store the frames
         List<BufferedImage> frames = new ArrayList<>();
@@ -279,6 +283,7 @@ public class ProceduralMatchStickTest {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
         byte[] buffer = new byte[width * height * 3];
         framebytes.get(buffer);
+        swapRedBlue(buffer);
         byte[] imagePixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
         System.arraycopy(buffer, 0, imagePixels, 0, buffer.length);
 
@@ -292,6 +297,14 @@ public class ProceduralMatchStickTest {
         } catch (IOException e) {
             System.out.println("screenShot(): exception " + e);
             return null;
+        }
+    }
+
+    private void swapRedBlue(byte[] buffer) {
+        for (int i = 0; i < buffer.length; i += 3) {
+            byte red = buffer[i];
+            buffer[i] = buffer[i + 2];
+            buffer[i + 2] = red;
         }
     }
 

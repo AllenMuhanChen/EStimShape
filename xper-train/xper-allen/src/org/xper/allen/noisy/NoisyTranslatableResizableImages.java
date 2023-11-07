@@ -1,5 +1,6 @@
 package org.xper.allen.noisy;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
@@ -64,8 +65,9 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	/**
 	 * Load noise percentages from png.
 	 * @param pathname
+	 * @param color
 	 */
-	public void loadNoise(String pathname) {
+	public void loadNoise(String pathname, Color color) {
 		//		System.out.println("AC4747823: noisepathname: " + pathname);
 		try {
 			File imageFile = new File(pathname);
@@ -96,20 +98,20 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 
 			byte[] noise = new byte[srcLength];
+//			color = new Color(1.0f, 0.0f, 0.0f);
 			for(int i=0; i<numNoiseFrames;i++) {
 				if (i==0){
-					noise = generateNoise(noiseMap);
+					noise = generateNoise(noiseMap, color);
 				} else{
-					noise = generateTwinkleNoise(0.5, noise);
+					noise = generateTwinkleNoise(0.5, noise, color);
+
 				}
 				ByteBuffer pixels = (ByteBuffer)BufferUtils.createByteBuffer(noise.length).put(noise, 0x00000000, noise.length).flip();
-//				GL11.glEnable(GL11.GL_TEXTURE_2D);
 				GL11.glBindTexture(GL11.GL_TEXTURE_2D, getTextureIds().get(numImageTextures+i));
 				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
 				GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
 				GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 4);
-				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, width, height, 0,  GL11.GL_RGBA,  GL11.GL_BYTE, pixels);
-//				GL11.glDisable(GL11.GL_TEXTURE_2D);
+				GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0,  GL11.GL_RGBA8, width, height, 0,  GL11.GL_RGBA,  GL11.GL_UNSIGNED_BYTE, pixels);
 			}
 
 		}catch(Exception e) {
@@ -118,16 +120,15 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 	}
 
-	private byte[] generateTwinkleNoise(double twinkleChance, byte[] previousNoise){
+	private byte[] generateTwinkleNoise(double twinkleChance, byte[] previousNoise, Color baseColor){
 		byte newPixels[] = new byte[srcLength];
+		// Convert baseColor to HSL/HSV values
+		float[] hsl = Color.RGBtoHSB(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), null);
 		for(int i=0x00000000; i<newPixels.length; i+=0x00000004) {
 			if (previousNoise[i + 0x00000003] == Byte.MAX_VALUE) {
 				if (r.nextDouble() < twinkleChance) {
-					byte newByte = (byte) r.nextInt(256);
-					newPixels[i + 0x00000000] = newByte;    //R
-					newPixels[i + 0x00000001] = newByte;    //G
-					newPixels[i + 0x00000002] = newByte;    //B
-					newPixels[i + 0x00000003] = Byte.MAX_VALUE; //A
+					// Random lightness value
+					calculateNoisePixels(newPixels,hsl,i);  // A (255 in terms of unsigned byte, full opacity)
 				} else {
 					newPixels[i + 0x00000000] = previousNoise[i + 0x00000000];    //R
 					newPixels[i + 0x00000001] = previousNoise[i + 0x00000001];    //G
@@ -138,6 +139,52 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		}
 		return newPixels;
 	}
+
+	private byte[] generateNoise(List<Double> noiseMap, Color baseColor) {
+		byte pixels[] = new byte[srcLength];
+
+		// Convert baseColor to HSL/HSV values
+		float[] hsl = Color.RGBtoHSB(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), null);
+
+		for(int i = 0; i < pixels.length; i += 4) {
+			if (r.nextDouble() < noiseMap.get(i / 4)) {
+				calculateNoisePixels(pixels, hsl, i);
+			} else {
+				// Set to all black, with zero alpha
+				pixels[i] = Byte.MIN_VALUE;     // R
+				pixels[i + 1] = Byte.MIN_VALUE; // G
+				pixels[i + 2] = Byte.MIN_VALUE; // B
+				pixels[i + 3] = Byte.MIN_VALUE; // A
+			}
+		}
+		return pixels;
+	}
+
+	private void calculateNoisePixels(byte[] pixels, float[] hsl, int i) {
+		// Random lightness value
+		float lightness = (float) r.nextDouble(); // This gives you a lightness from 0.0 to 1.0
+
+		// Create a Color object from the HSL values
+		Color color = Color.getHSBColor(hsl[0], hsl[1], lightness);
+
+		// Get the RGB components from the Color object
+		int intRed = color.getRed();
+		int intGreen = color.getGreen();
+		int intBlue = color.getBlue();
+
+		// Cast the integer values to byte values
+		byte red = (byte) intRed;
+		byte green = (byte) intGreen;
+		byte blue = (byte) intBlue;
+
+		// Set the pixel to the new RGB color with max alpha
+		pixels[i] = red;    // R
+		pixels[i + 1] = green;  // G
+		pixels[i + 2] = blue;   // B
+		pixels[i + 3] = Byte.MAX_VALUE;  // Alpha (set to max value for opacity)
+	}
+
+
 
 	private byte[] generateNoise(List<Double> noiseMap) {
 		//		int width = getImgWidth().get(textureIndex);

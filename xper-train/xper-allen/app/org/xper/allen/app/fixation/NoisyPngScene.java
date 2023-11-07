@@ -12,6 +12,8 @@ import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 
+import java.awt.*;
+
 public class NoisyPngScene extends AbstractTaskScene{
 
     @Dependency
@@ -67,7 +69,7 @@ public class NoisyPngScene extends AbstractTaskScene{
         stimDimensions = spec.getImageDimensions();
         image.loadTexture(spec.getPath(),0);
         String noiseMapPath = spec.getNoiseMapPath();
-        image.loadNoise(noiseMapPath);
+        image.loadNoise(noiseMapPath, new Color(1f,1f,1f));
     }
 
     private void newNoisyPng() {
@@ -123,4 +125,3 @@ public class NoisyPngScene extends AbstractTaskScene{
         this.slideLength = slideLength;
     }
 }
-

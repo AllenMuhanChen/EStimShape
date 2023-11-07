@@ -15,6 +15,8 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
 
+import java.awt.*;
+
 public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScene{
 	@Dependency
 	int numChoices;
@@ -33,10 +35,10 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	/**
 	 * We keep this just one images object rather than one for choices and one for sample
 	 * because OpenGL binds textures to integer IDs when we preload images. So if
-	 * there are two separate objects, IDs would conflict. 
+	 * there are two separate objects, IDs would conflict.
 	 */
-	NoisyTranslatableResizableImages images; 
-	
+	NoisyTranslatableResizableImages images;
+
 	Coordinates2D[] choiceLocations;
 	Coordinates2D sampleLocation;
 	ImageDimensions sampleDimensions;
@@ -46,13 +48,13 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	@Override
 	public void initGL(int w, int h) {
-		
+
 		setUseStencil(true);
 		super.initGL(w, h);
-		
+
 		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);
 		GL11.glViewport(0,0,w,h);
-		
+
 	}
 
 	@Override
@@ -66,7 +68,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		images.initTextures();
 		noiseIndx=0;
 	}
-	
+
 	@Override
 	public void setSample(NAFCExperimentTask task) {
 		NoisyPngSpec sampleSpec = NoisyPngSpec.fromXml(task.getSampleSpec());
@@ -74,13 +76,12 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		sampleDimensions = sampleSpec.getImageDimensions();
 //		System.out.println(images);
 		images.loadTexture(sampleSpec.getPath(), 0);
-		
+
 		//TODO: MODIFY THIS
 		String noiseMapPath = sampleSpec.getNoiseMapPath();
-//		
+//
 		//
-		
-		images.loadNoise(noiseMapPath);
+		images.loadNoise(noiseMapPath, new Color(1f,1f,1f));
 	}
 
 	@Override
@@ -105,22 +106,22 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	@Override
 	public void drawSample(Context context, boolean fixationOn) {
-		
+
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
-			public void draw(Context context) { 
+			public void draw(Context context) {
 				if (useStencil) {
 					// 0 will pass for stimulus region
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
-				int pngIndex = 0; //Should be zero, the sample is assigned index of zero. 
+				int pngIndex = 0; //Should be zero, the sample is assigned index of zero.
 				images.draw(true, context, pngIndex, sampleLocation, sampleDimensions);
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
-				
+
 				if (fixationOn) {
 					 getFixation().draw(context);
 				}
@@ -134,11 +135,11 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	@Override
 	public void drawBlank(Context context, final boolean fixationOn, final boolean markerOn) {
-		
-		
+
+
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
-			public void draw(Context context) {		
+			public void draw(Context context) {
 				if (useStencil) {
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
@@ -158,7 +159,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 //				drawCustomBlank(context);
 			}}, context);
 	}
-	
+
 	@Override
 	public void drawChoice(Context context, boolean fixationOn, int i){
 		// clear the whole screen before define view ports in renderer
@@ -207,7 +208,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
-				
+
 				if (fixationOn) {
 					 getFixation().draw(context);
 				}
@@ -225,17 +226,17 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		images.cleanUpImage();
 
 	}
-	
+
 	@Override
 	public void setTask(ExperimentTask task) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void drawStimulus(Context context) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public double getScreenWidth() {
@@ -289,5 +290,5 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	public void setFrameRate(int frameRate) {
 		this.frameRate = frameRate;
 	}
-	
+
 }
