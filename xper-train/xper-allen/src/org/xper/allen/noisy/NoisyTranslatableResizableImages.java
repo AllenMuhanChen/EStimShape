@@ -87,10 +87,10 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 				int red;
 				if(src[i]<0) {
 					red = (int)src[i]+256;
-					probability = (double)red/256.0;
+					probability = (double)red/255.0;
 				} else {
 					red = (int)src[i];
-					probability = (double) red/256.0;
+					probability = (double) red/255.0;
 				}
 				noiseMap.add(probability);
 			}
@@ -125,7 +125,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		// Convert baseColor to HSL/HSV values
 		float[] hsl = Color.RGBtoHSB(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), null);
 		for(int i=0x00000000; i<newPixels.length; i+=0x00000004) {
-			if (previousNoise[i + 0x00000003] == Byte.MAX_VALUE) {
+			if (previousNoise[i + 0x00000003] == -1) {
 				if (r.nextDouble() < twinkleChance) {
 					// Random lightness value
 					calculateNoisePixels(newPixels,hsl,i);  // A (255 in terms of unsigned byte, full opacity)
@@ -151,10 +151,10 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 				calculateNoisePixels(pixels, hsl, i);
 			} else {
 				// Set to all black, with zero alpha
-				pixels[i] = Byte.MIN_VALUE;     // R
-				pixels[i + 1] = Byte.MIN_VALUE; // G
-				pixels[i + 2] = Byte.MIN_VALUE; // B
-				pixels[i + 3] = Byte.MIN_VALUE; // A
+				pixels[i] = 0;     // R
+				pixels[i + 1] = 0; // G
+				pixels[i + 2] = 0; // B
+				pixels[i + 3] = 0; // A
 			}
 		}
 		return pixels;
@@ -181,7 +181,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		pixels[i] = red;    // R
 		pixels[i + 1] = green;  // G
 		pixels[i + 2] = blue;   // B
-		pixels[i + 3] = Byte.MAX_VALUE;  // Alpha (set to max value for opacity)
+		pixels[i + 3] =  -1;  // Alpha (set to max value for opacity)
 	}
 
 
