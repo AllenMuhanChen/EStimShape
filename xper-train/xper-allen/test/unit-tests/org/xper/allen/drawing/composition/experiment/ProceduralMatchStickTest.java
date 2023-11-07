@@ -169,9 +169,9 @@ public class ProceduralMatchStickTest {
 //        System.out.println(baseMStick.getSpecialEndComp());
 //        System.out.println(baseMStick.getBaseComp());
         drawingManager.init();
-        boolean drawNewStim = false;
+        boolean drawNewStim = true;
         boolean drawNewNoise = true;
-        Color color = new Color(1.0f, 1.0f, 0.7f);
+        Color color = new Color(0.4f, 0.4f, 0.4f);
 
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
         ProceduralMatchStick sampleMStick;
