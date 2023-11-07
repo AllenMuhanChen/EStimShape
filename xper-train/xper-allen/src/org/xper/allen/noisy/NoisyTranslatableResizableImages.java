@@ -125,7 +125,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		// Convert baseColor to HSL/HSV values
 		float[] hsl = Color.RGBtoHSB(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), null);
 		for(int i=0x00000000; i<newPixels.length; i+=0x00000004) {
-			if (previousNoise[i + 0x00000003] == -1) {
+			if (previousNoise[i + 0x00000003] == -1) { //-1 is MAX unsigned byte value
 				if (r.nextDouble() < twinkleChance) {
 					// Random lightness value
 					calculateNoisePixels(newPixels,hsl,i);  // A (255 in terms of unsigned byte, full opacity)
@@ -150,7 +150,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 			if (r.nextDouble() < noiseMap.get(i / 4)) {
 				calculateNoisePixels(pixels, hsl, i);
 			} else {
-				// Set to all black, with zero alpha
+				// Set to all black, with zero alpha. 0 is smallest unsigned byte value
 				pixels[i] = 0;     // R
 				pixels[i + 1] = 0; // G
 				pixels[i + 2] = 0; // B
