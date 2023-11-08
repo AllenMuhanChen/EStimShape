@@ -16,6 +16,7 @@ import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
+import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.util.DPIUtil;
 import org.xper.utils.RGBColor;
 
@@ -83,6 +84,17 @@ public class AllenPNGMaker{
 		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
 		System.out.println("creating and saving NoiseMap PNG...");
 		return window.drawNoiseMap(obj, stimObjId,labels);
+	}
+
+	public String createAndSaveGaussNoiseMap(ExperimentMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
+		window.setImageFolderName(destinationFolder);
+		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
+		System.out.println("creating and saving NoiseMap PNG...");
+		try {
+			return window.drawGaussNoiseMap(obj, stimObjId,labels);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public void close() {

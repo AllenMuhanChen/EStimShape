@@ -1,13 +1,14 @@
 package org.xper.allen.nafc.blockgen;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.xper.drawing.Coordinates2D;
 
 /**
- * Class to aid in creating equally radially spaced choices, but allow the distractors to be further from center. 
+ * Class to aid in creating equally radially spaced choices, but allow the distractors to be further from center.
  * @author r2_allen
  *
  */
@@ -55,6 +56,7 @@ public class DistancedDistractorsUtil {
 			distractor_radii[i] = baseRadii + distractorDistance; //keep radius the same
 			distractor_coords.add(NAFCCoordinateAssigner.polarToCart(distractor_radii[i], distractor_angles[i])); //polar to cartesian
 		}
+		Collections.shuffle(distractor_coords);
 	}
 
 	public Coordinates2D getMatchCoords(){
@@ -62,10 +64,10 @@ public class DistancedDistractorsUtil {
 	}
 
 	/**
-	 * get the coords of one of the distractors, then remove it 
+	 * get the coords of one of the distractors, then remove it
 	 * @return
 	 */
-	public Coordinates2D getDistractorCoords(){
+	public Coordinates2D popDistractorCoord(){
 		Coordinates2D output = distractor_coords.get(0);
 		distractor_coords.remove(0);
 
@@ -73,7 +75,7 @@ public class DistancedDistractorsUtil {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	public List<Coordinates2D> getDistractorCoordsAsList(){

@@ -1,11 +1,9 @@
-package org.xper.allen.nafc.blockgen.experiment;
+package org.xper.allen.nafc.blockgen.procedural;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
-public class PsychometricExperimentBlockGenTest {
+public class ProceduralExperimentBlockGenTest {
 
     @Before
     public void setUp() throws Exception {

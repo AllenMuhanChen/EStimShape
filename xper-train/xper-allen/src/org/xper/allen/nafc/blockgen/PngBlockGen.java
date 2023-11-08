@@ -1,8 +1,6 @@
 package org.xper.allen.nafc.blockgen;
 
 import org.xper.Dependency;
-import org.xper.allen.nafc.blockgen.rand.RandFactoryParameters;
-import org.xper.allen.nafc.blockgen.rand.RandTrialListFactory;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
@@ -38,13 +36,13 @@ public class PngBlockGen extends AbstractTrialGenerator{
 	Random r = new Random();
 	/**
 	 * Generate trials with sample in random location within specified disc region,
-	 * as well as 1-2 choices randomly within another specified disc region.   
-	 * 
-	 * Specify the number of trials with just a single choice, and the number of trials with two choices.  
-	 * 
-	 * Specify the alpha value of all distractors. Sample is automatically 1. 
-	 * 
-	 * This code is written pretty sloppily. Copy and pasted big block of code to handle choice spec in two different ways. 
+	 * as well as 1-2 choices randomly within another specified disc region.
+	 *
+	 * Specify the number of trials with just a single choice, and the number of trials with two choices.
+	 *
+	 * Specify the alpha value of all distractors. Sample is automatically 1.
+	 *
+	 * This code is written pretty sloppily. Copy and pasted big block of code to handle choice spec in two different ways.
 	 */
 	public PngBlockGen() {
 	}
@@ -53,12 +51,12 @@ public class PngBlockGen extends AbstractTrialGenerator{
 	long genId = 1;
 
 
-	public void generate(int[] trialTypes, int[] trialNums, 
-			double width, double height, double sampleRadiusLowerLim, 
-			double sampleRadiusUpperLim, double eyeWinSize, 
-			double choiceRadiusLowerLim, double choiceRadiusUpperLim, 
-			double alphaLowerLim, double alphaUpperLim, double distractorDistanceLowerLim, 
-			double distractorDistanceUpperLim, double distractorScaleLowerLim, 
+	public void generate(int[] trialTypes, int[] trialNums,
+			double width, double height, double sampleRadiusLowerLim,
+			double sampleRadiusUpperLim, double eyeWinSize,
+			double choiceRadiusLowerLim, double choiceRadiusUpperLim,
+			double alphaLowerLim, double alphaUpperLim, double distractorDistanceLowerLim,
+			double distractorDistanceUpperLim, double distractorScaleLowerLim,
 			double distractorScaleUpperLim ) { //
 
 		experimentPngPath = experimentPngPath+"/";
@@ -80,7 +78,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 		//int numTrials = 100;
 		//SAMPLE
 		ImageDimensions sampleDimensions = new ImageDimensions(width,height);
-		double[] sampleRadiusLims = {sampleRadiusLowerLim, sampleRadiusUpperLim}; 
+		double[] sampleRadiusLims = {sampleRadiusLowerLim, sampleRadiusUpperLim};
 		//CHOICES
 		RewardPolicy rewardPolicy = RewardPolicy.LIST;
 		long[] eStimObjData = {1};
@@ -88,7 +86,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 		//GENERATION
 		try {
 			/**
-			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked. 
+			 * Gen ID is important for xper to be able to load new tasks on the fly. It will only do so if the generation Id is upticked.
 			 */
 			genId = dbUtil.readReadyGenerationInfo().getGenId() + 1;
 		} catch (VariableNotFoundException e) {
@@ -124,10 +122,10 @@ public class PngBlockGen extends AbstractTrialGenerator{
 			DistancedDistractorsUtil ddUtil = new DistancedDistractorsUtil(numChoices, choiceRadiusLowerLim, choiceRadiusUpperLim, distractorDistanceLowerLim,  distractorDistanceUpperLim);
 			Coordinates2D matchEyeWinCoords = new Coordinates2D();
 			ArrayList<Coordinates2D> distractorsEyeWinCoords = new ArrayList<Coordinates2D>();
-			
+
 			//Coordinates2D[] targetEyeWinCoords = new Coordinates2D[]{};
 			//targetEyeWinCoords = distancedDistractorsEquidistantRandomChoices(choiceRadiusLowerLim,choiceRadiusUpperLim,numChoices, distractorList);
-			
+
 			//Step through all of the choices. If the index corresponds to the randomly decided correct choice index, write path of match.
 			//else, write the path of one of the distractors. The paths of the distractor is found through stepping through shuffled list of distractors
 			int distractorIndex = 0;
@@ -136,7 +134,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 			ArrayList<Coordinates2D> targetEyeWinCoords = new ArrayList<Coordinates2D>();
 			for (int j = 0; j < numChoices; j++) {
 				choiceId[j] = sampleId + j + 1;
-				
+
 				if (j==correctChoice){
 					//Size
 					ImageDimensions matchDimensions = new ImageDimensions(width, height);
@@ -146,7 +144,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 
 					PngSpec choiceSpec = new PngSpec(matchEyeWinCoords.getX(), matchEyeWinCoords.getY(), matchDimensions, experimentPngPath + fileArray[randomSampleIndex].getName());
 					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "match");
-				
+
 					targetEyeWinCoords.add(matchEyeWinCoords); //to be converted to array later to pass as targetEyeWindow
 				}
 				else{
@@ -157,15 +155,15 @@ public class PngBlockGen extends AbstractTrialGenerator{
 					double randomScale = inclusiveRandomDouble(distractorScaleLowerLim, distractorScaleUpperLim);
 					ImageDimensions distractorDimensions = new ImageDimensions();
 					distractorDimensions = new ImageDimensions(width*randomScale, height*randomScale);
-					
+
 					//Distance
-					Coordinates2D distractorEyeWinCoords = ddUtil.getDistractorCoords();
+					Coordinates2D distractorEyeWinCoords = ddUtil.popDistractorCoord();
 					distractorsEyeWinCoords.add(distractorEyeWinCoords);
-					
+
 					PngSpec choiceSpec = new PngSpec(distractorEyeWinCoords.getX(), distractorEyeWinCoords.getY(),distractorDimensions, experimentPngPath + distractorList.get(distractorIndex).getName(), randomAlpha);
 					dbUtil.writeStimObjData(choiceId[j], choiceSpec.toXml(), "choice " + j + "; " + "distractor");
 					distractorIndex += 1;
-					
+
 					targetEyeWinCoords.add(distractorEyeWinCoords);
 				}
 			}
@@ -173,7 +171,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 
 			//stimSpec just needs Ids, not the path of the pngs themselves. Pngs are stored in StimObjData
 			Coordinates2D[] targetEyeWinCoordsArray = targetEyeWinCoords.toArray(new Coordinates2D[0]);
-		
+
 			ArrayList<Double> targetEyeWinSize = new ArrayList<Double>();
 			for(Coordinates2D choice:targetEyeWinCoordsArray){
 				targetEyeWinSize.add(eyeWinSize);
@@ -182,7 +180,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 			for(int j=0; j < targetEyeWinSize.size(); j++) {
 				targetEyeWinSizeArray[j] = targetEyeWinSize.get(j);
 			}
-			
+
 			NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(targetEyeWinCoordsArray, targetEyeWinSizeArray, sampleId, choiceId, eStimObjData, rewardPolicy, rewardList);
 			String spec = stimSpec.toXml();
 			//System.out.println(spec);
@@ -195,7 +193,7 @@ public class PngBlockGen extends AbstractTrialGenerator{
 		System.out.println("Done Generating...");
 		return;
 	}
-	
+
 
 	@Override
 	protected void addTrials() {

@@ -1,5 +1,6 @@
 package org.xper.allen.drawing.composition.experiment;
 
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
@@ -27,7 +28,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      * @param baseMatchStick
      * @param drivingComponentIndex
      */
-    public void genMatchStickFromDrivingComponent(TwobyTwoExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
+    public void genMatchStickFromDrivingComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
         // calculate the object centered position of the base matchStick's drivingComponent
         Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
                 calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
