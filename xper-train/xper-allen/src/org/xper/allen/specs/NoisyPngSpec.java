@@ -1,5 +1,6 @@
 package org.xper.allen.specs;
 
+import java.awt.*;
 import java.util.Objects;
 
 import org.xper.rfplot.drawing.png.ImageDimensions;
@@ -14,6 +15,7 @@ public class NoisyPngSpec {
 	String pngPath;
 	String noiseMapPath;
 	double alpha = 1;
+	Color color;
 
 	@Override
 	public boolean equals(Object o) {
@@ -28,6 +30,20 @@ public class NoisyPngSpec {
 		return Objects.hash(getxCenter(), getyCenter(), getDimensions(), getPngPath(), getNoiseMapPath(), getAlpha());
 	}
 
+
+	/**
+	 * NoiseMap and Color is specified
+	 */
+	public NoisyPngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String path, String noiseMapPath, Color color) {
+		this.xCenter = xCenter;
+		this.yCenter = yCenter;
+		this.dimensions = dimensions;
+		this.pngPath = path;
+		this.noiseMapPath = path;
+		this.alpha = 1;
+		this.color = color;
+	}
+
 	/**
 	 * NoiseMap is specified
 	 */
@@ -38,10 +54,11 @@ public class NoisyPngSpec {
 		this.pngPath = path;
 		this.noiseMapPath = path;
 		this.alpha = 1;
+		this.color = Color.WHITE;
 	}
-	
+
 	/**
-	 * For generation where noiseMap is not specified. 
+	 * For generation where noiseMap is not specified.
 	 * @param xCenter
 	 * @param yCenter
 	 * @param dimensions
@@ -54,12 +71,13 @@ public class NoisyPngSpec {
 		this.pngPath = path;
 		this.alpha = 1;
 		this.noiseMapPath = "";
+		this.color = Color.WHITE;
 	}
-	
+
 	public NoisyPngSpec() {
 
 	}
-	
+
 	transient static XStream s;
 	boolean animation = true;
 
@@ -68,11 +86,11 @@ public class NoisyPngSpec {
 		s.alias("StimSpec", NoisyPngSpec.class);
 		s.useAttributeFor("animation", boolean.class);
 	}
-	
+
 	public String toXml () {
 		return s.toXML(this);
 	}
-	
+
 	public static NoisyPngSpec fromXml (String xml) {
 //		System.out.println(xml);
 		NoisyPngSpec p = (NoisyPngSpec)s.fromXML(xml);
@@ -134,5 +152,5 @@ public class NoisyPngSpec {
 	public void setNoiseMapPath(String noiseMapPath) {
 		this.noiseMapPath = noiseMapPath;
 	}
-	
+
 }

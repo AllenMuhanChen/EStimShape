@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.xper.allen.nafc.blockgen.NAFC;
+import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.util.AllenDbUtil;
@@ -13,13 +14,13 @@ public class NAFCStimSpecWriter {
 
 	Long taskId;
 	AllenDbUtil dbUtil;
-	NoisyTrialParameters trialParameters; //input
+	NAFCTrialParameters trialParameters; //input
 	NAFC<Coordinates2D> coords;
 	int numChoices;
 	NAFC<Long> stimObjIds;
 
 	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
-							  NoisyTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
 							  NAFC<Long> stimObjIds, long[] eStimObjData) {
 		super();
 		this.taskId = taskId;
@@ -32,7 +33,7 @@ public class NAFCStimSpecWriter {
 	}
 
 	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
-							  NoisyTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
 							  NAFC<Long> stimObjIds) {
 		super();
 		this.taskId = taskId;

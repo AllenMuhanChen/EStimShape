@@ -1,12 +1,18 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.Stim;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.*;
+import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
+import org.xper.allen.nafc.vo.MStickStimObjData;
+
+import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
+import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.time.TimeUtil;
 
 import java.awt.*;
@@ -24,11 +30,13 @@ public class ProceduralStim implements Stim {
     //Local Vars
     Procedural<Long> stimObjIds;
     Procedural<ProceduralMatchStick> mSticks;
+    Procedural<AllenMStickSpec> mStickSpecs;
     private int numProceduralDistractors;
     private int numRandDistractors;
     private Procedural<String> experimentPngPaths;
     private String experimentNoiseMapPath;
     private Procedural<Coordinates2D> coords;
+    private Long taskId;
 
     @Override
     public void preWrite() {
@@ -43,6 +51,8 @@ public class ProceduralStim implements Stim {
         generateNoiseMap();
         assignCoords();
         writeStimObjDataSpecs();
+        assignTaskId();
+        writeStimSpec();
     }
 
     private void assignStimObjIds() {
@@ -69,9 +79,11 @@ public class ProceduralStim implements Stim {
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent);
         mSticks.setSample(sample);
+        mStickSpecs.setSample(mStickToSpec(sample));
 
         //Generate Match
         mSticks.setMatch(sample);
+        mStickSpecs.setMatch(mStickToSpec(sample));
 
         //Generate Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
@@ -80,6 +92,7 @@ public class ProceduralStim implements Stim {
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewDrivingComponentMatchStick(sample, drivingComponent, parameters.morphMagnitude);
             mSticks.proceduralDistractors.add(proceduralDistractor);
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor));
         }
 
         //Generate Rand Distractors
@@ -89,9 +102,14 @@ public class ProceduralStim implements Stim {
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
             mSticks.randDistractors.add(randDistractor);
+            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor));
         }
+    }
 
-
+    private AllenMStickSpec mStickToSpec(AllenMatchStick mStick) {
+        AllenMStickSpec spec = new AllenMStickSpec();
+        spec.setMStickInfo(mStick);
+        return spec;
     }
 
     private void drawPNGs() {
@@ -169,8 +187,8 @@ public class ProceduralStim implements Stim {
 
         ProceduralCoordinateAssigner assigner = new ProceduralCoordinateAssigner(
                 parameters.numChoices,
-                parameters.nafcParameters.getSampleDistanceLims(),
-                parameters.nafcParameters.getChoiceDistanceLims(),
+                parameters.getSampleDistanceLims(),
+                parameters.getChoiceDistanceLims(),
                 numProceduralDistractors,
                 numRandDistractors);
 
@@ -178,19 +196,98 @@ public class ProceduralStim implements Stim {
     }
 
     private void writeStimObjDataSpecs() {
+        //Sample
+        double xCenter = coords.getSample().getX();
+        double yCenter = coords.getSample().getY();
+        double imageSize = parameters.getSize();
+        ImageDimensions dimensions = new ImageDimensions(imageSize, imageSize);
+        String path = experimentPngPaths.getSample();
+        String noiseMapPath = experimentNoiseMapPath;
+        Color color = parameters.color;
+        NoisyPngSpec sampleSpec = new NoisyPngSpec(
+                xCenter, yCenter,
+                dimensions,
+                path,
+                noiseMapPath,
+                color);
+        MStickStimObjData sampleMStickObjData = new MStickStimObjData("sample", mStickSpecs.getSample());
+        generator.getDbUtil().writeStimObjData(stimObjIds.getSample(), sampleSpec.toXml(), sampleMStickObjData.toXml());
+
+        //Match
+        xCenter = coords.getMatch().getX();
+        yCenter = coords.getMatch().getY();
+        path = experimentPngPaths.getMatch();
+        noiseMapPath = "";
+        NoisyPngSpec matchSpec = new NoisyPngSpec(
+                xCenter, yCenter,
+                dimensions,
+                path,
+                noiseMapPath,
+                color);
+        MStickStimObjData matchMStickObjData = new MStickStimObjData("match", mStickSpecs.getMatch());
+        generator.getDbUtil().writeStimObjData(stimObjIds.getMatch(), matchSpec.toXml(), matchMStickObjData.toXml());
+
+        //Procedural Distractors
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            xCenter = coords.proceduralDistractors.get(i).getX();
+            yCenter = coords.proceduralDistractors.get(i).getY();
+            path = experimentPngPaths.proceduralDistractors.get(i);
+            NoisyPngSpec proceduralDistractorSpec = new NoisyPngSpec(
+                    xCenter, yCenter,
+                    dimensions,
+                    path,
+                    noiseMapPath,
+                    color);
+            MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.proceduralDistractors.get(i));
+            generator.getDbUtil().writeStimObjData(stimObjIds.proceduralDistractors.get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
+        }
+
+        //Rand Distractors
+        for (int i = 0; i < numRandDistractors; i++) {
+            xCenter = coords.randDistractors.get(i).getX();
+            yCenter = coords.randDistractors.get(i).getY();
+            path = experimentPngPaths.randDistractors.get(i);
+            NoisyPngSpec randDistractorSpec = new NoisyPngSpec(
+                    xCenter, yCenter,
+                    dimensions,
+                    path,
+                    noiseMapPath,
+                    color);
+            MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.randDistractors.get(i));
+            generator.getDbUtil().writeStimObjData(stimObjIds.randDistractors.get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
+        }
+    }
+
+    private void assignTaskId() {
+        setTaskId(stimObjIds.getSample());
+    }
+
+    private void writeStimSpec(){
+        NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+                getStimId(),
+                generator.getDbUtil(),
+                parameters,
+                coords,
+                parameters.numChoices,
+                stimObjIds);
+
+        stimSpecWriter.writeStimSpec();
+    }
+
+    private void setTaskId(Long sample) {
+        this.taskId = sample;
     }
 
     @Override
     public Long getStimId() {
-        return null;
+        return taskId;
     }
-    public static class ProceduralStimParameters {
+    public static class ProceduralStimParameters extends NAFCTrialParameters{
 
         double noiseChance;
         int numChoices;
         int numRandDistractors;
         double morphMagnitude;
         Color color;
-        NAFCTrialParameters nafcParameters;
     }
 }
