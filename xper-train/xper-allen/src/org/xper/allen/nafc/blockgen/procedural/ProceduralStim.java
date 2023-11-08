@@ -38,6 +38,13 @@ public class ProceduralStim implements Stim {
     private Procedural<Coordinates2D> coords;
     private Long taskId;
 
+    public ProceduralStim(AbstractMStickPngTrialGenerator generator, ProceduralStimParameters parameters, ExperimentMatchStick baseMatchStick, int drivingComponent) {
+        this.generator = generator;
+        this.parameters = parameters;
+        this.baseMatchStick = baseMatchStick;
+        this.drivingComponent = drivingComponent;
+    }
+
     @Override
     public void preWrite() {
 

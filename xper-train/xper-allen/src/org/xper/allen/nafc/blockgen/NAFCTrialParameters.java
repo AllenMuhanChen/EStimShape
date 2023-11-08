@@ -1,5 +1,7 @@
 package org.xper.allen.nafc.blockgen;
 
+import com.thoughtworks.xstream.XStream;
+
 public class NAFCTrialParameters {
 	private Lims sampleDistanceLims;
 	private Lims choiceDistanceLims;
@@ -22,6 +24,24 @@ public class NAFCTrialParameters {
 	}
 
 	public NAFCTrialParameters() {
+	}
+
+	static XStream s = new XStream();
+
+	static {
+		s.alias("NAFCTrialParameters", NAFCTrialParameters.class);
+	}
+
+	public String toXml(NAFCTrialParameters data) {
+		return s.toXML(data);
+	}
+
+	public String toXml() {
+		return toXml(this);
+	}
+
+	public NAFCTrialParameters fromXml(String xml) {
+		return (NAFCTrialParameters)s.fromXML(xml);
 	}
 
 	public Lims getSampleDistanceLims() {
