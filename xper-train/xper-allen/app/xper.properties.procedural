@@ -41,10 +41,10 @@ mock.config_class=
 #path of computer running stimulus generator
 generator.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
 #path of computer running experiment
-experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/experiment/pngs_dev_230519
+experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
 generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_230519/specs
-generator.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_230519/noisemaps_dev_230519
-experiment.noisemap_path = /home/r2_allen/Documents/EStimShape/experiment/dev_230519/noisemaps_dev_230519
+generator.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
+experiment.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
 #############
 
 

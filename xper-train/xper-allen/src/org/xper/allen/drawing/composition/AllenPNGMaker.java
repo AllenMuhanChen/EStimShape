@@ -14,8 +14,6 @@ import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.Drawable;
-import org.xper.alden.drawing.renderer.AbstractRenderer;
-import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.util.DPIUtil;
 import org.xper.utils.RGBColor;
@@ -32,32 +30,18 @@ public class AllenPNGMaker{
 	@Dependency
 	private double depth;
 
-	private AbstractRenderer pngRenderer;
 
-	AllenDrawingManager window = null;
-	int height = 1024;
-	int width = 1024;
-
+	public AllenDrawingManager window = null;
+	int height;
+	int width;
 
 
-	public AllenPNGMaker(int width, int height) {
-		this.width = width;
-		this.height = height;
-
-		pngRenderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
-		pngRenderer.setDepth(depth);
-		pngRenderer.setDistance(distance); //TODO: stitch this into generator so it is a dependency
-		pngRenderer.setPupilDistance(pupilDistance);
-		pngRenderer.setHeight(height);
-		pngRenderer.setWidth(width);
-	}
 
 	public AllenPNGMaker() {}
 
 	public void createDrawerWindow() {
 		if(window == null || !window.isOpen()) {
-			window = new AllenDrawingManager(height, width);
+			window = new AllenDrawingManager(width, height);
 			window.setPngMaker(this);
 			window.init();
 		}
@@ -303,14 +287,6 @@ public class AllenPNGMaker{
 
 	public RGBColor getBackColor() {
 		return backColor;
-	}
-
-	public AbstractRenderer getPngRenderer() {
-		return pngRenderer;
-	}
-
-	public void setPngRenderer(AbstractRenderer pngRenderer) {
-		this.pngRenderer = pngRenderer;
 	}
 
 	public double getDistance() {

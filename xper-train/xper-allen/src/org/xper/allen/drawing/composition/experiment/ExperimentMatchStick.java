@@ -43,7 +43,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
             try {
                 checkInNoise(drivingComponentIndex);
-//                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
+                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
                 break;
             } catch (ObjectCenteredPositionException e) {
                 System.out.println("Error with object centered position, retrying");
@@ -184,7 +184,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         List<Point2d> pointsOutside = new LinkedList<>();
         for (ConcaveHull.Point point: hullVertices){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
-//                System.out.println("Found point outside of noise circle");
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
             }
         }

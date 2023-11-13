@@ -46,15 +46,15 @@ public class Test {
 		variations.add((ArrayList<AllenMatchStick>) objs_leafMorph1);
 		variations.add((ArrayList<AllenMatchStick>) objs_leafMorph2);
 		variations.add((ArrayList<AllenMatchStick>) objs_leafMorph3);
-		
+
 		double contrast = Double.parseDouble(args[7]);
 		RGBColor foreColor = new RGBColor(Float.parseFloat(args[ 8]),Float.parseFloat(args[ 9]),Float.parseFloat(args[10]));
 		RGBColor backColor = new RGBColor(Float.parseFloat(args[11]),Float.parseFloat(args[12]),Float.parseFloat(args[13]));
 
 		//FOR ALL OF OUR VARIATIONS, APPLY SAME BASE PARAMETERS
-		for (int h=0; h<numVariations; h++){	
+		for (int h=0; h<numVariations; h++){
 			variationIds.add(new ArrayList<Long>());
-			for (int i=0; i<Integer.parseInt(args[2]); i++) {	
+			for (int i=0; i<Integer.parseInt(args[2]); i++) {
 				variationIds.get(h).add((long)(Integer.parseInt(args[1])+i+h*1000));
 				variations.get(h).add(new AllenMatchStick());
 				// set object properties
@@ -71,7 +71,7 @@ public class Test {
 				}
 			}
 		}
-		//GENERATE BASE MATCHSTICK - only for training, for real experiment should choose limb from GA. 
+		//GENERATE BASE MATCHSTICK - only for training, for real experiment should choose limb from GA.
 		//SPECIFY A LIMB
 		//GENERATE NEW STRUCTURE FROM LIMB
 		//MATCH & SAMPLE
@@ -84,7 +84,7 @@ public class Test {
 			// GENERATE OBJECT
 			obj_orig.get(i).genMatchStickRand();
 
-			//GENERATE FROM RANDOM LEAF 
+			//GENERATE FROM RANDOM LEAF
 			int randomLeaf = obj_orig.get(i).chooseRandLeaf();
 			objs_match.get(i).genMatchStickFromLeaf(randomLeaf, obj_orig.get(i));
 
@@ -94,7 +94,7 @@ public class Test {
 			objs_leafMorph1.get(i).genReplacedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
 			objs_leafMorph2.get(i).genReplacedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
 			objs_leafMorph3.get(i).genReplacedLeafMatchStick(leafToMorphIndx, objs_match.get(i), maintainTangent);
-			
+
 			//REMOVE A RANDOM LEAF
 			/*
 			objs3.get(i).copyFrom(objs2.get(i));;
@@ -104,22 +104,22 @@ public class Test {
 
 		}
 
-		for (int h=0; h<numVariations; h++){
-			for (int i=0; i<Integer.parseInt(args[2]); i++){
-				if (Boolean.parseBoolean(args[5])) {
-					MStickSpec spec = new MStickSpec();
-					spec.setMStickInfo(variations.get(h).get(i));
-					spec.writeInfo2File(folderPath + "/" + variationIds.get(h).get(i), Boolean.parseBoolean(args[6]));
-				}
-			}
-			// make all the images
-			AllenPNGMaker pngMaker = new AllenPNGMaker(Integer.parseInt(args[14]), Integer.parseInt(args[15]));
-			//pngMaker.setBackColor(backColor);
-			//pngMaker.createAndSavePNGsfromObjs(variations.get(h), variationIds.get(h), folderPath);
-			
-		
-			
-		}
-		
+//		for (int h=0; h<numVariations; h++){
+//			for (int i=0; i<Integer.parseInt(args[2]); i++){
+//				if (Boolean.parseBoolean(args[5])) {
+//					MStickSpec spec = new MStickSpec();
+//					spec.setMStickInfo(variations.get(h).get(i));
+//					spec.writeInfo2File(folderPath + "/" + variationIds.get(h).get(i), Boolean.parseBoolean(args[6]));
+//				}
+//			}
+//			// make all the images
+//			AllenPNGMaker pngMaker = new AllenPNGMaker(Integer.parseInt(args[14]), Integer.parseInt(args[15]));
+//			//pngMaker.setBackColor(backColor);
+//			//pngMaker.createAndSavePNGsfromObjs(variations.get(h), variationIds.get(h), folderPath);
+//
+//
+//
+//		}
+
 	}
 }

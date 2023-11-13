@@ -33,9 +33,9 @@ public class ProceduralStim implements Stim {
     Procedural<AllenMStickSpec> mStickSpecs = new Procedural<>();
     private int numProceduralDistractors;
     private int numRandDistractors;
-    private final Procedural<String> experimentPngPaths = new Procedural<>();
-    private String experimentNoiseMapPath;
-    private Procedural<Coordinates2D> coords = new Procedural<>();
+    Procedural<String> experimentPngPaths = new Procedural<>();
+    String experimentNoiseMapPath;
+    Procedural<Coordinates2D> coords = new Procedural<>();
     private Long taskId;
 
     public ProceduralStim(ProceduralExperimentBlockGen generator, ProceduralStimParameters parameters, ExperimentMatchStick baseMatchStick, int drivingComponent) {
@@ -161,7 +161,7 @@ public class ProceduralStim implements Stim {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
         generator.getPngMaker().createDrawerWindow();
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorPngPath(), 1.0);
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance);
         experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
     }
 

@@ -284,12 +284,12 @@ public class ProceduralMatchStickTest {
         drawPng(distractor2, setId, 3L);
     }
 
-    private BufferedImage convertToBufferedImage(byte[] imageData) throws IOException {
+    protected BufferedImage convertToBufferedImage(byte[] imageData) throws IOException {
         InputStream in = new ByteArrayInputStream(imageData);
         return ImageIO.read(in);
     }
 
-    private byte[] screenShotBinary(int width, int height) {
+    protected byte[] screenShotBinary(int width, int height) {
         ByteBuffer framebytes = allocBytes(width * height * 3);
 
         // grab a copy of the current frame contents as RGB
@@ -316,7 +316,7 @@ public class ProceduralMatchStickTest {
         }
     }
 
-    private void swapRedBlue(byte[] buffer) {
+    protected void swapRedBlue(byte[] buffer) {
         for (int i = 0; i < buffer.length; i += 3) {
             byte red = buffer[i];
             buffer[i] = buffer[i + 2];
