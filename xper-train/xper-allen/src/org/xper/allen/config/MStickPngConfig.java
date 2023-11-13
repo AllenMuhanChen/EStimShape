@@ -45,7 +45,7 @@ public class MStickPngConfig {
     }
 
 
-    @Bean(scope = DefaultScopes.PROTOTYPE)
+    @Bean
     public AllenPNGMaker pngMaker(){
         AllenPNGMaker pngMaker = new AllenPNGMaker();
         pngMaker.setWidth(dpiUtil().calculateMinResolution());
@@ -66,6 +66,7 @@ public class MStickPngConfig {
         dpiUtil.setDpi(xperMonkeyScreenDPI());
         dpiUtil.setMaxStimulusDimensionDegrees(xperMaxImageDimensionDegrees());
         dpiUtil.setGeneratorDPI(91.79);
+        System.out.println("DPIUtil");
         return dpiUtil;
     }
     @Bean(scope = DefaultScopes.PROTOTYPE)

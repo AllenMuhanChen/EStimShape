@@ -14,6 +14,7 @@ import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.time.TimeUtil;
+import org.xper.util.ThreadUtil;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -22,20 +23,20 @@ import java.util.List;
 
 public class ProceduralStim implements Stim {
     //Input
-    private AbstractMStickPngTrialGenerator generator;
+    private final ProceduralExperimentBlockGen generator;
     ProceduralStimParameters parameters;
     ExperimentMatchStick baseMatchStick;
     int drivingComponent;
 
     //Local Vars
-    Procedural<Long> stimObjIds;
-    Procedural<ProceduralMatchStick> mSticks;
-    Procedural<AllenMStickSpec> mStickSpecs;
+    Procedural<Long> stimObjIds = new Procedural<>();
+    Procedural<ProceduralMatchStick> mSticks = new Procedural<>();
+    Procedural<AllenMStickSpec> mStickSpecs = new Procedural<>();
     private int numProceduralDistractors;
     private int numRandDistractors;
-    private Procedural<String> experimentPngPaths;
+    private final Procedural<String> experimentPngPaths = new Procedural<>();
     private String experimentNoiseMapPath;
-    private Procedural<Coordinates2D> coords;
+    private Procedural<Coordinates2D> coords = new Procedural<>();
     private Long taskId;
 
     public ProceduralStim(ProceduralExperimentBlockGen generator, ProceduralStimParameters parameters, ExperimentMatchStick baseMatchStick, int drivingComponent) {
@@ -116,39 +117,42 @@ public class ProceduralStim implements Stim {
     private AllenMStickSpec mStickToSpec(AllenMatchStick mStick, Long stimObjId) {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(mStick);
-        spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimObjId), true);
+        spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + stimObjId, true);
         return spec;
     }
 
 
     private void drawPNGs() {
-        AllenPNGMaker pngMaker = new AllenPNGMaker();
+        AllenPNGMaker pngMaker = generator.getPngMaker();
         String generatorPngPath = generator.getGeneratorPngPath();
 
         pngMaker.createDrawerWindow();
-
         //Sample
-        List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
+        List<String> sampleLabels = Arrays.asList("sample");
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
+        System.out.println("Sample Path: " + samplePath);
         experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
 
         //Match
-        List<String> matchLabels = Arrays.asList(new String[] {"match"});
+        List<String> matchLabels = Arrays.asList("match");
         String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), matchLabels, generatorPngPath);
         experimentPngPaths.setMatch(generator.convertPathToExperiment(matchPath));
+        System.out.println("Match Path: " + matchPath);
 
         //Procedural Distractors
-        List<String> proceduralDistractorLabels = Arrays.asList(new String[] {"procedural"});
+        List<String> proceduralDistractorLabels = Arrays.asList("procedural");
         for (int i = 0; i < numProceduralDistractors; i++) {
             String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPathToExperiment(proceduralDistractorPath));
+            System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
 
         //Rand Distractor
-        List<String> randDistractorLabels = Arrays.asList(new String[] {"rand"});
+        List<String> randDistractorLabels = Arrays.asList("rand");
         for (int i = 0; i < numRandDistractors; i++) {
             String randDistractorPath = pngMaker.createAndSavePNG(mSticks.randDistractors.get(i),stimObjIds.randDistractors.get(i), randDistractorLabels, generatorPngPath);
             experimentPngPaths.addRandDistractor(generator.convertPathToExperiment(randDistractorPath));
+            System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
 
         pngMaker.close();
@@ -168,7 +172,7 @@ public class ProceduralStim implements Stim {
 
             private final int numProceduralDistractors;
             private final int numRandDistractors;
-            private Procedural<Coordinates2D> coords;
+
 
             public ProceduralCoordinateAssigner(int numChoices, Lims sampleDistanceLims, Lims choiceDistanceLims, int numProceduralDistractors, int numRandDistractors) {
                 super(numChoices, sampleDistanceLims, choiceDistanceLims);

@@ -40,7 +40,7 @@ public class AllenDrawingManager implements Drawable {
 	AllenPNGMaker pngMaker;
 
 	public BaseWindow window;
-	@Dependency
+
 	public AbstractRenderer renderer;
 
 
@@ -60,12 +60,9 @@ public class AllenDrawingManager implements Drawable {
 		window.create();
 
 		renderer = new PerspectiveRenderer();
-		//renderer = new OrthographicRenderer();
 		renderer.setDepth(pngMaker.getDepth());
 		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
 		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		//renderer.setHeight(height);
-		//renderer.setWidth(width);
 		renderer.setHeight(pngMaker.getDpiUtil().calculateMmForRenderer());
 		renderer.setWidth(pngMaker.getDpiUtil().calculateMmForRenderer());
 		renderer.init(window.getWidth(), window.getHeight());

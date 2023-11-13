@@ -2,7 +2,6 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.alden.drawing.drawables.Drawable;
@@ -26,7 +25,6 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
-import org.xper.utils.RGBColor;
 
 import javax.imageio.ImageIO;
 import javax.vecmath.Point3d;
@@ -44,7 +42,7 @@ import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class ProceduralMatchStickTest {
     private String testBin;
-    private TwobyTwoExperimentMatchStick baseMStick;
+    private ProceduralMatchStick baseMStick;
     private AllenPNGMaker pngMaker;
     private TestDrawingWindow window;
     private AllenDrawingManager drawingManager;
@@ -66,7 +64,7 @@ public class ProceduralMatchStickTest {
         drawingManager.setPngMaker(pngMaker);
 
 
-        baseMStick = new TwobyTwoExperimentMatchStick();
+        baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(8);
         baseMStick.genMatchStickRand();
     }

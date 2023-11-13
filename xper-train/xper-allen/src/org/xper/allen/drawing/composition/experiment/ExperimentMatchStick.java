@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 
 public class ExperimentMatchStick extends MorphedMatchStick {
-    protected double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    protected double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
     public static final double NOISE_RADIUS_DEGREES = 8;
     /**

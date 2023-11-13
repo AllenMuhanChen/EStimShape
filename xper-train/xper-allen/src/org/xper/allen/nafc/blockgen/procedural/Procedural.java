@@ -17,6 +17,9 @@ public class Procedural<Type> extends NAFC<Type> {
         getAllDistractors().addAll(proceduralDistractors);
     }
 
+    public Procedural() {
+    }
+
     public void addProceduralDistractor(Type proceduralDistractor){
         proceduralDistractors.add(proceduralDistractor);
         addToAllDistractors(proceduralDistractor);

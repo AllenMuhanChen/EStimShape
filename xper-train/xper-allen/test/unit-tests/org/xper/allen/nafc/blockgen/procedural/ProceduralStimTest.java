@@ -26,6 +26,7 @@ public class ProceduralStimTest {
         generator = context.getBean(ProceduralExperimentBlockGen.class);
         baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
     }
 
@@ -37,10 +38,10 @@ public class ProceduralStimTest {
                 8,
                 10,
                 0.5,
-                3,
-                2,
+                4,
+                1,
                 0.5,
-                new Color(1,1,1)
+                new Color(255,255,255)
                 );
 
         ProceduralStim stim = new ProceduralStim(generator, parameters, baseMStick, 1);
