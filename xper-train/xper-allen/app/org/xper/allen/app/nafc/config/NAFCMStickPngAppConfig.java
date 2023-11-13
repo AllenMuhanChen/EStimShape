@@ -25,10 +25,10 @@ import org.xper.drawing.object.BlankScreen;
 
 @Import({NAFCConfig.class, MStickPngConfig.class})
 public class NAFCMStickPngAppConfig{
-	@Autowired NAFCConfig config;
-	@Autowired MStickPngConfig mStickPngConfig;
-	@Autowired ClassicConfig classicConfig;
-	@Autowired AcqConfig acqConfig;
+	@Autowired public NAFCConfig config;
+	@Autowired public MStickPngConfig mStickPngConfig;
+	@Autowired public ClassicConfig classicConfig;
+	@Autowired public AcqConfig acqConfig;
 
 	@Bean
 	public NAFCPngScene taskScene() {
@@ -65,7 +65,7 @@ public class NAFCMStickPngAppConfig{
 	public MetricMorphParameterGenerator mmpGenerator() {
 		return new MetricMorphParameterGenerator();
 	}
-	
+
 	@Bean
 	public QualitativeMorphParameterGenerator qmpGenerator() {
 		return new QualitativeMorphParameterGenerator(mStickPngConfig.xperMaxImageDimensionDegrees());

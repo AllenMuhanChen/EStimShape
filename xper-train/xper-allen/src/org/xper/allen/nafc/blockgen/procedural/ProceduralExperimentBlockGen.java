@@ -17,4 +17,20 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
     protected void addTrials() {
 
     }
+
+    public String getGeneratorNoiseMapPath() {
+        return generatorNoiseMapPath;
+    }
+
+    public void setGeneratorNoiseMapPath(String generatorNoiseMapPath) {
+        this.generatorNoiseMapPath = generatorNoiseMapPath;
+    }
+
+    public String getExperimentNoiseMapPath() {
+        return experimentNoiseMapPath;
+    }
+
+    public void setExperimentNoiseMapPath(String experimentNoiseMapPath) {
+        this.experimentNoiseMapPath = experimentNoiseMapPath;
+    }
 }
