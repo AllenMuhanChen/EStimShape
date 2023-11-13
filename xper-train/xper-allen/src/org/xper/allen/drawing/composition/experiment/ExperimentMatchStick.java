@@ -1,6 +1,5 @@
 package org.xper.allen.drawing.composition.experiment;
 
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
@@ -19,7 +18,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 
 public class ExperimentMatchStick extends MorphedMatchStick {
-    protected double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
     public static final double NOISE_RADIUS_DEGREES = 8;
     /**
@@ -236,7 +235,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
         // Find tangent to project along for noise origin
         int tangentOwnerIndx = baseCompIndx;
-        Vector3d tangent = getJuncTangent(junc, tangentOwnerIndx);
+        Vector3d tangent = getJuncTangentForSingle(junc, tangentOwnerIndx);
         // Find point along base component to start the projection from
         int connectedCompIndx = junc.getComp()[junctionBaseCompIndex];
         Point3d[] connectedMpts = getComp()[connectedCompIndx].getmAxisInfo().getmPts();
@@ -255,7 +254,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         int[] connectedComps = junc.getComp();
         for (int connectedCompIndx : connectedComps){
             if (connectedCompIndx != 0 && connectedCompIndx != specialCompIndx) {
-                Vector3d tangent = getJuncTangent(junc, connectedCompIndx);
+                Vector3d tangent = getJuncTangentForMulti(junc, connectedCompIndx);
                 connectedTangents.add(tangent);
                 indxForTangent.add(connectedCompIndx);
             }
@@ -324,7 +323,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         return startingPosition;
     }
 
-    private Vector3d getJuncTangent(JuncPt_struct junc, int tangentOwnerIndx) {
+    private Vector3d getJuncTangentForMulti(JuncPt_struct junc, int tangentOwnerIndx) {
         Vector3d tangent = junc.getTangent()[tangentOwnerIndx];
         Vector3d reversedTangent = new Vector3d(tangent);
         reversedTangent.negate();
@@ -334,6 +333,18 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         tangent = getVectorPointingAtPoint(possibleTangents, junc.getPos(), getComp()[tangentOwnerIndx].getmAxisInfo().getmPts()[26]);
         return tangent;
     }
+
+    private Vector3d getJuncTangentForSingle(JuncPt_struct junc, int tangentOwnerIndx) {
+        Vector3d tangent = junc.getTangent()[tangentOwnerIndx];
+        Vector3d reversedTangent = new Vector3d(tangent);
+        reversedTangent.negate();
+        ArrayList<Vector3d> possibleTangents = new ArrayList<>(2);
+        possibleTangents.add(tangent);
+        possibleTangents.add(reversedTangent);
+        tangent = getVectorPointingFurthestAwayFromPoint(possibleTangents, junc.getPos(), getComp()[tangentOwnerIndx].getmAxisInfo().getmPts()[26]);
+        return tangent;
+    }
+
 
     /**
      * Finds the vector from a list that points most directly at a given point from a specific starting point.

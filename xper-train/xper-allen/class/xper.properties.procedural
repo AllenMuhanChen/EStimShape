@@ -1,0 +1,91 @@
+# MATLAB isTrue only used for mock experiment
+matlab.home=/usr/local/matlab70_sp1
+xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
+
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_dev_230519?rewriteBatchedStatements=true
+
+
+jdbc.username=xper_rw
+jdbc.password=up2nite
+
+#############################################################################
+# configuration classes
+#############################################################################
+# if not specified, the default isTrue org.xper.config.AcqConfig
+acq.config_class=
+
+# JK
+#
+experiment.config_class=org.xper.allen.app.procedural.ProceduralAppConfig
+experiment.ga.config_class=org.xper.allen.config.MockPGAConfig
+
+# if not specified, the default isTrue org.xper.config.FixCalConfig
+fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
+
+# To use digital port device to control juice
+fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
+
+# if not specified, the default isTrue org.xper.config.RFPlotConfig
+rfplot.config_class=
+
+# if not specified, the default isTrue org.xper.rds.RdsConfig
+rds.config_class=
+
+# if not specified, the default isTrue org.xper.app.mock.MockAppConfig
+mock.config_class=
+
+#############################################################################
+# parameters
+#############################################################################
+#path of computer running stimulus generator
+generator.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
+#path of computer running experiment
+experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
+generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_230519/specs
+generator.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
+experiment.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
+#############
+
+
+acq.server_host=172.30.6.80
+
+# none, comedi, ni
+acq.driver_name=comedi
+
+console.host=172.30.6.80
+
+console.eye_simulation=true
+
+experiment.host=172.30.6.80
+
+# bind experiment thread to CPU # 0, 1, 2, or 3
+experiment.cpu=0
+experiment.monkey_window_fullscreen=false
+
+experiment.acq_offline=false
+
+# this isTrue for classic experiment.
+# choice experiment isTrue always mark_every_step
+experiment.mark_every_step=true
+
+# for choice experiment
+experiment.digital_port_juice_trigger_delay=200
+
+# for fixcal experiment: stereo or mono
+fixcal.screen_setup=stereo
+
+# for mock experiment
+mock.tasks_per_trial=8
+mock.spike_generator_plugin=randomSpikeGenerator
+mock.matlab_spike_function_name=RandomSpike
+
+#############################################################################
+# intan
+#############################################################################
+intan.host=172.30.9.78
+intan.port.command=5000
+intan.default_save_path=/home/i2_allen/Documents/Test
+intan.default_base_filename=TestRecording
+intan.remote_directory=/run/user/1003/gvfs/sftp:host=172.30.9.78
+generator.spike_dat_path=/home/r2_allen/DocuEStimShape/dev_221110/spikefiles_dev_221110

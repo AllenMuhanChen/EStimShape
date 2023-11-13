@@ -79,7 +79,7 @@ public class ProceduralMatchStickTest {
     @Test
     public void drawHullAndNoiseCircle(){
         ProceduralMatchStick testMStick = new ProceduralMatchStick();
-        testMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        testMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         testMStick.genMatchStickFromLeaf(1, baseMStick);
 
         List<List<ConcaveHull.Point>> hulls = new ArrayList<>();
