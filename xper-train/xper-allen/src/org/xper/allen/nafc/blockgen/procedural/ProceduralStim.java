@@ -14,7 +14,6 @@ import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.time.TimeUtil;
-import org.xper.util.ThreadUtil;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -162,7 +161,7 @@ public class ProceduralStim implements Stim {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
         generator.getPngMaker().createDrawerWindow();
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorPngPath());
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorPngPath(), 1.0);
         experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
     }
 

@@ -9,7 +9,6 @@ import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
-import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
@@ -97,7 +96,7 @@ public class AllenDrawingManager implements Drawable {
 		return pngMaker.saveImage(stimObjId,labels,height,width, imageFolderName);
 	}
 
-	public String drawGaussNoiseMap(ExperimentMatchStick obj, Long stimObjId, List<String> additionalLabels) throws IOException {
+	public String drawGaussNoiseMap(ExperimentMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude) throws IOException {
 		LinkedList<String> labels = new LinkedList<>();
 		labels.add("noisemap");
 		labels.addAll(additionalLabels);
@@ -105,7 +104,7 @@ public class AllenDrawingManager implements Drawable {
 		BufferedImage img = GaussianNoiseMapCalculation.generateGaussianNoiseMapFor(obj,
 				width, height,
 				150, 150,
-				0.5, 0.25, renderer);
+				amplitude, 0.25, renderer);
 		String path = imageFolderName + "/" + stimObjId;
 		for (String str:labels) {
 			if(!str.isEmpty())

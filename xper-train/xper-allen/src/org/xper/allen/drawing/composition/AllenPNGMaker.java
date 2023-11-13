@@ -86,12 +86,12 @@ public class AllenPNGMaker{
 		return window.drawNoiseMap(obj, stimObjId,labels);
 	}
 
-	public String createAndSaveGaussNoiseMap(ExperimentMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder) {
+	public String createAndSaveGaussNoiseMap(ExperimentMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder, double amplitude) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
 		System.out.println("creating and saving NoiseMap PNG...");
 		try {
-			return window.drawGaussNoiseMap(obj, stimObjId,labels);
+			return window.drawGaussNoiseMap(obj, stimObjId,labels, amplitude);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

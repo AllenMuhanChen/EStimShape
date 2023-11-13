@@ -195,7 +195,7 @@ public class ProceduralMatchStickTest {
         }
         if (drawNewNoise) {
             drawingManager.setBackgroundColor(1f,0,0);
-            drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"));
+            drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"), 0.5);
         }
 
         drawingManager.close();
