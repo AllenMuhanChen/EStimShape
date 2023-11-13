@@ -298,5 +298,14 @@ public class ProceduralStim implements Stim {
         int numRandDistractors;
         double morphMagnitude;
         Color color;
+
+        public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, Color color) {
+            super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize);
+            this.noiseChance = noiseChance;
+            this.numChoices = numChoices;
+            this.numRandDistractors = numRandDistractors;
+            this.morphMagnitude = morphMagnitude;
+            this.color = color;
+        }
     }
 }

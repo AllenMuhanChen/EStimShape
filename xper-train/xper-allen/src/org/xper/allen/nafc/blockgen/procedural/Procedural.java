@@ -13,8 +13,8 @@ public class Procedural<Type> extends NAFC<Type> {
         super(sample, match, new LinkedList<>());
         this.randDistractors = randDistractors;
         this.proceduralDistractors = proceduralDistractors;
-        allDistractors.addAll(randDistractors);
-        allDistractors.addAll(proceduralDistractors);
+        getAllDistractors().addAll(randDistractors);
+        getAllDistractors().addAll(proceduralDistractors);
     }
 
     public void addProceduralDistractor(Type proceduralDistractor){
