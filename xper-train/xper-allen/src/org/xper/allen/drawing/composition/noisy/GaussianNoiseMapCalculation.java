@@ -1,7 +1,6 @@
 package org.xper.allen.drawing.composition.noisy;
 
 import org.xper.alden.drawing.renderer.AbstractRenderer;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.drawing.Coordinates2D;
 
@@ -18,9 +17,9 @@ public class GaussianNoiseMapCalculation {
                                                             int width, int height,
                                                             double sigmaX, double sigmaY,
                                                             double amplitude, double background,
-                                                            AbstractRenderer renderer){
+                                                            AbstractRenderer renderer, int specialCompIndx){
 
-        Point3d noiseOrigin = mStick.calculateNoiseOrigin();
+        Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
 
 
         Coordinates2D noiseOriginPixels = convertToPixelCoordinates(noiseOrigin, renderer);

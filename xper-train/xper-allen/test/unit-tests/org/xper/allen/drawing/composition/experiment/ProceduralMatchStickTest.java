@@ -124,7 +124,7 @@ public class ProceduralMatchStickTest {
 
 
                 // Now, draw the circle
-                Point3d circle = testMStick.calculateNoiseOrigin(); // Replace with the circle's center X-coordinate
+                Point3d circle = testMStick.calculateNoiseOrigin(testMStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
                 double radius = ExperimentMatchStick.NOISE_RADIUS_DEGREES;
                 int numSegments = 100; // Increase for a smoother circle
@@ -195,7 +195,7 @@ public class ProceduralMatchStickTest {
         }
         if (drawNewNoise) {
             drawingManager.setBackgroundColor(1f,0,0);
-            drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"), 0.5);
+            drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"), 0.5, sampleMStick.getSpecialEndComp().get(0));
         }
 
         drawingManager.close();

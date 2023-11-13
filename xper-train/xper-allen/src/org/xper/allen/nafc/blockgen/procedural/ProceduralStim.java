@@ -161,7 +161,8 @@ public class ProceduralStim implements Stim {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
         generator.getPngMaker().createDrawerWindow();
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance);
+        int specialCompIndx = mSticks.getSample().getSpecialEndComp().get(0);
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, specialCompIndx);
         experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
     }
 

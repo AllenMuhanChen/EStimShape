@@ -179,7 +179,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         ConcaveHull concaveHull = new ConcaveHull();
 
         ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 10);
-        Point3d noiseCenter = calculateNoiseOrigin();
+        Point3d noiseCenter = calculateNoiseOrigin(compIndx);
         List<Point2d> pointsOutside = new LinkedList<>();
         for (ConcaveHull.Point point: hullVertices){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
@@ -198,23 +198,21 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         return point.distance(center) <= radius;
     }
 
-    public Point3d calculateNoiseOrigin() {
+    public Point3d calculateNoiseOrigin(int specialCompIndx) {
         Point3d point3d = new Point3d();
-        List<Integer> specialEnds = getSpecialEndComp();
-        for (Integer specialCompIndx: specialEnds) {
-            for (JuncPt_struct junc : getJuncPt()) {
-                if (junc != null) {
-                    int numMatch = Arrays.stream(junc.getComp()).filter(x -> x == specialCompIndx).toArray().length;
-                    if (numMatch == 1) {
-                        if (junc.getnComp() == 2) {
-                            point3d = calcProjectionFromSingleCompJunction(specialCompIndx, junc);
-                        } else if (junc.getnComp() > 2){
-                            point3d = calcProjectionFromMultiCompJunction(specialCompIndx, junc);
-                        }
+        for (JuncPt_struct junc : getJuncPt()) {
+            if (junc != null) {
+                int numMatch = Arrays.stream(junc.getComp()).filter(x -> x == specialCompIndx).toArray().length;
+                if (numMatch == 1) {
+                    if (junc.getnComp() == 2) {
+                        point3d = calcProjectionFromSingleCompJunction(specialCompIndx, junc);
+                    } else if (junc.getnComp() > 2){
+                        point3d = calcProjectionFromMultiCompJunction(specialCompIndx, junc);
                     }
                 }
             }
         }
+
         return point3d;
     }
 
