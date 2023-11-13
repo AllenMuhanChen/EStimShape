@@ -38,7 +38,7 @@ public class ProceduralStim implements Stim {
     private Procedural<Coordinates2D> coords;
     private Long taskId;
 
-    public ProceduralStim(AbstractMStickPngTrialGenerator generator, ProceduralStimParameters parameters, ExperimentMatchStick baseMatchStick, int drivingComponent) {
+    public ProceduralStim(ProceduralExperimentBlockGen generator, ProceduralStimParameters parameters, ExperimentMatchStick baseMatchStick, int drivingComponent) {
         this.generator = generator;
         this.parameters = parameters;
         this.baseMatchStick = baseMatchStick;
@@ -53,7 +53,7 @@ public class ProceduralStim implements Stim {
     @Override
     public void writeStim() {
         assignStimObjIds();
-        generateMatchSticks();
+        generateMatchSticksAndSaveSpecs();
         drawPNGs();
         generateNoiseMap();
         assignCoords();
@@ -79,18 +79,18 @@ public class ProceduralStim implements Stim {
         stimObjIds = new Procedural<Long>(sampleId, matchId, proceduralDistractorIds, randDistractorIds);
     }
 
-    private void generateMatchSticks() {
+    private void generateMatchSticksAndSaveSpecs() {
         //Generate Sample
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees());
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent);
         mSticks.setSample(sample);
-        mStickSpecs.setSample(mStickToSpec(sample));
+        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 
         //Generate Match
         mSticks.setMatch(sample);
-        mStickSpecs.setMatch(mStickToSpec(sample));
+        mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
 
         //Generate Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
@@ -99,7 +99,7 @@ public class ProceduralStim implements Stim {
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewDrivingComponentMatchStick(sample, drivingComponent, parameters.morphMagnitude);
             mSticks.proceduralDistractors.add(proceduralDistractor);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor));
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }
 
         //Generate Rand Distractors
@@ -109,15 +109,17 @@ public class ProceduralStim implements Stim {
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
             mSticks.randDistractors.add(randDistractor);
-            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor));
+            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor, stimObjIds.randDistractors.get(i)));
         }
     }
 
-    private AllenMStickSpec mStickToSpec(AllenMatchStick mStick) {
+    private AllenMStickSpec mStickToSpec(AllenMatchStick mStick, Long stimObjId) {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(mStick);
+        spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimObjId), true);
         return spec;
     }
+
 
     private void drawPNGs() {
         AllenPNGMaker pngMaker = new AllenPNGMaker();
