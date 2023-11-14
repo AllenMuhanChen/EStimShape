@@ -38,7 +38,10 @@ public class ProceduralStim implements Stim {
     Procedural<Coordinates2D> coords = new Procedural<>();
     private Long taskId;
 
-    public ProceduralStim(ProceduralExperimentBlockGen generator, ProceduralStimParameters parameters, ExperimentMatchStick baseMatchStick, int drivingComponent) {
+    public ProceduralStim(ProceduralExperimentBlockGen generator,
+                          ProceduralStimParameters parameters,
+                          ExperimentMatchStick baseMatchStick,
+                          int drivingComponent) {
         this.generator = generator;
         this.parameters = parameters;
         this.baseMatchStick = baseMatchStick;
@@ -305,6 +308,15 @@ public class ProceduralStim implements Stim {
 
         public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, Color color) {
             super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize);
+            this.noiseChance = noiseChance;
+            this.numChoices = numChoices;
+            this.numRandDistractors = numRandDistractors;
+            this.morphMagnitude = morphMagnitude;
+            this.color = color;
+        }
+
+        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, Color color) {
+            super(other);
             this.noiseChance = noiseChance;
             this.numChoices = numChoices;
             this.numRandDistractors = numRandDistractors;

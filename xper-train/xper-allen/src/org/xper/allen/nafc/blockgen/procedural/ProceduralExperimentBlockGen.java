@@ -1,9 +1,8 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.Dependency;
-import org.xper.allen.Stim;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 
 public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerator<ProceduralStim> {
 
@@ -12,6 +11,25 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
 
     @Dependency
     String experimentNoiseMapPath;
+
+    public void addRandTrainTrials(ProceduralStim.ProceduralStimParameters proceduralStimParameters, int numTrials){
+
+        for(int i=0; i<numTrials; i++){
+            ProceduralMatchStick baseMStick = genRandBaseMStick();
+            int drivingComp = baseMStick.chooseRandLeaf();
+            ProceduralStim stim = new ProceduralStim(this, proceduralStimParameters, baseMStick, drivingComp);
+
+            getStims().add(stim);
+        }
+
+    }
+
+    private ProceduralMatchStick genRandBaseMStick() {
+        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+        baseMStick.setProperties(getMaxImageDimensionDegrees());
+        baseMStick.genMatchStickRand();
+        return baseMStick;
+    }
 
     @Override
     protected void addTrials() {
