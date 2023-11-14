@@ -19,7 +19,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MorphedMatchStick extends AllenMatchStick {
-    private static final int MAX_TOTAL_ATTEMPTS = 100;
+    private static final int MAX_TOTAL_ATTEMPTS = 15;
     private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch
     private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
     // 50% add to end, 50%
@@ -70,6 +70,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.err.println("Retrying to morph matchstick...");
             } finally{
                 numAttempts++;
+                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS);
             }
         }
         System.err.println("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");

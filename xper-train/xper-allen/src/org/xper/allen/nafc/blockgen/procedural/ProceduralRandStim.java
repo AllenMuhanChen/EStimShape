@@ -15,6 +15,7 @@ public class ProceduralRandStim extends ProceduralStim{
         while (true) {
             try {
                 baseMatchStick = genRandBaseMStick();
+                baseMatchStick.setMaxAttempts(MAX_TRIES);
                 drivingComponent = baseMatchStick.chooseRandLeaf();
                 super.generateMatchSticksAndSaveSpecs();
                 break;

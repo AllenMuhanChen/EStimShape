@@ -21,21 +21,23 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
     public static final double NOISE_RADIUS_DEGREES = 8;
+    public int maxAttempts = -1;
+
     /**
      * Generates a new matchStick from the base matchStick's driving component
      *
      * @param baseMatchStick
      * @param drivingComponentIndex
-     * @param maxAttempts: -1 for infinite
      */
-    public void genMatchStickFromDrivingComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex, int maxAttempts) {
+    public void genMatchStickFromDrivingComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
         // calculate the object centered position of the base matchStick's drivingComponent
         Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
                 calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
 
         int numAttempts = 0;
-        while (numAttempts < maxAttempts || maxAttempts == -1) {
-            while (numAttempts < maxAttempts || maxAttempts == -1) {
+        this.maxAttempts = baseMatchStick.maxAttempts;
+        while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
+            while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
                 if (genMatchStickFromLeaf(drivingComponentIndex, baseMatchStick)) {
                     positionShape();
                     break;
@@ -55,8 +57,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 e.printStackTrace();
             }
         }
-        if (numAttempts == maxAttempts) {
-            throw new MorphException("Could not generate matchStick from driving component after " + maxAttempts + " attempts");
+        if (numAttempts == this.maxAttempts) {
+            throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
         }
     }
 
@@ -431,5 +433,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     @Override
     public double[] getPARAM_nCompDist() {
         return PARAM_nCompDist;
+    }
+
+    public void setMaxAttempts(int maxAttempts) {
+        this.maxAttempts = maxAttempts;
     }
 }

@@ -87,7 +87,7 @@ public class ProceduralStim implements Stim {
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees());
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent, 20);
+        sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 
