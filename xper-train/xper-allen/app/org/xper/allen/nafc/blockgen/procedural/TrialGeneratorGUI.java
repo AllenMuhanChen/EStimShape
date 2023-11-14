@@ -40,7 +40,7 @@ public class TrialGeneratorGUI {
         panel.add(generateButton);
 
         // Creating the panel at center and adding components
-        JPanel centerPanel = new JPanel(new GridLayout(11, 2));
+        JPanel centerPanel = new JPanel(new GridLayout(0, 2));
         centerPanel.add(new JLabel("Sample Distance Lims (Min):"));
         JTextField sampleDistMinField = new JTextField("0.0", 10);
         centerPanel.add(sampleDistMinField);
@@ -81,9 +81,19 @@ public class TrialGeneratorGUI {
         JTextField morphMagnitudeField = new JTextField("0.5", 10);
         centerPanel.add(morphMagnitudeField);
 
-        centerPanel.add(new JLabel("Color (RGB):"));
-        JTextField colorField = new JTextField("#FF0000", 10); // Default for red color
-        centerPanel.add(colorField);
+        // Adding labels and text fields for RGB color components
+        centerPanel.add(new JLabel("Color - Red (0-255):"));
+        JTextField colorRedField = new JTextField("255", 10); // Default value for Red
+        centerPanel.add(colorRedField);
+
+        centerPanel.add(new JLabel("Color - Green (0-255):"));
+        JTextField colorGreenField = new JTextField("255", 10); // Default value for Green
+        centerPanel.add(colorGreenField);
+
+        centerPanel.add(new JLabel("Color - Blue (0-255):"));
+        JTextField colorBlueField = new JTextField("255", 10); // Default value for Blue
+        centerPanel.add(colorBlueField);
+
 
         centerPanel.add(new JLabel("Number of Trials:"));
         JTextField numTrialsField = new JTextField("10", 10);
@@ -103,7 +113,10 @@ public class TrialGeneratorGUI {
                 int numChoices = Integer.parseInt(numChoicesField.getText());
                 int numRandDistractors = Integer.parseInt(numRandDistractorsField.getText());
                 double morphMagnitude = Double.parseDouble(morphMagnitudeField.getText());
-                Color color = Color.decode(colorField.getText());
+                int red = Integer.parseInt(colorRedField.getText());
+                int green = Integer.parseInt(colorGreenField.getText());
+                int blue = Integer.parseInt(colorBlueField.getText());
+                Color color = new Color(red, green, blue);
                 int numTrials = Integer.parseInt(numTrialsField.getText());
 
                 Lims sampleDistanceLims = new Lims(sampleDistMin, sampleDistMax);
