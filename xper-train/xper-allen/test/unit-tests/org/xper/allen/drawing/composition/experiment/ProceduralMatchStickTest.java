@@ -175,7 +175,7 @@ public class ProceduralMatchStickTest {
         ProceduralMatchStick sampleMStick;
         if (drawNewStim) {
             sampleMStick = new ProceduralMatchStick();
-            sampleMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+            sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(8);
             sampleMStick.setStimColor(color);
             sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
@@ -275,12 +275,12 @@ public class ProceduralMatchStickTest {
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick();
         distractor1.setProperties(8);
-        distractor1.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
+        distractor1.genNewDrivingComponentMatchStick(sampleMStick, 0.5);
         drawPng(distractor1, setId, 2L);
 
         ProceduralMatchStick distractor2 = new ProceduralMatchStick();
         distractor2.setProperties(8);
-        distractor2.genNewDrivingComponentMatchStick(sampleMStick, 1, 0.5);
+        distractor2.genNewDrivingComponentMatchStick(sampleMStick, 0.5);
         drawPng(distractor2, setId, 3L);
     }
 

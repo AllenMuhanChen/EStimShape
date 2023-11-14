@@ -14,6 +14,7 @@ public class ProceduralRandStim extends ProceduralStim{
     protected void generateMatchSticksAndSaveSpecs() {
         while (true) {
             try {
+                mSticks = new Procedural<>();
                 baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
                 drivingComponent = baseMatchStick.chooseRandLeaf();
@@ -21,8 +22,8 @@ public class ProceduralRandStim extends ProceduralStim{
                 super.generateMatchSticksAndSaveSpecs();
                 break;
             } catch (MorphedMatchStick.MorphException me) {
-                me.printStackTrace();
-//                System.out.println("MorphException: " + me.getMessage());
+//                me.printStackTrace();
+                System.out.println("MorphException: " + me.getMessage());
             }
         }
 

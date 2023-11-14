@@ -19,6 +19,7 @@ import java.util.function.BiConsumer;
 
 public class ExperimentMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
+//protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
     public static final double NOISE_RADIUS_DEGREES = 8;
     public int maxAttempts = -1;
@@ -57,9 +58,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 e.printStackTrace();
             }
         }
-        if (numAttempts == this.maxAttempts) {
-            throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
-        }
+//        if (numAttempts == this.maxAttempts) {
+//            throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+//        }
     }
 
     protected Map<Integer, SphericalCoordinates> calcObjCenteredPosForDrivingComp(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
@@ -102,7 +103,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, int drivingComponentIndex, double magnitude) {
+    public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude) {
+        int drivingComponentIndex = baseMatchStick.getSpecialEndComp().get(0);
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
         morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
@@ -246,13 +248,13 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             }
         }
 
-        int baseCompIndx = junc.getComp()[junctionBaseCompIndex];
+        int baseCompIndx = junc.getIndexOfComp(junctionBaseCompIndex);
 
         // Find tangent to project along for noise origin
         int tangentOwnerIndx = baseCompIndx;
         Vector3d tangent = getJuncTangentForSingle(junc, tangentOwnerIndx);
         // Find point along base component to start the projection from
-        int connectedCompIndx = junc.getComp()[junctionBaseCompIndex];
+        int connectedCompIndx = junc.getIndexOfComp(junctionBaseCompIndex);
         Point3d[] connectedMpts = getComp()[connectedCompIndx].getmAxisInfo().getmPts();
         int junctionUNdx = junc.getuNdx()[junctionBaseCompIndex];
         Point3d startingPosition = choosePositionAlongMAxisFromJuncUNdx(junctionUNdx, connectedMpts);
@@ -269,9 +271,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         int[] connectedComps = junc.getComp();
         for (int connectedCompIndx : connectedComps){
             if (connectedCompIndx != 0 && connectedCompIndx != specialCompIndx) {
-                Vector3d tangent = getJuncTangentForMulti(junc, connectedCompIndx);
+                Vector3d tangent = getJuncTangentForMulti(junc, junc.getIndexOfComp(connectedCompIndx));
                 connectedTangents.add(tangent);
-                indxForTangent.add(connectedCompIndx);
+                indxForTangent.add(junc.getIndexOfComp(connectedCompIndx));
             }
         }
 

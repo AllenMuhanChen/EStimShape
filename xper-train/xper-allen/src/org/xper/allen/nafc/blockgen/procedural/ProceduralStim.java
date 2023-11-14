@@ -95,12 +95,11 @@ public class ProceduralStim implements Stim {
         mSticks.setMatch(sample);
         mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
 
-        //Generate Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewDrivingComponentMatchStick(sample, drivingComponent, parameters.morphMagnitude);
+            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }

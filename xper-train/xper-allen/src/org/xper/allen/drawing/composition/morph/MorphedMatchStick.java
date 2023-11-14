@@ -56,7 +56,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         while (numAttempts < MAX_TOTAL_ATTEMPTS) {
             try {
                 findCompsToPreserve(morphParametersForComponents);
-                morphAllComponents(morphParametersForComponents, matchStickToMorph);
+                morphAllComponents(morphParametersForComponents);
                 MutateSUB_reAssignJunctionRadius();
                 positionShape();
                 attemptSmoothizeMStick();
@@ -75,7 +75,8 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
         System.err.println("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
         System.err.println("Generating a random matchstick instead.");
-        genMatchStickRand();
+        throw new MorphException("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
+//        genMatchStickRand();
     }
 
     private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
@@ -102,11 +103,11 @@ public class MorphedMatchStick extends AllenMatchStick {
         return components;
     }
 
-    private void morphAllComponents(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph) {
+    private void morphAllComponents(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
         morphParametersForComponents.forEach(new BiConsumer<Integer, ComponentMorphParameters>() {
             @Override
             public void accept(Integer componentIndex, ComponentMorphParameters morphParams) {
-                attemptToMorphComponent(componentIndex, morphParams, matchStickToMorph);
+                attemptToMorphComponent(componentIndex, morphParams);
             }
         });
     }
@@ -117,7 +118,7 @@ public class MorphedMatchStick extends AllenMatchStick {
      * If all attempts fail, it will throw a MorphException.
 
      */
-    private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams, MorphedMatchStick matchStickToMorph) {
+    private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams) {
         localBackup = new MorphedMatchStick();
         localBackup.copyFrom(this);
 
