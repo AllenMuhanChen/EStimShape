@@ -107,7 +107,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
         morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
 
-        while (true) {
+        int numAttempts = 0;
+        this.maxAttempts = baseMatchStick.maxAttempts;
+        while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
             genMorphedMatchStick(morphParametersForComponents, baseMatchStick);
             try {
                 Map<Integer, SphericalCoordinates> objCentPosForBaseMatchSticksDrivingComp = calcObjCenteredPosForDrivingComp(this, drivingComponentIndex);
@@ -120,6 +122,11 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 System.out.println(e.getMessage());
             } catch (MorphException e) {
                 e.printStackTrace();
+            } finally{
+                numAttempts++;
+            }
+            if (numAttempts == this.maxAttempts) {
+                throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
             }
         }
     }
