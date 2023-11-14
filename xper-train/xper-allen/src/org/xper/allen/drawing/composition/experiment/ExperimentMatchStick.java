@@ -26,18 +26,21 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      *
      * @param baseMatchStick
      * @param drivingComponentIndex
+     * @param maxAttempts: -1 for infinite
      */
-    public void genMatchStickFromDrivingComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
+    public void genMatchStickFromDrivingComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex, int maxAttempts) {
         // calculate the object centered position of the base matchStick's drivingComponent
         Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
                 calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
 
-        while (true) {
-            while (true) {
+        int numAttempts = 0;
+        while (numAttempts < maxAttempts || maxAttempts == -1) {
+            while (numAttempts < maxAttempts || maxAttempts == -1) {
                 if (genMatchStickFromLeaf(drivingComponentIndex, baseMatchStick)) {
                     positionShape();
                     break;
                 }
+                numAttempts++;
             }
 
             try {
@@ -51,6 +54,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             } catch (MorphException e) {
                 e.printStackTrace();
             }
+        }
+        if (numAttempts == maxAttempts) {
+            throw new MorphException("Could not generate matchStick from driving component after " + maxAttempts + " attempts");
         }
     }
 

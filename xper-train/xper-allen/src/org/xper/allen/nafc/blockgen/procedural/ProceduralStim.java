@@ -22,10 +22,10 @@ import java.util.List;
 
 public class ProceduralStim implements Stim {
     //Input
-    private final ProceduralExperimentBlockGen generator;
-    ProceduralStimParameters parameters;
-    ExperimentMatchStick baseMatchStick;
-    int drivingComponent;
+    protected final ProceduralExperimentBlockGen generator;
+    protected ProceduralStimParameters parameters;
+    protected ExperimentMatchStick baseMatchStick;
+    protected int drivingComponent;
 
     //Local Vars
     Procedural<Long> stimObjIds = new Procedural<>();
@@ -82,12 +82,12 @@ public class ProceduralStim implements Stim {
         stimObjIds = new Procedural<Long>(sampleId, matchId, proceduralDistractorIds, randDistractorIds);
     }
 
-    private void generateMatchSticksAndSaveSpecs() {
+    protected void generateMatchSticksAndSaveSpecs() {
         //Generate Sample
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees());
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent);
+        sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent, 20);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 
