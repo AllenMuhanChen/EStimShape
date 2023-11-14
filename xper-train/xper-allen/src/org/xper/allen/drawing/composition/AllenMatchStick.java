@@ -1721,14 +1721,14 @@ public class AllenMatchStick extends MatchStick {
 				}
 			}
 
-			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
-			boolean sizeVetSuccess = false;
-			if (smoothSuccess == true){ // success to smooth
-				sizeVetSuccess = vetLeafBaseSize(leafIndx);
-				if(sizeVetSuccess) {
-					return true;
-				}
-			}
+//			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
+//			boolean sizeVetSuccess = false;
+//			if (smoothSuccess == true){ // success to smooth
+//				sizeVetSuccess = vetLeafBaseSize(leafIndx);
+//				if(sizeVetSuccess) {
+//					return true;
+//				}
+//			}
 
 			// else we need to gen another shape
 			i++;
@@ -1969,47 +1969,47 @@ public class AllenMatchStick extends MatchStick {
 			double nseRad = 0;
 			for(int juncIndx : juncList) {
 				compIndx = amsOfLeaf.getJuncPt()[juncIndx].getIndexOfComp(leafIndx);
-				int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndx];
+				if (compIndx != 0) { //checking if this junc contains the leafIndx
+					int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndx];
 
+					//JUNC IS AN END
+					if (junc_uNdx == 51 || junc_uNdx == 1) {
+						notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
 
-				//JUNC IS AN END
-				if(junc_uNdx == 51 || junc_uNdx == 1) {
-					notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
+						//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
+						compIndx = notSpecialJunc.getIndexOfComp(leafIndx);
+						nseUNdx = notSpecialJunc.getuNdx()[compIndx];
+						nsePos = notSpecialJunc.getPos();
+						nseTangent = notSpecialJunc.getTangent()[compIndx];
+						nseRad = notSpecialJunc.getRad();
 
-					//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
-					compIndx = notSpecialJunc.getIndexOfComp(leafIndx);
-					nseUNdx = notSpecialJunc.getuNdx()[compIndx];
-					nsePos = notSpecialJunc.getPos();
-					nseTangent = notSpecialJunc.getTangent()[compIndx];
-					nseRad = notSpecialJunc.getRad();
-
-					//DEFINE SPECIAL END TO BE THE OTHER END PT
-					specialEnd = new EndPt_struct();
-					for(int endIndx: endList) {
-						int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
-						boolean notJuncFlag = end_uNdx!=nseUNdx;
-						boolean notBranchFlag = end_uNdx==1 || end_uNdx==51;
-						if(notJuncFlag&&notBranchFlag) {
-							specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+						//DEFINE SPECIAL END TO BE THE OTHER END PT
+						specialEnd = new EndPt_struct();
+						for (int endIndx : endList) {
+							int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
+							boolean notJuncFlag = end_uNdx != nseUNdx;
+							boolean notBranchFlag = end_uNdx == 1 || end_uNdx == 51;
+							if (notJuncFlag && notBranchFlag) {
+								specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+							}
 						}
 					}
-				}
-				//JUNC IS A MID POINT
-				else { //THERE SHOULD BE TWO END POINTS, ONE AT 1 and ANOTHER AT 51
-					for(int endIndx: endList) {
-						int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
+					//JUNC IS A MID POINT
+					else { //THERE SHOULD BE TWO END POINTS, ONE AT 1 and ANOTHER AT 51
+						for (int endIndx : endList) {
+							int end_uNdx = amsOfLeaf.getEndPtStruct(endIndx).getuNdx();
 
-						if(end_uNdx==1) {
-							notSpecialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+							if (end_uNdx == 1) {
+								notSpecialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+							} else if (end_uNdx == 51) {
+								specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
+							}
 						}
-						else if(end_uNdx == 51) {
-							specialEnd.copyFrom(amsOfLeaf.getEndPtStruct(endIndx));
-						}
+						nseUNdx = notSpecialEnd.getuNdx();
+						nsePos = notSpecialEnd.getPos();
+						nseTangent = notSpecialEnd.getTangent();
+						nseRad = notSpecialEnd.getRad();
 					}
-					nseUNdx = notSpecialEnd.getuNdx();
-					nsePos = notSpecialEnd.getPos();
-					nseTangent = notSpecialEnd.getTangent();
-					nseRad = notSpecialEnd.getRad();
 				}
 			}
 

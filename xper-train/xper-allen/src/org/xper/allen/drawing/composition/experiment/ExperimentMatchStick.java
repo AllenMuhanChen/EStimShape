@@ -234,9 +234,11 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             if (comp == specialCompIndx && comp != 0) {
                 junctionSpecialCompIndex = comp;
             }
-            else if (comp != specialCompIndx && comp != 0)
+            else if (comp != specialCompIndx && comp != 0) {
                 junctionBaseCompIndex = comp;
+            }
         }
+
         int baseCompIndx = junc.getComp()[junctionBaseCompIndex];
 
         // Find tangent to project along for noise origin
