@@ -18,6 +18,7 @@ public class TrialGeneratorGUI {
     private static DefaultListModel<String> listModel = new DefaultListModel<>();
     private static String defaultStimType = "RandStim";
     private static String selectedType = defaultStimType;
+    private static RandStimModel randStimModel;
 
     public static void main(String[] args) {
         try {
@@ -36,6 +37,8 @@ public class TrialGeneratorGUI {
 
         JPanel topPanel = new JPanel();
         JLabel stimTypeLabel = new JLabel("Select Stimulus Type:");
+
+        randStimModel = new RandStimModel(blockgen);
         String[] stimTypes = {"RandStim", "MockStim", "OtherStimType2"};
         JComboBox<String> stimTypeDropdown = new JComboBox<>(stimTypes);
         topPanel.add(stimTypeLabel);
@@ -82,7 +85,7 @@ public class TrialGeneratorGUI {
             int numTrials = Integer.parseInt(numTrialsField.getText());
 
             if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
-                blockgen.addRandTrainTrials(proceduralStimParameters, numTrials);
+                blockgen.addBlock(randStimModel.genTrials(proceduralStimParameters, numTrials));
             } else if ("MockStim".equals(stimTypeDropdown.getSelectedItem())) {
                 blockgen.addMockTrainTrials(proceduralStimParameters, numTrials);
             }
@@ -106,11 +109,10 @@ public class TrialGeneratorGUI {
             int numTrials = Integer.parseInt(numTrialsField.getText());
             if (selectedIndex != -1) {
                 if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
-                    blockgen.editRandTrainTrials(parameters, numTrials, selectedIndex);
+                    blockgen.editBlock(selectedIndex, randStimModel.genTrials(parameters, numTrials));
                 }
             }
-            listModel.remove(selectedIndex);
-            listModel.add(selectedIndex, "Type: " + selectedType + ", Trials: " + numTrials);
+            listModel.set(selectedIndex, "Type: " + selectedType + ", Trials: " + numTrials);
 
         });
 

@@ -20,17 +20,21 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
 
     List<List<ProceduralStim>> stimBlocks = new LinkedList<>();
 
+
     public void removeBlock(int blockIndex){
         stimBlocks.remove(blockIndex);
     }
 
-    public void addRandTrainTrials(ProceduralStim.ProceduralStimParameters proceduralStimParameters, int numTrials){
-        List<ProceduralStim> newBlock = new LinkedList<>();
-        for(int i=0; i<numTrials; i++){
-            ProceduralStim stim = new ProceduralRandStim(this, proceduralStimParameters);
-            newBlock.add(stim);
-        }
-        stimBlocks.add(newBlock);
+    public void addBlock(int blockIndex, List<ProceduralStim> block){
+        stimBlocks.add(blockIndex, block);
+    }
+
+    public void addBlock(List<ProceduralStim> block){
+        stimBlocks.add(block);
+    }
+
+    public void editBlock(int blockIndex, List<ProceduralStim> block){
+        stimBlocks.set(blockIndex, block);
     }
 
     public void editRandTrainTrials(ProceduralStim.ProceduralStimParameters proceduralStimParameters, int numTrials, int blockIndex){
