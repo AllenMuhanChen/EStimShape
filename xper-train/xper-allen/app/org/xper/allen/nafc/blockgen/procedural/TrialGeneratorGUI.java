@@ -11,11 +11,13 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class TrialGeneratorGUI {
-
     private static JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
     private static JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     private static JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
     private static JPanel centerPanel;
+    private static DefaultListModel<String> listModel = new DefaultListModel<>();
+    private static String defaultStimType = "RandStim";
+    private static String selectedType = defaultStimType;
 
     public static void main(String[] args) {
         try {
@@ -41,76 +43,104 @@ public class TrialGeneratorGUI {
 
         centerPanel = new JPanel(new GridLayout(0, 2));
         initializeParameterFields();
-        updateParametersUI("RandStim");
+        updateParametersUI(defaultStimType);
 
-        stimTypeDropdown.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String selectedType = (String) stimTypeDropdown.getSelectedItem();
-                updateParametersUI(selectedType);
-            }
+        stimTypeDropdown.addActionListener(e -> {
+            selectedType = (String) stimTypeDropdown.getSelectedItem();
+            updateParametersUI(selectedType);
         });
+
+        JList<String> trialList = new JList<>(listModel);
+        JScrollPane listScrollPane = new JScrollPane(trialList);
+        listScrollPane.setPreferredSize(new Dimension(400, 100));
 
         JPanel bottomPanel = new JPanel();
         JButton addRandTrainTrialsButton = new JButton("Add Trials");
         JButton generateButton = new JButton("Generate Trials");
+        JButton removeButton = new JButton("Remove Selected Trial");
+        JButton editButton = new JButton("Edit Selected Trial");
+
         bottomPanel.add(addRandTrainTrialsButton);
         bottomPanel.add(generateButton);
+        bottomPanel.add(removeButton);
+        bottomPanel.add(editButton);
 
-        addRandTrainTrialsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
-                double sampleDistMax = Double.parseDouble(sampleDistMaxField.getText());
-                double choiceDistMin = Double.parseDouble(choiceDistMinField.getText());
-                double choiceDistMax = Double.parseDouble(choiceDistMaxField.getText());
-                double size = Double.parseDouble(sizeField.getText());
-                double eyeWinSize = Double.parseDouble(eyeWinSizeField.getText());
-                double noiseChance = Double.parseDouble(noiseChanceField.getText());
-                int numChoices = Integer.parseInt(numChoicesField.getText());
-                int numRandDistractors = Integer.parseInt(numRandDistractorsField.getText());
-                double morphMagnitude = Double.parseDouble(morphMagnitudeField.getText());
-                int red = Integer.parseInt(colorRedField.getText());
-                int green = Integer.parseInt(colorGreenField.getText());
-                int blue = Integer.parseInt(colorBlueField.getText());
-                int numTrials = Integer.parseInt(numTrialsField.getText());
+        addRandTrainTrialsButton.addActionListener(e -> {
+            ProceduralStim.ProceduralStimParameters proceduralStimParameters =
+                    getProceduralStimParameters();
+            int numTrials = Integer.parseInt(numTrialsField.getText());
 
-                Lims sampleDistanceLims = new Lims(sampleDistMin, sampleDistMax);
-                Lims choiceDistanceLims = new Lims(choiceDistMin, choiceDistMax);
+            if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
+                blockgen.addRandTrainTrials(proceduralStimParameters, numTrials);
+            } else if ("MockStim".equals(stimTypeDropdown.getSelectedItem())) {
+                blockgen.addMockTrainTrials(proceduralStimParameters, numTrials);
+            }
 
-                NAFCTrialParameters nafcTrialParameters = new NAFCTrialParameters(
-                        sampleDistanceLims,
-                        choiceDistanceLims,
-                        size,
-                        eyeWinSize);
-                ProceduralStim.ProceduralStimParameters proceduralStimParameters = new ProceduralStim.ProceduralStimParameters(
-                        nafcTrialParameters,
-                        noiseChance,
-                        numChoices,
-                        numRandDistractors,
-                        morphMagnitude,
-                        new Color(red, green, blue));
+            listModel.addElement("Type: " + selectedType + ", Trials: " + numTrials);
+        });
 
-                if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
-                    blockgen.addRandTrainTrials(proceduralStimParameters, numTrials);
-                } else if ("MockStim".equals(stimTypeDropdown.getSelectedItem())) {
-                    blockgen.addMockTrainTrials(proceduralStimParameters, numTrials);
-                }
+        generateButton.addActionListener(e -> blockgen.generate());
 
+        removeButton.addActionListener(e -> {
+            int selectedIndex = trialList.getSelectedIndex();
+            if (selectedIndex != -1) {
+                listModel.remove(selectedIndex);
+                blockgen.removeBlock(selectedIndex);
             }
         });
 
-        generateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                blockgen.generate();
+        editButton.addActionListener(e -> {
+            int selectedIndex = trialList.getSelectedIndex();
+            ProceduralStim.ProceduralStimParameters parameters = getProceduralStimParameters();
+            int numTrials = Integer.parseInt(numTrialsField.getText());
+            if (selectedIndex != -1) {
+                if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
+                    blockgen.editRandTrainTrials(parameters, numTrials, selectedIndex);
+                }
             }
+            listModel.remove(selectedIndex);
+            listModel.add(selectedIndex, "Type: " + selectedType + ", Trials: " + numTrials);
+
         });
 
         frame.getContentPane().add(BorderLayout.NORTH, topPanel);
         frame.getContentPane().add(BorderLayout.CENTER, centerPanel);
+        frame.getContentPane().add(BorderLayout.EAST, listScrollPane);
         frame.getContentPane().add(BorderLayout.SOUTH, bottomPanel);
         frame.setVisible(true);
+    }
+
+    private static ProceduralStim.ProceduralStimParameters getProceduralStimParameters() {
+        double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
+        double sampleDistMax = Double.parseDouble(sampleDistMaxField.getText());
+        double choiceDistMin = Double.parseDouble(choiceDistMinField.getText());
+        double choiceDistMax = Double.parseDouble(choiceDistMaxField.getText());
+        double size = Double.parseDouble(sizeField.getText());
+        double eyeWinSize = Double.parseDouble(eyeWinSizeField.getText());
+        double noiseChance = Double.parseDouble(noiseChanceField.getText());
+        int numChoices = Integer.parseInt(numChoicesField.getText());
+        int numRandDistractors = Integer.parseInt(numRandDistractorsField.getText());
+        double morphMagnitude = Double.parseDouble(morphMagnitudeField.getText());
+        int red = Integer.parseInt(colorRedField.getText());
+        int green = Integer.parseInt(colorGreenField.getText());
+        int blue = Integer.parseInt(colorBlueField.getText());
+
+        Lims sampleDistanceLims = new Lims(sampleDistMin, sampleDistMax);
+        Lims choiceDistanceLims = new Lims(choiceDistMin, choiceDistMax);
+
+        NAFCTrialParameters nafcTrialParameters = new NAFCTrialParameters(
+                sampleDistanceLims,
+                choiceDistanceLims,
+                size,
+                eyeWinSize);
+        ProceduralStim.ProceduralStimParameters proceduralStimParameters = new ProceduralStim.ProceduralStimParameters(
+                nafcTrialParameters,
+                noiseChance,
+                numChoices,
+                numRandDistractors,
+                morphMagnitude,
+                new Color(red, green, blue));
+        return proceduralStimParameters;
     }
 
     private static void initializeParameterFields() {
