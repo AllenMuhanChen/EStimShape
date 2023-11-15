@@ -14,9 +14,9 @@ public class RandStimType {
     protected ProceduralExperimentBlockGen generator;
 
 
-    private static JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
-    private static JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
-    private static JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
+    private JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
+    private  JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
+    private  JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
 
     public RandStimType(ProceduralExperimentBlockGen generator) {
         this.generator = generator;
@@ -31,11 +31,11 @@ public class RandStimType {
         return newBlock;
     }
 
-    public static int getNumTrials(){
+    public int getNumTrials(){
         return Integer.parseInt(numTrialsField.getText());
     }
 
-    public static ProceduralStim.ProceduralStimParameters getProceduralStimParameters() {
+    public ProceduralStim.ProceduralStimParameters getProceduralStimParameters() {
         double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
         double sampleDistMax = Double.parseDouble(sampleDistMaxField.getText());
         double choiceDistMin = Double.parseDouble(choiceDistMinField.getText());
@@ -100,7 +100,7 @@ public class RandStimType {
         panel.add(numTrialsField);
     }
 
-    protected static void initializeParameterFields() {
+    protected void initializeParameterFields() {
         sampleDistMinField = new JTextField("0.0", 10);
         sampleDistMaxField = new JTextField("10.0", 10);
         choiceDistMinField = new JTextField("0.0", 10);
@@ -117,7 +117,7 @@ public class RandStimType {
         numTrialsField = new JTextField("10", 10);
     }
 
-    public static void loadParametersIntoFields(ProceduralStim.ProceduralStimParameters parameters, int numTrials) {
+    public void loadParametersIntoFields(ProceduralStim.ProceduralStimParameters parameters, int numTrials) {
         if (parameters != null) {
             sampleDistMinField.setText(String.valueOf(parameters.getSampleDistanceLims().getLowerLim()));
             sampleDistMaxField.setText(String.valueOf(parameters.getSampleDistanceLims().getUpperLim()));
@@ -139,5 +139,9 @@ public class RandStimType {
             // If not, you might need to pass this as a separate parameter
             numTrialsField.setText(String.valueOf(numTrials));
         }
+    }
+
+    public String getLabel(){
+        return label;
     }
 }

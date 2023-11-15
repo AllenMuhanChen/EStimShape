@@ -12,9 +12,8 @@ import java.util.List;
 
 public class TrialGeneratorGUI {
     private static JPanel centerPanel;
-    private static DefaultListModel<String> listModel = new DefaultListModel<>();
+    private static final DefaultListModel<String> listModel = new DefaultListModel<>();
     private static RandStimType selectedType;
-    private static List<? extends RandStimType> stimTypes;
 
     public static <Map> void main(String[] args) {
         try {
@@ -27,10 +26,10 @@ public class TrialGeneratorGUI {
                 FileUtil.loadConfigClass("experiment.config_class"));
         ProceduralExperimentBlockGen blockgen = context.getBean(ProceduralExperimentBlockGen.class);
 
-        stimTypes = Arrays.asList(new RandStimType(blockgen));
+        List<? extends RandStimType> stimTypes = Arrays.asList(new RandStimType(blockgen));
         HashMap<String, RandStimType> labelsForStimTypes = new HashMap<>();
         for (RandStimType stimType : stimTypes) {
-            labelsForStimTypes.put(stimType.label, stimType);
+            labelsForStimTypes.put(stimType.getLabel(), stimType);
         }
         RandStimType defaultStimType = labelsForStimTypes.get("Rand");
         selectedType = defaultStimType;
@@ -67,7 +66,6 @@ public class TrialGeneratorGUI {
                     ProceduralStim.ProceduralStimParameters parameters = blockgen.getBlockParameters(selectedIndex);
                     int numTrials = blockgen.getNumTrials(selectedIndex);
                     selectedType.loadParametersIntoFields(parameters, numTrials);
-
                 }
             }
         });
@@ -89,7 +87,7 @@ public class TrialGeneratorGUI {
             int numTrials = selectedType.getNumTrials();
 
             blockgen.addBlock(selectedType.genTrials(proceduralStimParameters, numTrials));
-            listModel.addElement("Type: " + selectedType.label + ", Trials: " + numTrials);
+            listModel.addElement("Type: " + selectedType.getLabel() + ", Trials: " + numTrials);
 
         });
 
@@ -109,7 +107,7 @@ public class TrialGeneratorGUI {
                 ProceduralStim.ProceduralStimParameters parameters = selectedType.getProceduralStimParameters();
                 int numTrials = selectedType.getNumTrials();
                 blockgen.editBlock(selectedIndex, selectedType.genTrials(parameters, numTrials));
-                listModel.set(selectedIndex, "Type: " + selectedType.label + ", Trials: " + numTrials);
+                listModel.set(selectedIndex, "Type: " + selectedType.getLabel() + ", Trials: " + numTrials);
             }
         });
 
