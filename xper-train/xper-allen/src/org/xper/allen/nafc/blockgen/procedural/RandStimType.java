@@ -141,6 +141,14 @@ public class RandStimType {
         }
     }
 
+    public String getInfo(){
+        return "Type: " + label +
+                ", Trials: " + getNumTrials() +
+                ", NoiseChance: " + noiseChanceField.getText() +
+                ", NumChoices: " + numChoicesField.getText() +
+                ", NumRandDistractors: " + numRandDistractorsField.getText();
+    }
+
     public String getLabel(){
         return label;
     }

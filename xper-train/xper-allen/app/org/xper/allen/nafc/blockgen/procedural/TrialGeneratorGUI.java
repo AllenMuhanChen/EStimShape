@@ -36,7 +36,7 @@ public class TrialGeneratorGUI {
 
         JFrame frame = new JFrame("Trial Generator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(500, 600);
+        frame.setSize(1000, 600);
 
         JPanel topPanel = new JPanel();
         JLabel stimTypeLabel = new JLabel("Select Stimulus Type:");
@@ -57,7 +57,6 @@ public class TrialGeneratorGUI {
 
         JList<String> trialList = new JList<>(listModel);
         JScrollPane listScrollPane = new JScrollPane(trialList);
-        listScrollPane.setPreferredSize(new Dimension(400, 100));
 
         trialList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
@@ -87,7 +86,7 @@ public class TrialGeneratorGUI {
             int numTrials = selectedType.getNumTrials();
 
             blockgen.addBlock(selectedType.genTrials(proceduralStimParameters, numTrials));
-            listModel.addElement("Type: " + selectedType.getLabel() + ", Trials: " + numTrials);
+            listModel.addElement(selectedType.getInfo());
 
         });
 
@@ -107,13 +106,13 @@ public class TrialGeneratorGUI {
                 ProceduralStim.ProceduralStimParameters parameters = selectedType.getProceduralStimParameters();
                 int numTrials = selectedType.getNumTrials();
                 blockgen.editBlock(selectedIndex, selectedType.genTrials(parameters, numTrials));
-                listModel.set(selectedIndex, "Type: " + selectedType.getLabel() + ", Trials: " + numTrials);
+                listModel.set(selectedIndex, selectedType.getInfo());
             }
         });
 
         frame.getContentPane().add(BorderLayout.NORTH, topPanel);
-        frame.getContentPane().add(BorderLayout.CENTER, centerPanel);
-        frame.getContentPane().add(BorderLayout.EAST, listScrollPane);
+        frame.getContentPane().add(BorderLayout.WEST, centerPanel);
+        frame.getContentPane().add(BorderLayout.CENTER, listScrollPane);
         frame.getContentPane().add(BorderLayout.SOUTH, bottomPanel);
         frame.setVisible(true);
     }
