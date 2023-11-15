@@ -45,6 +45,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	ImageDimensions[] choiceDimensions;
 	double[] choiceAlphas;
 	private int numFrames;
+	private Color color;
 
 	@Override
 	public void initGL(int w, int h) {
@@ -52,9 +53,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		setUseStencil(true);
 		super.initGL(w, h);
 
-		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);
+		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 1.0f);
 		GL11.glViewport(0,0,w,h);
-
 	}
 
 	@Override
@@ -74,14 +74,11 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 		NoisyPngSpec sampleSpec = NoisyPngSpec.fromXml(task.getSampleSpec());
 		sampleLocation = new Coordinates2D(sampleSpec.getxCenter(), sampleSpec.getyCenter());
 		sampleDimensions = sampleSpec.getImageDimensions();
-//		System.out.println(images);
+		color = sampleSpec.getColor();
 		images.loadTexture(sampleSpec.getPath(), 0);
-
-		//TODO: MODIFY THIS
 		String noiseMapPath = sampleSpec.getNoiseMapPath();
-//
-		//
-		images.loadNoise(noiseMapPath, new Color(1f,1f,1f));
+
+		images.loadNoise(noiseMapPath, color);
 	}
 
 	@Override
@@ -156,7 +153,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 					// 0 will pass for stimulus region
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
-//				drawCustomBlank(context);
+				drawCustomBlank(context);
 			}}, context);
 	}
 
@@ -223,7 +220,9 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	@Override
 	public void trialStop(TrialContext context) {
-		images.cleanUpImage();
+		if (images != null) {
+			images.cleanUpImage();
+		}
 
 	}
 

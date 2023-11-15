@@ -61,16 +61,12 @@ import org.xper.util.GuiUtil;
 import org.xper.util.StringUtil;
 import org.xper.util.ThreadUtil;
 
-/**
- * 
- * @author John
- */
 public class NAFCExperimentConsole extends JFrame implements
 		MessageReceiverEventListener {
 	static Logger logger = Logger.getLogger(NAFCExperimentConsole.class);
 
 	private static final long serialVersionUID = -5313216043026458229L;
-	
+
 	@Dependency
 	NAFCExperimentConsoleModel model;
 
@@ -79,15 +75,15 @@ public class NAFCExperimentConsole extends JFrame implements
 
 	@Dependency
 	Coordinates2D monkeyScreenDimension;
-	
+
 	@Dependency
 	double canvasScaleFactor = DEFAULT_CANVAS_SCALE_FACTOR;
-	
+
 	@Dependency
 	List<IConsolePlugin> consolePlugins = new ArrayList<IConsolePlugin>();
-	
+
 	KeyStroke monitorToken = KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0);
-	
+
 	KeyStroke lockUnlockKey = KeyStroke.getKeyStroke(KeyEvent.VK_L, 0);
 	KeyStroke pauseResumeKey = KeyStroke.getKeyStroke(KeyEvent.VK_P, 0);
 	KeyStroke rewardKey = KeyStroke.getKeyStroke(KeyEvent.VK_R, 0);
@@ -97,13 +93,13 @@ public class NAFCExperimentConsole extends JFrame implements
 	boolean lockSimulatedEyePos = false;
 
 	AtomicReference<String> currentDeviceId = new AtomicReference<String>();
-	
+
 	static final double DEFAULT_CANVAS_SCALE_FACTOR = 2.5;
-	
+
 	public boolean isMonitorMode () {
 		return currentPlugin == null;
 	}
-                         
+
     public void initComponents() {
     	setTitle("Experiment Console");
     	setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -128,7 +124,7 @@ public class NAFCExperimentConsole extends JFrame implements
 		};
 		keyMap.put(lockUnlockKey, eyeAction);
 		actMap.put(eyeAction, eyeAction);
-		
+
 		Action monitorAction = new AbstractAction() {
 			private static final long serialVersionUID = 1L;
 
@@ -138,7 +134,7 @@ public class NAFCExperimentConsole extends JFrame implements
 		};
 		keyMap.put(monitorToken, monitorAction);
 		actMap.put(monitorAction, monitorAction);
-		
+
 		for (final IConsolePlugin p : consolePlugins) {
 			KeyStroke token = p.getToken();
 			Action tokenAction = new AbstractAction() {
@@ -150,8 +146,8 @@ public class NAFCExperimentConsole extends JFrame implements
 			};
 			keyMap.put(token, tokenAction);
 			actMap.put(tokenAction, tokenAction);
-		}		
-		
+		}
+
 		for (IConsolePlugin p : consolePlugins) {
 			List<KeyStroke> keys = p.getCommandKeys();
 			for (final KeyStroke k : keys) {
@@ -167,14 +163,14 @@ public class NAFCExperimentConsole extends JFrame implements
 				keyMap.put(k, keyAction);
 				actMap.put(keyAction, keyAction);
 			}
-		}	
-		
+		}
+
         JPanel canvasPanel = new JPanel();
         consoleCanvas = getCanvas();
-        consoleCanvas.setPreferredSize(new Dimension((int)(monkeyScreenDimension.getX() / (canvasScaleFactor)), 
+        consoleCanvas.setPreferredSize(new Dimension((int)(monkeyScreenDimension.getX() / (canvasScaleFactor)),
         		(int)(monkeyScreenDimension.getY() / canvasScaleFactor)));
 //        consoleCanvas.setPreferredSize(new Dimension(480,360));
-        
+
         consoleCanvas.addMouseMotionListener(new MouseMotionAdapter() {
             public void mouseMoved(MouseEvent evt) {
             	if (isMonitorMode()) {
@@ -185,7 +181,7 @@ public class NAFCExperimentConsole extends JFrame implements
             }
         });
         canvasPanel.add(consoleCanvas);
-        
+
         consoleCanvas.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseWheelMoved(MouseWheelEvent e) {
@@ -194,25 +190,25 @@ public class NAFCExperimentConsole extends JFrame implements
 				}
 			}
 		});
-        
+
         consoleCanvas.addMouseListener(new MouseListener() {
-			
+
 			@Override
 			public void mouseReleased(MouseEvent e) {
 			}
-			
+
 			@Override
 			public void mousePressed(MouseEvent e) {
 			}
-			
+
 			@Override
 			public void mouseExited(MouseEvent e) {
 			}
-			
+
 			@Override
 			public void mouseEntered(MouseEvent e) {
 			}
-			
+
 			@Override
 			public void mouseClicked(MouseEvent e) {
 				if (!isMonitorMode()) {
@@ -221,49 +217,49 @@ public class NAFCExperimentConsole extends JFrame implements
 			}
 		});
         getContentPane().add(canvasPanel);
-        
+
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.LINE_AXIS));
-        
+
         getContentPane().add(infoPanel);
-        
+
         JPanel trialPanel = new JPanel();
         trialPanel.setLayout(new BoxLayout(trialPanel, BoxLayout.PAGE_AXIS));
         infoPanel.add(trialPanel);
-        
+
         JPanel eyePanel = new JPanel();
         eyePanel.setLayout(new BoxLayout(eyePanel, BoxLayout.PAGE_AXIS));
         infoPanel.add(eyePanel);
-        
+
         JPanel commandPanel = new JPanel();
         commandPanel.setLayout(new BoxLayout(commandPanel, BoxLayout.PAGE_AXIS));
         infoPanel.add(commandPanel);
-        
+
         JPanel mousePositionPanel = new JPanel();
         mousePositionPanel.setBorder(BorderFactory.createTitledBorder("Mouse Position"));
         mousePositionPanel.setLayout(new GridBagLayout());
         trialPanel.add(mousePositionPanel);
-        
+
         JPanel trialStatPanel = new JPanel();
         trialStatPanel.setBorder(BorderFactory.createTitledBorder("Trial Statistics"));
         trialStatPanel.setLayout(new GridBagLayout());
         trialPanel.add(trialStatPanel);
-        
+
         JPanel eyeDevicePanel = new JPanel();
         eyeDevicePanel.setBorder(BorderFactory.createTitledBorder("Eye Device"));
         eyeDevicePanel.setLayout(new GridBagLayout());
         eyePanel.add(eyeDevicePanel);
-        
+
         JPanel eyeWinPanel = new JPanel();
         eyeWinPanel.setBorder(BorderFactory.createTitledBorder("Eye Window"));
         eyeWinPanel.setLayout(new GridBagLayout());
         eyePanel.add(eyeWinPanel);
-        
+
         pauseResumeButton = new JButton();
         pauseResumeButton.setToolTipText("run/pause experiment");
         Action action = new AbstractAction() {
 			private static final long serialVersionUID = 1L;
-			
+
 			public void actionPerformed(ActionEvent e) {
 				pauseResume();
 			}
@@ -284,8 +280,8 @@ public class NAFCExperimentConsole extends JFrame implements
 			pauseResumeButton.setText("   Run   ");
 		} else {
 			pauseResumeButton.setText("  Pause  ");
-		}		
-        
+		}
+
         commandPanel.add(Box.createRigidArea(new Dimension(0,6)));
         commandPanel.add(pauseResumeButton);
         commandPanel.add(Box.createRigidArea(new Dimension(0,3)));
@@ -294,7 +290,7 @@ public class NAFCExperimentConsole extends JFrame implements
         rewardButton.setToolTipText("Manual Reward");
         Action rewardAction = new AbstractAction() {
 			private static final long serialVersionUID = 2L;
-			
+
 			public void actionPerformed(ActionEvent e) {
 				reward();
 			}
@@ -312,34 +308,34 @@ public class NAFCExperimentConsole extends JFrame implements
         });
 
         rewardButton.setText("   REWARD   ");
-        
+
         commandPanel.add(Box.createRigidArea(new Dimension(6,6)));
         commandPanel.add(rewardButton);
         commandPanel.add(Box.createRigidArea(new Dimension(6,3)));
-        
+
         /////////////////////
         JLabel monitorLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(monitorToken.getKeyCode()) + "</strong>: monitor mode </html>");
 		monitorLabel.setToolTipText("<html><strong>monitor mode commands</strong> <br><strong> " + GuiUtil.getKeyText(lockUnlockKey.getKeyCode()) + "</strong>: lock/unlock </html>");
         commandPanel.add(monitorLabel);
-        
+
         for (IConsolePlugin p : consolePlugins) {
         	JLabel pLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(p.getToken().getKeyCode()) + "</strong>: " + p.getPluginName() + " <html>");
         	pLabel.setToolTipText(p.getPluginHelp());
         	commandPanel.add(pLabel);
 		}
-        
+
         JLabel rpLabel = new JLabel("<html><strong> " + GuiUtil.getKeyText(pauseResumeKey.getKeyCode()) + "</strong>: run/pause </html>");
         commandPanel.add(rpLabel);
-        
+
         JLabel exitLabel = new JLabel("<html><strong> ESC</strong>: exit </html>");
         commandPanel.add(exitLabel);
-        
+
         commandPanel.add(Box.createGlue());
         modeLabel = new JLabel("");
         commandPanel.add(modeLabel);
         commandPanel.add(Box.createRigidArea(new Dimension(0,3)));
-        
-        mousePositionPanel.add(new JLabel("Screen"), 
+
+        mousePositionPanel.add(new JLabel("Screen"),
         		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         mouseXCanvas = new JLabel("0");
         mouseYCanvas = new JLabel("0");
@@ -363,7 +359,7 @@ public class NAFCExperimentConsole extends JFrame implements
         		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         mousePositionPanel.add(mouseYDegree,
         		new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        
+
         mouseXCanvas.setPreferredSize(new Dimension(80,20));
         mouseXCanvas.setHorizontalAlignment(SwingConstants.RIGHT);
         mouseXCanvas.setToolTipText("Window Coordinate X");
@@ -376,61 +372,61 @@ public class NAFCExperimentConsole extends JFrame implements
         mouseYDegree.setToolTipText("Degree Y");
 // Fix
         trialStatPanel.add(new JLabel("Fixation Success"),
-        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));   
+        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         fixationSuccess = new JLabel("0");
         trialStatPanel.add(fixationSuccess,
         		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-      
+
         trialStatPanel.add(new JLabel("Fixation Eye In Fail"),
-        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         fixationEyeInFail = new JLabel("0");
         trialStatPanel.add(fixationEyeInFail,
         		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-       
+
         trialStatPanel.add(new JLabel("Fixation Eye Hold Fail"),
-        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         fixationEyeInHoldFail = new JLabel("0");
         trialStatPanel.add(fixationEyeInHoldFail,
         		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 // Sample
         trialStatPanel.add(new JLabel("Sample Success"),
-        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         sampleSuccess = new JLabel("0");
         trialStatPanel.add(sampleSuccess,
         		new GridBagConstraints(3,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 
         trialStatPanel.add(new JLabel("Sample Eye Hold Fail"),
-        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         sampleEyeInHoldFail = new JLabel("0");
         trialStatPanel.add(sampleEyeInHoldFail,
         		new GridBagConstraints(3,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 // Choice
         trialStatPanel.add(new JLabel("Choice Correct"),
-        		new GridBagConstraints(4,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(4,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         choiceCorrect = new JLabel("0");
         trialStatPanel.add(choiceCorrect,
         		new GridBagConstraints(5,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-        
+
         trialStatPanel.add(new JLabel("Choice Incorrect"),
-        		new GridBagConstraints(4,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(4,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         choiceIncorrect = new JLabel("0");
         trialStatPanel.add(choiceIncorrect,
         		new GridBagConstraints(5,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 
         trialStatPanel.add(new JLabel("Rewarded Incorrect"),
-        		new GridBagConstraints(4,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(4,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         choiceRewardedIncorrect = new JLabel("0");
         trialStatPanel.add(choiceRewardedIncorrect,
         		new GridBagConstraints(5,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-        
+
         trialStatPanel.add(new JLabel("Choice Eye Fail"),
-        		new GridBagConstraints(4,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(4,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         choiceEyeFail = new JLabel("0");
         trialStatPanel.add(choiceEyeFail,
         		new GridBagConstraints(5,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 
         trialStatPanel.add(new JLabel("Completed Trials"),
-        		new GridBagConstraints(4,4,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,10)); 
+        		new GridBagConstraints(4,4,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,10));
         completeTrialCount = new JLabel("0");
         trialStatPanel.add(completeTrialCount,
         		new GridBagConstraints(5,4,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,10));
@@ -438,49 +434,49 @@ public class NAFCExperimentConsole extends JFrame implements
         ///////////////////////
         /*
         trialStatPanel.add(new JLabel("Complete"),
-        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));   
+        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         completeTrialCount = new JLabel("0");
         trialStatPanel.add(getCompleteTrialCount(),
         		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-      
+
         trialStatPanel.add(new JLabel("Break"),
-        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         breakTrialCount = new JLabel("0");
         trialStatPanel.add(breakTrialCount,
         		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-       
+
         trialStatPanel.add(new JLabel("Eye Fail"),
-        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0)); 
+        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
         failTrialCount = new JLabel("0");
         trialStatPanel.add(failTrialCount,
         		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
 
         // -- shs behavioral outcome labels:
         trialStatPanel.add(new JLabel("PASS"),
-        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0)); 
+        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         trialPassCount = new JLabel("0");
         trialStatPanel.add(trialPassCount,
         		new GridBagConstraints(3,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 
         trialStatPanel.add(new JLabel("FAIL"),
-        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0)); 
+        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         trialFailCount = new JLabel("0");
         trialStatPanel.add(trialFailCount,
         		new GridBagConstraints(3,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        
+
         trialStatPanel.add(new JLabel("BREAK"),
-        		new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0)); 
+        		new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         trialBreakCount = new JLabel("0");
         trialStatPanel.add(trialBreakCount,
         		new GridBagConstraints(3,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        
+
         trialStatPanel.add(new JLabel("NOGO"),
-        		new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0)); 
+        		new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         trialNogoCount = new JLabel("0");
         trialStatPanel.add(trialNogoCount,
         		new GridBagConstraints(3,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
 */
-        
+
 //        completeTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
 //        breakTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
 //        failTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -499,10 +495,10 @@ public class NAFCExperimentConsole extends JFrame implements
         		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         eyeReadingDegreeX = new JLabel("0");
         eyeDevicePanel.add(eyeReadingDegreeX,
-        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));    
+        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         eyeReadingDegreeY = new JLabel("0");
         eyeDevicePanel.add(eyeReadingDegreeY,
-        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));  
+        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         eyeDevicePanel.add(new JLabel("Volt"),
         		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         eyeReadingVoltX = new JLabel("0");
@@ -519,20 +515,20 @@ public class NAFCExperimentConsole extends JFrame implements
         eyeZeroY = new JLabel("0");
         eyeDevicePanel.add(eyeZeroY,
         		new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        
+
         eyeDeviceSelect.setPreferredSize(new Dimension(180,25));
         eyeReadingDegreeX.setHorizontalAlignment(SwingConstants.RIGHT);
         eyeReadingDegreeX.setPreferredSize(new Dimension(80,20));
         eyeReadingDegreeY.setHorizontalAlignment(SwingConstants.RIGHT);
         eyeReadingDegreeY.setPreferredSize(new Dimension(80,20));
-        
+
         eyeReadingDegreeX.setToolTipText("Degree X");
         eyeReadingDegreeY.setToolTipText("Degre Y");
         eyeReadingVoltX.setToolTipText("Volt X");
         eyeReadingVoltY.setToolTipText("Volt Y");
         eyeZeroX.setToolTipText("Zero X");
         eyeZeroY.setToolTipText("Zero Y");
-        
+
         eyeWinPanel.add(new JLabel("Center"),
         		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
         eyeWindowCenterX = new JLabel("0");
@@ -546,22 +542,22 @@ public class NAFCExperimentConsole extends JFrame implements
         eyeWindowSize = new JLabel("0");
         eyeWinPanel.add(eyeWindowSize,
         		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        
+
         eyeWindowCenterX.setHorizontalAlignment(SwingConstants.RIGHT);
         eyeWindowCenterX.setPreferredSize(new Dimension(80,20));
         eyeWindowCenterY.setHorizontalAlignment(SwingConstants.RIGHT);
         eyeWindowCenterY.setPreferredSize(new Dimension(80,20));
-        
+
         eyeWindowCenterX.setToolTipText("Degree X");
         eyeWindowCenterY.setToolTipText("Degree Y");
         eyeWindowSize.setToolTipText("Degree");
- 
+
         eyeDeviceSelect.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
             	changeCurrentDeviceId((String) eyeDeviceSelect.getSelectedItem());
             }
         });
-        
+
 		for (String id : model.getEyeDeviceIds()) {
 			eyeDeviceSelect.addItem(id);
 		}
@@ -631,7 +627,7 @@ public class NAFCExperimentConsole extends JFrame implements
 			}
 		});
 	}
-	
+
 	public void run() {
 		start();
 		EventQueue.invokeLater(new Runnable() {
@@ -646,16 +642,16 @@ public class NAFCExperimentConsole extends JFrame implements
 		if (!lockSimulatedEyePos) {
 			mouseXCanvas.setText(String.valueOf(x));
 			mouseYCanvas.setText(String.valueOf(y));
-	
+
 			AbstractRenderer renderer = consoleRenderer.getRenderer();
 			Coordinates2D world = renderer.pixel2coord(new Coordinates2D(x, y));
 			Coordinates2D degree = new Coordinates2D(renderer.mm2deg(world.getX()),
 					renderer.mm2deg(world.getY()));
 			model.setEyePosition(degree);
-	
+
 			mouseXWorld.setText(StringUtil.format(world.getX(), 1));
 			mouseYWorld.setText(StringUtil.format(world.getY(), 1));
-	
+
 			mouseXDegree.setText(StringUtil.format(degree.getX(), 1));
 			mouseYDegree.setText(StringUtil.format(degree.getY(), 1));
 		}
@@ -708,7 +704,7 @@ public class NAFCExperimentConsole extends JFrame implements
 //		} else {
 //			this.completeTrialCount.setForeground(Color.RED);
 //		}
-//		
+//
 //		String lastBreak = this.breakTrialCount.getText();
 //		String thisBreak = StringUtil.format(stat.getBrokenTrials(), 0);
 //		this.breakTrialCount.setText(thisBreak);
@@ -717,7 +713,7 @@ public class NAFCExperimentConsole extends JFrame implements
 //		} else {
 //			this.breakTrialCount.setForeground(Color.RED);
 //		}
-//		
+//
 //		String lastFail = this.failTrialCount.getText();
 //		String thisFail = StringUtil.format(stat.getFailedTrials(), 0);
 //		this.failTrialCount.setText(thisFail);
@@ -734,20 +730,20 @@ public class NAFCExperimentConsole extends JFrame implements
 		updateLabelCount(choiceCorrect, stat.getChoiceCorrect());
 		updateLabelCount(choiceIncorrect, stat.getChoiceIncorrect());
 		updateLabelCount(choiceRewardedIncorrect, stat.getChoiceRewardedIncorrect());
-		updateLabelCount(choiceEyeFail, stat.getChoiceEyeFail());		
+		updateLabelCount(choiceEyeFail, stat.getChoiceEyeFail());
 		updateLabelCount(completeTrialCount,stat.getCompleteTrials());
-		
+
 		/*
 		updateLabelCount(breakTrialCount,stat.getBrokenTrials());
 		updateLabelCount(failTrialCount,stat.getFailedTrials());
-		
+
 		updateLabelCount(trialPassCount,stat.getAllTrialsPASS());
 		updateLabelCount(trialFailCount,stat.getTargetSelectionEyeFail());
 		updateLabelCount(trialBreakCount,stat.getTargetSelectionEyeBreak());
 		updateLabelCount(trialNogoCount,stat.getAllTrialsNOGO());
 		*/
 	}
-	
+
 	public void updateLabelCount(JLabel label, int trialCount) {
 		String lastCount = label.getText();
 		String thisCount = StringUtil.format(trialCount, 0);
@@ -788,8 +784,8 @@ public class NAFCExperimentConsole extends JFrame implements
 							updateStatistics();
 							updateEyeZero();
 							updateEyeWindow();
-							
-							modeLabel.setText("<html><strong>Mode: " + 
+
+							modeLabel.setText("<html><strong>Mode: " +
 									GuiUtil.getKeyText(isMonitorMode() ? monitorToken.getKeyCode() : currentPlugin.getToken().getKeyCode()) + "</strong></html>");
 						}
 					}, context);
@@ -803,7 +799,7 @@ public class NAFCExperimentConsole extends JFrame implements
 			throw new org.xper.exception.XGLException(e);
 		}
 	}
-         
+
     protected JLabel breakTrialCount;
     protected JLabel completeTrialCount;
     protected Canvas consoleCanvas;
@@ -825,7 +821,7 @@ public class NAFCExperimentConsole extends JFrame implements
     protected JLabel mouseYDegree;
     protected JLabel mouseYWorld;
     protected JLabel modeLabel;
-    protected JButton pauseResumeButton; 
+    protected JButton pauseResumeButton;
     protected JButton rewardButton;
     protected JLabel trialPassCount;
     protected JLabel trialFailCount;
@@ -903,6 +899,6 @@ public class NAFCExperimentConsole extends JFrame implements
 	public JLabel getCompleteTrialCount() {
 		return completeTrialCount;
 	}
-	
-	
+
+
 }

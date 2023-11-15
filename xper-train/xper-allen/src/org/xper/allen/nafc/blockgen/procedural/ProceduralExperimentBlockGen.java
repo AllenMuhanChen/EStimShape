@@ -15,14 +15,24 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
     public void addRandTrainTrials(ProceduralStim.ProceduralStimParameters proceduralStimParameters, int numTrials){
 
         for(int i=0; i<numTrials; i++){
-
             ProceduralStim stim = new ProceduralRandStim(this, proceduralStimParameters);
-
             getStims().add(stim);
         }
 
     }
 
+    public void addMockTrainTrials(ProceduralStim.ProceduralStimParameters proceduralStimParameters, int numTrials){
+        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+        baseMStick.setProperties(getMaxImageDimensionDegrees());
+        baseMStick.setStimColor(proceduralStimParameters.color);
+        baseMStick.genMatchStickRand();
+        int drivingComponent = baseMStick.chooseRandLeaf();
+        for(int i=0; i<numTrials; i++){
+            ProceduralStim stim = new ProceduralStim(this, proceduralStimParameters, baseMStick, drivingComponent);
+            getStims().add(stim);
+        }
+
+    }
 
 
     @Override

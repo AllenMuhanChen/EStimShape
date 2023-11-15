@@ -39,7 +39,7 @@ public class NoisyPngSpec {
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
 		this.pngPath = path;
-		this.noiseMapPath = path;
+		this.noiseMapPath = noiseMapPath;
 		this.alpha = 1;
 		this.color = color;
 	}
@@ -52,7 +52,7 @@ public class NoisyPngSpec {
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
 		this.pngPath = path;
-		this.noiseMapPath = path;
+		this.noiseMapPath = noiseMapPath;
 		this.alpha = 1;
 		this.color = Color.WHITE;
 	}
@@ -153,4 +153,11 @@ public class NoisyPngSpec {
 		this.noiseMapPath = noiseMapPath;
 	}
 
+	public Color getColor() {
+		return color;
+	}
+
+	public void setColor(Color color) {
+		this.color = color;
+	}
 }

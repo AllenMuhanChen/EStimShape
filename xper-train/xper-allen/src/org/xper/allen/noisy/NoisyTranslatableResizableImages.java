@@ -68,7 +68,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	 * @param color
 	 */
 	public void loadNoise(String pathname, Color color) {
-		//		System.out.println("AC4747823: noisepathname: " + pathname);
+				System.out.println("AC4747823: noisepathname: " + pathname);
 		try {
 			File imageFile = new File(pathname);
 			BufferedImage img = ImageIO.read(imageFile);
@@ -344,8 +344,8 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 			//			System.out.println("AC0101010: " + Arrays.toString(src));
 			//CHANGING ALPHA
-			GL11.glEnable(GL11.GL_BLEND);
-			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//			GL11.glEnable(GL11.GL_BLEND);
+//			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
 
 
