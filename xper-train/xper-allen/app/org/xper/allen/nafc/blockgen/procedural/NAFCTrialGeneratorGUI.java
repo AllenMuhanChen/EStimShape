@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
@@ -10,12 +11,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-public class TrialGeneratorGUI {
+public class NAFCTrialGeneratorGUI {
     private static JPanel centerPanel;
     private static final DefaultListModel<String> listModel = new DefaultListModel<>();
-    private static RandStimType selectedType;
+    private static ProceduralRandStimType selectedType;
 
-    public static <Map> void main(String[] args) {
+    public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
@@ -26,12 +27,12 @@ public class TrialGeneratorGUI {
                 FileUtil.loadConfigClass("experiment.config_class"));
         ProceduralExperimentBlockGen blockgen = context.getBean(ProceduralExperimentBlockGen.class);
 
-        List<? extends RandStimType> stimTypes = Arrays.asList(new RandStimType(blockgen));
-        HashMap<String, RandStimType> labelsForStimTypes = new HashMap<>();
-        for (RandStimType stimType : stimTypes) {
+        List<? extends ProceduralRandStimType> stimTypes = Arrays.asList(new ProceduralRandStimType(blockgen));
+        HashMap<String, ProceduralRandStimType> labelsForStimTypes = new HashMap<>();
+        for (ProceduralRandStimType stimType : stimTypes) {
             labelsForStimTypes.put(stimType.getLabel(), stimType);
         }
-        RandStimType defaultStimType = labelsForStimTypes.get("Rand");
+        ProceduralRandStimType defaultStimType = labelsForStimTypes.get("RandProcedural");
         selectedType = defaultStimType;
 
         JFrame frame = new JFrame("Trial Generator");
@@ -62,9 +63,7 @@ public class TrialGeneratorGUI {
             if (!e.getValueIsAdjusting()) {
                 int selectedIndex = trialList.getSelectedIndex();
                 if (selectedIndex != -1) {
-                    ProceduralStim.ProceduralStimParameters parameters = blockgen.getBlockParameters(selectedIndex);
-                    int numTrials = blockgen.getNumTrials(selectedIndex);
-                    selectedType.loadParametersIntoFields(parameters, numTrials);
+                    selectedType.loadParametersIntoFields(blockgen.getBlock(selectedIndex));
                 }
             }
         });
@@ -81,11 +80,11 @@ public class TrialGeneratorGUI {
         bottomPanel.add(editButton);
 
         addTrialsButton.addActionListener(e -> {
-            ProceduralStim.ProceduralStimParameters proceduralStimParameters =
+            NAFCTrialParameters parameters =
                     selectedType.getProceduralStimParameters();
             int numTrials = selectedType.getNumTrials();
 
-            blockgen.addBlock(selectedType.genTrials(proceduralStimParameters, numTrials));
+            blockgen.addBlock(selectedType.genTrials(parameters, numTrials));
             listModel.addElement(selectedType.getInfo());
 
         });
@@ -103,7 +102,7 @@ public class TrialGeneratorGUI {
         editButton.addActionListener(e -> {
             int selectedIndex = trialList.getSelectedIndex();
             if (selectedIndex != -1) {
-                ProceduralStim.ProceduralStimParameters parameters = selectedType.getProceduralStimParameters();
+                NAFCTrialParameters parameters = selectedType.getProceduralStimParameters();
                 int numTrials = selectedType.getNumTrials();
                 blockgen.editBlock(selectedIndex, selectedType.genTrials(parameters, numTrials));
                 listModel.set(selectedIndex, selectedType.getInfo());
@@ -118,7 +117,7 @@ public class TrialGeneratorGUI {
     }
 
 
-    private static void updateParametersUI(RandStimType selectedType) {
+    private static void updateParametersUI(ProceduralRandStimType selectedType) {
         centerPanel.removeAll();
         selectedType.addParameterFieldsToPanel(centerPanel);
         centerPanel.revalidate();

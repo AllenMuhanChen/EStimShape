@@ -6,6 +6,7 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.*;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.vo.MStickStimObjData;
@@ -20,7 +21,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-public class ProceduralStim implements Stim {
+public class ProceduralStim implements NAFCStim {
     //Input
     protected final ProceduralExperimentBlockGen generator;
     protected ProceduralStimParameters parameters;
@@ -297,6 +298,12 @@ public class ProceduralStim implements Stim {
     public Long getStimId() {
         return taskId;
     }
+
+    @Override
+    public ProceduralStimParameters getParameters() {
+        return parameters;
+    }
+
     public static class ProceduralStimParameters extends NAFCTrialParameters{
 
         double noiseChance;

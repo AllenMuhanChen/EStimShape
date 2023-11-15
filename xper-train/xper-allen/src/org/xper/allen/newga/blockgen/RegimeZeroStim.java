@@ -6,6 +6,7 @@ import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
+import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.allen.pga.RegimeType;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
@@ -70,4 +71,5 @@ public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickD
     public Long getStimId() {
         return stimId;
     }
+
 }
