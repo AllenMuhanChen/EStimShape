@@ -1,23 +1,22 @@
 package org.xper.allen.nafc.blockgen.procedural;
+
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.Lims;
-import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 public class TrialGeneratorGUI {
     private static JPanel centerPanel;
     private static DefaultListModel<String> listModel = new DefaultListModel<>();
-    private static String defaultStimType = "RandStim";
-    private static String selectedType = defaultStimType;
-    private static RandStimModel randStimModel;
+    private static RandStimType selectedType;
+    private static List<? extends RandStimType> stimTypes;
 
-    public static void main(String[] args) {
+    public static <Map> void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
@@ -28,6 +27,14 @@ public class TrialGeneratorGUI {
                 FileUtil.loadConfigClass("experiment.config_class"));
         ProceduralExperimentBlockGen blockgen = context.getBean(ProceduralExperimentBlockGen.class);
 
+        stimTypes = Arrays.asList(new RandStimType(blockgen));
+        HashMap<String, RandStimType> labelsForStimTypes = new HashMap<>();
+        for (RandStimType stimType : stimTypes) {
+            labelsForStimTypes.put(stimType.label, stimType);
+        }
+        RandStimType defaultStimType = labelsForStimTypes.get("Rand");
+        selectedType = defaultStimType;
+
         JFrame frame = new JFrame("Trial Generator");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(500, 600);
@@ -35,18 +42,17 @@ public class TrialGeneratorGUI {
         JPanel topPanel = new JPanel();
         JLabel stimTypeLabel = new JLabel("Select Stimulus Type:");
 
-        randStimModel = new RandStimModel(blockgen);
-        String[] stimTypes = {"RandStim", "MockStim", "OtherStimType2"};
-        JComboBox<String> stimTypeDropdown = new JComboBox<>(stimTypes);
+
+        JComboBox<String> stimTypeDropdown = new JComboBox<>(labelsForStimTypes.keySet().toArray(new String[0]));
         topPanel.add(stimTypeLabel);
         topPanel.add(stimTypeDropdown);
 
         centerPanel = new JPanel(new GridLayout(0, 2));
-//        initializeParameterFields();
         updateParametersUI(defaultStimType);
 
         stimTypeDropdown.addActionListener(e -> {
-            selectedType = (String) stimTypeDropdown.getSelectedItem();
+            String selectedLabel = (String) stimTypeDropdown.getSelectedItem();
+            selectedType = labelsForStimTypes.get(selectedLabel);
             updateParametersUI(selectedType);
         });
 
@@ -58,11 +64,10 @@ public class TrialGeneratorGUI {
             if (!e.getValueIsAdjusting()) {
                 int selectedIndex = trialList.getSelectedIndex();
                 if (selectedIndex != -1) {
-                    if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
-                        ProceduralStim.ProceduralStimParameters parameters = blockgen.getBlockParameters(selectedIndex);
-                        int numTrials = blockgen.getNumTrials(selectedIndex);
-                        randStimModel.loadParametersIntoFields(parameters, numTrials);
-                    }
+                    ProceduralStim.ProceduralStimParameters parameters = blockgen.getBlockParameters(selectedIndex);
+                    int numTrials = blockgen.getNumTrials(selectedIndex);
+                    selectedType.loadParametersIntoFields(parameters, numTrials);
+
                 }
             }
         });
@@ -79,14 +84,13 @@ public class TrialGeneratorGUI {
         bottomPanel.add(editButton);
 
         addTrialsButton.addActionListener(e -> {
-            if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
-                ProceduralStim.ProceduralStimParameters proceduralStimParameters =
-                        randStimModel.getProceduralStimParameters();
-                int numTrials = randStimModel.getNumTrials();
+            ProceduralStim.ProceduralStimParameters proceduralStimParameters =
+                    selectedType.getProceduralStimParameters();
+            int numTrials = selectedType.getNumTrials();
 
-                blockgen.addBlock(randStimModel.genTrials(proceduralStimParameters, numTrials));
-                listModel.addElement("Type: " + selectedType + ", Trials: " + numTrials);
-            }
+            blockgen.addBlock(selectedType.genTrials(proceduralStimParameters, numTrials));
+            listModel.addElement("Type: " + selectedType.label + ", Trials: " + numTrials);
+
         });
 
         generateButton.addActionListener(e -> blockgen.generate());
@@ -102,15 +106,11 @@ public class TrialGeneratorGUI {
         editButton.addActionListener(e -> {
             int selectedIndex = trialList.getSelectedIndex();
             if (selectedIndex != -1) {
-                if ("RandStim".equals(stimTypeDropdown.getSelectedItem())) {
-                    ProceduralStim.ProceduralStimParameters parameters = randStimModel.getProceduralStimParameters();
-                    int numTrials = randStimModel.getNumTrials();
-                    blockgen.editBlock(selectedIndex, randStimModel.genTrials(parameters, numTrials));
-                    listModel.set(selectedIndex, "Type: " + selectedType + ", Trials: " + numTrials);
-                }
+                ProceduralStim.ProceduralStimParameters parameters = selectedType.getProceduralStimParameters();
+                int numTrials = selectedType.getNumTrials();
+                blockgen.editBlock(selectedIndex, selectedType.genTrials(parameters, numTrials));
+                listModel.set(selectedIndex, "Type: " + selectedType.label + ", Trials: " + numTrials);
             }
-
-
         });
 
         frame.getContentPane().add(BorderLayout.NORTH, topPanel);
@@ -121,11 +121,9 @@ public class TrialGeneratorGUI {
     }
 
 
-    private static void updateParametersUI(String stimType) {
+    private static void updateParametersUI(RandStimType selectedType) {
         centerPanel.removeAll();
-        if ("RandStim".equals(stimType)){
-            randStimModel.addParameterFieldsToPanel(centerPanel);
-        }
+        selectedType.addParameterFieldsToPanel(centerPanel);
         centerPanel.revalidate();
         centerPanel.repaint();
     }

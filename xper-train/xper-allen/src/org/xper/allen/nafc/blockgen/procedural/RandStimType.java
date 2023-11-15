@@ -8,7 +8,7 @@ import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 
-public class RandStimModel {
+public class RandStimType {
     public static final String label = "Rand";
 
     protected ProceduralExperimentBlockGen generator;
@@ -18,7 +18,7 @@ public class RandStimModel {
     private static JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     private static JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
 
-    public RandStimModel(ProceduralExperimentBlockGen generator) {
+    public RandStimType(ProceduralExperimentBlockGen generator) {
         this.generator = generator;
     }
 
