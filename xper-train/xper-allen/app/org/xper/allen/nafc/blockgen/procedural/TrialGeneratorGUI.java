@@ -54,18 +54,29 @@ public class TrialGeneratorGUI {
         JScrollPane listScrollPane = new JScrollPane(trialList);
         listScrollPane.setPreferredSize(new Dimension(400, 100));
 
+        trialList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int selectedIndex = trialList.getSelectedIndex();
+                if (selectedIndex != -1) {
+                    ProceduralStim.ProceduralStimParameters parameters = blockgen.getBlockParameters(selectedIndex);
+                    int numTrials = blockgen.getNumTrials(selectedIndex);
+                    loadParametersIntoFields(parameters, numTrials);
+                }
+            }
+        });
+
         JPanel bottomPanel = new JPanel();
-        JButton addRandTrainTrialsButton = new JButton("Add Trials");
+        JButton addTrialsButton = new JButton("Add Trials");
         JButton generateButton = new JButton("Generate Trials");
         JButton removeButton = new JButton("Remove Selected Trial");
         JButton editButton = new JButton("Edit Selected Trial");
 
-        bottomPanel.add(addRandTrainTrialsButton);
+        bottomPanel.add(addTrialsButton);
         bottomPanel.add(generateButton);
         bottomPanel.add(removeButton);
         bottomPanel.add(editButton);
 
-        addRandTrainTrialsButton.addActionListener(e -> {
+        addTrialsButton.addActionListener(e -> {
             ProceduralStim.ProceduralStimParameters proceduralStimParameters =
                     getProceduralStimParameters();
             int numTrials = Integer.parseInt(numTrialsField.getText());
@@ -109,6 +120,32 @@ public class TrialGeneratorGUI {
         frame.getContentPane().add(BorderLayout.SOUTH, bottomPanel);
         frame.setVisible(true);
     }
+
+    private static void loadParametersIntoFields(ProceduralStim.ProceduralStimParameters parameters, int numTrials) {
+        if (parameters != null) {
+            sampleDistMinField.setText(String.valueOf(parameters.getSampleDistanceLims().getLowerLim()));
+            sampleDistMaxField.setText(String.valueOf(parameters.getSampleDistanceLims().getUpperLim()));
+            choiceDistMinField.setText(String.valueOf(parameters.getChoiceDistanceLims().getLowerLim()));
+            choiceDistMaxField.setText(String.valueOf(parameters.getChoiceDistanceLims().getUpperLim()));
+            sizeField.setText(String.valueOf(parameters.getSize()));
+            eyeWinSizeField.setText(String.valueOf(parameters.getEyeWinSize()));
+            noiseChanceField.setText(String.valueOf(parameters.noiseChance));
+            numChoicesField.setText(String.valueOf(parameters.numChoices));
+            numRandDistractorsField.setText(String.valueOf(parameters.numRandDistractors));
+            morphMagnitudeField.setText(String.valueOf(parameters.morphMagnitude));
+
+            Color color = parameters.color;
+            colorRedField.setText(String.valueOf(color.getRed()));
+            colorGreenField.setText(String.valueOf(color.getGreen()));
+            colorBlueField.setText(String.valueOf(color.getBlue()));
+
+            // Assuming there is a way to get the number of trials from the parameters
+            // If not, you might need to pass this as a separate parameter
+            numTrialsField.setText(String.valueOf(numTrials));
+        }
+    }
+
+
 
     private static ProceduralStim.ProceduralStimParameters getProceduralStimParameters() {
         double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
