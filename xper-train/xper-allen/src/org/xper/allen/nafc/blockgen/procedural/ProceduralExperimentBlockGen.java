@@ -40,25 +40,6 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
         return stimBlocks.get(blockIndex);
     }
 
-    public NAFCTrialParameters getBlockParameters(int blockIndex) {
-        if (blockIndex >= 0 && blockIndex < stimBlocks.size()) {
-            List<NAFCStim> block = stimBlocks.get(blockIndex);
-            if (!block.isEmpty()) {
-                NAFCStim firstStim = block.get(0);
-                return firstStim.getParameters(); // Assuming ProceduralStim has a method to get its parameters
-            }
-        }
-        return null; // or throw an exception if the index is out of bounds or the block is empty
-    }
-
-    public int getNumTrials(int selectedIndex) {
-        if (selectedIndex >= 0 && selectedIndex < stimBlocks.size()) {
-            List<NAFCStim> block = stimBlocks.get(selectedIndex);
-            return block.size();
-        }
-        return 0; // or throw an exception if the index is out of bounds
-    }
-
     @Override
     protected void addTrials() {
         getStims().clear();

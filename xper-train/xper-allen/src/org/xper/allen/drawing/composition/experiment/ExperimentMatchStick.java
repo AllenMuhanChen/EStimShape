@@ -9,6 +9,7 @@ import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
+import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
@@ -72,6 +73,34 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             e.printStackTrace();
         }
         return false;
+    }
+
+    protected boolean validMStickSize() {
+        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
+        double maxRadius = (getScaleForMAxisShape() / 2) - buffer; // degree
+        int i, j;
+
+        for (i = 1; i <= getnComponent(); i++) {
+            for (j = 1; j <= getComp()[i].getnVect(); j++) {
+                double xLocation = getComp()[i].getVect_info()[j].x;
+                double yLocation = getComp()[i].getVect_info()[j].y;
+
+                if(xLocation > maxRadius || xLocation < -maxRadius){
+					System.err.println("TOO BIG");
+					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxRadius);
+                    return false;
+                }
+                if(yLocation > maxRadius || yLocation < -maxRadius){
+					System.err.println("TOO BIG");
+					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxRadius);
+                    return false;
+                }
+            }
+        }
+
+
+
+        return true;
     }
 
     private void checkMStickSize() {
@@ -457,6 +486,27 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         Point2d start2d = new Point2d(startPoint.x, startPoint.y);
         Point2d result2d = GaussianNoiseMapCalculation.point2dAlongTangent(start2d, projectedTangent, distance);
         return new Point3d(result2d.x, result2d.y, 0);
+    }
+
+    public void genMatchStickRand() {
+        int nComp;
+        double[] nCompDist = getPARAM_nCompDist();
+        nComp = stickMath_lib.pickFromProbDist(nCompDist);
+
+        while (true) {
+            while (true) {
+                if (genMatchStick_comp(nComp)) {
+                    break;
+                }
+            }
+
+            positionShape();
+            boolean res = smoothizeMStick();
+            res = res && validMStickSize();
+            if (res) {
+                break;
+            }// else we need to gen another shape
+        }
     }
 
     @Override

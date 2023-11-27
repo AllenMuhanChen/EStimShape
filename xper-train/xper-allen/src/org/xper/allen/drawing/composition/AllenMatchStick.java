@@ -2722,15 +2722,7 @@ public class AllenMatchStick extends MatchStick {
 		// Dec 24th 2008
 		// re-center the shape before do the validMStickSize check!
 		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
-		// this.normalizeMStickSize();
 
-		//   System.out.println("after centering");
-		if ( this.validMStickSize() ==  false)
-		{
-			if ( showDebug)
-				System.out.println("\n FAIL the MStick size check ....\n");
-			return false;
-		}
 		return true;
 	}
 
