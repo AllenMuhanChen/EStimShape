@@ -343,9 +343,10 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 			this.srcLength = src.length;
 
 			//			System.out.println("AC0101010: " + Arrays.toString(src));
-			//CHANGING ALPHA
-//			GL11.glEnable(GL11.GL_BLEND);
-//			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+			//CHANGING ALPHA - IMPORTANT. Even though we are not modulating alpha of the texture itself
+			// we need to set the blend function so that our noise can be superimposed properly with alpha.
+			GL11.glEnable(GL11.GL_BLEND);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
 
 
