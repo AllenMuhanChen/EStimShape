@@ -51,7 +51,7 @@ public class MatchStick implements Drawable {
 	protected RGBColor stimColor = new RGBColor(1,1,1);
 
 	private boolean doCenterObject = false;
-	private boolean showDebug = false;
+	public boolean showDebug = false;
 	protected boolean showComponents = false;
 
 	public MatchStick()

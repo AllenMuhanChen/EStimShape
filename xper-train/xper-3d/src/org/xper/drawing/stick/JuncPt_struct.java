@@ -58,7 +58,7 @@ public class JuncPt_struct {
     			  return i;
     		  }
     	  }
-    	  System.out.println("getIndexOfComp(int compId) returned 0, this should means that compId is not a component in this Junc");
+//    	  System.out.println("getIndexOfComp(int compId) returned 0, this should means that compId is not a component in this Junc");
     	  return 0;
       }
 

@@ -72,13 +72,13 @@ public class TubeComp
 		setMinXYZ(new Point3d(in.getMinXYZ()));
 
 		// about vect, fac
-		setnVect(in.getnVect());		
+		setnVect(in.getnVect());
 		for (i=1; i<=getnVect(); i++)
 		{
 			getVect_info()[i] = new Point3d( in.getVect_info()[i]);
-			getNormMat_info()[i] = new Vector3d(in.getNormMat_info()[i]);			
+			getNormMat_info()[i] = new Vector3d(in.getNormMat_info()[i]);
 		}
-		// Fac Info is always fix 
+		// Fac Info is always fix
 		// seems not need to copy the ringPT, cap_poleNS , we'll see later
 	}
 
@@ -123,7 +123,7 @@ public class TubeComp
 		Point3d impBound1 = new Point3d();
 		Point3d impBound2 = new Point3d();
 
-		//variable about next	
+		//variable about next
 		Vector3d next_gradR = new Vector3d();
 		double next_gradR_len;
 		Vector3d next_boundNorm1 = new Vector3d();
@@ -139,11 +139,11 @@ public class TubeComp
 			double denom = u - u*u;
 			a_fac = (u*q - u*m - n + m) / denom;
 			b_fac = (n - m - u*u*q + u*u*m) / denom;
-			c_fac = m;		
+			c_fac = m;
 		}
 
-		Transform3D transMat = new Transform3D();		
-		AxisAngle4d axisInfo = new AxisAngle4d( 1, 0, 0, Math.PI * 0.5);;			
+		Transform3D transMat = new Transform3D();
+		AxisAngle4d axisInfo = new AxisAngle4d( 1, 0, 0, Math.PI * 0.5);;
 		transMat.setRotation(axisInfo);
 
 
@@ -152,11 +152,11 @@ public class TubeComp
 			nowu = ((double)step-1) / ((double)getMaxStep()-1);
 
 
-			now_angle = nowu * angleExtend - 0.5 * angleExtend;	
+			now_angle = nowu * angleExtend - 0.5 * angleExtend;
 
 
 			mPts.set(0, rad * Math.cos(now_angle), rad* Math.sin(now_angle));
-			mTangent.set(0, -angleExtend*rad*Math.sin(now_angle), angleExtend*rad*Math.cos(now_angle));	
+			mTangent.set(0, -angleExtend*rad*Math.sin(now_angle), angleExtend*rad*Math.cos(now_angle));
 			localArcLen = mTangent.length();
 			mTangent.normalize();
 
@@ -167,7 +167,7 @@ public class TubeComp
 			transMat.transform(nowNormal); // nowNormal is the 90 degree rotate from tangent ( rotate along plane normal)
 
 			//System.out.println(gradR  + " scale with " + (now_rad_du / local_arcLen));
-			gradR.scale((now_rad_du / localArcLen), mTangent);		   
+			gradR.scale((now_rad_du / localArcLen), mTangent);
 			gradR_len = gradR.length();
 
 			Vector3d neg_gradR = new Vector3d();
@@ -175,8 +175,8 @@ public class TubeComp
 			Vector3d normal_scale = new Vector3d();
 			normal_scale.scale( Math.sqrt( 1.0 - gradR_len * gradR_len), nowNormal);
 
-			boundNorm1.add( neg_gradR , normal_scale);		   
-			boundNorm2.sub( neg_gradR, normal_scale);		   
+			boundNorm1.add( neg_gradR , normal_scale);
+			boundNorm2.sub( neg_gradR, normal_scale);
 			impBound1.scaleAdd( now_rad, boundNorm1, mPts);// impBound1 = now_rad * bound_Norm1 + mpos
 			impBound2.scaleAdd( now_rad, boundNorm2, mPts);
 
@@ -185,7 +185,7 @@ public class TubeComp
 			nextu = nowu + smallStep;
 			next_angle = nextu * angleExtend - 0.5 * angleExtend;
 			next_mPts.set(0, rad * Math.cos(next_angle), rad* Math.sin(next_angle));
-			next_mTangent.set(0, -angleExtend*rad*Math.sin(next_angle), angleExtend*rad*Math.cos(next_angle));	
+			next_mTangent.set(0, -angleExtend*rad*Math.sin(next_angle), angleExtend*rad*Math.cos(next_angle));
 			next_localArcLen = next_mTangent.length();
 			next_mTangent.normalize();
 
@@ -195,7 +195,7 @@ public class TubeComp
 			next_Normal.set(next_mTangent);
 			transMat.transform(next_Normal);
 
-			next_gradR.scale((next_rad_du / next_localArcLen), next_mTangent);		   
+			next_gradR.scale((next_rad_du / next_localArcLen), next_mTangent);
 			next_gradR_len = next_gradR.length();
 
 			Vector3d next_neg_gradR = new Vector3d();
@@ -203,8 +203,8 @@ public class TubeComp
 			Vector3d next_normal_scale = new Vector3d();
 			next_normal_scale.scale( Math.sqrt( 1.0 - next_gradR_len * next_gradR_len), next_Normal);
 
-			next_boundNorm1.add( next_neg_gradR , next_normal_scale);		   
-			next_boundNorm2.sub( next_neg_gradR,  next_normal_scale);		   
+			next_boundNorm1.add( next_neg_gradR , next_normal_scale);
+			next_boundNorm2.sub( next_neg_gradR,  next_normal_scale);
 			next_impBound1.scaleAdd( next_rad, next_boundNorm1, next_mPts);// impBound1 = now_rad * bound_Norm1 + mpos
 			next_impBound2.scaleAdd( next_rad, next_boundNorm2, next_mPts);
 
@@ -233,9 +233,9 @@ public class TubeComp
 		}
 
 		return true;
-	}	
+	}
 	/**
-		Apply the tubular skin onto this Tube component, 
+		Apply the tubular skin onto this Tube component,
 		Use the mAxisInfo + radInfo
 	 */
 	public boolean RadApplied_Factory()
@@ -298,12 +298,12 @@ public class TubeComp
 			temp1 = getmAxisInfo().getmTangent()[1]; // it is ok to write =, since we didn't chg temp1, temp2 value
 			temp2 = getmAxisInfo().getmTangent()[26]; // in theory, any two tangent will work
 			rotAxis.cross(temp1, temp2);
-			rotAxis.normalize();		
-			AxisAngle4d axisInfo = new AxisAngle4d( rotAxis, Math.PI * 0.5);			
+			rotAxis.normalize();
+			AxisAngle4d axisInfo = new AxisAngle4d( rotAxis, Math.PI * 0.5);
 			transMat.setRotation(axisInfo);
 		}
 		else
-		{			
+		{
 			Vector3d temp1 = getmAxisInfo().getmTangent()[1];
 			//if (temp1.getX() == 0.0)
 			//  	Normal_str8.set( 1.0, 0.0, 0.0);
@@ -314,7 +314,7 @@ public class TubeComp
 				//Normal_str8.set( temp1.getY(), -temp1.getX(), 0.0);
 				Normal_str8.set( temp1.y, -temp1.x, 0.0);
 				Normal_str8.normalize();
-			}		
+			}
 			rotAxis.cross(Normal_str8, temp1);
 			rotAxis.normalize();
 		}
@@ -337,13 +337,13 @@ public class TubeComp
 				nowNormal.set( Normal_str8);
 
 			//System.out.println(gradR  + " scale with " + (now_rad_du / local_arcLen));
-			gradR.scale((now_rad_du / local_arcLen), tangent);		   
+			gradR.scale((now_rad_du / local_arcLen), tangent);
 			gradR_len = gradR.length();
 			//System.out.println(gradR);
 			//System.out.println(gradR_len + " the length");
 			if ( gradR_len > 1.0)
 			{
-				//System.out.println( "gradient is too large here....");
+				System.out.println( "gradient is too large here....");
 				return false; // can't generate this shape
 			}
 			Vector3d neg_gradR = new Vector3d();
@@ -351,8 +351,8 @@ public class TubeComp
 			Vector3d normal_scale = new Vector3d();
 			normal_scale.scale( Math.sqrt( 1.0 - gradR_len * gradR_len), nowNormal);
 
-			boundNorm1.add( neg_gradR , normal_scale);		   
-			boundNorm2.sub( neg_gradR, normal_scale);		   
+			boundNorm1.add( neg_gradR , normal_scale);
+			boundNorm2.sub( neg_gradR, normal_scale);
 			impBound1.scaleAdd( now_rad, boundNorm1, mpos);// impBound1 = now_rad * bound_Norm1 + mpos
 			impBound2.scaleAdd( now_rad, boundNorm2, mpos);
 
@@ -366,7 +366,7 @@ public class TubeComp
 			{
 				Vector3d nowvec = new Vector3d();
 				double nowrot_deg = ( (double)(j-1) / (double)getRingSample() ) * 2 * Math.PI;
-				nowvec = stickMath_lib.rotVecArAxis(boundNorm1, tangent, nowrot_deg); // this is 1 degree in radian		
+				nowvec = stickMath_lib.rotVecArAxis(boundNorm1, tangent, nowrot_deg); // this is 1 degree in radian
 
 				getRingPt()[i][j] = new Point3d();
 				getRingPt()[i][j].scaleAdd( now_rad, nowvec, mpos);
@@ -387,10 +387,10 @@ public class TubeComp
 
 			Vector3d nowvec = new Vector3d();
 
-			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uStart, rotAxis, 0.016726646259972); // this is 1 degree in radian		
+			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uStart, rotAxis, 0.016726646259972); // this is 1 degree in radian
 			d2 = nowvec.angle(tangent);
 
-			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uStart, rotAxis, -0.016726646259972); // this is 1 degree in radian			
+			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uStart, rotAxis, -0.016726646259972); // this is 1 degree in radian
 			d3 = nowvec.angle(tangent);
 			double deg_sign =100.0;
 			if (d2 < d1 )
@@ -406,7 +406,7 @@ public class TubeComp
 			double deg;
 			for ( j = 1 ; j <= getCapSample() ; j++)
 			{
-				deg = ((double)(j-1)/ (double)getCapSample()) *  deg_span * deg_sign;		   
+				deg = ((double)(j-1)/ (double)getCapSample()) *  deg_span * deg_sign;
 				nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uStart, rotAxis, deg);
 
 				//System.out.println( "now vec new_ " + nowvec);
@@ -417,29 +417,29 @@ public class TubeComp
 				for ( i = 1 ; i <= getRingSample(); i++)
 				{
 					double nowrot_deg = ((double)(i-1) / (double)getRingSample()) * 2 * Math.PI; // In this formula, we don't eventually rotate to 2pi
-					nowvec = stickMath_lib.rotVecArAxis(nowDirect, getmAxisInfo().getmTangent()[1], nowrot_deg);                      
+					nowvec = stickMath_lib.rotVecArAxis(nowDirect, getmAxisInfo().getmTangent()[1], nowrot_deg);
 
 					//DGdata(1).cap(j,i,:) = DGdata(1).mpos + nowvec; ( matlab format)
 					getCap_poleN()[j][i] = new Point3d();
 					getCap_poleN()[j][i].add( getmAxisInfo().getmPts()[1], nowvec);
-				}   
+				}
 			}
 
 		}
 		// 3.2 at South pole
 		{
 			// by calculating d1,d2,d3, determine which direction to rotate
-			double d1, d2, d3;	
+			double d1, d2, d3;
 			tangent.set(getmAxisInfo().getmTangent()[51]);
 
 			d1 = boundNorm1_uEnd.angle(tangent);
 
 			Vector3d nowvec = new Vector3d();
 
-			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uEnd, rotAxis, 0.016726646259972); // this is 1 degree in radian		
+			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uEnd, rotAxis, 0.016726646259972); // this is 1 degree in radian
 			d2 = nowvec.angle(tangent);
 
-			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uEnd, rotAxis, -0.016726646259972); // this is 1 degree in radian			
+			nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uEnd, rotAxis, -0.016726646259972); // this is 1 degree in radian
 			d3 = nowvec.angle(tangent);
 			double deg_sign =100.0;
 			if (d2 < d1 )
@@ -456,7 +456,7 @@ public class TubeComp
 			double deg;
 			for ( j = 1 ; j <= getCapSample() ; j++)
 			{
-				deg = ((double)(j-1)/ (double)getCapSample()) *  deg_span * deg_sign;		   
+				deg = ((double)(j-1)/ (double)getCapSample()) *  deg_span * deg_sign;
 				nowvec = stickMath_lib.rotVecArAxis(boundNorm1_uEnd, rotAxis, deg);
 
 				//System.out.println( "now vec new_ " + nowvec);
@@ -467,24 +467,24 @@ public class TubeComp
 				for ( i = 1 ; i <= getRingSample(); i++)
 				{
 					double nowrot_deg = ((double)(i-1) / (double)getRingSample()) * 2 * Math.PI; // In this formula, we don't eventually rotate to 2pi
-					nowvec = stickMath_lib.rotVecArAxis(nowDirect, getmAxisInfo().getmTangent()[51], nowrot_deg);                      
+					nowvec = stickMath_lib.rotVecArAxis(nowDirect, getmAxisInfo().getmTangent()[51], nowrot_deg);
 
 					//DGdata(1).cap(j,i,:) = DGdata(1).mpos + nowvec; ( matlab format)
 					getCap_poleS()[j][i] = new Point3d();
 					getCap_poleS()[j][i].add( getmAxisInfo().getmPts()[51], nowvec);
-				}   
+				}
 			}
 
 		}
-		
-		
+
+
 
 		// 4. summarize the result into vect, normMat, fac format
 		{
 			int nowVect=1;
 			// 1. tipNorth
 			Point3d tip1 = new Point3d();
-			tip1.scaleAdd( - getRadInfo()[0][1], getmAxisInfo().getmTangent()[1], getmAxisInfo().getmPts()[1]);		
+			tip1.scaleAdd( - getRadInfo()[0][1], getmAxisInfo().getmTangent()[1], getmAxisInfo().getmPts()[1]);
 			getVect_info()[nowVect] = new Point3d(tip1);
 			getNormMat_info()[nowVect] = new Vector3d();
 			getNormMat_info()[nowVect].negate( getmAxisInfo().getmTangent()[1]);
@@ -521,7 +521,7 @@ public class TubeComp
 				}
 			// 5. tipSouth
 			Point3d tip2 = new Point3d();
-			tip2.scaleAdd( getRadInfo()[2][1], getmAxisInfo().getmTangent()[51], getmAxisInfo().getmPts()[51]);		
+			tip2.scaleAdd( getRadInfo()[2][1], getmAxisInfo().getmTangent()[51], getmAxisInfo().getmPts()[51]);
 			getVect_info()[nowVect] = new Point3d(tip2);
 			getNormMat_info()[nowVect] = new Vector3d(getmAxisInfo().getmTangent()[51]);
 
@@ -537,7 +537,7 @@ public class TubeComp
 	}
 	public void calcTubeRange()
 	{
-		int i;	
+		int i;
 		double maxX = -100.0, maxY = -100.0, maxZ = -100.0;
 		double minX = 100.0, minY = 100.0, minZ = 100.0;
 
@@ -581,7 +581,7 @@ public class TubeComp
 	{
 		//use the oGL draw line function to draw out the mAxisArc
 		/*int ringSample = 20;
-		  int capSample = 10;		
+		  int capSample = 10;
 		  int maxStep = 51;*/
 		if (isScaleOnce()) {
 			scaleTheObj(scaleFactor);
@@ -591,8 +591,8 @@ public class TubeComp
 		boolean useLight = true;
 
 		int i;
-		GL11.glColor3f(0.0f, 1.0f, 0.0f);		    
-		GL11.glPointSize(3.0f);	
+		GL11.glColor3f(0.0f, 1.0f, 0.0f);
+		GL11.glPointSize(3.0f);
 
 
 		// draw the surface triangle
@@ -623,7 +623,7 @@ public class TubeComp
 			return;
 
 		}
-		
+
 		GL11.glBegin(GL11.GL_TRIANGLES);
 		//	GL11.glBegin(GL11.GL_POINTS);
 		for (i=0; i< getnFac(); i++)
@@ -656,8 +656,8 @@ public class TubeComp
 			GL11.glEnable(GL11.GL_LIGHTING);
 
 
-		/*		
-               GL11.glColor3f(0.0f, 1.0f, 0.0f);		    
+		/*
+               GL11.glColor3f(0.0f, 1.0f, 0.0f);
 	       for (i=1 ; i<= maxStep; i++)
 	       {
 		  GL11.glBegin(GL11.GL_POLYGON);
@@ -668,10 +668,10 @@ public class TubeComp
                   	GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
 
                   }
-		  GL11.glEnd();  
+		  GL11.glEnd();
 		}
 
-               GL11.glColor3f(0.0f, 1.0f, 1.0f);		    
+               GL11.glColor3f(0.0f, 1.0f, 1.0f);
 	       for (i=1 ; i<= capSample; i++)
 	       {
 		  GL11.glBegin(GL11.GL_POLYGON);
@@ -682,10 +682,10 @@ public class TubeComp
                   	GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
 
                   }
-		  GL11.glEnd();  
+		  GL11.glEnd();
 		}
 
-               GL11.glColor3f(0.0f, 0.0f, 1.0f);		    
+               GL11.glColor3f(0.0f, 0.0f, 1.0f);
 	       for (i=1 ; i<= capSample; i++)
 	       {
 		  GL11.glBegin(GL11.GL_POLYGON);
@@ -696,18 +696,18 @@ public class TubeComp
                   	GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
 
                   }
-		  GL11.glEnd();  
+		  GL11.glEnd();
 		}
 		 */
 		/*
-		GL11.glPointSize(3.0f);	
+		GL11.glPointSize(3.0f);
    	      GL11.glBegin(GL11.GL_POINTS);
  	       for (i=1 ; i<= maxStep; i++)
 		for (j=1; j<= ringSample; j++)
 		{
 			Point3d nowPt = ringPt[i][j];
                   	GL11.glVertex3d(nowPt.getX(), nowPt.getY(), nowPt.getZ());
-                }  
+                }
 
 	       for (i=1; i<=capSample; i++)
 		for (j=1; j<=ringSample; j++)
@@ -770,7 +770,7 @@ public class TubeComp
 	public void showRadiusInfo()
 	{
 		int i;
-		for (i=0; i<3; i++)			
+		for (i=0; i<3; i++)
 		{
 			System.out.println("	(u, r) = " + getRadInfo()[i][0] + " " + getRadInfo()[i][1]);
 		}
@@ -792,16 +792,16 @@ public class TubeComp
 		System.out.println("generate tube by file info...");
 
 		Point3d finalPos = new Point3d(0,0,0); //always put at origin;
-		Vector3d finalTangent = new Vector3d(0,0,0);	
+		Vector3d finalTangent = new Vector3d(0,0,0);
 		double devAngle = 0.0;
 		int alignedPt = 26; // make it always the center of the mAxis curve
 
 
 		// read the finalPos, finalTangent, curvature, ...from the file
 		String fname = "./mAxisInput.txt";
-		// read the file into a string 
+		// read the file into a string
 		StringBuffer fileData = new StringBuffer(1000);
-		try 
+		try
 		{
 			BufferedReader reader = new BufferedReader(
 					new FileReader(fname));
@@ -810,14 +810,14 @@ public class TubeComp
 			while((numRead=reader.read(buf)) != -1){
 				String readData = String.valueOf(buf, 0, numRead);
 				fileData.append(readData);
-				buf = new char[1024];	    		
+				buf = new char[1024];
 			}
 			reader.close();
 		}
-		catch (Exception e)    
+		catch (Exception e)
 		{
 			System.out.println(e);
-		}	    			
+		}
 		String res = fileData.toString();
 		StringTokenizer st = new StringTokenizer(res," ",false);
 		String t="";
@@ -857,8 +857,8 @@ public class TubeComp
 			finalPos.set(inputVec[0], inputVec[1], inputVec[2]);
 			finalTangent.set(inputVec[3], inputVec[4], inputVec[5]);
 			double rad = 1.0/ inputVec[6];
-			double arcLen = inputVec[7];			
-			devAngle = inputVec[8];		
+			double arcLen = inputVec[7];
+			devAngle = inputVec[8];
 			double r1 = inputVec[9];
 			double r2 = inputVec[10];
 			double r3 = inputVec[11];
@@ -871,7 +871,7 @@ public class TubeComp
 			MAxisArc nowArc = new MAxisArc();
 			nowArc.genArc(rad, arcLen);
 			devAngle = 0.0; // since we want a precise rot, later;
-			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);						
+			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
 			nowArc.deviateToTargetNormal(targetNormal);
 
 			nowComp[i] = new TubeComp();
@@ -890,10 +890,10 @@ public class TubeComp
 			nowComp[i].setSkipJacobInAnalysisPhase(true);
 			nowComp[i].RadApplied_Factory();
 		} //for loop
-		//then dump the vertex and fac info in nowComp 
+		//then dump the vertex and fac info in nowComp
 		// 	to another file
 		try{
-			String foutname = "./mAxisOutput.txt";			
+			String foutname = "./mAxisOutput.txt";
 			BufferedWriter out = new BufferedWriter(new FileWriter(foutname));
 
 			//write how many segments in this file
@@ -901,13 +901,13 @@ public class TubeComp
 			for (i=0; i< nSegment; i++)
 			{
 				//write the component surface structure to out3
-				out.write( nowComp[i].getnVect() + "\n");								
+				out.write( nowComp[i].getnVect() + "\n");
 				int it1, it2;
 
 				for (it1 = 1; it1 <= nowComp[i].getnVect(); it1++)
 				{
 
-					out.write(nowComp[i].getVect_info()[it1].x + " " + nowComp[i].getVect_info()[it1].y + " " 
+					out.write(nowComp[i].getVect_info()[it1].x + " " + nowComp[i].getVect_info()[it1].y + " "
 							+ nowComp[i].getVect_info()[it1].z +" ");
 
 					out.write(nowComp[i].getNormMat_info()[it1].x + " " + nowComp[i].getNormMat_info()[it1].y +  " "
@@ -917,17 +917,17 @@ public class TubeComp
 				for (it1 = 0 ; it1 <nowComp[i].getnFac(); it1++)
 				{
 					for (it2 = 0; it2 <3; it2++)
-					{							
+					{
 						out.write(nowComp[i].getFacInfo()[it1][it2] + " ");
 					}
 					out.write("\n");
 				}
 				out.flush();
 				out.close();
-			}//loop i 
+			}//loop i
 
 
-		} 
+		}
 		catch (Exception e)
 		{
 			System.out.println(e);

@@ -58,9 +58,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 e.printStackTrace();
             }
         }
-//        if (numAttempts == this.maxAttempts) {
-//            throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
-//        }
+        if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
+            throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+        }
     }
 
     protected Map<Integer, SphericalCoordinates> calcObjCenteredPosForDrivingComp(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
@@ -127,7 +127,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             } finally{
                 numAttempts++;
             }
-            if (numAttempts == this.maxAttempts) {
+            if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
                 throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
             }
         }

@@ -17,8 +17,8 @@ public class ProceduralRandStimType {
 
 
     private JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
-    private  JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
-    private  JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
+    private JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
+    private JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
 
     public ProceduralRandStimType(ProceduralExperimentBlockGen generator) {
         this.generator = generator;
@@ -104,18 +104,18 @@ public class ProceduralRandStimType {
 
     protected void initializeParameterFields() {
         sampleDistMinField = new JTextField("0.0", 10);
-        sampleDistMaxField = new JTextField("10.0", 10);
-        choiceDistMinField = new JTextField("0.0", 10);
-        choiceDistMaxField = new JTextField("10.0", 10);
-        sizeField = new JTextField("5.0", 10);
-        eyeWinSizeField = new JTextField("2.0", 10);
-        noiseChanceField = new JTextField("0.1", 10);
-        numChoicesField = new JTextField("3", 10);
-        numRandDistractorsField = new JTextField("1", 10);
+        sampleDistMaxField = new JTextField("2.0", 10);
+        choiceDistMinField = new JTextField("15.0", 10);
+        choiceDistMaxField = new JTextField("15.0", 10);
+        sizeField = new JTextField("10.0", 10);
+        eyeWinSizeField = new JTextField("12.0", 10);
+        noiseChanceField = new JTextField("0.3", 10);
+        numChoicesField = new JTextField("4", 10);
+        numRandDistractorsField = new JTextField("2", 10);
         morphMagnitudeField = new JTextField("0.5", 10);
         colorRedField = new JTextField("255", 10);
-        colorGreenField = new JTextField("0", 10);
-        colorBlueField = new JTextField("0", 10);
+        colorGreenField = new JTextField("255", 10);
+        colorBlueField = new JTextField("255", 10);
         numTrialsField = new JTextField("10", 10);
     }
 
@@ -126,7 +126,7 @@ public class ProceduralRandStimType {
         }
     }
 
-    public void loadParametersIntoFields(ProceduralStim.ProceduralStimParameters parameters, int numTrials) {
+    protected void loadParametersIntoFields(ProceduralStim.ProceduralStimParameters parameters, int numTrials) {
         if (parameters != null) {
             sampleDistMinField.setText(String.valueOf(parameters.getSampleDistanceLims().getLowerLim()));
             sampleDistMaxField.setText(String.valueOf(parameters.getSampleDistanceLims().getUpperLim()));

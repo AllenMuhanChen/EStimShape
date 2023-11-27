@@ -66,8 +66,10 @@ public class ProceduralMatchStickTest {
 
         baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(8);
+        baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
         baseMStick.setMaxAttempts(-1);
+
     }
 
     @Test
@@ -168,14 +170,17 @@ public class ProceduralMatchStickTest {
 //        System.out.println(baseMStick.getSpecialEndComp());
 //        System.out.println(baseMStick.getBaseComp());
         drawingManager.init();
-        boolean drawNewStim = false;
-        boolean drawNewNoise = false;
-        Color color = new Color(0.4f, 0.4f, 0.4f);
+        boolean drawNewStim = true;
+        boolean drawNewNoise = true;
+        Color color = new Color(255, 255, 255);
+        double noiseAmplitude = 0.25;
 
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
+        drawingManager.drawStimulus(baseMStick, -1L, Collections.singletonList("Base"));
         ProceduralMatchStick sampleMStick;
         if (drawNewStim) {
             sampleMStick = new ProceduralMatchStick();
+//            sampleMStick.showDebug = true;
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(8);
             sampleMStick.setStimColor(color);
@@ -196,14 +201,13 @@ public class ProceduralMatchStickTest {
         }
         if (drawNewNoise) {
             drawingManager.setBackgroundColor(1f,0,0);
-            drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"), 0.5, sampleMStick.getSpecialEndComp().get(0));
+            drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"), noiseAmplitude, sampleMStick.getSpecialEndComp().get(0));
         }
 
         drawingManager.close();
         drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
         drawingManager.init();
-        NoiseForm noiseForm = NoiseFormer.getNoiseForm(NoiseType.POST_JUNC);
-        baseMStick.setNoiseParameters(new NoiseParameters(noiseForm, new Lims(0.5, 1.0)));
+
 
         numNoiseFrames = 60;
         NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1);

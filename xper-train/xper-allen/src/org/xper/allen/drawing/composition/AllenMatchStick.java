@@ -1729,9 +1729,10 @@ public class AllenMatchStick extends MatchStick {
 //					return true;
 //				}
 //			}
+			return true;
 
-			// else we need to gen another shape
-			i++;
+//			// else we need to gen another shape
+//			i++;
 		}
 		return false;
 	}
@@ -1937,7 +1938,7 @@ public class AllenMatchStick extends MatchStick {
 	 */
 
 	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf){
-		boolean showDebug = false;
+		boolean showDebug = true;
 		//nComp = 2;
 		setnComponent(nComp);
 		int i;
@@ -2118,7 +2119,7 @@ public class AllenMatchStick extends MatchStick {
 		// 5. check if the final shape is not working ( collide after skin application)
 		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 
-		if ( this.validMStickSize() ==  false)
+		if ( validMStickSize() ==  false)
 		{
 //			System.err.println("FAIL AT VALIDSIZE");
 			if ( showDebug)
