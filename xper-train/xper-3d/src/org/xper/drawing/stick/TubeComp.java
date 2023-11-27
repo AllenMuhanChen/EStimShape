@@ -343,7 +343,7 @@ public class TubeComp
 			//System.out.println(gradR_len + " the length");
 			if ( gradR_len > 1.0)
 			{
-				System.out.println( "gradient is too large here....");
+//				System.out.println( "gradient is too large here....");
 				return false; // can't generate this shape
 			}
 			Vector3d neg_gradR = new Vector3d();

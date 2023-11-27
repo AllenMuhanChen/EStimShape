@@ -1938,7 +1938,7 @@ public class AllenMatchStick extends MatchStick {
 	 */
 
 	public boolean genMatchStickFromLeaf_comp(int leafIndx, int nComp, AllenMatchStick amsOfLeaf){
-		boolean showDebug = true;
+		boolean showDebug = false;
 		//nComp = 2;
 		setnComponent(nComp);
 		int i;

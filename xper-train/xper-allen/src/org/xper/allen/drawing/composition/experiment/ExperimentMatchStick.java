@@ -46,20 +46,44 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 numAttempts++;
             }
 
-            try {
-                checkInNoise(drivingComponentIndex);
-                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
-                break;
-            } catch (ObjectCenteredPositionException e) {
-                System.out.println("Error with object centered position, retrying");
-            } catch (NoiseException e) {
-                System.out.println(e.getMessage());
-            } catch (MorphException e) {
-                e.printStackTrace();
-            }
+            if (checkMStick(drivingComponentIndex)) break;
         }
         if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+        }
+    }
+
+    private boolean checkMStick(int drivingComponentIndex) {
+        try {
+            checkMStickSize();
+            checkInNoise(drivingComponentIndex);
+//                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
+            return true;
+        } catch (ObjectCenteredPositionException e) {
+            System.out.println(e.getMessage());
+            System.out.println("Error with object centered position, retrying");
+        } catch (NoiseException e) {
+            System.out.println(e.getMessage());
+            System.out.println("Error with noise, retrying");
+        } catch (MStickSizeException e) {
+            System.out.println(e.getMessage());
+            System.out.println("Error with matchStick size, retrying");
+        } catch (MorphException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private void checkMStickSize() {
+        boolean success = this.validMStickSize();
+        if (!success) {
+            throw new MStickSizeException("MatchStick size is invalid");
+        }
+    }
+
+    public static class MStickSizeException extends MorphException{
+        public MStickSizeException(String message){
+            super(message);
         }
     }
 
@@ -112,21 +136,15 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
         while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
-            genMorphedMatchStick(morphParametersForComponents, baseMatchStick);
             try {
-                Map<Integer, SphericalCoordinates> objCentPosForBaseMatchSticksDrivingComp = calcObjCenteredPosForDrivingComp(this, drivingComponentIndex);
-                compareObjectCenteredPositionTo(objCentPosForBaseMatchSticksDrivingComp);
-                checkInNoise(drivingComponentIndex);
-                break;
-            } catch (ObjectCenteredPositionException e) {
-                System.out.println("Object Centered Position is off. Retrying...");
-            } catch (NoiseException e) {
+                genMorphedMatchStick(morphParametersForComponents, baseMatchStick);
+                positionShape();
+            } catch(MorphException e) {
                 System.out.println(e.getMessage());
-            } catch (MorphException e) {
-                e.printStackTrace();
-            } finally{
                 numAttempts++;
             }
+
+            if (checkMStick(drivingComponentIndex)) break;
             if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
                 throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
             }
@@ -178,7 +196,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         cMass.z /= totalVect;
         return cMass;
     }
-    public static class ObjectCenteredPositionException extends RuntimeException{
+    public static class ObjectCenteredPositionException extends MorphException{
 
         public ObjectCenteredPositionException(String message){
             super(message);
