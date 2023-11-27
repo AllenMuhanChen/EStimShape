@@ -74,7 +74,6 @@ public class MorphedMatchStick extends AllenMatchStick {
             }
         }
         System.err.println("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
-        System.err.println("Generating a random matchstick instead.");
         throw new MorphException("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
 //        genMatchStickRand();
     }

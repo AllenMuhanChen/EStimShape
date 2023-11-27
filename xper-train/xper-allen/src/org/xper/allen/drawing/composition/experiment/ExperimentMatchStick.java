@@ -97,9 +97,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 }
             }
         }
-
-
-
         return true;
     }
 
@@ -171,6 +168,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 numAttempts++;
+                continue;
             }
 
             if (checkMStick(drivingComponentIndex)) break;

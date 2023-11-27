@@ -29,15 +29,15 @@ public class ProceduralStim implements NAFCStim {
     protected int drivingComponent;
 
     //Local Vars
-    Procedural<Long> stimObjIds = new Procedural<>();
-    Procedural<ProceduralMatchStick> mSticks = new Procedural<>();
-    Procedural<AllenMStickSpec> mStickSpecs = new Procedural<>();
-    private int numProceduralDistractors;
-    private int numRandDistractors;
-    Procedural<String> experimentPngPaths = new Procedural<>();
-    String experimentNoiseMapPath;
-    Procedural<Coordinates2D> coords = new Procedural<>();
-    private Long taskId;
+    protected Procedural<Long> stimObjIds = new Procedural<>();
+    protected Procedural<ProceduralMatchStick> mSticks = new Procedural<>();
+    protected Procedural<AllenMStickSpec> mStickSpecs = new Procedural<>();
+    protected int numProceduralDistractors;
+    protected int numRandDistractors;
+    protected Procedural<String> experimentPngPaths = new Procedural<>();
+    protected String experimentNoiseMapPath;
+    protected Procedural<Coordinates2D> coords = new Procedural<>();
+    protected Long taskId;
 
     public ProceduralStim(ProceduralExperimentBlockGen generator,
                           ProceduralStimParameters parameters,
@@ -116,7 +116,7 @@ public class ProceduralStim implements NAFCStim {
         }
     }
 
-    private AllenMStickSpec mStickToSpec(AllenMatchStick mStick, Long stimObjId) {
+    protected AllenMStickSpec mStickToSpec(AllenMatchStick mStick, Long stimObjId) {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(mStick);
         spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + stimObjId, true);

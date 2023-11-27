@@ -19,14 +19,46 @@ public class ProceduralRandStim extends ProceduralStim{
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
                 drivingComponent = baseMatchStick.chooseRandLeaf();
                 System.out.println("Driving Component: " + drivingComponent);
-                super.generateMatchSticksAndSaveSpecs();
+                generateNonBaseMatchSticksAndSaveSpecs();
                 break;
-            } catch (MorphedMatchStick.MorphException me) {
-//                me.printStackTrace();
+            } catch (Exception me) {
                 System.out.println("MorphException: " + me.getMessage());
             }
         }
 
+    }
+
+    protected void generateNonBaseMatchSticksAndSaveSpecs() {
+        //Generate Sample
+        ProceduralMatchStick sample = new ProceduralMatchStick();
+        sample.setProperties(generator.getMaxImageDimensionDegrees());
+        sample.setStimColor(parameters.color);
+        sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent);
+        mSticks.setSample(sample);
+        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+
+        //Generate Match
+        mSticks.setMatch(sample);
+        mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
+
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
+            proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
+            proceduralDistractor.setStimColor(parameters.color);
+            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude);
+            mSticks.proceduralDistractors.add(proceduralDistractor);
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
+        }
+
+        //Generate Rand Distractors
+        for (int i = 0; i<numRandDistractors; i++) {
+            ProceduralMatchStick randDistractor = new ProceduralMatchStick();
+            randDistractor.setProperties(generator.getMaxImageDimensionDegrees());
+            randDistractor.setStimColor(parameters.color);
+            randDistractor.genMatchStickRand();
+            mSticks.randDistractors.add(randDistractor);
+            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor, stimObjIds.randDistractors.get(i)));
+        }
     }
 
     private ProceduralMatchStick genRandBaseMStick() {
