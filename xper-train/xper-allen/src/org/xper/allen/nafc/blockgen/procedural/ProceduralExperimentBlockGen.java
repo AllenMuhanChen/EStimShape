@@ -19,6 +19,13 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
 
     List<List<NAFCStim>> stimBlocks = new LinkedList<List<NAFCStim>>();
 
+    @Override
+    protected void addTrials() {
+        getStims().clear();
+        for (List<NAFCStim> stimBlock : stimBlocks) {
+            getStims().addAll(stimBlock);
+        }
+    }
 
     public void removeBlock(int blockIndex){
         stimBlocks.remove(blockIndex);
@@ -38,14 +45,6 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
 
     public List<NAFCStim> getBlock(int blockIndex){
         return stimBlocks.get(blockIndex);
-    }
-
-    @Override
-    protected void addTrials() {
-        getStims().clear();
-        for (List<NAFCStim> stimBlock : stimBlocks) {
-            getStims().addAll(stimBlock);
-        }
     }
 
     public String getGeneratorNoiseMapPath() {

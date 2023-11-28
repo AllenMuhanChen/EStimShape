@@ -28,16 +28,6 @@ public class ProceduralStim implements NAFCStim {
     protected ExperimentMatchStick baseMatchStick;
     protected int drivingComponent;
 
-    //Local Vars
-    protected Procedural<Long> stimObjIds = new Procedural<>();
-    protected Procedural<ProceduralMatchStick> mSticks = new Procedural<>();
-    protected Procedural<AllenMStickSpec> mStickSpecs = new Procedural<>();
-    protected int numProceduralDistractors;
-    protected int numRandDistractors;
-    protected Procedural<String> experimentPngPaths = new Procedural<>();
-    protected String experimentNoiseMapPath;
-    protected Procedural<Coordinates2D> coords = new Procedural<>();
-    protected Long taskId;
 
     public ProceduralStim(ProceduralExperimentBlockGen generator,
                           ProceduralStimParameters parameters,
@@ -48,6 +38,18 @@ public class ProceduralStim implements NAFCStim {
         this.baseMatchStick = baseMatchStick;
         this.drivingComponent = drivingComponent;
     }
+
+    //Local Vars
+    protected Procedural<Long> stimObjIds = new Procedural<>();
+    protected Procedural<ProceduralMatchStick> mSticks = new Procedural<>();
+    protected Procedural<AllenMStickSpec> mStickSpecs = new Procedural<>();
+    protected int numProceduralDistractors;
+    protected int numRandDistractors;
+    protected Procedural<String> experimentPngPaths = new Procedural<>();
+    protected String experimentNoiseMapPath;
+    protected Procedural<Coordinates2D> coords = new Procedural<>();
+
+    protected Long taskId;
 
     @Override
     public void preWrite() {
