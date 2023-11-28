@@ -3838,7 +3838,7 @@ public class MatchStick implements Drawable {
 
 		if (getnComponent() == 1) {
 			this.setObj1(MObj[1]);
-//			return true;
+			return true;
 		}
 
 		// 2. Start adding tube by tube

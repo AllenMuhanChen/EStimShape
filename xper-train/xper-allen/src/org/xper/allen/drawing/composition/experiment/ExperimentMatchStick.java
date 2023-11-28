@@ -50,7 +50,34 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             if (checkMStick(drivingComponentIndex)) break;
         }
         if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
-            throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+            throw new MorphRepetitionException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+        }
+    }
+
+
+    public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude) {
+        int drivingComponentIndex = baseMatchStick.getSpecialEndComp().get(0);
+        Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+        //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
+        morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
+
+        int numAttempts = 0;
+        this.maxAttempts = baseMatchStick.maxAttempts;
+        while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
+            try {
+                genMorphedMatchStick(morphParametersForComponents, baseMatchStick);
+                positionShape();
+            } catch(MorphException e) {
+                System.out.println(e.getMessage());
+                continue;
+            } finally{
+                numAttempts++;
+            }
+
+            if (checkMStick(drivingComponentIndex)) break;
+            if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
+                throw new MorphRepetitionException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+            }
         }
     }
 
@@ -86,13 +113,13 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 double yLocation = getComp()[i].getVect_info()[j].y;
 
                 if(xLocation > maxRadius || xLocation < -maxRadius){
-					System.err.println("TOO BIG");
-					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxRadius);
+//					System.err.println("TOO BIG");
+//					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxRadius);
                     return false;
                 }
                 if(yLocation > maxRadius || yLocation < -maxRadius){
-					System.err.println("TOO BIG");
-					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxRadius);
+//					System.err.println("TOO BIG");
+//					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxRadius);
                     return false;
                 }
             }
@@ -109,6 +136,12 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
     public static class MStickSizeException extends MorphException{
         public MStickSizeException(String message){
+            super(message);
+        }
+    }
+
+    public static class MorphRepetitionException extends MorphException{
+        public MorphRepetitionException(String message){
             super(message);
         }
     }
@@ -153,30 +186,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude) {
-        int drivingComponentIndex = baseMatchStick.getSpecialEndComp().get(0);
-        Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-        //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
-
-        int numAttempts = 0;
-        this.maxAttempts = baseMatchStick.maxAttempts;
-        while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
-            try {
-                genMorphedMatchStick(morphParametersForComponents, baseMatchStick);
-                positionShape();
-            } catch(MorphException e) {
-                System.out.println(e.getMessage());
-                numAttempts++;
-                continue;
-            }
-
-            if (checkMStick(drivingComponentIndex)) break;
-            if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
-                throw new MorphException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
-            }
-        }
-    }
 
     /**
      * Verify that specified components of new matchStick are all in a similar object centered position

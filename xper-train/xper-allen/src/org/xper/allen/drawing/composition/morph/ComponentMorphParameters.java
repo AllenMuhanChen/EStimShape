@@ -26,25 +26,25 @@ public class ComponentMorphParameters {
     Double curvature;
     RadiusProfile radiusProfile;
 
-    public Vector3d getOrientation(Vector3d oldOrientation){
+    public Vector3d morphOrientation(Vector3d oldOrientation){
         Vector3DMorpher vector3DMorpher = new Vector3DMorpher();
         orientation = vector3DMorpher.morphVector(oldOrientation, orientationMagnitude);
         return orientation;
     }
 
-    public Double getRotation(Double oldRotation){
+    public Double morphRotation(Double oldRotation){
         AngleMorpher angleMorpher = new AngleMorpher();
         rotation = angleMorpher.morphAngle(oldRotation, rotationMagnitude);
         return rotation;
     }
 
-    public Double getCurvature(Double oldCurvature){
+    public Double morphCurvature(Double oldCurvature){
         CurvatureMorpher curvatureMorpher = new CurvatureMorpher();
         curvature = curvatureMorpher.morphCurvature(oldCurvature, curvatureMagnitude);
         return curvature;
     }
 
-    public Double getLength(Double oldLength){
+    public Double morphLength(Double oldLength){
         if (curvature == null) {
             throw new RuntimeException("Curvature must be set before length can be set. Call getCurvature() first.");
         }
@@ -53,7 +53,7 @@ public class ComponentMorphParameters {
         return length;
     }
 
-    public RadiusProfile getRadius(RadiusProfile oldRadiusProfile){
+    public RadiusProfile morphRadius(RadiusProfile oldRadiusProfile){
         RadiusProfileMorpher radiusProfileMorpher = new RadiusProfileMorpher();
         radiusProfile = radiusProfileMorpher.morphRadiusProfile(oldRadiusProfile, length, curvature, radiusProfileMagnitude);
         return radiusProfile;
@@ -162,5 +162,25 @@ public class ComponentMorphParameters {
         public void setPreserve(Boolean preserve) {
             this.preserve = preserve;
         }
+    }
+
+    public Vector3d getOrientation() {
+        return orientation;
+    }
+
+    public Double getRotation() {
+        return rotation;
+    }
+
+    public Double getLength() {
+        return length;
+    }
+
+    public Double getCurvature() {
+        return curvature;
+    }
+
+    public RadiusProfile getRadiusProfile() {
+        return radiusProfile;
     }
 }

@@ -60,22 +60,24 @@ public class MorphedMatchStick extends AllenMatchStick {
                 MutateSUB_reAssignJunctionRadius();
                 positionShape();
                 attemptSmoothizeMStick();
-                return;
+                break;
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
                 copyFrom(backup);
+//                e.printStackTrace();
                 System.err.println("Failed to morph matchstick.");
                 System.err.println(e.getMessage());
                 System.err.println("Retrying to morph matchstick...");
             } finally{
                 numAttempts++;
-                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS);
+                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS + " to morph matchstick");
             }
         }
-        System.err.println("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
-        throw new MorphException("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
-//        genMatchStickRand();
+        if (numAttempts >= MAX_TOTAL_ATTEMPTS) {
+            System.err.println("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
+            throw new MorphException("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
+        }
     }
 
     private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
@@ -247,7 +249,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void mutateRadiusProfile(int id, ComponentMorphParameters morphParams, RadiusProfile oldRadiusProfile) {
-        RadiusProfile newRadiusProfile = morphParams.getRadius(oldRadiusProfile);
+        RadiusProfile newRadiusProfile = morphParams.morphRadius(oldRadiusProfile);
         updateRadiusProfile(id, newRadiusProfile);
     }
 

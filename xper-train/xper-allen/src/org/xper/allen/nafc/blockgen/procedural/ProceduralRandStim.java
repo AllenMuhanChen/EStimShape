@@ -5,7 +5,7 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 
 public class ProceduralRandStim extends ProceduralStim{
-    public static final int MAX_TRIES = 10;
+    public static final int MAX_TRIES = 50;
     public ProceduralRandStim(ProceduralExperimentBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
         super(generator, parameters, new ProceduralMatchStick(), 0);
     }
@@ -21,8 +21,12 @@ public class ProceduralRandStim extends ProceduralStim{
                 System.out.println("Driving Component: " + drivingComponent);
                 generateNonBaseMatchSticksAndSaveSpecs();
                 break;
-            } catch (Exception me) {
-                System.out.println("MorphException: " + me.getMessage());
+            } catch (ExperimentMatchStick.MorphRepetitionException me) {
+                System.out.println("MorphRepetition FAILED: " + me.getMessage());
+            } catch(ExperimentMatchStick.MorphException me) {
+                System.out.println("Morph EXCEPTION: " + me.getMessage());
+            } catch (Exception e) {
+                System.out.println("EXCEPTION: " + e.getMessage());
             }
         }
 
