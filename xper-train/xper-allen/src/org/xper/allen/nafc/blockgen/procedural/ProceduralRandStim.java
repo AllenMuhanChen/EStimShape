@@ -5,7 +5,7 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 
 public class ProceduralRandStim extends ProceduralStim{
-    public static final int MAX_TRIES = 50;
+    public static final int MAX_TRIES = 10;
     public ProceduralRandStim(ProceduralExperimentBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
         super(generator, parameters, new ProceduralMatchStick(), 0);
     }
@@ -49,7 +49,12 @@ public class ProceduralRandStim extends ProceduralStim{
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude);
+            try {
+                proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude);
+            } catch (ExperimentMatchStick.MorphRepetitionException e){
+                System.out.println("THROWING e");
+                throw e;
+            }
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }

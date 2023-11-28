@@ -49,7 +49,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
             if (checkMStick(drivingComponentIndex)) break;
         }
-        if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
+        if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
         }
     }
@@ -72,12 +72,15 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 continue;
             } finally{
                 numAttempts++;
+                System.out.println("numAttempts: " + numAttempts);
             }
 
+            System.out.println("Checking MStick");
             if (checkMStick(drivingComponentIndex)) break;
-            if (numAttempts == this.maxAttempts && this.maxAttempts != -1) {
-                throw new MorphRepetitionException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
-            }
+        }
+        if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
+            System.err.println("Throwing Repetition Exception");
+            throw new MorphRepetitionException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
         }
     }
 
