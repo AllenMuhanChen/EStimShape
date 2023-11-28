@@ -128,7 +128,6 @@ public class ProceduralStim implements NAFCStim {
         AllenPNGMaker pngMaker = generator.getPngMaker();
         String generatorPngPath = generator.getGeneratorPngPath();
 
-        pngMaker.createDrawerWindow();
         //Sample
         List<String> sampleLabels = Arrays.asList("sample");
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
@@ -156,18 +155,14 @@ public class ProceduralStim implements NAFCStim {
             experimentPngPaths.addRandDistractor(generator.convertPathToExperiment(randDistractorPath));
             System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
-
-        pngMaker.close();
     }
 
     private void generateNoiseMap() {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
-        generator.getPngMaker().createDrawerWindow();
         int specialCompIndx = mSticks.getSample().getSpecialEndComp().get(0);
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, specialCompIndx);
         experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
-        generator.getPngMaker().close();
     }
 
     private void assignCoords() {

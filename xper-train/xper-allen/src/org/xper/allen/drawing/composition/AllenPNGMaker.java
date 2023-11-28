@@ -44,7 +44,7 @@ public class AllenPNGMaker{
 	public AllenPNGMaker() {}
 
 	public void createDrawerWindow() {
-		if(window == null || !window.isOpen()) {
+		if(window == null || !window.isOpen()) { //Only make a new window if there isn't one already
 			window = new AllenDrawingManager(width, height);
 			window.setPngMaker(this);
 			window.init();
