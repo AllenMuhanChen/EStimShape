@@ -61,9 +61,10 @@ public class AllenDrawingManager implements Drawable {
 		renderer = new PerspectiveRenderer();
 		renderer.setDepth(pngMaker.getDepth());
 		renderer.setDistance(pngMaker.getDistance()); //TODO: stitch this into generator so it is a dependency
+		double rendererMM = pngMaker.getDpiUtil().calculateMmForRenderer();
 		renderer.setPupilDistance(pngMaker.getPupilDistance());
-		renderer.setHeight(pngMaker.getDpiUtil().calculateMmForRenderer());
-		renderer.setWidth(pngMaker.getDpiUtil().calculateMmForRenderer());
+		renderer.setHeight(rendererMM);
+		renderer.setWidth(rendererMM);
 		renderer.init(window.getWidth(), window.getHeight());
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		GL11.glDisable(GL11.GL_DEPTH_TEST);

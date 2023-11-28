@@ -65,7 +65,8 @@ public class MStickPngConfig {
         dpiUtil.setRenderer(classicConfig.experimentGLRenderer());
         dpiUtil.setDpi(xperMonkeyScreenDPI());
         dpiUtil.setMaxStimulusDimensionDegrees(xperMaxImageDimensionDegrees());
-        dpiUtil.setGeneratorDPI(91.79);
+//        dpiUtil.setGeneratorDPI(91.79);
+        dpiUtil.setGeneratorDPI(81.511920);
         System.out.println("DPIUtil");
         return dpiUtil;
     }

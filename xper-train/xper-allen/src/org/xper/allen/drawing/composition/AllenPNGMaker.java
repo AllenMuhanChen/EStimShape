@@ -29,11 +29,15 @@ public class AllenPNGMaker{
 	private double pupilDistance;
 	@Dependency
 	private double depth;
+	@Dependency
+	int height;
+	@Dependency
+	int width;
 
 
 	public AllenDrawingManager window = null;
-	int height;
-	int width;
+
+
 
 
 

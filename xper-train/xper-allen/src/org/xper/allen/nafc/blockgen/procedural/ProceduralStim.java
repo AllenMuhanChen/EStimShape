@@ -167,6 +167,7 @@ public class ProceduralStim implements NAFCStim {
         int specialCompIndx = mSticks.getSample().getSpecialEndComp().get(0);
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, specialCompIndx);
         experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
+        generator.getPngMaker().close();
     }
 
     private void assignCoords() {
