@@ -52,7 +52,7 @@ public abstract class MorphedStim<T extends MorphedMatchStick, D extends AllenMS
 
         writeSpecs(pngPath);
 
-        System.err.println("Finished Writing Morph Trial");
+        System.out.println("Finished Writing Morph Trial");
     }
 
     private void writeSpecs(String pngPath) {

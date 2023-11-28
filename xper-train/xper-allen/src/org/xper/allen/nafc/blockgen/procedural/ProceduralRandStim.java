@@ -22,12 +22,13 @@ public class ProceduralRandStim extends ProceduralStim{
                 generateNonBaseMatchSticksAndSaveSpecs();
                 break;
             } catch (ExperimentMatchStick.MorphRepetitionException me) {
-                System.out.println("MorphRepetition FAILED: " + me.getMessage());
-                System.out.println("Starting over from a new base match stick");
+                System.err.println("MorphRepetition FAILED: " + me.getMessage());
             } catch(ExperimentMatchStick.MorphException me) {
-                System.out.println("Morph EXCEPTION: " + me.getMessage());
+                System.err.println("Morph EXCEPTION: " + me.getMessage());
             } catch (Exception e) {
-                System.out.println("EXCEPTION: " + e.getMessage());
+                System.err.println("EXCEPTION: " + e.getMessage());
+            } finally{
+                System.out.println("Starting over from a new base match stick");
             }
         }
 
@@ -50,9 +51,7 @@ public class ProceduralRandStim extends ProceduralStim{
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
             proceduralDistractor.setStimColor(parameters.color);
-
             proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude);
-
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }

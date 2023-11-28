@@ -33,8 +33,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      */
     public void genMatchStickFromDrivingComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
         // calculate the object centered position of the base matchStick's drivingComponent
-        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
-                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
+//        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
+//                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
 
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
@@ -50,7 +50,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             if (checkMStick(drivingComponentIndex)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
-            throw new MorphRepetitionException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+            throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + this.maxAttempts + " attempts");
         }
     }
 
@@ -79,8 +79,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             if (checkMStick(drivingComponentIndex)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
-            System.err.println("Throwing Repetition Exception");
-            throw new MorphRepetitionException("Could not generate matchStick from driving component after " + this.maxAttempts + " attempts");
+            throw new MorphRepetitionException("Could not generate matchStick WITH NEW DRIVING COMP after " + this.maxAttempts + " attempts");
         }
     }
 
