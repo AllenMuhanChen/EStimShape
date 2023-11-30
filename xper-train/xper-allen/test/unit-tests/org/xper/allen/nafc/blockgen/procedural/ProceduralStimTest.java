@@ -24,8 +24,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
-
 public class ProceduralStimTest extends ProceduralMatchStickTest {
 
     private ProceduralExperimentBlockGen generator;
@@ -60,7 +58,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
                 color
                 );
 
-        ProceduralStim stim = new ProceduralStim(generator, parameters, baseMStick, 1);
+        ProceduralStim stim = new ProceduralStim(generator, parameters, baseMStick, 1, 1);
         stim.writeStim();
 
         AllenPNGMaker pngMaker = generator.getPngMaker();

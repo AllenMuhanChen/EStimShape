@@ -2,12 +2,11 @@ package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 
 public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
     public ProceduralRandStim(ProceduralExperimentBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
-        super(generator, parameters, new ProceduralMatchStick(), 0);
+        super(generator, parameters, new ProceduralMatchStick(), 0, 0);
     }
 
     @Override
@@ -17,8 +16,9 @@ public class ProceduralRandStim extends ProceduralStim{
                 mSticks = new Procedural<>();
                 baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
-                drivingComponent = baseMatchStick.chooseRandLeaf();
-                System.out.println("Driving Component: " + drivingComponent);
+                morphComponentIndex = baseMatchStick.chooseRandLeaf();
+                noiseComponentIndex = morphComponentIndex;
+                System.out.println("Driving Component: " + morphComponentIndex);
                 generateNonBaseMatchSticksAndSaveSpecs();
                 break;
             } catch (ExperimentMatchStick.MorphRepetitionException me) {
@@ -39,7 +39,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees());
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent);
+        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 

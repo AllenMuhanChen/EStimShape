@@ -14,7 +14,7 @@ import java.util.List;
 public class NAFCTrialGeneratorGUI {
     private static JPanel centerPanel;
     private static final DefaultListModel<String> listModel = new DefaultListModel<>();
-    private static ProceduralRandStimType selectedType;
+    private static ProceduralRandGenType selectedType;
 
     public static void main(String[] args) {
         try {
@@ -27,12 +27,12 @@ public class NAFCTrialGeneratorGUI {
                 FileUtil.loadConfigClass("experiment.config_class"));
         ProceduralExperimentBlockGen blockgen = context.getBean(ProceduralExperimentBlockGen.class);
 
-        List<? extends ProceduralRandStimType> stimTypes = Arrays.asList(new ProceduralRandStimType(blockgen));
-        HashMap<String, ProceduralRandStimType> labelsForStimTypes = new HashMap<>();
-        for (ProceduralRandStimType stimType : stimTypes) {
+        List<? extends ProceduralRandGenType> stimTypes = Arrays.asList(new ProceduralRandGenType(blockgen));
+        HashMap<String, ProceduralRandGenType> labelsForStimTypes = new HashMap<>();
+        for (ProceduralRandGenType stimType : stimTypes) {
             labelsForStimTypes.put(stimType.getLabel(), stimType);
         }
-        ProceduralRandStimType defaultStimType = labelsForStimTypes.get("RandProcedural");
+        ProceduralRandGenType defaultStimType = labelsForStimTypes.get("RandProcedural");
         selectedType = defaultStimType;
 
         JFrame frame = new JFrame("Trial Generator");
@@ -117,7 +117,7 @@ public class NAFCTrialGeneratorGUI {
     }
 
 
-    private static void updateParametersUI(ProceduralRandStimType selectedType) {
+    private static void updateParametersUI(ProceduralRandGenType selectedType) {
         centerPanel.removeAll();
         selectedType.addParameterFieldsToPanel(centerPanel);
         centerPanel.revalidate();

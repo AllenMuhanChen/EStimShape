@@ -9,11 +9,6 @@ import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
-import org.xper.allen.nafc.blockgen.Lims;
-import org.xper.allen.nafc.blockgen.NoiseFormer;
-import org.xper.allen.nafc.vo.NoiseForm;
-import org.xper.allen.nafc.vo.NoiseParameters;
-import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
@@ -184,7 +179,7 @@ public class ProceduralMatchStickTest {
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(8);
             sampleMStick.setStimColor(color);
-            sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
+            sampleMStick.genMatchStickFromComponent(baseMStick, 1);
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
 
             drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
@@ -275,7 +270,7 @@ public class ProceduralMatchStickTest {
         drawPng(baseMStick, setId, 0L);
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
         sampleMStick.setProperties(8);
-        sampleMStick.genMatchStickFromDrivingComponent(baseMStick, 1);
+        sampleMStick.genMatchStickFromComponent(baseMStick, 1);
         drawPng(sampleMStick, setId, 1L);
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick();

@@ -1,6 +1,5 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
@@ -26,17 +25,19 @@ public class ProceduralStim implements NAFCStim {
     protected final ProceduralExperimentBlockGen generator;
     protected ProceduralStimParameters parameters;
     protected ExperimentMatchStick baseMatchStick;
-    protected int drivingComponent;
+    protected int morphComponentIndex;
+    protected int noiseComponentIndex;
 
 
     public ProceduralStim(ProceduralExperimentBlockGen generator,
                           ProceduralStimParameters parameters,
                           ExperimentMatchStick baseMatchStick,
-                          int drivingComponent) {
+                          int morphComponentIndex, int noiseComponentIndex) {
         this.generator = generator;
         this.parameters = parameters;
         this.baseMatchStick = baseMatchStick;
-        this.drivingComponent = drivingComponent;
+        this.morphComponentIndex = morphComponentIndex;
+        this.noiseComponentIndex = noiseComponentIndex;
     }
 
     //Local Vars
@@ -90,7 +91,7 @@ public class ProceduralStim implements NAFCStim {
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees());
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromDrivingComponent(baseMatchStick, drivingComponent);
+        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 

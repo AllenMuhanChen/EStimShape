@@ -1,6 +1,5 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.Stim;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
@@ -10,7 +9,7 @@ import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 
-public class ProceduralRandStimType {
+public class ProceduralRandGenType {
     public static final String label = "RandProcedural";
 
     protected ProceduralExperimentBlockGen generator;
@@ -20,7 +19,7 @@ public class ProceduralRandStimType {
     private JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     private JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
 
-    public ProceduralRandStimType(ProceduralExperimentBlockGen generator) {
+    public ProceduralRandGenType(ProceduralExperimentBlockGen generator) {
         this.generator = generator;
     }
 

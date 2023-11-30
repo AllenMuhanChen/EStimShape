@@ -31,7 +31,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      * @param baseMatchStick
      * @param drivingComponentIndex
      */
-    public void genMatchStickFromDrivingComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
+    public void genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
         // calculate the object centered position of the base matchStick's drivingComponent
 //        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
@@ -56,10 +56,14 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
 
     public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude) {
-        int drivingComponentIndex = baseMatchStick.getSpecialEndComp().get(0);
+        int componentIndex = baseMatchStick.getSpecialEndComp().get(0);
+        genNewComponentMatchStick(baseMatchStick, componentIndex, magnitude);
+    }
+
+    public void genNewComponentMatchStick(ExperimentMatchStick baseMatchStick, int componentIndex, double magnitude) {
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(drivingComponentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
+        morphParametersForComponents.put(componentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
 
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
@@ -76,7 +80,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             }
 
             System.out.println("Checking MStick");
-            if (checkMStick(drivingComponentIndex)) break;
+            if (checkMStick(componentIndex)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick WITH NEW DRIVING COMP after " + this.maxAttempts + " attempts");

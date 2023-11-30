@@ -4,7 +4,6 @@ import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
 import java.util.LinkedList;
 import java.util.List;
