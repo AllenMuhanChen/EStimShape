@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
@@ -8,6 +9,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+
+import static org.xper.allen.nafc.blockgen.procedural.ProceduralStim.*;
 
 public class MockExperimentGenType extends ProceduralRandGenType{
     public static final String label = "MockProcedural";
@@ -21,28 +24,26 @@ public class MockExperimentGenType extends ProceduralRandGenType{
     public Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> genBlock(){
         int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
         MockExperimentGenParameters params = new MockExperimentGenParameters(getParameters(), getNumTrials(), numDeltaTrialSets);
-        List<NAFCStim> newBlock = genTrials(getParameters(), getNumTrials(), numDeltaTrialSets);
+        List<NAFCStim> newBlock = genTrials(params, getNumTrials(), numDeltaTrialSets);
 
         return new AbstractMap.SimpleEntry<>(newBlock, params);
     }
 
-    private List<NAFCStim> genTrials(NAFCTrialParameters parameters, int numTrials, int numDeltaTrialSets) {
+    private List<NAFCStim> genTrials(ProceduralRandGenParameters genParameters, int numTrials, int numDeltaTrialSets) {
         List<NAFCStim> newBlock = new LinkedList<>();
 
-        //ADD PROCEDURAL TRIALS
-        ExperimentMatchStick baseMStick;
-        int morphIndex;
-        int noiseIndex;
 
-        //generate first trial (to have a base matchstick that completed generation fine)
-        ProceduralStim firstStim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) parameters);
-        baseMStick = firstStim.baseMatchStick;
-        morphIndex = firstStim.morphComponentIndex;
-        noiseIndex = firstStim.noiseComponentIndex;
+        //Generate the base matchstick
+        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+        baseMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        baseMStick.setStimColor(genParameters.getProceduralStimParameters().color);
+        baseMStick.genMatchStickRand();
+        int morphIndex = baseMStick.chooseRandLeaf();
+        int noiseIndex = morphIndex;
 
         //use that trial's base matchstick to generate the rest of the trials
-        for (int i = 1; i < numTrials; i++) {
-            ProceduralStim stim = new ProceduralStim(generator, (ProceduralStim.ProceduralStimParameters) parameters, baseMStick, morphIndex, noiseIndex);
+        for (int i = 0; i < numTrials; i++) {
+            ProceduralStim stim = new ProceduralStim(generator, genParameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
             newBlock.add(stim);
         }
 

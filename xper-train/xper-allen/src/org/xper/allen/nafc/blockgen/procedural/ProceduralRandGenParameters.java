@@ -11,7 +11,7 @@ public class ProceduralRandGenParameters {
         this.numTrials = numTrials;
     }
 
-    public NAFCTrialParameters getProceduralStimParameters() {
+    public ProceduralStim.ProceduralStimParameters getProceduralStimParameters() {
         return proceduralStimParameters;
     }
 
