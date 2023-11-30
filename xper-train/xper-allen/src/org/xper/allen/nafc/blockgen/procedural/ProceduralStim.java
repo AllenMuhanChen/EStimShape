@@ -69,7 +69,9 @@ public class ProceduralStim implements NAFCStim {
         writeStimSpec();
     }
 
-    private void assignStimObjIds() {
+
+
+    protected void assignStimObjIds() {
         TimeUtil timeUtil = generator.getGlobalTimeUtil();
         long sampleId = timeUtil.currentTimeMicros();
         long matchId = sampleId + 1;
@@ -87,6 +89,16 @@ public class ProceduralStim implements NAFCStim {
     }
 
     protected void generateMatchSticksAndSaveSpecs() {
+        ProceduralMatchStick sample = generateSample();
+
+        generateMatch(sample);
+
+        generateProceduralDistractors(sample);
+
+        generateRandDistractors();
+    }
+
+    protected ProceduralMatchStick generateSample() {
         //Generate Sample
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees());
@@ -94,11 +106,16 @@ public class ProceduralStim implements NAFCStim {
         sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        return sample;
+    }
 
+    protected void generateMatch(ProceduralMatchStick sample) {
         //Generate Match
         mSticks.setMatch(sample);
         mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
+    }
 
+    protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
@@ -107,7 +124,9 @@ public class ProceduralStim implements NAFCStim {
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }
+    }
 
+    protected void generateRandDistractors() {
         //Generate Rand Distractors
         for (int i = 0; i<numRandDistractors; i++) {
             ProceduralMatchStick randDistractor = new ProceduralMatchStick();
@@ -127,7 +146,7 @@ public class ProceduralStim implements NAFCStim {
     }
 
 
-    private void drawPNGs() {
+    protected void drawPNGs() {
         AllenPNGMaker pngMaker = generator.getPngMaker();
         String generatorPngPath = generator.getGeneratorPngPath();
 
@@ -160,11 +179,10 @@ public class ProceduralStim implements NAFCStim {
         }
     }
 
-    private void generateNoiseMap() {
+    protected void generateNoiseMap() {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
-        int specialCompIndx = mSticks.getSample().getSpecialEndComp().get(0);
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, specialCompIndx);
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
     }
 

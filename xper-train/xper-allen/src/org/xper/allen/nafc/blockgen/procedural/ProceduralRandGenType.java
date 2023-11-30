@@ -15,15 +15,19 @@ public class ProceduralRandGenType {
     protected ProceduralExperimentBlockGen generator;
 
 
-    private JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
-    private JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
-    private JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
+    protected JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
+    protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
+    protected JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
 
     public ProceduralRandGenType(ProceduralExperimentBlockGen generator) {
         this.generator = generator;
     }
 
-    public List<NAFCStim> genTrials(NAFCTrialParameters proceduralStimParameters, int numTrials) {
+    public List<NAFCStim> genTrials(){
+        return genTrials(getParameters(), getNumTrials());
+    }
+
+    private List<NAFCStim> genTrials(NAFCTrialParameters proceduralStimParameters, int numTrials) {
         List<NAFCStim> newBlock = new LinkedList<>();
         for (int i = 0; i < numTrials; i++) {
             ProceduralStim stim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) proceduralStimParameters);
@@ -36,7 +40,7 @@ public class ProceduralRandGenType {
         return Integer.parseInt(numTrialsField.getText());
     }
 
-    public NAFCTrialParameters getProceduralStimParameters() {
+    public NAFCTrialParameters getParameters() {
         double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
         double sampleDistMax = Double.parseDouble(sampleDistMaxField.getText());
         double choiceDistMin = Double.parseDouble(choiceDistMinField.getText());

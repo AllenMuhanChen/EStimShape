@@ -80,13 +80,8 @@ public class NAFCTrialGeneratorGUI {
         bottomPanel.add(editButton);
 
         addTrialsButton.addActionListener(e -> {
-            NAFCTrialParameters parameters =
-                    selectedType.getProceduralStimParameters();
-            int numTrials = selectedType.getNumTrials();
-
-            blockgen.addBlock(selectedType.genTrials(parameters, numTrials));
+            blockgen.addBlock(selectedType.genTrials());
             listModel.addElement(selectedType.getInfo());
-
         });
 
         generateButton.addActionListener(e -> blockgen.generate());
@@ -102,9 +97,7 @@ public class NAFCTrialGeneratorGUI {
         editButton.addActionListener(e -> {
             int selectedIndex = trialList.getSelectedIndex();
             if (selectedIndex != -1) {
-                NAFCTrialParameters parameters = selectedType.getProceduralStimParameters();
-                int numTrials = selectedType.getNumTrials();
-                blockgen.editBlock(selectedIndex, selectedType.genTrials(parameters, numTrials));
+                blockgen.editBlock(selectedIndex, selectedType.genTrials());
                 listModel.set(selectedIndex, selectedType.getInfo());
             }
         });
