@@ -68,4 +68,5 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
     public void setExperimentNoiseMapPath(String experimentNoiseMapPath) {
         this.experimentNoiseMapPath = experimentNoiseMapPath;
     }
+
 }

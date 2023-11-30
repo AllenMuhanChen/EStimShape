@@ -26,7 +26,7 @@ public class NAFCTrialGeneratorGUI {
                 FileUtil.loadConfigClass("experiment.config_class"));
         ProceduralExperimentBlockGen blockgen = context.getBean(ProceduralExperimentBlockGen.class);
 
-        List<? extends ProceduralRandGenType> stimTypes = Arrays.asList(new ProceduralRandGenType(blockgen));
+        List<? extends ProceduralRandGenType> stimTypes = Arrays.asList(new ProceduralRandGenType(blockgen), new MockExperimentGenType(blockgen));
         HashMap<String, ProceduralRandGenType> labelsForStimTypes = new HashMap<>();
         for (ProceduralRandGenType stimType : stimTypes) {
             labelsForStimTypes.put(stimType.getLabel(), stimType);

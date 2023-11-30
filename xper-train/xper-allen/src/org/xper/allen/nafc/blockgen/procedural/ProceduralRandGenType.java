@@ -125,33 +125,27 @@ public class ProceduralRandGenType {
     }
 
     public void loadParametersIntoFields(ProceduralRandGenParameters blockParams) {
-        if (blockParams != null) {
-            ProceduralStim.ProceduralStimParameters parameters = (ProceduralStim.ProceduralStimParameters) blockParams.getProceduralStimParameters();
-            loadParametersIntoFields(parameters, blockParams.getNumTrials());
-        }
-    }
+        ProceduralStim.ProceduralStimParameters stimParameters = (ProceduralStim.ProceduralStimParameters) blockParams.getProceduralStimParameters();
+        if (stimParameters != null) {
+            sampleDistMinField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getLowerLim()));
+            sampleDistMaxField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getUpperLim()));
+            choiceDistMinField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getLowerLim()));
+            choiceDistMaxField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getUpperLim()));
+            sizeField.setText(String.valueOf(stimParameters.getSize()));
+            eyeWinSizeField.setText(String.valueOf(stimParameters.getEyeWinSize()));
+            noiseChanceField.setText(String.valueOf(stimParameters.noiseChance));
+            numChoicesField.setText(String.valueOf(stimParameters.numChoices));
+            numRandDistractorsField.setText(String.valueOf(stimParameters.numRandDistractors));
+            morphMagnitudeField.setText(String.valueOf(stimParameters.morphMagnitude));
 
-    protected void loadParametersIntoFields(ProceduralStim.ProceduralStimParameters parameters, int numTrials) {
-        if (parameters != null) {
-            sampleDistMinField.setText(String.valueOf(parameters.getSampleDistanceLims().getLowerLim()));
-            sampleDistMaxField.setText(String.valueOf(parameters.getSampleDistanceLims().getUpperLim()));
-            choiceDistMinField.setText(String.valueOf(parameters.getChoiceDistanceLims().getLowerLim()));
-            choiceDistMaxField.setText(String.valueOf(parameters.getChoiceDistanceLims().getUpperLim()));
-            sizeField.setText(String.valueOf(parameters.getSize()));
-            eyeWinSizeField.setText(String.valueOf(parameters.getEyeWinSize()));
-            noiseChanceField.setText(String.valueOf(parameters.noiseChance));
-            numChoicesField.setText(String.valueOf(parameters.numChoices));
-            numRandDistractorsField.setText(String.valueOf(parameters.numRandDistractors));
-            morphMagnitudeField.setText(String.valueOf(parameters.morphMagnitude));
-
-            Color color = parameters.color;
+            Color color = stimParameters.color;
             colorRedField.setText(String.valueOf(color.getRed()));
             colorGreenField.setText(String.valueOf(color.getGreen()));
             colorBlueField.setText(String.valueOf(color.getBlue()));
 
             // Assuming there is a way to get the number of trials from the parameters
             // If not, you might need to pass this as a separate parameter
-            numTrialsField.setText(String.valueOf(numTrials));
+            numTrialsField.setText(String.valueOf(blockParams.getNumTrials()));
         }
     }
 
