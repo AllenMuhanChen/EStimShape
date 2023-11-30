@@ -39,7 +39,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees());
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex);
+        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 

@@ -313,6 +313,18 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
+	public int findMatchedComp(AllenMatchStick otherMStick, int componentIndx){
+		int i;
+		int matchedComp = -1;
+		for (i=1; i<=otherMStick.getnComponent(); i++){
+			if (otherMStick.getComp()[i].getLabel() == componentIndx){
+				matchedComp = i;
+				break;
+			}
+		}
+		return matchedComp;
+	}
+
 	public boolean genReplacedLeafMatchStick(int leafToMorphIndx, AllenMatchStick amsToMorph, boolean maintainTangent) {
 		int i = 0;
 		while (i<2) {

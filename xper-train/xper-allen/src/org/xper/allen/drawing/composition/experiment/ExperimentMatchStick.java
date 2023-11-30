@@ -29,9 +29,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      * Generates a new matchStick from the base matchStick's driving component
      *
      * @param baseMatchStick
-     * @param drivingComponentIndex
+     * @param morphComponentIndx
      */
-    public void genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int drivingComponentIndex) {
+    public void genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx) {
         // calculate the object centered position of the base matchStick's drivingComponent
 //        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
@@ -40,14 +40,13 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         this.maxAttempts = baseMatchStick.maxAttempts;
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
             while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
-                if (genMatchStickFromLeaf(drivingComponentIndex, baseMatchStick)) {
+                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick)) {
                     positionShape();
                     break;
                 }
                 numAttempts++;
             }
-            if (checkMStick(drivingComponentIndex)) break;
-//            if (checkMStick(drivingComponentIndex)) break;
+            if (checkMStick(noiseComponentIndx)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + this.maxAttempts + " attempts");
@@ -56,14 +55,14 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
 
     public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude) {
-        int componentIndex = baseMatchStick.getSpecialEndComp().get(0);
-        genNewComponentMatchStick(baseMatchStick, componentIndex, magnitude);
+        int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
+        genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, drivingComponentIndx, magnitude);
     }
 
-    public void genNewComponentMatchStick(ExperimentMatchStick baseMatchStick, int componentIndex, double magnitude) {
+    public void genNewComponentMatchStick(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, double magnitude) {
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(componentIndex, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
+        morphParametersForComponents.put(morphComponentIndx, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0)));
 
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
@@ -80,7 +79,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
             }
 
             System.out.println("Checking MStick");
-            if (checkMStick(componentIndex)) break;
+            if (checkMStick(noiseComponentIndx)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick WITH NEW DRIVING COMP after " + this.maxAttempts + " attempts");

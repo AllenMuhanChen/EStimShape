@@ -68,10 +68,7 @@ public class DeltaStim extends ProceduralStim {
     @Override
     protected ProceduralMatchStick generateSample() {
         //Generate Sample
-        ProceduralMatchStick sample = new ProceduralMatchStick();
-        sample.setProperties(generator.getMaxImageDimensionDegrees());
-        sample.setStimColor(parameters.color);
-        sample.genNewComponentMatchStick(baseMatchStick, morphComponentIndex, parameters.morphMagnitude);
+        ProceduralMatchStick sample = baseStim.mSticks.getSample();
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
         return sample;
@@ -80,7 +77,8 @@ public class DeltaStim extends ProceduralStim {
     @Override
     protected void drawSample(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Sample
-        List<String> labels = Arrays.asList("sample");
+        List<String> labels = new LinkedList<>();
+        labels.add("sample");
         if (isDeltaNoise){
             labels.add("deltaNoise");
         }
@@ -93,7 +91,8 @@ public class DeltaStim extends ProceduralStim {
     @Override
     protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Procedural Distractors
-        List<String> labels = Arrays.asList("procedural");
+        List<String> labels = new LinkedList<>();
+        labels.add("procedural");
         if (isDeltaMorph){
             labels.add("deltaMorph");
         }
