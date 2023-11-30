@@ -6,7 +6,7 @@ import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
 
 public class ProceduralRandGenType {
@@ -23,14 +23,16 @@ public class ProceduralRandGenType {
         this.generator = generator;
     }
 
-    public List<NAFCStim> genTrials(){
-        return genTrials(getParameters(), getNumTrials());
+    public Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> genBlock(){
+        ProceduralRandGenParameters params = new ProceduralRandGenParameters(getParameters(), getNumTrials());
+        List<NAFCStim> block = genTrials(params);
+        return new LinkedHashMap.SimpleEntry<>(block, params);
     }
 
-    private List<NAFCStim> genTrials(NAFCTrialParameters proceduralStimParameters, int numTrials) {
+    private List<NAFCStim> genTrials(ProceduralRandGenParameters proceduralRandGenParameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
-        for (int i = 0; i < numTrials; i++) {
-            ProceduralStim stim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) proceduralStimParameters);
+        for (int i = 0; i < proceduralRandGenParameters.getNumTrials(); i++) {
+            ProceduralStim stim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) proceduralRandGenParameters.getProceduralStimParameters());
             newBlock.add(stim);
         }
         return newBlock;
@@ -122,10 +124,10 @@ public class ProceduralRandGenType {
         numTrialsField = new JTextField("10", 10);
     }
 
-    public void loadParametersIntoFields(List<NAFCStim> block) {
-        if (block != null) {
-            ProceduralStim.ProceduralStimParameters parameters = (ProceduralStim.ProceduralStimParameters) block.get(0).getParameters();
-            loadParametersIntoFields(parameters, block.size());
+    public void loadParametersIntoFields(ProceduralRandGenParameters blockParams) {
+        if (blockParams != null) {
+            ProceduralStim.ProceduralStimParameters parameters = (ProceduralStim.ProceduralStimParameters) blockParams.getProceduralStimParameters();
+            loadParametersIntoFields(parameters, blockParams.getNumTrials());
         }
     }
 

@@ -5,8 +5,10 @@ import org.xper.allen.Stim;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
 
@@ -17,6 +19,7 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
     String experimentNoiseMapPath;
 
     List<List<NAFCStim>> stimBlocks = new LinkedList<List<NAFCStim>>();
+    Map<List<NAFCStim>, ProceduralRandGenParameters> paramsForBlocks = new LinkedHashMap<>();
 
     @Override
     protected void addTrials() {
@@ -27,23 +30,27 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
     }
 
     public void removeBlock(int blockIndex){
-        stimBlocks.remove(blockIndex);
+        List<NAFCStim> removedBlock = stimBlocks.remove(blockIndex);
+        paramsForBlocks.remove(removedBlock);
     }
 
-    public void addBlock(int blockIndex, List<NAFCStim> block){
-        stimBlocks.add(blockIndex, block);
+    public void addBlock(Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block){
+        stimBlocks.add(block.getKey());
+        paramsForBlocks.put(block.getKey(), block.getValue());
     }
 
-    public void addBlock(List<NAFCStim> block){
-        stimBlocks.add(block);
-    }
-
-    public void editBlock(int blockIndex, List<NAFCStim> block){
-        stimBlocks.set(blockIndex, block);
+    public void editBlock(int blockIndex, Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block){
+        stimBlocks.set(blockIndex, block.getKey());
+        paramsForBlocks.put(block.getKey(), block.getValue());
     }
 
     public List<NAFCStim> getBlock(int blockIndex){
         return stimBlocks.get(blockIndex);
+    }
+
+    public ProceduralRandGenParameters getParamsForBlock(int blockIndex){
+        List<NAFCStim> block = getBlock(blockIndex);
+        return paramsForBlocks.get(block);
     }
 
     public String getGeneratorNoiseMapPath() {

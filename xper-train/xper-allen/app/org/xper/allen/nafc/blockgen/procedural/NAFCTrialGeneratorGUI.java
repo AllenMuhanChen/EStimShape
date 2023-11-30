@@ -1,7 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
@@ -63,7 +62,7 @@ public class NAFCTrialGeneratorGUI {
             if (!e.getValueIsAdjusting()) {
                 int selectedIndex = trialList.getSelectedIndex();
                 if (selectedIndex != -1) {
-                    selectedType.loadParametersIntoFields(blockgen.getBlock(selectedIndex));
+                    selectedType.loadParametersIntoFields(blockgen.getParamsForBlock(selectedIndex));
                 }
             }
         });
@@ -80,7 +79,7 @@ public class NAFCTrialGeneratorGUI {
         bottomPanel.add(editButton);
 
         addTrialsButton.addActionListener(e -> {
-            blockgen.addBlock(selectedType.genTrials());
+            blockgen.addBlock(selectedType.genBlock());
             listModel.addElement(selectedType.getInfo());
         });
 
@@ -97,7 +96,7 @@ public class NAFCTrialGeneratorGUI {
         editButton.addActionListener(e -> {
             int selectedIndex = trialList.getSelectedIndex();
             if (selectedIndex != -1) {
-                blockgen.editBlock(selectedIndex, selectedType.genTrials());
+                blockgen.editBlock(selectedIndex, selectedType.genBlock());
                 listModel.set(selectedIndex, selectedType.getInfo());
             }
         });
