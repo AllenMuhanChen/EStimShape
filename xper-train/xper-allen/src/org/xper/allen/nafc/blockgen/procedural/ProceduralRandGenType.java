@@ -24,7 +24,7 @@ public class ProceduralRandGenType {
     }
 
     public Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> genBlock(){
-        ProceduralRandGenParameters params = new ProceduralRandGenParameters(getParameters(), getNumTrials());
+        ProceduralRandGenParameters params = new ProceduralRandGenParameters(getTrialParameters(), getNumTrials());
         List<NAFCStim> block = genTrials(params);
         return new LinkedHashMap.SimpleEntry<>(block, params);
     }
@@ -42,7 +42,11 @@ public class ProceduralRandGenType {
         return Integer.parseInt(numTrialsField.getText());
     }
 
-    public NAFCTrialParameters getParameters() {
+    public ProceduralRandGenParameters getParameters(){
+        return new ProceduralRandGenParameters(getTrialParameters(), getNumTrials());
+    }
+
+    public NAFCTrialParameters getTrialParameters() {
         double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
         double sampleDistMax = Double.parseDouble(sampleDistMaxField.getText());
         double choiceDistMin = Double.parseDouble(choiceDistMinField.getText());

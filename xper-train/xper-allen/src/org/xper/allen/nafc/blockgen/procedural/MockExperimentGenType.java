@@ -18,43 +18,49 @@ public class MockExperimentGenType extends ProceduralRandGenType{
     }
 
     public Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> genBlock(){
-        int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
-        MockExperimentGenParameters params = new MockExperimentGenParameters(getParameters(), getNumTrials(), numDeltaTrialSets);
-        List<NAFCStim> newBlock = genTrials(params, getNumTrials(), numDeltaTrialSets);
-
+        MockExperimentGenParameters params = getParameters();
+        List<NAFCStim> newBlock = genTrials(params);
         return new AbstractMap.SimpleEntry<>(newBlock, params);
     }
 
-    private List<NAFCStim> genTrials(ProceduralRandGenParameters genParameters, int numTrials, int numDeltaTrialSets) {
+    public MockExperimentGenParameters getParameters() {
+        int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
+        MockExperimentGenParameters params = new MockExperimentGenParameters(super.getParameters(), numDeltaTrialSets);
+        return params;
+    }
+
+    private List<NAFCStim> genTrials(MockExperimentGenParameters parameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
 
 
         //Generate the base matchstick
         ProceduralMatchStick baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(generator.getMaxImageDimensionDegrees());
-        baseMStick.setStimColor(genParameters.getProceduralStimParameters().color);
+        baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
         baseMStick.genMatchStickRand();
         int morphIndex = baseMStick.chooseRandLeaf();
         int noiseIndex = morphIndex;
 
         //use that trial's base matchstick to generate the rest of the trials
-        for (int i = 0; i < numTrials; i++) {
-            ProceduralStim stim = new ProceduralStim(generator, genParameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
+        for (int i = 0; i < parameters.getNumTrials(); i++) {
+            ProceduralStim stim = new ProceduralStim(generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
             newBlock.add(stim);
         }
 
         //ADD DELTA TRIALS
         //choose random trials to make delta trials from
-        for (int i=0; i<numDeltaTrialSets; i++){
-            int randIndex = (int) (Math.random() * numTrials);
+        List<ProceduralStim> deltaTrials = new LinkedList<>();
+        for (int i=0; i<parameters.numDeltaTrialSets; i++){
+            int randIndex = (int) (Math.random() * parameters.getNumTrials());
             ProceduralStim baseStim = (ProceduralStim) newBlock.get(randIndex);
             ProceduralStim deltaMorph = new DeltaStim(baseStim, true, false);
             ProceduralStim deltaNoise = new DeltaStim(baseStim, false, true);
             ProceduralStim deltaBoth = new DeltaStim(baseStim, true, true);
-            newBlock.add(deltaMorph);
-            newBlock.add(deltaNoise);
-            newBlock.add(deltaBoth);
+            deltaTrials.add(deltaMorph);
+            deltaTrials.add(deltaNoise);
+            deltaTrials.add(deltaBoth);
         }
+        newBlock.addAll(deltaTrials);
         return newBlock;
     }
 
@@ -89,6 +95,11 @@ public class MockExperimentGenType extends ProceduralRandGenType{
 
         public MockExperimentGenParameters(NAFCTrialParameters proceduralStimParameters, int numTrials, int numDeltaTrialSets) {
             super(proceduralStimParameters, numTrials);
+            this.numDeltaTrialSets = numDeltaTrialSets;
+        }
+
+        public MockExperimentGenParameters(ProceduralRandGenParameters parameters, int numDeltaTrialSets) {
+            super(parameters.getProceduralStimParameters(), parameters.getNumTrials());
             this.numDeltaTrialSets = numDeltaTrialSets;
         }
     }
