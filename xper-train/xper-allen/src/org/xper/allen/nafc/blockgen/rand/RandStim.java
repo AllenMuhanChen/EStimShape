@@ -34,11 +34,11 @@ public class RandStim implements Stim {
 	private String experimentNoiseMapPath;
 	private List<String> noiseMapLabels;
 	private Rand<Long> stimObjIds = new Rand<Long>();
-	
-	
+
+
 	@Override
 	public void preWrite() {}
-	
+
 	@Override
 	public void writeStim() {
 		assignStimObjIds();
@@ -55,7 +55,7 @@ public class RandStim implements Stim {
 		StimObjIdAssignerForRandTrials stimObjIdAssigner = new StimObjIdAssignerForRandTrials(generator.getGlobalTimeUtil(), trialParameters.getNumDistractors());
 		stimObjIds = stimObjIdAssigner.getStimObjIds();
 	}
-	
+
 	private void generateMatchSticks() {
 		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator.getMaxImageDimensionDegrees(), trialParameters);
 		mSticks = mStickGenerator.getmSticks();
@@ -75,7 +75,7 @@ public class RandStim implements Stim {
 		RandTrialNoiseMapGenerator noiseMapGenerator = new RandTrialNoiseMapGenerator(stimObjIds.getSample(), mSticks.getSample(), trialParameters.getNoiseParameters(), generator);
 		experimentNoiseMapPath = noiseMapGenerator.getExperimentNoiseMapPath();
 	}
-	
+
 	private void assignCoords() {
 		RandTrialCoordinateAssigner coordAssigner = new RandTrialCoordinateAssigner(
 				trialParameters.getSampleDistanceLims(),
@@ -84,7 +84,7 @@ public class RandStim implements Stim {
 
 		coords = coordAssigner.getCoords();
 	}
-	
+
 	private void writeStimObjDataSpecs() {
 		RandTrialStimObjDataWriter stimObjDataWriter = new RandTrialStimObjDataWriter(
 				experimentNoiseMapPath,
@@ -97,14 +97,14 @@ public class RandStim implements Stim {
 		);
 		stimObjDataWriter.writeStimObjId();
 	}
-	
+
 	private void assignTaskId() {
 		setTaskId(stimObjIds.getSample());
 	}
 
 	private void writeStimSpec(){
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getStimId(),
+				getTaskId(),
 				dbUtil,
 				trialParameters,
 				coords,
@@ -114,10 +114,10 @@ public class RandStim implements Stim {
 		stimSpecWriter.writeStimSpec();
 	}
 	@Override
-	public Long getStimId() {
+	public Long getTaskId() {
 		return taskId;
 	}
-	
+
 	public void setTaskId(Long taskId) {
 		this.taskId = taskId;
 	}

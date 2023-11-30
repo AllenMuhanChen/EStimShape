@@ -46,8 +46,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 }
                 numAttempts++;
             }
-
             if (checkMStick(drivingComponentIndex)) break;
+//            if (checkMStick(drivingComponentIndex)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + this.maxAttempts + " attempts");

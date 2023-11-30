@@ -1,7 +1,5 @@
 package org.xper.allen;
 
-import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
-
 /**
  * All stims need to have a stimSpec and stimId that's written to the database.
  * @return taskId
@@ -9,7 +7,10 @@ import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
  *
  */
 public interface Stim {
+	/**
+	 * What needs to be called before shuffling
+	 */
 	public void preWrite();
 	public void writeStim();
-	public Long getStimId();
+	public Long getTaskId();
 }

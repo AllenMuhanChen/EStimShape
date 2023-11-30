@@ -46,7 +46,7 @@ public abstract class GAStim<T extends MorphedMatchStick, D extends AllenMStickD
     protected abstract T createMStick();
 
     @Override
-    public Long getStimId() {
+    public Long getTaskId() {
         return stimId;
     }
 

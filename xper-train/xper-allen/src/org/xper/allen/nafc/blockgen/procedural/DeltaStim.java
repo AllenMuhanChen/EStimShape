@@ -1,43 +1,57 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 public class DeltaStim extends ProceduralStim {
-    public DeltaStim(ProceduralStim baseStim, int morphComponentIndex, int noiseComponentIndex){
+    private final ProceduralStim baseStim;
+    private final boolean isDeltaMorph;
+    private final boolean isDeltaNoise;
+
+    public DeltaStim(ProceduralStim baseStim, boolean isDeltaMorph, boolean isDeltaNoise){
         super(
                 baseStim.generator,
                 baseStim.getParameters(),
-                baseStim.mSticks.getSample(),
-                morphComponentIndex,
-                noiseComponentIndex);
+                baseStim.baseMatchStick,
+                -1, -1);
+        this.baseStim = baseStim;
+        this.isDeltaMorph = isDeltaMorph;
+        this.isDeltaNoise = isDeltaNoise;
     }
 
-    public static DeltaStim createDeltaNoise(ProceduralStim baseStim){
-        int deltaIndex = DeltaStim.chooseDeltaIndex(baseStim);
-        int drivingIndex = getDrivingIndex(baseStim);
-        return new DeltaStim(baseStim, drivingIndex, deltaIndex);
+
+    @Override
+    public void preWrite() {
+        assignDrivingAndDeltaIndices();
+        super.preWrite();
     }
 
-    public static DeltaStim createDeltaMorph(ProceduralStim baseStim){
-        int deltaIndex = DeltaStim.chooseDeltaIndex(baseStim);
-        int drivingIndex = getDrivingIndex(baseStim);
-        return new DeltaStim(baseStim, deltaIndex, drivingIndex);
+    protected void assignDrivingAndDeltaIndices(){
+        int drivingIndex = getDrivingIndex();
+        int deltaIndex = chooseDeltaIndex();
+
+        morphComponentIndex = drivingIndex;
+        noiseComponentIndex = drivingIndex;
+        if (isDeltaMorph){
+            morphComponentIndex = deltaIndex;
+        }
+        if (isDeltaNoise) {
+            noiseComponentIndex = deltaIndex;
+        }
+
     }
 
-    public static DeltaStim createDeltaNoiseDeltaMorph(ProceduralStim baseStim){
-        int deltaIndex = DeltaStim.chooseDeltaIndex(baseStim);
-        return new DeltaStim(baseStim, deltaIndex, deltaIndex);
-    }
 
-    private static Integer getDrivingIndex(ProceduralStim baseStim) {
+    private Integer getDrivingIndex() {
         return baseStim.mSticks.getSample().getSpecialEndComp().get(0);
     }
 
-    public static int chooseDeltaIndex(ProceduralStim baseStim){
-        int drivingComponent = getDrivingIndex(baseStim);
+    private int chooseDeltaIndex(){
+        int drivingComponent = getDrivingIndex();
         List<Integer> allComps = baseStim.mSticks.getSample().getCompList();
         List<Integer> elegibleComps = new LinkedList<>();
         for (int i=0; i<allComps.size(); i++){
@@ -63,6 +77,33 @@ public class DeltaStim extends ProceduralStim {
         return sample;
     }
 
+    @Override
+    protected void drawSample(AllenPNGMaker pngMaker, String generatorPngPath) {
+        //Sample
+        List<String> labels = Arrays.asList("sample");
+        if (isDeltaNoise){
+            labels.add("deltaNoise");
+        }
+        List<String> sampleLabels = labels;
+        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
+        System.out.println("Sample Path: " + samplePath);
+        experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
+    }
+
+    @Override
+    protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
+        //Procedural Distractors
+        List<String> labels = Arrays.asList("procedural");
+        if (isDeltaMorph){
+            labels.add("deltaMorph");
+        }
+        List<String> proceduralDistractorLabels = labels;
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
+            experimentPngPaths.addProceduralDistractor(generator.convertPathToExperiment(proceduralDistractorPath));
+            System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
+        }
+    }
 
 
 }

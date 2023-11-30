@@ -150,7 +150,7 @@ public class ProceduralRandGenType {
     }
 
     public String getInfo(){
-        return "Type: " + label +
+        return "Type: " + getLabel() +
                 ", Trials: " + getNumTrials() +
                 ", NoiseChance: " + noiseChanceField.getText() +
                 ", NumChoices: " + numChoicesField.getText() +

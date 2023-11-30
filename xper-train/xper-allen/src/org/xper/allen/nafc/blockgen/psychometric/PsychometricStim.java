@@ -50,7 +50,7 @@ public class PsychometricStim implements Stim {
 	private Psychometric<AllenMatchStick> matchSticks = new Psychometric<AllenMatchStick>();;
 	private Psychometric<Long> stimObjIds;
 
-	
+
 	/**
 	 * Called before write() in order to do preallocation of parameters
 	 * before the trial is assigned a taskId and written to the database
@@ -79,7 +79,7 @@ public class PsychometricStim implements Stim {
 		assignTaskId();
 
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getStimId(),
+				getTaskId(),
 				dbUtil,
 				trialParameters,
 				coords,
@@ -104,7 +104,7 @@ public class PsychometricStim implements Stim {
 	}
 
 	private void generateNoiseMap() {
-		PsychometricNoiseMapGenerator psychometricNoiseMapGenerator = 
+		PsychometricNoiseMapGenerator psychometricNoiseMapGenerator =
 				new PsychometricNoiseMapGenerator(
 						matchSticks.getSample(),
 						stimObjIds.getSample(),
@@ -114,7 +114,7 @@ public class PsychometricStim implements Stim {
 		noiseMapPath = psychometricNoiseMapGenerator.getExperimentNoiseMapPath();
 	}
 
-	
+
 	List<AllenMatchStick> objs_randDistractors = new LinkedList<AllenMatchStick>();
 
 	private void generateRandDistractors() {
@@ -124,7 +124,7 @@ public class PsychometricStim implements Stim {
 			mStickSpecs.addRandDistractor(randGenerator.getMStickSpec());
 		}
 	}
-	
+
 
 	private void drawRandDistractorsPNGs() {
 		AllenPNGMaker pngMaker = generator.getPngMaker();
@@ -143,7 +143,7 @@ public class PsychometricStim implements Stim {
 				trialParameters.getSampleDistanceLims(),
 				trialParameters.getNumDistractors(),
 				trialParameters.getChoiceDistanceLims());
-		
+
 
 		coords = coordAssigner.getCoords();
 	}
@@ -168,7 +168,7 @@ public class PsychometricStim implements Stim {
 
 
 
-	public Long getStimId() {
+	public Long getTaskId() {
 		return taskId;
 	}
 

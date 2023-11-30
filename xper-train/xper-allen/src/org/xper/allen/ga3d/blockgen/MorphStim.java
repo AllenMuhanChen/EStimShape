@@ -110,7 +110,7 @@ public class MorphStim extends ThreeDGAStim {
 
 
     @Override
-    public Long getStimId() {
+    public Long getTaskId() {
         return stimId;
     }
 

@@ -4,7 +4,6 @@ import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.ga.MultiGaGenerationInfo;
 import org.xper.allen.ga.ParentSelector;
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
 
@@ -140,7 +139,7 @@ public class GA3DLineageBlockGenerator extends GABlockGenerator {
             public void accept(String gaName, List<Stim> trials) {
                 for (Stim trial : trials) {
                     trial.writeStim();
-                    Long taskId = trial.getStimId();
+                    Long taskId = trial.getTaskId();
                     dbUtil.writeTaskToDo(taskId, taskId, -1, gaName, genIdsForGA.get(gaName));
                 }
             }

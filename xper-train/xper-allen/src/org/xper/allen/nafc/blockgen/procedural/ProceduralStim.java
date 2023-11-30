@@ -54,16 +54,15 @@ public class ProceduralStim implements NAFCStim {
 
     @Override
     public void preWrite() {
-
-    }
-
-    @Override
-    public void writeStim() {
         assignStimObjIds();
         generateMatchSticksAndSaveSpecs();
         drawPNGs();
         generateNoiseMap();
         assignCoords();
+    }
+
+    @Override
+    public void writeStim() {
         writeStimObjDataSpecs();
         assignTaskId();
         writeStimSpec();
@@ -150,11 +149,7 @@ public class ProceduralStim implements NAFCStim {
         AllenPNGMaker pngMaker = generator.getPngMaker();
         String generatorPngPath = generator.getGeneratorPngPath();
 
-        //Sample
-        List<String> sampleLabels = Arrays.asList("sample");
-        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
-        System.out.println("Sample Path: " + samplePath);
-        experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
+        drawSample(pngMaker, generatorPngPath);
 
         //Match
         List<String> matchLabels = Arrays.asList("match");
@@ -162,13 +157,7 @@ public class ProceduralStim implements NAFCStim {
         experimentPngPaths.setMatch(generator.convertPathToExperiment(matchPath));
         System.out.println("Match Path: " + matchPath);
 
-        //Procedural Distractors
-        List<String> proceduralDistractorLabels = Arrays.asList("procedural");
-        for (int i = 0; i < numProceduralDistractors; i++) {
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
-            experimentPngPaths.addProceduralDistractor(generator.convertPathToExperiment(proceduralDistractorPath));
-            System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
-        }
+        drawProceduralDistractors(pngMaker, generatorPngPath);
 
         //Rand Distractor
         List<String> randDistractorLabels = Arrays.asList("rand");
@@ -177,6 +166,24 @@ public class ProceduralStim implements NAFCStim {
             experimentPngPaths.addRandDistractor(generator.convertPathToExperiment(randDistractorPath));
             System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
+    }
+
+    protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
+        //Procedural Distractors
+        List<String> proceduralDistractorLabels = Arrays.asList("procedural");
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
+            experimentPngPaths.addProceduralDistractor(generator.convertPathToExperiment(proceduralDistractorPath));
+            System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
+        }
+    }
+
+    protected void drawSample(AllenPNGMaker pngMaker, String generatorPngPath) {
+        //Sample
+        List<String> sampleLabels = Arrays.asList("sample");
+        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
+        System.out.println("Sample Path: " + samplePath);
+        experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
     }
 
     protected void generateNoiseMap() {
@@ -292,12 +299,12 @@ public class ProceduralStim implements NAFCStim {
     }
 
     private void assignTaskId() {
-        setTaskId(stimObjIds.getSample());
+        setTaskId(generator.getGlobalTimeUtil().currentTimeMicros());
     }
 
     private void writeStimSpec(){
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-                getStimId(),
+                getTaskId(),
                 generator.getDbUtil(),
                 parameters,
                 coords,
@@ -312,7 +319,7 @@ public class ProceduralStim implements NAFCStim {
     }
 
     @Override
-    public Long getStimId() {
+    public Long getTaskId() {
         return taskId;
     }
 

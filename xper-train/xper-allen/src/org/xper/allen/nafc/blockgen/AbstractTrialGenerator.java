@@ -59,7 +59,7 @@ public abstract class AbstractTrialGenerator<T extends Stim> implements TrialGen
 	protected void writeTrials() {
 		for (Stim stim : getStims()) {
 			stim.writeStim();
-			Long taskId = stim.getStimId();
+			Long taskId = stim.getTaskId();
 			getDbUtil().writeTaskToDo(taskId, taskId, -1, genId);
 		}
 	}

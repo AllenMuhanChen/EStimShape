@@ -1,16 +1,12 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
 import javax.swing.*;
-import java.awt.*;
 import java.util.*;
 import java.util.List;
-
-import static org.xper.allen.nafc.blockgen.procedural.ProceduralStim.*;
 
 public class MockExperimentGenType extends ProceduralRandGenType{
     public static final String label = "MockProcedural";
@@ -52,9 +48,12 @@ public class MockExperimentGenType extends ProceduralRandGenType{
         for (int i=0; i<numDeltaTrialSets; i++){
             int randIndex = (int) (Math.random() * numTrials);
             ProceduralStim baseStim = (ProceduralStim) newBlock.get(randIndex);
-            newBlock.add(DeltaStim.createDeltaNoise(baseStim));
-            newBlock.add(DeltaStim.createDeltaMorph(baseStim));
-            newBlock.add(DeltaStim.createDeltaNoiseDeltaMorph(baseStim));
+            ProceduralStim deltaMorph = new DeltaStim(baseStim, true, false);
+            ProceduralStim deltaNoise = new DeltaStim(baseStim, false, true);
+            ProceduralStim deltaBoth = new DeltaStim(baseStim, true, true);
+            newBlock.add(deltaMorph);
+            newBlock.add(deltaNoise);
+            newBlock.add(deltaBoth);
         }
         return newBlock;
     }
@@ -81,6 +80,8 @@ public class MockExperimentGenType extends ProceduralRandGenType{
     public String getLabel(){
         return label;
     }
+
+
 
     public static class MockExperimentGenParameters extends ProceduralRandGenParameters{
 

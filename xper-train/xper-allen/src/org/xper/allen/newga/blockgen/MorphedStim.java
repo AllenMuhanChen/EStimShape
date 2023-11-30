@@ -129,7 +129,7 @@ public abstract class MorphedStim<T extends MorphedMatchStick, D extends AllenMS
     }
 
     @Override
-    public Long getStimId() {
+    public Long getTaskId() {
         return stimId;
     }
 }

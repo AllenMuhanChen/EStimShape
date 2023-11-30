@@ -49,7 +49,7 @@ public abstract class GABlockGenerator<T extends ThreeDGAStim> extends AbstractM
         for (T stim : getStims()) {
             stim.writeStim();
             stim.writeGaInfo(getGaBaseName(), genId);
-            Long stimId = stim.getStimId();
+            Long stimId = stim.getTaskId();
             for (int i = 0; i < numTrialsPerStimulus; i++) {
                 long taskId = getGlobalTimeUtil().currentTimeMicros();
                 dbUtil.writeTaskToDo(taskId, stimId, -1, getGaBaseName(), genId);

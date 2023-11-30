@@ -12,7 +12,7 @@ public class ProceduralRandGenParameters {
     }
 
     public ProceduralStim.ProceduralStimParameters getProceduralStimParameters() {
-        return proceduralStimParameters;
+        return (ProceduralStim.ProceduralStimParameters) proceduralStimParameters;
     }
 
     public int getNumTrials() {
