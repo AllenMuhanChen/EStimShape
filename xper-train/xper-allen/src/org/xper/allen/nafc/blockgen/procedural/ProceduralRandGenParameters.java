@@ -20,6 +20,7 @@ public class ProceduralRandGenParameters {
     }
 
     static XStream s = new XStream();
+
     public String toXml() {
         return s.toXML(this);
     }

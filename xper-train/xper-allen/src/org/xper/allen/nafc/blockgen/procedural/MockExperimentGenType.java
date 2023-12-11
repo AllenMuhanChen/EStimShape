@@ -91,7 +91,10 @@ public class MockExperimentGenType extends ProceduralRandGenType{
 
     public static class MockExperimentGenParameters extends ProceduralRandGenParameters{
 
-        private final int numDeltaTrialSets;
+        private int numDeltaTrialSets;
+
+        public MockExperimentGenParameters() {
+        }
 
         public MockExperimentGenParameters(NAFCTrialParameters proceduralStimParameters, int numTrials, int numDeltaTrialSets) {
             super(proceduralStimParameters, numTrials);

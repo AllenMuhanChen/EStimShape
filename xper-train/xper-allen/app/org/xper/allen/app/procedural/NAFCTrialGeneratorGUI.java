@@ -118,10 +118,14 @@ public class NAFCTrialGeneratorGUI {
         frame.getContentPane().add(BorderLayout.SOUTH, bottomPanel);
         frame.setVisible(true);
 
+        //Download Trial Params from Database
         Map<ProceduralRandGenParameters, String> paramsForGenTypes = blockgen.downloadTrialParams();
+        System.out.println(paramsForGenTypes.entrySet());
         if (paramsForGenTypes != null) {
             for (Map.Entry<ProceduralRandGenParameters, String> entry : paramsForGenTypes.entrySet()) {
+                System.out.println("entry: " + entry.getKey());
                 ProceduralRandGenType genType = labelsForStimTypes.get(entry.getValue());
+                updateParametersUI(genType);
                 genType.loadParametersIntoFields(entry.getKey());
                 blockgen.addBlock(genType);
                 listModel.addElement(genType.getInfo());

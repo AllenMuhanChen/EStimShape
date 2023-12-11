@@ -45,8 +45,7 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
             return null;
         }
         MixedParams mixedParams = MixedParams.fromXml(xml);
-        Map<ProceduralRandGenParameters, String> paramsForGenTypes = mixedParams.paramsForGenTypes;
-       return paramsForGenTypes;
+        return mixedParams.paramsForGenTypes;
 
     }
 
