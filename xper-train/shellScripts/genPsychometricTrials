@@ -1,0 +1,42 @@
+#!/bin/bash
+### PARAMETERS ###
+half="0.5,0.5"
+one="1"
+#BLOCK#
+numPsychometricTrialsPerImage=0;
+numRandTrials=100;
+#PSYCHOMETRIC$
+numPsychometricDistractors="1"; numPsychometricDistractorsFreqs=$one
+numPsychometricRandDistractors="2"; numPsychometricRandDistractorsFreqs=$one
+psychometricNoiseChances="(0,0),(0.35,0.35),(0.35,0.45),(0.35,0.55),(0.35,0.65),(0.35,0.75)";
+psychometricNoiseChancesFreqs="1,0,0,0,0,0"
+#RAND#
+numQMDistractors="1"; numQMDistractorsFreqs=$one
+numRandDistractors="2"; numRandDistractorsFreqs="1"
+numMMCategories="0,1,2"; numMMCategoriesFreqs="0,1,0"
+numQMCategories="1,2,3"; numQMCategoriesFreqs="1,0,0"
+randNoiseChances="(0,0),(0.3,0.3),(0.5,0.5),(0.6,0.6),(0.7,0.7),(0.8,0.8)"; randNoiseChancesFreqs="0,0.6,0.1,0.1,0.1,0.1"
+noiseTypes="POST_JUNC,PRE_JUNC"; noiseTypesFreqs="0,1"
+#ALL TRIALS#
+sampleDistanceLims="0,0"
+choiceDistanceLims="10,10"
+size="6"
+eyeWinSize="8"
+###############
+
+source paths
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
+UPDATE SystemVar SET val=8 WHERE name='xper_max_image_dimension_degrees';
+EOF
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/allen/xper.properties
+cd $DIST/allen
+
+
+java -jar PsychometricBlockGeneratorMain.jar $numPsychometricTrialsPerImage $numRandTrials $numPsychometricDistractors $numPsychometricDistractorsFreqs $numPsychometricRandDistractors $numPsychometricRandDistractorsFreqs $psychometricNoiseChances $psychometricNoiseChancesFreqs $numQMDistractors $numQMDistractorsFreqs $numRandDistractors $numRandDistractorsFreqs $numMMCategories $numMMCategoriesFreqs $numQMCategories $numQMCategoriesFreqs $randNoiseChances $randNoiseChancesFreqs $noiseTypes $noiseTypesFreqs $sampleDistanceLims $choiceDistanceLims $size $eyeWinSize
+
+#copy pngs to m2
+rsync -av $R2_PSYCHOMETRIC_PNGS $M2_PNGS
+rsync -av $R2_PSYCHOMETRIC_NOISEMAPS $M2_PNGS
+rsync -av $R2_PNGS $M2_PNGS

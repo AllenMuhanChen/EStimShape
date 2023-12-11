@@ -1,0 +1,87 @@
+# MATLAB is only used for mock experiment
+matlab.home=/usr/local/matlab70_sp1
+xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
+
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_train_221020
+
+
+jdbc.username=xper_rw
+jdbc.password=up2nite
+
+#############################################################################
+# configuration classes
+#############################################################################
+# if not specified, the default is org.xper.config.AcqConfig
+acq.config_class= 
+
+# JK
+#  
+experiment.config_class=org.xper.allen.app.fixation.config.NoisyPngFixationAppConfig
+experiment.ga.config_class=org.xper.allen.app.fixation.config.NoisyPngFixationAppConfig
+
+# if not specified, the default is org.xper.config.FixCalConfig
+fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
+
+# To use digital port device to control juice
+fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
+
+# if not specified, the default is org.xper.config.RFPlotConfig
+rfplot.config_class=
+
+# if not specified, the default is org.xper.rds.RdsConfig
+rds.config_class=
+
+# if not specified, the default is org.xper.app.mock.MockAppConfig
+mock.config_class=
+
+#############################################################################
+# parameters
+#############################################################################
+#path of computer running generator
+generator.png_path = /home/r2_allen/Documents/EStimShape/train_221020/pngs_train_221020_noisyFixation
+#path of computer running experiment
+experiment.png_path = /home/m2_allen/Documents/pngs/pngs_train_221020/pngs_train_221020_noisyFixation
+#path of location for specs to be saved
+generator.spec_path = /home/r2_allen/Documents/EStimShape/train_221020/specs
+
+
+acq.server_host=172.30.6.80
+
+# none, comedi, ni
+acq.driver_name=comedi
+
+console.host=172.30.6.80
+
+console.eye_simulation=false
+
+experiment.host=172.30.6.90
+
+# bind experiment thread to CPU # 0, 1, 2, or 3
+experiment.cpu=0
+experiment.monkey_window_fullscreen=true
+
+experiment.acq_offline=false
+
+# this is for classic experiment.
+# choice experiment is always mark_every_step
+experiment.mark_every_step=true
+
+# for choice experiment
+experiment.digital_port_juice_trigger_delay=200
+
+# for fixcal experiment: stereo or mono
+fixcal.screen_setup=mono
+
+# for mock experiment
+mock.tasks_per_trial=8
+mock.spike_generator_plugin=randomSpikeGenerator
+mock.matlab_spike_function_name=RandomSpike
+
+#############################################################################
+# intan
+#############################################################################
+intan.host=172.30.9.78
+intan.port.command=5000
+intan.default_save_path=/home/i2_allen/Documents/Test
+intan.default_base_filename=TestRecording

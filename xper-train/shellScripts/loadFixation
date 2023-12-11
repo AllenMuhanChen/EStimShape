@@ -1,0 +1,16 @@
+#!/bin/bash
+source paths
+
+### PARAMETERS ###
+NUM_TRIALS=500
+SCALE=6
+RADIUS_LOWER=8
+RADIUS_UPPER=10
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/allen/xper.properties
+cd $DIST/allen
+
+java -jar fixationPngGen.jar $NUM_TRIALS $SCALE $RADIUS_LOWER $RADIUS_UPPER
+
+rsync -av /home/r2_allen/Documents/EStimShape/$VERSION/pngs_$VERSION m2_allen@m2_aliya:/home/m2_allen/Documents/pngs/

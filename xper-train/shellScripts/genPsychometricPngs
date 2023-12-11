@@ -1,0 +1,19 @@
+#!/bin/bash
+source paths
+### PARAMATERS ###
+NUMSETS="5"
+NUMPERSET="2"
+NUMRANDS="0"
+SIZE="10"
+CHANCE_CHANGE_POSITION=0
+#################
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/allen/xper.properties
+cd $DIST/allen
+
+java -jar PsychometricMStickPngGenerator.jar $NUMSETS $NUMPERSET $SIZE $CHANCE_CHANGE_POSITION $NUMRANDS
+
+
+#copy pngs to m2
+rsync -av $R2_PSYCHOMETRIC_PNGS $M2_PNGS

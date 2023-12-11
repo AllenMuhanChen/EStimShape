@@ -1,0 +1,19 @@
+#!/bin/bash
+source paths
+
+### PARAMETERS ###
+numTrials=50
+randNoiseChances="(0,0),(0.3,0.3),(0.35,0.35)"; randNoiseChancesFreqs="1,0,0"
+noiseTypes="POST_JUNC,PRE_JUNC"; noiseTypesFreqs="0,1"
+distanceLims="0,0"
+scale=5
+
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_FIXATION $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_FIXATION $DIST/allen/xper.properties
+cd $DIST/allen
+
+java -jar NoisyPngFixationBlockGeneratorMain.jar $numTrials $randNoiseChances $randNoiseChancesFreqs $noiseTypes $noiseTypesFreqs $distanceLims $scale
+
+R2_FIXATION_PNGS="/home/r2_allen/Documents/EStimShape/$VERSION/pngs_$VERSION""_noisyFixation"
+rsync -av $R2_FIXATION_PNGS m2_allen@m2_aliya:/home/m2_allen/Documents/pngs/pngs_$VERSION

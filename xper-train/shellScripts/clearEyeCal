@@ -1,0 +1,36 @@
+#!/bin/bash
+source paths
+
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION << EOF
+UPDATE SystemVar SET val=20 WHERE name='xper_eye_window_algorithm_base_window_size';
+UPDATE SystemVar SET val=20 WHERE name='xper_eye_window_algorithm_initial_window_size';
+UPDATE SystemVar SET val=750 WHERE name='xper_slide_length';
+UPDATE SystemVar SET val=250 WHERE name='xper_inter_slide_interval';
+UPDATE SystemVar SET val=2000 WHERE name='xper_inter_trial_interval';
+UPDATE SystemVar SET val=2 WHERE name='xper_slides_per_trial';
+UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
+UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=1;
+UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
+UPDATE SystemVar SET val='true' WHERE name='xper_do_empty_task';
+UPDATE SystemVar SET val=200 WHERE name='xper_required_eye_in_and_hold_time';
+
+DELETE from SystemVar where name = 'xper_left_iscan_eye_zero';
+DELETE from SystemVar where name = 'xper_right_iscan_eye_zero';
+DELETE from SystemVar where name = 'xper_left_iscan_mapping_algorithm_parameter';
+DELETE from SystemVar where name = 'xper_right_iscan_mapping_algorithm_parameter';
+
+INSERT INTO \`SystemVar\` (\`name\`, \`arr_ind\`, \`tstamp\`, \`val\`)
+VALUES
+    ('xper_right_iscan_mapping_algorithm_parameter', 3, 1097000000000340, '1'),
+    ('xper_right_iscan_mapping_algorithm_parameter', 2, 1097000000000340, '0'),
+    ('xper_right_iscan_mapping_algorithm_parameter', 1, 1097000000000340, '0'),
+    ('xper_right_iscan_mapping_algorithm_parameter', 0, 1097000000000340, '1'),
+    ('xper_left_iscan_mapping_algorithm_parameter', 0, 1097000000000340, '1'),
+    ('xper_left_iscan_mapping_algorithm_parameter', 1, 1097000000000340, '0'),
+    ('xper_left_iscan_mapping_algorithm_parameter', 2, 1097000000000340, '0'),
+    ('xper_left_iscan_mapping_algorithm_parameter', 3, 1097000000000340, '1'),
+    ('xper_right_iscan_eye_zero', 0, 1097000000000320, '0'),
+    ('xper_right_iscan_eye_zero', 1, 1097000000000320, '0'),
+    ('xper_left_iscan_eye_zero', 0, 1097000000000320, '0'),
+    ('xper_left_iscan_eye_zero', 1, 1097000000000320, '0');
+EOF
