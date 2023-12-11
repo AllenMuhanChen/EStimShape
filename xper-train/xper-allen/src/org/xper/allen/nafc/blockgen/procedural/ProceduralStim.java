@@ -154,7 +154,7 @@ public class ProceduralStim implements NAFCStim {
         //Match
         List<String> matchLabels = Arrays.asList("match");
         String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), matchLabels, generatorPngPath);
-        experimentPngPaths.setMatch(generator.convertPathToExperiment(matchPath));
+        experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
         System.out.println("Match Path: " + matchPath);
 
         drawProceduralDistractors(pngMaker, generatorPngPath);
@@ -163,7 +163,7 @@ public class ProceduralStim implements NAFCStim {
         List<String> randDistractorLabels = Arrays.asList("rand");
         for (int i = 0; i < numRandDistractors; i++) {
             String randDistractorPath = pngMaker.createAndSavePNG(mSticks.randDistractors.get(i),stimObjIds.randDistractors.get(i), randDistractorLabels, generatorPngPath);
-            experimentPngPaths.addRandDistractor(generator.convertPathToExperiment(randDistractorPath));
+            experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
             System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
     }
@@ -173,7 +173,7 @@ public class ProceduralStim implements NAFCStim {
         List<String> proceduralDistractorLabels = Arrays.asList("procedural");
         for (int i = 0; i < numProceduralDistractors; i++) {
             String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
-            experimentPngPaths.addProceduralDistractor(generator.convertPathToExperiment(proceduralDistractorPath));
+            experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
     }
@@ -183,14 +183,14 @@ public class ProceduralStim implements NAFCStim {
         List<String> sampleLabels = Arrays.asList("sample");
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
         System.out.println("Sample Path: " + samplePath);
-        experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
+        experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
     }
 
     protected void generateNoiseMap() {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
-        experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
+        experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
 
     private void assignCoords() {

@@ -1,6 +1,5 @@
 package org.xper.allen.ga3d.blockgen;
 
-import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.db.vo.StimSpecEntry;
@@ -58,7 +57,7 @@ public class MorphStim extends ThreeDGAStim {
         labels.add(gaName);
         labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
-        pngPath = generator.convertPathToExperiment(pngPath);
+        pngPath = generator.convertPngPathToExperiment(pngPath);
 
         Coordinates2D parentCoords = getCoordsFromParent();
         double parentSize = getSizeFromParent();

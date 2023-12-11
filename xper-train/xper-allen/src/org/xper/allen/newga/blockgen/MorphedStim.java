@@ -78,7 +78,7 @@ public abstract class MorphedStim<T extends MorphedMatchStick, D extends AllenMS
         labels.add(generator.getGaBaseName());
         labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
-        pngPath = generator.convertPathToExperiment(pngPath);
+        pngPath = generator.convertPngPathToExperiment(pngPath);
         return pngPath;
     }
 

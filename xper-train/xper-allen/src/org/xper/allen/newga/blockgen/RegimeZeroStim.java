@@ -3,10 +3,8 @@ package org.xper.allen.newga.blockgen;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.ga.regimescore.MutationType;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
-import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.allen.pga.RegimeType;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
@@ -53,7 +51,7 @@ public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickD
         labels.add(generator.getGaBaseName());
         labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
-        pngPath = generator.convertPathToExperiment(pngPath);
+        pngPath = generator.convertPngPathToExperiment(pngPath);
         return pngPath;
     }
 

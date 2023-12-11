@@ -1,5 +1,5 @@
 #!/bin/bash
-source paths
+source pathsProcedural
 
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION << EOF
 UPDATE SystemVar SET val=20 WHERE name='xper_eye_window_algorithm_base_window_size';

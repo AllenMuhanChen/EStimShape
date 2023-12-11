@@ -1,6 +1,6 @@
 #!/bin/bash
-source paths
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/xper.properties
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/allen/xper.properties
+source pathsProcedural
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST/allen
 java -jar fixcal_console.jar

@@ -116,8 +116,8 @@ public class ProceduralRandGenType {
         sampleDistMaxField = new JTextField("2.0", 10);
         choiceDistMinField = new JTextField("15.0", 10);
         choiceDistMaxField = new JTextField("15.0", 10);
-        sizeField = new JTextField("10.0", 10);
-        eyeWinSizeField = new JTextField("12.0", 10);
+        sizeField = new JTextField("8.0", 10);
+        eyeWinSizeField = new JTextField("10.0", 10);
         noiseChanceField = new JTextField("0.3", 10);
         numChoicesField = new JTextField("4", 10);
         numRandDistractorsField = new JTextField("2", 10);

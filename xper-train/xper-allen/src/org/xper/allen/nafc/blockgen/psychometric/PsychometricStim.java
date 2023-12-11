@@ -133,7 +133,7 @@ public class PsychometricStim implements Stim {
 		int indx=0;
 		for (AllenMatchStick obj: matchSticks.getRandDistractors()) {
 			String path = pngMaker.createAndSavePNG(obj, stimObjIds.getRandDistractors().get(indx), randDistractorLabels, generator.getGeneratorPngPath());
-			pngPaths.addRandDistractor(generator.convertPathToExperiment(path));
+			pngPaths.addRandDistractor(generator.convertPngPathToExperiment(path));
 			indx++;
 		}
 	}

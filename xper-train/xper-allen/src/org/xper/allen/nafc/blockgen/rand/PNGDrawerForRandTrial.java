@@ -38,7 +38,7 @@ public class PNGDrawerForRandTrial {
         index=0;
         for(AllenMatchStick mStick:mSticks.getRandDistractors()){
             String randDistractorPath = pngMaker.createAndSavePNG(mStick, stimObjIds.getRandDistractors().get(index), randDistractorLabels, generatorPngPath);
-            experimentPngPaths.addRandDistractor(generator.convertPathToExperiment(randDistractorPath));
+            experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
             index++;
         }
     }
@@ -48,7 +48,7 @@ public class PNGDrawerForRandTrial {
         int index=0;
         for(AllenMatchStick mStick:mSticks.getQualitativeMorphDistractors()){
             String qmDistractorPath = pngMaker.createAndSavePNG(mStick, stimObjIds.getQualitativeMorphDistractors().get(index), qmDistractorLabels, generatorPngPath);
-            experimentPngPaths.addQualitativeMorphDistractor(generator.convertPathToExperiment(qmDistractorPath));
+            experimentPngPaths.addQualitativeMorphDistractor(generator.convertPngPathToExperiment(qmDistractorPath));
             index++;
         }
     }
@@ -56,13 +56,13 @@ public class PNGDrawerForRandTrial {
     private void drawMatchPNG(AllenPNGMaker pngMaker, String generatorPngPath) {
         List<String> matchLabels =  Arrays.asList(new String[] {"match"});
         String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), matchLabels, generatorPngPath);
-        experimentPngPaths.setMatch(generator.convertPathToExperiment(matchPath));
+        experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
     }
 
     private void drawSamplePNG(AllenPNGMaker pngMaker, String generatorPngPath) {
         List<String> sampleLabels = Arrays.asList(new String[] {"sample"});
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
-        experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
+        experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
     }
 
     public Rand<String> getExperimentPngPaths() {

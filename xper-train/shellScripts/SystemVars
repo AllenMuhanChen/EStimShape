@@ -1,5 +1,5 @@
 #!/bin/bash
-source paths
+source pathsProcedural
 
 #Often VARYING SystemVars - HeadFixed now. 
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF

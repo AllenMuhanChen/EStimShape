@@ -45,7 +45,7 @@ public class RandStim extends ThreeDGAStim {
         List<String> labels = new LinkedList<>();
         labels.add(generator.getGaBaseName());
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
-        pngPath = generator.convertPathToExperiment(pngPath);
+        pngPath = generator.convertPngPathToExperiment(pngPath);
 
         //Create StimSpec
         stimSpec = new PngSpec();

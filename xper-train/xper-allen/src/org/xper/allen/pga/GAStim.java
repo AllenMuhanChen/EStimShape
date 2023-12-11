@@ -55,7 +55,7 @@ public abstract class GAStim<T extends MorphedMatchStick, D extends AllenMStickD
         List<String> labels = new LinkedList<>();
         labels.add(Long.toString(parentId));
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, stimId, labels, generator.getGeneratorPngPath());
-        pngPath = generator.convertPathToExperiment(pngPath);
+        pngPath = generator.convertPngPathToExperiment(pngPath);
         return pngPath;
     }
 

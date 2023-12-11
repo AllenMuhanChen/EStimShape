@@ -1,0 +1,14 @@
+#!/bin/bash
+source pathsProcedural
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
+cd $DIST/allen
+
+java -jar NAFCTrialGeneratorGUI.jar
+
+
+#copy pngs to m2
+rsync -av $R_PNGS $M_RSYNC_PROCEDURAL
+rsync -av $R_SPECS $M_RSYNC_PROCEDURAL
+rsync -av $R_NOISEMAPS $M_RSYNC_PROCEDURAL

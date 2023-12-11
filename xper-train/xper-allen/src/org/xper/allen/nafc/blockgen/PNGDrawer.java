@@ -15,7 +15,7 @@ public class PNGDrawer {
 	NumberOfDistractorsForPsychometricTrial numDistractors;
 	AbstractMStickPngTrialGenerator gen;
 	private List<Long> randDistractorsIds = new LinkedList<Long>();
-	
+
 	public PNGDrawer(NumberOfDistractorsForPsychometricTrial numDistractors, AbstractPsychometricTrialGenerator gen,
                      List<Long> randDistractorsIds, List<String> randDistractorsPngPaths) {
 		super();
@@ -26,19 +26,19 @@ public class PNGDrawer {
 	}
 
 	List<AllenMatchStick> objs_randDistractor = new ArrayList<AllenMatchStick>();
-	
+
 	public void genRandDistractors() {
 		genRandDistractors_obj();
 		drawRandDistractors();
-		
+
 	}
-	
+
 	private void genRandDistractors_obj() {
 
 		boolean tryagain = true;
 		while(tryagain) {
 			objs_randDistractor = new ArrayList<AllenMatchStick>();
-			
+
 			for(int j = 0; j< numDistractors.getNumRandDistractors(); j++) {
 				try {
 					AbstractMStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen.getMaxImageDimensionDegrees());
@@ -62,7 +62,7 @@ public class PNGDrawer {
 		int indx=0;
 		for (AllenMatchStick obj: objs_randDistractor) {
 			String path = gen.pngMaker.createAndSavePNG(obj, randDistractorsIds.get(indx), sampleLabels, gen.getGeneratorPngPath());
-			gen.convertPathToExperiment(path);
+			gen.convertPngPathToExperiment(path);
 			randDistractorsPngPaths.add(path);
 		}
 	}

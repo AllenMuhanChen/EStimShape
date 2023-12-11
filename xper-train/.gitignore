@@ -29,5 +29,6 @@ hs_err_pid*
 # JK
 .directory
 dist
+stimuli
 **/xper.properties
 xper/class/

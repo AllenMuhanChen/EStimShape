@@ -38,12 +38,12 @@ public class NoisyPngFixationStim implements Stim {
 
         //Create Png
         String pngPath = generator.getPngMaker().createAndSavePNG(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
-        pngPath = generator.convertPathToExperiment(pngPath);
+        pngPath = generator.convertPngPathToExperiment(pngPath);
 
         //Create NoiseMap
         mStick.setNoiseParameters(params.getNoiseParameters());
         String noiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
-        noiseMapPath = generator.convertPathToExperiment(noiseMapPath);
+        noiseMapPath = generator.convertPngPathToExperiment(noiseMapPath);
 
         //Assign Coordinates
         Coordinates2D coords = NAFCCoordinateAssigner.randomCoordsWithinRadii(params.distanceLims.getLowerLim(), params.distanceLims.getUpperLim());

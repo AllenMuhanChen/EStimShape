@@ -39,7 +39,7 @@ public class RecolorableImages extends TranslatableResizableImages{
 		 */
 //
 
-		GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MULT);
+//		GL11.glTexEnvi(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MULT);
 
         GL11.glBegin(GL11.GL_QUADS);
         GL11.glTexCoord2f(0, 1);

@@ -45,7 +45,7 @@ public abstract class AbstractMStickPngTrialGenerator<T extends Stim> extends Ab
 		return expPaths;
 	}
 
-	public String convertPathToExperiment(String generatorPath) {
+	public String convertPngPathToExperiment(String generatorPath) {
 
 		String newPath = generatorPath.replace(getGeneratorPngPath(), getExperimentPngPath());
 

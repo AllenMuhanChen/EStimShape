@@ -3,7 +3,6 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -85,7 +84,7 @@ public class DeltaStim extends ProceduralStim {
         List<String> sampleLabels = labels;
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
         System.out.println("Sample Path: " + samplePath);
-        experimentPngPaths.setSample(generator.convertPathToExperiment(samplePath));
+        experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
     }
 
     @Override
@@ -99,7 +98,7 @@ public class DeltaStim extends ProceduralStim {
         List<String> proceduralDistractorLabels = labels;
         for (int i = 0; i < numProceduralDistractors; i++) {
             String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
-            experimentPngPaths.addProceduralDistractor(generator.convertPathToExperiment(proceduralDistractorPath));
+            experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
     }

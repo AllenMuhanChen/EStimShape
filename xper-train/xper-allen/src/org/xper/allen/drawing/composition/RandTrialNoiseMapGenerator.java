@@ -7,17 +7,17 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.nafc.vo.NoiseParameters;
 
 public class RandTrialNoiseMapGenerator extends NoiseMapGenerator {
-	
+
 	private NoiseParameters noiseParameters;
 	AbstractMStickPngTrialGenerator generator;
-	
+
 
 	public RandTrialNoiseMapGenerator(long id, AllenMatchStick mStick, NoiseParameters noiseParameters,
 			AbstractMStickPngTrialGenerator generator) {
 		super(id, mStick);
 		this.noiseParameters = noiseParameters;
 		this.generator = generator;
-		
+
 		generate();
 	}
 
@@ -33,6 +33,6 @@ public class RandTrialNoiseMapGenerator extends NoiseMapGenerator {
 		noiseMapLabels.add("sample");
 		generator.getPngMaker().createDrawerWindow();
 		String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPngPath());
-		experimentNoiseMapPath = generator.convertPathToExperiment(generatorNoiseMapPath);
+		experimentNoiseMapPath = generator.convertPngPathToExperiment(generatorNoiseMapPath);
 	}
 }

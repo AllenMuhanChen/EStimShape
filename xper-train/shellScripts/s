@@ -1,7 +1,7 @@
 #!/bin/bash
-source paths
+source pathsProcedural
 
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/xper.properties
-sudo -S <<< r2_allen cp $XPER_PROPERTIES_PSYCHOMETRIC $DIST/allen/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST
 java -jar acq_server.jar

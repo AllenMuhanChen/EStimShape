@@ -53,6 +53,10 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
         return paramsForBlocks.get(block);
     }
 
+    public String convertGeneratorNoiseMapToExperiment(String generatorPath) {
+        return generatorPath.replace(getGeneratorNoiseMapPath(), getExperimentNoiseMapPath());
+    }
+
     public String getGeneratorNoiseMapPath() {
         return generatorNoiseMapPath;
     }

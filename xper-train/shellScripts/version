@@ -1,0 +1,3 @@
+#!/bin/bash
+#All we need to do is change VERSION. 
+VERSION=train_231211
