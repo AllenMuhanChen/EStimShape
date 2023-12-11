@@ -26,10 +26,8 @@
 hs_err_pid*
 /.metadata/
 
-# JK 
+# JK
 .directory
 dist
 **/xper.properties
 xper/class/
-
-

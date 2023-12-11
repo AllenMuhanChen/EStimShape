@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="allen_estimshape_dev_230519@localhost" uuid="4779a6fb-157c-46bb-938e-21154d9303ec">
+    <data-source source="LOCAL" name="MySQL" uuid="4779a6fb-157c-46bb-938e-21154d9303ec">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mysql://localhost:3306/allen_estimshape_dev_230519</jdbc-url>
+      <jdbc-url>jdbc:mysql://localhost:3306/allen_estimshape_train_231211</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
