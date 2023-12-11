@@ -336,6 +336,9 @@ public class ProceduralStim implements NAFCStim {
         double morphMagnitude;
         Color color;
 
+        public ProceduralStimParameters() {
+        }
+
         public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, Color color) {
             super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize);
             this.noiseChance = noiseChance;

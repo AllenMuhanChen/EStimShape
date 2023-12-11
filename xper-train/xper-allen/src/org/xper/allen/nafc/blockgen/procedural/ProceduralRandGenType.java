@@ -23,6 +23,16 @@ public class ProceduralRandGenType {
         this.generator = generator;
     }
 
+    public static ProceduralRandGenType getGenType(String s, ProceduralExperimentBlockGen proceduralExperimentBlockGen) {
+        if (s.equals(MockExperimentGenType.label)) {
+            return new MockExperimentGenType(proceduralExperimentBlockGen);
+        } else if (s.equals(ProceduralRandGenType.label)) {
+            return new ProceduralRandGenType(proceduralExperimentBlockGen);
+        } else {
+            throw new IllegalArgumentException("Invalid label: " + s);
+        }
+    }
+
     public Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> genBlock(){
         ProceduralRandGenParameters params = new ProceduralRandGenParameters(getTrialParameters(), getNumTrials());
         List<NAFCStim> block = genTrials(params);
@@ -152,6 +162,7 @@ public class ProceduralRandGenType {
             numTrialsField.setText(String.valueOf(blockParams.getNumTrials()));
         }
     }
+
 
     public String getInfo(){
         return "Type: " + getLabel() +

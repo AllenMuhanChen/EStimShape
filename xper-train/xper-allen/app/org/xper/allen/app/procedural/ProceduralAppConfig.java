@@ -6,6 +6,7 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
+import org.xper.allen.nafc.blockgen.procedural.NAFCTrialParamDbUtil;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralExperimentBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.drawing.object.BlankScreen;
@@ -54,6 +55,14 @@ public class ProceduralAppConfig {
         //Dependencies of ProceduuralExperimentBlockGen
         blockGen.setGeneratorNoiseMapPath(generatorNoiseMapPath);
         blockGen.setExperimentNoiseMapPath(experimentNoiseMapPath);
+        blockGen.setNafcTrialDbUtil(nafcTrialDbUtil());
         return blockGen;
+    }
+
+    @Bean
+    public NAFCTrialParamDbUtil nafcTrialDbUtil() {
+        NAFCTrialParamDbUtil nafcTrialDbUtil = new NAFCTrialParamDbUtil();
+        nafcTrialDbUtil.setDataSource(pngConfig.config.dataSource());
+        return nafcTrialDbUtil;
     }
 }

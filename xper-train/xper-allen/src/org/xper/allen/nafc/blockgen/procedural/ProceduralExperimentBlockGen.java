@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
 
@@ -18,8 +19,36 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
     @Dependency
     String experimentNoiseMapPath;
 
+    @Dependency
+    NAFCTrialParamDbUtil nafcTrialDbUtil;
+
     List<List<NAFCStim>> stimBlocks = new LinkedList<List<NAFCStim>>();
     Map<List<NAFCStim>, ProceduralRandGenParameters> paramsForBlocks = new LinkedHashMap<>();
+    Map<List<NAFCStim>,ProceduralRandGenType> genTypesForBlocks = new LinkedHashMap<>();
+
+    public void uploadTrialParams() {
+        long tstamp = globalTimeUtil.currentTimeMicros();
+        Map<ProceduralRandGenParameters, String> genTypesForParams = new LinkedHashMap<>();
+        genTypesForBlocks.forEach(new BiConsumer<List<NAFCStim>, ProceduralRandGenType>() {
+            @Override
+            public void accept(List<NAFCStim> nafcStims, ProceduralRandGenType proceduralRandGenType) {
+                genTypesForParams.put(paramsForBlocks.get(nafcStims), proceduralRandGenType.getLabel());
+            }
+        });
+        String xml = new MixedParams(genTypesForParams).toXml();
+        nafcTrialDbUtil.writeTrialParams(tstamp, xml);
+    }
+
+    public Map<ProceduralRandGenParameters, String> downloadTrialParams(){
+        String xml = nafcTrialDbUtil.readLatestTrialParams();
+        if (xml == null || xml.isEmpty()) {
+            return null;
+        }
+        MixedParams mixedParams = MixedParams.fromXml(xml);
+        Map<ProceduralRandGenParameters, String> paramsForGenTypes = mixedParams.paramsForGenTypes;
+       return paramsForGenTypes;
+
+    }
 
     @Override
     protected void addTrials() {
@@ -34,7 +63,9 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
         paramsForBlocks.remove(removedBlock);
     }
 
-    public void addBlock(Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block){
+    public void addBlock(ProceduralRandGenType genType){
+        Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block = genType.genBlock();
+        genTypesForBlocks.put(block.getKey(), genType);
         stimBlocks.add(block.getKey());
         paramsForBlocks.put(block.getKey(), block.getValue());
     }
@@ -73,4 +104,11 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
         this.experimentNoiseMapPath = experimentNoiseMapPath;
     }
 
+    public NAFCTrialParamDbUtil getNafcTrialDbUtil() {
+        return nafcTrialDbUtil;
+    }
+
+    public void setNafcTrialDbUtil(NAFCTrialParamDbUtil nafcTrialDbUtil) {
+        this.nafcTrialDbUtil = nafcTrialDbUtil;
+    }
 }

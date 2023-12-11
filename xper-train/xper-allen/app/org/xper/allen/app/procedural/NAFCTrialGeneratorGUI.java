@@ -3,6 +3,7 @@ package org.xper.allen.app.procedural;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.procedural.MockExperimentGenType;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralExperimentBlockGen;
+import org.xper.allen.nafc.blockgen.procedural.ProceduralRandGenParameters;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralRandGenType;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
@@ -13,6 +14,7 @@ import java.awt.event.ActionEvent;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class NAFCTrialGeneratorGUI {
     private static JPanel centerPanel;
@@ -83,12 +85,13 @@ public class NAFCTrialGeneratorGUI {
         bottomPanel.add(editButton);
 
         addTrialsButton.addActionListener(e -> {
-            blockgen.addBlock(selectedType.genBlock());
+            blockgen.addBlock(selectedType);
             listModel.addElement(selectedType.getInfo());
         });
 
         generateButton.addActionListener((ActionEvent e) -> {
             blockgen.generate();
+            blockgen.uploadTrialParams();
             //end program
             System.exit(0);
         });
@@ -114,6 +117,16 @@ public class NAFCTrialGeneratorGUI {
         frame.getContentPane().add(BorderLayout.CENTER, listScrollPane);
         frame.getContentPane().add(BorderLayout.SOUTH, bottomPanel);
         frame.setVisible(true);
+
+        Map<ProceduralRandGenParameters, String> paramsForGenTypes = blockgen.downloadTrialParams();
+        if (paramsForGenTypes != null) {
+            for (Map.Entry<ProceduralRandGenParameters, String> entry : paramsForGenTypes.entrySet()) {
+                ProceduralRandGenType genType = labelsForStimTypes.get(entry.getValue());
+                genType.loadParametersIntoFields(entry.getKey());
+                blockgen.addBlock(genType);
+                listModel.addElement(genType.getInfo());
+            }
+        }
     }
 
 
