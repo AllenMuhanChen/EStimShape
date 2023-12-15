@@ -23,8 +23,8 @@ import org.xper.eye.strategy.AnyEyeInStategy;
 import org.xper.eye.strategy.EyeInStrategy;
 /**
  * Uses base fixcal config but:
- * 1.  	tweaks the monkey screen width for the CONSOLE renderer only in order to correct 
- * 		for the xper_monkey_screen_width being set to 2x the actual screen width in SystemVar. 
+ * 1.  	tweaks the monkey screen width for the CONSOLE renderer only in order to correct
+ * 		for the xper_monkey_screen_width being set to 2x the actual screen width in SystemVar.
  * @author r2_allen
  *
  */
@@ -48,8 +48,8 @@ public class AllenFixCalConfig {
 		renderer.setPupilDistance(classicConfig.xperMonkeyPupilDistance());
 		return renderer;
 	}
-	
-	
+
+
 	@Bean
 	public EyeInStrategy eyeInStrategy () {
 		AnyEyeInStategy strategy = new AnyEyeInStategy();
@@ -59,7 +59,7 @@ public class AllenFixCalConfig {
 		strategy.setEyeDevices(eyeDevices);
 		return strategy;
 	}
-	
+
 	@Bean
 	public FixCalExperimentConsoleRenderer consoleRenderer () {
 		FixCalExperimentConsoleRenderer renderer = new FixCalExperimentConsoleRenderer();
@@ -71,5 +71,5 @@ public class AllenFixCalConfig {
 		renderer.setSquare(new Square());
 		return renderer;
 	}
-	
+
 }

@@ -10,14 +10,14 @@ import org.xper.util.*;
 
 /**
  * Format of StimSpec:
- * 
+ *
  * <StimSpec animation="true"> ... </StimSpec>
- * 
+ *
  * If attribute animation is false or missing, the stimulus is treated as a
  * static slide.
- * 
+ *
  * @author wang
- * 
+ *
  */
 public class SlideTrialExperiment implements Experiment {
 	static Logger logger = Logger.getLogger(SlideTrialExperiment.class);

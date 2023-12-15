@@ -10,9 +10,9 @@ import org.xper.util.DbUtil;
 public class DatabaseSystemVariableContainer implements SystemVariableContainer {
 	@Dependency
 	DbUtil dbUtil;
-	
+
 	Map<String, SystemVariable> vars;
-	
+
 	public DatabaseSystemVariableContainer (DbUtil dbUtil) {
 		this.dbUtil = dbUtil;
 		this.refresh();

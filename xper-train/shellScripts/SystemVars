@@ -5,7 +5,6 @@ source pathsProcedural
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
 UPDATE SystemVar SET val=375 WHERE name='xper_juice_reward_length';
 UPDATE SystemVar SET val=500 WHERE name='xper_required_eye_in_and_hold_time';
-UPDATE SystemVar SET val=500 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val=0 WHERE name='xper_blank_target_screen_display_time';
 UPDATE SystemVar SET val=1 WHERE name='xper_left_iscan_eye_zero_algorithm_eye_window_threshold';
 UPDATE SystemVar SET val=1 WHERE name='xper_right_iscan_eye_zero_algorithm_eye_window_threshold';
@@ -16,12 +15,12 @@ EOF
 #FIXED SystemVars. Experiment Associated
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
 UPDATE SystemVar SET val=1 WHERE name='xper_eye_window_algorithm_base_window_size';
-UPDATE SystemVar SET val=1 WHERE name='xper_eye_window_algorithm_initial_window_size';
-UPDATE SystemVar SET val=500 WHERE name='xper_inter_trial_interval';
+UPDATE SystemVar SET val=2 WHERE name='xper_eye_window_algorithm_initial_window_size';
+UPDATE SystemVar SET val=1000 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
-UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
+UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=1;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
-UPDATE SystemVar SET val=2.5 WHERE name='xper_fixation_point_size';
+UPDATE SystemVar SET val=0.25 WHERE name='xper_fixation_point_size';
 UPDATE SystemVar SET val=0 WHERE name='xper_target_selection_eye_monitor_start_delay';
 UPDATE SystemVar SET val='false' WHERE name='xper_do_empty_task';
 EOF

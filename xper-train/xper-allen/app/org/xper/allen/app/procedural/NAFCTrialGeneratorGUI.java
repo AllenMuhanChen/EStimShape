@@ -123,7 +123,6 @@ public class NAFCTrialGeneratorGUI {
         System.out.println(paramsForGenTypes.entrySet());
         if (paramsForGenTypes != null) {
             for (Map.Entry<ProceduralRandGenParameters, String> entry : paramsForGenTypes.entrySet()) {
-                System.out.println("entry: " + entry.getKey());
                 ProceduralRandGenType genType = labelsForStimTypes.get(entry.getValue());
                 updateParametersUI(genType);
                 genType.loadParametersIntoFields(entry.getKey());

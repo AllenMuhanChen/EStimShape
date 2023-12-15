@@ -58,7 +58,7 @@ acq.driver_name=comedi
 
 console.host=172.30.6.80
 
-console.eye_simulation=true
+console.eye_simulation=false
 
 experiment.host=172.30.6.90
 
@@ -76,7 +76,7 @@ experiment.mark_every_step=true
 experiment.digital_port_juice_trigger_delay=200
 
 # for fixcal experiment: stereo or mono
-fixcal.screen_setup=stereo
+fixcal.screen_setup=mono
 
 # for mock experiment
 mock.tasks_per_trial=8

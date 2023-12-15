@@ -76,6 +76,7 @@ public class FixCalConfig {
 	public Experiment experiment () {
 		SlideTrialExperiment xper = new SlideTrialExperiment();
 		xper.setStateObject(experimentState());
+		xper.setTrialRunner(classicConfig.slideTrialRunner());
 		return xper;
 	}
 

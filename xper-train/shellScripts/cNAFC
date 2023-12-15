@@ -4,16 +4,16 @@ source pathsProcedural
 
 #Often VARYING SystemVars - HeadFixed now. 
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
-UPDATE SystemVar SET val=1000 WHERE name='xper_punishment_delay_length';
-UPDATE SystemVar SET val=1000 WHERE name='xper_required_target_selection_hold_time';
-UPDATE SystemVar SET val='false' WHERE name='xper_nafc_show_answer';
+UPDATE SystemVar SET val=3000 WHERE name='xper_punishment_delay_length';
+UPDATE SystemVar SET val=1500 WHERE name='xper_required_target_selection_hold_time';
+UPDATE SystemVar SET val='true' WHERE name='xper_nafc_show_answer';
 UPDATE SystemVar SET val=2000 WHERE name='xper_answer_length';
 UPDATE SystemVar SET val='false' WHERE name='xper_nafc_repeat_incorrect_trials';
-UPDATE SystemVar SET val='RAND' WHERE name='xper_unget_policy';
-UPDATE SystemVar SET val=2000 WHERE name='xper_sample_length';
+UPDATE SystemVar SET val=1000 WHERE name='xper_sample_length';
 UPDATE SystemVar SET val=10000 WHERE name='xper_time_allowed_for_initial_target_selection';
 UPDATE SystemVar SET val=1000 WHERE name='xper_required_target_selection_hold_time';
 UPDATE SystemVar SET val='RAND' WHERE name='xper_unget_policy';
+UPDATE SystemVar SET val=750 WHERE name='xper_juice_reward_length';
 EOF
 
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties

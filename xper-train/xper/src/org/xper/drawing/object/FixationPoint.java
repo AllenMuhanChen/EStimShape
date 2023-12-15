@@ -13,12 +13,11 @@ public class FixationPoint implements Drawable {
 	@Dependency
 	Coordinates2D fixationPosition;
 	@Dependency
-	double size; // in mm
+	double size; // in degrees
 	@Dependency
 	RGBColor color;
 	@Dependency
 	boolean solid = true;
-	
 
 	/**
 	 * @param context ignored.
@@ -27,15 +26,16 @@ public class FixationPoint implements Drawable {
 		AbstractRenderer renderer = context.getRenderer();
 		double x = renderer.deg2mm(fixationPosition.getX());
 		double y = renderer.deg2mm(fixationPosition.getY());
+		double size = renderer.deg2mm(this.size);
 		Coordinates2D posInMm = new Coordinates2D(x,y);
-		drawVertexes(posInMm);
+		drawVertexes(posInMm, size);
 	}
 
-	void drawVertexes(Coordinates2D posInMm) {
+	void drawVertexes(Coordinates2D posInMm, double sizeInMm) {
 		double z = 0;
-		
+
 		GL11.glColor4f(color.getRed(), color.getGreen(), color.getBlue(), 1f);
-		
+
 		GL11.glPushMatrix();
 		GL11.glTranslated(posInMm.getX(), posInMm.getY(), z);
 		if (solid) {
@@ -43,10 +43,10 @@ public class FixationPoint implements Drawable {
 		} else {
 			GL11.glBegin(GL11.GL_LINE_LOOP);
 		}
-			GL11.glVertex3d(-size/2., -size/2., z);
-			GL11.glVertex3d(size/2., -size/2., z);
-			GL11.glVertex3d(size/2., size/2., z);
-			GL11.glVertex3d(-size/2., size/2., z);
+			GL11.glVertex3d(-sizeInMm/2., -sizeInMm/2., z);
+			GL11.glVertex3d(sizeInMm/2., -sizeInMm/2., z);
+			GL11.glVertex3d(sizeInMm/2., sizeInMm/2., z);
+			GL11.glVertex3d(-sizeInMm/2., sizeInMm/2., z);
 		GL11.glEnd();
 		GL11.glPopMatrix();
 	}
