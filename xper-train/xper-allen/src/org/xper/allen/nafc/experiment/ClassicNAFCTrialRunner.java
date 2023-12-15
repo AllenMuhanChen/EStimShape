@@ -7,6 +7,10 @@ import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
+import org.xper.drawing.AbstractTaskScene;
+import org.xper.drawing.Context;
+import org.xper.drawing.Drawable;
+import org.xper.drawing.RGBColor;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
@@ -14,10 +18,18 @@ import org.xper.util.*;
 
 import java.util.List;
 
+/**
+ * Handles the logic of running a trial.
+ *
+ * Get fixation -> run task (TaskRunner handles this) -> complete trial
+ */
 public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
     @Dependency
     ClassicNAFCTaskRunner runner;
+
+    @Dependency
+    Punisher punisher;
 
     public NAFCTrialResult runTrial(NAFCExperimentState stateObject, ThreadHelper threadHelper) {
         try {
@@ -38,7 +50,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
             }
 
             //Run NAFC Task
-            result = getRunner().runTask(stateObject, context);
+            result = getTaskRunner().runTask(stateObject, context);
             if (result != NAFCTrialResult.TRIAL_COMPLETE) {
                 return result;
             }
@@ -180,6 +192,15 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
                         + state.getTimeBeforeFixationPointOn() * 1000L, state,
                 threadHelper);
 
+        // modify fixation point if punishment is on
+        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
+        Drawable originalFixationPoint = taskScene.getFixation();
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            taskScene.setFixation(punisher.getPunishmentFixationPoint());
+        } else{
+            taskScene.setFixation(originalFixationPoint);
+        }
+
         // fixation point on
         drawingController.fixationOn(currentContext);
         long fixationPointOnLocalTime = timeUtil.currentTimeMicros();
@@ -213,9 +234,9 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         currentContext.setAnimationFrameIndex(0);
         //drawingController.prepareSample(currentTask, currentContext);
 
-        // wait for eye hold
+
         success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
-                + state.getRequiredEyeInHoldTime() * 1000L + getRunner().getPunishmentDelayTime()* 1000L);
+                + state.getRequiredEyeInHoldTime() * 1000L + punisher.getCurrentPunishmentTime() * 1000L);
 
 
         if (!success) {
@@ -237,11 +258,26 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         return NAFCTrialResult.FIXATION_SUCCESS;
     }
 
-    public ClassicNAFCTaskRunner getRunner() {
+    private static void setFixationPointColor(NAFCExperimentState state, RGBColor color) {
+        AbstractTaskScene scene;
+        scene = (AbstractTaskScene) state.drawingController.getTaskScene();
+        scene.setFixation(new Drawable() {
+            @Override
+            public void draw(Context context) {
+
+            }
+        });
+    }
+
+    public ClassicNAFCTaskRunner getTaskRunner() {
         return runner;
     }
 
     public void setRunner(ClassicNAFCTaskRunner runner) {
         this.runner = runner;
+    }
+
+    public void setPunisher(Punisher punisher) {
+        this.punisher = punisher;
     }
 }

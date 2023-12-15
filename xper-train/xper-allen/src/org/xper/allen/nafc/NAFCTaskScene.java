@@ -10,7 +10,6 @@ public interface NAFCTaskScene extends TaskScene{
 	public void setChoice(NAFCExperimentTask task);
 	public void drawSample(Context context, boolean fixationOn);
 	public void drawChoices(Context context, boolean fixationOn);
-
 	public void drawChoice(Context context, boolean fixationOn, int i);
 	public void trialStart(NAFCTrialContext context);
 

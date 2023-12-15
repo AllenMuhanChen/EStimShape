@@ -20,6 +20,8 @@ import org.xper.allen.intan.NAFCTrialIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
 import org.xper.config.*;
+import org.xper.drawing.RGBColor;
+import org.xper.drawing.object.FixationPoint;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.intan.EStimEventListener;
@@ -270,12 +272,39 @@ public class NAFCConfig {
 	public ClassicNAFCTrialRunner trialRunner(){
 		ClassicNAFCTrialRunner trialRunner = new ClassicNAFCTrialRunner();
 		trialRunner.setRunner(taskRunner());
+		trialRunner.setPunisher(punisher());
 		return trialRunner;
 	}
 
 	@Bean
 	public ClassicNAFCTaskRunner taskRunner(){
-		return new ClassicNAFCTaskRunner();
+		ClassicNAFCTaskRunner taskRunner = new ClassicNAFCTaskRunner();
+		//Punishment
+		taskRunner.setPunisher(punisher());
+
+		//Showing Correct Answer
+		taskRunner.setShowAnswer(xperShowAnswer());
+		taskRunner.setShowAnswerLength(xperShowAnswerLength());
+
+		//Repeating Incorrect Trials
+		taskRunner.setRepeatIncorrectTrials(xperRepeatIncorrectTrials());
+		return taskRunner;
+	}
+
+	@Bean
+	public Punisher punisher() {
+		Punisher punisher = new Punisher();
+		punisher.setPunishSampleHoldFail(false);
+		punisher.setPunishmentDelayTime(xperPunishmentDelayTime());
+		punisher.setStreakToStartPunishment(3);
+		return punisher;
+	}
+
+	@Bean
+	public FixationPoint punishmentFixationPoint(){
+		FixationPoint fixationPoint = new FixationPoint();
+		fixationPoint.setColor(new RGBColor(1, 0, 0));
+		return fixationPoint;
 	}
 
 	@Bean
@@ -301,17 +330,11 @@ public class NAFCConfig {
 		state.setDelayAfterTrialComplete(classicConfig.xperDelayAfterTrialComplete());
 		//Target Stuff
 		state.setSampleLength(xperSampleLength());
-		state.setAnswerLength(xperAnswerLength());
 		state.setTargetSelector(eyeTargetSelector());
 		state.setTimeAllowedForInitialTargetSelection(xperTimeAllowedForInitialTargetSelection());
 		state.setRequiredTargetSelectionHoldTime(xperRequiredTargetSelectionHoldTime());
 		state.setTargetSelectionStartDelay(xperTargetSelectionEyeMonitorStartDelay());
 		state.setBlankTargetScreenDisplayTime(xperBlankTargetScreenDisplayTime());
-		//Punishment
-		state.setPunishmentDelayTime(xperPunishmentDelayTime());
-		//Training Assist
-		state.setRepeatIncorrectTrials(xperRepeatIncorrectTrials());
-		state.setShowAnswer(xperShowAnswer());
 		return state;
 	}
 
@@ -523,7 +546,7 @@ public class NAFCConfig {
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public Integer xperAnswerLength() {
+	public Integer xperShowAnswerLength() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_answer_length", 0));
 	}
 	@Bean(scope = DefaultScopes.PROTOTYPE)

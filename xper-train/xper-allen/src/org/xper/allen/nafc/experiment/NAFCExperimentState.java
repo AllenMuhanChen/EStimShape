@@ -17,31 +17,14 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 	List<? extends EStimEventListener> eStimEventListeners;
 	@Dependency
 	NAFCTrialDrawingController drawingController;
-	@Dependency
-	boolean repeatIncorrectTrials;
-	@Dependency
-	boolean showAnswer;
-	@Dependency
-	int answerLength;
+
 
 	int blankTargetScreenDisplayTime;
-	int punishmentDelayTime;
 
 	public EyeTargetSelector getTargetSelector() {
 		return targetSelector;
 	}
 
-	public boolean isRepeatIncorrectTrials() {
-		return repeatIncorrectTrials;
-	}
-
-	public boolean isShowAnswer() {
-		return showAnswer;
-	}
-
-	public int getAnswerLength() {
-		return answerLength;
-	}
 
 	public void setTargetSelector(EyeTargetSelector targetSelector) {
 		this.targetSelector = targetSelector;
@@ -88,23 +71,4 @@ public class NAFCExperimentState extends NAFCTrialExperimentState{
 		this.choiceEventListeners = choiceEventListeners;
 	}
 
-	public int getPunishmentDelayTime() {
-		return punishmentDelayTime;
-	}
-
-	public void setPunishmentDelayTime(int punishmentDelayTime) {
-		this.punishmentDelayTime = punishmentDelayTime;
-	}
-
-	public void setRepeatIncorrectTrials(boolean repeatIncorrectTrials) {
-		this.repeatIncorrectTrials = repeatIncorrectTrials;
-	}
-
-	public void setShowAnswer(boolean showAnswer) {
-		this.showAnswer = showAnswer;
-	}
-
-	public void setAnswerLength(int answerLength) {
-		this.answerLength = answerLength;
-	}
 }

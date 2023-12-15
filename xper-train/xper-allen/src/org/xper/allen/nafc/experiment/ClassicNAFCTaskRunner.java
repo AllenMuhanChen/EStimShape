@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.experiment;
 
+import org.xper.Dependency;
 import org.xper.allen.intan.EStimParameter;
 import org.xper.allen.intan.EStimEventListener;
 import org.xper.allen.intan.SimpleEStimEventUtil;
@@ -22,7 +23,14 @@ import java.util.function.IntPredicate;
 
 @SuppressWarnings("StatementWithEmptyBody")
 public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
-    private int punishmentDelayTime = 0; //Gets initialized to 0, if punishment should be applied, it's incremented, reset to zero after trial interval.
+    @Dependency
+    Punisher punisher;
+    @Dependency
+    boolean showAnswer = false;
+    @Dependency
+    int showAnswerLength;
+    @Dependency
+    boolean isRepeatIncorrectTrials = false;
 
     public NAFCTrialResult runTask(NAFCExperimentState stateObject, NAFCTrialContext context) {
             NAFCExperimentTask currentTask = stateObject.getCurrentTask();
@@ -122,7 +130,6 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         drawingController.showSample(currentTask, currentContext); //THIS is called by prepare fixation
         long sampleOnLocalTime = timeUtil.currentTimeMicros();
         currentContext.setSampleOnTime(sampleOnLocalTime);
-//		currentContext.setCurrentSlideOnTime(sampleOnLocalTime);
         NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
 
         //HOLD FIXATION DURING SAMPLE
@@ -133,14 +140,15 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 drawingController.eyeInHoldFail(currentContext);
                 NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
                         choiceEventListeners, currentContext);
-                punish(stateObject);
+                if (punisher.punishSampleHoldFail)
+                    punisher.punish(stateObject);
 
                 drawingController.slideFinish(currentTask, currentContext);
                 long sampleOffLocalTime = timeUtil.currentTimeMicros();
                 currentContext.setSampleOffTime(sampleOffLocalTime);
                 NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
 
-                if (stateObject.isRepeatIncorrectTrials()) {
+                if (isRepeatIncorrectTrials) {
                     taskDataSource.ungetTask(currentTask);
                     System.out.println("Repeating Incorrect Trial");
                 }
@@ -155,26 +163,6 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         } while (timeUtil.currentTimeMicros() < sampleOnLocalTime
                 + stateObject.getSampleLength() * 1000L);
 
-
-        //		fixationSuccess = eyeController.waitEyeInAndHold(sampleOnLocalTime
-//				+ stateObject.getSampleLength() * 1000 );
-
-//		if (!fixationSuccess) {
-//			// eye fail to hold
-//			long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
-//			currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
-//			drawingController.eyeInHoldFail(currentContext);
-//			NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
-//					choiceEventListeners, currentContext);
-//
-//			drawingController.slideFinish(currentTask, currentContext);
-//			long sampleOffLocalTime = timeUtil.currentTimeMicros();
-//			currentContext.setSampleOffTime(sampleOffLocalTime);
-//			NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
-//
-//			//AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
-//			return NAFCTrialResult.TRIAL_COMPLETE;
-//		}
         drawingController.slideFinish(currentTask, currentContext);
         long sampleOffLocalTime = timeUtil.currentTimeMicros();
         currentContext.setSampleOffTime(sampleOffLocalTime);
@@ -183,7 +171,6 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
 
 
         //SHOW CHOICES
-//		drawingController.prepareChoice(currentTask, currentContext);
         drawingController.showChoice(currentTask, currentContext);
         long choicesOnLocalTime = timeUtil.currentTimeMicros();
         currentContext.setChoicesOnTime(choicesOnLocalTime);
@@ -232,31 +219,20 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                     return NAFCTrialResult.TARGET_SELECTION_EYE_FAIL;
                 }
                 break;
-			/*
-			case TARGET_SELECTION_EYE_BREAK:
-				NAFCEventUtil.fireChoiceSelectionEyeBreakEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				if (rewardPolicy == RewardPolicy.ANY) {
-					NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				}
-				if (rewardPolicy == RewardPolicy.NONE) {
-					NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
-				}
-				break;
-			 */
             case TARGET_SELECTION_SUCCESS:
                 NAFCEventUtil.fireChoiceSelectionSuccessEvent(choiceDoneLocalTime, choiceEventListeners, choice);
                 if (rewardPolicy == RewardPolicy.LIST) {
                     if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
                         NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
-                        resetPunishment();
+                        punisher.resetPunishment();
                         System.out.println("Correct Choice");
                     }
                     else {
                         NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
                         //PUNISHMENT DELAY
-                        punish(stateObject);
+                        punisher.punish(stateObject);
 
-                        if (stateObject.isRepeatIncorrectTrials()) {
+                        if (isRepeatIncorrectTrials) {
                             taskDataSource.ungetTask(currentTask);
                             System.out.println("Repeating Incorrect Trial");
                         }
@@ -283,23 +259,17 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                         System.out.println("Incorrect Choice - Rewarded by Default");
                     }
                 }
-
                 break;
-
         }
 
         System.out.println("SelectionStatusResult = " + selectorResult.getSelectionStatusResult());
-        if(stateObject.isShowAnswer()) {
+        if(showAnswer) {
             drawingController.showAnswer(currentTask, currentContext);
             do {
                 //Wait for Slide to Finish
                 //Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer.
-            } while (timeUtil.currentTimeMicros() < choicesOffLocalTime + stateObject.getAnswerLength() * 1000L);
+            } while (timeUtil.currentTimeMicros() < choicesOffLocalTime + showAnswerLength * 1000L);
         }
-        //finish current slide
-
-
-
         drawingController.trialComplete(currentContext);
         long choiceOffLocalTime = timeUtil.currentTimeMicros();
         currentContext.setChoicesOffTime(choiceOffLocalTime);
@@ -361,13 +331,11 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
 
 
     private void resetPunishment() {
-        setPunishmentDelayTime(0);
+        punisher.resetPunishment();
     }
 
     private void punish(NAFCExperimentState stateObject) {
-        if(getPunishmentDelayTime() ==0) {
-            setPunishmentDelayTime(stateObject.getPunishmentDelayTime());
-        }
+        punisher.punish(stateObject);
     }
 
     public void cleanupTask(NAFCExperimentState stateObject) {
@@ -381,11 +349,19 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         }
     }
 
-    public int getPunishmentDelayTime() {
-        return punishmentDelayTime;
+    public void setPunisher(Punisher punisher) {
+        this.punisher = punisher;
     }
 
-    public void setPunishmentDelayTime(int punishmentDelayTime) {
-        this.punishmentDelayTime = punishmentDelayTime;
+    public void setShowAnswer(boolean showAnswer) {
+        this.showAnswer = showAnswer;
+    }
+
+    public void setShowAnswerLength(int showAnswerLength) {
+        this.showAnswerLength = showAnswerLength;
+    }
+
+    public void setRepeatIncorrectTrials(boolean repeatIncorrectTrials) {
+        isRepeatIncorrectTrials = repeatIncorrectTrials;
     }
 }

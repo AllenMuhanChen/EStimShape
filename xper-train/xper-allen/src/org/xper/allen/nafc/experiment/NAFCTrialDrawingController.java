@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.experiment;
 
+import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.classic.TrialDrawingController;
 import org.xper.drawing.Context;
 
@@ -12,4 +13,5 @@ public interface NAFCTrialDrawingController extends TrialDrawingController{
 	public void showChoice(NAFCExperimentTask task, NAFCTrialContext context);
 	public void animateSample(NAFCExperimentTask task, NAFCTrialContext context);
 	public void trialStart(NAFCTrialContext Context);
+	public NAFCTaskScene getTaskScene();
 }
