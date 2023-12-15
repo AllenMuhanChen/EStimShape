@@ -5,6 +5,8 @@ import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
 import org.xper.classic.vo.TrialResult;
+import org.xper.drawing.AbstractTaskScene;
+import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDataSource;
@@ -19,6 +21,9 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
 
     @Dependency
     ClassicSlideRunner slideRunner;
+
+    @Dependency
+    Punisher punisher;
 
     public TrialResult runTrial(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
         try {
@@ -153,6 +158,15 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
                         + state.getTimeBeforeFixationPointOn() * 1000, state,
                 threadHelper);
 
+        // modify fixation point if punishment is on
+        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
+        Drawable originalFixationPoint = taskScene.getFixation();
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            taskScene.setFixation(punisher.getPunishmentFixationPoint());
+        } else{
+            taskScene.setFixation(originalFixationPoint);
+        }
+
         // fixation point on
         drawingController.fixationOn(currentContext);
         long fixationPointOnLocalTime = timeUtil.currentTimeMicros();
@@ -188,7 +202,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
 
         // wait for eye hold
         success = eyeController.waitEyeInAndHold(eyeInitialInLocalTime
-                + state.getRequiredEyeInHoldTime() * 1000);
+                + state.getRequiredEyeInHoldTime() * 1000L + punisher.getCurrentPunishmentTime() * 1000L);
 
         if (!success) {
             // eye fail to hold
@@ -221,6 +235,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         this.slideRunner = slideRunner;
     }
 
-
-
+    public void setPunisher(Punisher punisher) {
+        this.punisher = punisher;
+    }
 }

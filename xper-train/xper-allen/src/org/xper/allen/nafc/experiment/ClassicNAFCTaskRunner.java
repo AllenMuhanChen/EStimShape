@@ -10,6 +10,7 @@ import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCEventUtil;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
+import org.xper.classic.Punisher;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
@@ -25,6 +26,8 @@ import java.util.function.IntPredicate;
 public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
     @Dependency
     Punisher punisher;
+    @Dependency
+    boolean punishSampleHoldFail;
     @Dependency
     boolean showAnswer = false;
     @Dependency
@@ -140,8 +143,8 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 drawingController.eyeInHoldFail(currentContext);
                 NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
                         choiceEventListeners, currentContext);
-                if (punisher.punishSampleHoldFail)
-                    punisher.punish(stateObject);
+                if (punishSampleHoldFail)
+                    punisher.punish();
 
                 drawingController.slideFinish(currentTask, currentContext);
                 long sampleOffLocalTime = timeUtil.currentTimeMicros();
@@ -230,7 +233,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                     else {
                         NAFCEventUtil.fireChoiceSelectionIncorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
                         //PUNISHMENT DELAY
-                        punisher.punish(stateObject);
+                        punisher.punish();
 
                         if (isRepeatIncorrectTrials) {
                             taskDataSource.ungetTask(currentTask);
@@ -329,15 +332,6 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         return output;
     }
 
-
-    private void resetPunishment() {
-        punisher.resetPunishment();
-    }
-
-    private void punish(NAFCExperimentState stateObject) {
-        punisher.punish(stateObject);
-    }
-
     public void cleanupTask(NAFCExperimentState stateObject) {
         NAFCExperimentTask currentTask = stateObject.getCurrentTask();
         NAFCDatabaseTaskDataSource taskDataSource = (NAFCDatabaseTaskDataSource) stateObject.getTaskDataSource();
@@ -363,5 +357,9 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
 
     public void setRepeatIncorrectTrials(boolean repeatIncorrectTrials) {
         isRepeatIncorrectTrials = repeatIncorrectTrials;
+    }
+
+    public void setPunishSampleHoldFail(boolean punishSampleHoldFail) {
+        this.punishSampleHoldFail = punishSampleHoldFail;
     }
 }

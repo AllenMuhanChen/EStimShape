@@ -218,12 +218,42 @@ public class ClassicConfig {
 	public SlideTrialRunner slideTrialRunner() {
 		ClassicSlideTrialRunner slideTrialRunner = new ClassicSlideTrialRunner();
 		slideTrialRunner.setSlideRunner(slideRunner());
+		slideTrialRunner.setPunisher(punisher());
 		return slideTrialRunner;
 	}
 
 	@Bean
+	public Punisher punisher() {
+		Punisher punisher = new Punisher();
+		punisher.setPunishmentDelayTime(xperPunishmentDelayTime());
+		punisher.setStreakToStartPunishment(xperStreakToStartPunishment());
+		punisher.setPunishmentFixationPoint(punishmentFixationPoint());
+		return punisher;
+	}
+
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Integer xperPunishmentDelayTime() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_punishment_delay_length", 0));
+	}
+
+	@Bean
+	public int xperStreakToStartPunishment() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_streak_to_start_punishment", 0));
+	}
+
+	@Bean
+	public FixationPoint punishmentFixationPoint(){
+		FixationPoint fixationPoint = new FixationPoint();
+		fixationPoint.setColor(new RGBColor(1, 0, 0));
+		return fixationPoint;
+	}
+
+
+	@Bean
 	public ClassicSlideRunner slideRunner() {
-		return new ClassicSlideRunner();
+		ClassicSlideRunner slideRunner = new ClassicSlideRunner();
+		slideRunner.setPunisher(punisher());
+		return slideRunner;
 	}
 
 	@Bean

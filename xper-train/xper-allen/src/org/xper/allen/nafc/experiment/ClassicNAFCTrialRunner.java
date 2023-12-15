@@ -3,6 +3,7 @@ package org.xper.allen.nafc.experiment;
 import org.dom4j.Document;
 import org.xper.Dependency;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
+import org.xper.classic.Punisher;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.SlideTrialExperimentState;
@@ -30,6 +31,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
     @Dependency
     Punisher punisher;
+
 
     public NAFCTrialResult runTrial(NAFCExperimentState stateObject, ThreadHelper threadHelper) {
         try {
@@ -256,17 +258,6 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
                 trialEventListeners, currentContext);
 
         return NAFCTrialResult.FIXATION_SUCCESS;
-    }
-
-    private static void setFixationPointColor(NAFCExperimentState state, RGBColor color) {
-        AbstractTaskScene scene;
-        scene = (AbstractTaskScene) state.drawingController.getTaskScene();
-        scene.setFixation(new Drawable() {
-            @Override
-            public void draw(Context context) {
-
-            }
-        });
     }
 
     public ClassicNAFCTaskRunner getTaskRunner() {

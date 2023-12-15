@@ -1,5 +1,6 @@
 package org.xper.classic;
 
+import org.xper.Dependency;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
@@ -19,6 +20,9 @@ import java.util.List;
 import static org.xper.classic.SlideTrialExperiment.logger;
 
 public class ClassicSlideRunner implements SlideRunner {
+
+    @Dependency
+    Punisher punisher;
 
     public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
         int slidePerTrial = stateObject.getSlidePerTrial();
@@ -70,6 +74,7 @@ public class ClassicSlideRunner implements SlideRunner {
                     return result;
                 }
             }
+            punisher.resetPunishment();
             return TrialResult.TRIAL_COMPLETE;
             // end of SlideRunner.runSlide
         } finally {
@@ -100,7 +105,7 @@ public class ClassicSlideRunner implements SlideRunner {
      * @param stateObject
      * @return
      */
-    public static TrialResult doSlide (int i, SlideTrialExperimentState stateObject) {
+    public TrialResult doSlide (int i, SlideTrialExperimentState stateObject) {
         TrialDrawingController drawingController = stateObject.getDrawingController();
         ExperimentTask currentTask = stateObject.getCurrentTask();
         TrialContext currentContext = stateObject.getCurrentContext();
@@ -126,6 +131,7 @@ public class ClassicSlideRunner implements SlideRunner {
             if (!eyeController.isEyeIn()) {
                 breakTrial(stateObject);
                 currentContext.setAnimationFrameIndex(0);
+                punisher.punish();
                 return TrialResult.EYE_BREAK;
             }
             if (stateObject.isAnimation()) {
@@ -200,4 +206,7 @@ public class ClassicSlideRunner implements SlideRunner {
         state.setCurrentTask(state.getTaskDataSource().getNextTask());
     }
 
+    public void setPunisher(Punisher punisher) {
+        this.punisher = punisher;
+    }
 }

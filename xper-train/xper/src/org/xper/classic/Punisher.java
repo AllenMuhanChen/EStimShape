@@ -1,4 +1,4 @@
-package org.xper.allen.nafc.experiment;
+package org.xper.classic;
 
 import org.xper.Dependency;
 import org.xper.drawing.object.FixationPoint;
@@ -6,8 +6,6 @@ import org.xper.drawing.object.FixationPoint;
 public class Punisher {
     @Dependency
     int punishmentDelayTime; //Gets initialized to 0, if punishment should be applied, it's incremented, reset to zero after trial interval.@org.xper.Dependency
-    @Dependency
-    boolean punishSampleHoldFail = false;
     @Dependency
     int streakToStartPunishment = 3; //how many times punish() needs to be called to trigger a punishment delay//Local vars for punishment
     @Dependency
@@ -31,7 +29,7 @@ public class Punisher {
         this.setCurrentPunishmentTime(0);
     }
 
-    public void punish(NAFCExperimentState stateObject) {
+    public void punish() {
         currentStreakForPunishment++;
         if (currentStreakForPunishment >= streakToStartPunishment) {
             this.setCurrentPunishmentTime(punishmentDelayTime);
@@ -45,10 +43,6 @@ public class Punisher {
 
     public void setPunishmentDelayTime(int punishmentDelayTime) {
         this.punishmentDelayTime = punishmentDelayTime;
-    }
-
-    public void setPunishSampleHoldFail(boolean punishSampleHoldFail) {
-        this.punishSampleHoldFail = punishSampleHoldFail;
     }
 
     public void setStreakToStartPunishment(int streakToStartPunishment) {

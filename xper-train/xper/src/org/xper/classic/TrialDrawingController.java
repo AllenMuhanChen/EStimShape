@@ -1,6 +1,7 @@
 package org.xper.classic;
 
 import org.xper.classic.vo.TrialContext;
+import org.xper.drawing.TaskScene;
 import org.xper.experiment.ExperimentTask;
 
 public interface TrialDrawingController {
@@ -11,7 +12,7 @@ public interface TrialDrawingController {
 	public void init();
 
 	/**
-	 * When the experiment is done, after experiment stop event is fired. 
+	 * When the experiment is done, after experiment stop event is fired.
 	 *
 	 */
 	public void destroy();
@@ -40,12 +41,14 @@ public interface TrialDrawingController {
 	public void prepareNextSlide(ExperimentTask task, TrialContext context);
 
 	public void eyeInBreak(TrialContext context);
-	
+
 	public void trialComplete(TrialContext context);
-	
+
 	/**
 	 * Before trial stop event is fired. This happens no matter whether the trial succeeds, breaks, or fails.
 	 * @param context
 	 */
 	public void trialStop (TrialContext context);
+
+    public TaskScene getTaskScene();
 }

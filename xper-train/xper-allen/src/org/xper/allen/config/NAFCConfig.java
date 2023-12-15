@@ -19,6 +19,7 @@ import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.allen.intan.NAFCTrialIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
+import org.xper.classic.Punisher;
 import org.xper.config.*;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.object.FixationPoint;
@@ -272,7 +273,7 @@ public class NAFCConfig {
 	public ClassicNAFCTrialRunner trialRunner(){
 		ClassicNAFCTrialRunner trialRunner = new ClassicNAFCTrialRunner();
 		trialRunner.setRunner(taskRunner());
-		trialRunner.setPunisher(punisher());
+		trialRunner.setPunisher(classicConfig.punisher());
 		return trialRunner;
 	}
 
@@ -280,7 +281,8 @@ public class NAFCConfig {
 	public ClassicNAFCTaskRunner taskRunner(){
 		ClassicNAFCTaskRunner taskRunner = new ClassicNAFCTaskRunner();
 		//Punishment
-		taskRunner.setPunisher(punisher());
+		taskRunner.setPunisher(classicConfig.punisher());
+		taskRunner.setPunishSampleHoldFail(xperPunishSampleHoldFail());
 
 		//Showing Correct Answer
 		taskRunner.setShowAnswer(xperShowAnswer());
@@ -292,30 +294,11 @@ public class NAFCConfig {
 	}
 
 	@Bean
-	public Punisher punisher() {
-		Punisher punisher = new Punisher();
-		punisher.setPunishSampleHoldFail(xperPunishSampleHoldFail());
-		punisher.setPunishmentDelayTime(xperPunishmentDelayTime());
-		punisher.setStreakToStartPunishment(xperStreakToStartPunishment());
-		return punisher;
-	}
-
-	@Bean
-	public int xperStreakToStartPunishment() {
-		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_streak_to_start_punishment", 0));
-	}
-
-	@Bean
 	public boolean xperPunishSampleHoldFail() {
 		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_punish_sample_hold_fail", 0));
 	}
 
-	@Bean
-	public FixationPoint punishmentFixationPoint(){
-		FixationPoint fixationPoint = new FixationPoint();
-		fixationPoint.setColor(new RGBColor(1, 0, 0));
-		return fixationPoint;
-	}
+
 
 	@Bean
 	public NAFCExperimentState experimentState() {
@@ -564,10 +547,6 @@ public class NAFCConfig {
 	@Bean(scope = DefaultScopes.PROTOTYPE)
 	public Integer xperShowAnswerLength() {
 		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_answer_length", 0));
-	}
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public Integer xperPunishmentDelayTime() {
-		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_punishment_delay_length", 0));
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)
