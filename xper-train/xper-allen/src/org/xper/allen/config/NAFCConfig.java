@@ -294,10 +294,20 @@ public class NAFCConfig {
 	@Bean
 	public Punisher punisher() {
 		Punisher punisher = new Punisher();
-		punisher.setPunishSampleHoldFail(false);
+		punisher.setPunishSampleHoldFail(xperPunishSampleHoldFail());
 		punisher.setPunishmentDelayTime(xperPunishmentDelayTime());
-		punisher.setStreakToStartPunishment(3);
+		punisher.setStreakToStartPunishment(xperStreakToStartPunishment());
 		return punisher;
+	}
+
+	@Bean
+	public int xperStreakToStartPunishment() {
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_streak_to_start_punishment", 0));
+	}
+
+	@Bean
+	public boolean xperPunishSampleHoldFail() {
+		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_punish_sample_hold_fail", 0));
 	}
 
 	@Bean
@@ -404,8 +414,13 @@ public class NAFCConfig {
 		} else {
 			controller.setJuice(classicConfig.xperDynamicJuice());
 		}
-		controller.setChoiceCorrectMagnifier(2);
+		controller.setChoiceCorrectMultiplier(xperChoiceCorrectJuiceMultiplier());
 		return controller;
+	}
+
+	@Bean
+	public int xperChoiceCorrectJuiceMultiplier() {
+		return 2;
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)
