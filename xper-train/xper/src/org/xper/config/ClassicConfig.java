@@ -228,6 +228,7 @@ public class ClassicConfig {
 		punisher.setPunishmentDelayTime(xperPunishmentDelayTime());
 		punisher.setStreakToStartPunishment(xperStreakToStartPunishment());
 		punisher.setPunishmentFixationPoint(punishmentFixationPoint());
+		punisher.setOriginalFixationPoint(experimentFixationPoint());
 		return punisher;
 	}
 
@@ -243,9 +244,11 @@ public class ClassicConfig {
 
 	@Bean
 	public FixationPoint punishmentFixationPoint(){
-		FixationPoint fixationPoint = new FixationPoint();
-		fixationPoint.setColor(new RGBColor(1, 0, 0));
-		return fixationPoint;
+		FixationPoint f = new FixationPoint ();
+		f.setColor(new RGBColor(1, 0, 0));
+		f.setFixationPosition(xperFixationPosition());
+		f.setSize(xperFixationPointSize());
+		return f;
 	}
 
 

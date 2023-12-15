@@ -186,6 +186,14 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         drawingController.prepareSample(currentTask, currentContext);
         drawingController.prepareChoice(currentTask, currentContext);
 
+        // modify fixation point if punishment is on
+        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            taskScene.setFixation(punisher.getPunishmentFixationPoint());
+        } else{
+            taskScene.setFixation(punisher.getOriginalFixationPoint());
+        }
+
         // prepare fixation point
         drawingController.prepareFixationOn(currentContext);
 
@@ -194,14 +202,6 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
                         + state.getTimeBeforeFixationPointOn() * 1000L, state,
                 threadHelper);
 
-        // modify fixation point if punishment is on
-        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
-        Drawable originalFixationPoint = taskScene.getFixation();
-        if (punisher.getCurrentPunishmentTime() > 0) {
-            taskScene.setFixation(punisher.getPunishmentFixationPoint());
-        } else{
-            taskScene.setFixation(originalFixationPoint);
-        }
 
         // fixation point on
         drawingController.fixationOn(currentContext);

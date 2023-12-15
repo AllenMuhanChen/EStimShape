@@ -10,7 +10,8 @@ public class Punisher {
     int streakToStartPunishment = 3; //how many times punish() needs to be called to trigger a punishment delay//Local vars for punishment
     @Dependency
     FixationPoint punishmentFixationPoint;
-
+    @Dependency
+    FixationPoint originalFixationPoint;
 
     private int currentStreakForPunishment = 0;
     public int currentPunishmentTime;
@@ -31,10 +32,12 @@ public class Punisher {
 
     public void punish() {
         currentStreakForPunishment++;
+        System.out.println("Punishment streak: " + currentStreakForPunishment);
         if (currentStreakForPunishment >= streakToStartPunishment) {
-            this.setCurrentPunishmentTime(punishmentDelayTime);
+            setCurrentPunishmentTime(punishmentDelayTime);
+        } else {
+            this.setCurrentPunishmentTime(0);
         }
-        this.setCurrentPunishmentTime(0);
     }
 
     public void setCurrentPunishmentTime(int currentPunishmentTime) {
@@ -57,4 +60,11 @@ public class Punisher {
         this.punishmentFixationPoint = punishmentFixationPoint;
     }
 
+    public FixationPoint getOriginalFixationPoint() {
+        return originalFixationPoint;
+    }
+
+    public void setOriginalFixationPoint(FixationPoint originalFixationPoint) {
+        this.originalFixationPoint = originalFixationPoint;
+    }
 }

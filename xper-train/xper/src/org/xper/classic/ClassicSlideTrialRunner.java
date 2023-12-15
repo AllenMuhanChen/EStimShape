@@ -150,6 +150,14 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
                 currentContext);
 
+        // modify fixation point if punishment is on
+        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            taskScene.setFixation(punisher.getPunishmentFixationPoint());
+        } else{
+            taskScene.setFixation(punisher.getOriginalFixationPoint());
+        }
+
         // prepare fixation point
         drawingController.prepareFixationOn(currentContext);
 
@@ -158,14 +166,6 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
                         + state.getTimeBeforeFixationPointOn() * 1000, state,
                 threadHelper);
 
-        // modify fixation point if punishment is on
-        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
-        Drawable originalFixationPoint = taskScene.getFixation();
-        if (punisher.getCurrentPunishmentTime() > 0) {
-            taskScene.setFixation(punisher.getPunishmentFixationPoint());
-        } else{
-            taskScene.setFixation(originalFixationPoint);
-        }
 
         // fixation point on
         drawingController.fixationOn(currentContext);
@@ -201,6 +201,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         drawingController.prepareFirstSlide(currentTask, currentContext);
 
         // wait for eye hold
+        System.err.println("Punishment time: " + punisher.getCurrentPunishmentTime());
         success = eyeController.waitEyeInAndHold(eyeInitialInLocalTime
                 + state.getRequiredEyeInHoldTime() * 1000L + punisher.getCurrentPunishmentTime() * 1000L);
 
