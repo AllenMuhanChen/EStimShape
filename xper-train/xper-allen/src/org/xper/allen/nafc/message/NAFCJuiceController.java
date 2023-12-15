@@ -12,6 +12,9 @@ public class NAFCJuiceController implements ChoiceEventListener {
 	@Dependency
 	Juice juice;
 
+	@Dependency
+	int choiceCorrectMagnifier = 1;
+
 	public Juice getJuice() {
 		return juice;
 	}
@@ -23,16 +26,20 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 	@Override
 	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
-		juice.deliver();
-		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal correctly chose.");
+		for (int i=0; i<choiceCorrectMagnifier; i++){
+			juice.deliver();
+			System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal correctly chose.");
+		}
 
 	}
 
 
 	@Override
 	public void choiceSelectionDefaultCorrect(long timestamp) {
-		juice.deliver();
-		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal is rewarded by default.");
+		for (int i=0; i<choiceCorrectMagnifier; i++){
+			juice.deliver();
+			System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal is rewarded by default.");
+		}
 	}
 
 	@Override
@@ -97,5 +104,11 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 	}
 
+	public int getChoiceCorrectMagnifier() {
+		return choiceCorrectMagnifier;
+	}
 
+	public void setChoiceCorrectMagnifier(int choiceCorrectMagnifier) {
+		this.choiceCorrectMagnifier = choiceCorrectMagnifier;
+	}
 }

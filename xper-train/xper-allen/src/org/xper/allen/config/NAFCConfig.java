@@ -404,6 +404,7 @@ public class NAFCConfig {
 		} else {
 			controller.setJuice(classicConfig.xperDynamicJuice());
 		}
+		controller.setChoiceCorrectMagnifier(2);
 		return controller;
 	}
 

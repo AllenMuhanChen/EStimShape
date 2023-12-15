@@ -63,11 +63,4 @@ public class Punisher {
         this.punishmentFixationPoint = punishmentFixationPoint;
     }
 
-    public void setOriginalFixationPoint(FixationPoint originalFixationPoint) {
-        this.originalFixationPoint = originalFixationPoint;
-    }
-
-    public FixationPoint getOriginalFixationPoint() {
-        return originalFixationPoint;
-    }
 }
