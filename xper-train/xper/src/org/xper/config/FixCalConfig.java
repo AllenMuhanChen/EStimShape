@@ -122,6 +122,7 @@ public class FixCalConfig {
 		fixCalEventListeners.add(messageDispatcher());
 		scene.setFixCalEventListeners(fixCalEventListeners);
 		scene.setDbUtil(baseConfig.dbUtil());
+		scene.setBackgroundColor(classicConfig.xperBackgroundColor());
 		return scene;
 	}
 
