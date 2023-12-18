@@ -245,7 +245,7 @@ public class ClassicConfig {
 	@Bean
 	public FixationPoint punishmentFixationPoint(){
 		FixationPoint f = new FixationPoint ();
-		f.setColor(new RGBColor(1, 0, 0));
+		f.setColor(new RGBColor(1, 0, 1));
 		f.setFixationPosition(xperFixationPosition());
 		f.setSize(xperFixationPointSize());
 		return f;
