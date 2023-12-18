@@ -28,7 +28,7 @@ import org.xper.drawing.object.BlankScreen;
 //@Import annotation avoids @ComponentScanning?
 @Import(NAFCConfig.class)
 /**
- * methods written here will OVERRIDE methods with identical name in config. 
+ * methods written here will OVERRIDE methods with identical name in config.
  * By default, when one spring configuration file imports another one, the later definitions (imported) are overidden by earlier ones (importing)
  *
  *https://stackoverflow.com/questions/10993181/defining-the-same-spring-bean-twice-with-same-name
@@ -38,21 +38,21 @@ import org.xper.drawing.object.BlankScreen;
  */
 
 public class NAFCPngAppConfig {
-	
-	
+
+
 	@Autowired NAFCConfig config;
 	@Autowired ClassicConfig classicConfig;
 	@Autowired BaseConfig baseConfig;
 	@Autowired AcqConfig acqConfig;
-	
+
 	@ExternalValue("generator.png_path")
 	public String generatorPngPath;
-	
+
 	@ExternalValue("experiment.png_path")
 	public String experimentPngPath;
-	
-	
-	
+
+
+
 	@Bean
 	public NAFCPngScene taskScene() {
 		NAFCPngScene scene = new NAFCPngScene();
@@ -63,11 +63,11 @@ public class NAFCPngAppConfig {
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
-		scene.setBackgroundColor(xperBackgroundColor());
+		scene.setBackgroundColor(classicConfig.xperBackgroundColor());
 		return scene;
 	}
-	
-	
+
+
 	@Bean
 	public PngBlockGen generator4() {
 		PngBlockGen gen = new PngBlockGen();
@@ -78,7 +78,7 @@ public class NAFCPngAppConfig {
 		gen.setExperimentPngPath(experimentPngPath);
 		return gen;
 	}
-	
+
 	@Bean
 	public PngBlockGen generator2() {
 		PngBlockGen gen = new PngBlockGen();
@@ -89,11 +89,5 @@ public class NAFCPngAppConfig {
 		gen.setExperimentPngPath(experimentPngPath);
 		return gen;
 	}
-	
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public double[] xperBackgroundColor() {
-		return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),
-							Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 1)),
-							Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 2))};
-	}
+
 }

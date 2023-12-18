@@ -448,6 +448,7 @@ public class NAFCConfig {
 		scene.setMarker(classicConfig.screenMarker());
 		scene.setBlankScreen(new BlankScreen());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
+		scene.setBackgroundColor(classicConfig.xperBackgroundColor());
 		return scene;
 	}
 

@@ -17,8 +17,6 @@ public class PngScene extends AbstractTaskScene{
 	double screenWidth;
 	@Dependency
 	double screenHeight;
-	@Dependency
-	RGBColor backgroundColor;
 
 	TranslatableResizableImages image;
 
@@ -36,8 +34,6 @@ public class PngScene extends AbstractTaskScene{
 		super.setUseStencil(true);
 		super.initGL(w, h);
 		//System.out.println("JK 32838 w = " + screenWidth + ", h = " + screenHeight);
-
-		GL11.glClearColor(backgroundColor.getRed(), backgroundColor.getGreen(), backgroundColor.getBlue(), 0.0f);
 		GL11.glViewport(0,0,w,h);
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
         GL11.glMatrixMode(GL11.GL_PROJECTION);
@@ -112,14 +108,6 @@ public class PngScene extends AbstractTaskScene{
 
 	public void setScreenHeight(double screenHeight) {
 		this.screenHeight = screenHeight;
-	}
-
-	public RGBColor getBackgroundColor() {
-		return backgroundColor;
-	}
-
-	public void setBackgroundColor(RGBColor backgroundColor) {
-		this.backgroundColor = backgroundColor;
 	}
 
 	public TranslatableResizableImages getImage() {

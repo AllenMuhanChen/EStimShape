@@ -130,6 +130,7 @@ public class ClassicConfig {
 		scene.setFixation(experimentFixationPoint());
 		scene.setMarker(screenMarker());
 		scene.setBlankScreen(new BlankScreen());
+		scene.setBackgroundColor(xperBackgroundColor());
 		return scene;
 	}
 

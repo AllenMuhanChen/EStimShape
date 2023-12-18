@@ -67,6 +67,7 @@ public class RFPlotConfig {
 		scene.setFixation(classicConfig.experimentFixationPoint());
 		scene.setBlankScreen(new BlankScreen());
 		scene.setMarker(classicConfig.screenMarker());
+		scene.setBackgroundColor(classicConfig.xperBackgroundColor());
 		return scene;
 	}
 
