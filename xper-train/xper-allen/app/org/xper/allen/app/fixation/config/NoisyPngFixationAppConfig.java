@@ -47,7 +47,7 @@ public class NoisyPngFixationAppConfig extends ConfigurationSupport {
         scene.setFixation(classicConfig.experimentFixationPoint());
         scene.setMarker(classicConfig.screenMarker());
         scene.setBlankScreen(new BlankScreen());
-        scene.setBackgroundColor(mStickConfig.xperBackgroundColor());
+        scene.setBackgroundColor(mStickConfig.xperPngBackgroundColor());
         scene.setFrameRate(xperNoiseRate());
         scene.setSlideLength(classicConfig.xperSlideLength());
         return scene;

@@ -33,6 +33,9 @@ UPDATE SystemVar SET val=0 WHERE name='xper_monkey_screen_depth';
 UPDATE SystemVar SET val=500 WHERE name='xper_monkey_screen_distance';
 UPDATE SystemVar SET val='false' WHERE name='xper_monkey_screen_inverted';
 UPDATE SystemVar SET val=60 WHERE name='xper_noise_rate';
+UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=0;
+UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=1;
+UPDATE SystemVar SET val=0.5 WHERE name='xper_background_color' AND arr_ind=2;
 EOF
 
 

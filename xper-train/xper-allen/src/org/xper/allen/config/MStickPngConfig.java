@@ -40,7 +40,7 @@ public class MStickPngConfig {
         scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
         scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
         scene.setDistance(classicConfig.xperMonkeyScreenDistance());
-        scene.setBackgroundColor(xperBackgroundColor());
+        scene.setBackgroundColor(classicConfig.xperBackgroundColor());
         return scene;
     }
 
@@ -51,7 +51,7 @@ public class MStickPngConfig {
         pngMaker.setWidth(dpiUtil().calculateMinResolution());
         pngMaker.setHeight(dpiUtil().calculateMinResolution());
         pngMaker.setDpiUtil(dpiUtil());
-        RGBColor backColor = new RGBColor(xperBackgroundColor());
+        RGBColor backColor = new RGBColor(xperPngBackgroundColor());
         pngMaker.setBackColor(backColor);
         pngMaker.setDepth(6000);
         pngMaker.setDistance(500);
@@ -76,10 +76,10 @@ public class MStickPngConfig {
     }
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
-    public double[] xperBackgroundColor() {
-        return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 0)),
-                Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 1)),
-                Double.parseDouble(baseConfig.systemVariableContainer().get("xper_background_color", 2))};
+    public double[] xperPngBackgroundColor() {
+        return new double[]{Double.parseDouble(baseConfig.systemVariableContainer().get("xper_png_background_color", 0)),
+                Double.parseDouble(baseConfig.systemVariableContainer().get("xper_png_background_color", 1)),
+                Double.parseDouble(baseConfig.systemVariableContainer().get("xper_png_background_color", 2))};
     }
 
     @Bean(scope = DefaultScopes.PROTOTYPE)

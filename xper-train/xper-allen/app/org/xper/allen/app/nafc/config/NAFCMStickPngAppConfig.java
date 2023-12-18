@@ -7,7 +7,6 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.springframework.config.java.support.ConfigurationSupport;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
@@ -40,7 +39,7 @@ public class NAFCMStickPngAppConfig{
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
-		scene.setBackgroundColor(mStickPngConfig.xperBackgroundColor());
+		scene.setBackgroundColor(mStickPngConfig.xperPngBackgroundColor());
 		return scene;
 	}
 

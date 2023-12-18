@@ -1424,21 +1424,13 @@ public class ClassicConfig {
 
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public RGBColor xperStimColorBackground() {
+	public RGBColor xperBackgroundColor(){
 		RGBColor bColor = new RGBColor();
-		bColor.setRed(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_background", 0)));
-		bColor.setGreen(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_background", 1)));
-		bColor.setBlue(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_background", 2)));
+		bColor.setRed(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_background_color", 0)));
+		bColor.setGreen(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_background_color", 1)));
+		bColor.setBlue(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_background_color", 2)));
 		return bColor;
-	}
 
-	@Bean(scope = DefaultScopes.PROTOTYPE)
-	public RGBColor xperStimColorForeground() {
-		RGBColor fColor = new RGBColor();
-		fColor.setRed(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_foreground", 0)));
-		fColor.setGreen(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_foreground", 1)));
-		fColor.setBlue(Float.parseFloat(baseConfig.systemVariableContainer().get("xper_stim_color_foreground", 2)));
-		return fColor;
 	}
 
 }
