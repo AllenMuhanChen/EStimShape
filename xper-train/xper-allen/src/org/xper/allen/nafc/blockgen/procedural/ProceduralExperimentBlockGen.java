@@ -69,9 +69,13 @@ public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerato
         paramsForBlocks.put(block.getKey(), block.getValue());
     }
 
-    public void editBlock(int blockIndex, Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block){
+    public void editBlock(int blockIndex, ProceduralRandGenType genType){
+//        genTypesForBlocks.put(stimBlocks.get(blockIndex), genType);
+        paramsForBlocks.remove(stimBlocks.get(blockIndex));
+        Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block = genType.genBlock();
         stimBlocks.set(blockIndex, block.getKey());
         paramsForBlocks.put(block.getKey(), block.getValue());
+        genTypesForBlocks.put(block.getKey(), genType);
     }
 
     public List<NAFCStim> getBlock(int blockIndex){

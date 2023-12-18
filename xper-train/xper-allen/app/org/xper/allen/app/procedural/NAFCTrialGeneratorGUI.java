@@ -107,7 +107,7 @@ public class NAFCTrialGeneratorGUI {
         editButton.addActionListener(e -> {
             int selectedIndex = trialList.getSelectedIndex();
             if (selectedIndex != -1) {
-                blockgen.editBlock(selectedIndex, selectedType.genBlock());
+                blockgen.editBlock(selectedIndex, selectedType);
                 listModel.set(selectedIndex, selectedType.getInfo());
             }
         });
