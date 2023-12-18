@@ -26,8 +26,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	double screenWidth;
 	@Dependency
 	double screenHeight;
-	@Dependency
-	double[] backgroundColor;
+
 	@Dependency
 //	int frameRate = Display.getDisplayMode().getFrequency(); //this is wrong
 	int frameRate;
@@ -52,8 +51,6 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 		setUseStencil(true);
 		super.initGL(w, h);
-
-		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 1.0f);
 		GL11.glViewport(0,0,w,h);
 	}
 
@@ -272,14 +269,6 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 	public void setNumChoices(int numChoices) {
 		this.numChoices = numChoices;
-	}
-
-	public double[] getBackgroundColor() {
-		return backgroundColor;
-	}
-
-	public void setBackgroundColor(double[] backgroundColor) {
-		this.backgroundColor = backgroundColor;
 	}
 
 	public int getFrameRate() {

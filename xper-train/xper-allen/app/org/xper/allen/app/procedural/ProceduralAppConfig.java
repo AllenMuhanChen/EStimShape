@@ -36,7 +36,7 @@ public class ProceduralAppConfig {
         scene.setScreenHeight(pngConfig.classicConfig.xperMonkeyScreenHeight());
         scene.setScreenWidth(pngConfig.classicConfig.xperMonkeyScreenWidth());
         scene.setDistance(pngConfig.classicConfig.xperMonkeyScreenDistance());
-        scene.setBackgroundColor(pngConfig.mStickPngConfig.xperPngBackgroundColor());
+        scene.setBackgroundColor(pngConfig.classicConfig.xperBackgroundColor());
         scene.setFrameRate(pngConfig.mStickPngConfig.xperNoiseRate());
         return scene;
     }
