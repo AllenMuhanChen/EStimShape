@@ -4,7 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.xper.allen.app.Console;
+import org.xper.allen.app.NAFCConsole;
 import org.xper.allen.app.Experiment;
 import org.xper.allen.drawing.composition.noisy.NoisePositions;
 import org.xper.allen.nafc.blockgen.Lims;
@@ -115,7 +115,7 @@ public class PsychometricExperimentTest {
 
     @Test
     public void startExperiment(){
-        Console.main(emptyArgs);
+        NAFCConsole.main(emptyArgs);
         Experiment.main(emptyArgs);
     }
 

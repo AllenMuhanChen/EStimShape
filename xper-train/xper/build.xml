@@ -1,7 +1,7 @@
 <project name="xper" default="dist" basedir=".">
 	<property name="build.home" location="${basedir}/class" />
 	<property name="dist.home" location="${basedir}/../dist" />
-	<property name="native.home" location="${basedir}/../xper-native" />	
+	<property name="native.home" location="${basedir}/../xper-native" />
 
 	<path id="classpath">
 		<fileset dir="lib">
@@ -50,7 +50,7 @@
 		<copy todir="${dist.home}/lib">
 			<fileset dir="lib" />
 		</copy>
-		
+
 		<copy todir="${dist.home}/native/windows" failonerror="false">
 			<fileset dir="${native.home}/windows" />
 		</copy>
@@ -121,7 +121,7 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
 			</manifest>
 		</jar>
-		
+
 		<jar jarfile="${dist.home}/rds_experiment.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/app/rds/RdsExperiment.class" />
@@ -157,7 +157,7 @@
 				<include name="org/xper/app/experiment/Console.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.app.Console" />
+				<attribute name="Main-Class" value="org.xper.app.experiment.Console" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
 			</manifest>
 		</jar>
@@ -181,7 +181,7 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar" />
 			</manifest>
 		</jar>
-		
+
 		<jar jarfile="${dist.home}/rand_gen.jar">
 			<fileset dir="${build.home}">
 				<include name="org/xper/app/experiment/test/RandGen.class" />

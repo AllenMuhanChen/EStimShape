@@ -142,12 +142,12 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar "/>
 			</manifest>
 		</jar>
-		<jar jarfile="${allen.home}/Console.jar">
+		<jar jarfile="${allen.home}/NAFCConsole.jar">
 			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/Console.class" />
+				<include name="org/xper/allen/app/NAFCConsole.class" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.Console" />
+				<attribute name="Main-Class" value="org.xper.allen.app.NAFCConsole" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar"/>
 			</manifest>
 		</jar>
@@ -212,24 +212,6 @@
 			<manifest>
 				<attribute name="Main-Class" value="org.xper.allen.app.procedural.NAFCTrialGeneratorGUI" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
-			</manifest>
-		</jar>
-		<jar jarfile="${allen.home}/FixationConsole.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/FixationConsole.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.FixationConsole" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar"/>
-			</manifest>
-		</jar>
-		<jar jarfile="${allen.home}/FixationExperiment.jar">
-			<fileset dir="${build.home}">
-				<include name="org/xper/allen/app/FixationExperiment.class" />
-			</fileset>
-			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.FixationExperiment" />
-				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar"/>
 			</manifest>
 		</jar>
 	</target>

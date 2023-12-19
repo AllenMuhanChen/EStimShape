@@ -1,0 +1,18 @@
+#!/bin/bash
+source pathsFixation
+
+### PARAMETERS ###
+numTrials=50
+noiseChance=0.5
+distanceLims="0,0"
+scale=5
+
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_FIXATION $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_FIXATION $DIST/allen/xper.properties
+cd $DIST/allen
+
+java -jar NoisyPngFixationBlockGeneratorMain.jar $numTrials $distanceLims $scale $noiseChance
+
+rsync -av $R_PNGS $M_RSYNC_FIXATION
+rsync -av $R_SPECS $M_RSYNC_FIXATION

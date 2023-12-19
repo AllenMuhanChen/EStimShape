@@ -4,6 +4,7 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.app.nafc.TrialArgReader;
 import org.xper.allen.fixation.blockgen.NoisyPngFixationBlockGen;
 import org.xper.allen.fixation.blockgen.NoisyPngFixationBlockParameters;
+import org.xper.allen.fixation.blockgen.NoisyPngFixationTrialParameters;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.blockgen.TypeFrequency;
@@ -11,6 +12,7 @@ import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.util.FileUtil;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,7 +22,7 @@ public class NoisyPngFixationBlockGeneratorMain {
 
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
-                FileUtil.loadConfigClass("experiment.ga.config_class"));
+                FileUtil.loadConfigClass("experiment.config_class"));
 
         NoisyPngFixationBlockGen gen = context.getBean(NoisyPngFixationBlockGen.class);
 
@@ -40,19 +42,14 @@ public class NoisyPngFixationBlockGeneratorMain {
             List<String> argsList = Arrays.asList(args);
             iterator = argsList.listIterator();
             int numTrials = Integer.parseInt(iterator.next());
-            TypeFrequency<Lims> randNoiseChancesTF = new TypeFrequency<>(nextLimsType(), nextFrequency());
-            TypeFrequency<NoiseType> noiseTypesTF = new TypeFrequency<>(stringToNoiseTypes(iterator.next()), nextFrequency());
             Lims distanceLims = stringToLim(iterator.next());
             double size = Double.parseDouble(iterator.next());
+            double noiseChance = Double.parseDouble(iterator.next());
 
-            List<NoiseType> noiseTypes = noiseTypesTF.getShuffledTrialList(numTrials);
-            List<Lims> noiseChances = randNoiseChancesTF.getShuffledTrialList(numTrials);
-            List<NoiseParameters> noiseParameters = new LinkedList<>();
-            for(int i = 0; i< numTrials; i++){
-                noiseParameters.add(new NoiseParameters(NoiseFormer.getNoiseForm(noiseTypes.get(i)), noiseChances.get(i)));
-            }
+            Color color = new Color(255, 255, 255);
+            NoisyPngFixationTrialParameters trialParams = new NoisyPngFixationTrialParameters(noiseChance, distanceLims, size, color);
 
-            return new NoisyPngFixationBlockParameters(noiseParameters, distanceLims, size);
+            return new NoisyPngFixationBlockParameters(trialParams, numTrials);
         }
 
     }

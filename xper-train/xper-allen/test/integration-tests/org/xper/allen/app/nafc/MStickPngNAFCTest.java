@@ -5,7 +5,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.xper.allen.app.Console;
+import org.xper.allen.app.NAFCConsole;
 import org.xper.allen.app.Experiment;
 import org.xper.allen.nafc.blockgen.MStickPngBlockGen;
 import org.xper.allen.util.AllenDbUtil;
@@ -71,7 +71,7 @@ public class MStickPngNAFCTest {
 
     @Test
     public void startExperiment(){
-        Console.main(emptyArgs);
+        NAFCConsole.main(emptyArgs);
         Experiment.main(emptyArgs);
     }
 

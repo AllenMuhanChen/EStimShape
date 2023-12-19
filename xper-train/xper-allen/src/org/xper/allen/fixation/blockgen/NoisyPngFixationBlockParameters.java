@@ -5,37 +5,27 @@ import org.xper.allen.nafc.vo.NoiseParameters;
 import java.util.List;
 
 public class NoisyPngFixationBlockParameters {
-    List<NoiseParameters> noiseParameters;
-    Lims distanceLims;
-    double size;
+    NoisyPngFixationTrialParameters trialParams;
+    int numTrials;
 
-    public NoisyPngFixationBlockParameters(List<NoiseParameters> noiseParameters, Lims distanceLims, double size) {
-        this.noiseParameters = noiseParameters;
-        this.distanceLims = distanceLims;
-        this.size = size;
+    public NoisyPngFixationBlockParameters(NoisyPngFixationTrialParameters trialParams, int numTrials) {
+        this.trialParams = trialParams;
+        this.numTrials = numTrials;
     }
 
-    public List<NoiseParameters> getNoiseParameters() {
-        return noiseParameters;
+    public NoisyPngFixationTrialParameters getTrialParams() {
+        return trialParams;
     }
 
-    public void setNoiseParameters(List<NoiseParameters> noiseParameters) {
-        this.noiseParameters = noiseParameters;
+    public void setTrialParams(NoisyPngFixationTrialParameters trialParams) {
+        this.trialParams = trialParams;
     }
 
-    public Lims getDistanceLims() {
-        return distanceLims;
+    public int getNumTrials() {
+        return numTrials;
     }
 
-    public void setDistanceLims(Lims distanceLims) {
-        this.distanceLims = distanceLims;
-    }
-
-    public double getSize() {
-        return size;
-    }
-
-    public void setSize(double size) {
-        this.size = size;
+    public void setNumTrials(int numTrials) {
+        this.numTrials = numTrials;
     }
 }

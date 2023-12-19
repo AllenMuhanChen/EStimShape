@@ -21,7 +21,7 @@ import org.xper.drawing.object.BlankScreen;
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
 @AnnotationDrivenConfig
-@Import({ClassicConfig.class, MStickPngConfig.class, RewardButtonConfig.class})
+@Import({ClassicConfig.class, MStickPngConfig.class})
 public class NoisyPngFixationAppConfig extends ConfigurationSupport {
     @Autowired ClassicConfig classicConfig;
     @Autowired BaseConfig baseConfig;
@@ -50,6 +50,7 @@ public class NoisyPngFixationAppConfig extends ConfigurationSupport {
         scene.setBackgroundColor(mStickConfig.xperPngBackgroundColor());
         scene.setFrameRate(xperNoiseRate());
         scene.setSlideLength(classicConfig.xperSlideLength());
+        scene.setBackgroundColor(classicConfig.xperBackgroundColor());
         return scene;
     }
 

@@ -3,6 +3,8 @@ package org.xper.allen.fixation.blockgen;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.RandMStickGenerator;
+import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner;
 
 import org.xper.allen.specs.NoisyPngSpec;
@@ -30,8 +32,11 @@ public class NoisyPngFixationStim implements Stim {
     @Override
     public void writeStim() {
         //Generate MStick
-        RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
-        AllenMatchStick mStick = mStickGenerator.getMStick();
+        ProceduralMatchStick mStick = new ProceduralMatchStick();
+        mStick.setProperties(generator.getMaxImageDimensionDegrees());
+        mStick.setStimColor(params.color);
+        mStick.genMatchStickRand();
+
 
         //Assign StimSpecId
         id = generator.getGlobalTimeUtil().currentTimeMicros();
@@ -41,8 +46,8 @@ public class NoisyPngFixationStim implements Stim {
         pngPath = generator.convertPngPathToExperiment(pngPath);
 
         //Create NoiseMap
-        mStick.setNoiseParameters(params.getNoiseParameters());
-        String noiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath());
+        int noiseCompIndx = mStick.chooseRandLeaf();
+        String noiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap((ExperimentMatchStick) mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath(), params.noiseChance, noiseCompIndx);
         noiseMapPath = generator.convertPngPathToExperiment(noiseMapPath);
 
         //Assign Coordinates
