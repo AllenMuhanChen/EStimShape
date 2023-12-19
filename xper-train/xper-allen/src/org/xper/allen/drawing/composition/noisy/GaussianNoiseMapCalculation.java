@@ -105,8 +105,15 @@ public class GaussianNoiseMapCalculation {
         BufferedImage noiseMap = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
         // Convert the background and noiseLevel values to a 0-255 range for the red component
-        int backgroundRed = (int) (Math.min(background, 1.0) * 255);
-        int noiseLevelRed = (int) (Math.min(noiseLevel, 1.0) * 255);
+        int backgroundRed;
+        int noiseLevelRed;
+        if (noiseLevel > background) {
+            backgroundRed = (int) (Math.min(background, 1.0) * 255);
+            noiseLevelRed = (int) (Math.min(noiseLevel, 1.0) * 255);
+        } else{
+            backgroundRed = (int) (Math.min(noiseLevel, 1.0) * 255);
+            noiseLevelRed = (int) (Math.min(background, 1.0) * 255);
+        }
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
