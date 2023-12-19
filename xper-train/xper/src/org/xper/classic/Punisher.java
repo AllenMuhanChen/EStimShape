@@ -30,6 +30,7 @@ public class Punisher {
         this.setCurrentPunishmentTime(0);
     }
 
+
     public void punish() {
         currentStreakForPunishment++;
         System.out.println("Punishment streak: " + currentStreakForPunishment);

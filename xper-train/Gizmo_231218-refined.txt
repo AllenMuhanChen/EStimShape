@@ -1,0 +1,12 @@
+xper_right_iscan_mapping_algorithm_parameter,3,0.0038455165487865208
+xper_right_iscan_mapping_algorithm_parameter,2,-0.06565476849434987
+xper_right_iscan_mapping_algorithm_parameter,1,-0.06331613563850852
+xper_right_iscan_mapping_algorithm_parameter,0,0.004237111442125338
+xper_left_iscan_mapping_algorithm_parameter,0,-0.06224328779648729
+xper_left_iscan_mapping_algorithm_parameter,1,-0.0028770269967669827
+xper_left_iscan_mapping_algorithm_parameter,2,-0.003833959772207329
+xper_left_iscan_mapping_algorithm_parameter,3,-0.051088106013968126
+xper_right_iscan_eye_zero,0,0.19154593853428997
+xper_right_iscan_eye_zero,1,-0.9056131996122008
+xper_left_iscan_eye_zero,0,-1.4635448342415311
+xper_left_iscan_eye_zero,1,0.011194097879201325

@@ -150,13 +150,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
                 currentContext);
 
-        // modify fixation point if punishment is on
-        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
-        if (punisher.getCurrentPunishmentTime() > 0) {
-            taskScene.setFixation(punisher.getPunishmentFixationPoint());
-        } else{
-            taskScene.setFixation(punisher.getOriginalFixationPoint());
-        }
+        switchFixationIfPunishment(drawingController);
 
         // prepare fixation point
         drawingController.prepareFixationOn(currentContext);
@@ -221,7 +215,19 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
                 trialEventListeners, currentContext);
 
+        punisher.resetPunishment();
         return TrialResult.FIXATION_SUCCESS;
+    }
+
+
+    private void switchFixationIfPunishment(TrialDrawingController drawingController) {
+        // modify fixation point if punishment is on
+        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            taskScene.setFixation(punisher.getPunishmentFixationPoint());
+        } else{
+            taskScene.setFixation(punisher.getOriginalFixationPoint());
+        }
     }
 
     public static void getNextTask(TrialExperimentState state) {

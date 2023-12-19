@@ -25,8 +25,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 	double screenWidth;
 	@Dependency
 	double screenHeight;
-	@Dependency
-	double[] backgroundColor;
+
 
 	Coordinates2D[] choiceLocations;
 	Coordinates2D sampleLocation;
@@ -44,9 +43,9 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 
 	/*
 	 * //this is a workaround in order to allow trialStart to do the prep work,
-	 *  and for the prepareChoice/prepareSample call to setChoice or setSample do nothing. 
+	 *  and for the prepareChoice/prepareSample call to setChoice or setSample do nothing.
 	 */
-	int numSamplePrepped; 
+	int numSamplePrepped;
 	int numChoicePrepped;
 
 	public void initGL(int w, int h) {
@@ -55,9 +54,8 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 		super.initGL(w, h);
 		//System.out.println("JK 32838 w = " + screenWidth + ", h = " + screenHeight);
 
-		GL11.glClearColor((float)backgroundColor[0], (float)backgroundColor[1], (float)backgroundColor[2], 0.0f);          
 		GL11.glViewport(0,0,w,h);
-		GL11.glMatrixMode(GL11.GL_MODELVIEW); 
+		GL11.glMatrixMode(GL11.GL_MODELVIEW);
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();
 
@@ -70,7 +68,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 		numChoicePrepped = 0;
 		/*
 		 * //this is a workaround in order to allow trialStart to do the prep work,
-		 *  and for the prepareChoice/prepareSample call to setChoice or setSample do nothing. 
+		 *  and for the prepareChoice/prepareSample call to setChoice or setSample do nothing.
 		 */
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
@@ -82,8 +80,8 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 			choiceMStick.add(new AllenMatchStick());
 		}
 
-		setChoice(task); 
-		setSample(task); 
+		setChoice(task);
+		setSample(task);
 	}
 
 	@Override
@@ -96,11 +94,11 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 			System.out.println("ncomp:" + sampleMStick.getScaleForMAxisShape());
 			numSamplePrepped++;
 		}
-		
+
 	}
 
 	@Override
-	public void setChoice(NAFCExperimentTask task) {	
+	public void setChoice(NAFCExperimentTask task) {
 		if (numChoicePrepped==0){
 			for (int i=0; i< numChoices; i++){
 				choiceSpec[i] = AllenMStickSpec.fromXml(task.getChoiceSpec()[i]);
@@ -108,7 +106,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 				choiceMStick.get(i).setScale(choiceSpec[i].getMinSize(), choiceSpec[i].getMaxSize());
 				choiceMStick.get(i).smoothizeMStick();
 				//choiceSpec[i].setMStickInfo(choiceMStick.get(i));
-			
+
 			}
 			numChoicePrepped++;
 		}
@@ -121,12 +119,12 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
 		renderer.draw(new Drawable() {
-			public void draw(Context context) { 
+			public void draw(Context context) {
 				if (useStencil) {
 					// 0 will pass for stimulus region
 					GL11.glStencilFunc(GL11.GL_EQUAL, 0, 1);
 				}
-				int index = 0; //Should be zero, the sample is assigned index of zero. 
+				int index = 0; //Should be zero, the sample is assigned index of zero.
 				sampleMStick.draw();
 				System.out.println("sampleMSTick called");
 				if (useStencil) {
@@ -266,16 +264,4 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void setScreenHeight(double screenHeight) {
 		this.screenHeight = screenHeight;
 	}
-
-	public double[] getBackgroundColor() {
-		return backgroundColor;
-	}
-
-	public void setBackgroundColor(double[] backgroundColor) {
-		this.backgroundColor = backgroundColor;
-	}
-
-
 }
-
-

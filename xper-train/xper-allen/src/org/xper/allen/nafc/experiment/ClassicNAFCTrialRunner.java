@@ -9,9 +9,6 @@ import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.SlideTrialExperimentState;
 import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
-import org.xper.drawing.Context;
-import org.xper.drawing.Drawable;
-import org.xper.drawing.RGBColor;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
@@ -186,13 +183,8 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         drawingController.prepareSample(currentTask, currentContext);
         drawingController.prepareChoice(currentTask, currentContext);
 
-        // modify fixation point if punishment is on
-        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
-        if (punisher.getCurrentPunishmentTime() > 0) {
-            taskScene.setFixation(punisher.getPunishmentFixationPoint());
-        } else{
-            taskScene.setFixation(punisher.getOriginalFixationPoint());
-        }
+
+        switchFixationIfPunishment(drawingController);
 
         // prepare fixation point
         drawingController.prepareFixationOn(currentContext);
@@ -226,9 +218,9 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         }
 
         // got initial eye in
-        long eyeInitialInLoalTime = timeUtil.currentTimeMicros();
-        currentContext.setInitialEyeInTime(eyeInitialInLoalTime);
-        EventUtil.fireInitialEyeInSucceedEvent(eyeInitialInLoalTime,
+        long eyeInitialInLocalTime = timeUtil.currentTimeMicros();
+        currentContext.setInitialEyeInTime(eyeInitialInLocalTime);
+        EventUtil.fireInitialEyeInSucceedEvent(eyeInitialInLocalTime,
                 trialEventListeners, currentContext);
 
         // prepare first slide
@@ -237,7 +229,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         //drawingController.prepareSample(currentTask, currentContext);
 
 
-        success = eyeController.waitEyeInAndHold(eyeInitialInLoalTime
+        success = eyeController.waitEyeInAndHold(eyeInitialInLocalTime
                 + state.getRequiredEyeInHoldTime() * 1000L + punisher.getCurrentPunishmentTime() * 1000L);
 
 
@@ -248,6 +240,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
             drawingController.eyeInHoldFail(currentContext);
             EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
                     trialEventListeners, currentContext);
+
             return NAFCTrialResult.EYE_IN_HOLD_FAIL;
         }
 
@@ -257,7 +250,19 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
                 trialEventListeners, currentContext);
 
+        punisher.resetPunishment();
         return NAFCTrialResult.FIXATION_SUCCESS;
+    }
+
+
+    private void switchFixationIfPunishment(NAFCTrialDrawingController drawingController) {
+        // modify fixation point if punishment is on
+        AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            taskScene.setFixation(punisher.getPunishmentFixationPoint());
+        } else{
+            taskScene.setFixation(punisher.getOriginalFixationPoint());
+        }
     }
 
     public ClassicNAFCTaskRunner getTaskRunner() {

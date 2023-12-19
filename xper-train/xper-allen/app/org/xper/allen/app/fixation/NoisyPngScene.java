@@ -37,7 +37,6 @@ public class NoisyPngScene extends AbstractTaskScene{
         setUseStencil(true);
         super.initGL(w, h);
 
-        GL11.glClearColor((float) getBackgroundColor()[0], (float) getBackgroundColor()[1], (float) getBackgroundColor()[2], 0.0f);
         GL11.glViewport(0,0,w,h);
 
     }
@@ -46,10 +45,6 @@ public class NoisyPngScene extends AbstractTaskScene{
     public void trialStart(TrialContext context){
         double durationSeconds = getSlideLength() /1000.0;
         numNoiseFrames = (int) Math.ceil((durationSeconds * getFrameRate())) + bufferFrames;
-    }
-
-    public double[] getBackgroundColor() {
-        return backgroundColor;
     }
 
     public int getFrameRate() {
