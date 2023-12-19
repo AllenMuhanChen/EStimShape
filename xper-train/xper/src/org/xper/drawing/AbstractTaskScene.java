@@ -49,7 +49,6 @@ public abstract class AbstractTaskScene implements TaskScene {
 		}
 
 		GL11.glClearColor(getBackgroundColor().getRed(), getBackgroundColor().getGreen(), getBackgroundColor().getBlue(), 0.0f);
-
 	}
 
 	public void drawBlank(Context context, final boolean fixationOn, final boolean markerOn) {

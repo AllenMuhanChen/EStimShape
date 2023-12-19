@@ -7,9 +7,9 @@ import org.xper.experiment.ExperimentTask;
 public class SaccadeMarkEveryStepTrialDrawingController extends MarkEveryStepTrialDrawingController{
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
-		taskScene.nextMarker();
-		taskScene.drawBlank(context, false, true);
+		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, true);
 		getWindow().swapBuffers();
 	}
-	
+
 }

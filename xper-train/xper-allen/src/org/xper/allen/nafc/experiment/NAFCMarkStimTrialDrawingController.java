@@ -87,12 +87,6 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		this.taskScene = taskScene;
 	}
 
-	// not sure if below needed. 
-	public void init() {
-		getWindow().create();
-		getTaskScene().initGL(getWindow().getWidth(), getWindow().getHeight());
-		initialized = true;
-	}
 
 	public void destroy() {
 		if (initialized) {
@@ -105,7 +99,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 //		if(task!=null) {
 //			getTaskScene().drawBlank(context, fixationOnWithStimuli, true);
 //		} else {
-//			
+//
 //		}
 //		getWindow().swapBuffers();
 //		if(showTiming) {
@@ -131,7 +125,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 //			System.out.println("OVER: " + timeElapsed/1000000 + " seconds");
 //		}
 //	}
-//	
+//
 	public void animateSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task!=null) {
 			long startTime = timeUtil.currentTimeMicros();

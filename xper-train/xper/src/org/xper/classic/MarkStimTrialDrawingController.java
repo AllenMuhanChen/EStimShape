@@ -19,26 +19,29 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 
 	protected void drawTaskScene(ExperimentTask task, Context context) {
 		if (task != null) {
-			taskScene.setTask(task);
-			taskScene.drawTask(context, fixationOnWithStimuli);
+			getTaskScene().setTask(task);
+			getTaskScene().drawTask(context, fixationOnWithStimuli);
 		} else {
-			taskScene.drawBlank(context, fixationOnWithStimuli, true);
+			getTaskScene().drawBlank(context, fixationOnWithStimuli, true);
 		}
 	}
 
 	protected void animateTaskScene(ExperimentTask task, Context context) {
 		if (task != null) {
-			taskScene.drawTask(context, fixationOnWithStimuli);
+			getTaskScene().drawTask(context, fixationOnWithStimuli);
 		} else {
-			taskScene.drawBlank(context, fixationOnWithStimuli, true);
+			getTaskScene().drawBlank(context, fixationOnWithStimuli, true);
 		}
 	}
 
 	public void init() {
 		getWindow().create();
-		taskScene.initGL(getWindow().getWidth(), getWindow().getHeight());
+		getTaskScene().initGL(getWindow().getWidth(), getWindow().getHeight());
 
 		initialized = true;
+
+		getTaskScene().drawBlank(new Context(), false, false);
+		getWindow().swapBuffers();
 	}
 
 	public void destroy() {
@@ -49,11 +52,11 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 	}
 
 	public void trialStart(TrialContext context) {
-		taskScene.trialStart(context);
+		getTaskScene().trialStart(context);
 	}
 
 	public void prepareFixationOn(TrialContext context) {
-		taskScene.drawBlank(context, true, false);
+		getTaskScene().drawBlank(context, true, false);
 	}
 
 	public void fixationOn(TrialContext context) {
@@ -61,17 +64,17 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 	}
 
 	public void initialEyeInFail(TrialContext context) {
-		taskScene.drawBlank(context, false, false);
+		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
 
 	public void prepareFirstSlide(ExperimentTask task, TrialContext context) {
-		taskScene.nextMarker();
+		getTaskScene().nextMarker();
 		drawTaskScene(task, context);
 	}
 
 	public void eyeInHoldFail(TrialContext context) {
-		taskScene.drawBlank(context, false, false);
+		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
 
@@ -85,17 +88,17 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 	}
 
 	public void slideFinish(ExperimentTask task, TrialContext context) {
-		taskScene.drawBlank(context, true, false);
+		getTaskScene().drawBlank(context, true, false);
 		getWindow().swapBuffers();
 	}
 
 	public void prepareNextSlide(ExperimentTask task, TrialContext context) {
-		taskScene.nextMarker();
+		getTaskScene().nextMarker();
 		drawTaskScene(task, context);
 	}
 
 	public void eyeInBreak(TrialContext context) {
-		taskScene.drawBlank(context, false, false);
+		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
 
@@ -116,12 +119,12 @@ public class MarkStimTrialDrawingController implements TrialDrawingController {
 	}
 
 	public void trialComplete(TrialContext context) {
-		taskScene.drawBlank(context, false, false);
+		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
 
 	public void trialStop(TrialContext context) {
-		taskScene.trialStop(context);
+		getTaskScene().trialStop(context);
 	}
 
 	public boolean isFixationOnWithStimuli() {
