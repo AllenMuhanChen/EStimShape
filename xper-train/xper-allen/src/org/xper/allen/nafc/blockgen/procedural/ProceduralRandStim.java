@@ -5,7 +5,7 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
 public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
-    public ProceduralRandStim(ProceduralExperimentBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
+    public ProceduralRandStim(NAFCBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
         super(generator, parameters, new ProceduralMatchStick(), 0, 0);
     }
 

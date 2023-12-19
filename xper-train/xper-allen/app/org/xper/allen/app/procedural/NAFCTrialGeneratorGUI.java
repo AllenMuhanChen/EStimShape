@@ -2,7 +2,7 @@ package org.xper.allen.app.procedural;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.allen.nafc.blockgen.procedural.MockExperimentGenType;
-import org.xper.allen.nafc.blockgen.procedural.ProceduralExperimentBlockGen;
+import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralRandGenParameters;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralRandGenType;
 import org.xper.exception.XGLException;
@@ -30,7 +30,7 @@ public class NAFCTrialGeneratorGUI {
 //        FileUtil.loadTestSystemProperties("/xper.properties.procedural");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
-        ProceduralExperimentBlockGen blockgen = context.getBean(ProceduralExperimentBlockGen.class);
+        NAFCBlockGen blockgen = context.getBean(NAFCBlockGen.class);
 
         List<? extends ProceduralRandGenType> stimTypes = Arrays.asList(new ProceduralRandGenType(blockgen), new MockExperimentGenType(blockgen));
         HashMap<String, ProceduralRandGenType> labelsForStimTypes = new HashMap<>();

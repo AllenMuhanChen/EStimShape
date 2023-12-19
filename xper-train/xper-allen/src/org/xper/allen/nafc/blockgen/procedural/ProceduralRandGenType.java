@@ -12,18 +12,18 @@ import java.util.List;
 public class ProceduralRandGenType {
     public static final String label = "RandProcedural";
 
-    protected ProceduralExperimentBlockGen generator;
+    protected NAFCBlockGen generator;
 
 
     protected JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
     protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     protected JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
 
-    public ProceduralRandGenType(ProceduralExperimentBlockGen generator) {
+    public ProceduralRandGenType(NAFCBlockGen generator) {
         this.generator = generator;
     }
 
-    public static ProceduralRandGenType getGenType(String s, ProceduralExperimentBlockGen proceduralExperimentBlockGen) {
+    public static ProceduralRandGenType getGenType(String s, NAFCBlockGen proceduralExperimentBlockGen) {
         if (s.equals(MockExperimentGenType.label)) {
             return new MockExperimentGenType(proceduralExperimentBlockGen);
         } else if (s.equals(ProceduralRandGenType.label)) {

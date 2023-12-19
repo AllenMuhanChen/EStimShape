@@ -7,7 +7,7 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.blockgen.procedural.NAFCTrialParamDbUtil;
-import org.xper.allen.nafc.blockgen.procedural.ProceduralExperimentBlockGen;
+import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.drawing.object.BlankScreen;
 
@@ -42,8 +42,8 @@ public class ProceduralAppConfig {
     }
 
     @Bean
-    public ProceduralExperimentBlockGen blockGen() {
-        ProceduralExperimentBlockGen blockGen = new ProceduralExperimentBlockGen();
+    public NAFCBlockGen blockGen() {
+        NAFCBlockGen blockGen = new NAFCBlockGen();
         //Dependencies of superclasses
         blockGen.setDbUtil(pngConfig.config.allenDbUtil());
         blockGen.setGlobalTimeUtil(pngConfig.acqConfig.timeClient());

@@ -250,7 +250,11 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
                 trialEventListeners, currentContext);
 
-        punisher.resetPunishment();
+        // if this was a punished fixation, reset punishment if successful
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            punisher.resetPunishment();
+        }
+
         return NAFCTrialResult.FIXATION_SUCCESS;
     }
 

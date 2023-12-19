@@ -22,14 +22,14 @@ import java.util.List;
 
 public class ProceduralStim implements NAFCStim {
     //Input
-    protected final ProceduralExperimentBlockGen generator;
+    protected final NAFCBlockGen generator;
     protected ProceduralStimParameters parameters;
     protected ExperimentMatchStick baseMatchStick;
     protected int morphComponentIndex;
     protected int noiseComponentIndex;
 
 
-    public ProceduralStim(ProceduralExperimentBlockGen generator,
+    public ProceduralStim(NAFCBlockGen generator,
                           ProceduralStimParameters parameters,
                           ExperimentMatchStick baseMatchStick,
                           int morphComponentIndex, int noiseComponentIndex) {

@@ -215,7 +215,10 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
         EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
                 trialEventListeners, currentContext);
 
-        punisher.resetPunishment();
+        // if this was a punished fixation, reset punishment if successful
+        if (punisher.getCurrentPunishmentTime() > 0) {
+            punisher.resetPunishment();
+        }
         return TrialResult.FIXATION_SUCCESS;
     }
 

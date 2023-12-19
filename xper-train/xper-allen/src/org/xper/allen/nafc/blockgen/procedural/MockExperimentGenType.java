@@ -13,7 +13,7 @@ public class MockExperimentGenType extends ProceduralRandGenType{
 
     protected JTextField numDeltaTrialSetsField;
 
-    public MockExperimentGenType(ProceduralExperimentBlockGen generator) {
+    public MockExperimentGenType(NAFCBlockGen generator) {
         super(generator);
     }
 

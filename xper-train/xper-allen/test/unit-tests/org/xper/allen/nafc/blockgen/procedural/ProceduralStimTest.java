@@ -26,7 +26,7 @@ import java.util.List;
 
 public class ProceduralStimTest extends ProceduralMatchStickTest {
 
-    private ProceduralExperimentBlockGen generator;
+    private NAFCBlockGen generator;
     private ProceduralMatchStick baseMStick;
 
     @Before
@@ -35,7 +35,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"));
 
-        generator = context.getBean(ProceduralExperimentBlockGen.class);
+        generator = context.getBean(NAFCBlockGen.class);
         baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(generator.getMaxImageDimensionDegrees());
         baseMStick.setStimColor(new Color(255,255,255));

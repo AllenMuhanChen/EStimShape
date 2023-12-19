@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-public class ProceduralExperimentBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
+public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
 
     @Dependency
     String generatorNoiseMapPath;
