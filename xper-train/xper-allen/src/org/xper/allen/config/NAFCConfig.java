@@ -398,12 +398,18 @@ public class NAFCConfig {
 			controller.setJuice(classicConfig.xperDynamicJuice());
 		}
 		controller.setChoiceCorrectMultiplier(xperChoiceCorrectJuiceMultiplier());
+		controller.setChoiceCorrectMultiplierChance(xperChoiceCorrectJuiceMultiplierChance());
 		return controller;
 	}
 
 	@Bean
 	public int xperChoiceCorrectJuiceMultiplier() {
-		return 2;
+		return Integer.parseInt(baseConfig.systemVariableContainer().get("xper_choice_correct_juice_multiplier", 0));
+	}
+
+	@Bean
+	public double xperChoiceCorrectJuiceMultiplierChance() {
+		return Double.parseDouble(baseConfig.systemVariableContainer().get("xper_choice_correct_juice_multiplier_chance", 0));
 	}
 
 	@Bean(scope = DefaultScopes.PROTOTYPE)

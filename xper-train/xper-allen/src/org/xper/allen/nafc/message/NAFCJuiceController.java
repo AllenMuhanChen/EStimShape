@@ -15,6 +15,9 @@ public class NAFCJuiceController implements ChoiceEventListener {
 	@Dependency
 	int choiceCorrectMultiplier = 1;
 
+	@Dependency
+	double choiceCorrectMultiplierChance = 0;
+
 	public Juice getJuice() {
 		return juice;
 	}
@@ -26,9 +29,13 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 	@Override
 	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
-		for (int i = 0; i< choiceCorrectMultiplier; i++){
-			juice.deliver();
-			System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal correctly chose.");
+		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString());
+		juice.deliver();
+		for (int i = 0; i< choiceCorrectMultiplier-1; i++){
+			if (Math.random() < choiceCorrectMultiplierChance){
+				System.out.println("Multiplier Juice delivered @ " + new Timestamp(timestamp/1000).toString());
+				juice.deliver();
+			}
 		}
 
 	}
@@ -36,9 +43,13 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 	@Override
 	public void choiceSelectionDefaultCorrect(long timestamp) {
-		for (int i = 0; i< choiceCorrectMultiplier; i++){
-			juice.deliver();
-			System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString() + "because animal is rewarded by default.");
+		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString());
+		juice.deliver();
+		for (int i = 0; i< choiceCorrectMultiplier-1; i++){
+			if (Math.random() < choiceCorrectMultiplierChance){
+				System.out.println("Multiplier Juice delivered @ " + new Timestamp(timestamp/1000).toString());
+				juice.deliver();
+			}
 		}
 	}
 
@@ -110,5 +121,13 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 	public void setChoiceCorrectMultiplier(int choiceCorrectMultiplier) {
 		this.choiceCorrectMultiplier = choiceCorrectMultiplier;
+	}
+
+	public double getChoiceCorrectMultiplierChance() {
+		return choiceCorrectMultiplierChance;
+	}
+
+	public void setChoiceCorrectMultiplierChance(double choiceCorrectMultiplierChance) {
+		this.choiceCorrectMultiplierChance = choiceCorrectMultiplierChance;
 	}
 }
