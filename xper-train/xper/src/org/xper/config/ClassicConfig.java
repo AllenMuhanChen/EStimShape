@@ -303,7 +303,7 @@ public class ClassicConfig {
 		DatabaseTaskDataSource source = new DatabaseTaskDataSource();
 		source.setDbUtil(baseConfig.dbUtil());
 		source.setQueryInterval(1000);
-		source.setUngetBehavior(UngetPolicy.HEAD);
+		source.setUngetBehavior(UngetPolicy.RAND);
 		return source;
 	}
 

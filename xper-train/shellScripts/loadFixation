@@ -2,7 +2,7 @@
 source pathsFixation
 
 ### PARAMETERS ###
-numTrials=50
+numTrials=100
 noiseChance=0.5
 distanceLims="0,0"
 scale=5

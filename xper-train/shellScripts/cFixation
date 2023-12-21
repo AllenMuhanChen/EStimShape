@@ -2,13 +2,13 @@
 source pathsFixation
 ./SystemVars
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
-UPDATE SystemVar SET val=1000 WHERE name='xper_slide_length';
+UPDATE SystemVar SET val=1500 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=1 WHERE name='xper_slides_per_trial';
 UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
 UPDATE SystemVar SET val=3000 WHERE name='xper_inter_trial_interval';
-UPDATE SystemVar SET val=2 WHERE name='xper_streak_to_start_punishment';
+UPDATE SystemVar SET val=3 WHERE name='xper_streak_to_start_punishment';
 UPDATE SystemVar SET val=3000 WHERE name='xper_punishment_delay_length';
 EOF
 

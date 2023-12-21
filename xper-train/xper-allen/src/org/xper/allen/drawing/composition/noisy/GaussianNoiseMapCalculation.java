@@ -112,7 +112,7 @@ public class GaussianNoiseMapCalculation {
             noiseLevelRed = (int) (Math.min(noiseLevel, 1.0) * 255);
         } else{
             backgroundRed = (int) (Math.min(noiseLevel, 1.0) * 255);
-            noiseLevelRed = (int) (Math.min(background, 1.0) * 255);
+            noiseLevelRed = (int) (Math.min(noiseLevel, 1.0) * 255);
         }
 
         for (int y = 0; y < height; y++) {
