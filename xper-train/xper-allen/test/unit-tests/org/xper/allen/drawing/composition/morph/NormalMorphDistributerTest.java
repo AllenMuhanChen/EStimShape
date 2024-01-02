@@ -25,14 +25,17 @@ public class NormalMorphDistributerTest {
 
     @Test
     public void test(){
-        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(0.5);
         List<AtomicReference<Double>> paramMagnitudes = Arrays.asList(
+                new AtomicReference<>(0.0),
+                new AtomicReference<>(0.0),
                 new AtomicReference<>(0.0),
                 new AtomicReference<>(0.0),
                 new AtomicReference<>(0.0));
 
-        normalMorphDistributer.distributeMagnitudeTo(paramMagnitudes, 0.5);
+        double magnitude = 0.4;
+        normalMorphDistributer.distributeMagnitudeTo(paramMagnitudes, magnitude);
         System.out.println(paramMagnitudes);
-        assertEquals(paramMagnitudes.stream().mapToDouble(AtomicReference::get).sum(), 1.5, 0.0001);
+        assertEquals(paramMagnitudes.stream().mapToDouble(AtomicReference::get).sum(), magnitude * paramMagnitudes.size(), 0.0001);
     }
 }

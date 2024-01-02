@@ -5,27 +5,35 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class NormalMorphDistributer {
 
-    private double sigma = 1.0/3.0;
+    private final double discreteness;
 
-    public NormalMorphDistributer(double sigma) {
-        this.sigma = sigma;
+    /**
+     *
+     * @param discreteness: number between 0 (exclusive) and 1 (inclusive). The lower the discreteness, the more likely the distribution will be uniform.
+     *                      The higher the discreteness, the more likely the distribution will be skewed towards high values in small numbers of parameters.
+     */
+    public NormalMorphDistributer(double discreteness) {
+        this.discreteness = discreteness;
     }
 
     public void distributeMagnitudeTo(Collection<AtomicReference<Double>> paramMagnitudes, double magnitude) {
         List<AtomicReference<Double>> magnitudesToDistributeTo = new LinkedList<>(paramMagnitudes);
         double amountLeftToDistribute = magnitude;
-        double maxPerParam = 1.0 / paramMagnitudes.size();
+        int numParams = magnitudesToDistributeTo.size();
+        double maxPerParam = 1.0 / numParams;
+        double buffer = 0.1 * maxPerParam; // magnitude being 1.0 may lead to impossible configurations, so we'd like to avoid this.
         while (Math.round(amountLeftToDistribute*100000.0)/100000.0 > 0.0) {
             Collections.shuffle(magnitudesToDistributeTo);
             for (AtomicReference<Double> paramMagnitude : magnitudesToDistributeTo) {
-                double randomMagnitude = randomTruncatedNormal(0.5, sigma, 0, 1) * maxPerParam;
+                double mean = (maxPerParam - buffer) * discreteness;
+                double randomMagnitude = randomTruncatedNormal(mean, (maxPerParam-mean)/3, 0, maxPerParam- buffer);
                 // If the random magnitude is greater than the amount left to distribute, set it to the amount left to distribute
                 if (randomMagnitude > amountLeftToDistribute) {
                     randomMagnitude = amountLeftToDistribute;
                 }
                 // If adding the random magnitude to the current magnitude would exceed the max, set it to the amount that would bring the current magnitude to the max
-                if (paramMagnitude.get() + randomMagnitude > maxPerParam) {
-                    randomMagnitude = maxPerParam - paramMagnitude.get();
+                if (paramMagnitude.get() + randomMagnitude > maxPerParam-buffer) {
+                    randomMagnitude = (maxPerParam-buffer) - paramMagnitude.get();
                 }
 
                 paramMagnitude.set(paramMagnitude.get() + randomMagnitude);
