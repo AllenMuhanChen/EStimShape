@@ -57,7 +57,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             try {
                 findCompsToPreserve(morphParametersForComponents);
                 morphAllComponents(morphParametersForComponents);
-                MutateSUB_reAssignJunctionRadius();
+//                MutateSUB_reAssignJunctionRadius();
                 positionShape();
                 attemptSmoothizeMStick();
                 break;
@@ -586,7 +586,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttemptsToGenerateArc = 0;
         while(numAttemptsToGenerateArc < NUM_ATTEMPTS_PER_ARC){
             try {
-                this.copyFrom(localBackup);
+//                this.copyFrom(localBackup);
                 newArc = generateMorphedArc(id, morphParams, arcToMorph);
                 checkJunctions(id, newArc);
                 return newArc;

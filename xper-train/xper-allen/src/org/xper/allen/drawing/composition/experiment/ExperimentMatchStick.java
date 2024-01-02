@@ -247,14 +247,17 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     public void checkInNoise(int compIndx){
         Point3d[] compVect_info = getComp()[compIndx].getVect_info();
         ArrayList<ConcaveHull.Point> concaveHullPoints = new ArrayList<>();
+        int index = 0;
         for (Point3d point3d: compVect_info){
             if (point3d != null){
-                concaveHullPoints.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+                if (index % 3 == 0) //For speed, we only check every other point for the hull
+                    concaveHullPoints.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+                index++;
             }
         }
         ConcaveHull concaveHull = new ConcaveHull();
 
-        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 10);
+        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 5);
         Point3d noiseCenter = calculateNoiseOrigin(compIndx);
         List<Point2d> pointsOutside = new LinkedList<>();
         for (ConcaveHull.Point point: hullVertices){

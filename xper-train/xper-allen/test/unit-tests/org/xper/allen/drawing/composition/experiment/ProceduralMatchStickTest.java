@@ -148,14 +148,17 @@ public class ProceduralMatchStickTest {
     private ArrayList<ConcaveHull.Point> calcHull(ProceduralMatchStick testMStick, int compIndx) {
         Point3d[] compVect_info = testMStick.getComp()[compIndx].getVect_info();
         ArrayList<ConcaveHull.Point> concaveHullPoints = new ArrayList<>();
+        int index=0;
         for (Point3d point3d: compVect_info){
             if (point3d != null){
-                concaveHullPoints.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+                if (index % 3 == 0)
+                    concaveHullPoints.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+                index++;
             }
         }
         ConcaveHull concaveHull = new ConcaveHull();
 
-        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 10);
+        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 5);
         return hullVertices;
     }
 

@@ -26,56 +26,14 @@ public class AllenTubeComp extends TubeComp{
 	private AllenMAxisArc mAxisInfo = new AllenMAxisArc();
 	private double[][] normalizedRadInfo = new double[3][2];
 	private double scale;
-	// we can set it to be true, to skip jacob_check
-	public boolean skipJacobInAnalysisPhase = false;
-	private int label;
-	private double[][] radInfo = new double[3][2];
-	private boolean branchUsed;
-	private double[] radiusAcross = new double[52]; // the radius value at each mPts point
-	private int connectType;
-	boolean scaleOnce = true;
 	private boolean isNormalized = false;
-	public int maxStep = 51;
 
 
 
-	private Point3d[] vect_info = new Point3d[2000]; // 2000 should be large enough to contain all pts
-	private Vector3d[] normMat_info = new Vector3d[2000];
-	private int[][] facInfo = new int[2800][3];
-
-	private int nVect;
-	public final int nFac = 2760; // this will always be true
-
-
-	protected int ringSample = 20;
-	protected int capSample = 10;
-	protected Point3d[][] ringPt = new Point3d[55][35];
-	protected Point3d[][] cap_poleN = new Point3d[15][35];
-	protected Point3d[][] cap_poleS = new Point3d[15][35];
 	public AllenTubeComp()
 	{
-		// init the facInfo
-		setFacInfo(sampleFaceInfo.getFacInfo());
-
+		super();
 	}
-//
-//	public Point3d[] constructUpSampledMpts(int numSamples) {
-//
-//		AllenMAxisArc upSampledArc = new AllenMAxisArc(numSamples);
-//		upSampledArc.copyParamsForUpscale(getmAxisInfo());
-//		upSampledArc.genArc();
-////		System.out.println("AC ALIGNED PT: " + getTransRotHis_alignedPt());
-//		int alignedPt = upSampledArc.getTransRotHis_alignedPt();
-//		Point3d finalPos = getmPts()[alignedPt];
-//		int rotCenter = getTransRotHis_rotCenter();
-////		Vector3d finalTangent = getmTangent()[rotCenter];
-//		Vector3d finalTangent = upSampledArc.getTransRotHis_finalTangent();
-//		double devAngle = getTransRotHis_devAngle();
-//
-//		upSampledArc.transRotMAxis(alignedPt, finalPos, rotCenter, finalTangent, devAngle);
-//
-//		return upSampledArc.getmPts();
-//	}
 
 	//TODO: Figure out what to do with this.
 	/**
@@ -393,147 +351,6 @@ public class AllenTubeComp extends TubeComp{
 
 	public void setmAxisInfo(AllenMAxisArc mAxisInfo) {
 		this.mAxisInfo = mAxisInfo;
-	}
-
-	public boolean isSkipJacobInAnalysisPhase() {
-		return skipJacobInAnalysisPhase;
-	}
-
-	public void setSkipJacobInAnalysisPhase(boolean skipJacobInAnalysisPhase) {
-		this.skipJacobInAnalysisPhase = skipJacobInAnalysisPhase;
-	}
-
-	public int getLabel() {
-		return label;
-	}
-
-	public void setLabel(int label) {
-		this.label = label;
-	}
-
-	public double[][] getRadInfo() {
-		return radInfo;
-	}
-
-	public void setRadInfo(double[][] radInfo) {
-		this.radInfo = radInfo;
-	}
-
-	public boolean isBranchUsed() {
-		return branchUsed;
-	}
-
-	public void setBranchUsed(boolean branchUsed) {
-		this.branchUsed = branchUsed;
-	}
-
-	public double[] getRadiusAcross() {
-		return radiusAcross;
-	}
-
-	public void setRadiusAcross(double[] radiusAcross) {
-		this.radiusAcross = radiusAcross;
-	}
-
-	public int getConnectType() {
-		return connectType;
-	}
-
-	public void setConnectType(int connectType) {
-		this.connectType = connectType;
-	}
-
-
-	public boolean isScaleOnce() {
-		return scaleOnce;
-	}
-
-	public void setScaleOnce(boolean scaleOnce) {
-		this.scaleOnce = scaleOnce;
-	}
-
-	public int getMaxStep() {
-		return maxStep;
-	}
-
-	public void setMaxStep(int maxStep) {
-		this.maxStep = maxStep;
-	}
-
-	public Point3d[] getVect_info() {
-		return vect_info;
-	}
-
-	public void setVect_info(Point3d[] vect_info) {
-		this.vect_info = vect_info;
-	}
-
-	public Vector3d[] getNormMat_info() {
-		return normMat_info;
-	}
-
-	public void setNormMat_info(Vector3d[] normMat_info) {
-		this.normMat_info = normMat_info;
-	}
-
-	public int[][] getFacInfo() {
-		return facInfo;
-	}
-
-	public void setFacInfo(int[][] facInfo) {
-		this.facInfo = facInfo;
-	}
-
-	public int getnVect() {
-		return nVect;
-	}
-
-	public void setnVect(int nVect) {
-		this.nVect = nVect;
-	}
-
-	public int getRingSample() {
-		return ringSample;
-	}
-
-	public void setRingSample(int ringSample) {
-		this.ringSample = ringSample;
-	}
-
-	public int getCapSample() {
-		return capSample;
-	}
-
-	public void setCapSample(int capSample) {
-		this.capSample = capSample;
-	}
-
-	public Point3d[][] getRingPt() {
-		return ringPt;
-	}
-
-	public void setRingPt(Point3d[][] ringPt) {
-		this.ringPt = ringPt;
-	}
-
-	public Point3d[][] getCap_poleN() {
-		return cap_poleN;
-	}
-
-	public void setCap_poleN(Point3d[][] cap_poleN) {
-		this.cap_poleN = cap_poleN;
-	}
-
-	public Point3d[][] getCap_poleS() {
-		return cap_poleS;
-	}
-
-	public void setCap_poleS(Point3d[][] cap_poleS) {
-		this.cap_poleS = cap_poleS;
-	}
-
-	public int getnFac() {
-		return nFac;
 	}
 
 	public double[][] getNormalizedRadInfo() {

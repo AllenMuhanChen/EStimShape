@@ -140,7 +140,7 @@ public class ProceduralStim implements NAFCStim {
     protected AllenMStickSpec mStickToSpec(AllenMatchStick mStick, Long stimObjId) {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(mStick);
-        spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + stimObjId, true);
+//        spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + stimObjId, true);
         return spec;
     }
 
