@@ -75,10 +75,10 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 continue;
             } finally{
                 numAttempts++;
-                System.out.println("numAttempts: " + numAttempts);
+//                System.out.println("numAttempts: " + numAttempts);
             }
 
-            System.out.println("Checking MStick");
+//            System.out.println("Checking MStick");
             if (checkMStick(noiseComponentIndx)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
@@ -93,13 +93,13 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 //                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
             return true;
         } catch (ObjectCenteredPositionException e) {
-            System.out.println(e.getMessage());
+//            System.out.println(e.getMessage());
             System.out.println("Error with object centered position, retrying");
         } catch (NoiseException e) {
-            System.out.println(e.getMessage());
+//            System.out.println(e.getMessage());
             System.out.println("Error with noise, retrying");
         } catch (MStickSizeException e) {
-            System.out.println(e.getMessage());
+//            System.out.println(e.getMessage());
             System.out.println("Error with matchStick size, retrying");
         } catch (MorphException e) {
             e.printStackTrace();
@@ -265,7 +265,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
             }
         }
-        System.out.println("Number of points outside of noise circle: " + pointsOutside.size() + " out of " + hullVertices.size());
+//        System.out.println("Number of points outside of noise circle: " + pointsOutside.size() + " out of " + hullVertices.size());
         if (pointsOutside.size() > 0){
             throw new NoiseException("Found points outside of noise circle");
         }
@@ -353,7 +353,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 indicesForTangentPairs.put(Arrays.asList(tangent1, tangent2), Arrays.asList(index1, index2));
             }
         }
-        System.out.println(externalAnglesForTangentPairs);
 
         // Get the pair with the smallest external angle
         List<Vector3d> tangentPairWithSmallestExternalAngle = Collections.min(externalAnglesForTangentPairs.entrySet(), Comparator.comparingDouble(Map.Entry::getValue)).getKey();

@@ -26,6 +26,16 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
     Map<List<NAFCStim>, ProceduralRandGenParameters> paramsForBlocks = new LinkedHashMap<>();
     Map<List<NAFCStim>,ProceduralRandGenType> genTypesForBlocks = new LinkedHashMap<>();
 
+    @Override
+    protected void preWriteTrials() {
+        int index=1;
+        for(Stim stim : getStims()){
+            stim.preWrite();
+            System.out.println("SUCCESSFULLY WROTE STIM: " + index);
+            index++;
+        }
+    }
+
     public void uploadTrialParams() {
         long tstamp = globalTimeUtil.currentTimeMicros();
         Map<ProceduralRandGenParameters, String> genTypesForParams = new LinkedHashMap<>();
