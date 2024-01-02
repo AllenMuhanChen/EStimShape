@@ -26,7 +26,7 @@ public class NormalMorphDistributer {
             Collections.shuffle(magnitudesToDistributeTo);
             for (AtomicReference<Double> paramMagnitude : magnitudesToDistributeTo) {
                 double mean = (maxPerParam - buffer) * discreteness;
-                double randomMagnitude = randomTruncatedNormal(mean, (maxPerParam-mean)/3, 0, maxPerParam- buffer);
+                double randomMagnitude = randomTruncatedNormal(mean, (maxPerParam-mean)*discreteness/3.0, 0, maxPerParam-buffer);
                 // If the random magnitude is greater than the amount left to distribute, set it to the amount left to distribute
                 if (randomMagnitude > amountLeftToDistribute) {
                     randomMagnitude = amountLeftToDistribute;

@@ -25,7 +25,7 @@ public class NormalMorphDistributerTest {
 
     @Test
     public void test(){
-        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(0.5);
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1.0);
         List<AtomicReference<Double>> paramMagnitudes = Arrays.asList(
                 new AtomicReference<>(0.0),
                 new AtomicReference<>(0.0),
