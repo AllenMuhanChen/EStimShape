@@ -22,8 +22,6 @@ public class NoisyPngScene extends AbstractTaskScene{
     @Dependency
     int slideLength;
 
-    @Dependency
-    double[] backgroundColor;
 
     private NoisyTranslatableResizableImages image;
     private Coordinates2D stimLocation;
@@ -107,10 +105,6 @@ public class NoisyPngScene extends AbstractTaskScene{
 
     }
 
-
-    public void setBackgroundColor(double[] backgroundColor) {
-        this.backgroundColor = backgroundColor;
-    }
 
     public void setFrameRate(int frameRate) {
         this.frameRate = frameRate;

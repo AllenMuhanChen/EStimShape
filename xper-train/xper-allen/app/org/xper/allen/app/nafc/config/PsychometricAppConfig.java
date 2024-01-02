@@ -16,6 +16,7 @@ import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
+import org.xper.drawing.RGBColor;
 import org.xper.drawing.object.BlankScreen;
 
 @Configuration(defaultLazy=Lazy.TRUE)
@@ -57,7 +58,7 @@ public class PsychometricAppConfig{
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
-		scene.setBackgroundColor(mStickPngConfig.xperPngBackgroundColor());
+		scene.setBackgroundColor(classicConfig.xperBackgroundColor());
 		scene.setFrameRate(mStickPngConfig.xperNoiseRate());
 		return scene;
 	}

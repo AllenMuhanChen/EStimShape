@@ -17,7 +17,7 @@ UPDATE SystemVar SET val='RAND' WHERE name='xper_unget_policy';
 UPDATE SystemVar SET val=3 WHERE name='xper_streak_to_start_punishment';
 UPDATE SystemVar SET val='false' WHERE name='xper_punish_sample_hold_fail';
 UPDATE SystemVar SET val=2 WHERE name='xper_choice_correct_juice_multiplier';
-UPDATE SystemVar SET val=0.9 WHERE name='xper_choice_correct_juice_multiplier_chance';
+UPDATE SystemVar SET val=0.80 WHERE name='xper_choice_correct_juice_multiplier_chance';
 EOF
 
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties

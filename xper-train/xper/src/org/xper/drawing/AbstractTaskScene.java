@@ -160,4 +160,8 @@ public abstract class AbstractTaskScene implements TaskScene {
 	public void setBackgroundColor(RGBColor backgroundColor) {
 		this.backgroundColor = backgroundColor;
 	}
+
+	public void setBackgroundColor(double[] rgb) {
+		this.backgroundColor = new RGBColor((float) rgb[0], (float) rgb[1], (float) rgb[2]);
+	}
 }

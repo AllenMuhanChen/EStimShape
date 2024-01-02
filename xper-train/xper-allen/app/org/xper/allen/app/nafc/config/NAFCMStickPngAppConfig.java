@@ -39,7 +39,7 @@ public class NAFCMStickPngAppConfig{
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
-		scene.setBackgroundColor(mStickPngConfig.xperPngBackgroundColor());
+		scene.setBackgroundColor(classicConfig.xperBackgroundColor());
 		return scene;
 	}
 

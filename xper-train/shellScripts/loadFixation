@@ -5,7 +5,7 @@ source pathsFixation
 numTrials=100
 noiseChance=0.5
 distanceLims="0,0"
-scale=5
+scale=4
 
 
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_FIXATION $DIST/xper.properties
