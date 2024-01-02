@@ -53,7 +53,7 @@ public class TwobyTwoExperimentMatchStickTest {
 
         TwobyTwoExperimentMatchStick thirdMStick = new TwobyTwoExperimentMatchStick();
         thirdMStick.setProperties(8);
-        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5);
+        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5);
         drawPng(thirdMStick, 4L);
 
         TwobyTwoExperimentMatchStick fourthMStick = new TwobyTwoExperimentMatchStick();

@@ -119,7 +119,7 @@ public class ProceduralStim implements NAFCStim {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }
@@ -334,27 +334,31 @@ public class ProceduralStim implements NAFCStim {
         int numChoices;
         int numRandDistractors;
         double morphMagnitude;
+        double morphDiscreteness;
         Color color;
 
         public ProceduralStimParameters() {
         }
 
-        public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, Color color) {
+        public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color) {
             super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize);
             this.noiseChance = noiseChance;
             this.numChoices = numChoices;
             this.numRandDistractors = numRandDistractors;
             this.morphMagnitude = morphMagnitude;
+            this.morphDiscreteness = morphDiscreteness;
             this.color = color;
         }
 
-        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, Color color) {
+        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color) {
             super(other);
             this.noiseChance = noiseChance;
             this.numChoices = numChoices;
             this.numRandDistractors = numRandDistractors;
             this.morphMagnitude = morphMagnitude;
+            this.morphDiscreteness = morphDiscreteness;
             this.color = color;
         }
+
     }
 }

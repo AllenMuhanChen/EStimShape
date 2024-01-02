@@ -51,7 +51,7 @@ public class ProceduralRandStim extends ProceduralStim{
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude);
+            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude, 0.5);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }

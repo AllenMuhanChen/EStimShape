@@ -55,6 +55,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
                 4,
                 1,
                 0.5,
+                0.5,
                 color
                 );
 

@@ -17,7 +17,7 @@ public class ProceduralRandGenType {
 
     protected JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
     protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
-    protected JTextField morphMagnitudeField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
+    protected JTextField morphMagnitudeField, morphDiscretenessField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
 
     public ProceduralRandGenType(NAFCBlockGen generator) {
         this.generator = generator;
@@ -67,6 +67,7 @@ public class ProceduralRandGenType {
         int numChoices = Integer.parseInt(numChoicesField.getText());
         int numRandDistractors = Integer.parseInt(numRandDistractorsField.getText());
         double morphMagnitude = Double.parseDouble(morphMagnitudeField.getText());
+        double morphDiscreteness = Double.parseDouble(morphDiscretenessField.getText());
         int red = Integer.parseInt(colorRedField.getText());
         int green = Integer.parseInt(colorGreenField.getText());
         int blue = Integer.parseInt(colorBlueField.getText());
@@ -85,6 +86,7 @@ public class ProceduralRandGenType {
                 numChoices,
                 numRandDistractors,
                 morphMagnitude,
+                morphDiscreteness,
                 new Color(red, green, blue));
         return proceduralStimParameters;
     }
@@ -111,6 +113,8 @@ public class ProceduralRandGenType {
         panel.add(numRandDistractorsField);
         panel.add(new JLabel("Morph Magnitude:"));
         panel.add(morphMagnitudeField);
+        panel.add(new JLabel("Morph Discreteness:"));
+        panel.add(morphDiscretenessField);
         panel.add(new JLabel("Color - Red (0-255):"));
         panel.add(colorRedField);
         panel.add(new JLabel("Color - Green (0-255):"));
@@ -132,6 +136,7 @@ public class ProceduralRandGenType {
         numChoicesField = new JTextField("4", 10);
         numRandDistractorsField = new JTextField("2", 10);
         morphMagnitudeField = new JTextField("0.5", 10);
+        morphDiscretenessField = new JTextField("0.5", 10);
         colorRedField = new JTextField("255", 10);
         colorGreenField = new JTextField("255", 10);
         colorBlueField = new JTextField("255", 10);
@@ -151,6 +156,7 @@ public class ProceduralRandGenType {
             numChoicesField.setText(String.valueOf(stimParameters.numChoices));
             numRandDistractorsField.setText(String.valueOf(stimParameters.numRandDistractors));
             morphMagnitudeField.setText(String.valueOf(stimParameters.morphMagnitude));
+            morphDiscretenessField.setText(String.valueOf(stimParameters.morphDiscreteness));
 
             Color color = stimParameters.color;
             colorRedField.setText(String.valueOf(color.getRed()));

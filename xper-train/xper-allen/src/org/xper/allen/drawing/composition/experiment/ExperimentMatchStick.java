@@ -54,15 +54,15 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     }
 
 
-    public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude) {
+    public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude, double discreteness) {
         int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
-        genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, drivingComponentIndx, magnitude);
+        genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, drivingComponentIndx, magnitude, discreteness);
     }
 
-    public void genNewComponentMatchStick(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, double magnitude) {
+    public void genNewComponentMatchStick(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, double magnitude, double discreteness) {
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(morphComponentIndx, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(0.5)));
+        morphParametersForComponents.put(morphComponentIndx, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
 
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
