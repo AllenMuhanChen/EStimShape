@@ -6,7 +6,7 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from src.analysis.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
+from analysis.ga.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
 from clat.compile.trial.matchstick_fields import ShaftField
 from clat.compile.trial.trial_collector import TrialCollector

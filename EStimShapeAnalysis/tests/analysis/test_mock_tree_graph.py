@@ -1,10 +1,6 @@
 from unittest import TestCase
 
-import xmltodict
-
-from src.mockga.mock_tree_graph import fetch_tree_spec, _parse_recursive_xml, recursive_tree_to_edges, MockTreeGraph, \
-    MockTreeGraphApp
-from src.tree_graph.tree_graph import TreeGraphApp
+from analysis.ga.mockga.mock_tree_graph import _parse_recursive_xml, recursive_tree_to_edges, MockTreeGraphApp
 
 lineage_id = "1680721659342212"
 
@@ -15,7 +11,7 @@ class TestMockTreeGraph(TestCase):
 
 
 import unittest
-import xml.etree.ElementTree as ET
+
 
 class TestXMLParsing(unittest.TestCase):
     def test_parse_recursive_xml(self):

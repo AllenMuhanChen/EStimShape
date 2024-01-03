@@ -4,7 +4,8 @@ import os
 import subprocess
 from time import sleep
 
-from src.mockga import mock_ga_responses, mock_rwa_analysis, mock_rwa_plot, mock_tree_graph
+from analysis.ga.mockga import mock_rwa_plot, mock_tree_graph
+from analysis.ga.mockga import mock_ga_responses, mock_rwa_analysis
 from clat.util.connection import Connection
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
@@ -80,7 +81,7 @@ def number_of_complete_lineages():
 
 
 def run_trial_generator(generation):
-    output_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/tree_graph"
+    output_dir = "/tree_graph"
 
     output_file = os.path.join(output_dir, f"generation_{generation}.txt")
     trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")

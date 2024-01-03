@@ -5,12 +5,11 @@ import jsonpickle
 import numpy as np
 import xmltodict
 from matplotlib import pyplot as plt, cm
-from scipy.ndimage import gaussian_filter
 
-from src.analysis.rwa import get_next
-from src.mockga.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
+from analysis.ga.rwa import get_next
+from analysis.ga.mockga.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
 from clat.util.connection import Connection
-from clat.util.dictionary_util import flatten_dictionary, apply_function_to_subdictionaries_values_with_keys
+from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 
 
 def main():

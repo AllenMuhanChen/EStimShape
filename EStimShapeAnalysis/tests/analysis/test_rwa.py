@@ -3,12 +3,11 @@ import random
 from unittest import TestCase
 
 import numpy as np
-import pandas as pd
 from matplotlib import pyplot as plt
 
-from src.analysis.rwa import rwa, Binner, generate_point_matrices, smooth_matrices, \
-    RWAMatrix, AutomaticBinner, rwa
-from src.mockga.mock_rwa_plot import slice_matrix
+from analysis.ga.rwa import Binner, generate_point_matrices, smooth_matrices, \
+    AutomaticBinner, rwa
+from analysis.ga.mockga.mock_rwa_plot import slice_matrix
 
 
 class Test(TestCase):

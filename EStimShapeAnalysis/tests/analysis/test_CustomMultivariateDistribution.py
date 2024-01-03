@@ -2,9 +2,7 @@ import math
 from unittest import TestCase
 
 import numpy as np
-import scipy
-import scipy.optimize as opt
-from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction, tuning_width_to_sigma, sigma_to_kappa
+from analysis.ga.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction, tuning_width_to_sigma, sigma_to_kappa
 
 
 class TestTuningFunction(TestCase):
@@ -43,8 +41,6 @@ class TestTuningFunction(TestCase):
 
     def test_1d_half_tuning_width_for_normal(self):
         from scipy.stats import norm
-        import numpy as np
-        import matplotlib.pyplot as plt
 
         tuning_width = 5
         distance_from_mean = tuning_width / 2

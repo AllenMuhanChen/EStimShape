@@ -13,10 +13,9 @@ from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.matchstick_fields import ShaftField
 from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks
 from clat.intan.channels import Channel
-from src.analysis.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
+from analysis.ga.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 from clat.compile.trial.trial_collector import TrialCollector
-from clat.compile.trial.trial_field import FieldList, get_data_from_trials
-from src.mockga.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
+from analysis.ga.mockga.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.dictionary_util import flatten_dictionary, \
