@@ -8,7 +8,7 @@ import pandas as pd
 
 from analysis.ga.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
-from clat.compile.trial.matchstick_fields import ShaftField
+from analysis.matchstick_fields import ShaftField
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.trial.trial_field import FieldList, get_data_from_trials
 from clat.util import time_util

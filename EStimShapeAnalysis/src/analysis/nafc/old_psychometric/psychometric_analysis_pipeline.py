@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from clat.compile.trial.nafc_database_fields import TrialTypeField
+from analysis.nafc.nafc_database_fields import TrialTypeField
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.trial.trial_field import FieldList, get_data_from_trials
 from clat.util import time_util

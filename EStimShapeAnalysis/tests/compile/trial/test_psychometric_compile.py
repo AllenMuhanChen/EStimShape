@@ -2,7 +2,7 @@ from unittest import TestCase
 from clat.util.time_util import When
 from clat.util import time_util
 
-from clat.compile.trial import psychometric_compile as pc
+from analysis.nafc.old_psychometric import psychometric_compile as pc
 
 PSYCHOMETRIC = When(1659208461019365, 1659208471171128)
 

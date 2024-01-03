@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from clat.compile.trial.matchstick_fields import MatchStickField, ShaftField, TerminationField, JunctionField
+from analysis.matchstick_fields import MatchStickField, ShaftField, TerminationField, JunctionField
 from clat.util.time_util import When
 
 

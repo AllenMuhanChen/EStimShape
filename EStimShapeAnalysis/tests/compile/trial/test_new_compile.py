@@ -1,6 +1,6 @@
 import unittest
 
-from clat.compile.trial.nafc_database_fields import get_stim_spec_data, get_stim_spec_id
+from analysis.nafc.nafc_database_fields import get_stim_spec_data, get_stim_spec_id
 from clat.util.connection import Connection
 from clat.util.time_util import When
 
