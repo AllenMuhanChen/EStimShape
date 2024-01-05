@@ -90,8 +90,8 @@ public class NAFCTrialGeneratorGUI {
         });
 
         generateButton.addActionListener((ActionEvent e) -> {
-            blockgen.generate();
             blockgen.uploadTrialParams();
+            blockgen.generate();
             //end program
             System.exit(0);
         });

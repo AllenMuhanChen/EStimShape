@@ -105,7 +105,7 @@ public class AllenDrawingManager implements Drawable {
 		BufferedImage img = GaussianNoiseMapCalculation.generateGaussianNoiseMapFor(obj,
 				width, height,
 				width/6.0, height/6.0,
-				amplitude, 0.25, renderer, specialCompIndx);
+				amplitude, 0, renderer, specialCompIndx);
 		String path = imageFolderName + "/" + stimObjId;
 		for (String str:labels) {
 			if(!str.isEmpty())

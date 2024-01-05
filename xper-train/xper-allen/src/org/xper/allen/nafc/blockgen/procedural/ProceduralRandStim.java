@@ -27,9 +27,8 @@ public class ProceduralRandStim extends ProceduralStim{
                 System.err.println("Morph EXCEPTION: " + me.getMessage());
             } catch (Exception e) {
                 System.err.println("EXCEPTION: " + e.getMessage());
-            } finally{
-                System.out.println("Starting over from a new base match stick");
             }
+            System.out.println("Starting over from a new base match stick");
         }
 
     }
