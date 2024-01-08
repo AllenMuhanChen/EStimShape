@@ -1,3 +1,5 @@
+import ast
+
 import xmltodict
 
 from clat.compile.trial.trial_field import DatabaseField
@@ -8,8 +10,8 @@ from clat.util.time_util import When
 
 class StimSpecDataField(CachedDatabaseField):
 
-    def __init__(self, conn: Connection, name: str = None, is_cache_enabled: bool = True, is_store_cache_enabled: bool = True):
-        super().__init__(conn, is_cache_enabled, is_store_cache_enabled, name)
+    def __init__(self, conn: Connection, name: str = None):
+        super().__init__(conn, name)
 
     def get(self, when: When):
         return get_stim_spec_data(self.conn, when)
@@ -51,6 +53,7 @@ class NoiseChanceField(StimSpecDataField):
 
     def get(self, when: When):
         stim_spec_data = super().get(when)
+
         noiseChance = stim_spec_data[next(iter(stim_spec_data))]["noiseChance"]
         noiseChance = float(noiseChance)
         return noiseChance

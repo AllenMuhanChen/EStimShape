@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 
 from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField
 from clat.compile.trial.trial_collector import TrialCollector
-from clat.compile.trial.trial_field import FieldList
 from clat.compile.trial.cached_fields import CachedFieldList
 from clat.util import time_util
 from clat.util.connection import Connection
