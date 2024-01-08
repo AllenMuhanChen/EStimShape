@@ -48,7 +48,6 @@ class IsCorrectField(CachedDatabaseField):
 
 class NoiseChanceField(StimSpecDataField):
     def __init__(self, conn: Connection, name="NoiseChance"):
-        self.name = "NoiseChance"
         super().__init__(conn, name=name)
 
     def get(self, when: When):
