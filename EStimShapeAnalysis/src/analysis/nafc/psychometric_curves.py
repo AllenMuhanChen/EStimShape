@@ -1,6 +1,8 @@
 import datetime
 
-from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt, cm
 
 from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField
 from clat.compile.trial.trial_collector import TrialCollector
@@ -29,25 +31,73 @@ def main():
     data = fields.get_data(trial_tstamps)
     print(data.to_string())
 
-    plot_percent_correct(data)
+    plot_binned_psychometric_curves(data, 2)
+    plot_psychometric_curve(data, 'Percentage of Correct Responses by Noise Chance')
+    plt.show()
 
 
-def plot_percent_correct(df):
+def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
+    """
+    Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
+    If an ax (matplotlib Axes) is provided, it plots on that ax. Otherwise, it creates a new plot.
+    """
     # Group by 'NoiseChance' and calculate the percentage of 'Correct' in 'IsCorrect'
     percent_correct = df.groupby('NoiseChance')['IsCorrect'].apply(lambda x: (x == 'Correct').sum() / len(x) * 100)
 
-    # Sort the percent_correct Series in descending order of 'NoiseChance'
+    # Sort the percent_correct Series in ascending order of 'NoiseChance'
     percent_correct = percent_correct.sort_index(ascending=True)
 
-    # Plotting as a line graph
-    plt.figure(figsize=(10, 6))
-    percent_correct.plot(kind='line', color='skyblue', marker='o')  # Using line plot with markers for each point
-    plt.title('Percentage of Correct Responses by Noise Chance')
-    plt.xlabel('Noise Chance')
-    plt.ylabel('Percent Correct (%)')
-    plt.grid(True)
-    plt.gca().invert_xaxis()  # Invert x-axis to have higher NoiseChance first
-    plt.show()
+    # Check if an ax is provided
+    if ax is None:
+        plt.figure(figsize=(10, 6))
+        ax = plt.gca()
+
+        ax.set_title(title)
+        ax.set_xlabel('Noise Chance')
+        ax.set_ylabel('Percent Correct (%)')
+        ax.grid(True)
+        ax.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
+
+    # Plotting as a line graph on the given ax
+    ax.plot(percent_correct.index, percent_correct.values, color=color, marker='o', label=label)
+
+
+
+
+def plot_binned_psychometric_curves(df, num_bins):
+    """
+    Plots percent correct binned into num_bins bins, using a separate line for each bin.
+    """
+    # Convert 'NoiseChance' to numeric if it's not already
+    if df['NoiseChance'].dtype == 'O':
+        df['NoiseChance'] = pd.to_numeric(df['NoiseChance'], errors='coerce')
+
+    # Determine the number of trials per bin
+    trials_per_bin = len(df) // num_bins
+
+    # Assign each trial to a bin
+    df['Bin'] = np.ceil((df.index + 1) / trials_per_bin)
+    df['Bin'] = df['Bin'].clip(upper=num_bins)
+
+    # Create a colormap
+    colors = cm.viridis(np.linspace(0, 1, num_bins))
+
+    # Create a figure and axes for plotting
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Plot each bin as a separate line using the general-purpose plotting function
+    for bin_number in range(1, num_bins + 1):
+        bin_data = df[df['Bin'] == bin_number]
+        plot_psychometric_curve(bin_data, 'Percentage of Correct Responses by Noise Chance for Each Bin', ax,
+                                colors[bin_number - 1], label=f'Bin {bin_number}')
+
+    # Add legend and show plot
+    ax.legend()
+    ax.set_title('Percentage of Correct Responses by Noise Chance for Each %d-Trials' % trials_per_bin)
+    ax.set_xlabel('Noise Chance')
+    ax.set_ylabel('Percent Correct (%)')
+    ax.grid(True)
+    ax.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
 
 
 if __name__ == '__main__':
