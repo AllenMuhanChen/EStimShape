@@ -20,7 +20,7 @@ def main():
     conn = Connection("allen_estimshape_train_231211")
     trial_tstamps = collect_choice_trials(conn, time_util.on_date_and_time(2024,
                                                                            1, 3,
-                                                                           start_time="16:49:00",  # "16:49:00"
+                                                                           start_time=None,  # "16:49:00"
                                                                            end_time=None))
 
     fields = CachedFieldList()

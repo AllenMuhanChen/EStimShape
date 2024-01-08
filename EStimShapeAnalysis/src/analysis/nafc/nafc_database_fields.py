@@ -50,7 +50,7 @@ class NoiseChanceField(StimSpecDataField):
         super().__init__(conn, name=name)
 
     def get(self, when: When):
-        stim_spec_data = super().get_and_cache(when)
+        stim_spec_data = super().get(when)
         noiseChance = stim_spec_data[next(iter(stim_spec_data))]["noiseChance"]
         noiseChance = float(noiseChance)
         return noiseChance
