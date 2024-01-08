@@ -1,18 +1,23 @@
 import xmltodict
 
 from clat.compile.trial.trial_field import DatabaseField
+from clat.compile.trial.cached_fields import CachedDatabaseField
 from clat.util.connection import Connection
 from clat.util.time_util import When
 
 
-class StimSpecDataField(DatabaseField):
+class StimSpecDataField(CachedDatabaseField):
+
+    def __init__(self, conn: Connection, name: str = None, is_cache_enabled: bool = True, is_store_cache_enabled: bool = True):
+        super().__init__(conn, is_cache_enabled, is_store_cache_enabled, name)
+
     def get(self, when: When):
         return get_stim_spec_data(self.conn, when)
 
 
-class IsCorrectField(DatabaseField):
+class IsCorrectField(CachedDatabaseField):
     def __init__(self, conn: Connection, name="IsCorrect"):
-        super().__init__(conn, name)
+        super().__init__(conn, name=name)
 
     def get(self, when: When):
         # SQL to check for the presence of "ChoiceSelectionCorrect" or "ChoiceSelectionIncorrect" in the specified time frame.
@@ -38,21 +43,23 @@ class IsCorrectField(DatabaseField):
         else:
             return "No Data"
 
+
 class NoiseChanceField(StimSpecDataField):
     def __init__(self, conn: Connection, name="NoiseChance"):
         self.name = "NoiseChance"
-        super().__init__(conn, name)
+        super().__init__(conn, name=name)
 
     def get(self, when: When):
-        stim_spec_data = super().get(when)
+        stim_spec_data = super().get_and_cache(when)
         noiseChance = stim_spec_data[next(iter(stim_spec_data))]["noiseChance"]
         noiseChance = float(noiseChance)
         return noiseChance
 
+
 class TrialTypeField(StimSpecDataField):
 
     def __init__(self, conn: Connection):
-        super().__init__(conn, "TrialType")
+        super().__init__(conn, name="TrialType")
 
     def get(self, when: When):
         stim_spec_data = StimSpecDataField.get(self, when)
