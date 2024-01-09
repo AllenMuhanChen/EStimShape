@@ -9,17 +9,21 @@ from clat.util.time_util import When
 
 
 class StimSpecDataField(CachedDatabaseField):
-
-    def __init__(self, conn: Connection, name: str = None):
-        super().__init__(conn, name)
+    def get_name(self):
+        return "StimSpecData"
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
 
     def get(self, when: When):
         return get_stim_spec_data(self.conn, when)
 
 
 class IsCorrectField(CachedDatabaseField):
-    def __init__(self, conn: Connection, name="IsCorrect"):
-        super().__init__(conn, name=name)
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "IsCorrect"
 
     def get(self, when: When):
         # SQL to check for the presence of "ChoiceSelectionCorrect" or "ChoiceSelectionIncorrect" in the specified time frame.
@@ -39,29 +43,45 @@ class IsCorrectField(CachedDatabaseField):
 
         # Return the status based on the types found.
         if correct:
-            return "Correct"
+            return True
         elif incorrect:
-            return "Incorrect"
+            return False
         else:
             return "No Data"
 
 
 class NoiseChanceField(StimSpecDataField):
-    def __init__(self, conn: Connection, name="NoiseChance"):
-        super().__init__(conn, name=name)
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "NoiseChance"
 
     def get(self, when: When):
-        stim_spec_data = super().get(when)
+        stim_spec_data = self.get_cached_super(when, StimSpecDataField)
 
         noiseChance = stim_spec_data[next(iter(stim_spec_data))]["noiseChance"]
         noiseChance = float(noiseChance)
         return noiseChance
 
+class NumRandDistractorsField(StimSpecDataField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "NumRandDistractors"
+
+    def get(self, when: When):
+        stim_spec_data = super().get(when)
+
+        numRandDistractors = stim_spec_data[next(iter(stim_spec_data))]["numRandDistractors"]
+        numRandDistractors = int(numRandDistractors)
+        return numRandDistractors
 
 class TrialTypeField(StimSpecDataField):
 
     def __init__(self, conn: Connection):
-        super().__init__(conn, name="TrialType")
+        super().__init__(conn)
 
     def get(self, when: When):
         stim_spec_data = StimSpecDataField.get(self, when)

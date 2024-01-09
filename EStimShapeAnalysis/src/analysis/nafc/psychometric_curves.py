@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt, cm
 
-from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField
+from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.trial.cached_fields import CachedFieldList
 from clat.util import time_util
@@ -20,16 +20,21 @@ def collect_choice_trials(conn: Connection, when: When = time_util.all()) -> lis
 def main():
     conn = Connection("allen_estimshape_train_231211")
     trial_tstamps = collect_choice_trials(conn, time_util.on_date_and_time(2024,
-                                                                           1, 3,
+                                                                           1, 9,
                                                                            start_time=None,  # "16:49:00"
                                                                            end_time=None))
 
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
     fields.append(NoiseChanceField(conn))
+    fields.append(NumRandDistractorsField(conn))
 
     data = fields.get_data(trial_tstamps)
     print(data.to_string())
+
+    # FILTER DATA
+    data = data[data['NumRandDistractors'] == 2]
+
 
     plot_binned_psychometric_curves(data, 2)
     plot_psychometric_curve(data, 'Percentage of Correct Responses by Noise Chance')
@@ -42,7 +47,7 @@ def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
     If an ax (matplotlib Axes) is provided, it plots on that ax. Otherwise, it creates a new plot.
     """
     # Group by 'NoiseChance' and calculate the percentage of 'Correct' in 'IsCorrect'
-    percent_correct = df.groupby('NoiseChance')['IsCorrect'].apply(lambda x: (x == 'Correct').sum() / len(x) * 100)
+    percent_correct = df.groupby('NoiseChance')['IsCorrect'].apply(lambda x: (x == True).sum() / len(x) * 100)
 
     # Sort the percent_correct Series in ascending order of 'NoiseChance'
     percent_correct = percent_correct.sort_index(ascending=True)
