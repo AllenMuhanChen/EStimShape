@@ -85,7 +85,6 @@ def plot_binned_psychometric_curves(df, num_bins):
     # Create a figure and axes for plotting
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Plot each bin as a separate line using the general-purpose plotting function
     for bin_number in range(1, num_bins + 1):
         bin_data = df[df['Bin'] == bin_number]
         plot_psychometric_curve(bin_data, 'Percentage of Correct Responses by Noise Chance for Each Bin', ax,
