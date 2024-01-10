@@ -2,11 +2,12 @@ import datetime
 
 import numpy as np
 import pandas as pd
+import pytz
 from matplotlib import pyplot as plt, cm
 
 from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField
 from clat.compile.trial.trial_collector import TrialCollector
-from clat.compile.trial.cached_fields import CachedFieldList
+from clat.compile.trial.cached_fields import CachedFieldList, CachedDatabaseField
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
@@ -35,10 +36,20 @@ def main():
     # FILTER DATA
     data = data[data['NumRandDistractors'] == 2]
 
-
-    plot_binned_psychometric_curves(data, 2)
+    # plot_binned_psychometric_curves(data, 2)
     plot_psychometric_curve(data, 'Percentage of Correct Responses by Noise Chance')
     plt.show()
+
+
+def unix_to_datetime(unix_timestamp):
+    """Convert Unix timestamp in microseconds to a datetime object in local timezone."""
+    # Create a UTC datetime object from the Unix timestamp
+    utc_dt = datetime.datetime.utcfromtimestamp(unix_timestamp / 1e6).replace(tzinfo=pytz.utc)
+
+    # Convert the UTC datetime object to local timezone
+    local_dt = utc_dt.astimezone(pytz.timezone('US/Eastern'))
+    return local_dt
+
 
 
 def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
@@ -63,10 +74,14 @@ def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
         ax.grid(True)
         ax.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
 
+    # Setting the x-axis labels to where there are data points
+    existing_ticks = set(ax.get_xticks())
+    updated_ticks = existing_ticks.union(set(percent_correct.index))
+    ax.set_xticks(sorted(updated_ticks))
+    ax.set_xticklabels(sorted(updated_ticks), rotation=45)  # Rotate labels for better readability
+
     # Plotting as a line graph on the given ax
     ax.plot(percent_correct.index, percent_correct.values, color=color, marker='o', label=label)
-
-
 
 
 def plot_binned_psychometric_curves(df, num_bins):
