@@ -38,7 +38,7 @@ public class ProceduralRandStim extends ProceduralStim{
     protected void generateNonBaseMatchSticksAndSaveSpecs() {
         //Generate Sample
         ProceduralMatchStick sample = new ProceduralMatchStick();
-        sample.setProperties(generator.getMaxImageDimensionDegrees());
+        sample.setProperties(parameters.getSize());
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex);
         mSticks.setSample(sample);
@@ -50,7 +50,7 @@ public class ProceduralRandStim extends ProceduralStim{
 
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
-            proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
+            proceduralDistractor.setProperties(parameters.getSize());
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude, 0.5);
             mSticks.proceduralDistractors.add(proceduralDistractor);
@@ -60,7 +60,7 @@ public class ProceduralRandStim extends ProceduralStim{
         //Generate Rand Distractors
         for (int i = 0; i<numRandDistractors; i++) {
             ProceduralMatchStick randDistractor = new ProceduralMatchStick();
-            randDistractor.setProperties(generator.getMaxImageDimensionDegrees());
+            randDistractor.setProperties(parameters.getSize());
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
             mSticks.randDistractors.add(randDistractor);
@@ -70,7 +70,7 @@ public class ProceduralRandStim extends ProceduralStim{
 
     private ProceduralMatchStick genRandBaseMStick(int nComp) {
         ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        baseMStick.setProperties(parameters.getSize());
         baseMStick.setStimColor(parameters.color);
         baseMStick.genMatchStickRand(nComp);
         return baseMStick;

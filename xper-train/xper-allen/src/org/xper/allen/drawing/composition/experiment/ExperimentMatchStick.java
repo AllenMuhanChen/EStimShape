@@ -108,8 +108,8 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     }
 
     protected boolean validMStickSize() {
-        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
-        double maxRadius = (getScaleForMAxisShape() / 2) - buffer; // degree
+//        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
+        double maxRadius = (getScaleForMAxisShape() / 2); // degree
         int i, j;
 
         for (i = 1; i <= getnComponent(); i++) {
