@@ -315,6 +315,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         // Find tangent to project along for noise origin
         int tangentOwnerIndx = baseCompIndx;
         Vector3d tangent = getJuncTangentForSingle(junc, tangentOwnerIndx);
+        tangent = new Vector3d(tangent.x, tangent.y, 0);
         // Find point along base component to start the projection from
         int connectedCompIndx = junc.getIndexOfComp(junctionBaseCompIndex);
         Point3d[] connectedMpts = getComp()[connectedCompIndx].getmAxisInfo().getmPts();

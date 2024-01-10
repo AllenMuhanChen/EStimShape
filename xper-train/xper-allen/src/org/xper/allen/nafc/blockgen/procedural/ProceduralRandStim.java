@@ -12,6 +12,7 @@ public class ProceduralRandStim extends ProceduralStim{
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
         int nComp = ProceduralMatchStick.chooseNumComps();
+        System.out.println("NUMBER COMPS: " + nComp);
         while (true) {
             try {
                 mSticks = new Procedural<>();
