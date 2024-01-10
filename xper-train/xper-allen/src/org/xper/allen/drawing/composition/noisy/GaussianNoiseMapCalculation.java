@@ -15,19 +15,19 @@ public class GaussianNoiseMapCalculation {
 
     public static BufferedImage generateGaussianNoiseMapFor(ExperimentMatchStick mStick,
                                                             int width, int height,
-                                                            double sigmaX, double sigmaY,
+                                                            double sigmaDegrees,
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer, int specialCompIndx){
 
         Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
 
-
+        double sigmaPixels = degToPixels(renderer, sigmaDegrees);
         Coordinates2D noiseOriginPixels = convertToPixelCoordinates(noiseOrigin, renderer);
 
         return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
                 noiseOriginPixels.getX(), noiseOriginPixels.getY(),
                 degToPixels(renderer, ExperimentMatchStick.NOISE_RADIUS_DEGREES), amplitude,
-                sigmaX, sigmaY,
+                sigmaPixels, sigmaPixels,
                 background);
 
     }
