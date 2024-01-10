@@ -393,10 +393,11 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
     private Point3d choosePositionAlongMAxisFromJuncUNdx(int junctionUNdx, Point3d[] connectedMpts) {
         Point3d startingPosition;
+        int distanceFromJunction = 15;
         if (junctionUNdx == 1) {
-            startingPosition = connectedMpts[20];
+            startingPosition = connectedMpts[1+distanceFromJunction];
         } else {
-            startingPosition = connectedMpts[35];
+            startingPosition = connectedMpts[51-distanceFromJunction];
         }
         return startingPosition;
     }

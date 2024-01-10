@@ -130,7 +130,7 @@ public class AllenMatchStick extends MatchStick {
 		 * time to finish before drawSkeleton() is called.
 		 */
 		try {
-			Thread.sleep(200);
+			Thread.sleep(300);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -1741,10 +1741,11 @@ public class AllenMatchStick extends MatchStick {
 //					return true;
 //				}
 //			}
-			return true;
+			if (smoothSuccess)
+				return true;
 
 //			// else we need to gen another shape
-//			i++;
+			i++;
 		}
 		return false;
 	}

@@ -34,6 +34,7 @@ public class ValueShifter1D {
         if (normalizedDistToMax >= magnitude)
             possibleLengths.add(oldValue + magnitude * maxDist);
 
+
         Collections.shuffle(possibleLengths);
         return possibleLengths.get(0);
     }

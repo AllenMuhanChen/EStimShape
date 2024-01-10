@@ -29,7 +29,7 @@ public class RadiusProfileMorpher {
         for (Map.Entry<Integer, RadiusInfo> radiusInfoForPoint : radiusInfosForPointList) {
             magnitudesForPointsToDistributeTo.put(radiusInfoForPoint.getKey(), new AtomicReference<>(0.0));
         }
-        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(1/3.0);
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(0.5);
         normalMorphDistributer.distributeMagnitudeTo(magnitudesForPointsToDistributeTo.values(), radiusProfileMagnitude);
 
         Map<Integer, Double> output = new HashMap<>();

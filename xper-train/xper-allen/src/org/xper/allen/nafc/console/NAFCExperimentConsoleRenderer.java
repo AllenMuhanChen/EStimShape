@@ -27,7 +27,7 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 		if(messageHandler.isInTrial()) {
 			drawEyeDeviceReading(devId);
 			drawChoices();
-		}	
+		}
 		if(messageHandler.isSampleOn()){
 			drawFixation();
 			drawEyeWindow();
@@ -49,21 +49,26 @@ public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRendere
 
 	void drawChoices() {
 			if(messageHandler.isChoicesOn()) {
-				Coordinates2D[] choicesLocations = messageHandler.getTargetPosition();
+				try {
+					Coordinates2D[] choicesLocations = messageHandler.getTargetPosition();
 
-				int n = choicesLocations.length;
+					int n = choicesLocations.length;
 
-				double[] targetEyeWindowSize = new double[n];
-				double[] targetX = new double[n];
-				double[] targetY = new double[n];
+					double[] targetEyeWindowSize = new double[n];
+					double[] targetX = new double[n];
+					double[] targetY = new double[n];
 
-				for (int i = 0; i < n; i++) {
-					targetEyeWindowSize[i] = getRenderer().deg2mm(messageHandler.getTargetEyeWindowSize()[i]);
-					targetX[i] = getRenderer().deg2mm(choicesLocations[i].getX());
-					targetY[i] = getRenderer().deg2mm(choicesLocations[i].getY());
-					GLUtil.drawCircle(getCircle(), targetEyeWindowSize[i], false, targetX[i], targetY[i], 0);
-					GLUtil.drawSquare(getSquare(), targetIndicatorSize, true, targetX[i], targetY[i], 0);
-				}		
+					for (int i = 0; i < n; i++) {
+						targetEyeWindowSize[i] = getRenderer().deg2mm(messageHandler.getTargetEyeWindowSize()[i]);
+						targetX[i] = getRenderer().deg2mm(choicesLocations[i].getX());
+						targetY[i] = getRenderer().deg2mm(choicesLocations[i].getY());
+						GLUtil.drawCircle(getCircle(), targetEyeWindowSize[i], false, targetX[i], targetY[i], 0);
+						GLUtil.drawSquare(getSquare(), targetIndicatorSize, true, targetX[i], targetY[i], 0);
+					}
+				}
+				catch (NullPointerException e) {
+					System.out.println("Null Pointer Exception in NAFCExperimentConsoleRenderer.drawChoices(). Skipping this drawing. ");
+				}
 			}
 		}
 
