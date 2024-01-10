@@ -504,10 +504,19 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     }
 
     public void genMatchStickRand() {
-        int nComp;
-        double[] nCompDist = getPARAM_nCompDist();
-        nComp = stickMath_lib.pickFromProbDist(nCompDist);
+        int nComp = chooseNumComps();
+        genMatchStickRand(nComp);
+    }
 
+    public static int chooseNumComps() {
+        int nComp;
+        ExperimentMatchStick tempStick = new ExperimentMatchStick();
+        double[] nCompDist = tempStick.getPARAM_nCompDist();
+        nComp = stickMath_lib.pickFromProbDist(nCompDist);
+        return nComp;
+    }
+
+    public void genMatchStickRand(int nComp) {
         while (true) {
             while (true) {
                 if (genMatchStick_comp(nComp)) {

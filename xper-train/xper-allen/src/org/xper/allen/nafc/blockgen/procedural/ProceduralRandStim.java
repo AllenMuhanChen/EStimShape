@@ -11,10 +11,11 @@ public class ProceduralRandStim extends ProceduralStim{
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
+        int nComp = ProceduralMatchStick.chooseNumComps();
         while (true) {
             try {
                 mSticks = new Procedural<>();
-                baseMatchStick = genRandBaseMStick();
+                baseMatchStick = genRandBaseMStick(nComp);
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
                 morphComponentIndex = baseMatchStick.chooseRandLeaf();
                 noiseComponentIndex = morphComponentIndex;
@@ -66,11 +67,11 @@ public class ProceduralRandStim extends ProceduralStim{
         }
     }
 
-    private ProceduralMatchStick genRandBaseMStick() {
+    private ProceduralMatchStick genRandBaseMStick(int nComp) {
         ProceduralMatchStick baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(generator.getMaxImageDimensionDegrees());
         baseMStick.setStimColor(parameters.color);
-        baseMStick.genMatchStickRand();
+        baseMStick.genMatchStickRand(nComp);
         return baseMStick;
     }
 }
