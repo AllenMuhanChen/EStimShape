@@ -30,17 +30,20 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      *
      * @param baseMatchStick
      * @param morphComponentIndx
+     * @param nComp if 0, then choose randomly
      */
-    public void genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx) {
+    public void genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, int nComp) {
         // calculate the object centered position of the base matchStick's drivingComponent
 //        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
-
+        if (nComp == 0){
+            nComp = chooseNumComps();
+        }
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
             while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
-                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick)) {
+                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
                     positionShape();
                     break;
                 }

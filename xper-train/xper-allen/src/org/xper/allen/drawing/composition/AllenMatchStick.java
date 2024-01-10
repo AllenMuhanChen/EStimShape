@@ -1689,6 +1689,10 @@ public class AllenMatchStick extends MatchStick {
 
 		// The way we write like this can guarantee that we try to
 		// generate a shape with "specific" # of components
+		return genMatchStickFromLeaf(leafIndx, amsOfLeaf, nComp);
+	}
+
+	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf, int nComp) {
 		int i=0; //Number of times tried to generate a comp and smoothize it
 		boolean compSuccess = false;
 		while (i<2) {
@@ -1749,6 +1753,7 @@ public class AllenMatchStick extends MatchStick {
 		}
 		return false;
 	}
+
 	private boolean vetLeafBaseSize(int leafIndx) {
 		int leafNVect = getComp()[leafIndx].getnVect();
 		Point3d[] leafVect_info = getComp()[leafIndx].getVect_info();

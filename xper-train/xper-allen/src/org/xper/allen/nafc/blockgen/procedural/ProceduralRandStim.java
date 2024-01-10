@@ -5,13 +5,15 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
 public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
+    private int nComp;
+
     public ProceduralRandStim(NAFCBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
         super(generator, parameters, new ProceduralMatchStick(), 0, 0);
     }
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-        int nComp = ProceduralMatchStick.chooseNumComps();
+        nComp = ProceduralMatchStick.chooseNumComps();
         System.out.println("NUMBER COMPS: " + nComp);
         while (true) {
             try {
@@ -40,7 +42,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(parameters.getSize());
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex);
+        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex, nComp);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 
