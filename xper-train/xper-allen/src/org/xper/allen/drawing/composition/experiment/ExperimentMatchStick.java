@@ -43,7 +43,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         this.maxAttempts = baseMatchStick.maxAttempts;
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
             while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
-                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
+                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick)) {
                     positionShape();
                     break;
                 }

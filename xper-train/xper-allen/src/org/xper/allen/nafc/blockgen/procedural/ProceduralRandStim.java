@@ -13,12 +13,12 @@ public class ProceduralRandStim extends ProceduralStim{
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-        nComp = ProceduralMatchStick.chooseNumComps();
-        System.out.println("NUMBER COMPS: " + nComp);
+//        nComp = ProceduralMatchStick.chooseNumComps();
+//        System.out.println("NUMBER COMPS: " + nComp);
         while (true) {
             try {
                 mSticks = new Procedural<>();
-                baseMatchStick = genRandBaseMStick(nComp);
+                baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
                 morphComponentIndex = baseMatchStick.chooseRandLeaf();
                 noiseComponentIndex = morphComponentIndex;
@@ -42,7 +42,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(parameters.getSize());
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex, nComp);
+        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex, 0);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 
@@ -70,11 +70,11 @@ public class ProceduralRandStim extends ProceduralStim{
         }
     }
 
-    private ProceduralMatchStick genRandBaseMStick(int nComp) {
+    private ProceduralMatchStick genRandBaseMStick() {
         ProceduralMatchStick baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(parameters.getSize());
         baseMStick.setStimColor(parameters.color);
-        baseMStick.genMatchStickRand(nComp);
+        baseMStick.genMatchStickRand();
         return baseMStick;
     }
 }
