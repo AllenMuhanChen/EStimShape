@@ -22,7 +22,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
 //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
-    public static final double NOISE_RADIUS_DEGREES = 8;
+    public static final double NOISE_RADIUS_DEGREES = 4;
     public int maxAttempts = -1;
 
     /**
