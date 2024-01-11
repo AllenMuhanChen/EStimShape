@@ -287,11 +287,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 int numMatch = Arrays.stream(junc.getCompIds()).filter(x -> x == specialCompId).toArray().length;
                 if (numMatch == 1) {
                     if (junc.getnComp() == 2) {
-                        System.out.println("SINGLE!");
-                        point3d = calcProjectionFromSingleCompJunction(specialCompId, junc);
+                        point3d = calcProjectionFromSingleJunctionWithSingleComp(specialCompId, junc);
                     } else if (junc.getnComp() > 2){
-                        System.out.println("MULTI!");
-                        point3d = calcProjectionFromMultiCompJunction(specialCompId, junc);
+                        point3d = calcProjectionFromJunctionWithMultiComp(specialCompId, junc);
                     }
                 }
             }
@@ -300,21 +298,16 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         return point3d;
     }
 
-    private Point3d calcProjectionFromSingleCompJunction(Integer specialCompIndx, JuncPt_struct junc) {
-        Point3d point3d;
+    private Point3d calcProjectionFromSingleJunctionWithSingleComp(Integer specialCompIndx, JuncPt_struct junc) {
+        Point3d projectedPoint;
         // Find some important info about the junction
-        int junctionSpecialCompIndex = -1;
         int baseCompId = -1;
         int[] connectedComps = junc.getCompIds();
         for (int comp : connectedComps) {
-            if (comp == specialCompIndx && comp != 0) {
-                junctionSpecialCompIndex = comp;
-            }
-            else if (comp != specialCompIndx && comp != 0) {
+            if (comp != specialCompIndx && comp != 0) {
                 baseCompId = comp;
             }
         }
-
 
 
         // Find tangent to project along for noise origin
@@ -322,16 +315,37 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         Vector3d tangent = getJuncTangentForSingle(junc, tangentOwnerId);
         tangent = new Vector3d(tangent.x, tangent.y, 0);
         // Find point along base component to start the projection from
-        Point3d[] connectedMpts = getComp()[baseCompId].getmAxisInfo().getmPts();
-        int junctionUNdx = junc.getuNdx()[junc.getJIndexOfComp(baseCompId)];
-        Point3d startingPosition = choosePositionAlongMAxisFromJuncUNdx(junctionUNdx, connectedMpts, 10);
+//        Point3d[] connectedMpts = getComp()[baseCompId].getmAxisInfo().getmPts();
+//        int junctionUNdx = junc.getuNdx()[junc.getJIndexOfComp(baseCompId)];
+//        Point3d startingPosition = choosePositionAlongMAxisFromJuncUNdx(junctionUNdx, connectedMpts, 10);
 
-        point3d = pointAlong2dTangent(startingPosition, tangent, NOISE_RADIUS_DEGREES);
-        return point3d;
+        // Choose a starting point
+        Point3d startingPosition = chooseStartingPoint(junc, tangent);
+
+        projectedPoint = pointAlong2dTangent(startingPosition, tangent, NOISE_RADIUS_DEGREES);
+        return projectedPoint;
     }
 
-    private Point3d calcProjectionFromMultiCompJunction(Integer specialCompId, JuncPt_struct junc) {
-        Point3d point3d;
+    private Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
+        Vector3d reverseTangent = new Vector3d(tangent);
+        reverseTangent.negate();
+        System.out.println("DISTANCE IN OPPOSITE: " + junc.getRad());
+        Point3d startingPosition = choosePositionAlongTangent(reverseTangent, junc.getPos(), junc.getRad());
+        return startingPosition;
+    }
+
+    private Point3d choosePositionAlongTangent(Vector3d tangent, Point3d pos, double distance) {
+        Vector3d normalizedTangent = new Vector3d(tangent);
+        normalizedTangent.normalize();
+        normalizedTangent.scale(distance);
+        Point3d startingPosition = new Point3d(pos);
+        startingPosition.add(normalizedTangent);
+        return startingPosition;
+
+    }
+
+    private Point3d calcProjectionFromJunctionWithMultiComp(Integer specialCompId, JuncPt_struct junc) {
+        Point3d projectedPoint;
         // Collect tangents for this junction - excluding special component
         List<Vector3d> nonSpecialTangents = new LinkedList<>();
         List<Integer> jIndicesForTangent = new LinkedList<>();
@@ -376,24 +390,25 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getY(), 0);
 
         // Calculate a starting point
-        LinkedList<Point3d> startingPositions = new LinkedList<>();
-        for (Integer jIndx: jIndicesForSmallestExternalAngle){
-            Point3d startingPosition;
-            int junctionUNdx = junc.getuNdx()[jIndx];
-            Point3d[] connectedMpts = getComp()[junc.getCompIds()[jIndx]].getmAxisInfo().getmPts();
-            startingPosition = choosePositionAlongMAxisFromJuncUNdx(
-                    junctionUNdx, connectedMpts, 25);
-            startingPositions.add(startingPosition);
-        }
-        // Calculate average of starting positions
-        Point3d averageStartingPosition = new Point3d();
-        for (Point3d startingPosition: startingPositions){
-            averageStartingPosition.add(startingPosition);
-        }
-        averageStartingPosition.scale(1.0/startingPositions.size());
+//        LinkedList<Point3d> startingPositions = new LinkedList<>();
+//        for (Integer jIndx: jIndicesForSmallestExternalAngle){
 
-        point3d = pointAlong2dTangent(averageStartingPosition, bisector_3d, NOISE_RADIUS_DEGREES);
-        return point3d;
+//            int junctionUNdx = junc.getuNdx()[jIndx];
+//            Point3d[] connectedMpts = getComp()[junc.getCompIds()[jIndx]].getmAxisInfo().getmPts();
+//            startingPosition = choosePositionAlongMAxisFromJuncUNdx(
+//                    junctionUNdx, connectedMpts, 20);
+//            startingPositions.add(startingPosition);
+//        }
+
+//         Calculate average of starting positions
+//        Point3d averageStartingPosition = new Point3d();
+//        for (Point3d startingPosition: startingPositions){
+//            averageStartingPosition.add(startingPosition);
+//        }
+//        averageStartingPosition.scale(1.0/startingPositions.size());
+        Point3d startingPosition = chooseStartingPoint(junc, bisector_3d);
+        projectedPoint = pointAlong2dTangent(startingPosition, bisector_3d, NOISE_RADIUS_DEGREES);
+        return projectedPoint;
     }
 
     private Point3d choosePositionAlongMAxisFromJuncUNdx(int junctionUNdx, Point3d[] connectedMpts, int distanceFromJunction) {
