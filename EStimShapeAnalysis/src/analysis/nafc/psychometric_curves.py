@@ -51,7 +51,6 @@ def unix_to_datetime(unix_timestamp):
     return local_dt
 
 
-
 def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
     """
     Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
@@ -59,6 +58,10 @@ def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
     """
     # Group by 'NoiseChance' and calculate the percentage of 'Correct' in 'IsCorrect'
     percent_correct = df.groupby('NoiseChance')['IsCorrect'].apply(lambda x: (x == True).sum() / len(x) * 100)
+
+    # Filter out NoiseChance values with too little data
+    num_reps = df.groupby('NoiseChance')['IsCorrect'].count()
+    percent_correct = percent_correct[num_reps > 10]
 
     # Sort the percent_correct Series in ascending order of 'NoiseChance'
     percent_correct = percent_correct.sort_index(ascending=True)
