@@ -1978,25 +1978,25 @@ public class AllenMatchStick extends MatchStick {
 			JuncPt_struct notSpecialJunc = new JuncPt_struct();
 			EndPt_struct notSpecialEnd = new EndPt_struct();
 			//CHOOSE JUNC FROM LEAF
-			int compIndx;
+			int compJIndx;
 			int nseUNdx = 0;
 			Point3d nsePos = new Point3d();
 			Vector3d nseTangent = new Vector3d();
 			double nseRad = 0;
 			for(int juncIndx : juncList) {
-				compIndx = amsOfLeaf.getJuncPt()[juncIndx].getJIndexOfComp(leafIndx);
-				if (compIndx != 0) { //checking if this junc contains the leafIndx
-					int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndx];
+				compJIndx = amsOfLeaf.getJuncPt()[juncIndx].getJIndexOfComp(leafIndx);
+				if (compJIndx != 0) { //checking if this junc contains the leafIndx
+					int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compJIndx];
 
 					//JUNC IS AN END
 					if (junc_uNdx == 51 || junc_uNdx == 1) {
 						notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
 
 						//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
-						compIndx = notSpecialJunc.getJIndexOfComp(leafIndx);
-						nseUNdx = notSpecialJunc.getuNdx()[compIndx];
+						compJIndx = notSpecialJunc.getJIndexOfComp(leafIndx);
+						nseUNdx = notSpecialJunc.getuNdx()[compJIndx];
 						nsePos = notSpecialJunc.getPos();
-						nseTangent = notSpecialJunc.getTangent()[compIndx];
+						nseTangent = notSpecialJunc.getTangentOfOwner(leafIndx); //TODO: check this (might be wrong
 						nseRad = notSpecialJunc.getRad();
 
 						//DEFINE SPECIAL END TO BE THE OTHER END PT
