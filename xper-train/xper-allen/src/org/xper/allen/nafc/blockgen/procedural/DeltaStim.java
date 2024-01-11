@@ -51,7 +51,7 @@ public class DeltaStim extends ProceduralStim {
 
     private int chooseDeltaIndex(){
         int drivingComponent = getDrivingIndex();
-        List<Integer> allComps = baseStim.mSticks.getSample().getCompList();
+        List<Integer> allComps = baseStim.mSticks.getSample().getCompIds();
         List<Integer> elegibleComps = new LinkedList<>();
         for (int i=0; i<allComps.size(); i++){
             if (allComps.get(i) != drivingComponent){

@@ -240,7 +240,7 @@ public class MatchStick implements Drawable {
 
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				getJuncPt()[i].getComp()[j] = inSpec.getmAxis().getJuncPt()[i].getComp()[j];
+				getJuncPt()[i].getCompIds()[j] = inSpec.getmAxis().getJuncPt()[i].getComp()[j];
 				getJuncPt()[i].getuNdx()[j] = inSpec.getmAxis().getJuncPt()[i].getuNdx()[j];
 			}
 			for (j=1; j<= getJuncPt()[i].getnTangent(); j++)
@@ -944,8 +944,8 @@ public class MatchStick implements Drawable {
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				for (k=j+1; k<= getJuncPt()[i].getnComp(); k++)
 				{
-					a =    getJuncPt()[i].getComp()[j];
-					b =    getJuncPt()[i].getComp()[k];
+					a =    getJuncPt()[i].getCompIds()[j];
+					b =    getJuncPt()[i].getCompIds()[k];
 					cpt1 = getJuncPt()[i].getuNdx()[j];
 					cpt2 = getJuncPt()[i].getuNdx()[k];
 					if (cpt1 == 1)
@@ -1006,8 +1006,8 @@ public class MatchStick implements Drawable {
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				for (k=j+1; k<= getJuncPt()[i].getnComp(); k++)
 				{
-					a =    getJuncPt()[i].getComp()[j];
-					b =    getJuncPt()[i].getComp()[k];
+					a =    getJuncPt()[i].getCompIds()[j];
+					b =    getJuncPt()[i].getCompIds()[k];
 					cpt1 = getJuncPt()[i].getuNdx()[j];
 					cpt2 = getJuncPt()[i].getuNdx()[k];
 					if ( cpt1 != 1 && cpt1 != 51)
@@ -1160,9 +1160,9 @@ public class MatchStick implements Drawable {
 				int nRelated_comp = getJuncPt()[i].getnComp();
 				for (j = 1 ; j <= nRelated_comp; j++)
 				{
-					rMin = Math.max( rMin, getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 10.0);
-					tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getRad(),
-							getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 3.0);
+					rMin = Math.max( rMin, getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 10.0);
+					tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getRad(),
+							getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 3.0);
 					rMax = Math.min( rMax, tempX);
 				}
 
@@ -1179,18 +1179,18 @@ public class MatchStick implements Drawable {
 					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 					}
 					else if ( Math.abs(u_value - 1.0) < 0.0001)
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 					}
 					else // middle u value
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 					}
 
 				}
@@ -1198,24 +1198,24 @@ public class MatchStick implements Drawable {
 			else // JuncPt.rad != 100.0, means this JuncPt is an existing one
 			{
 				for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-					if ( getJuncPt()[i].getComp()[j] > nPreserve) // the component which need to assign radius
+					if ( getJuncPt()[i].getCompIds()[j] > nPreserve) // the component which need to assign radius
 					{
 						nowRad = getJuncPt()[i].getRad();
 						u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 						if ( Math.abs( u_value - 0.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 						}
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 						}
 						else // middle u value
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 						}
 					}
 
@@ -1292,8 +1292,8 @@ public class MatchStick implements Drawable {
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				for (k=j+1; k<= getJuncPt()[i].getnComp(); k++)
 				{
-					a =    getJuncPt()[i].getComp()[j];
-					b =    getJuncPt()[i].getComp()[k];
+					a =    getJuncPt()[i].getCompIds()[j];
+					b =    getJuncPt()[i].getCompIds()[k];
 					cpt1 = getJuncPt()[i].getuNdx()[j];
 					cpt2 = getJuncPt()[i].getuNdx()[k];
 					if (cpt1 == 1)
@@ -2240,8 +2240,8 @@ public class MatchStick implements Drawable {
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				for (k=j+1; k<= getJuncPt()[i].getnComp(); k++)
 				{
-					a = getJuncPt()[i].getComp()[j];
-					b = getJuncPt()[i].getComp()[k];
+					a = getJuncPt()[i].getCompIds()[j];
+					b = getJuncPt()[i].getCompIds()[k];
 					connect[a][b] = true;
 					connect[b][a] = true;
 				}
@@ -2396,9 +2396,9 @@ public class MatchStick implements Drawable {
 				int nRelated_comp = getJuncPt()[i].getnComp();
 				for (j = 1 ; j <= nRelated_comp; j++)
 				{
-					rMin = Math.max( rMin, getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 10.0);
-					tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getRad(),
-							getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 3.0);
+					rMin = Math.max( rMin, getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 10.0);
+					tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getRad(),
+							getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 3.0);
 					rMax = Math.min( rMax, tempX);
 				}
 
@@ -2441,22 +2441,22 @@ public class MatchStick implements Drawable {
 					getJuncPt()[i].setRad(nowRad);
 					for (j = 1 ; j <= nRelated_comp ; j++)
 					{
-						radChgFlg[ getJuncPt()[i].getComp()[j]] = true;
+						radChgFlg[ getJuncPt()[i].getCompIds()[j]] = true;
 						u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 						if ( Math.abs( u_value - 0.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 						}
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 						}
 						else // middle u value
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 						}
 					}
 				}
@@ -2506,8 +2506,8 @@ public class MatchStick implements Drawable {
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				for (k=j+1; k<= getJuncPt()[i].getnComp(); k++)
 				{
-					a = getJuncPt()[i].getComp()[j];
-					b = getJuncPt()[i].getComp()[k];
+					a = getJuncPt()[i].getCompIds()[j];
+					b = getJuncPt()[i].getCompIds()[k];
 					connect[a][b] = true;
 					connect[b][a] = true;
 				}
@@ -2566,25 +2566,25 @@ public class MatchStick implements Drawable {
 		for (i=1; i<=getnJuncPt(); i++)
 		{
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-				if ( getJuncPt()[i].getComp()[j] == targetComp)
+				if ( getJuncPt()[i].getCompIds()[j] == targetComp)
 				{
 					nowRad = getJuncPt()[i].getRad();
 
 					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 					}
 					else if ( Math.abs(u_value - 1.0) < 0.0001)
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 					}
 					else // middle u value
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 					}
 				}
 		}
@@ -2731,7 +2731,7 @@ public class MatchStick implements Drawable {
 		for (i=1; i<= getnJuncPt(); i++)
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				nowComp = getJuncPt()[i].getComp()[j];
+				nowComp = getJuncPt()[i].getCompIds()[j];
 				uNdx = getJuncPt()[i].getuNdx()[j];
 				if ( nowComp == targetComp)
 				{
@@ -2792,7 +2792,7 @@ public class MatchStick implements Drawable {
 		for (i=1; i<= getnJuncPt(); i++)
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				if ( getJuncPt()[i].getComp()[j] == id)
+				if ( getJuncPt()[i].getCompIds()[j] == id)
 				{
 					JuncPtFlg[i] = true;
 					targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
@@ -2877,9 +2877,9 @@ public class MatchStick implements Drawable {
 						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
 						{
 							for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-								if ( getJuncPt()[i].getComp()[j] != id)
+								if ( getJuncPt()[i].getCompIds()[j] != id)
 								{
-									int nowCompNdx = getJuncPt()[i].getComp()[j];
+									int nowCompNdx = getJuncPt()[i].getCompIds()[j];
 									for (k=1; k<= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the one should move with nowCompNdx
 										{
@@ -2938,7 +2938,7 @@ public class MatchStick implements Drawable {
 			}
 			for (i=1; i<=getnJuncPt(); i++)
 			{
-				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
+				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getCompIds()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
 				getJuncPt()[i].getPos().set(newPos);
 			}
 			// now, we apply radius, and then check skin closeness
@@ -3021,7 +3021,7 @@ public class MatchStick implements Drawable {
 		for (i=1; i<= getnJuncPt(); i++)
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				if ( getJuncPt()[i].getComp()[j] == id)
+				if ( getJuncPt()[i].getCompIds()[j] == id)
 				{
 					JuncPtFlg[i] = true;
 					targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
@@ -3121,9 +3121,9 @@ public class MatchStick implements Drawable {
 						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
 						{
 							for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-								if ( getJuncPt()[i].getComp()[j] != id)
+								if ( getJuncPt()[i].getCompIds()[j] != id)
 								{
-									int nowCompNdx = getJuncPt()[i].getComp()[j];
+									int nowCompNdx = getJuncPt()[i].getCompIds()[j];
 									for (k=1; k<= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the one should move with nowCompNdx
 										{
@@ -3192,7 +3192,7 @@ public class MatchStick implements Drawable {
 			}
 			for (i=1; i<=getnJuncPt(); i++)
 			{
-				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
+				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getCompIds()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
 				getJuncPt()[i].getPos().set(newPos);
 			}
 			// now, we apply radius, and then check skin closeness
@@ -3371,7 +3371,7 @@ public class MatchStick implements Drawable {
 				{
 					//add a new endPt
 					setnEndPt(getnEndPt() + 1);
-					this.getEndPt()[getnEndPt()] = new EndPt_struct( getJuncPt()[i].getComp()[1], getJuncPt()[i].getuNdx()[1],
+					this.getEndPt()[getnEndPt()] = new EndPt_struct( getJuncPt()[i].getCompIds()[1], getJuncPt()[i].getuNdx()[1],
 							getJuncPt()[i].getPos(), getJuncPt()[i].getTangent()[1], getJuncPt()[i].getRad() );
 				}
 			}
@@ -3413,7 +3413,7 @@ public class MatchStick implements Drawable {
 		{
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				getJuncPt()[i].getComp()[j] = compMap[ getJuncPt()[i].getComp()[j]];
+				getJuncPt()[i].getCompIds()[j] = compMap[ getJuncPt()[i].getCompIds()[j]];
 			}
 			for (j=1; j<= getJuncPt()[i].getnTangent(); j++)
 				getJuncPt()[i].getTangentOwner()[j] = compMap[ getJuncPt()[i].getTangentOwner()[j]];
@@ -3450,8 +3450,8 @@ public class MatchStick implements Drawable {
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 				for (k=j+1; k<= getJuncPt()[i].getnComp(); k++)
 				{
-					a = getJuncPt()[i].getComp()[j];
-					b = getJuncPt()[i].getComp()[k];
+					a = getJuncPt()[i].getCompIds()[j];
+					b = getJuncPt()[i].getCompIds()[k];
 					connect[a][b] = true;
 					connect[b][a] = true;
 				}
@@ -3990,18 +3990,18 @@ public class MatchStick implements Drawable {
 						u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 						if ( Math.abs( u_value - 0.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 						}
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 						}
 						else // middle u value
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 						}
 
 					}
@@ -4136,9 +4136,9 @@ public class MatchStick implements Drawable {
 					int nRelated_comp = getJuncPt()[i].getnComp();
 					for (j = 1 ; j <= nRelated_comp; j++)
 					{
-						rMin = Math.max( rMin, getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 10.0);
-						tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getRad(),
-								getComp()[getJuncPt()[i].getComp()[j]].getmAxisInfo().getArcLen() / 3.0);
+						rMin = Math.max( rMin, getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 10.0);
+						tempX = Math.min( 0.5 *getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getRad(),
+								getComp()[getJuncPt()[i].getCompIds()[j]].getmAxisInfo().getArcLen() / 3.0);
 						rMax = Math.min( rMax, tempX);
 					}
 
@@ -4154,18 +4154,18 @@ public class MatchStick implements Drawable {
 						u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 						if ( Math.abs( u_value - 0.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 						}
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 						}
 						else // middle u value
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 						}
 
 					}

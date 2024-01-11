@@ -33,7 +33,7 @@ public class JuncPt_Info
 
         for (i=1; i<=getnComp() ;i++)
         {
-            getComp()[i] = in_struct.getComp()[i];
+            getComp()[i] = in_struct.getCompIds()[i];
             getuNdx()[i] = in_struct.getuNdx()[i];
         }
         for (i=1; i<=getnTangent(); i++)

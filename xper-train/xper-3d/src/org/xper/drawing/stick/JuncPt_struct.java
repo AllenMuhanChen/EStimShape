@@ -32,7 +32,7 @@ public class JuncPt_struct {
         setnTangent(in_nTangent);
         for (i=1; i<=getnComp(); i++)
         {
-            getComp()[i] = comp_list[i-1];
+            getCompIds()[i] = comp_list[i-1];
             getuNdx()[i] = uNdx_list[i-1];
         }
         getPos().set( in_pos);
@@ -52,14 +52,23 @@ public class JuncPt_struct {
        * Return the index in comp[100] associated with a certain comp
        * @return
        */
-      public int getIndexOfComp(int compId) {
-    	  for(int i=1; i<comp.length; i++) {
-    		  if(comp[i]==compId) {
-    			  return i;
+      public int getJIndexOfComp(int compId) {
+    	  for(int JIndx=1; JIndx<comp.length; JIndx++) {
+    		  if(comp[JIndx]==compId) {
+    			  return JIndx;
     		  }
     	  }
 //    	  System.out.println("getIndexOfComp(int compId) returned 0, this should means that compId is not a component in this Junc");
     	  return 0;
+      }
+
+    public Vector3d getTangentOfOwner(int ownerCompId){
+        for (int tanIndx=1; tanIndx<= getnTangent(); tanIndx++)
+            if ( getTangentOwner()[tanIndx] == getCompIds()[ownerCompId])
+            {
+                return getTangent()[tanIndx];
+            }
+          return null;
       }
 
       /**
@@ -72,7 +81,7 @@ public class JuncPt_struct {
         this.setnTangent(in.getnTangent());
         for (i=1; i<=getnComp(); i++)
         {
-            getComp()[i] = in.getComp()[i];
+            getCompIds()[i] = in.getCompIds()[i];
             getuNdx()[i] = in.getuNdx()[i];
         }
         for (i=1; i<=getnTangent(); i++)
@@ -87,7 +96,7 @@ public class JuncPt_struct {
       {
     	  // As we know the new comp will always only bring in one new tangent vector
     	  setnComp(getnComp() + 1);
-    	  getComp()[getnComp()] = newComp;
+    	  getCompIds()[getnComp()] = newComp;
     	  getuNdx()[getnComp()] = new_uNdx;
     	  setnTangent(getnTangent() + 1);
     	  getTangent()[getnTangent()].set( new_Tangent);
@@ -98,13 +107,13 @@ public class JuncPt_struct {
       {
         int i, j, k;
         for (j=1; j<= getnComp(); j++)
-           if ( removeList[ getComp()[j] ] == true)
+           if ( removeList[ getCompIds()[j] ] == true)
             {
 //            System.out.println("at Junc:  the comp " + comp[j]  + " should be removed");
             // we just set the info to -1, the real clean will be done later
-            getComp()[j] = -1;
+            getCompIds()[j] = -1;
             for (k=1; k<= getnTangent(); k++)
-              if ( getTangentOwner()[k] == getComp()[j])
+              if ( getTangentOwner()[k] == getCompIds()[j])
               {
                 getTangentOwner()[k] = -1;
               }
@@ -113,9 +122,9 @@ public class JuncPt_struct {
         // remove all the entries with -1 label
         int counter = 1;
         for (i=1; i<=getnComp(); i++)
-           if (getComp()[i] != -1)
+           if (getCompIds()[i] != -1)
         {
-            getComp()[counter] = getComp()[i];
+            getCompIds()[counter] = getCompIds()[i];
             getuNdx()[counter] = getuNdx()[i];
             counter++;
         }
@@ -137,13 +146,13 @@ public class JuncPt_struct {
      int i;
      System.out.println("nComp : " + getnComp() +" with rad: "+ getRad());
      for ( i = 1; i<=getnComp(); i++)
-          System.out.println(" comp " + getComp()[i]  + " with uNdx " + getuNdx()[i]);
+          System.out.println(" comp " + getCompIds()[i]  + " with uNdx " + getuNdx()[i]);
 //   System.out.println("Pos at : " + pos);
 //   for ( i = 1 ; i<=nTangent; i++)
 //        System.out.println(" tangent : " + tangent[i] + " belongs to " + tangentOwner[i]);
 //   System.out.println("radius is " + rad +"\n----------------------------------\n\n");
       }
-	public int[] getComp() {
+	public int[] getCompIds() {
 		return comp;
 	}
 	public void setComp(int[] comp) {

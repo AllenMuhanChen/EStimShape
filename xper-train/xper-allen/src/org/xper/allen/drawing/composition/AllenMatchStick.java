@@ -4,15 +4,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
 
-import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
-import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
-import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoisePositions;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
@@ -404,7 +401,7 @@ public class AllenMatchStick extends MatchStick {
 		// 2. start picking new MAxisArc
 		for (i = 1; i <= getnJuncPt(); i++)
 			for (j = 1; j <= getJuncPt()[i].getnComp(); j++) {
-				if (getJuncPt()[i].getComp()[j] == id) {
+				if (getJuncPt()[i].getCompIds()[j] == id) {
 					JuncPtFlg[i] = true;
 					targetUNdx[i] = getJuncPt()[i].getuNdx()[j];
 				}
@@ -508,8 +505,8 @@ public class AllenMatchStick extends MatchStick {
 							// need to translate
 						{
 							for (j = 1; j <= getJuncPt()[i].getnComp(); j++)
-								if (getJuncPt()[i].getComp()[j] != id) {
-									int nowCompNdx = getJuncPt()[i].getComp()[j];
+								if (getJuncPt()[i].getCompIds()[j] != id) {
+									int nowCompNdx = getJuncPt()[i].getCompIds()[j];
 									for (k = 1; k <= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the
 											// one
@@ -567,7 +564,7 @@ public class AllenMatchStick extends MatchStick {
 				getEndPt()[i].getPos().set(newPos);
 			}
 			for (i = 1; i <= getnJuncPt(); i++) {
-				Point3d newPos = new Point3d(getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[getJuncPt()[i].getuNdx()[1]]);
+				Point3d newPos = new Point3d(getComp()[getJuncPt()[i].getCompIds()[1]].getmAxisInfo().getmPts()[getJuncPt()[i].getuNdx()[1]]);
 				getJuncPt()[i].getPos().set(newPos);
 			}
 			// now, we apply radius, and then check skin closeness
@@ -749,12 +746,12 @@ public class AllenMatchStick extends MatchStick {
 		//Go through Juncs
 		for(i=1; i<=getnJuncPt();i++) {
 			for(j=1; j<= getJuncPt()[i].getnComp();j++) {
-				if(getJuncPt()[i].getComp()[j]==id) {
+				if(getJuncPt()[i].getCompIds()[j]==id) {
 
 					//If we've specified a comp to be the base that this limb moves along
 					if(getBaseComp()!=0) {
 						for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
-							if(getJuncPt()[i].getComp()[l] == getBaseComp()) {
+							if(getJuncPt()[i].getCompIds()[l] == getBaseComp()) {
 								baseJuncNdx = l;
 							}
 						}
@@ -763,7 +760,7 @@ public class AllenMatchStick extends MatchStick {
 					else {
 						LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
 						for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
-							if(getJuncPt()[i].getComp()[l]!=id) {
+							if(getJuncPt()[i].getCompIds()[l]!=id) {
 								baseJuncNdxList.add(l);
 							}
 						}
@@ -848,7 +845,7 @@ public class AllenMatchStick extends MatchStick {
 		for (i=1; i<= getnJuncPt(); i++)
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				if ( getJuncPt()[i].getComp()[j] == id)
+				if ( getJuncPt()[i].getCompIds()[j] == id)
 				{
 
 					JuncPtFlg[i] = true;
@@ -976,9 +973,9 @@ public class AllenMatchStick extends MatchStick {
 						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
 						{
 							for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-								if ( getJuncPt()[i].getComp()[j] != id)
+								if ( getJuncPt()[i].getCompIds()[j] != id)
 								{
-									int nowCompNdx = getJuncPt()[i].getComp()[j];
+									int nowCompNdx = getJuncPt()[i].getCompIds()[j];
 									for (k=1; k<= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the one should move with nowCompNdx
 										{
@@ -1049,7 +1046,7 @@ public class AllenMatchStick extends MatchStick {
 			}
 			for (i=1; i<=getnJuncPt(); i++)
 			{
-				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
+				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getCompIds()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
 				getJuncPt()[i].getPos().set(newPos);
 			}
 
@@ -1130,7 +1127,7 @@ public class AllenMatchStick extends MatchStick {
 		for (i=1; i<=getnJuncPt(); i++)
 		{
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-				if ( getJuncPt()[i].getComp()[j] == targetComp)
+				if ( getJuncPt()[i].getCompIds()[j] == targetComp)
 				{
 
 					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
@@ -1142,8 +1139,8 @@ public class AllenMatchStick extends MatchStick {
 								nowNormalizedValue[0][1] = qmp.radProfileQualMorph.getNewJunc();
 							}
 							nowRad = nowNormalizedValue[0][1] * radiusScale;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 						}
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
@@ -1151,8 +1148,8 @@ public class AllenMatchStick extends MatchStick {
 								nowNormalizedValue[2][1] = qmp.radProfileQualMorph.getNewJunc();
 							}
 							nowRad = nowNormalizedValue[2][1] * radiusScale;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 						}
 						else // middle u value
 						{
@@ -1160,12 +1157,12 @@ public class AllenMatchStick extends MatchStick {
 								nowNormalizedValue[1][1] = qmp.radProfileQualMorph.getNewJunc();
 							}
 							nowRad = nowNormalizedValue[1][1] * radiusScale;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 						}
 					} else { //if junc is disabled, that means we automatically set the junc radius to be what it was in the new location
 						//						nowRad =  getJuncPt()[i].getRad();
-						double base_u_value = ((double)getJuncPt()[i].getuNdx()[getJuncPt()[i].getIndexOfComp(getBaseComp())]-1.0) / (51.0-1.0);
+						double base_u_value = ((double)getJuncPt()[i].getuNdx()[getJuncPt()[i].getJIndexOfComp(getBaseComp())]-1.0) / (51.0-1.0);
 						if ( Math.abs( base_u_value - 0.0) < 0.0001) {
 							nowRad = getComp()[getBaseComp()].getRadInfo()[0][1];
 						} else if (( Math.abs(base_u_value - 1.0) < 0.0001)){
@@ -1176,20 +1173,20 @@ public class AllenMatchStick extends MatchStick {
 						}
 						if ( Math.abs( u_value - 0.0) < 0.0001)
 						{
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 						}
 						else if ( Math.abs(u_value - 1.0) < 0.0001)
 						{
 							//							nowRad = getComp()[getBaseComp()].getRadInfo()[2][1];
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 						}
 						else // middle u value
 						{
 							//							nowRad = getComp()[getBaseComp()].getRadInfo()[1][1];
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-							getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+							getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 						}
 					}
 				}
@@ -1389,7 +1386,7 @@ public class AllenMatchStick extends MatchStick {
 		for (i=1; i<= getnJuncPt(); i++)
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				if ( getJuncPt()[i].getComp()[j] == id)
+				if ( getJuncPt()[i].getCompIds()[j] == id)
 				{
 
 					JuncPtFlg[i] = true;
@@ -1400,7 +1397,7 @@ public class AllenMatchStick extends MatchStick {
 						//If we've specified a comp to be the base that this limb moves along
 						if(getBaseComp()!=0) {
 							for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
-								if(getJuncPt()[i].getComp()[l] == getBaseComp()) {
+								if(getJuncPt()[i].getCompIds()[l] == getBaseComp()) {
 									baseJuncNdx = l;
 								}
 							}
@@ -1409,7 +1406,7 @@ public class AllenMatchStick extends MatchStick {
 						else {
 							LinkedList<Integer> baseJuncNdxList = new LinkedList<>();
 							for(int l=1; l<=getJuncPt()[i].getnComp(); l++) {
-								if(getJuncPt()[i].getComp()[l]!=id) {
+								if(getJuncPt()[i].getCompIds()[l]!=id) {
 									baseJuncNdxList.add(l);
 								}
 							}
@@ -1553,9 +1550,9 @@ public class AllenMatchStick extends MatchStick {
 						if ( nowUNdx != alignedPt) // not the aligned one, we need to translate
 						{
 							for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-								if ( getJuncPt()[i].getComp()[j] != id)
+								if ( getJuncPt()[i].getCompIds()[j] != id)
 								{
-									int nowCompNdx = getJuncPt()[i].getComp()[j];
+									int nowCompNdx = getJuncPt()[i].getCompIds()[j];
 									for (k=1; k<= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the one should move with nowCompNdx
 										{
@@ -1625,7 +1622,7 @@ public class AllenMatchStick extends MatchStick {
 			}
 			for (i=1; i<=getnJuncPt(); i++)
 			{
-				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getComp()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
+				Point3d newPos = new Point3d( getComp()[getJuncPt()[i].getCompIds()[1]].getmAxisInfo().getmPts()[ getJuncPt()[i].getuNdx()[1]]);
 				getJuncPt()[i].getPos().set(newPos);
 			}
 
@@ -1837,7 +1834,7 @@ public class AllenMatchStick extends MatchStick {
 		for (i=1; i<=getnJuncPt(); i++)
 		{
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
-				if ( getJuncPt()[i].getComp()[j] == targetComp)
+				if ( getJuncPt()[i].getCompIds()[j] == targetComp)
 				{
 					nowRad = getJuncPt()[i].getRad() * radiusScale;
 					if(mmp.radProfileJuncFlag) {
@@ -1850,18 +1847,18 @@ public class AllenMatchStick extends MatchStick {
 					u_value = ((double)getJuncPt()[i].getuNdx()[j]-1.0) / (51.0-1.0);
 					if ( Math.abs( u_value - 0.0) < 0.0001)
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][0] = 0.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[0][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][0] = 0.0;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[0][1] = nowRad;
 					}
 					else if ( Math.abs(u_value - 1.0) < 0.0001)
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][0] = 1.0;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[2][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][0] = 1.0;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[2][1] = nowRad;
 					}
 					else // middle u value
 					{
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][0] = u_value;
-						getComp()[getJuncPt()[i].getComp()[j]].getRadInfo()[1][1] = nowRad;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][0] = u_value;
+						getComp()[getJuncPt()[i].getCompIds()[j]].getRadInfo()[1][1] = nowRad;
 					}
 				}
 		}
@@ -1944,7 +1941,7 @@ public class AllenMatchStick extends MatchStick {
 	public List<Integer> leafIndxToJuncPts(int leafIndex, AllenMatchStick ams) {
 		ArrayList<Integer> output = new ArrayList<Integer>();
 		for (int j = 1; j <= ams.getnJuncPt(); j++) {
-			if (Arrays.asList(ams.getJuncPtStruct(j).getComp()).contains(leafIndex));
+			if (Arrays.asList(ams.getJuncPtStruct(j).getCompIds()).contains(leafIndex));
 			output.add(j);
 		}
 		return output;
@@ -1987,7 +1984,7 @@ public class AllenMatchStick extends MatchStick {
 			Vector3d nseTangent = new Vector3d();
 			double nseRad = 0;
 			for(int juncIndx : juncList) {
-				compIndx = amsOfLeaf.getJuncPt()[juncIndx].getIndexOfComp(leafIndx);
+				compIndx = amsOfLeaf.getJuncPt()[juncIndx].getJIndexOfComp(leafIndx);
 				if (compIndx != 0) { //checking if this junc contains the leafIndx
 					int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndx];
 
@@ -1996,7 +1993,7 @@ public class AllenMatchStick extends MatchStick {
 						notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
 
 						//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
-						compIndx = notSpecialJunc.getIndexOfComp(leafIndx);
+						compIndx = notSpecialJunc.getJIndexOfComp(leafIndx);
 						nseUNdx = notSpecialJunc.getuNdx()[compIndx];
 						nsePos = notSpecialJunc.getPos();
 						nseTangent = notSpecialJunc.getTangent()[compIndx];
@@ -3399,7 +3396,7 @@ Adding a new MAxisArc to a MatchStick
 
 			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
 			{
-				getJuncPt()[i].getComp()[j] = inSpec.getmAxis().getJuncPt()[i].getComp()[j];
+				getJuncPt()[i].getCompIds()[j] = inSpec.getmAxis().getJuncPt()[i].getComp()[j];
 				getJuncPt()[i].getuNdx()[j] = inSpec.getmAxis().getJuncPt()[i].getuNdx()[j];
 			}
 			for (j=1; j<= getJuncPt()[i].getnTangent(); j++)

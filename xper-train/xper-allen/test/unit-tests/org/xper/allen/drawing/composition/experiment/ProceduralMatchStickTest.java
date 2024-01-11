@@ -42,6 +42,7 @@ public class ProceduralMatchStickTest {
     private TestDrawingWindow window;
     private AllenDrawingManager drawingManager;
     private int numNoiseFrames;
+    private ProceduralMatchStick testMStick;
 
     @Before
     public void setUp() throws Exception {
@@ -76,16 +77,16 @@ public class ProceduralMatchStickTest {
 
     @Test
     public void drawHullAndNoiseCircle(){
-        ProceduralMatchStick testMStick = new ProceduralMatchStick();
-        testMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        testMStick = new ProceduralMatchStick();
+        testMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         testMStick.genMatchStickFromLeaf(1, baseMStick);
 
         List<List<ConcaveHull.Point>> hulls = new ArrayList<>();
         List<Boolean> isSpecial = new ArrayList<>();
-        for (int compIndx: testMStick.getCompList()){
-            if (compIndx != 0) {
-                hulls.add(calcHull(testMStick, compIndx));
-                if (testMStick.getSpecialEndComp().contains(compIndx)) {
+        for (int compId: testMStick.getCompIds()){
+            if (compId != 0) {
+                hulls.add(calcHull(testMStick, compId));
+                if (testMStick.getSpecialEndComp().contains(compId)) {
                     isSpecial.add(true);
                 } else {
                     isSpecial.add(false);
@@ -122,6 +123,7 @@ public class ProceduralMatchStickTest {
 
 
                 // Now, draw the circle
+                System.out.println(testMStick.getSpecialEndComp().get(0));
                 Point3d circle = testMStick.calculateNoiseOrigin(testMStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
                 double radius = ExperimentMatchStick.NOISE_RADIUS_DEGREES;
@@ -140,6 +142,8 @@ public class ProceduralMatchStickTest {
 
             }
         });
+        Point3d x = testMStick.calculateNoiseOrigin(testMStick.getSpecialEndComp().get(0));
+        System.out.println(x);
         ThreadUtil.sleep(100000);
         window.close();
 

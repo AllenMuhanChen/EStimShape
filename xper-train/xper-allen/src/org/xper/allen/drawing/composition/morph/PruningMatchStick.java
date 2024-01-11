@@ -31,7 +31,7 @@ public class PruningMatchStick extends MorphedMatchStick{
     }
 
     private List<Integer> chooseComponentsToMorph(int numPreserve) {
-        List<Integer> componentsToMorph = matchStickToMorph.getCompList();
+        List<Integer> componentsToMorph = matchStickToMorph.getCompIds();
         Collections.shuffle(componentsToMorph);
         toPreserve = new ArrayList<Integer>();
         for (int i = 0; i< numPreserve; i++){
