@@ -3,7 +3,6 @@ package org.xper.allen.nafc.experiment;
 import org.dom4j.Document;
 import org.xper.Dependency;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
-import org.xper.classic.Punisher;
 import org.xper.classic.TrialDrawingController;
 import org.xper.classic.TrialEventListener;
 import org.xper.classic.vo.SlideTrialExperimentState;
@@ -27,7 +26,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
     ClassicNAFCTaskRunner runner;
 
     @Dependency
-    Punisher punisher;
+    NAFCPunisher punisher;
 
 
     public NAFCTrialResult runTrial(NAFCExperimentState stateObject, ThreadHelper threadHelper) {
@@ -191,7 +190,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
         // time before fixation point on
         ThreadUtil.sleepOrPinUtil(trialStartLocalTime
-                        + state.getTimeBeforeFixationPointOn() * 1000L, state,
+                        + state.getTimeBeforeFixationPointOn() * 1000L + punisher.getItiPunishmentTime(), state,
                 threadHelper);
 
 
@@ -277,7 +276,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         this.runner = runner;
     }
 
-    public void setPunisher(Punisher punisher) {
+    public void setPunisher(NAFCPunisher punisher) {
         this.punisher = punisher;
     }
 }

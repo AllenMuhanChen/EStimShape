@@ -273,7 +273,7 @@ public class NAFCConfig {
 	public ClassicNAFCTrialRunner trialRunner(){
 		ClassicNAFCTrialRunner trialRunner = new ClassicNAFCTrialRunner();
 		trialRunner.setRunner(taskRunner());
-		trialRunner.setPunisher(classicConfig.punisher());
+		trialRunner.setPunisher(punisher());
 		return trialRunner;
 	}
 
@@ -281,7 +281,7 @@ public class NAFCConfig {
 	public ClassicNAFCTaskRunner taskRunner(){
 		ClassicNAFCTaskRunner taskRunner = new ClassicNAFCTaskRunner();
 		//Punishment
-		taskRunner.setPunisher(classicConfig.punisher());
+		taskRunner.setPunisher(punisher());
 		taskRunner.setPunishSampleHoldFail(xperPunishSampleHoldFail());
 
 		//Showing Correct Answer
@@ -291,6 +291,18 @@ public class NAFCConfig {
 		//Repeating Incorrect Trials
 		taskRunner.setRepeatIncorrectTrials(xperRepeatIncorrectTrials());
 		return taskRunner;
+	}
+
+	@Bean
+	public NAFCPunisher punisher() {
+		NAFCPunisher punisher = new NAFCPunisher();
+		punisher.setSampleHoldFailPunishmentTime(xperSampleHoldFailPunishmentTime());
+		return punisher;
+	}
+
+	@Bean
+	public int xperSampleHoldFailPunishmentTime() {
+		return (int) (2000 + xperRequiredTargetSelectionHoldTime() + xperShowAnswerLength());
 	}
 
 	@Bean
