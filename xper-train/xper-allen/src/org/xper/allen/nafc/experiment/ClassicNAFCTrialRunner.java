@@ -27,7 +27,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
     ClassicNAFCTaskRunner runner;
 
     @Dependency
-    Punisher punisher;
+    NAFCPunisher punisher;
 
 
     public NAFCTrialResult runTrial(NAFCExperimentState stateObject, ThreadHelper threadHelper) {
@@ -191,7 +191,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
 
         // time before fixation point on
         ThreadUtil.sleepOrPinUtil(trialStartLocalTime
-                        + state.getTimeBeforeFixationPointOn() * 1000L, state,
+                        + state.getTimeBeforeFixationPointOn() * 1000L + punisher.itiPunishmentTime, state,
                 threadHelper);
 
 
@@ -277,7 +277,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         this.runner = runner;
     }
 
-    public void setPunisher(Punisher punisher) {
+    public void setPunisher(NAFCPunisher punisher) {
         this.punisher = punisher;
     }
 }

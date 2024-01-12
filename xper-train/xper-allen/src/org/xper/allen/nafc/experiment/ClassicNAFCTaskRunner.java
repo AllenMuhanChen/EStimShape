@@ -25,7 +25,7 @@ import java.util.function.IntPredicate;
 @SuppressWarnings("StatementWithEmptyBody")
 public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
     @Dependency
-    Punisher punisher;
+    NAFCPunisher punisher;
     @Dependency
     boolean punishSampleHoldFail;
     @Dependency
@@ -144,7 +144,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 NAFCEventUtil.fireSampleEyeInHoldFail(eyeInHoldFailLocalTime,
                         choiceEventListeners, currentContext);
                 if (punishSampleHoldFail)
-                    punisher.punish();
+                    punisher.punishSampleHoldFail();
 
                 drawingController.slideFinish(currentTask, currentContext);
                 long sampleOffLocalTime = timeUtil.currentTimeMicros();
@@ -343,7 +343,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         }
     }
 
-    public void setPunisher(Punisher punisher) {
+    public void setPunisher(NAFCPunisher punisher) {
         this.punisher = punisher;
     }
 
