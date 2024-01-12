@@ -31,6 +31,8 @@ def main():
     plt.show()
 
 def plot_psychometric_curves_by_day(df):
+    show_n = True
+
     """
     Plots psychometric curves binned by the calendar date from 'TrialStartStop'.
     """
@@ -42,10 +44,11 @@ def plot_psychometric_curves_by_day(df):
     num_days = len(grouped)
     colors = cm.viridis(np.linspace(0, 1, num_days))
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(12, 8))
+
 
     for (date, group), color in zip(grouped, colors):
-        plot_psychometric_curve(group, title=f"Psychometric Curve for {date}", ax=ax, color=color, label=str(date))
+        plot_psychometric_curve(group, title=f"Psychometric Curve for {date}", ax=ax, color=color, label=str(date), show_n=show_n)
 
 
     ax.legend(title="Date")

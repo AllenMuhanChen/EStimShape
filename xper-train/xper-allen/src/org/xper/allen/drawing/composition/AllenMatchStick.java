@@ -127,7 +127,7 @@ public class AllenMatchStick extends MatchStick {
 		 * time to finish before drawSkeleton() is called.
 		 */
 		try {
-			Thread.sleep(300);
+			Thread.sleep(100);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

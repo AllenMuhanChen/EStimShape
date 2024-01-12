@@ -21,7 +21,7 @@ def collect_choice_trials(conn: Connection, when: When = time_util.all()) -> lis
 def main():
     conn = Connection("allen_estimshape_train_231211")
     trial_tstamps = collect_choice_trials(conn, time_util.on_date_and_time(2024,
-                                                                           1, 9,
+                                                                           1, 11,
                                                                            start_time=None,  # "16:49:00"
                                                                            end_time=None))
 
@@ -51,7 +51,7 @@ def unix_to_datetime(unix_timestamp):
     return local_dt
 
 
-def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
+def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None, show_n=False):
     """
     Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
     If an ax (matplotlib Axes) is provided, it plots on that ax. Otherwise, it creates a new plot.
@@ -62,6 +62,7 @@ def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
     # Filter out NoiseChance values with too little data
     num_reps = df.groupby('NoiseChance')['IsCorrect'].count()
     percent_correct = percent_correct[num_reps > 10]
+
 
     # Sort the percent_correct Series in ascending order of 'NoiseChance'
     percent_correct = percent_correct.sort_index(ascending=True)
@@ -81,10 +82,17 @@ def plot_psychometric_curve(df, title=None, ax=None, color=None, label=None):
     existing_ticks = set(ax.get_xticks())
     updated_ticks = existing_ticks.union(set(percent_correct.index))
     ax.set_xticks(sorted(updated_ticks))
-    ax.set_xticklabels(sorted(updated_ticks), rotation=45)  # Rotate labels for better readability
+    # Ensure the x-axis labels are properly formatted
+    ax.set_xticklabels([f"{x:.4f}" for x in sorted(updated_ticks)], rotation=45)
 
     # Plotting as a line graph on the given ax
-    ax.plot(percent_correct.index, percent_correct.values, color=color, marker='o', label=label)
+    line = ax.plot(percent_correct.index, percent_correct.values, color=color, marker='o', label=label)
+
+    if show_n:
+        # Adding text for num_reps above each data point
+        for noise_chance, y_val in percent_correct.items():
+            reps = num_reps[noise_chance]
+            ax.text(noise_chance, y_val, f'{reps}', color=line[0].get_color(), ha='center', va='bottom')
 
 
 def plot_binned_psychometric_curves(df, num_bins):

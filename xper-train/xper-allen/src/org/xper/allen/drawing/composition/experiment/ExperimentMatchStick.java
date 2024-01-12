@@ -92,7 +92,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     private boolean checkMStick(int drivingComponentIndex) {
         try {
             checkMStickSize();
-            checkInNoise(drivingComponentIndex, 0.5);
+            checkInNoise(drivingComponentIndex, 0.6);
 //                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
             return true;
         } catch (ObjectCenteredPositionException e) {
@@ -266,10 +266,10 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
         ConcaveHull concaveHull = new ConcaveHull();
 
-        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 5);
+//        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 5);
         Point3d noiseCenter = calculateNoiseOrigin(cantBeInNoiseCompId);
         List<Point2d> pointsOutside = new LinkedList<>();
-        for (ConcaveHull.Point point: hullVertices){
+        for (ConcaveHull.Point point: concaveHullPoints){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
             }
@@ -287,7 +287,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 index = 0;
                 for (Point3d point3d: compVectInfo){
                     if (point3d != null){
-                        if (index % 3 == 0) //For speed, we only check every other point for the hull
+                        if (index % 1 == 0) //For speed, we only check every other point for the hull
                             pointsToCheck.add(new Point2d(point3d.getX(), point3d.getY()));
                         index++;
                     }
