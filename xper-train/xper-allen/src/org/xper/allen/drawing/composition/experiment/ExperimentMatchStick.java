@@ -225,7 +225,24 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
 
     protected void positionShape() {
-        centerCenterOfMassAtOrigin();
+        centerSpecialJunctionAtOrigin();
+    }
+
+    protected void centerSpecialJunctionAtOrigin(){
+        Point3d origin = new Point3d(0,0,0);
+        Point3d specialJunctionPos = new Point3d(0,0,0);
+        for (JuncPt_struct junc : getJuncPt()) {
+            if (junc != null) {
+                int numMatch = Arrays.stream(junc.getCompIds()).filter(x -> x == 1).toArray().length;
+                if (numMatch == 1) {
+                    specialJunctionPos = junc.getPos();
+                }
+            }
+        }
+
+        Vector3d shiftVec = new Vector3d();
+        shiftVec.sub(origin, specialJunctionPos);
+        applyTranslation(shiftVec);
     }
 
     public Point3d getMassCenterForComponent(int componentIndex) {
