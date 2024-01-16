@@ -4207,16 +4207,16 @@ Adding a new MAxisArc to a MatchStick
 	public AllenMStickData getMStickData(){
 		AllenMStickData data = new AllenMStickData();
 
-		//TODO: WE HAVE TO BECAREFUL OF SIDE EFFECTS OF THIS METHOD. Must be the last thing.
+		//WE HAVE TO BECAREFUL OF SIDE EFFECTS OF THIS METHOD. Must be the last thing.
 		modifyMStickFinalInfoForAnalysis();
 
 		AllenMStickSpec analysisMStickSpec = new AllenMStickSpec();
 		analysisMStickSpec.setMStickInfo(this);
 
 		data.setAnalysisMStickSpec(analysisMStickSpec);
-		data.setShaftData(getShaftData());
-		data.setTerminationData(getTerminationData());
-		data.setJunctionData(getJunctionData());
+		data.setShaftData(calculateShaftData());
+		data.setTerminationData(calculateTerminationData());
+		data.setJunctionData(calculateJunctionData());
 
 		return data;
 	}
@@ -4229,7 +4229,7 @@ Adding a new MAxisArc to a MatchStick
 	}
 
 
-	private List<JunctionData> getJunctionData() {
+	private List<JunctionData> calculateJunctionData() {
 		List<JunctionData> junctionDatas = new LinkedList<>();
 		for (int i=1; i<=getNJuncPt(); i++){
 			JunctionData junctionData = new JunctionData();
@@ -4257,28 +4257,52 @@ Adding a new MAxisArc to a MatchStick
 			junctionData.radius = juncPt.getRad();
 
 			//Junction Subtense
-			junctionData.angularSubtense = new LinkedList<AngularCoordinates>();
+			junctionData.angularSubtense = new LinkedList<Double>();
 			//for every pair
 			for(int j=1; j<=juncPt.getnComp(); j++){
 				for(int k=j+1; k<=juncPt.getnComp(); k++){
-					SphericalCoordinates angle1 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[j]);
-					SphericalCoordinates angle2 = CoordinateConverter.cartesianToSpherical(juncPt.getTangent()[k]);
-					double theta = angleDiff(angle1.theta, angle2.theta);
-					double phi = angleDiff(angle1.phi, angle2.phi);
-					AngularCoordinates subtense = new AngularCoordinates(theta, phi);
-					junctionData.angularSubtense.add(subtense);
+					Vector3d vector1 = juncPt.getTangent()[j];
+					Vector3d vector2 = juncPt.getTangent()[k];
+					double junctionSubtense = vector1.angle(vector2);
+					junctionData.angularSubtense.add(junctionSubtense);
 				}
 			}
 
 			//TODO: Planar Rotation
+			int index=0;
+			List<Double> planarRotations = new LinkedList<Double>();
+			for (int j=1; j<=juncPt.getnComp(); j++){
+				for (int k=j+1; k<=juncPt.getnComp(); k++){
+					Vector3d vector1 = new Vector3d(juncPt.getTangent()[j]);
+					Vector3d vector2 = new Vector3d(juncPt.getTangent()[k]);
 
+					AngularCoordinates bisector = junctionData.getAngleBisectorDirection().get(index);
+					Vector3d bisectorVector = CoordinateConverter.sphericalToVector(1, bisector);
+
+					vector1.normalize();
+					vector2.normalize();
+
+					double dot = vector1.dot(vector2);
+					double angleBetweenV1andV2 = Math.acos(dot);
+
+					Vector3d planeNormal = new Vector3d();
+					planeNormal.cross(vector1, vector2);
+
+					double direction = Math.signum(planeNormal.dot(bisectorVector));
+					double planarDirection = direction * angleBetweenV1andV2;
+					planarRotations.add(planarDirection);
+					//find its rotation relative to junctionData.angleBisectorDirection
+
+					index++;
+				}
+			}
 			//
 			junctionDatas.add(junctionData);
 		}
 		return junctionDatas;
 	}
 
-	private List<TerminationData> getTerminationData() {
+	private List<TerminationData> calculateTerminationData() {
 		List<TerminationData> terminationDatas = new LinkedList<>();
 		for (int i=1; i<= getNEndPt(); i++){
 			TerminationData terminationData = new TerminationData();
@@ -4307,7 +4331,7 @@ Adding a new MAxisArc to a MatchStick
 	 * Gets the data in the reference of object center as calculated by massCenter()
 	 * @return
 	 */
-	private List<ShaftData> getShaftData() {
+	private List<ShaftData> calculateShaftData() {
 		List<ShaftData> shaftDatas = new LinkedList<>();
 		for (int i=1; i<=getNComponent(); i++){
 			ShaftData shaftData = new ShaftData();

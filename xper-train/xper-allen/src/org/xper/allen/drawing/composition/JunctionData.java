@@ -8,10 +8,10 @@ public class JunctionData {
     double radialPosition;
     List<AngularCoordinates> angleBisectorDirection;
     double radius;
-    LinkedList<AngularCoordinates> angularSubtense;
-    double planarRotation;
+    LinkedList<Double> angularSubtense;
+    List<Double> planarRotation;
 
-    public JunctionData(AngularCoordinates angularPosition, double radialPosition, LinkedList<AngularCoordinates> angleBisectorDirection, double radius, LinkedList<AngularCoordinates> angularSubtense, double planarRotation) {
+    public JunctionData(AngularCoordinates angularPosition, double radialPosition, LinkedList<AngularCoordinates> angleBisectorDirection, double radius, LinkedList<Double> angularSubtense, List<Double> planarRotation) {
         this.angularPosition = angularPosition;
         this.radialPosition = radialPosition;
         this.angleBisectorDirection = angleBisectorDirection;
@@ -55,19 +55,19 @@ public class JunctionData {
         this.radius = radius;
     }
 
-    public LinkedList<AngularCoordinates> getAngularSubtense() {
+    public LinkedList<Double> getAngularSubtense() {
         return angularSubtense;
     }
 
-    public void setAngularSubtense(LinkedList<AngularCoordinates> angularSubtense) {
+    public void setAngularSubtense(LinkedList<Double> angularSubtense) {
         this.angularSubtense = angularSubtense;
     }
 
-    public double getPlanarRotation() {
+    public List<Double> getPlanarRotation() {
         return planarRotation;
     }
 
-    public void setPlanarRotation(double planarRotation) {
+    public void setPlanarRotation(List<Double> planarRotation) {
         this.planarRotation = planarRotation;
     }
 
