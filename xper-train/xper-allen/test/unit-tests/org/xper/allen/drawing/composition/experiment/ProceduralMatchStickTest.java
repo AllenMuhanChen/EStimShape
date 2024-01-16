@@ -53,15 +53,13 @@ public class ProceduralMatchStickTest {
                 FileUtil.loadConfigClass("experiment.config_class"));
 
         pngMaker = context.getBean(AllenPNGMaker.class);
+        pngMaker.createDrawerWindow();
+        drawingManager = pngMaker.window;
 
-
-
-        drawingManager = new AllenDrawingManager(1000, 1000);
-        drawingManager.setPngMaker(pngMaker);
 
 
         baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(8);
+        baseMStick.setProperties(4);
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
         baseMStick.setMaxAttempts(-1);
@@ -70,6 +68,7 @@ public class ProceduralMatchStickTest {
 
     @Test
     public void test_msticks(){
+        pngMaker.createDrawerWindow();
         for (int i = 0; i < 2; i++) {
             generateSet(i);
         }
@@ -171,11 +170,20 @@ public class ProceduralMatchStickTest {
 
 //        System.out.println(baseMStick.getSpecialEndComp());
 //        System.out.println(baseMStick.getBaseComp());
-        drawingManager.init();
+//        drawingManager.init();
         boolean drawNewStim = true;
         boolean drawNewNoise = true;
         Color color = new Color(255, 255, 255);
         double noiseAmplitude = 0.25;
+
+
+
+        baseMStick = new ProceduralMatchStick();
+        int size = 5;
+        baseMStick.setProperties(size);
+        baseMStick.setStimColor(new Color(255,255,255));
+        baseMStick.genMatchStickRand();
+        baseMStick.setMaxAttempts(-1);
 
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
         drawingManager.drawStimulus(baseMStick, -1L, Collections.singletonList("Base"));
@@ -184,7 +192,7 @@ public class ProceduralMatchStickTest {
             sampleMStick = new ProceduralMatchStick();
 //            sampleMStick.showDebug = true;
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-            sampleMStick.setProperties(8);
+            sampleMStick.setProperties(size);
             sampleMStick.setStimColor(color);
             sampleMStick.genMatchStickFromComponent(baseMStick, 1, 1, 0);
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
@@ -206,9 +214,9 @@ public class ProceduralMatchStickTest {
             drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"), noiseAmplitude, sampleMStick.getSpecialEndComp().get(0));
         }
 
-        drawingManager.close();
+//        drawingManager.close();
         drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
-        drawingManager.init();
+//        drawingManager.init();
 
 
         numNoiseFrames = 60;
@@ -276,17 +284,18 @@ public class ProceduralMatchStickTest {
     private void generateSet(long setId) {
         drawPng(baseMStick, setId, 0L);
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
-        sampleMStick.setProperties(8);
+        int size = 2;
+        sampleMStick.setProperties(size);
         sampleMStick.genMatchStickFromComponent(baseMStick, 1, 1, 0);
         drawPng(sampleMStick, setId, 1L);
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick();
-        distractor1.setProperties(8);
+        distractor1.setProperties(size);
         distractor1.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5);
         drawPng(distractor1, setId, 2L);
 
         ProceduralMatchStick distractor2 = new ProceduralMatchStick();
-        distractor2.setProperties(8);
+        distractor2.setProperties(size);
         distractor2.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5);
         drawPng(distractor2, setId, 3L);
     }

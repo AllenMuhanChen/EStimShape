@@ -4221,6 +4221,14 @@ Adding a new MAxisArc to a MatchStick
 		return data;
 	}
 
+	private Point3d toObjCenteredCoords(Point3d point){
+		Point3d massCenter = getMassCenter();
+		Point3d objectCenteredCoords = new Point3d(point);
+		objectCenteredCoords.sub(massCenter);
+		return objectCenteredCoords;
+	}
+
+
 	private List<JunctionData> getJunctionData() {
 		List<JunctionData> junctionDatas = new LinkedList<>();
 		for (int i=1; i<=getNJuncPt(); i++){
@@ -4228,7 +4236,7 @@ Adding a new MAxisArc to a MatchStick
 
 			//Position - Spherical Coordinates
 			JuncPt_struct juncPt = getJuncPt()[i];
-			Point3d junctionCenterCartesian = juncPt.getPos();
+			Point3d junctionCenterCartesian = toObjCenteredCoords(juncPt.getPos());
 			SphericalCoordinates junctionPositionSpherical = CoordinateConverter.cartesianToSpherical(junctionCenterCartesian);
 			junctionData.angularPosition = junctionPositionSpherical.getAngularCoordinates();
 			junctionData.radialPosition = junctionPositionSpherical.r;
@@ -4277,7 +4285,7 @@ Adding a new MAxisArc to a MatchStick
 			EndPt_struct endPt = getEndPt()[i];
 
 			//Position - Spherical Coordinates
-			Point3d terminationPositionCartesian = endPt.getPos();
+			Point3d terminationPositionCartesian = toObjCenteredCoords(endPt.getPos());
 			SphericalCoordinates terminationSphericalCoordinates = CoordinateConverter.cartesianToSpherical(terminationPositionCartesian);
 			terminationData.angularPosition = terminationSphericalCoordinates.getAngularCoordinates();
 			terminationData.radialPosition = terminationSphericalCoordinates.r;
@@ -4296,7 +4304,7 @@ Adding a new MAxisArc to a MatchStick
 	}
 
 	/**
-	 * Relies on the object being centered at center of mass
+	 * Gets the data in the reference of object center as calculated by massCenter()
 	 * @return
 	 */
 	private List<ShaftData> getShaftData() {
@@ -4307,7 +4315,8 @@ Adding a new MAxisArc to a MatchStick
 			AllenMAxisArc mAxis = tube.getmAxisInfo();
 
 			//Position - Spherical Coordinates
-			Point3d shaftCenterCartesian = mAxis.getmPts()[26];
+			Point3d shaftCenterCartesian = toObjCenteredCoords(mAxis.getmPts()[26]);
+
 			SphericalCoordinates shaftCenterSpherical = CoordinateConverter.cartesianToSpherical(shaftCenterCartesian);
 			shaftData.angularPosition = shaftCenterSpherical.getAngularCoordinates();
 			shaftData.radialPosition = shaftCenterSpherical.r;
