@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.List;
 
 public class ProceduralRandGenType {
-    public static final String label = "RandProcedural";
+    public static final String stimTypeLabel = "RandProcedural";
 
     protected NAFCBlockGen generator;
 
@@ -26,7 +26,7 @@ public class ProceduralRandGenType {
     public static ProceduralRandGenType getGenType(String s, NAFCBlockGen proceduralExperimentBlockGen) {
         if (s.equals(MockExperimentGenType.label)) {
             return new MockExperimentGenType(proceduralExperimentBlockGen);
-        } else if (s.equals(ProceduralRandGenType.label)) {
+        } else if (s.equals(ProceduralRandGenType.stimTypeLabel)) {
             return new ProceduralRandGenType(proceduralExperimentBlockGen);
         } else {
             throw new IllegalArgumentException("Invalid label: " + s);
@@ -39,7 +39,7 @@ public class ProceduralRandGenType {
         return new LinkedHashMap.SimpleEntry<>(block, params);
     }
 
-    private List<NAFCStim> genTrials(ProceduralRandGenParameters proceduralRandGenParameters) {
+    protected List<NAFCStim> genTrials(ProceduralRandGenParameters proceduralRandGenParameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
         for (int i = 0; i < proceduralRandGenParameters.getNumTrials(); i++) {
             ProceduralStim stim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) proceduralRandGenParameters.getProceduralStimParameters());
@@ -179,6 +179,6 @@ public class ProceduralRandGenType {
     }
 
     public String getLabel(){
-        return label;
+        return stimTypeLabel;
     }
 }

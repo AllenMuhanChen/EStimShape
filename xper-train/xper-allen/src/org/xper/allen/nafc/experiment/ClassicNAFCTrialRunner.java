@@ -262,6 +262,7 @@ public class ClassicNAFCTrialRunner implements NAFCTrialRunner{
         // modify fixation point if punishment is on
         AbstractTaskScene taskScene = (AbstractTaskScene) drawingController.getTaskScene();
         if (punisher.getCurrentPunishmentTime() > 0) {
+            System.out.println("Punishment Taskscene set: " + punisher.getPunishmentFixationPoint());
             taskScene.setFixation(punisher.getPunishmentFixationPoint());
         } else{
             taskScene.setFixation(punisher.getOriginalFixationPoint());

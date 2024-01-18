@@ -10,6 +10,7 @@ import org.xper.allen.nafc.blockgen.procedural.NAFCTrialParamDbUtil;
 import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.drawing.object.BlankScreen;
+import org.xper.drawing.object.FixationPoint;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -30,7 +31,7 @@ public class ProceduralAppConfig {
     public NoisyNAFCPngScene taskScene() {
         NoisyNAFCPngScene scene = new NoisyNAFCPngScene();
         scene.setRenderer(pngConfig.config.experimentGLRenderer());
-        scene.setFixation(pngConfig.classicConfig.experimentFixationPoint());
+        scene.setFixation(experimentFixationPoint());
         scene.setMarker(pngConfig.classicConfig.screenMarker());
         scene.setBlankScreen(new BlankScreen());
         scene.setScreenHeight(pngConfig.classicConfig.xperMonkeyScreenHeight());
@@ -40,6 +41,15 @@ public class ProceduralAppConfig {
         scene.setFrameRate(pngConfig.mStickPngConfig.xperNoiseRate());
         return scene;
     }
+    @Bean
+    public FixationPoint experimentFixationPoint() {
+        FixationPoint f = new FixationPoint();
+        f.setColor(pngConfig.classicConfig.xperFixationPointColor());
+        f.setFixationPosition(pngConfig.classicConfig.xperFixationPosition());
+        f.setSize(pngConfig.classicConfig.xperFixationPointSize());
+        return f;
+    }
+
 
     @Bean
     public NAFCBlockGen blockGen() {

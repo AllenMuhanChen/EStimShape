@@ -297,6 +297,10 @@ public class NAFCConfig {
 	public NAFCPunisher punisher() {
 		NAFCPunisher punisher = new NAFCPunisher();
 		punisher.setSampleHoldFailPunishmentTime(xperSampleHoldFailPunishmentTime());
+		punisher.setStreakToStartPunishment(classicConfig.xperStreakToStartPunishment());
+		punisher.setPunishmentDelayTime(classicConfig.xperPunishmentDelayTime());
+		punisher.setPunishmentFixationPoint(classicConfig.punishmentFixationPoint());
+		punisher.setOriginalFixationPoint(classicConfig.experimentFixationPoint());
 		return punisher;
 	}
 

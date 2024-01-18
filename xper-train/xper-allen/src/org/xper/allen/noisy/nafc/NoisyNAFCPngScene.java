@@ -139,6 +139,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
 				if (fixationOn) {
+					System.out.println("fixation: " + getFixation());
 					getFixation().draw(context);
 				}
 				if (markerOn) {
@@ -233,6 +234,10 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	public void drawStimulus(Context context) {
 		// TODO Auto-generated method stub
 
+	}
+
+	public Drawable getFixation(){
+		return super.getFixation();
 	}
 
 	public double getScreenWidth() {

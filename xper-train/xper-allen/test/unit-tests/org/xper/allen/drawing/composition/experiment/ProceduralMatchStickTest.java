@@ -53,7 +53,7 @@ public class ProceduralMatchStickTest {
                 FileUtil.loadConfigClass("experiment.config_class"));
 
         pngMaker = context.getBean(AllenPNGMaker.class);
-        pngMaker.createDrawerWindow();
+//        pngMaker.createDrawerWindow();
         drawingManager = pngMaker.window;
 
 

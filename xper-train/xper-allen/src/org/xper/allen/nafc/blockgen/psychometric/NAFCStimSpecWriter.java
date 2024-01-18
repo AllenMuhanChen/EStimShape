@@ -12,6 +12,7 @@ import org.xper.drawing.Coordinates2D;
 
 public class NAFCStimSpecWriter {
 
+	String stimType = "None";
 	Long taskId;
 	AllenDbUtil dbUtil;
 	NAFCTrialParameters trialParameters; //input
@@ -31,6 +32,20 @@ public class NAFCStimSpecWriter {
 		this.stimObjIds = stimObjIds;
 		this.eStimObjData = eStimObjData;
 	}
+	public NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
+							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+							  NAFC<Long> stimObjIds) {
+		super();
+		this.stimType = stimType;
+		this.taskId = taskId;
+		this.dbUtil = dbUtil;
+		this.trialParameters = trialParameters;
+		this.coords = coords;
+		this.numChoices = numChoices;
+		this.stimObjIds = stimObjIds;
+		this.eStimObjData = new long[]{1};
+	}
+
 
 	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
 							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,

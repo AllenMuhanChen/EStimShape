@@ -2,6 +2,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 
 public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
@@ -20,8 +21,7 @@ public class ProceduralRandStim extends ProceduralStim{
                 mSticks = new Procedural<>();
                 baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
-                morphComponentIndex = baseMatchStick.chooseRandLeaf();
-                noiseComponentIndex = morphComponentIndex;
+                chooseMorphAndNoiseComponents();
                 System.out.println("Driving Component: " + morphComponentIndex);
                 generateNonBaseMatchSticksAndSaveSpecs();
                 break;
@@ -35,6 +35,11 @@ public class ProceduralRandStim extends ProceduralStim{
             System.out.println("Starting over from a new base match stick");
         }
 
+    }
+
+    protected void chooseMorphAndNoiseComponents() {
+        morphComponentIndex = baseMatchStick.chooseRandLeaf();
+        noiseComponentIndex = morphComponentIndex;
     }
 
     protected void generateNonBaseMatchSticksAndSaveSpecs() {
@@ -54,7 +59,8 @@ public class ProceduralRandStim extends ProceduralStim{
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(parameters.getSize());
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude, 0.5);
+//            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude, 0.5);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }
@@ -76,5 +82,20 @@ public class ProceduralRandStim extends ProceduralStim{
         baseMStick.setStimColor(parameters.color);
         baseMStick.genMatchStickRand();
         return baseMStick;
+    }
+
+    @Override
+    protected void writeStimSpec(){
+        NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+                ProceduralRandGenType.stimTypeLabel,
+                getTaskId(),
+                generator.getDbUtil(),
+                parameters,
+                coords,
+                parameters.numChoices,
+                stimObjIds);
+
+        stimSpecWriter.writeStimSpec();
+
     }
 }

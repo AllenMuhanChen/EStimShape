@@ -504,7 +504,7 @@ public class ClassicConfig {
 
 	@Bean
 	public FixationPoint experimentFixationPoint() {
-		FixationPoint f = new FixationPoint ();
+		FixationPoint f = new FixationPoint();
 		f.setColor(xperFixationPointColor());
 		f.setFixationPosition(xperFixationPosition());
 		f.setSize(xperFixationPointSize());

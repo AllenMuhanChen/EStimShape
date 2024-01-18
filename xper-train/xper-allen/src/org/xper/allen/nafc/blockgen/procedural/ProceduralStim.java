@@ -189,6 +189,7 @@ public class ProceduralStim implements NAFCStim {
     protected void generateNoiseMap() {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
+        System.out.println("Generating noisemap from noiseComponent: " + noiseComponentIndex);
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
@@ -302,7 +303,7 @@ public class ProceduralStim implements NAFCStim {
         setTaskId(generator.getGlobalTimeUtil().currentTimeMicros());
     }
 
-    private void writeStimSpec(){
+    protected void writeStimSpec(){
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
                 getTaskId(),
                 generator.getDbUtil(),

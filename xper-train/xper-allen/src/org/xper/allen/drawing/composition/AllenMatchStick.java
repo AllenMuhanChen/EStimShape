@@ -3053,7 +3053,7 @@ Adding a new MAxisArc to a MatchStick
 	public int chooseRandLeaf() {
 		decideLeafBranch();
 		List<Integer> choosableList = new LinkedList<Integer>();
-		for (int i = 0; i < getnComponent(); i++) {
+		for (int i = 1; i <= getnComponent(); i++) {
 			if (getLeafBranch()[i] == true) {
 				choosableList.add(i);
 			}
