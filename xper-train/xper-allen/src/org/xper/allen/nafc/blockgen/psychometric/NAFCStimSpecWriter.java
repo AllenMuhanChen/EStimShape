@@ -106,6 +106,7 @@ public class NAFCStimSpecWriter {
 
 	private void writeSpec() {
 		NAFCStimSpecSpec stimSpec = new NAFCStimSpecSpec(
+				stimType,
 				targetEyeWinCoords.toArray(new Coordinates2D[0]),
 				targetEyeWinSizes,
 				stimObjIds.getSample(),
