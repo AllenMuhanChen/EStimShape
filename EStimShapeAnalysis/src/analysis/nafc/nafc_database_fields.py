@@ -18,6 +18,29 @@ class StimSpecDataField(CachedDatabaseField):
         return get_stim_spec_data(self.conn, when)
 
 
+class StimSpecField(CachedDatabaseField):
+    def get_name(self):
+        return "StimSpec"
+
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get(self, when: When):
+        return get_stim_spec(self.conn, when)
+
+class StimTypeField(StimSpecField):
+    def get_name(self):
+        return "StimType"
+
+    def get(self, when: When):
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        try:
+            stimType =  stim_spec['StimSpec']['stimType']
+        except KeyError:
+            stimType = "None"
+        return stimType
+
+
 class IsCorrectField(CachedDatabaseField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
@@ -78,6 +101,8 @@ class NumRandDistractorsField(StimSpecDataField):
         numRandDistractors = int(numRandDistractors)
         return numRandDistractors
 
+
+
 class TrialTypeField(StimSpecDataField):
 
     def __init__(self, conn: Connection):
@@ -102,7 +127,7 @@ class TrialTypeField(StimSpecDataField):
             return "Unknown"
 
 
-def get_stim_spec_id(conn: Connection, when: When) -> dict:
+def get_stim_spec_id(conn: Connection, when: When) -> int:
     conn.execute(
         "SELECT msg from BehMsg WHERE "
         "msg LIKE '%TrialMessage%' AND "
@@ -124,3 +149,14 @@ def get_stim_spec_data(conn: Connection, when: When) -> dict:
     stim_spec_data_xml = conn.fetch_one()
     stim_spec_data_dict = xmltodict.parse(stim_spec_data_xml)
     return stim_spec_data_dict
+
+
+def get_stim_spec(conn: Connection, when: When) -> dict:
+    stim_spec_id = get_stim_spec_id(conn, when)
+    conn.execute("SELECT spec from StimSpec WHERE "
+                 "id = %s",
+                 params=(stim_spec_id,))
+
+    stim_spec_xml = conn.fetch_one()
+    stim_spec_dict = xmltodict.parse(stim_spec_xml)
+    return stim_spec_dict
