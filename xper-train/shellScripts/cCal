@@ -2,8 +2,8 @@
 source pathsProcedural
 
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION << EOF
-UPDATE SystemVar SET val=10 WHERE name='xper_eye_window_algorithm_base_window_size';
-UPDATE SystemVar SET val=10 WHERE name='xper_eye_window_algorithm_initial_window_size';
+UPDATE SystemVar SET val=3 WHERE name='xper_eye_window_algorithm_base_window_size';
+UPDATE SystemVar SET val=3 WHERE name='xper_eye_window_algorithm_initial_window_size';
 UPDATE SystemVar SET val=1500 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=250 WHERE name='xper_inter_slide_interval';
 UPDATE SystemVar SET val=2000 WHERE name='xper_inter_trial_interval';
