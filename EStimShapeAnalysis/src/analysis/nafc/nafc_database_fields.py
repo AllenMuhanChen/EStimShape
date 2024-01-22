@@ -11,6 +11,7 @@ from clat.util.time_util import When
 class StimSpecDataField(CachedDatabaseField):
     def get_name(self):
         return "StimSpecData"
+
     def __init__(self, conn: Connection):
         super().__init__(conn)
 
@@ -28,6 +29,7 @@ class StimSpecField(CachedDatabaseField):
     def get(self, when: When):
         return get_stim_spec(self.conn, when)
 
+
 class StimTypeField(StimSpecField):
     def get_name(self):
         return "StimType"
@@ -35,7 +37,7 @@ class StimTypeField(StimSpecField):
     def get(self, when: When):
         stim_spec = self.get_cached_super(when, StimSpecField)
         try:
-            stimType =  stim_spec['StimSpec']['stimType']
+            stimType = stim_spec['StimSpec']['stimType']
         except KeyError:
             stimType = "None"
         return stimType
@@ -87,6 +89,7 @@ class NoiseChanceField(StimSpecDataField):
         noiseChance = float(noiseChance)
         return noiseChance
 
+
 class NumRandDistractorsField(StimSpecDataField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
@@ -100,7 +103,6 @@ class NumRandDistractorsField(StimSpecDataField):
         numRandDistractors = stim_spec_data[next(iter(stim_spec_data))]["numRandDistractors"]
         numRandDistractors = int(numRandDistractors)
         return numRandDistractors
-
 
 
 class TrialTypeField(StimSpecDataField):
