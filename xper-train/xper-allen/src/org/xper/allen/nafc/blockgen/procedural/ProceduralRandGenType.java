@@ -22,11 +22,6 @@ public class ProceduralRandGenType extends GenType{
         this.generator = generator;
     }
 
-    public Map.Entry<List<NAFCStim>, GenParameters> genBlock(){
-        GenParameters params = new GenParameters(getTrialParameters(), getNumTrials());
-        List<NAFCStim> block = genTrials(params);
-        return new LinkedHashMap.SimpleEntry<>(block, params);
-    }
 
     protected List<NAFCStim> genTrials(GenParameters genParameters) {
         List<NAFCStim> newBlock = new LinkedList<>();

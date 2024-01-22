@@ -20,11 +20,6 @@ public class MockExperimentGenType extends ProceduralRandGenType{
         return "MockExperiment";
     }
 
-    public Map.Entry<List<NAFCStim>, GenParameters> genBlock(){
-        MockExperimentGenParameters params = getParameters();
-        List<NAFCStim> newBlock = genTrials(params);
-        return new AbstractMap.SimpleEntry<>(newBlock, params);
-    }
 
     public MockExperimentGenParameters getParameters() {
         int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
@@ -32,9 +27,8 @@ public class MockExperimentGenType extends ProceduralRandGenType{
         return params;
     }
 
-    private List<NAFCStim> genTrials(MockExperimentGenParameters parameters) {
+    public List<NAFCStim> genTrials(MockExperimentGenParameters parameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
-
 
         //Generate the base matchstick
         ProceduralMatchStick baseMStick = new ProceduralMatchStick();

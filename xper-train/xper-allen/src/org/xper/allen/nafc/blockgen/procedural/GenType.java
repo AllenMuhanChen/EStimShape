@@ -1,12 +1,25 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
+import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
 import javax.swing.*;
+import java.util.List;
+import java.util.Map;
 
 public abstract class GenType {
 
     public abstract String getLabel();
+
+    public Map.Entry<List<NAFCStim>, GenParameters> genBlock(){
+        GenParameters params = getParameters();
+        List<NAFCStim> block = genTrials(params);
+        return new java.util.AbstractMap.SimpleEntry<>(block, params);
+    }
+
+    protected abstract List<NAFCStim> genTrials(GenParameters genParameters);
+
+    public abstract GenParameters getParameters();
 
     public abstract NAFCTrialParameters getTrialParameters();
 
