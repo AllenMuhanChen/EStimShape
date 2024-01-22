@@ -23,10 +23,10 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         this.generator = generator;
     }
 
-    public void initializeParameterFields(){
-        labelsForFields = new LinkedHashMap<>();
-        defaultsForFields = new LinkedHashMap<>();
-
+    /**
+     * Populate the labelsForFields and defaultsForFields maps
+     */
+    public void initFields(){
         sampleDistMinField = new JTextField(10);
         sampleDistMaxField = new JTextField(10);
         choiceDistMinField = new JTextField(10);
@@ -43,30 +43,24 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         colorBlueField = new JTextField(10);
         numTrialsField = new JTextField(10);
 
+        labelsForFields = new LinkedHashMap<>();
+        defaultsForFields = new LinkedHashMap<>();
 
         labelsForFields.put(sampleDistMinField, "Sample Distance Lims (Min):"); defaultsForFields.put(sampleDistMinField, "0.0");
-        labelsForFields.put(sampleDistMaxField, "Sample Distance Lims (Max):"); defaultsForFields.put(sampleDistMaxField, "2.0");
+        labelsForFields.put(sampleDistMaxField, "Sample Distance Lims (Max):"); defaultsForFields.put(sampleDistMaxField, "0.0");
         labelsForFields.put(choiceDistMinField, "Choice Distance Lims (Min):"); defaultsForFields.put(choiceDistMinField, "15.0");
         labelsForFields.put(choiceDistMaxField, "Choice Distance Lims (Max):"); defaultsForFields.put(choiceDistMaxField, "15.0");
-        labelsForFields.put(sizeField, "Size:"); defaultsForFields.put(sizeField, "8.0");
-        labelsForFields.put(eyeWinSizeField, "Eye Win Size:"); defaultsForFields.put(eyeWinSizeField, "10.0");
-        labelsForFields.put(noiseChanceField, "Noise Chance:"); defaultsForFields.put(noiseChanceField, "0.3");
+        labelsForFields.put(sizeField, "Size:"); defaultsForFields.put(sizeField, "5.0");
+        labelsForFields.put(eyeWinSizeField, "Eye Win Size:"); defaultsForFields.put(eyeWinSizeField, "9.0");
+        labelsForFields.put(noiseChanceField, "Noise Chance:"); defaultsForFields.put(noiseChanceField, "0.2");
         labelsForFields.put(numChoicesField, "Number of Choices:"); defaultsForFields.put(numChoicesField, "4");
         labelsForFields.put(numRandDistractorsField, "Number of Random Distractors:"); defaultsForFields.put(numRandDistractorsField, "2");
-        labelsForFields.put(morphMagnitudeField, "Morph Magnitude:"); defaultsForFields.put(morphMagnitudeField, "0.5");
+        labelsForFields.put(morphMagnitudeField, "Morph Magnitude:"); defaultsForFields.put(morphMagnitudeField, "0.6");
         labelsForFields.put(morphDiscretenessField, "Morph Discreteness:"); defaultsForFields.put(morphDiscretenessField, "0.5");
         labelsForFields.put(colorRedField, "Color - Red (0-255):"); defaultsForFields.put(colorRedField, "255");
         labelsForFields.put(colorGreenField, "Color - Green (0-255):"); defaultsForFields.put(colorGreenField, "255");
         labelsForFields.put(colorBlueField, "Color - Blue (0-255):"); defaultsForFields.put(colorBlueField, "255");
         labelsForFields.put(numTrialsField, "Number of Trials:"); defaultsForFields.put(numTrialsField, "10");
-
-
-        defaultsForFields.forEach(new BiConsumer<JTextField, String>() {
-            @Override
-            public void accept(JTextField field, String defaultValue) {
-                field.setText(defaultValue);
-            }
-        });
     }
     protected List<NAFCStim> genTrials(T genParameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
@@ -81,7 +75,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         return Integer.parseInt(numTrialsField.getText());
     }
 
-    public T readParametersFromFields(){
+    public T readFromFields(){
         return (T) new GenParameters(getTrialParameters(), getNumTrials());
     }
 

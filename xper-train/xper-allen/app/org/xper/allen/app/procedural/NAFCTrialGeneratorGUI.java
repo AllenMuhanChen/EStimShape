@@ -8,10 +8,8 @@ import org.xper.util.FileUtil;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 public class NAFCTrialGeneratorGUI {
     private static JPanel centerPanel;
@@ -37,7 +35,7 @@ public class NAFCTrialGeneratorGUI {
 
 
 
-        HashMap<String, ProceduralRandGenType> labelsForStimTypes = new HashMap<>();
+        LinkedHashMap<String, ProceduralRandGenType> labelsForStimTypes = new LinkedHashMap<>();
         for (ProceduralRandGenType stimType : stimTypes) {
             labelsForStimTypes.put(stimType.getLabel(), stimType);
         }
@@ -145,7 +143,7 @@ public class NAFCTrialGeneratorGUI {
 
     private static void updateParametersUI(ProceduralRandGenType selectedType) {
         centerPanel.removeAll();
-        selectedType.addParameterFieldsToPanel(centerPanel);
+        selectedType.addFieldsToPanel(centerPanel);
         centerPanel.revalidate();
         centerPanel.repaint();
     }

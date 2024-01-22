@@ -21,9 +21,9 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
     }
 
 
-    public MockExperimentGenParameters readParametersFromFields() {
+    public MockExperimentGenParameters readFromFields() {
         int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
-        MockExperimentGenParameters params = new MockExperimentGenParameters(super.readParametersFromFields(), numDeltaTrialSets);
+        MockExperimentGenParameters params = new MockExperimentGenParameters(super.readFromFields(), numDeltaTrialSets);
         return params;
     }
 
@@ -62,15 +62,15 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
         return newBlock;
     }
 
-    public void addParameterFieldsToPanel(JPanel panel){
-        initializeParameterFields();
-        super.addParameterFieldsToPanel(panel);
+    public void addFieldsToPanel(JPanel panel){
+        this.initFields();
+        super.addFieldsToPanel(panel);
         panel.add(new JLabel("numDeltaTrialSets:"));
         panel.add(numDeltaTrialSetsField);
     }
 
-    public void initializeParameterFields() {
-        super.initializeParameterFields();
+    public void initFields() {
+        super.initFields();
         numDeltaTrialSetsField = new JTextField("3", 10);
     }
 
