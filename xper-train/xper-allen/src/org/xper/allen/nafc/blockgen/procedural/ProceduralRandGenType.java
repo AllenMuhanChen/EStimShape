@@ -9,10 +9,9 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
-public class ProceduralRandGenType extends GenType{
+public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
 
     protected NAFCBlockGen generator;
-
 
     protected JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
     protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
@@ -23,7 +22,7 @@ public class ProceduralRandGenType extends GenType{
     }
 
 
-    protected List<NAFCStim> genTrials(GenParameters genParameters) {
+    protected List<NAFCStim> genTrials(T genParameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
         for (int i = 0; i < genParameters.getNumTrials(); i++) {
             ProceduralStim stim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) genParameters.getProceduralStimParameters());
@@ -36,8 +35,8 @@ public class ProceduralRandGenType extends GenType{
         return Integer.parseInt(numTrialsField.getText());
     }
 
-    public GenParameters getParameters(){
-        return new GenParameters(getTrialParameters(), getNumTrials());
+    public T getParameters(){
+        return (T) new GenParameters(getTrialParameters(), getNumTrials());
     }
 
     @Override

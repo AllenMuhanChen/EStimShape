@@ -7,19 +7,21 @@ import javax.swing.*;
 import java.util.List;
 import java.util.Map;
 
-public abstract class GenType {
+public abstract class GenType<T extends GenParameters> {
+    protected Map<String, JTextField> namesForFields;
+
 
     public abstract String getLabel();
 
     public Map.Entry<List<NAFCStim>, GenParameters> genBlock(){
-        GenParameters params = getParameters();
+        T params = getParameters();
         List<NAFCStim> block = genTrials(params);
         return new java.util.AbstractMap.SimpleEntry<>(block, params);
     }
 
-    protected abstract List<NAFCStim> genTrials(GenParameters genParameters);
+    protected abstract List<NAFCStim> genTrials(T genParameters);
 
-    public abstract GenParameters getParameters();
+    public abstract T getParameters();
 
     public abstract NAFCTrialParameters getTrialParameters();
 

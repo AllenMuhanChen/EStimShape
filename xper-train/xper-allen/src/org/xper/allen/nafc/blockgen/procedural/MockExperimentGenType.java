@@ -8,7 +8,7 @@ import javax.swing.*;
 import java.util.*;
 import java.util.List;
 
-public class MockExperimentGenType extends ProceduralRandGenType{
+public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentGenType.MockExperimentGenParameters>{
 
     protected JTextField numDeltaTrialSetsField;
 
@@ -27,7 +27,8 @@ public class MockExperimentGenType extends ProceduralRandGenType{
         return params;
     }
 
-    public List<NAFCStim> genTrials(MockExperimentGenParameters parameters) {
+    @Override
+    protected List<NAFCStim> genTrials(MockExperimentGenParameters parameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
 
         //Generate the base matchstick
