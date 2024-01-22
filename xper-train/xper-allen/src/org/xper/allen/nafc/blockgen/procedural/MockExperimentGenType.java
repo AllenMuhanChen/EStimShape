@@ -21,9 +21,9 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
     }
 
 
-    public MockExperimentGenParameters getParameters() {
+    public MockExperimentGenParameters readParametersFromFields() {
         int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
-        MockExperimentGenParameters params = new MockExperimentGenParameters(super.getParameters(), numDeltaTrialSets);
+        MockExperimentGenParameters params = new MockExperimentGenParameters(super.readParametersFromFields(), numDeltaTrialSets);
         return params;
     }
 

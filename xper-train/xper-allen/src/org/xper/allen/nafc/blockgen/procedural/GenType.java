@@ -1,31 +1,40 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.nafc.NAFCStim;
-import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
 import javax.swing.*;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public abstract class GenType<T extends GenParameters> {
-    protected Map<String, JTextField> namesForFields;
 
+    protected Map<JTextField, String> labelsForFields;
+    protected Map<JTextField, String> defaultsForFields;
 
     public abstract String getLabel();
 
     public Map.Entry<List<NAFCStim>, GenParameters> genBlock(){
-        T params = getParameters();
+        T params = readParametersFromFields();
         List<NAFCStim> block = genTrials(params);
         return new java.util.AbstractMap.SimpleEntry<>(block, params);
     }
 
     protected abstract List<NAFCStim> genTrials(T genParameters);
 
-    public abstract T getParameters();
+    public abstract T readParametersFromFields();
 
-    public abstract NAFCTrialParameters getTrialParameters();
+    public void addParameterFieldsToPanel(JPanel panel){
+        initializeParameterFields();
+        labelsForFields.forEach(new BiConsumer<JTextField, String>() {
+            @Override
+            public void accept(JTextField paramField, String label) {
+                panel.add(new JLabel(label));
+                panel.add(paramField);
+            }
+        });
+    }
 
-    public abstract void addParameterFieldsToPanel(JPanel panel);
 
     public abstract void initializeParameterFields();
 
