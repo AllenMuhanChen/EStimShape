@@ -26,11 +26,8 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	double screenWidth;
 	@Dependency
 	double screenHeight;
-
 	@Dependency
-//	int frameRate = Display.getDisplayMode().getFrequency(); //this is wrong
 	int frameRate;
-	private int noiseIndx=0;
 	/**
 	 * We keep this just one images object rather than one for choices and one for sample
 	 * because OpenGL binds textures to integer IDs when we preload images. So if
@@ -58,12 +55,19 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 	public void trialStart(NAFCTrialContext context) {
 		NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
 		numChoices = task.getChoiceSpec().length;
-		long duration = context.getSampleLength()+100; //100 ms buffer
-		double durationSeconds = duration/1000.0;
-		numFrames = (int) Math.ceil((durationSeconds*frameRate));
+
+		//Choose numNoiseFrames
+		NoisyPngSpec sampleSpec = NoisyPngSpec.fromXml(task.getSampleSpec());
+		if (!(sampleSpec.getNumNoiseFrames() == -1)) {
+			numFrames = (int) Math.ceil(sampleSpec.getNumNoiseFrames());
+		} else{
+			long duration = context.getSampleLength()+100; //100 ms buffer
+			double durationSeconds = duration/1000.0;
+			numFrames = (int) Math.ceil((durationSeconds*frameRate));
+		}
+
 		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
 		images.initTextures();
-		noiseIndx=0;
 	}
 
 	@Override

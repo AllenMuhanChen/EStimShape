@@ -2,8 +2,6 @@ package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 
-import java.util.LinkedList;
-import java.util.List;
 
 public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
     public ProceduralRandStimDeltaNoise(NAFCBlockGen generator, ProceduralStimParameters parameters) {

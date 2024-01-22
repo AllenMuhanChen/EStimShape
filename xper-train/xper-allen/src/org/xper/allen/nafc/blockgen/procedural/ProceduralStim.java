@@ -236,7 +236,7 @@ public class ProceduralStim implements NAFCStim {
         coords = assigner.getCoords();
     }
 
-    private void writeStimObjDataSpecs() {
+    protected void writeStimObjDataSpecs() {
         //Sample
         double xCenter = coords.getSample().getX();
         double yCenter = coords.getSample().getY();

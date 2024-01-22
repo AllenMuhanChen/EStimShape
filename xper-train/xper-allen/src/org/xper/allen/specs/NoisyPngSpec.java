@@ -6,7 +6,6 @@ import java.util.Objects;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import com.thoughtworks.xstream.XStream;
-import org.xper.rfplot.drawing.png.PngSpec;
 
 public class NoisyPngSpec {
 	double xCenter;
@@ -16,6 +15,7 @@ public class NoisyPngSpec {
 	String noiseMapPath;
 	double alpha = 1;
 	Color color;
+	double numNoiseFrames = -1; // -1 means entire stimulus duration
 
 	@Override
 	public boolean equals(Object o) {
@@ -30,6 +30,22 @@ public class NoisyPngSpec {
 		return Objects.hash(getxCenter(), getyCenter(), getDimensions(), getPngPath(), getNoiseMapPath(), getAlpha());
 	}
 
+	public static NoisyPngSpec createStaticSpec(double xCenter, double yCenter, ImageDimensions dimensions, String pngPath, String noiseMapPath, Color color) {
+		return new NoisyPngSpec(xCenter, yCenter, dimensions, pngPath, noiseMapPath,  color, 1);
+	}
+
+	/**
+	 * For specifying static noiseMap
+	 */
+	public NoisyPngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String pngPath, String noiseMapPath, Color color, double numNoiseFrames) {
+		this.xCenter = xCenter;
+		this.yCenter = yCenter;
+		this.dimensions = dimensions;
+		this.pngPath = pngPath;
+		this.noiseMapPath = noiseMapPath;
+		this.color = color;
+		this.numNoiseFrames = numNoiseFrames;
+    }
 
 	/**
 	 * NoiseMap and Color is specified
@@ -40,8 +56,7 @@ public class NoisyPngSpec {
 		this.dimensions = dimensions;
 		this.pngPath = path;
 		this.noiseMapPath = noiseMapPath;
-		this.alpha = 1;
-		this.color = color;
+        this.color = color;
 	}
 
 	/**
@@ -53,8 +68,7 @@ public class NoisyPngSpec {
 		this.dimensions = dimensions;
 		this.pngPath = path;
 		this.noiseMapPath = noiseMapPath;
-		this.alpha = 1;
-		this.color = Color.WHITE;
+        this.color = Color.WHITE;
 	}
 
 	/**
@@ -69,8 +83,7 @@ public class NoisyPngSpec {
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
 		this.pngPath = path;
-		this.alpha = 1;
-		this.noiseMapPath = "";
+        this.noiseMapPath = "";
 		this.color = Color.WHITE;
 	}
 
@@ -159,5 +172,12 @@ public class NoisyPngSpec {
 
 	public void setColor(Color color) {
 		this.color = color;
+	}
+
+	public double getNumNoiseFrames() {
+		return numNoiseFrames;
+	}
+	public void setNumNoiseFrames(double numNoiseFrames) {
+		this.numNoiseFrames = numNoiseFrames;
 	}
 }
