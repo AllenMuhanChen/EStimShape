@@ -65,6 +65,7 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 			double durationSeconds = duration/1000.0;
 			numFrames = (int) Math.ceil((durationSeconds*frameRate));
 		}
+		System.out.println("numFrames: " + numFrames);
 
 		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
 		images.initTextures();

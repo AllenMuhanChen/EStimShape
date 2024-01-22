@@ -15,7 +15,7 @@ public class NoisyPngSpec {
 	String noiseMapPath;
 	double alpha = 1;
 	Color color;
-	double numNoiseFrames = -1; // -1 means entire stimulus duration
+	int numNoiseFrames = -1; // -1 means entire stimulus duration
 
 	@Override
 	public boolean equals(Object o) {
@@ -37,7 +37,7 @@ public class NoisyPngSpec {
 	/**
 	 * For specifying static noiseMap
 	 */
-	public NoisyPngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String pngPath, String noiseMapPath, Color color, double numNoiseFrames) {
+	public NoisyPngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String pngPath, String noiseMapPath, Color color, int numNoiseFrames) {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
@@ -177,7 +177,7 @@ public class NoisyPngSpec {
 	public double getNumNoiseFrames() {
 		return numNoiseFrames;
 	}
-	public void setNumNoiseFrames(double numNoiseFrames) {
+	public void setNumNoiseFrames(int numNoiseFrames) {
 		this.numNoiseFrames = numNoiseFrames;
 	}
 }

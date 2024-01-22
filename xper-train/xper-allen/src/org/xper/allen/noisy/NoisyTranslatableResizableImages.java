@@ -239,6 +239,9 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 		//			System.out.println("DRAW CALLED");
 		if(drawNoise) {
+			if (currentNoiseIndx >= numNoiseFrames) {
+				currentNoiseIndx = numNoiseFrames-1;
+			}
 			long noiseDrawStartTime = timeUtil.currentTimeMicros();
 			drawNoise(context, location, dimensions);
 			if(showTiming)
@@ -246,15 +249,6 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		}
 		GL11.glPopMatrix();
 	}
-
-	//	//Not preload drawing. Depricated
-	//	public void draw(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
-	//		GL11.glPushMatrix();
-	//		long textureStartTime = timeUtil.currentTimeMicros();
-	//		drawTexture(context, textureIndex, location, dimensions);
-	//		System.out.println("AC TIME TO DRAW TEXTURE: " + (timeUtil.currentTimeMicros() - textureStartTime));
-	//		GL11.glPopMatrix();
-	//	}
 
 
 	private void drawTexture(Context context, int textureIndex, Coordinates2D location, ImageDimensions dimensions) {
