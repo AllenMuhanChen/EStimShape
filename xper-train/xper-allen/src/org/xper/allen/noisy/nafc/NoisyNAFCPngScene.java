@@ -58,16 +58,15 @@ public class NoisyNAFCPngScene extends AbstractTaskScene implements NAFCTaskScen
 
 		//Choose numNoiseFrames
 		NoisyPngSpec sampleSpec = NoisyPngSpec.fromXml(task.getSampleSpec());
-		if (!(sampleSpec.getNumNoiseFrames() == -1)) {
-			numFrames = (int) Math.ceil(sampleSpec.getNumNoiseFrames());
-		} else{
-			long duration = context.getSampleLength()+100; //100 ms buffer
-			double durationSeconds = duration/1000.0;
-			numFrames = (int) Math.ceil((durationSeconds*frameRate));
-		}
+		double noiseRate = sampleSpec.getNoiseRate();
+//		double playRate = Math.ceil(noiseRate * frameRate);
+		long duration = context.getSampleLength()+100; //100 ms buffer
+		double durationSeconds = duration/1000.0;
+		numFrames = (int) Math.ceil((durationSeconds*frameRate));
+
 		System.out.println("numFrames: " + numFrames);
 
-		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1);
+		images = new NoisyTranslatableResizableImages(numFrames, numChoices + 1, noiseRate);
 		images.initTextures();
 	}
 

@@ -16,7 +16,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
     protected JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
     protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     protected JTextField morphMagnitudeField, morphDiscretenessField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
-    protected JTextField numNoiseFramesField;
+    protected JTextField noiseRateField;
 
     public ProceduralRandGenType(NAFCBlockGen generator) {
         this.generator = generator;
@@ -38,7 +38,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         sizeField = new JTextField(10);
         eyeWinSizeField = new JTextField(10);
         noiseChanceField = new JTextField(10);
-        numNoiseFramesField = new JTextField(10);
+        noiseRateField = new JTextField(10);
         numChoicesField = new JTextField(10);
         numRandDistractorsField = new JTextField(10);
         morphMagnitudeField = new JTextField(10);
@@ -58,7 +58,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         labelsForFields.put(sizeField, "Size:"); defaultsForFields.put(sizeField, "5.0");
         labelsForFields.put(eyeWinSizeField, "Eye Win Size:"); defaultsForFields.put(eyeWinSizeField, "9.0");
         labelsForFields.put(noiseChanceField, "Noise Chance:"); defaultsForFields.put(noiseChanceField, "0.2");
-        labelsForFields.put(numNoiseFramesField, "Number of Noise Frames:"); defaultsForFields.put(numNoiseFramesField, "-1");
+        labelsForFields.put(noiseRateField, "Noise Rate:"); defaultsForFields.put(noiseRateField, "1");
         labelsForFields.put(numChoicesField, "Number of Choices:"); defaultsForFields.put(numChoicesField, "4");
         labelsForFields.put(numRandDistractorsField, "Number of Random Distractors:"); defaultsForFields.put(numRandDistractorsField, "2");
         labelsForFields.put(morphMagnitudeField, "Morph Magnitude:"); defaultsForFields.put(morphMagnitudeField, "0.6");
@@ -79,7 +79,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
             sizeField.setText(String.valueOf(stimParameters.getSize()));
             eyeWinSizeField.setText(String.valueOf(stimParameters.getEyeWinSize()));
             noiseChanceField.setText(String.valueOf(stimParameters.noiseChance));
-            numNoiseFramesField.setText(String.valueOf(stimParameters.numNoiseFrames));
+            noiseRateField.setText(String.valueOf(stimParameters.noiseRate));
             numChoicesField.setText(String.valueOf(stimParameters.numChoices));
             numRandDistractorsField.setText(String.valueOf(stimParameters.numRandDistractors));
             morphMagnitudeField.setText(String.valueOf(stimParameters.morphMagnitude));
@@ -118,7 +118,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         double size = Double.parseDouble(sizeField.getText());
         double eyeWinSize = Double.parseDouble(eyeWinSizeField.getText());
         double noiseChance = Double.parseDouble(noiseChanceField.getText());
-        int numNoiseFrames = Integer.parseInt(numNoiseFramesField.getText());
+        double noiseRate = Double.parseDouble(noiseRateField.getText());
         int numChoices = Integer.parseInt(numChoicesField.getText());
         int numRandDistractors = Integer.parseInt(numRandDistractorsField.getText());
         double morphMagnitude = Double.parseDouble(morphMagnitudeField.getText());
@@ -138,7 +138,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         ProceduralStim.ProceduralStimParameters proceduralStimParameters = new ProceduralStim.ProceduralStimParameters(
                 nafcTrialParameters,
                 noiseChance,
-                numNoiseFrames,
+                noiseRate,
                 numChoices,
                 numRandDistractors,
                 morphMagnitude,

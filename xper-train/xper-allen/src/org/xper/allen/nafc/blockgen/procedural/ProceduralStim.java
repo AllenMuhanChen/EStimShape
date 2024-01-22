@@ -245,7 +245,7 @@ public class ProceduralStim implements NAFCStim {
         String path = experimentPngPaths.getSample();
         String noiseMapPath = experimentNoiseMapPath;
         Color color = parameters.color;
-        int numNoiseFrames = parameters.numNoiseFrames;
+        double numNoiseFrames = parameters.noiseRate;
         NoisyPngSpec sampleSpec = new NoisyPngSpec(
                 xCenter, yCenter,
                 dimensions,
@@ -339,7 +339,7 @@ public class ProceduralStim implements NAFCStim {
         double morphMagnitude;
         double morphDiscreteness;
         Color color;
-        int numNoiseFrames = -1;
+        double noiseRate = 1;
 
         public ProceduralStimParameters() {
         }
@@ -364,10 +364,10 @@ public class ProceduralStim implements NAFCStim {
             this.color = color;
         }
 
-        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, int numNoiseFrames, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color) {
+        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, double noiseRate, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color) {
             super(other);
             this.noiseChance = noiseChance;
-            this.numNoiseFrames = numNoiseFrames;
+            this.noiseRate = noiseRate;
             this.numChoices = numChoices;
             this.numRandDistractors = numRandDistractors;
             this.morphMagnitude = morphMagnitude;

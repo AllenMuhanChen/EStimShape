@@ -66,7 +66,7 @@ public class NoisyPngScene extends AbstractTaskScene{
     }
 
     private void newNoisyPng() {
-        image = new NoisyTranslatableResizableImages(numNoiseFrames, 1 );
+        image = new NoisyTranslatableResizableImages(numNoiseFrames, 1, 1);
         image.initTextures();
         noiseIndx = 0;
     }

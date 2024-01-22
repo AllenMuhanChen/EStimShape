@@ -220,7 +220,7 @@ public class ProceduralMatchStickTest {
 
 
         numNoiseFrames = 60;
-        NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1);
+        NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1, 1);
         image.initTextures();
 
         Context context = new Context();

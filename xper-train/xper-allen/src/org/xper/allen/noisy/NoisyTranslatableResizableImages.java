@@ -29,14 +29,6 @@ import org.xper.time.TimeUtil;
  * Intended usage is to pre-generate all of the noise before stimulus presentation.
  * Storage of the noise is handled within OpenGL's BindTexture feature.
  *
- * noiseIndx (which noise tex is drawn) is specified as a arguement to draw()
- * This is to give more control over when exactly noise is stepped
- * (for the ability to slow down noise if for some reason is wanted)
- *
- * One can easily make a new draw() method that steps through currentNoiseIndx
- * automatically if they wish.
- *
- *
  * @author Allen Chen
  *
  */
@@ -45,19 +37,22 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	//
 	private int numNoiseFrames;
 	private int numImageTextures;
+	private double noiseRate;
 	private int srcLength;
 	private Context context;
 	static SplittableRandom r = new SplittableRandom();
 	private int currentNoiseIndx;
+	private int currentFrameIndx = 0;
 	TimeUtil timeUtil = new DefaultTimeUtil();
 
 	private final static double RANGE = Byte.MAX_VALUE - Byte.MIN_VALUE;
 
 
-	public NoisyTranslatableResizableImages(int numNoiseFrames, int numImageTextures) {
+	public NoisyTranslatableResizableImages(int numNoiseFrames, int numImageTextures, double noiseRate) {
 		super(numNoiseFrames);
 		this.numNoiseFrames = numNoiseFrames;
 		this.numImageTextures = numImageTextures;
+		this.noiseRate = noiseRate;
 		this.currentNoiseIndx = 0;
 		setTextureIds(BufferUtils.createIntBuffer(numNoiseFrames+numImageTextures+1));
 	}
@@ -239,14 +234,22 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 
 		//			System.out.println("DRAW CALLED");
 		if(drawNoise) {
-			if (currentNoiseIndx >= numNoiseFrames) {
-				currentNoiseIndx = numNoiseFrames-1;
-			}
-			long noiseDrawStartTime = timeUtil.currentTimeMicros();
+			// only draw noise based on noiseRate.
+			//1 means play noise on every frame
+			//0.5 means play noise on every other frame
 			drawNoise(context, location, dimensions);
-			if(showTiming)
-				System.out.println("AC TIME TO DRAW NOISE: " + (timeUtil.currentTimeMicros()-noiseDrawStartTime));
+			System.out.println("NOISE RATE: " + noiseRate);
+			if (noiseRate != 0) {
+				if (currentFrameIndx % (int) Math.ceil(1 / noiseRate) == 0) {
+					System.out.println("INSIDE OF NONZERO");
+					currentNoiseIndx++;
+				}
+			} else{
+				currentNoiseIndx = 0;
+			}
+			System.out.println("currentNoiseIndx: " + currentNoiseIndx);
 		}
+		currentFrameIndx++;
 		GL11.glPopMatrix();
 	}
 
@@ -317,8 +320,6 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 		GL11.glEnd();
 
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
-
-		currentNoiseIndx++;
 	}
 
 	public int loadTexture(String pathname, int textureIndex) {

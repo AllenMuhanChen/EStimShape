@@ -78,7 +78,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
 
         Context context = new Context();
         context.setRenderer(xperRenderer);
-        NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1);
+        NoisyTranslatableResizableImages image = new NoisyTranslatableResizableImages(numNoiseFrames, 1, 1);
         image.initTextures();
         image.loadTexture(stim.experimentPngPaths.getSample(), 0);
         image.loadNoise(stim.experimentNoiseMapPath, color);
