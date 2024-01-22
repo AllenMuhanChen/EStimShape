@@ -72,6 +72,8 @@ public class NAFCTrialGeneratorGUI {
             if (!e.getValueIsAdjusting()) {
                 int selectedIndex = trialList.getSelectedIndex();
                 if (selectedIndex != -1) {
+                    selectedType = blockgen.getTypeForBlock(selectedIndex);
+                    stimTypeDropdown.setSelectedItem(selectedType.getLabel());
                     selectedType.loadParametersIntoFields(blockgen.getParamsForBlock(selectedIndex));
                 }
             }

@@ -97,6 +97,11 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
         return paramsForBlocks.get(block);
     }
 
+    public ProceduralRandGenType getTypeForBlock(int blockIndex){
+        List<NAFCStim> block = getBlock(blockIndex);
+        return genTypesForBlocks.get(block);
+    }
+
     public String convertGeneratorNoiseMapToExperiment(String generatorPath) {
         return generatorPath.replace(getGeneratorNoiseMapPath(), getExperimentNoiseMapPath());
     }
