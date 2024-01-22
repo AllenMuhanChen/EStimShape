@@ -8,7 +8,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
 
@@ -17,10 +16,15 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
     protected JTextField sampleDistMinField, sampleDistMaxField, choiceDistMinField, choiceDistMaxField;
     protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     protected JTextField morphMagnitudeField, morphDiscretenessField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
-
+    protected JTextField numNoiseFramesField;
 
     public ProceduralRandGenType(NAFCBlockGen generator) {
         this.generator = generator;
+    }
+
+    @Override
+    public String getLabel() {
+        return "RandProcedural";
     }
 
     /**
@@ -34,6 +38,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         sizeField = new JTextField(10);
         eyeWinSizeField = new JTextField(10);
         noiseChanceField = new JTextField(10);
+        numNoiseFramesField = new JTextField(10);
         numChoicesField = new JTextField(10);
         numRandDistractorsField = new JTextField(10);
         morphMagnitudeField = new JTextField(10);
@@ -53,6 +58,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         labelsForFields.put(sizeField, "Size:"); defaultsForFields.put(sizeField, "5.0");
         labelsForFields.put(eyeWinSizeField, "Eye Win Size:"); defaultsForFields.put(eyeWinSizeField, "9.0");
         labelsForFields.put(noiseChanceField, "Noise Chance:"); defaultsForFields.put(noiseChanceField, "0.2");
+        labelsForFields.put(numNoiseFramesField, "Number of Noise Frames:"); defaultsForFields.put(numNoiseFramesField, "-1");
         labelsForFields.put(numChoicesField, "Number of Choices:"); defaultsForFields.put(numChoicesField, "4");
         labelsForFields.put(numRandDistractorsField, "Number of Random Distractors:"); defaultsForFields.put(numRandDistractorsField, "2");
         labelsForFields.put(morphMagnitudeField, "Morph Magnitude:"); defaultsForFields.put(morphMagnitudeField, "0.6");
@@ -61,6 +67,33 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         labelsForFields.put(colorGreenField, "Color - Green (0-255):"); defaultsForFields.put(colorGreenField, "255");
         labelsForFields.put(colorBlueField, "Color - Blue (0-255):"); defaultsForFields.put(colorBlueField, "255");
         labelsForFields.put(numTrialsField, "Number of Trials:"); defaultsForFields.put(numTrialsField, "10");
+    }
+
+    public void loadParametersIntoFields(GenParameters blockParams) {
+        ProceduralStim.ProceduralStimParameters stimParameters = (ProceduralStim.ProceduralStimParameters) blockParams.getProceduralStimParameters();
+        if (stimParameters != null) {
+            sampleDistMinField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getLowerLim()));
+            sampleDistMaxField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getUpperLim()));
+            choiceDistMinField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getLowerLim()));
+            choiceDistMaxField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getUpperLim()));
+            sizeField.setText(String.valueOf(stimParameters.getSize()));
+            eyeWinSizeField.setText(String.valueOf(stimParameters.getEyeWinSize()));
+            noiseChanceField.setText(String.valueOf(stimParameters.noiseChance));
+            numNoiseFramesField.setText(String.valueOf(stimParameters.numNoiseFrames));
+            numChoicesField.setText(String.valueOf(stimParameters.numChoices));
+            numRandDistractorsField.setText(String.valueOf(stimParameters.numRandDistractors));
+            morphMagnitudeField.setText(String.valueOf(stimParameters.morphMagnitude));
+            morphDiscretenessField.setText(String.valueOf(stimParameters.morphDiscreteness));
+
+            Color color = stimParameters.color;
+            colorRedField.setText(String.valueOf(color.getRed()));
+            colorGreenField.setText(String.valueOf(color.getGreen()));
+            colorBlueField.setText(String.valueOf(color.getBlue()));
+
+            // Assuming there is a way to get the number of trials from the parameters
+            // If not, you might need to pass this as a separate parameter
+            numTrialsField.setText(String.valueOf(blockParams.getNumTrials()));
+        }
     }
     protected List<NAFCStim> genTrials(T genParameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
@@ -71,18 +104,11 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         return newBlock;
     }
 
-    public int getNumTrials(){
-        return Integer.parseInt(numTrialsField.getText());
-    }
 
     public T readFromFields(){
         return (T) new GenParameters(getTrialParameters(), getNumTrials());
     }
 
-    @Override
-    public String getLabel() {
-        return "RandProcedural";
-    }
 
     public NAFCTrialParameters getTrialParameters() {
         double sampleDistMin = Double.parseDouble(sampleDistMinField.getText());
@@ -92,6 +118,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         double size = Double.parseDouble(sizeField.getText());
         double eyeWinSize = Double.parseDouble(eyeWinSizeField.getText());
         double noiseChance = Double.parseDouble(noiseChanceField.getText());
+        int numNoiseFrames = Integer.parseInt(numNoiseFramesField.getText());
         int numChoices = Integer.parseInt(numChoicesField.getText());
         int numRandDistractors = Integer.parseInt(numRandDistractorsField.getText());
         double morphMagnitude = Double.parseDouble(morphMagnitudeField.getText());
@@ -111,6 +138,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         ProceduralStim.ProceduralStimParameters proceduralStimParameters = new ProceduralStim.ProceduralStimParameters(
                 nafcTrialParameters,
                 noiseChance,
+                numNoiseFrames,
                 numChoices,
                 numRandDistractors,
                 morphMagnitude,
@@ -120,31 +148,10 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
     }
 
 
-    public void loadParametersIntoFields(GenParameters blockParams) {
-        ProceduralStim.ProceduralStimParameters stimParameters = (ProceduralStim.ProceduralStimParameters) blockParams.getProceduralStimParameters();
-        if (stimParameters != null) {
-            sampleDistMinField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getLowerLim()));
-            sampleDistMaxField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getUpperLim()));
-            choiceDistMinField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getLowerLim()));
-            choiceDistMaxField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getUpperLim()));
-            sizeField.setText(String.valueOf(stimParameters.getSize()));
-            eyeWinSizeField.setText(String.valueOf(stimParameters.getEyeWinSize()));
-            noiseChanceField.setText(String.valueOf(stimParameters.noiseChance));
-            numChoicesField.setText(String.valueOf(stimParameters.numChoices));
-            numRandDistractorsField.setText(String.valueOf(stimParameters.numRandDistractors));
-            morphMagnitudeField.setText(String.valueOf(stimParameters.morphMagnitude));
-            morphDiscretenessField.setText(String.valueOf(stimParameters.morphDiscreteness));
-
-            Color color = stimParameters.color;
-            colorRedField.setText(String.valueOf(color.getRed()));
-            colorGreenField.setText(String.valueOf(color.getGreen()));
-            colorBlueField.setText(String.valueOf(color.getBlue()));
-
-            // Assuming there is a way to get the number of trials from the parameters
-            // If not, you might need to pass this as a separate parameter
-            numTrialsField.setText(String.valueOf(blockParams.getNumTrials()));
-        }
+    public int getNumTrials(){
+        return Integer.parseInt(numTrialsField.getText());
     }
+
 
 
     public String getInfo(){

@@ -24,6 +24,11 @@ public abstract class GenType<T extends GenParameters> {
 
     public abstract T readFromFields();
 
+
+    public abstract void initFields();
+
+    public abstract void loadParametersIntoFields(GenParameters parameters);
+
     public void addFieldsToPanel(JPanel panel){
         initFields();
 
@@ -42,11 +47,6 @@ public abstract class GenType<T extends GenParameters> {
             }
         });
     }
-
-
-    public abstract void initFields();
-
-    public abstract void loadParametersIntoFields(GenParameters parameters);
 
     public abstract String getInfo();
 }
