@@ -3,16 +3,16 @@ package org.xper.allen.nafc.blockgen.procedural;
 import com.thoughtworks.xstream.XStream;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
-public class ProceduralRandGenParameters {
+public class GenParameters {
     private NAFCTrialParameters proceduralStimParameters;
     private int numTrials;
 
-    public ProceduralRandGenParameters(NAFCTrialParameters proceduralStimParameters, int numTrials) {
+    public GenParameters(NAFCTrialParameters proceduralStimParameters, int numTrials) {
         this.proceduralStimParameters = proceduralStimParameters;
         this.numTrials = numTrials;
     }
 
-    public ProceduralRandGenParameters() {
+    public GenParameters() {
     }
 
     public ProceduralStim.ProceduralStimParameters getProceduralStimParameters() {
@@ -25,9 +25,9 @@ public class ProceduralRandGenParameters {
         return s.toXML(this);
     }
 
-    public static ProceduralRandGenParameters fromXml(String xml) {
+    public static GenParameters fromXml(String xml) {
         XStream s = new XStream();
-        return (ProceduralRandGenParameters) s.fromXML(xml);
+        return (GenParameters) s.fromXML(xml);
     }
 
     public int getNumTrials() {

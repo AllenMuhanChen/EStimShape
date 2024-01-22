@@ -23,7 +23,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
     NAFCTrialParamDbUtil nafcTrialDbUtil;
 
     List<List<NAFCStim>> stimBlocks = new LinkedList<List<NAFCStim>>();
-    Map<List<NAFCStim>, ProceduralRandGenParameters> paramsForBlocks = new LinkedHashMap<>();
+    Map<List<NAFCStim>, GenParameters> paramsForBlocks = new LinkedHashMap<>();
     Map<List<NAFCStim>,ProceduralRandGenType> genTypesForBlocks = new LinkedHashMap<>();
 
     @Override
@@ -38,7 +38,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
 
     public void uploadTrialParams() {
         long tstamp = globalTimeUtil.currentTimeMicros();
-        Map<ProceduralRandGenParameters, String> genTypesForParams = new LinkedHashMap<>();
+        Map<GenParameters, String> genTypesForParams = new LinkedHashMap<>();
         genTypesForBlocks.forEach(new BiConsumer<List<NAFCStim>, ProceduralRandGenType>() {
             @Override
             public void accept(List<NAFCStim> nafcStims, ProceduralRandGenType proceduralRandGenType) {
@@ -49,7 +49,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
         nafcTrialDbUtil.writeTrialParams(tstamp, xml);
     }
 
-    public Map<ProceduralRandGenParameters, String> downloadTrialParams(){
+    public Map<GenParameters, String> downloadTrialParams(){
         String xml = nafcTrialDbUtil.readLatestTrialParams();
         if (xml == null || xml.isEmpty()) {
             return null;
@@ -73,7 +73,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
     }
 
     public void addBlock(ProceduralRandGenType genType){
-        Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block = genType.genBlock();
+        Map.Entry<List<NAFCStim>, GenParameters> block = genType.genBlock();
         genTypesForBlocks.put(block.getKey(), genType);
         stimBlocks.add(block.getKey());
         paramsForBlocks.put(block.getKey(), block.getValue());
@@ -82,7 +82,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
     public void editBlock(int blockIndex, ProceduralRandGenType genType){
 //        genTypesForBlocks.put(stimBlocks.get(blockIndex), genType);
         paramsForBlocks.remove(stimBlocks.get(blockIndex));
-        Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> block = genType.genBlock();
+        Map.Entry<List<NAFCStim>, GenParameters> block = genType.genBlock();
         stimBlocks.set(blockIndex, block.getKey());
         paramsForBlocks.put(block.getKey(), block.getValue());
         genTypesForBlocks.put(block.getKey(), genType);
@@ -92,7 +92,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
         return stimBlocks.get(blockIndex);
     }
 
-    public ProceduralRandGenParameters getParamsForBlock(int blockIndex){
+    public GenParameters getParamsForBlock(int blockIndex){
         List<NAFCStim> block = getBlock(blockIndex);
         return paramsForBlocks.get(block);
     }

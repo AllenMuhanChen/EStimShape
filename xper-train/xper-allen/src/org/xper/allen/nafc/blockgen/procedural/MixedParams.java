@@ -2,15 +2,14 @@ package org.xper.allen.nafc.blockgen.procedural;
 
 import com.thoughtworks.xstream.XStream;
 
-import java.util.List;
 import java.util.Map;
 
 public class MixedParams {
 
-    Map<ProceduralRandGenParameters, String> paramsForGenTypes;
+    Map<GenParameters, String> paramsForGenTypes;
 
 
-    public MixedParams(Map<ProceduralRandGenParameters, String> paramsForGenTypes) {
+    public MixedParams(Map<GenParameters, String> paramsForGenTypes) {
         this.paramsForGenTypes = paramsForGenTypes;
     }
 

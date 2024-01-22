@@ -9,7 +9,6 @@ import java.util.*;
 import java.util.List;
 
 public class MockExperimentGenType extends ProceduralRandGenType{
-    public static final String label = "MockProcedural";
 
     protected JTextField numDeltaTrialSetsField;
 
@@ -17,7 +16,11 @@ public class MockExperimentGenType extends ProceduralRandGenType{
         super(generator);
     }
 
-    public Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> genBlock(){
+    public String getLabel() {
+        return "MockExperiment";
+    }
+
+    public Map.Entry<List<NAFCStim>, GenParameters> genBlock(){
         MockExperimentGenParameters params = getParameters();
         List<NAFCStim> newBlock = genTrials(params);
         return new AbstractMap.SimpleEntry<>(newBlock, params);
@@ -71,7 +74,7 @@ public class MockExperimentGenType extends ProceduralRandGenType{
         panel.add(numDeltaTrialSetsField);
     }
 
-    protected void initializeParameterFields() {
+    public void initializeParameterFields() {
         super.initializeParameterFields();
         numDeltaTrialSetsField = new JTextField("3", 10);
     }
@@ -82,14 +85,7 @@ public class MockExperimentGenType extends ProceduralRandGenType{
         numDeltaTrialSetsField.setText(String.valueOf(((MockExperimentGenParameters) blockParams).numDeltaTrialSets));
     }
 
-    @Override
-    public String getLabel(){
-        return label;
-    }
-
-
-
-    public static class MockExperimentGenParameters extends ProceduralRandGenParameters{
+    public static class MockExperimentGenParameters extends GenParameters {
 
         private int numDeltaTrialSets;
 
@@ -101,7 +97,7 @@ public class MockExperimentGenType extends ProceduralRandGenType{
             this.numDeltaTrialSets = numDeltaTrialSets;
         }
 
-        public MockExperimentGenParameters(ProceduralRandGenParameters parameters, int numDeltaTrialSets) {
+        public MockExperimentGenParameters(GenParameters parameters, int numDeltaTrialSets) {
             super(parameters.getProceduralStimParameters(), parameters.getNumTrials());
             this.numDeltaTrialSets = numDeltaTrialSets;
         }

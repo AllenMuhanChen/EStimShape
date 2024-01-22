@@ -9,8 +9,7 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
-public class ProceduralRandGenType {
-    public static final String stimTypeLabel = "RandProcedural";
+public class ProceduralRandGenType extends GenType{
 
     protected NAFCBlockGen generator;
 
@@ -23,26 +22,16 @@ public class ProceduralRandGenType {
         this.generator = generator;
     }
 
-    public static ProceduralRandGenType getGenType(String s, NAFCBlockGen proceduralExperimentBlockGen) {
-        if (s.equals(MockExperimentGenType.label)) {
-            return new MockExperimentGenType(proceduralExperimentBlockGen);
-        } else if (s.equals(ProceduralRandGenType.stimTypeLabel)) {
-            return new ProceduralRandGenType(proceduralExperimentBlockGen);
-        } else {
-            throw new IllegalArgumentException("Invalid label: " + s);
-        }
-    }
-
-    public Map.Entry<List<NAFCStim>, ProceduralRandGenParameters> genBlock(){
-        ProceduralRandGenParameters params = new ProceduralRandGenParameters(getTrialParameters(), getNumTrials());
+    public Map.Entry<List<NAFCStim>, GenParameters> genBlock(){
+        GenParameters params = new GenParameters(getTrialParameters(), getNumTrials());
         List<NAFCStim> block = genTrials(params);
         return new LinkedHashMap.SimpleEntry<>(block, params);
     }
 
-    protected List<NAFCStim> genTrials(ProceduralRandGenParameters proceduralRandGenParameters) {
+    protected List<NAFCStim> genTrials(GenParameters genParameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
-        for (int i = 0; i < proceduralRandGenParameters.getNumTrials(); i++) {
-            ProceduralStim stim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) proceduralRandGenParameters.getProceduralStimParameters());
+        for (int i = 0; i < genParameters.getNumTrials(); i++) {
+            ProceduralStim stim = new ProceduralRandStim(generator, (ProceduralStim.ProceduralStimParameters) genParameters.getProceduralStimParameters());
             newBlock.add(stim);
         }
         return newBlock;
@@ -52,8 +41,13 @@ public class ProceduralRandGenType {
         return Integer.parseInt(numTrialsField.getText());
     }
 
-    public ProceduralRandGenParameters getParameters(){
-        return new ProceduralRandGenParameters(getTrialParameters(), getNumTrials());
+    public GenParameters getParameters(){
+        return new GenParameters(getTrialParameters(), getNumTrials());
+    }
+
+    @Override
+    public String getLabel() {
+        return "RandProcedural";
     }
 
     public NAFCTrialParameters getTrialParameters() {
@@ -125,7 +119,7 @@ public class ProceduralRandGenType {
         panel.add(numTrialsField);
     }
 
-    protected void initializeParameterFields() {
+    public void initializeParameterFields() {
         sampleDistMinField = new JTextField("0.0", 10);
         sampleDistMaxField = new JTextField("2.0", 10);
         choiceDistMinField = new JTextField("15.0", 10);
@@ -143,7 +137,7 @@ public class ProceduralRandGenType {
         numTrialsField = new JTextField("10", 10);
     }
 
-    public void loadParametersIntoFields(ProceduralRandGenParameters blockParams) {
+    public void loadParametersIntoFields(GenParameters blockParams) {
         ProceduralStim.ProceduralStimParameters stimParameters = (ProceduralStim.ProceduralStimParameters) blockParams.getProceduralStimParameters();
         if (stimParameters != null) {
             sampleDistMinField.setText(String.valueOf(stimParameters.getSampleDistanceLims().getLowerLim()));
@@ -176,9 +170,5 @@ public class ProceduralRandGenType {
                 ", NoiseChance: " + noiseChanceField.getText() +
                 ", NumChoices: " + numChoicesField.getText() +
                 ", NumRandDistractors: " + numRandDistractorsField.getText();
-    }
-
-    public String getLabel(){
-        return stimTypeLabel;
     }
 }

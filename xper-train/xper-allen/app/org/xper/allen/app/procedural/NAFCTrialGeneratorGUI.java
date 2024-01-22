@@ -125,10 +125,10 @@ public class NAFCTrialGeneratorGUI {
         frame.setVisible(true);
 
         //Download Trial Params from Database
-        Map<ProceduralRandGenParameters, String> paramsForGenTypes = blockgen.downloadTrialParams();
+        Map<GenParameters, String> paramsForGenTypes = blockgen.downloadTrialParams();
         System.out.println(paramsForGenTypes.entrySet());
         if (paramsForGenTypes != null) {
-            for (Map.Entry<ProceduralRandGenParameters, String> entry : paramsForGenTypes.entrySet()) {
+            for (Map.Entry<GenParameters, String> entry : paramsForGenTypes.entrySet()) {
                 if (entry.getKey() == null) {
                     continue;
                 }
