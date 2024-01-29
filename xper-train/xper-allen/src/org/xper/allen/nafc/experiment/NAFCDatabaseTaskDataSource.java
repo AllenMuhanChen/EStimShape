@@ -25,6 +25,8 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	long queryInterval = DEFAULT_QUERY_INTERVAL;
 	@Dependency
 	UngetPolicy ungetBehavior;
+	@Dependency
+	int ungetTaskThreshold;
 
 	AtomicReference<LinkedList<NAFCExperimentTask>> currentGeneration = new AtomicReference<LinkedList<NAFCExperimentTask>>();
 	ThreadHelper threadHelper = new ThreadHelper("DatabaseTaskDataSource", this);
@@ -76,22 +78,25 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 		}
 
 		if (cur == null || cur.getGenId() == t.getGenId()) {
-			if (ungetBehavior == UngetPolicy.HEAD) {
-				tasks.addFirst(t);
-			} else if (ungetBehavior == UngetPolicy.TAIL){
-				tasks.addLast(t);
-			} else{
-				int numTasks = tasks.size();
-				Random r = new Random();
-				int randIndex;
-				if(numTasks>0) {
-					randIndex = r.nextInt(numTasks);
-				}
-				else {
-					randIndex = 0;
-				}
+			if (tasks.size() >= ungetTaskThreshold) {
+				if (ungetBehavior == UngetPolicy.HEAD) {
+					tasks.addFirst(t);
+				} else if (ungetBehavior == UngetPolicy.TAIL) {
+					tasks.addLast(t);
+				} else {
+					int numTasks = tasks.size();
+					Random r = new Random();
+					int randIndex;
+					if (numTasks > 0) {
+						randIndex = r.nextInt(numTasks);
+					} else {
+						randIndex = 0;
+					}
 
-				tasks.add(randIndex, t);
+					tasks.add(randIndex, t);
+				}
+			} else{
+				System.out.println("Did not Unget Task because number of tasks does not exceed threshold");
 			}
 		}
 	}
@@ -99,7 +104,7 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 	/**
 	 * Edited by AC:
 	 * Modified so when a new generation is received, we append the remaining task lists to the new one.
-	 * Effect is that current generation is finished before moving onto stimuli of next generation. 
+	 * Effect is that current generation is finished before moving onto stimuli of next generation.
 	 */
 	public void run() {
 		try {
@@ -179,5 +184,13 @@ public class NAFCDatabaseTaskDataSource extends DatabaseTaskDataSource {
 
 	public void start() {
 		threadHelper.start();
+	}
+
+	public int getUngetTaskThreshold() {
+		return ungetTaskThreshold;
+	}
+
+	public void setUngetTaskThreshold(int ungetTaskThreshold) {
+		this.ungetTaskThreshold = ungetTaskThreshold;
 	}
 }

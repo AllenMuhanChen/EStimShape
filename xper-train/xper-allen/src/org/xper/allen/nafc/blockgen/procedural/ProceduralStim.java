@@ -252,7 +252,8 @@ public class ProceduralStim implements NAFCStim {
                 path,
                 noiseMapPath,
                 color,
-                numNoiseFrames);
+                numNoiseFrames,
+                parameters.noiseChance);
         MStickStimObjData sampleMStickObjData = new MStickStimObjData("sample", mStickSpecs.getSample());
         generator.getDbUtil().writeStimObjData(stimObjIds.getSample(), sampleSpec.toXml(), sampleMStickObjData.toXml());
 

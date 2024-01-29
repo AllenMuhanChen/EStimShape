@@ -297,7 +297,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
 
         //Check if enough points not in compId are outside of the noise circle
-        ArrayList<Point2d> pointsToCheck = new ArrayList<>();
+        ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();
         for (int compIdx=1; compIdx<=getnComponent(); compIdx++){
             if (compIdx != cantBeInNoiseCompId){
                 Point3d[] compVectInfo = getComp()[compIdx].getVect_info();
@@ -305,7 +305,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 for (Point3d point3d: compVectInfo){
                     if (point3d != null){
                         if (index % 1 == 0) //For speed, we only check every other point for the hull
-                            pointsToCheck.add(new Point2d(point3d.getX(), point3d.getY()));
+                            pointsToCheckIfOutside.add(new Point2d(point3d.getX(), point3d.getY()));
                         index++;
                     }
                 }
@@ -313,12 +313,12 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
 
         int numPointsOutside = 0;
-        for (Point2d point: pointsToCheck){
+        for (Point2d point: pointsToCheckIfOutside){
             if (!isPointWithinCircle(point, new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
                 numPointsOutside++;
             }
         }
-        double percentOutside = (double) numPointsOutside / pointsToCheck.size();
+        double percentOutside = (double) numPointsOutside / pointsToCheckIfOutside.size();
         System.out.println("%%%% OUTSIDE: " + percentOutside);
         if (percentOutside < percentRequiredOutsideNoise){
             throw new NoiseException("Not enough points outside of noise circle");

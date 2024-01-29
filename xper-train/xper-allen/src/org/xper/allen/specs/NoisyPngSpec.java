@@ -16,6 +16,7 @@ public class NoisyPngSpec {
 	double alpha = 1;
 	Color color;
 	double noiseRate = 1;
+	double noiseChance = 0; //doesn't impact actual drawing of noise, it's in here so we can change the reward rate based on noiseChance
 
 	@Override
 	public boolean equals(Object o) {
@@ -30,14 +31,10 @@ public class NoisyPngSpec {
 		return Objects.hash(getxCenter(), getyCenter(), getDimensions(), getPngPath(), getNoiseMapPath(), getAlpha());
 	}
 
-	public static NoisyPngSpec createStaticSpec(double xCenter, double yCenter, ImageDimensions dimensions, String pngPath, String noiseMapPath, Color color) {
-		return new NoisyPngSpec(xCenter, yCenter, dimensions, pngPath, noiseMapPath,  color, 1);
-	}
-
 	/**
 	 * For specifying static noiseMap
 	 */
-	public NoisyPngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String pngPath, String noiseMapPath, Color color, double noiseRate) {
+	public NoisyPngSpec(double xCenter, double yCenter, ImageDimensions dimensions, String pngPath, String noiseMapPath, Color color, double noiseRate, double noiseChance) {
 		this.xCenter = xCenter;
 		this.yCenter = yCenter;
 		this.dimensions = dimensions;
@@ -45,6 +42,7 @@ public class NoisyPngSpec {
 		this.noiseMapPath = noiseMapPath;
 		this.color = color;
 		this.noiseRate = noiseRate;
+		this.noiseChance = noiseChance;
     }
 
 	/**
@@ -105,7 +103,6 @@ public class NoisyPngSpec {
 	}
 
 	public static NoisyPngSpec fromXml (String xml) {
-//		System.out.println(xml);
 		NoisyPngSpec p = (NoisyPngSpec)s.fromXML(xml);
 		return p;
 	}
@@ -150,10 +147,6 @@ public class NoisyPngSpec {
 		return alpha;
 	}
 
-	public void setAlpha(double alpha) {
-		this.alpha = alpha;
-	}
-
 	public String getPngPath() {
 		return pngPath;
 	}
@@ -177,7 +170,8 @@ public class NoisyPngSpec {
 	public double getNoiseRate() {
 		return noiseRate;
 	}
-	public void setNoiseRate(double noiseRate) {
-		this.noiseRate = noiseRate;
+
+	public double getNoiseChance() {
+		return noiseChance;
 	}
 }

@@ -34,6 +34,9 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
     int showAnswerLength;
     @Dependency
     boolean isRepeatIncorrectTrials = false;
+    @Dependency
+    private
+    boolean isRepeatSampleFailTrials = false;
 
     public NAFCTrialResult runTask(NAFCExperimentState stateObject, NAFCTrialContext context) {
             NAFCExperimentTask currentTask = stateObject.getCurrentTask();
@@ -151,12 +154,12 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 currentContext.setSampleOffTime(sampleOffLocalTime);
                 NAFCEventUtil.fireSampleOffEvent(sampleOffLocalTime, choiceEventListeners, currentContext);
 
-                if (isRepeatIncorrectTrials) {
+                if (isRepeatSampleFailTrials) {
                     taskDataSource.ungetTask(currentTask);
-                    System.out.println("Repeating Incorrect Trial");
-                }
+                    System.out.println("Repeating Sample Hold Fail Trial");
 
-                //AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
+                    //AC: 03/27/2022. Changed this to Trial_Complete so if this fails, the trial is over. Animal Doesn't get a second chance.
+                }
                 return NAFCTrialResult.TRIAL_COMPLETE;
             }
 			if(stateObject.isAnimation()) {
@@ -361,5 +364,13 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
 
     public void setPunishSampleHoldFail(boolean punishSampleHoldFail) {
         this.punishSampleHoldFail = punishSampleHoldFail;
+    }
+
+    public boolean isRepeatSampleFailTrials() {
+        return isRepeatSampleFailTrials;
+    }
+
+    public void setRepeatSampleFailTrials(boolean repeatSampleFailTrials) {
+        isRepeatSampleFailTrials = repeatSampleFailTrials;
     }
 }

@@ -19,10 +19,7 @@ import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.allen.intan.NAFCTrialIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
-import org.xper.classic.Punisher;
 import org.xper.config.*;
-import org.xper.drawing.RGBColor;
-import org.xper.drawing.object.FixationPoint;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.intan.EStimEventListener;
@@ -35,7 +32,7 @@ import org.xper.allen.nafc.console.NAFCExperimentMessageReceiver;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCExperimentMessageDispatcher;
 import org.xper.allen.nafc.message.NAFCExperimentMessageHandler;
-import org.xper.allen.nafc.message.NAFCJuiceController;
+import org.xper.allen.nafc.experiment.juice.NAFCJuiceController;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.allen.util.AllenXMLUtil;
 import org.xper.classic.TrialEventListener;
@@ -255,9 +252,14 @@ public class NAFCConfig {
 		source.setDbUtil(allenDbUtil());
 		source.setQueryInterval(1000);
 		source.setUngetBehavior(xperUngetPolicy());
+		source.setUngetTaskThreshold(xperUngetTaskThreshold());
 		return source;
 	}
 
+	@Bean
+	public int xperUngetTaskThreshold() {
+		return 5;
+	}
 
 	@Bean
 	public NAFCTrialExperiment experiment() {
@@ -290,6 +292,7 @@ public class NAFCConfig {
 
 		//Repeating Incorrect Trials
 		taskRunner.setRepeatIncorrectTrials(xperRepeatIncorrectTrials());
+		taskRunner.setRepeatSampleFailTrials(xperRepeatSampleFailTrials());
 		return taskRunner;
 	}
 
@@ -518,7 +521,10 @@ public class NAFCConfig {
 		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_nafc_repeat_incorrect_trials",0));
 	}
 
-
+	@Bean(scope = DefaultScopes.PROTOTYPE)
+	public Boolean xperRepeatSampleFailTrials(){
+		return Boolean.parseBoolean(baseConfig.systemVariableContainer().get("xper_nafc_repeat_sample_fail_trials",0));
+	}
 	/**
 	 * For fixation point eye selection, not alternative choices.
 	 * @return

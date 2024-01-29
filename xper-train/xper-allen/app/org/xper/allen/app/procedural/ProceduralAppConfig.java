@@ -1,5 +1,6 @@
 package org.xper.allen.app.procedural;
 
+import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
@@ -8,9 +9,15 @@ import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
 import org.xper.allen.nafc.blockgen.procedural.NAFCTrialParamDbUtil;
 import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
+import org.xper.allen.nafc.experiment.juice.LinearControlPointFunction;
+import org.xper.allen.nafc.experiment.juice.NAFCNoiseScalingNoiseController;
+import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.FixationPoint;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -74,5 +81,31 @@ public class ProceduralAppConfig {
         NAFCTrialParamDbUtil nafcTrialDbUtil = new NAFCTrialParamDbUtil();
         nafcTrialDbUtil.setDataSource(pngConfig.config.dataSource());
         return nafcTrialDbUtil;
+    }
+
+    @Bean
+    public ChoiceEventListener juiceController(){
+        NAFCNoiseScalingNoiseController controller = new NAFCNoiseScalingNoiseController();
+        controller.setJuice(pngConfig.classicConfig.xperDynamicJuice());
+        controller.setNoiseRewardFunction(noiseRewardFunction());
+        return controller;
+    }
+
+    @Bean
+    public UnivariateRealFunction noiseRewardFunction() {
+        LinearControlPointFunction function = new LinearControlPointFunction();
+        function.setxValues(xperNoiseRewardFunctionNoises());
+        function.setyValues(xperNoiseRewardFunctionRewards());
+        return function;
+    }
+
+    @Bean
+    public List<Double> xperNoiseRewardFunctionNoises() {
+        return Arrays.asList(0.0, 0.2, 0.3, 0.5, 1.0);
+    }
+
+    @Bean
+    public List<Double> xperNoiseRewardFunctionRewards() {
+        return Arrays.asList(1.5, 1.5, 2.5, 3.3, 4.5);
     }
 }

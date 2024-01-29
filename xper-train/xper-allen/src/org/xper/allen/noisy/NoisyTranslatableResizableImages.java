@@ -238,16 +238,13 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 			//1 means play noise on every frame
 			//0.5 means play noise on every other frame
 			drawNoise(context, location, dimensions);
-			System.out.println("NOISE RATE: " + noiseRate);
 			if (noiseRate != 0) {
 				if (currentFrameIndx % (int) Math.ceil(1 / noiseRate) == 0) {
-					System.out.println("INSIDE OF NONZERO");
 					currentNoiseIndx++;
 				}
 			} else{
 				currentNoiseIndx = 0;
 			}
-			System.out.println("currentNoiseIndx: " + currentNoiseIndx);
 		}
 		currentFrameIndx++;
 		GL11.glPopMatrix();
