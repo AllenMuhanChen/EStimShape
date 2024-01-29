@@ -702,6 +702,7 @@ public class ExperimentConsole extends JFrame implements
 					try {
 						swapBuffers();
 					} catch (LWJGLException e) {
+						System.err.println(e.getMessage());
 					}
 				}
 			};

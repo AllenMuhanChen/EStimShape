@@ -17,19 +17,34 @@ public class RFPlotDrawer {
     private Coordinates2D rfCenter;
 
 
-    public void draw(){
+    public void draw() {
         try {
+            // Drawing the regular points as yellow circles
             for (Coordinates2D point : points) {
                 GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0);
             }
 
+            // Drawing the hull points as red circles
             for (Point hullPoint : hull) {
                 GLUtil.drawCircle(new Circle(true, 5), hullPoint.x, hullPoint.y, 0, 1, 0, 0);
             }
-            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
-        } catch (Exception e){}
-    }
 
+            // Drawing the hull as a polygon
+            if (hull != null && !hull.isEmpty()) {
+                int hullSize = hull.size();
+                for (int i = 0; i < hullSize; i++) {
+                    Point start = hull.get(i);
+                    Point end = hull.get((i + 1) % hullSize); // Ensures the last point connects back to the first
+                    GLUtil.drawLine(start.x, start.y, end.x, end.y, 1, 0, 0); // Replace with actual line drawing method
+                }
+            }
+
+            // Drawing the RF center as a square
+            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     public void add(Coordinates2D point){
         points.add(point);
         pointsUpdated();
