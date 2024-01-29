@@ -461,7 +461,19 @@ public class NAFCConfig {
 		controller.setWindow(classicConfig.monkeyWindow());
 		controller.setTaskScene(taskScene());
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
+		controller.setScreenShotter(screenShotter());
 		return controller;
+	}
+
+	@Bean
+	public ScreenShotter screenShotter(){
+		ScreenShotter screenShotter = new ScreenShotter();
+		screenShotter.setEnabled(true);
+		screenShotter.setDirectory("/home/m2_allen/Documents/screenshots");
+		screenShotter.setWidthPixels(3840);
+		screenShotter.setHeightPixels(2160);
+		return screenShotter;
+
 	}
 
 
