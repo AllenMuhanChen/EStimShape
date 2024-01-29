@@ -28,32 +28,33 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 	private
 	Circle circle;
 	@Dependency
-	private 
+	private
 	Square square;
-	
+
 	private double eyeIndicatorSize = 2.5;
 	private double voltageIndicatorSize = 5;
 	private double voltageMin = -10.0;
 	private double voltageMax = 10.0;
-	
+
 	@Dependency
 	private
 	TrialExperimentMessageHandler messageHandler;
-	
+
 	@Override
 	public void drawCanvas(Context context, String devId) {
 		getBlankScreen().draw(null);
-		if (getMessageHandler().isInTrial()) {
+		if (getMessageHandler().isFixationOn()) {
 			drawFixation();
-			drawEyeDevice(devId);
+			drawEyeWindow();
 		}
+		drawEyeDeviceReading(devId);
 	}
-	
+
 	protected void drawEyeDevice(String devId) {
 		drawEyeWindow();
 		drawEyeDeviceReading(devId);
 	}
-	
+
 	protected void drawEyeWindow() {
 		EyeWindow window = getMessageHandler().getEyeWindow();
 		Coordinates2D eyeWindowCenter = window.getCenter();
@@ -63,25 +64,25 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 
 		GLUtil.drawCircle(getCircle(), eyeWindowSize, false, eyeWindowCenterX, eyeWindowCenterY, 0.0);
 	}
-	
+
 	protected void drawEyeDeviceReading(String devId) {
 		for (Map.Entry<String, EyeDeviceReading> ent : getMessageHandler()
 				.getEyeDeviceReadingEntries()) {
-			
+
 			String id = ent.getKey();
 			if (!id.equalsIgnoreCase(devId)) {
 				continue;
 			}
-			
+
 			EyeDeviceReading reading = ent.getValue();
 
 			// Eye Position
 			Coordinates2D eyeDegree = reading.getDegree();
-			
+
 			boolean solid = false;
 			if (getMessageHandler().isEyeIn()) {
 				solid = true;
-			} 
+			}
 			GLUtil.drawCircle(getCircle(), getEyeIndicatorSize(), solid, getRenderer().deg2mm(eyeDegree.getX()), getRenderer()
 					.deg2mm(eyeDegree.getY()), 0.0);
 
@@ -101,7 +102,7 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 			GLUtil.drawSquare(getSquare(), getVoltageIndicatorSize(), true, xmm, ymm, 0);
 		}
 	}
-	
+
 	protected void drawFixation() {
 		if (getMessageHandler().isFixationOn()) {
 			TrialContext context = new TrialContext();
@@ -109,7 +110,7 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 			getFixation().draw(context);
 		}
 	}
-	
+
 	public TrialExperimentMessageHandler getMessageHandler() {
 		return messageHandler;
 	}
@@ -125,7 +126,7 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 	public void setCircle(Circle circle) {
 		this.circle = circle;
 	}
-	
+
 	public Square getSquare() {
 		return square;
 	}
@@ -133,7 +134,7 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 	public void setSquare(Square square) {
 		this.square = square;
 	}
-	
+
 	public Drawable getFixation() {
 		return fixation;
 	}
@@ -141,7 +142,7 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 	public void setFixation(Drawable fixation) {
 		this.fixation = fixation;
 	}
-	
+
 	public Drawable getBlankScreen() {
 		return blankScreen;
 	}
@@ -149,7 +150,7 @@ public class TrialExperimentConsoleRenderer implements ConsoleRenderer {
 	public void setBlankScreen(Drawable blankScreen) {
 		this.blankScreen = blankScreen;
 	}
-	
+
 	public AbstractRenderer getRenderer() {
 		return renderer;
 	}

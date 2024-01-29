@@ -178,6 +178,7 @@ public class ExperimentConsole extends JFrame implements
             	} else {
             		currentPlugin.handleMouseMove(evt.getX(), evt.getY());
             	}
+				consoleCanvas.repaint(); //AC added to have canvas updating when adding control points
             }
         });
         canvasPanel.add(consoleCanvas);

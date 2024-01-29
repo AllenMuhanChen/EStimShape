@@ -21,22 +21,22 @@ import org.xper.eye.vo.EyeWindow;
 import org.xper.time.TimeUtil;
 
 public class ExperimentConsoleModel implements AcqSamplingDevice {
-	
+
 	/**
 	 * Map channel number to input array index.
-	 */ 
+	 */
 	@Dependency
 	HashMap<Integer, EyeDeviceIdChannelPair> channelMap;
-	
+
 	@Dependency
 	HashMap<String, MappingAlgorithm> eyeMappingAlgorithm;
-	
+
 	@Dependency
 	TrialExperimentMessageHandler messageHandler;
-	
+
 	@Dependency
 	ExperimentMessageReceiver messageReceiver;
-	
+
 	@Dependency
 	protected
 	SocketSamplingDeviceServer samplingServer;
@@ -44,20 +44,20 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	ExperimentRunnerClient experimentRunnerClient;
 	@Dependency
 	TimeUtil localTimeUtil;
-	
+
 	/**
 	 * monkey eye voltage.
-	 */ 
+	 */
 	protected AtomicReference<Coordinates2D> eyePositionInDegree = new AtomicReference<Coordinates2D>();
-	
+
 	public void resume () {
 		experimentRunnerClient.resume();
 	}
-	
+
 	public void pause () {
 		experimentRunnerClient.pause();
 	}
-	
+
 	public void start () {
 		getEyePositionInDegree().set(new Coordinates2D(0,0));
 		messageReceiver.start();
@@ -65,7 +65,7 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 			samplingServer.start();
 		}
 	}
-	
+
 	public void stop () {
 		try {
 			experimentRunnerClient.stop();
@@ -77,30 +77,30 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public Set<String> getEyeDeviceIds () {
 		return messageHandler.getEyeDeviceIds();
 	}
-	
+
 	public EyeWindow getEyeWindow () {
 		EyeWindow window = messageHandler.getEyeWindow();
 		return window;
 	}
-	
+
 	public Set<Entry<String, EyeDeviceReading>> getEyeDeviceReading () {
 		return messageHandler.getEyeDeviceReadingEntries();
 	}
-	
+
 	public TrialStatistics getTrialStatistics () {
 		TrialStatistics stat = messageHandler.getTrialStatistics();
 		return stat;
 	}
-	
+
 	public Coordinates2D getEyeZero (String id) {
 		Coordinates2D eyeZero = messageHandler.getEyeZeroByDeviceId(id);
 		return eyeZero;
 	}
-	
+
 	public void setEyePosition (Coordinates2D degree) {
 		getEyePositionInDegree().set(degree);
 	}
@@ -126,7 +126,7 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	public long scan() {
 		return localTimeUtil.currentTimeMicros();
 	}
-	
+
 	public HashMap<Integer, EyeDeviceIdChannelPair> getChannelMap() {
 		return channelMap;
 	}
@@ -143,7 +143,7 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 			HashMap<String, MappingAlgorithm> eyeMappingAlgorithm) {
 		this.eyeMappingAlgorithm = eyeMappingAlgorithm;
 	}
-	
+
 	public TrialExperimentMessageHandler getMessageHandler() {
 		return messageHandler;
 	}
@@ -151,7 +151,7 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	public void setMessageHandler(TrialExperimentMessageHandler messageHandler) {
 		this.messageHandler = messageHandler;
 	}
-	
+
 	public ExperimentMessageReceiver getMessageReceiver() {
 		return messageReceiver;
 	}
@@ -188,5 +188,5 @@ public class ExperimentConsoleModel implements AcqSamplingDevice {
 	public AtomicReference<Coordinates2D> getEyePositionInDegree() {
 		return eyePositionInDegree;
 	}
-	
+
 }

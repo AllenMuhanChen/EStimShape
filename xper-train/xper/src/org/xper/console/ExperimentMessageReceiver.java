@@ -17,7 +17,7 @@ import org.xper.util.ThreadHelper;
 
 public class ExperimentMessageReceiver implements Threadable {
 	static Logger logger = Logger.getLogger(ExperimentMessageReceiver.class);
-	
+
 	@Dependency
 	int port = TrialExperimentMessageDispatcher.PORT;
 	@Dependency
@@ -32,7 +32,7 @@ public class ExperimentMessageReceiver implements Threadable {
 	String receiverHost;
 	@Dependency
 	String dispatcherHost;
-	
+
 	ThreadHelper threadHelper = new ThreadHelper("ExperimentMessageReceiver", this);
 	MulticastSocket socket = null;
 
@@ -95,7 +95,6 @@ public class ExperimentMessageReceiver implements Threadable {
 		} catch (IOException e) {
 			throw new RemoteException(e);
 		}
-	
 	}
 
 	public void run() {
@@ -106,7 +105,7 @@ public class ExperimentMessageReceiver implements Threadable {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Local socket: " + socket.getLocalSocketAddress());
 			}
-	
+
 			threadHelper.started();
 			while (!threadHelper.isDone()) {
 				receiveMessage();
@@ -156,11 +155,11 @@ public class ExperimentMessageReceiver implements Threadable {
 	public void setMessageReceiverEventListeners(List<MessageReceiverEventListener> messageReceiverEventListeners) {
 		this.messageReceiverEventListeners = messageReceiverEventListeners;
 	}
-	
+
 	public void addMessageReceiverEventListener (MessageReceiverEventListener listener) {
 		this.messageReceiverEventListeners.add(listener);
 	}
-	
+
 	public void removeMessageReceiverEventListener (MessageReceiverEventListener listener) {
 		this.messageReceiverEventListeners.remove(listener);
 	}
