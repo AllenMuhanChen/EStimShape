@@ -21,12 +21,12 @@ def collect_choice_trials(conn: Connection, when: When = time_util.all()) -> lis
 def main():
     conn = Connection("allen_estimshape_train_231211")
     date_and_time = time_util.on_date_and_time(2024,
-                                               1, 18,
+                                               1, 25,
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
-    last_experiment = since_nth_most_recent_experiment(conn, n=5)
+    last_experiment = since_nth_most_recent_experiment(conn, n=3)
 
-    trial_tstamps = collect_choice_trials(conn, last_experiment)
+    trial_tstamps = collect_choice_trials(conn, date_and_time)
 
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
@@ -88,6 +88,10 @@ def plot_psychometric_curves_side_by_side(df1, df2, title1=None, title2=None, co
     # Add an overall title if needed
     if title1 or title2:
         plt.suptitle(f'{title1} and {title2}')
+
+    # scale both plots the same
+    axs[0].set_ylim([20, 100])
+    axs[1].set_ylim([20, 100])
 
     plt.show()
 
