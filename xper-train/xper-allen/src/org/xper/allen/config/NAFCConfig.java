@@ -79,12 +79,17 @@ public class NAFCConfig {
 	@ExternalValue("jdbc.password")
 	public String jdbcPassword;
 
-
 	@ExternalValue("experiment.monkey_window_fullscreen")
 	public boolean monkeyWindowFullScreen;
 
 	@ExternalValue("experiment.mark_every_step")
 	public boolean markEveryStep;
+
+	@ExternalValue("screenshot.enabled")
+	public boolean screenShotEnabled;
+
+	@ExternalValue("screenshot.directory")
+	public String screenShotDirectory;
 
 	public String getJdbcUrl() {
 		return jdbcUrl;
@@ -468,14 +473,13 @@ public class NAFCConfig {
 	@Bean
 	public ScreenShotter screenShotter(){
 		ScreenShotter screenShotter = new ScreenShotter();
-		screenShotter.setEnabled(true);
-		screenShotter.setDirectory("/home/m2_allen/Documents/screenshots");
-		screenShotter.setWidthPixels(3840);
-		screenShotter.setHeightPixels(2160);
+		screenShotter.setEnabled(screenShotEnabled);
+		screenShotter.setDirectory(screenShotDirectory);
+		screenShotter.setScreenWidthPixels(3840);
+		screenShotter.setScreenHeightPixels(2160);
 		return screenShotter;
 
 	}
-
 
 	@Bean
 	public NAFCTaskScene taskScene() {

@@ -19,21 +19,21 @@ public class ScreenShotter {
     String directory;
 
     @Dependency
-    int heightPixels;
+    int screenHeightPixels;
 
     @Dependency
-    int widthPixels;
+    int screenWidthPixels;
 
     public void takeScreenShot(String filename) {
         if (isEnabled) {
             String path = directory + "/" + filename;
             path=path+".bmp";
 
-            saveImage(path, heightPixels, widthPixels);
+            saveImage(path, screenHeightPixels, screenWidthPixels);
         }
     }
 
-    public String saveImage(String path, int height, int width) {
+    private String saveImage(String path, int height, int width) {
         byte[] data = screenShotBinary(width,height);
 
 
@@ -88,7 +88,7 @@ public class ScreenShotter {
         }
     }
 
-    public static ByteBuffer allocBytes(int howmany) {
+    private static ByteBuffer allocBytes(int howmany) {
         final int SIZE_BYTE = 3;
         return ByteBuffer.allocateDirect(howmany * SIZE_BYTE).order(ByteOrder.nativeOrder());
     }
@@ -109,19 +109,19 @@ public class ScreenShotter {
         this.directory = directory;
     }
 
-    public int getHeightPixels() {
-        return heightPixels;
+    public int getScreenHeightPixels() {
+        return screenHeightPixels;
     }
 
-    public void setHeightPixels(int heightPixels) {
-        this.heightPixels = heightPixels;
+    public void setScreenHeightPixels(int screenHeightPixels) {
+        this.screenHeightPixels = screenHeightPixels;
     }
 
-    public int getWidthPixels() {
-        return widthPixels;
+    public int getScreenWidthPixels() {
+        return screenWidthPixels;
     }
 
-    public void setWidthPixels(int widthPixels) {
-        this.widthPixels = widthPixels;
+    public void setScreenWidthPixels(int screenWidthPixels) {
+        this.screenWidthPixels = screenWidthPixels;
     }
 }
