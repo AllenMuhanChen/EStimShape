@@ -2,6 +2,7 @@ package org.xper.allen.nafc.experiment;
 
 import org.xper.Dependency;
 import org.xper.allen.nafc.NAFCTaskScene;
+import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.experiment.ExperimentTask;
 import org.xper.time.DefaultTimeUtil;
@@ -49,7 +50,18 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	public void showSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
 			getTaskScene().drawSample(context, true);
-			screenShotter.takeScreenShot(String.valueOf(task.getStimId()) + "_sample");
+			String filename;
+			try {
+				NoisyPngSpec spec = NoisyPngSpec.fromXml(task.getSampleSpec());
+				double noiseChance = spec.getNoiseChance();
+				String noiseChanceString = String.valueOf(noiseChance);
+				//remove the decimal point
+				noiseChanceString = noiseChanceString.replace(".", "_");
+				filename = String.valueOf(task.getStimId()) + "_sample_" + noiseChanceString;
+			} catch (Exception e) {
+				filename = String.valueOf(task.getStimId()) + "_sample";
+			}
+			screenShotter.takeScreenShot(filename);
 		} else {
 			getTaskScene().drawBlank(context, false, false);
 		}

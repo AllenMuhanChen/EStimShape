@@ -11,6 +11,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+/**
+ * To use, put as a dependency in either a DrawingController (i.e MarkEveryStepDrawingController) or a TaskScene),
+ * as long as the takeScreenShot() method is called in between the open GL calls and the window.swapBuffers() call.
+ */
 public class ScreenShotter {
     @Dependency
     boolean isEnabled;
