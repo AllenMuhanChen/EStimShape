@@ -2576,19 +2576,6 @@ public class AllenMatchStick extends MatchStick {
 			// 2. DO THE REMOVING
 			removeComponent(removeList);
 
-			// 3.
-			// finalRotation = new double[3];
-			// for (int i=0; i<3; i++)
-			// finalRotation[i] = stickMath_lib.randDouble(0, 360.0);
-
-			// debug
-
-			// finalRotation[0] = 90.0;
-			// finalRotation[1] = 0.0;
-			// finalRotation[2] = 0;
-
-			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
-			// finalRotation[2]);
 
 			// this.centerShapeAtOrigin(-1);
 

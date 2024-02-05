@@ -349,7 +349,148 @@ public class MAxisArc
 	 @param finalTangent Vector3d, the tangent direction where the rotCenter Pt will face
 	 @param deviateAngle double btw 0 ~ 2PI , the angle to rotate along the tangent direction
      */
-     public void transRotMAxis(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
+
+	 public void transRotMAxis2(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
+	 {
+		 int i;
+		 Point3d oriPt = new Point3d();
+		 Vector3d nowvec = new Vector3d(0,0,0);
+		 Transform3D transMat = new Transform3D();
+		 Vector3d oriTangent = getmTangent()[rotCenter];
+
+		 /// 1. rotate to [0 0 1]
+		 Vector3d interTangent = new Vector3d(0,0,1);
+		 double Angle = oriTangent.angle(interTangent);
+		 Vector3d RotAxis = new Vector3d(0,0,0);
+		 RotAxis.cross(oriTangent, interTangent);
+		 RotAxis.normalize();
+		 //	    System.out.println(oriTangent + " " + interTangent);
+		 //	    System.out.println(Angle);
+		 //	    System.out.println(RotAxis);
+
+		 boolean skipRotate = false;
+		 if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+		 {
+			 skipRotate = true;
+
+		 }
+
+		 if (!skipRotate)
+		 {
+			 oriPt.set(getmPts()[rotCenter]);
+			 AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
+			 transMat.setRotation(axisInfo);
+			 for (i = 1 ; i <= getMaxStep(); i++)
+			 {
+				 // rotate annd translate every mPts
+				 nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				 transMat.transform(nowvec);
+				 getmPts()[i].add(nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+
+				 // Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
+				 // rotate the Tangent vector along the maxis
+				 transMat.transform(getmTangent()[i]);
+			 }
+		 }
+
+
+		 /// 2. rotate to targetTangent
+		 //CALCULATE NORMAL
+		 Vector3d normal = new Vector3d(0, 1, 0);
+		 Vector3d rotAxis = new Vector3d();
+		 double x = Math.cos(deviateAngle);
+		 double y = Math.sin(deviateAngle);
+		 Vector3d finalNormal = new Vector3d(x,y,0);
+
+		 oriTangent.set( interTangent);
+		 Angle = oriTangent.angle(finalTangent);
+		 RotAxis.cross(oriTangent, finalTangent);
+		 RotAxis.normalize();
+
+
+		 skipRotate = false;
+		 // NOTE: 3/30/2010
+		 // when angle = PI, we need to rotate, but rotAxis is arbitrary
+		 // when angle == pi, means finalTangent = [ 0 0 -1]
+		 // so rotate along [1 0 0 ] will be fine
+		 //BUT, this is a key part of program
+		 // if anything goes wrong, just come back to activate follow line
+		 //if ( Angle == 0.0 || Angle == Math.PI) // THE KEY LINE TO CHANGE BACK
+		 if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+		 {
+			 skipRotate = true;
+			 System.out.println("Skip second rotation");
+		 }
+		 if (Angle == Math.PI)
+		 {
+			 skipRotate = true;
+			 System.out.println("Skip second rotation, due to [0 0 -1], not ideal");
+		 }
+
+		 if (!skipRotate)
+		 {
+			 oriPt.set(getmPts()[rotCenter]);
+			 AxisAngle4d axisInfo = new AxisAngle4d(RotAxis, Angle);
+			 transMat.setRotation(axisInfo);
+
+			 for (i = 1 ; i <= getMaxStep(); i++)
+			 {
+				 // rotate annd translate every mPts
+				 nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				 transMat.transform(nowvec);
+				 getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+				 // Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
+				 // rotate the Tangent vector along the maxis
+				 transMat.transform(getmTangent()[i]);
+			 }
+			 //AC ADDITION:
+			 transMat.transform(normal);
+			 transMat.transform(finalNormal);
+		 }
+
+		 /// 3. rotate along the tangent axis by deviate Angle
+		 double nowDeviateAngle = deviateAngle;
+		 if(true)
+		 {
+			 //ROTATE TO DESIRED DEV ANGLE
+			 oriPt.set(getmPts()[rotCenter]);
+			 rotAxis.cross(normal, finalNormal);
+			 rotAxis.normalize();
+			 AxisAngle4d axisInfo = new AxisAngle4d(rotAxis, normal.angle(finalNormal));
+
+			 transMat.setRotation(axisInfo);
+			 for (i = 1 ; i <= getMaxStep(); i++)
+			 {
+				 nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				 transMat.transform(nowvec);
+				 getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+
+				 transMat.transform(getmTangent()[i]);
+			 }
+
+			 normal = finalNormal;
+		 } else {
+			 nowDeviateAngle = getTransRotHis_devAngle();
+		 }
+
+		 /// 4. translation
+		 oriPt.set( getmPts()[alignedPt]);
+		 Vector3d transVec = new Vector3d(0,0,0);
+		 transVec.sub(finalPos, oriPt);
+		 for (i=1; i<=getMaxStep(); i++)
+		 {
+			 getmPts()[i].add(transVec);
+		 }
+		 /// 5. save the transrot history into recording data
+		 setTransRotHis_alignedPt(alignedPt);
+		 setTransRotHis_rotCenter(rotCenter);
+		 getTransRotHis_finalPos().set(finalPos);
+		 getTransRotHis_finalTangent().set(finalTangent);
+		 setTransRotHis_devAngle(nowDeviateAngle);
+	 }
+
+
+	public void transRotMAxis(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
      {
 // 	System.out.println("transRot mAxis procedure:");
 // 	System.out.println("final pos: "+finalPos + "final tangent: "+finalTangent);
