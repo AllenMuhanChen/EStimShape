@@ -21,12 +21,14 @@ def collect_choice_trials(conn: Connection, when: When = time_util.all()) -> lis
 def main():
     conn = Connection("allen_estimshape_train_231211")
     date_and_time = time_util.on_date_and_time(2024,
-                                               1, 25,
+                                               1, 30,
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
+    since_date = time_util.from_date_to_now(2024, 1, 25)
     last_experiment = since_nth_most_recent_experiment(conn, n=3)
 
-    trial_tstamps = collect_choice_trials(conn, date_and_time)
+    # trial_tstamps = collect_choice_trials(conn, date_and_time)
+    trial_tstamps = collect_choice_trials(conn, since_date)
 
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
@@ -76,7 +78,7 @@ def plot_psychometric_curves_side_by_side(df1, df2, title1=None, title2=None, co
     """
     Plots two DataFrames side by side in a subplot.
     """
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(20, 6))  # Create 1 row, 2 columns subplot
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(20, 8))  # Create 1 row, 2 columns subplot
 
     # Plotting each DataFrame on its respective ax
     plot_psychometric_curve_on_ax(df1, axs[0], title=title1, color=color1, label=label1, show_n=show_n, num_rep_min=1)

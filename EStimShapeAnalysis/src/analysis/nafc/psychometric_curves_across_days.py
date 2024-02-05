@@ -2,7 +2,8 @@ import numpy as np
 from matplotlib import cm, pyplot as plt
 
 from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField
-from analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve, unix_to_datetime
+from analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve, unix_to_datetime, \
+    plot_psychometric_curve_on_ax
 from clat.compile.trial.cached_fields import CachedFieldList
 from clat.util import time_util
 from clat.util.connection import Connection
@@ -11,7 +12,7 @@ from clat.util.connection import Connection
 def main():
     conn = Connection("allen_estimshape_train_231211")
     trial_tstamps = collect_choice_trials(conn, time_util.from_date_to_now(2024,
-                                                                       1, 3,
+                                                                       1, 25,
                                                                            ))
 
 
@@ -48,7 +49,7 @@ def plot_psychometric_curves_by_day(df):
 
 
     for (date, group), color in zip(grouped, colors):
-        plot_psychometric_curve(group, title=f"Psychometric Curve for {date}", ax=ax, color=color, label=str(date), show_n=show_n)
+        plot_psychometric_curve_on_ax(group, ax, title=f"Psychometric Curve for {date}", color=color, label=str(date), show_n=show_n)
 
 
     ax.legend(title="Date")
