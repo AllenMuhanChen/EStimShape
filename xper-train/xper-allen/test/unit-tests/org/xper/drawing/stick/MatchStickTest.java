@@ -52,7 +52,7 @@ public class MatchStickTest {
     private void drawMStick(MatchStick mStick){
         window.draw(new Drawable() {
             @Override
-            public void draw() {mStick.drawSkeleton();
+            public void draw() {mStick.draw();
             }
         });
     }
