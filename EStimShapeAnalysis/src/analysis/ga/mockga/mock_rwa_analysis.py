@@ -6,7 +6,7 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from analysis.ga.rwa import Binner, AutomaticBinner, rwa, combine_rwas, get_next
+from analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_combine_rwas, get_next
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
 from analysis.matchstick_fields import ShaftField
 from clat.compile.trial.trial_collector import TrialCollector
@@ -96,7 +96,7 @@ def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields
     rwas = [get_next(r) for r in rwas]
     for lineage_index, rwa_lineage in enumerate(rwas):
         save(rwa_lineage, "lineage_rwa_%d" % lineage_index)
-    rwa_multiplied = combine_rwas(rwas)
+    rwa_multiplied = normalize_and_combine_rwas(rwas)
 
     return rwa_multiplied
 
@@ -118,7 +118,7 @@ def compute_rwa_from_top_n_lineages(data, ga_type, n, binner_for_fields, sigma_f
     rwas = [get_next(r) for r in rwas]
     for lineage_index, rwa_lineage in enumerate(rwas):
         save(rwa_lineage, "lineage_rwa_%d" % lineage_index)
-    rwa_multiplied = combine_rwas(rwas)
+    rwa_multiplied = normalize_and_combine_rwas(rwas)
 
     return rwa_multiplied
 

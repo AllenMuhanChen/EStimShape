@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from analysis.ga.rwa import Binner, rwa, raw_data, RWAMatrix, combine_rwas, get_next
+from analysis.ga.rwa import Binner, rwa, raw_data, RWAMatrix, normalize_and_combine_rwas, get_next
 from analysis.ga.mockga.mock_rwa_plot import draw_one_d_field, get_indices_for_fields
 
 
@@ -145,7 +145,7 @@ class MultiDimAndLineageTestCase(TestCase):
             response_weighted_averages.append(lineage_response_weighted_average)
             self.setUp()
 
-        response_weighted_average_multiplied = combine_rwas(response_weighted_averages)
+        response_weighted_average_multiplied = normalize_and_combine_rwas(response_weighted_averages)
         response_weighted_averages.append(response_weighted_average_multiplied)
         plot_data_and_rwa_variations(response_weighted_averages, summed_response_weighted, summed_unweighted)
 
@@ -158,7 +158,7 @@ class MultiDimAndLineageTestCase(TestCase):
             rwa(self.stims, self.responses, dict(zip(self.fields, self.binners)), dict(zip(self.fields, self.sigmas)),
                 dict(zip(self.fields, self.paddings))))
 
-        response_weighted_average = combine_rwas([response_weighted_average_1, response_weighted_average_2])
+        response_weighted_average = normalize_and_combine_rwas([response_weighted_average_1, response_weighted_average_2])
         matrix = response_weighted_average.matrix
         matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
         fig, axes = plt.subplots(1, self.num_dims)

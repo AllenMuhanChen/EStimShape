@@ -5,7 +5,7 @@ import scipy
 import xmltodict
 from matplotlib import pyplot as plt
 
-from analysis.ga.rwa import AutomaticBinner, rwa, raw_data, get_next, combine_rwas
+from analysis.ga.rwa import AutomaticBinner, rwa, raw_data, get_next, normalize_and_combine_rwas
 from analysis.ga.mockga import hemisphericalize, condition_theta_and_phi
 from clat.util import dictionary_util
 from analysis.test_multidim_rwa import plot_data_and_rwa_variations
@@ -129,7 +129,7 @@ def main():
     plot_top_n_responses(shaft_data[0], response_vector[0], 100, binner_for_shaft_fields)
     plot_top_n_responses(shaft_data[1], response_vector[1], 100, binner_for_shaft_fields)
     response_weighted_averages = [response_weighted_average_1, response_weighted_average_2,
-                 combine_rwas([response_weighted_average_1, response_weighted_average_2])]
+                                  normalize_and_combine_rwas([response_weighted_average_1, response_weighted_average_2])]
     summed_response_weighted = [summed_response_weighted_1,
                   summed_response_weighted_2]
     summed_unweighted = [summed_unweighted_1, summed_unweighted_2]

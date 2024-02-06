@@ -19,6 +19,48 @@ from clat.util.dictionary_util import extract_values_with_key_into_list
 data_type = float32
 
 
+def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner],
+        sigma_for_field: dict[str, float], padding_for_field: dict[str, str]):
+    """
+    :param stims: n-list of m-lists of d-dictionaries, where the dictionary contains the fieldNames and the values for the data i.e {'curvature': 0.5, 'radius': 1.0}
+    n: the number of stimuli
+    m: the number components of the stimulus
+    d: the number of dimensions in the data
+
+    :param response_vector: n-list of floats, where each float is the response of the neuron to the corresponding stimulus
+
+    :param binner_for_field: a d-dictionary of field names and their corresponding Binner objects. Binner objects
+    are responsible for binning the data for a given field.
+
+    :param sigma_for_field: a d-dictionary of field names and their corresponding sigma values for the gaussian kernel
+    see https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html for more info on how sigma is used.
+
+    :param padding_for_field: a d-dictionary of field names and their corresponding padding types for the gaussian kernel
+    see https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html for possible paddings and more info
+    """
+    if isinstance(response_vector, pd.Series):
+        response_vector = response_vector.to_list()
+
+    print("generating point matrices")
+    point_matrices = generate_point_matrices(stims, binner_for_field, sigma_for_field, padding_for_field)
+
+    print("response weighing and summing point matrices")
+    summed_response_weighted, summed_unweighted = get_next(
+        response_weight_and_sum_point_matrices(point_matrices, response_vector))
+
+    print("smoothing summed rw and uw matrices")
+    smoothed_response_weighted = smooth_matrix(summed_response_weighted)
+    smoothed_unweighted = smooth_matrix(summed_unweighted)
+
+    print("dividing rw and uw matrices")
+    response_weighted_average = divide_and_allow_divide_by_zero(get_next(smoothed_response_weighted).matrix,
+                                                                get_next(smoothed_unweighted).matrix)
+    response_weighted_average = summed_response_weighted.copy_labels(response_weighted_average)
+
+    # response_weighted_average = normalize_matrix(response_weighted_average)
+    yield response_weighted_average
+
+
 @dataclass
 class RWAMatrix:
     """A matrix (np.ndarray) with metadata required to compute an RWA:
@@ -128,7 +170,7 @@ class AutomaticBinner(Binner):
         return min(values), max(values)
 
 
-def combine_rwas(rwas):
+def normalize_and_combine_rwas(rwas):
     normalized_rwas, overall_max = normalize_rwas(rwas)
     rwa_product = multiply_rwas(rwas)
     rwa_normalized_product = normalize_matrix(rwa_product)
@@ -137,10 +179,10 @@ def combine_rwas(rwas):
     return rwa_normalized_product
 
 
-# def combine_rwas(rwas):
-#     rwa_product = multiply_rwas(rwas)
-#     rwa_normalized_product = normalize_matrix(rwa_product)
-#     return rwa_normalized_product
+def combine_rwas(rwas):
+    rwa_product = multiply_rwas(rwas)
+    rwa_normalized_product = normalize_matrix(rwa_product)
+    return rwa_normalized_product
 
 
 def normalize_rwas(rwas):
@@ -176,31 +218,6 @@ def get_next(possible_generator):
         return next(possible_generator)
     else:
         return possible_generator
-
-
-def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner],
-        sigma_for_field: dict[str, float], padding_for_field: dict[str, str]):
-    if isinstance(response_vector, pd.Series):
-        response_vector = response_vector.to_list()
-
-    print("generating point matrices")
-    point_matrices = generate_point_matrices(stims, binner_for_field, sigma_for_field, padding_for_field)
-
-    print("response weighing and summing point matrices")
-    summed_response_weighted, summed_unweighted = get_next(
-        response_weight_and_sum_point_matrices(point_matrices, response_vector))
-
-    print("smoothing summed rw and uw matrices")
-    smoothed_response_weighted = smooth_matrix(summed_response_weighted)
-    smoothed_unweighted = smooth_matrix(summed_unweighted)
-
-    print("dividing rw and uw matrices")
-    response_weighted_average = divide_and_allow_divide_by_zero(get_next(smoothed_response_weighted).matrix,
-                                                                get_next(smoothed_unweighted).matrix)
-    response_weighted_average = summed_response_weighted.copy_labels(response_weighted_average)
-
-    # response_weighted_average = normalize_matrix(response_weighted_average)
-    yield response_weighted_average
 
 
 def raw_data(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner],
