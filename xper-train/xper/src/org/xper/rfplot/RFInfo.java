@@ -32,4 +32,19 @@ public class RFInfo {
         return p;
     }
 
+    public List<Coordinates2D> getOutline() {
+        return outline;
+    }
+
+    public void setOutline(List<Coordinates2D> outline) {
+        this.outline = outline;
+    }
+
+    public Coordinates2D getCenter() {
+        return center;
+    }
+
+    public void setCenter(Coordinates2D center) {
+        this.center = center;
+    }
 }

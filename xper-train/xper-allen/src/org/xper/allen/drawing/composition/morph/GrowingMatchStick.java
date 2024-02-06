@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.composition.morph;
 
 import org.xper.allen.drawing.ga.RFMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +15,16 @@ public class GrowingMatchStick extends RFMatchStick {
     }
 
     public GrowingMatchStick() {
+        this.sigma = 1/3.0;
+    }
+
+    public GrowingMatchStick(ReceptiveField rf, double sigma) {
+        super(rf);
+        this.sigma = sigma;
+    }
+
+    public GrowingMatchStick(ReceptiveField rf) {
+        super(rf);
         this.sigma = 1/3.0;
     }
 

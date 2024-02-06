@@ -3,6 +3,7 @@ package org.xper.allen.drawing.composition.morph;
 import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.*;
 import org.xper.allen.drawing.ga.RFMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
 
 import java.util.*;
 
@@ -11,6 +12,14 @@ public class PruningMatchStick extends RFMatchStick {
     private MorphedMatchStick matchStickToMorph;
     private List<Integer> toPreserve;
     private List<Integer> componentsToMorph;
+
+    public PruningMatchStick(ReceptiveField rf) {
+        super(rf);
+    }
+
+    public PruningMatchStick() {
+        super();
+    }
 
     // Chooses own random components to preserve
     public void genPruningMatchStick(MorphedMatchStick matchStickToMorph, double magnitude, int numPreserve){

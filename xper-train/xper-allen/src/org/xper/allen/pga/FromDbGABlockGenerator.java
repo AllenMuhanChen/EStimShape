@@ -2,6 +2,7 @@ package org.xper.allen.pga;
 
 import org.xper.Dependency;
 import org.xper.allen.Stim;
+import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 import org.xper.allen.util.MultiGaDbUtil;
@@ -26,7 +27,8 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     @Dependency
     String gaName;
 
-
+    @Dependency
+    ReceptiveFieldSource rfSource;
 
     @Override
     protected void addTrials() {
@@ -102,6 +104,10 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     @Override
     public MultiGaDbUtil getDbUtil() {
         return dbUtil;
+    }
+
+    public ReceptiveField getReceptiveField(){
+        return rfSource.getReceptiveField();
     }
 
     public void setDbUtil(MultiGaDbUtil dbUtil) {

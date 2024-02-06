@@ -18,7 +18,7 @@ public class RegimeThreeStim extends GAStim<GrowingMatchStick, AllenMStickData> 
         parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        GrowingMatchStick childMStick = new GrowingMatchStick();
+        GrowingMatchStick childMStick = new GrowingMatchStick(generator.getReceptiveField());
         childMStick.setProperties(generator.getMaxImageDimensionDegrees());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;
