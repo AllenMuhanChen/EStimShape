@@ -2,9 +2,10 @@ package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.drawing.Coordinates2D;
 
-public class RegimeZeroStim extends GAStim<MorphedMatchStick, AllenMStickData> {
+public class RegimeZeroStim extends GAStim<RFMatchStick, AllenMStickData> {
 
     private AllenMStickData mStickData;
     private long stimId;
@@ -14,8 +15,8 @@ public class RegimeZeroStim extends GAStim<MorphedMatchStick, AllenMStickData> {
     }
 
     @Override
-    protected MorphedMatchStick createMStick() {
-        MorphedMatchStick mStick = new MorphedMatchStick();
+    protected RFMatchStick createMStick() {
+        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField());
         mStick.setProperties(generator.getMaxImageDimensionDegrees());
         mStick.genMatchStickRand();
         return mStick;
