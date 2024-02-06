@@ -2,12 +2,12 @@ import unittest
 
 from newga.regime_type import RegimeType
 from src.newga.ga_classes import Stimulus, Lineage, Node, LineageFactory
-from src.newga.regime_two import RegimeTwoParentSelector, RegimeTwoTransitioner
+from src.newga.regime_two import CanopyPhaseParentSelector, CanopyPhaseTransitioner
 
 
 class TestRegimeTwoParentSelector(unittest.TestCase):
     def setUp(self):
-        self.selector = RegimeTwoParentSelector(0.5, 2)
+        self.selector = CanopyPhaseParentSelector(0.5, 2)
 
     def test_select_parents(self):
         lineage = LineageFactory.create_lineage_from_stimuli([Stimulus(None, "Test", driving_response=i) for i in range(1, 11)])
@@ -31,7 +31,7 @@ class TestRegimeTwoParentSelector(unittest.TestCase):
 
 class TestRegimeTwoTransitioner(unittest.TestCase):
     def setUp(self):
-        self.transitioner = RegimeTwoTransitioner(2, 2)
+        self.transitioner = CanopyPhaseTransitioner(2, 2)
 
     def test_should_transition(self):
 

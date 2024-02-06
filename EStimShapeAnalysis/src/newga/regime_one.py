@@ -99,7 +99,7 @@ class RankOrderedDistribution:
         return list(random)
 
 
-class RegimeOneParentSelector(ParentSelector):
+class GrowingPhaseParentSelector(ParentSelector):
     """
     Samples stimuli from the rank-ordered distribution across all lineages.
     When sampling stimuli for each lineage, it checks if any of its stimuli are in the sample
@@ -168,14 +168,14 @@ class GetAllStimuliFunc:
         return stimuli
 
 
-class RegimeOneMutationAssigner(MutationAssigner):
+class GrowingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage):
         return RegimeType.REGIME_ONE.value
 
 
 # regime_one.py
 
-class RegimeOneMutationMagnitudeAssigner(MutationMagnitudeAssigner):
+class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
     min_magnitude = 0.1
     max_magnitude = 0.5
 
@@ -202,7 +202,7 @@ def calculate_peak_response(responses):
     return np.mean(top_responses)
 
 
-class RegimeOneTransitioner(RegimeTransitioner):
+class GrowingPhaseTransitioner(RegimeTransitioner):
     def __init__(self, convergence_threshold):
         self.convergence_threshold = convergence_threshold
         self.x = 3

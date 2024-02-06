@@ -5,7 +5,7 @@ import unittest
 from scipy.stats import gaussian_kde
 
 from src.newga.ga_classes import Stimulus, Lineage, LineageFactory
-from src.newga.regime_three import SmoothedSamplingFunction, RegimeThreeParentSelector, RegimeThreeTransitioner, \
+from src.newga.regime_three import SmoothedSamplingFunction, LeafingPhaseParentSelector, LeafingPhaseTransitioner, \
     HighEndSigmoid
 
 
@@ -40,7 +40,7 @@ def weight_func(response_rate):
 
 class TestRegimeThreeParentSelector(unittest.TestCase):
     def setUp(self):
-        self.selector = RegimeThreeParentSelector(weight_func)
+        self.selector = LeafingPhaseParentSelector(weight_func)
 
     def test_select_parents_by_custom_weight(self):
         # Create a lineage with 10 stimuli having response rates from 1 to 10.
@@ -60,7 +60,7 @@ class TestRegimeThreeParentSelector(unittest.TestCase):
 class TestRegimeThreeTransitioner(unittest.TestCase):
     def setUp(self):
         # Set the under-sampling threshold to a value that will prevent a transition.
-        self.transitioner = RegimeThreeTransitioner(under_sampling_threshold=0.5)
+        self.transitioner = LeafingPhaseTransitioner(under_sampling_threshold=0.5)
 
     def test_should_transition(self):
         # Create a lineage with 10 stimuli having response rates from 1 to 10.

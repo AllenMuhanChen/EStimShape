@@ -5,7 +5,7 @@ from src.newga.ga_classes import ParentSelector, MutationAssigner, RegimeTransit
     Lineage, Stimulus
 
 
-class RegimeTwoParentSelector(ParentSelector):
+class CanopyPhaseParentSelector(ParentSelector):
     """
     Samples from the top x (num_to_select) stimuli that pass a threshold across a lineage.
     """
@@ -25,18 +25,18 @@ class RegimeTwoParentSelector(ParentSelector):
         return np.random.choice(qualified_stimuli, size=batch_size, replace=True).tolist()
 
 
-class RegimeTwoMutationAssigner(MutationAssigner):
+class CanopyPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage):
         return RegimeType.REGIME_TWO.value
 
 
-class RegimeTwoMutationMagnitudeAssigner(MutationMagnitudeAssigner):
+class CanopyPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
 
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus):
         return None
 
 
-class RegimeTwoTransitioner(RegimeTransitioner):
+class CanopyPhaseTransitioner(RegimeTransitioner):
     def __init__(self, pair_threshold_high, pair_threshold_low):
         self.pair_threshold = {'high': pair_threshold_high, 'low': pair_threshold_low}
 

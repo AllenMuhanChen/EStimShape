@@ -12,7 +12,7 @@ from newga.ga_classes import LineageDistributor, Node, Stimulus, LineageFactory
 from newga.lineage_selection import ClassicLineageDistributor
 from newga.regime_type import RegimeType
 from newga.multi_ga_db_util import MultiGaDbUtil
-from src.newga.ga_classes import Regime, Lineage
+from src.newga.ga_classes import Phase, Lineage
 from clat.util import time_util
 
 
@@ -20,7 +20,7 @@ from clat.util import time_util
 class GeneticAlgorithm:
     # Dependencies
     name: str
-    regimes: List[Regime]
+    regimes: List[Phase]
     db_util: MultiGaDbUtil
     trials_per_generation: int
     lineage_distributor: ClassicLineageDistributor

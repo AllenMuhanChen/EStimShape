@@ -25,7 +25,7 @@ class SmoothedSamplingFunction:
         return sampling_func
 
 
-class RegimeThreeParentSelector(ParentSelector):
+class LeafingPhaseParentSelector(ParentSelector):
     def __init__(self, weight_func: Callable[[float], float], bandwidth=0.15):
         self.weight_func = weight_func
         self.sampling_func = SmoothedSamplingFunction(bandwidth=bandwidth)
@@ -48,18 +48,18 @@ class RegimeThreeParentSelector(ParentSelector):
         return np.random.choice(lineage.stimuli, size=batch_size, p=fitness_scores, replace=True)
 
 
-class RegimeThreeMutationAssigner(MutationAssigner):
+class LeafingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage):
         return RegimeType.REGIME_THREE.value
 
 
-class RegimeThreeMutationMagnitudeAssigner(MutationMagnitudeAssigner):
+class LeafingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
 
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus) -> float:
         return 0.1
 
 
-class RegimeThreeTransitioner(RegimeTransitioner):
+class LeafingPhaseTransitioner(RegimeTransitioner):
     def __init__(self, under_sampling_threshold, bandwidth=0.15):
         self.under_sampling_threshold = under_sampling_threshold
         self.sampling_func_calculator = SmoothedSamplingFunction(bandwidth=bandwidth)

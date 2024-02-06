@@ -2,12 +2,12 @@
 
 import unittest
 from src.newga.ga_classes import Stimulus, Lineage, Node, LineageFactory
-from src.newga.regime_zero import RegimeZeroTransitioner
+from src.newga.regime_zero import SeedingPhaseTransitioner
 
 
 class TestRegimeZeroTransitioner(unittest.TestCase):
     def setUp(self):
-        self.transitioner = RegimeZeroTransitioner(spontaneous_firing_rate=10, significance_level=0.05)
+        self.transitioner = SeedingPhaseTransitioner(spontaneous_firing_rate=10, significance_level=0.05)
 
     def test_should_transition(self):
         # Generate some stimuli with high response rates

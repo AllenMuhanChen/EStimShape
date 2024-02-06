@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from random import random
 from typing import Any
 
-from newga.ga_classes import LineageDistributor, Lineage, Regime, LineageFactory
+from newga.ga_classes import LineageDistributor, Lineage, Phase, LineageFactory
 from newga.multi_ga_db_util import MultiGaDbUtil
 
 from newga.regime_one import calculate_peak_response
@@ -58,7 +58,7 @@ class ClassicLineageDistributor:
     number_of_trials_per_generation: int
     max_lineages_to_build: int
     number_of_new_lineages_per_generation: int
-    regimes: list[Regime]
+    regimes: list[Phase]
     max_lineages_to_explore: int
 
     def get_num_trials_for_lineages(self, lineages: list[Lineage]) -> dict[Lineage: int]:
@@ -111,7 +111,7 @@ class DatabaseLineageDistributor(LineageDistributor):
     # Dependencies
     db_util: MultiGaDbUtil
     num_trials_per_generation: int
-    regimes: list[Regime]
+    regimes: list[Phase]
     number_of_lineages_to_build: int
     max_lineages: int
 

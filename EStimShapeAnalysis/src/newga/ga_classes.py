@@ -30,7 +30,7 @@ class Stimulus:
 
 
 class Lineage:
-    def __init__(self, founder: Stimulus, regimes: [Regime], current_regime_index=0, tree=None, gen_id=1):
+    def __init__(self, founder: Stimulus, regimes: [Phase], current_regime_index=0, tree=None, gen_id=1):
         self.id = founder.id
         if tree is None:
             self.stimuli = [founder]
@@ -141,7 +141,7 @@ class Node:
         return result
 
 
-class Regime:
+class Phase:
     def __init__(self, parent_selector: ParentSelector, mutation_assigner: MutationAssigner,
                  mutation_magnitude_assigner: MutationMagnitudeAssigner, regime_transitioner: RegimeTransitioner):
         self.parent_selector = parent_selector
@@ -210,7 +210,7 @@ class LineageDistributor(Protocol):
 
 class LineageFactory:
     @staticmethod
-    def create_lineage_from_stimuli(stimuli: [Stimulus], regimes: [Regime] = None) -> Lineage:
+    def create_lineage_from_stimuli(stimuli: [Stimulus], regimes: [Phase] = None) -> Lineage:
         tree = Node(stimuli[0])
         for stimulus in stimuli[1:]:
             if stimulus.parent_id is not None:
@@ -222,7 +222,7 @@ class LineageFactory:
         return Lineage(stimuli[0], regimes, tree)
 
     @staticmethod
-    def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Regime] = None, gen_id: int = None) -> Lineage:
+    def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Phase] = None, gen_id: int = None) -> Lineage:
         return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index, gen_id=gen_id)
 
     @staticmethod
