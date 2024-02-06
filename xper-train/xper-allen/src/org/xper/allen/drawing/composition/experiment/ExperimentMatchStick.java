@@ -272,21 +272,22 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      */
     public void checkInNoise(int cantBeInNoiseCompId, double percentRequiredOutsideNoise){
         Point3d[] compVect_info = getComp()[cantBeInNoiseCompId].getVect_info();
-        ArrayList<ConcaveHull.Point> concaveHullPoints = new ArrayList<>();
+        Point3d noiseCenter = calculateNoiseOrigin(cantBeInNoiseCompId);
+
+        ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         int index = 0;
         for (Point3d point3d: compVect_info){
             if (point3d != null){
                 if (index % 3 == 0) //For speed, we only check every other point for the hull
-                    concaveHullPoints.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+                {
+                    pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+                }
                 index++;
             }
         }
-        ConcaveHull concaveHull = new ConcaveHull();
 
-//        ArrayList<ConcaveHull.Point> hullVertices = concaveHull.calculateConcaveHull(concaveHullPoints, 5);
-        Point3d noiseCenter = calculateNoiseOrigin(cantBeInNoiseCompId);
         List<Point2d> pointsOutside = new LinkedList<>();
-        for (ConcaveHull.Point point: concaveHullPoints){
+        for (ConcaveHull.Point point: pointsToCheck){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
             }

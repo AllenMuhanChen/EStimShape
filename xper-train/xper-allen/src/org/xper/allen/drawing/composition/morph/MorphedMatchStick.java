@@ -60,6 +60,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 //                MutateSUB_reAssignJunctionRadius();
                 positionShape();
                 attemptSmoothizeMStick();
+                if (checkMStick()) break;
                 break;
             } catch (MorphException e) {
                 cleanData();
@@ -77,6 +78,70 @@ public class MorphedMatchStick extends AllenMatchStick {
         if (numAttempts >= MAX_TOTAL_ATTEMPTS) {
             throw new MorphException("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
         }
+    }
+
+
+    @Override
+    public void genMatchStickRand() {
+        int nComp;
+//		 double[] nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
+//		 double[] nCompDist = { 0, 0.1, 0.2, 0.4, 0.6, 0.8, 0.9, 1.00};
+        // double[] nCompDist = {0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};
+        double[] nCompDist = getPARAM_nCompDist();
+        nComp = stickMath_lib.pickFromProbDist(nCompDist);
+        // nComp = 2;
+
+        // debug
+        // nComp = 4;
+
+        // The way we write like this can guarantee that we try to
+        // generate a shape with "specific" # of components
+
+        while (true) {
+
+            while (true) {
+//				System.err.println("Try Rand");
+                if (genMatchStick_comp(nComp)) {
+                    if(checkMStick())
+                        break;
+                    else{
+                        System.out.println("Shape failed to pass checkMStick. Trying again");
+                    }
+                }
+                // else
+                // System.out.println(" Attempt to gen shape fail. try again");
+            }
+
+            // finalRotation = new double[3];
+            // for (int i=0; i<3; i++)
+            // finalRotation[i] = stickMath_lib.randDouble(0, 360.0);
+
+            // debug
+
+            // finalRotation[0] = 90.0;
+            // finalRotation[1] = 0.0;
+            // finalRotation[2] = 0;
+
+            // this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
+            // finalRotation[2]);
+
+            positionShape();
+
+            boolean res = smoothizeMStick();
+            if (res == true) // success to smooth
+                break; // else we need to gen another shape
+            // else
+            // System.out.println(" Fail to smooth combine the shape. try
+            // again.");
+
+        }
+
+
+    }
+
+
+    protected boolean checkMStick() {
+        return true;
     }
 
     private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {

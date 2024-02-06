@@ -4,6 +4,7 @@ import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
@@ -11,7 +12,7 @@ import org.xper.rfplot.drawing.png.PngSpec;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class GAStim<T extends MorphedMatchStick, D extends AllenMStickData> implements Stim {
+public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> implements Stim {
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
     protected final double size;

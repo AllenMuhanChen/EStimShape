@@ -1,9 +1,11 @@
 package org.xper.allen.drawing.composition.morph;
 
+import org.xper.allen.drawing.ga.RFMatchStick;
+
 import java.util.HashMap;
 import java.util.Map;
 
-public class GrowingMatchStick extends MorphedMatchStick{
+public class GrowingMatchStick extends RFMatchStick {
 
     private double sigma;
 
