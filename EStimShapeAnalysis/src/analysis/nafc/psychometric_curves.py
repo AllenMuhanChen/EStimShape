@@ -40,10 +40,16 @@ def main():
     print(data.to_string())
 
     # FILTER DATA
+    fig, ax = plt.subplots(figsize=(12, 10))
     data_1_hard_distractor = data[data['NumRandDistractors'] == 2]
     data_2_hard_distractors = data[data['NumRandDistractors'] == 1]
-    plot_psychometric_curves_side_by_side(data_1_hard_distractor, data_2_hard_distractors, '1 Hard Distractor',
-                                          '2 Hard Distractors', show_n=True)
+    # plot_psychometric_curves_side_by_side(data_1_hard_distractor, data_2_hard_distractors, '1 Hard Distractor',
+    #                                       '2 Hard Distractors', show_n=True)
+    plot_psychometric_curve_on_ax(data_1_hard_distractor, ax, label='1 Hard Distractor', show_n=False)
+    plot_psychometric_curve_on_ax(data_2_hard_distractors, ax, title="Psychometric Curves", label='2 Hard Distractors', show_n=False)
+    ax.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
+    ax.legend(fontsize=18)
+    plt.show()
 
 def plot_psycho_delta(data):
     data = data[data['NumRandDistractors'] == 2]
@@ -113,23 +119,25 @@ def plot_psychometric_curve_on_ax(df, ax, title=None, color=None, label=None, sh
     # Sort the percent_correct Series in ascending order of 'NoiseChance'
     percent_correct = percent_correct.sort_index(ascending=True)
 
-    ax.set_title(title)
-    ax.set_xlabel('Noise Chance')
-    ax.set_ylabel('Percent Correct (%)')
+    ax.set_title(title, fontsize=28)
+    ax.set_xlabel('Noise Chance (%)', fontsize=20)
+    ax.set_ylabel('Percent Correct', fontsize=20)
     ax.grid(True)
-    ax.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
 
     # Setting the x-axis labels to where there are data points
     existing_ticks = set(ax.get_xticks())
     updated_ticks = existing_ticks.union(set(percent_correct.index))
     ax.set_xticks(sorted(updated_ticks))
-    ax.set_xticklabels([f"{x:.4f}" for x in sorted(updated_ticks)], rotation=45)
+    ticks = [f"{x * 100:.0f}" for x in sorted(updated_ticks)]
+    ax.set_xticklabels(ticks, rotation=45, fontsize=14, color='black', fontweight='regular')
+    ax.tick_params(axis='y', labelsize=14)
+
 
     # Plotting as a line graph on the given ax
     line = ax.plot(percent_correct.index, percent_correct.values, color=color, marker='o', label=label)
 
+    # Adding text for num_reps above each data point
     if show_n:
-        # Adding text for num_reps above each data point
         for noise_chance, y_val in percent_correct.items():
             reps = num_reps[noise_chance]
             ax.text(noise_chance, y_val, f'{reps}', color=line[0].get_color(), ha='center', va='bottom')
