@@ -122,17 +122,17 @@ class GeneticAlgorithmConfig:
         return Phase(
             LeafingPhaseParentSelector(
                 self.weight_func(),
-                self.sampling_smoothing_bandwidt()),
+                self.sampling_smoothing_bandwidth()),
             LeafingPhaseMutationAssigner(),
             LeafingPhaseMutationMagnitudeAssigner(),
-            LeafingPhaseTransitioner(self.get_under_sampling_threshold(), bandwidth=self.sampling_smoothing_bandwidt()))
+            LeafingPhaseTransitioner(self.get_under_sampling_threshold(), bandwidth=self.sampling_smoothing_bandwidth()))
 
     def weight_func(self):
         return HighEndSigmoid(
             steepness=self.var_fetcher.get("regime_three_selection_weight_func_sigmoid_steepness", dtype=float),
             offset=self.var_fetcher.get("regime_three_selection_weight_func_sigmoid_offset", dtype=float))
 
-    def sampling_smoothing_bandwidt(self):
+    def sampling_smoothing_bandwidth(self):
         return self.var_fetcher.get("regime_three_selection_sampling_smoothing_bandwidth", dtype=float)
 
     def get_under_sampling_threshold(self):

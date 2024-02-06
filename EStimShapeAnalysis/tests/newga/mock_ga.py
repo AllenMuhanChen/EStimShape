@@ -9,7 +9,7 @@ import numpy as np
 from clat.intan.channels import Channel
 from clat.intan.spike_parsing import ResponseParser
 from analysis.ga.mockga import mock_ga_responses
-from newga.four_regime_config import GeneticAlgorithmConfig
+from newga.config.canopy_config import GeneticAlgorithmConfig
 from newga.multi_ga_db_util import MultiGaDbUtil
 
 
