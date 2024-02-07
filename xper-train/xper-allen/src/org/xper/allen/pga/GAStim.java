@@ -75,4 +75,9 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
+
+    protected double calculateRFEccentricity() {
+        Coordinates2D rfCenter = generator.rfSource.getRFCenter();
+        return Math.sqrt(Math.pow(rfCenter.getY(), 2) + Math.pow(rfCenter.getX(), 2));
+    }
 }

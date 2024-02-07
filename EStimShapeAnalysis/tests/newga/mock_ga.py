@@ -7,7 +7,8 @@ from time import sleep
 import numpy as np
 
 from clat.intan.channels import Channel
-from clat.intan.spike_parsing import ResponseParser
+from newga.config.rf_config import RFGeneticAlgorithmConfig
+from newga.spike_parsing import ResponseParser
 from analysis.ga.mockga import mock_ga_responses
 from newga.config.canopy_config import GeneticAlgorithmConfig
 from newga.multi_ga_db_util import MultiGaDbUtil
@@ -126,7 +127,7 @@ def run_trial_generator(generation):
     return result.returncode
 
 
-class FakeNeuronMockGeneticAlgorithmConfig(GeneticAlgorithmConfig):
+class FakeNeuronMockGeneticAlgorithmConfig(RFGeneticAlgorithmConfig):
     def __init__(self):
         super().__init__()
 

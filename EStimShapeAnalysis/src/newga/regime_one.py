@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from typing import Callable, List
 
-from clat.intan.response_processing import ResponseProcessor
+from newga.response_processing import ResponseProcessor
 from newga.multi_ga_db_util import MultiGaDbUtil
 from newga.regime_type import RegimeType
 from src.newga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \

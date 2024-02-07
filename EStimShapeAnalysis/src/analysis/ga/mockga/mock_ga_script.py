@@ -10,7 +10,7 @@ from clat.util.connection import Connection
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 xper_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/xper"
-conn = Connection("allen_estimshape_dev_221110")
+conn = Connection("allen_estimshape_ga_dev_240207")
 
 
 def main():
@@ -81,7 +81,7 @@ def number_of_complete_lineages():
 
 
 def run_trial_generator(generation):
-    output_dir = "/tree_graph"
+    output_dir = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/tree_graph"
 
     output_file = os.path.join(output_dir, f"generation_{generation}.txt")
     trial_generator_path = os.path.join(allen_dist, "MockNewGATrialGenerator.jar")

@@ -3914,9 +3914,9 @@ Adding a new MAxisArc to a MatchStick
     /**
      * It is imperative that these properties are set before the object is generated/is smoothized.
      *
-	 * @param maxImageDimensionDegrees
+	 * @param maxSizeDiameterDegrees
 	 */
-    public void setProperties(double maxImageDimensionDegrees) {
+    public void setProperties(double maxSizeDiameterDegrees) {
         //OBJECT PROPERTIES
         //SETTING SIZES
         /**
@@ -3925,7 +3925,7 @@ Adding a new MAxisArc to a MatchStick
          * to be approx half the size.
          */
 //        double scale = maxImageDimensionDegrees /1.5;
-		double scale = maxImageDimensionDegrees;
+		double scale = maxSizeDiameterDegrees;
         double minScale = scale/2;
         setScale(minScale, scale);
 

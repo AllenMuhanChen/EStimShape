@@ -17,11 +17,11 @@ public class RegimeOneStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     protected GrowingMatchStick createMStick() {
         //Generate MStick
         GrowingMatchStick parentMStick = new GrowingMatchStick();
-        parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        parentMStick.setProperties(calculateRFEccentricity());
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
         GrowingMatchStick childMStick = new GrowingMatchStick(generator.getReceptiveField());
-        childMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        childMStick.setProperties(calculateRFEccentricity());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;
     }

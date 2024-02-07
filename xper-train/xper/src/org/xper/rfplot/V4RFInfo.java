@@ -15,6 +15,9 @@ public class V4RFInfo extends RFInfo{
         this.color = color;
     }
 
+    public V4RFInfo() {
+    }
+
     static {
         s = new XStream();
         s.alias("RFInfo", V4RFInfo.class);
