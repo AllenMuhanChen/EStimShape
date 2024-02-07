@@ -17,6 +17,7 @@ import org.xper.allen.ga3d.blockgen.NaturalSpline;
 import org.xper.allen.ga3d.blockgen.Sigmoid;
 import org.xper.allen.newga.blockgen.SlotGABlockGenerator;
 import org.xper.allen.pga.FromDbGABlockGenerator;
+import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
 import org.xper.drawing.Coordinates2D;
@@ -53,9 +54,16 @@ public class PGAConfig {
         generator.setInitialSize(8);
         generator.setIntialCoords(new Coordinates2D(0,0));
         generator.setGaName("New3D");
+        generator.setRfSource(rfSource());
         return generator;
     }
 
+    @Bean
+    public ReceptiveFieldSource rfSource(){
+        ReceptiveFieldSource rfSource = new ReceptiveFieldSource();
+        rfSource.setDataSource(baseConfig.dataSource());
+        return rfSource;
+    }
 
     @Bean
     public MultiGATaskDataSource taskDataSource(){

@@ -78,6 +78,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             scrollerModeLabel.setText(modulator.getMode());
         }
         if(KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK).equals(k)){
+            System.out.println("Saving RFInfo");
             save();
         }
     }
