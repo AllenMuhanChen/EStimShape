@@ -33,7 +33,7 @@ public class RFMatchStickTest {
             }
         };
         RFMatchStick RFMatchStick = new RFMatchStick(rf);
-        RFMatchStick.setProperties(5);
+        RFMatchStick.setProperties(10);
         RFMatchStick.genMatchStickRand();
 
         testMatchStickDrawer.drawMStick(RFMatchStick);

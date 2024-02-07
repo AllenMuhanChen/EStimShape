@@ -6,6 +6,7 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
+from analysis.ga.mockga import mock_rwa_plot
 from analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_combine_rwas, get_next
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
 from analysis.matchstick_fields import ShaftField
@@ -20,7 +21,7 @@ from clat.util.time_util import When
 
 def main():
     # PARAMETERS
-    conn = Connection("allen_estimshape_dev_221110")
+    conn = Connection("allen_estimshape_ga_dev_240207")
     num_bins = 10
 
     # a percentage of the number of bins
@@ -129,7 +130,7 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields = FieldList()
     fields.append(NewGaNameField(conn, "GaType"))
     fields.append(NewGaLineageField(conn, "Lineage"))
-    fields.append(RegimeScoreField(conn, "RegimeScore"))
+    # fields.append(RegimeScoreField(conn, "RegimeScore"))
     # fields.append(GaTypeField(conn, "GaType"))
     # fields.append(GaLineageField(conn, "Lineage"))
     fields.append(StimSpecIdField(conn, "Id"))
@@ -260,5 +261,5 @@ def check_if_outside_binrange(field_name: str, value, binner_for_fields: dict[st
 
 if __name__ == '__main__':
     main()
-    # mock_rwa_plot.main()
+    mock_rwa_plot.main()
 

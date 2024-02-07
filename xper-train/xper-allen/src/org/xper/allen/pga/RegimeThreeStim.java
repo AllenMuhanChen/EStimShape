@@ -15,11 +15,11 @@ public class RegimeThreeStim extends GAStim<GrowingMatchStick, AllenMStickData> 
     @Override
     protected GrowingMatchStick createMStick() {
         GrowingMatchStick parentMStick = new GrowingMatchStick(1.0);
-        parentMStick.setProperties(calculateRFEccentricity());
+        parentMStick.setProperties(calculateSize());
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
         GrowingMatchStick childMStick = new GrowingMatchStick(generator.getReceptiveField());
-        childMStick.setProperties(calculateRFEccentricity());
+        childMStick.setProperties(calculateSize());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;
     }

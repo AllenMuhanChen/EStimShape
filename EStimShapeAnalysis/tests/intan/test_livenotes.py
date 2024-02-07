@@ -7,7 +7,7 @@ from clat.intan.marker_channels import read_digitalin_file, get_epochs_start_and
 class TestLiveNoteMapToMarkerChannels(TestCase):
     def test_map_stim_id_on_file(self):
         digital_in = read_digitalin_file(
-            "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/newga/mock-trial/digitalin.dat")
+            "/pga/mock-trial/digitalin.dat")
         stim_tstamps = get_epochs_start_and_stop_indices(digital_in[1], digital_in[0])
 
         notes = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/tests/newga/mock-trial/notes.txt"

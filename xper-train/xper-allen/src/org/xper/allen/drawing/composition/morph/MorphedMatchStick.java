@@ -102,40 +102,22 @@ public class MorphedMatchStick extends AllenMatchStick {
             while (true) {
 //				System.err.println("Try Rand");
                 if (genMatchStick_comp(nComp)) {
-                    if(checkMStick())
-                        break;
-                    else{
-                        System.out.println("Shape failed to pass checkMStick. Trying again");
-                    }
+                    break;
                 }
-                // else
-                // System.out.println(" Attempt to gen shape fail. try again");
             }
-
-            // finalRotation = new double[3];
-            // for (int i=0; i<3; i++)
-            // finalRotation[i] = stickMath_lib.randDouble(0, 360.0);
-
-            // debug
-
-            // finalRotation[0] = 90.0;
-            // finalRotation[1] = 0.0;
-            // finalRotation[2] = 0;
-
-            // this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
-            // finalRotation[2]);
 
             positionShape();
 
-            boolean res = smoothizeMStick();
-            if (res == true) // success to smooth
-                break; // else we need to gen another shape
-            // else
-            // System.out.println(" Fail to smooth combine the shape. try
-            // again.");
+            boolean smoothSucceeded = smoothizeMStick();
 
+
+            if (!smoothSucceeded) // fail to smooth
+                continue; // else we need to gen another shape
+
+            boolean sizeCheckSucceeded = checkMStick();
+            if (sizeCheckSucceeded) // success
+                break;
         }
-
 
     }
 

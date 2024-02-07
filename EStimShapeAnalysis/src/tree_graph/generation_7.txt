@@ -1,0 +1,939 @@
+Wed Feb 07 15:28:53 EST 2024 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Feb 07 15:28:53 EST 2024 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Feb 07 15:28:53 EST 2024 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+Wed Feb 07 15:28:53 EST 2024 WARN: Establishing SSL connection without server's identity verification is not recommended. According to MySQL 5.5.45+, 5.6.26+ and 5.7.6+ requirements SSL connection must be established by default if explicit option isn't set. For compliance with existing applications not using SSL the verifyServerCertificate property is set to 'false'. You need either to explicitly disable SSL by setting useSSL=false, or set useSSL=true and provide truststore for server certificate verification.
+DPIUtil
+StimId: 1707337731193922 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731194981 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731196041 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731197100 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731198189 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731199280 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731200371 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731201459 StimType: REGIME_THREE Magnitude: 0.1
+StimId: 1707337731202976 StimType: REGIME_ONE Magnitude: 0.42
+StimId: 1707337731204108 StimType: REGIME_ONE Magnitude: 0.5
+StimId: 1707337731205253 StimType: REGIME_ONE Magnitude: 0.39333
+StimId: 1707337731206427 StimType: REGIME_ONE Magnitude: 0.39333
+StimId: 1707337731207599 StimType: REGIME_ONE Magnitude: 0.26
+StimId: 1707337731208771 StimType: REGIME_ONE Magnitude: 0.34
+StimId: 1707337731209944 StimType: REGIME_ONE Magnitude: 0.42
+StimId: 1707337731184388 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1707337731185449 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1707337731186542 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1707337731187629 StimType: REGIME_ZERO Magnitude: 0.0
+StimId: 1707337731188722 StimType: REGIME_ZERO Magnitude: 0.0
+Number of stims to generate: 20
+Size: 11.85153316968798
+Size: 11.85153316968798
+Radius profile failed when attempting to be applied to component 2
+Tube collision check failed
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2462cb01
+Tube collision check failed
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2462cb01
+Percentage in RF: 0.031736344217271895 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Percentage in RF: 0.019856115107913668 Threshold: 0.1
+Percentage in RF: 0.016777552791437663 Threshold: 0.1
+Percentage in RF: 0.008290816326530613 Threshold: 0.1
+Percentage in RF: 0.042926239419588876 Threshold: 0.1
+Percentage in RF: 0.004246284501061571 Threshold: 0.1
+Percentage in RF: 0.021468574984443062 Threshold: 0.1
+Percentage in RF: 0.007380073800738007 Threshold: 0.1
+Percentage in RF: 0.00960419091967404 Threshold: 0.1
+Percentage in RF: 0.017742428877332517 Threshold: 0.1
+Percentage in RF: 0.04062870699881376 Threshold: 0.1
+Percentage in RF: 0.03753433018004272 Threshold: 0.1
+Percentage in RF: 0.06377245508982037 Threshold: 0.1
+Percentage in RF: 0.014479905437352246 Threshold: 0.1
+Percentage in RF: 0.018351383874849577 Threshold: 0.1
+Percentage in RF: 0.01632275947028026 Threshold: 0.1
+Percentage in RF: 0.04140223632517377 Threshold: 0.1
+Percentage in RF: 0.0426179604261796 Threshold: 0.1
+Percentage in RF: 0.005425471159337522 Threshold: 0.1
+Percentage in RF: 0.008637236084452975 Threshold: 0.1
+Percentage in RF: 0.018406759203379603 Threshold: 0.1
+Percentage in RF: 0.029201430274135878 Threshold: 0.1
+Percentage in RF: 0.03765194189149126 Threshold: 0.1
+Percentage in RF: 0.02790555044464888 Threshold: 0.1
+Percentage in RF: 0.03165334972341733 Threshold: 0.1
+Percentage in RF: 0.004024767801857585 Threshold: 0.1
+Percentage in RF: 0.011522134627046696 Threshold: 0.1
+Percentage in RF: 0.006457862447529867 Threshold: 0.1
+Percentage in RF: 0.0047239444936522 Threshold: 0.1
+Percentage in RF: 0.033433734939759034 Threshold: 0.1
+Percentage in RF: 0.021771109149749928 Threshold: 0.1
+Percentage in RF: 0.006959910913140312 Threshold: 0.1
+Percentage in RF: 0.0056179775280898875 Threshold: 0.1
+Percentage in RF: 0.004360012457178449 Threshold: 0.1
+Percentage in RF: 0.019540942928039703 Threshold: 0.1
+Percentage in RF: 0.04216867469879518 Threshold: 0.1
+Percentage in RF: 0.004391100702576112 Threshold: 0.1
+Percentage in RF: 0.06749020789394396 Threshold: 0.1
+Percentage in RF: 0.01021327726043857 Threshold: 0.1
+Percentage in RF: 0.01755466584539575 Threshold: 0.1
+Percentage in RF: 0.007950530035335688 Threshold: 0.1
+Percentage in RF: 0.03397638928879931 Threshold: 0.1
+Percentage in RF: 0.028219753827679377 Threshold: 0.1
+Percentage in RF: 0.025542025542025542 Threshold: 0.1
+Percentage in RF: 0.06506024096385542 Threshold: 0.1
+Percentage in RF: 0.012198750371913121 Threshold: 0.1
+Percentage in RF: 0.004104368220463207 Threshold: 0.1
+Percentage in RF: 0.00830614061109463 Threshold: 0.1
+Percentage in RF: 0.04201934703748488 Threshold: 0.1
+Percentage in RF: 0.012184249628528975 Threshold: 0.1
+Percentage in RF: 0.00793201133144476 Threshold: 0.1
+Percentage in RF: 0.006778661951075744 Threshold: 0.1
+Percentage in RF: 0.009566517189835576 Threshold: 0.1
+Percentage in RF: 0.0043859649122807015 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.008246114811290834 Threshold: 0.1
+Percentage in RF: 0.02294154619736015 Threshold: 0.1
+Percentage in RF: 0.005115089514066497 Threshold: 0.1
+Percentage in RF: 0.011155872327238922 Threshold: 0.1
+Percentage in RF: 0.05038992201559688 Threshold: 0.1
+Percentage in RF: 0.004076513013483851 Threshold: 0.1
+Percentage in RF: 0.005692031156381066 Threshold: 0.1
+Percentage in RF: 0.0677035681610247 Threshold: 0.1
+Percentage in RF: 0.010767922924341174 Threshold: 0.1
+Percentage in RF: 0.023305084745762712 Threshold: 0.1
+Percentage in RF: 0.018765903307888042 Threshold: 0.1
+Percentage in RF: 0.015931372549019607 Threshold: 0.1
+Percentage in RF: 0.025777777777777778 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.0044286979627989375 Threshold: 0.1
+Percentage in RF: 0.0625927024621774 Threshold: 0.1
+Percentage in RF: 0.005649717514124294 Threshold: 0.1
+Percentage in RF: 0.011915140947399011 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.006032749209997127 Threshold: 0.1
+Percentage in RF: 0.014701470147014702 Threshold: 0.1
+Percentage in RF: 0.03679525222551929 Threshold: 0.1
+Percentage in RF: 0.09470499243570348 Threshold: 0.1
+Percentage in RF: 0.024269005847953218 Threshold: 0.1
+Percentage in RF: 0.027119700748129676 Threshold: 0.1
+Percentage in RF: 0.0018399264029438822 Threshold: 0.1
+Percentage in RF: 0.008017960230917255 Threshold: 0.1
+Percentage in RF: 0.020229468599033816 Threshold: 0.1
+Percentage in RF: 0.021486123545210387 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.005022156573116691 Threshold: 0.1
+Percentage in RF: 0.006176470588235294 Threshold: 0.1
+Percentage in RF: 0.0030950170225936243 Threshold: 0.1
+Percentage in RF: 0.017078377554132357 Threshold: 0.1
+Percentage in RF: 0.021210407239819005 Threshold: 0.1
+Percentage in RF: 0.020284589766878594 Threshold: 0.1
+Percentage in RF: 0.006838163464669489 Threshold: 0.1
+Percentage in RF: 0.015389082462253194 Threshold: 0.1
+Percentage in RF: 0.03606658446362515 Threshold: 0.1
+Percentage in RF: 0.01492082825822168 Threshold: 0.1
+Percentage in RF: 0.013605442176870748 Threshold: 0.1
+Percentage in RF: 0.013505747126436781 Threshold: 0.1
+Percentage in RF: 0.008728542333430317 Threshold: 0.1
+Percentage in RF: 0.023872679045092837 Threshold: 0.1
+Percentage in RF: 0.017104099085815394 Threshold: 0.1
+Percentage in RF: 0.01991916859122402 Threshold: 0.1
+Percentage in RF: 0.040606060606060604 Threshold: 0.1
+Percentage in RF: 0.009295352323838081 Threshold: 0.1
+Percentage in RF: 0.0070830650354153256 Threshold: 0.1
+Percentage in RF: 0.024336973478939157 Threshold: 0.1
+Percentage in RF: 0.003572491813039595 Threshold: 0.1
+Percentage in RF: 0.009789807083213361 Threshold: 0.1
+Percentage in RF: 0.024897480960749854 Threshold: 0.1
+Percentage in RF: 0.020959902794653706 Threshold: 0.1
+Percentage in RF: 0.02353710362863681 Threshold: 0.1
+Percentage in RF: 0.00583941605839416 Threshold: 0.1
+Percentage in RF: 0.012738853503184714 Threshold: 0.1
+Percentage in RF: 0.004672897196261682 Threshold: 0.1
+Percentage in RF: 0.08333333333333333 Threshold: 0.1
+Percentage in RF: 0.07102693104468778 Threshold: 0.1
+Percentage in RF: 0.029644848840622247 Threshold: 0.1
+Percentage in RF: 0.0251414204902577 Threshold: 0.1
+Percentage in RF: 0.009220701963117191 Threshold: 0.1
+Percentage in RF: 0.017472335468841003 Threshold: 0.1
+Percentage in RF: 0.017283201940570043 Threshold: 0.1
+Percentage in RF: 0.016510903426791276 Threshold: 0.1
+Percentage in RF: 0.01857764876632801 Threshold: 0.1
+Percentage in RF: 0.008541793776693106 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.030340177750536317 Threshold: 0.1
+Percentage in RF: 0.011212747123045146 Threshold: 0.1
+Percentage in RF: 0.00412614205717654 Threshold: 0.1
+Percentage in RF: 0.012816691505216096 Threshold: 0.1
+Percentage in RF: 0.03992794956469529 Threshold: 0.1
+Percentage in RF: 0.01124567474048443 Threshold: 0.1
+Percentage in RF: 0.029782007982806263 Threshold: 0.1
+Percentage in RF: 0.0265750970438937 Threshold: 0.1
+Percentage in RF: 0.02966895690193629 Threshold: 0.1
+Percentage in RF: 0.007640317367029092 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.011708195737015911 Threshold: 0.1
+Percentage in RF: 0.006430868167202572 Threshold: 0.1
+Percentage in RF: 0.015809140557631503 Threshold: 0.1
+Percentage in RF: 0.04086330935251799 Threshold: 0.1
+Percentage in RF: 0.012738853503184714 Threshold: 0.1
+Percentage in RF: 0.021712158808933003 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.019572953736654804 Threshold: 0.1
+Percentage in RF: 0.006193868070610096 Threshold: 0.1
+Percentage in RF: 0.0069675855801272345 Threshold: 0.1
+Percentage in RF: 0.006032749209997127 Threshold: 0.1
+Percentage in RF: 0.012403100775193798 Threshold: 0.1
+Percentage in RF: 0.010659752232785941 Threshold: 0.1
+Percentage in RF: 0.006954944058058663 Threshold: 0.1
+Percentage in RF: 0.030275229357798167 Threshold: 0.1
+Percentage in RF: 0.008721804511278195 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.004878048780487805 Threshold: 0.1
+Percentage in RF: 0.014142604596346494 Threshold: 0.1
+Percentage in RF: 0.05977146205684149 Threshold: 0.1
+Percentage in RF: 0.011894400928343487 Threshold: 0.1
+Percentage in RF: 0.012338593974175036 Threshold: 0.1
+Percentage in RF: 0.004363001745200698 Threshold: 0.1
+Percentage in RF: 0.03037593984962406 Threshold: 0.1
+Percentage in RF: 0.00707755824240637 Threshold: 0.1
+Percentage in RF: 0.007550588945937783 Threshold: 0.1
+Percentage in RF: 0.006555423122765197 Threshold: 0.1
+Percentage in RF: 0.014539110206455364 Threshold: 0.1
+Percentage in RF: 0.08423326133909287 Threshold: 0.1
+Percentage in RF: 0.01754935756816045 Threshold: 0.1
+Percentage in RF: 0.009235209235209235 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.023655913978494623 Threshold: 0.1
+Percentage in RF: 0.018840153076243746 Threshold: 0.1
+Percentage in RF: 0.007638252367858234 Threshold: 0.1
+Percentage in RF: 0.01829988193624557 Threshold: 0.1
+Percentage in RF: 0.030322791000978153 Threshold: 0.1
+Percentage in RF: 0.03303303303303303 Threshold: 0.1
+Percentage in RF: 0.01282442748091603 Threshold: 0.1
+Percentage in RF: 0.0528222155146393 Threshold: 0.1
+Percentage in RF: 0.0047976011994002995 Threshold: 0.1
+Percentage in RF: 0.004822182037371911 Threshold: 0.1
+Percentage in RF: 0.02374511571986775 Threshold: 0.1
+Percentage in RF: 0.020705745115193935 Threshold: 0.1
+Percentage in RF: 0.012318382817435249 Threshold: 0.1
+Percentage in RF: 0.025022341376228777 Threshold: 0.1
+Percentage in RF: 0.010853180584865842 Threshold: 0.1
+Percentage in RF: 0.006530127634312852 Threshold: 0.1
+Percentage in RF: 0.02486678507992895 Threshold: 0.1
+Percentage in RF: 0.015111111111111112 Threshold: 0.1
+Percentage in RF: 0.02689335394126739 Threshold: 0.1
+Percentage in RF: 0.010018214936247723 Threshold: 0.1
+Percentage in RF: 0.009497549019607842 Threshold: 0.1
+Percentage in RF: 0.028692237994563576 Threshold: 0.1
+Percentage in RF: 0.03765194189149126 Threshold: 0.1
+Percentage in RF: 0.02881014116969173 Threshold: 0.1
+Percentage in RF: 0.01731996353691887 Threshold: 0.1
+Percentage in RF: 0.033999403519236505 Threshold: 0.1
+Percentage in RF: 0.03269172013443324 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.05871725383920506 Threshold: 0.1
+Percentage in RF: 0.013872135102533172 Threshold: 0.1
+Percentage in RF: 0.013356562137049941 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.01618320610687023 Threshold: 0.1
+Percentage in RF: 0.06660719595599167 Threshold: 0.1
+Percentage in RF: 0.05956944854025361 Threshold: 0.1
+Percentage in RF: 0.007718431614695894 Threshold: 0.1
+Percentage in RF: 0.01959089599539038 Threshold: 0.1
+Percentage in RF: 0.037821482602118005 Threshold: 0.1
+Percentage in RF: 0.012224938875305624 Threshold: 0.1
+Percentage in RF: 0.0221316249271986 Threshold: 0.1
+Percentage in RF: 0.010962241169305725 Threshold: 0.1
+Percentage in RF: 0.012324448265978791 Threshold: 0.1
+Percentage in RF: 0.003639672429481347 Threshold: 0.1
+Percentage in RF: 0.016213086276780544 Threshold: 0.1
+Percentage in RF: 0.017356881851400732 Threshold: 0.1
+Percentage in RF: 0.04638872577803876 Threshold: 0.1
+Percentage in RF: 0.028021015761821366 Threshold: 0.1
+Percentage in RF: 0.03614457831325301 Threshold: 0.1
+Percentage in RF: 0.025405570860116314 Threshold: 0.1
+Percentage in RF: 0.02374344742522356 Threshold: 0.1
+Percentage in RF: 0.03760932944606414 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.011370620774431468 Threshold: 0.1
+Percentage in RF: 0.06224712107065048 Threshold: 0.1
+Percentage in RF: 0.02863170584689572 Threshold: 0.1
+Percentage in RF: 0.0060441220912662436 Threshold: 0.1
+Percentage in RF: 0.014067278287461774 Threshold: 0.1
+Percentage in RF: 0.009569377990430622 Threshold: 0.1
+Percentage in RF: 0.016776512881965248 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.00949367088607595 Threshold: 0.1
+Percentage in RF: 0.02646280505733608 Threshold: 0.1
+Percentage in RF: 0.012665515256188831 Threshold: 0.1
+Percentage in RF: 0.01547029702970297 Threshold: 0.1
+Percentage in RF: 0.018683274021352312 Threshold: 0.1
+Percentage in RF: 0.0018529956763434219 Threshold: 0.1
+Percentage in RF: 0.026149684400360685 Threshold: 0.1
+Percentage in RF: 0.004079254079254079 Threshold: 0.1
+Percentage in RF: 0.013446360713241743 Threshold: 0.1
+Percentage in RF: 0.04859028194361128 Threshold: 0.1
+Percentage in RF: 0.009032634032634032 Threshold: 0.1
+Percentage in RF: 0.021128798842257598 Threshold: 0.1
+Percentage in RF: 0.006567164179104477 Threshold: 0.1
+Percentage in RF: 0.008659301283965363 Threshold: 0.1
+Percentage in RF: 0.017681159420289853 Threshold: 0.1
+Percentage in RF: 0.01637392080976481 Threshold: 0.1
+Percentage in RF: 0.0056903264450434265 Threshold: 0.1
+Percentage in RF: 0.010457125784284434 Threshold: 0.1
+Percentage in RF: 0.02863623476041962 Threshold: 0.1
+Percentage in RF: 0.013337199188170484 Threshold: 0.1
+Percentage in RF: 0.01971915147893636 Threshold: 0.1
+Percentage in RF: 0.016939252336448597 Threshold: 0.1
+Percentage in RF: 0.0033102618116160097 Threshold: 0.1
+Percentage in RF: 0.020355504587155963 Threshold: 0.1
+Percentage in RF: 0.00882445635045698 Threshold: 0.1
+Percentage in RF: 0.0035169988276670576 Threshold: 0.1
+Percentage in RF: 0.012008405884118884 Threshold: 0.1
+Percentage in RF: 0.01199882938249927 Threshold: 0.1
+Percentage in RF: 0.06795835743204165 Threshold: 0.1
+Percentage in RF: 0.025015253203172667 Threshold: 0.1
+Percentage in RF: 0.01550849985087981 Threshold: 0.1
+Percentage in RF: 0.06374269005847953 Threshold: 0.1
+Percentage in RF: 0.011124121779859485 Threshold: 0.1
+Percentage in RF: 0.010810810810810811 Threshold: 0.1
+Percentage in RF: 0.009942753841518529 Threshold: 0.1
+Percentage in RF: 0.03501945525291829 Threshold: 0.1
+Percentage in RF: 0.11635122556624262 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Percentage in RF: 0.011408083441981747 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Percentage in RF: 0.014973576042278332 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Percentage in RF: 0.04032258064516129 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Tube collision check failed
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@305a0c5f
+Percentage in RF: 0.055724725943970765 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Tube collision check failed
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@2c7b5824
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Tube collision check failed
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@302a07d
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Tube collision check failed
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@302a07d
+Tube collision check failed
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@302a07d
+Percentage in RF: 0.010433133101485931 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Skeleton Collision Check Failed
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Skeleton Collision Check Failed
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Tube collision check failed
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@f001896
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Skeleton Collision Check Failed
+Percentage in RF: 0.0032229709932610606 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Percentage in RF: 0.012037037037037037 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Tube collision check failed
+Failed to Morph Component 2 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@4f071df8
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Percentage in RF: 0.0 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Tube collision check failed
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@1643d68f
+Tube collision check failed
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@186978a6
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Failed to generate valid skeleton for using a morphed component 3 after 5 attempts.
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@186978a6
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Failed to generate valid skeleton for using a morphed component 3 after 5 attempts.
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@186978a6
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Failed to generate valid skeleton for using a morphed component 3 after 5 attempts.
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@186978a6
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Failed to generate valid skeleton for using a morphed component 3 after 5 attempts.
+Failed to Morph Component 3 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@186978a6
+Did not successfully morph component 3 after 5 attempts.
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Tube collision check failed
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@1643d68f
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Percentage in RF: 0.016284680337756333 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Skeleton Collision Check Failed
+Percentage in RF: 0.011138613861386138 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Percentage in RF: 0.008818342151675485 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Skeleton Collision Check Failed
+Percentage in RF: 0.036668738346799255 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Percentage in RF: 0.07777777777777778 Threshold: 0.1
+Percentage in RF: 0.006919006919006919 Threshold: 0.1
+Percentage in RF: 0.0032323232323232323 Threshold: 0.1
+Percentage in RF: 0.014049586776859505 Threshold: 0.1
+Percentage in RF: 0.0024691358024691358 Threshold: 0.1
+Percentage in RF: 0.011565468814539447 Threshold: 0.1
+Percentage in RF: 0.026237833262801522 Threshold: 0.1
+Percentage in RF: 0.04075504075504076 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.07232968881412952 Threshold: 0.1
+Percentage in RF: 0.03154153709462461 Threshold: 0.1
+Percentage in RF: 0.009764758100310697 Threshold: 0.1
+Percentage in RF: 0.004543577034283354 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.056383970177073625 Threshold: 0.1
+Percentage in RF: 0.11970613656006915 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Percentage in RF: 0.04479855682501503 Threshold: 0.1
+Percentage in RF: 0.007280139778683751 Threshold: 0.1
+Percentage in RF: 0.039850560398505604 Threshold: 0.1
+Percentage in RF: 0.002433830240340736 Threshold: 0.1
+Percentage in RF: 0.00723589001447178 Threshold: 0.1
+Percentage in RF: 0.01253731343283582 Threshold: 0.1
+Percentage in RF: 0.02046783625730994 Threshold: 0.1
+Percentage in RF: 0.03608883405305367 Threshold: 0.1
+Percentage in RF: 0.00706605222734255 Threshold: 0.1
+Percentage in RF: 0.0040511062636335304 Threshold: 0.1
+Percentage in RF: 0.03020961775585697 Threshold: 0.1
+Percentage in RF: 0.00708128078817734 Threshold: 0.1
+Percentage in RF: 0.03322259136212625 Threshold: 0.1
+Percentage in RF: 0.032317636195752536 Threshold: 0.1
+Percentage in RF: 0.009861325115562404 Threshold: 0.1
+Percentage in RF: 0.027204502814258912 Threshold: 0.1
+Percentage in RF: 0.017569124423963134 Threshold: 0.1
+Percentage in RF: 0.019230769230769232 Threshold: 0.1
+Percentage in RF: 0.008802816901408451 Threshold: 0.1
+Percentage in RF: 0.01411042944785276 Threshold: 0.1
+Percentage in RF: 0.03087740752063589 Threshold: 0.1
+Percentage in RF: 0.015295717199184228 Threshold: 0.1
+Percentage in RF: 0.021160822249093107 Threshold: 0.1
+Percentage in RF: 0.016143497757847534 Threshold: 0.1
+Percentage in RF: 0.037565521258008154 Threshold: 0.1
+Percentage in RF: 0.0018674136321195146 Threshold: 0.1
+Percentage in RF: 0.047519426180514045 Threshold: 0.1
+Percentage in RF: 0.030805687203791468 Threshold: 0.1
+Percentage in RF: 0.025511811023622048 Threshold: 0.1
+Percentage in RF: 0.004721435316336166 Threshold: 0.1
+Percentage in RF: 0.017018779342723004 Threshold: 0.1
+Percentage in RF: 0.0070880094506792675 Threshold: 0.1
+Percentage in RF: 0.01510015408320493 Threshold: 0.1
+Percentage in RF: 0.01733921815889029 Threshold: 0.1
+Percentage in RF: 0.01733102253032929 Threshold: 0.1
+Percentage in RF: 0.011746987951807229 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.00187207488299532 Threshold: 0.1
+Percentage in RF: 0.010362694300518135 Threshold: 0.1
+Percentage in RF: 0.03029420332071075 Threshold: 0.1
+Percentage in RF: 0.032664069523524124 Threshold: 0.1
+Percentage in RF: 0.028846153846153848 Threshold: 0.1
+Percentage in RF: 0.0053843852826802275 Threshold: 0.1
+Percentage in RF: 0.011381113503537373 Threshold: 0.1
+Percentage in RF: 0.010660349422564407 Threshold: 0.1
+Percentage in RF: 0.011114639568116862 Threshold: 0.1
+Percentage in RF: 0.021515151515151515 Threshold: 0.1
+Percentage in RF: 0.0029655990510083037 Threshold: 0.1
+Percentage in RF: 0.03308931185944363 Threshold: 0.1
+Percentage in RF: 0.02242822966507177 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.006738939349545854 Threshold: 0.1
+Percentage in RF: 0.021049510821227396 Threshold: 0.1
+Percentage in RF: 0.008665511265164644 Threshold: 0.1
+Percentage in RF: 0.06620523623232019 Threshold: 0.1
+Percentage in RF: 0.017685851318944845 Threshold: 0.1
+Percentage in RF: 0.008489461358313818 Threshold: 0.1
+Percentage in RF: 0.003821281599059377 Threshold: 0.1
+Percentage in RF: 0.004168982768204558 Threshold: 0.1
+Percentage in RF: 0.012735166425470333 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.010382675763868289 Threshold: 0.1
+Percentage in RF: 0.012331180270111567 Threshold: 0.1
+Percentage in RF: 0.024144254278728607 Threshold: 0.1
+Percentage in RF: 0.012269938650306749 Threshold: 0.1
+Percentage in RF: 0.007021650087770626 Threshold: 0.1
+Percentage in RF: 0.004666083406240887 Threshold: 0.1
+Percentage in RF: 0.0420120034295513 Threshold: 0.1
+Percentage in RF: 0.016676418958455237 Threshold: 0.1
+Percentage in RF: 0.022593896713615023 Threshold: 0.1
+Percentage in RF: 0.030359937402190923 Threshold: 0.1
+Percentage in RF: 0.006894484412470024 Threshold: 0.1
+Percentage in RF: 0.009239297813366184 Threshold: 0.1
+Percentage in RF: 0.019624819624819625 Threshold: 0.1
+Percentage in RF: 0.03295042321644498 Threshold: 0.1
+Percentage in RF: 0.011764705882352941 Threshold: 0.1
+Percentage in RF: 0.014184397163120567 Threshold: 0.1
+Percentage in RF: 0.011877172653534183 Threshold: 0.1
+Percentage in RF: 0.02210623272950568 Threshold: 0.1
+Percentage in RF: 0.08372502937720329 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.006222775357809583 Threshold: 0.1
+Percentage in RF: 0.012718130730553091 Threshold: 0.1
+Percentage in RF: 0.009495548961424332 Threshold: 0.1
+Percentage in RF: 0.00937233740414655 Threshold: 0.1
+Percentage in RF: 0.0053141606752110035 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.028296382730455077 Threshold: 0.1
+Percentage in RF: 0.01892059553349876 Threshold: 0.1
+Percentage in RF: 0.02947845804988662 Threshold: 0.1
+Percentage in RF: 0.02425876010781671 Threshold: 0.1
+Percentage in RF: 0.005671641791044776 Threshold: 0.1
+Percentage in RF: 0.019903498190591073 Threshold: 0.1
+Percentage in RF: 0.02028526148969889 Threshold: 0.1
+Percentage in RF: 0.017780326928591914 Threshold: 0.1
+Percentage in RF: 0.023984198645598195 Threshold: 0.1
+Percentage in RF: 0.015323322096230463 Threshold: 0.1
+Percentage in RF: 0.003564003564003564 Threshold: 0.1
+Percentage in RF: 0.02503725782414307 Threshold: 0.1
+Percentage in RF: 0.013909011880614315 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.009824992324224747 Threshold: 0.1
+Percentage in RF: 0.0066205236232320195 Threshold: 0.1
+Percentage in RF: 0.030818619582664526 Threshold: 0.1
+Percentage in RF: 0.02890002948982601 Threshold: 0.1
+Percentage in RF: 0.027097902097902096 Threshold: 0.1
+Percentage in RF: 0.045966514459665146 Threshold: 0.1
+Percentage in RF: 0.05714285714285714 Threshold: 0.1
+Percentage in RF: 0.016730261226885822 Threshold: 0.1
+Percentage in RF: 0.012113484220592923 Threshold: 0.1
+Percentage in RF: 0.021014289717007566 Threshold: 0.1
+Percentage in RF: 0.010257913247362251 Threshold: 0.1
+Percentage in RF: 0.009792626728110598 Threshold: 0.1
+Percentage in RF: 0.01912889935256033 Threshold: 0.1
+Percentage in RF: 0.05542168674698795 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.014352665495020504 Threshold: 0.1
+Percentage in RF: 0.006138555977784273 Threshold: 0.1
+Percentage in RF: 0.04659055846960815 Threshold: 0.1
+Percentage in RF: 0.023442319555829736 Threshold: 0.1
+Percentage in RF: 0.036095870632399656 Threshold: 0.1
+Percentage in RF: 0.02153754113072091 Threshold: 0.1
+Percentage in RF: 0.009512485136741973 Threshold: 0.1
+Percentage in RF: 0.05721316517994463 Threshold: 0.1
+Percentage in RF: 0.020478890989287964 Threshold: 0.1
+Percentage in RF: 0.011418783899514702 Threshold: 0.1
+Percentage in RF: 0.007978723404255319 Threshold: 0.1
+Percentage in RF: 0.031158998252766454 Threshold: 0.1
+Percentage in RF: 0.03535811423390753 Threshold: 0.1
+Percentage in RF: 0.011316259678379988 Threshold: 0.1
+Percentage in RF: 0.03353570396068228 Threshold: 0.1
+Percentage in RF: 0.021422195775066943 Threshold: 0.1
+Percentage in RF: 0.018518518518518517 Threshold: 0.1
+Percentage in RF: 0.024172661870503598 Threshold: 0.1
+Percentage in RF: 0.007076139258420606 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.01741218853197238 Threshold: 0.1
+Percentage in RF: 0.012669416617560401 Threshold: 0.1
+Percentage in RF: 0.03522205206738132 Threshold: 0.1
+Percentage in RF: 0.013876586950103336 Threshold: 0.1
+Percentage in RF: 0.008457276173811607 Threshold: 0.1
+Percentage in RF: 0.05166615713848976 Threshold: 0.1
+Percentage in RF: 0.024844720496894408 Threshold: 0.1
+Percentage in RF: 0.007527853056308341 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.010005885815185403 Threshold: 0.1
+Percentage in RF: 0.023161189358372455 Threshold: 0.1
+Percentage in RF: 0.03867747972551466 Threshold: 0.1
+Percentage in RF: 0.008875739644970414 Threshold: 0.1
+Percentage in RF: 0.08001255098839033 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.01834862385321101 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.015554890816631767 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.012269938650306749 Threshold: 0.1
+Percentage in RF: 0.0025534631343759975 Threshold: 0.1
+Percentage in RF: 0.019248680533995654 Threshold: 0.1
+Percentage in RF: 0.0185795624812706 Threshold: 0.1
+Percentage in RF: 0.007853403141361256 Threshold: 0.1
+Percentage in RF: 0.030122372136805773 Threshold: 0.1
+Percentage in RF: 0.03718500307314075 Threshold: 0.1
+Percentage in RF: 0.04085422469823584 Threshold: 0.1
+Percentage in RF: 0.053240036507453604 Threshold: 0.1
+Percentage in RF: 0.008740204942736588 Threshold: 0.1
+Percentage in RF: 0.007594936708860759 Threshold: 0.1
+Percentage in RF: 0.06013694551949985 Threshold: 0.1
+Percentage in RF: 0.024443069306930694 Threshold: 0.1
+Percentage in RF: 0.17503136762860727 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Percentage in RF: 0.03740340030911901 Threshold: 0.1
+Percentage in RF: 0.034431582071831404 Threshold: 0.1
+Percentage in RF: 0.017927681555758128 Threshold: 0.1
+Percentage in RF: 0.07068914522330672 Threshold: 0.1
+Percentage in RF: 0.020474777448071215 Threshold: 0.1
+Percentage in RF: 0.01631079478054567 Threshold: 0.1
+Percentage in RF: 0.04889589905362776 Threshold: 0.1
+Percentage in RF: 0.041128084606345476 Threshold: 0.1
+Percentage in RF: 0.011030478955007257 Threshold: 0.1
+Percentage in RF: 0.037181409295352325 Threshold: 0.1
+Percentage in RF: 0.0339409176618479 Threshold: 0.1
+Percentage in RF: 0.022475189725627554 Threshold: 0.1
+Percentage in RF: 0.026878612716763006 Threshold: 0.1
+Percentage in RF: 0.022995283018867923 Threshold: 0.1
+Percentage in RF: 0.006025911419102139 Threshold: 0.1
+Percentage in RF: 0.006558311947533505 Threshold: 0.1
+Percentage in RF: 0.009262025694651926 Threshold: 0.1
+Percentage in RF: 0.01645971700837424 Threshold: 0.1
+Percentage in RF: 0.012205506670451319 Threshold: 0.1
+Percentage in RF: 0.026506784474597665 Threshold: 0.1
+Percentage in RF: 0.03133994243684042 Threshold: 0.1
+Percentage in RF: 0.05081775700934579 Threshold: 0.1
+Percentage in RF: 0.01551094890510949 Threshold: 0.1
+Percentage in RF: 0.010207057451151939 Threshold: 0.1
+Percentage in RF: 0.04034411153960249 Threshold: 0.1
+Percentage in RF: 0.015748031496062992 Threshold: 0.1
+Percentage in RF: 0.06791862284820031 Threshold: 0.1
+Percentage in RF: 0.0389344262295082 Threshold: 0.1
+Percentage in RF: 0.03587180241105557 Threshold: 0.1
+Percentage in RF: 0.019002375296912115 Threshold: 0.1
+Percentage in RF: 0.043052256532066506 Threshold: 0.1
+Percentage in RF: 0.02608695652173913 Threshold: 0.1
+Percentage in RF: 0.014779781259237363 Threshold: 0.1
+Percentage in RF: 0.05844346549192364 Threshold: 0.1
+Percentage in RF: 0.008764241893076249 Threshold: 0.1
+Percentage in RF: 0.013611352447147408 Threshold: 0.1
+Percentage in RF: 0.034818067754077794 Threshold: 0.1
+Percentage in RF: 0.0117310443490701 Threshold: 0.1
+Percentage in RF: 0.02791227570492737 Threshold: 0.1
+Percentage in RF: 0.023837902264600714 Threshold: 0.1
+Percentage in RF: 0.0055819145967066705 Threshold: 0.1
+Percentage in RF: 0.02778635381290522 Threshold: 0.1
+Percentage in RF: 0.01241697949754548 Threshold: 0.1
+Percentage in RF: 0.01300620750812888 Threshold: 0.1
+Percentage in RF: 0.019225332202431437 Threshold: 0.1
+Percentage in RF: 0.013161830690996112 Threshold: 0.1
+Percentage in RF: 0.012150668286755772 Threshold: 0.1
+Percentage in RF: 0.02298507462686567 Threshold: 0.1
+Percentage in RF: 0.0413986013986014 Threshold: 0.1
+Percentage in RF: 0.02891708468574801 Threshold: 0.1
+Percentage in RF: 0.01882781658062557 Threshold: 0.1
+Percentage in RF: 0.0036363636363636364 Threshold: 0.1
+Percentage in RF: 0.019871598899419137 Threshold: 0.1
+Percentage in RF: 0.016676773802304427 Threshold: 0.1
+Percentage in RF: 0.026855763427881714 Threshold: 0.1
+Percentage in RF: 0.01882906737275669 Threshold: 0.1
+Percentage in RF: 0.0226497052435619 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.006867721707972529 Threshold: 0.1
+Percentage in RF: 0.015582034830430797 Threshold: 0.1
+Percentage in RF: 0.014285714285714285 Threshold: 0.1
+Percentage in RF: 0.04370346390417611 Threshold: 0.1
+Percentage in RF: 0.052125349053676696 Threshold: 0.1
+Percentage in RF: 0.006664734859461026 Threshold: 0.1
+Percentage in RF: 0.07469375560203168 Threshold: 0.1
+Percentage in RF: 0.002749770852428964 Threshold: 0.1
+Percentage in RF: 0.011901219875037191 Threshold: 0.1
+Percentage in RF: 0.016857506361323157 Threshold: 0.1
+Percentage in RF: 0.03533123028391167 Threshold: 0.1
+Percentage in RF: 0.0166270783847981 Threshold: 0.1
+Percentage in RF: 0.010277172220492058 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.007177033492822967 Threshold: 0.1
+Percentage in RF: 0.00558659217877095 Threshold: 0.1
+Percentage in RF: 0.014455044810638912 Threshold: 0.1
+Percentage in RF: 0.018268942797244683 Threshold: 0.1
+Percentage in RF: 0.0068454078722190535 Threshold: 0.1
+Percentage in RF: 0.021068249258160237 Threshold: 0.1
+Percentage in RF: 0.026880096647538508 Threshold: 0.1
+Percentage in RF: 0.013283280392723073 Threshold: 0.1
+Percentage in RF: 0.003787878787878788 Threshold: 0.1
+Percentage in RF: 0.00125 Threshold: 0.1
+Percentage in RF: 0.029386343993085567 Threshold: 0.1
+Percentage in RF: 0.028148148148148148 Threshold: 0.1
+Percentage in RF: 0.02294279596206791 Threshold: 0.1
+Percentage in RF: 0.012858851674641148 Threshold: 0.1
+Percentage in RF: 0.030395136778115502 Threshold: 0.1
+Percentage in RF: 0.0029463759575721863 Threshold: 0.1
+Percentage in RF: 0.005270863836017569 Threshold: 0.1
+Percentage in RF: 0.01795895096921323 Threshold: 0.1
+Percentage in RF: 0.013846153846153847 Threshold: 0.1
+Percentage in RF: 0.02047677261613692 Threshold: 0.1
+Percentage in RF: 0.006980273141122913 Threshold: 0.1
+Percentage in RF: 0.024311657879320447 Threshold: 0.1
+Percentage in RF: 0.050923168552709945 Threshold: 0.1
+Percentage in RF: 0.020959902794653706 Threshold: 0.1
+Percentage in RF: 0.018392168495995252 Threshold: 0.1
+Percentage in RF: 0.004238570996064184 Threshold: 0.1
+Percentage in RF: 0.008164499546416692 Threshold: 0.1
+Percentage in RF: 0.023048112935753384 Threshold: 0.1
+Percentage in RF: 0.009128386336866903 Threshold: 0.1
+Percentage in RF: 0.032108764824992767 Threshold: 0.1
+Percentage in RF: 0.006211180124223602 Threshold: 0.1
+Percentage in RF: 0.007542790832608065 Threshold: 0.1
+Percentage in RF: 0.013711436584605797 Threshold: 0.1
+Percentage in RF: 0.019072769953051644 Threshold: 0.1
+Percentage in RF: 0.017634539373669808 Threshold: 0.1
+Percentage in RF: 0.019539224263633713 Threshold: 0.1
+Percentage in RF: 0.006522383634746516 Threshold: 0.1
+Percentage in RF: 0.006478209658421673 Threshold: 0.1
+Percentage in RF: 0.018165836507471434 Threshold: 0.1
+Percentage in RF: 0.01491681009753299 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.03795576808129109 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.03561643835616438 Threshold: 0.1
+Percentage in RF: 0.010110584518167456 Threshold: 0.1
+Percentage in RF: 0.016156462585034014 Threshold: 0.1
+Percentage in RF: 0.013550135501355014 Threshold: 0.1
+Percentage in RF: 0.017404129793510324 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.00964727163099186 Threshold: 0.1
+Percentage in RF: 0.006602641056422569 Threshold: 0.1
+Percentage in RF: 0.035628019323671496 Threshold: 0.1
+Percentage in RF: 0.00684931506849315 Threshold: 0.1
+Percentage in RF: 0.013206388206388206 Threshold: 0.1
+Percentage in RF: 0.013681592039800995 Threshold: 0.1
+Percentage in RF: 0.012851897184822521 Threshold: 0.1
+Percentage in RF: 0.023674242424242424 Threshold: 0.1
+Percentage in RF: 0.015229885057471264 Threshold: 0.1
+Percentage in RF: 0.05754950495049505 Threshold: 0.1
+Percentage in RF: 0.00911496618641576 Threshold: 0.1
+Percentage in RF: 0.021556550951847706 Threshold: 0.1
+Percentage in RF: 0.020431990659661413 Threshold: 0.1
+Percentage in RF: 0.02725563909774436 Threshold: 0.1
+Percentage in RF: 0.01995163240628779 Threshold: 0.1
+Percentage in RF: 0.0038131553860819827 Threshold: 0.1
+Percentage in RF: 0.03564727954971857 Threshold: 0.1
+Percentage in RF: 0.012995049504950494 Threshold: 0.1
+Percentage in RF: 0.008807985907222548 Threshold: 0.1
+Percentage in RF: 0.019810508182601206 Threshold: 0.1
+Percentage in RF: 0.0276327909118821 Threshold: 0.1
+Percentage in RF: 6.445375443119562E-4 Threshold: 0.1
+Percentage in RF: 0.01775329048056321 Threshold: 0.1
+Percentage in RF: 0.0112893642305407 Threshold: 0.1
+Percentage in RF: 0.011310084825636193 Threshold: 0.1
+Percentage in RF: 0.01226443314388274 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.021799201719373655 Threshold: 0.1
+Percentage in RF: 0.024625935162094763 Threshold: 0.1
+Percentage in RF: 0.011274934952298352 Threshold: 0.1
+Percentage in RF: 0.027061044682190057 Threshold: 0.1
+Percentage in RF: 0.009545849002024877 Threshold: 0.1
+Percentage in RF: 0.01716613325574629 Threshold: 0.1
+Percentage in RF: 0.01371396585502379 Threshold: 0.1
+Percentage in RF: 0.021244309559939303 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.005516840882694541 Threshold: 0.1
+Percentage in RF: 0.11667703795892968 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Percentage in RF: 0.04957983193277311 Threshold: 0.1
+Percentage in RF: 0.03871499176276771 Threshold: 0.1
+Percentage in RF: 0.02422723475355054 Threshold: 0.1
+Percentage in RF: 0.053886925795053005 Threshold: 0.1
+Percentage in RF: 0.012736056214317084 Threshold: 0.1
+Percentage in RF: 0.01760851760851761 Threshold: 0.1
+Percentage in RF: 0.012063227953410981 Threshold: 0.1
+Percentage in RF: 0.005777961205117622 Threshold: 0.1
+Percentage in RF: 0.01649048625792812 Threshold: 0.1
+Percentage in RF: 0.013687600644122383 Threshold: 0.1
+Percentage in RF: 0.026856903063365505 Threshold: 0.1
+Percentage in RF: 0.016122004357298474 Threshold: 0.1
+Percentage in RF: 0.02247686205376818 Threshold: 0.1
+Percentage in RF: 0.014327855035819638 Threshold: 0.1
+Percentage in RF: 0.013104013104013105 Threshold: 0.1
+Percentage in RF: 0.00872093023255814 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.031124944419742107 Threshold: 0.1
+Percentage in RF: 0.014845360824742268 Threshold: 0.1
+Percentage in RF: 0.06276870163370593 Threshold: 0.1
+Percentage in RF: 0.010183299389002037 Threshold: 0.1
+Percentage in RF: 0.00526085050416484 Threshold: 0.1
+Percentage in RF: 0.013184178985217739 Threshold: 0.1
+Percentage in RF: 0.035609551738583996 Threshold: 0.1
+Percentage in RF: 0.01875272568687309 Threshold: 0.1
+Percentage in RF: 0.0012340600575894694 Threshold: 0.1
+Percentage in RF: 0.018137847642079808 Threshold: 0.1
+Percentage in RF: 0.016771488469601678 Threshold: 0.1
+Percentage in RF: 0.036758563074352546 Threshold: 0.1
+Percentage in RF: 0.01791958041958042 Threshold: 0.1
+Percentage in RF: 0.031237155774763666 Threshold: 0.1
+Percentage in RF: 0.02385849444672974 Threshold: 0.1
+Percentage in RF: 0.01079734219269103 Threshold: 0.1
+Percentage in RF: 0.012965286491007947 Threshold: 0.1
+Percentage in RF: 0.02127659574468085 Threshold: 0.1
+Percentage in RF: 0.02289758534554538 Threshold: 0.1
+Percentage in RF: 0.040103492884864166 Threshold: 0.1
+Percentage in RF: 0.09379014989293362 Threshold: 0.1
+Percentage in RF: 0.02680501513186338 Threshold: 0.1
+Percentage in RF: 0.06252622744439781 Threshold: 0.1
+Percentage in RF: 0.06722689075630252 Threshold: 0.1
+Percentage in RF: 0.012757201646090535 Threshold: 0.1
+Percentage in RF: 0.03189257238774654 Threshold: 0.1
+Percentage in RF: 0.01762295081967213 Threshold: 0.1
+Percentage in RF: 0.01670843776106934 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.027327070879590094 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.016481252575195716 Threshold: 0.1
+Percentage in RF: 0.006522625356706074 Threshold: 0.1
+Percentage in RF: 0.016921837228041903 Threshold: 0.1
+Percentage in RF: 0.06621102093122597 Threshold: 0.1
+Percentage in RF: 0.009575923392612859 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.014675052410901468 Threshold: 0.1
+Percentage in RF: 0.029983108108108107 Threshold: 0.1
+Percentage in RF: 0.029595664860358483 Threshold: 0.1
+Percentage in RF: 0.07386609071274298 Threshold: 0.1
+Percentage in RF: 0.012244897959183673 Threshold: 0.1
+Percentage in RF: 0.02804878048780488 Threshold: 0.1
+Percentage in RF: 0.057057057057057055 Threshold: 0.1
+Percentage in RF: 0.015919564306661083 Threshold: 0.1
+Percentage in RF: 0.007986548970155528 Threshold: 0.1
+Percentage in RF: 0.009492364836978951 Threshold: 0.1
+Percentage in RF: 0.02823240589198036 Threshold: 0.1
+Percentage in RF: 0.027227722772277228 Threshold: 0.1
+Percentage in RF: 0.009508061182306739 Threshold: 0.1
+Percentage in RF: 0.056082474226804124 Threshold: 0.1
+Percentage in RF: 0.007478188616535106 Threshold: 0.1
+Percentage in RF: 0.02795425667090216 Threshold: 0.1
+Percentage in RF: 0.010688328345446772 Threshold: 0.1
+Percentage in RF: 0.019673503557974047 Threshold: 0.1
+Percentage in RF: 0.02672889266016122 Threshold: 0.1
+Percentage in RF: 0.014805414551607445 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.026371756699276903 Threshold: 0.1
+Percentage in RF: 0.01718213058419244 Threshold: 0.1
+Percentage in RF: 0.0297723292469352 Threshold: 0.1
+Percentage in RF: 0.015183466891606916 Threshold: 0.1
+Percentage in RF: 0.02751540041067762 Threshold: 0.1
+Percentage in RF: 0.007966457023060796 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.012992455993294216 Threshold: 0.1
+Percentage in RF: 0.014843087362171332 Threshold: 0.1
+Percentage in RF: 0.016353229762878167 Threshold: 0.1
+Percentage in RF: 0.025850926324859975 Threshold: 0.1
+Percentage in RF: 0.018906699547883273 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.02175805047867711 Threshold: 0.1
+Percentage in RF: 0.06419973250111458 Threshold: 0.1
+Percentage in RF: 0.01493139628732849 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.04236200256739409 Threshold: 0.1
+Percentage in RF: 0.0441367373431415 Threshold: 0.1
+Percentage in RF: 0.015188834154351396 Threshold: 0.1
+Percentage in RF: 0.014193025141930252 Threshold: 0.1
+Percentage in RF: 0.044543429844097995 Threshold: 0.1
+Percentage in RF: 0.016171328671328672 Threshold: 0.1
+Percentage in RF: 0.028991596638655463 Threshold: 0.1
+Percentage in RF: 0.0 Threshold: 0.1
+Percentage in RF: 0.030265848670756646 Threshold: 0.1
+Percentage in RF: 0.18352223190932868 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Failed to generate valid skeleton for using a morphed component 1 after 5 attempts.
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@4aa3d36
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+Skeleton Collision Check Failed
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Skeleton Collision Check Failed
+The two tube are not contacting.....fail
+Failed to smoothize the matchstick!
+Failed to morph matchstick.
+Retrying to morph matchstick...
+Radius profile failed when attempting to be applied to component 1
+Tube collision check failed
+Failed to Morph Component 1 with parameters org.xper.allen.drawing.composition.morph.ComponentMorphParameters@4aa3d36
+Percentage in RF: 0.02394492666866208 Threshold: 0.1
+creating and saving PNG...
+Size: 11.85153316968798
+Size: 11.85153316968798
+Percentage in RF: 0.06675102815564694 Threshold: 0.1
+creating and saving PNG...
+Done Generating...

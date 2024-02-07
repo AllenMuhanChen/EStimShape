@@ -69,5 +69,28 @@ public class MockPGAConfig {
         return true;
     }
 
+    @Bean(scope = DefaultScopes.PROTOTYPE)
+    public Integer xperInterTrialInterval() {
+        return 1;
+    }
 
+    @Bean(scope = DefaultScopes.PROTOTYPE)
+    public Integer xperDelayAfterTrialComplete() {
+        return 0;
+    }
+
+    @Bean(scope = DefaultScopes.PROTOTYPE)
+    public Integer xperTimeBeforeFixationPointOn() {
+        return 0;
+    }
+
+    @Bean(scope = DefaultScopes.PROTOTYPE)
+    public Integer xperRequiredEyeInHoldTime() {
+        return 1;
+    }
+
+    @Bean(scope = DefaultScopes.PROTOTYPE)
+    public Integer xperSlideLength() {
+        return 1;
+    }
 }

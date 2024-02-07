@@ -17,9 +17,7 @@ from clat.util.connection import Connection
 
 import xml.etree.ElementTree as ET
 
-
-
-conn = Connection("allen_estimshape_dev_230519")
+conn = Connection("allen_estimshape_ga_dev_240207")
 
 
 def fetch_components_to_preserve_for_stim_id(stim_id):
@@ -141,7 +139,6 @@ class MockTreeGraphApp(TreeGraphApp):
                 else:
                     return dash.no_update
 
-
         # Define the callback for click events
         @self.app.callback(
             Output("node-info", "children"),
@@ -201,7 +198,6 @@ class MockTreeGraphApp(TreeGraphApp):
                 return ""
 
 
-
 def get_all_lineages():
     query = """
     SELECT LineageGaInfo.lineage_id
@@ -246,7 +242,7 @@ class MockTreeGraph(ColoredTreeGraph):
             img.sizey = size
 
         # self.node_trace.update(marker_size=size/2)
-        self.fig.data[0].update(marker_size=size/4)
+        self.fig.data[0].update(marker_size=size / 4)
 
         return self.fig
 
@@ -266,7 +262,6 @@ class MockTreeGraph(ColoredTreeGraph):
                     img.opacity = 0.05
             except:
                 pass
-
 
         self.fig.update_layout(images=self.fig.layout.images)
 
@@ -350,7 +345,8 @@ def fetch_shaft_data_for_mstick(stim_id):
 
 
 def fetch_tree_spec(lineage_id):
-    conn.execute("SELECT tree_spec from LineageGaInfo where lineage_id = %s ORDER BY gen_id DESC LIMIT 1", (lineage_id,))
+    conn.execute("SELECT tree_spec from LineageGaInfo where lineage_id = %s ORDER BY gen_id DESC LIMIT 1",
+                 (lineage_id,))
     tree_spec = conn.fetch_one()
     tree_spec = _parse_recursive_xml(tree_spec)
     return tree_spec
@@ -379,6 +375,7 @@ def _parse_recursive_node(elem):
         "identifier": int(elem.text),
         "children": children
     }
+
 
 def main():
     app = MockTreeGraphApp()

@@ -10,7 +10,7 @@ import javax.swing.*;
 
 public class MockConsole {
     public static void main(String[] args) {
-        FileUtil.loadTestSystemProperties("/xper.properties.newga.mock");
+        FileUtil.loadTestSystemProperties("/xper.properties.pga.mock");
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {

@@ -145,4 +145,12 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     public void setGaName(String gaName) {
         this.gaName = gaName;
     }
+
+    public ReceptiveFieldSource getRfSource() {
+        return rfSource;
+    }
+
+    public void setRfSource(ReceptiveFieldSource rfSource) {
+        this.rfSource = rfSource;
+    }
 }

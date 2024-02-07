@@ -8,7 +8,7 @@ import org.xper.util.FileUtil;
 
 public class MockExperiment {
     public static void main(String[] args) {
-        FileUtil.loadTestSystemProperties("/xper.properties.newga.mock");
+        FileUtil.loadTestSystemProperties("/xper.properties.pga.mock");
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 

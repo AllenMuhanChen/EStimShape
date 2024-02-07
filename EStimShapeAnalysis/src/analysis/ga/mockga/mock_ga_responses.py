@@ -40,7 +40,7 @@ def compile_data_with_task_ids(conn, task_ids):
 
 def main():
     # PARAMETERS
-    conn = Connection("allen_estimshape_dev_230519")
+    conn = Connection("allen_estimshape_ga_dev_240207")
 
     # conn.execute("TRUNCATE TABLE ExpLog")
 

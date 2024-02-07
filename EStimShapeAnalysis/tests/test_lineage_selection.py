@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import Mock
 
-from newga.lineage_selection import DatabaseLineageDistributor, filter_by_regime_past, \
+from pga.lineage_selection import DatabaseLineageDistributor, filter_by_regime_past, \
     distribute_amount_equally_among
-from newga.regime_type import RegimeType
-from newga.multi_ga_db_util import MultiGaDbUtil
+from pga.regime_type import RegimeType
+from pga.multi_ga_db_util import MultiGaDbUtil
 
 
 def mock_read_regime_for_lineage(lineage_id: int) -> str:
