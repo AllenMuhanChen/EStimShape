@@ -248,7 +248,7 @@ def response_weight_and_sum_point_matrices(point_matrices: list[RWAMatrix], resp
 
         np.add(summed_unweighted, point_matrix.matrix, out=summed_unweighted)
         print("response weighing and summing point matrix " + str(index + 1))
-        matrix = point_matrix.apply(lambda m, r: np.multiply(m, r), response_vector[index]).matrix
+        matrix = point_matrix.apply(lambda m, r: np.multiply(m, r), float(response_vector[index])).matrix
         np.add(summed_response_weighted, matrix,
                out=summed_response_weighted)
 

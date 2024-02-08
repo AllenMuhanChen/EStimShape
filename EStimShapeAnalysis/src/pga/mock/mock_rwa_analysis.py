@@ -6,7 +6,6 @@ import jsonpickle as jsonpickle
 import numpy as np
 import pandas as pd
 
-from analysis.ga.mockga import mock_rwa_plot
 from analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_combine_rwas, get_next
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
 from analysis.matchstick_fields import ShaftField
@@ -130,14 +129,10 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields = FieldList()
     fields.append(NewGaNameField(conn, "GaType"))
     fields.append(NewGaLineageField(conn, "Lineage"))
-    # fields.append(RegimeScoreField(conn, "RegimeScore"))
-    # fields.append(GaTypeField(conn, "GaType"))
-    # fields.append(GaLineageField(conn, "Lineage"))
+    fields.append(RegimeScoreField(conn, "RegimeScore"))
     fields.append(StimSpecIdField(conn, "Id"))
     fields.append(MockResponseField(conn, 1, name="Response-1"))
     fields.append(ShaftField(mstick_spec_data_source, name="Shaft"))
-    # fields.append(TerminationField(mstick_spec_data_source, name="Termination"))
-    # fields.append(JunctionField(mstick_spec_data_source, name="Junction"))
 
     data = get_data_from_trials(fields, trial_tstamps)
     return data
@@ -151,10 +146,8 @@ class MockResponseField(StimSpecIdField):
 
     def get(self, when: When) -> float:
         stim_spec_id = StimSpecIdField.get(self, when)
-        self.conn.execute("SELECT memo FROM ExpLog WHERE tstamp = %s", [stim_spec_id])
-        responses_for_channels = self.conn.fetch_one()
-        responses_for_channels = ast.literal_eval(responses_for_channels)
-        response = responses_for_channels.get(self.channel)
+        self.conn.execute("SELECT response FROM StimGaInfo WHERE stim_id = %s", [stim_spec_id])
+        response = self.conn.fetch_one()
         return response
 
 
@@ -261,5 +254,5 @@ def check_if_outside_binrange(field_name: str, value, binner_for_fields: dict[st
 
 if __name__ == '__main__':
     main()
-    mock_rwa_plot.main()
+
 

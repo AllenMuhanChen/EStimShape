@@ -6,7 +6,7 @@ import xmltodict
 from matplotlib import pyplot as plt
 
 from analysis.ga.rwa import AutomaticBinner, rwa, raw_data, get_next, normalize_and_combine_rwas
-from analysis.ga.mockga import hemisphericalize, condition_theta_and_phi
+from analysis.ga.oldmockga import hemisphericalize, condition_theta_and_phi
 from clat.util import dictionary_util
 from analysis.test_multidim_rwa import plot_data_and_rwa_variations
 

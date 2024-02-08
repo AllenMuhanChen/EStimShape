@@ -15,7 +15,7 @@ from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks
 from clat.intan.channels import Channel
 from analysis.ga.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
 from clat.compile.trial.trial_collector import TrialCollector
-from analysis.ga.mockga.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
+from pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.dictionary_util import flatten_dictionary, \
@@ -71,9 +71,6 @@ def main():
     list_of_tuning_functions = [shaft_function, shaft_function]
 
     # PIPELINE
-    # trial_tstamps = collect_trials(conn, time_util.all())
-    # data = compile_data(conn, trial_tstamps)
-
     task_ids = collect_task_ids(conn)
     data = compile_data_with_task_ids(conn, task_ids)
     data = condition_spherical_angles(data)
@@ -85,11 +82,6 @@ def main():
 
     # EXPORT]
     insert_to_channel_responses(conn, response_rates, data)
-
-    # DEBUG
-    # mock_rwa_analysis.main()
-    # mock_rwa_plot.main()
-    # plt.show()
 
 
 def insert_to_channel_responses(conn, response_rates: list[dict], data: pd.DataFrame):
@@ -170,18 +162,6 @@ class ShaftTuningFunction(TuningFunction):
 def collect_trials(conn: Connection, when: When = time_util.all()) -> list[When]:
     trial_collector = TrialCollector(conn, when)
     return trial_collector.collect_trials()
-
-
-# def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
-#     mstick_spec_data_source = StimSpecDataField(conn)
-#
-#     fields = FieldList()
-#     fields.append(StimSpecIdField(conn, "Id"))
-#     fields.append(ShaftField(mstick_spec_data_source))
-#     # fields.append(TerminationField(mstick_spec_data_source))
-#     # fields.append(JunctionField(mstick_spec_data_source))
-#
-#     return get_data_from_trials(fields, trial_tstamps)
 
 
 def generate_responses(data: pd.DataFrame, list_of_tuning_functions: list[TuningFunction]) -> list[dict[int, double]]:

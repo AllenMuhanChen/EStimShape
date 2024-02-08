@@ -7,7 +7,7 @@ import xmltodict
 from matplotlib import pyplot as plt, cm
 
 from analysis.ga.rwa import get_next
-from analysis.ga.mockga.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
+from pga.mock.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
 from clat.util.connection import Connection
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 
@@ -41,7 +41,7 @@ def main():
     plt.show()
 
 def plot_top_n_stimuli(n, fig):
-    conn = Connection("allen_estimshape_dev_221110")
+    conn = Connection("allen_estimshape_ga_dev_240207")
     conn.execute("SELECT stim_id, response FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
     top_n_stim_id_and_response = conn.fetch_all()
     top_n_stim_ids = [stim[0] for stim in top_n_stim_id_and_response]

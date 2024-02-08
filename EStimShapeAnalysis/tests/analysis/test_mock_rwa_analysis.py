@@ -3,8 +3,8 @@ from random import random
 from unittest import TestCase
 
 from analysis.ga.rwa import Binner
-from analysis.ga.mockga import collect_trials
-from analysis.ga.mockga import condition_theta_and_phi, condition_spherical_angles, condition_for_inside_bins, \
+from analysis.ga.oldmockga import collect_trials
+from analysis.ga.oldmockga import condition_theta_and_phi, condition_spherical_angles, condition_for_inside_bins, \
     compile_data
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 from clat.util import time_util

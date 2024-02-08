@@ -5,8 +5,8 @@ from matplotlib.pyplot import subplots
 
 from clat.compile.trial.classic_database_fields import GaTypeField, GaLineageField, StimSpecIdField, StimSpecField
 from clat.compile.trial.trial_field import FieldList, get_data_from_trials
-from analysis.ga.mockga.mock_ga_responses import collect_trials
-from analysis.ga.mockga.mock_rwa_analysis import MockResponseField
+from pga.mock.mock_ga_responses import collect_trials
+from pga.mock.mock_rwa_analysis import MockResponseField
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
@@ -21,7 +21,7 @@ def split_by_lineage(data):
 
 def main():
     # PARAMETERS
-    conn = Connection("allen_estimshape_dev_221110")
+    conn = Connection("allen_estimshape_ga_dev_240207")
 
     # PIPELINE
     trial_tstamps = collect_trials(conn, time_util.all())
