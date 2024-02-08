@@ -25,6 +25,7 @@ public class MockExperiment {
         jt.execute("TRUNCATE TABLE StimGaInfo");
         jt.execute("TRUNCATE TABLE LineageGaInfo");
 
+
         dbUtil.writeReadyGAandGenerationInfo("New3D");
 
 

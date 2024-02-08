@@ -66,7 +66,7 @@ public class MockPGAConfig {
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
     public Boolean xperDoEmptyTask() {
-        return true;
+        return false;
     }
 
     @Bean(scope = DefaultScopes.PROTOTYPE)
@@ -84,13 +84,5 @@ public class MockPGAConfig {
         return 0;
     }
 
-    @Bean(scope = DefaultScopes.PROTOTYPE)
-    public Integer xperRequiredEyeInHoldTime() {
-        return 1;
-    }
 
-    @Bean(scope = DefaultScopes.PROTOTYPE)
-    public Integer xperSlideLength() {
-        return 1;
-    }
 }
