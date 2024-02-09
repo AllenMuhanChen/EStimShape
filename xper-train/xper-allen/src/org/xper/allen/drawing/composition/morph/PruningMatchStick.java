@@ -31,7 +31,7 @@ public class PruningMatchStick extends RFMatchStick {
         // Construct MorphParameters for componentsToMorph
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
         for (Integer comp : componentsToMorph) {
-            ComponentMorphParameters params = new ComponentMorphParameters(magnitude, normalMorphDistributer);
+            ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
             paramsForComps.put(comp, params);
         }
 

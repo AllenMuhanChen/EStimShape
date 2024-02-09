@@ -33,7 +33,7 @@ public class GrowingMatchStick extends RFMatchStick {
         // Construct MorphParameters for components
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
         for (int i=1; i<=matchStickToMorph.getNComponent(); i++) {
-            ComponentMorphParameters params = new ComponentMorphParameters(magnitude, normalMorphDistributer);
+            ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
             paramsForComps.put(i, params);
         }
 

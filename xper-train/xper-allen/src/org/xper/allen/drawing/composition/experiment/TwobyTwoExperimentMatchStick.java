@@ -3,9 +3,9 @@ package org.xper.allen.drawing.composition.experiment;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.morph.RadiusProfile;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 

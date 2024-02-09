@@ -33,7 +33,7 @@ public class MorphedMAxisArcTest {
         arc.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_ABOVE, 0);
 
         MorphedMAxisArc morphedArc = new MorphedMAxisArc();
-        ComponentMorphParameters morphParams = new ComponentMorphParameters(0.2, new NormalMorphDistributer(1/3.0));
+        NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(0.2, new NormalMorphDistributer(1/3.0));
         morphedArc.genMorphedArc(arc, 1, morphParams);
 //        morphedArc.transRotMAxis(1, new Point3d(0,0,0), 1, VIEW_ABOVE, 0);
 
@@ -48,7 +48,7 @@ public class MorphedMAxisArcTest {
     }
 
     private TestDrawingWindow getTestDrawingWindow() {
-        window = TestDrawingWindow.createDrawerWindow();
+        window = TestDrawingWindow.createDrawerWindow(500, 500);
         return window;
     }
 }

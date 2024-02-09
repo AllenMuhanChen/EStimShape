@@ -96,7 +96,7 @@ public class ProceduralMatchStickTest {
 
 //        ArrayList<ConcaveHull.Point> drivingCompHull = calcHull(testMStick, baseMStick.getSpecialEndComp().get(0));
 //        ArrayList<ConcaveHull.Point> baseCompHull = calcHull(testMStick, 2);
-        window = TestDrawingWindow.createDrawerWindow();
+        window = TestDrawingWindow.createDrawerWindow(500, 500);
         window.draw(new Drawable() {
             @Override
             public void draw() {
@@ -360,7 +360,7 @@ public class ProceduralMatchStickTest {
     }
 
     private TestDrawingWindow getTestDrawingWindow() {
-        window = TestDrawingWindow.createDrawerWindow();
+        window = TestDrawingWindow.createDrawerWindow(500, 500);
         return window;
     }
 }

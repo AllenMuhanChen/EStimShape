@@ -7,8 +7,6 @@ import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.util.ThreadUtil;
 
-import static org.junit.Assert.*;
-
 public class MatchStickTest {
 
     private TestDrawingWindow window;
@@ -46,7 +44,7 @@ public class MatchStickTest {
     }
 
     private void getTestDrawingWindow() {
-        window = TestDrawingWindow.createDrawerWindow();
+        window = TestDrawingWindow.createDrawerWindow(500, 500);
     }
 
     private void drawMStick(MatchStick mStick){

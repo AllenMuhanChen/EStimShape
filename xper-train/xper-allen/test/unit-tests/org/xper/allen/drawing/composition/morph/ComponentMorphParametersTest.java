@@ -9,7 +9,7 @@ import java.util.List;
 
 public class ComponentMorphParametersTest {
 
-    private ComponentMorphParameters morphParams;
+    private NormalDistributedComponentMorphParameters morphParams;
 
     @Before
     public void setUp() throws Exception {
@@ -18,7 +18,7 @@ public class ComponentMorphParametersTest {
 
     @Test
     public void test_magnitude_distribution() {
-        morphParams = new ComponentMorphParameters(0.5, new NormalMorphDistributer(1/3.0));
+        morphParams = new NormalDistributedComponentMorphParameters(0.5, new NormalMorphDistributer(1/3.0));
         List<Double> magnitudes = new ArrayList<>();
         magnitudes.add(morphParams.orientationMagnitude);
         magnitudes.add(morphParams.rotationMagnitude);
@@ -40,9 +40,4 @@ public class ComponentMorphParametersTest {
         System.out.println(magnitudes);
 
     }
-
-    @Test
-    public
-
-
 }

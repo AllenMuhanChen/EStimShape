@@ -3,8 +3,6 @@ package org.xper.allen.drawing.composition.morph;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusInfo;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
 import org.xper.drawing.stick.EndPt_struct;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.stickMath_lib;
@@ -509,7 +507,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             public void accept(JuncPt_struct junction, Integer compIndx) {
                 int uNdx = junction.getuNdx()[compIndx];
                 Double oldRadius = junction.getRad();
-                RadiusInfo junctionRadiusInfo = new RadiusInfo(oldRadius, uNdx, ComponentMorphParameters.RADIUS_TYPE.JUNCTION, false);
+                RadiusInfo junctionRadiusInfo = new RadiusInfo(oldRadius, uNdx, NormalDistributedComponentMorphParameters.RADIUS_TYPE.JUNCTION, false);
 
 
                 // Only add junction radius info if
@@ -536,7 +534,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             public void accept(EndPt_struct endPt) {
                 int uNdx = endPt.getuNdx();
                 Double oldRadius = endPt.getRad();
-                RadiusInfo endPtRadiusInfo = new RadiusInfo(oldRadius, uNdx, ComponentMorphParameters.RADIUS_TYPE.ENDPT, false);
+                RadiusInfo endPtRadiusInfo = new RadiusInfo(oldRadius, uNdx, NormalDistributedComponentMorphParameters.RADIUS_TYPE.ENDPT, false);
                 oldRadiusProfile.addRadiusInfo(uNdx, endPtRadiusInfo);
             }
         });
@@ -544,7 +542,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         // Retrieve Radius from MidPt
         int uNdx = getComp()[id].getmAxisInfo().getBranchPt();
         Double oldRadius = old_radInfo[1][1];
-        RadiusInfo midPtRadiusInfo = new RadiusInfo(oldRadius, uNdx, ComponentMorphParameters.RADIUS_TYPE.MIDPT, false);
+        RadiusInfo midPtRadiusInfo = new RadiusInfo(oldRadius, uNdx, NormalDistributedComponentMorphParameters.RADIUS_TYPE.MIDPT, false);
         oldRadiusProfile.addRadiusInfo(uNdx, midPtRadiusInfo);
         return oldRadiusProfile;
     }

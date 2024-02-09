@@ -44,12 +44,12 @@ public class TestDrawingWindow {
     }
 
 
-    public static TestDrawingWindow createDrawerWindow() {
+    public static TestDrawingWindow createDrawerWindow(int height, int width) {
         initXperLibs();
 
         TestDrawingWindow drawingWindow = new TestDrawingWindow();
         if(drawingWindow.window == null || !drawingWindow.window.isOpen()) {
-            drawingWindow.init();
+            drawingWindow.init(height, width);
         }
         return drawingWindow;
 
@@ -61,8 +61,8 @@ public class TestDrawingWindow {
         new XperConfig("", libs);
     }
 
-    private void init(){
-        window = new BaseWindow(500,500);
+    private void init(int height, int width){
+        window = new BaseWindow(height, width);
         PixelFormat pixelFormat = new PixelFormat(0, 8, 1, 4);
         window.setPixelFormat(pixelFormat);
         window.create();

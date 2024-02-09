@@ -3,6 +3,7 @@ package org.xper.allen.drawing.composition.experiment;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.morph.NormalDistributedComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
@@ -65,7 +66,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     public void genNewComponentMatchStick(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, double magnitude, double discreteness) {
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(morphComponentIndx, new ComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
+        morphParametersForComponents.put(morphComponentIndx, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
 
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
@@ -179,7 +180,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(baseComponentIndex, new ComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
+        morphParametersForComponents.put(baseComponentIndex, new NormalDistributedComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
         while (true) {
             genMorphedMatchStick(morphParametersForComponents, targetMatchStick);
             try {

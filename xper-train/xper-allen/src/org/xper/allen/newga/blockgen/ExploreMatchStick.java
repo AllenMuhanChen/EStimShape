@@ -1,10 +1,7 @@
 package org.xper.allen.newga.blockgen;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.composition.morph.PruningMatchStick;
+import org.xper.allen.drawing.composition.morph.*;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -28,7 +25,7 @@ public class ExploreMatchStick extends MorphedMatchStick {
         // Construct MorphParameters for componentsToMorph
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<>();
         for (Integer comp : componentsToMorph) {
-            ComponentMorphParameters params = new ComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0));
+            ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(1.0));
             paramsForComps.put(comp, params);
         }
 

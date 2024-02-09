@@ -17,7 +17,7 @@ public class RFMatchStickTest {
     @Before
     public void setUp() throws Exception {
         testMatchStickDrawer = new TestMatchStickDrawer();
-        testMatchStickDrawer.setup();
+        testMatchStickDrawer.setup(500, 500);
         h = 5;
         k = 5;
         r = 10;

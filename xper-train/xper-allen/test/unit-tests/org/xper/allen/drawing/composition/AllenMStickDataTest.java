@@ -234,7 +234,7 @@ public class AllenMStickDataTest {
 
 
     private void getTestDrawingWindow() {
-        window = TestDrawingWindow.createDrawerWindow();
+        window = TestDrawingWindow.createDrawerWindow(500, 500);
     }
 
 

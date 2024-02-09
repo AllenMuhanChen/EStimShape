@@ -4,13 +4,11 @@ import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.stick.MatchStick;
 
-import static org.junit.Assert.*;
-
 public class TestMatchStickDrawer {
-    private TestDrawingWindow window;
+    public TestDrawingWindow window;
 
-    public void setup(){
-        window = TestDrawingWindow.createDrawerWindow();
+    public void setup(int height, int width){
+        window = TestDrawingWindow.createDrawerWindow(height, width);
     }
 
     public void drawMStick(MatchStick mStick){

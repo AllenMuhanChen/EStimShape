@@ -68,7 +68,7 @@ public class AllenMAxisArcTest {
     }
 
     private TestDrawingWindow getTestDrawingWindow() {
-        window = TestDrawingWindow.createDrawerWindow();
+        window = TestDrawingWindow.createDrawerWindow(500, 500);
         return window;
     }
 
