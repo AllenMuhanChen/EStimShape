@@ -13,7 +13,7 @@ public class ComponentMorphParametersTest {
 
     @Before
     public void setUp() throws Exception {
-        morphParams = new ComponentMorphParameters(1.0, new NormalMorphDistributer(1/3.0));
+//        morphParams = new ComponentMorphParameters(1.0, new NormalMorphDistributer(1/3.0));
     }
 
     @Test
@@ -36,7 +36,13 @@ public class ComponentMorphParametersTest {
         // Assert that the sum of the magnitudes is less than or equal to 2.5 (0.5 * 5, because we specified magnitude
         // of 0.5, and there are 5 categories to distribute normalized magnitudes to)
         Assert.assertTrue(sum <= 2.5);
+
+        System.out.println(magnitudes);
+
     }
+
+    @Test
+    public
 
 
 }

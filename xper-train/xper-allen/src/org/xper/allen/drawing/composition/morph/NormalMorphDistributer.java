@@ -20,20 +20,21 @@ public class NormalMorphDistributer {
         List<AtomicReference<Double>> magnitudesToDistributeTo = new LinkedList<>(paramMagnitudes);
         double amountLeftToDistribute = magnitude;
         int numParams = magnitudesToDistributeTo.size();
-        double maxPerParam = 1.0 / numParams;
+        double maxPerParam = (1.0 / numParams);
         double buffer = 0.1 * maxPerParam; // magnitude being 1.0 may lead to impossible configurations, so we'd like to avoid this.
+        maxPerParam = maxPerParam - buffer;
         while (Math.round(amountLeftToDistribute*100000.0)/100000.0 > 0.0) {
             Collections.shuffle(magnitudesToDistributeTo);
             for (AtomicReference<Double> paramMagnitude : magnitudesToDistributeTo) {
-                double mean = (maxPerParam - buffer) * discreteness;
-                double randomMagnitude = randomTruncatedNormal(mean, (maxPerParam-mean)*discreteness/3.0, 0, maxPerParam-buffer);
+                double mean = (maxPerParam) * discreteness;
+                double randomMagnitude = randomTruncatedNormal(mean, (maxPerParam-mean)*discreteness/3.0, 0, maxPerParam);
                 // If the random magnitude is greater than the amount left to distribute, set it to the amount left to distribute
                 if (randomMagnitude > amountLeftToDistribute) {
                     randomMagnitude = amountLeftToDistribute;
                 }
                 // If adding the random magnitude to the current magnitude would exceed the max, set it to the amount that would bring the current magnitude to the max
-                if (paramMagnitude.get() + randomMagnitude > maxPerParam-buffer) {
-                    randomMagnitude = (maxPerParam-buffer) - paramMagnitude.get();
+                if (paramMagnitude.get() + randomMagnitude > maxPerParam) {
+                    randomMagnitude = (maxPerParam) - paramMagnitude.get();
                 }
 
                 paramMagnitude.set(paramMagnitude.get() + randomMagnitude);
@@ -43,7 +44,7 @@ public class NormalMorphDistributer {
 
         // Normalize the magnitudes
         for (AtomicReference<Double> paramMagnitude : paramMagnitudes) {
-            paramMagnitude.set(paramMagnitude.get() / maxPerParam);
+            paramMagnitude.set(paramMagnitude.get() / (1.0 / numParams));
         }
     }
 

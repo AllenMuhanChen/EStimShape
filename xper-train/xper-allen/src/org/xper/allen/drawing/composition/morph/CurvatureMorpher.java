@@ -49,4 +49,8 @@ public class CurvatureMorpher {
             throw new RuntimeException("New normalized curvature value out of range: " + newNormalizedCurvature);
         }
     }
+
+    public static boolean isCurvatureLow(Double curvature){
+        return curvature < LOW_CURVATURE_UPPER;
+    }
 }

@@ -26,10 +26,16 @@ public class MorphedMAxisArc extends AllenMAxisArc {
         double oldRotation = arcToMorph.getTransRotHis_devAngle();
 
         // Morph Parameters
+        Double newRotation;
         Double newCurvature = morphParams.morphCurvature(oldCurvature);
+        if (CurvatureMorpher.isCurvatureLow(oldCurvature)) {
+            newRotation = morphParams.morphRotation(oldRotation);
+        } else {
+            morphParams.redistributeRotationMagntiude();
+            newRotation = morphParams.morphRotation(oldRotation);
+        }
         Double newLength = morphParams.morphLength(oldLength);
         Vector3d newTangent = morphParams.morphOrientation(oldTangent);
-        Double newRotation = morphParams.morphRotation(oldRotation);
 
         // Create actual arc
         genArc(1.0/newCurvature, newLength);
