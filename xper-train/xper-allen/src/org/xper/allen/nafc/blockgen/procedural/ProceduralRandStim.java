@@ -52,14 +52,17 @@ public class ProceduralRandStim extends ProceduralStim{
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 
         //Generate Match
-        mSticks.setMatch(sample);
-        mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
+        ProceduralMatchStick match = new ProceduralMatchStick();
+        match.setProperties(parameters.getSize());
+        match.setStimColor(parameters.color);
+        match.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, 0.1, 0.5);
+        mSticks.setMatch(match);
+        mStickSpecs.setMatch(mStickToSpec(match, stimObjIds.getMatch()));
 
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(parameters.getSize());
             proceduralDistractor.setStimColor(parameters.color);
-//            proceduralDistractor.genNewDrivingComponentMatchStick(sample, parameters.morphMagnitude, 0.5);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
@@ -74,6 +77,11 @@ public class ProceduralRandStim extends ProceduralStim{
             mSticks.randDistractors.add(randDistractor);
             mStickSpecs.randDistractors.add(mStickToSpec(randDistractor, stimObjIds.randDistractors.get(i)));
         }
+    }
+
+    private void generateIdenticalMatch(ProceduralMatchStick sample) {
+        mSticks.setMatch(sample);
+        mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
     }
 
     private ProceduralMatchStick genRandBaseMStick() {
