@@ -218,7 +218,7 @@ public class AllenPNGMaker{
 		}
 	}
 
-	private byte[] screenShotBinary(int width, int height)
+	public static byte[] screenShotBinary(int width, int height)
 	{
 		ByteBuffer framebytes = allocBytes(width * height * 3);
 

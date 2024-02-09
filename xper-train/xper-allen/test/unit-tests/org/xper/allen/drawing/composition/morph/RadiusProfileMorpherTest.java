@@ -2,8 +2,7 @@ package org.xper.allen.drawing.composition.morph;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusInfo;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters.RadiusProfile;
+
 
 import static org.junit.Assert.*;
 

@@ -25,9 +25,9 @@ public class MStickObj4Smooth {
     private int nVect;
     private int nFac;
 
-    boolean doLighting = false;
-    double contrast = 0.5;
-    RGBColor stimColor = new RGBColor(1,1,1);
+    public boolean doLighting = false;
+    public double contrast = 0.5;
+    public RGBColor stimColor = new RGBColor(1,1,1);
 
     public void setInfo(int inVect, Point3d[] ivect_info, Vector3d[] inormMat_info, int inFac, int[][] ifacInfo)
     {
