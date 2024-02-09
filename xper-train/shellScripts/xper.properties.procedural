@@ -58,7 +58,7 @@ acq.driver_name=comedi
 
 console.host=172.30.6.80
 
-console.eye_simulation=false
+console.eye_simulation=true
 
 experiment.host=172.30.6.90
 
@@ -96,5 +96,5 @@ generator.spike_dat_path=/home/r2_allen/DocuEStimShape/dev_221110/spikefiles_dev
 #############################################################################
 # screenshots
 #############################################################################
-screenshot.enabled = false
+screenshot.enabled = true
 screenshot.directory=/home/m2_allen/Documents/screenshots

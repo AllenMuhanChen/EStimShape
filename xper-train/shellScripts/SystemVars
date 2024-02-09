@@ -14,8 +14,8 @@ EOF
 
 #FIXED SystemVars. Experiment Associated
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
-UPDATE SystemVar SET val=0.75 WHERE name='xper_eye_window_algorithm_base_window_size';
-UPDATE SystemVar SET val=0.75 WHERE name='xper_eye_window_algorithm_initial_window_size';
+UPDATE SystemVar SET val=5 WHERE name='xper_eye_window_algorithm_base_window_size';
+UPDATE SystemVar SET val=5 WHERE name='xper_eye_window_algorithm_initial_window_size';
 UPDATE SystemVar SET val=1000 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
 UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
