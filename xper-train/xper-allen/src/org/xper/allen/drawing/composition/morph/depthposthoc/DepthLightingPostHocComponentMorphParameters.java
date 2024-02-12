@@ -16,11 +16,14 @@ public class DepthLightingPostHocComponentMorphParameters implements ComponentMo
 
     @Override
     public Vector3d morphOrientation(Vector3d oldOrientation) {
-        SphericalCoordinates oldSpherical = cartesianToSpherical(oldOrientation);
-        double oldPhi = oldSpherical.theta;
-        double newPhi = -oldPhi;
-        SphericalCoordinates newSpherical = new SphericalCoordinates(oldSpherical.r, oldSpherical.phi, newPhi);
-        return CoordinateConverter.sphericalToVector(newSpherical);
+//        SphericalCoordinates oldSpherical = cartesianToSpherical(oldOrientation);
+//        double oldPhi = oldSpherical.theta;
+//        double newPhi = -oldPhi;
+//        SphericalCoordinates newSpherical = new SphericalCoordinates(oldSpherical.r, oldSpherical.phi, newPhi);
+//        return CoordinateConverter.sphericalToVector(newSpherical);
+        Vector3d newOrientation = new Vector3d(oldOrientation);
+        newOrientation.z = -oldOrientation.z;
+        return newOrientation;
     }
 
     @Override

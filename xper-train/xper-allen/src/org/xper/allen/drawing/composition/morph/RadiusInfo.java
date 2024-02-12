@@ -20,6 +20,13 @@ public class RadiusInfo {
         this.preserve = oldRadiusInfo.getPreserve(); //not needed?
     }
 
+    public RadiusInfo(RadiusInfo other) {
+        this.radius = other.radius;
+        this.uNdx = other.uNdx;
+        this.radiusType = other.radiusType;
+        this.preserve = other.preserve;
+    }
+
     public Double getRadius() {
         return radius;
     }

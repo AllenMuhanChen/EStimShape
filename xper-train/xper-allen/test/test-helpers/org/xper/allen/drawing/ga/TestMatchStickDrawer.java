@@ -2,11 +2,16 @@ package org.xper.allen.drawing.ga;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
-import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.drawing.stick.MatchStick;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -66,6 +71,29 @@ public class TestMatchStickDrawer {
             e.printStackTrace();
             return "Error: No Path";
         }
+    }
+
+    public String saveNoiseMap(String filepath, ExperimentMatchStick obj, double amplitude, int specialCompIndx) {
+        BufferedImage img = GaussianNoiseMapCalculation.generateGaussianNoiseMapFor(obj,
+                width, height,
+                3.0/3,
+                amplitude,  0, window.renderer, specialCompIndx);
+
+        filepath=filepath+".png";
+        File ouptutFile = new File(filepath);
+        try {
+            ImageIO.write(img, "png", ouptutFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ouptutFile.getAbsolutePath();
+    }
+
+    public AllenMStickSpec saveSpec(AllenMatchStick mStick, String filepath) {
+        AllenMStickSpec spec = new AllenMStickSpec();
+        spec.setMStickInfo(mStick);
+        spec.writeInfo2File(filepath, true);
+        return spec;
     }
 
 }

@@ -1,12 +1,26 @@
 package org.xper.allen.drawing.composition.morph;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class RadiusProfile {
     Map<Integer, RadiusInfo> infoForRadius = new HashMap<>();
 
-    //TODO: API to add radius info
+    public RadiusProfile(Map<Integer, RadiusInfo> infoForRadius) {
+        this.infoForRadius = infoForRadius;
+    }
+
+    public RadiusProfile() {
+    }
+
+    public RadiusProfile(RadiusProfile other) {
+        this.infoForRadius = new LinkedHashMap<>();
+        for (Map.Entry<Integer, RadiusInfo> entry : other.infoForRadius.entrySet()) {
+            this.infoForRadius.put(entry.getKey(), new RadiusInfo(entry.getValue()));
+        }
+
+    }
 
     public Map<Integer, RadiusInfo> getInfoForRadius() {
         return infoForRadius;
