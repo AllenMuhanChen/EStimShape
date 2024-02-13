@@ -339,7 +339,26 @@ public class DepthLightingPostHocMatchStickTest {
         drawer.drawMStick(flippedStick);
         drawer.saveImage("/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/bespoke/flipped_angle");
         drawer.saveSpec(flippedStick, "/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/bespoke/flipped_angle_spec");
+    }
 
+    @Test
+    public void testCurvature(){
+        String filename = "/home/r2_allen/git/EStimShape/plots/grant_240212/shape_variations/saved/weird_curvy/original_angle_with_shape_variation_2_spec.xml";
+        DepthLightingPostHocMatchStick baseMStick = new DepthLightingPostHocMatchStick();
+        baseMStick.setProperties(12);
+        baseMStick.setTextureType("2D");
+        baseMStick.genMatchStickFromFile(filename);
 
+        DepthLightingPostHocMatchStick flippedMStick = new DepthLightingPostHocMatchStick();
+        flippedMStick.setProperties(12);
+        flippedMStick.setTextureType("2D");
+        flippedMStick.genFlippedMatchStick(baseMStick, 1);
+
+        drawer.clear();
+        drawer.drawMStick(baseMStick);
+        ThreadUtil.sleep(TIME);
+        drawer.clear();
+        drawer.drawMStick(flippedMStick);
+        ThreadUtil.sleep(TIME);
     }
 }

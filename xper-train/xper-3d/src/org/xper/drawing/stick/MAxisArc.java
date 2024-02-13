@@ -618,9 +618,9 @@ public class MAxisArc
 	   // change from = to set in May , so we should not have the
 	   // wrongly finalTangent probblem in the future
 	   //transRotHis_finalPos = finalPos;
-	   getTransRotHis_finalPos().set(finalPos);
+		 getTransRotHis_finalPos().set(finalPos);
 	   //transRotHis_finalTangent = finalTangent;
-	   getTransRotHis_finalTangent().set( finalTangent);
+	   getTransRotHis_finalTangent().set(finalTangent);
 	   setTransRotHis_devAngle(deviateAngle);
 //System.out.println("tangent[1] is at : "+ mTangent[1]);
      }
