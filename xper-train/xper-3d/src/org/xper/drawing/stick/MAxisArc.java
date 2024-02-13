@@ -11,37 +11,37 @@ import org.lwjgl.opengl.GL11;
 
 public class MAxisArc
 {
-     private final int MaxStep = 51;
+	private final int MaxStep = 51;
 
-     private double rad;
+	private double rad;
 
 	private double curvature;
-     private double arcLen;
+	private double arcLen;
 
 	private double angleExtend;
 
-     private int branchPt;
-     private Point3d[] mPts= new Point3d[MaxStep+1];
-     private Vector3d[] mTangent= new Vector3d[MaxStep+1];
-     private double[] localArcLen = new double[MaxStep+1];
+	private int branchPt;
+	private Point3d[] mPts= new Point3d[MaxStep+1];
+	private Vector3d[] mTangent= new Vector3d[MaxStep+1];
+	private double[] localArcLen = new double[MaxStep+1];
 
-     private int transRotHis_alignedPt;
+	private int transRotHis_alignedPt;
 
 	private int transRotHis_rotCenter;
-     private Point3d transRotHis_finalPos = new Point3d();
-     private Vector3d transRotHis_finalTangent = new Vector3d();
-     private double transRotHis_devAngle;
+	private Point3d transRotHis_finalPos = new Point3d();
+	private Vector3d transRotHis_finalTangent = new Vector3d();
+	private double transRotHis_devAngle;
 
 
 
-     public MAxisArc() {
+	public MAxisArc() {
 		// this.rad = 100.0; //nothing, just debug
-		 int i;
-		 for (i=0; i<=MaxStep; i++) {
-	           mPts[i] = new Point3d();
-		       mTangent[i] = new Vector3d();
-		 }
- 	}
+		int i;
+		for (i=0; i<=MaxStep; i++) {
+			mPts[i] = new Point3d();
+			mTangent[i] = new Vector3d();
+		}
+	}
 
 
 
@@ -66,51 +66,51 @@ public class MAxisArc
 	}
 
 	public void genSimilarArc( MAxisArc inArc,int alignedPt,  double volatileRate) {
-		 boolean showDebug = false;
-		 if ( showDebug)
-			 System.out.println("In MAxisArc.genSimilarArc()");
-		 double RadView = 5.0;
-		 //double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
-		 // Nov 20th, the orientation change seems to be too large
-		 // since this is used to generate similar tube, we should make it more narrow
-		 double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
-		 boolean[] chgFlg = new boolean[5];
-		 int i;
-		 //possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
-		 // 0. decide what parameters to chg
-		 while (true) {
-    		 for (i=1; i<=4; i++) {
-    			 chgFlg[i] = false;
-    			 if ( stickMath_lib.rand01() < volatileRate)
-    				 chgFlg[i] = true;
-    		 }
-    		 int a = 3;
-    		 if ( a == 3) break;
-    		 //debug
-    		 if (inArc.getRad() <= 0.6 * RadView) {
-    			 if ( chgFlg[1] != false || chgFlg[2] != false || chgFlg[3] != false || chgFlg[4] != false)
-    				 break;
-    		 }
-    		 else { // the in Arc is str8 line, then we don't want only devAngle chg, (which is not prominent) {
-    			 if ( chgFlg[1] !=false || chgFlg[2] !=false || chgFlg[3] !=false)
-    				 break;
-    		 }
-    	 }
+		boolean showDebug = false;
+		if ( showDebug)
+			System.out.println("In MAxisArc.genSimilarArc()");
+		double RadView = 5.0;
+		//double[] orientationAngleRange = { Math.PI/12.0 , Math.PI/6.0}; // 15 ~ 30 degree
+		// Nov 20th, the orientation change seems to be too large
+		// since this is used to generate similar tube, we should make it more narrow
+		double[] orientationAngleRange = { Math.PI/24.0 , Math.PI/12.0}; // 7.5 ~ 15 degree
+		boolean[] chgFlg = new boolean[5];
+		int i;
+		//possible parameters , 1. mAxisCurvature, 2.ArcLen 3. orientation 4. devAngle
+		// 0. decide what parameters to chg
+		while (true) {
+			for (i=1; i<=4; i++) {
+				chgFlg[i] = false;
+				if ( stickMath_lib.rand01() < volatileRate)
+					chgFlg[i] = true;
+			}
+			int a = 3;
+			if ( a == 3) break;
+			//debug
+			if (inArc.getRad() <= 0.6 * RadView) {
+				if ( chgFlg[1] != false || chgFlg[2] != false || chgFlg[3] != false || chgFlg[4] != false)
+					break;
+			}
+			else { // the in Arc is str8 line, then we don't want only devAngle chg, (which is not prominent) {
+				if ( chgFlg[1] !=false || chgFlg[2] !=false || chgFlg[3] !=false)
+					break;
+			}
+		}
 
-    	 if (showDebug) {
-    		 System.out.println("the modification of mAxis are:");
-    		 for (i=1; i<=4; i++) System.out.print(" "+ chgFlg[i]);
-    		 System.out.println("");
-    	 }
+		if (showDebug) {
+			System.out.println("the modification of mAxis are:");
+			for (i=1; i<=4; i++) System.out.print(" "+ chgFlg[i]);
+			System.out.println("");
+		}
 
 
-    	 double newRad = inArc.getRad();
-    	 double newArcLen = inArc.getArcLen();
-    	 Vector3d newTangent = new Vector3d(inArc.getmTangent()[ inArc.getTransRotHis_rotCenter()]);
-    	 double newDevAngle = inArc.getTransRotHis_devAngle();
+		double newRad = inArc.getRad();
+		double newArcLen = inArc.getArcLen();
+		Vector3d newTangent = new Vector3d(inArc.getmTangent()[ inArc.getTransRotHis_rotCenter()]);
+		double newDevAngle = inArc.getTransRotHis_devAngle();
 
-    	 // 1. mAxisCurvature
-    	 if ( chgFlg[1] == true) {
+		// 1. mAxisCurvature
+		if ( chgFlg[1] == true) {
 			double totalRange;
 			double oriRad = inArc.getRad();
 			if ( oriRad <= 0.6 * RadView )  { // origianlly small Rad arc
@@ -128,7 +128,7 @@ public class MAxisArc
 					newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView;
 			}
 			else if ( oriRad <= 6.0 * RadView) { // originall in medium regime
-	 			double[] prob = {0.25, 0.75, 1.0};
+				double[] prob = {0.25, 0.75, 1.0};
 				int choice = stickMath_lib.pickFromProbDist( prob);
 				if (choice == 1)
 					newRad = (stickMath_lib.rand01() * 0.4 + 0.2) * RadView;
@@ -147,67 +147,67 @@ public class MAxisArc
 				//always chg to medium curvature
 				newRad = (stickMath_lib.rand01() * 5.4 + 0.6) * RadView;
 			}
-    	 } // mAxisCurvature if
+		} // mAxisCurvature if
 
-    	 // 2. ArcLen
-    	 if ( chgFlg[2] == true) {
-    		 double oriArcLen = inArc.getArcLen();
-    		 double length_lb = 2.0;
-    		 double length_ub = Math.min( Math.PI * newRad, RadView);
-    		 double l_range = length_ub - length_lb;
-    		 while (true) { //pick value btw length_lb, length_ub, but not very near or very far from original value
-    			 newArcLen = stickMath_lib.randDouble( length_lb, length_ub);
-    			 if ( oriArcLen > length_ub || oriArcLen < length_lb) // no need to nearby check
-    				 break;
-    			 if ( Math.abs( newArcLen - oriArcLen) >= 0.2 * l_range &&
-    					 Math.abs( newArcLen - oriArcLen) <= 0.4 * l_range )
-    				 break;
-    		 }
-    	 }
-
-    	 // 3. orientation
-    	if ( chgFlg[3] == true) {
-    		Vector3d oriTangent = new Vector3d( inArc.getmTangent()[inArc.getTransRotHis_rotCenter()]);
-		 	while (true) {
-			newTangent = stickMath_lib.randomUnitVec();
-			double angle = newTangent.angle(oriTangent);
-			if ( angle >= orientationAngleRange[0] && angle <= orientationAngleRange[1]) // 15 ~ 30 degree
-				break;
+		// 2. ArcLen
+		if ( chgFlg[2] == true) {
+			double oriArcLen = inArc.getArcLen();
+			double length_lb = 2.0;
+			double length_ub = Math.min( Math.PI * newRad, RadView);
+			double l_range = length_ub - length_lb;
+			while (true) { //pick value btw length_lb, length_ub, but not very near or very far from original value
+				newArcLen = stickMath_lib.randDouble( length_lb, length_ub);
+				if ( oriArcLen > length_ub || oriArcLen < length_lb) // no need to nearby check
+					break;
+				if ( Math.abs( newArcLen - oriArcLen) >= 0.2 * l_range &&
+						Math.abs( newArcLen - oriArcLen) <= 0.4 * l_range )
+					break;
+			}
 		}
-          }
-	  // 4. devAngle
-	  if ( chgFlg[4] == true)
-          {
-		double oriDevAngle = inArc.getTransRotHis_devAngle();
-		double diff = stickMath_lib.randDouble( Math.PI/6.0, Math.PI/3.0); // this diff is btw  30 - 60 degree
-		if ( stickMath_lib.rand01() < 0.5)
-			newDevAngle = oriDevAngle - diff;
-		else
-			newDevAngle = oriDevAngle + diff;
-          }
+
+		// 3. orientation
+		if ( chgFlg[3] == true) {
+			Vector3d oriTangent = new Vector3d( inArc.getmTangent()[inArc.getTransRotHis_rotCenter()]);
+			while (true) {
+				newTangent = stickMath_lib.randomUnitVec();
+				double angle = newTangent.angle(oriTangent);
+				if ( angle >= orientationAngleRange[0] && angle <= orientationAngleRange[1]) // 15 ~ 30 degree
+					break;
+			}
+		}
+		// 4. devAngle
+		if ( chgFlg[4] == true)
+		{
+			double oriDevAngle = inArc.getTransRotHis_devAngle();
+			double diff = stickMath_lib.randDouble( Math.PI/6.0, Math.PI/3.0); // this diff is btw  30 - 60 degree
+			if ( stickMath_lib.rand01() < 0.5)
+				newDevAngle = oriDevAngle - diff;
+			else
+				newDevAngle = oriDevAngle + diff;
+		}
 
 
-	 // use the new required vlaue to generate and transROt the mAxisArc
+		// use the new required vlaue to generate and transROt the mAxisArc
 
-	 this.genArc(newRad, newArcLen); // the variable will be saved in this function
+		this.genArc(newRad, newArcLen); // the variable will be saved in this function
 
-	 Point3d finalPos = new Point3d( inArc.getmPts()[alignedPt]);
-	 //
-	 this.transRotMAxis( alignedPt, finalPos, inArc.getTransRotHis_rotCenter(), newTangent, newDevAngle);
+		Point3d finalPos = new Point3d( inArc.getmPts()[alignedPt]);
+		//
+		this.transRotMAxis( alignedPt, finalPos, inArc.getTransRotHis_rotCenter(), newTangent, newDevAngle);
 // 	Point3d finalPos = new Point3d(0.0,0.0,0.0);
 // 	this.transRotMAxis( 26, finalPos, inArc.transRotHis_rotCenter, newTangent, newDevAngle);
 
-  	if (showDebug)
+		if (showDebug)
 		{
- 			System.out.println("rad    : " + inArc.getRad() + " -> " + newRad);
- 			System.out.println("arcLen : " + inArc.getArcLen() + " -> " + newArcLen);
- 			System.out.println("ori    : " + inArc.getmTangent()[inArc.getTransRotHis_rotCenter()] + " -> " + newTangent);
- 			System.out.println("	angle btw is " + inArc.getmTangent()[inArc.getTransRotHis_rotCenter()].angle(newTangent));
- 			System.out.println("devAng : " + inArc.getTransRotHis_devAngle() + " -> " + newDevAngle);
- 			int rotCenter = inArc.getTransRotHis_rotCenter();
- 			System.out.println("ori rot center "+  rotCenter + " pos " + inArc.getmPts()[rotCenter] + "\ntan: "+ inArc.getmTangent()[rotCenter]);
- 			System.out.println("NEW rot center "+  rotCenter + " pos " + this.getmPts()[rotCenter] + "\ntan: "+ this.getmTangent()[rotCenter]);
- 			System.out.println("the input alignedPt is " + alignedPt);
+			System.out.println("rad    : " + inArc.getRad() + " -> " + newRad);
+			System.out.println("arcLen : " + inArc.getArcLen() + " -> " + newArcLen);
+			System.out.println("ori    : " + inArc.getmTangent()[inArc.getTransRotHis_rotCenter()] + " -> " + newTangent);
+			System.out.println("	angle btw is " + inArc.getmTangent()[inArc.getTransRotHis_rotCenter()].angle(newTangent));
+			System.out.println("devAng : " + inArc.getTransRotHis_devAngle() + " -> " + newDevAngle);
+			int rotCenter = inArc.getTransRotHis_rotCenter();
+			System.out.println("ori rot center "+  rotCenter + " pos " + inArc.getmPts()[rotCenter] + "\ntan: "+ inArc.getmTangent()[rotCenter]);
+			System.out.println("NEW rot center "+  rotCenter + " pos " + this.getmPts()[rotCenter] + "\ntan: "+ this.getmTangent()[rotCenter]);
+			System.out.println("the input alignedPt is " + alignedPt);
 // 			for (i=1; i<=51; i++)
 // 			{
 // // 				double dist = mPts[i].distance( inArc.mPts[i]);
@@ -221,12 +221,12 @@ public class MAxisArc
 			System.out.println("");
 		}
 
-     }
+	}
 
 
 
 	/**
-	generate a new MAxis Arc, with radius and arcLen randomly chosen
+	 generate a new MAxis Arc, with radius and arcLen randomly chosen
 	 */
 	public void genArcRand()
 	{
@@ -272,9 +272,9 @@ public class MAxisArc
 
 	}
 	/**
-	generate a new MAxis Arc, with radius and arcLen defined
-	@param in_rad the radius value wanted
-	@param in_arcLen the arcLen value wanted
+	 generate a new MAxis Arc, with radius and arcLen defined
+	 @param in_rad the radius value wanted
+	 @param in_arcLen the arcLen value wanted
 	 */
 	public void genArc(double in_rad, double in_arcLen)
 	{
@@ -341,382 +341,363 @@ public class MAxisArc
 	//Summary: June 2008
 	// Do two step rotation, and then rotate along tangent direction ( by deviateAngle)
 	// Finally do the translation
-     /**
+	/**
 	 translate and rotate the MAxis to wanted condition
 	 @param alignedPt integer, assign which point on mAxisArc to go to finalPos
 	 @param finalPos Point3d, the final pos to align
 	 @param rotCenter integer, the point play as center when rotate
 	 @param finalTangent Vector3d, the tangent direction where the rotCenter Pt will face
 	 @param deviateAngle double btw 0 ~ 2PI , the angle to rotate along the tangent direction
-     */
+	 */
 
-	 public void transRotMAxis2(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
-	 {
-		 int i;
-		 Point3d oriPt = new Point3d();
-		 Vector3d nowvec = new Vector3d(0,0,0);
-		 Transform3D transMat = new Transform3D();
-		 Vector3d oriTangent = getmTangent()[rotCenter];
+	public void transRotMAxis2(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
+	{
+		int i;
+		Point3d oriPt = new Point3d();
+		Vector3d nowvec = new Vector3d(0,0,0);
+		Transform3D transMat = new Transform3D();
+		Vector3d oriTangent = getmTangent()[rotCenter];
 
-		 /// 1. rotate to [0 0 1]
-		 Vector3d interTangent = new Vector3d(0,0,1);
-		 double Angle = oriTangent.angle(interTangent);
-		 Vector3d RotAxis = new Vector3d(0,0,0);
-		 RotAxis.cross(oriTangent, interTangent);
-		 RotAxis.normalize();
-		 //	    System.out.println(oriTangent + " " + interTangent);
-		 //	    System.out.println(Angle);
-		 //	    System.out.println(RotAxis);
+		/// 1. rotate to [0 0 1]
+		Vector3d interTangent = new Vector3d(0,0,1);
+		double Angle = oriTangent.angle(interTangent);
+		Vector3d RotAxis = new Vector3d(0,0,0);
+		RotAxis.cross(oriTangent, interTangent);
+		RotAxis.normalize();
+		//	    System.out.println(oriTangent + " " + interTangent);
+		//	    System.out.println(Angle);
+		//	    System.out.println(RotAxis);
 
-		 boolean skipRotate = false;
-		 if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
-		 {
-			 skipRotate = true;
+		boolean skipRotate = false;
+		if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+		{
+			skipRotate = true;
 
-		 }
+		}
 
-		 if (!skipRotate)
-		 {
-			 oriPt.set(getmPts()[rotCenter]);
-			 AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-			 transMat.setRotation(axisInfo);
-			 for (i = 1 ; i <= getMaxStep(); i++)
-			 {
-				 // rotate annd translate every mPts
-				 nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				 transMat.transform(nowvec);
-				 getmPts()[i].add(nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+		if (!skipRotate)
+		{
+			oriPt.set(getmPts()[rotCenter]);
+			AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
+			transMat.setRotation(axisInfo);
+			for (i = 1 ; i <= getMaxStep(); i++)
+			{
+				// rotate annd translate every mPts
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec);
+				getmPts()[i].add(nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-				 // Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
-				 // rotate the Tangent vector along the maxis
-				 transMat.transform(getmTangent()[i]);
-			 }
-		 }
-
-
-		 /// 2. rotate to targetTangent
-		 //CALCULATE NORMAL
-		 Vector3d normal = new Vector3d(0, 1, 0);
-		 Vector3d rotAxis = new Vector3d();
-		 double x = Math.cos(deviateAngle);
-		 double y = Math.sin(deviateAngle);
-		 Vector3d finalNormal = new Vector3d(x,y,0);
-
-		 oriTangent.set( interTangent);
-		 Angle = oriTangent.angle(finalTangent);
-		 RotAxis.cross(oriTangent, finalTangent);
-		 RotAxis.normalize();
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
+				// rotate the Tangent vector along the maxis
+				transMat.transform(getmTangent()[i]);
+			}
+		}
 
 
-		 skipRotate = false;
-		 // NOTE: 3/30/2010
-		 // when angle = PI, we need to rotate, but rotAxis is arbitrary
-		 // when angle == pi, means finalTangent = [ 0 0 -1]
-		 // so rotate along [1 0 0 ] will be fine
-		 //BUT, this is a key part of program
-		 // if anything goes wrong, just come back to activate follow line
-		 //if ( Angle == 0.0 || Angle == Math.PI) // THE KEY LINE TO CHANGE BACK
-		 if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
-		 {
-			 skipRotate = true;
-			 System.out.println("Skip second rotation");
-		 }
-		 if (Angle == Math.PI)
-		 {
-			 skipRotate = true;
-			 System.out.println("Skip second rotation, due to [0 0 -1], not ideal");
-		 }
+		/// 2. rotate to targetTangent
+		//CALCULATE NORMAL
+		Vector3d normal = new Vector3d(0, 1, 0);
+		Vector3d rotAxis = new Vector3d();
+		double x = Math.cos(deviateAngle);
+		double y = Math.sin(deviateAngle);
+		Vector3d finalNormal = new Vector3d(x,y,0);
 
-		 if (!skipRotate)
-		 {
-			 oriPt.set(getmPts()[rotCenter]);
-			 AxisAngle4d axisInfo = new AxisAngle4d(RotAxis, Angle);
-			 transMat.setRotation(axisInfo);
+		oriTangent.set( interTangent);
+		Angle = oriTangent.angle(finalTangent);
+		RotAxis.cross(oriTangent, finalTangent);
+		RotAxis.normalize();
 
-			 for (i = 1 ; i <= getMaxStep(); i++)
-			 {
-				 // rotate annd translate every mPts
-				 nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				 transMat.transform(nowvec);
-				 getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
-				 // Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
-				 // rotate the Tangent vector along the maxis
-				 transMat.transform(getmTangent()[i]);
-			 }
-			 //AC ADDITION:
-			 transMat.transform(normal);
-			 transMat.transform(finalNormal);
-		 }
 
-		 /// 3. rotate along the tangent axis by deviate Angle
-		 double nowDeviateAngle = deviateAngle;
-		 if(true)
-		 {
-			 //ROTATE TO DESIRED DEV ANGLE
-			 oriPt.set(getmPts()[rotCenter]);
-			 rotAxis.cross(normal, finalNormal);
-			 rotAxis.normalize();
-			 AxisAngle4d axisInfo = new AxisAngle4d(rotAxis, normal.angle(finalNormal));
+		skipRotate = false;
+		// NOTE: 3/30/2010
+		// when angle = PI, we need to rotate, but rotAxis is arbitrary
+		// when angle == pi, means finalTangent = [ 0 0 -1]
+		// so rotate along [1 0 0 ] will be fine
+		//BUT, this is a key part of program
+		// if anything goes wrong, just come back to activate follow line
+		//if ( Angle == 0.0 || Angle == Math.PI) // THE KEY LINE TO CHANGE BACK
+		if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+		{
+			skipRotate = true;
+			System.out.println("Skip second rotation");
+		}
+		if (Angle == Math.PI)
+		{
+			skipRotate = true;
+			System.out.println("Skip second rotation, due to [0 0 -1], not ideal");
+		}
 
-			 transMat.setRotation(axisInfo);
-			 for (i = 1 ; i <= getMaxStep(); i++)
-			 {
-				 nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-				 transMat.transform(nowvec);
-				 getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+		if (!skipRotate)
+		{
+			oriPt.set(getmPts()[rotCenter]);
+			AxisAngle4d axisInfo = new AxisAngle4d(RotAxis, Angle);
+			transMat.setRotation(axisInfo);
 
-				 transMat.transform(getmTangent()[i]);
-			 }
+			for (i = 1 ; i <= getMaxStep(); i++)
+			{
+				// rotate annd translate every mPts
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
+				// rotate the Tangent vector along the maxis
+				transMat.transform(getmTangent()[i]);
+			}
+			//AC ADDITION:
+			transMat.transform(normal);
+			transMat.transform(finalNormal);
+		}
 
-			 normal = finalNormal;
-		 } else {
-			 nowDeviateAngle = getTransRotHis_devAngle();
-		 }
+		/// 3. rotate along the tangent axis by deviate Angle
+		double nowDeviateAngle = deviateAngle;
+		if(true)
+		{
+			//ROTATE TO DESIRED DEV ANGLE
+			oriPt.set(getmPts()[rotCenter]);
+			rotAxis.cross(normal, finalNormal);
+			rotAxis.normalize();
+			AxisAngle4d axisInfo = new AxisAngle4d(rotAxis, normal.angle(finalNormal));
 
-		 /// 4. translation
-		 oriPt.set( getmPts()[alignedPt]);
-		 Vector3d transVec = new Vector3d(0,0,0);
-		 transVec.sub(finalPos, oriPt);
-		 for (i=1; i<=getMaxStep(); i++)
-		 {
-			 getmPts()[i].add(transVec);
-		 }
-		 /// 5. save the transrot history into recording data
-		 setTransRotHis_alignedPt(alignedPt);
-		 setTransRotHis_rotCenter(rotCenter);
-		 getTransRotHis_finalPos().set(finalPos);
-		 getTransRotHis_finalTangent().set(finalTangent);
-		 setTransRotHis_devAngle(nowDeviateAngle);
-	 }
+			transMat.setRotation(axisInfo);
+			for (i = 1 ; i <= getMaxStep(); i++)
+			{
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+
+				transMat.transform(getmTangent()[i]);
+			}
+
+			normal = finalNormal;
+		} else {
+			nowDeviateAngle = getTransRotHis_devAngle();
+		}
+
+		/// 4. translation
+		oriPt.set( getmPts()[alignedPt]);
+		Vector3d transVec = new Vector3d(0,0,0);
+		transVec.sub(finalPos, oriPt);
+		for (i=1; i<=getMaxStep(); i++)
+		{
+			getmPts()[i].add(transVec);
+		}
+		/// 5. save the transrot history into recording data
+		setTransRotHis_alignedPt(alignedPt);
+		setTransRotHis_rotCenter(rotCenter);
+		getTransRotHis_finalPos().set(finalPos);
+		getTransRotHis_finalTangent().set(finalTangent);
+		setTransRotHis_devAngle(nowDeviateAngle);
+	}
 
 
 	public void transRotMAxis(int alignedPt, Point3d finalPos, int rotCenter, Vector3d finalTangent, double deviateAngle)
-     {
+	{
 // 	System.out.println("transRot mAxis procedure:");
 // 	System.out.println("final pos: "+finalPos + "final tangent: "+finalTangent);
-	/// 1. rotate to [0 0 1]
-	  int i;
-	  Point3d oriPt = new Point3d();
-	  Vector3d nowvec = new Vector3d(0,0,0);
-	  Transform3D transMat = new Transform3D();
-	  Vector3d oriTangent = getmTangent()[rotCenter];
-	  Vector3d interTangent = new Vector3d(0,0,1);
-	  double Angle = oriTangent.angle(interTangent);
- 	  Vector3d RotAxis = new Vector3d(0,0,0);
-	  RotAxis.cross(oriTangent, interTangent);
-	  RotAxis.normalize();
-//    System.out.println(oriTangent + " " + interTangent);
-//    System.out.println(Angle);
-//    System.out.println(RotAxis);
+		/// 1. rotate to [0 0 1]
+		int i;
+		Point3d oriPt = new Point3d();
+		Vector3d nowvec = new Vector3d(0,0,0);
+		Transform3D transMat = new Transform3D();
+		Vector3d oriTangent = getmTangent()[rotCenter];
+		Vector3d interTangent = new Vector3d(0,0,1);
+		double Angle = oriTangent.angle(interTangent);
+		Vector3d RotAxis = new Vector3d(0,0,0);
+		RotAxis.cross(oriTangent, interTangent);
+		RotAxis.normalize();
 
-	  boolean skipRotate = false;
-	  //July 24 2009, should we remove Angle == Math.PI
-          if ( Angle == 0.0 || Angle == Math.PI) // no need to turn
-	    //if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
-	  {
-      	     skipRotate = true;
-// 		System.out.println("Skip first rotation");
-// 		System.out.println("ori Tangent: " + oriTangent);
-// 		System.out.println("inter tangent: " + interTangent);
-// 		System.out.println("rad of the arc is " + rad);
-          }
-//System.out.println( mPts[30] + "  " + mPts[32]);
-//System.out.println("tangent[1] is at : "+ mTangent[1]);
-          if (!skipRotate)
-	  {
-      		oriPt.set(getmPts()[rotCenter]);
-		AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-		transMat.setRotation(axisInfo);
-       		for (i = 1 ; i <= getMaxStep(); i++)
-                {
-			// rotate annd translate every mPts
-             		nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-			transMat.transform(nowvec);
-			getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-             		// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
-             		// rotate the Tangent vector along the maxis
-			transMat.transform(getmTangent()[i]);
-       		}
-	   }
-//System.out.println( mPts[30] + "  " + mPts[32]);
-//System.out.println("tangent[1] is at : "+ mTangent[1]);
-        /// 2. rotate to targetTangent
+		boolean skipRotate = false;
+		//July 24 2009, should we remove Angle == Math.PI
+//		if ( Angle == 0.0 || Angle == Math.PI) // no need to turn
+		if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+		{
+			skipRotate = true;
+		}
 
-  	   oriTangent.set( interTangent);
-	   Angle = oriTangent.angle(finalTangent);
-   	   RotAxis.cross(oriTangent, finalTangent);
-	   RotAxis.normalize();
+		if (!skipRotate)
+		{
+			oriPt.set(getmPts()[rotCenter]);
+			AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
+			transMat.setRotation(axisInfo);
+			for (i = 1 ; i <= getMaxStep(); i++)
+			{
+				// rotate annd translate every mPts
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 
-   	   skipRotate = false;
-   	   // NOTE: 3/30/2010
-   	   // when angle = PI, we need to rotate, but rotAxis is arbitrary
-   	   // when angle == pi, means finalTangent = [ 0 0 -1]
-   	   // so rotate along [1 0 0 ] will be fine
-   	   //BUT, this is a key part of program
-   	   // if anything goes wrong, just come back to activate follow line
-   	   //if ( Angle == 0.0 || Angle == Math.PI) // THE KEY LINE TO CHANGE BACK
-   		if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
-	   {
-      	        skipRotate = true;
-    		System.out.println("Skip second rotation");
-       }
-   		if (Angle == Math.PI)
-   		{
-   	        skipRotate = true;
-    		System.out.println("Skip second rotation, due to [0 0 -1], not ideal");
-   		}
-
-	   if (!skipRotate)
-	   {
-		oriPt.set(getmPts()[rotCenter]);
-		AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
-		transMat.setRotation(axisInfo);
-
-		for (i = 1 ; i <= getMaxStep(); i++) {
-		// rotate annd translate every mPts
-		nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-		transMat.transform(nowvec);
-		getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
 				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
 				// rotate the Tangent vector along the maxis
-		transMat.transform(getmTangent()[i]);
+				transMat.transform(getmTangent()[i]);
 			}
-	   }
-//System.out.println("tangent[1] is at : "+ mTangent[1]);
-//System.out.println("mPts[1] is at : "+ mPts[1]);
-	/// 3. rotate along the tangent axis by deviate Angle
-	   if (getRad() < 100000) // if the mAxisArc is a str8 line, no need to do this part
-  	   {
-   		oriPt.set(getmPts()[rotCenter]);
-	    AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, deviateAngle);
+		}
+
+		/// 2. rotate to targetTangent
+		oriTangent.set( interTangent);
+		Angle = oriTangent.angle(finalTangent);
+		RotAxis.cross(oriTangent, finalTangent);
+		RotAxis.normalize();
+
+		skipRotate = false;
+		// NOTE: 3/30/2010
+		// when angle = PI, we need to rotate, but rotAxis is arbitrary
+		// when angle == pi, means finalTangent = [ 0 0 -1]
+		// so rotate along [1 0 0 ] will be fine
+		//BUT, this is a key part of program
+		// if anything goes wrong, just come back to activate follow line
+		//if ( Angle == 0.0 || Angle == Math.PI) // THE KEY LINE TO CHANGE BACK
+		if (Angle == 0.0) // remove the Angle == Math.PI on July24 2009
+		{
+			skipRotate = true;
+			System.out.println("Skip second rotation");
+		}
+		if (Angle == Math.PI)
+		{
+			skipRotate = true;
+			System.out.println("Skip second rotation, due to [0 0 -1], not ideal");
+		}
+
+		if (!skipRotate)
+		{
+			oriPt.set(getmPts()[rotCenter]);
+			AxisAngle4d axisInfo = new AxisAngle4d( RotAxis, Angle);
+			transMat.setRotation(axisInfo);
+
+			for (i = 1 ; i <= getMaxStep(); i++) {
+				// rotate annd translate every mPts
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+				// Original matlab code:    mPts[i] = (RotVecArAxe(nowvec', RotAxis', Angle))' + oriPt;
+				// rotate the Tangent vector along the maxis
+				transMat.transform(getmTangent()[i]);
+			}
+		}
+		/// 3. rotate along the tangent axis by deviate Angle
+		if (getRad() < 100000) // if the mAxisArc is a str8 line, no need to do this part
+		{
+			oriPt.set(getmPts()[rotCenter]);
+			AxisAngle4d axisInfo = new AxisAngle4d(finalTangent, deviateAngle);
+			transMat.setRotation(axisInfo);
+			for (i = 1 ; i <= getMaxStep(); i++)
+			{
+				nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
+				transMat.transform(nowvec);
+				getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
+
+				transMat.transform(getmTangent()[i]);
+			}
+		}
+		/// 4. translation
+		oriPt.set( getmPts()[alignedPt]);
+		Vector3d transVec = new Vector3d(0,0,0);
+		transVec.sub(finalPos, oriPt);
+		for (i=1; i<=getMaxStep(); i++)
+		{
+			getmPts()[i].add(transVec);
+		}
+
+		/// 5. save the transrot history into recording data
+		setTransRotHis_alignedPt(alignedPt);
+		setTransRotHis_rotCenter(rotCenter);
+		getTransRotHis_finalPos().set(finalPos);
+		getTransRotHis_finalTangent().set(finalTangent);
+		setTransRotHis_devAngle(deviateAngle);
+	}
+
+	/**
+	 *   July 24th 2009
+	 *   This function will make sure the normal vector at aligned Pt
+	 *   is matching to the targetNorm as the input params.
+	 *   This function will only be called in data analysis steps
+	 *
+	 */
+	public void deviateToTargetNormal( Vector3d TargetNorm)
+	{
+		if ( getRad() >= 100000) return; // striaght tube, no need to rotate
+
+		Transform3D transMat = new Transform3D();
+		Transform3D transMat2 = new Transform3D();
+		Vector3d nowvec = new Vector3d();
+		int i;
+		// 1. identify the current normalVector
+
+		Point3d endpt1 = this.getmPts()[1];
+		Point3d endpt2 = this.getmPts()[51];
+		Point3d midpt = this.getmPts()[26];
+		Vector3d nowNorm= new Vector3d();
+		nowNorm.x = endpt1.x + endpt2.x - midpt.x *2;
+		nowNorm.y = endpt1.y + endpt2.y - midpt.y *2;
+		nowNorm.z= endpt1.z + endpt2.z- midpt.z *2;
+		nowNorm.normalize();
+
+		Point3d oriPt = new Point3d();
+		Vector3d finalTangent = new Vector3d();
+		int rotCenter = 26; // when use this function, always rot at center
+		finalTangent.set( getmTangent()[rotCenter]);
+		oriPt.set(getmPts()[rotCenter]);
+
+		double angle = nowNorm.angle(TargetNorm);
+
+		// try positive_direction first
+		AxisAngle4d axisInfo = new AxisAngle4d( finalTangent, angle);
+		AxisAngle4d axisInfo2 =new AxisAngle4d( finalTangent, -angle);
 		transMat.setRotation(axisInfo);
-   		for (i = 1 ; i <= getMaxStep(); i++)
+		transMat2.setRotation(axisInfo2);
+		// check if the rotation direction is correct
+		Vector3d testVec1 = new Vector3d(nowNorm);
+		Vector3d testVec2 = new Vector3d(nowNorm);
+		transMat.transform(testVec1);
+		transMat2.transform(testVec2);
+
+		//show debug
+		//System.out.println("original normal: " + nowNorm);
+		//System.out.println("target normal:" + TargetNorm);
+		//System.out.println("positive rot" + testVec1);
+		//System.out.println("negative rot " + testVec2);
+
+		if ( testVec1.angle(TargetNorm) < testVec2.angle(TargetNorm) )
+		{
+			//System.out.println("choose positive rot");
+		}
+		else
+		{
+			//System.out.println("choose negative rot");
+			transMat = transMat2;
+		}
+
+		for (i = 1 ; i <= getMaxStep(); i++)
 		{
 			nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
 			transMat.transform(nowvec);
 			getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
-
 			transMat.transform(getmTangent()[i]);
-   		}
-	   }
-   //System.out.println("tangent[1] is at : "+ mTangent[1]);
-//System.out.println("mPts[1] is at : "+ mPts[1]);
-	/// 4. translation
-	   oriPt.set( getmPts()[alignedPt]);
-	   Vector3d transVec = new Vector3d(0,0,0);
-	   transVec.sub(finalPos, oriPt);
-	   for (i=1; i<=getMaxStep(); i++)
-	   {
-		getmPts()[i].add(transVec);
-	   }
-        /// 5. save the transrot history into recording data
-	   setTransRotHis_alignedPt(alignedPt);
-	   setTransRotHis_rotCenter(rotCenter);
+		}
+	}
+	/**
+	 A function which can be called inside oGLFrame.display()
+	 This function will draw out the Arc in oGL window
+	 * @param red
+	 * @param green
+	 * @param blue
+	 */
+	public void drawArc(float red, float green, float blue)
+	{
+		//use the oGL draw line function to draw out the mAxisArc
+		int i;
+		GL11.glColor3f(red, green, blue);
+		GL11.glBegin(GL11.GL_LINE_STRIP);
 
-	   // July 24 2009, this is the key point
-	   // change from = to set in May , so we should not have the
-	   // wrongly finalTangent probblem in the future
-	   //transRotHis_finalPos = finalPos;
-		 getTransRotHis_finalPos().set(finalPos);
-	   //transRotHis_finalTangent = finalTangent;
-	   getTransRotHis_finalTangent().set(finalTangent);
-	   setTransRotHis_devAngle(deviateAngle);
-//System.out.println("tangent[1] is at : "+ mTangent[1]);
-     }
-
-     /**
-      *   July 24th 2009
-      *   This function will make sure the normal vector at aligned Pt
-      *   is matching to the targetNorm as the input params.
-      *   This function will only be called in data analysis steps
-      *
-      */
-     public void deviateToTargetNormal( Vector3d TargetNorm)
-     {
-    	 if ( getRad() >= 100000) return; // striaght tube, no need to rotate
-
-    	 Transform3D transMat = new Transform3D();
-    	 Transform3D transMat2 = new Transform3D();
-    	 Vector3d nowvec = new Vector3d();
-    	 int i;
-    	 // 1. identify the current normalVector
-
-    	 	Point3d endpt1 = this.getmPts()[1];
-			Point3d endpt2 = this.getmPts()[51];
-			Point3d midpt = this.getmPts()[26];
-			Vector3d nowNorm= new Vector3d();
-			nowNorm.x = endpt1.x + endpt2.x - midpt.x *2;
-			nowNorm.y = endpt1.y + endpt2.y - midpt.y *2;
-			nowNorm.z= endpt1.z + endpt2.z- midpt.z *2;
-			nowNorm.normalize();
-
-			Point3d oriPt = new Point3d();
-			Vector3d finalTangent = new Vector3d();
-			int rotCenter = 26; // when use this function, always rot at center
-			finalTangent.set( getmTangent()[rotCenter]);
-			oriPt.set(getmPts()[rotCenter]);
-
-			double angle = nowNorm.angle(TargetNorm);
-
-			// try positive_direction first
-            AxisAngle4d axisInfo = new AxisAngle4d( finalTangent, angle);
-            AxisAngle4d axisInfo2 =new AxisAngle4d( finalTangent, -angle);
-            transMat.setRotation(axisInfo);
-            transMat2.setRotation(axisInfo2);
-            // check if the rotation direction is correct
-            Vector3d testVec1 = new Vector3d(nowNorm);
-            Vector3d testVec2 = new Vector3d(nowNorm);
-            transMat.transform(testVec1);
-            transMat2.transform(testVec2);
-
-            //show debug
-            //System.out.println("original normal: " + nowNorm);
-            //System.out.println("target normal:" + TargetNorm);
-            //System.out.println("positive rot" + testVec1);
-            //System.out.println("negative rot " + testVec2);
-
-            if ( testVec1.angle(TargetNorm) < testVec2.angle(TargetNorm) )
-            {
-            		//System.out.println("choose positive rot");
-            }
-            else
-            {
-            		//System.out.println("choose negative rot");
-            		transMat = transMat2;
-            }
-
-            for (i = 1 ; i <= getMaxStep(); i++)
-            {
-            	nowvec.sub(getmPts()[i] , oriPt); // i.e. nowvec = mPts[i] - oriPt
-            	transMat.transform(nowvec);
-            	getmPts()[i].add( nowvec , oriPt); // i.e mPts[i] = nowvec + oriPt
-            	transMat.transform(getmTangent()[i]);
-            }
-     }
-     /**
-	A function which can be called inside oGLFrame.display()
-	This function will draw out the Arc in oGL window
-	  * @param red
-	  * @param green
-	  * @param blue
-	  */
-     public void drawArc(float red, float green, float blue)
-     {
-           //use the oGL draw line function to draw out the mAxisArc
-	   int i;
-           GL11.glColor3f(red, green, blue);
-	   GL11.glBegin(GL11.GL_LINE_STRIP);
-
- 	    for (i=1; i<=getMaxStep(); i++)
+		for (i=1; i<=getMaxStep(); i++)
 		{
-                  //GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
- 	    		GL11.glVertex3d( getmPts()[i].x, getmPts()[i].y, getmPts()[i].z);
+			//GL11.glVertex3d(mPts[i].getX(), mPts[i].getY(), mPts[i].getZ());
+			GL11.glVertex3d( getmPts()[i].x, getmPts()[i].y, getmPts()[i].z);
 		}
 
-           GL11.glEnd();
+		GL11.glEnd();
 
-     }
+	}
 
 
 	public int getMaxStep() {
