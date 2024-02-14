@@ -40,11 +40,11 @@ mock.config_class=
 #############################################################################
 number_of_repetitions_per_stimulus = 5
 #path of computer running generator
-generator.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519
+generator.png_path = /home/r2_allen/Documents/EStimShape/ga_dev_240207/pngs
 #path of computer running experiment
-experiment.png_path = /home/r2_allen/Documents/EStimShape/dev_230519/experiment/pngs_dev_230519_psychometric
+experiment.png_path = /home/r2_allen/Documents/EStimShape/ga_dev_240207/pngs
 #path of location for specs to be saved
-generator.spec_path = /home/r2_allen/Documents/EStimShape/dev_230519/specs
+generator.spec_path = /home/r2_allen/Documents/EStimShape/ga_dev_240207/specs
 
 generator.psychometric.png_path = /home/r2_allen/Documents/EStimShape/dev_220404/pngs_dev_220404_psychometric
 generator.psychometric.noisemap_path = /home/r2_allen/Documents/EStimShape/dev_220404/noisemaps_dev_220404_psychometric
