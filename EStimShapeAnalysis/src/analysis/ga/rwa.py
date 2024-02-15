@@ -32,7 +32,9 @@ def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field:
     :param binner_for_field: a d-dictionary of field names and their corresponding Binner objects. Binner objects
     are responsible for binning the data for a given field.
 
-    :param sigma_for_field: a d-dictionary of field names and their corresponding sigma values for the gaussian kernel
+    :param sigma_for_field: a d-dictionary of field names and their corresponding sigma values for the gaussian kernel.
+    The sigma specified is a percentage of the number of bins for the field. For example, if the number of bins for a field is 10,
+    and the sigma is 0.1, then the sigma value for the gaussian kernel will be 1.0.
     see https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html for more info on how sigma is used.
 
     :param padding_for_field: a d-dictionary of field names and their corresponding padding types for the gaussian kernel

@@ -19,11 +19,32 @@ from clat.util.time_util import When
 
 
 
+
+
 def main():
     # PARAMETERS
     conn = Connection("allen_estimshape_ga_dev_240207")
-    num_bins = 10
 
+    # PIPELINE
+    trial_tstamps = collect_trials(conn, time_util.all())
+    data = compile_data(conn, trial_tstamps)
+    data = remove_empty_response_trials(data)
+    data = condition_spherical_angles(data)
+    data = hemisphericalize_orientation(data)
+
+    n = 3
+
+    shaft_rwa = compute_shaft_rwa(data, n)
+    termination_rwa = compute_termination_rwa(data, n)
+    junction_rwa = compute_junction_rwa(data, n)
+    # SAVE
+    save(get_next(shaft_rwa), "shaft_rwa")
+    save(get_next(termination_rwa), "termination_rwa")
+    save(get_next(junction_rwa), "junction_rwa")
+
+
+def compute_shaft_rwa(data, n):
+    data_shaft = data['Shaft'].tolist()
     # a percentage of the number of bins
     sigma_for_fields = {
         "theta": 1 / 9,
@@ -34,25 +55,15 @@ def main():
         "curvature": 1 / 9,
         "radius": 1 / 9,
     }
-
     padding_for_fields = {
         "theta": "wrap",
         "angularPosition.phi": "nearest",
         "radialPosition": "nearest",
-        "orientation.phi": "wrap",
+        "orientation.phi": "nearest",
         "length": "nearest",
         "curvature": "nearest",
         "radius": "nearest",
     }
-
-    # PIPELINE
-    trial_tstamps = collect_trials(conn, time_util.all())
-    data = compile_data(conn, trial_tstamps)
-    data = remove_empty_response_trials(data)
-    data = condition_spherical_angles(data)
-    data = hemisphericalize_orientation(data)
-    data_shaft = data['Shaft'].tolist()
-
     binner_for_shaft_fields = {
         "theta": Binner(-pi, pi, 9),
         "angularPosition.phi": Binner(0, pi, 9),
@@ -62,17 +73,72 @@ def main():
         "curvature": AutomaticBinner("curvature", data_shaft, 9),
         "radius": AutomaticBinner("radius", data_shaft, 9),
     }
+    shaft_rwa = compute_rwa_from_top_n_lineages(data, "Shaft",
+                                                "New3D", n, binner_for_shaft_fields,
+                                                sigma_for_fields=sigma_for_fields,
+                                                padding_for_fields=padding_for_fields)
+    return shaft_rwa
 
-    n = 3
-    response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
-                                                                sigma_for_fields=sigma_for_fields,
-                                                                padding_for_fields=padding_for_fields)
+def compute_termination_rwa(data, n):
+    data_termination = data['Termination'].tolist()
+    # a percentage of the number of bins
+    sigma_for_fields = {
+        "theta": 1 / 9,
+        "angularPosition.phi": 1 / 9,
+        "radialPosition": 1 / 9,
+        "direction.phi": 1 / 9,
+        "radius": 1 / 9,
+    }
+    padding_for_fields = {
+        "theta": "wrap",
+        "phi": "nearest",
+        "radialPosition": "nearest",
+        "radius": "nearest",
+    }
+    binner_for_termination_fields = {
+        "theta": Binner(-pi, pi, 9),
+        "phi": Binner(0, pi, 9),
+        "radialPosition": AutomaticBinner("radialPosition", data_termination, 9),
+        "length": AutomaticBinner("length", data_termination, 9),
+        "curvature": AutomaticBinner("curvature", data_termination, 9),
+        "radius": AutomaticBinner("radius", data_termination, 9),
+    }
+    termination_rwa = compute_rwa_from_top_n_lineages(data, "Termination",
+                                                      "New3D", n, binner_for_termination_fields,
+                                                      sigma_for_fields=sigma_for_fields,
+                                                      padding_for_fields=padding_for_fields)
+    return termination_rwa
 
-    # response_weighted_average = rwa(data["Shaft"], data["Response-1"], binner_for_shaft_fields,
-    #                                 sigma_for_fields, padding_for_fields)
-    # SAVE
-    save(get_next(response_weighted_average), "test_rwa")
 
+def compute_junction_rwa(data, n):
+    data_junction = data['Junction'].tolist()
+    # a percentage of the number of bins
+    sigma_for_fields = {
+        "theta": 1 / 9,
+        "phi": 1 / 9,
+        "radialPosition": 1 / 9,
+        "radius": 1 / 9,
+        "angularSubtense": 1 / 9,
+    }
+    padding_for_fields = {
+        "theta": "wrap",
+        "phi": "nearest",
+        "radialPosition": "nearest",
+        "radius": "nearest",
+        "angularSubtense": "nearest"
+    }
+    binner_for_junction_fields = {
+        "theta": Binner(-pi, pi, 9),
+        "phi": Binner(0, pi, 9),
+        "radialPosition": AutomaticBinner("radialPosition", data_junction, 9),
+        "radius": AutomaticBinner("radius", data_junction, 9),
+        "angularSubtense": Binner(0, pi,9),
+    }
+    junction_rwa = compute_rwa_from_top_n_lineages(data, "Junction",
+                                                   "New3D", n, binner_for_junction_fields,
+                                                   sigma_for_fields=sigma_for_fields,
+                                                   padding_for_fields=padding_for_fields)
+    return junction_rwa
 
 def save(response_weighted_average, file_name):
     filename = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/%s.json" % file_name
@@ -103,7 +169,8 @@ def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields
     return rwa_multiplied
 
 
-def compute_rwa_from_top_n_lineages(data, ga_type, n, binner_for_fields, sigma_for_fields=None, padding_for_fields=None):
+def compute_rwa_from_top_n_lineages(data, data_type, ga_type, n, binner_for_fields, sigma_for_fields=None, padding_for_fields=None,
+                                    ):
     """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
     data = data.loc[data['GaType'] == ga_type]
     rwas = []
@@ -115,13 +182,13 @@ def compute_rwa_from_top_n_lineages(data, ga_type, n, binner_for_fields, sigma_f
         if i < n:
             lineage_ids.append(lineage)
             print(lineage)
-            rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields,
+            rwas.append(rwa(lineage_data[("%s" % data_type)], lineage_data["Response-1"], binner_for_fields,
                             sigma_for_fields, padding_for_fields))
     print("Multiplying Lineage RWAs")
 
     rwas = [get_next(r) for r in rwas]
     for lineage_index, rwa_lineage in enumerate(rwas):
-        save(rwa_lineage, "lineage_rwa_%d" % lineage_ids[lineage_index])
+        save(rwa_lineage, "%s_lineage_rwa_%d" % (data_type, lineage_ids[lineage_index]))
     rwa_multiplied = normalize_and_combine_rwas(rwas)
 
     return rwa_multiplied
