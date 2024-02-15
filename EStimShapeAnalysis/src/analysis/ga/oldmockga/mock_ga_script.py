@@ -4,8 +4,7 @@ import os
 import subprocess
 from time import sleep
 
-from analysis.ga.oldmockga import mock_rwa_plot, mock_tree_graph
-from pga.mock import mock_ga_responses, mock_rwa_analysis
+from pga.mock import mock_ga_responses, mock_rwa_analysis, mock_tree_graph, mock_rwa_plot
 from clat.util.connection import Connection
 
 allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"

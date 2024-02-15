@@ -14,7 +14,7 @@ public class RegimeThreeStim extends GAStim<GrowingMatchStick, AllenMStickData> 
 
     @Override
     protected GrowingMatchStick createMStick() {
-        GrowingMatchStick parentMStick = new GrowingMatchStick(1.0);
+        GrowingMatchStick parentMStick = new GrowingMatchStick(1.0/3.0);
         parentMStick.setProperties(calculateSize());
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 

@@ -18,8 +18,10 @@ public class CoordinateConverter {
         /**
          *
          * @param r - radius
-         * @param theta - azimuth
-         * @param phi - 90 - elevation angle
+         * @param theta - azimuth. Angle along X-Y plane. THETA=0 is along the X axis. THETA=PI/2 is along the Y axis.
+         * @param phi - 90 - elevation angle along the Z axis. PHI = 0 is pointing away from the viewer. PHI = PI is pointing towards the viewer
+         *
+         *
          */
         public SphericalCoordinates(double r, double theta, double phi) {
             this.r = r;

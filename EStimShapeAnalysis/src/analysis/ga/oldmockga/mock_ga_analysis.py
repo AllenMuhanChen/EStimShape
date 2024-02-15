@@ -31,7 +31,7 @@ def main():
     print(data)
 
     # PLOTTING
-    show_top_n_per_lineage(data, 5, 2)
+    show_top_n_per_lineage(data, 2, 3)
 
 
 def show_top_n_per_lineage(data, n, num_lineages):

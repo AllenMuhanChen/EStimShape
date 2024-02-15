@@ -1,4 +1,5 @@
 # regime_one.py
+import math
 from dataclasses import dataclass
 from typing import Callable, List
 
@@ -182,10 +183,16 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
     def assign_mutation_magnitude(self, lineage: Lineage, stimulus: Stimulus):
         # Calculate the response rates of the stimuli and normalize them to the range [0, 1].
         response_rates = np.array([s.response_rate for s in lineage.stimuli])
-        normalized_response_rates = [rate / max(response_rates) for rate in response_rates]
+        normalized_response_rates = []
+        for rate in response_rates:
+            if max(response_rates) != 0:
+                normalized_response_rates.append(rate / max(response_rates))
+            else:
+                normalized_response_rates.append(0)
+
 
         # Assign mutation magnitudes probabilistically based on normalized response rates.
-        # We subtract the normalized response rates from 1 so that higher ranked stimuli have higher probabilities of receiving smaller mutations.
+        # We subtract the normalized response rates from 1.1 so that higher ranked stimuli have higher probabilities of receiving smaller mutations.
         if len(normalized_response_rates) > 1:
             scores = [1.1 - normalized_response_rate for normalized_response_rate in normalized_response_rates]
             probabilities = [s / sum(scores) for s in scores]  # Ensure probabilities sum to 1
@@ -195,17 +202,20 @@ class GrowingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
             return np.random.uniform(self.min_magnitude, self.max_magnitude)
 
 
-def calculate_peak_response(responses):
-    # Calculate the peak response for the current batch of stimuli as the average of the top 3 responses.
+def calculate_peak_response(responses, across_n=3):
+    # Ensure the list of responses is at least of length across_n, filling missing values with 0
+    extended_responses = responses + [0] * (across_n - len(responses))
 
-    top_responses = sorted(responses, reverse=True)[:3]
+    # Calculate the peak response for the current batch of stimuli as the average of the top 3 responses.
+    # It uses the extended list but still selects only the top 'across_n' responses, which now includes 0s if necessary.
+    top_responses = sorted(extended_responses, reverse=True)[:across_n]
     return np.mean(top_responses)
 
 
 class GrowingPhaseTransitioner(RegimeTransitioner):
     def __init__(self, convergence_threshold):
         self.convergence_threshold = convergence_threshold
-        self.x = 3
+        self.x = 5
         self.change = None
         self.peak_responses = None
 
@@ -226,16 +236,17 @@ class GrowingPhaseTransitioner(RegimeTransitioner):
 
             latest_gen_id -= 1
 
-        if generations_analyzed < self.x:
-            # Not enough valid generations to analyze
-            return False
 
         for gen_id in gen_ids_to_analyze:
             responses_up_to_and_including_generation = [s.response_rate for s in lineage.stimuli if s.gen_id <= gen_id]
             self.peak_responses.append(calculate_peak_response(responses_up_to_and_including_generation))
 
+        if generations_analyzed < self.x:
+            # Not enough valid generations to analyze
+            return False
+
         self.change = abs((self.peak_responses[-1] - self.peak_responses[0]) / self.x)
-        return self.change < self.convergence_threshold
+        return self.convergence_threshold > self.change
 
     def get_transition_data(self, lineage):
         data = {"current_peak_response": self.peak_responses, "change": self.change}

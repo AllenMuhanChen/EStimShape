@@ -1,9 +1,12 @@
 from __future__ import annotations
+
+import math
 from collections import namedtuple
 from dataclasses import dataclass, Field
 from typing import List, Tuple, Any
 
 import xmltodict
+from numpy import float64
 
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
@@ -87,10 +90,10 @@ class MultiGaDbUtil:
                 return float(val)
 
         self.conn.execute(
-            "SELECT parent_id, lineage_id, stim_type, response, mutation_magnitude, gen_id FROM StimGaInfo WHERE stim_id = %s",
+            "SELECT parent_id, lineage_id, stim_type, response, mutation_magnitude, gen_id FROM StimGaInfo WHERE stim_id = %s order by gen_id desc",
             (stim_id,))
         rows = self.conn.fetch_all()
-        if rows is None:
+        if rows is None or len(rows) == 0:
             raise Exception(f"Could not find StimGaInfo entry for stim_id {stim_id}")
         else:
             parent_id, lineage_id, stim_type, response, mutation_magnitude, gen_id = rows[0]
@@ -159,6 +162,10 @@ class MultiGaDbUtil:
         return stim_ids
 
     def update_driving_response(self, stim_id: int, response: float):
+        #if response is not float
+        if math.isnan(response):
+            print(f"Warning: response for stim_id {stim_id} is NaN, setting to 0")
+            response = 0
         self.conn.execute(
             "UPDATE StimGaInfo SET response = %s WHERE stim_id = %s",
             (response, stim_id))

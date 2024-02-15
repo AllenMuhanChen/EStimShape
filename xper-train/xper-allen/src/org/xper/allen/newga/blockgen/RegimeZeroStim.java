@@ -39,6 +39,8 @@ public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickD
     }
 
     private void writeMStickData(MorphedMatchStick mStick) {
+        //IMPORTANT that mStickSpec info is written before getMStickData()
+        // because getMStickData() has side effects.
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);

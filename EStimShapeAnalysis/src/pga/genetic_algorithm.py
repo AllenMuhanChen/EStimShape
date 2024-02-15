@@ -153,10 +153,15 @@ class GeneticAlgorithm:
         # Write stimuli
         for lineage in self.lineages:
             for stim in lineage.stimuli:
-                self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id, lineage_id=lineage.id,
-                                                stim_type=stim.mutation_type,
-                                                mutation_magnitude=stim.mutation_magnitude,
-                                                gen_id=self.gen_id)
+                try:
+                    self.db_util.read_stim_ga_info_entry(stim.id)
+                except Exception:
+                    # If the stim is not in the db, write it
+                    self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id, lineage_id=lineage.id,
+                                                    stim_type=stim.mutation_type,
+                                                    mutation_magnitude=stim.mutation_magnitude,
+                                                    gen_id=self.gen_id)
+
 
         # Update generations
         # self.db_util.update_ready_gas_and_generations_info(self.name, self.gen_id)

@@ -13,28 +13,28 @@ from clat.util.dictionary_util import apply_function_to_subdictionaries_values_w
 
 
 def main():
-    test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/test_rwa.json", "r").read())
+    test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/test_rwa.json", "r").read())
     fig = plot_shaft_rwa_1d(get_next(test_rwa))
-    plot_top_n_stimuli(2, fig)
+    plot_top_n_stimuli(3, fig)
     plt.suptitle("Combined RWA")
 
-    # lineage_0_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_0.json", "r").read())
-    # plot_shaft_rwa(lineage_0_rwa)
-    # plt.suptitle("Lineage 0 RWA")
-    #
-    # lineage_1_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_1.json", "r").read())
-    # plot_shaft_rwa(lineage_1_rwa)
-    # plt.suptitle("Lineage 1 RWA")
-    #
-    # lineage_2_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_2.json", "r").read())
-    # plot_shaft_rwa(lineage_2_rwa)
-    # plt.suptitle("Lineage 2 RWA")
+    lineage_0_rwa = jsonpickle.decode(
+        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908601461.json", "r").read())
+    plot_shaft_rwa_1d(lineage_0_rwa)
+    plt.suptitle("Lineage 0 RWA")
+
+    lineage_1_rwa = jsonpickle.decode(
+        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908617330.json", "r").read())
+    plot_shaft_rwa_1d(lineage_1_rwa)
+    plt.suptitle("Lineage 1 RWA")
+
+    lineage_2_rwa = jsonpickle.decode(
+        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908621802.json", "r").read())
+    plot_shaft_rwa_1d(lineage_2_rwa)
+    plt.suptitle("Lineage 2 RWA")
     #
     # lineage_3_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/dev_221110/rwa/lineage_rwa_3.json", "r").read())
+    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_3.json", "r").read())
     # plot_shaft_rwa(lineage_3_rwa)
     # plt.suptitle("Lineage 3 RWA")
 
@@ -143,7 +143,7 @@ def plot_shaft_rwa_1d(test_rwa):
     # matrix = np.flip(matrix)
     matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(20, 10))
     ax_angular_position_theta = fig.add_subplot(1, 8, 1)
     ax_angular_position_phi = fig.add_subplot(1, 8, 2)
     ax_radial_position = fig.add_subplot(1, 8, 3)
@@ -172,7 +172,7 @@ def plot_shaft_rwa(test_rwa):
     matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
 
     # ARRANGING SUBPLOTS
-    fig = plt.figure()
+    fig = plt.figure(figsize=(20, 10))
     ax_angular_position = fig.add_subplot(1, 6, 1, projection='3d')
     ax_radial_position = fig.add_subplot(1, 6, 2)
     ax_orientation = fig.add_subplot(1, 6, 3, projection='3d')

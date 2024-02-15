@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GrowingMatchStick extends RFMatchStick {
+    protected static int MAX_TOTAL_ATTEMPTS = 1000;
 
     private double sigma;
 
@@ -41,5 +42,13 @@ public class GrowingMatchStick extends RFMatchStick {
         // Call MorphedMatchStick
         genMorphedMatchStick(paramsForComps, matchStickToMorph);
 
+    }
+
+    public int getMaxTotalAttempts() {
+        return MAX_TOTAL_ATTEMPTS;
+    }
+
+    public void setMaxTotalAttempts(int maxTotalAttempts) {
+        MAX_TOTAL_ATTEMPTS = maxTotalAttempts;
     }
 }

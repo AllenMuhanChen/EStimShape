@@ -8,7 +8,7 @@ import pandas as pd
 
 from analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_combine_rwas, get_next
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
-from analysis.matchstick_fields import ShaftField
+from analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.trial.trial_field import FieldList, get_data_from_trials
 from clat.util import time_util
@@ -16,6 +16,7 @@ from clat.util.connection import Connection
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
     check_condition_on_subdictionaries
 from clat.util.time_util import When
+
 
 
 def main():
@@ -36,17 +37,18 @@ def main():
 
     padding_for_fields = {
         "theta": "wrap",
-        "angularPosition.phi": "wrap",
-        "radialPosition": "reflect",
+        "angularPosition.phi": "nearest",
+        "radialPosition": "nearest",
         "orientation.phi": "wrap",
-        "length": "reflect",
-        "curvature": "reflect",
-        "radius": "reflect",
+        "length": "nearest",
+        "curvature": "nearest",
+        "radius": "nearest",
     }
 
     # PIPELINE
     trial_tstamps = collect_trials(conn, time_util.all())
     data = compile_data(conn, trial_tstamps)
+    data = remove_empty_response_trials(data)
     data = condition_spherical_angles(data)
     data = hemisphericalize_orientation(data)
     data_shaft = data['Shaft'].tolist()
@@ -61,7 +63,7 @@ def main():
         "radius": AutomaticBinner("radius", data_shaft, 9),
     }
 
-    n = 4
+    n = 3
     response_weighted_average = compute_rwa_from_top_n_lineages(data, "New3D", n, binner_for_shaft_fields,
                                                                 sigma_for_fields=sigma_for_fields,
                                                                 padding_for_fields=padding_for_fields)
@@ -73,7 +75,7 @@ def main():
 
 
 def save(response_weighted_average, file_name):
-    filename = "/home/r2_allen/Documents/EStimShape/dev_221110/rwa/%s.json" % file_name
+    filename = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/%s.json" % file_name
     with open(filename, "w") as file:
         file.write(jsonpickle.encode(response_weighted_average))
         file.close()
@@ -105,11 +107,13 @@ def compute_rwa_from_top_n_lineages(data, ga_type, n, binner_for_fields, sigma_f
     """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
     data = data.loc[data['GaType'] == ga_type]
     rwas = []
-    means_for_lineages = data.groupby("Lineage")["RegimeScore"].mean()
-    top_n_lineages = means_for_lineages.nlargest(n).index
+    length_for_lineages = data.groupby("Lineage")["RegimeScore"].size()
+    top_n_lineages = length_for_lineages.nlargest(n).index
     filtered_data = data[data["Lineage"].isin(top_n_lineages)]
+    lineage_ids = []
     for i, (lineage, lineage_data) in enumerate(filtered_data.groupby("Lineage")):
         if i < n:
+            lineage_ids.append(lineage)
             print(lineage)
             rwas.append(rwa(lineage_data["Shaft"], lineage_data["Response-1"], binner_for_fields,
                             sigma_for_fields, padding_for_fields))
@@ -117,7 +121,7 @@ def compute_rwa_from_top_n_lineages(data, ga_type, n, binner_for_fields, sigma_f
 
     rwas = [get_next(r) for r in rwas]
     for lineage_index, rwa_lineage in enumerate(rwas):
-        save(rwa_lineage, "lineage_rwa_%d" % lineage_index)
+        save(rwa_lineage, "lineage_rwa_%d" % lineage_ids[lineage_index])
     rwa_multiplied = normalize_and_combine_rwas(rwas)
 
     return rwa_multiplied
@@ -133,6 +137,8 @@ def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     fields.append(StimSpecIdField(conn, "Id"))
     fields.append(MockResponseField(conn, 1, name="Response-1"))
     fields.append(ShaftField(mstick_spec_data_source, name="Shaft"))
+    fields.append(TerminationField(mstick_spec_data_source, name="Termination"))
+    fields.append(JunctionField(mstick_spec_data_source, name="Junction"))
 
     data = get_data_from_trials(fields, trial_tstamps)
     return data
@@ -150,6 +156,8 @@ class MockResponseField(StimSpecIdField):
         response = self.conn.fetch_one()
         return response
 
+def remove_empty_response_trials(data):
+    return data[data["Response-1"].apply(lambda x: x is not None)]
 
 def condition_spherical_angles(data):
     for column in data:

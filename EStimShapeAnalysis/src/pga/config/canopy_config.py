@@ -23,7 +23,7 @@ from clat.util.connection import Connection
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
     database = "allen_estimshape_dev_230519"
-    num_trials_per_generation = 20
+    num_trials_per_generation = 40
     base_intan_path = "/bleh"
 
     def __init__(self):
@@ -50,12 +50,24 @@ class GeneticAlgorithmConfig:
                 self.leafing_phase()]
 
     def seeding_phase(self):
-        return Phase(SeedingPhaseParentSelector(),
-                     SeedingPhaseMutationAssigner(),
-                     SeedingPhaseMutationMagnitudeAssigner(),
-                     SeedingPhaseTransitioner(
-                          self.spontaneous_firing_rate(),
-                          self.seeding_phase_significance_threshold()))
+        return Phase(self.seeding_phase_parent_selector(),
+                     self.seeding_phase_mutation_assigner(),
+                     self.seeding_phase_mutation_magnitude_assigner(),
+                     self.seeding_phase_transitioner())
+
+    def seeding_phase_transitioner(self):
+        return SeedingPhaseTransitioner(
+            self.spontaneous_firing_rate(),
+            self.seeding_phase_significance_threshold())
+
+    def seeding_phase_mutation_magnitude_assigner(self):
+        return SeedingPhaseMutationMagnitudeAssigner()
+
+    def seeding_phase_mutation_assigner(self):
+        return SeedingPhaseMutationAssigner()
+
+    def seeding_phase_parent_selector(self):
+        return SeedingPhaseParentSelector()
 
     def seeding_phase_significance_threshold(self):
         return self.var_fetcher.get("regime_zero_transition_significance_threshold", dtype=float)

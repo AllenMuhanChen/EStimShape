@@ -1,7 +1,7 @@
 import jsonpickle
 from matplotlib import pyplot as plt
 
-from analysis.ga.oldmockga.mock_rwa_plot import plot_shaft_rwa
+from pga.mock.mock_rwa_plot import plot_shaft_rwa
 
 
 def main():

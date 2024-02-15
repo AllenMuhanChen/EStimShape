@@ -230,7 +230,7 @@ class MockTreeGraph(ColoredTreeGraph):
         edges = recursive_tree_to_edges(tree_spec)
         self.stim_ids = [stim_id for edge in edges for stim_id in edge]
         y_values_for_stim_ids = fetch_responses_for(self.stim_ids)
-        image_folder = "/home/r2_allen/Documents/EStimShape/dev_230519/pngs_dev_230519"
+        image_folder = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/pngs"
         edge_colors = get_edge_colors(edges)
         super().__init__(y_values_for_stim_ids, edges, edge_colors, image_folder)
         self.highlighted_nodes = []
@@ -332,7 +332,11 @@ def fetch_responses_for(stim_ids):
     for stim_id in stim_ids:
         conn.execute("SELECT response from StimGaInfo where stim_id = %s", (stim_id,))
         response = conn.fetch_one()
-        responses[stim_id] = float(response)
+        if response is not None:
+            responses[stim_id] = float(response)
+        else:
+            responses[stim_id] = 0
+            print("WARNING: stim with stim_id: ", stim_id, " has no response")
     return responses
 
 

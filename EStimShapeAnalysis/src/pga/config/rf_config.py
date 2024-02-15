@@ -10,12 +10,3 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         return [self.seeding_phase(),
                 self.growing_phase(),
                 self.leafing_phase()]
-
-    def leafing_phase(self):
-        return Phase(
-            LeafingPhaseParentSelector(
-                self.weight_func(),
-                self.sampling_smoothing_bandwidth()),
-            LeafingPhaseMutationAssigner(),
-            LeafingPhaseMutationMagnitudeAssigner(),
-            LeafingPhaseTransitioner(self.get_under_sampling_threshold(), bandwidth=self.sampling_smoothing_bandwidth()))

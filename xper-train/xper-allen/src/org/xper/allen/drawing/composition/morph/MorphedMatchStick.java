@@ -17,7 +17,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class MorphedMatchStick extends AllenMatchStick {
-    private static final int MAX_TOTAL_ATTEMPTS = 15;
+    protected int MAX_TOTAL_ATTEMPTS = 15;
     private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch
     private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
     // 50% add to end, 50%
@@ -51,7 +51,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
         // Attempt to morph every component. If we fail, then restart with the backup.
         int numAttempts = 0;
-        while (numAttempts < MAX_TOTAL_ATTEMPTS) {
+        while (numAttempts < getMaxTotalAttempts()) {
             try {
                 findCompsToPreserve(morphParametersForComponents);
                 morphAllComponents(morphParametersForComponents);
@@ -73,8 +73,8 @@ public class MorphedMatchStick extends AllenMatchStick {
 //                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS + " to morph matchstick");
             }
         }
-        if (numAttempts >= MAX_TOTAL_ATTEMPTS) {
-            throw new MorphException("Failed to morph matchstick after " + MAX_TOTAL_ATTEMPTS + " attempts.");
+        if (numAttempts >= getMaxTotalAttempts()) {
+            throw new MorphException("Failed to morph matchstick after " + getMaxTotalAttempts() + " attempts.");
         }
     }
 
@@ -742,5 +742,13 @@ public class MorphedMatchStick extends AllenMatchStick {
     @Override
     public double getPROB_addToEnd_notJunc() {
         return PROB_addToEnd_notJunc;
+    }
+
+    public int getMaxTotalAttempts() {
+        return MAX_TOTAL_ATTEMPTS;
+    }
+
+    public void setMaxTotalAttempts(int maxTotalAttempts) {
+        MAX_TOTAL_ATTEMPTS = maxTotalAttempts;
     }
 }
