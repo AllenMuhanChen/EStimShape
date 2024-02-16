@@ -7,7 +7,10 @@ import numpy as np
 import pandas as pd
 
 from analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_combine_rwas, get_next
-from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, NewGaNameField, RegimeScoreField
+from clat.compile.task.cached_task_fields import CachedTaskFieldList
+from clat.compile.trial.cached_fields import CachedFieldList
+from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
+    NewGaNameField, RegimeScoreField
 from analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
 from clat.compile.trial.trial_collector import TrialCollector
 from clat.compile.trial.trial_field import FieldList, get_data_from_trials
@@ -16,9 +19,6 @@ from clat.util.connection import Connection
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \
     check_condition_on_subdictionaries
 from clat.util.time_util import When
-
-
-
 
 
 def main():
@@ -36,11 +36,11 @@ def main():
 
     shaft_rwa = compute_shaft_rwa(data, n)
     termination_rwa = compute_termination_rwa(data, n)
-    junction_rwa = compute_junction_rwa(data, n)
+    # junction_rwa = compute_junction_rwa(data, n)
     # SAVE
     save(get_next(shaft_rwa), "shaft_rwa")
     save(get_next(termination_rwa), "termination_rwa")
-    save(get_next(junction_rwa), "junction_rwa")
+    # save(get_next(junction_rwa), "junction_rwa")
 
 
 def compute_shaft_rwa(data, n):
@@ -79,14 +79,14 @@ def compute_shaft_rwa(data, n):
                                                 padding_for_fields=padding_for_fields)
     return shaft_rwa
 
+
 def compute_termination_rwa(data, n):
-    data_termination = data['Termination'].tolist()
+    data_termination = data["Termination"].tolist()
     # a percentage of the number of bins
     sigma_for_fields = {
         "theta": 1 / 9,
-        "angularPosition.phi": 1 / 9,
+        "phi": 1 / 9,
         "radialPosition": 1 / 9,
-        "direction.phi": 1 / 9,
         "radius": 1 / 9,
     }
     padding_for_fields = {
@@ -99,8 +99,6 @@ def compute_termination_rwa(data, n):
         "theta": Binner(-pi, pi, 9),
         "phi": Binner(0, pi, 9),
         "radialPosition": AutomaticBinner("radialPosition", data_termination, 9),
-        "length": AutomaticBinner("length", data_termination, 9),
-        "curvature": AutomaticBinner("curvature", data_termination, 9),
         "radius": AutomaticBinner("radius", data_termination, 9),
     }
     termination_rwa = compute_rwa_from_top_n_lineages(data, "Termination",
@@ -111,7 +109,7 @@ def compute_termination_rwa(data, n):
 
 
 def compute_junction_rwa(data, n):
-    data_junction = data['Junction'].tolist()
+    data_junction = data["Junction"].tolist()
     # a percentage of the number of bins
     sigma_for_fields = {
         "theta": 1 / 9,
@@ -132,13 +130,14 @@ def compute_junction_rwa(data, n):
         "phi": Binner(0, pi, 9),
         "radialPosition": AutomaticBinner("radialPosition", data_junction, 9),
         "radius": AutomaticBinner("radius", data_junction, 9),
-        "angularSubtense": Binner(0, pi,9),
+        "angularSubtense": Binner(0, pi, 9),
     }
     junction_rwa = compute_rwa_from_top_n_lineages(data, "Junction",
                                                    "New3D", n, binner_for_junction_fields,
                                                    sigma_for_fields=sigma_for_fields,
                                                    padding_for_fields=padding_for_fields)
     return junction_rwa
+
 
 def save(response_weighted_average, file_name):
     filename = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/%s.json" % file_name
@@ -169,7 +168,8 @@ def compute_rwa_from_lineages(data, ga_type, binner_for_fields, sigma_for_fields
     return rwa_multiplied
 
 
-def compute_rwa_from_top_n_lineages(data, data_type, ga_type, n, binner_for_fields, sigma_for_fields=None, padding_for_fields=None,
+def compute_rwa_from_top_n_lineages(data, data_type, ga_type, n, binner_for_fields, sigma_for_fields=None,
+                                    padding_for_fields=None,
                                     ):
     """sigma_for_fields is expressed as a percentage of the number of bins for that dimension"""
     data = data.loc[data['GaType'] == ga_type]
@@ -182,8 +182,10 @@ def compute_rwa_from_top_n_lineages(data, data_type, ga_type, n, binner_for_fiel
         if i < n:
             lineage_ids.append(lineage)
             print(lineage)
-            rwas.append(rwa(lineage_data[("%s" % data_type)], lineage_data["Response-1"], binner_for_fields,
-                            sigma_for_fields, padding_for_fields))
+            response_weighted_average = rwa(lineage_data[("%s" % data_type)], lineage_data["Response-1"].tolist(),
+                                            binner_for_fields, sigma_for_fields,
+                                            padding_for_fields)
+            rwas.append(response_weighted_average)
     print("Multiplying Lineage RWAs")
 
     rwas = [get_next(r) for r in rwas]
@@ -197,34 +199,39 @@ def compute_rwa_from_top_n_lineages(data, data_type, ga_type, n, binner_for_fiel
 def compile_data(conn: Connection, trial_tstamps: list[When]) -> pd.DataFrame:
     mstick_spec_data_source = StimSpecDataField(conn)
 
-    fields = FieldList()
-    fields.append(NewGaNameField(conn, "GaType"))
-    fields.append(NewGaLineageField(conn, "Lineage"))
-    fields.append(RegimeScoreField(conn, "RegimeScore"))
-    fields.append(StimSpecIdField(conn, "Id"))
-    fields.append(MockResponseField(conn, 1, name="Response-1"))
-    fields.append(ShaftField(mstick_spec_data_source, name="Shaft"))
-    fields.append(TerminationField(mstick_spec_data_source, name="Termination"))
-    fields.append(JunctionField(mstick_spec_data_source, name="Junction"))
+    fields = CachedFieldList()
+    fields.append(StimSpecIdField(conn))
+    fields.append(NewGaNameField(conn))
+    fields.append(NewGaLineageField(conn))
+    fields.append(RegimeScoreField(conn))
+    fields.append(MockResponseField(conn, 1))
+    fields.append(ShaftField(conn, mstick_spec_data_source))
+    fields.append(TerminationField(conn, mstick_spec_data_source))
+    fields.append(JunctionField(conn, mstick_spec_data_source))
 
-    data = get_data_from_trials(fields, trial_tstamps)
+    data = fields.to_data(trial_tstamps)
     return data
 
 
 class MockResponseField(StimSpecIdField):
 
-    def __init__(self, conn: Connection, channel: int, name: str = None):
-        super().__init__(conn, name=name)
+    def __init__(self, conn: Connection, channel: int):
+        super().__init__(conn)
         self.channel = channel
 
     def get(self, when: When) -> float:
-        stim_spec_id = StimSpecIdField.get(self, when)
-        self.conn.execute("SELECT response FROM StimGaInfo WHERE stim_id = %s", [stim_spec_id])
+        stim_spec_id = self.get_cached_super(when, StimSpecIdField)
+        self.conn.execute("SELECT spikes_per_second FROM ChannelResponses WHERE stim_id = %s AND channel=%s", [stim_spec_id, "D-003"])
         response = self.conn.fetch_one()
         return response
 
+    def get_name(self):
+        return "Response-1"
+
+
 def remove_empty_response_trials(data):
-    return data[data["Response-1"].apply(lambda x: x is not None)]
+    return data[data["Response-1"].apply(lambda x: x is not None and not np.isnan(x))]
+
 
 def condition_spherical_angles(data):
     for column in data:
@@ -329,5 +336,3 @@ def check_if_outside_binrange(field_name: str, value, binner_for_fields: dict[st
 
 if __name__ == '__main__':
     main()
-
-

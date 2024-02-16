@@ -36,7 +36,7 @@ def main():
     fields.append(NumRandDistractorsField(conn))
     fields.append(StimTypeField(conn))
 
-    data = fields.get_data(trial_tstamps)
+    data = fields.to_data(trial_tstamps)
     print(data.to_string())
 
     # FILTER DATA

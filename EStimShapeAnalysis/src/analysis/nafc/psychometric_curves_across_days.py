@@ -22,7 +22,7 @@ def main():
     fields.append(NoiseChanceField(conn))
     fields.append(NumRandDistractorsField(conn))
 
-    data = fields.get_data(trial_tstamps)
+    data = fields.to_data(trial_tstamps)
     print(data.to_string())
 
     # FILTER DATA

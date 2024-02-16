@@ -13,25 +13,30 @@ from clat.util.dictionary_util import apply_function_to_subdictionaries_values_w
 
 
 def main():
-    test_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/test_rwa.json", "r").read())
-    fig = plot_shaft_rwa_1d(get_next(test_rwa))
-    plot_top_n_stimuli(3, fig)
-    plt.suptitle("Combined RWA")
+    shaft_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/shaft_rwa.json", "r").read())
+    fig = plot_shaft_rwa_1d(get_next(shaft_rwa))
+    plot_top_n_stimuli_on_shaft(3, fig)
+    plt.suptitle("Combined SHAFT RWA")
+
+    termination_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/termination_rwa.json", "r").read())
+    plot_termination_rwa_1d(get_next(termination_rwa))
+    plt.suptitle("Combined TERMINATION RWA")
+
 
     lineage_0_rwa = jsonpickle.decode(
-        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908601461.json", "r").read())
+        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/Shaft_lineage_rwa_1708017908601461.json", "r").read())
     plot_shaft_rwa_1d(lineage_0_rwa)
     plt.suptitle("Lineage 0 RWA")
-
-    lineage_1_rwa = jsonpickle.decode(
-        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908617330.json", "r").read())
-    plot_shaft_rwa_1d(lineage_1_rwa)
-    plt.suptitle("Lineage 1 RWA")
-
-    lineage_2_rwa = jsonpickle.decode(
-        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908621802.json", "r").read())
-    plot_shaft_rwa_1d(lineage_2_rwa)
-    plt.suptitle("Lineage 2 RWA")
+    #
+    # lineage_1_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908617330.json", "r").read())
+    # plot_shaft_rwa_1d(lineage_1_rwa)
+    # plt.suptitle("Lineage 1 RWA")
+    #
+    # lineage_2_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908621802.json", "r").read())
+    # plot_shaft_rwa_1d(lineage_2_rwa)
+    # plt.suptitle("Lineage 2 RWA")
     #
     # lineage_3_rwa = jsonpickle.decode(
     #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_3.json", "r").read())
@@ -40,7 +45,7 @@ def main():
 
     plt.show()
 
-def plot_top_n_stimuli(n, fig):
+def plot_top_n_stimuli_on_shaft(n, fig):
     conn = Connection("allen_estimshape_ga_dev_240207")
     conn.execute("SELECT stim_id, response FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
     top_n_stim_id_and_response = conn.fetch_all()
@@ -137,8 +142,8 @@ def plot_top_n_stimuli(n, fig):
 
 
 
-def plot_shaft_rwa_1d(test_rwa):
-    matrix = test_rwa.matrix
+def plot_shaft_rwa_1d(shaft_rwa):
+    matrix = shaft_rwa.matrix
 
     # matrix = np.flip(matrix)
     matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
@@ -154,17 +159,42 @@ def plot_shaft_rwa_1d(test_rwa):
     ax_curvature = fig.add_subplot(1, 8, 8)
 
     # 1D SLICES
-    draw_one_d_field(test_rwa, "angularPosition.theta", matrix_peak_location, ax_angular_position_theta)
-    draw_one_d_field(test_rwa, "angularPosition.phi", matrix_peak_location, ax_angular_position_phi)
-    draw_one_d_field(test_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
-    draw_one_d_field(test_rwa, "orientation.theta", matrix_peak_location, ax_orientation_theta)
-    draw_one_d_field(test_rwa, "orientation.phi", matrix_peak_location, ax_orientation_phi)
-    draw_one_d_field(test_rwa, "length", matrix_peak_location, ax_length)
-    draw_one_d_field(test_rwa, "curvature", matrix_peak_location, ax_curvature)
-    draw_one_d_field(test_rwa, "radius", matrix_peak_location, ax_radius)
+    draw_one_d_field(shaft_rwa, "angularPosition.theta", matrix_peak_location, ax_angular_position_theta)
+    draw_one_d_field(shaft_rwa, "angularPosition.phi", matrix_peak_location, ax_angular_position_phi)
+    draw_one_d_field(shaft_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
+    draw_one_d_field(shaft_rwa, "orientation.theta", matrix_peak_location, ax_orientation_theta)
+    draw_one_d_field(shaft_rwa, "orientation.phi", matrix_peak_location, ax_orientation_phi)
+    draw_one_d_field(shaft_rwa, "length", matrix_peak_location, ax_length)
+    draw_one_d_field(shaft_rwa, "curvature", matrix_peak_location, ax_curvature)
+    draw_one_d_field(shaft_rwa, "radius", matrix_peak_location, ax_radius)
 
     return fig
 
+def plot_termination_rwa_1d(termination_rwa):
+    matrix = termination_rwa.matrix
+
+    # matrix = np.flip(matrix)
+    matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
+
+    fig = plt.figure(figsize=(20, 10))
+    nCol = 6
+    ax_angular_position_theta = fig.add_subplot(1, nCol, 1)
+    ax_angular_position_phi = fig.add_subplot(1, nCol, 2)
+    ax_radial_position = fig.add_subplot(1, nCol, 3)
+    ax_direction_theta = fig.add_subplot(1, nCol, 4)
+    ax_direction_phi = fig.add_subplot(1, nCol, 5)
+    ax_radius = fig.add_subplot(1, nCol, 6)
+
+
+    # 1D SLICES
+    draw_one_d_field(termination_rwa, "angularPosition.theta", matrix_peak_location, ax_angular_position_theta)
+    draw_one_d_field(termination_rwa, "angularPosition.phi", matrix_peak_location, ax_angular_position_phi)
+    draw_one_d_field(termination_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
+    draw_one_d_field(termination_rwa, "direction.theta", matrix_peak_location, ax_direction_theta)
+    draw_one_d_field(termination_rwa, "direction.phi", matrix_peak_location, ax_direction_phi)
+    draw_one_d_field(termination_rwa, "radius", matrix_peak_location, ax_radius)
+
+    return fig
 def plot_shaft_rwa(test_rwa):
     matrix = test_rwa.matrix
 
@@ -261,6 +291,7 @@ def draw_one_d_field(rwa, field_name, matrix_peak_location, axis):
     draw_1D_slice(slice_to_draw, binner.bins, axes=axis)
     # labels
     axis.set_xlabel(field_name)
+    axis.set_ylim([0, slice_to_draw.max() * 1.1])
 
 
 def get_indices_to_slice_per_peak(number_of_peaks, test_rwa, fields):

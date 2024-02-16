@@ -43,7 +43,7 @@ def main():
     fieldList = CachedFieldList()
     fieldList.append(MStickSpecField(conn, get_spec_id_from_when, get_mstick_obj_from_stim_id))
 
-    data = fieldList.get_data(trial_tstamps)
+    data = fieldList.to_data(trial_tstamps)
     print(data.to_string())
 
 

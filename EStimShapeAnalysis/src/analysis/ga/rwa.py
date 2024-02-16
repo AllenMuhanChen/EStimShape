@@ -247,12 +247,17 @@ def response_weight_and_sum_point_matrices(point_matrices: list[RWAMatrix], resp
             template = point_matrix
             summed_response_weighted = np.zeros_like(template.matrix)
             summed_unweighted = np.zeros_like(template.matrix)
+        if np.isnan(response_vector[index]).any():
+            print("WARNING! NO RESPONSE VECTOR FOR POINT MATRIX " + str(index + 1) + " SETTING VALUE TO 0")
+            response_vector[index] = 0
 
         np.add(summed_unweighted, point_matrix.matrix, out=summed_unweighted)
+
         print("response weighing and summing point matrix " + str(index + 1))
         matrix = point_matrix.apply(lambda m, r: np.multiply(m, r), float(response_vector[index])).matrix
         np.add(summed_response_weighted, matrix,
                out=summed_response_weighted)
+
 
     summed_response_weighted = template.copy_labels(summed_response_weighted)
     summed_unweighted = template.copy_labels(summed_unweighted)

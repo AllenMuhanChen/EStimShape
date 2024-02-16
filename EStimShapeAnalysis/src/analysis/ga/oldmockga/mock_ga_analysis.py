@@ -72,7 +72,7 @@ def compile_data(conn, trial_tstamps):
     fields.append(GaTypeField(conn, "GaType"))
     fields.append(GaLineageField(conn, "Lineage"))
     fields.append(StimSpecIdField(conn, "Id"))
-    fields.append(MockResponseField(conn, 1, "Response"))
+    fields.append(MockResponseField(conn, 1))
     fields.append(PngPathField(conn, "Path"))
 
     return get_data_from_trials(fields, trial_tstamps)
