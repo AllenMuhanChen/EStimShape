@@ -33,7 +33,7 @@ public class MatchStickTest {
         ThreadUtil.sleep(2000);
 
         AllenMStickSpec allenMStickSpec = new AllenMStickSpec();
-        allenMStickSpec.setMStickInfo(allenMatchStick);
+        allenMStickSpec.setMStickInfo(allenMatchStick, true);
 
         AllenMatchStick newAllenMStick = new AllenMatchStick();
         newAllenMStick.setProperties(1);

@@ -66,7 +66,7 @@ public class TwobyTwoExperimentMatchStickTest {
     private void drawPng(TwobyTwoExperimentMatchStick matchStick, long id) {
 //        pngMaker = new AllenPNGMaker(500, 500);
         AllenMStickSpec spec = new AllenMStickSpec();
-        spec.setMStickInfo(matchStick);
+        spec.setMStickInfo(matchStick, true);
         spec.writeInfo2File(testBin + "/" + 1 + "_" + id, true);
         pngMaker.createAndSavePNG(matchStick, 1L, Collections.singletonList(Long.toString(id)), testBin);
     }

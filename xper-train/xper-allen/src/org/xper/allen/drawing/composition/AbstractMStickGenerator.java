@@ -21,7 +21,7 @@ public abstract class AbstractMStickGenerator{
 	protected void
 	makeAttemptsToGenerate() {
 		int nTries = 0;
-	
+
 		while (nTries<maxAttempts) {
 			try {
 				attemptToGenerate();
@@ -32,43 +32,43 @@ public abstract class AbstractMStickGenerator{
 				successful=false;
 			}
 		}
-	
+
 		if (nTries>=maxAttempts) {
 			fail("", nTries);
 		}
-	
+
 	}
-	
+
 	public AllenMStickSpec getMStickSpec() {
 		mStickSpec = new AllenMStickSpec();
-		mStickSpec.setMStickInfo(mStick);
+		mStickSpec.setMStickInfo(mStick, true);
 		return mStickSpec;
 	}
-	
+
 	public AllenMatchStick getMStick() {
 		if (isSuccessful()) return mStick;
 		else throw new MStickGenerationException();
 	}
-	
+
 	protected abstract void attemptToGenerate();
-	
+
 	protected void fail(String step, int nTries) {
 		throw new MaxAttemptsReachedException(step, nTries);
 	}
-	
+
 	public boolean isSuccessful() {
 		return successful;
 	}
 
 
-	
+
 
 	protected static void setMaxAttempts(int maxAttempts) {
 		AbstractMStickGenerator.maxAttempts = maxAttempts;
 	}
 
 
-	
+
 
 
 

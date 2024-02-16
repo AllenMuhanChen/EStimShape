@@ -84,7 +84,7 @@ public abstract class MorphedStim<T extends MorphedMatchStick, D extends AllenMS
 
     protected void writeMStickData(T mStick) {
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
-        mStickSpec.setMStickInfo(mStick);
+        mStickSpec.setMStickInfo(mStick, true);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
         mStickData = (D) mStick.getMStickData();
     }

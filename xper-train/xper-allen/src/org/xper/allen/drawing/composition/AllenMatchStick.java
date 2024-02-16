@@ -4198,7 +4198,7 @@ Adding a new MAxisArc to a MatchStick
 		modifyMStickFinalInfoForAnalysis();
 
 		AllenMStickSpec analysisMStickSpec = new AllenMStickSpec();
-		analysisMStickSpec.setMStickInfo(this);
+		analysisMStickSpec.setMStickInfo(this, false);
 
 		data.setAnalysisMStickSpec(analysisMStickSpec);
 		data.setShaftData(calculateShaftData());
@@ -4219,39 +4219,39 @@ Adding a new MAxisArc to a MatchStick
 	private List<JunctionData> calculateJunctionData() {
 		List<JunctionData> junctionDatas = new LinkedList<>();
 		for (int i=1; i<=getNJuncPt(); i++){
-			JunctionData junctionData = new JunctionData();
-
 			//Position - Spherical Coordinates
 			JuncPt_struct juncPt = getJuncPt()[i];
 			Point3d junctionCenterCartesian = toObjCenteredCoords(juncPt.getPos());
 			SphericalCoordinates junctionPositionSpherical = CoordinateConverter.cartesianToSpherical(junctionCenterCartesian);
-			junctionData.angularPosition = junctionPositionSpherical.getAngularCoordinates();
-			junctionData.radialPosition = junctionPositionSpherical.r;
+			AngularCoordinates angularPosition = new AngularCoordinates(junctionPositionSpherical.getAngularCoordinates());
+			double radialPosition = junctionPositionSpherical.r;
+
+			//Radius
+			double radius = juncPt.getRad();
 
 			//Angle Bisector Direction
-			junctionData.angleBisectorDirection = new LinkedList<AngularCoordinates>();
+			LinkedList<AngularCoordinates> angleBisectorDirection = new LinkedList<AngularCoordinates>();
 			//for every pair
 			for(int j=1; j<=juncPt.getnComp(); j++){
 				for(int k=j+1; k<=juncPt.getnComp(); k++){
 					Vector3d[] junctionTangents = new Vector3d[]{juncPt.getTangent()[j], juncPt.getTangent()[k]};
 					Vector3d bisectorTangent = calculateBisectorVector(junctionTangents);
 					SphericalCoordinates bisectorTangentSpherical = CoordinateConverter.cartesianToSpherical(bisectorTangent);
-					junctionData.angleBisectorDirection.add(bisectorTangentSpherical.getAngularCoordinates());
+					angleBisectorDirection.add(bisectorTangentSpherical.getAngularCoordinates());
 				}
 			}
 
-			//Radius
-			junctionData.radius = juncPt.getRad();
+
 
 			//Junction Subtense
-			junctionData.angularSubtense = new LinkedList<Double>();
+			LinkedList<Double> angularSubtense = new LinkedList<Double>();
 			//for every pair
 			for(int j=1; j<=juncPt.getnComp(); j++){
 				for(int k=j+1; k<=juncPt.getnComp(); k++){
 					Vector3d vector1 = juncPt.getTangent()[j];
 					Vector3d vector2 = juncPt.getTangent()[k];
 					double junctionSubtense = vector1.angle(vector2);
-					junctionData.angularSubtense.add(junctionSubtense);
+					angularSubtense.add(junctionSubtense);
 				}
 			}
 
@@ -4263,7 +4263,7 @@ Adding a new MAxisArc to a MatchStick
 					Vector3d vector1 = new Vector3d(juncPt.getTangent()[j]);
 					Vector3d vector2 = new Vector3d(juncPt.getTangent()[k]);
 
-					AngularCoordinates bisector = junctionData.getAngleBisectorDirection().get(index);
+					AngularCoordinates bisector = angleBisectorDirection.get(index);
 					Vector3d bisectorVector = CoordinateConverter.sphericalToVector(1, bisector);
 
 					vector1.normalize();
@@ -4283,8 +4283,23 @@ Adding a new MAxisArc to a MatchStick
 					index++;
 				}
 			}
-			//
-			junctionDatas.add(junctionData);
+
+			//For Every Pair, Save the Data
+			index = 0;
+			for(int j=1; j<=juncPt.getnComp(); j++) {
+				for (int k = j + 1; k <= juncPt.getnComp(); k++) {
+					JunctionData jData = new JunctionData();
+					jData.angularPosition = new AngularCoordinates(angularPosition);
+					jData.radialPosition = radialPosition;
+					jData.radius = radius;
+					jData.angleBisectorDirection = new AngularCoordinates(angleBisectorDirection.get(index));
+					jData.angularSubtense = angularSubtense.get(index);
+					jData.planarRotation = planarRotations.get(index);
+					junctionDatas.add(jData);
+					index++;
+				}
+			}
+
 		}
 		return junctionDatas;
 	}

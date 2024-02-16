@@ -363,7 +363,7 @@ public class MStickPngBlockGen extends AbstractTrialGenerator{
 
 			for(int k=0; k<objs.size(); k++) {
 				AllenMStickSpec spec = new AllenMStickSpec();
-				spec.setMStickInfo(objs.get(k));
+				spec.setMStickInfo(objs.get(k), true);
 				spec.writeInfo2File(generatorSpecPath + "/" + ids.get(k), true);
 			}
 

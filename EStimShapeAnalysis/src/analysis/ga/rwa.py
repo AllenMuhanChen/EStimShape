@@ -361,11 +361,16 @@ def initialize_point_matrix(stim_components: list[dict], binner_for_field: dict[
                     # If the metadata is specified using super_field.sub_field (i.e. angularPosition.theta)
                     # We want the sub_field associated with the correct super_field to inherit the specified metadata
                     except:
-                        combined_key: str = '%s.%s' % (field_key, sub_field_key)
-                        number_bins_for_each_field.append(binner_for_field[combined_key].num_bins)
-                        binner[total_field_index] = binner_for_field[combined_key]
-                        sigma[total_field_index] = sigma_for_field[combined_key]
-                        padding[total_field_index] = padding_for_field[combined_key]
+                        try:
+                            combined_key: str = '%s.%s' % (field_key, sub_field_key)
+                            number_bins_for_each_field.append(binner_for_field[combined_key].num_bins)
+                            binner[total_field_index] = binner_for_field[combined_key]
+                            sigma[total_field_index] = sigma_for_field[combined_key]
+                            padding[total_field_index] = padding_for_field[combined_key]
+                        # If the metadata or field doesn't exist, skip
+                        except KeyError:
+                            continue
+
                 # Set the axis name to be the super field_name.sub_field_name
                 axes[total_field_index] = field_key + "." + sub_field_key
                 total_field_index += 1
@@ -391,8 +396,12 @@ def assign_bins_for_component(binner_for_field: dict[str, Binner], component: di
                     try:
                         assigned_bin_for_component.append(binner_for_field[sub_field_key].assign_bin(sub_field_value))
                     except:
-                        combined_key: str = '%s.%s' % (field_key, sub_field_key)
-                        assigned_bin_for_component.append(binner_for_field[combined_key].assign_bin(sub_field_value))
+                        try:
+                            combined_key: str = '%s.%s' % (field_key, sub_field_key)
+                            assigned_bin_for_component.append(binner_for_field[combined_key].assign_bin(sub_field_value))
+                        # If the metadata or field doesn't exist, skip
+                        except KeyError:
+                            continue
 
     return assigned_bin_for_component
 

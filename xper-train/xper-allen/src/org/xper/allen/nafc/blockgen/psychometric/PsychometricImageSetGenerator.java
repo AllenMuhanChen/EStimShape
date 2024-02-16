@@ -154,7 +154,7 @@ public class PsychometricImageSetGenerator {
         //SAVE SPECS.TXT
         for (int k = 0; k < objs.size(); k++) {
             AllenMStickSpec spec = new AllenMStickSpec();
-            spec.setMStickInfo(objs.get(k));
+            spec.setMStickInfo(objs.get(k), true);
             spec.writeInfo2File(psychometricBlockGen.getGeneratorPsychometricSpecPath() + "/" + ids.get(k) + "_" + labels.get(k).get(0), true);
         }
         psychometricBlockGen.getPngMaker().close();

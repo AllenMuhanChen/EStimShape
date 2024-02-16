@@ -12,6 +12,11 @@ public class AngularCoordinates {
         this.phi = phi;
     }
 
+    public AngularCoordinates(AngularCoordinates other) {
+        this.theta = other.theta;
+        this.phi = other.phi;
+    }
+
     @Override
     public String toString() {
         return "AngularCoordinates{" +

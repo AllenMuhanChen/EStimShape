@@ -36,11 +36,11 @@ def main():
 
     shaft_rwa = compute_shaft_rwa(data, n)
     termination_rwa = compute_termination_rwa(data, n)
-    # junction_rwa = compute_junction_rwa(data, n)
+    junction_rwa = compute_junction_rwa(data, n)
     # SAVE
     save(get_next(shaft_rwa), "shaft_rwa")
     save(get_next(termination_rwa), "termination_rwa")
-    # save(get_next(junction_rwa), "junction_rwa")
+    save(get_next(junction_rwa), "junction_rwa")
 
 
 def compute_shaft_rwa(data, n):
@@ -117,13 +117,15 @@ def compute_junction_rwa(data, n):
         "radialPosition": 1 / 9,
         "radius": 1 / 9,
         "angularSubtense": 1 / 9,
+        "planarRotation": 1 / 9,
     }
     padding_for_fields = {
         "theta": "wrap",
         "phi": "nearest",
         "radialPosition": "nearest",
         "radius": "nearest",
-        "angularSubtense": "nearest"
+        "angularSubtense": "nearest",
+        "planarRotation": "nearest"
     }
     binner_for_junction_fields = {
         "theta": Binner(-pi, pi, 9),
@@ -131,6 +133,7 @@ def compute_junction_rwa(data, n):
         "radialPosition": AutomaticBinner("radialPosition", data_junction, 9),
         "radius": AutomaticBinner("radius", data_junction, 9),
         "angularSubtense": Binner(0, pi, 9),
+        "planarRotation": AutomaticBinner('planarRotation', data_junction, 9),
     }
     junction_rwa = compute_rwa_from_top_n_lineages(data, "Junction",
                                                    "New3D", n, binner_for_junction_fields,
