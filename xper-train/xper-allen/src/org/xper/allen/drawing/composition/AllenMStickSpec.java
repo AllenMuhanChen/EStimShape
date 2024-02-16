@@ -20,7 +20,7 @@ import com.thoughtworks.xstream.XStream;
  */
 
 /**
- * private classes in here were made into their own public class file. 
+ * private classes in here were made into their own public class file.
  * @author r2_allen
  *
  */
@@ -30,7 +30,7 @@ public class AllenMStickSpec {
     public boolean animation;
     public String compPosTanStr = "";
 
-    
+
     transient static XStream s;
 
     static {
@@ -39,124 +39,124 @@ public class AllenMStickSpec {
         s.alias("EndPtInfo", EndPt_Info.class);
         s.alias("JuncPtInfo", JuncPt_Info.class);
         s.alias("AllenTubeInfo", AllenTubeInfo.class);
-        
+
     }
 
     /**
      *   Write the Match Stick information into a file
      */
     public void writeInfo2File(String fname) {
-    	
+
     		String faceStr = facToStr(getFacInfo(), getNFac());
         try {
         		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_face.txt"));
-            
+
             out.write(faceStr);
             out.flush();
             out.close();
-        } catch (Exception e) { 
+        } catch (Exception e) {
         		System.out.println(e);
         }
-        
+
 //        DbUtil dbu = new DbUtil();
 //        dbu.writeFaceSpec(id, faceStr);
-        
+
         String vertStr = vectToStr(getVectInfo(),getNVect());
         try {
         		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_vert.txt"));
-            
+
             out.write(vertStr);
             out.flush();
             out.close();
-        } catch (Exception e) { 
+        } catch (Exception e) {
         		System.out.println(e);
     		}
-        
+
 //        dbu.writeVertSpec(id, vertStr);
-        
+
         String normStr = normToStr(getNormMatInfo(),getNVect());
         try {
         		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_norm.txt"));
-            
+
             out.write(normStr);
             out.flush();
             out.close();
-        } catch (Exception e) { 
+        } catch (Exception e) {
         		System.out.println(e);
     		}
-        
+
         this.vertex = null;
         String specStr = this.toXml();
         try {
         		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_spec.xml"));
-            
+
             out.write(specStr);
             out.flush();
             out.close();
-        } catch (Exception e) { 
+        } catch (Exception e) {
         		System.out.println(e);
         }
 
-        String outStr = compPosTanStr; 
+        String outStr = compPosTanStr;
         try {
             BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_comp.txt"));
             out.write(  outStr);
             out.flush();
             out.close();
-        } catch (Exception e) { 
+        } catch (Exception e) {
             System.out.println(e);
         }
     }
 
-    
+
     public void writeInfo2File(String fname, boolean vertBool) {
-	    	
+
     	if (vertBool) {
 			String faceStr = facToStr(getFacInfo(), getNFac());
 		    try {
 	    		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_face.txt"));
-		        
+
 		        out.write(faceStr);
 		        out.flush();
 		        out.close();
-		    } catch (Exception e) { 
+		    } catch (Exception e) {
 	    		System.out.println(e);
 		    }
-		    
+
 		//    DbUtil dbu = new DbUtil();
 		//    dbu.writeFaceSpec(id, faceStr);
-		    
+
 		    String vertStr = vectToStr(getVectInfo(),getNVect());
 		    try {
 	    		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_vert.txt"));
-		        
+
 		        out.write(vertStr);
 		        out.flush();
 		        out.close();
-		    } catch (Exception e) { 
-	    		System.out.println(e);
-			}
-		    
-		//    dbu.writeVertSpec(id, vertStr);
-		    
-		    String normStr = normToStr(getNormMatInfo(),getNVect());
-		    try {
-	    		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_norm.txt"));
-		        
-		        out.write(normStr);
-		        out.flush();
-		        out.close();
-		    } catch (Exception e) { 
+		    } catch (Exception e) {
 	    		System.out.println(e);
 			}
 
-            String outStr = compPosTanStr; 
+		//    dbu.writeVertSpec(id, vertStr);
+
+		    String normStr = normToStr(getNormMatInfo(),getNVect());
+		    try {
+	    		BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_norm.txt"));
+
+		        out.write(normStr);
+		        out.flush();
+		        out.close();
+		    } catch (Exception e) {
+	    		System.out.println(e);
+			}
+
+            String outStr = compPosTanStr;
             try {
                 BufferedWriter out = new BufferedWriter(new FileWriter(fname + "_comp.txt"));
                 out.write(  outStr);
                 out.flush();
                 out.close();
-            } catch (Exception e) { 
+            } catch (Exception e) {
                 System.out.println(e);
             }
     	}
@@ -168,12 +168,13 @@ public class AllenMStickSpec {
 	        out.write(specStr);
 	        out.flush();
 	        out.close();
-	    } catch (Exception e) { 
+	    } catch (Exception e) {
     		System.out.println(e);
 	    }
     }
-    
+
     public String toXml () {
+        this.vertex = null;
         return AllenMStickSpec.toXml(this);
     }
 
@@ -195,30 +196,31 @@ public class AllenMStickSpec {
         this.animation = animation;
     }
 
-    public void setMStickInfo(AllenMatchStick inStick)
+    public void setMStickInfo(AllenMatchStick inStick, boolean saveVertexInfo)
     {
 		getmAxis().setAllenMAxisInfo(inStick);
-		
+
 //		setSpecialEnd(inStick.getSpecialEnd());
 //		setSpecialEndComp(inStick.getSpecialEndComp());
-        try {
-            vertex.setVertexInfo(inStick.getSmoothObj());
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (saveVertexInfo)
+            try {
+                vertex.setVertexInfo(inStick.getSmoothObj());
+            } catch (Exception e) {
+                e.printStackTrace();
 
-        }
+            }
 
 
         AllenTubeComp[] tubes = inStick.getComp();
-        
+
         compPosTanStr = "";
         for (int i=1; i<=getNComponent(); i++) {
             AllenMAxisArc tempArc = tubes[i].getmAxisInfo();
-            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," + 
+            compPosTanStr = compPosTanStr + i + "," + i + "," + i + "," +
                     tempArc.getCurvature() + "," + tempArc.getArcLen() + "," + tempArc.getRad() + "\n";
             for (int j=1; j<=51; j++) {
-                compPosTanStr = compPosTanStr + tempArc.getmPts()[j].x + "," + tempArc.getmPts()[j].y + "," + 
-                        tempArc.getmPts()[j].z + "," + tempArc.getmTangent()[j].x + "," + 
+                compPosTanStr = compPosTanStr + tempArc.getmPts()[j].x + "," + tempArc.getmPts()[j].y + "," +
+                        tempArc.getmPts()[j].z + "," + tempArc.getmTangent()[j].x + "," +
                         tempArc.getmTangent()[j].y + "," + tempArc.getmTangent()[j].z + "\n";
             }
         }
@@ -288,16 +290,16 @@ public class AllenMStickSpec {
 
         return facInfo;
     }
-    
+
 	private String vectToStr(Point3d[] vect, int nVect) {
 		String str = new String();
-		
+
 		for(int i=1; i<=nVect; i++) {
 			str = str + vect[i].x + "," + vect[i].y + "," + vect[i].z + "\n";
 		}
 		return str;
 	}
-	
+
 	private String facToStr(int[][] fac, int nFace) {
 		String str = new String();
 		for(int i=0; i<nFace; i++) {
@@ -305,16 +307,16 @@ public class AllenMStickSpec {
 		}
 		return str;
 	}
-	
+
 	private String normToStr(Vector3d[] vect, int nVect) {
 		String str = new String();
-		
+
 		for(int i=1; i<=nVect; i++) {
 			str = str + vect[i].x + "," + vect[i].y + "," + vect[i].z + "\n";
 		}
 		return str;
 	}
-	
+
 
     public int getNFac() {
         // TODO Auto-generated method stub

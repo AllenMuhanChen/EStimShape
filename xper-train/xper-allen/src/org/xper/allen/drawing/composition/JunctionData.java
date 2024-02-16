@@ -6,12 +6,12 @@ import java.util.List;
 public class JunctionData {
     AngularCoordinates angularPosition;
     double radialPosition;
-    List<AngularCoordinates> angleBisectorDirection;
+    AngularCoordinates angleBisectorDirection;
     double radius;
-    LinkedList<Double> angularSubtense;
-    List<Double> planarRotation;
+    Double angularSubtense;
+    Double planarRotation;
 
-    public JunctionData(AngularCoordinates angularPosition, double radialPosition, LinkedList<AngularCoordinates> angleBisectorDirection, double radius, LinkedList<Double> angularSubtense, List<Double> planarRotation) {
+    public JunctionData(AngularCoordinates angularPosition, double radialPosition, AngularCoordinates angleBisectorDirection, double radius, Double angularSubtense, Double planarRotation) {
         this.angularPosition = angularPosition;
         this.radialPosition = radialPosition;
         this.angleBisectorDirection = angleBisectorDirection;
@@ -39,11 +39,11 @@ public class JunctionData {
         this.radialPosition = radialPosition;
     }
 
-    public List<AngularCoordinates> getAngleBisectorDirection() {
+    public AngularCoordinates getAngleBisectorDirection() {
         return angleBisectorDirection;
     }
 
-    public void setAngleBisectorDirection(LinkedList<AngularCoordinates> angleBisectorDirection) {
+    public void setAngleBisectorDirection(AngularCoordinates angleBisectorDirection) {
         this.angleBisectorDirection = angleBisectorDirection;
     }
 
@@ -55,19 +55,19 @@ public class JunctionData {
         this.radius = radius;
     }
 
-    public LinkedList<Double> getAngularSubtense() {
+    public Double getAngularSubtense() {
         return angularSubtense;
     }
 
-    public void setAngularSubtense(LinkedList<Double> angularSubtense) {
+    public void setAngularSubtense(Double angularSubtense) {
         this.angularSubtense = angularSubtense;
     }
 
-    public List<Double> getPlanarRotation() {
+    public Double getPlanarRotation() {
         return planarRotation;
     }
 
-    public void setPlanarRotation(List<Double> planarRotation) {
+    public void setPlanarRotation(Double planarRotation) {
         this.planarRotation = planarRotation;
     }
 

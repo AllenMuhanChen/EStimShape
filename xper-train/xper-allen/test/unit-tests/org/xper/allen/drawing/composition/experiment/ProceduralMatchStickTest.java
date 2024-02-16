@@ -201,7 +201,7 @@ public class ProceduralMatchStickTest {
 //            drawingManager.setBackgroundColor(0.5f, 0.5f, 0.5f);
             drawingManager.drawStimulus(sampleMStick, 0L, Collections.singletonList("Stim"));
             AllenMStickSpec spec = new AllenMStickSpec();
-            spec.setMStickInfo(sampleMStick);
+            spec.setMStickInfo(sampleMStick, true);
             spec.writeInfo2File(testBin + "/" + 0 + "_" + "Stim", true);
             ThreadUtil.sleep(100);
         } else {
@@ -354,7 +354,7 @@ public class ProceduralMatchStickTest {
     private void drawPng(ExperimentMatchStick matchStick, long setId, long id) {
 //        pngMaker = new AllenPNGMaker(500, 500);
         AllenMStickSpec spec = new AllenMStickSpec();
-        spec.setMStickInfo(matchStick);
+        spec.setMStickInfo(matchStick, true);
         spec.writeInfo2File(testBin + "/" + setId + "_" + id, true);
         pngMaker.createAndSavePNG(matchStick, setId, Collections.singletonList(Long.toString(id)), testBin);
     }

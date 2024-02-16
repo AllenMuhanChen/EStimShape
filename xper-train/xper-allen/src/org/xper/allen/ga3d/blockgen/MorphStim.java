@@ -48,7 +48,7 @@ public class MorphStim extends ThreeDGAStim {
             }
         }
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
-        mStickSpec.setMStickInfo(mStick);
+        mStickSpec.setMStickInfo(mStick, true);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
         mStickData = mStick.getMStickData();
 

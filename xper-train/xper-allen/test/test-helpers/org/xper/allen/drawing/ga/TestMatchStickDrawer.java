@@ -91,7 +91,7 @@ public class TestMatchStickDrawer {
 
     public AllenMStickSpec saveSpec(AllenMatchStick mStick, String filepath) {
         AllenMStickSpec spec = new AllenMStickSpec();
-        spec.setMStickInfo(mStick);
+        spec.setMStickInfo(mStick, true);
         spec.writeInfo2File(filepath, true);
         return spec;
     }

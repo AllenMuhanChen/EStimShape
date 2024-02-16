@@ -30,7 +30,7 @@ public class RegimeTwoStim extends MorphedStim<PruningMatchStick, PruningMStickD
     @Override
     protected void writeMStickData(PruningMatchStick mStick){
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
-        mStickSpec.setMStickInfo(mStick);
+        mStickSpec.setMStickInfo(mStick, true);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
         mStickData = mStick.getMStickData();
     }

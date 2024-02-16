@@ -22,11 +22,14 @@ def main():
     plot_termination_rwa_1d(get_next(termination_rwa))
     plt.suptitle("Combined TERMINATION RWA")
 
+    junction_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/junction_rwa.json", "r").read())
+    plot_junction_rwa_1d(get_next(junction_rwa))
+    plt.suptitle("Combined JUNCTION RWA")
 
-    lineage_0_rwa = jsonpickle.decode(
-        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/Shaft_lineage_rwa_1708017908601461.json", "r").read())
-    plot_shaft_rwa_1d(lineage_0_rwa)
-    plt.suptitle("Lineage 0 RWA")
+    # lineage_0_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/Shaft_lineage_rwa_1708017908601461.json", "r").read())
+    # plot_shaft_rwa_1d(lineage_0_rwa)
+    # plt.suptitle("Lineage 0 RWA")
     #
     # lineage_1_rwa = jsonpickle.decode(
     #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908617330.json", "r").read())
@@ -193,6 +196,36 @@ def plot_termination_rwa_1d(termination_rwa):
     draw_one_d_field(termination_rwa, "direction.theta", matrix_peak_location, ax_direction_theta)
     draw_one_d_field(termination_rwa, "direction.phi", matrix_peak_location, ax_direction_phi)
     draw_one_d_field(termination_rwa, "radius", matrix_peak_location, ax_radius)
+
+    return fig
+
+def plot_junction_rwa_1d(junction_rwa):
+    matrix = junction_rwa.matrix
+
+    # matrix = np.flip(matrix)
+    matrix_peak_location = np.unravel_index(np.argsort(matrix, axis=None)[-1:], matrix.shape)
+
+    fig = plt.figure(figsize=(20, 10))
+    nCol = 8
+    ax_angular_position_theta = fig.add_subplot(1, nCol, 1)
+    ax_angular_position_phi = fig.add_subplot(1, nCol, 2)
+    ax_radial_position = fig.add_subplot(1, nCol, 3)
+    ax_angle_bisector_direction_theta = fig.add_subplot(1, nCol, 4)
+    ax_angle_bisector_direction_phi = fig.add_subplot(1, nCol, 5)
+    ax_radius = fig.add_subplot(1, nCol, 6)
+    ax_angular_subtense = fig.add_subplot(1, nCol,7)
+    ax_planar_rotation = fig.add_subplot(1, nCol, 8)
+
+
+    # 1D SLICES
+    draw_one_d_field(junction_rwa, "angularPosition.theta", matrix_peak_location, ax_angular_position_theta)
+    draw_one_d_field(junction_rwa, "angularPosition.phi", matrix_peak_location, ax_angular_position_phi)
+    draw_one_d_field(junction_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
+    draw_one_d_field(junction_rwa, "angleBisectorDirection.theta", matrix_peak_location, ax_angle_bisector_direction_theta)
+    draw_one_d_field(junction_rwa, "angleBisectorDirection.phi", matrix_peak_location, ax_angle_bisector_direction_phi)
+    draw_one_d_field(junction_rwa, "radius", matrix_peak_location, ax_radius)
+    draw_one_d_field(junction_rwa, "angularSubtense", matrix_peak_location, ax_angular_subtense)
+    draw_one_d_field(junction_rwa, "planarRotation", matrix_peak_location, ax_planar_rotation)
 
     return fig
 def plot_shaft_rwa(test_rwa):

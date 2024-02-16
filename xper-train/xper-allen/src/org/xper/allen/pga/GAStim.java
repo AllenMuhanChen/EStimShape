@@ -62,7 +62,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
 
     private void saveMStickSpec(T mStick) {
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
-        mStickSpec.setMStickInfo(mStick);
+        mStickSpec.setMStickInfo(mStick, true);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
     }
 

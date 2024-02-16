@@ -36,10 +36,10 @@ public class MStickGeneratorForRandTrials {
 	private void generate() {
 		assignMetricMorphParameters();
 		assignQualitativeMorphParameters();
-		
+
 		//a qualitative Morph distractor or metric morph match can fail
 		//due to poor sample generation, so if we fail downstream, let's
-		//restart at the beginning. 
+		//restart at the beginning.
 		while (tryagain) {
 			try {
 				long start = System.nanoTime();
@@ -67,9 +67,9 @@ public class MStickGeneratorForRandTrials {
 
 			tryagain = false;
 		}
-		
+
 		//We shouldn't restart from the beginning if random distractors fail because
-		//it doesn't rely on previous generation at all. 
+		//it doesn't rely on previous generation at all.
 		tryagain = true;
 		while(tryagain) {
 
@@ -80,7 +80,7 @@ public class MStickGeneratorForRandTrials {
 			} catch (Exception e) {
 				continue;
 			}
-			
+
 			tryagain = false;
 		}
 	}
@@ -145,7 +145,7 @@ public class MStickGeneratorForRandTrials {
 		return randDistractors;
 	}
 
-	
+
 	public Rand<AllenMatchStick> getmSticks() {
 		Rand<AllenMatchStick> matchSticks = new Rand<AllenMatchStick>();
 		matchSticks.setSample(sample);
@@ -157,9 +157,9 @@ public class MStickGeneratorForRandTrials {
 			matchSticks.addQualitativeMorphDistractor(qmDistractor);
 		}
 		return matchSticks;
-		
+
 	}
-	
+
 	public Rand<AllenMStickSpec> getmStickSpecs() {
 		Rand<AllenMStickSpec> specs = new Rand<AllenMStickSpec>();
 		specs.setSample(mStickToSpec(sample));
@@ -172,10 +172,10 @@ public class MStickGeneratorForRandTrials {
 		}
 		return specs;
 	}
-	
+
 	private AllenMStickSpec mStickToSpec(AllenMatchStick mStick) {
 		AllenMStickSpec spec = new AllenMStickSpec();
-		spec.setMStickInfo(mStick);
+		spec.setMStickInfo(mStick, true);
 		return spec;
 	}
 

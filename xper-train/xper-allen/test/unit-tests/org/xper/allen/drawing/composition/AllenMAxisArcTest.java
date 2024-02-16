@@ -272,7 +272,7 @@ public class AllenMAxisArcTest {
         AllenMatchStick originalMStick = new AllenMatchStick();
         originalMStick.genMatchStickRand();
         AllenMStickSpec originalSpec = new AllenMStickSpec();
-        originalSpec.setMStickInfo(originalMStick);
+        originalSpec.setMStickInfo(originalMStick, true);
 
 
         System.err.println("GENERATING LOADED MSTICK");

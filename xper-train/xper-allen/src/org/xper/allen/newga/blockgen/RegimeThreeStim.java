@@ -45,7 +45,7 @@ public class RegimeThreeStim extends MorphedStim<MorphedMatchStick, AllenMStickD
     @Override
     protected void writeMStickData(MorphedMatchStick mStick){
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
-        mStickSpec.setMStickInfo(mStick);
+        mStickSpec.setMStickInfo(mStick, true);
         mStickSpec.writeInfo2File(getGenerator().getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
         mStickData = mStick.getMStickData();
     }
