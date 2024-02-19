@@ -6,6 +6,7 @@ from typing import Callable, List
 from pga.response_processing import ResponseProcessor
 from pga.multi_ga_db_util import MultiGaDbUtil
 from pga.regime_type import RegimeType
+from pga.stim_types import StimType
 from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
 import numpy as np
@@ -171,7 +172,7 @@ class GetAllStimuliFunc:
 
 class GrowingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage, parent: Stimulus):
-        return RegimeType.REGIME_ONE.value
+        return StimType.REGIME_ONE.value
 
 
 # regime_one.py

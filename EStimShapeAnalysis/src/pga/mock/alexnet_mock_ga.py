@@ -7,6 +7,7 @@ import numpy as np
 
 from clat.intan.channels import Channel
 from pga.config.rf_config import RFGeneticAlgorithmConfig
+from pga.config.twod_threed_config import TwoDThreeDGAConfig
 from pga.ga_classes import RegimeTransitioner, Phase
 from pga.mock import alexnet_ga_responses
 from pga.multi_ga_db_util import MultiGaDbUtil
@@ -27,7 +28,7 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
     def test_ga_loop(self):
         generation = 1
         while generation < 20:
-            sleep(4) #time for the experiment to run all of the trials
+            sleep(4)  # time for the experiment to run all of the trials
             ga = self.mock_config.make_genetic_algorithm()
             ga.run()
             code = run_trial_generator(generation)
@@ -37,17 +38,20 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
             generation += 1
         alexnet_ga_responses.main()
 
-    def test_util_reset_db(self):
-        self.mock_config.db_util.conn.truncate("StimGaInfo")
-        self.mock_config.db_util.conn.truncate("LineageGaInfo")
-        self.mock_config.db_util.conn.truncate("StimSpec")
-        self.mock_config.db_util.conn.truncate("TaskToDo")
-        self.mock_config.db_util.conn.truncate("TaskDone")
-        self.mock_config.db_util.conn.truncate("BehMsg")
+    def test_util_restart_ga(self):
         self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
+    # def test_util_reset_db(self):
+    #     self.mock_config.db_util.conn.truncate("StimGaInfo")
+    #     self.mock_config.db_util.conn.truncate("LineageGaInfo")
+    #     self.mock_config.db_util.conn.truncate("StimSpec")
+    #     self.mock_config.db_util.conn.truncate("TaskToDo")
+    #     self.mock_config.db_util.conn.truncate("TaskDone")
+    #     self.mock_config.db_util.conn.truncate("BehMsg")
+    #     self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
-class AlexNetMockGeneticAlgorithmConfig(RFGeneticAlgorithmConfig):
+
+class AlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
     def __init__(self):
         super().__init__()
 
@@ -60,13 +64,13 @@ class AlexNetMockGeneticAlgorithmConfig(RFGeneticAlgorithmConfig):
     def make_db_util(self):
         return AlexNetMultiGaDbUtil(self.connection)
 
+
 class AlexNetSeedingPhaseTransitioner(RegimeTransitioner):
     def __init__(self, spontaneous_firing_rate):
         self.spontaneous_firing_rate = spontaneous_firing_rate
 
-
     def should_transition(self, lineage):
-        #checks if the firing rate is greater than the spontaneous firing rate
+        # checks if the firing rate is greater than the spontaneous firing rate
         firing_rates = lineage.stimuli[0].response_vector
         self.mean = np.mean(firing_rates)
         return self.mean > self.spontaneous_firing_rate
@@ -94,6 +98,7 @@ class AlexNetMultiGaDbUtil(MultiGaDbUtil):
     def read_current_cluster(self, ga_name) -> list[Channel]:
         return [Channel.D_003]
 
+
 def run_trial_generator(generation):
     output_dir = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/java_output"
     allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
@@ -105,4 +110,3 @@ def run_trial_generator(generation):
     with open(output_file, "w") as file:
         result = subprocess.run(trial_generator_command, shell=True, stdout=file, stderr=subprocess.STDOUT, text=True)
     return result.returncode
-

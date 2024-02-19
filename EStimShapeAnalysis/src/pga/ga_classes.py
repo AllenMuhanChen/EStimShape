@@ -230,7 +230,8 @@ class LineageFactory:
         return Lineage(founder, regimes)
 
     @staticmethod
-    def create_new_lineage(*, regimes) -> Lineage:
-        founder_id = time_util.now()
-        founder = Stimulus(founder_id, mutation_type=RegimeType.REGIME_ZERO.value, parent_id=0, mutation_magnitude=None, gen_id=1)
+    def create_new_lineage(*, regimes: [Phase]) -> Lineage:
+        # founder = Stimulus(founder_id, mutation_type=regimes[0., parent_id=0, mutation_magnitude=None, gen_id=1)
+        _, founders = regimes[0].generate_batch(None, 1, 1)
+        founder = founders[0]
         return LineageFactory.create_new_lineage_from_founder(founder, regimes)

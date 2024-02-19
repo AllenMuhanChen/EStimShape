@@ -8,6 +8,7 @@ from scipy.stats import gaussian_kde
 
 from pga.ga_classes import Lineage, Stimulus
 from pga.regime_type import RegimeType
+from pga.stim_types import StimType
 from src.pga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner
 
 
@@ -51,7 +52,7 @@ class LeafingPhaseParentSelector(ParentSelector):
 
 class LeafingPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):
-        return RegimeType.REGIME_THREE.value
+        return StimType.REGIME_THREE.value
 
 
 class LeafingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):

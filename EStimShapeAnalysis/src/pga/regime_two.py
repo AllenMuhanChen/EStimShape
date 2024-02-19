@@ -1,6 +1,7 @@
 import numpy as np
 
 from pga.regime_type import RegimeType
+from pga.stim_types import StimType
 from src.pga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner, \
     Lineage, Stimulus
 
@@ -27,7 +28,7 @@ class CanopyPhaseParentSelector(ParentSelector):
 
 class CanopyPhaseMutationAssigner(MutationAssigner):
     def assign_mutation(self, lineage: Lineage, parent: Stimulus):
-        return RegimeType.REGIME_TWO.value
+        return StimType.REGIME_TWO.value
 
 
 class CanopyPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):
