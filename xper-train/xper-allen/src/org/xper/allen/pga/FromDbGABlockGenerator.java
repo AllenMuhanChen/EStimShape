@@ -40,28 +40,41 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         // For each stim_id, read the stim_type and magnitude
         for (Long stimId : stimIdsToGenerate) {
             StimGaInfoEntry stimInfo = dbUtil.readStimGaInfoEntry(stimId);
-            RegimeType regimeType = RegimeType.valueOf(stimInfo.getStimType());
+            StimType stimType = StimType.valueOf(stimInfo.getStimType());
             double magnitude = stimInfo.getMutationMagnitude();
             Long parentId = stimInfo.getParentId();
 
-            System.out.println("StimId: " + stimId + " StimType: " + regimeType + " Magnitude: " + magnitude);
+            System.out.println("StimId: " + stimId + " StimType: " + stimType + " Magnitude: " + magnitude);
 
             // Create a new Stim object with the stim_type and magnitude (if applicable)
             Stim stim;
-            if(regimeType.equals(RegimeType.REGIME_ZERO)){
-                stim = new RegimeZeroStim(stimId, this, initialSize, intialCoords);
+            if(stimType.equals(StimType.REGIME_ZERO)){
+                stim = new RegimeZeroStim(stimId, this, initialSize, intialCoords, "SHADE");
             }
-            else if(regimeType.equals(RegimeType.REGIME_ONE)){
-                stim = new RegimeOneStim(stimId, this, parentId, initialSize, intialCoords, magnitude);
+            else if (stimType.equals(StimType.REGIME_ZERO_2D))
+            {
+                stim = new RegimeZeroStim(stimId, this, initialSize, intialCoords, "2D");
             }
-            else if(regimeType.equals(RegimeType.REGIME_TWO)){
-                stim = new RegimeTwoStim(stimId, this, parentId, initialSize, intialCoords);
+            else if(stimType.equals(StimType.REGIME_ONE)){
+                stim = new RegimeOneStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "SHADE");
             }
-            else if(regimeType.equals(RegimeType.REGIME_THREE)){
-                stim = new RegimeThreeStim(stimId, this, parentId, initialSize, intialCoords, magnitude);
+            else if(stimType.equals(StimType.REGIME_ONE_2D)){
+                stim = new RegimeOneStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "2D");
+            }
+            else if(stimType.equals(StimType.REGIME_TWO)){
+                stim = new RegimeTwoStim(stimId, this, parentId, initialSize, intialCoords, "SHADE");
+            }
+            else if(stimType.equals(StimType.REGIME_TWO_2D)){
+                stim = new RegimeTwoStim(stimId, this, parentId, initialSize, intialCoords, "2D");
+            }
+            else if(stimType.equals(StimType.REGIME_THREE)){
+                stim = new RegimeThreeStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "SHADE");
+            }
+            else if(stimType.equals(StimType.REGIME_THREE_2D)){
+                stim = new RegimeThreeStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "2D");
             }
             else{
-                throw new RuntimeException("Regime Type not recognized");
+                throw new RuntimeException("Stim Type not recognized");
             }
 
             stims.add(stim);

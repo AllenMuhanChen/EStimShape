@@ -5,7 +5,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.ga3d.blockgen.GABlockGenerator;
 import org.xper.allen.ga3d.blockgen.ThreeDGAStim;
-import org.xper.allen.pga.RegimeType;
+import org.xper.allen.pga.StimType;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
@@ -16,7 +16,7 @@ import java.util.List;
 public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickData> {
     public RegimeZeroStim(GABlockGenerator generator, double size, Coordinates2D coords) {
         super(generator, size, coords);
-        this.stimType = RegimeType.REGIME_ZERO.getValue();
+        this.stimType = StimType.REGIME_ZERO.getValue();
     }
 
     @Override
@@ -29,7 +29,7 @@ public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickD
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
         MorphedMatchStick mStick = new MorphedMatchStick();
-        mStick.setProperties(generator.getMaxImageDimensionDegrees());
+        mStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         mStick.genMatchStickRand();
 
         writeMStickData(mStick);

@@ -18,11 +18,11 @@ public class RegimeOneStim extends MorphedStim<GrowingMatchStick, AllenMStickDat
     protected GrowingMatchStick morphStim(double magnitude) {
         //Generate MStick
         GrowingMatchStick parentMStick = new GrowingMatchStick();
-        parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        parentMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
         GrowingMatchStick childMStick = new GrowingMatchStick();
-        childMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        childMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;
     }

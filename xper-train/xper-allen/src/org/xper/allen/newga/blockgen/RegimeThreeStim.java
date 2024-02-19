@@ -26,17 +26,17 @@ public class RegimeThreeStim extends MorphedStim<MorphedMatchStick, AllenMStickD
         List<Integer> compsToMorph = chooser.choose(parentId, 1);
 
         PruningMatchStick parentMStick = new PruningMatchStick();
-        parentMStick.setProperties(getGenerator().getMaxImageDimensionDegrees());
+        parentMStick.setProperties(getGenerator().getMaxImageDimensionDegrees(), "SHADE");
         parentMStick.genMatchStickFromFile(getGenerator().getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
         if ( chooser.getConfidence() > 0.75) {
             ExploreMatchStick childMStick = new ExploreMatchStick(parentMStick, compsToMorph);
-            childMStick.setProperties(getGenerator().getMaxImageDimensionDegrees());
+            childMStick.setProperties(getGenerator().getMaxImageDimensionDegrees(), "SHADE");
             childMStick.genExploreMatchStick(Math.random() * 0.3 + 0.2);
             return childMStick;
         }
         else{
             GrowingMatchStick childMStick = new GrowingMatchStick();
-            childMStick.setProperties(generator.getMaxImageDimensionDegrees());
+            childMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
             childMStick.genGrowingMatchStick(parentMStick, Math.random() * 0.2 + 0.1);
             return childMStick;
         }

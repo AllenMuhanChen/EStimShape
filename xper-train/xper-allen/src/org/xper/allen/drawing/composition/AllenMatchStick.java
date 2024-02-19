@@ -3915,8 +3915,9 @@ Adding a new MAxisArc to a MatchStick
      * It is imperative that these properties are set before the object is generated/is smoothized.
      *
 	 * @param maxSizeDiameterDegrees
+	 * @param shade
 	 */
-    public void setProperties(double maxSizeDiameterDegrees) {
+    public void setProperties(double maxSizeDiameterDegrees, String shade) {
         //OBJECT PROPERTIES
         //SETTING SIZES
         /**
@@ -3938,7 +3939,7 @@ Adding a new MAxisArc to a MatchStick
         setStimColor(white);
 
         //TEXTURE
-        setTextureType("SHADE");
+        setTextureType(shade);
 
     }
 

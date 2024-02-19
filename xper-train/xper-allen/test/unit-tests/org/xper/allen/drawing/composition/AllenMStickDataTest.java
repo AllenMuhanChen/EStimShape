@@ -93,7 +93,7 @@ public class AllenMStickDataTest {
 
     private void setMStickData() {
         matchStick = new AllenMatchStick();
-        matchStick.setProperties(5);
+        matchStick.setProperties(5, "SHADE");
         matchStick.genMatchStickRand();
 
         data = matchStick.getMStickData();
@@ -117,7 +117,7 @@ public class AllenMStickDataTest {
     @Test
     public void testJunctionData(){
         AllenMatchStick matchStick = new AllenMatchStick();
-        matchStick.setProperties(5);
+        matchStick.setProperties(5, "SHADE");
         matchStick.genMatchStickRand();
 
         AllenMStickData data = matchStick.getMStickData();

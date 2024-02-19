@@ -17,11 +17,11 @@ public class OldRegimeThreeStim extends MorphedStim<GrowingMatchStick, AllenMSti
     @Override
     protected GrowingMatchStick morphStim(double magnitude) {
         GrowingMatchStick parentMStick = new GrowingMatchStick(1.0);
-        parentMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        parentMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
         GrowingMatchStick childMStick = new GrowingMatchStick();
-        childMStick.setProperties(generator.getMaxImageDimensionDegrees());
+        childMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         childMStick.genGrowingMatchStick(parentMStick, rollMagnitude());
         return childMStick;
     }

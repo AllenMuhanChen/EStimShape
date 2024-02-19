@@ -31,7 +31,7 @@ public class TwobyTwoExperimentMatchStickTest {
         pngMaker.createDrawerWindow();
 
         baseMStick = new TwobyTwoExperimentMatchStick();
-        baseMStick.setProperties(8);
+        baseMStick.setProperties(8, "SHADE");
         baseMStick.genMatchStickRand();
 
 
@@ -42,22 +42,22 @@ public class TwobyTwoExperimentMatchStickTest {
     @Test
     public void test_msticks() {
         TwobyTwoExperimentMatchStick firstMStick = new TwobyTwoExperimentMatchStick();
-        firstMStick.setProperties(8);
+        firstMStick.setProperties(8, "SHADE");
         firstMStick.genMatchStickFromComponent(baseMStick, 1, 1, 0);
         drawPng(firstMStick, 2L);
 
         TwobyTwoExperimentMatchStick secondMStick = new TwobyTwoExperimentMatchStick();
-        secondMStick.setProperties(8);
+        secondMStick.setProperties(8, "SHADE");
         secondMStick.genNewBaseMatchStick(firstMStick, 1);
         drawPng(secondMStick, 3L);
 
         TwobyTwoExperimentMatchStick thirdMStick = new TwobyTwoExperimentMatchStick();
-        thirdMStick.setProperties(8);
+        thirdMStick.setProperties(8, "SHADE");
         thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5);
         drawPng(thirdMStick, 4L);
 
         TwobyTwoExperimentMatchStick fourthMStick = new TwobyTwoExperimentMatchStick();
-        fourthMStick.setProperties(8);
+        fourthMStick.setProperties(8, "SHADE");
         fourthMStick.genFourthMatchStick(secondMStick, 1, thirdMStick);
         drawPng(fourthMStick, 5L);
 

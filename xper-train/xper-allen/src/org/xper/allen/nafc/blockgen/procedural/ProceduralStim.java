@@ -100,7 +100,7 @@ public class ProceduralStim implements NAFCStim {
     protected ProceduralMatchStick generateSample() {
         //Generate Sample
         ProceduralMatchStick sample = new ProceduralMatchStick();
-        sample.setProperties(generator.getMaxImageDimensionDegrees());
+        sample.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex, 0);
         mSticks.setSample(sample);
@@ -117,7 +117,7 @@ public class ProceduralStim implements NAFCStim {
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
-            proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees());
+            proceduralDistractor.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
             mSticks.proceduralDistractors.add(proceduralDistractor);
@@ -129,7 +129,7 @@ public class ProceduralStim implements NAFCStim {
         //Generate Rand Distractors
         for (int i = 0; i<numRandDistractors; i++) {
             ProceduralMatchStick randDistractor = new ProceduralMatchStick();
-            randDistractor.setProperties(generator.getMaxImageDimensionDegrees());
+            randDistractor.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
             mSticks.randDistractors.add(randDistractor);

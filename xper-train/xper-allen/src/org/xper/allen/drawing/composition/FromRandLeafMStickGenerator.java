@@ -23,7 +23,7 @@ public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 
 	private void attemptGenerateSeedMatchStick() {
 		seedMStick = new AllenMatchStick();
-		seedMStick.setProperties(maxImageDimensionDegrees);
+		seedMStick.setProperties(maxImageDimensionDegrees, "SHADE");
 		try {
 			seedMStick.genMatchStickRand();
 		} catch(Exception e) {
@@ -72,7 +72,7 @@ public class FromRandLeafMStickGenerator extends AbstractMStickGenerator{
 
 	private void generateMStickFromLeaf() {
 		mStick = new AllenMatchStick();
-		mStick.setProperties(maxImageDimensionDegrees);
+		mStick.setProperties(maxImageDimensionDegrees, "SHADE");
 		boolean success = mStick.genMatchStickFromLeaf(seedLeaf, seedMStick);
 
 		if(!success) {

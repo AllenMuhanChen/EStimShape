@@ -9,14 +9,14 @@ public class RegimeZeroStim extends GAStim<RFMatchStick, AllenMStickData> {
     private AllenMStickData mStickData;
     private long stimId;
 
-    public RegimeZeroStim(Long stimId, FromDbGABlockGenerator generator, double size, Coordinates2D coords) {
-        super(stimId, generator, 0L, size, coords);
+    public RegimeZeroStim(Long stimId, FromDbGABlockGenerator generator, double size, Coordinates2D coords, String textureType) {
+        super(stimId, generator, 0L, size, coords, textureType);
     }
 
     @Override
     protected RFMatchStick createMStick() {
         RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField());
-        mStick.setProperties(calculateSize());
+        mStick.setProperties(calculateSize(), textureType);
         mStick.genMatchStickRand();
         return mStick;
     }

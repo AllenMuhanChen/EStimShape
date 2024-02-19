@@ -33,7 +33,7 @@ public class MorphStim extends ThreeDGAStim {
 
         //generate Match Sticks
         AllenMatchStick mStick = new AllenMatchStick();
-        mStick.setProperties(generator.getMaxImageDimensionDegrees());
+        mStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
 
 //        mStick.genMatchStickFromShapeSpec(AllenMStickSpec.fromXml(readMStickSpec(parentId)),new double[]{0,0,0});
         boolean mutateSuccess = false;

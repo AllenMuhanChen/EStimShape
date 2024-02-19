@@ -37,7 +37,7 @@ public class PsychometricMStickFetcher {
 
 	private AllenMatchStick fetchMStick(String specPath) {
 		AllenMatchStick ams = new AllenMatchStick();
-		ams.setProperties(gen.getMaxImageDimensionDegrees());
+		ams.setProperties(gen.getMaxImageDimensionDegrees(), "SHADE");
 		ams.genMatchStickFromFile(specPath);
 		return ams;
 	}

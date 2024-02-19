@@ -18,6 +18,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     protected final double size;
     protected final Coordinates2D coords;
     protected Long stimId;
+    protected String textureType;
 
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords) {
         this.stimId = stimId;
@@ -25,6 +26,16 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         this.parentId = parentId;
         this.size = size;
         this.coords = coords;
+        this.textureType = "SHADE";
+    }
+
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, String textureType) {
+        this.generator = generator;
+        this.parentId = parentId;
+        this.size = size;
+        this.coords = coords;
+        this.stimId = stimId;
+        this.textureType = textureType;
     }
 
     @Override

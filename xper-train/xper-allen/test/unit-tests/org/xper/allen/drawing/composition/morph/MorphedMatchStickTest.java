@@ -25,7 +25,7 @@ public class MorphedMatchStickTest {
         testBin = ResourceUtil.getResource("testBin");
 
         parentMStick = new MorphedMatchStick();
-        parentMStick.setProperties(30);
+        parentMStick.setProperties(30, "SHADE");
 //        String test_stick_path = ResourceUtil.getResource("test-stick.xml");
 //        parentMStick.genMatchStickFromFile(test_stick_path);
         parentMStick.genMatchStickRand();
@@ -39,7 +39,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void growingMatchStick() {
         GrowingMatchStick growingMatchStick = new GrowingMatchStick();
-        growingMatchStick.setProperties(30.0);
+        growingMatchStick.setProperties(30.0, "SHADE");
         growingMatchStick.genGrowingMatchStick(parentMStick, 0.2);
         ThreadUtil.sleep(500);
         drawPng(growingMatchStick, 2L);
@@ -49,7 +49,7 @@ public class MorphedMatchStickTest {
     @Ignore
     public void pruningMatchStick(){
         PruningMatchStick pruningMatchStick = new PruningMatchStick();
-        pruningMatchStick.setProperties(30.0);
+        pruningMatchStick.setProperties(30.0, "SHADE");
         pruningMatchStick.genPruningMatchStick(parentMStick, 0.6, 1);
         ThreadUtil.sleep(500);
         drawPng(pruningMatchStick, 2L);
@@ -64,7 +64,7 @@ public class MorphedMatchStickTest {
 
 
         MorphedMatchStick childMStick = new MorphedMatchStick();
-        childMStick.setProperties(30.0);
+        childMStick.setProperties(30.0, "SHADE");
         childMStick.genMorphedMatchStick(morphParams, parentMStick);
         ThreadUtil.sleep(500);
         drawPng(childMStick, 2L);

@@ -1,8 +1,5 @@
 package org.xper.allen.drawing.composition;
 
-import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
-import org.xper.drawing.stick.MatchStick;
-
 public class RandMStickGenerator extends AbstractMStickGenerator{
 
 
@@ -15,10 +12,10 @@ public class RandMStickGenerator extends AbstractMStickGenerator{
 	@Override
 	protected void attemptToGenerate() {
 		mStick = new AllenMatchStick();
-		mStick.setProperties(maxImageDimensionDegrees);
+		mStick.setProperties(maxImageDimensionDegrees, "SHADE");
 		mStick.genMatchStickRand();
 	}
 
-	
-	
+
+
 }

@@ -59,7 +59,7 @@ public class ProceduralMatchStickTest {
 
 
         baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(4);
+        baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
         baseMStick.setMaxAttempts(-1);
@@ -180,7 +180,7 @@ public class ProceduralMatchStickTest {
 
         baseMStick = new ProceduralMatchStick();
         int size = 5;
-        baseMStick.setProperties(size);
+        baseMStick.setProperties(size, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
         baseMStick.setMaxAttempts(-1);
@@ -192,7 +192,7 @@ public class ProceduralMatchStickTest {
             sampleMStick = new ProceduralMatchStick();
 //            sampleMStick.showDebug = true;
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-            sampleMStick.setProperties(size);
+            sampleMStick.setProperties(size, "SHADE");
             sampleMStick.setStimColor(color);
             sampleMStick.genMatchStickFromComponent(baseMStick, 1, 1, 0);
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
@@ -285,17 +285,17 @@ public class ProceduralMatchStickTest {
         drawPng(baseMStick, setId, 0L);
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
         int size = 2;
-        sampleMStick.setProperties(size);
+        sampleMStick.setProperties(size, "SHADE");
         sampleMStick.genMatchStickFromComponent(baseMStick, 1, 1, 0);
         drawPng(sampleMStick, setId, 1L);
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick();
-        distractor1.setProperties(size);
+        distractor1.setProperties(size, "SHADE");
         distractor1.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5);
         drawPng(distractor1, setId, 2L);
 
         ProceduralMatchStick distractor2 = new ProceduralMatchStick();
-        distractor2.setProperties(size);
+        distractor2.setProperties(size, "SHADE");
         distractor2.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5);
         drawPng(distractor2, setId, 3L);
     }

@@ -25,7 +25,7 @@ public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
 		trySetLeafToMorph();
 		tryGenerateQualitativeMorph();
 	}
-	
+
 	private void trySetLeafToMorph() {
 		leafToMorph = mStickToMorph.getSpecialEndComp().get(0);
 		if(leafToMorph<1) {
@@ -35,7 +35,7 @@ public class QualitativeMorphMStickGenerator extends AbstractMStickGenerator{
 
 	private void tryGenerateQualitativeMorph() {
 		mStick = new AllenMatchStick();
-		mStick.setProperties(maxImageDimensionDegrees);
+		mStick.setProperties(maxImageDimensionDegrees, "SHADE");
 		boolean success = false;
 		try {
 			success = mStick.genQualitativeMorphedLeafMatchStick(leafToMorph, mStickToMorph, qmp);
