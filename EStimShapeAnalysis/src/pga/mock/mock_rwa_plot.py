@@ -15,7 +15,7 @@ from clat.util.dictionary_util import apply_function_to_subdictionaries_values_w
 def main():
     shaft_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/shaft_rwa.json", "r").read())
     fig = plot_shaft_rwa_1d(get_next(shaft_rwa))
-    plot_top_n_stimuli_on_shaft(3, fig)
+    # plot_top_n_stimuli_on_shaft(3, fig)
     plt.suptitle("Combined SHAFT RWA")
 
     termination_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/termination_rwa.json", "r").read())

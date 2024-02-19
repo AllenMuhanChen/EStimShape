@@ -12,7 +12,7 @@ class SeedingPhaseParentSelector(ParentSelector):
 
 
 class SeedingPhaseMutationAssigner(MutationAssigner):
-    def assign_mutation(self, lineage):
+    def assign_mutation(self, lineage, parent: Stimulus):
         # In Regime Zero, all stimuli are assigned the "RegimeZero" mutation.
         return "RegimeZero"
 

@@ -170,7 +170,7 @@ class GetAllStimuliFunc:
 
 
 class GrowingPhaseMutationAssigner(MutationAssigner):
-    def assign_mutation(self, lineage):
+    def assign_mutation(self, lineage, parent: Stimulus):
         return RegimeType.REGIME_ONE.value
 
 

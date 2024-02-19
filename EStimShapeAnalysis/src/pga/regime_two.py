@@ -26,7 +26,7 @@ class CanopyPhaseParentSelector(ParentSelector):
 
 
 class CanopyPhaseMutationAssigner(MutationAssigner):
-    def assign_mutation(self, lineage):
+    def assign_mutation(self, lineage: Lineage, parent: Stimulus):
         return RegimeType.REGIME_TWO.value
 
 
