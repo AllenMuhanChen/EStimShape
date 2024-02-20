@@ -18,7 +18,7 @@ def main():
     # PARAMETERS
     conn = Connection("allen_estimshape_ga_dev_240207")
     # unit = 12 #check 7 next, which would 60 max resp from Mohammad
-    unit = 12
+    unit = 70
     loc_x = 7
     loc_y = 7
 

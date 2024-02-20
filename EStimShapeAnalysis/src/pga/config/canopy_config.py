@@ -82,11 +82,14 @@ class GeneticAlgorithmConfig:
                 self.get_all_stimuli_func(),
                 self.growing_phase_bin_proportions(),
                 self.growing_phase_bin_sample_sizes()),
-            GrowingPhaseMutationAssigner(),
+            self.growing_phase_mutation_assigner(),
             GrowingPhaseMutationMagnitudeAssigner(),
             GrowingPhaseTransitioner(
                 self.convergence_threshold()
             ))
+
+    def growing_phase_mutation_assigner(self):
+        return GrowingPhaseMutationAssigner()
 
     def growing_phase_bin_proportions(self):
         return self.var_fetcher.get_array_parameter("regime_one_selection_bin_proportions", dtype=float)
@@ -135,9 +138,12 @@ class GeneticAlgorithmConfig:
             LeafingPhaseParentSelector(
                 self.weight_func(),
                 self.sampling_smoothing_bandwidth()),
-            LeafingPhaseMutationAssigner(),
+            self.leafing_phase_mutation_assigner(),
             LeafingPhaseMutationMagnitudeAssigner(),
             LeafingPhaseTransitioner(self.get_under_sampling_threshold(), bandwidth=self.sampling_smoothing_bandwidth()))
+
+    def leafing_phase_mutation_assigner(self):
+        return LeafingPhaseMutationAssigner()
 
     def weight_func(self):
         return HighEndSigmoid(

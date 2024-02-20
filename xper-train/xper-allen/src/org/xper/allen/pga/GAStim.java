@@ -6,6 +6,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 
@@ -92,5 +93,17 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         double size = 1.5 * Math.sqrt(Math.pow(rfCenter.getY(), 2) + Math.pow(rfCenter.getX(), 2));
         System.out.println("Size: " + size);
         return size;
+    }
+
+    public org.xper.utils.RGBColor getRFColor(){
+        org.xper.utils.RGBColor rfColor;
+        try {
+            rfColor = new org.xper.utils.RGBColor(generator.rfSource.getRFColor());
+
+        } catch (Exception e) {
+            System.out.println("Error getting RF color, using default color: white");
+            rfColor = new org.xper.utils.RGBColor(1, 1, 1);
+        }
+        return rfColor;
     }
 }

@@ -208,7 +208,7 @@ def get_all_lineages():
     ) AS unique_lineages
     JOIN LineageGaInfo ON LineageGaInfo.lineage_id = unique_lineages.lineage_id AND LineageGaInfo.gen_id = unique_lineages.max_gen_id
     WHERE LineageGaInfo.regime > 0
-    ORDER BY LineageGaInfo.regime DESC
+    ORDER BY LineageGaInfo.gen_id DESC, LineageGaInfo.regime DESC
     LIMIT 10
     """
     conn.execute(query)
@@ -300,10 +300,15 @@ class MockTreeGraph(ColoredTreeGraph):
 def get_edge_colors(edges: list[tuple[int, int]]):
     colors_for_regimes = {
         "REGIME_ZERO": "black",
+        "REGIME_ZERO_2D": "black",
         "REGIME_ONE": "red",
+        "REGIME_ONE_2D": "red",
         "REGIME_TWO": "blue",
+        "REGIME_TWO_2D": "blue",
         "REGIME_THREE": "green",
+        "REGIME_THREE_2D": "green",
         "REGIME_FOUR": "yellow",
+        "REGIME_FOUR_2D": "yellow",
     }
 
     edge_colors = {}

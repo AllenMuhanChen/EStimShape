@@ -78,7 +78,7 @@ class GeneticAlgorithm:
 
     def _run_first_generation(self):
         # Initialize lineages
-        for trial in range(self.trials_per_generation):
+        for trial in range(self.trials_per_generation*2):
             self._create_lineage()
             time.sleep(1 / 1_000)
 

@@ -20,6 +20,7 @@ public class RegimeThreeStim extends GAStim<GrowingMatchStick, AllenMStickData> 
 
         GrowingMatchStick childMStick = new GrowingMatchStick(generator.getReceptiveField());
         childMStick.setProperties(calculateSize(), textureType);
+        childMStick.setStimColor(getRFColor());
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;
     }

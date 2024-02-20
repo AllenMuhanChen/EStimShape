@@ -9,7 +9,7 @@ from scipy import stats
 class SeedingPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage, batch_size):
         # In Regime Zero, there are no parents.
-        return [None] * batch_size
+        return [Stimulus(0, "None", parent_id=0)] * batch_size
 
 
 class SeedingPhaseMutationAssigner(MutationAssigner):

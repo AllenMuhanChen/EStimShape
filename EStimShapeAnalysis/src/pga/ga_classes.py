@@ -161,7 +161,8 @@ class Phase:
                                          mutation_magnitude=self.mutation_magnitude_assigner.assign_mutation_magnitude(
                                              lineage,
                                              parent),
-                                         gen_id=gen_id))
+                                         gen_id=gen_id,
+                                         parent_id=parent.id))
             time.sleep(0.001)
         return parents, new_children
 
