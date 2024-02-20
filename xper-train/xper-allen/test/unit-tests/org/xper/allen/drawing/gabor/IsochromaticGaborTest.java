@@ -3,6 +3,7 @@ package org.xper.allen.drawing.gabor;
 import org.junit.Before;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.rfplot.drawing.GratingSpec;
 import org.xper.util.ThreadUtil;
@@ -30,11 +31,11 @@ public class IsochromaticGaborTest {
         spec.setFrequency(10);
         spec.setXCenter(0);
         spec.setYCenter(0);
-        spec.setSize(5);
+        spec.setSize(50);
         spec.setAnimation(false);
 
 
-        IsochromaticGabor gabor = new IsochromaticGabor();
+        IsochromaticGabor gabor = new IsochromaticGabor(new RGBColor(1,0,0));
         gabor.setSpec(spec);
 
         window.draw(new Drawable() {
@@ -45,6 +46,6 @@ public class IsochromaticGaborTest {
             }
         });
 
-        ThreadUtil.sleep(1000);
+        ThreadUtil.sleep(10000);
     }
 }
