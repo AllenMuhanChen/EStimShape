@@ -6,6 +6,7 @@ import org.xper.Dependency;
 import org.xper.allen.drawing.ga.ConcaveHullReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.RGBColor;
 import org.xper.rfplot.RFInfo;
 import org.xper.rfplot.V4RFInfo;
 
@@ -32,6 +33,13 @@ public class ReceptiveFieldSource {
         RFInfo rfInfo = readRFInfo(tstamp);
         return rfInfo.getCenter();
     }
+
+    public RGBColor getRFColor(){
+        long tstamp = readMaxTstampFromRFInfo();
+        V4RFInfo rfInfo = (V4RFInfo) readRFInfo(tstamp);
+        return rfInfo.color;
+    }
+
 
     private RFInfo readRFInfo(long tstamp) {
         JdbcTemplate jt = new JdbcTemplate(dataSource);

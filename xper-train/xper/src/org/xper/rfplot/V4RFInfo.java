@@ -8,7 +8,7 @@ import java.util.List;
 
 public class V4RFInfo extends RFInfo{
 
-    RGBColor color;
+    public RGBColor color;
 
     public V4RFInfo(List<Coordinates2D> outline, Coordinates2D center, RGBColor color) {
         super(outline, center);

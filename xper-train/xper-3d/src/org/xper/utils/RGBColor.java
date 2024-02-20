@@ -13,7 +13,7 @@ public class RGBColor {
 		this.green = green;
 		this.blue = blue;
 	}
-	
+
 	public RGBColor(double red, double green, double blue) {
 		super();
 		this.red = (float)red;
@@ -28,6 +28,12 @@ public class RGBColor {
 		this.blue = (float) rgb[2];
 	}
 
+	public RGBColor(org.xper.drawing.RGBColor rfColor) {
+		super();
+		this.red = rfColor.getRed();
+		this.green = rfColor.getGreen();
+		this.blue = rfColor.getBlue();
+	}
 
 	public float getBlue() {
 		return blue;

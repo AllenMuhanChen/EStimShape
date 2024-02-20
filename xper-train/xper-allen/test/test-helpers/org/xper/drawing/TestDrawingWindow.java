@@ -20,6 +20,7 @@ public class TestDrawingWindow {
         window.swapBuffers();
     }
 
+
     public void animateRotation(List<Drawable> drawables, float angle, double numFrames){
         for (int frameNum = 0; frameNum< numFrames; frameNum++) {
             int finalFrameNum = frameNum;
