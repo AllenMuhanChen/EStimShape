@@ -16,6 +16,7 @@ import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.Threadable;
 import org.xper.rfplot.drawing.RFPlotDrawable;
+import org.xper.time.TimeUtil;
 import org.xper.util.ThreadHelper;
 
 public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
@@ -32,6 +33,8 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	String host;
 	@Dependency
 	Map<String, RFPlotDrawable> refObjMap;
+	@Dependency
+	TimeUtil timeUtil;
 
 	public int getBacklog() {
 		return backlog;
@@ -72,6 +75,9 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 		if (task == null){
 			task = new ExperimentTask();
 		}
+		task.setTaskId(timeUtil.currentTimeMicros());
+		task.setGenId(-1);
+		task.setStimId(task.getTaskId());
 		if (task.getStimSpec() == null) {
 			RFPlotDrawable firstStimObj = getFirstStimObj();
 			task.setStimSpec(RFPlotStimSpec.getStimSpecFromRFPlotDrawable(firstStimObj));
@@ -185,5 +191,13 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 
 	public void setRefObjMap(Map<String, RFPlotDrawable> refObjMap) {
 		this.refObjMap = refObjMap;
+	}
+
+	public TimeUtil getTimeUtil() {
+		return timeUtil;
+	}
+
+	public void setTimeUtil(TimeUtil timeUtil) {
+		this.timeUtil = timeUtil;
 	}
 }

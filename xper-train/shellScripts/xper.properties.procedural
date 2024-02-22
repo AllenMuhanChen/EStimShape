@@ -3,7 +3,7 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_train_231211?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_ga_dev_240207?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -29,7 +29,7 @@ fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
 # if not specified, the default is org.xper.config.RFPlotConfig
 rfplot.config_class=
 rfplot.png_library_path_generator = /home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
-rfplot.png_library_path_experiment = /home/m2_allen/Documents/stimuli/train_231211/rfplot/pngs
+rfplot.png_library_path_experiment = /home/m2_allen/Documents/stimuli/ga_dev_240207/rfplot/pngs
 
 
 # if not specified, the default is org.xper.rds.RdsConfig
@@ -44,10 +44,10 @@ mock.config_class=
 #path of computer running stimulus generator
 generator.png_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/pngs
 #path of computer running experiment
-experiment.png_path = /home/m2_allen/Documents/stimuli/train_231211/procedural/pngs
+experiment.png_path = /home/m2_allen/Documents/stimuli/ga_dev_240207/procedural/pngs
 generator.spec_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/specs
 generator.noisemap_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/noisemaps
-experiment.noisemap_path = /home/m2_allen/Documents/stimuli/train_231211/procedural/noisemaps
+experiment.noisemap_path = /home/m2_allen/Documents/stimuli/ga_dev_240207/procedural/noisemaps
 #############
 
 
@@ -96,5 +96,5 @@ generator.spike_dat_path=/home/r2_allen/DocuEStimShape/dev_221110/spikefiles_dev
 #############################################################################
 # screenshots
 #############################################################################
-screenshot.enabled = true
+screenshot.enabled = false
 screenshot.directory=/home/m2_allen/Documents/screenshots
