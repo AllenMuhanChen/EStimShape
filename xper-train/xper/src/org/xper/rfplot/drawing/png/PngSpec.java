@@ -8,9 +8,9 @@ public class PngSpec {
 	ImageDimensions dimensions;
 	String path;
 	double alpha = 1;
-	
+
 	/**
-	 * For generation where alpha is specified. 
+	 * For generation where alpha is specified.
 	 * @param xCenter
 	 * @param yCenter
 	 * @param dimensions
@@ -24,9 +24,9 @@ public class PngSpec {
 		this.path = path;
 		this.alpha = alpha;
 	}
-	
+
 	/**
-	 * For generation where alpha is not specified: set to 1. 
+	 * For generation where alpha is not specified: set to 1.
 	 * @param xCenter
 	 * @param yCenter
 	 * @param dimensions
@@ -39,24 +39,24 @@ public class PngSpec {
 		this.path = path;
 		this.alpha = 1;
 	}
-	
+
 	public PngSpec() {
 
 	}
-	
+
 	transient static XStream s;
-	
+
 	static {
 		s = new XStream();
 		s.alias("StimSpec", PngSpec.class);
 	}
-	
+
 	public String toXml () {
 		return s.toXML(this);
 	}
-	
+
 	public static PngSpec fromXml (String xml) {
-//		System.out.println(xml);
+		System.out.println(xml);
 		PngSpec p = (PngSpec)s.fromXML(xml);
 		return p;
 	}
@@ -99,5 +99,5 @@ public class PngSpec {
 	public void setAlpha(double alpha) {
 		this.alpha = alpha;
 	}
-	
+
 }

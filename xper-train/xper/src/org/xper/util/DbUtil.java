@@ -1337,4 +1337,7 @@ public class DbUtil {
 				new Object[] { taskId });
 	}
 
+	public DataSource getDataSource() {
+		return dataSource;
+	}
 }

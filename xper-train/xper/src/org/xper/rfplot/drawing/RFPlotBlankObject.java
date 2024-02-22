@@ -20,7 +20,7 @@ public class RFPlotBlankObject implements RFPlotDrawable {
 
     @Override
     public String getSpec() {
-        return null;
+        return "";
     }
 
 }

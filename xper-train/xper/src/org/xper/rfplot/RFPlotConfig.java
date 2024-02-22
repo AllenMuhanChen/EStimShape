@@ -158,14 +158,15 @@ public class RFPlotConfig {
 		taskDataSource.setHost(classicConfig.experimentHost);
 		taskDataSource.setRefObjMap(namesForDrawables());
 		taskDataSource.setTimeUtil(baseConfig.localTimeUtil());
+		taskDataSource.setDbUtil(baseConfig.dbUtil());
 		return taskDataSource;
 	}
 
-//	@Bean
-//	public TaskDoneCache taskDoneCache () {
-//		NullTaskDoneCache cache = new NullTaskDoneCache();
-//		return cache;
-//	}
+	@Bean
+	public TaskDoneCache taskDoneCache () {
+		NullTaskDoneCache cache = new NullTaskDoneCache();
+		return cache;
+	}
 
 	@Bean
 	public RFPlotTaskDataSourceController taskDataSourceController () {

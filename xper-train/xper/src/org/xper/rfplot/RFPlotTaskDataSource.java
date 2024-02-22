@@ -6,9 +6,11 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.log4j.Logger;
 import org.xper.Dependency;
 import org.xper.exception.RemoteException;
@@ -17,7 +19,10 @@ import org.xper.experiment.TaskDataSource;
 import org.xper.experiment.Threadable;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.time.TimeUtil;
+import org.xper.util.DbUtil;
 import org.xper.util.ThreadHelper;
+
+import javax.sql.DataSource;
 
 public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	static Logger logger = Logger.getLogger(RFPlotTaskDataSource.class);
@@ -35,6 +40,8 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 	Map<String, RFPlotDrawable> refObjMap;
 	@Dependency
 	TimeUtil timeUtil;
+	@Dependency
+	DbUtil dbUtil;
 
 	public int getBacklog() {
 		return backlog;
@@ -113,6 +120,12 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 		}
 	}
 
+	/**
+	 * When a request for a new StimSpec or XfmSpec is received, the server
+	 * will update the current task with the new spec(s). Since the task is an object,
+	 * the changes will apply even in the middle of a task.
+	 *
+	 */
 	private void handleRequest() throws IOException {
 		Socket con = null;
 		try {
@@ -121,22 +134,28 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 			int response = input.readInt();
 
 			if (response != RFPLOT_STOP) {
+				long currentTimeMicros = timeUtil.currentTimeMicros();
 				String spec = input.readUTF();
 
 				ExperimentTask task = currentTask.get();
 				if (task == null) {
 					task = new ExperimentTask();
 				}
-
+				task.setTaskId(currentTimeMicros);
 				switch (response) {
-				case RFPLOT_STIM_SPEC:
+					case RFPLOT_STIM_SPEC:
 					task.setStimSpec(spec);
+					task.setStimId(currentTimeMicros);
+					dbUtil.writeStimSpec(currentTimeMicros, spec);
 					break;
 				case RFPLOT_XFM_SPEC:
 					task.setXfmSpec(spec);
+					task.setXfmId(currentTimeMicros);
+					dbUtil.writeXfmSpec(currentTimeMicros, spec);
 					break;
 				}
 				currentTask.set(task);
+				insertTask(task.getTaskId(), task.getStimId(), task.getXfmId());
 			}
 			input.close();
 
@@ -177,6 +196,33 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 		}
 	}
 
+	/**
+	 * Inserts a new task into the RFPlotTasks table.
+	 *
+	 * @param taskId the ID of the task
+	 * @param stimId the stimulus ID
+	 * @param xfmId the transformation ID
+	 */
+	public void insertTask(long taskId, long stimId, long xfmId) {
+		// SQL statement to insert a new task
+		String sql = "INSERT INTO RFPlotTasks (task_id, stim_id, xfm_id) VALUES (?, ?, ?)";
+
+		try (Connection conn = dbUtil.getDataSource().getConnection();
+			 PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+			// Set parameters for the prepared statement
+			pstmt.setLong(1, taskId);
+			pstmt.setLong(2, stimId);
+			pstmt.setLong(3, xfmId);
+
+			// Execute the insert operation
+			pstmt.executeUpdate();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
 	public String getHost() {
 		return host;
 	}
@@ -199,5 +245,13 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 
 	public void setTimeUtil(TimeUtil timeUtil) {
 		this.timeUtil = timeUtil;
+	}
+
+	public DbUtil getDbUtil() {
+		return dbUtil;
+	}
+
+	public void setDbUtil(DbUtil dbUtil) {
+		this.dbUtil = dbUtil;
 	}
 }

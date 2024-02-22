@@ -12,13 +12,13 @@ import org.xper.util.MathUtil;
 
 public class RFPlotGaussianObject implements RFPlotDrawable{
 	static final int STEPS = 1024;
-	
+
 	GaussSpec spec;
 	/**
 	 * xper_monkey_screen_distance
 	 */
-	double distance; 
-	
+	double distance;
+
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
 			ByteOrder.nativeOrder());
@@ -28,10 +28,10 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		ByteBuffer texture = ByteBuffer.allocateDirect(
 				w * w * Float.SIZE / 8).order(
 				ByteOrder.nativeOrder());
-		
+
 		double dist;
 		int i, j;
-		
+
 		double std = 0.3f;
 		double norm_max = MathUtil.normal(0, 0, std);
 
@@ -45,10 +45,10 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 			}
 		}
 		texture.flip();
-		
+
 		return texture;
 	}
-	
+
 
 	public void draw(Context context) {
 		double rfRadius = 1;
@@ -137,7 +137,7 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 						1.0f);
 		GL11.glTranslatef((float) -xCenter, (float) -yCenter, 0f);
 	}
-	
+
 	public static void initGL() {
 		int w = 1024;
 		int h = 1024;
@@ -160,7 +160,7 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 	}
-	
+
 
 	@Override
 	public void setSpec(String spec) {
@@ -177,7 +177,7 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 
 	@Override
 	public String getSpec() {
-		return null;
+		return spec.toXml();
 	}
 
 

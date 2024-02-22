@@ -52,7 +52,9 @@ public class RFPlotStimSpec {
 	}
 
 	public static String getStimSpecFromRFPlotDrawable(RFPlotDrawable drawable){
-		return RFPlotStimSpec.fromRFPlotDrawable(drawable).toXml();
+
+		RFPlotStimSpec rfPlotStimSpec = RFPlotStimSpec.fromRFPlotDrawable(drawable);
+		return rfPlotStimSpec.toXml();
 	}
 
 	public String getStimClass() {
@@ -66,5 +68,32 @@ public class RFPlotStimSpec {
 	}
 	public void setStimSpec(String stimSpec) {
 		this.stimSpec = stimSpec;
+	}
+
+	public static class XmlCharacterReplacer {
+
+		/**
+		 * We don't need to do this... It works fine with the unescaped characters in the xml string.
+		 *
+		 * Replaces escaped XML characters in the input string with their corresponding special characters.
+		 * It's crucial to replace "&amp;" last to avoid incorrect conversion of already replaced entities.
+		 *
+		 * @param input The input string containing escaped XML characters.
+		 * @return A new string with escaped characters replaced by XML special characters.
+		 */
+		public static String replaceEscapedCharacters(String input) {
+			if (input == null) {
+				return null;
+			}
+			// First replace all specific entities except &amp;
+			String temp = input
+					.replace("&lt;", "<")
+					.replace("&gt;", ">")
+					.replace("&quot;", "\"")
+					.replace("&apos;", "'");
+
+			// Replace &amp; last to ensure correct decoding
+			return temp.replace("&amp;", "&");
+		}
 	}
 }
