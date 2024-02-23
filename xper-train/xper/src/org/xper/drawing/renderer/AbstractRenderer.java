@@ -12,11 +12,11 @@ public abstract class AbstractRenderer implements Renderer {
 	 * in mm
 	 */
 	@Dependency
-	double width;
+	protected double width;
 	@Dependency
-	double height;
+	protected double height;
 	@Dependency
-	double depth;
+	protected double depth;
 
 	/**
 	 * Distance between monkey and monitor. in mm
@@ -25,28 +25,28 @@ public abstract class AbstractRenderer implements Renderer {
 	double distance;
 	@Dependency
 	double pupilDistance;
-	
-	int widthInPixel;
-	int heightInPixel;
+
+	protected int widthInPixel;
+	protected int heightInPixel;
 
 	/**
 	 * coordinate system in mm
-	 */ 
-	double xmin, xmax, ymin, ymax, zmin, zmax;
-	/** 
+	 */
+	protected double xmin, xmax, ymin, ymax, zmin, zmax;
+	/**
 	 * viewport width and height
 	 */
-	int vpWidth, vpHeight;
-	double vpWidthmm, vpHeightmm;
+	protected int vpWidth, vpHeight;
+	protected double vpWidthmm, vpHeightmm;
 	/**
 	 * horiz and vert unit in mm/pixel
-	 */ 
-	double hunit, vunit;
+	 */
+	protected double hunit, vunit;
 	protected static final double PROJECTION_NEAR = 10.0;
 
 	/**
 	 * Convert distance in mm to angle in degree.
-	 * 
+	 *
 	 * @param mm
 	 * @return
 	 */
@@ -60,7 +60,7 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert rectangle from mm to pixel.
-	 * 
+	 *
 	 * @param mm
 	 * @return
 	 */
@@ -72,7 +72,7 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert rectangle from pixel to mm.
-	 * 
+	 *
 	 * @param pixel
 	 * @return
 	 */
@@ -84,10 +84,10 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from window coordinate to world coordinate.
-	 * 
+	 *
 	 * window coord: (0, 0) is upper left corner, x rightward increase, y
 	 * downward increase
-	 * 
+	 *
 	 * @param p
 	 * @return
 	 */
@@ -99,10 +99,10 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from world coordinate to window coordinate.
-	 * 
+	 *
 	 * window coord: (0, 0) is upper left corner, x rightward increase, y
 	 * downward increase
-	 * 
+	 *
 	 * @param c
 	 * @return
 	 */
@@ -114,9 +114,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from world coordinate to viewport coordinate.
-	 * 
+	 *
 	 * viewport coord: (0, 0) is lower left corner, rightward, upward increase
-	 * 
+	 *
 	 * @param c
 	 * @return
 	 */
@@ -128,9 +128,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from viewport coordinate to world coordinate.
-	 * 
+	 *
 	 * viewport coord: (0, 0) is lower left corner, rightward, upward increase
-	 * 
+	 *
 	 * @param p
 	 * @return
 	 */
@@ -142,9 +142,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from world coordinate to normalized coordinate.
-	 * 
+	 *
 	 * normalized coordinated: [0,1][0,1]
-	 * 
+	 *
 	 * @param c
 	 * @return
 	 */
@@ -156,9 +156,9 @@ public abstract class AbstractRenderer implements Renderer {
 
 	/**
 	 * Convert from normalized coordinate to world coordinate.
-	 * 
+	 *
 	 * normalized coordinated: [0,1][0,1]
-	 * 
+	 *
 	 * @param n
 	 * @return
 	 */

@@ -144,15 +144,17 @@ public class RFPlotTaskDataSource implements TaskDataSource, Threadable {
 				task.setTaskId(currentTimeMicros);
 				switch (response) {
 					case RFPLOT_STIM_SPEC:
-					task.setStimSpec(spec);
-					task.setStimId(currentTimeMicros);
-					dbUtil.writeStimSpec(currentTimeMicros, spec);
-					break;
-				case RFPLOT_XFM_SPEC:
-					task.setXfmSpec(spec);
-					task.setXfmId(currentTimeMicros);
-					dbUtil.writeXfmSpec(currentTimeMicros, spec);
-					break;
+						task.setStimSpec(spec);
+						task.setStimId(currentTimeMicros);
+						// Write the part of stim spec actually relevant for drawing into database
+						RFPlotStimSpec rfPlotStimSpec = RFPlotStimSpec.fromXml(spec);
+						dbUtil.writeStimSpec(currentTimeMicros, rfPlotStimSpec.getStimSpec());
+						break;
+					case RFPLOT_XFM_SPEC:
+						task.setXfmSpec(spec);
+						task.setXfmId(currentTimeMicros);
+						dbUtil.writeXfmSpec(currentTimeMicros, spec);
+						break;
 				}
 				currentTask.set(task);
 				insertTask(task.getTaskId(), task.getStimId(), task.getXfmId());
