@@ -2,7 +2,7 @@ package org.xper.rfplot;
 
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.GratingSpec;
+import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.RFPlotGratingObject;
 import org.xper.util.ThreadUtil;
 
@@ -19,15 +19,15 @@ public class RFPlotStimTest {
 
     private static void streamRandomWalk() {
         RFPlotStimSpec stimSpec = new RFPlotStimSpec();
-        GratingSpec gratingSpec = new GratingSpec();
-        gratingSpec.setPhase(0);
-        gratingSpec.setFrequency(0.1);
-        gratingSpec.setOrientation(0);
-        gratingSpec.setAnimation(true);
-        gratingSpec.setSize(50);
-        gratingSpec.setXCenter(0);
-        gratingSpec.setYCenter(0);
-        stimSpec.setStimSpec(gratingSpec.toXml());
+        GaborSpec gaborSpec = new GaborSpec();
+        gaborSpec.setPhase(0);
+        gaborSpec.setFrequency(0.1);
+        gaborSpec.setOrientation(0);
+        gaborSpec.setAnimation(true);
+        gaborSpec.setSize(50);
+        gaborSpec.setXCenter(0);
+        gaborSpec.setYCenter(0);
+        stimSpec.setStimSpec(gaborSpec.toXml());
         stimSpec.setStimClass(RFPlotGratingObject.class.getName());
 
         RFPlotXfmSpec xfmSpec = RFPlotXfmSpec.fromXml(null);

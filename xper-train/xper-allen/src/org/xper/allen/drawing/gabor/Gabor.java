@@ -8,7 +8,7 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
 import org.xper.drawing.renderer.AbstractRenderer;
-import org.xper.rfplot.drawing.GratingSpec;
+import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.util.MathUtil;
 
 public class Gabor implements Drawable {
@@ -16,7 +16,7 @@ public class Gabor implements Drawable {
     protected ByteBuffer array;
     protected int textureId;
 
-    GratingSpec spec;
+    GaborSpec spec;
     private int w;
     private int h;
 
@@ -174,11 +174,11 @@ public class Gabor implements Drawable {
         GL11.glShadeModel(GL11.GL_SMOOTH);
     }
 
-    public GratingSpec getSpec() {
+    public GaborSpec getSpec() {
         return spec;
     }
 
-    public void setSpec(GratingSpec spec) {
+    public void setSpec(GaborSpec spec) {
         this.spec = spec;
     }
 }

@@ -1,9 +1,6 @@
 package org.xper.allen.drawing.gabor;
 
-import org.lwjgl.opengl.GL11;
-import org.xper.drawing.Context;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.GratingSpec;
 
 import java.awt.*;
 

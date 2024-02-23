@@ -12,7 +12,7 @@ import org.xper.util.MathUtil;
 public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 	static final int STEPS = 1024;
 
-	GratingSpec spec;
+	GaborSpec spec;
 
 	ByteBuffer array = ByteBuffer.allocateDirect(
 			STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8).order(
@@ -20,7 +20,7 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 
 	@Override
 	public void setDefaultSpec() {
-		spec = new GratingSpec();
+		spec = new GaborSpec();
 		spec.setPhase(0);
 		spec.setFrequency(0.5);
 		spec.setOrientation(0);
@@ -179,7 +179,7 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 	}
 
 	public void setSpec(String s) {
-		spec = GratingSpec.fromXml(s);
+		spec = GaborSpec.fromXml(s);
 	}
 
 

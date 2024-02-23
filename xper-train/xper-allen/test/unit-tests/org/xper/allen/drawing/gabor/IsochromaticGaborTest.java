@@ -8,7 +8,7 @@ import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.drawing.Context;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
-import org.xper.rfplot.drawing.GratingSpec;
+import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.util.ThreadUtil;
 
 public class IsochromaticGaborTest {
@@ -43,7 +43,7 @@ public class IsochromaticGaborTest {
 
     @Test
     public void testIsochromatic() {
-        GratingSpec spec = new GratingSpec();
+        GaborSpec spec = new GaborSpec();
         spec.setOrientation(0);
         spec.setPhase(0);
         spec.setFrequency(10);
@@ -72,7 +72,7 @@ public class IsochromaticGaborTest {
     @Test
     public void testIsoluminant() {
         int size = 6;
-        GratingSpec spec = new GratingSpec();
+        GaborSpec spec = new GaborSpec();
         spec.setOrientation(125);
         spec.setPhase(0);
         spec.setFrequency(2);

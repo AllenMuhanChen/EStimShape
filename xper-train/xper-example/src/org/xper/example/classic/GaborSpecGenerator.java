@@ -1,11 +1,11 @@
 package org.xper.example.classic;
 
 import org.xper.experiment.StimSpecGenerator;
-import org.xper.rfplot.drawing.GratingSpec;
+import org.xper.rfplot.drawing.GaborSpec;
 
 public class GaborSpecGenerator implements StimSpecGenerator {
-	public static GratingSpec generate () {
-		GratingSpec g = new GratingSpec();
+	public static GaborSpec generate () {
+		GaborSpec g = new GaborSpec();
 		g.setXCenter(0);
 		g.setYCenter(0);
 		g.setSize(100);
