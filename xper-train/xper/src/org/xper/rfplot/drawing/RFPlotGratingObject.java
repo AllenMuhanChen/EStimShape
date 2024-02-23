@@ -22,10 +22,10 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 	public void setDefaultSpec() {
 		spec = new GaborSpec();
 		spec.setPhase(0);
-		spec.setFrequency(0.5);
+		spec.setFrequency(1);
 		spec.setOrientation(0);
 		spec.setAnimation(true);
-		spec.setSize(10);
+		spec.setSize(5);
 		spec.setXCenter(0);
 		spec.setYCenter(0);
 	}

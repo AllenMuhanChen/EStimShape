@@ -6,17 +6,17 @@ import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.Drawable;
 import org.xper.drawing.renderer.AbstractRenderer;
+import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.util.MathUtil;
 
-public class Gabor implements Drawable {
+public class Gabor extends DefaultSpecRFPlotDrawable {
     protected static final int STEPS = 1024;
     protected ByteBuffer array;
     protected int textureId;
 
-    GaborSpec spec;
+    private GaborSpec gaborSpec;
     private int w;
     private int h;
 
@@ -31,7 +31,7 @@ public class Gabor implements Drawable {
         h = context.getRenderer().getVpHeight(); //in pixels
 
         int nSigmas = 6; // Number of standard deviations you want the diameter to span
-        double diameterDeg = spec.getSize(); // Gabor patch diameter in degrees of visual angle
+        double diameterDeg = getGaborSpec().getSize(); // Gabor patch diameter in degrees of visual angle
         double diameterMm = context.getRenderer().deg2mm(diameterDeg); // Convert diameter from degrees to millimeters
 
         // Calculate the fraction of the viewport width occupied by the Gabor patch in mm
@@ -70,8 +70,8 @@ public class Gabor implements Drawable {
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId); // Bind the texture
 
         // Convert center coordinates from degrees to millimeters
-        double xCenterMm = context.getRenderer().deg2mm(spec.getXCenter());
-        double yCenterMm = context.getRenderer().deg2mm(spec.getYCenter());
+        double xCenterMm = context.getRenderer().deg2mm(getGaborSpec().getXCenter());
+        double yCenterMm = context.getRenderer().deg2mm(getGaborSpec().getYCenter());
 
         // Assuming the coordinate system of the drawing area is directly in millimeters
         // Translate the drawing to the center specified by the spec
@@ -80,16 +80,16 @@ public class Gabor implements Drawable {
 
         // Rotate the patch according to the spec's orientation
         // Assuming spec.getOrientation() returns the rotation in degrees
-        float orientationDegrees = (float) spec.getOrientation();
+        float orientationDegrees = (float) getGaborSpec().getOrientation();
         // Rotate around the Z-axis to affect the XY plane
         GL11.glRotatef(orientationDegrees, 0.0f, 0.0f, 1.0f);
 
         GL11.glBegin(GL11.GL_QUADS);
 
 
-        float phase = (float) spec.getPhase();
+        float phase = (float) getGaborSpec().getPhase();
         // Frequency in cycles per degree.
-        float frequencyCyclesPerDegree = (float) spec.getFrequency();
+        float frequencyCyclesPerDegree = (float) getGaborSpec().getFrequency();
         // Convert frequency to cycles per millimeter.
         double frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
 
@@ -131,9 +131,21 @@ public class Gabor implements Drawable {
 
         GL11.glDisable(GL11.GL_TEXTURE_2D); // Disable texture if not used afterwards
 
-        if (spec.isAnimation()){
-            spec.setPhase(spec.getPhase() + 0.1);
+        if (getGaborSpec().isAnimation()){
+            getGaborSpec().setPhase(getGaborSpec().getPhase() + 0.1);
         }
+    }
+
+    @Override
+    public void setDefaultSpec() {
+        setGaborSpec(new GaborSpec());
+        getGaborSpec().setPhase(0);
+        getGaborSpec().setFrequency(1);
+        getGaborSpec().setOrientation(0);
+        getGaborSpec().setAnimation(true);
+        getGaborSpec().setSize(5);
+        getGaborSpec().setXCenter(0);
+        getGaborSpec().setYCenter(0);
     }
 
     protected float[] modulateColor(float modFactor) {
@@ -174,11 +186,19 @@ public class Gabor implements Drawable {
         GL11.glShadeModel(GL11.GL_SMOOTH);
     }
 
-    public GaborSpec getSpec() {
-        return spec;
+    public String getSpec() {
+        return getGaborSpec().toXml();
     }
 
-    public void setSpec(GaborSpec spec) {
-        this.spec = spec;
+    public void setSpec(String spec) {
+        this.setGaborSpec(GaborSpec.fromXml(spec));
+    }
+
+    public GaborSpec getGaborSpec() {
+        return gaborSpec;
+    }
+
+    public void setGaborSpec(GaborSpec gaborSpec) {
+        this.gaborSpec = gaborSpec;
     }
 }

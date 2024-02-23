@@ -9,6 +9,7 @@ import org.xper.drawing.Context;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.rfplot.drawing.GaborSpec;
+import org.xper.rfplot.drawing.IsochromaticGaborSpec;
 import org.xper.util.ThreadUtil;
 
 public class IsochromaticGaborTest {
@@ -43,7 +44,7 @@ public class IsochromaticGaborTest {
 
     @Test
     public void testIsochromatic() {
-        GaborSpec spec = new GaborSpec();
+        IsochromaticGaborSpec spec = new IsochromaticGaborSpec();
         spec.setOrientation(0);
         spec.setPhase(0);
         spec.setFrequency(10);
@@ -51,10 +52,11 @@ public class IsochromaticGaborTest {
         spec.setYCenter(0);
         spec.setSize(6);
         spec.setAnimation(false);
+        spec.setColor(new RGBColor(1f, 0f, 0f));
 
 
-        IsochromaticGabor gabor = new IsochromaticGabor(new RGBColor(1,0,0));
-        gabor.setSpec(spec);
+        IsochromaticGabor gabor = new IsochromaticGabor();
+        gabor.setSpec(spec.toXml());
 
         window.draw(new Drawable() {
             @Override
@@ -83,7 +85,7 @@ public class IsochromaticGaborTest {
 
         IsoluminantGabor gabor = new IsoluminantGabor(new RGBColor(0, 0.5f, 0.5f), new RGBColor(0.5f, 0.5f, 0),
                 true, true);
-        gabor.setSpec(spec);
+        gabor.setSpec(spec.toXml());
 
         window.draw(new Drawable() {
             @Override

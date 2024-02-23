@@ -1,21 +1,21 @@
 package org.xper.allen.drawing.gabor;
 
 import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.GaborSpec;
+import org.xper.rfplot.drawing.IsochromaticGaborSpec;
 
 import java.awt.*;
 
 public class IsochromaticGabor extends Gabor{
 
-    RGBColor color;
+    IsochromaticGaborSpec gaborSpec;
     ColourConverter.WhitePoint whitePoint = ColourConverter.WhitePoint.D65;
 
-    public IsochromaticGabor(RGBColor color) {
-        this.color = color;
-    }
 
     @Override
     protected float[] modulateColor(float modFactor) {
         // Convert RGB to Lab
+        RGBColor color = gaborSpec.getColor();
         double [] lab = ColourConverter.getLab(new Color(color.getRed(), color.getGreen(), color.getBlue()), whitePoint);
 
         // Modulate the L component for brightness
@@ -32,8 +32,35 @@ public class IsochromaticGabor extends Gabor{
         rgb[2] = (float) (modulatedRGB[2]);
 
         return rgb;
-
     }
 
+    @Override
+    public IsochromaticGaborSpec getGaborSpec() {
+        return gaborSpec;
+    }
 
+    public void setGaborSpec(IsochromaticGaborSpec gaborSpec) {
+        this.gaborSpec = gaborSpec;
+    }
+
+    @Override
+    public void setDefaultSpec() {
+        setGaborSpec(new IsochromaticGaborSpec());
+        getGaborSpec().setPhase(0);
+        getGaborSpec().setFrequency(1);
+        getGaborSpec().setOrientation(0);
+        getGaborSpec().setAnimation(true);
+        getGaborSpec().setSize(5);
+        getGaborSpec().setXCenter(0);
+        getGaborSpec().setYCenter(0);
+        getGaborSpec().setColor(new RGBColor(1,1,1));
+    }
+
+    public String getSpec() {
+        return getGaborSpec().toXml();
+    }
+
+    public void setSpec(String spec) {
+        this.setGaborSpec(IsochromaticGaborSpec.fromXml(spec));
+    }
 }
