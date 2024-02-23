@@ -5,7 +5,9 @@ import java.nio.ByteOrder;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.Drawable;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.GratingSpec;
 import org.xper.util.MathUtil;
 
@@ -28,13 +30,22 @@ public class Gabor implements Drawable {
         w = context.getRenderer().getVpWidth(); //in pixels
         h = context.getRenderer().getVpHeight(); //in pixels
 
-        double diameterDeg = spec.getSize();
-        double diameterMm = context.getRenderer().deg2mm(diameterDeg);
-        double sigma = diameterMm/context.getRenderer().getWidth() / 6.0; //we want ~99.7% of gabor to be within the size we specify
+        int nSigmas = 6; // Number of standard deviations you want the diameter to span
+        double diameterDeg = spec.getSize(); // Gabor patch diameter in degrees of visual angle
+        double diameterMm = context.getRenderer().deg2mm(diameterDeg); // Convert diameter from degrees to millimeters
 
+        // Calculate the fraction of the viewport width occupied by the Gabor patch in mm
+        double viewportWidthMm = context.getRenderer().getVpWidthmm(); // Viewport width in millimeters
+        double fractionOfViewportWidthMm = diameterMm / viewportWidthMm;
 
+        // Since the normalized coordinate system spans 2 units (-1 to 1), calculate the normalized diameter
+        double normalizedDiameter = fractionOfViewportWidthMm * 2;
 
-        ByteBuffer texture = makeTexture(w, h, sigma); // Adjust w, h, std as needed
+        // Calculate sigma as a fraction of the normalized diameter, divided by the desired number of sigmas
+        // Here, sigma represents the spread of the Gaussian in terms of the normalized coordinate system
+        double normalizedSigma = (normalizedDiameter / 2) / nSigmas; // Divide by 2 to get radius as sigma is based on radius, not diameter
+
+        ByteBuffer texture = makeTexture(w, h, normalizedSigma); // Adjust w, h, std as needed
         textureId = GL11.glGenTextures(); // Generate texture ID
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
 
@@ -45,6 +56,10 @@ public class Gabor implements Drawable {
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexEnvf(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
+    }
+
+    private double degreesToPixels(double diameterDeg, AbstractRenderer renderer) {
+        return renderer.mm2pixel(new Coordinates2D(renderer.mm2deg(diameterDeg), renderer.mm2deg(diameterDeg))).getX();
     }
 
     @Override
