@@ -64,15 +64,25 @@ public class Gabor implements Drawable {
 
     @Override
     public void draw(Context context) {
-
-
         initTexture(context);
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId); // Bind the texture
 
+        // Convert center coordinates from degrees to millimeters
+        double xCenterMm = context.getRenderer().deg2mm(spec.getXCenter());
+        double yCenterMm = context.getRenderer().deg2mm(spec.getYCenter());
+
+        // Assuming the coordinate system of the drawing area is directly in millimeters
+        // Translate the drawing to the center specified by the spec
         GL11.glPushMatrix();
-        GL11.glTranslatef(0.0f, 0.0f, 0.0f);
+        GL11.glTranslatef((float) xCenterMm, (float) yCenterMm, 0.0f);
+
+        // Rotate the patch according to the spec's orientation
+        // Assuming spec.getOrientation() returns the rotation in degrees
+        float orientationDegrees = (float) spec.getOrientation();
+        // Rotate around the Z-axis to affect the XY plane
+        GL11.glRotatef(orientationDegrees, 0.0f, 0.0f, 1.0f);
 
         GL11.glBegin(GL11.GL_QUADS);
 
@@ -120,6 +130,10 @@ public class Gabor implements Drawable {
         GL11.glPopMatrix();
 
         GL11.glDisable(GL11.GL_TEXTURE_2D); // Disable texture if not used afterwards
+
+        if (spec.isAnimation()){
+            spec.setPhase(spec.getPhase() + 0.1);
+        }
     }
 
     protected float[] modulateColor(float modFactor) {

@@ -17,6 +17,7 @@ public class IsochromaticGaborTest {
     private int height;
     private int width;
     private org.xper.drawing.renderer.PerspectiveRenderer perspectiveRenderer;
+    private Context context;
 
     @Before
     public void setUp() throws Exception {
@@ -24,7 +25,20 @@ public class IsochromaticGaborTest {
         height = 1000;
         width = 1000;
         window = TestDrawingWindow.createDrawerWindow(height, width);
+        PerspectiveRenderer renderer = window.renderer;
+        perspectiveRenderer = new org.xper.drawing.renderer.PerspectiveRenderer();
+        perspectiveRenderer.setDepth(renderer.getDepth());
+        perspectiveRenderer.setHeight(renderer.getHeight());
+        perspectiveRenderer.setWidth(renderer.getWidth());
+        perspectiveRenderer.setPupilDistance(renderer.getPupilDistance());
+        perspectiveRenderer.setDistance(renderer.getDistance());
+        perspectiveRenderer.init(width, height);
+        perspectiveRenderer.setup();
+        perspectiveRenderer.init();
 
+        context = new Context();
+        System.out.println(perspectiveRenderer.mm2deg(perspectiveRenderer.getVpWidthmm()));
+        context.setRenderer(perspectiveRenderer);
     }
 
     @Test
@@ -35,7 +49,7 @@ public class IsochromaticGaborTest {
         spec.setFrequency(10);
         spec.setXCenter(0);
         spec.setYCenter(0);
-        spec.setSize(500);
+        spec.setSize(6);
         spec.setAnimation(false);
 
 
@@ -48,7 +62,7 @@ public class IsochromaticGaborTest {
                 GL11.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
                 IsochromaticGabor.initGL(width, height);
-                gabor.draw(null);
+                gabor.draw(context);
             }
         });
 
@@ -59,11 +73,11 @@ public class IsochromaticGaborTest {
     public void testIsoluminant() {
         int size = 6;
         GratingSpec spec = new GratingSpec();
-        spec.setOrientation(0);
+        spec.setOrientation(125);
         spec.setPhase(0);
         spec.setFrequency(2);
-        spec.setXCenter(0);
-        spec.setYCenter(0);
+        spec.setXCenter(3);
+        spec.setYCenter(3);
         spec.setSize(size);
         spec.setAnimation(false);
 
@@ -74,21 +88,6 @@ public class IsochromaticGaborTest {
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                Context context = new Context();
-                PerspectiveRenderer renderer = window.renderer;
-                perspectiveRenderer = new org.xper.drawing.renderer.PerspectiveRenderer();
-                perspectiveRenderer.setDepth(renderer.getDepth());
-                perspectiveRenderer.setHeight(renderer.getHeight());
-                perspectiveRenderer.setWidth(renderer.getWidth());
-                perspectiveRenderer.setPupilDistance(renderer.getPupilDistance());
-                perspectiveRenderer.setDistance(renderer.getDistance());
-                perspectiveRenderer.init(width, height);
-                perspectiveRenderer.setup();
-                perspectiveRenderer.init();
-
-                System.out.println(perspectiveRenderer.mm2deg(perspectiveRenderer.getVpWidthmm()));
-                context.setRenderer(perspectiveRenderer);
-
                 GL11.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
                 IsoluminantGabor.initGL(width, height);
