@@ -60,6 +60,18 @@ public class IsochromaticGabor extends Gabor{
     }
 
     public void setSpec(String spec) {
+        recalculateTextureIfChangeSigma(spec);
         this.setGaborSpec(IsochromaticGaborSpec.fromXml(spec));
+
+    }
+
+    private void recalculateTextureIfChangeSigma(String spec) {
+        String oldSpec = getSpec();
+        IsochromaticGaborSpec oldGabor = IsochromaticGaborSpec.fromXml(oldSpec);
+        double oldSigma = oldGabor.getSize();
+        double newSigma = IsochromaticGaborSpec.fromXml(spec).getSize();
+        if (oldSigma != newSigma) {
+            recalculateTexture();
+        }
     }
 }

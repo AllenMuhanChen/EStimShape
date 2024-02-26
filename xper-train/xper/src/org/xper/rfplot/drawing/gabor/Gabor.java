@@ -181,7 +181,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
         for (int i = 0; i < h; i++) {
             double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust x-coordinate by aspect ratio
-//            System.out.println(y);
             for (int j = 0; j < w; j++) {
                 double x = ((double) j / (w - 1) * 2 - 1);
                 double dist = Math.sqrt(y * y + x * x);
@@ -191,6 +190,17 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         }
         texture.flip();
         return texture;
+    }
+
+    public static double normal(double mean, double standardDeviation) {
+        double x = Math.random();
+        double y = Math.random();
+        double z = Math.sqrt(-2.0 * Math.log(x)) * Math.cos(2.0 * Math.PI * y);
+        return mean + standardDeviation * z;
+    }
+
+    protected void recalculateTexture(){
+        this.textureId = -1;
     }
 
 

@@ -91,7 +91,7 @@ public class RFPlotConfig {
 
 	@Bean
 	public RFPlotStimModulator gratingModulator() {
-		RFPlotStimModulator gratingModulator = new RFPlotStimModulator(defaultScrollers());
+		RFPlotStimModulator gratingModulator = new RFPlotStimModulator(gaborScrollers());
 		return gratingModulator;
 	}
 
@@ -119,6 +119,14 @@ public class RFPlotConfig {
 		map.put("Saturation", new SaturationScroller());
 		map.put("Lightness", new LightnessScroller());
 		return map;
+	}
+
+	@Bean
+	public LinkedHashMap<String, RFPlotScroller> gaborScrollers(){
+		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
+		map.put("Sigma", new SigmaScroller());
+		return map;
+
 	}
 
 	@Bean
