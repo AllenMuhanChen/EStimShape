@@ -10,7 +10,7 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.util.MathUtil;
-
+import org.apache.commons.math3.distribution.NormalDistribution;
 public class Gabor extends DefaultSpecRFPlotDrawable {
     protected static final int STEPS = 1024;
     protected ByteBuffer array;
@@ -124,6 +124,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     }
 
     private void bindGaussianTexture(Context context) {
+        // Only make the texture if it hasn't been made yet or we need to recalculate it
         if (textureId == -1)
             initTexture(context);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -178,13 +179,14 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
         double norm_max = MathUtil.normal(0, 0, std);
         double aspectRatio = (double) w / h;
+        NormalDistribution distribution = new NormalDistribution(0, std);
 
         for (int i = 0; i < h; i++) {
             double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust x-coordinate by aspect ratio
             for (int j = 0; j < w; j++) {
                 double x = ((double) j / (w - 1) * 2 - 1);
                 double dist = Math.sqrt(y * y + x * x);
-                float n = (float) (MathUtil.normal(dist, 0, std) / norm_max);
+                float n = (float) (distribution.density(dist) / norm_max);
                 texture.putFloat(n);
             }
         }
