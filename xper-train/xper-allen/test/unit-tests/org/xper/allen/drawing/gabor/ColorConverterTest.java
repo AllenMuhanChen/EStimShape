@@ -1,11 +1,9 @@
 package org.xper.allen.drawing.gabor;
 
 import org.junit.Test;
-import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.gabor.ColourConverter;
 
 import java.awt.*;
-
-import static org.junit.Assert.*;
 
 public class ColorConverterTest {
 

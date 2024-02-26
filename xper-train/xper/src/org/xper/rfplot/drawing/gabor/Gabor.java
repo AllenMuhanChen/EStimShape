@@ -1,4 +1,4 @@
-package org.xper.allen.drawing.gabor;
+package org.xper.rfplot.drawing.gabor;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -27,9 +27,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     }
 
     private void initTexture(Context context) {
-        w = context.getRenderer().getVpWidth(); //in pixels
-        h = context.getRenderer().getVpHeight(); //in pixels
-
         int nSigmas = 6; // Number of standard deviations you want the diameter to span
         double diameterDeg = getGaborSpec().getSize(); // Gabor patch diameter in degrees of visual angle
         double diameterMm = context.getRenderer().deg2mm(diameterDeg); // Convert diameter from degrees to millimeters
@@ -64,25 +61,36 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
     @Override
     public void draw(Context context) {
+        Gabor.initGL(context.getRenderer().getVpWidth(), context.getRenderer().getVpHeight());
+        w = context.getRenderer().getVpWidth(); //in pixels
+        h = context.getRenderer().getVpHeight(); //in pixels
+
         initTexture(context);
+
+        GL11.glPushMatrix();
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        //Translate the patch to the xCenter and yCenter specified
+        double xCenterMm = context.getRenderer().deg2mm(getGaborSpec().getXCenter());
+        double yCenterMm = context.getRenderer().deg2mm(getGaborSpec().getYCenter());
+        GL11.glTranslatef((float) xCenterMm, (float) yCenterMm, 0.0f);
+
+        // Adjust for aspect ratio before rotation
+        float aspectRatio = (float)w / h;
+        if (aspectRatio != 1.0f) {
+            GL11.glScalef(1.0f, aspectRatio, 1.0f); // Normalize the aspect ratio for rotation
+        }
+
+        // Rotate the patch according to the spec's orientation
+        float orientationDegrees = (float) getGaborSpec().getOrientation();
+        GL11.glRotatef(orientationDegrees, 0.0f, 0.0f, 1.0f);
+
+        // Reverse the aspect ratio adjustment after rotation
+        if (aspectRatio != 1.0f) {
+            GL11.glScalef(1.0f, 1.0f / aspectRatio, 1.0f); // Reverse the normalization
+        }
 
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId); // Bind the texture
-
-        // Convert center coordinates from degrees to millimeters
-        double xCenterMm = context.getRenderer().deg2mm(getGaborSpec().getXCenter());
-        double yCenterMm = context.getRenderer().deg2mm(getGaborSpec().getYCenter());
-
-        // Assuming the coordinate system of the drawing area is directly in millimeters
-        // Translate the drawing to the center specified by the spec
-        GL11.glPushMatrix();
-        GL11.glTranslatef((float) xCenterMm, (float) yCenterMm, 0.0f);
-
-        // Rotate the patch according to the spec's orientation
-        // Assuming spec.getOrientation() returns the rotation in degrees
-        float orientationDegrees = (float) getGaborSpec().getOrientation();
-        // Rotate around the Z-axis to affect the XY plane
-        GL11.glRotatef(orientationDegrees, 0.0f, 0.0f, 1.0f);
 
         GL11.glBegin(GL11.GL_QUADS);
 
@@ -99,6 +107,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
             // Adjusting the modFactor calculation for the frequency across the viewport in mm
             // Assuming the Gabor pattern should span the entire height of the viewport uniformly
             float verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
+
             float modFactor = (float) ((Math.sin(2.0 * Math.PI * frequencyCyclesPerMm * verticalPosition + phase) + 1.0) / 2.0);
 
             float[] rgb = modulateColor(modFactor);
@@ -136,6 +145,15 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         }
     }
 
+    protected double computeUniformScaleForGabor(Context context, double desiredDiameterMm) {
+        // Example calculation, assuming a simple scenario where we scale based on viewport height.
+        double viewportHeightMm = context.getRenderer().getVpHeightmm();
+        // Calculate what fraction of the viewport height the Gabor patch should occupy.
+        // This is a simple placeholder calculation. Adjust based on your application's needs.
+        double scale = desiredDiameterMm / viewportHeightMm;
+        return scale;
+    }
+
     @Override
     public void setDefaultSpec() {
         setGaborSpec(new GaborSpec());
@@ -156,22 +174,19 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         return rgb;
     }
 
-    /**
-     *
-     * @param w: width of viewport in pixels
-     * @param h: height of viewport in pixels
-     * @param std: standard deviation of the Gaussian as a fraction (independent of the size of the viewport)
-     * @return
-     */
     protected static ByteBuffer makeTexture(int w, int h, double std) {
         ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
         double norm_max = MathUtil.normal(0, 0, std);
+        double aspectRatio = (double) w / h;
 
-        for (int i = 0; i < w; i++) {
-            double x = (double) i / (w - 1) * 2 - 1;
-            for (int j = 0; j < h; j++) {
-                double y = (double) j / (h - 1) * 2 - 1;
-                double dist = Math.sqrt(x * x + y * y);
+        for (int i = 0; i < h; i++) {
+            double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust x-coordinate by aspect ratio
+//            System.out.println(y);
+            for (int j = 0; j < w; j++) {
+                double x = ((double) j / (w - 1) * 2 - 1);
+                if (i == 0)
+                    System.out.println(x);
+                double dist = Math.sqrt(y * y + x * x);
                 float n = (float) (MathUtil.normal(dist, 0, std) / norm_max);
                 texture.putFloat(n);
             }
@@ -179,6 +194,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         texture.flip();
         return texture;
     }
+
 
     public static void initGL(int w, int h) {
         GL11.glEnable(GL11.GL_BLEND);

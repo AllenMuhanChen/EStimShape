@@ -27,6 +27,7 @@ import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotGratingObject;
 import org.xper.rfplot.drawing.RFPlotImgObject;
+import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
 import org.xper.rfplot.gui.*;
 import org.xper.rfplot.gui.scroller.*;
 
@@ -76,7 +77,7 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
-		refObjMap.put(RFPlotGratingObject.class.getName(), new RFPlotGratingObject());
+		refObjMap.put(IsochromaticGabor.class.getName(), new IsochromaticGabor());
 		return refObjMap;
 	}
 

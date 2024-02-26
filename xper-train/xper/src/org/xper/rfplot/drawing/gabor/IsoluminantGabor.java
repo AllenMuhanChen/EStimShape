@@ -1,4 +1,4 @@
-package org.xper.allen.drawing.gabor;
+package org.xper.rfplot.drawing.gabor;
 
 import org.xper.drawing.RGBColor;
 

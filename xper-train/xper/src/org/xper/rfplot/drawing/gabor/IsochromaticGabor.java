@@ -1,7 +1,6 @@
-package org.xper.allen.drawing.gabor;
+package org.xper.rfplot.drawing.gabor;
 
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.IsochromaticGaborSpec;
 
 import java.awt.*;

@@ -10,6 +10,8 @@ import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.IsochromaticGaborSpec;
+import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
+import org.xper.rfplot.drawing.gabor.IsoluminantGabor;
 import org.xper.util.ThreadUtil;
 
 public class IsochromaticGaborTest {
@@ -24,7 +26,7 @@ public class IsochromaticGaborTest {
     public void setUp() throws Exception {
 
         height = 1000;
-        width = 1000;
+        width = 1500;
         window = TestDrawingWindow.createDrawerWindow(height, width);
         PerspectiveRenderer renderer = window.renderer;
         perspectiveRenderer = new org.xper.drawing.renderer.PerspectiveRenderer();
@@ -45,7 +47,7 @@ public class IsochromaticGaborTest {
     @Test
     public void testIsochromatic() {
         IsochromaticGaborSpec spec = new IsochromaticGaborSpec();
-        spec.setOrientation(0);
+        spec.setOrientation(45);
         spec.setPhase(0);
         spec.setFrequency(10);
         spec.setXCenter(0);
@@ -75,11 +77,11 @@ public class IsochromaticGaborTest {
     public void testIsoluminant() {
         int size = 6;
         GaborSpec spec = new GaborSpec();
-        spec.setOrientation(125);
+        spec.setOrientation(45);
         spec.setPhase(0);
         spec.setFrequency(2);
-        spec.setXCenter(3);
-        spec.setYCenter(3);
+        spec.setXCenter(0);
+        spec.setYCenter(0);
         spec.setSize(size);
         spec.setAnimation(false);
 
