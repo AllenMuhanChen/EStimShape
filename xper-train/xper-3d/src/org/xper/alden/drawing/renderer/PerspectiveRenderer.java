@@ -1,13 +1,18 @@
 package org.xper.alden.drawing.renderer;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 
 public class PerspectiveRenderer extends AbstractRenderer {
 	public void init() {
 		super.init();
+		setup();
+	}
+
+	private void setup() {
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
-		GL11.glLoadIdentity();       
+		GL11.glLoadIdentity();
 
 		double left = xmin * PROJECTION_NEAR / distance;
 		double right = (xmax + hunit) * PROJECTION_NEAR / distance;
@@ -19,4 +24,10 @@ public class PerspectiveRenderer extends AbstractRenderer {
 		GL11.glLoadIdentity();
 		GL11.glTranslated (0, 0, -distance);
 	}
+
+	public void draw(Drawable scene) {
+		setup();
+		scene.draw();
+	}
+
 }

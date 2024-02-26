@@ -14,6 +14,7 @@ import java.util.List;
 public class TestDrawingWindow {
     BaseWindow window;
     public PerspectiveRenderer renderer;
+    private double dpmm = 3.2091;
 
     public void draw(Drawable drawable){
         renderer.draw(drawable);
@@ -70,16 +71,25 @@ public class TestDrawingWindow {
 
         renderer = new PerspectiveRenderer();
         //renderer = new OrthographicRenderer();
-        renderer.setDepth(6000);
+        renderer.setDepth(0);
         renderer.setDistance(500); //TODO: stitch this into generator so it is a dependency
-        renderer.setPupilDistance(50);
-        renderer.setHeight(100);
-        renderer.setWidth(100);
+        renderer.setPupilDistance(34);
+        renderer.setHeight(height / dpmm);
+        renderer.setWidth(width / dpmm);
         renderer.init(window.getWidth(), window.getHeight());
         GL11.glShadeModel(GL11.GL_SMOOTH);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
 
         GL11.glClearColor(0,0,0,1);
+    }
+
+
+    public double getDpmm() {
+        return dpmm;
+    }
+
+    public void setDpmm(double dpmm) {
+        this.dpmm = dpmm;
     }
 
     public void close() {

@@ -25,7 +25,6 @@ import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.RFPlotGratingObject;
 import org.xper.rfplot.drawing.RFPlotImgObject;
 import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
 import org.xper.rfplot.gui.*;
@@ -124,7 +123,8 @@ public class RFPlotConfig {
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller> gaborScrollers(){
 		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Sigma", new SigmaScroller());
+		map.put("Sigma", new GaborSigmaScroller());
+		map.put("Orientation", new GaborOrientationScroller());
 		return map;
 
 	}

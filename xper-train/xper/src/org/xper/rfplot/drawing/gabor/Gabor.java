@@ -60,6 +60,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         Gabor.initGL(context.getRenderer().getVpWidth(), context.getRenderer().getVpHeight());
         w = context.getRenderer().getVpWidth(); //in pixels
         h = context.getRenderer().getVpHeight(); //in pixels
+        System.out.println("w: " + w + " h: " + h);
 
         GL11.glPushMatrix();
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
@@ -139,20 +140,9 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     }
 
     private void rotateGrating() {
-        // Adjust for aspect ratio before rotation
-        float aspectRatio = (float)w / h;
-        if (aspectRatio != 1.0f) {
-            GL11.glScalef(1.0f, aspectRatio, 1.0f); // Normalize the aspect ratio for rotation
-        }
-
         // Rotate the patch according to the spec's orientation
         float orientationDegrees = (float) getGaborSpec().getOrientation();
         GL11.glRotatef(orientationDegrees, 0.0f, 0.0f, 1.0f);
-
-        // Reverse the aspect ratio adjustment after rotation
-        if (aspectRatio != 1.0f) {
-            GL11.glScalef(1.0f, 1.0f / aspectRatio, 1.0f); // Reverse the normalization
-        }
     }
 
     @Override
@@ -177,9 +167,9 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
     protected static ByteBuffer makeTexture(int w, int h, double std) {
         ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
-        double norm_max = MathUtil.normal(0, 0, std);
         double aspectRatio = (double) w / h;
         NormalDistribution distribution = new NormalDistribution(0, std);
+        double norm_max = distribution.density(0);
 
         for (int i = 0; i < h; i++) {
             double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust x-coordinate by aspect ratio

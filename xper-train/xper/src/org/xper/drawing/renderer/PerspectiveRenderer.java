@@ -8,10 +8,10 @@ import org.xper.drawing.Drawable;
  * Modified by AC because was previously broken (would not display stimuli on rig 2). Remodelled
  * to operate more similarily to PerspectiveStereoRenderer which was working properly. Even if PerspectiveStereoRenderer
  * can be used for mono, xper will always be drawing two copies of the screen, which impacts performance.
- * This fix was important for economical dynamic noise generation. 
- * 
- * Critical lines that were changed to fix drawing was putting the bulk of the old init() into setup() 
- * and calling setup() before each draw call. 
+ * This fix was important for economical dynamic noise generation.
+ *
+ * Critical lines that were changed to fix drawing was putting the bulk of the old init() into setup()
+ * and calling setup() before each draw call.
  * @author r2_allen
  *
  */
@@ -19,14 +19,14 @@ public class PerspectiveRenderer extends AbstractRenderer {
 	public void init() {
 		super.init();
 	}
-	
+
 	/**
 	 * AC addition to fix bug where stimuli aren't being presented. We should call this setup right before
 	 * stimulus presentation.
 	 */
 	public void setup() {
 		GL11.glMatrixMode(GL11.GL_PROJECTION);
-		GL11.glLoadIdentity();       
+		GL11.glLoadIdentity();
 
 		double left = xmin * PROJECTION_NEAR / distance;
 		double right = (xmax + hunit) * PROJECTION_NEAR / distance;
@@ -38,15 +38,15 @@ public class PerspectiveRenderer extends AbstractRenderer {
 		GL11.glLoadIdentity();
 		GL11.glTranslated (0, 0, -distance);
 	}
-	
+
 	/**
-	 * AC: modified to call setup() right before draw. pushMatrix and popMatrix are added just in case. 
+	 * AC: modified to call setup() right before draw. pushMatrix and popMatrix are added just in case.
 	 */
-	public void draw(Drawable scene, Context context) {		
+	public void draw(Drawable scene, Context context) {
 		context.setViewportIndex(0);
 		context.setRenderer(this);
 		setup();
 		scene.draw(context);
 	}
-	
+
 }

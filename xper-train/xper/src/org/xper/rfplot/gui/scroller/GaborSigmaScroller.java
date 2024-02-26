@@ -1,12 +1,9 @@
 package org.xper.rfplot.gui.scroller;
 
 import org.xper.rfplot.drawing.GaborSpec;
-import org.xper.rfplot.drawing.IsochromaticGaborSpec;
 import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.gabor.Gabor;
-import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
 
-public class SigmaScroller extends RFPlotScroller{
+public class GaborSigmaScroller extends RFPlotScroller{
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
         double currentSigma = getCurrentSigma(scrollerParams);

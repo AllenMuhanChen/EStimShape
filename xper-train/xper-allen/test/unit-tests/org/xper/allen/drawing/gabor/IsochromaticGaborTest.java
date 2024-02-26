@@ -36,8 +36,7 @@ public class IsochromaticGaborTest {
         perspectiveRenderer.setPupilDistance(renderer.getPupilDistance());
         perspectiveRenderer.setDistance(renderer.getDistance());
         perspectiveRenderer.init(width, height);
-        perspectiveRenderer.setup();
-        perspectiveRenderer.init();
+
 
         context = new Context();
         System.out.println(perspectiveRenderer.mm2deg(perspectiveRenderer.getVpWidthmm()));
@@ -94,7 +93,6 @@ public class IsochromaticGaborTest {
             public void draw() {
                 GL11.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-                IsoluminantGabor.initGL(width, height);
                 gabor.draw(context);
             }
         });
