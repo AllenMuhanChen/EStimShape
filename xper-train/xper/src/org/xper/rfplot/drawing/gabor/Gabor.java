@@ -65,40 +65,26 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         w = context.getRenderer().getVpWidth(); //in pixels
         h = context.getRenderer().getVpHeight(); //in pixels
 
-        initTexture(context);
-
         GL11.glPushMatrix();
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
-        //Translate the patch to the xCenter and yCenter specified
-        double xCenterMm = context.getRenderer().deg2mm(getGaborSpec().getXCenter());
-        double yCenterMm = context.getRenderer().deg2mm(getGaborSpec().getYCenter());
-        GL11.glTranslatef((float) xCenterMm, (float) yCenterMm, 0.0f);
 
-        // Adjust for aspect ratio before rotation
-        float aspectRatio = (float)w / h;
-        if (aspectRatio != 1.0f) {
-            GL11.glScalef(1.0f, aspectRatio, 1.0f); // Normalize the aspect ratio for rotation
+        translateGrating(context);
+        rotateGrating();
+        bindGaussianTexture(context);
+        drawGabor(context);
+
+        if (getGaborSpec().isAnimation()){
+            getGaborSpec().setPhase(getGaborSpec().getPhase() + 0.1);
         }
+    }
 
-        // Rotate the patch according to the spec's orientation
-        float orientationDegrees = (float) getGaborSpec().getOrientation();
-        GL11.glRotatef(orientationDegrees, 0.0f, 0.0f, 1.0f);
-
-        // Reverse the aspect ratio adjustment after rotation
-        if (aspectRatio != 1.0f) {
-            GL11.glScalef(1.0f, 1.0f / aspectRatio, 1.0f); // Reverse the normalization
-        }
-
-        GL11.glEnable(GL11.GL_TEXTURE_2D);
-        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId); // Bind the texture
-
+    private void drawGabor(Context context) {
         GL11.glBegin(GL11.GL_QUADS);
 
-
         float phase = (float) getGaborSpec().getPhase();
-        // Frequency in cycles per degree.
+
+        // Convert frequency from cycles per degree to cycles per mm
         float frequencyCyclesPerDegree = (float) getGaborSpec().getFrequency();
-        // Convert frequency to cycles per millimeter.
         double frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
 
         for (int i = 0; i < STEPS; i++) {
@@ -139,19 +125,36 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glPopMatrix();
 
         GL11.glDisable(GL11.GL_TEXTURE_2D); // Disable texture if not used afterwards
-
-        if (getGaborSpec().isAnimation()){
-            getGaborSpec().setPhase(getGaborSpec().getPhase() + 0.1);
-        }
     }
 
-    protected double computeUniformScaleForGabor(Context context, double desiredDiameterMm) {
-        // Example calculation, assuming a simple scenario where we scale based on viewport height.
-        double viewportHeightMm = context.getRenderer().getVpHeightmm();
-        // Calculate what fraction of the viewport height the Gabor patch should occupy.
-        // This is a simple placeholder calculation. Adjust based on your application's needs.
-        double scale = desiredDiameterMm / viewportHeightMm;
-        return scale;
+    private void bindGaussianTexture(Context context) {
+        initTexture(context);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
+        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId); // Bind the texture
+    }
+
+    private void translateGrating(Context context) {
+        //Translate the patch to the xCenter and yCenter specified
+        double xCenterMm = context.getRenderer().deg2mm(getGaborSpec().getXCenter());
+        double yCenterMm = context.getRenderer().deg2mm(getGaborSpec().getYCenter());
+        GL11.glTranslatef((float) xCenterMm, (float) yCenterMm, 0.0f);
+    }
+
+    private void rotateGrating() {
+        // Adjust for aspect ratio before rotation
+        float aspectRatio = (float)w / h;
+        if (aspectRatio != 1.0f) {
+            GL11.glScalef(1.0f, aspectRatio, 1.0f); // Normalize the aspect ratio for rotation
+        }
+
+        // Rotate the patch according to the spec's orientation
+        float orientationDegrees = (float) getGaborSpec().getOrientation();
+        GL11.glRotatef(orientationDegrees, 0.0f, 0.0f, 1.0f);
+
+        // Reverse the aspect ratio adjustment after rotation
+        if (aspectRatio != 1.0f) {
+            GL11.glScalef(1.0f, 1.0f / aspectRatio, 1.0f); // Reverse the normalization
+        }
     }
 
     @Override
