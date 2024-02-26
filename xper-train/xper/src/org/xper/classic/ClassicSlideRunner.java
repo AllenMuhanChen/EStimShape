@@ -135,6 +135,7 @@ public class ClassicSlideRunner implements SlideRunner {
                 return TrialResult.EYE_BREAK;
             }
             if (stateObject.isAnimation()) {
+                System.out.println("isAnimation");
                 currentContext.setAnimationFrameIndex(currentContext.getAnimationFrameIndex()+1);
                 drawingController.animateSlide(currentTask,
                         currentContext);

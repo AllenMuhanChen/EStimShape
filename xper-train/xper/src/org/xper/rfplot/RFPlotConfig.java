@@ -84,7 +84,7 @@ public class RFPlotConfig {
 	@Bean
 	public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
 		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
-		refModulatorMap.put(RFPlotGratingObject.class.getName(), gratingModulator());
+		refModulatorMap.put(IsochromaticGabor.class.getName(), gratingModulator());
 		refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
 		return refModulatorMap;
 	}
@@ -207,11 +207,6 @@ public class RFPlotConfig {
 	@Bean
 	public TrialDrawingController drawingController() {
 		RFPlotMarkStimTrialDrawingController controller;
-//		if (classicConfig.markEveryStep) {
-//			controller = new MarkEveryStepTrialDrawingController();
-//		} else {
-//			controller = new RFPlotMarkStimTrialDrawingController();
-//		}
 		controller = new RFPlotMarkStimTrialDrawingController();
 		controller.setWindow(classicConfig.monkeyWindow());
 		controller.setTaskScene(taskScene());

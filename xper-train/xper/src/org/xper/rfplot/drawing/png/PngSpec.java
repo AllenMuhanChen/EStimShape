@@ -56,7 +56,6 @@ public class PngSpec {
 	}
 
 	public static PngSpec fromXml (String xml) {
-		System.out.println(xml);
 		PngSpec p = (PngSpec)s.fromXML(xml);
 		return p;
 	}

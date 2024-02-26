@@ -19,7 +19,6 @@ public class RFPlotScene extends AbstractTaskScene {
 	RFPlotXfmSpec xfm;
 
 	public void initGL(int w, int h) {
-//		renderer = (PerspectiveStereoRenderer)this.renderer;
 		super.initGL(w, h);
 		// TODO: initGL for objects
 	}

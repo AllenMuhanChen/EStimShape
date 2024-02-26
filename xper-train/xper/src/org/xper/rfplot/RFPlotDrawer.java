@@ -25,8 +25,10 @@ public class RFPlotDrawer {
             }
 
             // Drawing the hull points as red circles
-            for (Point hullPoint : hull) {
-                GLUtil.drawCircle(new Circle(true, 5), hullPoint.x, hullPoint.y, 0, 1, 0, 0);
+            if (hull != null && !hull.isEmpty()) {
+                for (Point hullPoint : hull) {
+                    GLUtil.drawCircle(new Circle(true, 5), hullPoint.x, hullPoint.y, 0, 1, 0, 0);
+                }
             }
 
             // Drawing the hull as a polygon
@@ -42,7 +44,6 @@ public class RFPlotDrawer {
             // Drawing the RF center as a square
             GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
     public void add(Coordinates2D point){

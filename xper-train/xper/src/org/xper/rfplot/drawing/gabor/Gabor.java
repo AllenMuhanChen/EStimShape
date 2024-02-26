@@ -14,7 +14,7 @@ import org.xper.util.MathUtil;
 public class Gabor extends DefaultSpecRFPlotDrawable {
     protected static final int STEPS = 1024;
     protected ByteBuffer array;
-    protected int textureId;
+    protected int textureId = -1;
 
     private GaborSpec gaborSpec;
     private int w;
@@ -23,7 +23,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     public Gabor() {
         this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
                 .order(ByteOrder.nativeOrder());
-
+        setDefaultSpec();
     }
 
     private void initTexture(Context context) {
@@ -53,10 +53,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexEnvf(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
-    }
-
-    private double degreesToPixels(double diameterDeg, AbstractRenderer renderer) {
-        return renderer.mm2pixel(new Coordinates2D(renderer.mm2deg(diameterDeg), renderer.mm2deg(diameterDeg))).getX();
     }
 
     @Override
@@ -128,7 +124,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     }
 
     private void bindGaussianTexture(Context context) {
-        initTexture(context);
+        if (textureId == -1)
+            initTexture(context);
         GL11.glEnable(GL11.GL_TEXTURE_2D);
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId); // Bind the texture
     }
@@ -187,8 +184,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 //            System.out.println(y);
             for (int j = 0; j < w; j++) {
                 double x = ((double) j / (w - 1) * 2 - 1);
-                if (i == 0)
-                    System.out.println(x);
                 double dist = Math.sqrt(y * y + x * x);
                 float n = (float) (MathUtil.normal(dist, 0, std) / norm_max);
                 texture.putFloat(n);
