@@ -10,9 +10,13 @@ import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.IsochromaticGaborSpec;
+import org.xper.rfplot.drawing.gabor.ColourConverter;
 import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
 import org.xper.rfplot.drawing.gabor.IsoluminantGabor;
+import org.xper.rfplot.drawing.gabor.IsoluminantGaborSpec;
 import org.xper.util.ThreadUtil;
+
+import java.awt.*;
 
 public class IsochromaticGaborTest {
 
@@ -74,7 +78,7 @@ public class IsochromaticGaborTest {
 
     @Test
     public void testIsoluminant() {
-        int size = 6;
+        int size = 20;
         GaborSpec spec = new GaborSpec();
         spec.setOrientation(45);
         spec.setPhase(0);
@@ -84,9 +88,14 @@ public class IsochromaticGaborTest {
         spec.setSize(size);
         spec.setAnimation(false);
 
-        IsoluminantGabor gabor = new IsoluminantGabor(new RGBColor(0, 0.5f, 0.5f), new RGBColor(0.5f, 0.5f, 0),
-                true, true);
-        gabor.setSpec(spec.toXml());
+//        IsoluminantGaborSpec isoluminantGaborSpec = new IsoluminantGaborSpec(new RGBColor(0.5f, 0.5f, 0),
+//                new RGBColor(0, 0.5f, 0.5f), false, true, spec);
+        IsoluminantGaborSpec isoluminantGaborSpec = new IsoluminantGaborSpec(
+                new RGBColor(1f, 0f, 0f),
+                new RGBColor(0f, 1f, 0f), true, true, spec);
+        IsoluminantGabor gabor = new IsoluminantGabor();
+        gabor.setGaborSpec(isoluminantGaborSpec);
+        gabor.setSpec(isoluminantGaborSpec.toXml());
 
         window.draw(new Drawable() {
             @Override
@@ -102,5 +111,78 @@ public class IsochromaticGaborTest {
 
         ThreadUtil.sleep(100000);
 
+    }
+
+    @Test
+    public void testIsoluminantColors(){
+        Color gray = new Color(0.5f, 0.5f, 0.5f);
+        double gray_lab[] = ColourConverter.getLab(gray, ColourConverter.WhitePoint.D65);
+        System.out.println("Gray: " + gray_lab[0] + " " + gray_lab[1] + " " + gray_lab[2]);
+
+        Color red = new Color(1f, 0f, 0f);
+        double red_lab[] = ColourConverter.getLab(red, ColourConverter.WhitePoint.D65);
+        System.out.println("Red Lab: " + red_lab[0] + " " + red_lab[1] + " " + red_lab[2]);
+
+        Color green = new Color(0f, 1f, 0f);
+        double green_lab[] = ColourConverter.getLab(green, ColourConverter.WhitePoint.D65);
+        System.out.println("Green Lab: " + green_lab[0] + " " + green_lab[1] + " " + green_lab[2]);
+
+        // Match the green to the gray
+        double l = gray_lab[0];
+        double a = green_lab[1];
+        double b = green_lab[2];
+
+        double[] modulatedRGB = ColourConverter.labToRGB(l, a, b, ColourConverter.WhitePoint.D65);
+        System.out.println("New Green RGB: " + modulatedRGB[0] + " " + modulatedRGB[1] + " " + modulatedRGB[2]);
+
+        //Match the red to the gray
+        a = red_lab[1];
+        b = red_lab[2];
+        modulatedRGB = ColourConverter.labToRGB(l, a, b, ColourConverter.WhitePoint.D65);
+        System.out.println("New Red RGB: " + modulatedRGB[0] + " " + modulatedRGB[1] + " " + modulatedRGB[2]);
+
+
+    }
+
+    @Test
+    public void testIsoluminantRGBS(){
+        Color gray = new Color(0.5f, 0.5f, 0.5f);
+        double gray_lab[] = ColourConverter.getLab(gray, ColourConverter.WhitePoint.D65);
+        double target_L = gray_lab[0];
+
+        Color red = new Color(1f, 0f, 0f);
+        double red_lab[] = ColourConverter.getLab(red, ColourConverter.WhitePoint.D65);
+        double red_target_b = red_lab[2];
+
+
+        Color green = new Color(0f, 1f, 0f);
+        double green_lab[] = ColourConverter.getLab(green, ColourConverter.WhitePoint.D65);
+        double green_target_b = green_lab[2];
+
+        //RED
+        double a = 100;
+        double[] rgb;
+        while(true){
+            rgb = ColourConverter.labToRGB(target_L, a, red_target_b, ColourConverter.WhitePoint.D65);
+            //if all values are between 0 and 1, break
+            if(rgb[0] >= 0 && rgb[0] <= 1 && rgb[1] >= 0 && rgb[1] <= 1 && rgb[2] >= 0 && rgb[2] <= 1){
+                break;
+            }
+            a = a - 0.1;
+        }
+        System.out.println("Red RGB: " + rgb[0] + " " + rgb[1] + " " + rgb[2]);
+
+        //GREEN
+        a = -100;
+        while(true){
+            rgb = ColourConverter.labToRGB(target_L, a, 60, ColourConverter.WhitePoint.D65);
+            //if all values are between 0 and 1, break
+            if(rgb[0] >= 0 && rgb[0] <= 1 && rgb[1] >= 0 && rgb[1] <= 1 && rgb[2] >= 0 && rgb[2] <= 1){
+                break;
+            }
+            a = a + 0.1;
+//            System.out.println(a);
+        }
+        System.out.println("Green RGB: " + rgb[0] + " " + rgb[1] + " " + rgb[2]);
     }
 }

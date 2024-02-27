@@ -12,7 +12,7 @@ public class GaborSpec implements XMLizable {
 	double size;
 	boolean animation;
 
-	transient static XStream s;
+	protected transient static XStream s;
 
 	static {
 		s = new XStream();

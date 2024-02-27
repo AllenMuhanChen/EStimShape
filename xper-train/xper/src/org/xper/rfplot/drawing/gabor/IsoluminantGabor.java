@@ -6,18 +6,10 @@ import java.awt.*;
 
 public class IsoluminantGabor extends Gabor {
 
-    RGBColor color1;
-    RGBColor color2;
-    boolean modRedGreen;
-    boolean modBlueYellow;
+    IsoluminantGaborSpec spec;
     ColourConverter.WhitePoint whitePoint = ColourConverter.WhitePoint.D65;
 
-    public IsoluminantGabor(RGBColor color1, RGBColor color2, boolean modRedGreen, boolean modBlueYellow) {
-        this.color1 = color1;
-        this.color2 = color2;
-        this.modRedGreen = modRedGreen;
-        this.modBlueYellow = modBlueYellow;
-    }
+
 
     @Override
     protected float[] modulateColor(float modFactor) {
@@ -25,21 +17,23 @@ public class IsoluminantGabor extends Gabor {
         modFactor = Math.max(0, Math.min(modFactor, 1));
 
         // Convert both colors to Lab
-        double[] lab1 = ColourConverter.getLab(new Color(color1.getRed(), color1.getGreen(), color1.getBlue()), whitePoint);
-        double[] lab2 = ColourConverter.getLab(new Color(color2.getRed(), color2.getGreen(), color2.getBlue()), whitePoint);
+        double[] lab1 = ColourConverter.getLab(new Color(spec.color1.getRed(), spec.color1.getGreen(), spec.color1.getBlue()), whitePoint);
+        double[] lab2 = ColourConverter.getLab(new Color(spec.color2.getRed(), spec.color2.getGreen(), spec.color2.getBlue()), whitePoint);
 
         // Interpolate the a* and b* components between the two colors based on modFactor
         // Maintain constant L* (luminance) from the first color (or average them if you prefer)
-        double L = lab1[0]; // or (lab1[0] + lab2[0]) / 2 for average luminance
+//        double L = lab1[0]; // or
+//        double L = (lab1[0] + lab2[0])/2; // 2 for average luminance
+        double L = 53.585013452169036;
         double a;
         double b;
-        if (modRedGreen) {
+        if (spec.modRedGreen) {
             a = interpolate(lab1[1], lab2[1], modFactor);
         }
         else {
             a = lab1[1];
         }
-        if (modBlueYellow)
+        if (spec.modBlueYellow)
             b = interpolate(lab1[2], lab2[2], modFactor);
         else
             b = lab1[2];
@@ -58,5 +52,49 @@ public class IsoluminantGabor extends Gabor {
 
     private double interpolate(double value1, double value2, float factor) {
         return value1 + (value2 - value1) * factor;
+    }
+
+    @Override
+    public IsoluminantGaborSpec getGaborSpec() {
+        return spec;
+    }
+
+    public void setGaborSpec(IsoluminantGaborSpec spec) {
+        this.spec = spec;
+    }
+
+    @Override
+    public void setDefaultSpec() {
+        setGaborSpec(new IsoluminantGaborSpec());
+        getGaborSpec().setPhase(0);
+        getGaborSpec().setFrequency(1);
+        getGaborSpec().setOrientation(0);
+        getGaborSpec().setAnimation(true);
+        getGaborSpec().setSize(5);
+        getGaborSpec().setXCenter(0);
+        getGaborSpec().setYCenter(0);
+        getGaborSpec().setColor1(new RGBColor(0.5f, 0.5f, 0));
+        getGaborSpec().setColor2(new RGBColor(0, 0.5f, 0.5f));
+        getGaborSpec().setModRedGreen(true);
+        getGaborSpec().setModBlueYellow(true);
+    }
+
+    public String getSpec() {
+        return getGaborSpec().toXml();
+    }
+
+    public void setSpec(String spec) {
+        recalculateTextureIfChangeSigma(spec);
+        this.setGaborSpec(IsoluminantGaborSpec.fromXml(spec));
+    }
+
+    private void recalculateTextureIfChangeSigma(String spec) {
+        String oldSpec = getSpec();
+        IsoluminantGaborSpec oldGaborSpec = IsoluminantGaborSpec.fromXml(oldSpec);
+        double oldSigma = oldGaborSpec.getSize();
+        double newSigma = IsoluminantGaborSpec.fromXml(spec).getSize();
+        if (oldSigma != newSigma) {
+            recalculateTexture();
+        }
     }
 }
