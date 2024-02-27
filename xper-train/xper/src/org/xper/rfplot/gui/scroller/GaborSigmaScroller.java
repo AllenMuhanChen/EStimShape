@@ -3,7 +3,12 @@ package org.xper.rfplot.gui.scroller;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
-public class GaborSigmaScroller extends RFPlotScroller{
+public class GaborSigmaScroller<T extends GaborSpec> extends RFPlotScroller<T>{
+
+    public GaborSigmaScroller(Class<T> type) {
+        this.type = type;
+    }
+
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
         double currentSigma = getCurrentSigma(scrollerParams);
@@ -21,8 +26,8 @@ public class GaborSigmaScroller extends RFPlotScroller{
         return scrollerParams;
     }
 
-    private static void setNewSigma(ScrollerParams scrollerParams, double newSigma) {
-        GaborSpec currentGaborSpec = getCurrentGaborSpec(scrollerParams);
+    private void setNewSigma(ScrollerParams scrollerParams, double newSigma) {
+        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
         currentGaborSpec.setSize(newSigma);
         scrollerParams.getRfPlotDrawable().setSpec(currentGaborSpec.toXml());
     }
@@ -33,9 +38,9 @@ public class GaborSigmaScroller extends RFPlotScroller{
         return currentSigma;
     }
 
-    private static GaborSpec getCurrentGaborSpec(ScrollerParams scrollerParams) {
+    private GaborSpec getCurrentGaborSpec(ScrollerParams scrollerParams) {
         RFPlotDrawable currentDrawable = scrollerParams.getRfPlotDrawable();
-        GaborSpec currentGaborSpec = GaborSpec.fromXml(currentDrawable.getSpec());
+        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
         return currentGaborSpec;
     }
 

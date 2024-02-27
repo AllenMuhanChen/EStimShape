@@ -23,9 +23,7 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
-import org.xper.rfplot.drawing.RFPlotBlankObject;
-import org.xper.rfplot.drawing.RFPlotDrawable;
-import org.xper.rfplot.drawing.RFPlotImgObject;
+import org.xper.rfplot.drawing.*;
 import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
 import org.xper.rfplot.gui.*;
 import org.xper.rfplot.gui.scroller.*;
@@ -102,16 +100,16 @@ public class RFPlotConfig {
 
 
 	@Bean
-	public LinkedHashMap<String, RFPlotScroller> imgModeScrollerMap(){
-		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
+	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> imgModeScrollerMap(){
+		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
 		map.put("Path", imgPathScroller());
 		map.putAll(defaultScrollers());
 		return map;
 	}
 
 	@Bean
-	public LinkedHashMap<String, RFPlotScroller> defaultScrollers() {
-		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
+	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> defaultScrollers() {
+		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
 		map.put("Size", new SizeScroller());
 		map.put("Orientation", new OrientationScroller());
 		map.put("Hue", new HueScroller());
@@ -121,10 +119,11 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public LinkedHashMap<String, RFPlotScroller> gaborScrollers(){
-		LinkedHashMap<String, RFPlotScroller> map = new LinkedHashMap<>();
-		map.put("Sigma", new GaborSigmaScroller());
-		map.put("Orientation", new GaborOrientationScroller());
+	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> gaborScrollers(){
+		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
+		map.put("Sigma", new GaborSigmaScroller<>(IsochromaticGaborSpec.class));
+		map.put("Orientation", new GaborOrientationScroller<>(IsochromaticGaborSpec.class));
+		map.put("Spatial Frequency", new GaborSpatialFrequencyScroller<>(IsochromaticGaborSpec.class));
 		return map;
 
 	}

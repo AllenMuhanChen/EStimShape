@@ -1,8 +1,9 @@
 package org.xper.rfplot.drawing;
 
 import com.thoughtworks.xstream.XStream;
+import org.xper.rfplot.XMLizable;
 
-public class GaborSpec {
+public class GaborSpec implements XMLizable {
 	double xCenter;
 	double yCenter;
 	double orientation;
@@ -30,6 +31,11 @@ public class GaborSpec {
 	public static GaborSpec fromXml (String xml) {
 		GaborSpec g = (GaborSpec)s.fromXML(xml);
 		return g;
+	}
+
+	@Override
+	public XMLizable getFromXml(String xml) {
+		return fromXml(xml);
 	}
 
 	public GaborSpec() {}
@@ -88,4 +94,6 @@ public class GaborSpec {
 	public void setAnimation(boolean animation) {
 		this.animation = animation;
 	}
+
+
 }

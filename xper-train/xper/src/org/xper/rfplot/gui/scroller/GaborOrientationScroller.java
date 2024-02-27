@@ -3,7 +3,11 @@ package org.xper.rfplot.gui.scroller;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
-public class GaborOrientationScroller extends RFPlotScroller{
+public class GaborOrientationScroller<T extends GaborSpec> extends RFPlotScroller<T>{
+
+    public GaborOrientationScroller(Class<T> type) {
+        this.type = type;
+    }
 
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
@@ -22,20 +26,20 @@ public class GaborOrientationScroller extends RFPlotScroller{
     }
 
     private double getCurrentOrientation(ScrollerParams scrollerParams) {
-        GaborSpec currentGaborSpec = getCurrentGaborSpec(scrollerParams);
+        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
         double currentOrientation = currentGaborSpec.getOrientation();
         return currentOrientation;
     }
 
 
-    private static GaborSpec getCurrentGaborSpec(ScrollerParams scrollerParams) {
-        RFPlotDrawable currentDrawable = scrollerParams.getRfPlotDrawable();
-        GaborSpec currentGaborSpec = GaborSpec.fromXml(currentDrawable.getSpec());
-        return currentGaborSpec;
-    }
+//    private static GaborSpec getCurrentGaborSpec(ScrollerParams scrollerParams) {
+//        RFPlotDrawable currentDrawable = scrollerParams.getRfPlotDrawable();
+//        GaborSpec currentGaborSpec = GaborSpec.fromXml(currentDrawable.getSpec());
+//        return currentGaborSpec;
+//    }
 
-    private static void setNewOrientation(ScrollerParams scrollerParams, double newOrientation) {
-        GaborSpec currentGaborSpec = getCurrentGaborSpec(scrollerParams);
+    private void setNewOrientation(ScrollerParams scrollerParams, double newOrientation) {
+        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
         currentGaborSpec.setOrientation(newOrientation);
         scrollerParams.getRfPlotDrawable().setSpec(currentGaborSpec.toXml());
     }

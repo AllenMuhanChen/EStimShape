@@ -2,6 +2,7 @@ package org.xper.rfplot.gui;
 
 import org.xper.Dependency;
 import org.xper.rfplot.RFPlotClient;
+import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 
@@ -12,8 +13,8 @@ public class RFPlotStimModulator {
     @Dependency
     protected RFPlotClient client;
 
-    protected LinkedHashMap<String, RFPlotScroller> modeScrollerMap;
-    public RFPlotStimModulator(LinkedHashMap<String, RFPlotScroller> modeScrollerMap) {
+    protected LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> modeScrollerMap;
+    public RFPlotStimModulator(LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> modeScrollerMap) {
         this.modeScrollerMap = modeScrollerMap;
 
         modes = new CyclicIterator<String>(modeScrollerMap.keySet());
