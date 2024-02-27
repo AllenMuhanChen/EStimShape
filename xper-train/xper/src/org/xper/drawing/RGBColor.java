@@ -1,5 +1,7 @@
 package org.xper.drawing;
 
+import java.util.Objects;
+
 public class RGBColor {
 	float red;
 
@@ -41,4 +43,16 @@ public class RGBColor {
 	public RGBColor() {
 	}
 
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		RGBColor rgbColor = (RGBColor) o;
+		return Float.compare(getRed(), rgbColor.getRed()) == 0 && Float.compare(getGreen(), rgbColor.getGreen()) == 0 && Float.compare(getBlue(), rgbColor.getBlue()) == 0;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(getRed(), getGreen(), getBlue());
+	}
 }

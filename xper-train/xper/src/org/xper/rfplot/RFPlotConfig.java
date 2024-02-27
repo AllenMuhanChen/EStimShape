@@ -124,7 +124,8 @@ public class RFPlotConfig {
 		map.put("Sigma", new GaborSigmaScroller<>(IsochromaticGaborSpec.class));
 		map.put("Orientation", new GaborOrientationScroller<>(IsochromaticGaborSpec.class));
 		map.put("Spatial Frequency", new GaborSpatialFrequencyScroller<>(IsochromaticGaborSpec.class));
-		map.put("Color", new GaborHueScroller<>(IsochromaticGaborSpec.class));
+		map.put("Isochromatic Gabors", new GaborIsochromaticScroller<>(IsochromaticGaborSpec.class));
+		map.put("Hue", new GaborHueScroller<>(IsochromaticGaborSpec.class));
 		return map;
 
 	}

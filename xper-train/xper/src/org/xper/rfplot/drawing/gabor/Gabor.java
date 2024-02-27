@@ -12,7 +12,7 @@ import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.util.MathUtil;
 import org.apache.commons.math3.distribution.NormalDistribution;
 public class Gabor extends DefaultSpecRFPlotDrawable {
-    protected static final int STEPS = 1024;
+    protected static final int STEPS = 2048;
     protected ByteBuffer array;
     protected int textureId = -1;
 
