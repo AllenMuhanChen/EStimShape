@@ -351,6 +351,7 @@ public class ClassicConfig {
 		if (!acqConfig.acqDriverName.equalsIgnoreCase(acqConfig.DAQ_NONE)) {
 			trialEventListener.add(dynamicJuiceUpdater());
 		}
+		trialEventListener.add(intanRecordingController());
 		return trialEventListener;
 	}
 

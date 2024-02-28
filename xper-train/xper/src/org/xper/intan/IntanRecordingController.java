@@ -30,29 +30,32 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
     @Override
     public void experimentStart(long timestamp) {
         tryConnection();
-    }
-
-    @Override
-    public void trialInit(long timestamp, TrialContext context) {
         if (toRecord()) {
-            long trialName = context.getCurrentTask().getTaskId();
-            fileNamingStrategy.rename(trialName);
+            fileNamingStrategy.rename(timestamp);
             getIntan().record();
         }
     }
 
     @Override
+    public void trialInit(long timestamp, TrialContext context) {
+
+    }
+
+    @Override
     public void trialStop(long timestamp, TrialContext context) {
-        if (toRecord())
-            getIntan().stopRecording();
+
     }
 
     @Override
     public void experimentStop(long timestamp) {
+        if (toRecord())
+            getIntan().stopRecording();
+
         if (toRecord()) {
             getIntan().stop();
             getIntan().disconnect();
         }
+
         connected = false;
     }
 
@@ -72,7 +75,10 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
 
     @Override
     public void trialStart(long timestamp, TrialContext context) {
-
+        if (toRecord()){
+            String note = Long.toString(context.getCurrentTask().getTaskId());
+            getIntan().writeNote(note);
+        }
     }
 
     @Override

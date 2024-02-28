@@ -1,0 +1,10 @@
+#!/bin/bash
+#Defining paths for xper.properties versions
+ESTIMSHAPE="/home/r2_allen/git/EStimShape"
+SHELLSCRIPTS="$ESTIMSHAPE/xper-train/shellScripts"
+XPER_PROPERTIES_MONLIN="$SHELLSCRIPTS/xper.properties.monitorlinearization"
+DIST="$ESTIMSHAPE/xper-train/dist"
+
+cd $DIST/allen
+java -jar MonLinGenerator.jar
+

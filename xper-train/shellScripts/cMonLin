@@ -1,0 +1,26 @@
+#!/bin/bash
+#Defining paths for xper.properties versions
+ESTIMSHAPE="/home/r2_allen/git/EStimShape"
+SHELLSCRIPTS="$ESTIMSHAPE/xper-train/shellScripts"
+XPER_PROPERTIES_MONLIN="$SHELLSCRIPTS/xper.properties.monitorlinearization"
+DIST="$ESTIMSHAPE/xper-train/dist"
+
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_monitorlinearization_240228 <<EOF
+UPDATE SystemVar SET val=500 WHERE name='xper_slide_length';
+UPDATE SystemVar SET val=1 WHERE name='xper_slides_per_trial';
+UPDATE SystemVar SET val=1 WHERE name='xper_fixation_point_color' AND arr_ind=0;
+UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=1;
+UPDATE SystemVar SET val=0 WHERE name='xper_fixation_point_color' AND arr_ind=2;
+UPDATE SystemVar SET val=500 WHERE name='xper_inter_trial_interval';
+UPDATE SystemVar SET val=0 WHERE name='xper_time_before_fixation_point_on';
+UPDATE SystemVar SET val=10 WHERE name='xper_required_eye_in_and_hold_time';
+UPDATE SystemVar SET val=50 WHERE name='xper_screen_marker_size';
+EOF
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_MONLIN $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_MONLIN $DIST/allen/xper.properties
+
+cd $DIST
+java -jar console.jar
+
+

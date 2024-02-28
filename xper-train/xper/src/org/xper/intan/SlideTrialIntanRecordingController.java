@@ -31,4 +31,9 @@ public class SlideTrialIntanRecordingController extends IntanRecordingController
 
     }
 
+    @Override
+    public void trialStart(long timestamp, TrialContext context) {
+        //Do nothing instead of writing livenote of taskId.
+    }
+
 }
