@@ -21,6 +21,9 @@ public class MonLinStim implements Stim {
     @Override
     public void writeStim() {
         taskId = generator.getGlobalTimeUtil().currentTimeMicros();
+        MonLinSpec spec = new MonLinSpec();
+        spec.color = color;
+        generator.getDbUtil().writeStimSpec(taskId, spec.toXml());
     }
 
     @Override
