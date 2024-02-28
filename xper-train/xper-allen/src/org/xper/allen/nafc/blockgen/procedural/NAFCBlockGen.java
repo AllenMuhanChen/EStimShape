@@ -37,7 +37,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
     }
 
     public void uploadTrialParams() {
-        long tstamp = globalTimeUtil.currentTimeMicros();
+        long tstamp = getGlobalTimeUtil().currentTimeMicros();
         Map<GenParameters, String> genTypesForParams = new LinkedHashMap<>();
         genTypesForBlocks.forEach(new BiConsumer<List<NAFCStim>, ProceduralRandGenType>() {
             @Override

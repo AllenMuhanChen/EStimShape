@@ -11,11 +11,14 @@ import org.xper.Dependency;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.allen.Stim;
+import org.xper.time.TimeUtil;
 
 public abstract class AbstractTrialGenerator<T extends Stim> implements TrialGenerator {
 
 	@Dependency
 	protected AllenDbUtil dbUtil;
+	@Dependency
+	protected TimeUtil globalTimeUtil;
 
 	protected Long genId;
 	protected List<T> stims = new LinkedList<>();
@@ -96,5 +99,13 @@ public abstract class AbstractTrialGenerator<T extends Stim> implements TrialGen
 
 	public void setStims(List<T> stims) {
 		this.stims = stims;
+	}
+
+	public TimeUtil getGlobalTimeUtil() {
+		return globalTimeUtil;
+	}
+
+	public void setGlobalTimeUtil(TimeUtil globalTimeUtil) {
+		this.globalTimeUtil = globalTimeUtil;
 	}
 }
