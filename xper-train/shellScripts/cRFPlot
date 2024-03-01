@@ -2,7 +2,7 @@
 source pathsProcedural
 ./SystemVars
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
-UPDATE SystemVar SET val=10000 WHERE name='xper_slide_length';
+UPDATE SystemVar SET val=100000 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=1 WHERE name='xper_slides_per_trial';
 UPDATE SystemVar SET val=0 WHERE name = 'xper_inter_slide_interval';
 UPDATE SystemVar SET val=3000 WHERE name='xper_inter_trial_interval';

@@ -9,43 +9,47 @@ public class IsoluminantGabor extends Gabor {
     IsoluminantGaborSpec spec;
     ColourConverter.WhitePoint whitePoint = ColourConverter.WhitePoint.D65;
 
+    double luminanceCandela = 200;
 
+    GammaCorrection correction = new GammaCorrection(
+            new Gamma(1168.883608034991, 2.493582260436006),
+            new Gamma(1904.1406702103686, 2.4512161146614972),
+            new Gamma(428.01063804554224, 2.277465659232506)
+    );
 
     @Override
     protected float[] modulateColor(float modFactor) {
         // Ensure modFactor is within 0 and 1
         modFactor = Math.max(0, Math.min(modFactor, 1));
 
-        // Convert both colors to Lab
-        double[] lab1 = ColourConverter.getLab(new Color(spec.color1.getRed(), spec.color1.getGreen(), spec.color1.getBlue()), whitePoint);
-        double[] lab2 = ColourConverter.getLab(new Color(spec.color2.getRed(), spec.color2.getGreen(), spec.color2.getBlue()), whitePoint);
-
-        // Interpolate the a* and b* components between the two colors based on modFactor
-        // Maintain constant L* (luminance) from the first color (or average them if you prefer)
-//        double L = lab1[0]; // or
-//        double L = (lab1[0] + lab2[0])/2; // 2 for average luminance
-        double L = 53.585013452169036;
-        double a;
-        double b;
+        double r=0;
+        double g=0;
+        double b=0;
         if (spec.modRedGreen) {
-            a = interpolate(lab1[1], lab2[1], modFactor);
+            r = interpolate(0, 1.0, modFactor);
+            g = 1 - r;
+            b = 0;
+            System.out.println("r: " + r + " g: " + g + " b: " + b + "sum: " + (r+g+b));
         }
-        else {
-            a = lab1[1];
+        else if (spec.modBlueYellow){
+            r = interpolate(0, 0.5, modFactor);
+            b = 0.5 - r;
+            g = 0.5;
+            System.out.println("r: " + r + " g: " + g + " b: " + b + "sum: " + (r+g+b));
         }
-        if (spec.modBlueYellow)
-            b = interpolate(lab1[2], lab2[2], modFactor);
-        else
-            b = lab1[2];
 
-        // Convert the interpolated Lab color back to RGB
-        double[] modulatedRGB = ColourConverter.labToRGB(L, a, b, whitePoint);
-
+        // Gamma Correct (/ Linearize) the RGB based on the monitor
+        RGBColor corrected = correction.correct(
+                new RGBColor((float) r, (float) g, (float) b),
+                luminanceCandela);
         // Return as an array for OpenGL
         float[] rgb = new float[3];
-        rgb[0] = (float) (modulatedRGB[0]);
-        rgb[1] = (float) (modulatedRGB[1]);
-        rgb[2] = (float) (modulatedRGB[2]);
+        rgb[0] = (float) (corrected.getRed());
+        rgb[1] = (float) (corrected.getGreen());
+        rgb[2] = (float) (corrected.getBlue());
+
+
+
 
         return rgb;
     }
@@ -67,10 +71,10 @@ public class IsoluminantGabor extends Gabor {
     public void setDefaultSpec() {
         setGaborSpec(new IsoluminantGaborSpec());
         getGaborSpec().setPhase(0);
-        getGaborSpec().setFrequency(1);
+        getGaborSpec().setFrequency(0.01);
         getGaborSpec().setOrientation(0);
         getGaborSpec().setAnimation(true);
-        getGaborSpec().setSize(5);
+        getGaborSpec().setSize(89.99);
         getGaborSpec().setXCenter(0);
         getGaborSpec().setYCenter(0);
         getGaborSpec().setColor1(new RGBColor(0.5f, 0.5f, 0));

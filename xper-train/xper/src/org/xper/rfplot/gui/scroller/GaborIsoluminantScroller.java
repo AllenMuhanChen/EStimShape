@@ -17,8 +17,8 @@ public class GaborIsoluminantScroller <T extends IsoluminantGaborSpec> extends R
                 new RGBColor(0f, 1f, 0)}
         };
 
-    boolean[] modRedGreen = {true, true};
-    boolean[] modBlueYellow = {true, true};
+    boolean[] modRedGreen = {true, false};
+    boolean[] modBlueYellow = {false, true};
 
 
 
