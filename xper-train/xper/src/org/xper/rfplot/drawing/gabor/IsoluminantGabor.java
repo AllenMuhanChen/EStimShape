@@ -1,5 +1,7 @@
 package org.xper.rfplot.drawing.gabor;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.optim.linear.LinearObjectiveFunction;
 import org.xper.drawing.RGBColor;
 
 import java.awt.*;
@@ -29,6 +31,13 @@ public class IsoluminantGabor extends Gabor {
             r = interpolate(0, 1.0, modFactor);
             g = 1 - r;
             b = 0;
+//            double rgRatio = Math.min(r,g) / Math.max(r,g);
+//            double percentDecrease = .05 * (rgRatio);
+//            if (rgRatio > 0.4) {
+//                r = r * (1 - percentDecrease);
+//                g = g * (1 - percentDecrease);
+//            }
+
             System.out.println("r: " + r + " g: " + g + " b: " + b + "sum: " + (r+g+b));
         }
         else if (spec.modBlueYellow){
@@ -44,9 +53,9 @@ public class IsoluminantGabor extends Gabor {
                 luminanceCandela);
         // Return as an array for OpenGL
         float[] rgb = new float[3];
-        rgb[0] = (float) (corrected.getRed());
-        rgb[1] = (float) (corrected.getGreen());
-        rgb[2] = (float) (corrected.getBlue());
+        rgb[0] = corrected.getRed();
+        rgb[1] = corrected.getGreen();
+        rgb[2] = corrected.getBlue();
 
 
 
