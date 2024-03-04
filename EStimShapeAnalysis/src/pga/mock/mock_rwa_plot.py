@@ -1,29 +1,35 @@
 from __future__ import annotations
 import types
+from typing import List
 
 import jsonpickle
 import numpy as np
 import xmltodict
 from matplotlib import pyplot as plt, cm
 
-from analysis.ga.rwa import get_next
+from analysis.ga.rwa import get_next, RWAMatrix, get_point_coordinates
 from pga.mock.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
 from clat.util.connection import Connection
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 
 
 def main():
-    shaft_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/shaft_rwa.json", "r").read())
-    fig = plot_shaft_rwa_1d(get_next(shaft_rwa))
-    # plot_top_n_stimuli_on_shaft(3, fig)
-    plt.suptitle("Combined SHAFT RWA")
+    conn = Connection("allen_estimshape_ga_dev_240207")
+    # shaft_rwa = jsonpickle.decode(
+    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/shaft_rwa.json", "r").read())
+    # fig = plot_shaft_rwa_1d(get_next(shaft_rwa))
+    # plot_top_n_stimuli_on_shaft(3, fig, shaft_rwa,conn)
+    # plt.suptitle("Combined SHAFT RWA")
 
-    termination_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/termination_rwa.json", "r").read())
-    plot_termination_rwa_1d(get_next(termination_rwa))
-    plt.suptitle("Combined TERMINATION RWA")
-
-    junction_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/junction_rwa.json", "r").read())
-    plot_junction_rwa_1d(get_next(junction_rwa))
+    # termination_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/termination_rwa.json", "r").read())
+    # fig = plot_termination_rwa_1d(get_next(termination_rwa))
+    # plot_top_n_stimuli_on_termination(3, fig, termination_rwa, conn)
+    # plt.suptitle("Combined TERMINATION RWA")
+    #
+    junction_rwa = jsonpickle.decode(
+        open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/junction_rwa.json", "r").read())
+    fig = plot_junction_rwa_1d(get_next(junction_rwa))
+    plot_top_n_junctions_on_fig(3, fig, junction_rwa, conn)
     plt.suptitle("Combined JUNCTION RWA")
 
     # lineage_0_rwa = jsonpickle.decode(
@@ -48,24 +54,149 @@ def main():
 
     plt.show()
 
-def plot_top_n_stimuli_on_shaft(n, fig):
-    conn = Connection("allen_estimshape_ga_dev_240207")
-    conn.execute("SELECT stim_id, response FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
-    top_n_stim_id_and_response = conn.fetch_all()
-    top_n_stim_ids = [stim[0] for stim in top_n_stim_id_and_response]
-    top_n_response = [float(stim[1]) for stim in top_n_stim_id_and_response]
 
-    print(top_n_response)
-    # top_n_stim_ids = conn.fetch_all()
-    # top_n_stim_ids = [stim_id[0] for stim_id in top_n_stim_ids]
+def plot_top_n_stimuli_on_shaft(n, fig, rwa: RWAMatrix, conn):
+    top_n_response, top_n_stim_xml = _fetch_top_n_stim_response_and_xml(conn, n)
+    top_n_shaft_data = _process_shaft_xml(top_n_stim_xml)
+    top_n_shaft_points = _convert_data_to_coordinates(rwa, top_n_shaft_data)
+    _plot_shaft_points(fig, top_n_response, top_n_shaft_points)
 
 
-    # Get Data from StimSpec for each top_n_stim_ids
-    top_n_stim_data = []
-    for stim_id in top_n_stim_ids:
-        conn.execute("SELECT data FROM StimSpec WHERE id = %s", params=(stim_id,))
-        top_n_stim_data.append(conn.fetch_one())
+def plot_top_n_stimuli_on_termination(n, fig, rwa: RWAMatrix, conn):
+    top_n_response, top_n_stim_xml = _fetch_top_n_stim_response_and_xml(conn, n)
+    top_n_termination_data = _process_termination_xml(top_n_stim_xml)
+    top_n_termination_points = _convert_data_to_coordinates(rwa, top_n_termination_data)
+    print(top_n_termination_points)
+    _plot_termination_points(fig, top_n_response, top_n_termination_points)
 
+
+def plot_top_n_junctions_on_fig(n, fig, junction_rwa, conn):
+    top_n_response, top_n_junction_xml = _fetch_top_n_stim_response_and_xml(conn, n)
+    top_n_junction_data = _process_junction_xml(top_n_junction_xml)
+    top_n_junction_points = _convert_data_to_coordinates(junction_rwa, top_n_junction_data)
+    print(top_n_junction_points)
+    _plot_junction_points(fig, top_n_response, top_n_junction_points)
+
+
+def _process_junction_xml(top_n_junction_xml):
+    top_n_junction_data = []
+    for junc_xml in top_n_junction_xml:
+        junc_data = xmltodict.parse(junc_xml)
+        junc_data = junc_data["AllenMStickData"]["junctionData"]["JunctionData"]
+        apply_function_to_subdictionaries_values_with_keys(junc_data, ["theta", "phi"],
+                                                           condition_theta_and_phi)
+        top_n_junction_data.append(junc_data)
+    return top_n_junction_data
+
+
+def _plot_junction_points(fig, top_n_response, top_n_junction_points):
+    axes = fig.axes
+    color_cycle = ['black', 'red', 'green', 'blue']  # Cycle of colors for different stimuli
+
+    # Dimensions to plot
+    dimensions = ['Angular Position Theta', 'Angular Position Phi', 'Radial Position',
+                  'Angle Bisector Direction Theta', 'Angle Bisector Direction Phi', 'Radius',
+                  'Angular Subtense', 'Planar Rotation']
+
+    for stim_index, junction_points in enumerate(top_n_junction_points):
+        response = top_n_response[stim_index]
+        y_values = [response for _ in junction_points]
+
+        for dim_index, dimension in enumerate(dimensions):
+            # Extract the dimension values for all points
+            dim_values = [point[dim_index] for point in junction_points]
+            color = color_cycle[stim_index % len(color_cycle)]  # Cycle through colors
+
+            # Plot each point for the current dimension
+            for point_index, point in enumerate(dim_values):
+                axes[dim_index].scatter(point, y_values[point_index], color=color)
+
+            # Optional: Set title or labels for each axis here if needed
+            axes[dim_index].set_title(dimension)
+
+
+def _plot_termination_points(fig, top_n_response, top_n_termination_points):
+    colors = ['black', 'red', 'green', 'blue']  # Example colors for different termination points
+
+    # Assuming each subplot in fig corresponds to a dimension plotted in plot_termination_rwa_1d
+    # The order and number of axes should match the dimensions you wish to plot
+    axes = fig.axes
+
+    for stim_index, termination_points in enumerate(top_n_termination_points):
+        response = top_n_response[stim_index]
+        y_values = [response for _ in termination_points]
+
+        # Extract dimensions from termination_points as per your data structure.
+        # Here, we use placeholders assuming each termination point is a tuple/list with these dimensions
+        # Adjust according to your actual data structure
+        angular_position_theta = [point[0] for point in termination_points]
+        angular_position_phi = [point[1] for point in termination_points]
+        radial_position = [point[2] for point in termination_points]
+        direction_theta = [point[3] for point in termination_points]
+        direction_phi = [point[4] for point in termination_points]
+        radius = [point[5] for point in termination_points]
+
+        # Plot each dimension on its corresponding subplot
+        for i, dimension in enumerate([angular_position_theta, angular_position_phi, radial_position,
+                                       direction_theta, direction_phi, radius]):
+            for point_index, point in enumerate(dimension):
+                axes[i].scatter(point, y_values[point_index], color=colors[stim_index % len(colors)])
+
+    # Set titles or labels for each axis as necessary, matching the plot_termination_rwa_1d function
+    axes[0].set_title("Angular Position Theta")
+    axes[1].set_title("Angular Position Phi")
+    axes[2].set_title("Radial Position")
+    axes[3].set_title("Direction Theta")
+    axes[4].set_title("Direction Phi")
+    axes[5].set_title("Radius")
+
+
+def _process_termination_xml(top_n_stim_xml):
+    top_n_termination_data = []
+    for stim_xml in top_n_stim_xml:
+        termination_data = xmltodict.parse(stim_xml)["AllenMStickData"]["terminationData"]["TerminationData"]
+        apply_function_to_subdictionaries_values_with_keys(termination_data, ["theta", "phi"],
+                                                           condition_theta_and_phi)
+        top_n_termination_data.append(termination_data)
+    return top_n_termination_data
+
+
+def _plot_shaft_points(fig, top_n_response, top_n_shaft_points):
+    # Assuming the axes are ordered correctly for the dimensions you're plotting
+    axes = fig.axes
+    color_cycle = ['black', 'red', 'green', 'blue']  # Cycle of colors for different stimuli
+
+    # Dimensions to plot. Adjust the indices as per the data structure of your shaft points
+    dimensions = ['Angular Position Theta', 'Angular Position Phi', 'Radial Position',
+                  'Orientation Theta', 'Orientation Phi', 'Radius', 'Length', 'Curvature']
+
+    for stim_index, shaft_points in enumerate(top_n_shaft_points):
+        response = top_n_response[stim_index]
+        y_values = [response for _ in shaft_points]
+
+        for dim_index, dimension in enumerate(dimensions):
+            # Extract the dimension values for all points
+            dim_values = [point[dim_index] for point in shaft_points]
+            color = color_cycle[stim_index % len(color_cycle)]  # Cycle through colors
+
+            # Plot each point for the current dimension
+            for point_index, point in enumerate(dim_values):
+                axes[dim_index].scatter(point, y_values[point_index], color=color)
+
+            # Optional: Set title or labels for each axis here if needed
+            axes[dim_index].set_title(dimension)
+
+
+def _convert_data_to_coordinates(rwa, top_n_data) -> list[list[list[float]]]:
+    # Get point matrix for each shaft
+    top_n_points = []
+    for data in top_n_data:
+        point_coordinates = get_point_coordinates(rwa, data)
+        top_n_points.append(point_coordinates)
+    return top_n_points
+
+
+def _process_shaft_xml(top_n_stim_data) -> list[dict]:
     # Parse XML
     top_n_shaft_data = []
     for stim_data in top_n_stim_data:
@@ -76,73 +207,23 @@ def plot_top_n_stimuli_on_shaft(n, fig):
         apply_function_to_subdictionaries_values_with_keys(shaft_data, ['orientation'],
                                                            hemisphericalize)
         top_n_shaft_data.append(shaft_data)
-
-    # Convert to single points
-    top_n_shaft_points = []
-    for shaft_data in top_n_shaft_data:
-        stim = [[
-            component['angularPosition']['theta'],
-            component['angularPosition']['phi'],
-            component["radialPosition"],
-            component["orientation"]["theta"],
-            component["orientation"]["phi"],
-            component["length"],
-            component["curvature"],
-            component["radius"]
-        ] for component in shaft_data]
-        stim = [[float(x) for x in component] for component in stim]
-
-        top_n_shaft_points.append(stim)
-
-    # Plot each shaft
-    ax = fig.axes
-    for stim_index, shaft_points in enumerate(top_n_shaft_points):
-        colors = ['black', 'red', 'green', 'blue']
-        response = top_n_response[stim_index]
-        y_values = [response for point in shaft_points]
+    return top_n_shaft_data
 
 
-        # Plot angular position theta
-        angularPosition_theta = [point[0] for point in shaft_points]
-        for point_index, point in enumerate(angularPosition_theta):
-            ax[0].scatter(point, y_values[point_index], color=colors[point_index])
-
-        # Plot angular position phi
-        angularPosition_phi = [point[1] for point in shaft_points]
-        for point_index, point in enumerate(angularPosition_phi):
-            ax[1].scatter(point, y_values[point_index], color=colors[point_index])
-
-        # Plot radial position
-        radialPosition = [point[2] for point in shaft_points]
-        for point_index, point in enumerate(radialPosition):
-            ax[2].scatter(point, y_values[point_index], color=colors[point_index])
-
-        # Plot orientation theta
-        orientation_theta = [point[3] for point in shaft_points]
-        for point_index, point in enumerate(orientation_theta):
-            ax[3].scatter(point, y_values[point_index], color=colors[point_index])
-
-        # Plot orientation phi
-        orientation_phi = [point[4] for point in shaft_points]
-        for point_index, point in enumerate(orientation_phi):
-            ax[4].scatter(point, y_values[point_index], color=colors[point_index])
-
-        # Plot Length
-        length = [point[5] for point in shaft_points]
-        for point_index, point in enumerate(length):
-            ax[6].scatter(point, y_values[point_index], color=colors[point_index])
-
-        # Plot Curvature
-        curvature = [point[6] for point in shaft_points]
-        for point_index, point in enumerate(curvature):
-            ax[7].scatter(point, y_values[point_index], color=colors[point_index])
-
-        # Plot Radius
-        radius = [point[7] for point in shaft_points]
-        for point_index, point in enumerate(radius):
-            ax[5].scatter(point, y_values[point_index], color=colors[point_index])
-
-
+def _fetch_top_n_stim_response_and_xml(conn, n):
+    conn.execute("SELECT stim_id, response FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
+    top_n_stim_id_and_response = conn.fetch_all()
+    top_n_stim_ids = [stim[0] for stim in top_n_stim_id_and_response]
+    top_n_response = [float(stim[1]) for stim in top_n_stim_id_and_response]
+    print(top_n_response)
+    # top_n_stim_ids = conn.fetch_all()
+    # top_n_stim_ids = [stim_id[0] for stim_id in top_n_stim_ids]
+    # Get Data from StimSpec for each top_n_stim_ids
+    top_n_stim_data = []
+    for stim_id in top_n_stim_ids:
+        conn.execute("SELECT data FROM StimSpec WHERE id = %s", params=(stim_id,))
+        top_n_stim_data.append(conn.fetch_one())
+    return top_n_response, top_n_stim_data
 
 
 def plot_shaft_rwa_1d(shaft_rwa):
@@ -173,6 +254,7 @@ def plot_shaft_rwa_1d(shaft_rwa):
 
     return fig
 
+
 def plot_termination_rwa_1d(termination_rwa):
     matrix = termination_rwa.matrix
 
@@ -188,7 +270,6 @@ def plot_termination_rwa_1d(termination_rwa):
     ax_direction_phi = fig.add_subplot(1, nCol, 5)
     ax_radius = fig.add_subplot(1, nCol, 6)
 
-
     # 1D SLICES
     draw_one_d_field(termination_rwa, "angularPosition.theta", matrix_peak_location, ax_angular_position_theta)
     draw_one_d_field(termination_rwa, "angularPosition.phi", matrix_peak_location, ax_angular_position_phi)
@@ -198,6 +279,7 @@ def plot_termination_rwa_1d(termination_rwa):
     draw_one_d_field(termination_rwa, "radius", matrix_peak_location, ax_radius)
 
     return fig
+
 
 def plot_junction_rwa_1d(junction_rwa):
     matrix = junction_rwa.matrix
@@ -213,21 +295,23 @@ def plot_junction_rwa_1d(junction_rwa):
     ax_angle_bisector_direction_theta = fig.add_subplot(1, nCol, 4)
     ax_angle_bisector_direction_phi = fig.add_subplot(1, nCol, 5)
     ax_radius = fig.add_subplot(1, nCol, 6)
-    ax_angular_subtense = fig.add_subplot(1, nCol,7)
+    ax_angular_subtense = fig.add_subplot(1, nCol, 7)
     ax_planar_rotation = fig.add_subplot(1, nCol, 8)
-
 
     # 1D SLICES
     draw_one_d_field(junction_rwa, "angularPosition.theta", matrix_peak_location, ax_angular_position_theta)
     draw_one_d_field(junction_rwa, "angularPosition.phi", matrix_peak_location, ax_angular_position_phi)
     draw_one_d_field(junction_rwa, "radialPosition", matrix_peak_location, ax_radial_position)
-    draw_one_d_field(junction_rwa, "angleBisectorDirection.theta", matrix_peak_location, ax_angle_bisector_direction_theta)
+    draw_one_d_field(junction_rwa, "angleBisectorDirection.theta", matrix_peak_location,
+                     ax_angle_bisector_direction_theta)
     draw_one_d_field(junction_rwa, "angleBisectorDirection.phi", matrix_peak_location, ax_angle_bisector_direction_phi)
     draw_one_d_field(junction_rwa, "radius", matrix_peak_location, ax_radius)
     draw_one_d_field(junction_rwa, "angularSubtense", matrix_peak_location, ax_angular_subtense)
     draw_one_d_field(junction_rwa, "planarRotation", matrix_peak_location, ax_planar_rotation)
 
     return fig
+
+
 def plot_shaft_rwa(test_rwa):
     matrix = test_rwa.matrix
 
@@ -262,7 +346,6 @@ def plot_shaft_rwa(test_rwa):
     draw_one_d_field(test_rwa, "radius", matrix_peak_location, ax_radius)
 
     plt.draw()
-
 
 
 def plot_multi_peaks(test_rwa):

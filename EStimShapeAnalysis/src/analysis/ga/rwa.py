@@ -22,22 +22,22 @@ data_type = float32
 def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field: dict[str, Binner],
         sigma_for_field: dict[str, float], padding_for_field: dict[str, str]):
     """
-    :param stims: n-list of m-lists of d-dictionaries, where the dictionary contains the fieldNames and the values for the data i.e {'curvature': 0.5, 'radius': 1.0}
+    :param stims: n-list of m-lists of dictionaries with d entries, where the dictionary contains the fieldNames and the values for the data i.e {'curvature': 0.5, 'radius': 1.0}
     n: the number of stimuli
     m: the number components of the stimulus
     d: the number of dimensions in the data
 
     :param response_vector: n-list of floats, where each float is the response of the neuron to the corresponding stimulus
 
-    :param binner_for_field: a d-dictionary of field names and their corresponding Binner objects. Binner objects
+    :param binner_for_field: a dictionary of d field names and their corresponding Binner objects. Binner objects
     are responsible for binning the data for a given field.
 
-    :param sigma_for_field: a d-dictionary of field names and their corresponding sigma values for the gaussian kernel.
+    :param sigma_for_field: a dictionary of d field names and their corresponding sigma values for the gaussian kernel.
     The sigma specified is a percentage of the number of bins for the field. For example, if the number of bins for a field is 10,
     and the sigma is 0.1, then the sigma value for the gaussian kernel will be 1.0.
     see https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html for more info on how sigma is used.
 
-    :param padding_for_field: a d-dictionary of field names and their corresponding padding types for the gaussian kernel
+    :param padding_for_field: a dictionary of d field names and their corresponding padding types for the gaussian kernel
     see https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html for possible paddings and more info
     """
     if isinstance(response_vector, pd.Series):
@@ -63,6 +63,31 @@ def rwa(stims: list[list[dict]], response_vector: list[float], binner_for_field:
     yield response_weighted_average
 
 
+def get_point_coordinates(rwa: RWAMatrix, stim: list[dict]) -> list[list[float]]:
+    '''
+    Given a RWAMatrix and a stimulus, returns the coordinates of the stimulus in the RWA matrix.
+    Coordinates are in terms of bin middle values.
+    '''
+
+    binners_for_fields = {rwa.names_for_axes[str(i)]: rwa.binners_for_axes[str(i)] for i in range(len(rwa.binners_for_axes))}
+    coordinates = []
+
+    if not isinstance(stim, list):
+        stim = [stim]
+
+    for component in stim:
+        component_coordinate = []
+
+
+
+        assigned_bins_for_component = assign_bins_for_component(binners_for_fields, component)
+        for index_and_assigned_bin in assigned_bins_for_component:
+            assigned_bin = index_and_assigned_bin[1]
+            component_coordinate.append(assigned_bin.middle)
+        coordinates.append(component_coordinate)
+    return coordinates
+
+
 @dataclass
 class RWAMatrix:
     """A matrix (np.ndarray) with metadata required to compute an RWA:
@@ -83,13 +108,13 @@ class RWAMatrix:
     padding_for_axes: dict[int, str]
 
     def apply(self, func: Callable, *args, **kwargs) -> RWAMatrix:
-        """apply a function to self.matrix and return a LabelledMatrix with the new
+        """apply a function to self.matrix and return a RWAMatrix with the new
         matrix"""
         return RWAMatrix(self.names_for_axes, func(self.matrix, *args, **kwargs), self.binners_for_axes,
                          self.sigmas_for_axes, self.padding_for_axes)
 
     def copy_labels(self, matrix: np.ndarray) -> RWAMatrix:
-        """copy the labels from self to a new LabelledMatrix with the given matrix"""
+        """copy the labels from self to a new RWAMatrix with the given matrix"""
         return RWAMatrix(self.names_for_axes, matrix, self.binners_for_axes, self.sigmas_for_axes,
                          self.padding_for_axes)
 
@@ -258,7 +283,6 @@ def response_weight_and_sum_point_matrices(point_matrices: list[RWAMatrix], resp
         np.add(summed_response_weighted, matrix,
                out=summed_response_weighted)
 
-
     summed_response_weighted = template.copy_labels(summed_response_weighted)
     summed_unweighted = template.copy_labels(summed_unweighted)
     yield summed_response_weighted, summed_unweighted
@@ -398,7 +422,8 @@ def assign_bins_for_component(binner_for_field: dict[str, Binner], component: di
                     except:
                         try:
                             combined_key: str = '%s.%s' % (field_key, sub_field_key)
-                            assigned_bin_for_component.append(binner_for_field[combined_key].assign_bin(sub_field_value))
+                            assigned_bin_for_component.append(
+                                binner_for_field[combined_key].assign_bin(sub_field_value))
                         # If the metadata or field doesn't exist, skip
                         except KeyError:
                             continue
