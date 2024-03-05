@@ -10,56 +10,58 @@ matplotlib.use('TkAgg')
 from analysis.ga.rwa import get_next, RWAMatrix
 from clat.util.connection import Connection
 from pga.mock.plot_rwa_top_n import plot_top_n_junctions_on_fig, plot_top_n_stimuli_on_termination, \
-    plot_top_n_stimuli_on_shaft, find_distances_to_peak
+    plot_top_n_stimuli_on_shaft, find_distances_to_peak, fetch_top_n_stim_ids
 
 
 def main():
     conn = Connection("allen_estimshape_ga_dev_240207")
+    n = 3
+
     shaft_rwa = jsonpickle.decode(
         open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/shaft_rwa.json", "r").read())
     fig_shaft = plot_shaft_rwa_1d(get_next(shaft_rwa))
-    plot_top_n_stimuli_on_shaft(3, fig_shaft, shaft_rwa, conn)
-    distances_to_peak = find_distances_to_peak(shaft_rwa, 3, conn, 'shaft')
-    print("distances SHAFT: " + str(distances_to_peak))
+    plot_top_n_stimuli_on_shaft(n, fig_shaft, shaft_rwa, conn)
+    distances_to_shaft_peak = find_distances_to_peak(shaft_rwa, n, conn, 'shaft')
+    print("distances SHAFT: " + str(distances_to_shaft_peak))
+
+
     plt.suptitle("Combined SHAFT RWA")
 
     termination_rwa = jsonpickle.decode(open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/termination_rwa.json", "r").read())
     fig_termination = plot_termination_rwa_1d(get_next(termination_rwa))
-    plot_top_n_stimuli_on_termination(3, fig_termination, termination_rwa, conn)
-    distances_to_peak = find_distances_to_peak(termination_rwa, 3, conn, 'termination')
-    print("distances TERMINATION: " + str(distances_to_peak))
+    plot_top_n_stimuli_on_termination(n, fig_termination, termination_rwa, conn)
+    distances_to_termination_peak = find_distances_to_peak(termination_rwa, n, conn, 'termination')
+    print("distances TERMINATION: " + str(distances_to_termination_peak))
     plt.suptitle("Combined TERMINATION RWA")
 
 
     junction_rwa = jsonpickle.decode(
         open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/junction_rwa.json", "r").read())
     fig = plot_junction_rwa_1d(get_next(junction_rwa))
-    plot_top_n_junctions_on_fig(3, fig, junction_rwa, conn)
-    distances_to_peak = find_distances_to_peak(junction_rwa, 3, conn, 'junction')
-    print("distances JUNCTION: " + str(distances_to_peak))
+    plot_top_n_junctions_on_fig(n, fig, junction_rwa, conn)
+    distances_to_junction_peak = find_distances_to_peak(junction_rwa, n, conn, 'junction')
+    print("distances JUNCTION: " + str(distances_to_junction_peak))
     plt.suptitle("Combined JUNCTION RWA")
 
-    # lineage_0_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/Shaft_lineage_rwa_1708017908601461.json", "r").read())
-    # plot_shaft_rwa_1d(lineage_0_rwa)
-    # plt.suptitle("Lineage 0 RWA")
-    #
-    # lineage_1_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908617330.json", "r").read())
-    # plot_shaft_rwa_1d(lineage_1_rwa)
-    # plt.suptitle("Lineage 1 RWA")
-    #
-    # lineage_2_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_1708017908621802.json", "r").read())
-    # plot_shaft_rwa_1d(lineage_2_rwa)
-    # plt.suptitle("Lineage 2 RWA")
-    #
-    # lineage_3_rwa = jsonpickle.decode(
-    #     open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/lineage_rwa_3.json", "r").read())
-    # plot_shaft_rwa(lineage_3_rwa)
-    # plt.suptitle("Lineage 3 RWA")
+
+    # CHOOSING THE BEST STIMULI & COMPONENTS
+    top_n_stim_ids = fetch_top_n_stim_ids(conn, n)
+
+
+    print("TOP SHAFT STIM AND COMPIDS")
+    for stim_index, distance_of_components_of_stim in enumerate(distances_to_shaft_peak):
+        comp_id_of_min = np.argmin(distance_of_components_of_stim)
+        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
+
+
+    print("TOP TERMINATION STIM AND COMPIDS")
+    for stim_index, distance_of_components_of_stim in enumerate(distances_to_termination_peak):
+        comp_id_of_min = np.argmin(distance_of_components_of_stim)
+        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
 
     plt.show()
+
+
 
 
 def plot_shaft_rwa_1d(shaft_rwa):

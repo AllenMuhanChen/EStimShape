@@ -4290,6 +4290,7 @@ Adding a new MAxisArc to a MatchStick
 			for(int j=1; j<=juncPt.getnComp(); j++) {
 				for (int k = j + 1; k <= juncPt.getnComp(); k++) {
 					JunctionData jData = new JunctionData();
+					jData.compIds = new int[]{juncPt.getCompIds()[j], juncPt.getCompIds()[k]};
 					jData.angularPosition = new AngularCoordinates(angularPosition);
 					jData.radialPosition = radialPosition;
 					jData.radius = radius;
@@ -4310,6 +4311,9 @@ Adding a new MAxisArc to a MatchStick
 		for (int i=1; i<= getNEndPt(); i++){
 			TerminationData terminationData = new TerminationData();
 			EndPt_struct endPt = getEndPt()[i];
+
+			//compId
+			terminationData.compId = endPt.getComp();
 
 			//Position - Spherical Coordinates
 			Point3d terminationPositionCartesian = toObjCenteredCoords(endPt.getPos());
@@ -4340,6 +4344,9 @@ Adding a new MAxisArc to a MatchStick
 			ShaftData shaftData = new ShaftData();
 			AllenTubeComp tube = getComp()[i];
 			AllenMAxisArc mAxis = tube.getmAxisInfo();
+
+			//compId
+			shaftData.compId = i;
 
 			//Position - Spherical Coordinates
 			Point3d shaftCenterCartesian = toObjCenteredCoords(mAxis.getmPts()[26]);

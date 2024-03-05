@@ -1,12 +1,21 @@
 package org.xper.allen.drawing.composition;
 
 public class TerminationData {
+    int compId;
     AngularCoordinates angularPosition;
     double radialPosition;
     AngularCoordinates direction;
     double radius;
 
     public TerminationData(AngularCoordinates angularPosition, double radialPosition, AngularCoordinates direction, double radius) {
+        this.angularPosition = angularPosition;
+        this.radialPosition = radialPosition;
+        this.direction = direction;
+        this.radius = radius;
+    }
+
+    public TerminationData(int compId, AngularCoordinates angularPosition, double radialPosition, AngularCoordinates direction, double radius) {
+        this.compId = compId;
         this.angularPosition = angularPosition;
         this.radialPosition = radialPosition;
         this.direction = direction;
@@ -48,9 +57,18 @@ public class TerminationData {
         this.radius = radius;
     }
 
+    public int getCompId() {
+        return compId;
+    }
+
+    public void setCompId(int compId) {
+        this.compId = compId;
+    }
+
     @Override
     public String toString() {
         return "TerminationData{" +
+                "compId=" + compId +
                 "angularPosition=" + angularPosition +
                 ", radialPosition=" + radialPosition +
                 ", direction=" + direction +

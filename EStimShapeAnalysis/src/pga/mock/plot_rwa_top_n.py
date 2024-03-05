@@ -59,8 +59,9 @@ def distance(peak, component, padding_for_axes, limits_for_axes):
             distance_for_dimension.append(abs(peak[i] - component[i]))
 
     # Calculate the Euclidean distance from the dimension-wise distances
-    euclidean_distance = sum(d ** 2 for d in distance_for_dimension) ** 0.5
-    return euclidean_distance
+    # euclidean_distance = sum(d ** 2 for d in distance_for_dimension) ** 0.5
+    manhattan_distance = sum(distance_for_dimension)
+    return manhattan_distance
 
 
 def plot_top_n_stimuli_on_shaft(n, fig, rwa: RWAMatrix, conn):
@@ -242,11 +243,14 @@ def _fetch_top_n_stim_response_and_xml(conn, n):
     top_n_stim_id_and_response = conn.fetch_all()
     top_n_stim_ids = [stim[0] for stim in top_n_stim_id_and_response]
     top_n_response = [float(stim[1]) for stim in top_n_stim_id_and_response]
-    # top_n_stim_ids = conn.fetch_all()
-    # top_n_stim_ids = [stim_id[0] for stim_id in top_n_stim_ids]
-    # Get Data from StimSpec for each top_n_stim_ids
+
     top_n_stim_data = []
     for stim_id in top_n_stim_ids:
         conn.execute("SELECT data FROM StimSpec WHERE id = %s", params=(stim_id,))
         top_n_stim_data.append(conn.fetch_one())
     return top_n_response, top_n_stim_data
+
+def fetch_top_n_stim_ids(conn, n):
+    conn.execute("SELECT stim_id FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
+    top_n_stim_id = conn.fetch_all()
+    return [stim[0] for stim in top_n_stim_id]
