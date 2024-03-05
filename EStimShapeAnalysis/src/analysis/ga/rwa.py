@@ -88,6 +88,30 @@ def get_point_coordinates(rwa: RWAMatrix, stim: list[dict]) -> list[list[float]]
     return coordinates
 
 
+def get_point_indices(rwa: RWAMatrix, stim: list[dict]) -> list[list[int]]:
+    '''
+    Given a RWAMatrix and a stimulus, returns the coordinates of the stimulus in the RWA matrix
+    in terms of bin indices.
+    '''
+
+    binners_for_fields = {rwa.names_for_axes[str(i)]: rwa.binners_for_axes[str(i)] for i in range(len(rwa.binners_for_axes))}
+    bin_indices = []
+
+    if not isinstance(stim, list):
+        stim = [stim]
+
+    for component in stim:
+        component_bin_indices = []
+
+
+
+        assigned_bins_for_component = assign_bins_for_component(binners_for_fields, component)
+        for index_and_assigned_bin in assigned_bins_for_component:
+            assigned_bin = index_and_assigned_bin[0]
+            component_bin_indices.append(assigned_bin)
+        bin_indices.append(component_bin_indices)
+    return bin_indices
+
 @dataclass
 class RWAMatrix:
     """A matrix (np.ndarray) with metadata required to compute an RWA:
