@@ -37,31 +37,11 @@ def find_distances_to_peak(rwa: RWAMatrix, n: int, conn: Connection, type: str):
     for stimulus_points in top_n_stimuli:
         distances_to_peak_per_stim = []
         for component in stimulus_points:
-            d = distance(peak_index_list, component, rwa.padding_for_axes, limits_for_axes)
+            d = _distance(peak_index_list, component, rwa.padding_for_axes, limits_for_axes)
             distances_to_peak_per_stim.append(d)
         distances_to_peak_per_component_per_stim.append(distances_to_peak_per_stim)
 
     return distances_to_peak_per_component_per_stim
-
-
-def distance(peak, component, padding_for_axes, limits_for_axes):
-    distance_for_dimension = []
-    for i in range(len(component)):
-        limit = limits_for_axes[i]
-        if padding_for_axes[str(i)] == 'wrap':
-            # Calculate the circular distance considering wrap around
-            total_length = limit[1] - limit[0]
-            distance_1 = abs(peak[i] - component[i])
-            distance_2 = total_length - distance_1
-            distance_for_dimension.append(min(distance_1, distance_2))
-        else:
-            # Standard Euclidean distance for non-wrap dimensions
-            distance_for_dimension.append(abs(peak[i] - component[i]))
-
-    # Calculate the Euclidean distance from the dimension-wise distances
-    # euclidean_distance = sum(d ** 2 for d in distance_for_dimension) ** 0.5
-    manhattan_distance = sum(distance_for_dimension)
-    return manhattan_distance
 
 
 def plot_top_n_stimuli_on_shaft(n, fig, rwa: RWAMatrix, conn):
@@ -85,6 +65,56 @@ def plot_top_n_junctions_on_fig(n, fig, junction_rwa, conn) -> list[list[list[fl
     top_n_junction_points = _convert_data_to_bin_indices(junction_rwa, top_n_junction_data)
     _plot_junction_points(fig, top_n_response, top_n_junction_points, junction_rwa.binners_for_axes)
     return top_n_junction_points
+
+
+def print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_shaft_peak,
+                                distances_to_termination_peak, n):
+    # CHOOSING THE BEST STIMULI & COMPONENTS
+    top_n_stim_ids = _fetch_top_n_stim_ids(conn, n)
+    print("TOP SHAFT STIM AND COMPIDS")
+    for stim_index, distance_of_components_of_stim in enumerate(distances_to_shaft_peak):
+        comp_id_of_min = np.argmin(distance_of_components_of_stim)
+        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
+    print("TOP TERMINATION STIM AND COMPIDS")
+    for stim_index, distance_of_components_of_stim in enumerate(distances_to_termination_peak):
+        comp_id_of_min = np.argmin(distance_of_components_of_stim)
+        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
+    print("TOP JUNCTION STIM AND COMPIDS")
+    for stim_index, distance_of_components_of_stim in enumerate(distances_to_junction_peak):
+        junc_indx_of_min = np.argmin(distance_of_components_of_stim)
+        junc_data = _fetch_stim_data_by_id(conn, top_n_stim_ids[stim_index])
+        comp_ids_in_junc = \
+            junc_data['AllenMStickData']['analysisMStickSpec']['mAxis']['JuncPt'][
+                'org.xper.drawing.stick.JuncPt__Info'][
+                'comp']['int']
+        comp_ids_in_junc = [int(comp_id) for comp_id in comp_ids_in_junc]
+        comp_id_pairs = []
+        for i in range(1, len(comp_ids_in_junc)):
+            for j in range(1 + i, len(comp_ids_in_junc)):
+                comp_id_pairs.append((comp_ids_in_junc[i], comp_ids_in_junc[j]))
+
+        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " junc_indx_of_min: " + str(
+            junc_indx_of_min) + " comp_id_pairs: " + str(comp_id_pairs[junc_indx_of_min]))
+
+
+def _distance(peak, component, padding_for_axes, limits_for_axes):
+    distance_for_dimension = []
+    for i in range(len(component)):
+        limit = limits_for_axes[i]
+        if padding_for_axes[str(i)] == 'wrap':
+            # Calculate the circular distance considering wrap around
+            total_length = limit[1] - limit[0]
+            distance_1 = abs(peak[i] - component[i])
+            distance_2 = total_length - distance_1
+            distance_for_dimension.append(min(distance_1, distance_2))
+        else:
+            # Standard Euclidean distance for non-wrap dimensions
+            distance_for_dimension.append(abs(peak[i] - component[i]))
+
+    # Calculate the Euclidean distance from the dimension-wise distances
+    # euclidean_distance = sum(d ** 2 for d in distance_for_dimension) ** 0.5
+    manhattan_distance = sum(distance_for_dimension)
+    return manhattan_distance
 
 
 def _process_junction_xml(top_n_junction_xml):
@@ -153,7 +183,6 @@ def _plot_termination_points(fig, top_n_response, top_n_termination_points, binn
             # Automatically adjust the y-axis to fit all points after plotting
             axes[dim_index].autoscale(enable=True, axis='y', tight=None)
 
-
     # Set titles or labels for each axis as necessary, matching the plot_termination_rwa_1d function
     axes[0].set_title("Angular Position Theta")
     axes[1].set_title("Angular Position Phi")
@@ -161,8 +190,6 @@ def _plot_termination_points(fig, top_n_response, top_n_termination_points, binn
     axes[3].set_title("Direction Theta")
     axes[4].set_title("Direction Phi")
     axes[5].set_title("Radius")
-
-
 
 
 def _plot_junction_points(fig, top_n_response, top_n_junction_points, binners_for_axes: dict[int, Binner]):
@@ -193,7 +220,6 @@ def _plot_junction_points(fig, top_n_response, top_n_junction_points, binners_fo
             axes[dim_index].set_title(dimension)
             # Automatically adjust the y-axis to fit all points after plotting
             axes[dim_index].autoscale(enable=True, axis='y', tight=None)
-
 
 
 def _process_termination_xml(top_n_stim_xml):
@@ -250,41 +276,14 @@ def _fetch_top_n_stim_response_and_xml(conn, n):
         top_n_stim_data.append(conn.fetch_one())
     return top_n_response, top_n_stim_data
 
-def fetch_top_n_stim_ids(conn, n):
+
+def _fetch_top_n_stim_ids(conn, n):
     conn.execute("SELECT stim_id FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
     top_n_stim_id = conn.fetch_all()
     return [stim[0] for stim in top_n_stim_id]
 
-def fetch_stim_data_by_id(conn, stim_id) -> dict:
+
+def _fetch_stim_data_by_id(conn, stim_id) -> dict:
     conn.execute("SELECT data FROM StimSpec WHERE id = %s", params=(stim_id,))
     data_xml = conn.fetch_one()
     return xmltodict.parse(data_xml)
-
-
-def print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_shaft_peak,
-                                distances_to_termination_peak, n):
-    # CHOOSING THE BEST STIMULI & COMPONENTS
-    top_n_stim_ids = fetch_top_n_stim_ids(conn, n)
-    print("TOP SHAFT STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_shaft_peak):
-        comp_id_of_min = np.argmin(distance_of_components_of_stim)
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
-    print("TOP TERMINATION STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_termination_peak):
-        comp_id_of_min = np.argmin(distance_of_components_of_stim)
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
-    print("TOP JUNCTION STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_junction_peak):
-        junc_indx_of_min = np.argmin(distance_of_components_of_stim)
-        junc_data = fetch_stim_data_by_id(conn, top_n_stim_ids[stim_index])
-        comp_ids_in_junc = \
-        junc_data['AllenMStickData']['analysisMStickSpec']['mAxis']['JuncPt']['org.xper.drawing.stick.JuncPt__Info'][
-            'comp']['int']
-        comp_ids_in_junc = [int(comp_id) for comp_id in comp_ids_in_junc]
-        comp_id_pairs = []
-        for i in range(1, len(comp_ids_in_junc)):
-            for j in range(1 + i, len(comp_ids_in_junc)):
-                comp_id_pairs.append((comp_ids_in_junc[i], comp_ids_in_junc[j]))
-
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " junc_indx_of_min: " + str(
-            junc_indx_of_min) + " comp_id_pairs: " + str(comp_id_pairs[junc_indx_of_min]))
