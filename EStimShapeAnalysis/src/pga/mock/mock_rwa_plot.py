@@ -10,12 +10,16 @@ matplotlib.use('TkAgg')
 from analysis.ga.rwa import get_next
 from clat.util.connection import Connection
 from pga.mock.plot_rwa_top_n import plot_top_n_junctions_on_fig, plot_top_n_stimuli_on_termination, \
-    plot_top_n_stimuli_on_shaft, find_distances_to_peak, print_top_stim_and_comp_ids
+    plot_top_n_stimuli_on_shaft, find_distances_to_peak, print_top_stim_and_comp_ids, plot_top_n_stimuli_comp_maps
 
 
 def main():
     conn = Connection("allen_estimshape_ga_dev_240207")
     n = 3
+    image_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/pngs"
+
+    plot_top_n_stimuli_comp_maps(n, conn, image_path)
+
 
     shaft_rwa = jsonpickle.decode(
         open("/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa/shaft_rwa.json", "r").read())
@@ -46,6 +50,8 @@ def main():
     print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_shaft_peak,
                                 distances_to_termination_peak, n)
 
+
+    plot_top_n_stimuli_comp_maps(n, conn, image_path)
     plt.show()
 
 

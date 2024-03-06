@@ -798,7 +798,7 @@ public class MatchStick implements Drawable {
 
 	}
 
-	public void drawSkeleton() {
+	public void drawSkeleton(boolean showComponents1) {
 		int i;
 		if (showComponents)
 			for (i=1; i<=getnComponent(); i++) {
@@ -4307,7 +4307,7 @@ public class MatchStick implements Drawable {
 	@Override
 	public void draw() {
 		init();
-		drawSkeleton();
+		drawSkeleton(showComponents);
 	}
 
 	protected void init() {

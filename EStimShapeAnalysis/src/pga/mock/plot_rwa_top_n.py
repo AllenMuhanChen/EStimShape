@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import xmltodict
 from matplotlib import pyplot as plt
@@ -95,6 +97,55 @@ def print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_s
 
         print("stim_id: " + str(top_n_stim_ids[stim_index]) + " junc_indx_of_min: " + str(
             junc_indx_of_min) + " comp_id_pairs: " + str(comp_id_pairs[junc_indx_of_min]))
+
+
+def plot_top_n_stimuli_comp_maps(n, conn, path_to_images: str):
+    # CHOOSING THE BEST STIMULI & COMPONENTS
+    top_n_stim_ids = _fetch_top_n_stim_ids(conn, n)
+
+    # Create a figure with n rows and 2 columns
+    fig, axes = plt.subplots(n, 2, figsize=(10, 4 * n))
+
+    for i, stim_id in enumerate(top_n_stim_ids):
+        # Find the image files based on the presence or absence of "compmap" in the filename
+        path1 = None
+        path2 = None
+
+        for filename in os.listdir(path_to_images):
+            if "compmap" not in filename:
+                # Match stim_id to the first part of the filename for path1
+                if filename.startswith(str(stim_id) + "_"):
+                    path1 = os.path.join(path_to_images, filename)
+            else:
+                if str(stim_id) in filename:
+                    path2 = os.path.join(path_to_images, filename)
+
+        # Check if both paths are found
+        if path1 is None or path2 is None:
+            print(f"Images not found for Stim ID: {stim_id}")
+            continue
+
+        # Display the images in the corresponding subplots
+        axes[i, 0].imshow(plt.imread(path1))
+        axes[i, 1].imshow(plt.imread(path2))
+
+        # Set the title for each row
+        axes[i, 0].set_title(f"Stim ID: {stim_id}")
+
+        # Remove the axis labels and ticks
+        axes[i, 0].axis('off')
+        axes[i, 1].axis('off')
+
+        # Add legend
+        legend_elements = [plt.Line2D([0], [0], marker='s', color='w', label='compId: 1', markersize=10),
+                           plt.Line2D([0], [0], marker='s', color='r', label='compId: 2', markersize=10),
+                           plt.Line2D([0], [0], marker='s', color='g', label='compId: 3', markersize=10),
+                           plt.Line2D([0], [0], marker='s', color='b', label='compId: 4', markersize=10)]
+        plt.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(1.05, n + 0.5))
+    # Adjust the spacing between subplots
+    plt.tight_layout()
+
+
 
 
 def _distance(peak, component, padding_for_axes, limits_for_axes):

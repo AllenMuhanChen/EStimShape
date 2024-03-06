@@ -50,11 +50,15 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         saveMStickSpec(mStick);
 
         D mStickData = (D) mStick.getMStickData();
+        drawCompMaps(mStick);
         String pngPath = drawPngs(mStick);
-
         writeStimSpec(pngPath, mStickData);
     }
 
+    protected void drawCompMaps(T mStick) {
+        List<String> labels = new LinkedList<>();
+        generator.getPngMaker().createAndSaveCompMap(mStick, stimId, labels, generator.getGeneratorPngPath());
+    }
 
     protected abstract T createMStick();
 

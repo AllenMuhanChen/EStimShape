@@ -131,23 +131,18 @@ public class AllenMatchStick extends MatchStick {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		drawSkeleton();
+		drawSkeleton(false);
 	}
 
-	public void drawGaussianNoiseMap(Map<Integer, GaussianNoiseParameters> noiseParametersForComps){
-		setTextureType("2D");
+	public void drawCompMap(){
 		init();
 		try {
 			Thread.sleep(100);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-
-
-
+		this.drawSkeleton(true);
 	}
-
-
 
 	public void drawGraphNoiseMap(NoiseMapCalculation noiseMap) {
 		setTextureType("2D");
@@ -222,7 +217,7 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
-	public void drawSkeleton() {
+	public void drawSkeleton(boolean showComponents) {
 //		this.showComponents = true;
 		int i;
 		if (showComponents)
