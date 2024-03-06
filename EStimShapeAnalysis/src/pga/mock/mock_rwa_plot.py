@@ -7,10 +7,10 @@ import numpy as np
 from matplotlib import pyplot as plt, cm
 matplotlib.use('TkAgg')
 
-from analysis.ga.rwa import get_next, RWAMatrix
+from analysis.ga.rwa import get_next
 from clat.util.connection import Connection
 from pga.mock.plot_rwa_top_n import plot_top_n_junctions_on_fig, plot_top_n_stimuli_on_termination, \
-    plot_top_n_stimuli_on_shaft, find_distances_to_peak, fetch_top_n_stim_ids, fetch_stim_data_by_id
+    plot_top_n_stimuli_on_shaft, find_distances_to_peak, print_top_stim_and_comp_ids
 
 
 def main():
@@ -43,39 +43,10 @@ def main():
     print("distances JUNCTION: " + str(distances_to_junction_peak))
     plt.suptitle("Combined JUNCTION RWA")
 
-
-    # CHOOSING THE BEST STIMULI & COMPONENTS
-    top_n_stim_ids = fetch_top_n_stim_ids(conn, n)
-
-
-    print("TOP SHAFT STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_shaft_peak):
-        comp_id_of_min = np.argmin(distance_of_components_of_stim)
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
-
-
-    print("TOP TERMINATION STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_termination_peak):
-        comp_id_of_min = np.argmin(distance_of_components_of_stim)
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
-
-
-    print("TOP JUNCTION STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_junction_peak):
-        junc_indx_of_min = np.argmin(distance_of_components_of_stim)
-        junc_data = fetch_stim_data_by_id(conn, top_n_stim_ids[stim_index])
-        comp_ids_in_junc = junc_data['AllenMStickData']['analysisMStickSpec']['mAxis']['JuncPt']['org.xper.drawing.stick.JuncPt__Info']['comp']['int']
-        comp_ids_in_junc = [int(comp_id) for comp_id in comp_ids_in_junc]
-        comp_id_pairs = []
-        for i in range(1, len(comp_ids_in_junc)):
-            for j in range(1 + i, len(comp_ids_in_junc)):
-                comp_id_pairs.append((comp_ids_in_junc[i], comp_ids_in_junc[j]))
-
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " junc_indx_of_min: " + str(junc_indx_of_min) + " comp_id_pairs: " + str(comp_id_pairs[junc_indx_of_min]))
+    print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_shaft_peak,
+                                distances_to_termination_peak, n)
 
     plt.show()
-
-
 
 
 def plot_shaft_rwa_1d(shaft_rwa):
