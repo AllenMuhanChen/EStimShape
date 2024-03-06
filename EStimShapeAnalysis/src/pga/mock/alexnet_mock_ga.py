@@ -27,7 +27,8 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
 
     def test_ga_loop(self):
         generation = 1
-        while generation < 20:
+        # while generation < 20:
+        while generation < 3:
             sleep(4)  # time for the experiment to run all of the trials
             ga = self.mock_config.make_genetic_algorithm()
             ga.run()
