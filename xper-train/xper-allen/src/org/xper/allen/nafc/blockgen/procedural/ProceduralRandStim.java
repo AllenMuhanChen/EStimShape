@@ -3,6 +3,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
+import org.xper.allen.util.AllenDbUtil;
 
 public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
@@ -97,7 +98,7 @@ public class ProceduralRandStim extends ProceduralStim{
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
                 new ProceduralRandGenType(generator).getLabel(),
                 getTaskId(),
-                generator.getDbUtil(),
+                (AllenDbUtil) generator.getDbUtil(),
                 parameters,
                 coords,
                 parameters.numChoices,

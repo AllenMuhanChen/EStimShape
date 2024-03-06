@@ -3,7 +3,6 @@ package org.xper.allen.drawing.composition;
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 public class ShaftData {
-    public int compId;
     public AngularCoordinates angularPosition;
     public double radialPosition;
     public AngularCoordinates orientation;
@@ -18,7 +17,6 @@ public class ShaftData {
     @Override
     public String toString() {
         return "ShaftData{" +
-                "\n compId=" + compId +
                 "\n angularPosition=" + angularPosition +
                 "\n radialPosition=" + radialPosition +
                 "\n orientation=" + orientation +

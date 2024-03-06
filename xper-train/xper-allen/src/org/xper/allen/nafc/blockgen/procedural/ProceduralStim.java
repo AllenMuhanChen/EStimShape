@@ -11,9 +11,11 @@ import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 
 import org.xper.allen.specs.NoisyPngSpec;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.time.TimeUtil;
+import org.xper.util.DbUtil;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -255,7 +257,8 @@ public class ProceduralStim implements NAFCStim {
                 numNoiseFrames,
                 parameters.noiseChance);
         MStickStimObjData sampleMStickObjData = new MStickStimObjData("sample", mStickSpecs.getSample());
-        generator.getDbUtil().writeStimObjData(stimObjIds.getSample(), sampleSpec.toXml(), sampleMStickObjData.toXml());
+        AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
+        dbUtil.writeStimObjData(stimObjIds.getSample(), sampleSpec.toXml(), sampleMStickObjData.toXml());
 
         //Match
         xCenter = coords.getMatch().getX();
@@ -269,7 +272,7 @@ public class ProceduralStim implements NAFCStim {
                 noiseMapPath,
                 color);
         MStickStimObjData matchMStickObjData = new MStickStimObjData("match", mStickSpecs.getMatch());
-        generator.getDbUtil().writeStimObjData(stimObjIds.getMatch(), matchSpec.toXml(), matchMStickObjData.toXml());
+        dbUtil.writeStimObjData(stimObjIds.getMatch(), matchSpec.toXml(), matchMStickObjData.toXml());
 
         //Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
@@ -283,7 +286,7 @@ public class ProceduralStim implements NAFCStim {
                     noiseMapPath,
                     color);
             MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.proceduralDistractors.get(i));
-            generator.getDbUtil().writeStimObjData(stimObjIds.proceduralDistractors.get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
+            dbUtil.writeStimObjData(stimObjIds.proceduralDistractors.get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
         }
 
         //Rand Distractors
@@ -298,7 +301,7 @@ public class ProceduralStim implements NAFCStim {
                     noiseMapPath,
                     color);
             MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.randDistractors.get(i));
-            generator.getDbUtil().writeStimObjData(stimObjIds.randDistractors.get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
+            dbUtil.writeStimObjData(stimObjIds.randDistractors.get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
         }
     }
 
@@ -309,7 +312,7 @@ public class ProceduralStim implements NAFCStim {
     protected void writeStimSpec(){
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
                 getTaskId(),
-                generator.getDbUtil(),
+                (AllenDbUtil) generator.getDbUtil(),
                 parameters,
                 coords,
                 parameters.numChoices,

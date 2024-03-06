@@ -21,7 +21,7 @@ public class RandStim implements Stim {
 		super();
 		this.generator = generator;
 		this.trialParameters = trialParameters;
-		this.dbUtil = generator.getDbUtil();
+		this.dbUtil = (AllenDbUtil) generator.getDbUtil();
 	}
 
 	//Private instance fields

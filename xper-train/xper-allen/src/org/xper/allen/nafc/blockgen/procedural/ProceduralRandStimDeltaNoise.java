@@ -1,7 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
-
+import org.xper.allen.util.AllenDbUtil;
 
 public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
     public ProceduralRandStimDeltaNoise(NAFCBlockGen generator, ProceduralStimParameters parameters) {
@@ -24,7 +24,7 @@ public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
                 new ProceduralRandDeltaStimType(generator).getLabel(),
                 getTaskId(),
-                generator.getDbUtil(),
+                (AllenDbUtil) generator.getDbUtil(),
                 parameters,
                 coords,
                 parameters.numChoices,

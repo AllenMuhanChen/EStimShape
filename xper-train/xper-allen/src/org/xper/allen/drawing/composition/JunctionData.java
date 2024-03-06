@@ -4,7 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class JunctionData {
-    int[] compIds;
     AngularCoordinates angularPosition;
     double radialPosition;
     AngularCoordinates angleBisectorDirection;
@@ -13,16 +12,6 @@ public class JunctionData {
     Double planarRotation;
 
     public JunctionData(AngularCoordinates angularPosition, double radialPosition, AngularCoordinates angleBisectorDirection, double radius, Double angularSubtense, Double planarRotation) {
-        this.angularPosition = angularPosition;
-        this.radialPosition = radialPosition;
-        this.angleBisectorDirection = angleBisectorDirection;
-        this.radius = radius;
-        this.angularSubtense = angularSubtense;
-        this.planarRotation = planarRotation;
-    }
-
-    public JunctionData(int[] compIds, AngularCoordinates angularPosition, double radialPosition, AngularCoordinates angleBisectorDirection, double radius, Double angularSubtense, Double planarRotation) {
-        this.compIds = compIds;
         this.angularPosition = angularPosition;
         this.radialPosition = radialPosition;
         this.angleBisectorDirection = angleBisectorDirection;
@@ -82,19 +71,10 @@ public class JunctionData {
         this.planarRotation = planarRotation;
     }
 
-    public int[] getCompIds() {
-        return compIds;
-    }
-
-    public void setCompIds(int[] compIds) {
-        this.compIds = compIds;
-    }
-
     @Override
     public String toString() {
         return "JunctionData{" +
-                "compIds=" + compIds +
-                ", angularPosition=" + angularPosition +
+                "angularPosition=" + angularPosition +
                 ", radialPosition=" + radialPosition +
                 ", angleBisectorDirection=" + angleBisectorDirection +
                 ", radius=" + radius +

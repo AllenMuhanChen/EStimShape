@@ -60,7 +60,7 @@ public class NoisyPngFixationStim implements Stim {
         spec.setyCenter(coords.getY());
 
         //Write Spec
-        generator.getDbUtil().writeStimSpec(id, spec.toXml(), "");
+        generator.getDbUtil().writeStimSpec(id, spec.toXml());
     }
 
 

@@ -254,3 +254,9 @@ def fetch_top_n_stim_ids(conn, n):
     conn.execute("SELECT stim_id FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
     top_n_stim_id = conn.fetch_all()
     return [stim[0] for stim in top_n_stim_id]
+
+def fetch_stim_data_by_id(conn, stim_id) -> dict:
+    conn.execute("SELECT data FROM StimSpec WHERE id = %s", params=(stim_id,))
+    data_xml = conn.fetch_one()
+    return xmltodict.parse(data_xml)
+

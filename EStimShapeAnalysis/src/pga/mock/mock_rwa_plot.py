@@ -10,7 +10,7 @@ matplotlib.use('TkAgg')
 from analysis.ga.rwa import get_next, RWAMatrix
 from clat.util.connection import Connection
 from pga.mock.plot_rwa_top_n import plot_top_n_junctions_on_fig, plot_top_n_stimuli_on_termination, \
-    plot_top_n_stimuli_on_shaft, find_distances_to_peak, fetch_top_n_stim_ids
+    plot_top_n_stimuli_on_shaft, find_distances_to_peak, fetch_top_n_stim_ids, fetch_stim_data_by_id
 
 
 def main():
@@ -58,6 +58,13 @@ def main():
     for stim_index, distance_of_components_of_stim in enumerate(distances_to_termination_peak):
         comp_id_of_min = np.argmin(distance_of_components_of_stim)
         print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
+
+
+    print("TOP JUNCTION STIM AND COMPIDS")
+    for stim_index, distance_of_components_of_stim in enumerate(distances_to_junction_peak):
+        junc_indx_of_min = np.argmin(distance_of_components_of_stim)
+        junc_data = fetch_stim_data_by_id(conn, top_n_stim_ids[stim_index])
+        junc_data['AllenMStickData']['junctionData']['JunctionData'][junc_indx_of_min]
 
     plt.show()
 

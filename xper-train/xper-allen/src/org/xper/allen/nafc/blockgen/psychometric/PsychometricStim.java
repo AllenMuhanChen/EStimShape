@@ -31,7 +31,7 @@ public class PsychometricStim implements Stim {
 		this.generator = noisyMStickPngPsychometricBlockGen;
 		this.trialParameters = trialParameters;
 
-		dbUtil = generator.getDbUtil();
+		dbUtil = (AllenDbUtil) generator.getDbUtil();
 		this.numChoices = trialParameters.getNumDistractors().numTotal+1;
 
 	}
