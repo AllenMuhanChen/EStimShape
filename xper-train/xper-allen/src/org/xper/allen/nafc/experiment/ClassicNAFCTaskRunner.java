@@ -198,6 +198,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         }while(!selectorDriver.isDone());
         selectorDriver.stop();
         long choiceDoneLocalTime = timeUtil.currentTimeMicros();
+        drawingController.slideFinish(currentTask, currentContext);
 
         //HANDLING RESULTS
         long choicesOffLocalTime = timeUtil.currentTimeMicros();
@@ -275,6 +276,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 //Wait for Slide to Finish
                 //Currently choiceLength is like a minimum time the choice must be on. The choice can be on for longer.
             } while (timeUtil.currentTimeMicros() < choicesOffLocalTime + showAnswerLength * 1000L);
+            drawingController.slideFinish(currentTask, currentContext);
         }
         drawingController.trialComplete(currentContext);
         long choiceOffLocalTime = timeUtil.currentTimeMicros();

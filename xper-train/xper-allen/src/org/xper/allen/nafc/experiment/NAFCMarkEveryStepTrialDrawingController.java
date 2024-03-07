@@ -19,14 +19,9 @@ public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDr
 			getTaskScene().drawBlank(context, false, false);
 		}
 	}
-	
-	@Override
-	public void slideFinish(ExperimentTask task, TrialContext context) {
-		getTaskScene().nextMarker();
-		getTaskScene().drawBlank(context, false, true);
-		getWindow().swapBuffers();
-	}
-	
+
+
+
 	public void prepareChoice(NAFCExperimentTask task, Context context) {
 		if (task != null) {
 			getTaskScene().setChoice(task);
@@ -37,27 +32,27 @@ public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDr
 	}
 
 	//From MarkEveryStepTrialDrawingController
-	
+
 	public void trialStart(NAFCTrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
 		getWindow().swapBuffers();
-		
+
 		getTaskScene().trialStart(context);
 	}
-	
+
 	public void initialEyeInFail(TrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
 		getWindow().swapBuffers();
 	}
-	
+
 	public void eyeInHoldFail(TrialContext context) {
 		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, true);
 		getWindow().swapBuffers();
 	}
-	
+
 	public void prepareFixationOn(TrialContext context) {
 		getTaskScene().nextMarker();
 //		getWindow().swapBuffers();
@@ -80,7 +75,7 @@ public class NAFCMarkEveryStepTrialDrawingController extends NAFCMarkStimTrialDr
 		// show no markers during inter trial interval
 		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
-		
+
 		getTaskScene().trialStop(context);
 	}
 }

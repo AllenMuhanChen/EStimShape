@@ -4,6 +4,7 @@ import org.xper.Dependency;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.classic.MarkStimTrialDrawingController;
+import org.xper.classic.vo.TrialContext;
 import org.xper.experiment.ExperimentTask;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
@@ -33,12 +34,12 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		getWindow().swapBuffers();
 	}
 
-	/////////////////
-	public void slideFinish(ExperimentTask task, NAFCTrialContext context) {
+
+	@Override
+	public void slideFinish(ExperimentTask task, TrialContext context) {
 		getTaskScene().nextMarker();
-		getTaskScene().drawBlank(context, false, false);
+		getTaskScene().drawBlank(context, false, true);
 		getWindow().swapBuffers();
-		startTime=0;
 	}
 
 	public void prepareSample(NAFCExperimentTask task, NAFCTrialContext context) {
@@ -67,6 +68,8 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 		}
 		getWindow().swapBuffers();
 	}
+
+
 
 	@Override
 	public void showAnswer(NAFCExperimentTask task, NAFCTrialContext context) {
