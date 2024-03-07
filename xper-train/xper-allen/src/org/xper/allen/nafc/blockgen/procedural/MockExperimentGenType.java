@@ -82,7 +82,7 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
 
     public static class MockExperimentGenParameters extends GenParameters {
 
-        private int numDeltaTrialSets;
+        public int numDeltaTrialSets;
 
         public MockExperimentGenParameters() {
         }

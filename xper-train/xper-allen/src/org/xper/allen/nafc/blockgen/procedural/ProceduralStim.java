@@ -305,7 +305,7 @@ public class ProceduralStim implements NAFCStim {
         }
     }
 
-    private void assignTaskId() {
+    protected void assignTaskId() {
         setTaskId(generator.getGlobalTimeUtil().currentTimeMicros());
     }
 
@@ -321,7 +321,7 @@ public class ProceduralStim implements NAFCStim {
         stimSpecWriter.writeStimSpec();
     }
 
-    private void setTaskId(Long sample) {
+    protected void setTaskId(Long sample) {
         this.taskId = sample;
     }
 
