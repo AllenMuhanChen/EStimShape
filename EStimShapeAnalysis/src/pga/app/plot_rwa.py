@@ -23,7 +23,6 @@ def main():
     n = int(input("Enter the number of stimuli to plot:"))
     image_path = config.image_path
 
-    plot_top_n_stimuli_comp_maps(n, conn, image_path)
     shaft_rwa_path = os.path.join(config.rwa_output_dir, f"{experiment_id}_shaft_rwa.json")
     shaft_rwa = jsonpickle.decode(
         open(shaft_rwa_path, "r").read())
@@ -52,10 +51,10 @@ def main():
     print("distances JUNCTION: " + str(distances_to_junction_peak))
     plt.suptitle("Combined JUNCTION RWA")
 
-    print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_shaft_peak,
+    print_top_stim_and_comp_ids(experiment_id, conn, distances_to_junction_peak, distances_to_shaft_peak,
                                 distances_to_termination_peak, n)
 
-    plot_top_n_stimuli_comp_maps(n, conn, image_path)
+    plot_top_n_stimuli_comp_maps(experiment_id, n, conn, image_path)
     plt.show()
 
 

@@ -47,7 +47,7 @@ def main():
     print("distances JUNCTION: " + str(distances_to_junction_peak))
     plt.suptitle("Combined JUNCTION RWA")
 
-    print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_shaft_peak,
+    print_top_stim_and_comp_ids(None, conn, distances_to_junction_peak, distances_to_shaft_peak,
                                 distances_to_termination_peak, n)
 
 

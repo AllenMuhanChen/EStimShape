@@ -7,8 +7,9 @@ import xmltodict
 from matplotlib import pyplot as plt
 
 from analysis.ga.rwa import RWAMatrix, get_point_coordinates, get_point_indices, Binner
-from clat.util.connection import Connection
+from clat.util.connection import Connection, get_time_range_for_experiment_id
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
+from clat.util.time_util import When
 from pga.mock.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
 
 
@@ -69,10 +70,10 @@ def plot_top_n_junctions_on_fig(n, fig, junction_rwa, conn) -> list[list[list[fl
     return top_n_junction_points
 
 
-def print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_shaft_peak,
+def print_top_stim_and_comp_ids(experiment_id, conn, distances_to_junction_peak, distances_to_shaft_peak,
                                 distances_to_termination_peak, n):
     # CHOOSING THE BEST STIMULI & COMPONENTS
-    top_n_stim_ids = _fetch_top_n_stim_ids(conn, n)
+    top_n_stim_ids = _fetch_top_n_stim_ids(conn, n, get_time_range_for_experiment_id(conn, experiment_id))
     print("TOP SHAFT STIM AND COMPIDS")
     for stim_index, distance_of_shafts_of_stim in enumerate(distances_to_shaft_peak):
         index_of_min_shaft = np.argmin(distance_of_shafts_of_stim)+1
@@ -123,9 +124,9 @@ def print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_s
             junc_indx_of_min) + " comp_id_pairs: " + str(comp_id_pairs[junc_indx_of_min]))
 
 
-def plot_top_n_stimuli_comp_maps(n, conn, path_to_images: str):
+def plot_top_n_stimuli_comp_maps(experiment_id, n, conn, path_to_images: str):
     # CHOOSING THE BEST STIMULI & COMPONENTS
-    top_n_stim_ids = _fetch_top_n_stim_ids(conn, n)
+    top_n_stim_ids = _fetch_top_n_stim_ids(conn, n, get_time_range_for_experiment_id(conn, experiment_id))
 
     # Create a figure with n rows and 2 columns
     fig, axes = plt.subplots(n, 2, figsize=(10, 4 * n))
@@ -352,9 +353,14 @@ def _fetch_top_n_stim_response_and_xml(conn, n):
     return top_n_response, top_n_stim_data
 
 
-def _fetch_top_n_stim_ids(conn, n):
-    conn.execute("SELECT stim_id FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
-    top_n_stim_id = conn.fetch_all()
+def _fetch_top_n_stim_ids(conn, n, when : When = None):
+    if when is None:
+        conn.execute("SELECT stim_id FROM StimGaInfo ORDER BY response DESC LIMIT %s", params=(n,))
+        top_n_stim_id = conn.fetch_all()
+    else:
+        conn.execute("SELECT stim_id FROM StimGaInfo WHERE stim_id >= %s AND stim_id <= %s ORDER BY response DESC LIMIT %s",
+                     params=(when.start, when.stop, n))
+        top_n_stim_id = conn.fetch_all()
     return [stim[0] for stim in top_n_stim_id]
 
 
