@@ -15,6 +15,7 @@ from pga.mock.mock_rwa_analysis import compile_data, remove_empty_response_trial
 def main():
     # PARAMETERS
     conn = Connection(config.database)
+    n = int(input("Enter the number of lineages to use for RWA: "))
 
     # PIPELINE
     experiment_id = config.ga_config.db_util.read_current_experiment_id(config.ga_name)
@@ -24,7 +25,6 @@ def main():
     data = condition_spherical_angles(data)
     data = hemisphericalize_orientation(data)
 
-    n = int(input("Enter the number of lineages to use for RWA: "))
 
     shaft_rwa = compute_shaft_rwa(data, n)
     termination_rwa = compute_termination_rwa(data, n)

@@ -40,7 +40,8 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 				validEStimParameters = true;
 			} catch (Exception e) {
 				validEStimParameters = false;
-				System.err.println("ERROR!!! Could not parse EStimSpec! EStim disabled this trial");
+				System.err.println("Could not parse EStimSpec. EStim will use parameters specified" +
+						" in the Intan GUI.");
 				e.printStackTrace();
 			}
 		}
@@ -49,9 +50,7 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 	@Override
 	public void eStimOn(long timestamp, TrialContext context) {
 		if (connected & eStimEnabled) {
-			if (validEStimParameters) {
-				getIntan().trigger();
-			}
+			getIntan().trigger();
 		}
 	}
 

@@ -3,6 +3,7 @@ package org.xper.allen.pga;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.drawing.Coordinates2D;
@@ -46,13 +47,36 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
 
     @Override
     public void writeStim() {
-        T mStick = createMStick();
+        int nTries = 0;
+        T mStick = null;
+        while(nTries < 10) {
+            try {
+                nTries++;
+                mStick = createMStick();
+            } catch (MorphedMatchStick.MorphException me) {
+                System.out.println("Morphing failed, trying again with new parameters");
+            }
+        }
+
+        if (nTries == 10) {
+            mStick = createRandMStick();
+        }
+
+
         saveMStickSpec(mStick);
 
         D mStickData = (D) mStick.getMStickData();
         drawCompMaps(mStick);
         String pngPath = drawPngs(mStick);
         writeStimSpec(pngPath, mStickData);
+    }
+
+    private T createRandMStick() {
+        RFMatchStick mStick = new RFMatchStick();
+        mStick.setProperties(calculateSize(), textureType);
+        mStick.setStimColor(getRFColor());
+        mStick.genMatchStickRand();
+        return (T) mStick;
     }
 
     protected void drawCompMaps(T mStick) {

@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GrowingMatchStick extends RFMatchStick {
-    protected static int MAX_TOTAL_ATTEMPTS = 1000;
+    protected static int MAX_TOTAL_ATTEMPTS = 10;
 
     private double sigma;
 
