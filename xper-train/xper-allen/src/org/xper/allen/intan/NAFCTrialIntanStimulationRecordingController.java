@@ -20,13 +20,12 @@ import java.util.Arrays;
 public class NAFCTrialIntanStimulationRecordingController extends IntanRecordingController implements EStimEventListener, ChoiceEventListener
 {
 	@Dependency
-	private
 	ManualTriggerIntanRHS intan;
 
 	@Dependency
 	boolean eStimEnabled;
 
-	private boolean validEStimParameters = false;
+	protected boolean validEStimParameters = false;
 
 	@Override
 	public void prepareEStim(long timestamp, TrialContext context) {
@@ -40,8 +39,7 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 				validEStimParameters = true;
 			} catch (Exception e) {
 				validEStimParameters = false;
-				System.err.println("Could not parse EStimSpec. EStim will use parameters specified" +
-						" in the Intan GUI.");
+				System.err.println("ERROR!!! Could not parse EStimSpec! EStim disabled this trial");
 				e.printStackTrace();
 			}
 		}
@@ -50,14 +48,16 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 	@Override
 	public void eStimOn(long timestamp, TrialContext context) {
 		if (connected & eStimEnabled) {
-			getIntan().trigger();
+			if (validEStimParameters) {
+				getIntan().trigger();
+			}
 		}
 	}
 
 	@Override
 	public void sampleOn(long timestamp, NAFCTrialContext context) {
 		if (toRecord()){
-			String note = Long.toString(context.getCurrentTask().getSampleSpecId());
+			String note = Long.toString(context.getCurrentTask().getTaskId());
 			getIntan().writeNote(note);
 		}
 	}
@@ -92,9 +92,9 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 	@Override
 	public void choicesOn(long timestamp, NAFCTrialContext context) {
 		if (toRecord()){
-			long[] choiceSpecIds = context.getCurrentTask().getChoiceSpecId();
-			String note = Arrays.toString(choiceSpecIds);
-			getIntan().writeNote(note);
+//			long[] choiceSpecIds = context.getCurrentTask().getChoiceSpecId();
+//			String note = Arrays.toString(choiceSpecIds);
+			getIntan().writeNote("ChoicesOn");
 		}
 	}
 

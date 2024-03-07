@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * Provides experiment-relevant control of Intan for stimulation and recording
  *
- * This class should be used for when the user wants to manually trigger stimulation
+ * This class should be used for when the user wants to manually trigger stimulation with java code (and the f1 key)
  */
 public class ManualTriggerIntanRHS extends IntanRHD {
 
@@ -33,6 +33,10 @@ public class ManualTriggerIntanRHS extends IntanRHD {
         }
 
         uploadParameters(parametersForChannels.keySet());
+    }
+
+    public void trigger(){
+        intanClient.execute("manualstimtriggerpulse", "f1");
     }
 
 
@@ -59,10 +63,6 @@ public class ManualTriggerIntanRHS extends IntanRHD {
         }
     }
 
-
-    public void trigger(){
-        intanClient.execute("manualstimtriggerpulse", "f1");
-    }
 
     private void enableStimulationOn(RHSChannel channel) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".stimenabled", "true");
