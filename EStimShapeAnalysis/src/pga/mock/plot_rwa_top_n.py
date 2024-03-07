@@ -74,18 +74,30 @@ def print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_s
     # CHOOSING THE BEST STIMULI & COMPONENTS
     top_n_stim_ids = _fetch_top_n_stim_ids(conn, n)
     print("TOP SHAFT STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_shaft_peak):
-        comp_id_of_min = np.argmin(distance_of_components_of_stim)+1
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
+    for stim_index, distance_of_shafts_of_stim in enumerate(distances_to_shaft_peak):
+        index_of_min_shaft = np.argmin(distance_of_shafts_of_stim)+1
+        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(index_of_min_shaft))
+
     print("TOP TERMINATION STIM AND COMPIDS")
-    for stim_index, distance_of_components_of_stim in enumerate(distances_to_termination_peak):
-        comp_id_of_min = np.argmin(distance_of_components_of_stim)+1
-        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + str(comp_id_of_min))
+    for stim_index, distance_of_end_pts_of_stim in enumerate(distances_to_termination_peak):
+        stim_data = _fetch_stim_data_by_id(conn, top_n_stim_ids[stim_index])
+        end_pt_info = stim_data['AllenMStickData']['analysisMStickSpec']['mAxis']['EndPt']['org.xper.drawing.stick.EndPt__Info']
+        comp_ids_of_end_pts = []
+        if type(end_pt_info) == list:
+            for end_pt in end_pt_info:
+                comp_id: int = end_pt['comp']
+                if comp_id != 0:
+                    comp_ids_of_end_pts.append(comp_id)
+        else:
+            comp_ids_of_end_pts.append(end_pt_info['comp'])
+        end_pt_index_of_min = np.argmin(distance_of_end_pts_of_stim)
+        print("stim_id: " + str(top_n_stim_ids[stim_index]) + " comp_id_of_min: " + comp_ids_of_end_pts[end_pt_index_of_min])
+
     print("TOP JUNCTION STIM AND COMPIDS")
     for stim_index, distance_of_components_of_stim in enumerate(distances_to_junction_peak):
         junc_indx_of_min = np.argmin(distance_of_components_of_stim)
-        junc_data = _fetch_stim_data_by_id(conn, top_n_stim_ids[stim_index])
-        junction_pt_info = junc_data['AllenMStickData']['analysisMStickSpec']['mAxis']['JuncPt'][
+        stim_data = _fetch_stim_data_by_id(conn, top_n_stim_ids[stim_index])
+        junction_pt_info = stim_data['AllenMStickData']['analysisMStickSpec']['mAxis']['JuncPt'][
             'org.xper.drawing.stick.JuncPt__Info']
         juncs = []
         if type(junction_pt_info) == list:
@@ -103,7 +115,7 @@ def print_top_stim_and_comp_ids(conn, distances_to_junction_peak, distances_to_s
 
         comp_id_pairs = []
         for junc in juncs:
-            for i in range(1, len(junc)):
+            for i in range(1, len(junc)): #this range is to avoid the first element which is null
                 for j in range(1 + i, len(junc)):
                     comp_id_pairs.append((junc[i], junc[j]))
 

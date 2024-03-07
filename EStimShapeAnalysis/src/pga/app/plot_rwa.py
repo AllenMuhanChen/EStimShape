@@ -14,11 +14,16 @@ from pga.mock.plot_rwa_top_n import plot_top_n_stimuli_comp_maps, plot_top_n_sti
 def main():
     conn = Connection(config.database)
 
+    experiment_id = input("Enter the experiment id (enter nothing for most recent):")
+    if experiment_id == "":
+        experiment_id = config.ga_config.db_util.read_current_experiment_id(config.ga_name)
+    else:
+        experiment_id = int(experiment_id)
+
     n = int(input("Enter the number of stimuli to plot:"))
     image_path = config.image_path
 
     plot_top_n_stimuli_comp_maps(n, conn, image_path)
-    experiment_id = config.ga_config.db_util.read_current_experiment_id(config.ga_name)
     shaft_rwa_path = os.path.join(config.rwa_output_dir, f"{experiment_id}_shaft_rwa.json")
     shaft_rwa = jsonpickle.decode(
         open(shaft_rwa_path, "r").read())
