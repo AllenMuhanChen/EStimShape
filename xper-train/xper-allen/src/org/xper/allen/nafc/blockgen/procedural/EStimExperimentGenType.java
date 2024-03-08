@@ -2,6 +2,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
+import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 import org.xper.intan.stimulation.EStimParameters;
 
 import javax.swing.*;
@@ -11,6 +12,8 @@ import java.util.List;
 public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimentGenType.EStimExperimentGenParameters> {
 
     protected JTextField numDeltaTrialSetsField;
+    protected JTextField stimIdField;
+    protected JTextField compIdField;
 
     public EStimExperimentGenType(NAFCBlockGen generator) {
         super(generator);
@@ -18,6 +21,14 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
 
     public String getLabel() {
         return "EStimExperiment";
+    }
+
+    public EStimExperimentGenParameters readFromFields() {
+        int numDeltaTrialSets = Integer.parseInt(numDeltaTrialSetsField.getText());
+        long stimId = Long.parseLong(stimIdField.getText());
+        int compId = Integer.parseInt(compIdField.getText());
+        EStimExperimentGenParameters params = new EStimExperimentGenParameters(super.readFromFields(), numDeltaTrialSets, stimId, compId);
+        return params;
     }
 
     @Override
@@ -56,10 +67,32 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         return newBlock;
     }
 
-    public class EStimExperimentGenParameters extends MockExperimentGenType.MockExperimentGenParameters {
+    public void addFieldsToPanel(JPanel panel){
+        this.initFields();
+        super.addFieldsToPanel(panel);
+        panel.add(new JLabel("numDeltaTrialSets:"));
+        panel.add(numDeltaTrialSetsField);
+        panel.add(new JLabel("stimId:"));
+        panel.add(stimIdField);
+        panel.add(new JLabel("compId:"));
+        panel.add(compIdField);
+    }
+
+    public void initFields() {
+        super.initFields();
+        numDeltaTrialSetsField = new JTextField("3", 10);
+        stimIdField = new JTextField("0", 10);
+        compIdField = new JTextField("0", 10);
+    }
+
+    public static class EStimExperimentGenParameters extends MockExperimentGenType.MockExperimentGenParameters {
         public long stimId;
         public int compId;
 
-
+        public EStimExperimentGenParameters(GenParameters genParameters, int numDeltaTrialSets, long stimId, int compId) {
+            super(genParameters, numDeltaTrialSets);
+            this.stimId = stimId;
+            this.compId = compId;
+        }
     }
 }

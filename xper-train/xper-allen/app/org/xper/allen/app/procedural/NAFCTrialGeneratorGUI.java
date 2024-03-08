@@ -30,8 +30,8 @@ public class NAFCTrialGeneratorGUI {
         //LIST OF STIMTYPES:
         List<? extends ProceduralRandGenType> stimTypes = Arrays.asList(
                 new ProceduralRandGenType(blockgen),
-                new ProceduralRandDeltaStimType(blockgen),
-                new MockExperimentGenType(blockgen));
+                new EStimExperimentGenType(blockgen)
+                );
 
 
 
