@@ -17,6 +17,7 @@ import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
 import org.xper.allen.intan.NAFCTrialIntanStimulationRecordingController;
+import org.xper.allen.intan.NAFCTrialTriggerIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
 import org.xper.config.*;
@@ -445,8 +446,8 @@ public class NAFCConfig {
 	}
 
 	@Bean
-	public NAFCTrialIntanStimulationRecordingController intanStimController() {
-		NAFCTrialIntanStimulationRecordingController intanController = new NAFCTrialIntanStimulationRecordingController();
+	public NAFCTrialTriggerIntanStimulationRecordingController intanStimController() {
+		NAFCTrialTriggerIntanStimulationRecordingController intanController = new NAFCTrialTriggerIntanStimulationRecordingController();
 		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
 		intanController.setIntan(intanConfig.intan());
 		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled());
