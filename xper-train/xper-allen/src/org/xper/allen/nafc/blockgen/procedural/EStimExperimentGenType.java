@@ -35,16 +35,18 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
     protected List<NAFCStim> genTrials(EStimExperimentGenParameters parameters) {
         List<NAFCStim> newBlock = new LinkedList<>();
 
-        //Generate the base matchstick
-        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
-        baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
-        baseMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parameters.stimId + "_spec.xml");
+
         int morphIndex = parameters.compId;
         int noiseIndex = morphIndex;
 
         //use that trial's base matchstick to generate the rest of the trials
         for (int i = 0; i < parameters.getNumTrials(); i++) {
+            //Generate the base matchstick
+            ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+            baseMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
+            baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
+            baseMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parameters.stimId + "_spec.xml");
+
             //using estim values set on the IntanGUI
             EStimProceduralStim stim = new EStimProceduralStim(generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
             newBlock.add(stim);

@@ -39,18 +39,19 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
         if (nComp == 0){
             nComp = chooseNumComps();
+
         }
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
             while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
-                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick)) {
+                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
                     positionShape();
                     break;
                 }
                 numAttempts++;
             }
-            if (checkMStick(noiseComponentIndx)) break;
+            if (checkMStick(morphComponentIndx)) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + this.maxAttempts + " attempts");
@@ -90,10 +91,44 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
+    public int genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int nComp, boolean isDeltaNoise) {
+        if (!isDeltaNoise){
+            genMatchStickFromComponent(baseMatchStick, morphComponentIndx, morphComponentIndx, nComp);
+            return morphComponentIndx;
+        }
+        else {
+            genMatchStickFromComponent(baseMatchStick, morphComponentIndx, morphComponentIndx, nComp);
+            int drivingComponent = getSpecialEndComp().get(0);
+            List<Integer> allComps = getCompIds();
+            decideLeafBranch();
+            boolean[] leafBranch = getLeafBranch();
+
+            List<Integer> elegibleComps = new LinkedList<>();
+            for (int i=0; i<allComps.size(); i++){
+                if (allComps.get(i) != drivingComponent){
+                    if (leafBranch[i]) {
+                        elegibleComps.add(allComps.get(i));
+                    }
+                }
+            }
+
+            //choose a random one
+            int randIndex = (int) (Math.random() * elegibleComps.size());
+            int deltaCompId = elegibleComps.get(randIndex);
+
+            checkInNoise(deltaCompId, 0.6);
+            return deltaCompId;
+
+        }
+
+
+    }
+
+
     private boolean checkMStick(int drivingComponentIndex) {
         try {
             checkMStickSize();
-            checkInNoise(drivingComponentIndex, 0.6);
+//            checkInNoise(drivingComponentIndex, 0.6);
 //                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
             return true;
         } catch (ObjectCenteredPositionException e) {
@@ -473,15 +508,15 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         return startingPosition;
     }
 
-    private Vector3d getJuncTangentForMulti(JuncPt_struct junc, int tangentOwnerId) {
+    private Vector3d getJuncTangentForMulti(JuncPt_struct junc, int tangentOwnerCompId) {
 //        Vector3d tangent = junc.getTangent()[junc.getTangentOwner()[tangentOwnerId]];
-        Vector3d tangent = junc.getTangentOfOwner(tangentOwnerId);
+        Vector3d tangent = junc.getTangentOfOwner(tangentOwnerCompId);
         Vector3d reversedTangent = new Vector3d(tangent);
         reversedTangent.negate();
         ArrayList<Vector3d> possibleTangents = new ArrayList<>(2);
         possibleTangents.add(tangent);
         possibleTangents.add(reversedTangent);
-        tangent = getVectorPointingAtPoint(possibleTangents, junc.getPos(), getComp()[tangentOwnerId].getmAxisInfo().getmPts()[26]);
+        tangent = getVectorPointingAtPoint(possibleTangents, junc.getPos(), getComp()[tangentOwnerCompId].getmAxisInfo().getmPts()[26]);
         return tangent;
     }
 

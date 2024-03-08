@@ -3435,7 +3435,7 @@ public class MatchStick implements Drawable {
 	/**
 	 A private function that will decide which components are leaf branch, which are NOT
 	 */
-	protected void decideLeafBranch()
+	public void decideLeafBranch()
 	{
 		// the algorithm we use here is that:
 		// regard the MStick as a un-directed connected graph ( with the connect adj matrix)

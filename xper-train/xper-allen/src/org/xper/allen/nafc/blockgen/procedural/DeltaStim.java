@@ -52,22 +52,31 @@ public class DeltaStim extends ProceduralStim {
     private int chooseDeltaIndex(){
         int drivingComponent = getDrivingIndex();
         List<Integer> allComps = baseStim.mSticks.getSample().getCompIds();
+        baseStim.mSticks.getSample().decideLeafBranch();
+        boolean[] leafBranch = baseStim.mSticks.getSample().getLeafBranch();
+
         List<Integer> elegibleComps = new LinkedList<>();
-        for (int i=0; i<allComps.size(); i++){
+        for (int i=1; i<allComps.size(); i++){
             if (allComps.get(i) != drivingComponent){
-                elegibleComps.add(allComps.get(i));
+                if (leafBranch[i]) {
+                    elegibleComps.add(allComps.get(i));
+                }
             }
         }
 
         //choose a random one
         int randIndex = (int) (Math.random() * elegibleComps.size());
-        return elegibleComps.get(randIndex);
+        Integer deltaComp = elegibleComps.get(randIndex);
+        System.out.println("Delta Comp: " + deltaComp);
+        return deltaComp;
     }
 
     @Override
     protected ProceduralMatchStick generateSample() {
         //Generate Sample
         ProceduralMatchStick sample = baseStim.mSticks.getSample();
+        noiseComponentIndex = baseStim.noiseComponentIndex;
+        System.out.println("New Noise Component Index: " + noiseComponentIndex);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
         return sample;
