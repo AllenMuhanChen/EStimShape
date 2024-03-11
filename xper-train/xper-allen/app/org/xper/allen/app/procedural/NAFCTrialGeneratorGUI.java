@@ -20,6 +20,8 @@ public class NAFCTrialGeneratorGUI {
     List<? extends ProceduralRandGenType> stimTypes;
     @Dependency
     NAFCBlockGen blockgen;
+    @Dependency
+    ProceduralRandGenType defaultStimType;
 
     private static JPanel centerPanel;
     private static final DefaultListModel<String> listModel = new DefaultListModel<>();
@@ -43,7 +45,7 @@ public class NAFCTrialGeneratorGUI {
         for (ProceduralRandGenType stimType : stimTypes) {
             labelsForStimTypes.put(stimType.getLabel(), stimType);
         }
-        ProceduralRandGenType defaultStimType = labelsForStimTypes.get("RandProcedural");
+//        defaultStimType = labelsForStimTypes.get("RandProcedural");
         selectedType = defaultStimType;
 
         JFrame frame = new JFrame("Trial Generator");
@@ -174,5 +176,9 @@ public class NAFCTrialGeneratorGUI {
 
     public void setBlockgen(NAFCBlockGen blockgen) {
         this.blockgen = blockgen;
+    }
+
+    public void setDefaultStimType(ProceduralRandGenType defaultStimType) {
+        this.defaultStimType = defaultStimType;
     }
 }

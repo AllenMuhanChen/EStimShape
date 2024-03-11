@@ -33,6 +33,7 @@ public class DeltaStim extends ProceduralStim {
         assignCoords();
     }
 
+    @Override
     protected void generateMatchSticksAndSaveSpecs() {
         ProceduralMatchStick sample = generateSample();
 
@@ -44,6 +45,7 @@ public class DeltaStim extends ProceduralStim {
 
         generateRandDistractors();
     }
+
 
     protected void assignDrivingAndDeltaIndices(ProceduralMatchStick sample){
         int drivingIndex = sample.getDrivingComponent();

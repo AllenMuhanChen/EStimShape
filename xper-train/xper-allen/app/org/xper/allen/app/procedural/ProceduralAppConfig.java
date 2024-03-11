@@ -67,14 +67,20 @@ public class ProceduralAppConfig {
         NAFCTrialGeneratorGUI gui = new NAFCTrialGeneratorGUI();
         gui.setBlockgen(blockGen());
         gui.setStimTypes(Arrays.asList(
-                new ProceduralRandGenType(blockGen()),
-                geteStimExperimentGenType()
+                proceduralRandGenType(),
+                getEStimExperimentGenType()
         ));
+        gui.setDefaultStimType(proceduralRandGenType());
         return gui;
     }
 
     @Bean
-    public EStimExperimentGenType geteStimExperimentGenType() {
+    public ProceduralRandGenType proceduralRandGenType() {
+        return new ProceduralRandGenType(blockGen());
+    }
+
+    @Bean
+    public EStimExperimentGenType getEStimExperimentGenType() {
         EStimExperimentGenType eStimExperimentGenType = new EStimExperimentGenType();
         eStimExperimentGenType.setGaSpecPath(gaSpecPath);
         eStimExperimentGenType.setGenerator(blockGen());

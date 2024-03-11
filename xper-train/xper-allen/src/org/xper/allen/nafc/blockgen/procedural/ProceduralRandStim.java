@@ -7,7 +7,6 @@ import org.xper.allen.util.AllenDbUtil;
 
 public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
-    private int nComp;
 
     public ProceduralRandStim(NAFCBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
         super(generator, parameters, new ProceduralMatchStick(), 0, 0);
@@ -15,8 +14,6 @@ public class ProceduralRandStim extends ProceduralStim{
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-//        nComp = ProceduralMatchStick.chooseNumComps();
-//        System.out.println("NUMBER COMPS: " + nComp);
         while (true) {
             try {
                 mSticks = new Procedural<>();
@@ -78,11 +75,6 @@ public class ProceduralRandStim extends ProceduralStim{
             mSticks.randDistractors.add(randDistractor);
             mStickSpecs.randDistractors.add(mStickToSpec(randDistractor, stimObjIds.randDistractors.get(i)));
         }
-    }
-
-    private void generateIdenticalMatch(ProceduralMatchStick sample) {
-        mSticks.setMatch(sample);
-        mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
     }
 
     private ProceduralMatchStick genRandBaseMStick() {
