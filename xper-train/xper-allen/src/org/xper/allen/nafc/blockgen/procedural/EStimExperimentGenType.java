@@ -1,5 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
+import org.xper.Dependency;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
@@ -11,12 +12,19 @@ import java.util.List;
 
 public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimentGenType.EStimExperimentGenParameters> {
 
+    @Dependency
+    String gaSpecPath;
+
     protected JTextField numDeltaTrialSetsField;
     protected JTextField stimIdField;
     protected JTextField compIdField;
 
     public EStimExperimentGenType(NAFCBlockGen generator) {
         super(generator);
+    }
+
+    public EStimExperimentGenType() {
+        super();
     }
 
     public String getLabel() {
@@ -45,7 +53,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
             ProceduralMatchStick baseMStick = new ProceduralMatchStick();
             baseMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
             baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
-            baseMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parameters.stimId + "_spec.xml");
+            baseMStick.genMatchStickFromFile(gaSpecPath + "/" + parameters.stimId + "_spec.xml");
 
             //using estim values set on the IntanGUI
             EStimProceduralStim stim = new EStimProceduralStim(generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
@@ -85,6 +93,10 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         numDeltaTrialSetsField = new JTextField("3", 10);
         stimIdField = new JTextField("0", 10);
         compIdField = new JTextField("0", 10);
+    }
+
+    public void setGaSpecPath(String gaSpecPath) {
+        this.gaSpecPath = gaSpecPath;
     }
 
     public static class EStimExperimentGenParameters extends MockExperimentGenType.MockExperimentGenParameters {

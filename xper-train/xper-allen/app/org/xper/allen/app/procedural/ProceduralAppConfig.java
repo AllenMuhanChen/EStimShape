@@ -36,6 +36,9 @@ public class ProceduralAppConfig {
     @ExternalValue("experiment.noisemap_path")
     public String experimentNoiseMapPath;
 
+    @ExternalValue("ga.spec_path")
+    public String gaSpecPath;
+
     @Bean
     public NoisyNAFCPngScene taskScene() {
         NoisyNAFCPngScene scene = new NoisyNAFCPngScene();
@@ -65,10 +68,19 @@ public class ProceduralAppConfig {
         gui.setBlockgen(blockGen());
         gui.setStimTypes(Arrays.asList(
                 new ProceduralRandGenType(blockGen()),
-                new EStimExperimentGenType(blockGen())
+                geteStimExperimentGenType()
         ));
         return gui;
     }
+
+    @Bean
+    public EStimExperimentGenType geteStimExperimentGenType() {
+        EStimExperimentGenType eStimExperimentGenType = new EStimExperimentGenType();
+        eStimExperimentGenType.setGaSpecPath(gaSpecPath);
+        eStimExperimentGenType.setGenerator(blockGen());
+        return eStimExperimentGenType;
+    }
+
     @Bean
     public NAFCBlockGen blockGen() {
         NAFCBlockGen blockGen = new NAFCBlockGen();

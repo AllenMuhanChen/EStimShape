@@ -22,6 +22,9 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         this.generator = generator;
     }
 
+    public ProceduralRandGenType() {
+    }
+
     @Override
     public String getLabel() {
         return "RandProcedural";
@@ -152,7 +155,9 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         return Integer.parseInt(numTrialsField.getText());
     }
 
-
+    public void setGenerator(NAFCBlockGen generator) {
+        this.generator = generator;
+    }
 
     public String getInfo(){
         return "Type: " + getLabel() +
