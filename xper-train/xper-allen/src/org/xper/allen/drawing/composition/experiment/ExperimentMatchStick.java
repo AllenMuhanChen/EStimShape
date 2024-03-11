@@ -59,6 +59,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     }
 
 
+
     public void genNewDrivingComponentMatchStick(ExperimentMatchStick baseMatchStick, double magnitude, double discreteness) {
         int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
         genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, drivingComponentIndx, magnitude, discreteness);
@@ -80,7 +81,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 continue;
             } finally{
                 numAttempts++;
-//                System.out.println("numAttempts: " + numAttempts);
             }
 
 //            System.out.println("Checking MStick");
@@ -91,39 +91,44 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public int genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int nComp, boolean isDeltaNoise) {
-        if (!isDeltaNoise){
+    public int genMatchStickFromComponentInNoise(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int nComp) {
+        while (true) {
             genMatchStickFromComponent(baseMatchStick, morphComponentIndx, morphComponentIndx, nComp);
+            int drivingComponent = getDrivingComponent();
+            try {
+                checkInNoise(drivingComponent, 0.6);
+            } catch (Exception e) {
+                System.out.println("Error with noise, retrying");
+                continue;
+            }
             return morphComponentIndx;
         }
-        else {
-            genMatchStickFromComponent(baseMatchStick, morphComponentIndx, morphComponentIndx, nComp);
-            int drivingComponent = getSpecialEndComp().get(0);
-            List<Integer> allComps = getCompIds();
-            decideLeafBranch();
-            boolean[] leafBranch = getLeafBranch();
-
-            List<Integer> elegibleComps = new LinkedList<>();
-            for (int i=0; i<allComps.size(); i++){
-                if (allComps.get(i) != drivingComponent){
-                    if (leafBranch[i]) {
-                        elegibleComps.add(allComps.get(i));
-                    }
-                }
-            }
-
-            //choose a random one
-            int randIndex = (int) (Math.random() * elegibleComps.size());
-            int deltaCompId = elegibleComps.get(randIndex);
-
-            checkInNoise(deltaCompId, 0.6);
-            return deltaCompId;
-
-        }
-
-
     }
 
+    public int getDeltaCompId() {
+        int drivingComponent = getDrivingComponent();
+        List<Integer> allComps = getCompIds();
+        decideLeafBranch();
+        boolean[] leafBranch = getLeafBranch();
+
+        List<Integer> elegibleComps = new LinkedList<>();
+        for (Integer compId : allComps) {
+            if (compId != drivingComponent) {
+                if (leafBranch[compId]) {
+                    elegibleComps.add(compId);
+                }
+            }
+        }
+
+        //choose a random one
+        int randIndex = (int) (Math.random() * elegibleComps.size());
+        int deltaCompId = elegibleComps.get(randIndex);
+        return deltaCompId;
+    }
+
+    public Integer getDrivingComponent() {
+        return getSpecialEndComp().get(0);
+    }
 
     private boolean checkMStick(int drivingComponentIndex) {
         try {
@@ -416,7 +421,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     private Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate();
-        System.out.println("DISTANCE IN OPPOSITE: " + junc.getRad());
         Point3d startingPosition = choosePositionAlongTangent(reverseTangent, junc.getPos(), junc.getRad());
         return startingPosition;
     }
@@ -521,7 +525,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     }
 
     private Vector3d getJuncTangentForSingle(JuncPt_struct junc, int tangentOwnerId) {
-//        Vector3d tangent = junc.getTangent()[tangentOwnerIndx];
         Vector3d tangent = junc.getTangentOfOwner(tangentOwnerId);
         Vector3d reversedTangent = new Vector3d(tangent);
         reversedTangent.negate();

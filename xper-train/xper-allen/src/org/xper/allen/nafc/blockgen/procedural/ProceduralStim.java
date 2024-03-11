@@ -15,7 +15,6 @@ import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.time.TimeUtil;
-import org.xper.util.DbUtil;
 
 import java.awt.*;
 import java.util.Arrays;
@@ -104,15 +103,8 @@ public class ProceduralStim implements NAFCStim {
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         sample.setStimColor(parameters.color);
-        boolean isDeltaNoise;
-        if (noiseComponentIndex != morphComponentIndex){
-            isDeltaNoise = true;
-        }
-        else {
-            isDeltaNoise = false;
-        }
-        noiseComponentIndex = sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, 0, isDeltaNoise);
-        System.out.println("New Noise Component: " + noiseComponentIndex);
+
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
         return sample;
@@ -199,14 +191,11 @@ public class ProceduralStim implements NAFCStim {
     protected void generateNoiseMap() {
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
-        System.out.println("Generating noisemap from noiseComponent: " + noiseComponentIndex);
-        System.out.println("NoiseComponent: " + noiseComponentIndex);
-        System.out.println("Total comps: " + mSticks.getSample().getNComponent());
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
 
-    private void assignCoords() {
+    protected void assignCoords() {
 
         class ProceduralCoordinateAssigner extends NAFCCoordinateAssigner{
 

@@ -64,10 +64,11 @@ public class JuncPt_struct {
 
     public Vector3d getTangentOfOwner(int ownerCompId){
         for (int tanIndx=1; tanIndx<= getnTangent(); tanIndx++)
-            if ( getTangentOwner()[tanIndx] == getCompIds()[ownerCompId])
+            if ( getTangentOwner()[tanIndx] == ownerCompId)
             {
                 return getTangent()[tanIndx];
             }
+        System.err.println("Error: getTangentOfOwner(int ownerCompId) returned null, this should means that ownerCompId is not a component in this Junc");
           return null;
       }
 

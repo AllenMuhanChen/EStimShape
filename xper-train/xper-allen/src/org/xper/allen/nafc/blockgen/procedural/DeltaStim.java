@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
 import java.util.LinkedList;
@@ -25,57 +26,48 @@ public class DeltaStim extends ProceduralStim {
 
     @Override
     public void preWrite() {
-        assignDrivingAndDeltaIndices();
-        super.preWrite();
+        assignStimObjIds();
+        generateMatchSticksAndSaveSpecs();
+        drawPNGs();
+        generateNoiseMap();
+        assignCoords();
     }
 
-    protected void assignDrivingAndDeltaIndices(){
-        int drivingIndex = getDrivingIndex();
-        int deltaIndex = chooseDeltaIndex();
+    protected void generateMatchSticksAndSaveSpecs() {
+        ProceduralMatchStick sample = generateSample();
+
+        assignDrivingAndDeltaIndices(sample);
+
+        generateMatch(sample);
+
+        generateProceduralDistractors(sample);
+
+        generateRandDistractors();
+    }
+
+    protected void assignDrivingAndDeltaIndices(ProceduralMatchStick sample){
+        int drivingIndex = sample.getDrivingComponent();
+        int deltaIndex = sample.getDeltaCompId();
 
         morphComponentIndex = drivingIndex;
         noiseComponentIndex = drivingIndex;
         if (isDeltaMorph){
+            System.out.println("Is Delta Morph");
             morphComponentIndex = deltaIndex;
         }
         if (isDeltaNoise) {
+            System.out.println("Is Delta Noise");
             noiseComponentIndex = deltaIndex;
         }
 
     }
 
 
-    private Integer getDrivingIndex() {
-        return baseStim.mSticks.getSample().getSpecialEndComp().get(0);
-    }
-
-    private int chooseDeltaIndex(){
-        int drivingComponent = getDrivingIndex();
-        List<Integer> allComps = baseStim.mSticks.getSample().getCompIds();
-        baseStim.mSticks.getSample().decideLeafBranch();
-        boolean[] leafBranch = baseStim.mSticks.getSample().getLeafBranch();
-
-        List<Integer> elegibleComps = new LinkedList<>();
-        for (int i=1; i<allComps.size(); i++){
-            if (allComps.get(i) != drivingComponent){
-                if (leafBranch[i]) {
-                    elegibleComps.add(allComps.get(i));
-                }
-            }
-        }
-
-        //choose a random one
-        int randIndex = (int) (Math.random() * elegibleComps.size());
-        Integer deltaComp = elegibleComps.get(randIndex);
-        System.out.println("Delta Comp: " + deltaComp);
-        return deltaComp;
-    }
-
     @Override
     protected ProceduralMatchStick generateSample() {
         //Generate Sample
         ProceduralMatchStick sample = baseStim.mSticks.getSample();
-        noiseComponentIndex = baseStim.noiseComponentIndex;
+        noiseComponentIndex = sample.getDeltaCompId();
         System.out.println("New Noise Component Index: " + noiseComponentIndex);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
@@ -87,9 +79,6 @@ public class DeltaStim extends ProceduralStim {
         //Sample
         List<String> labels = new LinkedList<>();
         labels.add("sample");
-        if (isDeltaNoise){
-            labels.add("deltaNoise");
-        }
         List<String> sampleLabels = labels;
         String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
         System.out.println("Sample Path: " + samplePath);
@@ -110,6 +99,17 @@ public class DeltaStim extends ProceduralStim {
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
+    }
+
+    @Override
+    protected void generateNoiseMap() {
+        List<String> noiseMapLabels = new LinkedList<>();
+        noiseMapLabels.add("sample");
+        if (isDeltaNoise){
+            noiseMapLabels.add("deltaNoise");
+        }
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
+        experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
 
 
