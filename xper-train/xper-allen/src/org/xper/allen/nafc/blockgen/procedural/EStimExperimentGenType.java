@@ -96,5 +96,8 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
             this.stimId = stimId;
             this.compId = compId;
         }
+
+        public EStimExperimentGenParameters() {
+        }
     }
 }

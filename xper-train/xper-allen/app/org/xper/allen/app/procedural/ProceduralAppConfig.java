@@ -7,8 +7,10 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
 import org.xper.allen.config.NAFCConfig;
+import org.xper.allen.nafc.blockgen.procedural.EStimExperimentGenType;
 import org.xper.allen.nafc.blockgen.procedural.NAFCTrialParamDbUtil;
 import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
+import org.xper.allen.nafc.blockgen.procedural.ProceduralRandGenType;
 import org.xper.allen.nafc.experiment.juice.LinearControlPointFunction;
 import org.xper.allen.nafc.experiment.juice.NAFCNoiseScalingNoiseController;
 import org.xper.allen.nafc.message.ChoiceEventListener;
@@ -57,7 +59,16 @@ public class ProceduralAppConfig {
         return f;
     }
 
-
+    @Bean
+    public NAFCTrialGeneratorGUI nafcTrialGeneratorGUI() {
+        NAFCTrialGeneratorGUI gui = new NAFCTrialGeneratorGUI();
+        gui.setBlockgen(blockGen());
+        gui.setStimTypes(Arrays.asList(
+                new ProceduralRandGenType(blockGen()),
+                new EStimExperimentGenType(blockGen())
+        ));
+        return gui;
+    }
     @Bean
     public NAFCBlockGen blockGen() {
         NAFCBlockGen blockGen = new NAFCBlockGen();

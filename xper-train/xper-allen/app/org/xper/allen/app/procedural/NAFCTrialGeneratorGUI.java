@@ -1,17 +1,26 @@
 package org.xper.allen.app.procedural;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.Dependency;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.*;
 import java.util.List;
 
 public class NAFCTrialGeneratorGUI {
+    @Dependency
+    List<? extends ProceduralRandGenType> stimTypes;
+    @Dependency
+    NAFCBlockGen blockgen;
+
     private static JPanel centerPanel;
     private static final DefaultListModel<String> listModel = new DefaultListModel<>();
     private static ProceduralRandGenType selectedType;
@@ -22,19 +31,14 @@ public class NAFCTrialGeneratorGUI {
         } catch (Exception e) {
             throw new XGLException(e);
         }
-//        FileUtil.loadTestSystemProperties("/xper.properties.procedural");
+
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
-        NAFCBlockGen blockgen = context.getBean(NAFCBlockGen.class);
+        NAFCTrialGeneratorGUI gui = context.getBean(NAFCTrialGeneratorGUI.class);
+        gui.generate();
+    }
 
-        //LIST OF STIMTYPES:
-        List<? extends ProceduralRandGenType> stimTypes = Arrays.asList(
-                new ProceduralRandGenType(blockgen),
-                new EStimExperimentGenType(blockgen)
-                );
-
-
-
+    public void generate() {
         LinkedHashMap<String, ProceduralRandGenType> labelsForStimTypes = new LinkedHashMap<>();
         for (ProceduralRandGenType stimType : stimTypes) {
             labelsForStimTypes.put(stimType.getLabel(), stimType);
@@ -49,7 +53,6 @@ public class NAFCTrialGeneratorGUI {
         JPanel topPanel = new JPanel();
         JLabel stimTypeLabel = new JLabel("Select Stimulus Type:");
 
-
         JComboBox<String> stimTypeDropdown = new JComboBox<>(labelsForStimTypes.keySet().toArray(new String[0]));
         topPanel.add(stimTypeLabel);
         topPanel.add(stimTypeDropdown);
@@ -57,22 +60,28 @@ public class NAFCTrialGeneratorGUI {
         centerPanel = new JPanel(new GridLayout(0, 2));
         updateParametersUI(defaultStimType);
 
-        stimTypeDropdown.addActionListener(e -> {
-            String selectedLabel = (String) stimTypeDropdown.getSelectedItem();
-            selectedType = labelsForStimTypes.get(selectedLabel);
-            updateParametersUI(selectedType);
+        stimTypeDropdown.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedLabel = (String) stimTypeDropdown.getSelectedItem();
+                selectedType = labelsForStimTypes.get(selectedLabel);
+                updateParametersUI(selectedType);
+            }
         });
 
         JList<String> trialList = new JList<>(listModel);
         JScrollPane listScrollPane = new JScrollPane(trialList);
 
-        trialList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                int selectedIndex = trialList.getSelectedIndex();
-                if (selectedIndex != -1) {
-                    selectedType = blockgen.getTypeForBlock(selectedIndex);
-                    stimTypeDropdown.setSelectedItem(selectedType.getLabel());
-                    selectedType.loadParametersIntoFields(blockgen.getParamsForBlock(selectedIndex));
+        trialList.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    int selectedIndex = trialList.getSelectedIndex();
+                    if (selectedIndex != -1) {
+                        selectedType = blockgen.getTypeForBlock(selectedIndex);
+                        stimTypeDropdown.setSelectedItem(selectedType.getLabel());
+                        selectedType.loadParametersIntoFields(blockgen.getParamsForBlock(selectedIndex));
+                    }
                 }
             }
         });
@@ -88,31 +97,43 @@ public class NAFCTrialGeneratorGUI {
         bottomPanel.add(removeButton);
         bottomPanel.add(editButton);
 
-        addTrialsButton.addActionListener(e -> {
-            blockgen.addBlock(selectedType);
-            listModel.addElement(selectedType.getInfo());
-        });
-
-        generateButton.addActionListener((ActionEvent e) -> {
-            blockgen.uploadTrialParams();
-            blockgen.generate();
-            //end program
-            System.exit(0);
-        });
-
-        removeButton.addActionListener(e -> {
-            int selectedIndex = trialList.getSelectedIndex();
-            if (selectedIndex != -1) {
-                listModel.remove(selectedIndex);
-                blockgen.removeBlock(selectedIndex);
+        addTrialsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                blockgen.addBlock(selectedType);
+                listModel.addElement(selectedType.getInfo());
             }
         });
 
-        editButton.addActionListener(e -> {
-            int selectedIndex = trialList.getSelectedIndex();
-            if (selectedIndex != -1) {
-                blockgen.editBlock(selectedIndex, selectedType);
-                listModel.set(selectedIndex, selectedType.getInfo());
+        generateButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                blockgen.uploadTrialParams();
+                blockgen.generate();
+                //end program
+                System.exit(0);
+            }
+        });
+
+        removeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedIndex = trialList.getSelectedIndex();
+                if (selectedIndex != -1) {
+                    listModel.remove(selectedIndex);
+                    blockgen.removeBlock(selectedIndex);
+                }
+            }
+        });
+
+        editButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedIndex = trialList.getSelectedIndex();
+                if (selectedIndex != -1) {
+                    blockgen.editBlock(selectedIndex, selectedType);
+                    listModel.set(selectedIndex, selectedType.getInfo());
+                }
             }
         });
 
@@ -140,11 +161,18 @@ public class NAFCTrialGeneratorGUI {
         }
     }
 
-
     private static void updateParametersUI(ProceduralRandGenType selectedType) {
         centerPanel.removeAll();
         selectedType.addFieldsToPanel(centerPanel);
         centerPanel.revalidate();
         centerPanel.repaint();
+    }
+
+    public void setStimTypes(List<? extends ProceduralRandGenType> stimTypes) {
+        this.stimTypes = stimTypes;
+    }
+
+    public void setBlockgen(NAFCBlockGen blockgen) {
+        this.blockgen = blockgen;
     }
 }
