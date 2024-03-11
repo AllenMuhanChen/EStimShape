@@ -39,7 +39,6 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
         if (nComp == 0){
             nComp = chooseNumComps();
-
         }
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
@@ -92,6 +91,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
     }
 
     public int genMatchStickFromComponentInNoise(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int nComp) {
+        if (nComp == 0){
+            nComp = chooseNumComps();
+        }
         while (true) {
             genMatchStickFromComponent(baseMatchStick, morphComponentIndx, morphComponentIndx, nComp);
             int drivingComponent = getDrivingComponent();

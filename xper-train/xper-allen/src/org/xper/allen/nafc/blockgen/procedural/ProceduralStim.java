@@ -104,7 +104,9 @@ public class ProceduralStim implements NAFCStim {
         sample.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
         sample.setStimColor(parameters.color);
 
+
         sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
+        noiseComponentIndex = sample.getDrivingComponent();
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
         return sample;
@@ -189,6 +191,7 @@ public class ProceduralStim implements NAFCStim {
     }
 
     protected void generateNoiseMap() {
+        System.out.println("Not Delta: Noise Component Index: " + noiseComponentIndex);
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);

@@ -147,7 +147,6 @@ public class NAFCTrialGeneratorGUI {
 
         //Download Trial Params from Database
         Map<GenParameters, String> paramsForGenTypes = blockgen.downloadTrialParams();
-        System.out.println(paramsForGenTypes.entrySet());
         if (paramsForGenTypes != null) {
             for (Map.Entry<GenParameters, String> entry : paramsForGenTypes.entrySet()) {
                 if (entry.getKey() == null) {
@@ -155,7 +154,6 @@ public class NAFCTrialGeneratorGUI {
                 }
                 GenType genType = labelsForStimTypes.get(entry.getValue());
                 updateParametersUI(genType);
-                System.out.println("Entry Key: " + entry.getKey());
                 genType.loadParametersIntoFields(entry.getKey());
                 blockgen.addBlock(genType);
                 listModel.addElement(genType.getInfo());
