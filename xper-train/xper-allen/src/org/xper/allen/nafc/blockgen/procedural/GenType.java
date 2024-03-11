@@ -7,6 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+/**
+ * A new GenType needs a specific:
+ * 1. Label.
+ * 2. genTrials()
+ * 3. initFields() that ADDS the new fields to labelsForFields and defaultsForFields
+ * 4. loadParametersIntoFields()
+ * 5. readFromFields()
+ * @param <T>
+ */
 public abstract class GenType<T extends GenParameters> {
 
     protected Map<JTextField, String> labelsForFields;

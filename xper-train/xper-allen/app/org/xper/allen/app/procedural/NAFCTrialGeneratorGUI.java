@@ -17,15 +17,15 @@ import java.util.List;
 
 public class NAFCTrialGeneratorGUI {
     @Dependency
-    List<? extends ProceduralRandGenType> stimTypes;
+    List<? extends GenType> stimTypes;
     @Dependency
     NAFCBlockGen blockgen;
     @Dependency
-    ProceduralRandGenType defaultStimType;
+    GenType defaultStimType;
 
     private static JPanel centerPanel;
     private static final DefaultListModel<String> listModel = new DefaultListModel<>();
-    private static ProceduralRandGenType selectedType;
+    private static GenType selectedType;
 
     public static void main(String[] args) {
         try {
@@ -41,8 +41,8 @@ public class NAFCTrialGeneratorGUI {
     }
 
     public void generate() {
-        LinkedHashMap<String, ProceduralRandGenType> labelsForStimTypes = new LinkedHashMap<>();
-        for (ProceduralRandGenType stimType : stimTypes) {
+        LinkedHashMap<String, GenType> labelsForStimTypes = new LinkedHashMap<>();
+        for (GenType stimType : stimTypes) {
             labelsForStimTypes.put(stimType.getLabel(), stimType);
         }
 //        defaultStimType = labelsForStimTypes.get("RandProcedural");
@@ -153,7 +153,7 @@ public class NAFCTrialGeneratorGUI {
                 if (entry.getKey() == null) {
                     continue;
                 }
-                ProceduralRandGenType genType = labelsForStimTypes.get(entry.getValue());
+                GenType genType = labelsForStimTypes.get(entry.getValue());
                 updateParametersUI(genType);
                 System.out.println("Entry Key: " + entry.getKey());
                 genType.loadParametersIntoFields(entry.getKey());
@@ -163,14 +163,14 @@ public class NAFCTrialGeneratorGUI {
         }
     }
 
-    private static void updateParametersUI(ProceduralRandGenType selectedType) {
+    private static void updateParametersUI(GenType selectedType) {
         centerPanel.removeAll();
         selectedType.addFieldsToPanel(centerPanel);
         centerPanel.revalidate();
         centerPanel.repaint();
     }
 
-    public void setStimTypes(List<? extends ProceduralRandGenType> stimTypes) {
+    public void setStimTypes(List<? extends GenType> stimTypes) {
         this.stimTypes = stimTypes;
     }
 

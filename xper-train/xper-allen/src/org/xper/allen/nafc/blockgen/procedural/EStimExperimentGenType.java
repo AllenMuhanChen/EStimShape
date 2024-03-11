@@ -19,10 +19,6 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
     protected JTextField stimIdField;
     protected JTextField compIdField;
 
-    public EStimExperimentGenType(NAFCBlockGen generator) {
-        super(generator);
-    }
-
     public EStimExperimentGenType() {
         super();
     }
@@ -77,22 +73,26 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         return newBlock;
     }
 
-    public void addFieldsToPanel(JPanel panel){
-        this.initFields();
-        super.addFieldsToPanel(panel);
-        panel.add(new JLabel("numDeltaTrialSets:"));
-        panel.add(numDeltaTrialSetsField);
-        panel.add(new JLabel("stimId:"));
-        panel.add(stimIdField);
-        panel.add(new JLabel("compId:"));
-        panel.add(compIdField);
-    }
-
     public void initFields() {
         super.initFields();
         numDeltaTrialSetsField = new JTextField("3", 10);
         stimIdField = new JTextField("0", 10);
         compIdField = new JTextField("0", 10);
+        labelsForFields.put(numDeltaTrialSetsField, "numDeltaTrialSets:");
+        defaultsForFields.put(numDeltaTrialSetsField, "3");
+        labelsForFields.put(stimIdField, "stimId:");
+        defaultsForFields.put(stimIdField, "0");
+        labelsForFields.put(compIdField, "compId:");
+        defaultsForFields.put(compIdField, "0");
+    }
+
+    @Override
+    public void loadParametersIntoFields(GenParameters blockParams) {
+
+        super.loadParametersIntoFields(blockParams);
+        numDeltaTrialSetsField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).numDeltaTrialSets));
+        stimIdField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).stimId));
+        compIdField.setText(String.valueOf(((EStimExperimentGenParameters) blockParams).compId));
     }
 
     public void setGaSpecPath(String gaSpecPath) {
