@@ -9,7 +9,7 @@ public class ProceduralRandStim extends ProceduralStim{
     public static final int MAX_TRIES = 10;
 
     public ProceduralRandStim(NAFCBlockGen generator, ProceduralStim.ProceduralStimParameters parameters) {
-        super(generator, parameters, new ProceduralMatchStick(), 0, 0);
+        super(generator, parameters, new ProceduralMatchStick(), 0);
     }
 
     @Override
@@ -19,7 +19,6 @@ public class ProceduralRandStim extends ProceduralStim{
                 mSticks = new Procedural<>();
                 baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
-                chooseMorphAndNoiseComponents();
                 System.out.println("Driving Component: " + morphComponentIndex);
                 generateNonBaseMatchSticksAndSaveSpecs();
                 break;
@@ -35,17 +34,17 @@ public class ProceduralRandStim extends ProceduralStim{
 
     }
 
-    protected void chooseMorphAndNoiseComponents() {
-        morphComponentIndex = baseMatchStick.chooseRandLeaf();
-        noiseComponentIndex = morphComponentIndex;
-    }
 
     protected void generateNonBaseMatchSticksAndSaveSpecs() {
         //Generate Sample
         ProceduralMatchStick sample = new ProceduralMatchStick();
         sample.setProperties(parameters.getSize(), "SHADE");
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponent(baseMatchStick, morphComponentIndex, noiseComponentIndex, 0);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0);
+
+        noiseComponentIndex = sample.getDrivingComponent();
+        morphComponentIndex = sample.getDrivingComponent();
+
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
 

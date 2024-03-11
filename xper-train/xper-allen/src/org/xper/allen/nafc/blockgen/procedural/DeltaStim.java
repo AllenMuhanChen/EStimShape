@@ -1,7 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.AllenTubeComp;
+import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
 import java.util.LinkedList;
@@ -17,7 +17,7 @@ public class DeltaStim extends ProceduralStim {
                 baseStim.generator,
                 baseStim.getParameters(),
                 baseStim.baseMatchStick,
-                -1, -1);
+                -1);
         this.baseStim = baseStim;
         this.isDeltaMorph = isDeltaMorph;
         this.isDeltaNoise = isDeltaNoise;
@@ -35,15 +35,23 @@ public class DeltaStim extends ProceduralStim {
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-        ProceduralMatchStick sample = generateSample();
+        while (true) {
+            try {
+                ProceduralMatchStick sample = generateSample();
 
-        assignDrivingAndDeltaIndices(sample);
+                assignDrivingAndDeltaIndices(sample);
 
-        generateMatch(sample);
+                generateMatch(sample);
 
-        generateProceduralDistractors(sample);
+                generateProceduralDistractors(sample);
 
-        generateRandDistractors();
+                generateRandDistractors();
+
+                break;
+            } catch (ExperimentMatchStick.MorphRepetitionException mre){
+                System.out.println(mre.getMessage());
+            }
+        }
     }
 
 
@@ -69,7 +77,7 @@ public class DeltaStim extends ProceduralStim {
     protected ProceduralMatchStick generateSample() {
         //Generate Sample
         ProceduralMatchStick sample = baseStim.mSticks.getSample();
-        noiseComponentIndex = sample.getDeltaCompId();
+
         System.out.println("New Noise Component Index: " + noiseComponentIndex);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));

@@ -8,8 +8,8 @@ public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
         super(generator, parameters);
     }
 
-    @Override
-    protected void chooseMorphAndNoiseComponents() {
+
+    protected void chooseMorphComponent() {
         morphComponentIndex = baseMatchStick.chooseRandLeaf();
         //any random component except the morph component
         do {

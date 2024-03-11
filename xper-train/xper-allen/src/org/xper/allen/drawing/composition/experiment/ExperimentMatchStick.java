@@ -24,7 +24,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
 //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
     public static final double NOISE_RADIUS_DEGREES = 4;
-    public int maxAttempts = -1;
+    public int maxAttempts = 15;
 
     /**
      * Generates a new matchStick from the base matchStick's driving component
@@ -33,7 +33,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
      * @param morphComponentIndx
      * @param nComp if 0, then choose randomly
      */
-    public void genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, int nComp) {
+    public void genMatchStickFromComponent(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int nComp) {
         // calculate the object centered position of the base matchStick's drivingComponent
 //        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
@@ -90,12 +90,14 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         }
     }
 
-    public int genMatchStickFromComponentInNoise(ExperimentMatchStick baseMatchStick, int morphComponentIndx, int nComp) {
+    public int genMatchStickFromComponentInNoise(ExperimentMatchStick baseMatchStick, int fromCompId, int nComp) {
         if (nComp == 0){
             nComp = chooseNumComps();
         }
-        while (true) {
-            genMatchStickFromComponent(baseMatchStick, morphComponentIndx, morphComponentIndx, nComp);
+        int nAttempts = 0;
+        while (nAttempts < this.maxAttempts || this.maxAttempts == -1) {
+            nAttempts++;
+            genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
             int drivingComponent = getDrivingComponent();
             try {
                 checkInNoise(drivingComponent, 0.6);
@@ -103,8 +105,9 @@ public class ExperimentMatchStick extends MorphedMatchStick {
                 System.out.println("Error with noise, retrying");
                 continue;
             }
-            return morphComponentIndx;
+            return fromCompId;
         }
+        throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");
     }
 
     public int getDeltaCompId() {

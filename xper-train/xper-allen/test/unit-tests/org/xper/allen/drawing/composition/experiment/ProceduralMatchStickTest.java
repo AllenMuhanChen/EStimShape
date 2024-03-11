@@ -194,7 +194,7 @@ public class ProceduralMatchStickTest {
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(size, "SHADE");
             sampleMStick.setStimColor(color);
-            sampleMStick.genMatchStickFromComponent(baseMStick, 1, 1, 0);
+            sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0);
             System.out.println("special end comp:" + sampleMStick.getSpecialEndComp());
 
             drawingManager.setBackgroundColor(0.f, 0.f, 0.f);
@@ -286,7 +286,7 @@ public class ProceduralMatchStickTest {
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
         int size = 2;
         sampleMStick.setProperties(size, "SHADE");
-        sampleMStick.genMatchStickFromComponent(baseMStick, 1, 1, 0);
+        sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0);
         drawPng(sampleMStick, setId, 1L);
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick();
