@@ -2,6 +2,8 @@ package org.xper.allen.monitorlinearization;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.*;
+import org.xper.drawing.object.Rectangle;
+import org.xper.drawing.object.Square;
 import org.xper.experiment.ExperimentTask;
 
 public class MonLinScene extends AbstractTaskScene {
@@ -16,6 +18,8 @@ public class MonLinScene extends AbstractTaskScene {
     @Override
     public void drawStimulus(Context context) {
         RGBColor color = spec.color;
+//        GLUtil.drawRectangle((new Rectangle(1500,300)), 0.0, 0.0, 0.0, color.getRed(), color.getGreen(), color.getBlue());
+//        GL11.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         GL11.glClearColor(color.getRed(), color.getGreen(), color.getBlue(), 1.0f);
         GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
     }

@@ -24,10 +24,10 @@ public class AlternatingScreenMarker implements ScreenMarker {
 	protected void drawMarker(Context context, RGBColor firstColor, RGBColor secondColor) {
 		AbstractRenderer renderer = context.getRenderer();
 
-		double lx = renderer.getXmin() + size/2;
-		double ly = renderer.getYmin() + size/2;
-		double rx = renderer.getXmax() - size/2;
-		double ry = renderer.getYmin() + size/2;
+		double lx = renderer.getXmin() + (double) size /2;
+		double ly = renderer.getYmin() + (double) size /2;
+		double rx = renderer.getXmax() - (double) size/ 2.1; //AC: there was a small column of pixels gap between the right square and the edge of screen
+		double ry = renderer.getYmin() + (double) size /2;
 		RGBColor l = null;
 		RGBColor r = null;
 		if (i % 2 == 0) {
@@ -38,9 +38,9 @@ public class AlternatingScreenMarker implements ScreenMarker {
 			r = firstColor;
 		}
 		double z = 0;
-		
+
 		GL11.glColor4f(l.getRed(), l.getGreen(), l.getBlue(), 1f);
-		
+
 		GL11.glPushMatrix();
 			GL11.glTranslated(lx, ly, z);
 			GL11.glBegin(GL11.GL_QUADS);
@@ -50,7 +50,7 @@ public class AlternatingScreenMarker implements ScreenMarker {
 				GL11.glVertex3d(-size/2., size/2., z);
 			GL11.glEnd();
 		GL11.glPopMatrix();
-		
+
 
 		GL11.glColor4f(r.getRed(), r.getGreen(), r.getBlue(), 1f);
 		GL11.glPushMatrix();
@@ -64,13 +64,13 @@ public class AlternatingScreenMarker implements ScreenMarker {
 		GL11.glPopMatrix();
 	}
 
-	
+
 	public void draw(Context context) {
 		if (context.getViewportIndex() == viewportIndex) {
 			drawMarker(context, whiteColor, blackColor);
 		}
 	}
-	
+
 	public void drawAllOff(Context context) {
 		if (context.getViewportIndex() == viewportIndex) {
 			drawMarker(context, blackColor, blackColor);

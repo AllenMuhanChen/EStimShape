@@ -6,9 +6,15 @@ import org.xper.allen.monitorlinearization.MonLinTrialGenerator;
 import org.xper.util.FileUtil;
 
 public class MonLinGenerator {
+
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"), MonLinConfig.class);
         MonLinTrialGenerator gen = context.getBean(MonLinTrialGenerator.class);
+        if (args[0].equals("Isoluminant")){
+            gen.mode = "Isoluminant";
+        } else {
+            gen.mode = "Linear";
+        }
         gen.generate();
     }
 }
