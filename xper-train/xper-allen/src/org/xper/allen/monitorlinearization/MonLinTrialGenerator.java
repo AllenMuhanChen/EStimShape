@@ -46,17 +46,37 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
     }
 
     private void addLinearTrials() {
-        for (RGBColor color : linearColors) {
-            for (int i = 0; i < numStepsPerColor; i++) {
-                RGBColor newColor = new RGBColor(
-                    color.getRed() * i / (numStepsPerColor-1),
-                    color.getGreen() * i / (numStepsPerColor-1),
-                    color.getBlue() * i / (numStepsPerColor-1)
-                );
 
-                stims.add(new MonLinStim(this, newColor));
-            }
+        for (int i = 0; i < 256; i++) {
+            RGBColor newColor = new RGBColor(
+            i / 255.0f,
+                0f,
+                0f
+            );
+
+            stims.add(new MonLinStim(this, newColor));
         }
+
+        for (int i = 0; i < 256; i++) {
+            RGBColor newColor = new RGBColor(
+                0f,
+                i / 255.0f,
+                0f
+            );
+
+            stims.add(new MonLinStim(this, newColor));
+        }
+
+        for (int i = 0; i < 256; i++) {
+            RGBColor newColor = new RGBColor(
+                0f,
+                0f,
+                i / 255.0f
+            );
+
+            stims.add(new MonLinStim(this, newColor));
+        }
+
     }
 
     protected void shuffleTrials() {
