@@ -65,7 +65,7 @@ public class NoisyPngFixationStim implements Stim {
 
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return id;
     }
 }

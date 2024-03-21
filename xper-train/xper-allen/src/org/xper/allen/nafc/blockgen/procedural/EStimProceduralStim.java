@@ -19,6 +19,6 @@ public class EStimProceduralStim extends ProceduralStim{
 
     protected void writeEStimSpec() {
         AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
-        dbUtil.writeEStimObjData(getTaskId(), "EStimEnabled", "");
+        dbUtil.writeEStimObjData(getStimId(), "EStimEnabled", "");
     }
 }

@@ -104,7 +104,7 @@ public class RandStim implements Stim {
 
 	private void writeStimSpec(){
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getTaskId(),
+				getStimId(),
 				dbUtil,
 				trialParameters,
 				coords,
@@ -114,7 +114,7 @@ public class RandStim implements Stim {
 		stimSpecWriter.writeStimSpec();
 	}
 	@Override
-	public Long getTaskId() {
+	public Long getStimId() {
 		return taskId;
 	}
 

@@ -139,7 +139,7 @@ public class GA3DLineageBlockGenerator extends GABlockGenerator {
             public void accept(String gaName, List<Stim> trials) {
                 for (Stim trial : trials) {
                     trial.writeStim();
-                    Long taskId = trial.getTaskId();
+                    Long taskId = trial.getStimId();
                     dbUtil.writeTaskToDo(taskId, taskId, -1, gaName, genIdsForGA.get(gaName));
                 }
             }

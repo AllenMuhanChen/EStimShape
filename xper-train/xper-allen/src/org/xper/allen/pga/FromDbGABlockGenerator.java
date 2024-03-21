@@ -106,7 +106,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     protected void writeTrials(){
         for (Stim stim : getStims()) {
             stim.writeStim();
-            Long stimId = stim.getTaskId();
+            Long stimId = stim.getStimId();
             for (int i = 0; i < numTrialsPerStimulus; i++) {
                 long taskId = getGlobalTimeUtil().currentTimeMicros();
                 dbUtil.writeTaskToDo(taskId, stimId, -1, gaName, genId);

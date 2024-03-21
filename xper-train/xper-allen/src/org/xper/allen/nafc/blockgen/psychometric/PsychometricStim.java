@@ -79,7 +79,7 @@ public class PsychometricStim implements Stim {
 		assignTaskId();
 
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getTaskId(),
+				getStimId(),
 				dbUtil,
 				trialParameters,
 				coords,
@@ -168,7 +168,7 @@ public class PsychometricStim implements Stim {
 
 
 
-	public Long getTaskId() {
+	public Long getStimId() {
 		return taskId;
 	}
 

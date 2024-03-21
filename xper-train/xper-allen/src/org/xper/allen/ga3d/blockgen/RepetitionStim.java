@@ -31,7 +31,7 @@ public class RepetitionStim extends ThreeDGAStim {
     }
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return stimId;
     }
 }

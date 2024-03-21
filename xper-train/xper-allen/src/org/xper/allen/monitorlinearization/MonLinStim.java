@@ -51,7 +51,7 @@ public class MonLinStim implements Stim {
     }
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return taskId;
     }
 }

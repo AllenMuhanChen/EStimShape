@@ -62,7 +62,7 @@ public class RandStim extends ThreeDGAStim {
 
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return stimId;
     }
 }

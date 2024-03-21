@@ -87,7 +87,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     protected abstract T createMStick();
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return stimId;
     }
 

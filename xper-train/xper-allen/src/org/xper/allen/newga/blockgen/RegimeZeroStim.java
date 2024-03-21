@@ -68,7 +68,7 @@ public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickD
     }
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return stimId;
     }
 

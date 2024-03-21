@@ -18,10 +18,11 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
 
     @Override
     protected void addTrials() {
+        int targetLuminance = 150;
         if (mode.equals("Isoluminant")){
             int numRepeats = 5;
             for (int i = 0; i < numRepeats; i++) {
-                addIsoluminantTrials();
+                addIsoluminantTrials(targetLuminance);
             }
         }
         else if (mode.equals("Linear")){
@@ -30,13 +31,13 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
         else if (mode.equals("RedGreenSinusoidal")){
             int numRepeats = 5;
             for (int i = 0; i < numRepeats; i++) {
-                addRedGreenSinusoidalTrials();
+                addRedGreenSinusoidalTrials(targetLuminance);
             }
         }
         else if (mode.equals("RedGreenSinusoidalLargeSpan")){
             int numRepeats = 1;
             for (int i = 0; i < numRepeats; i++) {
-                addRedGreenSinusoidalTrialsLargeSpan();
+                addRedGreenSinusoidalTrialsLargeSpan(targetLuminance);
             }
         }
         else if (mode.equals("LinearRepeats")){
@@ -44,6 +45,15 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             for (int i = 0; i < numRepeats; i++) {
                 addLinearTrials(256);
             }
+        }
+        else if (mode.equals("Gray")){
+            int numRepeats = 5;
+            for (int i = 0; i < numRepeats; i++) {
+                addGrayCalibrationTrials(256);
+            }
+        }
+        else {
+            throw new RuntimeException("Unknown mode: " + mode);
         }
 
 
@@ -53,13 +63,11 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
      * For isoluminance calibration of various angles on red/green sinusoid
      * at various gains to find the gain that will make the red and green combinations
      * equal to a target luminance.
+     * @param targetLuminance
      */
-    private void addRedGreenSinusoidalTrials() {
-        double targetLuminance = 150;
+    private void addRedGreenSinusoidalTrials(double targetLuminance) {
 
         //define some angles on a sine wave
-//        List<Double> angles = Arrays.asList(0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0);
-//        List<Double> angles = range(0, 180, 100);
         List<Double> angles = range(0, 180, 100);
 
         //calculate red and green luminances for each angle
@@ -83,9 +91,6 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
                 double redLuminance = redLuminances.get(i) * gain;
                 double greenLuminance = greenLuminances.get(i) * gain;
                 RGBColor corrected = lutCorrect.correctRedGreen(redLuminance, greenLuminance);
-//                int R = (int) Math.round(correction.redGamma.correct((float) redLuminance));
-//                int G = (int) Math.round(correction.greenGamma.correct((float) greenLuminance));
-//                RGBColor corrected = new RGBColor(R/255.0f, G/255.0f, 0);
                 stims.add(new MonLinStim(this, corrected, angles.get(i), gain));
             }
         }
@@ -96,13 +101,11 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
     /**
      * Run before running the red green sinusoidal trials to find the range of gains
      * that should be tested
+     * @param targetLuminance
      */
-    private void addRedGreenSinusoidalTrialsLargeSpan() {
-        double targetLuminance = 150;
+    private void addRedGreenSinusoidalTrialsLargeSpan(double targetLuminance) {
 
         //define some angles on a sine wave
-//        List<Double> angles = Arrays.asList(0.0, 22.5, 45.0, 67.5, 90.0, 112.5, 135.0, 157.5, 180.0);
-//        List<Double> angles = range(0, 180, 100);
         List<Double> angles = range(0, 180, 16);
 
         //calculate red and green luminances for each angle
@@ -126,16 +129,25 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
                 double redLuminance = redLuminances.get(i) * gain;
                 double greenLuminance = greenLuminances.get(i) * gain;
                 RGBColor corrected = lutCorrect.correctRedGreen(redLuminance, greenLuminance);
-//                int R = (int) Math.round(correction.redGamma.correct((float) redLuminance));
-//                int G = (int) Math.round(correction.greenGamma.correct((float) greenLuminance));
-//                RGBColor corrected = new RGBColor(R/255.0f, G/255.0f, 0);
                 stims.add(new MonLinStim(this, corrected, angles.get(i), gain));
             }
         }
-
-
     }
 
+    private void addGrayCalibrationTrials(int numSteps){
+        float min = 0.1f;
+        float max = 0.5f;
+        for (int i = 0; i < numSteps; i++) {
+            RGBColor newColor = new RGBColor(
+                    (float) interpolate(min, max, (float) i / (numSteps -1)),
+                    (float) interpolate(min, max, (float) i / (numSteps -1)),
+                    (float) interpolate(min, max, (float) i / (numSteps -1))
+            );
+
+            stims.add(new MonLinStim(this, newColor));
+        }
+
+    }
     public static List<Double> range(double start, double end, int n) {
         if (n <= 0) {
             throw new IllegalArgumentException("n must be a positive integer");
@@ -153,13 +165,10 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
 
     /**
      * Tests if the isoluminant correction is working (as a combination of look-up-table and sinusoidal gain correction)
+     * @param targetLuminance
      */
-    private void addIsoluminantTrials() {
-        float targetLuminance = 150;
+    private void addIsoluminantTrials(float targetLuminance) {
         int steps = 100;
-        double r;
-        double g;
-        double b;
         for (int i = 0; i < steps; i++) {
             double angle = 180 * i / steps;
             //each pair of red and green luminances should add to up to the target luminance
@@ -175,16 +184,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             System.out.println(lookUpCorrected.getGreen());
 
 
-//            int R = (int) Math.round(correction.redGamma.correct(luminanceRed));
-//            int G = (int) Math.round(correction.greenGamma.correct(luminanceGreen));
-
             stims.add(new MonLinStim(this, lookUpCorrected, angle, gain));
-//            float modFactor = (float) i / (steps-1);
-//            r = interpolate(1.0, 0, modFactor);
-//            g = 1 - r;
-//            b = 0;
-//            RGBColor corrected = correction.correct(new RGBColor((float) r, (float) g, (float) b), 200);
-//            stims.add(new MonLinStim(this, corrected));
         }
     }
 

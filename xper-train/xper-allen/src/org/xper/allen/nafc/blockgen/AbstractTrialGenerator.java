@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 import org.xper.Dependency;
-import org.xper.allen.util.AllenDbUtil;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.allen.Stim;
 import org.xper.time.TimeUtil;
@@ -63,7 +62,7 @@ public abstract class AbstractTrialGenerator<T extends Stim> implements TrialGen
 	protected void writeTrials() {
 		for (Stim stim : getStims()) {
 			stim.writeStim();
-			Long taskId = stim.getTaskId();
+			Long taskId = stim.getStimId();
 			getDbUtil().writeTaskToDo(taskId, taskId, -1, genId);
 		}
 	}

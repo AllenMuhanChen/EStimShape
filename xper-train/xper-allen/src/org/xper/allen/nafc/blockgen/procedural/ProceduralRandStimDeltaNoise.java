@@ -23,7 +23,7 @@ public class ProceduralRandStimDeltaNoise extends ProceduralRandStim {
     protected void writeStimSpec(){
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
                 new ProceduralRandDeltaStimType(generator).getLabel(),
-                getTaskId(),
+                getStimId(),
                 (AllenDbUtil) generator.getDbUtil(),
                 parameters,
                 coords,

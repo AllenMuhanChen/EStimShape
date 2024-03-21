@@ -319,7 +319,7 @@ public class ProceduralStim implements NAFCStim {
 
     protected void writeStimSpec(){
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-                getTaskId(),
+                getStimId(),
                 (AllenDbUtil) generator.getDbUtil(),
                 parameters,
                 coords,
@@ -334,7 +334,7 @@ public class ProceduralStim implements NAFCStim {
     }
 
     @Override
-    public Long getTaskId() {
+    public Long getStimId() {
         return taskId;
     }
 

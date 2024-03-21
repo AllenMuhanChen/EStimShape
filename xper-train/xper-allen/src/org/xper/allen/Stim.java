@@ -12,5 +12,5 @@ public interface Stim {
 	 */
 	public void preWrite();
 	public void writeStim();
-	public Long getTaskId();
+	public Long getStimId();
 }

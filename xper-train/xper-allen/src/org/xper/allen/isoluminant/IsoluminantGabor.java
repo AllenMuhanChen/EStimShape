@@ -3,18 +3,17 @@ package org.xper.allen.isoluminant;
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
 import org.xper.allen.monitorlinearization.SinusoidGainCorrector;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.gabor.Gabor;
-import org.xper.rfplot.drawing.gabor.IsoluminantGaborSpec;
+import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
 
 public class IsoluminantGabor extends Gabor {
 
-    IsoluminantGaborSpec spec;
+    IsoGaborSpec spec;
     double luminanceCandela;
     private LookUpTableCorrector lutCorrector;
     private SinusoidGainCorrector sinusoidGainCorrector;
 
-    public IsoluminantGabor(IsoluminantGaborSpec spec, double luminanceCandela, LookUpTableCorrector lutCorrector, SinusoidGainCorrector sinusoidGainCorrector) {
+    public IsoluminantGabor(IsoGaborSpec spec, double luminanceCandela, LookUpTableCorrector lutCorrector, SinusoidGainCorrector sinusoidGainCorrector) {
         this.spec = spec;
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
@@ -31,14 +30,14 @@ public class IsoluminantGabor extends Gabor {
 
         double gain;
         RGBColor corrected;
-        if (spec.colors.equals("RedGreen")) {
+        if (spec.type.equals("RedGreen")) {
             double luminanceRed = luminanceCandela * (1 + Math.cos(Math.toRadians(angle)))/2;
             double luminanceGreen = luminanceCandela * (1 + Math.cos(Math.toRadians(angle-180)))/2;
             gain = sinusoidGainCorrector.getGain(Math.toDegrees(angle), "RedGreen");
             corrected = lutCorrector.correctRedGreen(luminanceRed * gain, luminanceGreen * gain);
         }
         else {
-            throw new RuntimeException("Unknown color space: " + spec.colors);
+            throw new RuntimeException("Unknown color space: " + spec.type);
         }
 
 
@@ -48,11 +47,11 @@ public class IsoluminantGabor extends Gabor {
     }
 
     @Override
-    public IsoluminantGaborSpec getGaborSpec() {
+    public IsoGaborSpec getGaborSpec() {
         return spec;
     }
 
-    public void setGaborSpec(IsoluminantGaborSpec spec) {
+    public void setGaborSpec(IsoGaborSpec spec) {
         this.spec = spec;
     }
 

@@ -17,7 +17,7 @@ import org.xper.rfplot.drawing.IsochromaticGaborSpec;
 import org.xper.rfplot.drawing.gabor.ColourConverter;
 import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
 import org.xper.allen.isoluminant.IsoluminantGabor;
-import org.xper.rfplot.drawing.gabor.IsoluminantGaborSpec;
+import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
 import org.xper.util.ThreadUtil;
 
 import javax.sql.DataSource;
@@ -100,16 +100,16 @@ public class IsochromaticGaborTest {
         spec.setSize(size);
         spec.setAnimation(false);
 
-        IsoluminantGaborSpec isoluminantGaborSpec = new IsoluminantGaborSpec(
+        IsoGaborSpec isoGaborSpec = new IsoGaborSpec(
                spec, "RedGreen");
-        IsoluminantGabor gabor = new IsoluminantGabor(isoluminantGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
-        gabor.setGaborSpec(isoluminantGaborSpec);
-        gabor.setSpec(isoluminantGaborSpec.toXml());
+        IsoluminantGabor gabor = new IsoluminantGabor(isoGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
+        gabor.setGaborSpec(isoGaborSpec);
+        gabor.setSpec(isoGaborSpec.toXml());
 
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                GL11.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+                GL11.glClearColor(84/255f, 84/255f, 84/255f, 1.0f);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
                 gabor.draw(context);
             }
