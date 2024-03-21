@@ -49,6 +49,7 @@ generator.spec_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedura
 generator.noisemap_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/noisemaps
 experiment.noisemap_path = /home/m2_allen/Documents/stimuli/ga_dev_240207/procedural/noisemaps
 #############
+ga.spec_path = /home/r2_allen/Documents/EStimShape/ga_dev_240207/specs
 
 
 acq.server_host=172.30.6.80

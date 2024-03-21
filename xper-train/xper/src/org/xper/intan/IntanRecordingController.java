@@ -38,7 +38,12 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
 
     @Override
     public void trialInit(long timestamp, TrialContext context) {
-
+        if (recordingEnabled && !connected)
+            tryConnection();
+        if (toRecord()) {
+            fileNamingStrategy.rename(timestamp);
+            getIntan().record();
+        }
     }
 
     @Override

@@ -6,6 +6,8 @@ import org.xper.rfplot.drawing.png.PngSpec;
 
 public class MonLinSpec {
     RGBColor color;
+    double angle = 0; // in degrees for the sinusoidal grating
+    double gain=1;
 
     transient static XStream s;
 

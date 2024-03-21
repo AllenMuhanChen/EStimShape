@@ -36,10 +36,25 @@ public class MonLinConfig {
     public MonLinTrialGenerator trialGenerator(){
         MonLinTrialGenerator gen = new MonLinTrialGenerator();
         gen.setDbUtil(baseConfig.dbUtil());
+        gen.setLutCorrect(lookUpTableCorrect());
+        gen.setSinusoidCorrect(sinusoidCorrect());
         gen.setGlobalTimeUtil(baseConfig.localTimeUtil());
         return gen;
 
     }
 
+    @Bean
+    public LookUpTableCorrect lookUpTableCorrect() {
+        LookUpTableCorrect lut = new LookUpTableCorrect();
+        lut.setDataSource(baseConfig.dataSource());
+        return lut;
+    }
+
+    @Bean
+    public SinusoidCorrect sinusoidCorrect() {
+        SinusoidCorrect sc = new SinusoidCorrect();
+        sc.setDataSource(baseConfig.dataSource());
+        return sc;
+    }
 
 }

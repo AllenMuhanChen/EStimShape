@@ -6,5 +6,5 @@ XPER_PROPERTIES_MONLIN="$SHELLSCRIPTS/xper.properties.monitorlinearization"
 DIST="$ESTIMSHAPE/xper-train/dist"
 
 cd $DIST/allen
-java -jar MonLinGenerator.jar "bleh"
+java -jar MonLinGenerator.jar "Isoluminant"
 

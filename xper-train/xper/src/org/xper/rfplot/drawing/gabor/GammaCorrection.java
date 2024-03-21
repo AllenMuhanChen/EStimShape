@@ -3,9 +3,9 @@ package org.xper.rfplot.drawing.gabor;
 import org.xper.drawing.RGBColor;
 
 public class GammaCorrection {
-    Gamma redGamma;
-    Gamma greenGamma;
-    Gamma blueGamma;
+    public Gamma redGamma;
+    public Gamma greenGamma;
+    public Gamma blueGamma;
 
     public GammaCorrection(Gamma redGamma, Gamma greenGamma, Gamma blueGamma) {
         this.redGamma = redGamma;
