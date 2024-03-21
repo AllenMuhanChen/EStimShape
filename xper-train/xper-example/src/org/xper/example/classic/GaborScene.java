@@ -9,6 +9,7 @@ public class GaborScene extends AbstractTaskScene {
 
 	RFPlotGratingObject obj = new RFPlotGratingObject();
 
+	@Override
 	public void initGL(int w, int h) {
 		super.initGL(w, h);
 		RFPlotGratingObject.initGL();

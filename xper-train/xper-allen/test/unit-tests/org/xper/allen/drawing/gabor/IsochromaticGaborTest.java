@@ -1,22 +1,28 @@
 package org.xper.allen.drawing.gabor;
 
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import org.junit.Before;
 import org.junit.Test;
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
+import org.xper.allen.monitorlinearization.LookUpTableCorrector;
+import org.xper.allen.monitorlinearization.SinusoidGainCorrector;
 import org.xper.drawing.Context;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
+import org.xper.exception.DbException;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.IsochromaticGaborSpec;
 import org.xper.rfplot.drawing.gabor.ColourConverter;
 import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
-import org.xper.rfplot.drawing.gabor.IsoluminantGabor;
+import org.xper.allen.isoluminant.IsoluminantGabor;
 import org.xper.rfplot.drawing.gabor.IsoluminantGaborSpec;
 import org.xper.util.ThreadUtil;
 
+import javax.sql.DataSource;
 import java.awt.*;
+import java.beans.PropertyVetoException;
 
 public class IsochromaticGaborTest {
 
@@ -25,6 +31,8 @@ public class IsochromaticGaborTest {
     private int width;
     private org.xper.drawing.renderer.PerspectiveRenderer perspectiveRenderer;
     private Context context;
+    private LookUpTableCorrector lutCorrector = new LookUpTableCorrector();
+    private SinusoidGainCorrector sinusoidGainCorrector = new SinusoidGainCorrector();
 
     @Before
     public void setUp() throws Exception {
@@ -45,6 +53,10 @@ public class IsochromaticGaborTest {
         context = new Context();
         System.out.println(perspectiveRenderer.mm2deg(perspectiveRenderer.getVpWidthmm()));
         context.setRenderer(perspectiveRenderer);
+
+        DataSource dataSource = dataSource();
+        lutCorrector.setDataSource(dataSource);
+        sinusoidGainCorrector.setDataSource(dataSource);
     }
 
     @Test
@@ -78,7 +90,7 @@ public class IsochromaticGaborTest {
 
     @Test
     public void testIsoluminant() {
-        int size = 20;
+        int size = 5;
         GaborSpec spec = new GaborSpec();
         spec.setOrientation(45);
         spec.setPhase(0);
@@ -88,12 +100,9 @@ public class IsochromaticGaborTest {
         spec.setSize(size);
         spec.setAnimation(false);
 
-//        IsoluminantGaborSpec isoluminantGaborSpec = new IsoluminantGaborSpec(new RGBColor(0.5f, 0.5f, 0),
-//                new RGBColor(0, 0.5f, 0.5f), false, true, spec);
         IsoluminantGaborSpec isoluminantGaborSpec = new IsoluminantGaborSpec(
-                new RGBColor(1f, 0f, 0f),
-                new RGBColor(0f, 1f, 0f), true, true, spec);
-        IsoluminantGabor gabor = new IsoluminantGabor();
+               spec, "RedGreen");
+        IsoluminantGabor gabor = new IsoluminantGabor(isoluminantGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
         gabor.setGaborSpec(isoluminantGaborSpec);
         gabor.setSpec(isoluminantGaborSpec.toXml());
 
@@ -184,5 +193,18 @@ public class IsochromaticGaborTest {
 //            System.out.println(a);
         }
         System.out.println("Green RGB: " + rgb[0] + " " + rgb[1] + " " + rgb[2]);
+    }
+
+    public DataSource dataSource() {
+        ComboPooledDataSource source = new ComboPooledDataSource();
+        try {
+            source.setDriverClass("com.mysql.jdbc.Driver");
+        } catch (PropertyVetoException e) {
+            throw new DbException(e);
+        }
+        source.setJdbcUrl("jdbc:mysql://172.30.6.80/allen_monitorlinearization_240228?rewriteBatchedStatements=true");
+        source.setUser("xper_rw");
+        source.setPassword("up2nite");
+        return source;
     }
 }

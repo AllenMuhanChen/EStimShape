@@ -7,10 +7,8 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.config.IntanRHDConfig;
 import org.xper.drawing.object.BlankScreen;
 
 @Configuration(defaultLazy= Lazy.TRUE)
@@ -44,15 +42,15 @@ public class MonLinConfig {
     }
 
     @Bean
-    public LookUpTableCorrect lookUpTableCorrect() {
-        LookUpTableCorrect lut = new LookUpTableCorrect();
+    public LookUpTableCorrector lookUpTableCorrect() {
+        LookUpTableCorrector lut = new LookUpTableCorrector();
         lut.setDataSource(baseConfig.dataSource());
         return lut;
     }
 
     @Bean
-    public SinusoidCorrect sinusoidCorrect() {
-        SinusoidCorrect sc = new SinusoidCorrect();
+    public SinusoidGainCorrector sinusoidCorrect() {
+        SinusoidGainCorrector sc = new SinusoidGainCorrector();
         sc.setDataSource(baseConfig.dataSource());
         return sc;
     }

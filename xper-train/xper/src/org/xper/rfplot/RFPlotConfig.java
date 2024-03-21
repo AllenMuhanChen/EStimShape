@@ -25,8 +25,6 @@ import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
 import org.xper.rfplot.drawing.*;
 import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
-import org.xper.rfplot.drawing.gabor.IsoluminantGabor;
-import org.xper.rfplot.drawing.gabor.IsoluminantGaborSpec;
 import org.xper.rfplot.gui.*;
 import org.xper.rfplot.gui.scroller.*;
 
@@ -77,7 +75,6 @@ public class RFPlotConfig {
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
 		refObjMap.put(IsochromaticGabor.class.getName(), new IsochromaticGabor());
-		refObjMap.put(IsoluminantGabor.class.getName(), new IsoluminantGabor());
 		return refObjMap;
 	}
 
@@ -86,7 +83,6 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
 		refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
 		refModulatorMap.put(IsochromaticGabor.class.getName(), isochromaticGaborModulator());
-		refModulatorMap.put(IsoluminantGabor.class.getName(), isoluminantGaborModulator());
 		return refModulatorMap;
 	}
 
@@ -102,11 +98,6 @@ public class RFPlotConfig {
 		return gratingModulator;
 	}
 
-	@Bean
-	public RFPlotStimModulator isoluminantGaborModulator() {
-		RFPlotStimModulator gratingModulator = new RFPlotStimModulator(isoluminantGaborScrollers());
-		return gratingModulator;
-	}
 
 
 	@Bean
@@ -139,15 +130,6 @@ public class RFPlotConfig {
 		return map;
 	}
 
-	@Bean
-	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> isoluminantGaborScrollers(){
-		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
-		map.put("Sigma", new GaborSigmaScroller<>(IsoluminantGaborSpec.class));
-		map.put("Orientation", new GaborOrientationScroller<>(IsoluminantGaborSpec.class));
-		map.put("Spatial Frequency", new GaborSpatialFrequencyScroller<>(IsoluminantGaborSpec.class));
-		map.put("Isoluminant", new GaborIsoluminantScroller<>(IsoluminantGaborSpec.class));
-		return map;
-	}
 
 	@Bean
 	public ImgPathScroller imgPathScroller() {

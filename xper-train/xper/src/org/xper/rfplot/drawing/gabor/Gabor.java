@@ -16,7 +16,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     protected ByteBuffer array;
     protected int textureId = -1;
 
-    private GaborSpec gaborSpec;
+    private GaborSpec gaborSpec = new GaborSpec();
     private int w;
     private int h;
 
@@ -91,7 +91,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
             // Assuming the Gabor pattern should span the entire height of the viewport uniformly
             float verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
 
-            float modFactor = (float) ((Math.sin(2.0 * Math.PI * frequencyCyclesPerMm * verticalPosition + phase) + 1.0) / 2.0);
+            float modFactor = (float) (Math.sin(2 * Math.PI * frequencyCyclesPerMm * verticalPosition + phase) + 1) / 2;
 
             float[] rgb = modulateColor(modFactor);
 

@@ -3,32 +3,18 @@ package org.xper.allen.monitorlinearization;
 import org.xper.Dependency;
 import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.gabor.Gamma;
-import org.xper.rfplot.drawing.gabor.GammaCorrection;
 
 import java.util.*;
 
 public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
     @Dependency
-    LookUpTableCorrect lutCorrect;
+    LookUpTableCorrector lutCorrect;
 
     @Dependency
-    SinusoidCorrect sinusoidCorrect;
+    SinusoidGainCorrector sinusoidGainCorrector;
 
     public String mode;
-    public int numStepsPerColor = 100;
 
-    private final RGBColor[] linearColors = new RGBColor[]{
-        new RGBColor(1,0,0),
-        new RGBColor(0,1,0),
-        new RGBColor(0,0,1)
-    };
-
-    GammaCorrection correction = new GammaCorrection(
-            new Gamma(0.0009087330026142308, 2.4345265693949347),
-            new Gamma(0.0013549969854648822, 2.454748823171531),
-            new Gamma(0.0010747612278690366, 2.2296569798339037)
-    );
 
     @Override
     protected void addTrials() {
@@ -59,9 +45,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
                 addLinearTrials(256);
             }
         }
-        else if (mode.equals("TestIsoluminant")){
-            addTestIsoluminantTrials();
-        }
+
 
     }
 
@@ -183,7 +167,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             double luminanceGreen = targetLuminance * (1 + Math.cos(Math.toRadians(angle-180)))/2;
             System.out.println("Target Lum REd: " + luminanceRed);
             System.out.println("Target Lum Green: " + luminanceGreen);
-            double gain = sinusoidCorrect.getGainFromRedGreen(angle);
+            double gain = sinusoidGainCorrector.getGain(angle, "'RedGreen'");
             System.out.println("GAIN: " + gain);
             RGBColor lookUpCorrected = lutCorrect.correctRedGreen(luminanceRed * gain, luminanceGreen * gain);
 
@@ -247,15 +231,15 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
         return value1 + (value2 - value1) * factor;
     }
 
-    public LookUpTableCorrect getLutCorrect() {
+    public LookUpTableCorrector getLutCorrect() {
         return lutCorrect;
     }
 
-    public void setLutCorrect(LookUpTableCorrect lutCorrect) {
+    public void setLutCorrect(LookUpTableCorrector lutCorrect) {
         this.lutCorrect = lutCorrect;
     }
 
-    public void setSinusoidCorrect(SinusoidCorrect sinusoidCorrect) {
-        this.sinusoidCorrect = sinusoidCorrect;
+    public void setSinusoidCorrect(SinusoidGainCorrector sinusoidGainCorrector) {
+        this.sinusoidGainCorrector = sinusoidGainCorrector;
     }
 }

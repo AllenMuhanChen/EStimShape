@@ -17,6 +17,7 @@ import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
 import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.db.vo.StimSpecEntry;
 import org.xper.drawing.Coordinates2D;
 import org.xper.time.TestTimeUtil;
@@ -178,7 +179,7 @@ public class PsychometricStimIntegrationTest {
 	}
 
 	private NoisyPngSpec getPngSpec(long id) {
-		StimSpecEntry entry = generator.getDbUtil().readStimObjData(id);
+		StimSpecEntry entry = ((AllenDbUtil)generator.getDbUtil()).readStimObjData(id);
 		NoisyPngSpec spec = NoisyPngSpec.fromXml(entry.getSpec());
 		return spec;
 	}

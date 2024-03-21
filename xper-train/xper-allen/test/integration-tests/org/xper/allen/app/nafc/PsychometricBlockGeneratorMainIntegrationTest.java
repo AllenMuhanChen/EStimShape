@@ -77,7 +77,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
         //ASSERTs
         //Test Number of Trials in Database
         endTime = System.currentTimeMillis()*1000;
-        dbUtil = generator.getDbUtil();
+        dbUtil = (AllenDbUtil) generator.getDbUtil();
         generates_correct_total_amount_of_trials();
         generates_correct_distribution_of_trials();
     }
@@ -97,7 +97,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
         //ASSERTs
         //Test Number of Trials in Database
         endTime = System.currentTimeMillis()*1000;
-        dbUtil = generator.getDbUtil();
+        dbUtil = (AllenDbUtil) generator.getDbUtil();
         generates_correct_total_amount_of_trials();
         generates_correct_distribution_of_trials();
     }
@@ -120,7 +120,7 @@ public class PsychometricBlockGeneratorMainIntegrationTest {
         //ASSERTs
         //Test Number of Trials in Database
         endTime = System.currentTimeMillis()*1000;
-        dbUtil = generator.getDbUtil();
+        dbUtil = (AllenDbUtil) generator.getDbUtil();
         generates_correct_total_amount_of_trials();
         generates_correct_distribution_of_trials();
     }

@@ -1,7 +1,6 @@
 package org.xper.allen.monitorlinearization;
 
 import org.xper.Dependency;
-import org.xper.drawing.RGBColor;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -9,16 +8,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class SinusoidCorrect {
+public class SinusoidGainCorrector {
     @Dependency
     DataSource dataSource;
 
 
-    public double getGainFromRedGreen(double angle){
+    public double getGain(double angle, String colors){
+        //wrap colorString with ''
+        String colorsString = "'" + colors + "'";
         // Map the angle to the range [0, 180] based on the cosine function
         double mappedAngle = Math.abs(180 - Math.abs(angle % 360 - 180));
 
-        String query = "SELECT angle, gain FROM SinGain WHERE colors = 'RedGreen' ORDER BY ABS(angle - ?) LIMIT 2";
+        String query = "SELECT angle, gain FROM SinGain WHERE colors = " + colorsString + " ORDER BY ABS(angle - ?) LIMIT 2";
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setDouble(1, mappedAngle);

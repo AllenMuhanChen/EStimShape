@@ -14,6 +14,7 @@ import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NoiseFormer;
 import org.xper.allen.nafc.blockgen.psychometric.AbstractPsychometricTrialGenerator;
 import org.xper.allen.nafc.blockgen.psychometric.PsychometricBlockGen;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TestTimeUtil;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
@@ -234,7 +235,7 @@ public class RandTrialIntegrationTest {
     }
 
     private NoisyPngSpec getPngSpec(long id) {
-        StimSpecEntry entry = generator.getDbUtil().readStimObjData(id);
+        StimSpecEntry entry = ((AllenDbUtil) generator.getDbUtil()).readStimObjData(id);
         NoisyPngSpec spec = NoisyPngSpec.fromXml(entry.getSpec());
         return spec;
     }
