@@ -90,7 +90,7 @@ public class IsochromaticGaborTest {
 
     @Test
     public void testIsoluminant() {
-        int size = 5;
+        int size = 20;
         GaborSpec spec = new GaborSpec();
         spec.setOrientation(45);
         spec.setPhase(0);
@@ -115,7 +115,9 @@ public class IsochromaticGaborTest {
             }
         });
 
-        double ratio = perspectiveRenderer.deg2mm(size) / perspectiveRenderer.getVpWidthmm();
+        double diskSize = perspectiveRenderer.deg2mm(size);
+        double fadeSize = perspectiveRenderer.deg2mm(2 * 0.5 * size);
+        double ratio = (diskSize + fadeSize) / perspectiveRenderer.getVpWidthmm();
         System.out.println("The Gabor should span approx: " + ratio + " of the screen width.");
 
         ThreadUtil.sleep(100000);

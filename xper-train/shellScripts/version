@@ -1,3 +1,4 @@
 #!/bin/bash
 #All we need to do is change VERSION. 
-VERSION=ga_dev_240207
+VERSION_PROCEDURAL=ga_dev_240207
+VERSION_ISOGABOR=dev_240322

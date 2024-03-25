@@ -22,7 +22,6 @@ public class LookUpTableCorrector {
 
     public RGBColor correctRedGreen(double redLuminance, double greenLuminance) {
         double targetLuminance = redLuminance + greenLuminance;
-        System.out.println("Target Luminance: " + targetLuminance + " Red Luminance: " + redLuminance + " Green Luminance: " + greenLuminance);
         int n = 5;
         Map<Integer, Float> closestGreens = getClosestColorsWithLuminance((float) greenLuminance, "green", n);
         Map<Integer, Float> closestReds = getClosestColorsWithLuminance((float) redLuminance, "red", n);
@@ -39,7 +38,6 @@ public class LookUpTableCorrector {
                         double totalLuminance = redLum + greenLum;
                         double diff = Math.abs(totalLuminance - targetLuminance);
                         if (diff < minDiff) {
-                            System.out.println("New Min Found: " + diff + "With Luminance: " + totalLuminance + " Red: " + red + " Green: " + green);                            minDiff = diff;
                             minRed = red;
                             minGreen = green;
                         }
@@ -47,9 +45,6 @@ public class LookUpTableCorrector {
                 });
             }
         });
-        System.out.println("Total Corrected Luminance: " + (closestReds.get(minRed) + closestGreens.get(minGreen)));
-        System.out.println("Closest Red: " + minRed + " with Luminance " + closestReds.get(minRed));
-        System.out.println("Closest Green: " + minGreen + "with Luminance " + closestGreens.get(minGreen));
         return new RGBColor(minRed/255.0f, minGreen/255.0f, 0);
 
     }

@@ -79,7 +79,6 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             double greenLuminance = targetLuminance * (1 + Math.cos(Math.toRadians(angle-180)))/2;
             redLuminances.add(redLuminance);
             greenLuminances.add(greenLuminance);
-            System.out.println("Sum of red and green luminances: " + (redLuminance + greenLuminance));
         }
 
         //GAINS

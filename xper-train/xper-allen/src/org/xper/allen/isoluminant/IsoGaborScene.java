@@ -22,6 +22,8 @@ public class IsoGaborScene extends AbstractTaskScene {
 
     private IsoluminantGabor obj;
 
+
+
     @Override
     public void setTask(ExperimentTask task) {
         String stimSpecXml = task.getStimSpec();
@@ -30,10 +32,9 @@ public class IsoGaborScene extends AbstractTaskScene {
         stimSpec = IsoGaborSpec.fromXml(stimSpecXml);
         if (isIsoluminant(stimSpec)) {
             obj = new IsoluminantGabor(stimSpec, 150, lutCorrector, sinusoidGainCorrector);
+        } else {
+            throw new RuntimeException("Unknown color space: " + stimSpec.type);
         }
-
-
-
     }
 
     private static boolean isIsoluminant(IsoGaborSpec stimSpec) {
@@ -43,7 +44,6 @@ public class IsoGaborScene extends AbstractTaskScene {
     @Override
     public void drawStimulus(Context context) {
         obj.draw(context);
-
     }
 
     public LookUpTableCorrector getLutCorrector() {

@@ -1,12 +1,23 @@
 package org.xper.allen.isoluminant;
 
+import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.monitorlinearization.MonLinConfig;
+import org.xper.allen.monitorlinearization.MonLinTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
+import org.xper.util.FileUtil;
 
 public class IsoGaborTrialGenerator extends AbstractTrialGenerator<IsoGaborStim> {
 
-    private int numRepeats = 1;
+    private int numRepeats = 5;
+
+    public static void main(String[] args) {
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"), IsoGaborConfig.class);
+        IsoGaborTrialGenerator gen = context.getBean(IsoGaborTrialGenerator.class);
+
+        gen.generate();
+    }
 
     @Override
     protected void addTrials() {

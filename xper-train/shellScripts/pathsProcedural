@@ -1,6 +1,6 @@
 #!/bin/bash
 source version
-
+VERSION=$VERSION_PROCEDURAL
 PROPERTIES="xper.properties.procedural"
 
 #Replacing Database Declarations

@@ -1,0 +1,15 @@
+#!/bin/bash
+source pathsIsogabor
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_isogabor_$VERSION <<EOF
+TRUNCATE Table BehMsg;
+TRUNCATE Table BehMsgEye;
+TRUNCATE Table StimSpec;
+TRUNCATE Table TaskToDo;
+TRUNCATE Table TaskDone;
+EOF
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_ISOGABOR $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_ISOGABOR $DIST/allen/xper.properties
+cd $DIST/allen
+
+java -jar IsoGaborGenerator.jar
+
