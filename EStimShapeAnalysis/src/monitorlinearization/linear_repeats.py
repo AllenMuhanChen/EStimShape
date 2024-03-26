@@ -4,8 +4,8 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from clat.util.connection import Connection
-from monitorlinearization.compile_monlin import average_n_most_common, find_asymptote
-from monitorlinearization.monlin import get_most_recent_pickle_path
+from monitorlinearization.compile_monlin import find_asymptote
+from monitorlinearization.monlin import get_most_recent_pickle_path, save_to_db
 
 matplotlib.use("Qt5Agg")
 
@@ -20,37 +20,11 @@ def main():
     data = data[data['Candela']!="None"]
     data.sort_values(by=['Green', 'Red', 'Blue'], inplace=True)
     print(data.to_string())
-    plot_candela_vector(data, 1710948353588074)
-    plot_candela_vector(data, 1710948398565500)
-    plt.show()
+    # plot_candela_vector(data, 1710948353588074)
+    # plot_candela_vector(data, 1710948398565500)
+    # plt.show()
     plot_candela_values(data)
     save_to_db(conn, data)
-
-
-
-def save_to_db(conn, data):
-    ## Save the data to the database
-    # calculate average candela for repeats
-    data['color'] = data.apply(lambda row: (row['Red'], row['Green'], row['Blue']), axis=1)
-    data['luminance'] = data['Candela']
-    avg_candela = data.groupby('color')['Candela'].mean().reset_index()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS MonitorLin (
-            red INT,
-            green INT,
-            blue INT,
-            luminance FLOAT,
-            PRIMARY KEY (red, green, blue)
-        )
-    """)
-    for _, row in avg_candela.iterrows():
-        red, green, blue = row['color']
-        luminance = row['Candela']
-        conn.execute("""
-            INSERT INTO MonitorLin (red, green, blue, luminance)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE luminance = VALUES(luminance)
-        """, (red, green, blue, luminance))
 
 
 def plot_candela_values(df):

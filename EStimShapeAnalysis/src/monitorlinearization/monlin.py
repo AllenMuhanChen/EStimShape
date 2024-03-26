@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 import matplotlib
@@ -6,16 +8,28 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.optimize import curve_fit
 
+from clat.util.connection import Connection
+
 matplotlib.use("Qt5Agg")
 
+def get_most_recent_pickle_path(type: str):
+    monitor_linearization_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization"
+    # Find the most recent file containing "red_green_sinusoidal" in the monitor_linearization_path
+    files = [f for f in os.listdir(monitor_linearization_path) if type in f]
+    latest_file = max(files, key=lambda x: os.path.getctime(os.path.join(monitor_linearization_path, x)))
+    pickle_path = os.path.join(monitor_linearization_path, latest_file)
+    return pickle_path
+
 def main():
+    conn = Connection("allen_monitorlinearization_240228")
     # Load data
-    df = pd.read_pickle("/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization/monitor_linearization_TestRecording_240315_145941.pkl")
+    pickle_path = get_most_recent_pickle_path("monitor_linearization")
+    df = pd.read_pickle(pickle_path)
 
 
     # Plot Candela values for non-zero entries of Red, Green, and Blue
     plot_and_fit_monlin(df)
-
+    save_to_db(conn, df)
 
 
 
@@ -80,10 +94,28 @@ if __name__ == "__main__":
     main()
 
 
-def get_most_recent_pickle_path(type: str):
-    monitor_linearization_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization"
-    # Find the most recent file containing "red_green_sinusoidal" in the monitor_linearization_path
-    files = [f for f in os.listdir(monitor_linearization_path) if type in f]
-    latest_file = max(files, key=lambda x: os.path.getctime(os.path.join(monitor_linearization_path, x)))
-    pickle_path = os.path.join(monitor_linearization_path, latest_file)
-    return pickle_path
+
+
+def save_to_db(conn, data):
+    ## Save the data to the database
+    # calculate average candela for repeats
+    data['color'] = data.apply(lambda row: (row['Red'], row['Green'], row['Blue']), axis=1)
+    data['luminance'] = data['Candela']
+    avg_candela = data.groupby('color')['Candela'].mean().reset_index()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS MonitorLin (
+            red INT,
+            green INT,
+            blue INT,
+            luminance FLOAT,
+            PRIMARY KEY (red, green, blue)
+        )
+    """)
+    for _, row in avg_candela.iterrows():
+        red, green, blue = row['color']
+        luminance = row['Candela']
+        conn.execute("""
+            INSERT INTO MonitorLin (red, green, blue, luminance)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE luminance = VALUES(luminance)
+        """, (red, green, blue, luminance))

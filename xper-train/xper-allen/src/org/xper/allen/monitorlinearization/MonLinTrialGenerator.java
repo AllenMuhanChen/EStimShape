@@ -26,7 +26,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             }
         }
         else if (mode.equals("Linear")){
-            addLinearTrials(256);
+            addLinearTrials(1024);
         }
         else if (mode.equals("RedGreenSinusoidal")){
             int numRepeats = 5;
