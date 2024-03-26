@@ -51,7 +51,7 @@ def plot_and_fit_monlin(df):
         non_zero_color = df[df[color] > 0.001]
 
         # Plot each color with its respective line color and label
-        x_data = non_zero_color[color]
+        x_data = non_zero_color[color] / 4
         y_data = non_zero_color['Candela']
 
         plt.plot(x_data, y_data, marker='o', linestyle='-', color=color.lower(),
@@ -111,6 +111,7 @@ def save_to_db(conn, data):
             PRIMARY KEY (red, green, blue)
         )
     """)
+    conn.execute("TRUNCATE TABLE MonitorLin")
     for _, row in avg_candela.iterrows():
         red, green, blue = row['color']
         luminance = row['Candela']

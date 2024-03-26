@@ -103,7 +103,7 @@ public class ProceduralStim implements NAFCStim {
         while (true) {
             //Generate Sample
             ProceduralMatchStick sample = new ProceduralMatchStick();
-            sample.setProperties(parameters.getSize(), "SHADE");
+            sample.setProperties(parameters.getSize(), parameters.textureType);
             sample.setStimColor(parameters.color);
             try {
                 sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
@@ -127,7 +127,7 @@ public class ProceduralStim implements NAFCStim {
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
-            proceduralDistractor.setProperties(parameters.getSize(), "SHADE");
+            proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
             mSticks.proceduralDistractors.add(proceduralDistractor);
@@ -139,7 +139,7 @@ public class ProceduralStim implements NAFCStim {
         //Generate Rand Distractors
         for (int i = 0; i<numRandDistractors; i++) {
             ProceduralMatchStick randDistractor = new ProceduralMatchStick();
-            randDistractor.setProperties(parameters.getSize(), "SHADE");
+            randDistractor.setProperties(parameters.getSize(), parameters.textureType);
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
             mSticks.randDistractors.add(randDistractor);
@@ -352,11 +352,12 @@ public class ProceduralStim implements NAFCStim {
         double morphDiscreteness;
         Color color;
         double noiseRate = 1;
+        String textureType;
 
         public ProceduralStimParameters() {
         }
 
-        public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color) {
+        public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color, String textureType) {
             super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize);
             this.noiseChance = noiseChance;
             this.numChoices = numChoices;
@@ -364,19 +365,10 @@ public class ProceduralStim implements NAFCStim {
             this.morphMagnitude = morphMagnitude;
             this.morphDiscreteness = morphDiscreteness;
             this.color = color;
+            this.textureType = textureType;
         }
 
-        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color) {
-            super(other);
-            this.noiseChance = noiseChance;
-            this.numChoices = numChoices;
-            this.numRandDistractors = numRandDistractors;
-            this.morphMagnitude = morphMagnitude;
-            this.morphDiscreteness = morphDiscreteness;
-            this.color = color;
-        }
-
-        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, double noiseRate, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color) {
+        public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, double noiseRate, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color, String textureType) {
             super(other);
             this.noiseChance = noiseChance;
             this.noiseRate = noiseRate;
@@ -385,6 +377,7 @@ public class ProceduralStim implements NAFCStim {
             this.morphMagnitude = morphMagnitude;
             this.morphDiscreteness = morphDiscreteness;
             this.color = color;
+            this.textureType = textureType;
         }
 
     }

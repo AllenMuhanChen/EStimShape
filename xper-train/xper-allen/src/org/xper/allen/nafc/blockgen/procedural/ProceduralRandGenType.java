@@ -17,6 +17,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
     protected JTextField sizeField, eyeWinSizeField, noiseChanceField, numChoicesField, numRandDistractorsField;
     protected JTextField morphMagnitudeField, morphDiscretenessField, colorRedField, colorGreenField, colorBlueField, numTrialsField;
     protected JTextField noiseRateField;
+    protected JTextField textureTypeField;
 
     public ProceduralRandGenType(NAFCBlockGen generator) {
         this.generator = generator;
@@ -50,6 +51,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         colorGreenField = new JTextField(10);
         colorBlueField = new JTextField(10);
         numTrialsField = new JTextField(10);
+        textureTypeField = new JTextField(10);
 
         labelsForFields = new LinkedHashMap<>();
         defaultsForFields = new LinkedHashMap<>();
@@ -70,6 +72,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         labelsForFields.put(colorGreenField, "Color - Green (0-255):"); defaultsForFields.put(colorGreenField, "255");
         labelsForFields.put(colorBlueField, "Color - Blue (0-255):"); defaultsForFields.put(colorBlueField, "255");
         labelsForFields.put(numTrialsField, "Number of Trials:"); defaultsForFields.put(numTrialsField, "10");
+        labelsForFields.put(textureTypeField, "Texture Type:"); defaultsForFields.put(textureTypeField, "SHADE");
     }
 
     public void loadParametersIntoFields(GenParameters blockParams) {
@@ -87,6 +90,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
             numRandDistractorsField.setText(String.valueOf(stimParameters.numRandDistractors));
             morphMagnitudeField.setText(String.valueOf(stimParameters.morphMagnitude));
             morphDiscretenessField.setText(String.valueOf(stimParameters.morphDiscreteness));
+            textureTypeField.setText(stimParameters.textureType);
 
             Color color = stimParameters.color;
             colorRedField.setText(String.valueOf(color.getRed()));
@@ -129,7 +133,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
         int red = Integer.parseInt(colorRedField.getText());
         int green = Integer.parseInt(colorGreenField.getText());
         int blue = Integer.parseInt(colorBlueField.getText());
-
+        String textureType = textureTypeField.getText();
         Lims sampleDistanceLims = new Lims(sampleDistMin, sampleDistMax);
         Lims choiceDistanceLims = new Lims(choiceDistMin, choiceDistMax);
 
@@ -146,7 +150,8 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
                 numRandDistractors,
                 morphMagnitude,
                 morphDiscreteness,
-                new Color(red, green, blue));
+                new Color(red, green, blue),
+                textureType);
         return proceduralStimParameters;
     }
 

@@ -56,8 +56,8 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
                 1,
                 0.5,
                 0.5,
-                color
-                );
+                color,
+                "SHADE");
 
         ProceduralStim stim = new ProceduralStim(generator, parameters, baseMStick, 1);
         stim.writeStim();

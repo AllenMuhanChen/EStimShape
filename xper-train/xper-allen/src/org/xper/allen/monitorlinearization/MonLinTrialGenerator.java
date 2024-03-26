@@ -97,6 +97,38 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
 
     }
 
+    private void addBlueYellowSinusoidalTrials(double targetLuminance) {
+
+        //define some angles on a sine wave
+        List<Double> angles = range(0, 180, 100);
+
+        //calculate red and green luminances for each angle
+        List<Double> blueLuminances = new LinkedList<>();
+        List<Double> yellowLuminances = new LinkedList<>();
+        for (double angle : angles) {
+            //each pair of red and green luminances should add to up to the target luminance
+            double blueLuminance = targetLuminance * (1 + Math.cos(Math.toRadians(angle)))/2;
+            double yellowLuminance = targetLuminance * (1 + Math.cos(Math.toRadians(angle-180)))/2;
+            blueLuminances.add(blueLuminance);
+            yellowLuminances.add(yellowLuminance);
+        }
+
+        //GAINS
+        List<Double> gains = range(0.85, 1.05, 20);
+
+        //for each angle, create a trial for each gain
+        for (int i = 0; i < angles.size(); i++) {
+            for (double gain : gains) {
+                double redLuminance = blueLuminances.get(i) * gain;
+                double greenLuminance = yellowLuminances.get(i) * gain;
+                RGBColor corrected = lutCorrect.correctRedGreen(redLuminance, greenLuminance);
+                stims.add(new MonLinStim(this, corrected, angles.get(i), gain));
+            }
+        }
+
+
+    }
+
     /**
      * Run before running the red green sinusoidal trials to find the range of gains
      * that should be tested
