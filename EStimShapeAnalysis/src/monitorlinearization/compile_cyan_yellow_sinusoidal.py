@@ -11,6 +11,7 @@ from clat.intan.marker_channels import epoch_using_marker_channels
 from clat.util.connection import Connection
 from monitorlinearization.compile_monlin import RedField, GreenField, BlueField, EpochField, CandelaField, \
     CandelaVectorField
+from monitorlinearization.compile_red_green_sinusoidal import AngleField, GainField
 
 
 def main():
@@ -53,30 +54,14 @@ def main():
     # fields.append(CandelaVectorField(volts, epochs_for_task_ids))
 
     data = fields.to_data(task_ids)
-    filename = f"red_green_sinusoidal_{intan_filename}.pkl"
+    filename = f"cyan_yellow_sinusoidal_{intan_filename}.pkl"
     save_filepath = os.path.join(save_path, filename)
 
     data.to_pickle(save_filepath)
 
     print(data.to_string())
 
-class AngleField(StimSpecField):
-    def __init__(self, conn):
-        super().__init__(conn, "angle")
 
-    def get(self, task_id: int) -> float:
-        stim_spec = super().get(task_id)
-        stim_spec_dict = xmltodict.parse(stim_spec)
-        return float(stim_spec_dict["StimSpec"]["angle"])
-
-class GainField(StimSpecField):
-    def __init__(self, conn):
-        super().__init__(conn, "gain")
-
-    def get(self, task_id: int) -> float:
-        stim_spec = super().get(task_id)
-        stim_spec_dict = xmltodict.parse(stim_spec)
-        return float(stim_spec_dict["StimSpec"]["gain"])
 
 if __name__ == "__main__":
     main()

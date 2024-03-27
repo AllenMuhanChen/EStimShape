@@ -26,7 +26,7 @@ def get_most_recent_intan(base_path):
 def main():
     conn = Connection("allen_monitorlinearization_240228")
     save_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization"
-    date = "2024-03-25"
+    date = "2024-03-27"
     base_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/Test/%s" % date
 
     # Find the most recent file in base_path directory
@@ -52,9 +52,9 @@ def main():
 
     fields = TaskFieldList()
     fields.append(StimSpecIdField(conn))
-    fields.append(RedField(conn, steps=1024))
-    fields.append(GreenField(conn, steps=1024))
-    fields.append(BlueField(conn, steps=1024))
+    fields.append(RedField(conn, steps=256))
+    fields.append(GreenField(conn, steps=256))
+    fields.append(BlueField(conn, steps=256))
     fields.append(EpochField(conn, epochs_for_task_ids, notes_path, analog_in_path))
     fields.append(CandelaField(volts, epochs_for_task_ids))
 

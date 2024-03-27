@@ -380,7 +380,7 @@ public class ColourConverter
      *  @param rgb RGB triplet each scaled between 0-1.
      *  @return Triplet of colour coordinates in HSL space. Hue scaled between 0-360 degrees, S and L between 0-1.
      */
-    static double[] RGBToHSL(double rgb[])
+    public static double[] RGBToHSL(double rgb[])
     {
         // See http://en.wikipedia.org/wiki/HSL_and_HSV for translation formulae
         double min,max,range;
@@ -457,7 +457,7 @@ public class ColourConverter
      *  @param hsl Triplet of colour coordinates in HSL space. Hue scaled between 0-360 degrees, S and L between 0-1.
      *  @return RGB triplet each scaled between 0-1.
      */
-    static double[] HSLToRGB(double hsl[])
+    public static double[] HSLToRGB(double hsl[])
     {
         // See http://en.wikipedia.org/wiki/HSL_and_HSV for translation formulae
         double p,q,hk,tR,tG,tB;

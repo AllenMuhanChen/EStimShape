@@ -28,70 +28,63 @@ def main():
 
 
     # Plot Candela values for non-zero entries of Red, Green, and Blue
-    plot_and_fit_monlin(df)
+    plot_base_colors(df)
+    plt.figure(figsize=(10, 6))
+    plot_derived_color(df, 'Cyan', ('Green', 'Blue'))
+    plot_derived_color(df, 'Yellow', ('Red', 'Green'))
+    plt.show()
     save_to_db(conn, df)
 
 
-
-
-def plot_and_fit_monlin(df):
+def plot_base_colors(df):
     """
-    Plots Candela values for non-zero entries of Red, Green, and Blue in a single plot.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing the data.
+    Plots Candela values for entries where only Red or only Green is above a threshold in a single plot.
+    Excludes entries that could contribute to derived colors like Cyan or Yellow.
     """
     plt.figure(figsize=(10, 6))
 
-    # Define colors to plot
-    colors = ['Red', 'Green', 'Blue']
+    # Plot Red values where only Red is non-zero
+    red_only = df[(df['Red'] > 0.001) & (df['Green'] <= 0.001) & (df['Blue'] <= 0.001)]
+    if not red_only.empty:
+        plt.plot(red_only['Red'], red_only['Candela'], 'o-', label='Red Candela Value', color='red')
 
-    for color in colors:
-        # Filter rows where the color is not zero
-        non_zero_color = df[df[color] > 0.001]
+    # Plot Green values where only Green is non-zero
+    green_only = df[(df['Green'] > 0.001) & (df['Red'] <= 0.001) & (df['Blue'] <= 0.001)]
+    if not green_only.empty:
+        plt.plot(green_only['Green'], green_only['Candela'], 'o-', label='Green Candela Value', color='green')
 
-        # Plot each color with its respective line color and label
-        x_data = non_zero_color[color] / 4
-        y_data = non_zero_color['Candela']
-
-        plt.plot(x_data, y_data, marker='o', linestyle='-', color=color.lower(),
-                 label=f'{color} Value', markersize=3)
-
-        # Define the exponential function of form A * B^x
-        def exp_func(x, A, gamma):
-            return A * x ** gamma
-
-        # Use curve_fit to fit the exponential function to the data
-        # fit limits are to handle the case where we had incomplete data
-        if color == 'Red':
-            fit_limit = int(len(x_data) * 0.55)
-        elif color == 'Green':
-            fit_limit = int(len(x_data) * 0.80)
-        elif color == 'Blue':
-            fit_limit = int(len(x_data) * 0.7)
-        params, covariance = curve_fit(exp_func, x_data[0:fit_limit], y_data[0:fit_limit])
-
-        # Extract the parameters A and B
-        A, gamma = params
-
-        print(f"For Color {color}, Fitted A: {A}, gamma: {gamma}, max value: {max(y_data)}")
-
-        # Generate fitted values for plotting
-        fitted_y = exp_func(x_data, A, gamma)
-
-        plt.plot(x_data, fitted_y, label='Fitted Curve', color=color.lower())
-
-    plt.title('Candela per Color Value')
+    plt.title('Candela for Pure Base Color Values')
     plt.xlabel('Color Value')
     plt.ylabel('Candela')
     plt.grid(True)
     plt.legend()
-    plt.show()
-    return plt
 
 
-if __name__ == "__main__":
-    main()
+def plot_derived_color(df, color_name, color_components):
+    """
+    Plots a derived color (Cyan or Yellow) with L value on the x-axis.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the data.
+        color_name (str): Name of the derived color (Cyan or Yellow).
+        color_components (tuple): The two colors that make up the derived color.
+    """
+    # Filter rows where both colors are non-zero
+    non_zero_color = df[(df[color_components[0]] > 0.001) & (df[color_components[1]] > 0.001)]
+    if not non_zero_color.empty:
+
+
+        # Calculate L values
+        L_values = np.linspace(0, 100, len(non_zero_color))
+
+        # Plotting Candela as a function of L value for the derived color
+        plt.plot(L_values, non_zero_color['Candela'], 'o-', label=f'{color_name} Candela Value', color='black')
+
+        plt.title(f'Candela for {color_name}')
+        plt.xlabel('L Value')
+        plt.ylabel('Candela')
+        plt.grid(True)
+        plt.legend()
 
 
 
@@ -120,3 +113,9 @@ def save_to_db(conn, data):
             VALUES (%s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE luminance = VALUES(luminance)
         """, (red, green, blue, luminance))
+
+
+
+
+if __name__ == "__main__":
+    main()
