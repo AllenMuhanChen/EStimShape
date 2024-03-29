@@ -34,7 +34,7 @@ public class GaborSigmaScroller<T extends GaborSpec> extends RFPlotScroller<T>{
 
     private double getCurrentSigma(ScrollerParams scrollerParams) {
         GaborSpec currentGaborSpec = getCurrentGaborSpec(scrollerParams);
-        double currentSigma = currentGaborSpec.getSize();
+        double currentSigma = currentGaborSpec.getDiameter();
         return currentSigma;
     }
 

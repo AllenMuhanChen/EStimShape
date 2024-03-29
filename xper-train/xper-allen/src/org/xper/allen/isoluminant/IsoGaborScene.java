@@ -35,7 +35,12 @@ public class IsoGaborScene extends AbstractTaskScene {
         stimSpec = IsoGaborSpec.fromXml(stimSpecXml);
         if (stimSpec.getType().equals("RedGreen") || stimSpec.getType().equals("CyanYellow")) {
             obj = new IsoluminantGabor(stimSpec, targetLuminanceCandela, lutCorrector, sinusoidGainCorrector);
-        } else if (stimSpec.getType().equals("Red") || stimSpec.getType().equals("Green") || stimSpec.getType().equals("Blue") || stimSpec.getType().equals("Yellow") || stimSpec.getType().equals("Cyan")) {
+        } else if (stimSpec.getType().equals("Red") ||
+                stimSpec.getType().equals("Green") ||
+                stimSpec.getType().equals("Blue") ||
+                stimSpec.getType().equals("Yellow") ||
+                stimSpec.getType().equals("Cyan") ||
+                stimSpec.getType().equals("Gray")) {
             obj = new IsochromaticGabor(stimSpec, targetLuminanceCandela, lutCorrector);
         } else {
             throw new RuntimeException("Unknown color space: " + stimSpec.getType());

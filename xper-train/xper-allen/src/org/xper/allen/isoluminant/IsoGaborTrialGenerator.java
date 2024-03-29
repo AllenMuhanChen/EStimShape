@@ -36,8 +36,12 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<IsoGaborStim>
         tempSpec.setSize(20);
         tempSpec.setAnimation(false);
 
-        IsoGaborSpec spec = new IsoGaborSpec(tempSpec, "Red");
+        IsoGaborSpec spec = new IsoGaborSpec(tempSpec, "Gray");
         IsoGaborStim stim = new IsoGaborStim(this, spec);
+        getStims().add(stim);
+
+        spec = new IsoGaborSpec(tempSpec, "Red");
+        stim = new IsoGaborStim(this, spec);
         getStims().add(stim);
 
         spec = new IsoGaborSpec(tempSpec, "Green");

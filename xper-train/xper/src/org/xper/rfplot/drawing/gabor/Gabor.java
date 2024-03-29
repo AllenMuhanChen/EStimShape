@@ -5,12 +5,9 @@ import java.nio.ByteOrder;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
-import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
-import org.xper.util.MathUtil;
-import org.apache.commons.math3.distribution.NormalDistribution;
+
 public class Gabor extends DefaultSpecRFPlotDrawable {
     protected static final int STEPS = 2000;
     protected ByteBuffer array;
@@ -27,7 +24,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     }
 
     protected void initTexture(Context context) {
-        double diameterDeg = getGaborSpec().getSize(); // Gabor patch diameter in degrees of visual angle
+        double diameterDeg = getGaborSpec().getDiameter(); // Gabor patch diameter in degrees of visual angle
         double diameterMm = context.getRenderer().deg2mm(diameterDeg); // Convert diameter from degrees to millimeters
 
         // Calculate the fraction of the viewport width occupied by the Gabor patch in mm
@@ -118,10 +115,13 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         double frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
 
         for (int i = 0; i < STEPS; i++) {
-            float heightMm = (float) context.getRenderer().getVpHeightmm();
-//            float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getSize());
+//            float heightMm = (float) context.getRenderer().getVpHeightmm();
+            float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getDiameter()*3);
+            float widthMm = (float) heightMm;
+            float widthVp = (float) context.getRenderer().getVpWidthmm();
+            float heightVp = (float) context.getRenderer().getVpHeightmm();
 //            float widthMm = heightMm;
-            float widthMm = (float) context.getRenderer().getVpWidthmm();
+//            float widthMm = (float) context.getRenderer().getVpWidthmm();
             // Adjusting the modFactor calculation for the frequency across the viewport in mm
             // Assuming the Gabor pattern should span the entire height of the viewport uniformly
             float verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
@@ -131,9 +131,14 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
             float modFactor = (float) Math.abs(((Math.abs(frequencyCyclesPerMm * (verticalPosition + phase))) % 1) * 2 - 1);
             float[] rgb = modulateColor(modFactor);
 
-            // Texture coordinates
-            float tx1 = 0.0f, tx2 = 1.0f;
-            float ty1 = (float)i / STEPS, ty2 = (float)(i+1) / STEPS;
+            // Texture coordinates: between 0-1, where 0 is the left edge of the texture
+            float distanceLeftGaborMm = (widthVp - widthMm) / 2; // distance from left of viewport to left of Gabor patch in mm
+            float tx1 = distanceLeftGaborMm / widthVp; // distance from left of viewport to left of Gabor patch as a ratio of whole viewport
+            float tx2 = (distanceLeftGaborMm + widthMm) / widthVp; // distance from left of viewport to right of Gabor patch as a ratio of whole viewport
+            float gaborHeightMm =  ((float) i / STEPS) * heightMm; // height of the part of the gabor patch being drawn in mm
+            float distanceUnderGaborMm = (heightVp - heightMm) / 2; // distance from bottom of viewport to bottom of Gabor patch in mm
+            float ty1 = (gaborHeightMm + distanceUnderGaborMm) / heightVp; // distance from bottom of viewport to bottom of Gabor patch as a ratio of whole viewport
+            float ty2 = (gaborHeightMm + distanceUnderGaborMm + ((float) 1 / STEPS) * heightMm) / heightVp; // distance from bottom of viewport to the hieght of next of part of the patch as a ratio of whole viewport
 
             GL11.glColor3f(rgb[0], rgb[1], rgb[2]);
 

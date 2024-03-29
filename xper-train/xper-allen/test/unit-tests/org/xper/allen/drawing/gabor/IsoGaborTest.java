@@ -64,9 +64,9 @@ public class IsoGaborTest {
         spec.setFrequency(1);
         spec.setXCenter(0);
         spec.setYCenter(0);
-        spec.setSize(10);
+        spec.setSize(5);
         spec.setAnimation(false);
-        spec.setType("Green");
+        spec.setType("Yellow");
 
 
         IsochromaticGabor gabor = new IsochromaticGabor(spec, 150, lutCorrector);

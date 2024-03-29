@@ -70,7 +70,7 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 		double orientation = spec.getOrientation();
 		double frequency = spec.getFrequency();
 		double phase = spec.getPhase();
-		double size = spec.getSize() * rfRadius;
+		double size = spec.getDiameter() * rfRadius;
 
 		float cury;
 		float color_ratio;

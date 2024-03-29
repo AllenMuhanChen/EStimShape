@@ -1,11 +1,7 @@
 package org.xper.rfplot.drawing.gabor;
 
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
-import org.xper.allen.monitorlinearization.MonLinTrialGenerator;
 import org.xper.drawing.RGBColor;
-import org.xper.rfplot.drawing.IsochromaticGaborSpec;
-
-import java.awt.*;
 
 public class IsochromaticGabor extends Gabor{
 
@@ -24,6 +20,7 @@ public class IsochromaticGabor extends Gabor{
 
     @Override
     protected float[] modulateColor(float modFactor) {
+        System.out.println("modFactor: " + modFactor);
         double targetCandela = luminanceCandela * modFactor * 2;
 
         // Convert RGB to Lab
@@ -36,7 +33,9 @@ public class IsochromaticGabor extends Gabor{
             corrected = lutCorrector.correctSingleColor(targetCandela, "yellow");
         } else if (gaborSpec.type.equals("Cyan")) {
             corrected = lutCorrector.correctSingleColor(targetCandela, "cyan");
-        } else {
+        } else if (gaborSpec.type.equals("Gray")){
+            corrected = lutCorrector.correctSingleColor(targetCandela, "gray");
+        }else {
             throw new RuntimeException("Unknown color space: " + gaborSpec.type);
         }
 
@@ -96,8 +95,8 @@ public class IsochromaticGabor extends Gabor{
     private void recalculateTextureIfChangeSigma(String spec) {
         String oldSpec = getSpec();
         IsoGaborSpec oldGabor = IsoGaborSpec.fromXml(oldSpec);
-        double oldSigma = oldGabor.getSize();
-        double newSigma = IsoGaborSpec.fromXml(spec).getSize();
+        double oldSigma = oldGabor.getDiameter();
+        double newSigma = IsoGaborSpec.fromXml(spec).getDiameter();
         if (oldSigma != newSigma) {
             recalculateTexture();
         }

@@ -46,7 +46,7 @@ public class GaborSpec implements XMLizable {
 		orientation = d.getOrientation();
 		frequency = d.getFrequency();
 		phase = d.getPhase();
-		size = d.getSize();
+		size = d.getDiameter();
 		animation = d.isAnimation();
 	}
 
@@ -80,7 +80,7 @@ public class GaborSpec implements XMLizable {
 	public void setPhase(double phase) {
 		this.phase = phase;
 	}
-	public double getSize() {
+	public double getDiameter() {
 		return size;
 	}
 	public void setSize(double size) {

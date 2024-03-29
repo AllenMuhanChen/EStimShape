@@ -67,25 +67,8 @@ public class IsoluminantGabor extends Gabor {
     public void setDefaultSpec() {
     }
 
-
-
     public String getSpec() {
         return getGaborSpec().toXml();
     }
 
-    public RGBColor getBackGroundColor() {
-        double angle = 90;
-        double gain;
-        RGBColor corrected;
-        if (spec.type.equals("RedGreen")) {
-            double luminanceRed = luminanceCandela * (1 + Math.cos(Math.toRadians(angle)))/2;
-            double luminanceGreen = luminanceCandela * (1 + Math.cos(Math.toRadians(angle-180)))/2;
-            gain = sinusoidGainCorrector.getGain(angle, "RedGreen");
-            corrected = lutCorrector.correctRedGreen(luminanceRed * gain, luminanceGreen * gain);
-        }
-        else {
-            throw new RuntimeException("Unknown color space: " + spec.type);
-        }
-        return corrected;
-    }
 }
