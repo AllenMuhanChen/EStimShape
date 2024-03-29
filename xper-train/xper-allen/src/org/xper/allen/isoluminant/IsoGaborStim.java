@@ -2,6 +2,7 @@ package org.xper.allen.isoluminant;
 
 import org.xper.allen.Stim;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
+import org.xper.util.ThreadUtil;
 
 public class IsoGaborStim implements Stim {
     private IsoGaborTrialGenerator generator;
@@ -17,6 +18,7 @@ public class IsoGaborStim implements Stim {
     @Override
     public void preWrite() {
         stimSpecId = generator.getGlobalTimeUtil().currentTimeMicros();
+        ThreadUtil.sleep(1);
     }
 
     @Override

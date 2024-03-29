@@ -6,7 +6,9 @@ import org.xper.allen.monitorlinearization.SinusoidGainCorrector;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
+import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
+import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
 
 /**
  * Scene to present Isochromatic/Isoluminant Gabor stimuli
@@ -20,7 +22,7 @@ public class IsoGaborScene extends AbstractTaskScene {
     @Dependency
     SinusoidGainCorrector sinusoidGainCorrector;
 
-    private IsoluminantGabor obj;
+    private Gabor obj;
 
 
 
@@ -30,16 +32,14 @@ public class IsoGaborScene extends AbstractTaskScene {
 
         IsoGaborSpec stimSpec;
         stimSpec = IsoGaborSpec.fromXml(stimSpecXml);
-        if (stimSpec.type.equals("RedGreen")) {
-            obj = new IsoluminantGabor(stimSpec, 150, lutCorrector, sinusoidGainCorrector);
-        } else if (stimSpec.type.equals("CyanYellow")){
-            obj = new IsoluminantGabor(stimSpec, 150, lutCorrector, sinusoidGainCorrector);
-        }
-        else {
-            throw new RuntimeException("Unknown color space: " + stimSpec.type);
+        if (stimSpec.getType().equals("RedGreen") || stimSpec.getType().equals("CyanYellow")) {
+            obj = new IsoluminantGabor(stimSpec, 100, lutCorrector, sinusoidGainCorrector);
+        } else if (stimSpec.getType().equals("Red") || stimSpec.getType().equals("Green") || stimSpec.getType().equals("Blue") || stimSpec.getType().equals("Yellow") || stimSpec.getType().equals("Cyan")) {
+            obj = new IsochromaticGabor(stimSpec, 100, lutCorrector);
+        } else {
+            throw new RuntimeException("Unknown color space: " + stimSpec.getType());
         }
     }
-
 
 
     @Override

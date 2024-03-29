@@ -16,6 +16,7 @@ public class LookUpTableCorrector {
 
     @Dependency
     DataSource dataSource;
+
     private double minDiff;
     private int minRed;
     private int minGreen;
@@ -28,11 +29,13 @@ public class LookUpTableCorrector {
                 colorchannel.equalsIgnoreCase(("green"))) {
             Map<Integer, Float> closestRedGreen = getClosestColorsWithLuminance((float) targetLuminance, colorchannel, n);
             closestColors.putAll(closestRedGreen);
-        } else if (colorchannel.equalsIgnoreCase("cyan") || colorchannel.equalsIgnoreCase("yellow")) {
+        } else if (colorchannel.equalsIgnoreCase("cyan") ||
+                colorchannel.equalsIgnoreCase("yellow") ||
+                colorchannel.equalsIgnoreCase("gray")) {
             Map<Object, Float> closestDerived = getClosestDerivedColorsWithLuminance((float) targetLuminance, colorchannel, n);
             closestColors.putAll(closestDerived);
         } else {
-            throw new IllegalArgumentException("Color channel must be either 'red' or 'green'");
+            throw new IllegalArgumentException("Color channel must be either 'red', 'green', 'cyan', 'yellow', or 'gray'");
         }
 
 
@@ -62,6 +65,9 @@ public class LookUpTableCorrector {
         }
         if (colorchannel.equals("cyan")) {
             return new RGBColor(0, ((Cyan)minColor).getGreen()/255.0f, ((Cyan)minColor).getBlue()/255.0f);
+        }
+        if (colorchannel.equals("gray")) {
+            return new RGBColor(((int)minColor)/255.0f, ((int)minColor)/255f, ((int)minColor)/255.0f);
         }
         else {
             throw new IllegalArgumentException("Color channel must be either 'red', 'green', 'cyan', or 'yellow'");
@@ -147,7 +153,7 @@ public class LookUpTableCorrector {
         }
     }
 
-    public Map<Integer, Float> getClosestColorsWithLuminance(float targetLuminance, String colorChannel, int n) {
+    private Map<Integer, Float> getClosestColorsWithLuminance(float targetLuminance, String colorChannel, int n) {
         Map<Integer, Float> closestColorsWithLuminance = new LinkedHashMap<>();
 
         // Build the SQL query to select only rows where the specified color channel is non-zero
@@ -189,7 +195,7 @@ public class LookUpTableCorrector {
     }
 
 
-    public Map<Object, Float> getClosestDerivedColorsWithLuminance(float targetLuminance, String derivedColor, int n) {
+    private Map<Object, Float> getClosestDerivedColorsWithLuminance(float targetLuminance, String derivedColor, int n) {
         Map<Object, Float> closestColorsWithLuminance = new LinkedHashMap<>();
 
         // SQL query setup
@@ -198,7 +204,10 @@ public class LookUpTableCorrector {
             sql = "SELECT green, blue, luminance FROM MonitorLin WHERE red = 0 AND green != 0 AND blue != 0 ORDER BY ABS(luminance - ?) LIMIT ?";
         } else if ("Yellow".equalsIgnoreCase(derivedColor)) {
             sql = "SELECT red, green, luminance FROM MonitorLin WHERE red != 0 AND green != 0 AND blue = 0 ORDER BY ABS(luminance - ?) LIMIT ?";
-        } else {
+        } else if ("Gray".equalsIgnoreCase(derivedColor)){
+            sql = "SELECT red, green, blue, luminance FROM MonitorLin WHERE red != 0 AND green != 0 AND blue != 0 ORDER BY ABS(luminance - ?) LIMIT ?";
+        }
+        else {
             throw new IllegalArgumentException("Derived color must be either 'Cyan' or 'Yellow'");
         }
 
@@ -215,11 +224,17 @@ public class LookUpTableCorrector {
                         int blue = rs.getInt("blue");
                         Cyan cyan = new Cyan(green, blue);
                         closestColorsWithLuminance.put(cyan, rs.getFloat("luminance"));
-                    } else {
+                    } else if ("Yellow".equalsIgnoreCase(derivedColor)) {
                         int red = rs.getInt("red");
                         int green = rs.getInt("green");
                         Yellow yellow = new Yellow(red, green);
                         closestColorsWithLuminance.put(yellow, rs.getFloat("luminance"));
+                    } else if ("Gray".equalsIgnoreCase(derivedColor)){
+                        int red = rs.getInt("red");
+                        int green = rs.getInt("green");
+                        int blue = rs.getInt("blue");
+                        Integer gray = red;
+                        closestColorsWithLuminance.put(gray, rs.getFloat("luminance"));
                     }
                 }
             }

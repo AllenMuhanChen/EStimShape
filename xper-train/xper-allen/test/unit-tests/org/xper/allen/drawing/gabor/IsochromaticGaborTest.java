@@ -78,7 +78,8 @@ public class IsochromaticGaborTest {
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                GL11.glClearColor(84/255f, 84/255f, 84/255f, 1.0f);
+                RGBColor gray = lutCorrector.correctSingleColor(150, "gray");
+                GL11.glClearColor(gray.getRed(), gray.getGreen(), gray.getBlue(), 1.0f);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
                 IsochromaticGabor.initGL(width, height);
                 gabor.draw(context);
