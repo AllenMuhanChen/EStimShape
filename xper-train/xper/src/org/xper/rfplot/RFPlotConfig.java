@@ -74,7 +74,7 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
-		refObjMap.put(IsochromaticGabor.class.getName(), new IsochromaticGabor());
+//		refObjMap.put(IsochromaticGabor.class.getName(), new IsochromaticGabor());
 		return refObjMap;
 	}
 

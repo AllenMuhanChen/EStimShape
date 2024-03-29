@@ -30,5 +30,11 @@ public class IsoGaborSpec extends GaborSpec {
         return (IsoGaborSpec)s.fromXML(xml);
     }
 
+    public String getType() {
+        return type;
+    }
 
+    public void setType(String type) {
+        this.type = type;
+    }
 }

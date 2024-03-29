@@ -61,24 +61,24 @@ public class IsochromaticGaborTest {
 
     @Test
     public void testIsochromatic() {
-        IsochromaticGaborSpec spec = new IsochromaticGaborSpec();
+        IsoGaborSpec spec = new IsoGaborSpec();
         spec.setOrientation(45);
         spec.setPhase(0);
-        spec.setFrequency(10);
+        spec.setFrequency(1);
         spec.setXCenter(0);
         spec.setYCenter(0);
-        spec.setSize(6);
+        spec.setSize(10);
         spec.setAnimation(false);
-        spec.setColor(new RGBColor(1f, 0f, 0f));
+        spec.setType("Green");
 
 
-        IsochromaticGabor gabor = new IsochromaticGabor();
+        IsochromaticGabor gabor = new IsochromaticGabor(spec, 150, lutCorrector);
         gabor.setSpec(spec.toXml());
 
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                GL11.glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+                GL11.glClearColor(84/255f, 84/255f, 84/255f, 1.0f);
                 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
                 IsochromaticGabor.initGL(width, height);
                 gabor.draw(context);
@@ -89,7 +89,7 @@ public class IsochromaticGaborTest {
     }
 
     @Test
-    public void testIsoluminant() {
+    public void testRedGreenIsoluminant() {
         int size = 20;
         GaborSpec spec = new GaborSpec();
         spec.setOrientation(45);
@@ -122,6 +122,41 @@ public class IsochromaticGaborTest {
 
         ThreadUtil.sleep(100000);
 
+    }
+
+    @Test
+    public void testCyanYellowIsoluminant(){
+        int size = 20;
+        GaborSpec spec = new GaborSpec();
+        spec.setOrientation(45);
+        spec.setPhase(0);
+        spec.setFrequency(1);
+        spec.setXCenter(0);
+        spec.setYCenter(0);
+        spec.setSize(size);
+        spec.setAnimation(false);
+
+        IsoGaborSpec isoGaborSpec = new IsoGaborSpec(
+                spec, "CyanYellow");
+        IsoluminantGabor gabor = new IsoluminantGabor(isoGaborSpec, 150, lutCorrector, sinusoidGainCorrector);
+        gabor.setGaborSpec(isoGaborSpec);
+        gabor.setSpec(isoGaborSpec.toXml());
+
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                GL11.glClearColor(84/255f, 84/255f, 84/255f, 1.0f);
+                GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+                gabor.draw(context);
+            }
+        });
+
+        double diskSize = perspectiveRenderer.deg2mm(size);
+        double fadeSize = perspectiveRenderer.deg2mm(2 * 0.5 * size);
+        double ratio = (diskSize + fadeSize) / perspectiveRenderer.getVpWidthmm();
+        System.out.println("The Gabor should span approx: " + ratio + " of the screen width.");
+
+        ThreadUtil.sleep(100000);
     }
 
     @Test

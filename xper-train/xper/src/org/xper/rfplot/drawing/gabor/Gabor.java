@@ -12,7 +12,7 @@ import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.util.MathUtil;
 import org.apache.commons.math3.distribution.NormalDistribution;
 public class Gabor extends DefaultSpecRFPlotDrawable {
-    protected static final int STEPS = 2048;
+    protected static final int STEPS = 2000;
     protected ByteBuffer array;
     protected int textureId = -1;
 
@@ -27,7 +27,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     }
 
     protected void initTexture(Context context) {
-        int nSigmas = 6; // Number of standard deviations you want the diameter to span
         double diameterDeg = getGaborSpec().getSize(); // Gabor patch diameter in degrees of visual angle
         double diameterMm = context.getRenderer().deg2mm(diameterDeg); // Convert diameter from degrees to millimeters
 
@@ -36,13 +35,19 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         double fractionOfViewportWidthMm = diameterMm / viewportWidthMm;
 
         // Since the normalized coordinate system spans 2 units (-1 to 1), calculate the normalized diameter
-        double normalizedDiameter = fractionOfViewportWidthMm * 2;
+        double normalizedDiameter = fractionOfViewportWidthMm;
+
+        // Specify the percentage of the diameter where the fade strength should be 3 sigmas
+        double fadePercentOfDiameter = 0.5;
+
+        // Calculate the number of sigmas based on the specified percentage of diameter
+        int nSigmas = (int) Math.ceil(2 / (2 * fadePercentOfDiameter));
 
         // Calculate sigma as a fraction of the normalized diameter, divided by the desired number of sigmas
         // Here, sigma represents the spread of the Gaussian in terms of the normalized coordinate system
-        double normalizedSigma = (normalizedDiameter / 2) / nSigmas; // Divide by 2 to get radius as sigma is based on radius, not diameter
+        double normalizedSigma = (normalizedDiameter / 2) / nSigmas;
 
-        ByteBuffer texture = makeTexture(w, h, normalizedSigma); // Adjust w, h, std as needed
+        ByteBuffer texture = makeTexture(w, h, normalizedDiameter, normalizedSigma); // Adjust w, h, std as needed
         textureId = GL11.glGenTextures(); // Generate texture ID
         GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
 
@@ -54,6 +59,35 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
         GL11.glTexEnvf(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
     }
+
+//    protected void initTexture(Context context) {
+//        int nSigmas = 6; // Number of standard deviations you want the diameter to span
+//        double diameterDeg = getGaborSpec().getSize(); // Gabor patch diameter in degrees of visual angle
+//        double diameterMm = context.getRenderer().deg2mm(diameterDeg); // Convert diameter from degrees to millimeters
+//
+//        // Calculate the fraction of the viewport width occupied by the Gabor patch in mm
+//        double viewportWidthMm = context.getRenderer().getVpWidthmm(); // Viewport width in millimeters
+//        double fractionOfViewportWidthMm = diameterMm / viewportWidthMm;
+//
+//        // Since the normalized coordinate system spans 2 units (-1 to 1), calculate the normalized diameter
+//        double normalizedDiameter = fractionOfViewportWidthMm * 2;
+//
+//        // Calculate sigma as a fraction of the normalized diameter, divided by the desired number of sigmas
+//        // Here, sigma represents the spread of the Gaussian in terms of the normalized coordinate system
+//        double normalizedSigma = (normalizedDiameter / 2) / nSigmas; // Divide by 2 to get radius as sigma is based on radius, not diameter
+//
+//        ByteBuffer texture = makeTexture(w, h, normalizedSigma); // Adjust w, h, std as needed
+//        textureId = GL11.glGenTextures(); // Generate texture ID
+//        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
+//
+//        GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
+//        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_ALPHA, w, h, 0, GL11.GL_ALPHA, GL11.GL_FLOAT, texture);
+//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
+//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
+//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+//        GL11.glTexEnvf(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
+//    }
 
     @Override
     public void draw(Context context) {
@@ -167,24 +201,60 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         return rgb;
     }
 
-    protected ByteBuffer makeTexture(int w, int h, double std) {
+    protected ByteBuffer makeTexture(int w, int h, double diskDiameter, double std) {
         ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
         double aspectRatio = (double) w / h;
-        NormalDistribution distribution = new NormalDistribution(0, std);
-        double norm_max = distribution.density(0);
+        double circleRadius = diskDiameter/4; // Specify the radius of the disk where the texture is shown normally
+        //we divide by four because one division by two converts to radius,
+        //and another because the coordinate system we use here is -1 to 1, but the diameter
+        //is specified as 0-1. So we divide by 2 to get the radius in the -1 to 1 coordinate system.
+
+        double diskAlpha = 1.0; // Specify the alpha level within the disk
+        double background = 0.0; // Specify the background intensity
 
         for (int i = 0; i < h; i++) {
-            double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust x-coordinate by aspect ratio
+            double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust y-coordinate by aspect ratio
             for (int j = 0; j < w; j++) {
                 double x = ((double) j / (w - 1) * 2 - 1);
-                double dist = Math.sqrt(y * y + x * x);
-                float n = (float) (distribution.density(dist) / norm_max);
+                double distanceToCenter = Math.sqrt(x * x + y * y);
+
+                float n;
+
+                if (distanceToCenter <= circleRadius) {
+                    // Within the disk
+                    n = (float) diskAlpha;
+                } else {
+                    // Calculate Gaussian fade from the disk's edge
+                    double offsetDistance = distanceToCenter - circleRadius;
+                    double gaussValue = diskAlpha * Math.exp(-0.5 * (Math.pow(offsetDistance / std, 2)));
+                    n = (float) Math.min(gaussValue, 1.0);
+                }
+
                 texture.putFloat(n);
             }
         }
         texture.flip();
         return texture;
     }
+
+//    protected ByteBuffer makeTexture(int w, int h, double std) {
+//        ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
+//        double aspectRatio = (double) w / h;
+//        NormalDistribution distribution = new NormalDistribution(0, std);
+//        double norm_max = distribution.density(0);
+//
+//        for (int i = 0; i < h; i++) {
+//            double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust x-coordinate by aspect ratio
+//            for (int j = 0; j < w; j++) {
+//                double x = ((double) j / (w - 1) * 2 - 1);
+//                double dist = Math.sqrt(y * y + x * x);
+//                float n = (float) (distribution.density(dist) / norm_max);
+//                texture.putFloat(n);
+//            }
+//        }
+//        texture.flip();
+//        return texture;
+//    }
 
     public static double normal(double mean, double standardDeviation) {
         double x = Math.random();

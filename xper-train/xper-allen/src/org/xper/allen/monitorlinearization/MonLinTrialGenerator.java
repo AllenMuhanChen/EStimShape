@@ -100,7 +100,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
         }
 
         //GAINS
-        List<Double> gains = range(0.85, 1.05, 20);
+        List<Double> gains = range(0.80, 1.2, 20);
 
         //for each angle, create a trial for each gain
         for (int i = 0; i < angles.size(); i++) {
@@ -137,7 +137,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             for (double gain : gains) {
                 double cyanLuminance = cyanLuminances.get(i) * gain;
                 double yellowLuminance = yellowLuminances.get(i) * gain;
-                RGBColor corrected = lutCorrect.correctCyanAndYellow(cyanLuminance, yellowLuminance);
+                RGBColor corrected = lutCorrect.correctCyanYellow(cyanLuminance, yellowLuminance);
                 stims.add(new MonLinStim(this, corrected, angles.get(i), gain));
             }
         }
@@ -167,7 +167,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             for (double gain : gains) {
                 double cyanLuminance = cyanLuminances.get(i) * gain;
                 double yellowLuminance = yellowLuminances.get(i) * gain;
-                RGBColor corrected = lutCorrect.correctCyanAndYellow(cyanLuminance, yellowLuminance);
+                RGBColor corrected = lutCorrect.correctCyanYellow(cyanLuminance, yellowLuminance);
                 stims.add(new MonLinStim(this, corrected, angles.get(i), gain));
             }
         }
@@ -276,7 +276,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             System.out.println("Target Lum Yellow: " + luminanceYellow);
             double gain = sinusoidGainCorrector.getGain(angle, "CyanYellow");
             System.out.println("GAIN: " + gain);
-            RGBColor lookUpCorrected = lutCorrect.correctCyanAndYellow(luminanceCyan * gain, luminanceYellow * gain);
+            RGBColor lookUpCorrected = lutCorrect.correctCyanYellow(luminanceCyan * gain, luminanceYellow * gain);
 
 
             System.out.println(lookUpCorrected.getRed());

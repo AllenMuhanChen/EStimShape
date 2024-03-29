@@ -1,7 +1,6 @@
 package org.xper.allen.monitorlinearization;
 
 import org.xper.Dependency;
-import org.xper.allen.drawing.composition.noisy.Pair;
 import org.xper.drawing.RGBColor;
 
 import javax.sql.DataSource;
@@ -11,7 +10,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.BiConsumer;
 
 public class LookUpTableCorrector {
@@ -22,13 +20,62 @@ public class LookUpTableCorrector {
     private int minRed;
     private int minGreen;
 
+    public RGBColor correctSingleColor(double targetLuminance, String colorchannel) {
+        int n = 5;
+
+        Map<Object, Float> closestColors = new LinkedHashMap<>();
+        if (colorchannel.equalsIgnoreCase("red") ||
+                colorchannel.equalsIgnoreCase(("green"))) {
+            Map<Integer, Float> closestRedGreen = getClosestColorsWithLuminance((float) targetLuminance, colorchannel, n);
+            closestColors.putAll(closestRedGreen);
+        } else if (colorchannel.equalsIgnoreCase("cyan") || colorchannel.equalsIgnoreCase("yellow")) {
+            Map<Object, Float> closestDerived = getClosestDerivedColorsWithLuminance((float) targetLuminance, colorchannel, n);
+            closestColors.putAll(closestDerived);
+        } else {
+            throw new IllegalArgumentException("Color channel must be either 'red' or 'green'");
+        }
+
+
+        Object minColor = null;
+        float minLuminance = Float.MAX_VALUE;
+        for (Map.Entry<Object, Float> entry : closestColors.entrySet()) {
+            Object color = entry.getKey();
+            float luminance = entry.getValue();
+            //look for the cloeset to red Luminance
+            if (Math.abs(luminance - targetLuminance) < minLuminance) {
+                minColor = color;
+                minLuminance = luminance;
+            }
+        }
+        if (minColor == null) {
+            throw new RuntimeException("No closest color found");
+        }
+
+        if (colorchannel.equals("red")) {
+            return new RGBColor((int)minColor/255.0f, 0, 0);
+        }
+        if (colorchannel.equals("green")) {
+            return new RGBColor(0, (int)minColor/255.0f, 0);
+        }
+        if (colorchannel.equals("yellow")) {
+            return new RGBColor(((Yellow)minColor).getRed()/255.0f, ((Yellow)minColor).getGreen()/255.0f, 0);
+        }
+        if (colorchannel.equals("cyan")) {
+            return new RGBColor(0, ((Cyan)minColor).getGreen()/255.0f, ((Cyan)minColor).getBlue()/255.0f);
+        }
+        else {
+            throw new IllegalArgumentException("Color channel must be either 'red', 'green', 'cyan', or 'yellow'");
+        }
+
+    }
+
     public RGBColor correctRedGreen(double redLuminance, double greenLuminance) {
         double targetLuminance = redLuminance + greenLuminance;
         int n = 5;
         Map<Integer, Float> closestGreens = getClosestColorsWithLuminance((float) greenLuminance, "green", n);
         Map<Integer, Float> closestReds = getClosestColorsWithLuminance((float) redLuminance, "red", n);
-        closestGreens.put(0, 0.0f);
-        closestReds.put(0, 0.0f);
+//        closestGreens.put(0, 0.0f);
+//        closestReds.put(0, 0.0f);
 
         minDiff = Double.MAX_VALUE;
         minRed = 0;
@@ -42,7 +89,6 @@ public class LookUpTableCorrector {
                         double totalLuminance = redLum + greenLum;
                         double diff = Math.abs(totalLuminance - targetLuminance);
                         if (diff < minDiff) {
-                            System.out.println("New Min Found: " + diff);
                             minRed = red;
                             minGreen = green;
                         }
@@ -54,9 +100,7 @@ public class LookUpTableCorrector {
 
     }
 
-    public RGBColor correctCyanAndYellow(double targetCyanLuminance, double targetYellowLuminance) {
-        System.out.println("TargetCyan Luminance: " + targetCyanLuminance);
-        System.out.println("Target Yellow Luminance: " + targetYellowLuminance);
+    public RGBColor correctCyanYellow(double targetCyanLuminance, double targetYellowLuminance) {
         double targetSumLuminance = targetCyanLuminance + targetYellowLuminance;
         int n = 5; // Number of closest matches for each color
 
@@ -85,14 +129,10 @@ public class LookUpTableCorrector {
                     minDiff = diff;
                     bestCyan = cyan;
                     bestYellow = yellow;
-                    System.out.println("New Min Found: " + minDiff);
-                    System.out.println("New Best Cyan: " + bestCyan + " Luminance: " + cyanLuminance);
-                    System.out.println("New Best Yellow: " + bestYellow + " Luminance: " + yellowLuminance);
                 }
             }
         }
-        System.out.println("Best Cyan: " + bestCyan);
-        System.out.println("Best Yellow: " + bestYellow);
+
 
 
         if (bestCyan != null && bestYellow != null) {

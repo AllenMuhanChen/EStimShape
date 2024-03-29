@@ -1,12 +1,12 @@
 package org.xper.allen.isoluminant;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.monitorlinearization.MonLinConfig;
-import org.xper.allen.monitorlinearization.MonLinTrialGenerator;
 import org.xper.allen.nafc.blockgen.AbstractTrialGenerator;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
 import org.xper.util.FileUtil;
+
+import java.util.Collections;
 
 public class IsoGaborTrialGenerator extends AbstractTrialGenerator<IsoGaborStim> {
 
@@ -21,11 +21,27 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<IsoGaborStim>
 
     @Override
     protected void addTrials() {
-        addIsoluminantTrials();
-
+        addRedGreenIsoluminantTrials();
+        addCyanYellowIsoluminantTrials();
     }
 
-    private void addIsoluminantTrials() {
+    private void addCyanYellowIsoluminantTrials() {
+        //TODO: get this information from receptive field mapping
+        GaborSpec tempSpec = new GaborSpec();
+        tempSpec.setOrientation(45);
+        tempSpec.setPhase(0);
+        tempSpec.setFrequency(0.5);
+        tempSpec.setXCenter(0);
+        tempSpec.setYCenter(0);
+        tempSpec.setSize(20);
+        tempSpec.setAnimation(false);
+
+        IsoGaborSpec spec = new IsoGaborSpec(tempSpec, "CyanYellow");
+        IsoGaborStim stim = new IsoGaborStim(this, spec);
+        getStims().add(stim);
+    }
+
+    private void addRedGreenIsoluminantTrials() {
         //TODO: get this information from receptive field mapping
         GaborSpec tempSpec = new GaborSpec();
         tempSpec.setOrientation(45);
@@ -51,6 +67,10 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<IsoGaborStim>
                 dbUtil.writeTaskToDo(taskId, stimId, -1, genId);
             }
         }
+    }
+
+    protected void shuffleTrials() {
+//        Collections.shuffle(getStims());
     }
 
 
