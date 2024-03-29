@@ -33,13 +33,19 @@ public class IsoGaborConfig {
         scene.setBlankScreen(new BlankScreen());
         scene.setLutCorrector(lookUpTableCorrector());
         scene.setSinusoidGainCorrector(sinusoidCorrector());
+        scene.setTargetLuminanceCandela(targetLuminanceCandela());
         scene.setBackgroundColor(targetLuminanceBackgroundColor());
         return scene;
     }
 
     @Bean
+    public int targetLuminanceCandela() {
+        return 150;
+    }
+
+    @Bean
     public RGBColor targetLuminanceBackgroundColor() {
-        return lookUpTableCorrector().correctSingleColor(150, "gray");
+        return lookUpTableCorrector().correctSingleColor(targetLuminanceCandela(), "gray");
     }
 
     @Bean
