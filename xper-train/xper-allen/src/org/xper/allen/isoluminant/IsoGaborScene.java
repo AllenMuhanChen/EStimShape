@@ -1,5 +1,6 @@
 package org.xper.allen.isoluminant;
 
+import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
 import org.xper.allen.monitorlinearization.SinusoidGainCorrector;

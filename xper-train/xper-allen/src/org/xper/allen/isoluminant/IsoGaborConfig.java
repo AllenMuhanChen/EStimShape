@@ -31,15 +31,15 @@ public class IsoGaborConfig {
         scene.setFixation(classicConfig.experimentFixationPoint());
         scene.setMarker(classicConfig.screenMarker());
         scene.setBlankScreen(new BlankScreen());
-        RGBColor backgroundColor = new RGBColor(
-                84 / 255f,
-                84 / 255f,
-                84 / 255f
-        );
-        scene.setBackgroundColor(backgroundColor);
         scene.setLutCorrector(lookUpTableCorrector());
         scene.setSinusoidGainCorrector(sinusoidCorrector());
+        scene.setBackgroundColor(targetLuminanceBackgroundColor());
         return scene;
+    }
+
+    @Bean
+    public RGBColor targetLuminanceBackgroundColor() {
+        return lookUpTableCorrector().correctSingleColor(150, "gray");
     }
 
     @Bean
