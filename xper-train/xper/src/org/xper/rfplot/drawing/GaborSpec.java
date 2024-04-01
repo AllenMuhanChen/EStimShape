@@ -1,6 +1,7 @@
 package org.xper.rfplot.drawing;
 
 import com.thoughtworks.xstream.XStream;
+import org.xper.drawing.RGBColor;
 import org.xper.rfplot.XMLizable;
 
 public class GaborSpec implements XMLizable {
@@ -11,6 +12,7 @@ public class GaborSpec implements XMLizable {
 	double phase;
 	double size;
 	boolean animation;
+	RGBColor color;
 
 	protected transient static XStream s;
 
@@ -48,6 +50,7 @@ public class GaborSpec implements XMLizable {
 		phase = d.getPhase();
 		size = d.getDiameter();
 		animation = d.isAnimation();
+		color = d.getColor();
 	}
 
 	public double getXCenter() {
@@ -95,5 +98,11 @@ public class GaborSpec implements XMLizable {
 		this.animation = animation;
 	}
 
+	public RGBColor getColor() {
+		return color;
+	}
 
+	public void setColor(RGBColor color) {
+		this.color = color;
+	}
 }

@@ -47,6 +47,9 @@ public class RFPlotScene extends AbstractTaskScene {
 		if (obj != null) {
 			GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
 			GL11.glPushMatrix();
+			// Enable blending
+			GL11.glEnable(GL11.GL_BLEND);
+			// Set blending function to approximate color multiplication
 			GL11.glColor3f(xfm.getColor().getRed(), xfm.getColor().getGreen(), xfm.getColor().getBlue());
 
 

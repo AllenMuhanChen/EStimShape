@@ -5,6 +5,7 @@ import java.nio.ByteOrder;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
+import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
 
@@ -226,12 +227,13 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         getGaborSpec().setSize(5);
         getGaborSpec().setXCenter(0);
         getGaborSpec().setYCenter(0);
+        getGaborSpec().setColor(new RGBColor(1, 0, 0));
     }
 
     protected float[] modulateColor(float modFactor) {
-        float r = 1.0f * modFactor; // Use modulated intensity for color
-        float g = 1.0f * modFactor;
-        float b = 1.0f * modFactor;
+        float r = getGaborSpec().getColor().getRed() * modFactor; // Use modulated intensity for color
+        float g = getGaborSpec().getColor().getGreen() * modFactor;
+        float b = getGaborSpec().getColor().getBlue() * modFactor;
         float[] rgb = {r, g, b};
         return rgb;
     }
