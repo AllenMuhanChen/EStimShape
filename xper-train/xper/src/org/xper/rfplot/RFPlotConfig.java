@@ -24,7 +24,7 @@ import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
 import org.xper.rfplot.drawing.*;
-import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
+import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.gui.*;
 import org.xper.rfplot.gui.scroller.*;
 
@@ -74,7 +74,7 @@ public class RFPlotConfig {
 		LinkedHashMap<String, RFPlotDrawable> refObjMap = new LinkedHashMap<String, RFPlotDrawable>();
 		refObjMap.put(RFPlotBlankObject.class.getName(), new RFPlotBlankObject());
 		refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(imgPathScroller().getFirstPath()));
-//		refObjMap.put(IsochromaticGabor.class.getName(), new IsochromaticGabor());
+		refObjMap.put(Gabor.class.getName(), new Gabor());
 		return refObjMap;
 	}
 
@@ -82,7 +82,7 @@ public class RFPlotConfig {
 	public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
 		LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
 		refModulatorMap.put(RFPlotImgObject.class.getName(), imgModulator());
-		refModulatorMap.put(IsochromaticGabor.class.getName(), isochromaticGaborModulator());
+		refModulatorMap.put(Gabor.class.getName(), gaborModulator());
 		return refModulatorMap;
 	}
 
@@ -93,8 +93,8 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public RFPlotStimModulator isochromaticGaborModulator() {
-		RFPlotStimModulator gratingModulator = new RFPlotStimModulator(isochromaticGaborScrollers());
+	public RFPlotStimModulator gaborModulator() {
+		RFPlotStimModulator gratingModulator = new RFPlotStimModulator(gaborScrollers());
 		return gratingModulator;
 	}
 
@@ -120,13 +120,12 @@ public class RFPlotConfig {
 	}
 
 	@Bean
-	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> isochromaticGaborScrollers(){
+	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> gaborScrollers(){
 		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
-		map.put("Sigma", new GaborSigmaScroller<>(IsochromaticGaborSpec.class));
-		map.put("Orientation", new GaborOrientationScroller<>(IsochromaticGaborSpec.class));
-		map.put("Spatial Frequency", new GaborSpatialFrequencyScroller<>(IsochromaticGaborSpec.class));
-		map.put("Isochromatic Gabors", new GaborIsochromaticScroller<>(IsochromaticGaborSpec.class));
-		map.put("Hue", new GaborHueScroller<>(IsochromaticGaborSpec.class));
+		map.put("Sigma", new GaborSigmaScroller<>(GaborSpec.class));
+		map.put("Orientation", new GaborOrientationScroller<>(GaborSpec.class));
+		map.put("Spatial Frequency", new GaborSpatialFrequencyScroller<>(GaborSpec.class));
+		map.put("Hue", new HueScroller());
 		return map;
 	}
 

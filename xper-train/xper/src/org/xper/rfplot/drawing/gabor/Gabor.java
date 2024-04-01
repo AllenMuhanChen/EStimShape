@@ -21,6 +21,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     protected float phase;
     protected int stepsPerHalfCycle;
 
+
     public Gabor() {
         this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
                 .order(ByteOrder.nativeOrder());
@@ -97,6 +98,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         w = context.getRenderer().getVpWidth(); //in pixels
         h = context.getRenderer().getVpHeight(); //in pixels
 
+
         GL11.glPushMatrix();
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
 
@@ -124,7 +126,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         for (int i = 0; i < STEPS; i++) {
 //            float heightMm = (float) context.getRenderer().getVpHeightmm();
             float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getDiameter()*3);
-            float widthMm = (float) heightMm;
+            float widthMm = heightMm;
             float widthVp = (float) context.getRenderer().getVpWidthmm();
             float heightVp = (float) context.getRenderer().getVpHeightmm();
 //            float widthMm = heightMm;
@@ -142,28 +144,29 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
             float distanceLeftGaborMm = (widthVp - widthMm) / 2; // distance from left of viewport to left of Gabor patch in mm
             float tx1 = distanceLeftGaborMm / widthVp; // distance from left of viewport to left of Gabor patch as a ratio of whole viewport
             float tx2 = (distanceLeftGaborMm + widthMm) / widthVp; // distance from left of viewport to right of Gabor patch as a ratio of whole viewport
-            float gaborHeightMm =  ((float) i / STEPS) * heightMm; // height of the part of the gabor patch being drawn in mm
+            float gaborHeightMm =  ((float) i / (STEPS-1)) * heightMm; // height of the part of the gabor patch being drawn in mm
             float distanceUnderGaborMm = (heightVp - heightMm) / 2; // distance from bottom of viewport to bottom of Gabor patch in mm
             float ty1 = (gaborHeightMm + distanceUnderGaborMm) / heightVp; // distance from bottom of viewport to bottom of Gabor patch as a ratio of whole viewport
             float ty2 = (gaborHeightMm + distanceUnderGaborMm + ((float) 1 / STEPS) * heightMm) / heightVp; // distance from bottom of viewport to the hieght of next of part of the patch as a ratio of whole viewport
+
 
             GL11.glColor3f(rgb[0], rgb[1], rgb[2]);
 
             // Bottom Left
             GL11.glTexCoord2f(tx1, ty1);
-            GL11.glVertex2f(-widthMm, -heightMm + 2 * heightMm * i / STEPS);
+            GL11.glVertex2f(-widthMm, -heightMm + 2 * heightMm * i / (STEPS-1));
 
             // Bottom Right
             GL11.glTexCoord2f(tx2, ty1);
-            GL11.glVertex2f(widthMm, -heightMm + 2 * heightMm * i / STEPS);
+            GL11.glVertex2f(widthMm, -heightMm + 2 * heightMm * i / (STEPS-1));
 
             // Top Right
             GL11.glTexCoord2f(tx2, ty2);
-            GL11.glVertex2f(widthMm, -heightMm + 2 * heightMm * (i + 1) / STEPS);
+            GL11.glVertex2f(widthMm, -heightMm + 2 * heightMm * (i + 1) / (STEPS-1));
 
             // Top Left
             GL11.glTexCoord2f(tx1, ty2);
-            GL11.glVertex2f(-widthMm, -heightMm + 2 * heightMm * (i + 1) / STEPS);
+            GL11.glVertex2f(-widthMm, -heightMm + 2 * heightMm * (i + 1) / (STEPS-1));
         }
 
         GL11.glEnd();
@@ -183,7 +186,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
      * @return
      */
     protected int calcNumSteps(float frequencyCyclesPerDegree, int stepsPerHalfCycle) {
-        double totalGratingSizeDegrees = getGaborSpec().getDiameter() * 2;
+        double totalGratingSizeDegrees = getGaborSpec().getDiameter() * 3;
         int stepsPerCycle = 2 * stepsPerHalfCycle;
         return (int) (frequencyCyclesPerDegree * totalGratingSizeDegrees * stepsPerCycle);
     }
@@ -235,15 +238,15 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
     protected ByteBuffer makeTexture(int w, int h, double diskDiameter, double std) {
         ByteBuffer texture = ByteBuffer.allocateDirect(w * h * Float.SIZE / 8).order(ByteOrder.nativeOrder());
-        double aspectRatio = (double) w / h;
+
         double circleRadius = diskDiameter/4; // Specify the radius of the disk where the texture is shown normally
         //we divide by four because one division by two converts to radius,
         //and another because the coordinate system we use here is -1 to 1, but the diameter
         //is specified as 0-1. So we divide by 2 to get the radius in the -1 to 1 coordinate system.
 
         double diskAlpha = 1.0; // Specify the alpha level within the disk
-        double background = 0.0; // Specify the background intensity
 
+        double aspectRatio = (double) w / h;
         for (int i = 0; i < h; i++) {
             double y = ((double) i / (h - 1) * 2 - 1) / aspectRatio; // Adjust y-coordinate by aspect ratio
             for (int j = 0; j < w; j++) {
@@ -295,6 +298,22 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         return mean + standardDeviation * z;
     }
 
+    public void setSpec(String spec) {
+        recalculateTextureIfChangeSigma(spec);
+        this.setGaborSpec(IsoGaborSpec.fromXml(spec));
+
+    }
+
+    private void recalculateTextureIfChangeSigma(String spec) {
+        String oldSpec = getSpec();
+        IsoGaborSpec oldGabor = IsoGaborSpec.fromXml(oldSpec);
+        double oldSigma = oldGabor.getDiameter();
+        double newSigma = IsoGaborSpec.fromXml(spec).getDiameter();
+        if (oldSigma != newSigma) {
+            recalculateTexture();
+        }
+    }
+
     protected void recalculateTexture(){
         this.textureId = -1;
     }
@@ -310,15 +329,11 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         return getGaborSpec().toXml();
     }
 
-    public void setSpec(String spec) {
-        this.setGaborSpec(GaborSpec.fromXml(spec));
+    public void setGaborSpec(GaborSpec gaborSpec) {
+        this.gaborSpec = gaborSpec;
     }
-
     public GaborSpec getGaborSpec() {
         return gaborSpec;
     }
 
-    public void setGaborSpec(GaborSpec gaborSpec) {
-        this.gaborSpec = gaborSpec;
-    }
 }
