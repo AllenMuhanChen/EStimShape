@@ -5,7 +5,9 @@ import java.nio.ByteOrder;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
 
@@ -326,6 +328,31 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         GL11.glShadeModel(GL11.GL_SMOOTH);
     }
+
+    @Override
+    public void projectCoordinates(Coordinates2D mouseCoordinatesInDegrees) {
+        // Calculate the distance from (0,0) to the input coordinates
+        double initialDistance = Math.sqrt(Math.pow(mouseCoordinatesInDegrees.getX(), 2) + Math.pow(mouseCoordinatesInDegrees.getY(), 2));
+
+        // The radius to project the point away from the center
+        double radius = getGaborSpec().getDiameter() / 2;
+
+        // Calculate the total new distance from the center
+        double newDistance = initialDistance + radius;
+
+        // Calculate the angle of the vector from (0,0) to the mouse coordinates in radians
+        double angle = Math.atan2(mouseCoordinatesInDegrees.getY(), mouseCoordinatesInDegrees.getX());
+
+        // Calculate the new coordinates by projecting away from the center
+        double newX = Math.cos(angle) * newDistance;
+        double newY = Math.sin(angle) * newDistance;
+
+        // Update the mouse coordinates with the new projected coordinates
+        mouseCoordinatesInDegrees.setX(newX);
+        mouseCoordinatesInDegrees.setY(newY);
+    }
+
+
 
     public String getSpec() {
         return getGaborSpec().toXml();

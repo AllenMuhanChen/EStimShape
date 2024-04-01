@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import org.xper.util.MathUtil;
@@ -180,6 +181,10 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		return spec.toXml();
 	}
 
+	@Override
+	public void projectCoordinates(Coordinates2D mouseCoordinates) {
+
+	}
 
 	public double deg2mm(double deg) {
 		return Math.tan(deg * Math.PI / 180.0) * distance;

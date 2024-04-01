@@ -15,7 +15,7 @@ public class RFPlotDrawer {
     private final List<Coordinates2D> points = new LinkedList<>();
     private List<Point> hull;
     private Coordinates2D rfCenter;
-
+    private Point[] diameterPoints = new Point[2]; // Stores the two points that define the diameter
 
     public void draw() {
         try {
@@ -43,17 +43,23 @@ public class RFPlotDrawer {
 
             // Drawing the RF center as a square
             GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
+
+            // Drawing the diameter with a blue line, if available
+            if (diameterPoints[0] != null && diameterPoints[1] != null) {
+                GLUtil.drawLine(diameterPoints[0].x, diameterPoints[0].y, diameterPoints[1].x, diameterPoints[1].y, 0, 0, 1); // Blue line
+            }
         } catch (Exception e) {
         }
     }
     public void add(Coordinates2D point){
         points.add(point);
-        pointsUpdated();
+        System.out.println("Added point: " + point.toString());
+        onPointsUpdated();
     }
 
     public void undo(){
         points.remove(points.size()-1);
-        pointsUpdated();
+        onPointsUpdated();
     }
 
     public void removeClosestTo(Coordinates2D point){
@@ -64,12 +70,35 @@ public class RFPlotDrawer {
             }
         });
     points.remove(nearest);
-    pointsUpdated();
+    onPointsUpdated();
     }
 
-    private void pointsUpdated() {
+    private void onPointsUpdated() {
         hull = ConvexHull.makeHullFromCoordinates(points);
         rfCenter = getRFCenter();
+        computeDiameter(); // Update the diameter whenever points are updated
+    }
+
+    // New method to compute the diameter
+    private void computeDiameter() {
+        double maxDistanceSquared = 0;
+        for (int i = 0; i < hull.size(); i++) {
+            for (int j = i + 1; j < hull.size(); j++) {
+                double distanceSquared = distanceSquared(hull.get(i), hull.get(j));
+                if (distanceSquared > maxDistanceSquared) {
+                    maxDistanceSquared = distanceSquared;
+                    diameterPoints[0] = hull.get(i);
+                    diameterPoints[1] = hull.get(j);
+                }
+            }
+        }
+    }
+
+    // Helper method to calculate squared distance between two points
+    private double distanceSquared(Point p1, Point p2) {
+        double dx = p1.x - p2.x;
+        double dy = p1.y - p2.y;
+        return dx * dx + dy * dy;
     }
 
     public Coordinates2D getRFCenter(){

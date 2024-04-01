@@ -7,6 +7,7 @@ import java.nio.FloatBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 import org.xper.util.MathUtil;
 
 public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
@@ -33,6 +34,11 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 	@Override
 	public String getSpec() {
 		return spec.toXml();
+	}
+
+	@Override
+	public void projectCoordinates(Coordinates2D mouseCoordinates) {
+
 	}
 
 	static ByteBuffer makeTexture(int w, int h) {

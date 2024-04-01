@@ -273,8 +273,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         //Left Click
         if (e.getButton() == MouseEvent.BUTTON1) {
+            AbstractRenderer renderer = consoleRenderer.getRenderer();
             Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
-            plotter.add(worldCoords);
+            RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
+            Coordinates2D mouseCoordinatesInDegrees = new Coordinates2D(
+                    renderer.mm2deg(worldCoords.getX()),
+                    renderer.mm2deg(worldCoords.getY())
+            );
+            currentDrawable.projectCoordinates(mouseCoordinatesInDegrees);
+
+            Coordinates2D projectedMouseCoordinates = new Coordinates2D(
+                    renderer.deg2mm(mouseCoordinatesInDegrees.getX()),
+                    renderer.deg2mm(mouseCoordinatesInDegrees.getY())
+            );
+
+            plotter.add(projectedMouseCoordinates);
         }
 
         //Right Click

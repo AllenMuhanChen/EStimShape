@@ -1,6 +1,7 @@
 package org.xper.rfplot.drawing;
 
 import org.xper.drawing.Context;
+import org.xper.drawing.Coordinates2D;
 
 public class RFPlotBlankObject implements RFPlotDrawable {
     @Override
@@ -21,6 +22,11 @@ public class RFPlotBlankObject implements RFPlotDrawable {
     @Override
     public String getSpec() {
         return "";
+    }
+
+    @Override
+    public void projectCoordinates(Coordinates2D mouseCoordinates) {
+
     }
 
 }

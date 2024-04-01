@@ -5,7 +5,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.drawing.png.RecolorableImages;
-import org.xper.rfplot.drawing.png.TranslatableResizableImages;
 
 public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
 
@@ -46,5 +45,10 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
     @Override
     public String getSpec() {
         return spec.toXml();
+    }
+
+    @Override
+    public void projectCoordinates(Coordinates2D mouseCoordinates) {
+
     }
 }
