@@ -29,6 +29,11 @@ public class LightnessScroller extends RFPlotScroller {
 
         xfmSpec.setColor(newColor);
         scrollerParams.setXfmSpec(xfmSpec);
+        updateValue(scrollerParams, hsl, newColor);
         return scrollerParams;
+    }
+
+    private static void updateValue(ScrollerParams scrollerParams, float[] hsl, RGBColor newColor) {
+        scrollerParams.setNewValue("Lightness: " + hsl[2] + " RGB: " + newColor.toString());
     }
 }

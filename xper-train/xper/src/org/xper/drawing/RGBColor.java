@@ -55,4 +55,13 @@ public class RGBColor {
 	public int hashCode() {
 		return Objects.hash(getRed(), getGreen(), getBlue());
 	}
+
+	@Override
+	public String toString() {
+		return "RGBColor{" +
+				"red=" + red +
+				", green=" + green +
+				", blue=" + blue +
+				'}';
+	}
 }

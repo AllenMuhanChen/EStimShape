@@ -122,7 +122,7 @@ public class RFPlotConfig {
 	@Bean
 	public LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> gaborScrollers(){
 		LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> map = new LinkedHashMap<>();
-		map.put("Sigma", new GaborSigmaScroller<>(GaborSpec.class));
+		map.put("Diameter", new GaborDiameterScroller<>(GaborSpec.class));
 		map.put("Orientation", new GaborOrientationScroller<>(GaborSpec.class));
 		map.put("Spatial Frequency", new GaborSpatialFrequencyScroller<>(GaborSpec.class));
 		map.put("Hue", new GaborHueScroller<>(GaborSpec.class));

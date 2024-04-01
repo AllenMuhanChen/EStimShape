@@ -26,7 +26,12 @@ public class SaturationScroller extends RFPlotScroller {
         RGBColor newColor = HSLUtils.hslToRGB(hsl[0], hsl[1], hsl[2]);
         xfmSpec.setColor(newColor);
         scrollerParams.setXfmSpec(xfmSpec);
+        updateValue(scrollerParams, hsl, newColor);
         return scrollerParams;
+    }
+
+    private static void updateValue(ScrollerParams scrollerParams, float[] hsl, RGBColor newColor) {
+        scrollerParams.setNewValue("Saturation: " + hsl[1] + " RGB: " + newColor.toString());
     }
 
     @Override
@@ -47,6 +52,9 @@ public class SaturationScroller extends RFPlotScroller {
         RGBColor newColor = HSLUtils.hslToRGB(hsl[0], hsl[1], hsl[2]);
         xfmSpec.setColor(newColor);
         scrollerParams.setXfmSpec(xfmSpec);
+        updateValue(scrollerParams, hsl, newColor);
         return scrollerParams;
     }
+
+
 }

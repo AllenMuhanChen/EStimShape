@@ -12,16 +12,22 @@ public class GaborSpatialFrequencyScroller<T extends GaborSpec> extends RFPlotSc
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
         double currentSpatialFrequency = getCurrentSpatialFrequency(scrollerParams);
-        double newSpatialFrequency = currentSpatialFrequency + 0.20;
+        double newSpatialFrequency = currentSpatialFrequency + 0.1;
         setNewSpatialFrequency(scrollerParams, newSpatialFrequency);
+        updateValue(scrollerParams, newSpatialFrequency);
         return scrollerParams;
+    }
+
+    private static void updateValue(ScrollerParams scrollerParams, double newSpatialFrequency) {
+        scrollerParams.setNewValue(newSpatialFrequency + " cycles/degree");
     }
 
     @Override
     public ScrollerParams previous(ScrollerParams scrollerParams) {
         double currentSpatialFrequency = getCurrentSpatialFrequency(scrollerParams);
-        double newSpatialFrequency = currentSpatialFrequency - 0.20;
+        double newSpatialFrequency = currentSpatialFrequency - 0.1;
         setNewSpatialFrequency(scrollerParams, newSpatialFrequency);
+        updateValue(scrollerParams, newSpatialFrequency);
         return scrollerParams;
     }
 

@@ -3,36 +3,41 @@ package org.xper.rfplot.gui.scroller;
 import org.xper.rfplot.drawing.GaborSpec;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
-public class GaborSigmaScroller<T extends GaborSpec> extends RFPlotScroller<T>{
+public class GaborDiameterScroller<T extends GaborSpec> extends RFPlotScroller<T>{
 
-    public GaborSigmaScroller(Class<T> type) {
+    public GaborDiameterScroller(Class<T> type) {
         this.type = type;
     }
 
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
-        double currentSigma = getCurrentSigma(scrollerParams);
-        double newSigma = currentSigma + 1;
-        System.out.println("newSigma: " + newSigma);
-        setNewSigma(scrollerParams, newSigma);
+        double currentSigma = getCurrentDiameter(scrollerParams);
+        double newDiameter = currentSigma + 1;
+        setNewDiameter(scrollerParams, newDiameter);
+        updateValue(scrollerParams, newDiameter);
         return scrollerParams;
+    }
+
+    private static void updateValue(ScrollerParams scrollerParams, double newDiameter) {
+        scrollerParams.setNewValue(newDiameter + " degrees");
     }
 
     @Override
     public ScrollerParams previous(ScrollerParams scrollerParams) {
-        double currentSigma = getCurrentSigma(scrollerParams);
-        double newSigma = currentSigma - 1;
-        setNewSigma(scrollerParams, newSigma);
+        double currentSigma = getCurrentDiameter(scrollerParams);
+        double newDiameter = currentSigma - 1;
+        setNewDiameter(scrollerParams, newDiameter);
+        updateValue(scrollerParams, newDiameter);
         return scrollerParams;
     }
 
-    private void setNewSigma(ScrollerParams scrollerParams, double newSigma) {
+    private void setNewDiameter(ScrollerParams scrollerParams, double newDiameter) {
         T currentGaborSpec = getCurrentSpec(scrollerParams, type);
-        currentGaborSpec.setSize(newSigma);
+        currentGaborSpec.setSize(newDiameter);
         scrollerParams.getRfPlotDrawable().setSpec(currentGaborSpec.toXml());
     }
 
-    private double getCurrentSigma(ScrollerParams scrollerParams) {
+    private double getCurrentDiameter(ScrollerParams scrollerParams) {
         GaborSpec currentGaborSpec = getCurrentGaborSpec(scrollerParams);
         double currentSigma = currentGaborSpec.getDiameter();
         return currentSigma;

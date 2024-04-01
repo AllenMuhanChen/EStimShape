@@ -35,9 +35,13 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
 
         RGBColor newColor = HSLUtils.hslToRGB(hsl);
         setNewColor(scrollerParams, newColor);
+        updateValue(scrollerParams, hsl, newColor);
         return scrollerParams;
     }
 
+    private static void updateValue(ScrollerParams scrollerParams, float[] hsl, RGBColor newColor) {
+        scrollerParams.setNewValue("Hue: " + hsl[0] + " RGB: " + newColor.toString());
+    }
 
     @Override
     public ScrollerParams previous(ScrollerParams scrollerParams) {
@@ -47,6 +51,7 @@ public class GaborHueScroller<T extends GaborSpec> extends RFPlotScroller<T>{
     private ScrollerParams setToWhite(ScrollerParams scrollerParams) {
         RGBColor white = new RGBColor(1.0f, 1.0f, 1.0f); // RGB representation of white
         setNewColor(scrollerParams, white);
+        updateValue(scrollerParams, new float[]{0.0f, 0.0f, 1.0f}, white);
         return scrollerParams;
     }
 

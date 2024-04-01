@@ -66,6 +66,7 @@ public class ImgPathScroller extends RFPlotScroller {
         PngSpec pngSpec = PngSpec.fromXml(scrollerParams.getRfPlotDrawable().getSpec());
         pngSpec.setPath(nextPath);
         scrollerParams.getRfPlotDrawable().setSpec(pngSpec.toXml());
+        scrollerParams.setNewValue(nextPath);
         return scrollerParams;
     }
 
@@ -76,6 +77,7 @@ public class ImgPathScroller extends RFPlotScroller {
         PngSpec pngSpec = PngSpec.fromXml(scrollerParams.getRfPlotDrawable().getSpec());
         pngSpec.setPath(nextPath);
         scrollerParams.getRfPlotDrawable().setSpec(pngSpec.toXml());
+        scrollerParams.setNewValue(nextPath);
         return scrollerParams;
     }
 

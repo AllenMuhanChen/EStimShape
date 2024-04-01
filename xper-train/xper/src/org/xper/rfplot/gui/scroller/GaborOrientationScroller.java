@@ -12,16 +12,22 @@ public class GaborOrientationScroller<T extends GaborSpec> extends RFPlotScrolle
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
         double currentOrientation = getCurrentOrientation(scrollerParams);
-        double newOrientation = currentOrientation + 10;
+        double newOrientation = currentOrientation + 5;
         setNewOrientation(scrollerParams, newOrientation);
+        updateValue(scrollerParams, newOrientation);
         return scrollerParams;
+    }
+
+    private static void updateValue(ScrollerParams scrollerParams, double newOrientation) {
+        scrollerParams.setNewValue(newOrientation + " degrees");
     }
 
     @Override
     public ScrollerParams previous(ScrollerParams scrollerParams) {
         double currentOrientation = getCurrentOrientation(scrollerParams);
-        double newOrientation = currentOrientation - 10;
+        double newOrientation = currentOrientation - 5;
         setNewOrientation(scrollerParams, newOrientation);
+        updateValue(scrollerParams, newOrientation);
         return scrollerParams;
     }
 

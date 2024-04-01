@@ -4,7 +4,7 @@ import org.xper.rfplot.RFPlotXfmSpec;
 
 public class OrientationScroller extends RFPlotScroller{
 
-    private final static float dr = (float) (10);
+    private final static float dr = (float) (5);
 
     @Override
     public ScrollerParams next(ScrollerParams scrollerParams) {
@@ -13,7 +13,12 @@ public class OrientationScroller extends RFPlotScroller{
         float newRotation = currentRotation - dr;
         xfmSpec.setRotation(newRotation);
         scrollerParams.setXfmSpec(xfmSpec);
+        updateValue(scrollerParams, newRotation);
         return scrollerParams;
+    }
+
+    private static void updateValue(ScrollerParams scrollerParams, float newRotation) {
+        scrollerParams.setNewValue("Rotation: " + newRotation + " degrees");
     }
 
     @Override
@@ -23,6 +28,7 @@ public class OrientationScroller extends RFPlotScroller{
         float newRotation = currentRotation + dr;
         xfmSpec.setRotation(newRotation);
         scrollerParams.setXfmSpec(xfmSpec);
+        updateValue(scrollerParams, newRotation);
         return scrollerParams;
     }
 }

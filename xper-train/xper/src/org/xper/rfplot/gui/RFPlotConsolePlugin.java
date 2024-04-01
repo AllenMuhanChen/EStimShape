@@ -133,6 +133,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private JLabel rfCenterLabel;
     private JLabel scrollerModeLabel;
+    private JLabel scrollerValueLabel;
     /**
      * https://docs.oracle.com/javase/tutorial/uiswing/layout/gridbag.html#:~:text=A%20GridBagLayout%20places%20components%20in,necessarily%20have%20the%20same%20width.
      * @return
@@ -145,6 +146,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         rfCenterLabel(jpanel);
         scrollerModeLabel(jpanel);
+        scrollerValueLabel(jpanel);
         return jpanel;
     }
 
@@ -170,6 +172,13 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         scrollerModeConstraints.gridy = 2;
         scrollerModeLabel = new JLabel("Mode");
         jpanel.add(scrollerModeLabel, scrollerModeConstraints);
+    }
+
+    private void scrollerValueLabel(JPanel jpanel){
+        GridBagConstraints scrollerValueConstraints = new GridBagConstraints();
+        scrollerValueConstraints.gridy = 3;
+        scrollerValueLabel = new JLabel("Value");
+        jpanel.add(scrollerValueLabel, scrollerValueConstraints);
     }
 
     @Override
@@ -230,6 +239,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         xfmSpec = newParams.getXfmSpec().toXml();
         client.changeRFPlotStim(stimSpec);
         client.changeRFPlotXfm(xfmSpec);
+        scrollerValueLabel.setText(newParams.getNewValue());
     }
 
     @Override

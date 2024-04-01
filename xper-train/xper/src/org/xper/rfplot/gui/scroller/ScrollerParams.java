@@ -7,6 +7,7 @@ public class ScrollerParams {
 
     private RFPlotDrawable rfPlotDrawable;
     private RFPlotXfmSpec xfmSpec;
+    private String newValue = "None";
 
     public ScrollerParams(RFPlotDrawable rfPlotDrawable, RFPlotXfmSpec xfmSpec) {
         this.rfPlotDrawable = rfPlotDrawable;
@@ -27,5 +28,13 @@ public class ScrollerParams {
 
     public void setXfmSpec(RFPlotXfmSpec xfmSpec) {
         this.xfmSpec = xfmSpec;
+    }
+
+    public String getNewValue() {
+        return newValue;
+    }
+
+    public void setNewValue(String newValue) {
+        this.newValue = newValue;
     }
 }

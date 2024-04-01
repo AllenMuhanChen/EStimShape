@@ -30,6 +30,7 @@ public class HueScroller extends RFPlotScroller {
         RGBColor newColor = HSLUtils.hslToRGB(hsl);
         xfmSpec.setColor(newColor);
         scrollerParams.setXfmSpec(xfmSpec);
+        updateValue(scrollerParams, hsl, newColor);
         return scrollerParams;
     }
 
@@ -49,11 +50,17 @@ public class HueScroller extends RFPlotScroller {
 
         xfmSpec.setColor(newColor);
         scrollerParams.setXfmSpec(xfmSpec);
-        System.out.println("HueScroller: " + xfmSpec.getColor().getRed() + " " + xfmSpec.getColor().getGreen() + " " + xfmSpec.getColor().getBlue());
+        scrollerParams.setNewValue(newColor.toString());
+        updateValue(scrollerParams, hsl, newColor);
         return scrollerParams;
     }
 
     private boolean isGrayscale(RGBColor color) {
         return color.getRed() == color.getGreen() && color.getGreen() == color.getBlue();
     }
+
+    private static void updateValue(ScrollerParams scrollerParams, float[] hsl, RGBColor newColor) {
+        scrollerParams.setNewValue("Hue: " + hsl[0] + " RGB: " + newColor.toString());
+    }
+
 }
