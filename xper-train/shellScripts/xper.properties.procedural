@@ -27,7 +27,7 @@ fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
 fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
 
 # if not specified, the default is org.xper.config.RFPlotConfig
-rfplot.config_class=
+rfplot.config_class=org.xper.allen.rfplot.AllenRFPlotConfig
 rfplot.png_library_path_generator = /home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
 rfplot.png_library_path_experiment = /home/m2_allen/Documents/stimuli/ga_dev_240207/rfplot/pngs
 
