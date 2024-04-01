@@ -49,6 +49,38 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
 
     @Override
     public void projectCoordinates(Coordinates2D mouseCoordinates) {
+        // Vector direction from origin to mouse coordinates
+        double dx = mouseCoordinates.getX();
+        double dy = mouseCoordinates.getY();
 
+        // Normalize this vector (make it unit length) to just get the direction
+        double vectorLength = Math.sqrt(dx*dx + dy*dy);
+        double dirX = dx / vectorLength;
+        double dirY = dy / vectorLength;
+
+        // Image (rectangle) dimensions
+        double halfWidth = spec.getDimensions().getWidth() / 2.0;
+        double halfHeight = spec.getDimensions().getHeight() / 2.0;
+
+        // Project the rectangle's center to its edge in the direction of the vector
+        // This is done by determining the 'projection factor' to reach the edge of the rectangle
+        double projectionFactor = calculateProjectionFactor(dirX, dirY, halfWidth, halfHeight);
+
+        // Update the mouseCoordinates to the edge of the rectangle in the vector direction
+        mouseCoordinates.setX(dx + dirX * projectionFactor);
+        mouseCoordinates.setY(dy + dirY * projectionFactor);
+    }
+
+    private double calculateProjectionFactor(double dirX, double dirY, double halfWidth, double halfHeight) {
+        // The projection factor is the amount to scale the direction vector by
+        // to reach the edge of the rectangle.
+        // We calculate this separately for width and height to see which edge we hit first.
+
+        // Avoid division by zero
+        double factorX = dirX != 0 ? halfWidth / Math.abs(dirX) : Double.POSITIVE_INFINITY;
+        double factorY = dirY != 0 ? halfHeight / Math.abs(dirY) : Double.POSITIVE_INFINITY;
+
+        // The smaller factor determines the first edge hit by the projection.
+        return Math.min(factorX, factorY);
     }
 }
