@@ -23,6 +23,13 @@ public class IsoluminantGabor extends Gabor {
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
         this.sinusoidGainCorrector = sinusoidGainCorrector;
+
+        stepsPerHalfCycle = 100;
+    }
+
+    @Override
+    protected float calcModFactor(float i, int STEPS) {
+        return (float) Math.abs(((Math.abs(frequencyCyclesPerMm * (verticalPosition + phase))) % 1) * 2 - 1);
     }
 
     @Override

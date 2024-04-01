@@ -65,7 +65,7 @@ public class MonLinTrialGenerator extends AbstractTrialGenerator<MonLinStim> {
             }
         }
         else if (mode.equals("Gray")){
-            int numRepeats = 5;
+            int numRepeats = 1;
             for (int i = 0; i < numRepeats; i++) {
                 addGrayCalibrationTrials(256);
             }

@@ -61,10 +61,10 @@ public class IsoGaborTest {
         IsoGaborSpec spec = new IsoGaborSpec();
         spec.setOrientation(45);
         spec.setPhase(0);
-        spec.setFrequency(1);
+        spec.setFrequency(0.5);
         spec.setXCenter(0);
         spec.setYCenter(0);
-        spec.setSize(5);
+        spec.setSize(10);
         spec.setAnimation(false);
         spec.setType("Yellow");
 
@@ -88,11 +88,11 @@ public class IsoGaborTest {
 
     @Test
     public void testRedGreenIsoluminant() {
-        int size = 20;
+        int size = 5;
         GaborSpec spec = new GaborSpec();
         spec.setOrientation(45);
         spec.setPhase(0);
-        spec.setFrequency(2);
+        spec.setFrequency(1);
         spec.setXCenter(0);
         spec.setYCenter(0);
         spec.setSize(size);

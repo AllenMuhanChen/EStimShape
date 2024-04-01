@@ -9,18 +9,23 @@ import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
 
 public class Gabor extends DefaultSpecRFPlotDrawable {
-    protected static final int STEPS = 2000;
+    protected static int STEPS = 5000;
     protected ByteBuffer array;
     protected int textureId = -1;
 
     private GaborSpec gaborSpec = new GaborSpec();
     protected int w;
     protected int h;
+    protected double frequencyCyclesPerMm;
+    protected float verticalPosition;
+    protected float phase;
+    protected int stepsPerHalfCycle;
 
     public Gabor() {
         this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
                 .order(ByteOrder.nativeOrder());
         setDefaultSpec();
+        stepsPerHalfCycle = 256;
     }
 
     protected void initTexture(Context context) {
@@ -108,12 +113,14 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     private void drawGabor(Context context) {
         GL11.glBegin(GL11.GL_QUADS);
 
-        float phase = (float) getGaborSpec().getPhase();
+        phase = (float) getGaborSpec().getPhase();
 
         // Convert frequency from cycles per degree to cycles per mm
         float frequencyCyclesPerDegree = (float) getGaborSpec().getFrequency();
-        double frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
+        frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
 
+
+        STEPS = calcNumSteps(frequencyCyclesPerDegree, stepsPerHalfCycle);
         for (int i = 0; i < STEPS; i++) {
 //            float heightMm = (float) context.getRenderer().getVpHeightmm();
             float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getDiameter()*3);
@@ -124,11 +131,11 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 //            float widthMm = (float) context.getRenderer().getVpWidthmm();
             // Adjusting the modFactor calculation for the frequency across the viewport in mm
             // Assuming the Gabor pattern should span the entire height of the viewport uniformly
-            float verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
+            verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
             //linear modFactor
 //            float modFactor = i / (float) STEPS;
-//            float modFactor = (float) (Math.sin(2 * Math.PI * frequencyCyclesPerMm * verticalPosition + phase) + 1) / 2;
-            float modFactor = (float) Math.abs(((Math.abs(frequencyCyclesPerMm * (verticalPosition + phase))) % 1) * 2 - 1);
+            float modFactor = calcModFactor(i, STEPS);
+//            float modFactor = (float) Math.abs(((Math.abs(frequencyCyclesPerMm * (verticalPosition + phase))) % 1) * 2 - 1);
             float[] rgb = modulateColor(modFactor);
 
             // Texture coordinates: between 0-1, where 0 is the left edge of the texture
@@ -163,6 +170,26 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glPopMatrix();
 
         GL11.glDisable(GL11.GL_TEXTURE_2D); // Disable texture if not used afterwards
+    }
+
+    /**
+     * Calculate the number of steps needed to draw the Gabor patch given the frequency of cycles and steps per cycle.
+     *
+     * The total size of grating drawn is 2 * diameter, and since
+     *
+     * We
+     * @param frequencyCyclesPerDegree
+     * @param stepsPerHalfCycle
+     * @return
+     */
+    protected int calcNumSteps(float frequencyCyclesPerDegree, int stepsPerHalfCycle) {
+        double totalGratingSizeDegrees = getGaborSpec().getDiameter() * 2;
+        int stepsPerCycle = 2 * stepsPerHalfCycle;
+        return (int) (frequencyCyclesPerDegree * totalGratingSizeDegrees * stepsPerCycle);
+    }
+
+    protected float calcModFactor(float i, int STEPS){
+        return (float) ((Math.sin(2 * Math.PI * frequencyCyclesPerMm * (verticalPosition + phase)) + 1) / 2);
     }
 
     protected void bindGaussianTexture(Context context) {

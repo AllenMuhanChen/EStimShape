@@ -13,6 +13,8 @@ public class IsochromaticGabor extends Gabor{
         this.gaborSpec = gaborSpec;
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
+
+        stepsPerHalfCycle = 256;
     }
 
     //    ColourConverter.WhitePoint whitePoint = ColourConverter.WhitePoint.D65;
@@ -20,8 +22,13 @@ public class IsochromaticGabor extends Gabor{
 
     @Override
     protected float[] modulateColor(float modFactor) {
-        System.out.println("modFactor: " + modFactor);
-        double targetCandela = luminanceCandela * modFactor * 2;
+        double min = 10;
+        double max = 290;
+        double targetCandela = modFactor * luminanceCandela;
+        targetCandela = Math.max(min, Math.min(max, targetCandela));
+
+//        double range = 280;
+//        double targetCandela = luminanceCandela - range/2 + modFactor * range/2;
 
         // Convert RGB to Lab
         RGBColor corrected;

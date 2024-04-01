@@ -14,7 +14,7 @@ from monitorlinearization.compile_monlin import RedField, GreenField, BlueField,
 def main():
     conn = Connection("allen_monitorlinearization_240228")
     save_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/monitor_linearization"
-    date = "2024-03-21"
+    date = "2024-04-01"
     base_path = "/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/Test/%s" % date
 
     # Find the most recent file in base_path directory
