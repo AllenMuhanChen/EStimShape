@@ -335,7 +335,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         double initialDistance = Math.sqrt(Math.pow(mouseCoordinatesInDegrees.getX(), 2) + Math.pow(mouseCoordinatesInDegrees.getY(), 2));
 
         // The radius to project the point away from the center
-        double radius = getGaborSpec().getDiameter() / 2;
+        double effectiveDiameter = getGaborSpec().getDiameter() * 2; //diameter of disk plus fade
+        double radius = effectiveDiameter / 2;
 
         // Calculate the total new distance from the center
         double newDistance = initialDistance + radius;
