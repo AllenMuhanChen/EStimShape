@@ -55,6 +55,9 @@ public class AllenRFPlotConfig {
         LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> scrollers = new LinkedHashMap<String, RFPlotScroller<? extends XMLizable>>();
         scrollers.put("RandMStick", new RandMStickScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         scrollers.put("Size", new MStickSizeScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("Rotation X", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 0));
+        scrollers.put("Rotation Y", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 1));
+        scrollers.put("Rotation Z", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 2));
         return scrollers;
     }
 

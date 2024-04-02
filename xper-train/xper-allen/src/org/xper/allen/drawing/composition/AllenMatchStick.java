@@ -677,13 +677,13 @@ public class AllenMatchStick extends MatchStick {
 
 	protected void positionShape() {
 //		centerShapeAtOrigin(getSpecialEndComp().get(0));
-		centerCenterOfMassAtOrigin();
+		moveCenterOfMassToOrigin();
 	}
 
 	/**
 	 *   A function that will put the center of comp1 back to origin
 	 */
-	public void centerCenterOfMassAtOrigin()
+	public void moveCenterOfMassToOrigin()
 	{
 		Point3d origin = new Point3d(0.0, 0.0, 0.0);
 
