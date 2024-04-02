@@ -23,7 +23,7 @@ public class DrawingManager implements Drawable {
 	float r_bkgrd;
 	float g_bkgrd;
 	float b_bkgrd;
-	
+
 	String imageFolderName = "";
 
 	int height;

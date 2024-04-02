@@ -1,6 +1,7 @@
 package org.xper.allen.rfplot;
 
 import com.thoughtworks.xstream.XStream;
+import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.drawing.Context;

@@ -21,6 +21,7 @@ public class RFPlotScene extends AbstractTaskScene {
 	public void initGL(int w, int h) {
 		super.initGL(w, h);
 		// TODO: initGL for objects
+
 	}
 
 	public void setTask(ExperimentTask task) {
@@ -42,6 +43,9 @@ public class RFPlotScene extends AbstractTaskScene {
 	public void drawStimulus(Context context) {
 		if (spec == null) return;
 
+		GL11.glShadeModel(GL11.GL_SMOOTH);
+		GL11.glDisable(GL11.GL_DEPTH_TEST);
+
 		String objClass = spec.getStimClass();
 		RFPlotDrawable obj = rfObjectMap.get(objClass);
 		if (obj != null) {
@@ -57,6 +61,7 @@ public class RFPlotScene extends AbstractTaskScene {
 			GL11.glRotatef(xfm.getRotation(), 0.0f, 0.0f, 1.0f);
 			GL11.glScaled(xfm.getScale().getX(), xfm.getScale().getY(), 1.0);
 
+			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 			obj.draw(context);
 
 			GL11.glPopMatrix();

@@ -45,9 +45,8 @@ public abstract class AbstractTaskScene implements TaskScene {
 			GL11.glColorMask(true, true, true, true);
 			GL11.glDepthMask(true);
 		} else {
-			// GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+//			 GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 		}
-
 		GL11.glClearColor(getBackgroundColor().getRed(), getBackgroundColor().getGreen(), getBackgroundColor().getBlue(), 0.0f);
 	}
 
