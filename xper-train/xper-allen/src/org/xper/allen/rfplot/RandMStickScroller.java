@@ -54,10 +54,11 @@ public class RandMStickScroller<T extends RFPlotMatchStickSpec> extends RFPlotSc
         if (currentSpecIndex < 0){
             currentSpecIndex = 0;
         }
-        RFPlotMatchStickSpec spec = savedSpecs.get(currentSpecIndex);
-        spec.setSpec(spec.getMStickSpec());
+        RFPlotMatchStickSpec currentSpec = getCurrentSpec(scrollerParams);
+        RFPlotMatchStickSpec newSpec = new RFPlotMatchStickSpec(currentSpec);
+        newSpec.setSpec(savedSpecs.get(currentSpecIndex).getMStickSpec());
 
-        scrollerParams.getRfPlotDrawable().setSpec(spec.toXml());
+        scrollerParams.getRfPlotDrawable().setSpec(newSpec.toXml());
         scrollerParams.setNewValue("Rand Matchstick: " + (currentSpecIndex + 1));
         return scrollerParams;
     }
