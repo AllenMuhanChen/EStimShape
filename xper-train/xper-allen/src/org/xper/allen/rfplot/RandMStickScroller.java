@@ -9,11 +9,11 @@ import org.xper.rfplot.gui.scroller.ScrollerParams;
 import java.util.LinkedList;
 import java.util.List;
 
-public class RandScroller<T extends RFPlotMatchStickSpec> extends RFPlotScroller<T> {
+public class RandMStickScroller<T extends RFPlotMatchStickSpec> extends RFPlotScroller<T> {
 
     List<RFPlotMatchStickSpec> savedSpecs = new LinkedList<>();
     int currentSpecIndex = 0;
-    public RandScroller(Class<T> type) {
+    public RandMStickScroller(Class<T> type) {
         this.type = type;
     }
 
@@ -23,7 +23,6 @@ public class RandScroller<T extends RFPlotMatchStickSpec> extends RFPlotScroller
         RFPlotMatchStickSpec newSpec = new RFPlotMatchStickSpec(currentSpec);
         // Save the first spec
         if (savedSpecs.isEmpty()){
-            System.out.println("saved first spec");
             savedSpecs.add(new RFPlotMatchStickSpec(newSpec));
         }
 

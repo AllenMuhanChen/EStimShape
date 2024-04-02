@@ -22,6 +22,8 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     @Override
     public void draw(Context context) {
         AllenMatchStick matchStick = new AllenMatchStick();
+        matchStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
+        matchStick.setStimColor(spec.color);
         matchStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
         matchStick.drawFast();
     }
