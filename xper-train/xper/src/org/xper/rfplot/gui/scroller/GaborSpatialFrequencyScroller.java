@@ -1,8 +1,6 @@
 package org.xper.rfplot.gui.scroller;
 
-import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.drawing.GaborSpec;
-import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public class GaborSpatialFrequencyScroller<T extends GaborSpec> extends RFPlotScroller<T>{
     public GaborSpatialFrequencyScroller(Class<T> type) {
@@ -32,13 +30,13 @@ public class GaborSpatialFrequencyScroller<T extends GaborSpec> extends RFPlotSc
     }
 
     private double getCurrentSpatialFrequency(ScrollerParams scrollerParams) {
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         double currentSpatialFrequency = currentGaborSpec.getFrequency();
         return currentSpatialFrequency;
     }
 
     private void setNewSpatialFrequency(ScrollerParams scrollerParams, double newSpatialFrequency) {
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         currentGaborSpec.setFrequency(newSpatialFrequency);
         scrollerParams.getRfPlotDrawable().setSpec(currentGaborSpec.toXml());
     }

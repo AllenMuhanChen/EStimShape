@@ -117,6 +117,12 @@ public class AllenMatchStick extends MatchStick {
 		this.copyFrom(in);
 		setFinalRotation(this.finalRotation);
 	}
+
+	public void drawFast(){
+		init();
+		drawSkeleton(false);
+	}
+
 	@Override
 	public void draw() {
 		init();

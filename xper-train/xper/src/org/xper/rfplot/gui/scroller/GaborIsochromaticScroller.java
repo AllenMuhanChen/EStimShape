@@ -1,6 +1,5 @@
 package org.xper.rfplot.gui.scroller;
 
-import org.xper.Dependency;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.IsochromaticGaborSpec;
 
@@ -49,13 +48,13 @@ public class GaborIsochromaticScroller <T extends IsochromaticGaborSpec> extends
     }
 
     private RGBColor getCurrentColor(ScrollerParams scrollerParams) {
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         RGBColor currentColor = currentGaborSpec.getColor();
         return currentColor;
     }
 
     private void setNewColor(ScrollerParams scrollerParams, RGBColor newColor) {
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         currentGaborSpec.setColor(newColor);
         scrollerParams.getRfPlotDrawable().setSpec(currentGaborSpec.toXml());
     }

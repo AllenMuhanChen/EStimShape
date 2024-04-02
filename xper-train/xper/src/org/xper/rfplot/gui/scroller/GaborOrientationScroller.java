@@ -1,7 +1,6 @@
 package org.xper.rfplot.gui.scroller;
 
 import org.xper.rfplot.drawing.GaborSpec;
-import org.xper.rfplot.drawing.RFPlotDrawable;
 
 public class GaborOrientationScroller<T extends GaborSpec> extends RFPlotScroller<T>{
 
@@ -32,7 +31,7 @@ public class GaborOrientationScroller<T extends GaborSpec> extends RFPlotScrolle
     }
 
     private double getCurrentOrientation(ScrollerParams scrollerParams) {
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         double currentOrientation = currentGaborSpec.getOrientation();
         return currentOrientation;
     }
@@ -45,7 +44,7 @@ public class GaborOrientationScroller<T extends GaborSpec> extends RFPlotScrolle
 //    }
 
     private void setNewOrientation(ScrollerParams scrollerParams, double newOrientation) {
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         currentGaborSpec.setOrientation(newOrientation);
         scrollerParams.getRfPlotDrawable().setSpec(currentGaborSpec.toXml());
     }

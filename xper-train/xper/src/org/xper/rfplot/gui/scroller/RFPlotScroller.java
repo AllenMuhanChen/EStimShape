@@ -17,11 +17,11 @@ public abstract class RFPlotScroller<T extends XMLizable> {
     public abstract ScrollerParams next(ScrollerParams scrollerParams);
     public abstract ScrollerParams previous(ScrollerParams scrollerParams);
 
-    protected T getCurrentSpec(ScrollerParams scrollerParams, Class specType) {
+    protected T getCurrentSpec(ScrollerParams scrollerParams) {
         RFPlotDrawable currentDrawable = scrollerParams.getRfPlotDrawable();
         T currentSpec;
         try {
-            currentSpec = (T) specType.newInstance();
+            currentSpec = (T) type.newInstance();
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {

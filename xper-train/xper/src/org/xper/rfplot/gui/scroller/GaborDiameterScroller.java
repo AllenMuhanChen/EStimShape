@@ -32,7 +32,7 @@ public class GaborDiameterScroller<T extends GaborSpec> extends RFPlotScroller<T
     }
 
     private void setNewDiameter(ScrollerParams scrollerParams, double newDiameter) {
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         currentGaborSpec.setSize(newDiameter);
         scrollerParams.getRfPlotDrawable().setSpec(currentGaborSpec.toXml());
     }
@@ -45,7 +45,7 @@ public class GaborDiameterScroller<T extends GaborSpec> extends RFPlotScroller<T
 
     private GaborSpec getCurrentGaborSpec(ScrollerParams scrollerParams) {
         RFPlotDrawable currentDrawable = scrollerParams.getRfPlotDrawable();
-        T currentGaborSpec = getCurrentSpec(scrollerParams, type);
+        T currentGaborSpec = getCurrentSpec(scrollerParams);
         return currentGaborSpec;
     }
 

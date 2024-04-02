@@ -8,10 +8,13 @@ import org.springframework.config.java.annotation.Configuration;
 import org.springframework.config.java.annotation.Lazy;
 
 import org.xper.rfplot.RFPlotConfig;
+import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 import org.xper.rfplot.drawing.RFPlotImgObject;
 import org.xper.rfplot.drawing.gabor.Gabor;
+import org.xper.rfplot.gui.RFPlotStimModulator;
+import org.xper.rfplot.gui.scroller.RFPlotScroller;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,6 +34,27 @@ public class AllenRFPlotConfig {
         refObjMap.put(RFPlotImgObject.class.getName(), new RFPlotImgObject(rfPlotConfig.imgPathScroller().getFirstPath()));
         refObjMap.put(Gabor.class.getName(), new Gabor());
         return refObjMap;
+    }
+
+    @Bean
+    public Map<String, RFPlotStimModulator> modulatorsForDrawables(){
+        LinkedHashMap<String, RFPlotStimModulator> refModulatorMap = new LinkedHashMap<>();
+        refModulatorMap.put(RFPlotMatchStick.class.getName(), mStickModulator());
+        refModulatorMap.put(RFPlotImgObject.class.getName(), rfPlotConfig.imgModulator());
+        refModulatorMap.put(Gabor.class.getName(), rfPlotConfig.gaborModulator());
+        return refModulatorMap;
+    }
+
+    @Bean
+    public RFPlotStimModulator mStickModulator() {
+        RFPlotStimModulator mStickModulator = new RFPlotStimModulator(mStickScrollers());
+        return mStickModulator;
+    }
+
+    private LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> mStickScrollers() {
+        LinkedHashMap<String, RFPlotScroller<? extends XMLizable>> scrollers = new LinkedHashMap<String, RFPlotScroller<? extends XMLizable>>();
+        scrollers.put("RandMStick", new RandScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        return scrollers;
     }
 
 }
