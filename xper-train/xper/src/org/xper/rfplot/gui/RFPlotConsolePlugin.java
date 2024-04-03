@@ -236,6 +236,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void updateFromScroller(ScrollerParams newParams) {
         stimSpec = RFPlotStimSpec.getStimSpecFromRFPlotDrawable(newParams.getRfPlotDrawable());
+        RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
+        currentDrawable.setSpec(newParams.getRfPlotDrawable().getSpec());
         xfmSpec = newParams.getXfmSpec().toXml();
         client.changeRFPlotStim(stimSpec);
         client.changeRFPlotXfm(xfmSpec);
@@ -276,25 +278,28 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             AbstractRenderer renderer = consoleRenderer.getRenderer();
             Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
             RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
+
             Coordinates2D mouseCoordinatesInDegrees = new Coordinates2D(
                     renderer.mm2deg(worldCoords.getX()),
                     renderer.mm2deg(worldCoords.getY())
             );
-            List<Coordinates2D> profilePoints = currentDrawable.getProfilePoints(mouseCoordinatesInDegrees);
 
-            for (Coordinates2D point : profilePoints) {
-                Coordinates2D profilePointsMm = new Coordinates2D(
-                        renderer.deg2mm(point.getX()),
-                        renderer.deg2mm(point.getY())
-                );
-                plotter.add(profilePointsMm);
-            }
-//            Coordinates2D projectedMouseCoordinates = new Coordinates2D(
-//                    renderer.deg2mm(mouseCoordinatesInDegrees.getX()),
-//                    renderer.deg2mm(mouseCoordinatesInDegrees.getY())
-//            );
+//            plotter.add(renderer.deg2mm(mouseCoordinatesInDegrees));
+//            List<Coordinates2D> profilePoints = currentDrawable.getProfilePoints(mouseCoordinatesInDegrees);
+//
+//            for (Coordinates2D point : profilePoints) {
+//                Coordinates2D profilePointsMm = new Coordinates2D(
+//                        renderer.deg2mm(point.getX()),
+//                        renderer.deg2mm(point.getY())
+//                );
+//                plotter.add(profilePointsMm);
+//            }
+            Coordinates2D projectedMouseCoordinates = new Coordinates2D(
+                    renderer.deg2mm(mouseCoordinatesInDegrees.getX()),
+                    renderer.deg2mm(mouseCoordinatesInDegrees.getY())
+            );
 
-//            plotter.add(projectedMouseCoordinates);
+            plotter.add(projectedMouseCoordinates);
         }
 
         //Right Click

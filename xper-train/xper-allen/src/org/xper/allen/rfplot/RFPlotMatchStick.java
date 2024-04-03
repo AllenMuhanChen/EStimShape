@@ -24,6 +24,7 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     AllenMatchStick matchStick;
     RFPlotMatchStickSpec spec;
     double sizeDiameterDegrees = 10;
+    private ArrayList<Point> meshPoints;
 
     public RFPlotMatchStick() {
         setDefaultSpec();
@@ -36,7 +37,9 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         nextMStick.setStimColor(spec.color);
         nextMStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
         nextMStick.drawFast();
+
         matchStick.copyFrom(nextMStick);
+
     }
 
     @Override
@@ -66,31 +69,29 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     }
 
     public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinatesInDegrees) {
+        AllenMatchStick nextMStick = new AllenMatchStick();
+        nextMStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
+        nextMStick.setStimColor(spec.color);
+        nextMStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
+
+        ArrayList<Point> nextMeshPoints = new ArrayList<>();
+        Point3d[] vectInfo = nextMStick.getObj1().vect_info;
+        for (Point3d point : vectInfo) {
+            if (point != null) {
+                nextMeshPoints.add(new Point(point.getX() + mouseCoordinatesInDegrees.getX(), point.getY() + mouseCoordinatesInDegrees.getY()));
+            }
+        }
+        meshPoints = new ArrayList<>(nextMeshPoints);
+
+
         int numComponents = matchStick.getNComponent();
         int totalPoints = NUM_POINTS_PER_COMPONENT * numComponents;
 
-        // Calculate the angle from (0,0) to the mouse coordinates
-        double angle = Math.atan2(mouseCoordinatesInDegrees.getY(), mouseCoordinatesInDegrees.getX());
 
         // Gather points to use for hull calculation
         ConcaveHull concaveHull = new ConcaveHull();
-        ArrayList<Point3d> allMeshPoints = new ArrayList<>();
-        for (int i = 1; i <= matchStick.getNComponent(); i++) {
-            allMeshPoints.addAll(Arrays.asList(matchStick.getComp()[i].getVect_info()));
-        }
 
-        //Translate the mesh points by the mouse coordinates in degrees
-        ArrayList<Point> translatedMeshPoints = new ArrayList<>();
-        for (Point3d point : allMeshPoints) {
-            if (point != null) {
-                //Translate point by mouse Coordinates
-                Point translatedPoint = new Point(point.x + mouseCoordinatesInDegrees.getX(), point.y + mouseCoordinatesInDegrees.getY());
-
-                translatedMeshPoints.add(translatedPoint);
-            }
-        }
-        //Calculate the hull
-        ArrayList<Point> concaveHullPoints = concaveHull.calculateConcaveHull(translatedMeshPoints, 3);
+        ArrayList<Point> concaveHullPoints = concaveHull.calculateConcaveHull(meshPoints, 3);
 
         //Convert the hull points to Coordinates2D
         ArrayList<Coordinates2D> hullCoordinates = new ArrayList<>();

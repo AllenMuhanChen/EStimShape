@@ -12,45 +12,63 @@ import java.util.List;
 
 public class RFPlotDrawer {
 
+    // Additional fields for the enclosing circle
+    private Coordinates2D circleCenter;
+    private double circleRadius;
+
     private final List<Coordinates2D> points = new LinkedList<>();
-    private List<Point> hull;
+//    private List<Point> hull;
     private Coordinates2D rfCenter;
-    private Point[] diameterPoints = new Point[2]; // Stores the two points that define the diameter
+//    private Point[] diameterPoints = new Point[2]; // Stores the two points that define the diameter
 
     public void draw() {
         try {
             // Drawing the regular points as yellow circles
             for (Coordinates2D point : points) {
-                GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0);
+                GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0); // Yellow
             }
 
-            // Drawing the hull points as red circles
-            if (hull != null && !hull.isEmpty()) {
-                for (Point hullPoint : hull) {
-                    GLUtil.drawCircle(new Circle(true, 5), hullPoint.x, hullPoint.y, 0, 1, 0, 0);
-                }
-            }
+//            // Drawing the hull points as red circles
+//            if (hull != null && !hull.isEmpty()) {
+//                for (Point hullPoint : hull) {
+//                    GLUtil.drawCircle(new Circle(true, 5), hullPoint.x, hullPoint.y, 0, 1, 0, 0); // Red
+//                }
+//            }
 
             // Drawing the hull as a polygon
-            if (hull != null && !hull.isEmpty()) {
-                int hullSize = hull.size();
-                for (int i = 0; i < hullSize; i++) {
-                    Point start = hull.get(i);
-                    Point end = hull.get((i + 1) % hullSize); // Ensures the last point connects back to the first
-                    GLUtil.drawLine(start.x, start.y, end.x, end.y, 1, 0, 0); // Replace with actual line drawing method
-                }
+//            if (hull != null && !hull.isEmpty()) {
+//                int hullSize = hull.size();
+//                for (int i = 0; i < hullSize; i++) {
+//                    Point start = hull.get(i);
+//                    Point end = hull.get((i + 1) % hullSize); // Ensures the last point connects back to the first
+//                    GLUtil.drawLine(start.x, start.y, end.x, end.y, 1, 0, 0); // Red lines
+//                }
+//            }
+
+            // Drawing the RF center as a blue square
+            if (rfCenter != null) {
+                GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 0, 1); // Blue
             }
 
-            // Drawing the RF center as a square
-            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 1, 1);
+            // Drawing the diameter with a green line, if available
+//            if (diameterPoints[0] != null && diameterPoints[1] != null) {
+//                GLUtil.drawLine(diameterPoints[0].x, diameterPoints[0].y, diameterPoints[1].x, diameterPoints[1].y, 0, 1, 0); // Green line
+//            }
 
-            // Drawing the diameter with a blue line, if available
-            if (diameterPoints[0] != null && diameterPoints[1] != null) {
-                GLUtil.drawLine(diameterPoints[0].x, diameterPoints[0].y, diameterPoints[1].x, diameterPoints[1].y, 0, 0, 1); // Blue line
+            // Drawing the enclosing circle if available
+            if (circleCenter != null && circleRadius > 0) {
+                // Assuming GLUtil.drawCircle can take radius as a parameter. Adjust if necessary.
+                // Note: The color is set to a different one for distinction, let's say purple (1, 0, 1).
+                GLUtil.drawCircle(new Circle(false, circleRadius), // Circle class might need to take diameter, hence radius * 2
+                        circleCenter.getX(), circleCenter.getY(), 0,
+                        1, 0, 1); // Purple
             }
         } catch (Exception e) {
+            // It's generally a good practice to at least log exceptions.
+            e.printStackTrace();
         }
     }
+
     public void add(Coordinates2D point){
         points.add(point);
         System.out.println("Added point: " + point.toString());
@@ -69,14 +87,42 @@ public class RFPlotDrawer {
                  return (int) (o1.distance(point) - o2.distance(point));
             }
         });
-    points.remove(nearest);
-    onPointsUpdated();
+        points.remove(nearest);
+        onPointsUpdated();
     }
 
     private void onPointsUpdated() {
-        hull = ConvexHull.makeHullFromCoordinates(points);
-        rfCenter = getRFCenter();
-        computeDiameter(); // Update the diameter whenever points are updated
+//        hull = ConvexHull.makeHullFromCoordinates(points);
+        computeEnclosingCircle();
+        rfCenter = circleCenter;
+//        rfCenter = getRFCenter();
+//        computeDiameter(); // Update the diameter whenever points are updated
+    }
+
+    private void computeEnclosingCircle() {
+        if (points.isEmpty()) {
+            circleCenter = null;
+            circleRadius = 0;
+            return;
+        }
+
+        // Compute the center as the average of all points
+        double sumX = 0, sumY = 0;
+        for (Coordinates2D point : points) {
+            sumX += point.getX();
+            sumY += point.getY();
+        }
+        double centerX = sumX / points.size();
+        double centerY = sumY / points.size();
+        circleCenter = new Coordinates2D(centerX, centerY);
+
+        // Compute the radius as the average distance to the points
+        double sumDistance = 0;
+        for (Coordinates2D point : points) {
+            sumDistance += point.distance(circleCenter);
+        }
+        circleRadius = sumDistance / points.size();
+
     }
 
     // New method to compute the diameter
@@ -138,5 +184,13 @@ public class RFPlotDrawer {
         }
         Point centroid = new Point(sumX/numPoints, sumY/numPoints);
         return centroid;
+    }
+
+    public Coordinates2D getCircleCenter() {
+        return circleCenter;
+    }
+
+    public double getCircleRadius() {
+        return circleRadius;
     }
 }
