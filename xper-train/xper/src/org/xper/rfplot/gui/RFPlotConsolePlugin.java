@@ -92,8 +92,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void save(){
         RGBColor currentColor = RFPlotXfmSpec.fromXml(xfmSpec).getColor();
-        V4RFInfo rfInfo = new V4RFInfo(mm2deg(plotter.getHull()), mm2deg(plotter.getRFCenter()), currentColor);
-        dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
+//        V4RFInfo rfInfo = new V4RFInfo(mm2deg(plotter.getHull()), mm2deg(plotter.getRFCenter()), currentColor);
+//        dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
     }
 
     private List<Coordinates2D> mm2deg(List<Coordinates2D> points) {
@@ -313,7 +313,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         }
 
-        rfCenterLabel.setText(mm2deg(plotter.getRFCenter()).toString());
+//        rfCenterLabel.setText(mm2deg(plotter.getRFCenter()).toString());
     }
 
     public RFPlotClient getClient() {

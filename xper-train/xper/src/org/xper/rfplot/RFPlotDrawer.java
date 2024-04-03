@@ -126,19 +126,19 @@ public class RFPlotDrawer {
     }
 
     // New method to compute the diameter
-    private void computeDiameter() {
-        double maxDistanceSquared = 0;
-        for (int i = 0; i < hull.size(); i++) {
-            for (int j = i + 1; j < hull.size(); j++) {
-                double distanceSquared = distanceSquared(hull.get(i), hull.get(j));
-                if (distanceSquared > maxDistanceSquared) {
-                    maxDistanceSquared = distanceSquared;
-                    diameterPoints[0] = hull.get(i);
-                    diameterPoints[1] = hull.get(j);
-                }
-            }
-        }
-    }
+//    private void computeDiameter() {
+//        double maxDistanceSquared = 0;
+//        for (int i = 0; i < hull.size(); i++) {
+//            for (int j = i + 1; j < hull.size(); j++) {
+//                double distanceSquared = distanceSquared(hull.get(i), hull.get(j));
+//                if (distanceSquared > maxDistanceSquared) {
+//                    maxDistanceSquared = distanceSquared;
+//                    diameterPoints[0] = hull.get(i);
+//                    diameterPoints[1] = hull.get(j);
+//                }
+//            }
+//        }
+//    }
 
     // Helper method to calculate squared distance between two points
     private double distanceSquared(Point p1, Point p2) {
@@ -147,15 +147,15 @@ public class RFPlotDrawer {
         return dx * dx + dy * dy;
     }
 
-    public Coordinates2D getRFCenter(){
-        Point centroid = findCentroid(hull);
-        return point2Coordinates2D(centroid);
-    }
-
-    public List<Coordinates2D> getHull(){
-        List<Coordinates2D> hullCoords = pointsToCoords(hull);
-        return hullCoords;
-    }
+//    public Coordinates2D getRFCenter(){
+//        Point centroid = findCentroid(hull);
+//        return point2Coordinates2D(centroid);
+//    }
+//
+//    public List<Coordinates2D> getHull(){
+//        List<Coordinates2D> hullCoords = pointsToCoords(hull);
+//        return hullCoords;
+//    }
 
     private List<Coordinates2D> pointsToCoords(List<Point> hull) {
         List<Coordinates2D> hullCoords = new LinkedList<>();
