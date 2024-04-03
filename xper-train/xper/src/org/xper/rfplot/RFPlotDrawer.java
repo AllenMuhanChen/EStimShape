@@ -5,10 +5,7 @@ import org.xper.drawing.GLUtil;
 import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class RFPlotDrawer {
 
@@ -147,10 +144,9 @@ public class RFPlotDrawer {
         return dx * dx + dy * dy;
     }
 
-//    public Coordinates2D getRFCenter(){
-//        Point centroid = findCentroid(hull);
-//        return point2Coordinates2D(centroid);
-//    }
+    public Coordinates2D getRFCenter(){
+        return circleCenter;
+    }
 //
 //    public List<Coordinates2D> getHull(){
 //        List<Coordinates2D> hullCoords = pointsToCoords(hull);
@@ -192,5 +188,23 @@ public class RFPlotDrawer {
 
     public double getCircleRadius() {
         return circleRadius;
+    }
+
+    public List<Coordinates2D> getOutline() {
+        List<Coordinates2D> outlinePoints = new ArrayList<>();
+        if (circleCenter == null || circleRadius <= 0) {
+            return outlinePoints; // Return an empty list if there's no valid circle.
+        }
+
+        // Calculate the points
+        double increment = 2 * Math.PI / 100; // 2*PI radians for a full circle, divided into 100 points.
+        for (int i = 0; i < 100; i++) {
+            double theta = i * increment;
+            double x = circleCenter.getX() + circleRadius * Math.cos(theta);
+            double y = circleCenter.getY() + circleRadius * Math.sin(theta);
+            outlinePoints.add(new Coordinates2D(x, y));
+        }
+
+        return outlinePoints;
     }
 }
