@@ -3,6 +3,8 @@ package org.xper.rfplot.drawing;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.Collections;
+import java.util.List;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -37,8 +39,9 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 	}
 
 	@Override
-	public void projectCoordinates(Coordinates2D mouseCoordinates) {
+	public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
 
+		return Collections.singletonList(mouseCoordinates);
 	}
 
 	static ByteBuffer makeTexture(int w, int h) {

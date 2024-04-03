@@ -1,16 +1,26 @@
 package org.xper.allen.rfplot;
 
 import com.thoughtworks.xstream.XStream;
-import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
+import org.xper.allen.drawing.composition.noisy.ConcaveHull;
+import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.XMLizable;
 import org.xper.utils.RGBColor;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 
+import javax.vecmath.Point3d;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
+    public static final int NUM_POINTS_PER_COMPONENT = 10;
     AllenMatchStick matchStick;
     RFPlotMatchStickSpec spec;
     double sizeDiameterDegrees = 10;
@@ -21,11 +31,12 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
 
     @Override
     public void draw(Context context) {
-        AllenMatchStick matchStick = new AllenMatchStick();
-        matchStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
-        matchStick.setStimColor(spec.color);
-        matchStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
-        matchStick.drawFast();
+        AllenMatchStick nextMStick = new AllenMatchStick();
+        nextMStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
+        nextMStick.setStimColor(spec.color);
+        nextMStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
+        nextMStick.drawFast();
+        matchStick.copyFrom(nextMStick);
     }
 
     @Override
@@ -54,9 +65,43 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         return spec.toXml();
     }
 
-    @Override
-    public void projectCoordinates(Coordinates2D mouseCoordinates) {
+    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinatesInDegrees) {
+        int numComponents = matchStick.getNComponent();
+        int totalPoints = NUM_POINTS_PER_COMPONENT * numComponents;
 
+        // Calculate the angle from (0,0) to the mouse coordinates
+        double angle = Math.atan2(mouseCoordinatesInDegrees.getY(), mouseCoordinatesInDegrees.getX());
+
+        // Gather points to use for hull calculation
+        ConcaveHull concaveHull = new ConcaveHull();
+        ArrayList<Point3d> allMeshPoints = new ArrayList<>();
+        for (int i = 1; i <= matchStick.getNComponent(); i++) {
+            allMeshPoints.addAll(Arrays.asList(matchStick.getComp()[i].getVect_info()));
+        }
+
+        //Translate the mesh points by the mouse coordinates in degrees
+        ArrayList<Point> translatedMeshPoints = new ArrayList<>();
+        for (Point3d point : allMeshPoints) {
+            if (point != null) {
+                //Translate point by mouse Coordinates
+                Point translatedPoint = new Point(point.x + mouseCoordinatesInDegrees.getX(), point.y + mouseCoordinatesInDegrees.getY());
+
+                translatedMeshPoints.add(translatedPoint);
+            }
+        }
+        //Calculate the hull
+        ArrayList<Point> concaveHullPoints = concaveHull.calculateConcaveHull(translatedMeshPoints, 3);
+
+        //Convert the hull points to Coordinates2D
+        ArrayList<Coordinates2D> hullCoordinates = new ArrayList<>();
+        for (Point point : concaveHullPoints) {
+            //plot only numPoints points, distributed evenly
+            int everyOther = concaveHullPoints.size() / totalPoints;
+            if (concaveHullPoints.indexOf(point) % everyOther == 0) {
+                hullCoordinates.add(new Coordinates2D(point.getX(), point.getY()));
+            }
+        }
+        return hullCoordinates;
     }
 
     public static class RFPlotMatchStickSpec implements XMLizable {

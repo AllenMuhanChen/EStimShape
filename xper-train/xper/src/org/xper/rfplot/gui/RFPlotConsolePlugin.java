@@ -280,14 +280,21 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                     renderer.mm2deg(worldCoords.getX()),
                     renderer.mm2deg(worldCoords.getY())
             );
-            currentDrawable.projectCoordinates(mouseCoordinatesInDegrees);
+            List<Coordinates2D> profilePoints = currentDrawable.getProfilePoints(mouseCoordinatesInDegrees);
 
-            Coordinates2D projectedMouseCoordinates = new Coordinates2D(
-                    renderer.deg2mm(mouseCoordinatesInDegrees.getX()),
-                    renderer.deg2mm(mouseCoordinatesInDegrees.getY())
-            );
+            for (Coordinates2D point : profilePoints) {
+                Coordinates2D profilePointsMm = new Coordinates2D(
+                        renderer.deg2mm(point.getX()),
+                        renderer.deg2mm(point.getY())
+                );
+                plotter.add(profilePointsMm);
+            }
+//            Coordinates2D projectedMouseCoordinates = new Coordinates2D(
+//                    renderer.deg2mm(mouseCoordinatesInDegrees.getX()),
+//                    renderer.deg2mm(mouseCoordinatesInDegrees.getY())
+//            );
 
-            plotter.add(projectedMouseCoordinates);
+//            plotter.add(projectedMouseCoordinates);
         }
 
         //Right Click

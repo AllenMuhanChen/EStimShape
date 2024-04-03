@@ -6,6 +6,10 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.drawing.png.RecolorableImages;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
 
     private PngSpec spec;
@@ -48,39 +52,52 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
     }
 
     @Override
-    public void projectCoordinates(Coordinates2D mouseCoordinates) {
-        // Vector direction from origin to mouse coordinates
-        double dx = mouseCoordinates.getX();
-        double dy = mouseCoordinates.getY();
-
-        // Normalize this vector (make it unit length) to just get the direction
-        double vectorLength = Math.sqrt(dx*dx + dy*dy);
-        double dirX = dx / vectorLength;
-        double dirY = dy / vectorLength;
+    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
+        int numberOfPoints = 100;
+        List<Coordinates2D> profilePoints = new ArrayList<>();
 
         // Image (rectangle) dimensions
-        double halfWidth = spec.getDimensions().getWidth() / 2.0;
-        double halfHeight = spec.getDimensions().getHeight() / 2.0;
+        double width = spec.getDimensions().getWidth();
+        double height = spec.getDimensions().getHeight();
 
-        // Project the rectangle's center to its edge in the direction of the vector
-        // This is done by determining the 'projection factor' to reach the edge of the rectangle
-        double projectionFactor = calculateProjectionFactor(dirX, dirY, halfWidth, halfHeight);
+        // Calculate the total perimeter of the rectangle
+        double perimeter = 2 * (width + height);
 
-        // Update the mouseCoordinates to the edge of the rectangle in the vector direction
-        mouseCoordinates.setX(dx + dirX * projectionFactor);
-        mouseCoordinates.setY(dy + dirY * projectionFactor);
-    }
+        // Length of each segment along the perimeter, based on the number of points
+        double segmentLength = perimeter / numberOfPoints;
 
-    private double calculateProjectionFactor(double dirX, double dirY, double halfWidth, double halfHeight) {
-        // The projection factor is the amount to scale the direction vector by
-        // to reach the edge of the rectangle.
-        // We calculate this separately for width and height to see which edge we hit first.
+        for (int i = 0; i < numberOfPoints; i++) {
+            // Calculate the distance along the perimeter for the current point
+            double currentDistance = i * segmentLength;
 
-        // Avoid division by zero
-        double factorX = dirX != 0 ? halfWidth / Math.abs(dirX) : Double.POSITIVE_INFINITY;
-        double factorY = dirY != 0 ? halfHeight / Math.abs(dirY) : Double.POSITIVE_INFINITY;
+            // Determine the position of the current point based on currentDistance
+            double x = 0, y = 0;
+            if (currentDistance <= width) {
+                // Top edge
+                x = currentDistance;
+                y = 0;
+            } else if (currentDistance <= width + height) {
+                // Right edge
+                x = width;
+                y = currentDistance - width;
+            } else if (currentDistance <= 2 * width + height) {
+                // Bottom edge
+                x = width - (currentDistance - (width + height));
+                y = height;
+            } else {
+                // Left edge
+                x = 0;
+                y = height - (currentDistance - (2 * width + height));
+            }
 
-        // The smaller factor determines the first edge hit by the projection.
-        return Math.min(factorX, factorY);
+            // Adjust coordinates based on the mouse position (center of the rectangle)
+            x += mouseCoordinates.getX() - width / 2;
+            y += mouseCoordinates.getY() - height / 2;
+
+            // Add the new point to the list of profile points
+            profilePoints.add(new Coordinates2D(x, y));
+        }
+
+        return profilePoints;
     }
 }

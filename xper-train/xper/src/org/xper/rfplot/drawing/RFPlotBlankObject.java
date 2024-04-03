@@ -3,6 +3,9 @@ package org.xper.rfplot.drawing;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 
+import java.util.Collections;
+import java.util.List;
+
 public class RFPlotBlankObject implements RFPlotDrawable {
     @Override
     public void draw(Context context) {
@@ -25,8 +28,9 @@ public class RFPlotBlankObject implements RFPlotDrawable {
     }
 
     @Override
-    public void projectCoordinates(Coordinates2D mouseCoordinates) {
+    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
 
+        return Collections.singletonList(mouseCoordinates);
     }
 
 }

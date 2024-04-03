@@ -2,12 +2,14 @@ package org.xper.rfplot.drawing.gabor;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
-import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
 
@@ -329,29 +331,34 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glShadeModel(GL11.GL_SMOOTH);
     }
 
+
+
     @Override
-    public void projectCoordinates(Coordinates2D mouseCoordinatesInDegrees) {
-        // Calculate the distance from (0,0) to the input coordinates
-        double initialDistance = Math.sqrt(Math.pow(mouseCoordinatesInDegrees.getX(), 2) + Math.pow(mouseCoordinatesInDegrees.getY(), 2));
+    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinatesInDegrees) {
+        int numberOfPoints = 5 + (int) (getGaborSpec().getDiameter() * 2);
+        List<Coordinates2D> profilePoints = new ArrayList<>();
 
-        // The radius to project the point away from the center
-        double effectiveDiameter = getGaborSpec().getDiameter() * 2; //diameter of disk plus fade
-        double radius = effectiveDiameter / 2;
+        // The radius for the circle of points around the mouse position
+        double radius = getGaborSpec().getDiameter() / 2; // Half the effective diameter
 
-        // Calculate the total new distance from the center
-        double newDistance = initialDistance + radius;
+        // Calculate the angle increment for evenly distributing points around the circle
+        double angleIncrement = 2 * Math.PI / numberOfPoints;
 
-        // Calculate the angle of the vector from (0,0) to the mouse coordinates in radians
-        double angle = Math.atan2(mouseCoordinatesInDegrees.getY(), mouseCoordinatesInDegrees.getX());
+        for (int i = 0; i < numberOfPoints; i++) {
+            // Calculate the angle for this point
+            double angle = angleIncrement * i;
 
-        // Calculate the new coordinates by projecting away from the center
-        double newX = Math.cos(angle) * newDistance;
-        double newY = Math.sin(angle) * newDistance;
+            // Calculate the coordinates for this point, centered around the mouse position
+            double newX = mouseCoordinatesInDegrees.getX() + Math.cos(angle) * radius;
+            double newY = mouseCoordinatesInDegrees.getY() + Math.sin(angle) * radius;
 
-        // Update the mouse coordinates with the new projected coordinates
-        mouseCoordinatesInDegrees.setX(newX);
-        mouseCoordinatesInDegrees.setY(newY);
+            // Add the new point to the list of profile points
+            profilePoints.add(new Coordinates2D(newX, newY));
+        }
+
+        return profilePoints;
     }
+
 
 
 

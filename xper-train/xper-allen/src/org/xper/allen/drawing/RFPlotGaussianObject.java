@@ -2,6 +2,9 @@ package org.xper.allen.drawing;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.specs.GaussSpec;
@@ -182,8 +185,9 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	}
 
 	@Override
-	public void projectCoordinates(Coordinates2D mouseCoordinates) {
+	public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
 
+		return Collections.singletonList(mouseCoordinates);
 	}
 
 	public double deg2mm(double deg) {
