@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
-    public static final int NUM_POINTS_PER_COMPONENT = 10;
+    public static final int NUM_POINTS_PER_COMPONENT = 20;
     AllenMatchStick matchStick;
     RFPlotMatchStickSpec spec;
     double sizeDiameterDegrees = 10;
@@ -71,7 +71,6 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
 
     public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
         AllenMatchStick nextMStick = new AllenMatchStick();
-        System.out.println("Spec size: " + spec.sizeDiameterDegrees);
         nextMStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
         nextMStick.setStimColor(spec.color);
         nextMStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());

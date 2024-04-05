@@ -336,11 +336,12 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
     @Override
     public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
-        int numberOfPoints = 5 + (int) (getGaborSpec().getDiameter() * 2);
+        int numberOfPoints = 5 + (int) (getGaborSpec().getDiameter() * 3);
         List<Coordinates2D> profilePoints = new ArrayList<>();
 
         // The radius for the circle of points around the mouse position
-        double radius = getGaborSpec().getDiameter() / 2; // Half the effective diameter
+        double radius = (getGaborSpec().getDiameter()*2) / 2; // Half the effective diameter of the Gabor patch
+        // it has diameter, and half diameter fade on all sides, so we multiply by 2 to get the full diameter
         double radiusMm = renderer.deg2mm(radius);
         // Calculate the angle increment for evenly distributing points around the circle
         double angleIncrement = 2 * Math.PI / numberOfPoints;

@@ -16,6 +16,7 @@ import org.xper.config.IntanRHDConfig;
 import org.xper.console.ExperimentConsole;
 import org.xper.console.ExperimentMessageReceiver;
 import org.xper.console.IConsolePlugin;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.TaskScene;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.renderer.PerspectiveRenderer;
@@ -230,9 +231,9 @@ public class RFPlotConfig {
 
 		console.setPaused(classicConfig.xperExperimentInitialPause());
 		console.setConsoleRenderer(classicConfig.consoleRenderer());
-		console.setMonkeyScreenDimension(classicConfig.monkeyWindow().getScreenDimension());
+		console.setMonkeyScreenDimension(new Coordinates2D(classicConfig.xperMonkeyScreenWidth(), classicConfig.xperMonkeyScreenHeight()));
 		console.setModel(classicConfig.experimentConsoleModel());
-		console.setCanvasScaleFactor(3);
+		console.setCanvasScaleFactor(1.5);
 
 		ExperimentMessageReceiver receiver = classicConfig.messageReceiver();
 		// register itself to avoid circular reference

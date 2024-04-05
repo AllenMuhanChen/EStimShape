@@ -766,7 +766,7 @@ public class ExperimentConsole extends JFrame implements
 
 	public void setMonkeyScreenDimension(Coordinates2D monkeyScreenDimension) {
 		this.monkeyScreenDimension = monkeyScreenDimension;
-		this.monkeyScreenDimension.setX(this.monkeyScreenDimension.getX());
+//		this.monkeyScreenDimension.setX(this.monkeyScreenDimension.getX());
 	}
 
 	public ConsoleRenderer getConsoleRenderer() {
