@@ -15,10 +15,10 @@ public class RFPlotDrawerTest {
         Coordinates2D coords2 = new Coordinates2D(10,0);
         Coordinates2D coords3 = new Coordinates2D(0,10);
         Coordinates2D coords4 = new Coordinates2D(10,10);
-        plotter.add(coords1);
-        plotter.add(coords2);
-        plotter.add(coords3);
-        plotter.add(coords4);
+        plotter.addCirclePoint(coords1);
+        plotter.addCirclePoint(coords2);
+        plotter.addCirclePoint(coords3);
+        plotter.addCirclePoint(coords4);
         Coordinates2D rfCenter = plotter.getRFCenter();
 
         assertEquals(new Coordinates2D(5,5), rfCenter);

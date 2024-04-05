@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 import org.xper.rfplot.drawing.GaborSpec;
 
@@ -25,7 +26,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     protected float verticalPosition;
     protected float phase;
     protected int stepsPerHalfCycle;
-
 
     public Gabor() {
         this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
@@ -99,6 +99,7 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
     @Override
     public void draw(Context context) {
+
         Gabor.initGL(context.getRenderer().getVpWidth(), context.getRenderer().getVpHeight());
         w = context.getRenderer().getVpWidth(); //in pixels
         h = context.getRenderer().getVpHeight(); //in pixels
@@ -334,13 +335,13 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 
 
     @Override
-    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinatesInDegrees) {
+    public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
         int numberOfPoints = 5 + (int) (getGaborSpec().getDiameter() * 2);
         List<Coordinates2D> profilePoints = new ArrayList<>();
 
         // The radius for the circle of points around the mouse position
         double radius = getGaborSpec().getDiameter() / 2; // Half the effective diameter
-
+        double radiusMm = renderer.deg2mm(radius);
         // Calculate the angle increment for evenly distributing points around the circle
         double angleIncrement = 2 * Math.PI / numberOfPoints;
 
@@ -349,8 +350,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
             double angle = angleIncrement * i;
 
             // Calculate the coordinates for this point, centered around the mouse position
-            double newX = mouseCoordinatesInDegrees.getX() + Math.cos(angle) * radius;
-            double newY = mouseCoordinatesInDegrees.getY() + Math.sin(angle) * radius;
+            double newX = Math.cos(angle) * radiusMm;
+            double newY = Math.sin(angle) * radiusMm;
 
             // Add the new point to the list of profile points
             profilePoints.add(new Coordinates2D(newX, newY));

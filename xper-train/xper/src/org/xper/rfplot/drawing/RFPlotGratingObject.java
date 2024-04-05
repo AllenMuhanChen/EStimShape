@@ -3,6 +3,7 @@ package org.xper.rfplot.drawing;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -10,6 +11,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.util.MathUtil;
 
 public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
@@ -39,9 +41,9 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 	}
 
 	@Override
-	public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
+	public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
 
-		return Collections.singletonList(mouseCoordinates);
+		return new ArrayList<>();
 	}
 
 	static ByteBuffer makeTexture(int w, int h) {

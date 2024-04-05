@@ -272,48 +272,55 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     @Override
     public void handleMouseClicked(MouseEvent e) {
+        AbstractRenderer renderer = consoleRenderer.getRenderer();
+        Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
+        RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
+
+        Coordinates2D mouseCoordinatesInDegrees = new Coordinates2D(
+                renderer.mm2deg(worldCoords.getX()),
+                renderer.mm2deg(worldCoords.getY())
+        );
+
+
+        Coordinates2D mouseCoordinatesMm = new Coordinates2D(
+                renderer.deg2mm(mouseCoordinatesInDegrees.getX()),
+                renderer.deg2mm(mouseCoordinatesInDegrees.getY())
+        );
 
         //Left Click
         if (e.getButton() == MouseEvent.BUTTON1) {
-            AbstractRenderer renderer = consoleRenderer.getRenderer();
-            Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
-            RFPlotDrawable currentDrawable = getNamesForDrawables().get(stimType);
-
-            Coordinates2D mouseCoordinatesInDegrees = new Coordinates2D(
-                    renderer.mm2deg(worldCoords.getX()),
-                    renderer.mm2deg(worldCoords.getY())
-            );
-
-//            plotter.add(renderer.deg2mm(mouseCoordinatesInDegrees));
-//            List<Coordinates2D> profilePoints = currentDrawable.getProfilePoints(mouseCoordinatesInDegrees);
-//
-//            for (Coordinates2D point : profilePoints) {
-//                Coordinates2D profilePointsMm = new Coordinates2D(
-//                        renderer.deg2mm(point.getX()),
-//                        renderer.deg2mm(point.getY())
-//                );
-//                plotter.add(profilePointsMm);
-//            }
-            Coordinates2D projectedMouseCoordinates = new Coordinates2D(
-                    renderer.deg2mm(mouseCoordinatesInDegrees.getX()),
-                    renderer.deg2mm(mouseCoordinatesInDegrees.getY())
-            );
-
-            plotter.add(projectedMouseCoordinates);
+            plotter.addCirclePoint(mouseCoordinatesMm);
         }
 
         //Right Click
         if (e.getButton() == MouseEvent.BUTTON3) {
-            Coordinates2D worldCoords = mouseWorldPosition(e.getX(), e.getY());
             plotter.removeClosestTo(worldCoords);
         }
 
         //Middle Mouse Click
         if (e.getButton() == MouseEvent.BUTTON2) {
+            List<Coordinates2D> profilePoints = currentDrawable.getOutlinePoints(renderer);
 
+//            for (Coordinates2D point : profilePoints) {
+//                point.setX(renderer.deg2mm(point.getX()));
+//                point.setY(renderer.deg2mm(point.getY()));
+//
+//
+//            }
+
+            // Correct profile points with mouse location
+            for (Coordinates2D point : profilePoints) {
+                point.setX(point.getX() + mouseCoordinatesMm.getX());
+                point.setY(point.getY() + mouseCoordinatesMm.getY());
+            }
+            plotter.addOutlinePoints(profilePoints);
         }
 
-        rfCenterLabel.setText(mm2deg(plotter.getRFCenter()).toString());
+        try {
+            rfCenterLabel.setText(mm2deg(plotter.getRFCenter()).toString());
+        } catch (Exception ex) {
+            rfCenterLabel.setText("None");
+        }
     }
 
     public RFPlotClient getClient() {

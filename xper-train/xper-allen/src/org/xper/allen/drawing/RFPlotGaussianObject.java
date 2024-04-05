@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL11;
 import org.xper.allen.specs.GaussSpec;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.RFPlotDrawable;
 
 import org.xper.util.MathUtil;
@@ -185,9 +186,9 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 	}
 
 	@Override
-	public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
+	public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
 
-		return Collections.singletonList(mouseCoordinates);
+		return new LinkedList<>();
 	}
 
 	public double deg2mm(double deg) {

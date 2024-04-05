@@ -2,8 +2,10 @@ package org.xper.rfplot.drawing;
 
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.renderer.AbstractRenderer;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 public class RFPlotBlankObject implements RFPlotDrawable {
@@ -28,9 +30,9 @@ public class RFPlotBlankObject implements RFPlotDrawable {
     }
 
     @Override
-    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
+    public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
 
-        return Collections.singletonList(mouseCoordinates);
+        return new LinkedList<>();
     }
 
 }

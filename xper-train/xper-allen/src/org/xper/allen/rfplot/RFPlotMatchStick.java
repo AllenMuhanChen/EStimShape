@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.XMLizable;
 import org.xper.utils.RGBColor;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
@@ -68,8 +69,9 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         return spec.toXml();
     }
 
-    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinatesInDegrees) {
+    public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
         AllenMatchStick nextMStick = new AllenMatchStick();
+        System.out.println("Spec size: " + spec.sizeDiameterDegrees);
         nextMStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
         nextMStick.setStimColor(spec.color);
         nextMStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
@@ -78,7 +80,10 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         Point3d[] vectInfo = nextMStick.getObj1().vect_info;
         for (Point3d point : vectInfo) {
             if (point != null) {
-                nextMeshPoints.add(new Point(point.getX() + mouseCoordinatesInDegrees.getX(), point.getY() + mouseCoordinatesInDegrees.getY()));
+                Point hullPoint = new Point(point.getX(), point.getY());
+//                hullPoint = new Point(hullPoint.getX() / spec.getSizeDiameterDegrees(), hullPoint.getY() / spec.getSizeDiameterDegrees());
+                hullPoint = new Point(hullPoint.getX(), hullPoint.getY());
+                nextMeshPoints.add(hullPoint);
             }
         }
         meshPoints = new ArrayList<>(nextMeshPoints);

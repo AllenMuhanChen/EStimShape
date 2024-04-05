@@ -12,19 +12,49 @@ public class RFPlotDrawer {
     // Additional fields for the enclosing circle
     private Coordinates2D circleCenter;
     private double circleRadius;
-
-    private final List<Coordinates2D> points = new LinkedList<>();
+    private List<List<Point>> outlines = new LinkedList<>();
+    private final List<Coordinates2D> circlePoints = new LinkedList<>();
 //    private List<Point> hull;
     private Coordinates2D rfCenter;
 //    private Point[] diameterPoints = new Point[2]; // Stores the two points that define the diameter
 
+    public void addCirclePoint(Coordinates2D point){
+        circlePoints.add(point);
+        System.out.println("Added point: " + point.toString());
+        onPointsUpdated();
+    }
+
+    public void addOutlinePoints(List<Coordinates2D> outline){
+        List<Point> outlinePoints = new ArrayList<>();
+        for (Coordinates2D coord: outline){
+            outlinePoints.add(new Point(coord.getX(), coord.getY()));
+        }
+        outlines.add(outlinePoints);
+    }
+
+    public void undo(){
+        circlePoints.remove(circlePoints.size()-1);
+        onPointsUpdated();
+    }
+
+    public void removeClosestTo(Coordinates2D point){
+        Coordinates2D nearest = Collections.min(circlePoints, new Comparator<Coordinates2D>(){
+            @Override
+            public int compare(Coordinates2D o1, Coordinates2D o2) {
+                return (int) (o1.distance(point) - o2.distance(point));
+            }
+        });
+        circlePoints.remove(nearest);
+        onPointsUpdated();
+    }
     public void draw() {
         try {
             // Drawing the regular points as yellow circles
-            for (Coordinates2D point : points) {
-                GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0); // Yellow
-            }
+            drawCirclePoints();
+            drawRFCircle();
+            drawRFCenter();
 
+            drawOutlines();
 //            // Drawing the hull points as red circles
 //            if (hull != null && !hull.isEmpty()) {
 //                for (Point hullPoint : hull) {
@@ -32,61 +62,54 @@ public class RFPlotDrawer {
 //                }
 //            }
 
-            // Drawing the hull as a polygon
-//            if (hull != null && !hull.isEmpty()) {
-//                int hullSize = hull.size();
-//                for (int i = 0; i < hullSize; i++) {
-//                    Point start = hull.get(i);
-//                    Point end = hull.get((i + 1) % hullSize); // Ensures the last point connects back to the first
-//                    GLUtil.drawLine(start.x, start.y, end.x, end.y, 1, 0, 0); // Red lines
-//                }
-//            }
 
-            // Drawing the RF center as a blue square
-            if (rfCenter != null) {
-                GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 0, 1); // Blue
-            }
+
 
             // Drawing the diameter with a green line, if available
 //            if (diameterPoints[0] != null && diameterPoints[1] != null) {
 //                GLUtil.drawLine(diameterPoints[0].x, diameterPoints[0].y, diameterPoints[1].x, diameterPoints[1].y, 0, 1, 0); // Green line
 //            }
 
-            // Drawing the enclosing circle if available
-            if (circleCenter != null && circleRadius > 0) {
-                // Assuming GLUtil.drawCircle can take radius as a parameter. Adjust if necessary.
-                // Note: The color is set to a different one for distinction, let's say purple (1, 0, 1).
-                GLUtil.drawCircle(new Circle(false, circleRadius), // Circle class might need to take diameter, hence radius * 2
-                        circleCenter.getX(), circleCenter.getY(), 0,
-                        1, 0, 1); // Purple
-            }
+
         } catch (Exception e) {
             // It's generally a good practice to at least log exceptions.
             e.printStackTrace();
         }
     }
 
-    public void add(Coordinates2D point){
-        points.add(point);
-        System.out.println("Added point: " + point.toString());
-        onPointsUpdated();
-    }
-
-    public void undo(){
-        points.remove(points.size()-1);
-        onPointsUpdated();
-    }
-
-    public void removeClosestTo(Coordinates2D point){
-        Coordinates2D nearest = Collections.min(points, new Comparator<Coordinates2D>(){
-            @Override
-            public int compare(Coordinates2D o1, Coordinates2D o2) {
-                 return (int) (o1.distance(point) - o2.distance(point));
+    private void drawOutlines() {
+        for (List<Point> outline: outlines){
+            for (int i = 0; i < outline.size(); i++) {
+                Point start = outline.get(i);
+                Point end = outline.get((i + 1) % outline.size()); // Ensures the last point connects back to the first
+                GLUtil.drawLine(start.x, start.y, end.x, end.y, 1, 0, 0); // Red lines
             }
-        });
-        points.remove(nearest);
-        onPointsUpdated();
+        }
     }
+
+    private void drawRFCircle() {
+        if (circleCenter != null && circleRadius > 0) {
+            // Assuming GLUtil.drawCircle can take radius as a parameter. Adjust if necessary.
+            // Note: The color is set to a different one for distinction, let's say purple (1, 0, 1).
+            GLUtil.drawCircle(new Circle(false, circleRadius), // Circle class might need to take diameter, hence radius * 2
+                    circleCenter.getX(), circleCenter.getY(), 0,
+                    1, 0, 1); // Purple
+        }
+    }
+
+    private void drawRFCenter() {
+        if (rfCenter != null) {
+            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 0, 1); // Blue
+        }
+    }
+
+    private void drawCirclePoints() {
+        for (Coordinates2D point : circlePoints) {
+            GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0); // Yellow
+        }
+    }
+
+
 
     private void onPointsUpdated() {
 //        hull = ConvexHull.makeHullFromCoordinates(points);
@@ -97,7 +120,7 @@ public class RFPlotDrawer {
     }
 
     private void computeEnclosingCircle() {
-        if (points.isEmpty()) {
+        if (circlePoints.isEmpty()) {
             circleCenter = null;
             circleRadius = 0;
             return;
@@ -105,20 +128,20 @@ public class RFPlotDrawer {
 
         // Compute the center as the average of all points
         double sumX = 0, sumY = 0;
-        for (Coordinates2D point : points) {
+        for (Coordinates2D point : circlePoints) {
             sumX += point.getX();
             sumY += point.getY();
         }
-        double centerX = sumX / points.size();
-        double centerY = sumY / points.size();
+        double centerX = sumX / circlePoints.size();
+        double centerY = sumY / circlePoints.size();
         circleCenter = new Coordinates2D(centerX, centerY);
 
         // Compute the radius as the average distance to the points
         double sumDistance = 0;
-        for (Coordinates2D point : points) {
+        for (Coordinates2D point : circlePoints) {
             sumDistance += point.distance(circleCenter);
         }
-        circleRadius = sumDistance / points.size();
+        circleRadius = sumDistance / circlePoints.size();
 
     }
 
@@ -166,8 +189,8 @@ public class RFPlotDrawer {
     }
 
 
-    public List<Coordinates2D> getPoints(){
-        return points;
+    public List<Coordinates2D> getCirclePoints(){
+        return circlePoints;
     }
 
     private Point findCentroid(List<Point> points){

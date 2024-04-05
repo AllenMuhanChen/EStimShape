@@ -2,6 +2,7 @@ package org.xper.rfplot.drawing;
 
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.drawing.png.RecolorableImages;
@@ -52,13 +53,13 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
     }
 
     @Override
-    public List<Coordinates2D> getProfilePoints(Coordinates2D mouseCoordinates) {
+    public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
         int numberOfPoints = 100;
         List<Coordinates2D> profilePoints = new ArrayList<>();
 
         // Image (rectangle) dimensions
-        double width = spec.getDimensions().getWidth();
-        double height = spec.getDimensions().getHeight();
+        double width = renderer.deg2mm(spec.getDimensions().getWidth());
+        double height = renderer.deg2mm(spec.getDimensions().getHeight());
 
         // Calculate the total perimeter of the rectangle
         double perimeter = 2 * (width + height);
@@ -90,9 +91,9 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
                 y = height - (currentDistance - (2 * width + height));
             }
 
-            // Adjust coordinates based on the mouse position (center of the rectangle)
-            x += mouseCoordinates.getX() - width / 2;
-            y += mouseCoordinates.getY() - height / 2;
+            // Adjust coordinates to be centered at 0,0
+            x += 0 - width / 2;
+            y += 0 - height / 2;
 
             // Add the new point to the list of profile points
             profilePoints.add(new Coordinates2D(x, y));
