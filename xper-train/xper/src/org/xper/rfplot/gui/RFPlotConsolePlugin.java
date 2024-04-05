@@ -299,32 +299,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         //Middle Mouse Click
         if (e.getButton() == MouseEvent.BUTTON2 && !e.isShiftDown()) {
-            List<Coordinates2D> profilePoints = currentDrawable.getOutlinePoints(renderer);
+            List<Coordinates2D> outlinePoints = currentDrawable.getOutlinePoints(renderer);
 
-            RFPlotXfmSpec rfPlotXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
-            Coordinates2D scale = rfPlotXfmSpec.getScale();
-            float rotation = rfPlotXfmSpec.getRotation();
+            correctOutlinePoints(outlinePoints);
 
-
-
-            // Correct profile points with scale and rotation
-            for (Coordinates2D point : profilePoints) {
-                double x = point.getX();
-                double y = point.getY();
-                point.setX(x * Math.cos(rotation) - y * Math.sin(rotation));
-                point.setY(x * Math.sin(rotation) + y * Math.cos(rotation));
-                point.setX(point.getX() * scale.getX());
-                point.setY(point.getY() * scale.getY());
-            }
-
-            // Correct profile points with mouse location
-            for (Coordinates2D point : profilePoints) {
-                point.setX(point.getX() + mouseCoordinatesMm.getX());
-                point.setY(point.getY() + mouseCoordinatesMm.getY());
-            }
-
-
-            plotter.addOutlinePoints(profilePoints);
+            plotter.addOutlinePoints(outlinePoints);
         }
 
         //Shift Middle Mouse Click
@@ -336,6 +315,29 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             rfCenterLabel.setText(mm2deg(plotter.getRFCenter()).toString());
         } catch (Exception ex) {
             rfCenterLabel.setText("None");
+        }
+    }
+
+    private void correctOutlinePoints(List<Coordinates2D> profilePoints) {
+        RFPlotXfmSpec rfPlotXfmSpec = RFPlotXfmSpec.fromXml(xfmSpec);
+        Coordinates2D scale = rfPlotXfmSpec.getScale();
+        float rotation = rfPlotXfmSpec.getRotation();
+        Coordinates2D translation = rfPlotXfmSpec.getTranslation();
+
+        // Correct profile points with scale and rotation
+        for (Coordinates2D point : profilePoints) {
+            double x = point.getX();
+            double y = point.getY();
+            point.setX(x * Math.cos(rotation) - y * Math.sin(rotation));
+            point.setY(x * Math.sin(rotation) + y * Math.cos(rotation));
+            point.setX(point.getX() * scale.getX());
+            point.setY(point.getY() * scale.getY());
+        }
+
+        // Correct profile points with translation
+        for (Coordinates2D point : profilePoints) {
+            point.setX(point.getX() + translation.getX());
+            point.setY(point.getY() + translation.getY());
         }
     }
 
