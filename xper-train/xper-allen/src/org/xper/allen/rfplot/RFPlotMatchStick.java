@@ -81,7 +81,6 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         for (Point3d point : vectInfo) {
             if (point != null) {
                 Point hullPoint = new Point(point.getX(), point.getY());
-//                hullPoint = new Point(hullPoint.getX() / spec.getSizeDiameterDegrees(), hullPoint.getY() / spec.getSizeDiameterDegrees());
                 hullPoint = new Point(hullPoint.getX(), hullPoint.getY());
                 nextMeshPoints.add(hullPoint);
             }

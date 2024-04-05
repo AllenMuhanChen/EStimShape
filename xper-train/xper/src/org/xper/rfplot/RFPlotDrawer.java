@@ -37,7 +37,33 @@ public class RFPlotDrawer {
         onPointsUpdated();
     }
 
-    public void removeClosestTo(Coordinates2D point){
+    public void removeClosestOutlineTo(Coordinates2D point) {
+        if (outlines.isEmpty()) {
+            return; // Early return if there are no outlines to remove.
+        }
+
+        // Initialize variables to track the closest outline and its minimum distance to the point.
+        double minDistance = Double.MAX_VALUE;
+        List<Point> closestOutline = null;
+
+        for (List<Point> outline : outlines) {
+            for (Point outlinePoint : outline) {
+                double distance = Math.sqrt(Math.pow(outlinePoint.x - point.getX(), 2) + Math.pow(outlinePoint.y - point.getY(), 2));
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestOutline = outline;
+                }
+            }
+        }
+
+        // Remove the closest outline from the list if it's found.
+        if (closestOutline != null) {
+            outlines.remove(closestOutline);
+        }
+    }
+
+
+    public void removeClosestCirclePointTo(Coordinates2D point){
         Coordinates2D nearest = Collections.min(circlePoints, new Comparator<Coordinates2D>(){
             @Override
             public int compare(Coordinates2D o1, Coordinates2D o2) {

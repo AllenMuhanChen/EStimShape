@@ -294,19 +294,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
         //Right Click
         if (e.getButton() == MouseEvent.BUTTON3) {
-            plotter.removeClosestTo(worldCoords);
+            plotter.removeClosestCirclePointTo(worldCoords);
         }
 
         //Middle Mouse Click
-        if (e.getButton() == MouseEvent.BUTTON2) {
+        if (e.getButton() == MouseEvent.BUTTON2 && !e.isShiftDown()) {
             List<Coordinates2D> profilePoints = currentDrawable.getOutlinePoints(renderer);
-
-//            for (Coordinates2D point : profilePoints) {
-//                point.setX(renderer.deg2mm(point.getX()));
-//                point.setY(renderer.deg2mm(point.getY()));
-//
-//
-//            }
 
             // Correct profile points with mouse location
             for (Coordinates2D point : profilePoints) {
@@ -314,6 +307,11 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 point.setY(point.getY() + mouseCoordinatesMm.getY());
             }
             plotter.addOutlinePoints(profilePoints);
+        }
+
+        //Shift Middle Mouse Click
+        if (e.getButton() == MouseEvent.BUTTON2 && e.isShiftDown()) {
+            plotter.removeClosestOutlineTo(worldCoords);
         }
 
         try {
