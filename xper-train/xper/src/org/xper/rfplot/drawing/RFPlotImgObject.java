@@ -54,6 +54,7 @@ public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{
 
     @Override
     public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
+        //in the GUI because these don't change the spec, only the xfm spec.
         int numberOfPoints = 100;
         List<Coordinates2D> profilePoints = new ArrayList<>();
 
