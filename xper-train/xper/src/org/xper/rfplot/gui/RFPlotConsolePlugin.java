@@ -144,7 +144,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         rfCenterLabel(jpanel);
         scrollerModeLabel(jpanel);
         scrollerValueLabel(jpanel);
-        channelField(jpanel);
+        channelSelectors(jpanel); // Initialize and add the channel selectors
         legend(jpanel);
         removeButton(jpanel);
         return jpanel;
@@ -203,35 +203,48 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
     private JTextField channelTextField;
     private String currentChannel = "None"; // Default value or retrieve from a saved state
+    private JComboBox<String> letterComboBox;
+    private JComboBox<String> numberComboBox;
 
-    private void channelField(JPanel jpanel) {
-        GridBagConstraints channelLabelConstraints = new GridBagConstraints();
-        channelLabelConstraints.gridx = 0; // Adjust gridx and gridy as needed
-        channelLabelConstraints.gridy = 4; // This should be after the last component's gridy
-        channelLabelConstraints.anchor = GridBagConstraints.LINE_START;
-        jpanel.add(new JLabel("Channel:"), channelLabelConstraints);
+    private void channelSelectors(JPanel panel) {
+        // Letters ComboBox
+        String[] letters = {"A", "B", "C", "D", "SUPRA"};
+        letterComboBox = new JComboBox<>(letters);
 
-        channelTextField = new JTextField(20); // Adjust the size as needed
-        GridBagConstraints channelFieldConstraints = new GridBagConstraints();
-        channelFieldConstraints.gridx = 1; // Adjust gridx as needed to align with the label
-        channelFieldConstraints.gridy = 4; // This should match the label's gridy
-        channelFieldConstraints.gridwidth = 2; // Span across two columns if needed
-        channelFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
-        jpanel.add(channelTextField, channelFieldConstraints);
+        // Numbers ComboBox
+        String[] numbers = new String[32];
+        for (int i = 0; i < numbers.length; i++) {
+            numbers[i] = String.format("%03d", i); // Format as three digits
+        }
+        numberComboBox = new JComboBox<>(numbers);
 
-        //Change value of currentChannel to the value in the text field and inform
-        //rfPlotter
-        channelTextField.setText(currentChannel);
-        channelTextField.addActionListener(new ActionListener() {
+        // Combine the selections and update currentChannel when either combobox changes
+        ActionListener comboboxListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                currentChannel = channelTextField.getText();
+                String selectedLetter = (String) letterComboBox.getSelectedItem();
+                String selectedNumber = (String) numberComboBox.getSelectedItem();
+                currentChannel = selectedLetter + "-" + selectedNumber;
                 plotter.changeChannel(currentChannel);
-                updateLegend(plotter.getColorsForChannels());
+                RFPlotConsolePlugin.this.updateLegend(plotter.getColorsForChannels());
             }
-        });
+        };
 
+        numberComboBox.addActionListener(comboboxListener);
+
+        // Layout constraints for the letter combobox
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        panel.add(letterComboBox, gbc);
+
+        // Layout constraints for the number combobox
+        gbc.gridx = 1;
+        panel.add(numberComboBox, gbc);
     }
+
     private JPanel legendPanel;
 
     private List<JPanel> columns = new ArrayList<>();
