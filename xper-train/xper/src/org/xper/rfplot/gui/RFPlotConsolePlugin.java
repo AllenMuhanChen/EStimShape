@@ -145,7 +145,30 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         scrollerModeLabel(jpanel);
         scrollerValueLabel(jpanel);
         channelField(jpanel);
+        legend(jpanel);
+        removeButton(jpanel);
         return jpanel;
+    }
+
+    private void removeButton(JPanel jpanel) {
+        setupRemoveChannelButton(); // Initialize the button
+        GridBagConstraints buttonConstraints = new GridBagConstraints();
+        buttonConstraints.gridx = 0; // Adjust these constraints as needed
+        buttonConstraints.gridy = 6; // Place it below the last component
+        buttonConstraints.gridwidth = 2; // Span across two columns
+        buttonConstraints.fill = GridBagConstraints.HORIZONTAL;
+        jpanel.add(removeChannelButton, buttonConstraints);
+    }
+
+    private void legend(JPanel jpanel) {
+        initLegendPanel(); // Initialize the legend panel
+        GridBagConstraints legendConstraints = new GridBagConstraints();
+        legendConstraints.gridx = 0;
+        legendConstraints.gridy = 5; // Adjust as necessary
+        legendConstraints.gridwidth = 2; // Span across two columns if needed
+        legendConstraints.fill = GridBagConstraints.HORIZONTAL;
+
+        jpanel.add(legendPanel, legendConstraints);
     }
 
     private void rfCenterLabel(JPanel jpanel) {
@@ -204,10 +227,71 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
             public void actionPerformed(ActionEvent e) {
                 currentChannel = channelTextField.getText();
                 plotter.changeChannel(currentChannel);
+                updateLegend(plotter.getColorsForChannels());
             }
         });
 
     }
+    private JPanel legendPanel;
+
+    private List<JPanel> columns = new ArrayList<>();
+    private int maxPerColumn = 5; // Maximum elements per column
+
+    private void initLegendPanel() {
+        legendPanel = new JPanel();
+        legendPanel.setLayout(new BoxLayout(legendPanel, BoxLayout.X_AXIS));
+        legendPanel.setBorder(BorderFactory.createTitledBorder("Channel Legend"));
+
+        addNewColumn(); // Initialize with one column
+    }
+
+    private void addNewColumn() {
+        JPanel column = new JPanel();
+        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
+        columns.add(column);
+        legendPanel.add(column);
+    }
+
+
+
+    private void updateLegend(Map<String, RGBColor> colorsForChannels) {
+        // Clear existing columns
+        legendPanel.removeAll();
+        columns.clear();
+        addNewColumn(); // Start with a fresh column
+
+        int itemCount = 0;
+
+        for (Map.Entry<String, RGBColor> entry : colorsForChannels.entrySet()) {
+            if (itemCount >= maxPerColumn) {
+                addNewColumn(); // Add a new column if the current one is full
+                itemCount = 0; // Reset item count for the new column
+            }
+
+            JPanel pairPanel = new JPanel();
+            pairPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+
+            JPanel colorIndicator = new JPanel();
+            colorIndicator.setPreferredSize(new Dimension(10, 10));
+            colorIndicator.setBackground(new Color(entry.getValue().getRed(), entry.getValue().getGreen(), entry.getValue().getBlue()));
+            pairPanel.add(colorIndicator);
+
+            JLabel channelLabel = new JLabel(entry.getKey());
+            pairPanel.add(channelLabel);
+
+            // Add the pair to the last column in the list
+            columns.get(columns.size() - 1).add(pairPanel);
+
+            itemCount++;
+        }
+
+        // Refresh layout
+        legendPanel.revalidate();
+        legendPanel.repaint();
+    }
+
+
+
 
     @Override
     public void drawCanvas(Context context, String devId) {
@@ -260,6 +344,24 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         }
 
 
+    }
+
+    private JButton removeChannelButton;
+
+    private void setupRemoveChannelButton() {
+        removeChannelButton = new JButton("Remove Channel");
+        removeChannelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!currentChannel.equals("None")) {
+                    plotter.removeChannel(currentChannel); // Assuming such a method exists in plotter
+                    updateLegend(plotter.getColorsForChannels()); // Refresh the legend to reflect the removal
+                    // Optionally reset currentChannel if needed
+                    currentChannel = "None";
+                    channelTextField.setText(currentChannel);
+                }
+            }
+        });
     }
 
     private void updateFromScroller(ScrollerParams newParams) {

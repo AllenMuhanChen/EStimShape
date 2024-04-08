@@ -24,8 +24,11 @@ public class RFPlotDrawer {
             new RGBColor(0, 1, 1), // Cyan
             new RGBColor(1, 0, 1), // Magenta
             new RGBColor(1, 0.5f, 0), // Orange
-            new RGBColor(0, 1, 1), // Teal
-            new RGBColor(0.5f, 0, 1) // Purple
+            new RGBColor(0.5f, 1, 0), // Lime
+            new RGBColor(1f, 0, 0.5f), // Purple
+            new RGBColor(0.5f, 0, 1), // Purple
+            new RGBColor(0, 0.5f, 1),
+            new RGBColor(0, 1, 0.5f)
     );
 
     //private helper variables
@@ -45,7 +48,11 @@ public class RFPlotDrawer {
         colorsForChannels.putIfAbsent(channel, getNextColor());
     }
 
-
+    public void removeChannel(String channel){
+        rfsForChannels.remove(channel);
+        outlinesForChannels.remove(channel);
+        colorsForChannels.remove(channel);
+    }
 
     private RGBColor getNextColor() {
         lastColorIndex = (lastColorIndex + 1) % visibleColors.size();
@@ -230,5 +237,9 @@ public class RFPlotDrawer {
         }
 
         return outlinePoints;
+    }
+
+    public Map<String, RGBColor> getColorsForChannels() {
+        return colorsForChannels;
     }
 }
