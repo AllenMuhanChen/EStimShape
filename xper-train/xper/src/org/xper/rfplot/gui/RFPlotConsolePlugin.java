@@ -19,6 +19,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import static java.awt.GridBagConstraints.PAGE_END;
 import static java.awt.GridBagConstraints.PAGE_START;
@@ -88,9 +89,25 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
     }
 
     private void save(){
-        RGBColor currentColor = RFPlotXfmSpec.fromXml(xfmSpec).getColor();
-        V4RFInfo rfInfo = new V4RFInfo(mm2deg(plotter.getInterpolatedOutline()), mm2deg(plotter.getRFCenter()), currentColor);
-        dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
+        AbstractRenderer renderer = consoleRenderer.getRenderer();
+        plotter.getRfsForChannels().forEach(new BiConsumer<String, CircleRF>() {
+            @Override
+            public void accept(String channel, CircleRF circleRF) {
+
+                Coordinates2D circleCenterDeg = mm2deg(circleRF.getCircleCenter());
+                double radiusDeg = renderer.mm2deg(circleRF.getCircleRadius());
+
+                List<Coordinates2D> interpolatedOutlineDeg = plotter.getInterpolatedOutline(channel);
+                for (Coordinates2D point : interpolatedOutlineDeg) {
+                    point.setX(renderer.mm2deg(point.getX()));
+                    point.setY(renderer.mm2deg(point.getY()));
+                }
+
+                RFInfo rfInfo = new RFInfo(interpolatedOutlineDeg, circleCenterDeg, radiusDeg);
+                dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml());
+            }
+        });
+
     }
 
     private List<Coordinates2D> mm2deg(List<Coordinates2D> points) {

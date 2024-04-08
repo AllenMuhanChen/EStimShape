@@ -10,8 +10,8 @@ public class V4RFInfo extends RFInfo{
 
     public RGBColor color;
 
-    public V4RFInfo(List<Coordinates2D> outline, Coordinates2D center, RGBColor color) {
-        super(outline, center);
+    public V4RFInfo(List<Coordinates2D> outline, Coordinates2D center, double radius, RGBColor color) {
+        super(outline, center, radius);
         this.color = color;
     }
 

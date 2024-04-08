@@ -1211,10 +1211,10 @@ public class DbUtil {
 	 * @param info
 	 */
 
-	public void writeRFInfo(long tstamp, String info) {
+	public void writeRFInfo(long tstamp, String channel, String info) {
 		JdbcTemplate jt = new JdbcTemplate(dataSource);
-		jt.update("insert into RFInfo (tstamp, info) values (?, ?)",
-				new Object[] { tstamp, info });
+		jt.update("insert into RFInfo (tstamp, channel, info) values (?, ?, ?)",
+				new Object[] { tstamp, channel, info });
 	}
 
 	/**

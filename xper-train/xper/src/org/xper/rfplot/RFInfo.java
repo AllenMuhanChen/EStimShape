@@ -9,13 +9,15 @@ import java.util.List;
 public class RFInfo {
     List<Coordinates2D> outline;
     Coordinates2D center;
+    double radius;
 
     public RFInfo() {
     }
 
-    public RFInfo(List<Coordinates2D> outline, Coordinates2D center) {
+    public RFInfo(List<Coordinates2D> outline, Coordinates2D center, double radius) {
         this.outline = outline;
         this.center = center;
+        this.radius = radius;
     }
 
     transient static XStream s;

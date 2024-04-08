@@ -9,6 +9,10 @@ import org.xper.drawing.object.Square;
 
 import java.util.*;
 
+/**
+ * Whole class works in mm. Convert from deg to mm before using.
+
+ */
 public class RFPlotDrawer {
 
     //main data
@@ -218,9 +222,9 @@ public class RFPlotDrawer {
     }
 
 
-    public List<Coordinates2D> getInterpolatedOutline() {
-        Coordinates2D circleCenter = rfsForChannels.get(currentChannel).getCircleCenter();
-        double circleRadius = rfsForChannels.get(currentChannel).getCircleRadius();
+    public List<Coordinates2D> getInterpolatedOutline(String channel) {
+        Coordinates2D circleCenter = rfsForChannels.get(channel).getCircleCenter();
+        double circleRadius = rfsForChannels.get(channel).getCircleRadius();
 
         List<Coordinates2D> outlinePoints = new ArrayList<>();
         if (circleCenter == null || circleRadius <= 0) {
@@ -241,5 +245,9 @@ public class RFPlotDrawer {
 
     public Map<String, RGBColor> getColorsForChannels() {
         return colorsForChannels;
+    }
+
+    public Map<String, CircleRF> getRfsForChannels() {
+        return rfsForChannels;
     }
 }
