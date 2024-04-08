@@ -17,6 +17,11 @@ public class RFPlotDrawer {
 //    private List<Point> hull;
     private Coordinates2D rfCenter;
 //    private Point[] diameterPoints = new Point[2]; // Stores the two points that define the diameter
+    private String currentChannel;
+
+    public void changeChannel(String channel){
+        currentChannel = channel;
+    }
 
     public void addCirclePoint(Coordinates2D point){
         circlePoints.add(point);

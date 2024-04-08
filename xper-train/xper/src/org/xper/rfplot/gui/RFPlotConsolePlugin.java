@@ -16,10 +16,7 @@ import org.xper.util.DbUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseWheelEvent;
+import java.awt.event.*;
 import java.util.*;
 import java.util.List;
 
@@ -147,6 +144,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         rfCenterLabel(jpanel);
         scrollerModeLabel(jpanel);
         scrollerValueLabel(jpanel);
+        channelField(jpanel);
         return jpanel;
     }
 
@@ -179,6 +177,36 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
         scrollerValueConstraints.gridy = 3;
         scrollerValueLabel = new JLabel("Value");
         jpanel.add(scrollerValueLabel, scrollerValueConstraints);
+    }
+    private JTextField channelTextField;
+    private String currentChannel = "None"; // Default value or retrieve from a saved state
+
+    private void channelField(JPanel jpanel) {
+        GridBagConstraints channelLabelConstraints = new GridBagConstraints();
+        channelLabelConstraints.gridx = 0; // Adjust gridx and gridy as needed
+        channelLabelConstraints.gridy = 4; // This should be after the last component's gridy
+        channelLabelConstraints.anchor = GridBagConstraints.LINE_START;
+        jpanel.add(new JLabel("Channel:"), channelLabelConstraints);
+
+        channelTextField = new JTextField(20); // Adjust the size as needed
+        GridBagConstraints channelFieldConstraints = new GridBagConstraints();
+        channelFieldConstraints.gridx = 1; // Adjust gridx as needed to align with the label
+        channelFieldConstraints.gridy = 4; // This should match the label's gridy
+        channelFieldConstraints.gridwidth = 2; // Span across two columns if needed
+        channelFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+        jpanel.add(channelTextField, channelFieldConstraints);
+
+        //Change value of currentChannel to the value in the text field and inform
+        //rfPlotter
+        channelTextField.setText(currentChannel);
+        channelTextField.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                currentChannel = channelTextField.getText();
+                plotter.changeChannel(currentChannel);
+            }
+        });
+
     }
 
     @Override
