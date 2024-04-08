@@ -9,27 +9,37 @@ import java.util.*;
 
 public class RFPlotDrawer {
 
-    // Additional fields for the enclosing circle
+    //main data
+    Map<String, CircleRF> rfsForChannels =  new LinkedHashMap<String, CircleRF>();
+    Map<String, List<List<Point>>> outlinesForChannels = new LinkedHashMap<>();
+
+    //private helper variables
     private Coordinates2D circleCenter;
     private double circleRadius;
+    private List<Coordinates2D> circlePoints = new LinkedList<>();
     private List<List<Point>> outlines = new LinkedList<>();
-    private final List<Coordinates2D> circlePoints = new LinkedList<>();
-//    private List<Point> hull;
-    private Coordinates2D rfCenter;
-//    private Point[] diameterPoints = new Point[2]; // Stores the two points that define the diameter
     private String currentChannel;
+    private Coordinates2D rfCenter;
 
     public void changeChannel(String channel){
         currentChannel = channel;
+        if (!rfsForChannels.containsKey(channel)){
+            rfsForChannels.put(channel, new CircleRF());
+        }
+        if (!outlinesForChannels.containsKey(channel)){
+            outlinesForChannels.put(channel, new LinkedList<>());
+        }
     }
 
     public void addCirclePoint(Coordinates2D point){
         circlePoints.add(point);
+        rfsForChannels.get(currentChannel).addCirclePoint(point);
         System.out.println("Added point: " + point.toString());
         onPointsUpdated();
     }
 
     public void addOutlinePoints(List<Coordinates2D> outline){
+        outlines = outlinesForChannels.get(currentChannel);
         List<Point> outlinePoints = new ArrayList<>();
         for (Coordinates2D coord: outline){
             outlinePoints.add(new Point(coord.getX(), coord.getY()));
@@ -37,12 +47,9 @@ public class RFPlotDrawer {
         outlines.add(outlinePoints);
     }
 
-    public void undo(){
-        circlePoints.remove(circlePoints.size()-1);
-        onPointsUpdated();
-    }
 
     public void removeClosestOutlineTo(Coordinates2D point) {
+        outlines = outlinesForChannels.get(currentChannel);
         if (outlines.isEmpty()) {
             return; // Early return if there are no outlines to remove.
         }
@@ -69,6 +76,7 @@ public class RFPlotDrawer {
 
 
     public void removeClosestCirclePointTo(Coordinates2D point){
+        circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
         Coordinates2D nearest = Collections.min(circlePoints, new Comparator<Coordinates2D>(){
             @Override
             public int compare(Coordinates2D o1, Coordinates2D o2) {
@@ -109,6 +117,7 @@ public class RFPlotDrawer {
     }
 
     private void drawOutlines() {
+        outlines = outlinesForChannels.get(currentChannel);
         for (List<Point> outline: outlines){
             for (int i = 0; i < outline.size(); i++) {
                 Point start = outline.get(i);
@@ -119,6 +128,7 @@ public class RFPlotDrawer {
     }
 
     private void drawRFCircle() {
+        circleCenter = rfsForChannels.get(currentChannel).getCircleCenter();
         if (circleCenter != null && circleRadius > 0) {
             // Assuming GLUtil.drawCircle can take radius as a parameter. Adjust if necessary.
             // Note: The color is set to a different one for distinction, let's say purple (1, 0, 1).
@@ -129,12 +139,14 @@ public class RFPlotDrawer {
     }
 
     private void drawRFCenter() {
+        rfCenter = rfsForChannels.get(currentChannel).getCircleCenter();
         if (rfCenter != null) {
             GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 0, 1); // Blue
         }
     }
 
     private void drawCirclePoints() {
+        circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
         for (Coordinates2D point : circlePoints) {
             GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0); // Yellow
         }
@@ -151,6 +163,8 @@ public class RFPlotDrawer {
     }
 
     private void computeEnclosingCircle() {
+        circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
+        circleRadius = rfsForChannels.get(currentChannel).getCircleRadius();
         if (circlePoints.isEmpty()) {
             circleCenter = null;
             circleRadius = 0;
@@ -173,78 +187,18 @@ public class RFPlotDrawer {
             sumDistance += point.distance(circleCenter);
         }
         circleRadius = sumDistance / circlePoints.size();
-
-    }
-
-    // New method to compute the diameter
-//    private void computeDiameter() {
-//        double maxDistanceSquared = 0;
-//        for (int i = 0; i < hull.size(); i++) {
-//            for (int j = i + 1; j < hull.size(); j++) {
-//                double distanceSquared = distanceSquared(hull.get(i), hull.get(j));
-//                if (distanceSquared > maxDistanceSquared) {
-//                    maxDistanceSquared = distanceSquared;
-//                    diameterPoints[0] = hull.get(i);
-//                    diameterPoints[1] = hull.get(j);
-//                }
-//            }
-//        }
-//    }
-
-    // Helper method to calculate squared distance between two points
-    private double distanceSquared(Point p1, Point p2) {
-        double dx = p1.x - p2.x;
-        double dy = p1.y - p2.y;
-        return dx * dx + dy * dy;
+        rfsForChannels.get(currentChannel).setCircleCenter(circleCenter);
     }
 
     public Coordinates2D getRFCenter(){
-        return circleCenter;
-    }
-//
-//    public List<Coordinates2D> getHull(){
-//        List<Coordinates2D> hullCoords = pointsToCoords(hull);
-//        return hullCoords;
-//    }
-
-    private List<Coordinates2D> pointsToCoords(List<Point> hull) {
-        List<Coordinates2D> hullCoords = new LinkedList<>();
-        for (Point point: hull){
-            hullCoords.add(point2Coordinates2D(point));
-        }
-        return hullCoords;
-    }
-
-    private Coordinates2D point2Coordinates2D(Point point) {
-        return new Coordinates2D(point.x, point.y);
+        return rfsForChannels.get(currentChannel).getCircleCenter();
     }
 
 
-    public List<Coordinates2D> getCirclePoints(){
-        return circlePoints;
-    }
+    public List<Coordinates2D> getInterpolatedOutline() {
+        circleCenter = rfsForChannels.get(currentChannel).getCircleCenter();
+        circleRadius = rfsForChannels.get(currentChannel).getCircleRadius();
 
-    private Point findCentroid(List<Point> points){
-        double numPoints = points.size();
-        double sumX=0;
-        double sumY=0;
-        for (Point point:points){
-            sumX+=point.x;
-            sumY+=point.y;
-        }
-        Point centroid = new Point(sumX/numPoints, sumY/numPoints);
-        return centroid;
-    }
-
-    public Coordinates2D getCircleCenter() {
-        return circleCenter;
-    }
-
-    public double getCircleRadius() {
-        return circleRadius;
-    }
-
-    public List<Coordinates2D> getOutline() {
         List<Coordinates2D> outlinePoints = new ArrayList<>();
         if (circleCenter == null || circleRadius <= 0) {
             return outlinePoints; // Return an empty list if there's no valid circle.

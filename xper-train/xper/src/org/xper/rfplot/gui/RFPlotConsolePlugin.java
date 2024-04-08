@@ -89,7 +89,7 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
     private void save(){
         RGBColor currentColor = RFPlotXfmSpec.fromXml(xfmSpec).getColor();
-        V4RFInfo rfInfo = new V4RFInfo(mm2deg(plotter.getOutline()), mm2deg(plotter.getRFCenter()), currentColor);
+        V4RFInfo rfInfo = new V4RFInfo(mm2deg(plotter.getInterpolatedOutline()), mm2deg(plotter.getRFCenter()), currentColor);
         dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), rfInfo.toXml());
     }
 
