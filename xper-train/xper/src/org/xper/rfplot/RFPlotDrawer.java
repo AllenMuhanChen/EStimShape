@@ -2,8 +2,10 @@ package org.xper.rfplot;
 
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.GLUtil;
+import org.xper.drawing.RGBColor;
 import org.xper.drawing.object.Circle;
 import org.xper.drawing.object.Square;
+
 
 import java.util.*;
 
@@ -12,34 +14,52 @@ public class RFPlotDrawer {
     //main data
     Map<String, CircleRF> rfsForChannels =  new LinkedHashMap<String, CircleRF>();
     Map<String, List<List<Point>>> outlinesForChannels = new LinkedHashMap<>();
+    Map<String, RGBColor> colorsForChannels = new LinkedHashMap<>();
+
+
+    private final List<RGBColor> visibleColors = Arrays.asList(
+            new RGBColor(1, 0, 0), // Red
+            new RGBColor(0, 1, 0), // Lime
+            new RGBColor(0, 0, 1), // Blue
+            new RGBColor(0, 1, 1), // Cyan
+            new RGBColor(1, 0, 1), // Magenta
+            new RGBColor(1, 0.5f, 0), // Orange
+            new RGBColor(0, 1, 1), // Teal
+            new RGBColor(0.5f, 0, 1) // Purple
+    );
 
     //private helper variables
-    private Coordinates2D circleCenter;
-    private double circleRadius;
-    private List<Coordinates2D> circlePoints = new LinkedList<>();
-    private List<List<Point>> outlines = new LinkedList<>();
     private String currentChannel;
     private Coordinates2D rfCenter;
+    private float r;
+    private float g;
+    private float b;
+    private int lastColorIndex = -1;
+    private RGBColor color;
 
     public void changeChannel(String channel){
         currentChannel = channel;
-        if (!rfsForChannels.containsKey(channel)){
-            rfsForChannels.put(channel, new CircleRF());
-        }
-        if (!outlinesForChannels.containsKey(channel)){
-            outlinesForChannels.put(channel, new LinkedList<>());
-        }
+
+        rfsForChannels.putIfAbsent(channel, new CircleRF());
+        outlinesForChannels.putIfAbsent(channel, new LinkedList<>());
+        colorsForChannels.putIfAbsent(channel, getNextColor());
+    }
+
+
+
+    private RGBColor getNextColor() {
+        lastColorIndex = (lastColorIndex + 1) % visibleColors.size();
+        return visibleColors.get(lastColorIndex);
     }
 
     public void addCirclePoint(Coordinates2D point){
-        circlePoints.add(point);
         rfsForChannels.get(currentChannel).addCirclePoint(point);
         System.out.println("Added point: " + point.toString());
         onPointsUpdated();
     }
 
     public void addOutlinePoints(List<Coordinates2D> outline){
-        outlines = outlinesForChannels.get(currentChannel);
+        List<List<Point>> outlines = outlinesForChannels.get(currentChannel);
         List<Point> outlinePoints = new ArrayList<>();
         for (Coordinates2D coord: outline){
             outlinePoints.add(new Point(coord.getX(), coord.getY()));
@@ -49,7 +69,7 @@ public class RFPlotDrawer {
 
 
     public void removeClosestOutlineTo(Coordinates2D point) {
-        outlines = outlinesForChannels.get(currentChannel);
+        List<List<Point>> outlines = outlinesForChannels.get(currentChannel);
         if (outlines.isEmpty()) {
             return; // Early return if there are no outlines to remove.
         }
@@ -76,7 +96,7 @@ public class RFPlotDrawer {
 
 
     public void removeClosestCirclePointTo(Coordinates2D point){
-        circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
+        List<Coordinates2D> circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
         Coordinates2D nearest = Collections.min(circlePoints, new Comparator<Coordinates2D>(){
             @Override
             public int compare(Coordinates2D o1, Coordinates2D o2) {
@@ -88,26 +108,14 @@ public class RFPlotDrawer {
     }
     public void draw() {
         try {
-            // Drawing the regular points as yellow circles
-            drawCirclePoints();
-            drawRFCircle();
-            drawRFCenter();
-
-            drawOutlines();
-//            // Drawing the hull points as red circles
-//            if (hull != null && !hull.isEmpty()) {
-//                for (Point hullPoint : hull) {
-//                    GLUtil.drawCircle(new Circle(true, 5), hullPoint.x, hullPoint.y, 0, 1, 0, 0); // Red
-//                }
-//            }
-
-
-
-
-            // Drawing the diameter with a green line, if available
-//            if (diameterPoints[0] != null && diameterPoints[1] != null) {
-//                GLUtil.drawLine(diameterPoints[0].x, diameterPoints[0].y, diameterPoints[1].x, diameterPoints[1].y, 0, 1, 0); // Green line
-//            }
+            for (String channel: rfsForChannels.keySet()){
+                color = colorsForChannels.get(channel);
+                assignCurrentColor(channel);
+                drawCirclePoints(color, channel);
+                drawRFCircle(color, channel);
+                drawRFCenter(color, channel);
+                drawOutlines(color, channel);
+            }
 
 
         } catch (Exception e) {
@@ -116,39 +124,45 @@ public class RFPlotDrawer {
         }
     }
 
-    private void drawOutlines() {
-        outlines = outlinesForChannels.get(currentChannel);
+    private void assignCurrentColor(String channel) {
+        // Default to white if not found
+        color = colorsForChannels.getOrDefault(channel, new RGBColor(255, 255, 255));
+    }
+
+    private void drawOutlines(RGBColor color, String channel) {
+        List<List<Point>> outlines = outlinesForChannels.get(channel);
         for (List<Point> outline: outlines){
             for (int i = 0; i < outline.size(); i++) {
                 Point start = outline.get(i);
                 Point end = outline.get((i + 1) % outline.size()); // Ensures the last point connects back to the first
-                GLUtil.drawLine(start.x, start.y, end.x, end.y, 1, 0, 0); // Red lines
+                GLUtil.drawLine(start.x, start.y, end.x, end.y, color.getRed(), color.getGreen(), color.getBlue());
             }
         }
     }
 
-    private void drawRFCircle() {
-        circleCenter = rfsForChannels.get(currentChannel).getCircleCenter();
+    private void drawRFCircle(RGBColor color, String channel) {
+        Coordinates2D circleCenter = rfsForChannels.get(channel).getCircleCenter();
+        double circleRadius = rfsForChannels.get(channel).getCircleRadius();
         if (circleCenter != null && circleRadius > 0) {
             // Assuming GLUtil.drawCircle can take radius as a parameter. Adjust if necessary.
             // Note: The color is set to a different one for distinction, let's say purple (1, 0, 1).
             GLUtil.drawCircle(new Circle(false, circleRadius), // Circle class might need to take diameter, hence radius * 2
                     circleCenter.getX(), circleCenter.getY(), 0,
-                    1, 0, 1); // Purple
+                    color.getRed(), color.getGreen(), color.getBlue()); // Purple
         }
     }
 
-    private void drawRFCenter() {
-        rfCenter = rfsForChannels.get(currentChannel).getCircleCenter();
+    private void drawRFCenter(RGBColor color, String channel) {
+        rfCenter = rfsForChannels.get(channel).getCircleCenter();
         if (rfCenter != null) {
-            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, 0, 0, 1); // Blue
+            GLUtil.drawSquare(new Square(true, 10), rfCenter.getX(), rfCenter.getY(), 0, color.getRed(), color.getGreen(), color.getBlue()); // Blue
         }
     }
 
-    private void drawCirclePoints() {
-        circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
+    private void drawCirclePoints(RGBColor color, String channel) {
+        List<Coordinates2D> circlePoints = rfsForChannels.get(channel).getCirclePoints();
         for (Coordinates2D point : circlePoints) {
-            GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, 1, 1, 0); // Yellow
+            GLUtil.drawCircle(new Circle(true, 5), point.getX(), point.getY(), 0, color.getRed(), color.getGreen(), color.getBlue()); // Yellow
         }
     }
 
@@ -157,14 +171,15 @@ public class RFPlotDrawer {
     private void onPointsUpdated() {
 //        hull = ConvexHull.makeHullFromCoordinates(points);
         computeEnclosingCircle();
-        rfCenter = circleCenter;
+        rfCenter = rfsForChannels.get(currentChannel).getCircleCenter();
 //        rfCenter = getRFCenter();
 //        computeDiameter(); // Update the diameter whenever points are updated
     }
 
     private void computeEnclosingCircle() {
-        circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
-        circleRadius = rfsForChannels.get(currentChannel).getCircleRadius();
+        List<Coordinates2D> circlePoints = rfsForChannels.get(currentChannel).getCirclePoints();
+        double circleRadius = rfsForChannels.get(currentChannel).getCircleRadius();
+        Coordinates2D circleCenter;
         if (circlePoints.isEmpty()) {
             circleCenter = null;
             circleRadius = 0;
@@ -188,6 +203,7 @@ public class RFPlotDrawer {
         }
         circleRadius = sumDistance / circlePoints.size();
         rfsForChannels.get(currentChannel).setCircleCenter(circleCenter);
+        rfsForChannels.get(currentChannel).setCircleRadius(circleRadius);
     }
 
     public Coordinates2D getRFCenter(){
@@ -196,8 +212,8 @@ public class RFPlotDrawer {
 
 
     public List<Coordinates2D> getInterpolatedOutline() {
-        circleCenter = rfsForChannels.get(currentChannel).getCircleCenter();
-        circleRadius = rfsForChannels.get(currentChannel).getCircleRadius();
+        Coordinates2D circleCenter = rfsForChannels.get(currentChannel).getCircleCenter();
+        double circleRadius = rfsForChannels.get(currentChannel).getCircleRadius();
 
         List<Coordinates2D> outlinePoints = new ArrayList<>();
         if (circleCenter == null || circleRadius <= 0) {
