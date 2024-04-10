@@ -85,7 +85,7 @@ public class SaccadeTrialExperiment implements Experiment {
 					// run trial
 					return SaccadeTrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() { //TODO: Possibly 		ret = TrialExperimentUtil.runTrial(stateObject, threadHelper, new SlideRunner() {
 
-						public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
+						public TrialResult runSlides(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
 							int slidePerTrial = stateObject.getSlidePerTrial();
 							SaccadeExperimentTask currentTask = (SaccadeExperimentTask) stateObject.getCurrentTask();
 							TaskDoneCache taskDoneCache = stateObject.getTaskDoneCache();

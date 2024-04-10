@@ -13,7 +13,7 @@ import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.exception.DbException;
 import org.xper.rfplot.drawing.GaborSpec;
-import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
+import org.xper.allen.rfplot.IsochromaticGabor;
 import org.xper.allen.isoluminant.IsoluminantGabor;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
 import org.xper.util.ThreadUtil;

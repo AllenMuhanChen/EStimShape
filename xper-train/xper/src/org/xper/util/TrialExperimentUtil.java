@@ -20,23 +20,23 @@ import org.xper.time.TimeUtil;
 
 public class TrialExperimentUtil {
 	public static Logger logger = Logger.getLogger(TrialExperimentUtil.class);
-	
+
 	public static void cleanupTask (TrialExperimentState stateObject) {
 		ExperimentTask currentTask = stateObject.getCurrentTask();
 		TaskDataSource taskDataSource = stateObject.getTaskDataSource();
-		
+
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
 			currentTask = null;
 			stateObject.setCurrentTask(currentTask);
 		}
 	}
-	
+
 	public static TrialResult waitInterSlideInterval (SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
 		TrialContext currentContext = stateObject.getCurrentContext();
 		EyeController eyeController = stateObject.getEyeController();
-		
+
 		while (timeUtil.currentTimeMicros() < currentContext.getCurrentSlideOffTime()
 				+ stateObject.getInterSlideInterval() * 1000) {
 			if (!eyeController.isEyeIn()) {
@@ -49,10 +49,10 @@ public class TrialExperimentUtil {
 		}
 		return TrialResult.SLIDE_OK;
 	}
-	
+
 	/**
 	 * Draw the silde.
-	 * 
+	 *
 	 * @param i slide index
 	 * @param stateObject
 	 * @return
@@ -64,7 +64,7 @@ public class TrialExperimentUtil {
 		List<? extends SlideEventListener> slideEventListeners = stateObject.getSlideEventListeners();
 		EyeController eyeController = stateObject.getEyeController();
 		TimeUtil timeUtil = stateObject.getLocalTimeUtil();
-		
+
 		// show current slide
 		drawingController.showSlide(currentTask, currentContext);
 		long slideOnLocalTime = timeUtil.currentTimeMicros();
@@ -100,25 +100,25 @@ public class TrialExperimentUtil {
 						currentContext.getAnimationFrameIndex(),
 						slideEventListeners, currentTask.getTaskId());
 		currentContext.setAnimationFrameIndex(0);
-		
+
 		return TrialResult.SLIDE_OK;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 * @param stateObject
 	 * @param threadHelper
 	 * @param runner
 	 * @return
 	 */
-	
+
 	public static TrialResult runTrial (TrialExperimentState stateObject, ThreadHelper threadHelper, SlideRunner runner){
 		TrialResult result = TrialExperimentUtil.getMonkeyFixation(stateObject, threadHelper);
 		if (result != TrialResult.FIXATION_SUCCESS) {
 			return result;
 		}
 
-		result = runner.runSlide((SlideTrialExperimentState) stateObject, threadHelper);
+		result = runner.runSlides((SlideTrialExperimentState) stateObject, threadHelper);
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
 		}
@@ -127,7 +127,7 @@ public class TrialExperimentUtil {
 
 		return TrialResult.TRIAL_COMPLETE;
 	}
-	
+
 	/**
 	 * If trial fails, the currentTask of TrialExperimentState is not null.
 	 * @param state
@@ -141,7 +141,7 @@ public class TrialExperimentUtil {
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
 		.getTrialEventListeners();
-		
+
 		// unget failed task
 		if (currentTask != null) {
 			taskDataSource.ungetTask(currentTask);
@@ -161,9 +161,9 @@ public class TrialExperimentUtil {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param state
-	 * @param threadHelper 
+	 * @param threadHelper
 	 */
 	public static void completeTrial(TrialExperimentState state, ThreadHelper threadHelper) {
 		TimeUtil timeUtil = state.getLocalTimeUtil();
@@ -171,14 +171,14 @@ public class TrialExperimentUtil {
 		TrialDrawingController drawingController = state.getDrawingController();
 		List<? extends TrialEventListener> trialEventListeners = state
 		.getTrialEventListeners();
-		
+
 		// trial complete here
 		long trialCompletedLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setTrialCompleteTime(trialCompletedLocalTime);
 		drawingController.trialComplete(currentContext);
 		EventUtil.fireTrialCompleteEvent(trialCompletedLocalTime,
 				trialEventListeners, currentContext);
-		
+
 		// wait for delay after trial complete
 		if (state.getDelayAfterTrialComplete() > 0) {
 			long current = timeUtil.currentTimeMicros();
@@ -190,7 +190,7 @@ public class TrialExperimentUtil {
 
 	/**
 	 * Use EyeController to get eye status.
-	 * 
+	 *
 	 * @param state
 	 * @param threadHelper
 	 * @return
@@ -204,7 +204,7 @@ public class TrialExperimentUtil {
 				.getTrialEventListeners();
 		EyeController eyeController = state.getEyeController();
 		ExperimentTask currentTask = state.getCurrentTask();
-		
+
 		// trial init
 		long trialInitLocalTime = timeUtil.currentTimeMicros();
 		currentContext.setTrialInitTime(trialInitLocalTime);
@@ -310,7 +310,7 @@ public class TrialExperimentUtil {
 			// next time.
 			taskDoneCache.put(currentTask, taskDoneTimestamp, true);
 		}
-	}	
+	}
 
 	public static void pauseUntilRunReceived(TrialExperimentState state,
 											 ThreadHelper threadHelper) {

@@ -43,7 +43,7 @@ public class MockSlideTrialRunner implements SlideTrialRunner{
                 return result;
             }
 
-            result = slideRunner.runSlide(stateObject, threadHelper);
+            result = slideRunner.runSlides(stateObject, threadHelper);
             if (result != TrialResult.TRIAL_COMPLETE) {
                 return result;
             }

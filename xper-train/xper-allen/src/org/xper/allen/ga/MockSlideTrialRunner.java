@@ -12,12 +12,8 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
 import org.xper.util.ThreadHelper;
-import org.xper.util.ThreadUtil;
 
 import java.util.List;
-
-import static org.xper.classic.ClassicSlideTrialRunner.cleanupTrial;
-import static org.xper.classic.ClassicSlideTrialRunner.completeTrial;
 
 public class MockSlideTrialRunner implements SlideTrialRunner{
 
@@ -47,7 +43,7 @@ public class MockSlideTrialRunner implements SlideTrialRunner{
                 return result;
             }
 
-            result = slideRunner.runSlide(stateObject, threadHelper);
+            result = slideRunner.runSlides(stateObject, threadHelper);
             if (result != TrialResult.TRIAL_COMPLETE) {
                 return result;
             }

@@ -1,9 +1,5 @@
 package org.xper.allen.saccade;
 
-import java.io.IOException;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -119,7 +115,7 @@ public class SaccadeTrialExperimentUtil extends TrialExperimentUtil{
 			return result;
 		}
 //		sendEStims(stateObject);
-		result = runner.runSlide(stateObject, threadHelper);
+		result = runner.runSlides(stateObject, threadHelper);
 		if (result != TrialResult.TRIAL_COMPLETE) {
 			return result;
 		}

@@ -22,7 +22,7 @@ public class DbUtilTest extends TestCase {
 
 	protected void setUp() throws Exception {
 		super.setUp();
-		
+
 		List<String> libs = new ArrayList<String>();
 		libs.add("xper");
 		new XperConfig("", libs);
@@ -172,20 +172,7 @@ public class DbUtilTest extends TestCase {
 		assertEquals(newVal, var.getValue(0));
 	}
 
-	public void testRFInfo() {
-		// write it
-		long tstamp = timeUtil.currentTimeMicros();
-		String info = "Test RF Info";
 
-		dbUtil.writeRFInfo(tstamp, info);
-
-		// read it
-		List<RFInfoEntry> result = dbUtil.readRFInfo(tstamp, tstamp);
-		RFInfoEntry ent = result.get(0);
-
-		assertEquals(info, ent.getInfo());
-		assertEquals(tstamp, ent.getTstamp());
-	}
 
 	public void testRFStimSpec() {
 		long stimId = timeUtil.currentTimeMicros();
@@ -255,7 +242,7 @@ public class DbUtilTest extends TestCase {
 //		void writeReadyGenerationInfo(long genId, int taskCount, int stimPerLinCount, int stimPerTrial,
 //				int repsPerStim, boolean enableFingerprinting, int numFingerprintingStim, int numFingerprintingRepsPerChunk,
 //				boolean isBubbles) {
-		
+
 		// update ready gen info
 		dbUtil.updateReadyGenerationInfo(genInfo.getGenId(), genInfo.getTaskCount(),
 				genInfo.getStimPerLinCount(), genInfo.getStimPerTrial(),

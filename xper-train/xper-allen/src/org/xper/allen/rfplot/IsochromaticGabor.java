@@ -1,20 +1,24 @@
-package org.xper.rfplot.drawing.gabor;
+package org.xper.allen.rfplot;
 
 import org.xper.allen.monitorlinearization.LookUpTableCorrector;
 import org.xper.drawing.RGBColor;
+import org.xper.rfplot.drawing.gabor.Gabor;
+import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
 
-public class IsochromaticGabor extends Gabor{
+public class IsochromaticGabor extends Gabor {
 
     IsoGaborSpec gaborSpec;
     double luminanceCandela;
     private LookUpTableCorrector lutCorrector;
 
     public IsochromaticGabor(IsoGaborSpec gaborSpec, double luminanceCandela, LookUpTableCorrector lutCorrector) {
+        super();
         this.gaborSpec = gaborSpec;
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
 
-        stepsPerHalfCycle = 256;
+//        stepsPerHalfCycle = 256;
+        stepsPerHalfCycle = 25;
     }
 
     //    ColourConverter.WhitePoint whitePoint = ColourConverter.WhitePoint.D65;

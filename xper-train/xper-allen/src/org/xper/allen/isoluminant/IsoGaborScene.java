@@ -8,7 +8,7 @@ import org.xper.drawing.Context;
 import org.xper.experiment.ExperimentTask;
 import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.drawing.gabor.IsoGaborSpec;
-import org.xper.rfplot.drawing.gabor.IsochromaticGabor;
+import org.xper.allen.rfplot.IsochromaticGabor;
 
 /**
  * Scene to present Isochromatic/Isoluminant Gabor stimuli

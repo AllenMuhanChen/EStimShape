@@ -19,7 +19,7 @@ import java.util.List;
 
 public class MockClassicSlideRunner implements SlideRunner {
     @Override
-    public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
+    public TrialResult runSlides(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
         int slidePerTrial = stateObject.getSlidePerTrial();
         TrialDrawingController drawingController = stateObject.getDrawingController();
         ExperimentTask currentTask = stateObject.getCurrentTask();

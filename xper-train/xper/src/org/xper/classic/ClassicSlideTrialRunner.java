@@ -6,7 +6,6 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.classic.vo.TrialExperimentState;
 import org.xper.classic.vo.TrialResult;
 import org.xper.drawing.AbstractTaskScene;
-import org.xper.drawing.Drawable;
 import org.xper.experiment.ExperimentTask;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDataSource;
@@ -16,6 +15,7 @@ import org.xper.util.*;
 
 import java.util.List;
 
+import static org.xper.classic.ClassicSlideRunner.breakTrial;
 
 public class ClassicSlideTrialRunner implements SlideTrialRunner {
 
@@ -43,13 +43,29 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
             stateObject.getCurrentContext().setCurrentTask(stateObject.getCurrentTask());
             checkCurrentTaskAnimation(stateObject);
 
-            // run trial
+            // Get monkey fixation
             TrialResult result = getMonkeyFixation(stateObject, threadHelper);
             if (result != TrialResult.FIXATION_SUCCESS) {
                 return result;
             }
 
-            result = slideRunner.runSlide(stateObject, threadHelper);
+            // wait ISI before first slide
+            TimeUtil timeUtil = stateObject.getLocalTimeUtil();
+            TrialContext currentContext = stateObject.getCurrentContext();
+            EyeController eyeController = stateObject.getEyeController();
+
+            while (timeUtil.currentTimeMicros() < currentContext.getFixationSuccessTime()
+                    + stateObject.getInterSlideInterval() * 1000L) {
+                if (!eyeController.isEyeIn()) {
+                    breakTrial(stateObject);
+                    return TrialResult.EYE_BREAK;
+                }
+                if (threadHelper.isDone()) {
+                    return TrialResult.EXPERIMENT_STOPPING;
+                }
+            }
+
+            result = slideRunner.runSlides(stateObject, threadHelper);
             if (result != TrialResult.TRIAL_COMPLETE) {
                 return result;
             }
@@ -209,7 +225,7 @@ public class ClassicSlideTrialRunner implements SlideTrialRunner {
             return TrialResult.EYE_IN_HOLD_FAIL;
         }
 
-        // get fixation, start stimulus
+        // get fixation
         long eyeHoldSuccessLocalTime = timeUtil.currentTimeMicros();
         currentContext.setFixationSuccessTime(eyeHoldSuccessLocalTime);
         EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,

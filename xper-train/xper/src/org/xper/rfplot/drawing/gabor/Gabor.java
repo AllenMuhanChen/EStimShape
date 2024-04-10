@@ -28,10 +28,11 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
     protected int stepsPerHalfCycle;
 
     public Gabor() {
-        this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
-                .order(ByteOrder.nativeOrder());
+//        this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
+//                .order(ByteOrder.nativeOrder());
         setDefaultSpec();
-        stepsPerHalfCycle = 256;
+//        stepsPerHalfCycle = 256;
+        stepsPerHalfCycle = 25;
     }
 
     protected void initTexture(Context context) {
@@ -68,35 +69,6 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         GL11.glTexEnvf(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
     }
 
-//    protected void initTexture(Context context) {
-//        int nSigmas = 6; // Number of standard deviations you want the diameter to span
-//        double diameterDeg = getGaborSpec().getSize(); // Gabor patch diameter in degrees of visual angle
-//        double diameterMm = context.getRenderer().deg2mm(diameterDeg); // Convert diameter from degrees to millimeters
-//
-//        // Calculate the fraction of the viewport width occupied by the Gabor patch in mm
-//        double viewportWidthMm = context.getRenderer().getVpWidthmm(); // Viewport width in millimeters
-//        double fractionOfViewportWidthMm = diameterMm / viewportWidthMm;
-//
-//        // Since the normalized coordinate system spans 2 units (-1 to 1), calculate the normalized diameter
-//        double normalizedDiameter = fractionOfViewportWidthMm * 2;
-//
-//        // Calculate sigma as a fraction of the normalized diameter, divided by the desired number of sigmas
-//        // Here, sigma represents the spread of the Gaussian in terms of the normalized coordinate system
-//        double normalizedSigma = (normalizedDiameter / 2) / nSigmas; // Divide by 2 to get radius as sigma is based on radius, not diameter
-//
-//        ByteBuffer texture = makeTexture(w, h, normalizedSigma); // Adjust w, h, std as needed
-//        textureId = GL11.glGenTextures(); // Generate texture ID
-//        GL11.glBindTexture(GL11.GL_TEXTURE_2D, textureId);
-//
-//        GL11.glPixelStorei(GL11.GL_UNPACK_ALIGNMENT, 1);
-//        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_ALPHA, w, h, 0, GL11.GL_ALPHA, GL11.GL_FLOAT, texture);
-//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_CLAMP);
-//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_CLAMP);
-//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-//        GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-//        GL11.glTexEnvf(GL11.GL_TEXTURE_ENV, GL11.GL_TEXTURE_ENV_MODE, GL11.GL_MODULATE);
-//    }
-
     @Override
     public void draw(Context context) {
 
@@ -128,23 +100,19 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
 
 
-        STEPS = calcNumSteps(frequencyCyclesPerDegree, stepsPerHalfCycle);
+        STEPS = calcNumSteps(frequencyCyclesPerDegree, 100);
+//        STEPS = calcNumSteps(context);
+        System.out.println("STEPS: " + STEPS);
         for (int i = 0; i < STEPS; i++) {
-//            float heightMm = (float) context.getRenderer().getVpHeightmm();
             float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getDiameter()*3);
             float widthMm = heightMm;
             float widthVp = (float) context.getRenderer().getVpWidthmm();
             float heightVp = (float) context.getRenderer().getVpHeightmm();
-//            float widthMm = heightMm;
-//            float widthMm = (float) context.getRenderer().getVpWidthmm();
-            // Adjusting the modFactor calculation for the frequency across the viewport in mm
-            // Assuming the Gabor pattern should span the entire height of the viewport uniformly
+
             verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
-            //linear modFactor
-//            float modFactor = i / (float) STEPS;
             float modFactor = calcModFactor(i, STEPS);
-//            float modFactor = (float) Math.abs(((Math.abs(frequencyCyclesPerMm * (verticalPosition + phase))) % 1) * 2 - 1);
             float[] rgb = modulateColor(modFactor);
+
 
             // Texture coordinates: between 0-1, where 0 is the left edge of the texture
             float distanceLeftGaborMm = (widthVp - widthMm) / 2; // distance from left of viewport to left of Gabor patch in mm
@@ -192,9 +160,20 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
      * @return
      */
     protected int calcNumSteps(float frequencyCyclesPerDegree, int stepsPerHalfCycle) {
-        double totalGratingSizeDegrees = getGaborSpec().getDiameter() * 3;
+        double totalGratingSizeDegrees = getGaborSpec().getDiameter() * 2;
         int stepsPerCycle = 2 * stepsPerHalfCycle;
         return (int) (frequencyCyclesPerDegree * totalGratingSizeDegrees * stepsPerCycle);
+    }
+
+    protected int calcNumSteps(Context context){
+        double totalGratingSizeDegrees = getGaborSpec().getDiameter() * 3;
+        double totalSizeMm = context.getRenderer().deg2mm(totalGratingSizeDegrees);
+        double widthMm = context.getRenderer().getVpWidthmm(); //
+        System.out.println("widthMm: " + widthMm);
+        double widthPixels = context.getRenderer().getVpWidth(); //in pixels
+        System.out.println("widthPixels: " + widthPixels);
+        double pixelsPerMm = widthPixels / widthMm;
+        return (int) Math.round((totalSizeMm * pixelsPerMm) * 2);
     }
 
     protected float calcModFactor(float i, int STEPS){

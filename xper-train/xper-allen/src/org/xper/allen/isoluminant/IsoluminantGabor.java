@@ -19,12 +19,14 @@ public class IsoluminantGabor extends Gabor {
     private SinusoidGainCorrector sinusoidGainCorrector;
 
     public IsoluminantGabor(IsoGaborSpec spec, double luminanceCandela, LookUpTableCorrector lutCorrector, SinusoidGainCorrector sinusoidGainCorrector) {
+        super();
         this.spec = spec;
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
         this.sinusoidGainCorrector = sinusoidGainCorrector;
 
-        stepsPerHalfCycle = 100;
+//        stepsPerHalfCycle = 100;
+        stepsPerHalfCycle = 25;
     }
 
     @Override

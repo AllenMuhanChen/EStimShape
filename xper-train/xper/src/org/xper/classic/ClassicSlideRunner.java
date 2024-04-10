@@ -24,7 +24,7 @@ public class ClassicSlideRunner implements SlideRunner {
     @Dependency
     Punisher punisher;
 
-    public TrialResult runSlide(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
+    public TrialResult runSlides(SlideTrialExperimentState stateObject, ThreadHelper threadHelper) {
         int slidePerTrial = stateObject.getSlidePerTrial();
         TrialDrawingController drawingController = stateObject.getDrawingController();
         ExperimentTask currentTask = stateObject.getCurrentTask();
