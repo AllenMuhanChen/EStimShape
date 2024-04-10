@@ -31,8 +31,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 //        this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
 //                .order(ByteOrder.nativeOrder());
         setDefaultSpec();
-//        stepsPerHalfCycle = 256;
-        stepsPerHalfCycle = 25;
+        stepsPerHalfCycle = 256;
+//        stepsPerHalfCycle = 25;
     }
 
     protected void initTexture(Context context) {
@@ -99,16 +99,17 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
         float frequencyCyclesPerDegree = (float) getGaborSpec().getFrequency();
         frequencyCyclesPerMm = frequencyCyclesPerDegree / context.getRenderer().deg2mm(1.0);
 
-
-        STEPS = calcNumSteps(frequencyCyclesPerDegree, 100);
+        System.out.println("stepsPerHalfCycle " + stepsPerHalfCycle);
+        STEPS = calcNumSteps(frequencyCyclesPerDegree, stepsPerHalfCycle);
 //        STEPS = calcNumSteps(context);
         System.out.println("STEPS: " + STEPS);
-        for (int i = 0; i < STEPS; i++) {
-            float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getDiameter()*3);
-            float widthMm = heightMm;
-            float widthVp = (float) context.getRenderer().getVpWidthmm();
-            float heightVp = (float) context.getRenderer().getVpHeightmm();
 
+        float heightMm = (float) context.getRenderer().deg2mm(getGaborSpec().getDiameter()*3);
+        float widthMm = heightMm;
+        float widthVp = (float) context.getRenderer().getVpWidthmm();
+        float heightVp = (float) context.getRenderer().getVpHeightmm();
+
+        for (int i = 0; i < STEPS; i++) {
             verticalPosition = -heightMm + 2*heightMm * (i / (float) STEPS);
             float modFactor = calcModFactor(i, STEPS);
             float[] rgb = modulateColor(modFactor);
