@@ -31,8 +31,8 @@ public class Gabor extends DefaultSpecRFPlotDrawable {
 //        this.array = ByteBuffer.allocateDirect(STEPS * (3 + 2 + 3) * 4 * Float.SIZE / 8)
 //                .order(ByteOrder.nativeOrder());
         setDefaultSpec();
-        stepsPerHalfCycle = 256;
-//        stepsPerHalfCycle = 25;
+//        stepsPerHalfCycle = 256;
+        stepsPerHalfCycle = 25;
     }
 
     protected void initTexture(Context context) {

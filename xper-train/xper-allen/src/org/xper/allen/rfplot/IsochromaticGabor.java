@@ -17,8 +17,8 @@ public class IsochromaticGabor extends Gabor {
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
 
-        stepsPerHalfCycle = 256;
-//        stepsPerHalfCycle = 25;
+//        stepsPerHalfCycle = 256;
+        stepsPerHalfCycle = 25;
     }
 
     //    ColourConverter.WhitePoint whitePoint = ColourConverter.WhitePoint.D65;
