@@ -21,7 +21,7 @@ import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.*;
-import org.xper.utils.RGBColor;
+import org.xper.drawing.RGBColor;
 
 /**
  * MatchStick class with ability to make deep clones and manipulations of shapes

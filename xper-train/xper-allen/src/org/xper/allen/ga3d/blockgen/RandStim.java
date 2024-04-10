@@ -5,7 +5,7 @@ import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.drawing.Coordinates2D;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
-import org.xper.utils.RGBColor;
+import org.xper.drawing.RGBColor;
 
 import java.util.LinkedList;
 import java.util.List;

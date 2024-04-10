@@ -123,14 +123,14 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         return size;
     }
 
-    public org.xper.utils.RGBColor getRFColor(){
-        org.xper.utils.RGBColor rfColor;
+    public RGBColor getRFColor(){
+        RGBColor rfColor;
         try {
-            rfColor = new org.xper.utils.RGBColor(generator.rfSource.getRFColor());
+            rfColor = new org.xper.drawing.RGBColor(generator.rfSource.getRFColor());
 
         } catch (Exception e) {
             System.out.println("Error getting RF color, using default color: white");
-            rfColor = new org.xper.utils.RGBColor(1, 1, 1);
+            rfColor = new org.xper.drawing.RGBColor(1, 1, 1);
         }
         return rfColor;
     }

@@ -1,30 +1,30 @@
 package org.xper.utils;
-
+import org.xper.drawing.RGBColor;
 
 public class Lighting {
 	RGBColor color = new RGBColor(1f,0f,0f);
 	String textureType = "SPECULAR";
-	
+
 	float shine;
 	float [] amb;
 	float [] diff;
 	float [] spec;
-	
+
 	public void setLightColor(RGBColor color) {
 		this.color = color;
 		computeProperties();
 	}
-	
+
 	public void setTextureType(String textureType) {
 		this.textureType = textureType;
 		computeProperties();
 	}
-	
+
 	void computeProperties() {
 		if (textureType.equals("SPECULAR")) {
 			spec = new float[]{0.8f,0.8f,0.8f,1f};
 			shine = 0.7f*128f;
-			
+
 			amb = new float[]{(float)(color.getRed() * 0.9),(float)(color.getGreen() * 0.9), (float)(color.getBlue() * 0.9),1f};
 			diff = new float[]{(float)(color.getRed() * 0.35),(float)(color.getGreen() * 0.35), (float)(color.getBlue() * 0.35),1f};
 		} else if (textureType.equals("SHADE")){
@@ -42,7 +42,7 @@ public class Lighting {
 			shine = 0f;
 		}
 	}
-	
+
 	public float[] getAmbient() {
 		return amb;
 	}

@@ -7,7 +7,7 @@ import org.xper.alden.drawing.drawables.PNGmaker;
 import org.xper.drawing.stick.MStickSpec;
 import org.xper.drawing.stick.MatchStick;
 import org.xper.drawing.stick.TubeComp;
-import org.xper.utils.RGBColor;
+import org.xper.drawing.RGBColor;
 
 import com.thoughtworks.xstream.XStream;
 

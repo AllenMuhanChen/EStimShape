@@ -58,6 +58,10 @@ public class AllenRFPlotConfig {
         scrollers.put("Rotation X", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 0));
         scrollers.put("Rotation Y", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 1));
         scrollers.put("Rotation Z", new MStickRotationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class, 2));
+        scrollers.put("Hue", new MStickHueScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("Saturation", new MStickSaturationScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("Lightness", new MStickLightnessScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
+        scrollers.put("Texture", new MStickTextureScroller<>(RFPlotMatchStick.RFPlotMatchStickSpec.class));
         return scrollers;
     }
 

@@ -15,7 +15,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.utils.Lighting;
-import org.xper.utils.RGBColor;
+import org.xper.drawing.RGBColor;
 
 public class MatchStick implements Drawable {
 	private double scaleForMAxisShape = 40;
@@ -4422,7 +4422,7 @@ public class MatchStick implements Drawable {
 
 	public void setStimColor(Color color){
 		//convert from 0-255 to 0-1
-		this.stimColor = new RGBColor(color.getRed()/255.0, color.getGreen()/255.0, color.getBlue()/255.0);
+		this.stimColor = new RGBColor((float) (color.getRed()/255.0), (float) (color.getGreen()/255.0), (float) (color.getBlue()/255.0));
 
 	}
 

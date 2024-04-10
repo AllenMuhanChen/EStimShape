@@ -25,7 +25,7 @@ import org.xper.allen.util.AllenXMLUtil;
 import org.xper.drawing.Coordinates2D;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.time.TimeUtil;
-import org.xper.utils.RGBColor;
+import org.xper.drawing.RGBColor;
 
 import static org.xper.allen.nafc.blockgen.NAFCCoordinateAssigner.randomCoordsWithinRadii;
 

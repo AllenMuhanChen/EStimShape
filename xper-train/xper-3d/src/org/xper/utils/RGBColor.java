@@ -28,7 +28,7 @@ public class RGBColor {
 		this.blue = (float) rgb[2];
 	}
 
-	public RGBColor(org.xper.drawing.RGBColor rfColor) {
+	public RGBColor(RGBColor rfColor) {
 		super();
 		this.red = rfColor.getRed();
 		this.green = rfColor.getGreen();

@@ -16,6 +16,27 @@ public class RGBColor {
 		this.blue = blue;
 	}
 
+	public RGBColor(double red, double green, double blue) {
+		super();
+		this.red = (float) red;
+		this.green = (float) green;
+		this.blue = (float) blue;
+	}
+
+
+	public RGBColor(RGBColor other) {
+		this.red = other.red;
+		this.green = other.green;
+		this.blue = other.blue;
+	}
+
+	public RGBColor(double[] rgb){
+		super();
+		this.red = (float) rgb[0];
+		this.green = (float) rgb[1];
+		this.blue = (float) rgb[2];
+	}
+
 	public float getBlue() {
 		return blue;
 	}

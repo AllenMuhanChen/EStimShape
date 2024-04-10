@@ -9,7 +9,7 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.XMLizable;
-import org.xper.utils.RGBColor;
+import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 
 import javax.vecmath.Point3d;

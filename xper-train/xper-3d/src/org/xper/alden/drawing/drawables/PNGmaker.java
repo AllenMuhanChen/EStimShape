@@ -11,7 +11,7 @@ import java.util.List;
 import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.opengl.GL11;
 import org.xper.drawing.stick.MatchStick;
-import org.xper.utils.RGBColor;
+import org.xper.drawing.RGBColor;
 
 public class PNGmaker {
 	//int height = 224;
@@ -19,12 +19,12 @@ public class PNGmaker {
 	int height = 1024;
 	int width = 1024;
 	RGBColor backColor = new RGBColor(0,0,0);
-	
+
 	public PNGmaker(int width, int height) {
 		this.width = width;
 		this.height = height;
 	}
-	
+
 	public PNGmaker() {}
 
 	public void createAndSavePNGsfromObjs(List<MatchStick> objs,List<Long> stimObjIds,String imageFolderName) {
@@ -36,27 +36,27 @@ public class PNGmaker {
 
 		testWindow.setStimObjs(objs);
 		testWindow.setStimObjIds(stimObjIds);
-		
+
 		testWindow.drawStimuli();				// draw object
 		testWindow.close();
 		System.out.println("...done saving PNGs");
 	}
-	
+
 	public void saveImage(long stimObjId, int height, int width,String imageFolderName) {
-		byte[] data = screenShotBinary(width,height);  
+		byte[] data = screenShotBinary(width,height);
 
 		try {
 			// new File(imageFolderName + "/" + stimObjId).mkdirs();
 			FileOutputStream fos = new FileOutputStream(imageFolderName + "/" + stimObjId + ".png");
 		    fos.write(data);
 		    fos.close();
-		} 
+		}
 		catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private byte[] screenShotBinary(int width, int height) 
+	private byte[] screenShotBinary(int width, int height)
 	{
 		ByteBuffer framebytes = allocBytes(width * height * 3);
 
@@ -98,7 +98,7 @@ public class PNGmaker {
 		final int SIZE_BYTE = 4;
 		return ByteBuffer.allocateDirect(howmany * SIZE_BYTE).order(ByteOrder.nativeOrder());
 	}
-	
+
 	public void setBackColor(RGBColor backColor) {
 		this.backColor = backColor;
 	}
