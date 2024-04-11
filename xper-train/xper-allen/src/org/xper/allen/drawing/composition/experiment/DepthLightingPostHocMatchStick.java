@@ -25,7 +25,7 @@ public class DepthLightingPostHocMatchStick extends ExperimentMatchStick{
     public void genFlippedMatchStick(DepthLightingPostHocMatchStick baseMStick, int componentId) {
         Map<Integer, ComponentMorphParameters> morphParameters = new LinkedHashMap<>();
         morphParameters.put(componentId, new DepthLightingPostHocComponentMorphParameters());
-        this.genMorphedMatchStick(morphParameters, baseMStick);
+        this.genMorphedComponentsMatchStick(morphParameters, baseMStick);
     }
 
 

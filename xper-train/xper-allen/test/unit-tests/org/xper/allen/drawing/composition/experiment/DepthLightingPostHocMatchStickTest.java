@@ -323,7 +323,7 @@ public class DepthLightingPostHocMatchStickTest {
 
             }
         });
-        newMStick.genMorphedMatchStick(morphParameters, baseMStick);
+        newMStick.genMorphedComponentsMatchStick(morphParameters, baseMStick);
 
         drawer.clear();
         drawer.drawMStick(newMStick);

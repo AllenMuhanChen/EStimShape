@@ -30,6 +30,8 @@ public class GrowingMatchStick extends RFMatchStick {
     }
 
     public void genGrowingMatchStick(MorphedMatchStick matchStickToMorph, double magnitude) {
+
+
         NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(sigma);
         // Construct MorphParameters for components
         Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
@@ -40,7 +42,7 @@ public class GrowingMatchStick extends RFMatchStick {
 
 
         // Call MorphedMatchStick
-        genMorphedMatchStick(paramsForComps, matchStickToMorph);
+        genMorphedComponentsMatchStick(paramsForComps, matchStickToMorph);
 
     }
 

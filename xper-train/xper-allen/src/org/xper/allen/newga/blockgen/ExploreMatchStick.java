@@ -30,7 +30,7 @@ public class ExploreMatchStick extends MorphedMatchStick {
         }
 
         // Call MorphedMatchStick
-        genMorphedMatchStick(paramsForComps, parentMStick);
+        genMorphedComponentsMatchStick(paramsForComps, parentMStick);
     }
 
     @Override

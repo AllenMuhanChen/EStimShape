@@ -73,7 +73,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         this.maxAttempts = baseMatchStick.maxAttempts;
         while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
             try {
-                genMorphedMatchStick(morphParametersForComponents, baseMatchStick);
+                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick);
                 positionShape();
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
@@ -227,7 +227,7 @@ public class ExperimentMatchStick extends MorphedMatchStick {
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
         morphParametersForComponents.put(baseComponentIndex, new NormalDistributedComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
         while (true) {
-            genMorphedMatchStick(morphParametersForComponents, targetMatchStick);
+            genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick);
             try {
                 Map<Integer, SphericalCoordinates> originalObjCenteredPos = calcObjCenteredPosForDrivingComp(targetMatchStick, drivingComponentIndex);
                 compareObjectCenteredPositionTo(originalObjCenteredPos);
