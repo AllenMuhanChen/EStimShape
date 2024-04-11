@@ -19,7 +19,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
     // 50% add to end, 50%
     // add to junc
-    protected final double[] PARAM_nCompDist = {0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 };
+    protected final double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 0.33, 0.66, 1.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -75,6 +75,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
+
     public void genRemovedLimbsMatchStick(MorphedMatchStick matchStickToMorph, Set<Integer> componentsToRemove){
         this.showComponents = false;
 
@@ -83,10 +84,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         copyFrom(backup);
 
 
-
-        // Attempt to morph every component. If we fail, then restart with the backup.
         int numAttempts = 0;
-
         while (numAttempts < getMaxTotalAttempts()) {
             try {
                 decideLeafBranch();
@@ -96,7 +94,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                         if (getLeafBranch()[i])
                             removeFlags[i] = true;
                         else {
-                            System.out.println("ERROR, you have specified a branch to remove that is not a leaf branch. " +
+                            System.err.println("ERROR, you have specified a branch to remove, not a leaf." +
                                     "Not removing.");                        }
                     }
                 }
