@@ -25,8 +25,8 @@ public class IsoluminantGabor extends Gabor {
         this.lutCorrector = lutCorrector;
         this.sinusoidGainCorrector = sinusoidGainCorrector;
 
-//        stepsPerHalfCycle = 100;
-        stepsPerHalfCycle = 25;
+        stepsPerHalfCycle = 100;
+//        stepsPerHalfCycle = 25;
     }
 
     @Override

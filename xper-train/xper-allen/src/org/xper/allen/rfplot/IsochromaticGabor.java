@@ -17,8 +17,8 @@ public class IsochromaticGabor extends Gabor {
         this.luminanceCandela = luminanceCandela;
         this.lutCorrector = lutCorrector;
 
-//        stepsPerHalfCycle = 256;
-        stepsPerHalfCycle = 25;
+        stepsPerHalfCycle = 256;
+//        stepsPerHalfCycle = 25;
     }
 
     //    ColourConverter.WhitePoint whitePoint = ColourConverter.WhitePoint.D65;
@@ -31,10 +31,7 @@ public class IsochromaticGabor extends Gabor {
         double targetCandela = modFactor * luminanceCandela;
         targetCandela = Math.max(min, Math.min(max, targetCandela));
 
-//        double range = 280;
-//        double targetCandela = luminanceCandela - range/2 + modFactor * range/2;
 
-        // Convert RGB to Lab
         RGBColor corrected;
         if (gaborSpec.type.equals("Red")) {
             corrected = lutCorrector.correctSingleColor(targetCandela, "red");

@@ -9,10 +9,7 @@ import org.xper.drawing.stick.stickMath_lib;
 
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -22,7 +19,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
     // 50% add to end, 50%
     // add to junc
-    protected final double[] PARAM_nCompDist = {0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    protected final double[] PARAM_nCompDist = {0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 0.33, 0.66, 1.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -53,9 +50,57 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttempts = 0;
         while (numAttempts < getMaxTotalAttempts()) {
             try {
-                findCompsToPreserve(morphParametersForComponents);
+                findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
+                positionShape();
+                attemptSmoothizeMStick();
+                if (checkMStick()) break;
+                break;
+            } catch (MorphException e) {
+                cleanData();
+                this.setObj1(null);
+                copyFrom(backup);
+//                e.printStackTrace();
+                System.err.println(e.getMessage());
+                System.out.println("Failed to morph matchstick.");
+                System.out.println("Retrying to morph matchstick...");
+            } finally{
+                numAttempts++;
+//                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS + " to morph matchstick");
+            }
+        }
+        if (numAttempts >= getMaxTotalAttempts()) {
+            throw new MorphException("Failed to morph matchstick after " + getMaxTotalAttempts() + " attempts.");
+        }
+    }
+
+    public void genRemovedLimbsMatchStick(MorphedMatchStick matchStickToMorph, Set<Integer> componentsToRemove){
+        this.showComponents = false;
+
+        MorphedMatchStick backup = new MorphedMatchStick();
+        backup.copyFrom(matchStickToMorph);
+        copyFrom(backup);
+
+
+
+        // Attempt to morph every component. If we fail, then restart with the backup.
+        int numAttempts = 0;
+
+        while (numAttempts < getMaxTotalAttempts()) {
+            try {
+                decideLeafBranch();
+                boolean[] removeFlags = new boolean[getnComponent()+1];
+                for (int i=1; i<=getnComponent(); i++){
+                    if (componentsToRemove.contains(i)){
+                        if (getLeafBranch()[i])
+                            removeFlags[i] = true;
+                        else {
+                            System.out.println("ERROR, you have specified a branch to remove that is not a leaf branch. " +
+                                    "Not removing.");                        }
+                    }
+                }
+                removeComponent(removeFlags);
                 positionShape();
                 attemptSmoothizeMStick();
                 if (checkMStick()) break;
@@ -124,13 +169,13 @@ public class MorphedMatchStick extends AllenMatchStick {
         return true;
     }
 
-    private void findCompsToPreserve(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
+    private void findCompsToPreserve(Set<Integer> morphParametersForComponents) {
         compsToPreserve.clear();
         List<Integer> components = getCompIds();
 
         // Determine what components should be preserved
         for (Integer component : components){
-            if (!morphParametersForComponents.containsKey(component)){
+            if (!morphParametersForComponents.contains(component)){
                 compsToPreserve.add(component);
             }
         }

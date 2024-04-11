@@ -10,6 +10,7 @@ import org.xper.util.ThreadUtil;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
@@ -53,6 +54,16 @@ public class MorphedMatchStickTest {
         pruningMatchStick.genPruningMatchStick(parentMStick, 0.6, 1);
         ThreadUtil.sleep(500);
         drawPng(pruningMatchStick, 2L);
+    }
+
+    @Test
+    @Ignore
+    public void removeLimbMatchStick(){
+        MorphedMatchStick removeLimbMatchStick = new MorphedMatchStick();
+        removeLimbMatchStick.setProperties(30.0, "SHADE");
+        removeLimbMatchStick.genRemovedLimbsMatchStick(parentMStick, new HashSet<>(Arrays.asList(1)));
+        ThreadUtil.sleep(500);
+        drawPng(removeLimbMatchStick, 2L);
     }
 
     @Test

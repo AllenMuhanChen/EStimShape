@@ -53,7 +53,4 @@ public class RFMatchStick extends MorphedMatchStick {
         System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + thresholdPercentageInRF);
         return percentageInRF > thresholdPercentageInRF;
     }
-
-
-
 }

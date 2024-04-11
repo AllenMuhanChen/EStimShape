@@ -15,7 +15,8 @@ public class IsoGaborTrialGenerator extends AbstractTrialGenerator<IsoGaborStim>
     private final int numRepeats = 1;
     private GaborSpec gaborSpec;
 //    public static final List<Double> frequencies = Arrays.asList(0.5, 1.0, 2.0, 4.0);
-public static final List<Double> frequencies = Arrays.asList(4.0);
+    public static final List<Double> frequencies = Arrays.asList(4.0);
+
     public static void main(String[] args) {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"), IsoGaborConfig.class);
         IsoGaborTrialGenerator gen = context.getBean(IsoGaborTrialGenerator.class);
@@ -77,8 +78,8 @@ public static final List<Double> frequencies = Arrays.asList(4.0);
         spec = new IsoGaborSpec(gaborSpec, "RedGreen");
         stim = new IsoGaborStim(this, spec);
         getStims().add(stim);
-
     }
+
 
     @Override
     protected void writeTrials(){

@@ -17,8 +17,8 @@ public class IsoGaborStim implements Stim {
 
     @Override
     public void preWrite() {
-        stimSpecId = generator.getGlobalTimeUtil().currentTimeMicros();
         ThreadUtil.sleep(1);
+        stimSpecId = generator.getGlobalTimeUtil().currentTimeMicros();
     }
 
     @Override

@@ -186,8 +186,6 @@ public class MStickObj4Smooth {
 
     }
     public void drawVectTranslucent(float alpha) {
-
-
         if (isDoLighting())
             GL11.glEnable(GL11.GL_LIGHTING);
         else
