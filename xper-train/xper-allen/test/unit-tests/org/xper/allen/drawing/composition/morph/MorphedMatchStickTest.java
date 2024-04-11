@@ -68,6 +68,16 @@ public class MorphedMatchStickTest {
 
     @Test
     @Ignore
+    public void addLimbMatchStick(){
+        MorphedMatchStick addLimbMatchStick = new MorphedMatchStick();
+        addLimbMatchStick.setProperties(30.0, "SHADE");
+        addLimbMatchStick.genAddedLimbsMatchStick(parentMStick, 1);
+        ThreadUtil.sleep(500);
+        drawPng(addLimbMatchStick, 2L);
+    }
+
+    @Test
+    @Ignore
     public void mutate() {
         Map<Integer, ComponentMorphParameters> morphParams = new HashMap<>();
         morphParams.put(1, new NormalDistributedComponentMorphParameters(0.25, new NormalMorphDistributer(1/3.0)));

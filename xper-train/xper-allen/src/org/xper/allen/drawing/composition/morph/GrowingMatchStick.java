@@ -45,8 +45,6 @@ public class GrowingMatchStick extends RFMatchStick {
         compMorphedMatchStick.setProperties(getScaleForMAxisShape(), matchStickToMorph.getTextureType());
         compMorphedMatchStick.genMorphedComponentsMatchStick(paramsForComps, removedLimbMatchStick);
 
-
-
     }
 
     private MorphedMatchStick genRemovedLimbsMatchStick(MorphedMatchStick matchStickToMorph, HashSet<Integer> componentsToRemove) {

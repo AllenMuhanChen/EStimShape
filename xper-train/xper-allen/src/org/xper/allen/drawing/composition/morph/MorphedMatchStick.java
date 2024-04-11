@@ -75,6 +75,90 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
+    public void genAddedLimbsMatchStick(MorphedMatchStick matchStickToMorph, int nCompsToAdd) {
+        this.showComponents = false;
+
+        MorphedMatchStick backup = new MorphedMatchStick();
+        backup.copyFrom(matchStickToMorph);
+        copyFrom(backup);
+
+
+        // Attempt to morph every component. If we fail, then restart with the backup.
+        int numAttempts = 0;
+        while (numAttempts < getMaxTotalAttempts()) {
+            try {
+                addComps(nCompsToAdd);
+                positionShape();
+                attemptSmoothizeMStick();
+                if (checkMStick()) break;
+                break;
+            } catch (MorphException e) {
+                cleanData();
+                this.setObj1(null);
+                copyFrom(backup);
+//                e.printStackTrace();
+                System.err.println(e.getMessage());
+                System.out.println("Failed to morph matchstick.");
+                System.out.println("Retrying to morph matchstick...");
+            } finally{
+                numAttempts++;
+//                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS + " to morph matchstick");
+            }
+        }
+        if (numAttempts >= getMaxTotalAttempts()) {
+            throw new MorphException("Failed to morph matchstick after " + getMaxTotalAttempts() + " attempts.");
+        }
+    }
+
+    private void addComps(int numCompsToAdd) {
+        int currentNComps = getnComponent();
+        int nextCompId = currentNComps + 1;
+        int targetNComps = currentNComps + numCompsToAdd;
+        for (int i=nextCompId; i<=targetNComps; i++){
+            getComp()[i] = new AllenTubeComp();
+        }
+        setnComponent(targetNComps);
+        double randNdx;
+        boolean addSuccess;
+        while (true)
+        {
+            if ( showDebug)
+                System.out.println("adding new MAxis on, now # " +  nextCompId);
+            randNdx = stickMath_lib.rand01();
+            if (randNdx < getPROB_addToEndorJunc())
+            {
+                if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
+                    addSuccess = Add_MStick(nextCompId, 1);
+                else
+                    addSuccess = Add_MStick(nextCompId, 2);
+            }
+            else
+            {
+                if (stickMath_lib.rand01() < getPROB_addTiptoBranch())
+                    addSuccess = Add_MStick(nextCompId, 3);
+                else
+                    addSuccess = Add_MStick(nextCompId, 4);
+            }
+            if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
+                if (nextCompId == targetNComps)
+                    break;
+                nextCompId++;
+            }
+
+        }
+
+        //up to here, the eligible skeleton should be ready
+        // Assign the radius value
+        RadiusAssign(currentNComps); // preserve radii of the original components
+        // Apply the radius value onto each new component
+        for (int i=currentNComps; i<=getnComponent(); i++)
+        {
+            if( getComp()[i].RadApplied_Factory() == false) // a fail application
+            {
+                throw new MorphException("Radius profile failed when attempting to be applied to component " + i);
+            }
+        }
+    }
 
     public void genRemovedLimbsMatchStick(MorphedMatchStick matchStickToMorph, Set<Integer> componentsToRemove){
         this.showComponents = false;
