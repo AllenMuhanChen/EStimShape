@@ -3,8 +3,6 @@ package org.xper.allen.drawing.composition.morph;
 import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 
-import javax.media.j3d.Morph;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -32,19 +30,67 @@ public class GrowingMatchStick extends RFMatchStick {
         this.sigma = 1/3.0;
     }
 
-    public void genGrowingMatchStick(MorphedMatchStick matchStickToMorph, double magnitude) {
-        // Find the current number of components
-        HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph);
-
-        MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
-
-        Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(removedLimbMatchStick, magnitude);
-
-        // Call MorphedMatchStick
+    private MorphedMatchStick genComponentMorphMatchStick(MorphedMatchStick matchStickToMorph, Map<Integer, ComponentMorphParameters> paramsForComps, MorphedMatchStick removedLimbMatchStick) {
         MorphedMatchStick compMorphedMatchStick = new MorphedMatchStick();
         compMorphedMatchStick.setProperties(getScaleForMAxisShape(), matchStickToMorph.getTextureType());
         compMorphedMatchStick.genMorphedComponentsMatchStick(paramsForComps, removedLimbMatchStick);
+        return compMorphedMatchStick;
+    }
 
+    public void genGrowingMatchStick(MorphedMatchStick matchStickToMorph, double magnitude) {
+        //Removing Comps
+        HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
+        MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
+
+        //Morphing Existing Comps
+        Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(removedLimbMatchStick, magnitude);
+        MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
+
+        //Adding New Comps
+        int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
+        genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
+    }
+
+
+    private int specifyNCompsToAdd(MorphedMatchStick matchStickToMorph, double magnitude) {
+        int currentNComp = matchStickToMorph.getNComponent();
+
+        // Find max and min number of components allowed
+        int maxNComp = findMaxIndex(PARAM_nCompDist) + 1;
+        int minNComp = findMinIndex(PARAM_nCompDist) + 1;
+
+        // Ensure the min and max are within valid range
+        if (minNComp < 1) minNComp = 1;
+        if (maxNComp < currentNComp) maxNComp = currentNComp; // Adjusted for adding components
+
+        // Determine the maximum number of components that can be added
+        int maxComponentsToAdd = maxNComp - currentNComp;
+
+        // If the current number of components is already at or above the max, no components can be added
+        if (maxComponentsToAdd <= 0) {
+            System.out.println("No components can be added");
+            return 0;
+        }
+
+        // Calculate the number of components to add
+        // For simplicity, let's assume we always aim to add components up to the max,
+        // but this logic can be adjusted based on specific needs or distribution patterns.
+        int componentsToAdd = calculateNComponentsToAdd(currentNComp, maxNComp, minNComp, magnitude);
+
+        System.out.println("Adding " + componentsToAdd + " components");
+        return componentsToAdd;
+    }
+
+    // Helper method to calculate the number of components to add
+    private int calculateNComponentsToAdd(int currentNComp, int maxNComp, int minNComp, double magnitude) {
+        if (minNComp == maxNComp) return 0; // No addition if min and max are the same
+        if (currentNComp >= maxNComp) return 0; // No addition if current is at or above max
+        if (Math.random() < magnitude)
+            return 1;
+        else
+            return 0;
+//        int targetNComp = (int) (Math.random() * (maxNComp - currentNComp + 1)) + currentNComp;
+//        return Math.max(minNComp - currentNComp, targetNComp - currentNComp);
     }
 
     private MorphedMatchStick genRemovedLimbsMatchStick(MorphedMatchStick matchStickToMorph, HashSet<Integer> componentsToRemove) {
@@ -54,7 +100,7 @@ public class GrowingMatchStick extends RFMatchStick {
         return removedLimbMatchStick;
     }
 
-    private HashSet<Integer> specifyCompsToRemove(MorphedMatchStick matchStickToMorph) {
+    private HashSet<Integer> specifyCompsToRemove(MorphedMatchStick matchStickToMorph, double magnitude) {
         int currentNComp = matchStickToMorph.getNComponent();
         HashSet<Integer> componentsToRemove = new HashSet<>();
 
@@ -67,7 +113,7 @@ public class GrowingMatchStick extends RFMatchStick {
         if (maxNComp > currentNComp) maxNComp = currentNComp;
 
         // Calculate the number of components to remove based on a simple strategy
-        int componentsToRemoveCount = calculateComponentsToRemove(currentNComp, minNComp, maxNComp);
+        int componentsToRemoveCount = calculateNCompsToRemove(currentNComp, minNComp, maxNComp, magnitude);
         System.out.println("Removing " + componentsToRemoveCount + " components");
         // Randomly choose components to remove
 
@@ -93,10 +139,15 @@ public class GrowingMatchStick extends RFMatchStick {
         return -1; // Default case, though this should not happen with valid data
     }
 
-    private int calculateComponentsToRemove(int currentNComp, int minNComp, int maxNComp) {
+    private int calculateNCompsToRemove(int currentNComp, int minNComp, int maxNComp, double magnitude) {
         if (minNComp == maxNComp) return 0; // No removal if min and max are the same
-        int range = maxNComp - minNComp;
-        return (int) (Math.random() * (range + 1)) + (currentNComp - maxNComp);
+        if (currentNComp <= minNComp) return 0; // No removal if current is at or below min
+        if (Math.random()< magnitude)
+            return 1;
+        else
+            return 0;
+//        int range = maxNComp - minNComp;
+//        return (int) (Math.random() * (range + 1)) + (currentNComp - maxNComp);
     }
 
 

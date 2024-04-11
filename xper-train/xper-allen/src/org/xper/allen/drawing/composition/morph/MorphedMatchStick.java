@@ -111,6 +111,9 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void addComps(int numCompsToAdd) {
+        if (numCompsToAdd == 0) {
+            return;
+        }
         int currentNComps = getnComponent();
         int nextCompId = currentNComps + 1;
         int targetNComps = currentNComps + numCompsToAdd;
