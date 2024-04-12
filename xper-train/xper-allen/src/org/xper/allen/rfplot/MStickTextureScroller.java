@@ -1,6 +1,5 @@
 package org.xper.allen.rfplot;
 
-import org.xper.rfplot.XMLizable;
 import org.xper.rfplot.gui.CyclicIterator;
 import org.xper.rfplot.gui.scroller.RFPlotScroller;
 import org.xper.rfplot.gui.scroller.ScrollerParams;

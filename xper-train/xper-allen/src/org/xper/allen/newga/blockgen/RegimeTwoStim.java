@@ -17,11 +17,11 @@ public class RegimeTwoStim extends MorphedStim<PruningMatchStick, PruningMStickD
     @Override
     protected PruningMatchStick morphStim(double magnitude) {
         PruningMatchStick parentMStick = new PruningMatchStick();
-        parentMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
+        parentMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
         PruningMatchStick childMStick = new PruningMatchStick();
-        childMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
+        childMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         childMStick.genPruningMatchStick(parentMStick, 0.75, 1);
         return childMStick;
 

@@ -13,17 +13,13 @@ import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.DefaultSpecRFPlotDrawable;
 
 import javax.vecmath.Point3d;
-import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     public static final int NUM_POINTS_PER_COMPONENT = 20;
     AllenMatchStick matchStick;
-    RFPlotMatchStickSpec spec;
+    public RFPlotMatchStickSpec matchStickSpec;
     double sizeDiameterDegrees = 10;
     private ArrayList<Point> meshPoints;
 
@@ -34,9 +30,9 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
     @Override
     public void draw(Context context) {
         AllenMatchStick nextMStick = new AllenMatchStick();
-        nextMStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
-        nextMStick.setStimColor(spec.color);
-        nextMStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
+        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture);
+        nextMStick.setStimColor(matchStickSpec.color);
+        nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), matchStickSpec.getRotation());
         nextMStick.drawFast();
 
         matchStick.copyFrom(nextMStick);
@@ -45,7 +41,7 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
 
     @Override
     public void setSpec(String spec) {
-        this.spec = RFPlotMatchStickSpec.fromXml(spec);
+        this.matchStickSpec = RFPlotMatchStickSpec.fromXml(spec);
     }
 
     @Override
@@ -56,7 +52,7 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(matchStick, false);
 
-        this.spec = new RFPlotMatchStickSpec(spec,
+        this.matchStickSpec = new RFPlotMatchStickSpec(spec,
                 sizeDiameterDegrees,
                 new RGBColor(1, 0, 0),
                 new double[]{0, 0, 0}, "SHADE");
@@ -66,14 +62,18 @@ public class RFPlotMatchStick extends DefaultSpecRFPlotDrawable {
 
     @Override
     public String getSpec() {
-        return spec.toXml();
+        return matchStickSpec.toXml();
+    }
+
+    public RFPlotMatchStickSpec getMatchStickSpec() {
+        return matchStickSpec;
     }
 
     public List<Coordinates2D> getOutlinePoints(AbstractRenderer renderer) {
         AllenMatchStick nextMStick = new AllenMatchStick();
-        nextMStick.setProperties(spec.sizeDiameterDegrees, spec.texture);
-        nextMStick.setStimColor(spec.color);
-        nextMStick.genMatchStickFromShapeSpec(spec.getMStickSpec(), spec.getRotation());
+        nextMStick.setProperties(matchStickSpec.sizeDiameterDegrees, matchStickSpec.texture);
+        nextMStick.setStimColor(matchStickSpec.color);
+        nextMStick.genMatchStickFromShapeSpec(matchStickSpec.getMStickSpec(), matchStickSpec.getRotation());
 
         ArrayList<Point> nextMeshPoints = new ArrayList<>();
         Point3d[] vectInfo = nextMStick.getObj1().vect_info;

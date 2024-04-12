@@ -8,7 +8,6 @@ import org.xper.rfplot.drawing.png.PngSpec;
 import org.xper.rfplot.drawing.png.RecolorableImages;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class RFPlotImgObject extends DefaultSpecRFPlotDrawable{

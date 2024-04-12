@@ -41,7 +41,7 @@ public class PNGDrawer {
 
 			for(int j = 0; j< numDistractors.getNumRandDistractors(); j++) {
 				try {
-					AbstractMStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen.getMaxImageDimensionDegrees());
+					AbstractMStickGenerator objGenerator = new FromRandLeafMStickGenerator(gen.getImageDimensionsDegrees());
 					objGenerator.getMStick();
 					objs_randDistractor.add(objGenerator.getMStick());
 					if(objGenerator.isSuccessful()) {

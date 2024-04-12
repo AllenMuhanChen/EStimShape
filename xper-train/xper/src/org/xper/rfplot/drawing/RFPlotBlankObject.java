@@ -4,7 +4,6 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,7 +23,6 @@ public class RFPlotBlankObject implements RFPlotDrawable {
 
     }
 
-    @Override
     public String getSpec() {
         return "";
     }

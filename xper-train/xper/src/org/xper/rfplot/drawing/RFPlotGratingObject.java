@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.lwjgl.BufferUtils;
@@ -35,7 +34,6 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 		spec.setYCenter(0);
 	}
 
-	@Override
 	public String getSpec() {
 		return spec.toXml();
 	}
@@ -189,8 +187,8 @@ public class RFPlotGratingObject extends DefaultSpecRFPlotDrawable {
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 	}
 
-	public void setSpec(String s) {
-		spec = GaborSpec.fromXml(s);
+	public void setSpec(String spec) {
+		this.spec = GaborSpec.fromXml(spec);
 	}
 
 

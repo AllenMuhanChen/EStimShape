@@ -29,7 +29,7 @@ public class RegimeZeroStim extends ThreeDGAStim<MorphedMatchStick, AllenMStickD
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
         MorphedMatchStick mStick = new MorphedMatchStick();
-        mStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
+        mStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         mStick.genMatchStickRand();
 
         writeMStickData(mStick);

@@ -10,6 +10,7 @@ import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.*;
 import org.xper.rfplot.drawing.RFPlotBlankObject;
 import org.xper.rfplot.drawing.RFPlotDrawable;
+
 import org.xper.rfplot.gui.scroller.ScrollerParams;
 import org.xper.time.TimeUtil;
 import org.xper.util.DbUtil;
@@ -107,6 +108,12 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
                 dbUtil.writeRFInfo(timeUtil.currentTimeMicros(), channel, rfInfo.toXml());
             }
         });
+
+//        RFPlotMatchStick rfPlotMatchStick = (RFPlotMatchStick) namesForDrawables.get(RFPlotMatchStick.class.getName());
+//        RGBColor rfColor = rfPlotMatchStick.matchStickSpec.color;
+//
+//        Gabor gabor = (Gabor) namesForDrawables.get(Gabor.class.getName());
+//        double rfOrientation = gabor.getGaborSpec().getOrientation();
 
     }
 

@@ -16,7 +16,6 @@ import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
 import org.xper.config.AcqConfig;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;
-import org.xper.drawing.RGBColor;
 import org.xper.drawing.object.BlankScreen;
 
 @Configuration(defaultLazy=Lazy.TRUE)
@@ -77,7 +76,7 @@ public class PsychometricAppConfig{
 		gen.setExperimentPsychometricNoiseMapPath(experimentPsychometricNoiseMapPath);
 		gen.setGeneratorPsychometricSpecPath(generatorPsychometricSpecPath);
 		gen.setPngMaker(mStickPngConfig.pngMaker());
-		gen.setMaxImageDimensionDegrees(mStickPngConfig.xperMaxImageDimensionDegrees());
+		gen.setImageDimensionDegrees(mStickPngConfig.xperMaxImageDimensionDegrees());
 		return gen;
 	}
 

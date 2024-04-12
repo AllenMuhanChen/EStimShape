@@ -3,7 +3,6 @@ package org.xper.allen.pga;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.drawing.Coordinates2D;
@@ -73,7 +72,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
 
     private T createRandMStick() {
         RFMatchStick mStick = new RFMatchStick();
-        mStick.setProperties(calculateSize(), textureType);
+        mStick.setProperties(getRFDiameter(), textureType);
         mStick.setStimColor(getRFColor());
         mStick.genMatchStickRand();
         return (T) mStick;
@@ -116,21 +115,18 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
 
-    protected double calculateSize() {
-        Coordinates2D rfCenter = generator.rfSource.getRFCenter();
-        double size = 1.5 * Math.sqrt(Math.pow(rfCenter.getY(), 2) + Math.pow(rfCenter.getX(), 2));
-        System.out.println("Size: " + size);
-        return size;
+    protected double getRFDiameter() {
+        return generator.rfSource.getRFRadius() * 2;
     }
 
     public RGBColor getRFColor(){
         RGBColor rfColor;
         try {
-            rfColor = new org.xper.drawing.RGBColor(generator.rfSource.getRFColor());
+            rfColor = new RGBColor(generator.rfSource.getRFColor());
 
         } catch (Exception e) {
             System.out.println("Error getting RF color, using default color: white");
-            rfColor = new org.xper.drawing.RGBColor(1, 1, 1);
+            rfColor = new RGBColor(1, 1, 1);
         }
         return rfColor;
     }

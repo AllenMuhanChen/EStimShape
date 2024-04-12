@@ -250,7 +250,7 @@ public class ProceduralStim implements NAFCStim {
         //Sample
         double xCenter = coords.getSample().getX();
         double yCenter = coords.getSample().getY();
-        double imageSize = generator.getMaxImageDimensionDegrees();
+        double imageSize = generator.getImageDimensionsDegrees();
         ImageDimensions dimensions = new ImageDimensions(imageSize, imageSize);
         String path = experimentPngPaths.getSample();
         String noiseMapPath = experimentNoiseMapPath;

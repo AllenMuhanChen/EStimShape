@@ -13,7 +13,7 @@ public class GaussScene extends AbstractTaskScene{
 	@Dependency
 	double distance;
 	RFPlotGaussianObject obj = new RFPlotGaussianObject();
-	
+
 	public void initGL(int w, int h) {
 		super.initGL(w, h);
 		RFPlotGaussianObject.initGL();
@@ -35,6 +35,6 @@ public class GaussScene extends AbstractTaskScene{
 	public void setDistance(double distance) {
 		this.distance = distance;
 	}
-	
-	
+
+
 }

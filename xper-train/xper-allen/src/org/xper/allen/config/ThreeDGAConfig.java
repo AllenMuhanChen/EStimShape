@@ -34,7 +34,7 @@ public class ThreeDGAConfig {
         generator.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
         generator.setExperimentPngPath(mStickPngConfig.experimentPngPath);
         generator.setGeneratorSpecPath(mStickPngConfig.generatorSpecPath);
-        generator.setMaxImageDimensionDegrees(mStickPngConfig.xperMaxImageDimensionDegrees());
+        generator.setImageDimensionDegrees(mStickPngConfig.xperMaxImageDimensionDegrees());
         generator.setPngMaker(mStickPngConfig.pngMaker());
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());

@@ -16,7 +16,7 @@ public class RegimeZeroStim extends GAStim<RFMatchStick, AllenMStickData> {
     @Override
     protected RFMatchStick createMStick() {
         RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField());
-        mStick.setProperties(calculateSize(), textureType);
+        mStick.setProperties(getRFDiameter(), textureType);
         mStick.setStimColor(getRFColor());
         mStick.genMatchStickRand();
         return mStick;

@@ -97,7 +97,7 @@ public class ProceduralAppConfig {
         blockGen.setExperimentPngPath(pngConfig.mStickPngConfig.experimentPngPath);
         blockGen.setGeneratorSpecPath(pngConfig.mStickPngConfig.generatorSpecPath);
         blockGen.setPngMaker(pngConfig.mStickPngConfig.pngMaker());
-        blockGen.setMaxImageDimensionDegrees(pngConfig.mStickPngConfig.xperMaxImageDimensionDegrees());
+        blockGen.setImageDimensionDegrees(pngConfig.mStickPngConfig.xperMaxImageDimensionDegrees());
         //Dependencies of ProceduuralExperimentBlockGen
         blockGen.setGeneratorNoiseMapPath(generatorNoiseMapPath);
         blockGen.setExperimentNoiseMapPath(experimentNoiseMapPath);

@@ -2,7 +2,6 @@ package org.xper.allen.drawing;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -180,7 +179,6 @@ public class RFPlotGaussianObject implements RFPlotDrawable{
 		spec.setYCenter(0);
 	}
 
-	@Override
 	public String getSpec() {
 		return spec.toXml();
 	}

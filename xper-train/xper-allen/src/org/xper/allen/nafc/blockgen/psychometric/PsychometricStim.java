@@ -119,7 +119,7 @@ public class PsychometricStim implements Stim {
 
 	private void generateRandDistractors() {
 		for(int i = 0; i< trialParameters.getNumDistractors().getNumRandDistractors(); i++) {
-			RandMStickGenerator randGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
+			RandMStickGenerator randGenerator = new RandMStickGenerator(generator.getImageDimensionsDegrees());
 			matchSticks.addRandDistractor(randGenerator.getMStick());
 			mStickSpecs.addRandDistractor(randGenerator.getMStickSpec());
 		}

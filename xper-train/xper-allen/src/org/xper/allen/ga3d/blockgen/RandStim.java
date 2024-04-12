@@ -31,7 +31,7 @@ public class RandStim extends ThreeDGAStim {
         //Assign StimSpecId
         stimId = generator.getGlobalTimeUtil().currentTimeMicros();
 
-        RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getMaxImageDimensionDegrees());
+        RandMStickGenerator mStickGenerator = new RandMStickGenerator(generator.getImageDimensionsDegrees());
         AllenMatchStick mStick = mStickGenerator.getMStick();
         mStickGenerator.getMStickSpec().writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
 

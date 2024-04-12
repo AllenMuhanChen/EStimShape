@@ -5,7 +5,6 @@ import org.xper.Dependency;
 import org.xper.allen.drawing.RFPlotGaussianObject;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
-import org.xper.classic.vo.TrialContext;
 import org.xper.drawing.AbstractTaskScene;
 import org.xper.drawing.Context;
 import org.xper.drawing.Drawable;
@@ -20,7 +19,7 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	RFPlotGaussianObject sample = new RFPlotGaussianObject();
 	RFPlotGaussianObject[] choices;
 	int n;
-	
+
 	public void initGL(int w, int h) {
 		super.initGL(w, h);
 		RFPlotGaussianObject.initGL();
@@ -29,7 +28,7 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	public void setSample(NAFCExperimentTask task) {
 		sample.setSpec(task.getSampleSpec());
 	}
-	
+
 
 	public void setChoice(NAFCExperimentTask task) {
 		n = task.getChoiceSpec().length;
@@ -53,7 +52,7 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
-				
+
 				if (fixationOn) {
 					 getFixation().draw(context);
 				}
@@ -69,7 +68,7 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 		sample.setDistance(distance);
 		sample.draw(context);
 	}
-	
+
 	public void drawChoices(Context context, final boolean fixationOn) {
 		// clear the whole screen before define view ports in renderer
 		blankScreen.draw(null);
@@ -84,7 +83,7 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 					// 1 will pass for fixation and marker regions
 					GL11.glStencilFunc(GL11.GL_EQUAL, 1, 1);
 				}
-				
+
 				if (fixationOn) {
 					 getFixation().draw(context);
 				}
@@ -103,13 +102,13 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	}
 
 	public void drawChoiceStimuli(Context context) {
-		
+
 		for (int i = 0; i < n; i++){
 			choices[i].setDistance(distance);
 			choices[i].draw(context);
 		}
 	}
-	
+
 	public double getDistance() {
 		return distance;
 	}
@@ -121,18 +120,18 @@ public class NAFCGaussScene extends AbstractTaskScene implements NAFCTaskScene{
 	@Override
 	public void setTask(ExperimentTask task) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void drawStimulus(Context context) {
 		// TODO Auto-generated method stub
-		
+
 	}
-	
+
 	public void trialStart(NAFCTrialContext context) {
 	}
 
-	
-	
+
+
 }

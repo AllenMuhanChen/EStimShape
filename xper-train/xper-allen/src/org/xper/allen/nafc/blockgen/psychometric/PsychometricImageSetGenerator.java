@@ -42,7 +42,7 @@ public class PsychometricImageSetGenerator {
 
         int numQMMorphs = numPerSet - 1;
         List<QualitativeMorphParams> qmps = new LinkedList<QualitativeMorphParams>();
-        PsychometricQualitativeMorphParameterGenerator qmpGenerator = new PsychometricQualitativeMorphParameterGenerator(psychometricBlockGen.getMaxImageDimensionDegrees());
+        PsychometricQualitativeMorphParameterGenerator qmpGenerator = new PsychometricQualitativeMorphParameterGenerator(psychometricBlockGen.getImageDimensionsDegrees());
         qmps = qmpGenerator.getQMP(numPerSet - 1 - numRand, percentChangePosition);
 
         //VETTING AND CHOOSING LEAF
@@ -54,7 +54,7 @@ public class PsychometricImageSetGenerator {
             for (int b = 0; b < restObjSuccess.length; b++) restObjSuccess[b] = false;
             boolean restOfObjsSuccess = false;
 
-            objs_base.setProperties(psychometricBlockGen.getMaxImageDimensionDegrees(), "SHADE");
+            objs_base.setProperties(psychometricBlockGen.getImageDimensionsDegrees(), "SHADE");
 
             //LEAF
             int randomLeaf = -1;
@@ -83,7 +83,7 @@ public class PsychometricImageSetGenerator {
             int nTries_obj = 0;
             while (nTries_obj < maxAttemptsPerObj) {
                 //				System.out.println("In Obj " + 0 + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
-                objs.get(0).setProperties(psychometricBlockGen.getMaxImageDimensionDegrees(), "SHADE");
+                objs.get(0).setProperties(psychometricBlockGen.getImageDimensionsDegrees(), "SHADE");
                 firstObjSuccess = objs.get(0).genMatchStickFromLeaf(randomLeaf, objs_base);
                 if (!firstObjSuccess) {
                     objs.set(0, new AllenMatchStick());
@@ -101,7 +101,7 @@ public class PsychometricImageSetGenerator {
                     while (nTries_obj < maxAttemptsPerObj) {
                         //						System.out.println("In Obj " + i + ": attempt " + nTries_obj + " out of " + maxAttemptsPerObj);
                         try {
-                            objs.get(i).setProperties(psychometricBlockGen.getMaxImageDimensionDegrees(), "SHADE");
+                            objs.get(i).setProperties(psychometricBlockGen.getImageDimensionsDegrees(), "SHADE");
                             if (stimTypes.get(i) == StimType.QM)
                                 restObjSuccess[i - 1] = objs.get(i).genQualitativeMorphedLeafMatchStick(leafToMorphIndx, objs.get(0), qmps.get(i - 1));
                             else {

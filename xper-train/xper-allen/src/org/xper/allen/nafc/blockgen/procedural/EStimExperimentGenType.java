@@ -3,8 +3,6 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.Dependency;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
-import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
-import org.xper.intan.stimulation.EStimParameters;
 
 import javax.swing.*;
 import java.util.LinkedList;
@@ -47,7 +45,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         for (int i = 0; i < parameters.getNumTrials(); i++) {
             //Generate the base matchstick
             ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-            baseMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
+            baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
             baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + parameters.stimId + "_spec.xml");
 

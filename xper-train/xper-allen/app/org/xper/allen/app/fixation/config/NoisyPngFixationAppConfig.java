@@ -11,7 +11,6 @@ import org.springframework.config.java.support.ConfigurationSupport;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.allen.app.fixation.NoisyPngScene;
 import org.xper.allen.config.MStickPngConfig;
-import org.xper.allen.config.RewardButtonConfig;
 import org.xper.allen.fixation.blockgen.NoisyPngFixationBlockGen;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.config.BaseConfig;
@@ -36,7 +35,7 @@ public class NoisyPngFixationAppConfig extends ConfigurationSupport {
         generator.setGeneratorSpecPath(mStickConfig.generatorSpecPath);
         generator.setExperimentPngPath(mStickConfig.experimentPngPath);
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
-        generator.setMaxImageDimensionDegrees(mStickConfig.xperMaxImageDimensionDegrees());
+        generator.setImageDimensionDegrees(mStickConfig.xperMaxImageDimensionDegrees());
         return generator;
     }
 

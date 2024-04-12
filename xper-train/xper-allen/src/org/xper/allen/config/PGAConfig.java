@@ -1,21 +1,10 @@
 package org.xper.allen.config;
 
-import org.apache.commons.math.FunctionEvaluationException;
-import org.apache.commons.math.analysis.UnivariateRealFunction;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.ga.*;
-import org.xper.allen.ga.regimescore.*;
-import org.xper.allen.ga.regimescore.ParentChildBinThresholdsScoreSource.NormalizedResponseBin;
-import org.xper.allen.ga.regimescore.RegimeScoreSource.RegimeTransition;
-import org.xper.allen.ga3d.blockgen.LinearSpline;
-import org.xper.allen.ga3d.blockgen.NaturalSpline;
-import org.xper.allen.ga3d.blockgen.Sigmoid;
-import org.xper.allen.newga.blockgen.SlotGABlockGenerator;
 import org.xper.allen.pga.FromDbGABlockGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.MultiGaDbUtil;
@@ -23,10 +12,7 @@ import org.xper.config.BaseConfig;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.DatabaseTaskDataSource;
 
-import javax.vecmath.Point2d;
 import java.util.*;
-
-import static org.xper.allen.newga.blockgen.SlotGABlockGenerator.STIM_TYPE_FOR_REGIME;
 
 @Configuration(defaultLazy= Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -46,7 +32,7 @@ public class PGAConfig {
         generator.setGeneratorPngPath(mStickPngConfig.generatorPngPath);
         generator.setExperimentPngPath(mStickPngConfig.experimentPngPath);
         generator.setGeneratorSpecPath(mStickPngConfig.generatorSpecPath);
-        generator.setMaxImageDimensionDegrees(mStickPngConfig.xperMaxImageDimensionDegrees());
+        generator.setImageDimensionDegrees(mStickPngConfig.xperMaxImageDimensionDegrees());
         generator.setPngMaker(mStickPngConfig.pngMaker());
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());

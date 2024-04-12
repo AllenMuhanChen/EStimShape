@@ -81,11 +81,11 @@ public abstract class AbstractMStickPngTrialGenerator<T extends Stim> extends Ab
 		this.pngMaker = pngMaker;
 	}
 
-	public double getMaxImageDimensionDegrees() {
+	public double getImageDimensionsDegrees() {
 		return maxImageDimensionDegrees;
 	}
 
-	public void setMaxImageDimensionDegrees(double maxImageDimensionDegrees) {
+	public void setImageDimensionDegrees(double maxImageDimensionDegrees) {
 		this.maxImageDimensionDegrees = maxImageDimensionDegrees;
 	}
 

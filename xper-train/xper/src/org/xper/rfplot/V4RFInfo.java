@@ -12,7 +12,7 @@ public class V4RFInfo extends RFInfo{
 
     public V4RFInfo(List<Coordinates2D> outline, Coordinates2D center, double radius, RGBColor color) {
         super(outline, center, radius);
-        this.color = color;
+        this.setColor(color);
     }
 
     public V4RFInfo() {
@@ -30,5 +30,13 @@ public class V4RFInfo extends RFInfo{
     public static V4RFInfo fromXml (String xml) {
         V4RFInfo p = (V4RFInfo)s.fromXML(xml);
         return p;
+    }
+
+    public RGBColor getColor() {
+        return color;
+    }
+
+    public void setColor(RGBColor color) {
+        this.color = color;
     }
 }

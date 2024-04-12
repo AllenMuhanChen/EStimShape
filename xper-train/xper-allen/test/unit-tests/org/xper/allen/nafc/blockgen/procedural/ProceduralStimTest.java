@@ -37,7 +37,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
 
         generator = context.getBean(NAFCBlockGen.class);
         baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(generator.getMaxImageDimensionDegrees(), "SHADE");
+        baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
     }

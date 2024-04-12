@@ -10,7 +10,7 @@ public class PsychometricExperimentImageSetGenerator {
 
     public void generate(String pathToBaseStimulus){
         TwobyTwoExperimentMatchStick baseMatchStick = new TwobyTwoExperimentMatchStick();
-        baseMatchStick.setProperties(trialGenerator.getMaxImageDimensionDegrees(), "SHADE");
+        baseMatchStick.setProperties(trialGenerator.getImageDimensionsDegrees(), "SHADE");
         baseMatchStick.genMatchStickFromFile(pathToBaseStimulus, new double[]{0,0,0});
 
         while(true){

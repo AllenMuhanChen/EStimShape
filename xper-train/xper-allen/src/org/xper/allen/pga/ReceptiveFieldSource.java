@@ -34,10 +34,16 @@ public class ReceptiveFieldSource {
         return rfInfo.getCenter();
     }
 
+    public double getRFRadius(){
+        long tstamp = readMaxTstampFromRFInfo();
+        RFInfo rfInfo = readRFInfo(tstamp);
+        return rfInfo.getRadius();
+    }
+
     public RGBColor getRFColor(){
         long tstamp = readMaxTstampFromRFInfo();
         V4RFInfo rfInfo = (V4RFInfo) readRFInfo(tstamp);
-        return rfInfo.color;
+        return rfInfo.getColor();
     }
 
 
@@ -46,14 +52,14 @@ public class ReceptiveFieldSource {
         String sql = "SELECT info FROM RFInfo WHERE tstamp = ?";
 
         // Query and map the result to RFInfo object
-        V4RFInfo rfInfo = (V4RFInfo) jt.queryForObject(
+        RFInfo rfInfo = (RFInfo) jt.queryForObject(
                 sql,
                 new Object[]{tstamp},
                 new RowMapper() {
-                    public V4RFInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    public RFInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
                         String xmlData = rs.getString("info");
                         try {
-                            return V4RFInfo.fromXml(xmlData);
+                            return RFInfo.fromXml(xmlData);
                         } catch (Exception e) {
                             throw new SQLException("Error deserializing RFInfo XML", e);
                         }
@@ -65,7 +71,7 @@ public class ReceptiveFieldSource {
 
     private Long readMaxTstampFromRFInfo() {
         JdbcTemplate jt = new JdbcTemplate(dataSource);
-        String sql = "SELECT MAX(tstamp) FROM RFInfo";
+        String sql = "SELECT MAX(tstamp) FROM RFInfo WHERE channel = 'SUPRA-000'";
 
         // Execute the query and return the result
         Long maxTstamp = (Long) jt.queryForObject(sql, Long.class);

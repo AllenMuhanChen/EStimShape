@@ -2,14 +2,13 @@ package org.xper.rfplot;
 
 import com.thoughtworks.xstream.XStream;
 import org.xper.drawing.Coordinates2D;
-import org.xper.rfplot.drawing.png.PngSpec;
 
 import java.util.List;
 
 public class RFInfo {
-    List<Coordinates2D> outline;
-    Coordinates2D center;
-    double radius;
+    public List<Coordinates2D> outline;
+    public Coordinates2D center;
+    public double radius;
 
     public RFInfo() {
     }
@@ -17,7 +16,7 @@ public class RFInfo {
     public RFInfo(List<Coordinates2D> outline, Coordinates2D center, double radius) {
         this.outline = outline;
         this.center = center;
-        this.radius = radius;
+        this.setRadius(radius);
     }
 
     transient static XStream s;
@@ -50,5 +49,13 @@ public class RFInfo {
 
     public void setCenter(Coordinates2D center) {
         this.center = center;
+    }
+
+    public double getRadius() {
+        return radius;
+    }
+
+    public void setRadius(double radius) {
+        this.radius = radius;
     }
 }

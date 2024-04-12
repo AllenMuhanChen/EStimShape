@@ -57,7 +57,7 @@ public class RandStim implements Stim {
 	}
 
 	private void generateMatchSticks() {
-		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator.getMaxImageDimensionDegrees(), trialParameters);
+		MStickGeneratorForRandTrials mStickGenerator = new MStickGeneratorForRandTrials(generator.getImageDimensionsDegrees(), trialParameters);
 		mSticks = mStickGenerator.getmSticks();
 		mStickSpecs = mStickGenerator.getmStickSpecs();
 	}
