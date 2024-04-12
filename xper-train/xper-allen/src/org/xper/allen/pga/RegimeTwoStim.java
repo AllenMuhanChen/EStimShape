@@ -2,10 +2,11 @@ package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.RGBColor;
 
 public class RegimeTwoStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
-    public RegimeTwoStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, String textureType) {
-        super(stimId, generator, parentId, coords, textureType);
+    public RegimeTwoStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color) {
+        super(stimId, generator, parentId, coords, textureType, color);
     }
 
     @Override
@@ -16,7 +17,7 @@ public class RegimeTwoStim extends GAStim<PruningMatchStick, PruningMatchStick.P
 
         PruningMatchStick childMStick = new PruningMatchStick(generator.getReceptiveField());
         childMStick.setProperties(generator.getImageDimensionsDegrees(), textureType);
-        childMStick.setStimColor(getRFColor());
+        childMStick.setStimColor(color);
         childMStick.genPruningMatchStick(parentMStick, 0.75, 1);
         return childMStick;
     }

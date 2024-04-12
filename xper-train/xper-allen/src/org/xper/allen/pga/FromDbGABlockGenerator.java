@@ -1,5 +1,6 @@
 package org.xper.allen.pga;
 
+import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.ga.ReceptiveField;
@@ -7,7 +8,9 @@ import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.RGBColor;
 import org.xper.exception.VariableNotFoundException;
+import org.xper.util.FileUtil;
 
 import java.util.List;
 
@@ -18,17 +21,28 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     @Dependency
     Integer numTrialsPerStimulus;
 
-//    @Dependency
-//    private double initialSize;
-//
-//    @Dependency
-//    private Coordinates2D intialCoords;
-
     @Dependency
     String gaName;
 
     @Dependency
     ReceptiveFieldSource rfSource;
+
+    //Parameters
+    private RGBColor color;
+
+    public static void main(String[] args) {
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(
+                FileUtil.loadConfigClass("experiment.ga.config_class"));
+        FromDbGABlockGenerator generator = context.getBean(FromDbGABlockGenerator.class);
+
+        int r = Integer.parseInt(args[0]);
+        int g = Integer.parseInt(args[1]);
+        int b = Integer.parseInt(args[2]);
+
+        generator.setColor(new RGBColor(r/255f,g/255f,b/255f));
+
+        generator.generate();
+    }
 
     @Override
     protected void addTrials() {
@@ -52,29 +66,29 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             // Create a new Stim object with the stim_type and magnitude (if applicable)
             Stim stim;
             if(stimType.equals(StimType.REGIME_ZERO)){
-                stim = new RegimeZeroStim(stimId, this, imageSizeDegs, initialCoords, "SHADE");
+                stim = new RegimeZeroStim(stimId, this, initialCoords, "SHADE", color);
             }
             else if (stimType.equals(StimType.REGIME_ZERO_2D))
             {
-                stim = new RegimeZeroStim(stimId, this, imageSizeDegs, initialCoords, "2D");
+                stim = new RegimeZeroStim(stimId, this, initialCoords, "2D", color);
             }
             else if(stimType.equals(StimType.REGIME_ONE)){
-                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE");
+                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE", color);
             }
             else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D");
+                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D", color);
             }
             else if(stimType.equals(StimType.REGIME_TWO)){
-                stim = new RegimeTwoStim(stimId, this, parentId, imageSizeDegs, initialCoords, "SHADE");
+                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "SHADE", color);
             }
             else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                stim = new RegimeTwoStim(stimId, this, parentId, imageSizeDegs, initialCoords, "2D");
+                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "2D", color);
             }
             else if(stimType.equals(StimType.REGIME_THREE)){
-                stim = new RegimeThreeStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE");
+                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color);
             }
             else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                stim = new RegimeThreeStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D");
+                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "2D", color);
             }
             else{
                 throw new RuntimeException("Stim Type not recognized");
@@ -154,5 +168,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     public void setRfSource(ReceptiveFieldSource rfSource) {
         this.rfSource = rfSource;
+    }
+
+    public void setColor(RGBColor color) {
+        this.color = color;
     }
 }

@@ -19,14 +19,16 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     protected final Coordinates2D imageCenterCoords;
     protected Long stimId;
     protected String textureType;
+    protected RGBColor color;
     private double marginMultiplier = 0.5;
 
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color) {
         this.generator = generator;
         this.parentId = parentId;
         this.imageCenterCoords = coords;
         this.stimId = stimId;
         this.textureType = textureType;
+        this.color = color;
     }
 
     @Override
@@ -63,7 +65,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     private T createRandMStick() {
         RFMatchStick mStick = new RFMatchStick();
         mStick.setProperties(calculateImageSize(), textureType);
-        mStick.setStimColor(getRFColor());
+        mStick.setStimColor(color);
         mStick.genMatchStickRand();
         return (T) mStick;
     }
@@ -120,15 +122,15 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         return distanceFromImageCenterToEdgeOfRf + margin;
     }
 
-    public RGBColor getRFColor(){
-        RGBColor rfColor;
-        try {
-            rfColor = new RGBColor(generator.rfSource.getRFColor());
-
-        } catch (Exception e) {
-            System.out.println("Error getting RF color, using default color: white");
-            rfColor = new RGBColor(1, 1, 1);
-        }
-        return rfColor;
-    }
+//    public RGBColor getRFColor(){
+//        RGBColor rfColor;
+//        try {
+//            rfColor = new RGBColor(generator.rfSource.getRFColor());
+//
+//        } catch (Exception e) {
+//            System.out.println("Error getting RF color, using default color: white");
+//            rfColor = new RGBColor(1, 1, 1);
+//        }
+//        return rfColor;
+//    }
 }
