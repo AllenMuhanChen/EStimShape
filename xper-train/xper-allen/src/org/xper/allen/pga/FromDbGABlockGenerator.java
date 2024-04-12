@@ -18,11 +18,11 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     @Dependency
     Integer numTrialsPerStimulus;
 
-    @Dependency
-    private double initialSize;
-
-    @Dependency
-    private Coordinates2D intialCoords;
+//    @Dependency
+//    private double initialSize;
+//
+//    @Dependency
+//    private Coordinates2D intialCoords;
 
     @Dependency
     String gaName;
@@ -32,6 +32,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     @Override
     protected void addTrials() {
+        double imageSizeDegs = rfSource.getRFRadius()*2;
+        Coordinates2D initialCoords = new Coordinates2D(0, 0);
+
         // Read database to find stim_ids from StimGaInfo that don't have a StimSpec
         Long experimentId = dbUtil.readCurrentExperimentId(gaName);
         List<Long> lineageIdsInThisExperiment = dbUtil.readLineageIdsForExperiment(experimentId);
@@ -49,29 +52,29 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             // Create a new Stim object with the stim_type and magnitude (if applicable)
             Stim stim;
             if(stimType.equals(StimType.REGIME_ZERO)){
-                stim = new RegimeZeroStim(stimId, this, initialSize, intialCoords, "SHADE");
+                stim = new RegimeZeroStim(stimId, this, imageSizeDegs, initialCoords, "SHADE");
             }
             else if (stimType.equals(StimType.REGIME_ZERO_2D))
             {
-                stim = new RegimeZeroStim(stimId, this, initialSize, intialCoords, "2D");
+                stim = new RegimeZeroStim(stimId, this, imageSizeDegs, initialCoords, "2D");
             }
             else if(stimType.equals(StimType.REGIME_ONE)){
-                stim = new RegimeOneStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "SHADE");
+                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE");
             }
             else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                stim = new RegimeOneStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "2D");
+                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D");
             }
             else if(stimType.equals(StimType.REGIME_TWO)){
-                stim = new RegimeTwoStim(stimId, this, parentId, initialSize, intialCoords, "SHADE");
+                stim = new RegimeTwoStim(stimId, this, parentId, imageSizeDegs, initialCoords, "SHADE");
             }
             else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                stim = new RegimeTwoStim(stimId, this, parentId, initialSize, intialCoords, "2D");
+                stim = new RegimeTwoStim(stimId, this, parentId, imageSizeDegs, initialCoords, "2D");
             }
             else if(stimType.equals(StimType.REGIME_THREE)){
-                stim = new RegimeThreeStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "SHADE");
+                stim = new RegimeThreeStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE");
             }
             else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                stim = new RegimeThreeStim(stimId, this, parentId, initialSize, intialCoords, magnitude, "2D");
+                stim = new RegimeThreeStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D");
             }
             else{
                 throw new RuntimeException("Stim Type not recognized");
@@ -89,6 +92,8 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
         System.out.println("Done Generating...");
     }
+
+
 
     @Override
     protected void updateGenId() {
@@ -133,22 +138,6 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     public void setNumTrialsPerStimulus(Integer numTrialsPerStimulus) {
         this.numTrialsPerStimulus = numTrialsPerStimulus;
-    }
-
-    public double getInitialSize() {
-        return initialSize;
-    }
-
-    public void setInitialSize(double initialSize) {
-        this.initialSize = initialSize;
-    }
-
-    public Coordinates2D getIntialCoords() {
-        return intialCoords;
-    }
-
-    public void setIntialCoords(Coordinates2D intialCoords) {
-        this.intialCoords = intialCoords;
     }
 
     public String getGaName() {

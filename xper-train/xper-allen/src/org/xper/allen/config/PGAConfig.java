@@ -37,8 +37,6 @@ public class PGAConfig {
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());
         generator.setNumTrialsPerStimulus(numberOfRepetitionsPerStimulus);
-        generator.setInitialSize(8);
-        generator.setIntialCoords(new Coordinates2D(0,0));
         generator.setGaName("New3D");
         generator.setRfSource(rfSource());
         return generator;

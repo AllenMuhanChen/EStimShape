@@ -16,25 +16,26 @@ import java.util.List;
 public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> implements Stim {
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
-    protected final double size;
-    protected final Coordinates2D coords;
+    protected final double imageSizeDeg;
+    protected final Coordinates2D imageCenterCoords;
     protected Long stimId;
     protected String textureType;
+    private double marginMultiplier = 0.5;
 
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double imageSizeDeg, Coordinates2D imageCenterCoords) {
         this.stimId = stimId;
         this.generator = generator;
         this.parentId = parentId;
-        this.size = size;
-        this.coords = coords;
+        this.imageSizeDeg = imageSizeDeg;
+        this.imageCenterCoords = imageCenterCoords;
         this.textureType = "SHADE";
     }
 
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, String textureType) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double imageSizeDeg, Coordinates2D coords, String textureType) {
         this.generator = generator;
         this.parentId = parentId;
-        this.size = size;
-        this.coords = coords;
+        this.imageSizeDeg = imageSizeDeg;
+        this.imageCenterCoords = coords;
         this.stimId = stimId;
         this.textureType = textureType;
     }
@@ -72,7 +73,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
 
     private T createRandMStick() {
         RFMatchStick mStick = new RFMatchStick();
-        mStick.setProperties(getRFDiameter(), textureType);
+        mStick.setProperties(calculateImageSize(), textureType);
         mStick.setStimColor(getRFColor());
         mStick.genMatchStickRand();
         return (T) mStick;
@@ -108,15 +109,24 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     private void writeStimSpec(String pngPath, D mStickData) {
         PngSpec stimSpec = new PngSpec();
         stimSpec.setPath(pngPath);
-        stimSpec.setDimensions(new ImageDimensions(size, size));
-        stimSpec.setxCenter(coords.getX());
-        stimSpec.setyCenter(coords.getY());
+        stimSpec.setDimensions(new ImageDimensions(imageSizeDeg, imageSizeDeg));
+        stimSpec.setxCenter(imageCenterCoords.getX());
+        stimSpec.setyCenter(imageCenterCoords.getY());
 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
 
-    protected double getRFDiameter() {
-        return generator.rfSource.getRFRadius() * 2;
+    /**
+     * Idea is to have image centered at fixation and large enough so that part of the shape
+     * can extend into and then out the other side of the RF.
+     * @return
+     */
+    protected double calculateImageSize() {
+        Coordinates2D rfCenter = generator.rfSource.getRFCenter();
+        double eccentricity = Math.sqrt(Math.pow(rfCenter.getX() - imageCenterCoords.getX(), 2) + Math.pow(rfCenter.getY() - imageCenterCoords.getY(), 2));
+        double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadius();
+        double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
+        return distanceFromImageCenterToEdgeOfRf + margin;
     }
 
     public RGBColor getRFColor(){
