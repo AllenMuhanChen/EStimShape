@@ -10,7 +10,7 @@ public class RegimeZeroStim extends GAStim<RFMatchStick, AllenMStickData> {
     private long stimId;
 
     public RegimeZeroStim(Long stimId, FromDbGABlockGenerator generator, double imageSizeDeg, Coordinates2D coords, String textureType) {
-        super(stimId, generator, 0L, imageSizeDeg, coords, textureType);
+        super(stimId, generator, 0L, coords, textureType);
     }
 
     @Override

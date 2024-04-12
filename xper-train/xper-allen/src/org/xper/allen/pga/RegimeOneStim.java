@@ -8,7 +8,7 @@ public class RegimeOneStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
 
     public RegimeOneStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, double magnitude, String textureType) {
-        super(stimId, generator, parentId, size, coords, textureType);
+        super(stimId, generator, parentId, coords, textureType);
         this.magnitude = magnitude;
     }
 

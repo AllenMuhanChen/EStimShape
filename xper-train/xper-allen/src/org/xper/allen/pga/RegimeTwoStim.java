@@ -5,7 +5,7 @@ import org.xper.drawing.Coordinates2D;
 
 public class RegimeTwoStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
     public RegimeTwoStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, String textureType) {
-        super(stimId, generator, parentId, size, coords, textureType);
+        super(stimId, generator, parentId, coords, textureType);
     }
 
     @Override

@@ -16,25 +16,14 @@ import java.util.List;
 public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> implements Stim {
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
-    protected final double imageSizeDeg;
     protected final Coordinates2D imageCenterCoords;
     protected Long stimId;
     protected String textureType;
     private double marginMultiplier = 0.5;
 
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double imageSizeDeg, Coordinates2D imageCenterCoords) {
-        this.stimId = stimId;
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType) {
         this.generator = generator;
         this.parentId = parentId;
-        this.imageSizeDeg = imageSizeDeg;
-        this.imageCenterCoords = imageCenterCoords;
-        this.textureType = "SHADE";
-    }
-
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double imageSizeDeg, Coordinates2D coords, String textureType) {
-        this.generator = generator;
-        this.parentId = parentId;
-        this.imageSizeDeg = imageSizeDeg;
         this.imageCenterCoords = coords;
         this.stimId = stimId;
         this.textureType = textureType;
@@ -107,6 +96,8 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     }
 
     private void writeStimSpec(String pngPath, D mStickData) {
+        double imageSizeDeg = calculateImageSize();
+
         PngSpec stimSpec = new PngSpec();
         stimSpec.setPath(pngPath);
         stimSpec.setDimensions(new ImageDimensions(imageSizeDeg, imageSizeDeg));
