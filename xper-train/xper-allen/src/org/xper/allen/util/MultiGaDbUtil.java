@@ -204,13 +204,12 @@ public class MultiGaDbUtil extends AllenDbUtil {
                 new Object[] { stimId },
                 new RowCallbackHandler() {
                     public void processRow(ResultSet rs) throws SQLException {
-                        info.setGenId(rs.getLong("gen_id"));
-                        info.setGaName(rs.getString("ga_name"));
-                        info.setParentId(rs.getLong("parent_id"));
                         info.setStimId(rs.getLong("stim_id"));
-                        info.setTreeSpec(rs.getString("tree_spec"));
+                        info.setParentId(rs.getLong("parent_id"));
                         info.setLineageId(rs.getLong("lineage_id"));
                         info.setStimType(rs.getString("stim_type"));
+                        info.setGenId(rs.getLong("gen_id"));
+
                     }});
         return info;
     }

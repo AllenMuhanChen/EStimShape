@@ -11,6 +11,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.exception.VariableNotFoundException;
 import org.xper.util.FileUtil;
+import org.xper.util.ThreadUtil;
 
 import java.util.List;
 
@@ -26,6 +27,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     @Dependency
     ReceptiveFieldSource rfSource;
+
+    @Dependency
+    int numCatchTrials;
 
     //Parameters
     private RGBColor color;
@@ -97,7 +101,23 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             stims.add(stim);
         }
 
+        if (isFirstGen()) {
+            addCatchTrials();
+        }
+
         System.err.println("Number of stims to generate: " + stims.size());
+    }
+
+    private boolean isFirstGen() {
+        return dbUtil.readStimGaInfo(stims.get(0).getStimId()).getGenId() == 1;
+    }
+
+    private void addCatchTrials() {
+        for (int i = 0; i < numCatchTrials; i++) {
+            CatchStim stim = new CatchStim(getGlobalTimeUtil().currentTimeMicros(), this);
+            stims.add(stim);
+            ThreadUtil.sleep(1);
+        }
     }
 
     @Override

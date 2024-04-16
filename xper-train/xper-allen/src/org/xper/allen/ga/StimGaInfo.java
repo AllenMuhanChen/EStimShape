@@ -5,11 +5,10 @@ import com.thoughtworks.xstream.XStream;
 public class StimGaInfo {
     long stimId;
     long parentId;
-    String gaName;
     long genId;
     long lineageId;
-    String treeSpec;
     String stimType;
+
 
     public StimGaInfo() {
     }
@@ -49,13 +48,6 @@ public class StimGaInfo {
         this.parentId = parentId;
     }
 
-    public String getGaName() {
-        return gaName;
-    }
-
-    public void setGaName(String gaName) {
-        this.gaName = gaName;
-    }
 
     public long getGenId() {
         return genId;
@@ -73,13 +65,6 @@ public class StimGaInfo {
         this.lineageId = lineageId;
     }
 
-    public String getTreeSpec() {
-        return treeSpec;
-    }
-
-    public void setTreeSpec(String treeSpec) {
-        this.treeSpec = treeSpec;
-    }
 
     public String getStimType() {
         return stimType;

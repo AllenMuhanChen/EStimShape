@@ -8,7 +8,8 @@ public enum StimType {
     REGIME_ZERO_2D("REGIME_ZERO_2D"),
     REGIME_ONE_2D("REGIME_ONE_2D"),
     REGIME_TWO_2D("REGIME_TWO_2D"),
-    REGIME_THREE_2D("REGIME_THREE_2D");
+    REGIME_THREE_2D("REGIME_THREE_2D"),
+    CATCH("CATCH");
 
 
     private final String value;
