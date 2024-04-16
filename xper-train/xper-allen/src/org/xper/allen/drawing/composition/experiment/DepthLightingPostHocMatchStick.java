@@ -36,9 +36,9 @@ public class DepthLightingPostHocMatchStick extends ExperimentMatchStick{
     protected void initLight() {
         if (textureType.compareTo("2D") == 0) {
             getObj1().doLighting = false;
-            getObj1().stimColor.setRed((float)(stimColor.getRed()*contrast));
-            getObj1().stimColor.setBlue((float)(stimColor.getBlue()*contrast));
-            getObj1().stimColor.setGreen((float)(stimColor.getGreen()*contrast));
+            getObj1().getStimColor().setRed((float)(stimColor.getRed()*contrast));
+            getObj1().getStimColor().setBlue((float)(stimColor.getBlue()*contrast));
+            getObj1().getStimColor().setGreen((float)(stimColor.getGreen()*contrast));
         } else
             getObj1().doLighting = true;
 

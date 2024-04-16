@@ -194,7 +194,7 @@ public class MStickObj4Smooth {
         for (int i = 0; i< getnFac(); i++) {
             GL11.glBegin(GL11.GL_TRIANGLES);
 
-            GL11.glColor4d(stimColor.getRed(),stimColor.getGreen(),stimColor.getBlue(), alpha);
+            GL11.glColor4d(getStimColor().getRed(), getStimColor().getGreen(), getStimColor().getBlue(), alpha);
 
             Point3d p1 = vect_info[ getFacInfo()[i][0]];
             Point3d p2 = vect_info[ getFacInfo()[i][1]];
@@ -231,7 +231,7 @@ public class MStickObj4Smooth {
     }
 
     public void drawVect() {
-        GL11.glColor3d(stimColor.getRed(),stimColor.getGreen(),stimColor.getBlue());
+        GL11.glColor3d(getStimColor().getRed(), getStimColor().getGreen(), getStimColor().getBlue());
         if (isDoLighting())
             GL11.glEnable(GL11.GL_LIGHTING);
         else
@@ -1218,6 +1218,14 @@ public class MStickObj4Smooth {
 
     public void setMaxXYZ(Point3d maxXYZ) {
         this.maxXYZ = maxXYZ;
+    }
+
+    public RGBColor getStimColor() {
+        return stimColor;
+    }
+
+    public void setStimColor(RGBColor stimColor) {
+        this.stimColor = stimColor;
     }
 }
 

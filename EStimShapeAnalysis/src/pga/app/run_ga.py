@@ -14,10 +14,13 @@ def main():
 
 
 def run_trial_generator(experiment_id: int, generation: int):
+    r = 255
+    g = 255
+    b = 255
     output_file = os.path.join(config.java_output_dir, f"experiment_{experiment_id}_generation_{generation}.txt")
     # TODO change jar to real jar
-    trial_generator_path = os.path.join(config.allen_dist, "MockNewGATrialGenerator.jar")
-    trial_generator_command = f"java -jar {trial_generator_path}"
+    trial_generator_path = os.path.join(config.allen_dist, "GAGenerator.jar")
+    trial_generator_command = f"java -jar {trial_generator_path} {r} {g} {b}"
 
     with open(output_file, "w") as file:
         result = subprocess.run(trial_generator_command, shell=True, stdout=file, stderr=subprocess.STDOUT, text=True)

@@ -232,6 +232,14 @@
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
 			</manifest>
 		</jar>
-
+		<jar jarfile="${allen.home}/GAGenerator.jar">
+			<fileset dir="${build.home}">
+				<include name="org/xper/allen/pga/FromDbGABlockGenerator" />
+			</fileset>
+			<manifest>
+				<attribute name="Main-Class" value="org.xper.allen.pga.FromDbGABlockGenerator" />
+				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
+			</manifest>
+		</jar>
 	</target>
 </project>

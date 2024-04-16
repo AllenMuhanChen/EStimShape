@@ -3102,6 +3102,8 @@ Adding a new MAxisArc to a MatchStick
 		}
 	}
 
+
+
 	/**
 	 * function check if the MStick is inside a BOX or not <BR>
 	 * ( to prevent a shape extend too much outside one dimension)
@@ -3111,55 +3113,55 @@ Adding a new MAxisArc to a MatchStick
 	 * using radius method.
 	 */
 
-	protected boolean validMStickSize() {
-
-		double maxRadius = getScaleForMAxisShape(); // degree
-		double screenDist = 500;
-		double minRadius = getMinScaleForMAxisShape();
-		double maxBoundInMm = screenDist * Math.tan(maxRadius * Math.PI / 180 / 2);
-		double minBoundInMm = screenDist * Math.tan(minRadius * Math.PI / 180 / 2);
-		int i, j;
-
-		//Point3d ori = new Point3d(0.0, 0.0, 0.0);
-		//double dis;
-		//double maxDis = 0;
-		double maxX=0;
-		double maxY=0;
-		for (i = 1; i <= getnComponent(); i++) {
-			for (j = 1; j <= getComp()[i].getnVect(); j++) {
-				double xLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].x;
-				double yLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].y;
-				//				double xLocation = getComp()[i].getVect_info()[j].x;
-				//				double yLocation = getComp()[i].getVect_info()[j].y;
-
-				//dis = comp[i].vect_info[j].distance(ori);
-
-				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
-//					System.err.println("TOO BIG");
-//					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
-					return false;
-				}
-				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
-//					System.err.println("TOO BIG");
-//					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
-					return false;
-				}
-				if(Math.abs(xLocation)>maxX)
-					maxX = Math.abs(xLocation);
-				if(Math.abs(xLocation)>maxY)
-					maxY = Math.abs(yLocation);
-			}
-		}
-		if (maxX < minBoundInMm && maxY < minBoundInMm) {
-//			System.err.println("TOO SMALL");
-//			System.out.println("AC:71923: " + maxX);
-//			System.out.println("AC:71923: " + maxY);
-			return false;
-		}
-
-
-		return true;
-	}
+//	protected boolean validMStickSize() {
+//
+//		double maxRadius = getScaleForMAxisShape(); // degree
+//		double screenDist = 500;
+//		double minRadius = getMinScaleForMAxisShape();
+//		double maxBoundInMm = screenDist * Math.tan(maxRadius * Math.PI / 180 / 2);
+//		double minBoundInMm = screenDist * Math.tan(minRadius * Math.PI / 180 / 2);
+//		int i, j;
+//
+//		//Point3d ori = new Point3d(0.0, 0.0, 0.0);
+//		//double dis;
+//		//double maxDis = 0;
+//		double maxX=0;
+//		double maxY=0;
+//		for (i = 1; i <= getnComponent(); i++) {
+//			for (j = 1; j <= getComp()[i].getnVect(); j++) {
+//				double xLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].x;
+//				double yLocation = getScaleForMAxisShape() * getComp()[i].getVect_info()[j].y;
+//				//				double xLocation = getComp()[i].getVect_info()[j].x;
+//				//				double yLocation = getComp()[i].getVect_info()[j].y;
+//
+//				//dis = comp[i].vect_info[j].distance(ori);
+//
+//				if(xLocation > maxBoundInMm || xLocation < -maxBoundInMm){
+////					System.err.println("TOO BIG");
+////					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxBoundInMm);
+//					return false;
+//				}
+//				if(yLocation > maxBoundInMm || yLocation < -maxBoundInMm){
+////					System.err.println("TOO BIG");
+////					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxBoundInMm);
+//					return false;
+//				}
+//				if(Math.abs(xLocation)>maxX)
+//					maxX = Math.abs(xLocation);
+//				if(Math.abs(xLocation)>maxY)
+//					maxY = Math.abs(yLocation);
+//			}
+//		}
+//		if (maxX < minBoundInMm && maxY < minBoundInMm) {
+////			System.err.println("TOO SMALL");
+////			System.out.println("AC:71923: " + maxX);
+////			System.out.println("AC:71923: " + maxY);
+//			return false;
+//		}
+//
+//
+//		return true;
+//	}
 
 
 	public void setScale(double minScale, double maxScale) {

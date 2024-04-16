@@ -98,7 +98,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     }
 
     private void writeStimSpec(String pngPath, D mStickData) {
-        double imageSizeDeg = calculateImageSize();
+        double imageSizeDeg = generator.getImageDimensionsDegrees();
 
         PngSpec stimSpec = new PngSpec();
         stimSpec.setPath(pngPath);
@@ -119,7 +119,9 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         double eccentricity = Math.sqrt(Math.pow(rfCenter.getX() - imageCenterCoords.getX(), 2) + Math.pow(rfCenter.getY() - imageCenterCoords.getY(), 2));
         double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadius();
         double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
-        return distanceFromImageCenterToEdgeOfRf + margin;
+        double imageSizeInDegrees = distanceFromImageCenterToEdgeOfRf + margin;
+        System.out.println("Image size in degrees: " + imageSizeInDegrees);
+        return imageSizeInDegrees;
     }
 
 //    public RGBColor getRFColor(){
