@@ -11,6 +11,7 @@ import org.xper.allen.drawing.composition.RandMStickGenerator;
 import org.xper.allen.nafc.blockgen.PsychometricMStickFetcher;
 import org.xper.allen.nafc.blockgen.NumberOfDistractorsForPsychometricTrial;
 import org.xper.allen.Stim;
+import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
@@ -84,7 +85,7 @@ public class PsychometricStim implements Stim {
 				trialParameters,
 				coords,
 				numChoices,
-				stimObjIds);
+				stimObjIds, RewardPolicy.LIST, new int[]{0});
 
 		stimSpecWriter.writeStimSpec();
 

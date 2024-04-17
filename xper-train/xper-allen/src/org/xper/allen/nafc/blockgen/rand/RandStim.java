@@ -8,6 +8,7 @@ import org.xper.allen.drawing.composition.RandTrialNoiseMapGenerator;
 import org.xper.allen.nafc.blockgen.AbstractMStickPngTrialGenerator;
 import org.xper.allen.Stim;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
+import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.util.AllenDbUtil;
 import org.xper.drawing.Coordinates2D;
 
@@ -109,7 +110,7 @@ public class RandStim implements Stim {
 				trialParameters,
 				coords,
 				trialParameters.getNumChoices(),
-				stimObjIds);
+				stimObjIds, RewardPolicy.LIST, new int[]{0});
 
 		stimSpecWriter.writeStimSpec();
 	}

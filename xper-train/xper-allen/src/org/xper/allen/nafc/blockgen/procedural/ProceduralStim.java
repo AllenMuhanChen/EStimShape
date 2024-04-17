@@ -8,6 +8,7 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.*;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
+import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 
 import org.xper.allen.specs.NoisyPngSpec;
@@ -324,7 +325,7 @@ public class ProceduralStim implements NAFCStim {
                 parameters,
                 coords,
                 parameters.numChoices,
-                stimObjIds);
+                stimObjIds, RewardPolicy.LIST, new int[]{0});
 
         stimSpecWriter.writeStimSpec();
     }

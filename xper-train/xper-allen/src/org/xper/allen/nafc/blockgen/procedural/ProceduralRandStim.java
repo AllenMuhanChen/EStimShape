@@ -3,6 +3,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
+import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.util.AllenDbUtil;
 
 public class ProceduralRandStim extends ProceduralStim{
@@ -93,7 +94,7 @@ public class ProceduralRandStim extends ProceduralStim{
                 parameters,
                 coords,
                 parameters.numChoices,
-                stimObjIds);
+                stimObjIds, RewardPolicy.LIST, new int[]{0});
 
         stimSpecWriter.writeStimSpec();
 
