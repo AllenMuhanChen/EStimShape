@@ -20,14 +20,14 @@ def main():
 
     # NAFC Database
     create_db_from_template("allen_estimshape_train_231211",
-                            "allen_estimshape_test_240502",
+                            config.nafc_database,
                             [
                                 "SystemVar",
                                 "InternalState"])
 
     # ISOGABOR Database
     create_db_from_template("allen_isogabor_dev_240322",
-                            "allen_isogabor_test_240502",
+                            config.isogabor_database,
                             [
                                 "SystemVar",
                                 "InternalState",
@@ -64,11 +64,58 @@ def create_db_from_template(source_db_name, dest_db_name, copy_data_tables):
     reset_internal_state(dest_ga_db_config)
 
 
+def replace_xml_in_table(connection):
+    # XML string with the specified content and formatting
+    # the weird spacing here is to get it to match the formatting of the existing XML strings
+    xml_string = \
+        """<GenerationInfo>
+  <genId>0</genId>
+  <taskCount>0</taskCount>
+  <stimPerLinCount>0</stimPerLinCount>
+  <repsPerStim>1</repsPerStim>
+  <stimPerTrial>1</stimPerTrial>
+  <useStereoRenderer>false</useStereoRenderer>
+</GenerationInfo>"""
+
+    cursor = connection.cursor()
+
+    # Delete any existing row with the same identifiers
+    delete_query = """
+        DELETE FROM InternalState WHERE name = %s AND arr_ind = %s
+        """
+    cursor.execute(delete_query, ('task_to_do_gen_ready', 0))
+
+    # Define the insertion query
+    insert_query = """
+        INSERT INTO InternalState (name, arr_ind, val)
+        VALUES (%s, %s, %s)
+        """
+
+    # Execute the insertion query
+    cursor.execute(insert_query, ('task_to_do_gen_ready', 0, xml_string))
+
+    connection.commit()
+
+
 def reset_internal_state(dest_ga_db_config):
+    reset_task_to_do_ga_and_gen_ready(dest_ga_db_config)
+    reset_task_to_do_gen_ready(dest_ga_db_config)
+
+
+def reset_task_to_do_ga_and_gen_ready(dest_ga_db_config):
+    # reset multi ga internal state
     conn = Connection(dest_ga_db_config['database'], dest_ga_db_config['user'], dest_ga_db_config['password'],
                       dest_ga_db_config['host'])
     db_util = MultiGaDbUtil(conn)
-    db_util.update_ready_gas_and_generations_info(config.ga_name, 0)
+    db_util.update_ready_gas_and_generations_info(conn, 0)
+
+
+def reset_task_to_do_gen_ready(dest_ga_db_config):
+    # reset
+    # Establish a connection to the destination database
+    connection = mysql.connector.connect(**dest_ga_db_config)
+    replace_xml_in_table(connection)
+    connection.close()
 
 
 def get_all_tables(cursor):
