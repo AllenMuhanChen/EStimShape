@@ -100,8 +100,8 @@ public class RFPlotConsolePlugin implements IConsolePlugin {
 
                 List<Coordinates2D> interpolatedOutlineDeg = plotter.getInterpolatedOutline(channel);
                 for (Coordinates2D point : interpolatedOutlineDeg) {
-                    point.setX(renderer.mm2deg(point.getX()));
-                    point.setY(renderer.mm2deg(point.getY()));
+                    point.setX(point.getX());
+                    point.setY(point.getY());
                 }
 
                 RFInfo rfInfo = new RFInfo(interpolatedOutlineDeg, circleCenterDeg, radiusDeg);
