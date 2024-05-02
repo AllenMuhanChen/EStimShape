@@ -12,7 +12,7 @@ from pga.mock.plot_rwa_top_n import plot_top_n_stimuli_comp_maps, plot_top_n_sti
 
 
 def main():
-    conn = Connection(config.database)
+    conn = Connection(config.ga_database)
 
     experiment_id = input("Enter the experiment id (enter nothing for most recent):")
     if experiment_id == "":

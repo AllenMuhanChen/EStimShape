@@ -14,7 +14,7 @@ from pga.mock.mock_rwa_analysis import compile_data, remove_empty_response_trial
 
 def main():
     # PARAMETERS
-    conn = Connection(config.database)
+    conn = Connection(config.ga_database)
     n = int(input("Enter the number of lineages to use for RWA: "))
 
     # PIPELINE
