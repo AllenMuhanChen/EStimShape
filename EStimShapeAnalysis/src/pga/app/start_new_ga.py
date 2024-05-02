@@ -1,4 +1,4 @@
-from pga.app import config
+from startup import config
 
 
 def main():

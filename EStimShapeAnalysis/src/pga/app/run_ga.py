@@ -1,8 +1,7 @@
 import os
 import subprocess
 
-from pga.app import config
-from pga.config.twod_threed_config import TwoDThreeDGAConfig
+from startup import config
 
 
 def main():

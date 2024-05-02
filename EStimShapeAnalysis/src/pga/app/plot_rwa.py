@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 from analysis.ga.rwa import get_next
 from clat.util.connection import Connection
-from pga.app import config
+from startup import config
 from pga.mock.mock_rwa_plot import plot_shaft_rwa_1d, plot_termination_rwa_1d, plot_junction_rwa_1d
 from pga.mock.plot_rwa_top_n import plot_top_n_stimuli_comp_maps, plot_top_n_stimuli_on_shaft, find_distances_to_peak, \
     plot_top_n_stimuli_on_termination, plot_top_n_junctions_on_fig, print_top_stim_and_comp_ids

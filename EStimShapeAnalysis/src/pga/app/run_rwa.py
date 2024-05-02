@@ -6,7 +6,7 @@ from analysis.ga.rwa import get_next
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
-from pga.app import config
+from startup import config
 from pga.mock.mock_ga_responses import collect_trials
 from pga.mock.mock_rwa_analysis import compile_data, remove_empty_response_trials, condition_spherical_angles, \
     hemisphericalize_orientation, compute_shaft_rwa, compute_termination_rwa, compute_junction_rwa, save

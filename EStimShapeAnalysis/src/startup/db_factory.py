@@ -1,7 +1,7 @@
 import mysql.connector
 
 from clat.util.connection import Connection
-from pga.app import config
+from startup import config
 from pga.multi_ga_db_util import MultiGaDbUtil
 
 HOST = '172.30.6.80'
