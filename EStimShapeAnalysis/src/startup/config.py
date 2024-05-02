@@ -8,8 +8,7 @@ image_path = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/pngs"
 java_output_dir = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/java_output"
 rwa_output_dir = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/rwa"
 
-ga_config = TwoDThreeDGAConfig()
-ga_config.database = ga_database
+ga_config = TwoDThreeDGAConfig(ga_database)
 ga_config.ga_name = ga_name
 
 

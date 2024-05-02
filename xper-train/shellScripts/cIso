@@ -1,7 +1,8 @@
 #!/bin/bash
-source pathsIsogabor
+source version
+source paths
 ./SystemVars
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_isogabor_$VERSION <<EOF
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_ISOGABOR <<EOF
 UPDATE SystemVar SET val=500 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=5 WHERE name='xper_slides_per_trial';
 UPDATE SystemVar SET val=250 WHERE name = 'xper_inter_slide_interval';

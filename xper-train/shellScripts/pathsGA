@@ -3,46 +3,12 @@ source version
 VERSION=$VERSION_GA
 PROPERTIES="xper.properties.ga"
 
-#Replacing Database Declarations
-sed -i 's\jdbc.url=jdbc:mysql:.*\jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_'$VERSION'?rewriteBatchedStatements=true\g' $PROPERTIES
-
 #Defining paths for xper.properties versions
 ESTIMSHAPE="/home/r2_allen/git/EStimShape"
 SHELLSCRIPTS="$ESTIMSHAPE/xper-train/shellScripts"
 XPER_PROPERTIES_GA="$SHELLSCRIPTS/xper.properties.ga"
 DIST="$ESTIMSHAPE/xper-train/dist"
 
-#DEFINING BASE STIMULI DIR for Recording and Monkey Computer
-R_STIMULI="$ESTIMSHAPE/xper-train/stimuli"
-M_STIMULI="/home/m2_allen/Documents/stimuli/$VERSION"
-
-
-#ga PATHS
-R_GA="$R_STIMULI/ga"
-M_GA="$M_STIMULI/ga"
-M_RSYNC_GA="m2_allen@m2_aliya:/home/m2_allen/Documents/stimuli/$VERSION/ga"
-
-R_PNGS="$R_GA/pngs"
-R_SPECS="$R_GA/specs"
-M_PNGS="$M_GA/pngs"
-M_SPECS="$M_GA/specs"
-
-
-sed -i "s\generator.png_path.*\generator.png_path = $R_PNGS\g" $PROPERTIES
-sed -i "s\experiment.png_path.*\experiment.png_path = $M_PNGS\g" $PROPERTIES
-sed -i "s\generator.spec_path.*\generator.spec_path = $R_SPECS\g" $PROPERTIES
-
-
-#RFPLOT PATHS
-R_RFPLOT="$R_STIMULI/rfplot"
-M_RFPLOT="$M_STIMULI/rfplot"
-R_RFPLOT_PNGS="$R_RFPLOT/pngs"
-M_RFPLOT_PNGS="$M_RFPLOT/pngs"
-M_RSYNC_RFPLOT="m2_allen@m2_aliya:/home/m2_allen/Documents/stimuli/$VERSION/rfplot"
-
-
-sed -i "s\rfplot.png_library_path_generator.*\rfplot.png_library_path_generator = $R_RFPLOT_PNGS\g" $PROPERTIES
-sed -i "s\rfplot.png_library_path_experiment.*\rfplot.png_library_path_experiment = $M_RFPLOT_PNGS\g" $PROPERTIES
 
 
 

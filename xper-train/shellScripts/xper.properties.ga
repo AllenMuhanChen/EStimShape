@@ -2,7 +2,7 @@
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url = jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_ga_test_240502?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_ga_test_240502?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -24,17 +24,17 @@ fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
 
 # if not specified, the default is org.xper.config.RFPlotConfig
 rfplot.config_class=org.xper.allen.rfplot.AllenRFPlotConfig
-rfplot.png_library_path_generator = /home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
-rfplot.png_library_path_experiment = /home/m2_allen/Documents/stimuli/ga_dev_240207/rfplot/pngs
+rfplot.png_library_path_generator=/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
+rfplot.png_library_path_experiment=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
 
 #############################################################################
 # parameters - paths
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path = /home/r2_allen/Documents/EStimShape/allen_estimshape_ga_test_240502/stimuli/ga/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_test_240502/stimuli/ga/pngs
 #path of computer running experiment
-experiment.png_path = /home/m2_allen/Documents/stimuli/allen_estimshape_ga_test_240502/ga/pngs
-generator.spec_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/ga/specs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_test_240502/stimuli/ga/pngs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_test_240502/stimuli/ga/specs
 
 #############################################################################
 # parameters - GA
@@ -45,7 +45,7 @@ number_of_repetitions_per_stimulus = 5
 #############################################################################
 # parameters - xper
 #############################################################################
-console.eye_simulation=false
+console.eye_simulation=true
 acq.server_host=172.30.6.80
 
 # none, comedi, ni

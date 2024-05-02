@@ -1,7 +1,8 @@
 #!/bin/bash
-source pathsGA
+source version
+source paths
 ./SystemVars
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
 UPDATE SystemVar SET val=4000 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=1 WHERE name='xper_slides_per_trial';
 UPDATE SystemVar SET val=0 WHERE name = 'xper_inter_slide_interval';
@@ -18,8 +19,6 @@ sudo -S <<< r2_allen cp $XPER_PROPERTIES_GA $DIST/xper.properties
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_GA $DIST/allen/xper.properties
 
 cd $DIST
-
-rsync -av $R_RFPLOT_PNGS $M_RSYNC_RFPLOT
 
 java -jar rfplot_console.jar
 

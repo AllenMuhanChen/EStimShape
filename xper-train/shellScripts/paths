@@ -1,0 +1,11 @@
+#!/bin/bash
+#Defining paths for xper.properties versions
+ESTIMSHAPE="/home/r2_allen/git/EStimShape"
+SHELLSCRIPTS="$ESTIMSHAPE/xper-train/shellScripts"
+DIST="$ESTIMSHAPE/xper-train/dist"
+
+XPER_PROPERTIES_GA="$SHELLSCRIPTS/xper.properties.ga"
+XPER_PROPERTIES_PROCEDURAL="$SHELLSCRIPTS/xper.properties.procedural"
+XPER_PROPERTIES_ISOGABOR="$SHELLSCRIPTS/xper.properties.isogabor"
+
+

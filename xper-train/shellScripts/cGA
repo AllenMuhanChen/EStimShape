@@ -1,9 +1,10 @@
 #!/bin/bash
-source pathsGA
+source version
+source paths
 ./SystemVars
 
 #Often VARYING SystemVars - HeadFixed now. 
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_estimshape_$VERSION <<EOF
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
 UPDATE SystemVar SET val=500 WHERE name='xper_slide_length';
 UPDATE SystemVar SET val=5 WHERE name='xper_slides_per_trial';
 UPDATE SystemVar SET val=250 WHERE name = 'xper_inter_slide_interval';

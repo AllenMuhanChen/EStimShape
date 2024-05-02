@@ -1,6 +1,7 @@
 #!/bin/bash
-source pathsIsogabor
-mysql --host=172.30.6.80 --user=xper_rw --password=up2nite allen_isogabor_$VERSION <<EOF
+source version
+source paths
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_ISOGABOR <<EOF
 TRUNCATE Table BehMsg;
 TRUNCATE Table BehMsgEye;
 TRUNCATE Table StimSpec;

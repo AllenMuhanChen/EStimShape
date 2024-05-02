@@ -3,7 +3,7 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_ga_dev_240207?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_test_240502?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -28,8 +28,8 @@ fixcal.config_class=org.xper.allen.config.AllenFixCalConfig
 
 # if not specified, the default is org.xper.config.RFPlotConfig
 rfplot.config_class=org.xper.allen.rfplot.AllenRFPlotConfig
-rfplot.png_library_path_generator = /home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
-rfplot.png_library_path_experiment = /home/m2_allen/Documents/stimuli/ga_dev_240207/rfplot/pngs
+rfplot.png_library_path_generator=/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
+rfplot.png_library_path_experiment=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs
 
 
 # if not specified, the default is org.xper.rds.RdsConfig
@@ -42,14 +42,14 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240502/stimuli/procedural/pngs
 #path of computer running experiment
-experiment.png_path = /home/m2_allen/Documents/stimuli/ga_dev_240207/procedural/pngs
-generator.spec_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/specs
-generator.noisemap_path = /home/r2_allen/git/EStimShape/xper-train/stimuli/procedural/noisemaps
-experiment.noisemap_path = /home/m2_allen/Documents/stimuli/ga_dev_240207/procedural/noisemaps
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240502/stimuli/procedural/pngs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240502/stimuli/procedural/specs
+generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240502/stimuli/procedural/pngs
+experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240502/stimuli/procedural/pngs
 #############
-ga.spec_path = /home/r2_allen/Documents/EStimShape/ga_dev_240207/specs
+ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240502/stimuli/ga/specs
 
 
 acq.server_host=172.30.6.80
