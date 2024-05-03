@@ -364,15 +364,15 @@ public class ClassicConfig {
 		return slideTrialIntanRecordingController;
 	}
 
-	@Bean
-	public IntanFileNamingStrategy<Long> intanFileNamingStrategy(){
-		UpcomingTasksFileNamingStrategy strategy = new UpcomingTasksFileNamingStrategy();
-		strategy.setBaseNetworkPath(intanConfig.intanRemoteDirectory);
-		strategy.setNumTasks(xperSlidePerTrial());
-		strategy.setIntan(intanConfig.intan());
-		strategy.setDataSource(baseConfig.dataSource());
-		return strategy;
-	}
+//	@Bean
+//	public IntanFileNamingStrategy<Long> intanFileNamingStrategy(){
+//		UpcomingTasksFileNamingStrategy strategy = new UpcomingTasksFileNamingStrategy();
+//		strategy.setBaseNetworkPath(intanConfig.intanRemoteDirectory);
+//		strategy.setNumTasks(xperSlidePerTrial());
+//		strategy.setIntan(intanConfig.intan());
+//		strategy.setDataSource(baseConfig.dataSource());
+//		return strategy;
+//	}
 
 	@Bean
 	public JvmManager jvmManager() {

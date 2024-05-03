@@ -16,6 +16,7 @@ public abstract class IntanFileNamingStrategy<T> {
 
     public void rename(T parameter){
         String baseFilename = nameBaseFile(parameter);
+        System.out.println("baseFilename: " + baseFilename);
         if (baseFilename != null){
             intanRHD.setBaseFilename(baseFilename);
         }
