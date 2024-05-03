@@ -28,6 +28,18 @@ class ResponseParser:
         self.db_util = db_util
 
     def parse_to_db(self, ga_name: str) -> None:
+        intan_dirs_for_this_gen = self.find_matching_folders(ga_name)
+        print(f"Found {len(intan_dirs_for_this_gen)} matching folders for GA {ga_name}")
+
+        if len(intan_dirs_for_this_gen) == 0:
+            print("No matching folders found")
+            return
+        if len(intan_dirs_for_this_gen) > 1:
+            print("More than one matching folder found.")
+            return
+
+        intan_dir = intan_dirs_for_this_gen[0]
+        print(f"Using folder {intan_dir}")
 
         # stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
         #
@@ -37,6 +49,26 @@ class ResponseParser:
         #
         # self._write_to_db(spike_rates_per_channel_per_task_per_stim)
 
+    def find_matching_folders(self, ga_name: str):
+        current_experiment_id = self.db_util.read_current_experiment_id(ga_name)
+        current_gen_id = self.db_util.read_ready_gas_and_generations_info().get(ga_name)
+        matching_folders = []
+
+        # Walk through the directory structure
+        for root, dirs, files in os.walk(self.intan_spike_path):
+            for dir_name in dirs:
+                # Parse directory name to extract IDs
+                parts = dir_name.split('_')
+                if len(parts) >= 5:
+                    experiment_id = int(parts[0])
+                    gen_id = int(parts[1])
+
+                    # Check if this directory matches the current experiment and generation IDs
+                    if experiment_id == current_experiment_id and gen_id == current_gen_id:
+                        full_path = os.path.join(root, dir_name)
+                        matching_folders.append(full_path)
+
+        return matching_folders
     def _write_to_db(self, spike_rates_per_channel_per_task_for_stims):
         insert_data = []
         for stim_id, spike_rates_per_channel_for_tasks in spike_rates_per_channel_per_task_for_stims.items():
