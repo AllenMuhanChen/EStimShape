@@ -24,6 +24,7 @@ import org.xper.experiment.TaskDoneCache;
 import org.xper.experiment.listener.ExperimentEventListener;
 import org.xper.experiment.listener.RFPlotTaskDataSourceController;
 import org.xper.experiment.mock.NullTaskDoneCache;
+import org.xper.intan.IntanFileNamingStrategy;
 import org.xper.rfplot.drawing.*;
 import org.xper.rfplot.drawing.gabor.Gabor;
 import org.xper.rfplot.gui.*;
@@ -45,6 +46,9 @@ public class RFPlotConfig {
 
 	@ExternalValue("rfplot.png_library_path_experiment")
 	public String pngLibraryPath_experiment;
+
+	@ExternalValue("rfplot.intan_path")
+	public String rfPlotIntanPath;
 
 	@Bean
 	public PerspectiveRenderer rfRenderer () {
@@ -243,6 +247,16 @@ public class RFPlotConfig {
 		plugins.add(rfPlotConsolePlugin());
 		console.setConsolePlugins(plugins);
 		return console;
+	}
+
+	@Bean
+	public String intanDefaultBaseFilename() {
+		return "RFPlot";
+	}
+
+	@Bean
+	public String intanDefaultSavePath() {
+		return rfPlotIntanPath;
 	}
 
 

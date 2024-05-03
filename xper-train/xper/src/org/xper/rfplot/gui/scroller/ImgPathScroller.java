@@ -41,18 +41,22 @@ public class ImgPathScroller extends RFPlotScroller {
 
     private void setPngsFromLibrary(String libraryPath) {
         File path = new File(libraryPath);
-        pngs = new CyclicIterator<>(Arrays.asList(Objects.requireNonNull(path.listFiles(new FileFilter() {
-            @Override
-            public boolean accept(File pathname) {
-                String lowerCaseName = pathname.getName().toLowerCase();
-                return lowerCaseName.endsWith(".png")
-                        || lowerCaseName.endsWith(".jpg")
-                        || lowerCaseName.endsWith(".jpeg")
-                        || lowerCaseName.endsWith(".bmp")
-                        || lowerCaseName.endsWith(".gif")
-                        || lowerCaseName.endsWith(".webp");
-            }
-        }))));
+        try {
+            pngs = new CyclicIterator<>(Arrays.asList(Objects.requireNonNull(path.listFiles(new FileFilter() {
+                @Override
+                public boolean accept(File pathname) {
+                    String lowerCaseName = pathname.getName().toLowerCase();
+                    return lowerCaseName.endsWith(".png")
+                            || lowerCaseName.endsWith(".jpg")
+                            || lowerCaseName.endsWith(".jpeg")
+                            || lowerCaseName.endsWith(".bmp")
+                            || lowerCaseName.endsWith(".gif")
+                            || lowerCaseName.endsWith(".webp");
+                }
+            }))));
+        } catch (NullPointerException e){
+            throw new RuntimeException("No images found in " + libraryPath);
+        }
     }
 
     public String getFirstPath(){

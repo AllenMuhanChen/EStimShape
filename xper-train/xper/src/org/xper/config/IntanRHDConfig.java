@@ -45,9 +45,19 @@ public class IntanRHDConfig {
     public IntanRHD intan() {
         IntanRHD intanRHD = new IntanRHD();
         intanRHD.setIntanClient(intanClient());
-        intanRHD.setDefaultSavePath(intanDefaultSavePath);
-        intanRHD.setDefaultBaseFileName(intanDefaultBaseFilename);
+        intanRHD.setDefaultSavePath(intanDefaultSavePath());
+        intanRHD.setDefaultBaseFileName(intanDefaultBaseFilename());
         return intanRHD;
+    }
+
+    @Bean
+    public String intanDefaultBaseFilename() {
+        return intanDefaultBaseFilename;
+    }
+
+    @Bean
+    public String intanDefaultSavePath() {
+        return intanDefaultSavePath;
     }
 
     @Bean
