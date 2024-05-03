@@ -9,8 +9,9 @@ import org.xper.allen.pga.FromDbGABlockGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
-import org.xper.drawing.Coordinates2D;
+import org.xper.config.IntanRHDConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
+import org.xper.allen.intan.GAInfoFileNamingStrategy;
 
 import java.util.*;
 
@@ -22,6 +23,8 @@ import java.util.*;
 public class PGAConfig {
     @Autowired MStickPngConfig mStickPngConfig;
     @Autowired BaseConfig baseConfig;
+    @Autowired
+    IntanRHDConfig intanConfig;
 
     @ExternalValue("number_of_repetitions_per_stimulus")
     public Integer numberOfRepetitionsPerStimulus;
@@ -37,9 +40,14 @@ public class PGAConfig {
         generator.setGlobalTimeUtil(baseConfig.localTimeUtil());
         generator.setDbUtil(dbUtil());
         generator.setNumTrialsPerStimulus(numberOfRepetitionsPerStimulus);
-        generator.setGaName("New3D");
+        generator.setGaName(gaName());
         generator.setRfSource(rfSource());
         return generator;
+    }
+
+    @Bean
+    public String gaName() {
+        return "New3D";
     }
 
     @Bean
@@ -69,6 +77,16 @@ public class PGAConfig {
         MultiGaDbUtil dbUtil = new MultiGaDbUtil();
         dbUtil.setDataSource(baseConfig.dataSource());
         return dbUtil;
+    }
+
+    @Bean
+    public GAInfoFileNamingStrategy intanFileNamingStrategy(){
+        GAInfoFileNamingStrategy strategy = new GAInfoFileNamingStrategy();
+        strategy.setBaseNetworkPath(intanConfig.intanRemoteDirectory);
+        strategy.setIntan(intanConfig.intan());
+        strategy.setGaName(gaName());
+        strategy.setDbUtil(dbUtil());
+        return strategy;
     }
 
 }

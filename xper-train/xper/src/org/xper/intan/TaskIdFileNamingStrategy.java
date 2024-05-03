@@ -17,6 +17,7 @@ public class TaskIdFileNamingStrategy extends IntanFileNamingStrategy<Long>{
     @Dependency
     String baseNetworkPath;
 
+
     @Override
     protected String nameBaseFile(Long taskId) {
         return taskId.toString();

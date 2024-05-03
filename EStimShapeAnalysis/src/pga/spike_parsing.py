@@ -29,13 +29,13 @@ class ResponseParser:
 
     def parse_to_db(self, ga_name: str) -> None:
 
-        stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
-
-        task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
-
-        spike_rates_per_channel_per_task_per_stim = self._parse_spike_rate_per_channel_from(task_ids_for_stim_ids)
-
-        self._write_to_db(spike_rates_per_channel_per_task_per_stim)
+        # stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
+        #
+        # task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
+        #
+        # spike_rates_per_channel_per_task_per_stim = self._parse_spike_rate_per_channel_from(task_ids_for_stim_ids)
+        #
+        # self._write_to_db(spike_rates_per_channel_per_task_per_stim)
 
     def _write_to_db(self, spike_rates_per_channel_per_task_for_stims):
         insert_data = []
