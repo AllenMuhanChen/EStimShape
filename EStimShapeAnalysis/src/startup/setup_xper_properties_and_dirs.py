@@ -98,16 +98,20 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.ga'
     # DB URL
     db_url = f"jdbc:mysql://172.30.6.80/{version_ga}?rewriteBatchedStatements=true"
-    # PATHS
+    # STIM PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
     r_ga_path = f"{stimuli_base_r}/ga"
     generator_png_path = f"{r_ga_path}/pngs"
     experiment_png_path = f"{recording_computer_sftp}{r_ga_path}/pngs"
     generator_spec_path = f"{r_ga_path}/specs"
+
     # RFPLOT
     generator_rfplot_pngs = "/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs"
     experiment_rfplot_pngs = f"{recording_computer_sftp}{generator_rfplot_pngs}"
-    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_ga}/rfPlot"
+    rfplot_intan_path = f"/home/i2_allen/Documents/EStimShape/{version_ga}/rfPlot"
+
+    # INTAN
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_ga}/ga"
 
     # Create an instance of PropertiesModifier
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -119,7 +123,8 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
         "generator.spec_path": generator_spec_path,
         "rfplot.png_library_path_generator": generator_rfplot_pngs,
         "rfplot.png_library_path_experiment": experiment_rfplot_pngs,
-        "rfplot.intan_path": intan_path
+        "rfplot.intan_path": rfplot_intan_path,
+        "intan.default_save_path": intan_path,
     }
     # Replace properties using the dictionary
     for var_name, new_value in properties_dict.items():
