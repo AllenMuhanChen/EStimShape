@@ -1,5 +1,6 @@
 package org.xper.allen.pga;
 
+import com.sun.org.apache.xpath.internal.operations.Mult;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
@@ -13,6 +14,8 @@ import org.xper.exception.VariableNotFoundException;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim> {
@@ -143,13 +146,29 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     @Override
     protected void writeTrials(){
+        List<Long> allStimIds = new ArrayList<>();
+
+        //Write All Stims into StimSpec and build list of stimIds (which includes reps)
         for (Stim stim : getStims()) {
-            stim.writeStim();
             Long stimId = stim.getStimId();
+            stim.writeStim();
             for (int i = 0; i < numTrialsPerStimulus; i++) {
-                long taskId = getGlobalTimeUtil().currentTimeMicros();
-                dbUtil.writeTaskToDo(taskId, stimId, -1, gaName, genId);
+                allStimIds.add(stimId);
             }
+        }
+
+        //shuffle allStimIds
+        Collections.shuffle(allStimIds);
+
+        //Write allStimIds into TaskToDo
+        long lastTaskId = -1L;
+        for (Long stimId : allStimIds) {
+            long taskId = getGlobalTimeUtil().currentTimeMicros();
+            while (taskId == lastTaskId) {
+                taskId = getGlobalTimeUtil().currentTimeMicros();
+            }
+
+            dbUtil.writeTaskToDo(taskId, stimId, -1, getGaName(), genId);
         }
     }
 

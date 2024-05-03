@@ -1,7 +1,6 @@
 package org.xper.allen.app.newga;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.newga.blockgen.SlotGABlockGenerator;
 import org.xper.allen.pga.FromDbGABlockGenerator;
 import org.xper.util.FileUtil;
 

@@ -114,13 +114,14 @@ public class MultiGaDbUtil extends AllenDbUtil {
     public List<MultiGAExperimentTask> readExperimentTasks(String gaName, long genId, long lastDoneTaskId){
         final LinkedList<MultiGAExperimentTask> taskToDo = new LinkedList<>();
         JdbcTemplate jt = new JdbcTemplate(dataSource);
+        String sql = " select t.task_id, t.stim_id, t.xfm_id, t.gen_id, t.ga_name, " +
+                " (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
+                " (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
+                " from TaskToDo t " +
+                " where t.ga_name = ? and t.gen_id = ? and t.task_id > ? " +
+                " order by t.task_id";
         jt.query(
-                " select t.task_id, t.stim_id, t.xfm_id, t.gen_id, t.ga_name, " +
-                        " (select spec from StimSpec s where s.id = t.stim_id ) as stim_spec, " +
-                        " (select spec from XfmSpec x where x.id = t.xfm_id) as xfm_spec " +
-                    " from TaskToDo t " +
-                    " where t.ga_name = ? and t.gen_id = ? and t.task_id > ? " +
-                    " order by t.task_id",
+                sql,
                 new Object[] {gaName, genId, lastDoneTaskId},
                 new RowCallbackHandler() {
                     public void processRow(ResultSet rs) throws SQLException {

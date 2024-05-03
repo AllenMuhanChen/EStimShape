@@ -12,21 +12,21 @@ public class MockExperiment {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 
-        MultiGaDbUtil dbUtil = context.getBean(MultiGaDbUtil.class);
-        JdbcTemplate jt = new JdbcTemplate(dbUtil.getDataSource());
-        jt.execute("TRUNCATE TABLE TaskToDo");
-        jt.execute("TRUNCATE TABLE TaskDone");
-        jt.execute("TRUNCATE TABLE StimSpec");
-        jt.execute("TRUNCATE TABLE BehMsg");
-        jt.execute("TRUNCATE TABLE BehMsgEye");
-        jt.execute("TRUNCATE TABLE StimObjData");
-        jt.execute("TRUNCATE TABLE ExpLog");
-        jt.execute("TRUNCATE TABLE AcqData");
-        jt.execute("TRUNCATE TABLE StimGaInfo");
-        jt.execute("TRUNCATE TABLE LineageGaInfo");
+//        MultiGaDbUtil dbUtil = context.getBean(MultiGaDbUtil.class);
+//        JdbcTemplate jt = new JdbcTemplate(dbUtil.getDataSource());
+//        jt.execute("TRUNCATE TABLE TaskToDo");
+//        jt.execute("TRUNCATE TABLE TaskDone");
+//        jt.execute("TRUNCATE TABLE StimSpec");
+//        jt.execute("TRUNCATE TABLE BehMsg");
+//        jt.execute("TRUNCATE TABLE BehMsgEye");
+//        jt.execute("TRUNCATE TABLE StimObjData");
+//        jt.execute("TRUNCATE TABLE ExpLog");
+//        jt.execute("TRUNCATE TABLE AcqData");
+//        jt.execute("TRUNCATE TABLE StimGaInfo");
+//        jt.execute("TRUNCATE TABLE LineageGaInfo");
 
 
-        dbUtil.writeReadyGAandGenerationInfo("New3D");
+//        dbUtil.writeReadyGAandGenerationInfo("New3D");
 
 
         ExperimentRunner runner = context.getBean(ExperimentRunner.class);
