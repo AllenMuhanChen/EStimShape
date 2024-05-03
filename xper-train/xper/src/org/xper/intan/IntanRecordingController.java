@@ -31,8 +31,6 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
     public void experimentStart(long timestamp) {
         tryConnection();
         if (toRecord()) {
-            System.out.println("IntanRecordingController: experimentStart: renaming file");
-            System.out.println("timestamp: " + timestamp);
             fileNamingStrategy.rename(timestamp);
             getIntan().record();
         }
