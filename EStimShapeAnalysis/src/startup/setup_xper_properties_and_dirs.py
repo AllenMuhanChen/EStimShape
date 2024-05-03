@@ -4,7 +4,17 @@ import re
 from startup import config
 
 
-class PropertiesModifier:
+class XperPropertiesModifier:
+    '''
+    A class to easily modify the properties in a xper.properties file.
+
+    First init the class with the path to the xper.properties file.
+
+    Then call the replace_property method with the property name and the new value on
+    all the properties you want to change.
+
+    Finally, call the save_changes method to save the changes back to the file.
+    '''
     def __init__(self, properties_file_path):
         """
         Initializes the PropertiesModifier class.
@@ -18,7 +28,7 @@ class PropertiesModifier:
         with open(self.properties_file_path, 'r') as properties_file:
             self.properties_content = properties_file.readlines()
 
-    def replace_property(self, var_name, new_value):
+    def replace_property(self, var_name: str, new_value: str):
         """
         Replaces a specific property in the properties file content.
 
@@ -36,7 +46,8 @@ class PropertiesModifier:
         for i, line in enumerate(self.properties_content):
             if pattern.match(line):
                 self.properties_content[i] = new_line + "\n"
-                break
+                return
+        raise ValueError(f"Property {var_name} not found in {self.properties_file_path}")
 
     def save_changes(self):
         """
@@ -96,8 +107,10 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     # RFPLOT
     generator_rfplot_pngs = "/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs"
     experiment_rfplot_pngs = f"{recording_computer_sftp}{generator_rfplot_pngs}"
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_ga}/rfPlot"
+
     # Create an instance of PropertiesModifier
-    modifier = PropertiesModifier(xper_properties_file_path)
+    modifier = XperPropertiesModifier(xper_properties_file_path)
     # ALL PROPERTIES to REPLACE:
     properties_dict = {
         "jdbc.url": db_url,
@@ -105,7 +118,8 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
         "experiment.png_path": experiment_png_path,
         "generator.spec_path": generator_spec_path,
         "rfplot.png_library_path_generator": generator_rfplot_pngs,
-        "rfplot.png_library_path_experiment": experiment_rfplot_pngs
+        "rfplot.png_library_path_experiment": experiment_rfplot_pngs,
+        "rfplot.intan_path": intan_path
     }
     # Replace properties using the dictionary
     for var_name, new_value in properties_dict.items():
@@ -144,7 +158,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     experiment_rfplot_pngs = f"{recording_computer_sftp}{generator_rfplot_pngs}"
 
     # Create an instance of PropertiesModifier
-    modifier = PropertiesModifier(xper_properties_file_path)
+    modifier = XperPropertiesModifier(xper_properties_file_path)
     # ALL PROPERTIES to REPLACE:
     properties_dict = {
         "jdbc.url": db_url,
@@ -183,7 +197,7 @@ def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30
     # DB URL
     db_url = f"jdbc:mysql://172.30.6.80/{version_isogabor}?rewriteBatchedStatements=true"
 
-    modifier = PropertiesModifier(xper_properties_file_path)
+    modifier = XperPropertiesModifier(xper_properties_file_path)
     # ALL PROPERTIES to REPLACE:
     properties_dict = {
         "jdbc.url": db_url,
