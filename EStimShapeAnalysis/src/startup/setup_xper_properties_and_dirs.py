@@ -158,9 +158,9 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     experiment_noisemap_path = experiment_png_path
     ga_spec_path = f"{stimuli_base_r}/ga/specs"
 
-    # RFPLOT
-    generator_rfplot_pngs = "/home/r2_allen/git/EStimShape/xper-train/stimuli/rfplot/pngs"
-    experiment_rfplot_pngs = f"{recording_computer_sftp}{generator_rfplot_pngs}"
+
+    # INTAN
+    intan_path = f"/home/i2_allen/Documents/EStimShape/{version_nafc}/nafc"
 
     # Create an instance of PropertiesModifier
     modifier = XperPropertiesModifier(xper_properties_file_path)
@@ -172,9 +172,8 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
         "generator.spec_path": generator_spec_path,
         "generator.noisemap_path": generator_noisemap_path,
         "experiment.noisemap_path": experiment_noisemap_path,
-        "rfplot.png_library_path_generator": generator_rfplot_pngs,
-        "rfplot.png_library_path_experiment": experiment_rfplot_pngs,
-        "ga.spec_path": ga_spec_path
+        "ga.spec_path": ga_spec_path,
+        "intan.default_save_path": intan_path,
     }
 
     # Replace properties using the dictionary
