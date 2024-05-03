@@ -23,10 +23,11 @@ from clat.util.connection import Connection
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
     num_trials_per_generation = 40
-    base_intan_path = "/bleh"
 
-    def __init__(self, database):
+
+    def __init__(self,*,  database: str, base_intan_path: str):
         self.database = database
+        self.base_intan_path = base_intan_path
         self.connection = self.make_connection()
         self.var_fetcher = GAVarParameterFetcher(self.connection)
         self.db_util = self.make_db_util()

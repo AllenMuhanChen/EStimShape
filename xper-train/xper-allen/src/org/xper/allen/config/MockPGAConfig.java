@@ -46,6 +46,7 @@ public class MockPGAConfig {
         listeners.add(classicConfig.messageDispatcher());
         listeners.add(classicConfig.databaseTaskDataSourceController());
         listeners.add(classicConfig.messageDispatcherController());
+        listeners.add(classicConfig.intanRecordingController());
         return listeners;
     }
 
@@ -53,7 +54,7 @@ public class MockPGAConfig {
     public List<TrialEventListener> trialEventListeners () {
         List<TrialEventListener> trialEventListener = new LinkedList<TrialEventListener>();
         trialEventListener.add(classicConfig.messageDispatcher());
-
+        trialEventListener.add(classicConfig.intanRecordingController());
         return trialEventListener;
     }
 
@@ -61,6 +62,7 @@ public class MockPGAConfig {
     public List<SlideEventListener> slideEventListeners () {
         List<SlideEventListener> listeners = new LinkedList<SlideEventListener>();
         listeners.add(classicConfig.messageDispatcher());
+        listeners.add(classicConfig.intanRecordingController());
         return listeners;
     }
 

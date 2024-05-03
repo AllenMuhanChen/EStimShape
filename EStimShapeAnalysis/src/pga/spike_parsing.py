@@ -33,11 +33,11 @@ class ResponseParser:
 
         task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
 
-        spike_rates_per_channel_per_task_per_stim = self.parse_spike_rate_per_channel_from(task_ids_for_stim_ids)
+        spike_rates_per_channel_per_task_per_stim = self._parse_spike_rate_per_channel_from(task_ids_for_stim_ids)
 
-        self.write_to_db(spike_rates_per_channel_per_task_per_stim)
+        self._write_to_db(spike_rates_per_channel_per_task_per_stim)
 
-    def write_to_db(self, spike_rates_per_channel_per_task_for_stims):
+    def _write_to_db(self, spike_rates_per_channel_per_task_for_stims):
         insert_data = []
         for stim_id, spike_rates_per_channel_for_tasks in spike_rates_per_channel_per_task_for_stims.items():
             for task_id, spikes_per_second_for_channels in spike_rates_per_channel_for_tasks.items():
@@ -54,7 +54,7 @@ class ResponseParser:
             task_ids_for_stim_ids[stim_id] = task_ids
         return task_ids_for_stim_ids
 
-    def parse_spike_rate_per_channel_from(self, task_ids_for_stim_ids: Dict[int, List[int]]) -> Dict[
+    def _parse_spike_rate_per_channel_from(self, task_ids_for_stim_ids: Dict[int, List[int]]) -> Dict[
         int, Dict[int, Dict[Channel, float]]]:
         spike_rates_per_channel_per_task_for_stims = {}
         for stim_id, task_ids in task_ids_for_stim_ids.items():
