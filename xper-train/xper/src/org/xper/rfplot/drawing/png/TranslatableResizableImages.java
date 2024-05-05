@@ -163,7 +163,13 @@ public class TranslatableResizableImages {
 	public int loadTexture(String pathname, int textureIndex) {
 		try {
 			File imageFile = new File(pathname);
-			BufferedImage img = ImageIO.read(imageFile);
+			BufferedImage img;
+			try {
+				img = ImageIO.read(imageFile);
+			} catch (IOException e) {
+				System.err.println("Could not load image: " + pathname);
+				throw e;
+			}
 			getImgWidth().add(textureIndex, img.getWidth());
 			getImgHeight().add(textureIndex, img.getHeight());
 			//			System.out.println("loaded image : " + imgWidth + ", " + imgHeight);
