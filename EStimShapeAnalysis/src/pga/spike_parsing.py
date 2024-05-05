@@ -3,11 +3,15 @@ from datetime import datetime
 from typing import Dict, List, Callable
 
 import numpy as np
+import pandas as pd
+import xmltodict
 
 from clat.intan.channels import Channel
 from clat.intan.livenotes import map_unique_task_id_to_epochs_with_livenotes
 from clat.intan.marker_channels import epoch_using_marker_channels
+from clat.intan.one_file_spike_parsing import OneFileParser
 from clat.intan.spike_file import fetch_spike_tstamps_from_file
+from clat.util.connection import Connection
 from pga.multi_ga_db_util import MultiGaDbUtil
 
 
@@ -27,13 +31,15 @@ class ResponseParser:
         # self.channels = get_channels()
         self.db_util = db_util
 
+
     def parse_to_db(self, ga_name: str) -> None:
         intan_dirs_for_this_gen = self.find_matching_folders(ga_name)
         print(f"Found {len(intan_dirs_for_this_gen)} matching folders for GA {ga_name}")
 
-        if len(intan_dirs_for_this_gen) == 0:
+        if not intan_dirs_for_this_gen:
             print("No matching folders found")
             return
+
         if len(intan_dirs_for_this_gen) > 1:
             print("More than one matching folder found.")
             return
@@ -41,13 +47,45 @@ class ResponseParser:
         intan_dir = intan_dirs_for_this_gen[0]
         print(f"Using folder {intan_dir}")
 
-        # stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
-        #
-        # task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
-        #
-        # spike_rates_per_channel_per_task_per_stim = self._parse_spike_rate_per_channel_from(task_ids_for_stim_ids)
-        #
-        # self._write_to_db(spike_rates_per_channel_per_task_per_stim)
+        stims_to_parse = self.db_util.read_stims_with_no_responses(ga_name)
+        task_ids_for_stim_ids = self._read_task_ids_per_stim_id_to_parse_from_db(ga_name, stims_to_parse)
+
+        parser = OneFileParser()
+        spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id, sample_rate = parser.parse(intan_dir)
+        df_spike_rates = self._process_data_to_df(spike_tstamps_for_channels_by_task_id, epoch_start_stop_by_task_id,
+                                                  task_ids_for_stim_ids, sample_rate)
+
+        self._write_to_db(df_spike_rates)
+
+    def _process_data_to_df(self, spikes, epochs, task_ids_for_stim_ids, sample_rate):
+        data = []
+        for task_id, spikes_for_channels in spikes.items():
+            stim_id = self._find_stim_id_for_task(task_ids_for_stim_ids, task_id)
+            epoch = epochs[task_id]
+            for channel, spike_times in spikes_for_channels.items():
+                spike_count = len([time for time in spike_times if epoch[0] <= time <= epoch[1]])
+                spike_rate = spike_count / (epoch[1] - epoch[0])
+                data.append({
+                    'stim_id': stim_id,
+                    # Assuming each task_id has one stim_id
+                    'task_id': task_id,
+                    'channel': channel.value,  # Assuming channel has a 'value' attribute
+                    'spike_rate': spike_rate
+                })
+        return pd.DataFrame(data)
+
+    def _find_stim_id_for_task(self, task_ids_for_stim_ids, task_id):
+        # Search through the dictionary to find the stim_id that contains the task_id
+        for stim_id, task_ids in task_ids_for_stim_ids.items():
+            if task_id in task_ids:
+                return stim_id
+        return -1  # Return a placeholder (-1) if no stim_id is found for the task_id
+
+    def _write_to_db(self, df):
+        # Convert DataFrame rows to a list of tuples for SQL execution
+        insert_data = [tuple(row) for row in
+                       df[['stim_id', 'task_id', 'channel', 'spike_rate']].itertuples(index=False)]
+        self.db_util.add_channel_responses_in_batch(insert_data)
 
     def find_matching_folders(self, ga_name: str):
         current_experiment_id = self.db_util.read_current_experiment_id(ga_name)
@@ -69,17 +107,10 @@ class ResponseParser:
                         matching_folders.append(full_path)
 
         return matching_folders
-    def _write_to_db(self, spike_rates_per_channel_per_task_for_stims):
-        insert_data = []
-        for stim_id, spike_rates_per_channel_for_tasks in spike_rates_per_channel_per_task_for_stims.items():
-            for task_id, spikes_per_second_for_channels in spike_rates_per_channel_for_tasks.items():
-                for channel, spikes_per_second in spikes_per_second_for_channels.items():
-                    row = (stim_id, task_id, channel.value, spikes_per_second)
-                    insert_data.append(row)
-
-        self.db_util.add_channel_responses_in_batch(insert_data)
-
     def _read_task_ids_per_stim_id_to_parse_from_db(self, ga_name, stims_to_parse) -> Dict[int, List[int]]:
+        '''
+        returns: Dict[stim_id, List[task_id]]
+        '''
         task_ids_for_stim_ids: Dict[int, List[int]] = {}
         for stim_id in stims_to_parse:
             task_ids = self.db_util.read_task_done_ids_for_stim_id(ga_name, stim_id)
@@ -204,3 +235,4 @@ def count_spikes_for_channels(spike_tstamps_for_channels) -> dict[Channel, int]:
     for channel_name, spike_tstamps in spike_tstamps_for_channels.items():
         spike_counts_for_channels[channel_name] = len(spike_tstamps)
     return spike_counts_for_channels
+
