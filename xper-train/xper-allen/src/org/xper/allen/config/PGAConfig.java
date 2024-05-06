@@ -29,6 +29,7 @@ public class PGAConfig {
     @ExternalValue("number_of_repetitions_per_stimulus")
     public Integer numberOfRepetitionsPerStimulus;
 
+
     @Bean
     public FromDbGABlockGenerator generator(){
         FromDbGABlockGenerator generator = new FromDbGABlockGenerator();
@@ -42,6 +43,7 @@ public class PGAConfig {
         generator.setNumTrialsPerStimulus(numberOfRepetitionsPerStimulus);
         generator.setGaName(gaName());
         generator.setRfSource(rfSource());
+        generator.setNumCatchTrials(5);
         return generator;
     }
 

@@ -212,4 +212,12 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     public void setColor(RGBColor color) {
         this.color = color;
     }
+
+    public int getNumCatchTrials() {
+        return numCatchTrials;
+    }
+
+    public void setNumCatchTrials(int numCatchTrials) {
+        this.numCatchTrials = numCatchTrials;
+    }
 }

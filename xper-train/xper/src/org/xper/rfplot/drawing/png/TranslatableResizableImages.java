@@ -214,10 +214,11 @@ public class TranslatableResizableImages {
 			//return 0;
 
 		} catch(IOException e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
+			System.out.println("Could not load image: " + pathname);
+//			throw new RuntimeException(e);
 		}
-	}
+        return textureIndex;
+    }
 
 	public void cleanUpImage(int textureIndex){
 		GL11.glDeleteTextures(getTextureIds().get(textureIndex));

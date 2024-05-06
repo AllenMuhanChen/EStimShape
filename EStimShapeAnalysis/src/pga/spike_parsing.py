@@ -63,6 +63,7 @@ class ResponseParser:
             stim_id = self._find_stim_id_for_task(task_ids_for_stim_ids, task_id)
             epoch = epochs[task_id]
             for channel, spike_times in spikes_for_channels.items():
+                print(f"Processing task {task_id} on channel {channel.value}")
                 spike_count = len([time for time in spike_times if epoch[0] <= time <= epoch[1]])
                 spike_rate = spike_count / (epoch[1] - epoch[0])
                 data.append({
