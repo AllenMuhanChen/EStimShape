@@ -1,5 +1,5 @@
 from unittest import TestCase
-from clat.compile.trial.trial_collector import TrialCollector
+from clat.compile import TrialCollector
 from clat.util.connection import Connection
 from clat.util import time_util
 

@@ -6,7 +6,7 @@ import xmltodict
 from clat.util import table_util
 from clat.util import connection
 from clat.util.time_util import When, today
-from clat.compile.trial import trial_field as tf, trial_collector
+from clat.compile import trial_field as tf, trial_collector
 
 """DEPRECATED """
 

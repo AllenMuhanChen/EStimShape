@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import pandas as pd
 
-from clat.compile.trial import trial_field
+from clat.compile import trial_field
 from clat.util.time_util import When
 
 class DuckField:

@@ -7,13 +7,11 @@ import numpy as np
 import pandas as pd
 
 from analysis.ga.rwa import Binner, AutomaticBinner, rwa, normalize_and_combine_rwas, get_next
-from clat.compile.task.cached_task_fields import CachedTaskFieldList
-from clat.compile.trial.cached_fields import CachedFieldList
-from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
+from clat.compile import CachedFieldList
+from clat.compile import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
     NewGaNameField, RegimeScoreField
 from analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
-from clat.compile.trial.trial_collector import TrialCollector
-from clat.compile.trial.trial_field import FieldList, get_data_from_trials
+from clat.compile import TrialCollector
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys, \

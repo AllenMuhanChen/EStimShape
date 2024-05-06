@@ -3,8 +3,8 @@ from __future__ import annotations
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import subplots
 
-from clat.compile.trial.classic_database_fields import GaTypeField, GaLineageField, StimSpecIdField, StimSpecField
-from clat.compile.trial.trial_field import FieldList, get_data_from_trials
+from clat.compile import GaTypeField, GaLineageField, StimSpecIdField, StimSpecField
+from clat.compile import FieldList, get_data_from_trials
 from pga.mock.mock_ga_responses import collect_trials
 from pga.mock.mock_rwa_analysis import MockResponseField
 from clat.util import time_util

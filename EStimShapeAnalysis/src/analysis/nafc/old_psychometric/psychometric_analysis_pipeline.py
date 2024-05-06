@@ -3,8 +3,8 @@ from __future__ import annotations
 import pandas as pd
 
 from analysis.nafc.nafc_database_fields import TrialTypeField
-from clat.compile.trial.trial_collector import TrialCollector
-from clat.compile.trial.trial_field import FieldList, get_data_from_trials
+from clat.compile import TrialCollector
+from clat.compile import FieldList, get_data_from_trials
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
