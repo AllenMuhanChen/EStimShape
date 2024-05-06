@@ -194,7 +194,7 @@ class MultiGaDbUtil:
         self.conn.execute("INSERT INTO CurrentExperiments (experiment_name, experiment_id) VALUES (%s, %s)",
                           (experiment_name, experiment_id))
 
-    def read_channels(self, experiment_id, gen_id):
+    def read_cluster_channels(self, experiment_id, gen_id):
         self.conn.execute("SELECT channel FROM ClusterInfo WHERE experiment_id = %s AND gen_id = %s",
                           (experiment_id, gen_id))
         rows = self.conn.fetch_all()
@@ -212,9 +212,26 @@ class MultiGaDbUtil:
             raise Exception(f"Could not find gen_id for experiment_id {current_experiment_id}")
 
         # select the current cluster by grouping largest gen_id
-        cluster_as_strings = self.read_channels(current_experiment_id, most_recent_gen_id)
+        cluster_as_strings = self.read_cluster_channels(current_experiment_id, most_recent_gen_id)
         cluster = [Channel[channel_as_string] for channel_as_string in cluster_as_strings]
         return cluster
+
+    def write_cluster_info(self, experiment_id: int, gen_id: int, channel: str):
+        """
+        Writes cluster information into the database.
+
+        Parameters:
+        - experiment_id: The identifier for the experiment.
+        - gen_id: The generation identifier.
+        - channel: The channel information to be recorded.
+
+        This method will insert a new record into the ClusterInfo table with the provided
+        experiment_id, gen_id, and channel.
+        """
+        self.conn.execute(
+            "INSERT INTO ClusterInfo (experiment_id, gen_id, channel) VALUES (%s, %s, %s)",
+            (experiment_id, gen_id, channel)
+        )
 
     def read_responses_for(self, stim_id, channel: str = None):
         if channel is None:
