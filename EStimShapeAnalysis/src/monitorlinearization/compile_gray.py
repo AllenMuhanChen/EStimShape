@@ -1,8 +1,8 @@
 import os
 
-from clat.compile import StimSpecIdField
-from clat.compile import TaskIdCollector
-from clat.compile import TaskFieldList
+from clat.compile.task.base_database_fields import StimSpecIdField
+from clat.compile.task.compile_task_id import TaskIdCollector
+from clat.compile.task.task_field import TaskFieldList
 from clat.intan.analogin import read_analogin_file
 from clat.intan.livenotes import map_task_id_to_epochs_with_livenotes
 from clat.intan.marker_channels import epoch_using_marker_channels

@@ -22,7 +22,7 @@ from clat.util.connection import Connection
 
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
-    num_trials_per_generation = 40
+    num_trials_per_generation = 5
 
 
     def __init__(self,*,  database: str, base_intan_path: str):
@@ -33,6 +33,7 @@ class GeneticAlgorithmConfig:
         self.db_util = self.make_db_util()
         self.response_processor = self.make_response_processor()
         self.regimes = self.make_phases()
+        self.num_catch_trials = 20
 
     def make_genetic_algorithm(self) -> GeneticAlgorithm:
         ga = GeneticAlgorithm(name=self.ga_name,
@@ -41,7 +42,8 @@ class GeneticAlgorithmConfig:
                               trials_per_generation=self.num_trials_per_generation,
                               lineage_distributor=self.make_lineage_distributor(),
                               response_parser=self.make_response_parser(),
-                              response_processor=self.response_processor)
+                              response_processor=self.response_processor,
+                              num_catch_trials=self.num_catch_trials)
         return ga
 
     def make_phases(self):
