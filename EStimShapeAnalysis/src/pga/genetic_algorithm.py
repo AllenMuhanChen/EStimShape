@@ -26,6 +26,7 @@ class GeneticAlgorithm:
     lineage_distributor: ClassicLineageDistributor
     response_parser: ResponseParser
     response_processor: ResponseProcessor
+    num_catch_trials: int
 
     # Instance Variables
     experiment_id: int = field(init=False, default=None)
@@ -161,6 +162,13 @@ class GeneticAlgorithm:
                                                     stim_type=stim.mutation_type,
                                                     mutation_magnitude=stim.mutation_magnitude,
                                                     gen_id=self.gen_id)
+
+        # Write Catch Trials
+        for i in range(self.num_catch_trials):
+            self.db_util.write_stim_ga_info(stim_id=time_util.now(), parent_id=0, lineage_id=0, stim_type="CATCH",
+                                            mutation_magnitude=0, gen_id=self.gen_id)
+            #wait 1 ms
+            time.sleep(1 / 1_000)
 
 
         # Update generations

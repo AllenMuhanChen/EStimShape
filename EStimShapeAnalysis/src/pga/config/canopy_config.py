@@ -22,7 +22,7 @@ from clat.util.connection import Connection
 
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
-    num_trials_per_generation = 5
+    num_trials_per_generation = 40
 
 
     def __init__(self,*,  database: str, base_intan_path: str):

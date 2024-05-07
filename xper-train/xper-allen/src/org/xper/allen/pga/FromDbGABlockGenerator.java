@@ -59,9 +59,13 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         // Read database to find stim_ids from StimGaInfo that don't have a StimSpec
         Long experimentId = dbUtil.readCurrentExperimentId(gaName);
         List<Long> lineageIdsInThisExperiment = dbUtil.readLineageIdsForExperiment(experimentId);
+
+        addCatchLineage(lineageIdsInThisExperiment);
+
         List<Long> stimIdsToGenerate = dbUtil.findStimIdsWithoutStimSpec(lineageIdsInThisExperiment);
 
         // For each stim_id, read the stim_type and magnitude
+        System.out.println("StimIds to Generate: " + stimIdsToGenerate.size());
         for (Long stimId : stimIdsToGenerate) {
             StimGaInfoEntry stimInfo = dbUtil.readStimGaInfoEntry(stimId);
             StimType stimType = StimType.valueOf(stimInfo.getStimType());
@@ -97,6 +101,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             else if(stimType.equals(StimType.REGIME_THREE_2D)){
                 stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "2D", color);
             }
+            else if (stimType.equals(StimType.CATCH)){
+                stim = new CatchStim(stimId, this);
+            }
             else{
                 throw new RuntimeException("Stim Type not recognized");
             }
@@ -104,11 +111,15 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             stims.add(stim);
         }
 
-        if (isFirstGen()) {
-            addCatchTrials();
-        }
+//        if (isFirstGen()) {
+//            addCatchTrials();
+//        }
 
         System.err.println("Number of stims to generate: " + stims.size());
+    }
+
+    private static void addCatchLineage(List<Long> lineageIdsInThisExperiment) {
+        lineageIdsInThisExperiment.add(0L);
     }
 
     private boolean isFirstGen() {
