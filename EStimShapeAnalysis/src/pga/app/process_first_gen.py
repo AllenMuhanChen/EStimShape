@@ -9,9 +9,9 @@ from startup import config
 
 
 def main():
-    ga = config.ga_config.make_genetic_algorithm()
-    parser = ga.response_parser
-    parser.parse_to_db(config.ga_name)
+    # ga = config.ga_config.make_genetic_algorithm()
+    # parser = ga.response_parser
+    # parser.parse_to_db(config.ga_name)
 
     calculate_spontaneous_firing()
 
@@ -33,16 +33,29 @@ def calculate_spontaneous_firing():
 
     db_util = MultiGaDbUtil(conn)
     current_gen_id = db_util.read_ready_gas_and_generations_info().get(config.ga_name)
+    current_experiment_id = db_util.read_current_experiment_id(config.ga_name)
 
     cluster_channels = db_util.read_current_cluster(config.ga_name)
 
-    # for each stimId:
+    # calculate mean response for each cluster channel for catch trials
+    mean_responses_for_channels = []
     for channel in cluster_channels:
         for stim_id in data["StimSpecId"]:
-            responses = db_util.read_responses_for(stim_id)
-            mean_response = np.mean(responses)
-            print("The mean response for stimId {} on channel {} is {}".format(stim_id, channel.value, mean_response))
+            responses = db_util.read_responses_for(stim_id, channel=channel.value)
+            mean_response_for_channel = np.mean(responses)
+            mean_responses_for_channels.append(mean_response_for_channel)
+            print("The mean spontaneous firing rate for stimId {} on channel {} is {}".format(stim_id, channel.value, mean_response_for_channel))
 
+    # calculate mean response of all cluster channels
+    mean_response_for_all_cluster_channels = np.mean(mean_responses_for_channels)
+    print("The mean spontaneous firing rate for all cluster channels is {}".format(mean_response_for_all_cluster_channels))
+
+    # Update GAVar table with the calculated mean response for all cluster channels
+    db_util.update_ga_var("regime_zero_transition_spontaneous_firing_rate",
+                          current_gen_id,
+                          current_experiment_id,
+                          0,
+                          mean_response_for_all_cluster_channels)
 
 
 class ChannelResponseField(StimSpecField):

@@ -118,6 +118,7 @@ class MultiGaDbUtil:
     def read_stims_with_no_responses(self, ga_name: str):
         current_experiment_id = self.read_current_experiment_id(ga_name)
         lineages_for_experiment_id = self.read_lineage_ids_for_experiment_id(current_experiment_id)
+        self.add_catch_lineage(lineages_for_experiment_id)
         # lineages_for_experiment_id = [lineage_tuple[0] for lineage_tuple in lineages_for_experiment_id]
 
         placeholders = ','.join(['%s'] * len(lineages_for_experiment_id))
@@ -134,6 +135,9 @@ class MultiGaDbUtil:
         stim_ids = [row[0] for row in rows]
 
         return stim_ids
+
+    def add_catch_lineage(self, lineages_for_experiment_id):
+        lineages_for_experiment_id.append(0)
 
     def add_channel_response(self, stim_id: int, task_id: int, channel: str, spikes_per_second: float):
         self.conn.execute(
@@ -248,6 +252,13 @@ class MultiGaDbUtil:
         rows = self.conn.fetch_all()
         stim_ids = [row[0] for row in rows]
         return stim_ids
+
+    def update_ga_var(self, var_name, current_gen_id, experiment_id, arr_ind, value):
+        self.conn.execute(
+            "INSERT INTO GAVar (name, gen_id, experiment_id, arr_ind, value) "
+            "VALUES (%s, %s, %s, %s, %s) "
+            "ON DUPLICATE KEY UPDATE value = %s",
+            (var_name, current_gen_id, experiment_id, arr_ind, value, value))
 
 
 @dataclass(kw_only=True)
