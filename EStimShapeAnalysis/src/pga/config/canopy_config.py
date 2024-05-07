@@ -191,28 +191,36 @@ class GAVarParameterFetcher:
     def __init__(self, connection: Connection):
         self.connection = connection
 
-    def get_most_recent_experiment_and_gen_id(self):
-        # Get the maximum experiment_id first
-        self.connection.execute("SELECT MAX(experiment_id) FROM GAVar")
-        max_experiment_id = self.connection.fetch_one()
-
-        # Then get the maximum gen_id for that experiment_id
-        query = "SELECT MAX(gen_id) FROM GAVar WHERE experiment_id=%s"
-        self.connection.execute(query, (max_experiment_id,))
-        max_gen_id = self.connection.fetch_one()
-
-        return max_experiment_id, max_gen_id
+    def get_most_recent_experiment_and_gen_id(self, var_name: str):
+        # Query to find the most recent experiment_id and gen_id for a specific var_name
+        query = """
+        SELECT experiment_id, gen_id
+        FROM GAVar
+        WHERE name = %s
+        ORDER BY experiment_id DESC, gen_id DESC
+        LIMIT 1
+        """
+        self.connection.execute(query, (var_name,))
+        result = self.connection.fetch_all()[0]
+        return result if result else (None, None)
 
     def get(self, name, dtype=str) -> Any:
-        experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id()
+        experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id(name)
+        if not experiment_id or not gen_id:
+            return None  # or raise an exception if no data found
+
         query = "SELECT value FROM GAVar WHERE name=%s AND experiment_id=%s AND gen_id=%s AND arr_ind = 0"
         self.connection.execute(query, (name, experiment_id, gen_id))
         result = self.connection.fetch_one()
         return dtype(result)
 
     def get_array_parameter(self, name, dtype=str) -> list:
-        experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id()
+        experiment_id, gen_id = self.get_most_recent_experiment_and_gen_id(name)
+        if not experiment_id or not gen_id:
+            return []  # or raise an exception if no data found
+
         query = f"SELECT arr_ind, value FROM GAVar WHERE name = '{name}' AND experiment_id = {experiment_id} AND gen_id = {gen_id} ORDER BY arr_ind"
         self.connection.execute(query)
         result = self.connection.fetch_all()
         return [dtype(value) for _, value in result]
+
