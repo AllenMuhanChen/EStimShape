@@ -37,10 +37,18 @@ def calculate_spontaneous_firing():
     for channel in cluster_channels:
         for stim_id in data["StimSpecId"]:
             responses = db_util.read_responses_for(stim_id, channel=channel.value)
-            mean_response_for_channel = np.mean(responses)
-            mean_responses_for_channels.append(mean_response_for_channel)
-            print("The mean spontaneous firing rate for stimId {} on channel {} is {}".format(stim_id, channel.value,
-                                                                                              mean_response_for_channel))
+            # Filter out NaN values from responses
+            valid_responses = np.array(responses)[~np.isnan(responses)]
+            if valid_responses.size > 0:
+                mean_response_for_channel = np.mean(valid_responses)
+                mean_responses_for_channels.append(mean_response_for_channel)
+                print(
+                    "The mean spontaneous firing rate for stimId {} on channel {} is {}".format(stim_id, channel.value,
+                                                                                                mean_response_for_channel))
+            else:
+                print("No valid responses for stimId {} on channel {}. Defaulting to zero.".format(stim_id,
+                                                                                                   channel.value))
+                mean_responses_for_channels.append(0)  # Append 0 or some default value if no valid responses
 
     # calculate mean response of all cluster channels
     mean_response_for_all_cluster_channels = np.mean(mean_responses_for_channels)

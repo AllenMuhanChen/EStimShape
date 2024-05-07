@@ -23,7 +23,7 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
     """
 
     def setUp(self) -> None:
-        self.mock_config = AlexNetMockGeneticAlgorithmConfig()
+        self.mock_config = FullAutoAlexNetMockGeneticAlgorithmConfig()
 
     def test_ga_loop(self):
         generation = 1
@@ -52,9 +52,9 @@ class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):
         self.mock_config.db_util.update_ready_gas_and_generations_info("New3D", 0)
 
 
-class AlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
-    def __init__(self):
-        super().__init__()
+class FullAutoAlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
+    def __init__(self, *, database: str, base_intan_path: str):
+        super().__init__(database=database, base_intan_path=base_intan_path)
 
     def make_response_parser(self):
         return AlexNetMockResponseParser(db_util=self.db_util)
@@ -64,6 +64,14 @@ class AlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
 
     def make_db_util(self):
         return AlexNetMultiGaDbUtil(self.connection)
+
+
+class TrainingAlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
+    def __init__(self, *, database: str, base_intan_path: str):
+        super().__init__(database=database, base_intan_path=base_intan_path)
+
+    def make_response_parser(self):
+        return AlexNetMockResponseParser(db_util=self.db_util)
 
 
 class AlexNetSeedingPhaseTransitioner(RegimeTransitioner):

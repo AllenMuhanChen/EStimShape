@@ -1,9 +1,9 @@
 import pandas as pd
 import xmltodict
 
-from clat.compile import TaskIdField, StimSpecIdField, StimSpecField
-from clat.compile import TaskIdCollector
-from clat.compile import TaskFieldList
+from clat.compile.task.base_database_fields import TaskIdField, StimSpecIdField, StimSpecField
+from clat.compile.task.compile_task_id import TaskIdCollector
+from clat.compile.task.task_field import TaskFieldList
 from clat.intan.channels import Channel
 from clat.util.connection import Connection
 
@@ -11,29 +11,99 @@ import torchvision.transforms as transforms
 from torchvision import models
 from PIL import Image
 
-
+from startup import config
 
 
 def main():
+    # run_full_auto()
+    run_training()
+
+def run_training():
+    conn = config.ga_config.connection
+
+    channel_numbers_top_to_bottom = [15, 16, 1, 30, 8, 23, 0, 31, 14, 17, 2, 29, 13, 18, 7, 24, 3, 28, 12, 19, 4, 27, 9,
+                                     22, 11, 20, 5, 26, 10, 21, 6, 25]
+    channel_strings_top_to_bottom = [f"A-{num:03}" for num in channel_numbers_top_to_bottom]
+
+    units = [70, 7, 12, 30, 36, 22, 28, 10]
+    loc_xs = [6, 7]
+    loc_ys = [6, 7]
+
+    # Prepare task fields
+    fields = TaskFieldList()
+    fields.append(TaskIdField(name="TaskId"))
+    fields.append(StimSpecIdField(conn=conn, name="StimId"))
+    fields.append(StimSpecField(conn=conn, name="StimSpec"))
+    fields.append(StimPathField(conn=conn, name="StimPath"))
+    data = fields.to_data(collect_task_ids(conn))
+    data = data[data["StimPath"] != "None"]
+    catch_data = data[data["StimPath"] == "catch"]
+    data = data[data["StimPath"] != "catch"]
+
+    paths = list(data["StimPath"])
+
+    # Extract activations
+    activations = extract_activations(paths)
+
+    # Process regular data
+    channel_index = 0
+    for unit in units:
+        for loc_x in loc_xs:
+            for loc_y in loc_ys:
+                # Compute unit activation for each channel configuration
+                unit_activations = [activation[0, unit, loc_x, loc_y].item() for activation in activations]
+
+                # Get the current channel string
+                channel = channel_strings_top_to_bottom[channel_index]
+
+                # Insert activations into the database
+                insert_to_channel_responses(conn, unit_activations, data, channel)
+
+                # Update the channel index for the next iteration
+                channel_index += 1
+
+    # Process catch trials
+    default_activation = 0
+    channel_index = 0
+    for unit in units:
+        for loc_x in loc_xs:
+            for loc_y in loc_ys:
+                # Get the current channel string
+                channel = channel_strings_top_to_bottom[channel_index]
+
+                # Prepare a default activation response for each channel
+                insert_to_channel_responses(conn, [default_activation] * len(activations), catch_data, channel)
+
+                # Update the channel index for the next iteration
+                channel_index += 1
+
+
+
+# Ensure proper definition of all required classes, methods, and database connectivity.
+
+
+
+# Ensure that this function is part of a larger script or framework where the required classes and methods are defined.
+
+
+def run_full_auto_mock():
     # PARAMETERS
     conn = Connection("allen_estimshape_ga_dev_240207")
     # unit = 12 #check 7 next, which would 60 max resp from Mohammad
     unit = 70
     loc_x = 7
     loc_y = 7
-
     fields = TaskFieldList()
     fields.append(TaskIdField(name="TaskId"))
     fields.append(StimSpecIdField(conn=conn, name="StimId"))
     fields.append(StimSpecField(conn=conn, name="StimSpec"))
     fields.append(StimPathField(conn=conn, name="StimPath"))
-
     data = fields.to_data(collect_task_ids(conn))
+
+
     paths = list(data["StimPath"])
     activations = extract_activations(paths)
-
     unit_activations = [activation[0, unit, loc_x, loc_y].item() for activation in activations]
-
     insert_to_channel_responses(conn, unit_activations, data)
 
 
@@ -46,7 +116,14 @@ def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame):
         conn.execute(query, params)
         conn.mydb.commit()
 
-
+def insert_to_channel_responses(conn, response_rates: list, data: pd.DataFrame, channel: str):
+    for (stim_id, task_id), response_rate in zip(data[["StimId", "TaskId"]].values, response_rates):
+        query = ("INSERT IGNORE INTO ChannelResponses "
+                 "(stim_id, task_id, channel, spikes_per_second) "
+                 "VALUES (%s, %s, %s, %s)")
+        params = (int(stim_id), int(task_id), channel, float(response_rate))
+        conn.execute(query, params)
+        conn.mydb.commit()
 def extract_activations(paths):
     # Load the pre-trained AlexNet model
     alexnet = models.alexnet(pretrained=True)
@@ -111,12 +188,20 @@ class StimPathField(StimSpecField):
 
     def get(self, task_id: int) -> str:
         # Execute the query to get the StimPath based on task_id
-        # Note: Replace the query with the appropriate one for your schema
         stim_spec = super().get(task_id)
         stim_spec_dict = xmltodict.parse(stim_spec)
-        stim_path = stim_spec_dict["StimSpec"]['path']
-        return stim_path
 
+        # Extract the path
+        stim_path = stim_spec_dict["StimSpec"]['path']
+
+        # Check if the path contains the 'sftp:host' segment and adjust if necessary
+        if 'sftp:host=' in stim_path:
+            # Cut from '/home/' found after 'sftp:host=IP'
+            home_index = stim_path.find('/home/')
+            if home_index != -1:
+                stim_path = stim_path[home_index:]
+
+        return stim_path
 
 if __name__ == "__main__":
     main()

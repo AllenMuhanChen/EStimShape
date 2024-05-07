@@ -13,7 +13,8 @@ from pga.regime_two import CanopyPhaseParentSelector, CanopyPhaseMutationAssigne
     CanopyPhaseTransitioner
 from src.pga.ga_classes import Phase, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, RegimeTransitioner
 from src.pga.genetic_algorithm import GeneticAlgorithm
-from src.pga.regime_one import GrowingPhaseParentSelector, GrowingPhaseMutationAssigner, GrowingPhaseMutationMagnitudeAssigner, \
+from src.pga.regime_one import GrowingPhaseParentSelector, GrowingPhaseMutationAssigner, \
+    GrowingPhaseMutationMagnitudeAssigner, \
     GrowingPhaseTransitioner, GetAllStimuliFunc
 from src.pga.regime_zero import SeedingPhaseParentSelector, SeedingPhaseMutationAssigner, \
     SeedingPhaseMutationMagnitudeAssigner, SeedingPhaseTransitioner
@@ -24,8 +25,7 @@ class GeneticAlgorithmConfig:
     ga_name = "New3D"
     num_trials_per_generation = 40
 
-
-    def __init__(self,*,  database: str, base_intan_path: str):
+    def __init__(self, *, database: str, base_intan_path: str):
         self.database = database
         self.base_intan_path = base_intan_path
         self.connection = self.make_connection()
@@ -143,7 +143,8 @@ class GeneticAlgorithmConfig:
                 self.sampling_smoothing_bandwidth()),
             self.leafing_phase_mutation_assigner(),
             LeafingPhaseMutationMagnitudeAssigner(),
-            LeafingPhaseTransitioner(self.get_under_sampling_threshold(), bandwidth=self.sampling_smoothing_bandwidth()))
+            LeafingPhaseTransitioner(self.get_under_sampling_threshold(),
+                                     bandwidth=self.sampling_smoothing_bandwidth()))
 
     def leafing_phase_mutation_assigner(self):
         return LeafingPhaseMutationAssigner()
@@ -223,4 +224,3 @@ class GAVarParameterFetcher:
         self.connection.execute(query)
         result = self.connection.fetch_all()
         return [dtype(value) for _, value in result]
-
