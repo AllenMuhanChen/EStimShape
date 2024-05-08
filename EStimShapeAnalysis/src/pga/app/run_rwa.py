@@ -17,7 +17,7 @@ from clat.compile.trial.cached_fields import CachedFieldList
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
     NewGaNameField, RegimeScoreField
 from analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
-from clat.compile.trial.trial_collector import TrialCollector
+
 
 
 def main():
