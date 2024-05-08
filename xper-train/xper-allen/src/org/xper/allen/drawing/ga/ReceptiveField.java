@@ -7,8 +7,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 public abstract class ReceptiveField {
-    private Coordinates2D center;
     public List<Coordinates2D> outline = new LinkedList<>();
+
+    protected ReceptiveField() {
+    }
+
     public abstract boolean isInRF(double x, double y);
     public boolean isInRF(Point2d p){
         return isInRF(p.x, p.y);
@@ -17,9 +20,6 @@ public abstract class ReceptiveField {
         return outline;
     }
 
-    public Coordinates2D getCenter() {
-        return center;
-    }
 
 
 }

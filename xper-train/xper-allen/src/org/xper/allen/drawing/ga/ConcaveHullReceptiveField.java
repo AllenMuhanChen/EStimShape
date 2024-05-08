@@ -9,14 +9,15 @@ import java.util.List;
 public class ConcaveHullReceptiveField extends ReceptiveField {
 
 
+    private ArrayList<ConcaveHull.Point> concaveHullPoints = new ArrayList<>();
+
     public ConcaveHullReceptiveField(List<Coordinates2D> hullPointsAsCoords) {
         this.outline = hullPointsAsCoords;
+        System.out.println("Outline setter called: " + this.outline.size());
         for (Coordinates2D point : hullPointsAsCoords) {
             concaveHullPoints.add(new ConcaveHull.Point(point.getX(), point.getY()));
         }
     }
-
-    private ArrayList<ConcaveHull.Point> concaveHullPoints = new ArrayList<>();
 
     @Override
     public boolean isInRF(double x, double y) {

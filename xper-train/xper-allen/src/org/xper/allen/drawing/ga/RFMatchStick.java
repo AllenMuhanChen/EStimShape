@@ -64,6 +64,7 @@ public class RFMatchStick extends MorphedMatchStick {
     }
 
     private void drawRF() {
+        System.out.println("Drawing RF: " + rf);
         List<Coordinates2D> outline = rf.getOutline();
 
         // Assuming the Coordinates2D class has methods getX() and getY() to access coordinates.

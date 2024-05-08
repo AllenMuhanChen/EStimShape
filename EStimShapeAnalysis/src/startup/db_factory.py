@@ -1,7 +1,6 @@
 import mysql.connector
 
 from clat.util.connection import Connection
-from startup import config
 from pga.multi_ga_db_util import MultiGaDbUtil
 
 HOST = '172.30.6.80'
@@ -10,9 +9,13 @@ PASS = 'up2nite'
 
 
 def main():
+    ga_database = "allen_estimshape_ga_test_240508"
+    nafc_database = "allen_estimshape_test_240508"
+    isogabor_database = "allen_isogabor_test_240508"
+
     # GA Database
     create_db_from_template('allen_estimshape_ga_dev_240207',
-                            config.ga_database,
+                            ga_database,
                             [
                                 "SystemVar",
                                 "InternalState",
@@ -20,14 +23,14 @@ def main():
 
     # NAFC Database
     create_db_from_template("allen_estimshape_train_231211",
-                            config.nafc_database,
+                            nafc_database,
                             [
                                 "SystemVar",
                                 "InternalState"])
 
     # ISOGABOR Database
     create_db_from_template("allen_isogabor_dev_240322",
-                            config.isogabor_database,
+                            isogabor_database,
                             [
                                 "SystemVar",
                                 "InternalState",

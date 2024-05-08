@@ -40,16 +40,20 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     public void writeStim() {
         int nTries = 0;
         T mStick = null;
-        while(nTries < 10) {
+        while(nTries < 100) {
+            nTries++;
             try {
-                nTries++;
                 mStick = createMStick();
+                System.out.println("SUCCESSFUL CREATION OF MORPHED MATCHSTICK OF TYPE: " + this.getClass().getSimpleName());
+                break;
             } catch (MorphedMatchStick.MorphException me) {
+                mStick = null;
                 System.out.println("Morphing failed, trying again with new parameters");
             }
         }
 
-        if (nTries == 10) {
+        if (nTries == 10 && mStick == null) {
+            System.err.println("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName()+"AFTER 10 TRIES. GENERATING RAND...");
             mStick = createRandMStick();
         }
 
@@ -63,7 +67,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     }
 
     private T createRandMStick() {
-        RFMatchStick mStick = new RFMatchStick();
+        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField());
         mStick.setProperties(calculateImageSize(), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();

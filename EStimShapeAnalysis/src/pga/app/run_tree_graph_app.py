@@ -210,7 +210,7 @@ def get_all_lineages():
     ) AS unique_lineages
     JOIN LineageGaInfo ON LineageGaInfo.lineage_id = unique_lineages.lineage_id AND LineageGaInfo.gen_id = unique_lineages.max_gen_id
     WHERE LineageGaInfo.regime > 0
-    ORDER BY LineageGaInfo.gen_id DESC, LineageGaInfo.regime DESC
+    ORDER BY LineageGaInfo.gen_id DESC, LineageGaInfo.regime DESC, LENGTH(LineageGaInfo.tree_spec) DESC
     LIMIT 10
     """
     conn.execute(query)

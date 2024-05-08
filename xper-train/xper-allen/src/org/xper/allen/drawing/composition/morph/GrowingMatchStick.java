@@ -49,6 +49,11 @@ public class GrowingMatchStick extends RFMatchStick {
         //Adding New Comps
         int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
         genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
+
+        if (checkMStick());
+        else {
+            throw new MorphedMatchStick.MorphException("Morphing failed");
+        }
     }
 
 
