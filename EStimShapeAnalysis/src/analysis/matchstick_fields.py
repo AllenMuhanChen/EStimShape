@@ -1,4 +1,4 @@
-from clat.compile import CachedDatabaseField
+from clat.compile.trial.cached_fields import CachedDatabaseField
 from clat.util.time_util import When
 
 

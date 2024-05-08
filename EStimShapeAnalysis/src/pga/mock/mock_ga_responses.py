@@ -8,13 +8,14 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import double
 
-from clat.compile import StimSpecIdField, TaskIdField
-from clat.compile import TaskIdCollector
-from clat.compile import ShaftField
-from clat.compile import TaskFieldList, get_data_from_tasks
+from analysis.matchstick_fields import ShaftField
+from clat.compile.task.base_database_fields import TaskIdField, StimSpecIdField
+from clat.compile.task.compile_task_id import TaskIdCollector
+from clat.compile.task.task_field import TaskFieldList, get_data_from_tasks
+from clat.compile.trial.trial_collector import TrialCollector
 from clat.intan.channels import Channel
 from analysis.ga.MultiCustomNormalTuningFunction import MultiCustomNormalTuningFunction
-from clat.compile import TrialCollector
+
 from pga.mock.mock_rwa_analysis import condition_spherical_angles, hemisphericalize_orientation
 from clat.util import time_util
 from clat.util.connection import Connection

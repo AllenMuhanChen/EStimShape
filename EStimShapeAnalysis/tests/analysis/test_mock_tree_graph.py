@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from pga.mock.mock_tree_graph import _parse_recursive_xml, recursive_tree_to_edges, MockTreeGraphApp
+from pga.app.run_tree_graph_app import _parse_recursive_xml, recursive_tree_to_edges, MockTreeGraphApp
 
 lineage_id = "1680721659342212"
 

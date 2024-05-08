@@ -22,28 +22,6 @@ from startup import config
 conn = config.ga_config.connection
 
 
-def fetch_components_to_preserve_for_stim_id(stim_id):
-    try:
-        conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
-        mstick_data = conn.fetch_one()
-        mstick_data_dict = xmltodict.parse(mstick_data)
-        components_to_preserve = mstick_data_dict["AllenMStickData"]["componentsToPreserve"]
-    except:
-        components_to_preserve = None
-    return components_to_preserve
-
-
-def fetch_components_exploring_for_stim_id(stim_id):
-    try:
-        conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
-        mstick_data = conn.fetch_one()
-        mstick_data_dict = xmltodict.parse(mstick_data)
-        components_exploring = mstick_data_dict["AllenMStickData"]["componentsExploring"]
-    except:
-        components_exploring = None
-    return components_exploring
-
-
 class MockTreeGraphApp(TreeGraphApp):
     def __init__(self):
         self.app = dash.Dash("Tree Graphs")
@@ -94,7 +72,7 @@ class MockTreeGraphApp(TreeGraphApp):
         def update_lineage(lineage_id):
             # modify the figure based on the selected lineage_id
             print(f"Lineage {lineage_id} selected")
-            self.tree_graph = MockTreeGraph(lineage_id)
+            self.tree_graph = GATreeGraph(lineage_id)
             self.tree_graph.fig.update_xaxes(autorange=True)
             self.tree_graph.fig.update_yaxes(autorange=True)
             return self.tree_graph.fig
@@ -200,6 +178,28 @@ class MockTreeGraphApp(TreeGraphApp):
                 return ""
 
 
+def fetch_components_to_preserve_for_stim_id(stim_id):
+    try:
+        conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
+        mstick_data = conn.fetch_one()
+        mstick_data_dict = xmltodict.parse(mstick_data)
+        components_to_preserve = mstick_data_dict["AllenMStickData"]["componentsToPreserve"]
+    except:
+        components_to_preserve = None
+    return components_to_preserve
+
+
+def fetch_components_exploring_for_stim_id(stim_id):
+    try:
+        conn.execute("SELECT data from StimSpec where id = %s", (stim_id,))
+        mstick_data = conn.fetch_one()
+        mstick_data_dict = xmltodict.parse(mstick_data)
+        components_exploring = mstick_data_dict["AllenMStickData"]["componentsExploring"]
+    except:
+        components_exploring = None
+    return components_exploring
+
+
 def get_all_lineages():
     query = """
     SELECT LineageGaInfo.lineage_id
@@ -226,13 +226,13 @@ def fetch_children_ids_for_stim_id(param):
     return children_ids
 
 
-class MockTreeGraph(ColoredTreeGraph):
+class GATreeGraph(ColoredTreeGraph):
     def __init__(self, lineage_id):
         tree_spec = fetch_tree_spec(lineage_id)
         edges = recursive_tree_to_edges(tree_spec)
         self.stim_ids = [stim_id for edge in edges for stim_id in edge]
         y_values_for_stim_ids = fetch_responses_for(self.stim_ids)
-        image_folder = "/home/r2_allen/Documents/EStimShape/ga_dev_240207/pngs"
+        image_folder = config.image_path
         edge_colors = get_edge_colors(edges)
         super().__init__(y_values_for_stim_ids, edges, edge_colors, image_folder)
         self.highlighted_nodes = []
@@ -293,6 +293,7 @@ class MockTreeGraph(ColoredTreeGraph):
     def _get_image(self, stim_id):
         for filename in os.listdir(self.image_folder):
             if filename.startswith(str(stim_id)) and filename.endswith('.png'):
+
                 img_path = os.path.join(self.image_folder, filename)
                 img = PIL.Image.open(img_path)
                 return img
