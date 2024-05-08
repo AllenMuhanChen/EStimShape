@@ -148,6 +148,7 @@ public class AllenMatchStick extends MatchStick {
 			e.printStackTrace();
 		}
 		this.drawSkeleton(true);
+
 	}
 
 	public void drawGraphNoiseMap(NoiseMapCalculation noiseMap) {

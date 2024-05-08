@@ -3,11 +3,23 @@ package org.xper.allen.drawing.ga;
 import org.xper.drawing.Coordinates2D;
 
 import javax.vecmath.Point2d;
+import java.util.LinkedList;
+import java.util.List;
 
 public abstract class ReceptiveField {
-    public Coordinates2D center;
+    private Coordinates2D center;
+    public List<Coordinates2D> outline = new LinkedList<>();
     public abstract boolean isInRF(double x, double y);
     public boolean isInRF(Point2d p){
         return isInRF(p.x, p.y);
     }
+    public List<Coordinates2D> getOutline(){
+        return outline;
+    }
+
+    public Coordinates2D getCenter() {
+        return center;
+    }
+
+
 }

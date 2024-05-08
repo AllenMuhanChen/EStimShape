@@ -10,6 +10,7 @@ public class ConcaveHullReceptiveField extends ReceptiveField {
 
 
     public ConcaveHullReceptiveField(List<Coordinates2D> hullPointsAsCoords) {
+        this.outline = hullPointsAsCoords;
         for (Coordinates2D point : hullPointsAsCoords) {
             concaveHullPoints.add(new ConcaveHull.Point(point.getX(), point.getY()));
         }
@@ -21,4 +22,6 @@ public class ConcaveHullReceptiveField extends ReceptiveField {
     public boolean isInRF(double x, double y) {
         return ConcaveHull.pointInPolygon(new ConcaveHull.Point(x,y), concaveHullPoints);
     }
+
+
 }

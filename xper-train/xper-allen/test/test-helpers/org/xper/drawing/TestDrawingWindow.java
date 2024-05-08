@@ -76,6 +76,7 @@ public class TestDrawingWindow {
         renderer.setPupilDistance(34);
         renderer.setHeight(height / dpmm);
         renderer.setWidth(width / dpmm);
+        renderer.setDepth(10000);
         renderer.init(window.getWidth(), window.getHeight());
         GL11.glShadeModel(GL11.GL_SMOOTH);
         GL11.glDisable(GL11.GL_DEPTH_TEST);
