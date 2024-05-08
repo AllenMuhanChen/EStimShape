@@ -166,7 +166,7 @@ class MultiGaDbUtil:
         return stim_ids
 
     def update_driving_response(self, stim_id: int, response: float):
-        #if response is not float
+        # if response is not float
         if math.isnan(response):
             print(f"Warning: response for stim_id {stim_id} is NaN, setting to 0")
             response = 0

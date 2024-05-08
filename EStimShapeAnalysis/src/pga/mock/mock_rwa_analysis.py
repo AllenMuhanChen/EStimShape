@@ -238,7 +238,7 @@ class MockResponseField(StimSpecIdField):
 
 
 def remove_empty_response_trials(data):
-    return data[data["Response-1"].apply(lambda x: x is not None and not np.isnan(x))]
+    return data[data["Response-1"]!='nan']
 
 
 def condition_spherical_angles(data):
