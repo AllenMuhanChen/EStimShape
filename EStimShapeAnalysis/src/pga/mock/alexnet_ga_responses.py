@@ -29,6 +29,8 @@ def run_training():
     loc_xs = [6, 7]
     loc_ys = [6, 7]
 
+
+
     # Prepare task fields
     fields = TaskFieldList()
     fields.append(TaskIdField(name="TaskId"))
@@ -36,12 +38,18 @@ def run_training():
     fields.append(StimSpecField(conn=conn, name="StimSpec"))
     fields.append(StimPathField(conn=conn, name="StimPath"))
     data = fields.to_data(collect_task_ids(conn))
+    existing_task_ids = fetch_existing_task_ids(conn)
+    data = data[~data['TaskId'].isin(existing_task_ids)]  # Filter out existing task IDs
     data = data[data["StimPath"] != "None"]
-    catch_data = data[data["StimPath"] == "catch"]
+
     data = data[data["StimPath"] != "catch"]
+    catch_data = data[data["StimPath"] == "catch"]
+
 
     paths = list(data["StimPath"])
 
+    # print how many paths
+    print("Processing " + str(len(paths)) + " Paths")
     # Extract activations
     activations = extract_activations(paths)
 
@@ -77,14 +85,16 @@ def run_training():
                 # Update the channel index for the next iteration
                 channel_index += 1
 
+def fetch_existing_task_ids(conn):
+    """
+    Fetch task IDs that already have entries in the ChannelResponses table.
+    """
+    query = "SELECT DISTINCT task_id FROM ChannelResponses"
 
-
-# Ensure proper definition of all required classes, methods, and database connectivity.
-
-
-
-# Ensure that this function is part of a larger script or framework where the required classes and methods are defined.
-
+    conn.execute(query)
+    # Fetch all distinct task IDs already present in ChannelResponses
+    existing_task_ids = {row[0] for row in conn.fetch_all()}
+    return existing_task_ids
 
 def run_full_auto_mock():
     # PARAMETERS

@@ -137,7 +137,39 @@ public class MultiGATaskDataSource extends DatabaseTaskDataSource {
 
     @Override
     public void ungetTask(ExperimentTask t) {
+        if (!(t instanceof MultiGAExperimentTask)) {
+            throw new IllegalArgumentException("Task must be of type MultiGAExperimentTask");
+        }
+        MultiGAExperimentTask task = (MultiGAExperimentTask) t;
 
+        if (logger.isDebugEnabled()) {
+            logger.debug("Unget -- GA: " + task.gaName + " Generation: " + task.getGenId() + " task: " + task.getTaskId());
+        }
+
+        LinkedList<MultiGAExperimentTask> tasks = currentGeneration.get();
+        if (tasks == null) {
+            tasks = new LinkedList<>();
+            currentGeneration.set(tasks);
+        }
+
+        // Unget behavior logic based on the configured ungetPolicy
+        switch (ungetPolicy) {
+            case HEAD:
+                tasks.addFirst(task);
+                break;
+            case TAIL:
+                tasks.addLast(task);
+                break;
+            case RAND:
+                int numTasks = tasks.size();
+                if (numTasks > 0) {
+                    int randIndex = new Random().nextInt(numTasks);
+                    tasks.add(randIndex, task);
+                } else {
+                    tasks.add(task);
+                }
+                break;
+        }
     }
 
     public void start() {

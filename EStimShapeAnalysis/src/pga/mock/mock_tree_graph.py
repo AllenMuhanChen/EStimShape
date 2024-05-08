@@ -17,7 +17,9 @@ from clat.util.connection import Connection
 
 import xml.etree.ElementTree as ET
 
-conn = Connection("allen_estimshape_ga_dev_240207")
+from startup import config
+
+conn = config.ga_config.connection
 
 
 def fetch_components_to_preserve_for_stim_id(stim_id):

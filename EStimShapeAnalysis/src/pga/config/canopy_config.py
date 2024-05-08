@@ -33,7 +33,7 @@ class GeneticAlgorithmConfig:
         self.db_util = self.make_db_util()
         self.response_processor = self.make_response_processor()
         self.regimes = self.make_phases()
-        self.num_catch_trials = 20
+        self.num_catch_trials = 2
 
     def make_genetic_algorithm(self) -> GeneticAlgorithm:
         ga = GeneticAlgorithm(name=self.ga_name,

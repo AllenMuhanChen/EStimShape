@@ -59,7 +59,7 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
 
         if (toRecord()) {
             getIntan().stop();
-            getIntan().disconnect();
+//            getIntan().disconnect();
         }
 
         connected = false;

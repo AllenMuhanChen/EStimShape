@@ -5,11 +5,11 @@ from startup import config
 
 
 def main():
+    r, g, b = prompt_rgb_values()
     ga = config.ga_config.make_genetic_algorithm()
     ga.run()
     experiment_id = ga.experiment_id
     gen_id = ga.gen_id
-    r, g, b = prompt_rgb_values()
     run_trial_generator(experiment_id, gen_id, r, g, b)
 
 
