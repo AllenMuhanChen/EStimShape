@@ -8,9 +8,6 @@ import org.xper.drawing.GLUtil;
 import org.xper.drawing.object.Circle;
 import org.xper.util.ThreadUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class RFMatchStickTest {
 
     private TestMatchStickDrawer testMatchStickDrawer;
@@ -36,7 +33,7 @@ public class RFMatchStickTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         };
-        RFMatchStick RFMatchStick = new RFMatchStick(rf);
+        RFMatchStick RFMatchStick = new RFMatchStick(rf, 0.2);
         RFMatchStick.setProperties(5, "SHADE");
         RFMatchStick.genMatchStickRand();
 
@@ -67,7 +64,7 @@ public class RFMatchStickTest {
             public boolean isInRF(double x, double y) {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
-        });
+        }, 0.2);
         RFMatchStick.setProperties(10, "SHADE");
         RFMatchStick.genMatchStickRand();
 

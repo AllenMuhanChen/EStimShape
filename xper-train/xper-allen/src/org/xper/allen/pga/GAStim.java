@@ -67,7 +67,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     }
 
     private T createRandMStick() {
-        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField());
+        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField(), 0.2);
         mStick.setProperties(calculateImageSize(), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();

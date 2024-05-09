@@ -12,10 +12,11 @@ import java.util.function.Predicate;
 
 public class RFMatchStick extends MorphedMatchStick {
     ReceptiveField rf;
-    double thresholdPercentageInRF = .1;
+    double thresholdPercentageInRF;
 
-    public RFMatchStick(ReceptiveField rf) {
+    public RFMatchStick(ReceptiveField rf, double thresholdPercentInRF) {
         this.rf = rf;
+        this.thresholdPercentageInRF = thresholdPercentInRF;
     }
 
     public RFMatchStick() {

@@ -14,7 +14,7 @@ public class PruningMatchStick extends RFMatchStick {
     private List<Integer> componentsToMorph;
 
     public PruningMatchStick(ReceptiveField rf) {
-        super(rf);
+        super(rf, 0.2);
     }
 
     public PruningMatchStick() {

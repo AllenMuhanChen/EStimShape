@@ -21,12 +21,12 @@ public class GrowingMatchStick extends RFMatchStick {
     }
 
     public GrowingMatchStick(ReceptiveField rf, double sigma) {
-        super(rf);
+        super(rf, 0.2);
         this.sigma = sigma;
     }
 
     public GrowingMatchStick(ReceptiveField rf) {
-        super(rf);
+        super(rf, 0.2);
         this.sigma = 1/3.0;
     }
 
