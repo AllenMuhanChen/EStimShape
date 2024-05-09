@@ -3,6 +3,7 @@ import re
 
 from startup import config
 
+
 def main():
     setup_ga_xper_properties()
     setup_nafc_xper_properties()
@@ -47,6 +48,7 @@ class XperPropertiesModifier:
 
     Finally, call the save_changes method to save the changes back to the file.
     '''
+
     def __init__(self, properties_file_path):
         """
         Initializes the PropertiesModifier class.
@@ -87,8 +89,6 @@ class XperPropertiesModifier:
         """
         with open(self.properties_file_path, 'w') as properties_file:
             properties_file.writelines(self.properties_content)
-
-
 
 
 def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
@@ -144,6 +144,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     # Define the necessary versions directly
     version_nafc = config.nafc_database
     recording_computer_sftp = r2_sftp
+
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.procedural'
     # DB URL
@@ -157,8 +158,11 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     generator_spec_path = f"{r_nafc_path}/specs"
     generator_noisemap_path = generator_png_path
     experiment_noisemap_path = experiment_png_path
-    ga_spec_path = f"{stimuli_base_r}/ga/specs"
 
+    version_ga = config.ga_database
+    ga_stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_ga}/stimuli"
+    r_ga_path = f"{ga_stimuli_base_r}/ga"
+    ga_spec_path = f"{r_ga_path}/specs"
 
     # INTAN
     intan_path = f"/home/i2_allen/Documents/EStimShape/{version_nafc}/nafc"
