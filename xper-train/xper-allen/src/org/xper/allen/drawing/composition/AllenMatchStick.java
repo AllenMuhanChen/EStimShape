@@ -31,8 +31,6 @@ import org.xper.drawing.RGBColor;
  */
 public class AllenMatchStick extends MatchStick {
 
-
-
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -683,13 +681,11 @@ public class AllenMatchStick extends MatchStick {
 
 
 
-	/**
-	 *   A function that will put the center of comp1 back to origin
-	 */
 	public void moveCenterOfMassTo(Point3d destination)
 	{
 
 		Point3d centerOfMass = getMassCenter();
+		System.out.println("Center of Mass: " + centerOfMass);
 		Vector3d shiftVec = new Vector3d();
 		shiftVec.sub(destination, centerOfMass);
 		if ( destination.distance(centerOfMass) > 0.001)
@@ -3164,6 +3160,27 @@ Adding a new MAxisArc to a MatchStick
 //
 //		return true;
 //	}
+	@Override
+	protected boolean validMStickSize()
+	{
+		double screenDist = 500;
+		double maxDiameterDegrees = getScaleForMAxisShape(); // DIAMETER in degrees
+		double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
+		double maxRadiusRadians = maxDiameterRadians / 2;
+		double radiusMm = screenDist * Math.tan(maxRadiusRadians);
+
+		int i, j;
+
+		Point3d ori = new Point3d(0.0,0.0,0.0);
+		double dis;
+		for (i=1; i<=getnComponent(); i++)
+			for (j=1; j<= getComp()[i].getnVect(); j++) {
+				dis = getComp()[i].getVect_info()[j].distance(ori);
+				if ( dis > radiusMm )
+					return false;
+			}
+		return true;
+	}
 
 
 	public void setScale(double minScale, double maxScale) {
@@ -3931,9 +3948,8 @@ Adding a new MAxisArc to a MatchStick
          * to be approx half the size.
          */
 //        double scale = maxImageDimensionDegrees /1.5;
-		double scale = maxSizeDiameterDegrees;
-        double minScale = scale/2;
-        setScale(minScale, scale);
+        double minScaleDegrees = maxSizeDiameterDegrees /2;
+        setScale(minScaleDegrees, maxSizeDiameterDegrees/2);
 
         //CONTRAST
         double contrast = 0.5;

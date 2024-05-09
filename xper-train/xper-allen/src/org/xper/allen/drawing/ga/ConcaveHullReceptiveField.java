@@ -13,7 +13,8 @@ public class ConcaveHullReceptiveField extends ReceptiveField {
 
     public ConcaveHullReceptiveField(List<Coordinates2D> hullPointsAsCoords, Coordinates2D center) {
         this.outline = hullPointsAsCoords;
-        System.out.println("Outline setter called: " + this.outline.size());
+        this.center = center;
+
         for (Coordinates2D point : hullPointsAsCoords) {
             concaveHullPoints.add(new ConcaveHull.Point(point.getX(), point.getY()));
         }

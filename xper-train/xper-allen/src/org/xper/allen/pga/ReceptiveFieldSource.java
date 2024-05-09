@@ -7,17 +7,29 @@ import org.xper.allen.drawing.ga.ConcaveHullReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.RFInfo;
 import org.xper.rfplot.V4RFInfo;
 
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
+/**
+ * Bridge between the database storage of RF info and xper use of it.
+ * All RFInfo stored on database should be in degrees
+ * All RFInfo use in xper should be in mm
+ *
+ * Therefore this class should convert all of the RFInfo from degrees to mm
+ */
 public class ReceptiveFieldSource {
 
     @Dependency
     DataSource dataSource;
+
+    @Dependency
+    AbstractRenderer renderer;
 
     public ReceptiveFieldSource() {
     }
@@ -25,20 +37,37 @@ public class ReceptiveFieldSource {
     public ReceptiveField getReceptiveField() {
         long tstamp = readMaxTstampFromRFInfo();
         RFInfo rfInfo = readRFInfo(tstamp);
-        System.out.println("rfInfo.getOutline().size(): " + rfInfo.getOutline().size());
-        return new ConcaveHullReceptiveField(rfInfo.getOutline(), getRFCenter());
+        List<Coordinates2D> outlineDegrees = rfInfo.getOutline();
+        return new ConcaveHullReceptiveField(outlineDegrees, getRFCenterMm());
     }
 
-    public Coordinates2D getRFCenter(){
-        long tstamp = readMaxTstampFromRFInfo();
-        RFInfo rfInfo = readRFInfo(tstamp);
-        return rfInfo.getCenter();
+    public Coordinates2D getRFCenterMm(){
+        Coordinates2D rfCenterDegrees = getRFCenterDegrees();
+        Coordinates2D rfCenterMm = new Coordinates2D(
+                renderer.deg2mm(rfCenterDegrees.getX()),
+                renderer.deg2mm(rfCenterDegrees.getY()));
+        return rfCenterMm;
     }
 
-    public double getRFRadius(){
+    public Coordinates2D getRFCenterDegrees() {
         long tstamp = readMaxTstampFromRFInfo();
         RFInfo rfInfo = readRFInfo(tstamp);
-        return rfInfo.getRadius();
+        Coordinates2D rfCenterDegrees = rfInfo.getCenter();
+        return rfCenterDegrees;
+    }
+
+    public double getRFRadiusMm(){
+        double rfRadiusMm = renderer.deg2mm(getRFRadiusDegrees());
+        return rfRadiusMm;
+    }
+
+    public double getRFRadiusDegrees(){
+        long tstamp = readMaxTstampFromRFInfo();
+        RFInfo rfInfo = readRFInfo(tstamp);
+        double rfRadiusDegrees = rfInfo.getRadius();
+        System.out.println("RF Radius in degrees: " + rfRadiusDegrees + " RF Radius in mm: " + renderer.deg2mm(rfRadiusDegrees));
+
+        return rfRadiusDegrees;
     }
 
     public RGBColor getRFColor(){
@@ -86,5 +115,13 @@ public class ReceptiveFieldSource {
 
     public void setDataSource(DataSource dataSource) {
         this.dataSource = dataSource;
+    }
+
+    public AbstractRenderer getRenderer() {
+        return renderer;
+    }
+
+    public void setRenderer(AbstractRenderer renderer) {
+        this.renderer = renderer;
     }
 }

@@ -66,7 +66,7 @@ public class RFMatchStickTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         }, RFStrategy.PARTIALLY_INSIDE);
-        RFMatchStick.setProperties(10, "SHADE");
+        RFMatchStick.setProperties(5, "SHADE");
         RFMatchStick.genMatchStickRand();
 
 //        testMatchStickDrawer.drawMStick(RFMatchStick);

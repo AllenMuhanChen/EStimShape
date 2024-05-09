@@ -7,7 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public abstract class ReceptiveField {
-    public List<Coordinates2D> outline = new LinkedList<>();
+    public List<Coordinates2D> outline = new LinkedList<>(); //in mm
     public Coordinates2D center;
 
     protected ReceptiveField() {

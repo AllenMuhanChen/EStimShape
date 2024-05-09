@@ -71,7 +71,6 @@ public class RFMatchStick extends MorphedMatchStick {
     }
 
     private void drawRF() {
-        System.out.println("Drawing RF: " + rf);
         List<Coordinates2D> outline = rf.getOutline();
 
         // Assuming the Coordinates2D class has methods getX() and getY() to access coordinates.
@@ -96,12 +95,19 @@ public class RFMatchStick extends MorphedMatchStick {
     }
 
     @Override
+    /**
+     * IF the strategy is to have the shape partially inside the RF, then center the shape at origin so it can partially enter the RF.
+     * IF the strategy is to have shape entirely inside the RF, then we need center the shape at the RF center.
+     *
+     * This accomplishes the goal of keeping the image presented centered on fixation in either case.
+     */
     protected void positionShape() {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
         }
         else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
             Coordinates2D rfCenter = rf.getCenter();
+            System.out.println("Positioning to rfCenter: " + rfCenter.getX() + ", " + rfCenter.getY());
             moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
         }
     }

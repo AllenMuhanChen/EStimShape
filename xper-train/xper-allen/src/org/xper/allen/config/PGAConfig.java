@@ -9,6 +9,7 @@ import org.xper.allen.pga.FromDbGABlockGenerator;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.MultiGaDbUtil;
 import org.xper.config.BaseConfig;
+import org.xper.config.ClassicConfig;
 import org.xper.config.IntanRHDConfig;
 import org.xper.experiment.DatabaseTaskDataSource;
 import org.xper.allen.intan.GAInfoFileNamingStrategy;
@@ -22,6 +23,8 @@ import java.util.*;
 @Import({MStickPngConfig.class})
 public class PGAConfig {
     @Autowired MStickPngConfig mStickPngConfig;
+    @Autowired
+    ClassicConfig classicConfig;
     @Autowired BaseConfig baseConfig;
     @Autowired
     IntanRHDConfig intanConfig;
@@ -56,6 +59,7 @@ public class PGAConfig {
     public ReceptiveFieldSource rfSource(){
         ReceptiveFieldSource rfSource = new ReceptiveFieldSource();
         rfSource.setDataSource(baseConfig.dataSource());
+        rfSource.setRenderer(classicConfig.experimentGLRenderer());
         return rfSource;
     }
 

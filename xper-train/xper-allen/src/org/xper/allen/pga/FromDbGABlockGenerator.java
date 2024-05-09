@@ -34,7 +34,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
     int numCatchTrials;
 
     @Dependency
-    RFStrategy rfStrategy = RFStrategy.PARTIALLY_INSIDE;
+    RFStrategy rfStrategy = RFStrategy.COMPLETELY_INSIDE;
 
     //Parameters
     private RGBColor color;
@@ -55,7 +55,6 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     @Override
     protected void addTrials() {
-        double imageSizeDegs = rfSource.getRFRadius()*2;
         Coordinates2D initialCoords = new Coordinates2D(0, 0);
 
         // Read database to find stim_ids from StimGaInfo that don't have a StimSpec
@@ -86,10 +85,10 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                 stim = new RegimeZeroStim(stimId, this, initialCoords, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_ONE)){
-                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE", color, rfStrategy);
+                stim = new RegimeOneStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D", color, rfStrategy);
+                stim = new RegimeOneStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_TWO)){
                 stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "SHADE", color, rfStrategy);

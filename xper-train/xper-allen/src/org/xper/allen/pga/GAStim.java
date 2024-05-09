@@ -45,7 +45,8 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     public void writeStim() {
         int nTries = 0;
         T mStick = null;
-        while(nTries < 100) {
+        int maxTries = 100;
+        while(nTries < maxTries) {
             nTries++;
             try {
                 mStick = createMStick();
@@ -57,7 +58,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
             }
         }
 
-        if (nTries == 10 && mStick == null) {
+        if (nTries == maxTries && mStick == null) {
             System.err.println("CRITICAL ERROR: COULD NOT GENERATE MORPHED MATCHSTICK  OF TYPE" + this.getClass().getSimpleName()+"AFTER 10 TRIES. GENERATING RAND...");
             mStick = createRandMStick();
         }
@@ -73,7 +74,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
 
     private T createRandMStick() {
         RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField(), rfStrategy);
-        mStick.setProperties(calculateImageSize(), textureType);
+        mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
         return (T) mStick;
@@ -123,18 +124,20 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
      * can extend into and then out the other side of the RF.
      * @return
      */
-    protected double calculateImageSize() {
+    protected double calculateMStickMaxSizeDegrees() {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            Coordinates2D rfCenter = generator.rfSource.getRFCenter();
+            Coordinates2D rfCenter = generator.rfSource.getRFCenterDegrees();
             double eccentricity = Math.sqrt(Math.pow(rfCenter.getX() - imageCenterCoords.getX(), 2) + Math.pow(rfCenter.getY() - imageCenterCoords.getY(), 2));
-            double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadius();
+            double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadiusDegrees();
             double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
             double imageSizeInDegrees = distanceFromImageCenterToEdgeOfRf + margin;
             System.out.println("Image size in degrees: " + imageSizeInDegrees);
             return imageSizeInDegrees;
         } else {
             //TODO:
-            return 0;
+            double imageSizeDegrees = generator.rfSource.getRFRadiusDegrees() * 1.5;
+            System.out.println("MStick max size in degrees: " + imageSizeDegrees);
+            return imageSizeDegrees;
         }
     }
 
