@@ -15,7 +15,7 @@ public class RegimeTwoStim extends GAStim<PruningMatchStick, PruningMatchStick.P
         parentMStick.setProperties(generator.getImageDimensionsDegrees(), textureType);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        PruningMatchStick childMStick = new PruningMatchStick(generator.getReceptiveField());
+        PruningMatchStick childMStick = new PruningMatchStick(generator.getReceptiveField(), rfStrategy);
         childMStick.setProperties(generator.getImageDimensionsDegrees(), textureType);
         childMStick.setStimColor(color);
         childMStick.genPruningMatchStick(parentMStick, 0.75, 1);

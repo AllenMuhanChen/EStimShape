@@ -2,6 +2,7 @@ package org.xper.allen.drawing.composition.morph;
 
 import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
+import org.xper.allen.pga.RFStrategy;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,14 +21,13 @@ public class GrowingMatchStick extends RFMatchStick {
         this.sigma = 1/3.0;
     }
 
-    public GrowingMatchStick(ReceptiveField rf, double sigma) {
-        super(rf, 0.2);
+    public GrowingMatchStick(ReceptiveField rf, double sigma, RFStrategy rfStrategy) {
+        super(rf, rfStrategy);
         this.sigma = sigma;
     }
 
-    public GrowingMatchStick(ReceptiveField rf) {
-        super(rf, 0.2);
-        this.sigma = 1/3.0;
+    public GrowingMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
+        this(rf, 1/3.0, rfStrategy);
     }
 
     private MorphedMatchStick genComponentMorphMatchStick(MorphedMatchStick matchStickToMorph, Map<Integer, ComponentMorphParameters> paramsForComps, MorphedMatchStick removedLimbMatchStick) {

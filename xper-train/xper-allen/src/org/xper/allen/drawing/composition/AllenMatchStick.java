@@ -678,20 +678,21 @@ public class AllenMatchStick extends MatchStick {
 
 	protected void positionShape() {
 //		centerShapeAtOrigin(getSpecialEndComp().get(0));
-		moveCenterOfMassToOrigin();
+		moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
 	}
+
+
 
 	/**
 	 *   A function that will put the center of comp1 back to origin
 	 */
-	public void moveCenterOfMassToOrigin()
+	public void moveCenterOfMassTo(Point3d destination)
 	{
-		Point3d origin = new Point3d(0.0, 0.0, 0.0);
 
 		Point3d centerOfMass = getMassCenter();
 		Vector3d shiftVec = new Vector3d();
-		shiftVec.sub(origin, centerOfMass);
-		if ( origin.distance(centerOfMass) > 0.001)
+		shiftVec.sub(destination, centerOfMass);
+		if ( destination.distance(centerOfMass) > 0.001)
 		{
 			applyTranslation(shiftVec);
 		}

@@ -26,7 +26,7 @@ public class ReceptiveFieldSource {
         long tstamp = readMaxTstampFromRFInfo();
         RFInfo rfInfo = readRFInfo(tstamp);
         System.out.println("rfInfo.getOutline().size(): " + rfInfo.getOutline().size());
-        return new ConcaveHullReceptiveField(rfInfo.getOutline());
+        return new ConcaveHullReceptiveField(rfInfo.getOutline(), getRFCenter());
     }
 
     public Coordinates2D getRFCenter(){

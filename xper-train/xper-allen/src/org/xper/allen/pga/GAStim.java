@@ -14,9 +14,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> implements Stim {
+
+
+
     protected final FromDbGABlockGenerator generator;
     protected final Long parentId;
     protected final Coordinates2D imageCenterCoords;
+    protected final RFStrategy rfStrategy;
     protected Long stimId;
     protected String textureType;
     protected RGBColor color;
@@ -29,6 +33,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
         this.stimId = stimId;
         this.textureType = textureType;
         this.color = color;
+        this.rfStrategy = rfStrategy;
     }
 
     @Override
@@ -67,7 +72,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     }
 
     private T createRandMStick() {
-        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField(), 0.2);
+        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField(), rfStrategy);
         mStick.setProperties(calculateImageSize(), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
@@ -119,13 +124,18 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
      * @return
      */
     protected double calculateImageSize() {
-        Coordinates2D rfCenter = generator.rfSource.getRFCenter();
-        double eccentricity = Math.sqrt(Math.pow(rfCenter.getX() - imageCenterCoords.getX(), 2) + Math.pow(rfCenter.getY() - imageCenterCoords.getY(), 2));
-        double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadius();
-        double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
-        double imageSizeInDegrees = distanceFromImageCenterToEdgeOfRf + margin;
-        System.out.println("Image size in degrees: " + imageSizeInDegrees);
-        return imageSizeInDegrees;
+        if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
+            Coordinates2D rfCenter = generator.rfSource.getRFCenter();
+            double eccentricity = Math.sqrt(Math.pow(rfCenter.getX() - imageCenterCoords.getX(), 2) + Math.pow(rfCenter.getY() - imageCenterCoords.getY(), 2));
+            double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadius();
+            double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
+            double imageSizeInDegrees = distanceFromImageCenterToEdgeOfRf + margin;
+            System.out.println("Image size in degrees: " + imageSizeInDegrees);
+            return imageSizeInDegrees;
+        } else {
+            //TODO:
+            return 0;
+        }
     }
 
 //    public RGBColor getRFColor(){

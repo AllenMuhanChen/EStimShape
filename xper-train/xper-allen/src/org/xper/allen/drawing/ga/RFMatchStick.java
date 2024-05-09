@@ -2,21 +2,27 @@ package org.xper.allen.drawing.ga;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.Coordinates2D;
 
 import javax.vecmath.Point3d;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class RFMatchStick extends MorphedMatchStick {
+    public static Map<RFStrategy, Double> thresholdsForRFStrategy = new LinkedHashMap<>();
+    static {
+        thresholdsForRFStrategy.put(RFStrategy.PARTIALLY_INSIDE, 0.2);
+        thresholdsForRFStrategy.put(RFStrategy.COMPLETELY_INSIDE, 1.0);
+    }
+    RFStrategy rfStrategy;
     ReceptiveField rf;
     double thresholdPercentageInRF;
 
-    public RFMatchStick(ReceptiveField rf, double thresholdPercentInRF) {
+    public RFMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
-        this.thresholdPercentageInRF = thresholdPercentInRF;
+        this.rfStrategy = rfStrategy;
+        this.thresholdPercentageInRF = thresholdsForRFStrategy.get(rfStrategy);
     }
 
     public RFMatchStick() {
@@ -54,7 +60,7 @@ public class RFMatchStick extends MorphedMatchStick {
 
         double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
         System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + thresholdPercentageInRF);
-        return percentageInRF > thresholdPercentageInRF;
+        return percentageInRF >= thresholdPercentageInRF;
     }
 
     @Override
@@ -87,6 +93,17 @@ public class RFMatchStick extends MorphedMatchStick {
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
 
+    }
+
+    @Override
+    protected void positionShape() {
+        if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
+            moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
+        }
+        else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
+            Coordinates2D rfCenter = rf.getCenter();
+            moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
+        }
     }
 
 }

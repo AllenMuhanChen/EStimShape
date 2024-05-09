@@ -4,6 +4,7 @@ import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.*;
 import org.xper.allen.drawing.ga.RFMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
+import org.xper.allen.pga.RFStrategy;
 
 import java.util.*;
 
@@ -13,8 +14,8 @@ public class PruningMatchStick extends RFMatchStick {
     private List<Integer> toPreserve;
     private List<Integer> componentsToMorph;
 
-    public PruningMatchStick(ReceptiveField rf) {
-        super(rf, 0.2);
+    public PruningMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
+        super(rf, rfStrategy);
     }
 
     public PruningMatchStick() {
