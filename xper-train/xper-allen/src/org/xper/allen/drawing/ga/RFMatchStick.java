@@ -53,6 +53,7 @@ public class RFMatchStick extends MorphedMatchStick {
         });
 
         for (Point3d point: pointsToCheck){
+//            System.out.println("Checking point: " + point.x + ", " + point.y);
             if (rf.isInRF(point.x, point.y)) {
                 pointsInside.add(point);
             }
@@ -108,7 +109,7 @@ public class RFMatchStick extends MorphedMatchStick {
         else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
             Coordinates2D rfCenter = rf.getCenter();
             System.out.println("Positioning to rfCenter: " + rfCenter.getX() + ", " + rfCenter.getY());
-            moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
+            moveCenterOfMassTo(new Point3d(rfCenter.getX()/getScaleForMAxisShape(), rfCenter.getY()/getScaleForMAxisShape(), 0.0));
         }
     }
 

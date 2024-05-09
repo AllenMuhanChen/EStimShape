@@ -135,7 +135,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
             return imageSizeInDegrees;
         } else {
             //TODO:
-            double imageSizeDegrees = generator.rfSource.getRFRadiusDegrees() * 1.5;
+            double imageSizeDegrees = generator.rfSource.getRFRadiusDegrees() * 2;
             System.out.println("MStick max size in degrees: " + imageSizeDegrees);
             return imageSizeDegrees;
         }

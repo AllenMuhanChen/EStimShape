@@ -3949,7 +3949,7 @@ Adding a new MAxisArc to a MatchStick
          */
 //        double scale = maxImageDimensionDegrees /1.5;
         double minScaleDegrees = maxSizeDiameterDegrees /2;
-        setScale(minScaleDegrees, maxSizeDiameterDegrees/2);
+        setScale(minScaleDegrees, maxSizeDiameterDegrees);
 
         //CONTRAST
         double contrast = 0.5;

@@ -101,7 +101,7 @@ public class RFMatchStickTest {
 
 
         }, RFStrategy.COMPLETELY_INSIDE);
-        RFMatchStick.setProperties(1, "SHADE");
+        RFMatchStick.setProperties(2.5, "SHADE");
         RFMatchStick.genMatchStickRand();
 
 //        testMatchStickDrawer.drawMStick(RFMatchStick);

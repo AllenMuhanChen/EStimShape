@@ -3861,7 +3861,8 @@ public class MatchStick implements Drawable {
 		this.setObj1(MObj[1]);
 
 		this.getObj1().rotateMesh(getFinalRotation());
-		//this.getObj1().scaleTheObj(scaleForMAxisShape*3);
+//		this.getObj1().scaleTheObj(scaleForMAxisShape*3);
+
 		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
 		/*
 		 * If the *3 is not removed, the printed images will all be zoomed in by factor of 3
