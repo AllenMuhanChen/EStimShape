@@ -292,7 +292,7 @@ class GATreeGraph(ColoredTreeGraph):
 
     def _get_image(self, stim_id):
         for filename in os.listdir(self.image_folder):
-            if filename.startswith(str(stim_id)) and filename.endswith('.png'):
+            if filename.startswith(str(stim_id)) and filename.endswith('compmap.png'):
 
                 img_path = os.path.join(self.image_folder, filename)
                 img = PIL.Image.open(img_path)

@@ -5,8 +5,8 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
 public class RegimeTwoStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
-    public RegimeTwoStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color) {
-        super(stimId, generator, parentId, coords, textureType, color);
+    public RegimeTwoStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
+        super(stimId, generator, parentId, coords, textureType, color, rfStrategy);
     }
 
     @Override

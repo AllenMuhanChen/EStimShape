@@ -1,6 +1,5 @@
 package org.xper.allen.pga;
 
-import com.sun.org.apache.xpath.internal.operations.Mult;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
@@ -33,6 +32,9 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     @Dependency
     int numCatchTrials;
+
+    @Dependency
+    RFStrategy rfStrategy = RFStrategy.PARTIALLY_INSIDE;
 
     //Parameters
     private RGBColor color;
@@ -77,29 +79,29 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             // Create a new Stim object with the stim_type and magnitude (if applicable)
             Stim stim;
             if(stimType.equals(StimType.REGIME_ZERO)){
-                stim = new RegimeZeroStim(stimId, this, initialCoords, "SHADE", color);
+                stim = new RegimeZeroStim(stimId, this, initialCoords, "SHADE", color, rfStrategy);
             }
             else if (stimType.equals(StimType.REGIME_ZERO_2D))
             {
-                stim = new RegimeZeroStim(stimId, this, initialCoords, "2D", color);
+                stim = new RegimeZeroStim(stimId, this, initialCoords, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_ONE)){
-                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE", color);
+                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "SHADE", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D", color);
+                stim = new RegimeOneStim(stimId, this, parentId, imageSizeDegs, initialCoords, magnitude, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_TWO)){
-                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "SHADE", color);
+                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "SHADE", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "2D", color);
+                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_THREE)){
-                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color);
+                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "2D", color);
+                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
             }
             else if (stimType.equals(StimType.CATCH)){
                 stim = new CatchStim(stimId, this);

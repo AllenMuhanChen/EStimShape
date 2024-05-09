@@ -22,7 +22,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     protected RGBColor color;
     private double marginMultiplier = 0.5;
 
-    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color) {
+    public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
         this.generator = generator;
         this.parentId = parentId;
         this.imageCenterCoords = coords;

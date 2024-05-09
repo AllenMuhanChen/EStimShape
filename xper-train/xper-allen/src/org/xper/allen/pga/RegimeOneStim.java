@@ -8,8 +8,8 @@ import org.xper.drawing.RGBColor;
 public class RegimeOneStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
 
-    public RegimeOneStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, double magnitude, String textureType, RGBColor color) {
-        super(stimId, generator, parentId, coords, textureType, color);
+    public RegimeOneStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, double size, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
+        super(stimId, generator, parentId, coords, textureType, color, rfStrategy);
         this.magnitude = magnitude;
 
     }

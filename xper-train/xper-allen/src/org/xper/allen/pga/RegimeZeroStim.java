@@ -7,13 +7,15 @@ import org.xper.drawing.RGBColor;
 
 public class RegimeZeroStim extends GAStim<RFMatchStick, AllenMStickData> {
 
-    public RegimeZeroStim(Long stimId, FromDbGABlockGenerator generator, Coordinates2D coords, String textureType, RGBColor color) {
-        super(stimId, generator, 0L, coords, textureType, color);
+    public RegimeZeroStim(Long stimId, FromDbGABlockGenerator generator, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
+        super(stimId, generator, 0L, coords, textureType, color, rfStrategy);
     }
 
     @Override
     protected RFMatchStick createMStick() {
-        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField(), 0.2);
+        RFMatchStick mStick = new RFMatchStick(
+                generator.getReceptiveField(),
+                0.2);
         mStick.setProperties(calculateImageSize(), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
