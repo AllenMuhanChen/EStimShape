@@ -3,6 +3,38 @@ import re
 
 from startup import config
 
+def main():
+    setup_ga_xper_properties()
+    setup_nafc_xper_properties()
+    setup_isogabor_xper_properties()
+
+    update_version_shellscript()
+
+
+class PathMaker:
+    def __init__(self):
+        """Initializes an empty list to hold paths."""
+        self.paths = []
+
+    def add_path(self, path):
+        """
+        Adds a new path to the list of paths.
+
+        Args:
+            path: A string representing the directory path to add.
+        """
+        self.paths.append(path)
+
+    def generate(self):
+        """
+        Creates all paths in the list, including any necessary parent directories.
+        """
+        for path in self.paths:
+            # Create the path along with any necessary parent directories
+            os.makedirs(path, exist_ok=True)
+
+        print("Paths generated successfully.")
+
 
 class XperPropertiesModifier:
     '''
@@ -57,37 +89,6 @@ class XperPropertiesModifier:
             properties_file.writelines(self.properties_content)
 
 
-class PathMaker:
-    def __init__(self):
-        """Initializes an empty list to hold paths."""
-        self.paths = []
-
-    def add_path(self, path):
-        """
-        Adds a new path to the list of paths.
-
-        Args:
-            path: A string representing the directory path to add.
-        """
-        self.paths.append(path)
-
-    def generate(self):
-        """
-        Creates all paths in the list, including any necessary parent directories.
-        """
-        for path in self.paths:
-            # Create the path along with any necessary parent directories
-            os.makedirs(path, exist_ok=True)
-
-        print("Paths generated successfully.")
-
-
-def main():
-    setup_ga_xper_properties()
-    setup_nafc_xper_properties()
-    setup_isogabor_xper_properties()
-
-    update_version_shellscript()
 
 
 def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
