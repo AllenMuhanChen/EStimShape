@@ -108,7 +108,9 @@ public class RFMatchStick extends MorphedMatchStick {
         }
         else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
             Coordinates2D rfCenter = rf.getCenter();
-            System.out.println("Positioning to rfCenter: " + rfCenter.getX() + ", " + rfCenter.getY());
+
+            //We divide by the scale factor to counteract the scaling that happens in smoothing operation
+            //which will incorrectly rescale this translation, so we are dividing it here so it will cancel out.
             moveCenterOfMassTo(new Point3d(rfCenter.getX()/getScaleForMAxisShape(), rfCenter.getY()/getScaleForMAxisShape(), 0.0));
         }
     }
