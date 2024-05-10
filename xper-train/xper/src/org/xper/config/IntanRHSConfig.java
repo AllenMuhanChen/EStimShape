@@ -45,8 +45,5 @@ public class IntanRHSConfig{
         return rhdConfig.intanRecordingEnabled;
     }
 
-    @Bean
-    public IntanFileNamingStrategy<Long> intanFileNamingStrategy() {
-        return rhdConfig.intanFileNamingStrategy();
-    }
+
 }

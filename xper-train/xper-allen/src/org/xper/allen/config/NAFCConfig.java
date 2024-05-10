@@ -67,6 +67,8 @@ public class NAFCConfig {
 	@Autowired AcqConfig acqConfig;
 	@Autowired
 	IntanRHSConfig intanConfig;
+	@Autowired
+	IntanRHDConfig rhdConfig;
 
 	@ExternalValue("jdbc.driver")
 	public String jdbcDriver;
@@ -451,7 +453,7 @@ public class NAFCConfig {
 		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
 		intanController.setIntan(intanConfig.intan());
 		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled());
-		intanController.setFileNamingStrategy(intanConfig.intanFileNamingStrategy());
+		intanController.setFileNamingStrategy(rhdConfig.intanFileNamingStrategy());
 		return intanController;
 	}
 
