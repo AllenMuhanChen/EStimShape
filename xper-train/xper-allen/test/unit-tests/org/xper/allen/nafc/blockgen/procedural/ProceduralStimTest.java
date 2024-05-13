@@ -6,8 +6,8 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStickTest;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStickTest;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
@@ -24,10 +24,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProceduralStimTest extends ProceduralMatchStickTest {
+public class ProceduralStimTest extends EStimShapeProceduralMatchStickTest {
 
     private NAFCBlockGen generator;
-    private ProceduralMatchStick baseMStick;
+    private EStimShapeProceduralMatchStick baseMStick;
 
     @Before
     public void setUp() throws Exception {
@@ -36,7 +36,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"));
 
         generator = context.getBean(NAFCBlockGen.class);
-        baseMStick = new ProceduralMatchStick();
+        baseMStick = new EStimShapeProceduralMatchStick();
         baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();

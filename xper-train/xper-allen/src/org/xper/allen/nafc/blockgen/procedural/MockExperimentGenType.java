@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
 
@@ -32,7 +32,7 @@ public class MockExperimentGenType extends ProceduralRandGenType<MockExperimentG
         List<NAFCStim> newBlock = new LinkedList<>();
 
         //Generate the base matchstick
-        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+        EStimShapeProceduralMatchStick baseMStick = new EStimShapeProceduralMatchStick();
         baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
         baseMStick.genMatchStickRand();

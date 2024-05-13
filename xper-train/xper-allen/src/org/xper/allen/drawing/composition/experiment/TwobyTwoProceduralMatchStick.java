@@ -2,21 +2,12 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.RadiusProfile;
-import org.xper.allen.util.CoordinateConverter;
-import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 
-import javax.vecmath.Point3d;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.BiConsumer;
+public class TwobyTwoProceduralMatchStick extends ProceduralMatchStick {
 
-public class TwobyTwoExperimentMatchStick extends ExperimentMatchStick {
-
-    public void genFourthMatchStick(TwobyTwoExperimentMatchStick secondMatchStick, int drivingComponentIndex, TwobyTwoExperimentMatchStick thirdMatchStick){
+    public void genFourthMatchStick(TwobyTwoProceduralMatchStick secondMatchStick, int drivingComponentIndex, TwobyTwoProceduralMatchStick thirdMatchStick){
         genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex);
     }
 

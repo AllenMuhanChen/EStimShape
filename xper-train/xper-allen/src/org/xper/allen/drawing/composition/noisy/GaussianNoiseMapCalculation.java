@@ -1,7 +1,7 @@
 package org.xper.allen.drawing.composition.noisy;
 
 import org.xper.alden.drawing.renderer.AbstractRenderer;
-import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.drawing.Coordinates2D;
 
 import javax.vecmath.Point2d;
@@ -13,7 +13,7 @@ import java.awt.image.BufferedImage;
 
 public class GaussianNoiseMapCalculation {
 
-    public static BufferedImage generateGaussianNoiseMapFor(ExperimentMatchStick mStick,
+    public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
                                                             int width, int height,
                                                             double sigmaDegrees,
                                                             double amplitude, double background,
@@ -26,7 +26,7 @@ public class GaussianNoiseMapCalculation {
 
         return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
                 noiseOriginPixels.getX(), noiseOriginPixels.getY(),
-                degToPixels(renderer, ExperimentMatchStick.NOISE_RADIUS_DEGREES), amplitude,
+                degToPixels(renderer, ProceduralMatchStick.NOISE_RADIUS_DEGREES), amplitude,
                 sigmaPixels, sigmaPixels,
                 background);
 

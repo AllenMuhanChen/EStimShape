@@ -13,7 +13,7 @@ import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
-import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 
@@ -97,7 +97,7 @@ public class AllenDrawingManager implements Drawable {
 		return pngMaker.saveImage(stimObjId,labels,height,width, imageFolderName);
 	}
 
-	public String drawGaussNoiseMap(ExperimentMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {
+	public String drawGaussNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {
 		LinkedList<String> labels = new LinkedList<>();
 		labels.add("noisemap");
 		labels.addAll(additionalLabels);

@@ -3,8 +3,8 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.*;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
@@ -26,14 +26,14 @@ public class ProceduralStim implements NAFCStim {
     //Input
     protected final NAFCBlockGen generator;
     protected ProceduralStimParameters parameters;
-    protected ExperimentMatchStick baseMatchStick;
+    protected ProceduralMatchStick baseMatchStick;
     protected int morphComponentIndex;
     protected int noiseComponentIndex;
 
 
     public ProceduralStim(NAFCBlockGen generator,
                           ProceduralStimParameters parameters,
-                          ExperimentMatchStick baseMatchStick,
+                          ProceduralMatchStick baseMatchStick,
                           int morphComponentIndex) {
         this.generator = generator;
         this.parameters = parameters;
@@ -43,7 +43,7 @@ public class ProceduralStim implements NAFCStim {
 
     //Local Vars
     protected Procedural<Long> stimObjIds = new Procedural<>();
-    protected Procedural<ProceduralMatchStick> mSticks = new Procedural<>();
+    protected Procedural<EStimShapeProceduralMatchStick> mSticks = new Procedural<>();
     protected Procedural<AllenMStickSpec> mStickSpecs = new Procedural<>();
     protected int numProceduralDistractors;
     protected int numRandDistractors;
@@ -89,7 +89,7 @@ public class ProceduralStim implements NAFCStim {
     }
 
     protected void generateMatchSticksAndSaveSpecs() {
-        ProceduralMatchStick sample = generateSample();
+        EStimShapeProceduralMatchStick sample = generateSample();
 
         noiseComponentIndex = sample.getDrivingComponent();
 
@@ -100,15 +100,15 @@ public class ProceduralStim implements NAFCStim {
         generateRandDistractors();
     }
 
-    protected ProceduralMatchStick generateSample() {
+    protected EStimShapeProceduralMatchStick generateSample() {
         while (true) {
             //Generate Sample
-            ProceduralMatchStick sample = new ProceduralMatchStick();
+            EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick();
             sample.setProperties(parameters.getSize(), parameters.textureType);
             sample.setStimColor(parameters.color);
             try {
                 sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
-            } catch (ExperimentMatchStick.MorphRepetitionException e) {
+            } catch (ProceduralMatchStick.MorphRepetitionException e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
                 continue;
             }
@@ -119,15 +119,15 @@ public class ProceduralStim implements NAFCStim {
         }
     }
 
-    protected void generateMatch(ProceduralMatchStick sample) {
+    protected void generateMatch(EStimShapeProceduralMatchStick sample) {
         //Generate Match
         mSticks.setMatch(sample);
         mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
     }
 
-    protected void generateProceduralDistractors(ProceduralMatchStick sample) {
+    protected void generateProceduralDistractors(EStimShapeProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
-            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
+            EStimShapeProceduralMatchStick proceduralDistractor = new EStimShapeProceduralMatchStick();
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
@@ -139,7 +139,7 @@ public class ProceduralStim implements NAFCStim {
     protected void generateRandDistractors() {
         //Generate Rand Distractors
         for (int i = 0; i<numRandDistractors; i++) {
-            ProceduralMatchStick randDistractor = new ProceduralMatchStick();
+            EStimShapeProceduralMatchStick randDistractor = new EStimShapeProceduralMatchStick();
             randDistractor.setProperties(parameters.getSize(), parameters.textureType);
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();

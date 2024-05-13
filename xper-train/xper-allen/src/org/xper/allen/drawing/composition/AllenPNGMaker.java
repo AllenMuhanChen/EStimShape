@@ -14,7 +14,7 @@ import org.jzy3d.plot3d.rendering.image.GLImage;
 import org.lwjgl.opengl.GL11;
 import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.Drawable;
-import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.util.DPIUtil;
 import org.xper.utils.RGBColor;
 
@@ -81,7 +81,7 @@ public class AllenPNGMaker{
 		return window.drawNoiseMap(obj, stimObjId,labels);
 	}
 
-	public String createAndSaveGaussNoiseMap(ExperimentMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder, double amplitude, int specialCompIndx) {
+	public String createAndSaveGaussNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder, double amplitude, int specialCompIndx) {
 		window.setImageFolderName(destinationFolder);
 		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
 		System.out.println("creating and saving NoiseMap PNG...");

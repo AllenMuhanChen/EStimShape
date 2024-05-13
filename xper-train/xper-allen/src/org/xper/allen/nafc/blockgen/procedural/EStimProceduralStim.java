@@ -1,13 +1,12 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import com.mchange.v1.util.ArrayUtils;
-import org.xper.allen.drawing.composition.experiment.ExperimentMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.util.AllenDbUtil;
 
 public class EStimProceduralStim extends ProceduralStim{
-    public EStimProceduralStim(NAFCBlockGen generator, ProceduralStimParameters parameters, ExperimentMatchStick baseMatchStick, int morphComponentIndex, int noiseComponentIndex) {
+    public EStimProceduralStim(NAFCBlockGen generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, int noiseComponentIndex) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
     }
 

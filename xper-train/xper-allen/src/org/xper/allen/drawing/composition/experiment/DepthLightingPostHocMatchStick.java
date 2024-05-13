@@ -10,7 +10,7 @@ import java.nio.FloatBuffer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class DepthLightingPostHocMatchStick extends ExperimentMatchStick{
+public class DepthLightingPostHocMatchStick extends ProceduralMatchStick {
 
     public float[] light_position;
 
