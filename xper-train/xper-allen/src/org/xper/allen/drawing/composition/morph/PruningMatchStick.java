@@ -2,13 +2,13 @@ package org.xper.allen.drawing.composition.morph;
 
 import com.thoughtworks.xstream.XStream;
 import org.xper.allen.drawing.composition.*;
-import org.xper.allen.drawing.ga.RFMatchStick;
+import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 
 import java.util.*;
 
-public class PruningMatchStick extends RFMatchStick {
+public class PruningMatchStick extends GAMatchStick {
 
     private MorphedMatchStick matchStickToMorph;
     private List<Integer> toPreserve;

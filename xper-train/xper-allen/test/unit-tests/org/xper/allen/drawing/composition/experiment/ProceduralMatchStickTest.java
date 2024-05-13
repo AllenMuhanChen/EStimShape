@@ -35,7 +35,7 @@ import java.util.List;
 import static org.xper.allen.drawing.composition.AllenPNGMaker.allocBytes;
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
-public class EStimShapeProceduralMatchStickTest {
+public class ProceduralMatchStickTest {
     private String testBin;
     private EStimShapeProceduralMatchStick baseMStick;
     private AllenPNGMaker pngMaker;

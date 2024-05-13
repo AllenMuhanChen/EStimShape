@@ -1,6 +1,6 @@
 package org.xper.allen.drawing.composition.morph;
 
-import org.xper.allen.drawing.ga.RFMatchStick;
+import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 
@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-public class GrowingMatchStick extends RFMatchStick {
+public class GrowingMatchStick extends GAMatchStick {
     protected static int MAX_TOTAL_ATTEMPTS = 10;
 
     private double sigma;

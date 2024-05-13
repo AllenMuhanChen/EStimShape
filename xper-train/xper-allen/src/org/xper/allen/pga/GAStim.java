@@ -4,7 +4,7 @@ import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.ga.RFMatchStick;
+import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
@@ -13,7 +13,7 @@ import org.xper.rfplot.drawing.png.PngSpec;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> implements Stim {
+public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> implements Stim {
 
 
 
@@ -73,7 +73,7 @@ public abstract class GAStim<T extends RFMatchStick, D extends AllenMStickData> 
     }
 
     private T createRandMStick() {
-        RFMatchStick mStick = new RFMatchStick(generator.getReceptiveField(), rfStrategy);
+        GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy);
         mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();

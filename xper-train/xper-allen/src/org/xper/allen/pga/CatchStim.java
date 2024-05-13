@@ -1,10 +1,6 @@
 package org.xper.allen.pga;
 
 import org.xper.allen.Stim;
-import org.xper.allen.drawing.composition.AllenMStickData;
-import org.xper.allen.drawing.ga.RFMatchStick;
-import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.RGBColor;
 import org.xper.rfplot.drawing.png.ImageDimensions;
 import org.xper.rfplot.drawing.png.PngSpec;
 

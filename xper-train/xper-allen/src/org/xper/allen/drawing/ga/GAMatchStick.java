@@ -9,7 +9,14 @@ import javax.vecmath.Point3d;
 import java.util.*;
 import java.util.function.Predicate;
 
-public class RFMatchStick extends MorphedMatchStick {
+/**
+ * MatchSticks that are used to generate stimuli for the GA Experiment.
+ * Includes:
+ * 1. Morphing
+ * 2. Checking if the shape is inside the Receptive Field partially or completely
+ *
+ */
+public class GAMatchStick extends MorphedMatchStick {
     public static Map<RFStrategy, Double> thresholdsForRFStrategy = new LinkedHashMap<>();
     static {
         thresholdsForRFStrategy.put(RFStrategy.PARTIALLY_INSIDE, 0.2);
@@ -19,13 +26,13 @@ public class RFMatchStick extends MorphedMatchStick {
     ReceptiveField rf;
     double thresholdPercentageInRF;
 
-    public RFMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
+    public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
         this.rfStrategy = rfStrategy;
         this.thresholdPercentageInRF = thresholdsForRFStrategy.get(rfStrategy);
     }
 
-    public RFMatchStick() {
+    public GAMatchStick() {
     }
 
     @Override

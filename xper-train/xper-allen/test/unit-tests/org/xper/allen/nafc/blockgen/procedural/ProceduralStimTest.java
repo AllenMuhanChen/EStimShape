@@ -7,7 +7,7 @@ import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
-import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStickTest;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStickTest;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProceduralStimTest extends EStimShapeProceduralMatchStickTest {
+public class ProceduralStimTest extends ProceduralMatchStickTest {
 
     private NAFCBlockGen generator;
     private EStimShapeProceduralMatchStick baseMStick;

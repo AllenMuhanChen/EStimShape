@@ -18,11 +18,11 @@ import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 import java.util.*;
 import java.util.function.BiConsumer;
-
+/**
+ * Matchsticks procedurally generated from base components, and delta versions of those matchsticks
+ */
 public class ProceduralMatchStick extends MorphedMatchStick {
-    /**
-     * Matchsticks procedurally generated from base components, and delta versions of those matchsticks
-     */
+
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
 //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);

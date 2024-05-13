@@ -9,7 +9,7 @@ import org.xper.drawing.GLUtil;
 import org.xper.drawing.object.Circle;
 import org.xper.util.ThreadUtil;
 
-public class RFMatchStickTest {
+public class GAMatchStickTest {
 
     private TestMatchStickDrawer testMatchStickDrawer;
     private double h;
@@ -34,11 +34,11 @@ public class RFMatchStickTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         };
-        RFMatchStick RFMatchStick = new RFMatchStick(rf, RFStrategy.PARTIALLY_INSIDE);
-        RFMatchStick.setProperties(5, "SHADE");
-        RFMatchStick.genMatchStickRand();
+        GAMatchStick GAMatchStick = new GAMatchStick(rf, RFStrategy.PARTIALLY_INSIDE);
+        GAMatchStick.setProperties(5, "SHADE");
+        GAMatchStick.genMatchStickRand();
 
-        testMatchStickDrawer.drawMStick(RFMatchStick);
+        testMatchStickDrawer.drawMStick(GAMatchStick);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
@@ -50,7 +50,7 @@ public class RFMatchStickTest {
 
     @Test
     public void test_draw_comp_map(){
-        RFMatchStick RFMatchStick = new RFMatchStick(new ReceptiveField() {
+        GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
             double h = 5;
             double k = 5;
             double r = 5;
@@ -66,14 +66,14 @@ public class RFMatchStickTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         }, RFStrategy.PARTIALLY_INSIDE);
-        RFMatchStick.setProperties(5, "SHADE");
-        RFMatchStick.genMatchStickRand();
+        GAMatchStick.setProperties(5, "SHADE");
+        GAMatchStick.genMatchStickRand();
 
 //        testMatchStickDrawer.drawMStick(RFMatchStick);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
-                RFMatchStick.drawCompMap();
+                GAMatchStick.drawCompMap();
             }
         });
 
@@ -82,7 +82,7 @@ public class RFMatchStickTest {
 
     @Test
     public void test_draw_comp_map_completely_inside_rf(){
-        RFMatchStick RFMatchStick = new RFMatchStick(new ReceptiveField() {
+        GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
             double h = 5;
             double k = 5;
             double r = 5;
@@ -101,14 +101,14 @@ public class RFMatchStickTest {
 
 
         }, RFStrategy.COMPLETELY_INSIDE);
-        RFMatchStick.setProperties(2.5, "SHADE");
-        RFMatchStick.genMatchStickRand();
+        GAMatchStick.setProperties(2.5, "SHADE");
+        GAMatchStick.genMatchStickRand();
 
 //        testMatchStickDrawer.drawMStick(RFMatchStick);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
-                RFMatchStick.drawCompMap();
+                GAMatchStick.drawCompMap();
             }
         });
 
