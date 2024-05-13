@@ -24,6 +24,8 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         this.rf = rf;
     }
 
+
+
     @Override
     public void drawCompMap(){
         super.drawCompMap();

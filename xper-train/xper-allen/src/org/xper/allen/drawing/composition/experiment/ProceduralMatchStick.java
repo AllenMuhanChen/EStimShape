@@ -141,7 +141,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     private boolean checkMStick(int drivingComponentIndex) {
         try {
             checkMStickSize();
-//            checkInNoise(drivingComponentIndex, 0.6);
+            checkInNoise(drivingComponentIndex, 0.6);
 //                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
             return true;
         } catch (ObjectCenteredPositionException e) {
@@ -159,30 +159,30 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return false;
     }
 
-    protected boolean validMStickSize() {
-//        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
-        double maxRadius = getScaleForMAxisShape(); // degree
-        int i, j;
-
-        for (i = 1; i <= getnComponent(); i++) {
-            for (j = 1; j <= getComp()[i].getnVect(); j++) {
-                double xLocation = getComp()[i].getVect_info()[j].x;
-                double yLocation = getComp()[i].getVect_info()[j].y;
-
-                if(xLocation > maxRadius || xLocation < -maxRadius){
-//					System.err.println("TOO BIG");
-//					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxRadius);
-                    return false;
-                }
-                if(yLocation > maxRadius || yLocation < -maxRadius){
-//					System.err.println("TOO BIG");
-//					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxRadius);
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
+//    protected boolean validMStickSize() {
+////        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
+//        double maxRadius = getScaleForMAxisShape(); // degree
+//        int i, j;
+//
+//        for (i = 1; i <= getnComponent(); i++) {
+//            for (j = 1; j <= getComp()[i].getnVect(); j++) {
+//                double xLocation = getComp()[i].getVect_info()[j].x;
+//                double yLocation = getComp()[i].getVect_info()[j].y;
+//
+//                if(xLocation > maxRadius || xLocation < -maxRadius){
+////					System.err.println("TOO BIG");
+////					System.err.println("xLocation is: " + xLocation + ". maxBound is : " + maxRadius);
+//                    return false;
+//                }
+//                if(yLocation > maxRadius || yLocation < -maxRadius){
+////					System.err.println("TOO BIG");
+////					System.err.println("yLocation is: " + yLocation + ". maxBound is : " + maxRadius);
+//                    return false;
+//                }
+//            }
+//        }
+//        return true;
+//    }
 
     private void checkMStickSize() {
         boolean success = this.validMStickSize();
