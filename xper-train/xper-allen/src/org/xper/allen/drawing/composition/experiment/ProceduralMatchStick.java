@@ -138,10 +138,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return getSpecialEndComp().get(0);
     }
 
-    private boolean checkMStick(int drivingComponentIndex) {
+    protected boolean checkMStick(int drivingComponentIndex) {
         try {
             checkMStickSize();
-            checkInNoise(drivingComponentIndex, 0.6);
+//            checkInNoise(drivingComponentIndex, 0.6);
 //                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
             return true;
         } catch (ObjectCenteredPositionException e) {
@@ -184,7 +184,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 //        return true;
 //    }
 
-    private void checkMStickSize() {
+    protected void checkMStickSize() throws MStickSizeException {
         boolean success = this.validMStickSize();
         if (!success) {
             throw new MStickSizeException("MatchStick size is invalid");

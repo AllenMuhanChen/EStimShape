@@ -5,7 +5,11 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.Coordinates2D;
 
+import javax.vecmath.Point3d;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * MatchSticks that are used to generate stimuli for the EStimShape NAFC Experiment.
@@ -31,6 +35,91 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         super.drawCompMap();
 
         drawRF();
+    }
+
+    @Override
+    protected void positionShape() {
+        if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
+//            centerSpecialJunctionAtOrigin();
+            moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
+        } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
+            Coordinates2D rfCenter = rf.getCenter();
+            //We divide by the scale factor to counteract the scaling that happens in smoothing operation
+            //which will incorrectly rescale this translation, so we are dividing it here so it will cancel out.
+            moveCenterOfMassTo(new Point3d(rfCenter.getX()/getScaleForMAxisShape(), rfCenter.getY()/getScaleForMAxisShape(), 0.0));
+        } else {
+            throw new IllegalArgumentException("RFStrategy not recognized");
+        }
+
+    }
+
+    @Override
+    protected boolean checkMStick(int drivingComponentIndex) {
+        try {
+//            checkMStickSize(); //no need to check size with our old methods if we are testing if it's completely inside RF
+            checkInRF();
+            return true;
+        } catch (ObjectCenteredPositionException e) {
+//            System.out.println(e.getMessage());
+            System.out.println("Error with object centered position, retrying");
+        } catch (NoiseException e) {
+//            System.out.println(e.getMessage());
+            System.out.println("Error with noise, retrying");
+        } catch (MStickSizeException e) {
+//            System.out.println(e.getMessage());
+            System.out.println("Error with matchStick size, retrying");
+        } catch (MorphException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private void checkInRF() throws MorphException {
+        double fractionPointsInRFThreshold = 1;
+        List<Point3d> pointsToCheck = new ArrayList<>();
+        List<Point3d> pointsInside = new ArrayList<>();
+
+
+        if (rfStrategy == RFStrategy.COMPLETELY_INSIDE) {
+            //ADD ALL POINTS OF THE MSTICK
+            pointsToCheck.addAll(Arrays.asList(this.getObj1().vect_info));
+            removeNullPoints(pointsToCheck);
+        } else if (rfStrategy == RFStrategy.PARTIALLY_INSIDE) {
+            for (int i=1; i<=this.getnComponent(); i++){
+                if (i == this.getDrivingComponent()) {
+                    pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
+                }
+            }
+            removeNullPoints(pointsToCheck);
+        } else{
+            throw new IllegalArgumentException("RFStrategy not recognized");
+        }
+
+        for (Point3d point: pointsToCheck){
+//            System.out.println("Checking point: " + point.x + ", " + point.y);
+            if (rf.isInRF(point.x, point.y)) {
+                pointsInside.add(point);
+            }
+        }
+
+        double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
+        System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + fractionPointsInRFThreshold);
+
+        if (percentageInRF >= fractionPointsInRFThreshold) {
+        }
+        else
+            throw new MorphException("Object not in RF");
+
+
+    }
+
+    private static void removeNullPoints(List<Point3d> pointsToCheck) {
+        pointsToCheck.removeIf(new Predicate<Point3d>() {
+            @Override
+            public boolean test(Point3d point) {
+                return point == null;
+            }
+        });
     }
 
     private void drawRF() {

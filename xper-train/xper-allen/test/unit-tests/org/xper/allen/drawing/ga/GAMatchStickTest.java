@@ -20,8 +20,8 @@ public class GAMatchStickTest {
     public void setUp() throws Exception {
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);
-        h = 5;
-        k = 5;
+        h = 20;
+        k = 30;
         r = 10;
     }
 
@@ -51,10 +51,6 @@ public class GAMatchStickTest {
     @Test
     public void test_draw_comp_map(){
         GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
-            double h = 5;
-            double k = 5;
-            double r = 5;
-
             {
                 for (int i = 0; i < 100; i++) {
                     double angle = 2 * Math.PI * i / 100;
@@ -83,10 +79,6 @@ public class GAMatchStickTest {
     @Test
     public void test_draw_comp_map_completely_inside_rf(){
         GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
-            double h = 5;
-            double k = 5;
-            double r = 5;
-
             {
                 center = new Coordinates2D(h, k);
                 for (int i = 0; i < 100; i++) {

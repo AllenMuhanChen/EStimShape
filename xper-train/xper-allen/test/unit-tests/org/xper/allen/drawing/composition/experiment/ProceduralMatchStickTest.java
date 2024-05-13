@@ -67,14 +67,17 @@ public class ProceduralMatchStickTest {
     }
 
     @Test
-    public void test_msticks(){
+    public void test_procedural_distractors(){
         pngMaker.createDrawerWindow();
         for (int i = 0; i < 2; i++) {
-            generateSet(i);
+            generateStimAndProceduralDistractors(i);
         }
     }
 
     @Test
+    /**
+     * For testing the behavior of noise circle location relative to the stimulus (visualized as a hull)
+     */
     public void drawHullAndNoiseCircle(){
         testMStick = new ProceduralMatchStick();
         testMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -281,7 +284,7 @@ public class ProceduralMatchStickTest {
         }
     }
 
-    private void generateSet(long setId) {
+    private void generateStimAndProceduralDistractors(long setId) {
         drawPng(baseMStick, setId, 0L);
         ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
         int size = 2;

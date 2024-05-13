@@ -14,6 +14,7 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.TestDrawingWindow;
 import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
+import org.xper.util.ThreadUtil;
 
 import java.awt.*;
 import java.util.Collections;
@@ -59,11 +60,12 @@ public class EStimShapeProceduralMatchStickTest {
 //        pngMaker.createDrawerWindow();
 
         ReceptiveField receptiveField = new ReceptiveField() {
-            double h = 5;
-            double k = 5;
-            double r = 10;
+            final double h = 30;
+            final double k = 30;
+            final double r = 10;
 
             {
+                center = new Coordinates2D(h, k);
                 for (int i = 0; i < 100; i++) {
                     double angle = 2 * Math.PI * i / 100;
                     outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
@@ -76,7 +78,7 @@ public class EStimShapeProceduralMatchStickTest {
         };
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField);
 
-        mStick.setProperties(4, "SHADE");
+        mStick.setProperties(2.5, "SHADE");
 
         mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
         testMatchStickDrawer.draw(new Drawable() {
@@ -85,6 +87,8 @@ public class EStimShapeProceduralMatchStickTest {
                 mStick.drawCompMap();
             }
         });
+
+        ThreadUtil.sleep(10000);
 
 
     }
