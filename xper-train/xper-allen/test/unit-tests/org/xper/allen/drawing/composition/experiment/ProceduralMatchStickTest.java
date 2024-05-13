@@ -37,12 +37,12 @@ import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class ProceduralMatchStickTest {
     private String testBin;
-    private EStimShapeProceduralMatchStick baseMStick;
+    private ProceduralMatchStick baseMStick;
     private AllenPNGMaker pngMaker;
     private TestDrawingWindow window;
     private AllenDrawingManager drawingManager;
     private int numNoiseFrames;
-    private EStimShapeProceduralMatchStick testMStick;
+    private ProceduralMatchStick testMStick;
 
     @Before
     public void setUp() throws Exception {
@@ -58,7 +58,7 @@ public class ProceduralMatchStickTest {
 
 
 
-        baseMStick = new EStimShapeProceduralMatchStick();
+        baseMStick = new ProceduralMatchStick();
         baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
@@ -76,7 +76,7 @@ public class ProceduralMatchStickTest {
 
     @Test
     public void drawHullAndNoiseCircle(){
-        testMStick = new EStimShapeProceduralMatchStick();
+        testMStick = new ProceduralMatchStick();
         testMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         testMStick.genMatchStickFromLeaf(1, baseMStick);
 
@@ -148,7 +148,7 @@ public class ProceduralMatchStickTest {
 
     }
 
-    private ArrayList<ConcaveHull.Point> calcHull(EStimShapeProceduralMatchStick testMStick, int compIndx) {
+    private ArrayList<ConcaveHull.Point> calcHull(ProceduralMatchStick testMStick, int compIndx) {
         Point3d[] compVect_info = testMStick.getComp()[compIndx].getVect_info();
         ArrayList<ConcaveHull.Point> concaveHullPoints = new ArrayList<>();
         int index=0;
@@ -178,7 +178,7 @@ public class ProceduralMatchStickTest {
 
 
 
-        baseMStick = new EStimShapeProceduralMatchStick();
+        baseMStick = new ProceduralMatchStick();
         int size = 5;
         baseMStick.setProperties(size, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
@@ -187,9 +187,9 @@ public class ProceduralMatchStickTest {
 
         drawingManager.setImageFolderName("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin");
         drawingManager.drawStimulus(baseMStick, -1L, Collections.singletonList("Base"));
-        EStimShapeProceduralMatchStick sampleMStick;
+        ProceduralMatchStick sampleMStick;
         if (drawNewStim) {
-            sampleMStick = new EStimShapeProceduralMatchStick();
+            sampleMStick = new ProceduralMatchStick();
 //            sampleMStick.showDebug = true;
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(size, "SHADE");
@@ -205,7 +205,7 @@ public class ProceduralMatchStickTest {
             spec.writeInfo2File(testBin + "/" + 0 + "_" + "Stim", true);
             ThreadUtil.sleep(100);
         } else {
-            sampleMStick = new EStimShapeProceduralMatchStick();
+            sampleMStick = new ProceduralMatchStick();
             sampleMStick.genMatchStickFromFile("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim_spec.xml");
 
         }
@@ -283,18 +283,18 @@ public class ProceduralMatchStickTest {
 
     private void generateSet(long setId) {
         drawPng(baseMStick, setId, 0L);
-        EStimShapeProceduralMatchStick sampleMStick = new EStimShapeProceduralMatchStick();
+        ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
         int size = 2;
         sampleMStick.setProperties(size, "SHADE");
         sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0);
         drawPng(sampleMStick, setId, 1L);
 
-        EStimShapeProceduralMatchStick distractor1 = new EStimShapeProceduralMatchStick();
+        ProceduralMatchStick distractor1 = new ProceduralMatchStick();
         distractor1.setProperties(size, "SHADE");
         distractor1.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5);
         drawPng(distractor1, setId, 2L);
 
-        EStimShapeProceduralMatchStick distractor2 = new EStimShapeProceduralMatchStick();
+        ProceduralMatchStick distractor2 = new ProceduralMatchStick();
         distractor2.setProperties(size, "SHADE");
         distractor2.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5);
         drawPng(distractor2, setId, 3L);
@@ -351,7 +351,7 @@ public class ProceduralMatchStickTest {
 
 
 
-    private void drawPng(ProceduralMatchStick matchStick, long setId, long id) {
+    public void drawPng(ProceduralMatchStick matchStick, long setId, long id) {
 //        pngMaker = new AllenPNGMaker(500, 500);
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(matchStick, true);

@@ -37,7 +37,7 @@ public class DeltaStim extends ProceduralStim {
     protected void generateMatchSticksAndSaveSpecs() {
         while (true) {
             try {
-                EStimShapeProceduralMatchStick sample = generateSample();
+                ProceduralMatchStick sample = generateSample();
 
                 assignDrivingAndDeltaIndices(sample);
 
@@ -55,7 +55,7 @@ public class DeltaStim extends ProceduralStim {
     }
 
 
-    protected void assignDrivingAndDeltaIndices(EStimShapeProceduralMatchStick sample){
+    protected void assignDrivingAndDeltaIndices(ProceduralMatchStick sample){
         int drivingIndex = sample.getDrivingComponent();
         int deltaIndex = sample.getDeltaCompId();
 
@@ -74,9 +74,9 @@ public class DeltaStim extends ProceduralStim {
 
 
     @Override
-    protected EStimShapeProceduralMatchStick generateSample() {
+    protected ProceduralMatchStick generateSample() {
         //Generate Sample
-        EStimShapeProceduralMatchStick sample = baseStim.mSticks.getSample();
+        ProceduralMatchStick sample = baseStim.mSticks.getSample();
 
         System.out.println("New Noise Component Index: " + noiseComponentIndex);
         mSticks.setSample(sample);
