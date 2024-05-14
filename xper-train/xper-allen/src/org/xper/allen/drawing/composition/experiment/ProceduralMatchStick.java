@@ -28,9 +28,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
 //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
-    public static final double NOISE_RADIUS_DEGREES = 20;
+    public static final double NOISE_RADIUS_DEGREES = 50;
     public int maxAttempts = 15;
-    private Point3d noiseOrigin;
+    protected Point3d noiseOrigin;
+    public double correctionFactor;
 
     /**
      * Generates a new matchStick from the base matchStick's driving component
@@ -108,6 +109,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 checkInNoise(drivingComponent, 0.6);
             } catch (Exception e) {
                 System.out.println("Error with noise, retrying");
+                System.out.println(e.getMessage());
                 continue;
             }
             return fromCompId;
@@ -328,14 +330,16 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      * @param percentRequiredOutsideNoise
      */
     public void checkInNoise(int cantBeInNoiseCompId, double percentRequiredOutsideNoise){
-        Point3d[] compVect_info = getComp()[cantBeInNoiseCompId].getVect_info();
+        AllenTubeComp testingComp = getComp()[cantBeInNoiseCompId];
+        Point3d[] compVect_info = testingComp.getVect_info();
+
         noiseOrigin = calculateNoiseOrigin(cantBeInNoiseCompId);
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         int index = 0;
         for (Point3d point3d: compVect_info){
             if (point3d != null){
-                if (index % 3 == 0) //For speed, we only check every other point for the hull
+                if (index % 1 == 0) //For speed, we only check every other point for the hull
                 {
                     pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
                 }
@@ -372,8 +376,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         int numPointsOutside = 0;
         for (Point2d point: pointsToCheckIfOutside){
-            System.out.println("Checking point: " + point.getX() + ", " + point.getY());
-            System.out.println("Noise center: " + noiseOrigin.getX() + ", " + noiseOrigin.getY());
             if (!isPointWithinCircle(point, new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), NOISE_RADIUS_DEGREES)){
                 numPointsOutside++;
             }
@@ -386,7 +388,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
 
-    private boolean isPointWithinCircle(Point2d point, Point2d center, double radius) {
+    protected boolean isPointWithinCircle(Point2d point, Point2d center, double radius) {
         return point.distance(center) <= radius;
     }
 
@@ -408,7 +410,13 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return point3d;
     }
 
-    private Point3d calcProjectionFromSingleJunctionWithSingleComp(Integer specialCompIndx, JuncPt_struct junc) {
+//
+//    public Point3d getNoiseOriginToDraw(){
+//        Point3d oldOrigin = this.noiseOrigin;
+//
+//    }
+
+    protected Point3d calcProjectionFromSingleJunctionWithSingleComp(Integer specialCompIndx, JuncPt_struct junc) {
         Point3d projectedPoint;
         // Find some important info about the junction
         int baseCompId = -1;
@@ -439,7 +447,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     private Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate();
-        Point3d startingPosition = choosePositionAlongTangent(reverseTangent, junc.getPos(), junc.getRad());
+        Point3d startingPosition = choosePositionAlongTangent(
+                reverseTangent,
+                junc.getPos(),
+                junc.getRad());
         return startingPosition;
     }
 
@@ -453,7 +464,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
     }
 
-    private Point3d calcProjectionFromJunctionWithMultiComp(Integer specialCompId, JuncPt_struct junc) {
+    protected Point3d calcProjectionFromJunctionWithMultiComp(Integer specialCompId, JuncPt_struct junc) {
         Point3d projectedPoint;
         // Collect tangents for this junction - excluding special component
         List<Vector3d> nonSpecialTangents = new LinkedList<>();

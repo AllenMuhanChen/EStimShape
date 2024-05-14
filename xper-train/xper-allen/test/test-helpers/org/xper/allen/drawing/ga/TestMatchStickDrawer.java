@@ -45,6 +45,10 @@ public class TestMatchStickDrawer {
         });
     }
 
+    public void stop(){
+        window.close();
+    }
+
 
     public void draw(Drawable drawable){
         window.draw(drawable);
