@@ -109,7 +109,7 @@ public class GAMatchStick extends MorphedMatchStick {
      *
      * This accomplishes the goal of keeping the image presented centered on fixation in either case.
      */
-    protected void positionShape() {
+    protected void centerShape() {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
         }

@@ -7,10 +7,8 @@ import org.xper.allen.drawing.composition.morph.NormalDistributedComponentMorphP
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
-import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
-import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.stickMath_lib;
 
@@ -80,7 +78,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick);
-//                positionShape();
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
@@ -94,6 +91,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick WITH NEW DRIVING COMP after " + this.maxAttempts + " attempts");
         }
+    }
+
+    protected void positionShape() {
     }
 
     public int genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp) {
@@ -164,9 +164,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return false;
     }
 
-    protected void finalPositionShape() {
-
-    }
 
 //    protected boolean validMStickSize() {
 ////        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
@@ -282,7 +279,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
 
 
-    protected void positionShape() {
+    protected void centerShape() {
         centerSpecialJunctionAtOrigin();
     }
 
@@ -664,7 +661,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 }
             }
 
-            positionShape();
+            centerShape();
             boolean res = smoothizeMStick();
             res = res && validMStickSize();
             if (res) {

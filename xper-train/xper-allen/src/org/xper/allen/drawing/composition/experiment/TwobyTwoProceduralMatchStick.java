@@ -18,7 +18,7 @@ public class TwobyTwoProceduralMatchStick extends ProceduralMatchStick {
         checkForTubeCollisions();
 
         MutateSUB_reAssignJunctionRadius();
-        positionShape();
+        centerShape();
         attemptSmoothizeMStick();
     }
 

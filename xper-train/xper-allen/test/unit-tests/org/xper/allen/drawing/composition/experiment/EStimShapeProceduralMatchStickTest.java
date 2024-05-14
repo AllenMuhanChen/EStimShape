@@ -91,9 +91,6 @@ public class EStimShapeProceduralMatchStickTest {
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
                 System.out.println(mStick.getSpecialEndComp().get(0));
                 Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
-                Vector3d correctVect = new Vector3d(mStick.finalShiftVec);
-                correctVect.scale(1/mStick.getScaleForMAxisShape());
-                circle.add(correctVect);
 
                 System.out.println(circle.getX() + " " + circle.getY());
 
@@ -177,7 +174,7 @@ public class EStimShapeProceduralMatchStickTest {
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
-//                mStick.drawCompMap();
+                mStick.drawCompMap();
 
 
                 // Now, draw the circle

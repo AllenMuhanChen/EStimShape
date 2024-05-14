@@ -654,7 +654,7 @@ public class AllenMatchStick extends MatchStick {
 			}
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
-			positionShape();
+			centerShape();
 			if(success){
 				boolean res;
 				try{
@@ -673,9 +673,45 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
-	protected void positionShape() {
+	/**
+	 * Responsible for deciding what part of the shape to center at the origin
+	 * NOTE, this SHOULD NOT be used translation of the entire shape,
+	 * because this WILL lead to errors. This essentially should control what
+	 * point we want to consider the center of the shape for rotation
+	 * and the point we are moving when translating.
+	 *
+	 */
+	protected void centerShape() {
 //		centerShapeAtOrigin(getSpecialEndComp().get(0));
 		moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
+	}
+
+	/**
+	 * This version applies translation to vect_info in smoothized matchstick if it exists AS WELL.
+	 * @param shiftVec
+	 */
+	protected void applyTranslation(Vector3d shiftVec) {
+		for (int i=1; i<= getnComponent(); i++)
+		{
+			Point3d finalPos = new Point3d();
+			finalPos.add(getComp()[i].getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
+			getComp()[i].translateComp(finalPos);
+		}
+		for (int i=1; i<=getnJuncPt(); i++)
+		{
+			getJuncPt()[i].getPos().add(shiftVec);
+		}
+		for (int i=1; i<=getnEndPt(); i++)
+		{
+			getEndPt()[i].getPos().add(shiftVec);
+		}
+
+		if (getObj1()!=null){
+			for (int i=1; i<=getObj1().getnVect(); i++)
+			{
+				getObj1().vect_info[i].add(shiftVec);
+			}
+		}
 	}
 
 	public void finalMoveCenterOfMassTo(Point3d destination){
@@ -1081,7 +1117,7 @@ public class AllenMatchStick extends MatchStick {
 						System.out.println("\n IN replace tube: FAIL the final Tube collsion Check ....\n\n");
 					success_process = false;
 				}
-				positionShape();
+				centerShape();
 				if ( this.validMStickSize() ==  false)
 				{
 					if ( showDebug)
@@ -1339,7 +1375,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.MutateSUB_reAssignJunctionRadius(); //Keeping this off keeps
 			// junctions similar to previous
 			//MutateSUB_reAssignJunctionRadius();
-			positionShape();
+			centerShape();
 			if(success){
 				boolean res;
 				try{
@@ -1726,7 +1762,7 @@ public class AllenMatchStick extends MatchStick {
 
 			//TRY SMOOTHING THE SHAPE
 
-			positionShape();
+			centerShape();
 			boolean smoothSuccess = false;
 			if(compSuccess){
 
@@ -1737,6 +1773,7 @@ public class AllenMatchStick extends MatchStick {
 					System.err.println(e.getMessage());
 				}
 			}
+			positionShape();
 
 //			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
 //			boolean sizeVetSuccess = false;
@@ -1753,6 +1790,9 @@ public class AllenMatchStick extends MatchStick {
 			i++;
 		}
 		return false;
+	}
+
+	protected void positionShape() {
 	}
 
 	private boolean vetLeafBaseSize(int leafIndx) {
@@ -2636,7 +2676,7 @@ public class AllenMatchStick extends MatchStick {
 			// this.finalRotateAllPoints(finalRotation[0], finalRotation[1],
 			// finalRotation[2]);
 
-			positionShape();
+			centerShape();
 
 			boolean res = smoothizeMStick();
 			if (res == true) // success to smooth

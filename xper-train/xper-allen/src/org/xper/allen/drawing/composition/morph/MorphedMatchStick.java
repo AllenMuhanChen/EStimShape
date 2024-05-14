@@ -53,8 +53,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
-                positionShape();
+                centerShape();
                 attemptSmoothizeMStick();
+                positionShape();
                 if (checkMStick()) break;
                 break;
             } catch (MorphException e) {
@@ -88,7 +89,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         while (numAttempts < getMaxTotalAttempts()) {
             try {
                 addComps(nCompsToAdd);
-                positionShape();
+                centerShape();
                 attemptSmoothizeMStick();
                 if (checkMStick()) break;
                 break;
@@ -186,7 +187,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                     }
                 }
                 removeComponent(removeFlags);
-                positionShape();
+                centerShape();
                 attemptSmoothizeMStick();
                 if (checkMStick()) break;
                 break;
@@ -234,7 +235,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 }
             }
 
-            positionShape();
+            centerShape();
 
             boolean smoothSucceeded = smoothizeMStick();
 

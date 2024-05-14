@@ -28,7 +28,7 @@ import java.util.function.Predicate;
  */
 public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     RFStrategy rfStrategy;
-    ReceptiveField rf;
+    public ReceptiveField rf;
     public Vector3d finalShiftVec;
 
     public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
@@ -60,6 +60,11 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
 //        }
 //
 //    }
+    @Override
+    protected void centerShape(){
+        moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
+    }
+
     @Override
     protected void positionShape() {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
@@ -104,9 +109,7 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     public boolean smoothizeMStick()
     {
         showDebug = false;
-        Vector3d negatedShiftVec = new Vector3d(finalShiftVec);
-        negatedShiftVec.negate();
-        applyTranslation(negatedShiftVec);
+
         int i;
         MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
         // 1. generate 1 tube Object for each TubeComp
@@ -142,14 +145,15 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
 
         this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
 
-        this.getObj1().translateBack(new Point3d(finalShiftVec));
-
-        applyTranslation(finalShiftVec);
+//        this.getObj1().translateBack(new Point3d(finalShiftVec));
+//        applyTranslation(finalShiftVec);
 
 
         if (isDoCenterObject()) {
             setFinalShiftinDepth(this.getObj1().subCenterOfMass());
         }
+
+
 
         return true;
     }
@@ -181,71 +185,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
             }
         }
         return point3d;
-    }
-
-
-    /**
-     * checks if any part of the concave hull of specified comp is inside noise circle and
-     * if enough of the rest of the shape is outside the noise circle
-     * @param cantBeInNoiseCompId
-     * @param percentRequiredOutsideNoise
-     */
-    public void checkInNoise(int cantBeInNoiseCompId, double percentRequiredOutsideNoise){
-        AllenTubeComp testingComp = getComp()[cantBeInNoiseCompId];
-        Point3d[] compVect_info = testingComp.getVect_info();
-
-        noiseOrigin = calculateNoiseOrigin(cantBeInNoiseCompId);
-
-        ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
-        int index = 0;
-        for (Point3d point3d: compVect_info){
-            if (point3d != null){
-                if (index % 1 == 0) //For speed, we only check every other point for the hull
-                {
-                    pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
-                }
-                index++;
-            }
-        }
-
-        List<Point2d> pointsOutside = new LinkedList<>();
-        for (ConcaveHull.Point point: pointsToCheck){
-            if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), NOISE_RADIUS_DEGREES)){
-                pointsOutside.add(new Point2d(point.getX(), point.getY()));
-            }
-        }
-
-        if (!pointsOutside.isEmpty()){
-            throw new NoiseException("Found " + pointsOutside.size() + "out of " + pointsToCheck.size() + "points outside of noise circle");
-        }
-
-        //Check if enough points not in compId are outside of the noise circle
-        ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();
-        for (int compIdx=1; compIdx<=getnComponent(); compIdx++){
-            if (compIdx != cantBeInNoiseCompId){
-                Point3d[] compVectInfo = getComp()[compIdx].getVect_info();
-                index = 0;
-                for (Point3d point3d: compVectInfo){
-                    if (point3d != null){
-                        if (index % 1 == 0) //For speed, we only check every other point for the hull
-                            pointsToCheckIfOutside.add(new Point2d(point3d.getX(), point3d.getY()));
-                        index++;
-                    }
-                }
-            }
-        }
-
-        int numPointsOutside = 0;
-        for (Point2d point: pointsToCheckIfOutside){
-            if (!isPointWithinCircle(point, new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), NOISE_RADIUS_DEGREES)){
-                numPointsOutside++;
-            }
-        }
-        double percentOutside = (double) numPointsOutside / pointsToCheckIfOutside.size();
-        System.out.println("%%%% OUTSIDE: " + percentOutside);
-        if (percentOutside < percentRequiredOutsideNoise){
-            throw new NoiseException("Not enough points outside of noise circle");
-        }
     }
 
 

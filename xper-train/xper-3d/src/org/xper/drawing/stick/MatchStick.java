@@ -743,6 +743,7 @@ public class MatchStick implements Drawable {
 		{
 			getEndPt()[i].getPos().add(shiftVec);
 		}
+
 	}
 
 	public void genMatchStickRand()
@@ -3874,6 +3875,8 @@ public class MatchStick implements Drawable {
 
 		if (isDoCenterObject())
 			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
+
+
 
 		return true;
 	}
