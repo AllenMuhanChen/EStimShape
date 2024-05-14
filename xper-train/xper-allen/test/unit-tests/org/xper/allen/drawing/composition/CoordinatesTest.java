@@ -70,6 +70,7 @@ public class CoordinatesTest {
 
         drawRF();
         drawCompVects();
+        ThreadUtil.sleep(1000);
         testMatchStickDrawer.drawMStick(mStick);
 
         ThreadUtil.sleep(10000);

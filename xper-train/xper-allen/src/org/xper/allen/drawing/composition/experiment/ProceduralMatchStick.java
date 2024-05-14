@@ -26,7 +26,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
 //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
-    public static final double NOISE_RADIUS_DEGREES = 50;
+    public static final double NOISE_RADIUS_DEGREES = 10;
     public int maxAttempts = 15;
     protected Point3d noiseOrigin;
     public double correctionFactor;
@@ -106,7 +106,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
             int drivingComponent = getDrivingComponent();
             try {
-                checkInNoise(drivingComponent, 0.6);
+                checkInNoise(drivingComponent, 0.3);
             } catch (Exception e) {
                 System.out.println("Error with noise, retrying");
                 System.out.println(e.getMessage());
@@ -323,14 +323,14 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     /**
      * checks if any part of the concave hull of specified comp is inside noise circle and
      * if enough of the rest of the shape is outside the noise circle
-     * @param cantBeInNoiseCompId
+     * @param cantBeOutOfNoiseCompId
      * @param percentRequiredOutsideNoise
      */
-    public void checkInNoise(int cantBeInNoiseCompId, double percentRequiredOutsideNoise){
-        AllenTubeComp testingComp = getComp()[cantBeInNoiseCompId];
+    public void checkInNoise(int cantBeOutOfNoiseCompId, double percentRequiredOutsideNoise){
+        AllenTubeComp testingComp = getComp()[cantBeOutOfNoiseCompId];
         Point3d[] compVect_info = testingComp.getVect_info();
 
-        noiseOrigin = calculateNoiseOrigin(cantBeInNoiseCompId);
+        noiseOrigin = calculateNoiseOrigin(cantBeOutOfNoiseCompId);
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         int index = 0;
@@ -358,7 +358,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         //Check if enough points not in compId are outside of the noise circle
         ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();
         for (int compIdx=1; compIdx<=getnComponent(); compIdx++){
-            if (compIdx != cantBeInNoiseCompId){
+            if (compIdx != cantBeOutOfNoiseCompId){
                 Point3d[] compVectInfo = getComp()[compIdx].getVect_info();
                 index = 0;
                 for (Point3d point3d: compVectInfo){
@@ -437,21 +437,23 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         // Choose a starting point
         Point3d startingPosition = chooseStartingPoint(junc, tangent);
 
-        projectedPoint = pointAlong2dTangent(startingPosition, tangent, NOISE_RADIUS_DEGREES);
+        projectedPoint = pointAlong2dTangent(startingPosition,
+                tangent,
+                NOISE_RADIUS_DEGREES);
         return projectedPoint;
     }
 
-    private Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
+    protected Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
         Vector3d reverseTangent = new Vector3d(tangent);
-        reverseTangent.negate();
+        reverseTangent.negate(); //reverse so we end up with a point inside of the shape
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
-                junc.getPos(),
-                junc.getRad());
+                junc.getPos(), //this is shifted by applyTranslation
+                junc.getRad() * getScaleForMAxisShape()); // this is not shifted by smoothize
         return startingPosition;
     }
 
-    private Point3d choosePositionAlongTangent(Vector3d tangent, Point3d pos, double distance) {
+    protected Point3d choosePositionAlongTangent(Vector3d tangent, Point3d pos, double distance) {
         Vector3d normalizedTangent = new Vector3d(tangent);
         normalizedTangent.normalize();
         normalizedTangent.scale(distance);

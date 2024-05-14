@@ -110,6 +110,8 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     {
         showDebug = false;
 
+
+
         int i;
         MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
         // 1. generate 1 tube Object for each TubeComp
@@ -153,9 +155,37 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
             setFinalShiftinDepth(this.getObj1().subCenterOfMass());
         }
 
+        for (i=1; i<=getnComponent(); i++)
+        {
+            getComp()[i].setScaleOnce(false);
+            Point3d[] vect_info = getComp()[i].getVect_info();
+            for (Point3d point : vect_info) {
+                if (point != null) {
+                    point.scale(getScaleForMAxisShape());;
+                }
+            }
+        }
 
 
         return true;
+    }
+
+    @Override
+    protected Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
+        Vector3d reverseTangent = new Vector3d(tangent);
+        reverseTangent.negate();
+
+//        Point3d correctedJuncPos = new Point3d(junc.getPos());
+//        Vector3d reverseShiftVec  = new Vector3d(finalShiftVec);
+//        correctedJuncPos.add(reverseShiftVec);
+//        correctedJuncPos.scale(getScaleForMAxisShape());
+//        correctedJuncPos.add(finalShiftVec);
+
+        Point3d startingPosition = choosePositionAlongTangent(
+                reverseTangent,
+                junc.getPos(), //this is shifted by applyTranslation
+                junc.getRad() * getScaleForMAxisShape()); // this is not shifted by smoothize
+        return startingPosition;
     }
 
     @Override
