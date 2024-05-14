@@ -171,21 +171,12 @@ public class AllenTubeComp extends TubeComp{
 		/*int ringSample = 20;
 		  int capSample = 10;
 		  int maxStep = 51;*/
-		Vector3d negatedShiftVec = new Vector3d(shiftVec);
-		negatedShiftVec.negate();
-		Point3d reversedShiftPos = new Point3d(getmAxisInfo().getTransRotHis_finalPos());
-		reversedShiftPos.add(new Point3d(negatedShiftVec));
-
-		translateComp(reversedShiftPos);
 
 		if (isScaleOnce()) {
 			scaleTheObj(scaleFactor);
 			setScaleOnce(false);
 		}
 
-		Point3d shiftedPos = new Point3d(getmAxisInfo().getTransRotHis_finalPos());
-		shiftedPos.add(new Point3d(shiftVec));
-		translateComp(shiftedPos);
 
 		boolean useLight = true;
 

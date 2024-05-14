@@ -138,17 +138,14 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         // 3. general smooth afterward
         nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
 
-        // for debug
-//		this.setObj1(new MStickObj4Smooth());
+
         this.setObj1(MObj[1]);
 
         this.getObj1().rotateMesh(getFinalRotation());
-//		this.getObj1().scaleTheObj(scaleForMAxisShape*3);
 
         this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
 
-//        this.getObj1().translateBack(new Point3d(finalShiftVec));
-//        applyTranslation(finalShiftVec);
+
 
 
         if (isDoCenterObject()) {
