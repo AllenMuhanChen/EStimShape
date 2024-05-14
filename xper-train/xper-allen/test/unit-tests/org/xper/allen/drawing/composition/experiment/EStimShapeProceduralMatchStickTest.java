@@ -2,6 +2,7 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.lwjgl.opengl.GL11;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
@@ -16,6 +17,7 @@ import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
 
+import javax.vecmath.Point3d;
 import java.awt.*;
 import java.util.Collections;
 
@@ -78,14 +80,124 @@ public class EStimShapeProceduralMatchStickTest {
         };
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField);
 
-        mStick.setProperties(2.5, "SHADE");
+        mStick.setProperties(2, "SHADE");
+
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
+        testMatchStickDrawer.draw(new Drawable() {
+            @Override
+            public void draw() {
+                mStick.draw();
+
+                // Now, draw the circle
+                GL11.glColor3f(1.0f, 0.0f, 0.0f);
+                System.out.println(mStick.getSpecialEndComp().get(0));
+                Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
+                System.out.println(circle.getX() + " " + circle.getY());
+
+                double radius = ProceduralMatchStick.NOISE_RADIUS_DEGREES;
+                int numSegments = 100; // Increase for a smoother circle
+
+                GL11.glBegin(GL11.GL_LINE_LOOP);
+                for (int i = 0; i < numSegments; i++) {
+                    double theta = 2.0 * Math.PI * i / numSegments; // Current angle
+                    double x = radius * Math.cos(theta); // Calculate the x component
+                    double y = radius * Math.sin(theta); // Calculate the y component
+                    GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
+                }
+                GL11.glEnd();
+            }
+
+
+
+
+
+
+        });
+
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+        testMatchStickDrawer.draw(new Drawable() {
+            @Override
+            public void draw() {
+                // Now, draw the circle
+                GL11.glColor3f(1.0f, 0.0f, 0.0f);
+                System.out.println(mStick.getSpecialEndComp().get(0));
+                Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
+                System.out.println(circle.getX() + " " + circle.getY());
+
+                double radius = ProceduralMatchStick.NOISE_RADIUS_DEGREES;
+                int numSegments = 100; // Increase for a smoother circle
+
+                GL11.glBegin(GL11.GL_LINE_LOOP);
+                for (int i = 0; i < numSegments; i++) {
+                    double theta = 2.0 * Math.PI * i / numSegments; // Current angle
+                    double x = radius * Math.cos(theta); // Calculate the x component
+                    double y = radius * Math.sin(theta); // Calculate the y component
+                    GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
+                }
+                GL11.glEnd();
+                mStick.drawCompMap();
+            }
+        });
+
+        ThreadUtil.sleep(1000);
+
+    }
+
+    @Test
+    public void test_partially_in_RF(){
+//        pngMaker.createDrawerWindow();
+
+        ReceptiveField receptiveField = new ReceptiveField() {
+            final double h = 5;
+            final double k = 5;
+            final double r = 10;
+
+            {
+                center = new Coordinates2D(h, k);
+                for (int i = 0; i < 100; i++) {
+                    double angle = 2 * Math.PI * i / 100;
+                    outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
+                }
+            }
+            @Override
+            public boolean isInRF(double x, double y) {
+                return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
+            }
+        };
+        EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(
+                RFStrategy.PARTIALLY_INSIDE, receptiveField);
+
+        mStick.setProperties(5, "SHADE");
 
         mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
                 mStick.drawCompMap();
+
+
+                // Now, draw the circle
+                GL11.glColor3f(1.0f, 0.0f, 0.0f);
+                System.out.println(mStick.getSpecialEndComp().get(0));
+                Point3d circle = mStick.getNoiseOrigin(); // Replace with the circle's center X-coordinate
+
+                double radius = ProceduralMatchStick.NOISE_RADIUS_DEGREES;
+                int numSegments = 100; // Increase for a smoother circle
+
+                GL11.glBegin(GL11.GL_LINE_LOOP);
+                for (int i = 0; i < numSegments; i++) {
+                    double theta = 2.0 * Math.PI * i / numSegments; // Current angle
+                    double x = radius * Math.cos(theta); // Calculate the x component
+                    double y = radius * Math.sin(theta); // Calculate the y component
+                    GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
+                }
+                GL11.glEnd();
+
+                mStick.draw();
             }
+
+
         });
 
         ThreadUtil.sleep(10000);

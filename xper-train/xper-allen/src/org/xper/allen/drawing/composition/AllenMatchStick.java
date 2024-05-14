@@ -238,7 +238,6 @@ public class AllenMatchStick extends MatchStick {
 						{0.4f, 0.1f, 0.6f}
 				};
 
-
 				getComp()[i].drawSurfPt(colorCode[i-1],getScaleForMAxisShape());
 			}
 		else
@@ -679,19 +678,24 @@ public class AllenMatchStick extends MatchStick {
 		moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
 	}
 
+	public void finalMoveCenterOfMassTo(Point3d destination){
+		Point3d centerOfMass = getMassCenter();
+		Vector3d shiftVec = new Vector3d();
+		shiftVec.sub(destination, centerOfMass);
+		this.getObj1().translateBack(new Point3d(shiftVec));
+	}
 
-
-	public void moveCenterOfMassTo(Point3d destination)
+	public Vector3d moveCenterOfMassTo(Point3d destination)
 	{
 
 		Point3d centerOfMass = getMassCenter();
-		System.out.println("Center of Mass: " + centerOfMass);
 		Vector3d shiftVec = new Vector3d();
 		shiftVec.sub(destination, centerOfMass);
 		if ( destination.distance(centerOfMass) > 0.001)
 		{
 			applyTranslation(shiftVec);
 		}
+		return shiftVec;
 	}
 
 	public Point3d getMassCenter(){
@@ -1730,6 +1734,7 @@ public class AllenMatchStick extends MatchStick {
 					smoothSuccess = this.smoothizeMStick();
 				} catch(Exception e){
 					smoothSuccess = false;
+					System.err.println(e.getMessage());
 				}
 			}
 

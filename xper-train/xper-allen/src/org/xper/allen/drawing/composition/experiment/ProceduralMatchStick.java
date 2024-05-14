@@ -7,8 +7,10 @@ import org.xper.allen.drawing.composition.morph.NormalDistributedComponentMorphP
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
+import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.stickMath_lib;
 
@@ -26,8 +28,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
 //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
-    public static final double NOISE_RADIUS_DEGREES = 4;
+    public static final double NOISE_RADIUS_DEGREES = 20;
     public int maxAttempts = 15;
+    private Point3d noiseOrigin;
 
     /**
      * Generates a new matchStick from the base matchStick's driving component
@@ -48,7 +51,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
             while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
                 if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
-                    positionShape();
                     break;
                 }
                 numAttempts++;
@@ -77,7 +79,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick);
-                positionShape();
+//                positionShape();
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
@@ -140,6 +142,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
     protected boolean checkMStick(int drivingComponentIndex) {
         try {
+//            finalPositionShape();
             checkMStickSize();
 //            checkInNoise(drivingComponentIndex, 0.6);
 //                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
@@ -157,6 +160,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             e.printStackTrace();
         }
         return false;
+    }
+
+    protected void finalPositionShape() {
+
     }
 
 //    protected boolean validMStickSize() {
@@ -277,7 +284,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         centerSpecialJunctionAtOrigin();
     }
 
-    protected void centerSpecialJunctionAtOrigin(){
+    protected Vector3d centerSpecialJunctionAtOrigin(){
         Point3d origin = new Point3d(0,0,0);
         Point3d specialJunctionPos = new Point3d(0,0,0);
         for (JuncPt_struct junc : getJuncPt()) {
@@ -292,6 +299,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         Vector3d shiftVec = new Vector3d();
         shiftVec.sub(origin, specialJunctionPos);
         applyTranslation(shiftVec);
+        return shiftVec;
     }
 
     public Point3d getMassCenterForComponent(int componentIndex) {
@@ -321,7 +329,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      */
     public void checkInNoise(int cantBeInNoiseCompId, double percentRequiredOutsideNoise){
         Point3d[] compVect_info = getComp()[cantBeInNoiseCompId].getVect_info();
-        Point3d noiseCenter = calculateNoiseOrigin(cantBeInNoiseCompId);
+        noiseOrigin = calculateNoiseOrigin(cantBeInNoiseCompId);
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         int index = 0;
@@ -337,12 +345,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         List<Point2d> pointsOutside = new LinkedList<>();
         for (ConcaveHull.Point point: pointsToCheck){
-            if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
+            if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), NOISE_RADIUS_DEGREES)){
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
             }
         }
-//        System.out.println("Number of points outside of noise circle: " + pointsOutside.size() + " out of " + hullVertices.size());
-        if (pointsOutside.size() > 0){
+
+        if (!pointsOutside.isEmpty()){
             throw new NoiseException("Found points outside of noise circle");
         }
 
@@ -364,7 +372,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         int numPointsOutside = 0;
         for (Point2d point: pointsToCheckIfOutside){
-            if (!isPointWithinCircle(point, new Point2d(noiseCenter.getX(), noiseCenter.getY()), NOISE_RADIUS_DEGREES)){
+            System.out.println("Checking point: " + point.getX() + ", " + point.getY());
+            System.out.println("Noise center: " + noiseOrigin.getX() + ", " + noiseOrigin.getY());
+            if (!isPointWithinCircle(point, new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), NOISE_RADIUS_DEGREES)){
                 numPointsOutside++;
             }
         }
@@ -659,5 +669,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
     public void setMaxAttempts(int maxAttempts) {
         this.maxAttempts = maxAttempts;
+    }
+
+    public Point3d getNoiseOrigin() {
+        return noiseOrigin;
     }
 }

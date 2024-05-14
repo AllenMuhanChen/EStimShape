@@ -3830,6 +3830,8 @@ public class MatchStick implements Drawable {
 	public boolean smoothizeMStick()
 	{
 		showDebug = false;
+
+
 		int i;
 		MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
 		// 1. generate 1 tube Object for each TubeComp

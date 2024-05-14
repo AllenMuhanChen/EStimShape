@@ -9,6 +9,7 @@ import javax.vecmath.Vector3d;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
+import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.TubeComp;
 import org.xper.drawing.stick.sampleFaceInfo;
 
@@ -155,6 +156,112 @@ public class AllenTubeComp extends TubeComp{
 
 		}
 	}
+
+	/**
+	 * This is a corrected version of the function that corrects for a final position of the object.
+	 * Previously, the scaling function here would amplify the any translation of the final position.
+	 * Here, the shiftVec is undone first, then the scaling is applied, then the shiftVec is reapplied.
+	 * @param colorCode
+	 * @param scaleFactor
+	 * @param shiftVec
+	 */
+	public void drawSurfPt(float[] colorCode, double scaleFactor, Vector3d shiftVec)
+	{
+		//use the oGL draw line function to draw out the mAxisArc
+		/*int ringSample = 20;
+		  int capSample = 10;
+		  int maxStep = 51;*/
+		Vector3d negatedShiftVec = new Vector3d(shiftVec);
+		negatedShiftVec.negate();
+		Point3d reversedShiftPos = new Point3d(getmAxisInfo().getTransRotHis_finalPos());
+		reversedShiftPos.add(new Point3d(negatedShiftVec));
+
+		translateComp(reversedShiftPos);
+
+		if (isScaleOnce()) {
+			scaleTheObj(scaleFactor);
+			setScaleOnce(false);
+		}
+
+		Point3d shiftedPos = new Point3d(getmAxisInfo().getTransRotHis_finalPos());
+		shiftedPos.add(new Point3d(shiftVec));
+		translateComp(shiftedPos);
+
+		boolean useLight = true;
+
+		int i;
+		GL11.glColor3f(0.0f, 1.0f, 0.0f);
+		GL11.glPointSize(3.0f);
+
+
+		// draw the surface triangle
+		if (useLight == false)
+		{
+			GL11.glDisable(GL11.GL_LIGHTING);
+			GL11.glColor3f( colorCode[0], colorCode[1], colorCode[2]);
+		}
+
+		boolean drawMAxis = false;
+
+		if (drawMAxis == true)
+		{
+			GL11.glLineWidth(5.0f);
+			//GL11.gllin
+			GL11.glBegin(GL11.GL_LINES);
+			//GL11.glBegin(GL11.GL_POINTS);
+			// Point3d p1 = this.mAxisInfo.transRotHis_finalPos;
+			for (i=1; i<=50; i++)
+			{
+				Point3d p1 = this.getmAxisInfo().getmPts()[i];
+				Point3d p2 = this.getmAxisInfo().getmPts()[i+1];
+				GL11.glVertex3d( p1.x, p1.y, p1.z);
+				GL11.glVertex3d(p2.x, p2.y, p2.z);
+			}
+			GL11.glEnd();
+			GL11.glEnable(GL11.GL_LIGHTING);
+			return;
+
+		}
+
+		GL11.glBegin(GL11.GL_TRIANGLES);
+		//	GL11.glBegin(GL11.GL_POINTS);
+		for (i=0; i< getnFac(); i++)
+		{
+			// 		System.out.println(i);
+			// 		System.out.println("fac Info " + facInfo[i][0] +" " + facInfo[i][1] +" " + facInfo[i][2]);
+
+			//AC TESTING
+//			Random r = new Random();
+			GL11.glColor3f(colorCode[0], colorCode[1], colorCode[2]);
+			Point3d p1 = getVect_info()[ getFacInfo()[i][0]];
+			Point3d p2 = getVect_info()[ getFacInfo()[i][1]];
+			Point3d p3 = getVect_info()[ getFacInfo()[i][2]];
+			Vector3d v1 = getNormMat_info()[ getFacInfo()[i][0]];
+			Vector3d v2 = getNormMat_info()[ getFacInfo()[i][1]];
+			Vector3d v3 = getNormMat_info()[ getFacInfo()[i][2]];
+
+			GL11.glNormal3d( v1.x, v1.y, v1.z);
+			GL11.glVertex3d( p1.x, p1.y, p1.z);
+			GL11.glNormal3d( v2.x, v2.y, v2.z);
+			GL11.glVertex3d( p2.x, p2.y, p2.z);
+			GL11.glNormal3d( v3.x, v3.y, v3.z);
+			GL11.glVertex3d( p3.x, p3.y, p3.z);
+
+
+		}
+
+		GL11.glEnd();
+		if ( useLight == false)
+			GL11.glEnable(GL11.GL_LIGHTING);
+
+
+
+
+	}
+	/**
+	 Translate the mAxisInfo and the vect_info to the new finalPos
+	 */
+
 
 	public void drawSurfPt(double scaleFactor, NoiseMapCalculation noiseMap)
 	{

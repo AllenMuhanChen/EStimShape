@@ -4,8 +4,10 @@ import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.stick.MStickObj4Smooth;
 
 import javax.vecmath.Point3d;
+import javax.vecmath.Vector3d;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -22,6 +24,7 @@ import java.util.function.Predicate;
 public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     RFStrategy rfStrategy;
     ReceptiveField rf;
+    private Vector3d finalShiftVec;
 
     public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
         this.rfStrategy = rfStrategy;
@@ -36,40 +39,124 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
 
         drawRF();
     }
-
+//
+//    @Override
+//    protected void finalPositionShape() {
+//        if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
+////            centerSpecialJunctionAtOrigin();
+//            finalMoveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
+//        } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
+//            Coordinates2D rfCenter = rf.getCenter();
+//            //We divide by the scale factor to counteract the scaling that happens in smoothing operation
+//            //which will incorrectly rescale this translation, so we are dividing it here so it will cancel out.
+//            finalMoveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
+//        } else {
+//            throw new IllegalArgumentException("RFStrategy not recognized");
+//        }
+//
+//    }
     @Override
     protected void positionShape() {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
 //            centerSpecialJunctionAtOrigin();
-            moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
+            finalShiftVec = centerSpecialJunctionAtOrigin();
         } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
             Coordinates2D rfCenter = rf.getCenter();
             //We divide by the scale factor to counteract the scaling that happens in smoothing operation
             //which will incorrectly rescale this translation, so we are dividing it here so it will cancel out.
-            moveCenterOfMassTo(new Point3d(rfCenter.getX()/getScaleForMAxisShape(), rfCenter.getY()/getScaleForMAxisShape(), 0.0));
+//            moveCenterOfMassTo(new Point3d(rfCenter.getX() /  getScaleForMAxisShape(), rfCenter.getY() / getScaleForMAxisShape(), 0.0));
+            finalShiftVec = moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
         } else {
             throw new IllegalArgumentException("RFStrategy not recognized");
         }
 
+    }
+    @Override
+    public void drawSkeleton(boolean showComponents) {
+//		this.showComponents = true;
+        int i;
+        if (showComponents)
+            for (i=1; i<=getnComponent(); i++) {
+                float[][] colorCode= {
+                        {1.0f, 1.0f, 1.0f},
+                        {1.0f, 0.0f, 0.0f},
+                        {0.0f, 1.0f, 0.0f},
+                        {0.0f, 0.0f, 1.0f},
+                        {0.0f, 1.0f, 1.0f},
+                        {1.0f, 0.0f, 1.0f},
+                        {1.0f, 1.0f, 0.0f},
+                        {0.4f, 0.1f, 0.6f}
+                };
+
+                getComp()[i].drawSurfPt(colorCode[i-1],getScaleForMAxisShape(), finalShiftVec);
+
+            }
+        else
+            getObj1().drawVect();
+    }
+
+    @Override
+    public boolean smoothizeMStick()
+    {
+        showDebug = false;
+        Vector3d negatedShiftVec = new Vector3d(finalShiftVec);
+        negatedShiftVec.negate();
+        applyTranslation(negatedShiftVec);
+        int i;
+        MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
+        // 1. generate 1 tube Object for each TubeComp
+        for (i=1; i<= getnComponent(); i++)
+            MObj[i] = new MStickObj4Smooth(getComp()[i]); // use constructor to do the initialization
+
+        if (getnComponent() == 1) {
+            this.setObj1(MObj[1]);
+            return true;
+        }
+
+        // 2. Start adding tube by tube
+        MStickObj4Smooth nowObj = MObj[1]; // use soft copy is fine here
+        for (i=2; i<= getnComponent(); i++) {
+            int target = i;
+            boolean res  = false;
+            res = nowObj.objectMerge( MObj[target], false);
+            if (res == false) {
+//				System.err.println("FAIL AT OBJECT MERGE");
+                return false;
+            }
+        }
+
+        // 3. general smooth afterward
+        nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
+
+        // for debug
+//		this.setObj1(new MStickObj4Smooth());
+        this.setObj1(MObj[1]);
+
+        this.getObj1().rotateMesh(getFinalRotation());
+//		this.getObj1().scaleTheObj(scaleForMAxisShape*3);
+
+        this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
+
+        this.getObj1().translateBack(new Point3d(finalShiftVec));
+
+        applyTranslation(finalShiftVec);
+
+
+        if (isDoCenterObject()) {
+            setFinalShiftinDepth(this.getObj1().subCenterOfMass());
+        }
+
+        return true;
     }
 
     @Override
     protected boolean checkMStick(int drivingComponentIndex) {
         try {
 //            checkMStickSize(); //no need to check size with our old methods if we are testing if it's completely inside RF
-            checkInRF();
+//            checkInRF();
             return true;
-        } catch (ObjectCenteredPositionException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with object centered position, retrying");
-        } catch (NoiseException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with noise, retrying");
-        } catch (MStickSizeException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with matchStick size, retrying");
         } catch (MorphException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
         }
         return false;
     }
@@ -109,7 +196,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         }
         else
             throw new MorphException("Object not in RF");
-
 
     }
 

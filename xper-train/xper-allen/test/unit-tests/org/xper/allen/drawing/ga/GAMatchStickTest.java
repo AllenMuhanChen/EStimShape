@@ -12,24 +12,23 @@ import org.xper.util.ThreadUtil;
 public class GAMatchStickTest {
 
     private TestMatchStickDrawer testMatchStickDrawer;
-    private double h;
-    private double k;
-    private double r;
 
     @Before
     public void setUp() throws Exception {
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);
-        h = 20;
-        k = 30;
-        r = 10;
+
     }
 
     @Test
     public void test() {
+        double h = 20;
+        double k = 30;
+        double r = 10;
         ReceptiveField rf = new ReceptiveField() {
             @Override
             public boolean isInRF(double x, double y) {
+
                 //circle with radius 5 around x,y;
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
@@ -51,6 +50,9 @@ public class GAMatchStickTest {
     @Test
     public void test_draw_comp_map(){
         GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
+            double h = 5;
+            double k = 5;
+            double r = 10;
             {
                 for (int i = 0; i < 100; i++) {
                     double angle = 2 * Math.PI * i / 100;
@@ -69,6 +71,8 @@ public class GAMatchStickTest {
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
+
+                GAMatchStick.draw();
                 GAMatchStick.drawCompMap();
             }
         });
@@ -79,7 +83,11 @@ public class GAMatchStickTest {
     @Test
     public void test_draw_comp_map_completely_inside_rf(){
         GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
+            double h = 20;
+            double k = 30;
+            double r = 10;
             {
+
                 center = new Coordinates2D(h, k);
                 for (int i = 0; i < 100; i++) {
                     double angle = 2 * Math.PI * i / 100;
@@ -101,6 +109,7 @@ public class GAMatchStickTest {
             @Override
             public void draw() {
                 GAMatchStick.drawCompMap();
+                GAMatchStick.draw();
             }
         });
 
