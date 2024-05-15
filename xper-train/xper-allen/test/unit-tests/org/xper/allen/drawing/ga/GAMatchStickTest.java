@@ -48,7 +48,7 @@ public class GAMatchStickTest {
     }
 
     @Test
-    public void test_draw_comp_map(){
+    public void test_draw_comp_map_partially_inside_rf(){
         GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
             double h = 5;
             double k = 5;
@@ -73,6 +73,16 @@ public class GAMatchStickTest {
             public void draw() {
 
                 GAMatchStick.draw();
+
+
+            }
+        });
+
+        ThreadUtil.sleep(1000);
+
+        testMatchStickDrawer.draw(new Drawable() {
+            @Override
+            public void draw() {
                 GAMatchStick.drawCompMap();
             }
         });
@@ -108,8 +118,17 @@ public class GAMatchStickTest {
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
-                GAMatchStick.drawCompMap();
+
                 GAMatchStick.draw();
+            }
+        });
+
+        ThreadUtil.sleep(1000);
+
+        testMatchStickDrawer.draw(new Drawable() {
+            @Override
+            public void draw() {
+                GAMatchStick.drawCompMap();
             }
         });
 

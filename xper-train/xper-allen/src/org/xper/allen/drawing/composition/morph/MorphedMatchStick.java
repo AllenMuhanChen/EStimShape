@@ -241,12 +241,19 @@ public class MorphedMatchStick extends AllenMatchStick {
 
 
             if (!smoothSucceeded) // fail to smooth
+            {
                 continue; // else we need to gen another shape
+            }
+
+            positionShape();
 
             boolean sizeCheckSucceeded = checkMStick();
             if (sizeCheckSucceeded) // success
+            {
                 break;
+            }
         }
+
 
     }
 

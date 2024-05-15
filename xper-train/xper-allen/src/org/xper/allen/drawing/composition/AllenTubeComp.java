@@ -1,17 +1,11 @@
 package org.xper.allen.drawing.composition;
 
-import java.util.ArrayList;
-import java.util.Random;
-
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
-import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.TubeComp;
-import org.xper.drawing.stick.sampleFaceInfo;
 
 /**
  * AC Additions:
@@ -163,9 +157,8 @@ public class AllenTubeComp extends TubeComp{
 	 * Here, the shiftVec is undone first, then the scaling is applied, then the shiftVec is reapplied.
 	 * @param colorCode
 	 * @param scaleFactor
-	 * @param shiftVec
 	 */
-	public void drawSurfPt(float[] colorCode, double scaleFactor, Vector3d shiftVec)
+	public void drawSurfPt(float[] colorCode, double scaleFactor)
 	{
 		//use the oGL draw line function to draw out the mAxisArc
 		/*int ringSample = 20;

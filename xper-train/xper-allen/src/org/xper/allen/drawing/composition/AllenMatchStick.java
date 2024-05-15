@@ -222,6 +222,7 @@ public class AllenMatchStick extends MatchStick {
 
 	}
 
+	@Override
 	public void drawSkeleton(boolean showComponents) {
 //		this.showComponents = true;
 		int i;
@@ -239,6 +240,7 @@ public class AllenMatchStick extends MatchStick {
 				};
 
 				getComp()[i].drawSurfPt(colorCode[i-1],getScaleForMAxisShape());
+
 			}
 		else
 			getObj1().drawVect();
@@ -4460,5 +4462,67 @@ Adding a new MAxisArc to a MatchStick
 			bisectorTangent.normalize();
 		}
 		return bisectorTangent;
+	}
+
+	@Override
+	public boolean smoothizeMStick()
+	{
+		showDebug = false;
+
+
+
+		int i;
+		MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
+		// 1. generate 1 tube Object for each TubeComp
+		for (i=1; i<= getnComponent(); i++)
+			MObj[i] = new MStickObj4Smooth(getComp()[i]); // use constructor to do the initialization
+
+		if (getnComponent() == 1) {
+			this.setObj1(MObj[1]);
+			return true;
+		}
+
+		// 2. Start adding tube by tube
+		MStickObj4Smooth nowObj = MObj[1]; // use soft copy is fine here
+		for (i=2; i<= getnComponent(); i++) {
+			int target = i;
+			boolean res  = false;
+			res = nowObj.objectMerge( MObj[target], false);
+			if (res == false) {
+//				System.err.println("FAIL AT OBJECT MERGE");
+				return false;
+			}
+		}
+
+		// 3. general smooth afterward
+		nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
+
+
+		this.setObj1(MObj[1]);
+
+		this.getObj1().rotateMesh(getFinalRotation());
+
+		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
+
+
+
+
+		if (isDoCenterObject()) {
+			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
+		}
+
+		for (i=1; i<=getnComponent(); i++)
+		{
+			getComp()[i].setScaleOnce(false);
+			Point3d[] vect_info = getComp()[i].getVect_info();
+			for (Point3d point : vect_info) {
+				if (point != null) {
+					point.scale(getScaleForMAxisShape());;
+				}
+			}
+		}
+
+
+		return true;
 	}
 }

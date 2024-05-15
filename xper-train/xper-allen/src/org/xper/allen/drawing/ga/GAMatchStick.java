@@ -109,7 +109,7 @@ public class GAMatchStick extends MorphedMatchStick {
      *
      * This accomplishes the goal of keeping the image presented centered on fixation in either case.
      */
-    protected void centerShape() {
+    protected void positionShape() {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
         }
@@ -118,8 +118,10 @@ public class GAMatchStick extends MorphedMatchStick {
 
             //We divide by the scale factor to counteract the scaling that happens in smoothing operation
             //which will incorrectly rescale this translation, so we are dividing it here so it will cancel out.
-            moveCenterOfMassTo(new Point3d(rfCenter.getX()/getScaleForMAxisShape(), rfCenter.getY()/getScaleForMAxisShape(), 0.0));
+            moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
         }
     }
+
+
 
 }
