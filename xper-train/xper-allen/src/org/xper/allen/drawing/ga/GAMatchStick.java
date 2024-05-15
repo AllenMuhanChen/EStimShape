@@ -9,6 +9,8 @@ import javax.vecmath.Point3d;
 import java.util.*;
 import java.util.function.Predicate;
 
+import static org.xper.allen.drawing.composition.experiment.ProceduralMatchStick.chooseNumComps;
+
 /**
  * MatchSticks that are used to generate stimuli for the GA Experiment.
  * Includes:
@@ -102,6 +104,7 @@ public class GAMatchStick extends MorphedMatchStick {
 
     }
 
+
     @Override
     /**
      * IF the strategy is to have the shape partially inside the RF, then center the shape at origin so it can partially enter the RF.
@@ -110,11 +113,26 @@ public class GAMatchStick extends MorphedMatchStick {
      * This accomplishes the goal of keeping the image presented centered on fixation in either case.
      */
     protected void positionShape() {
+        Coordinates2D rfCenter;
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
-        }
-        else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
-            Coordinates2D rfCenter = rf.getCenter();
+            //Step 1: Choose a random component to consider the special component that's inside the RF
+            int specialCompIndx = this.getSpecialEndComp().get(0);
+
+            //Step 2: choose percentage of this component to be inside the RF
+            double percentageInsideRF = 1.0;
+            rfCenter = rf.getCenter();
+
+            //Step 3: Choose a point on the special component
+            Point3d pointToMove = this.getComp()[specialCompIndx].getMassCenter();
+
+            //Step 4: Choose a point in the RF
+            Point3d destination = new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0);
+
+            //Step 5: Move the point to the destination
+            movePointToDestination(pointToMove, destination);
+        } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
+
+            rfCenter = rf.getCenter();
 
             //We divide by the scale factor to counteract the scaling that happens in smoothing operation
             //which will incorrectly rescale this translation, so we are dividing it here so it will cancel out.

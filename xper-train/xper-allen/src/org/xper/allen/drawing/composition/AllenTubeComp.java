@@ -151,6 +151,21 @@ public class AllenTubeComp extends TubeComp{
 		}
 	}
 
+	public Point3d getMassCenter(){
+		Point3d massCenter = new Point3d();
+		for (int i=1; i<=getnVect(); i++)
+		{
+			massCenter.x += getVect_info()[i].x;
+			massCenter.y += getVect_info()[i].y;
+			massCenter.z += getVect_info()[i].z;
+		}
+		massCenter.x /= getnVect();
+		massCenter.y /= getnVect();
+		massCenter.z /= getnVect();
+		return massCenter;
+
+	}
+
 	/**
 	 * This is a corrected version of the function that corrects for a final position of the object.
 	 * Previously, the scaling function here would amplify the any translation of the final position.

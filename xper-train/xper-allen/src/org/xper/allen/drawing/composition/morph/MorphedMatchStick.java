@@ -235,6 +235,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 }
             }
 
+            int specialCompIndx = (int) (Math.random() * getnComponent() + 1);
+            this.setSpecialEndComp(Collections.singletonList(specialCompIndx));
+
             centerShape();
 
             boolean smoothSucceeded = smoothizeMStick();

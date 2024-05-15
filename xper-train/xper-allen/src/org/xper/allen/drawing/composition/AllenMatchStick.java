@@ -727,9 +727,13 @@ public class AllenMatchStick extends MatchStick {
 	{
 
 		Point3d centerOfMass = getMassCenter();
+		return movePointToDestination(centerOfMass, destination);
+	}
+
+	public Vector3d movePointToDestination(Point3d point, Point3d destination) {
 		Vector3d shiftVec = new Vector3d();
-		shiftVec.sub(destination, centerOfMass);
-		if ( destination.distance(centerOfMass) > 0.001)
+		shiftVec.sub(destination, point);
+		if ( destination.distance(point) > 0.001)
 		{
 			applyTranslation(shiftVec);
 		}
@@ -2736,7 +2740,7 @@ public class AllenMatchStick extends MatchStick {
 					addSuccess = Add_MStick(nowComp, 4);
 			}
 			if (addSuccess == true) { // otherwise, we'll run this while loop again, and re-generate this component
-				getSpecialEndComp().add(nowComp); //we add this as specialEndComp so we can create a noisemap for it.
+//				getSpecialEndComp().add(nowComp); //we add this as specialEndComp so we can create a noisemap for it.
 				nowComp ++;
 			}
 			if (nowComp == nComp+1)
@@ -2769,7 +2773,7 @@ public class AllenMatchStick extends MatchStick {
 
 		// Dec 24th 2008
 		// re-center the shape before do the validMStickSize check!
-		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
+		this.moveCenterOfMassTo(new Point3d(0,0,0));
 
 		return true;
 	}
