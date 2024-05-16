@@ -65,7 +65,7 @@ public class GAMatchStickTest {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
         }, RFStrategy.PARTIALLY_INSIDE);
-        GAMatchStick.setProperties(5, "SHADE");
+        GAMatchStick.setProperties(2.5, "SHADE");
         GAMatchStick.genMatchStickRand();
 
 //        testMatchStickDrawer.drawMStick(RFMatchStick);
