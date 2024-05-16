@@ -64,10 +64,34 @@ public class CoordinatesTest {
         return baseMStick;
     }
 
+    private void genPartiallyInsideRFStick(){
+        ReceptiveField receptiveField = new ReceptiveField() {
+            final double h = 30;
+            final double k = 30;
+            final double r = 10;
+
+            {
+                center = new Coordinates2D(h, k);
+                for (int i = 0; i < 100; i++) {
+                    double angle = 2 * Math.PI * i / 100;
+                    outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
+                }
+            }
+            @Override
+            public boolean isInRF(double x, double y) {
+                return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
+            }
+        };
+        mStick = new EStimShapeProceduralMatchStick(RFStrategy.PARTIALLY_INSIDE, receptiveField);
+        mStick.setProperties(2, "SHADE");
+
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
+    }
+
     @Test
     public void compare_coordinates(){
-        genTotallyInsideRFMStick();
-
+//        genTotallyInsideRFMStick();
+        genPartiallyInsideRFStick();
         drawRF();
         drawCompVects();
         ThreadUtil.sleep(1000);

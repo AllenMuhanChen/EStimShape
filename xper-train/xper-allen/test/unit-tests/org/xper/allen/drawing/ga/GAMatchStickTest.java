@@ -50,8 +50,8 @@ public class GAMatchStickTest {
     @Test
     public void test_draw_comp_map_partially_inside_rf(){
         GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
-            double h = 5;
-            double k = 5;
+            double h = 20;
+            double k = 20;
             double r = 10;
             {
                 center = new Coordinates2D(h, k);

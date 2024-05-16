@@ -18,11 +18,7 @@ import java.util.function.Predicate;
  *
  */
 public class GAMatchStick extends MorphedMatchStick {
-    public static Map<RFStrategy, Double> thresholdsForRFStrategy = new LinkedHashMap<>();
-    static {
-        thresholdsForRFStrategy.put(RFStrategy.PARTIALLY_INSIDE, 0.2);
-        thresholdsForRFStrategy.put(RFStrategy.COMPLETELY_INSIDE, 1.0);
-    }
+
     RFStrategy rfStrategy;
     ReceptiveField rf;
     double thresholdPercentageInRF;
@@ -30,7 +26,6 @@ public class GAMatchStick extends MorphedMatchStick {
     public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
         this.rfStrategy = rfStrategy;
-        this.thresholdPercentageInRF = thresholdsForRFStrategy.get(rfStrategy);
     }
 
     public GAMatchStick() {
@@ -115,31 +110,7 @@ public class GAMatchStick extends MorphedMatchStick {
         return percentageInRF >= thresholdPercentageInRF;
     }
 
-    private boolean checkEnoughShapeOutOfRF(double thresholdPercentageOutOfRF){
-        List<Point3d> pointsToCheck = new ArrayList<>();
-        List<Point3d> pointsOutside = new ArrayList<>();
 
-        for (int i=1; i<=this.getnComponent(); i++){
-            pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
-        }
-        pointsToCheck.removeIf(new Predicate<Point3d>() {
-            @Override
-            public boolean test(Point3d point) {
-                return point == null;
-            }
-        });
-
-        for (Point3d point: pointsToCheck){
-            if (!rf.isInRF(point.x, point.y)) {
-                pointsOutside.add(point);
-            }
-        }
-
-        double percentageOutOfRF = (double) pointsOutside.size() / pointsToCheck.size();
-        System.out.println("Percentage out of RF: " + percentageOutOfRF + " Threshold: " + thresholdPercentageOutOfRF);
-        return percentageOutOfRF >= thresholdPercentageOutOfRF;
-
-    }
 
     private boolean checkInAllInRF(double thresholdPercentageInRF) {
         List<Point3d> pointsToCheck = new ArrayList<>();
@@ -246,12 +217,39 @@ public class GAMatchStick extends MorphedMatchStick {
 
             moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
 
-            if (checkInAllInRF(thresholdPercentageInRF)) {
+            if (checkInAllInRF(1.0)) {
             } else {
                 throw new MorphException("Shape cannot fit in RF");
             }
         }
     }
+
+    private boolean checkEnoughShapeOutOfRF(double thresholdPercentageOutOfRF){
+        List<Point3d> pointsToCheck = new ArrayList<>();
+        List<Point3d> pointsOutside = new ArrayList<>();
+
+        for (int i=1; i<=this.getnComponent(); i++){
+            pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
+        }
+        pointsToCheck.removeIf(new Predicate<Point3d>() {
+            @Override
+            public boolean test(Point3d point) {
+                return point == null;
+            }
+        });
+
+        for (Point3d point: pointsToCheck){
+            if (!rf.isInRF(point.x, point.y)) {
+                pointsOutside.add(point);
+            }
+        }
+
+        double percentageOutOfRF = (double) pointsOutside.size() / pointsToCheck.size();
+        System.out.println("Percentage out of RF: " + percentageOutOfRF + " Threshold: " + thresholdPercentageOutOfRF);
+        return percentageOutOfRF >= thresholdPercentageOutOfRF;
+
+    }
+
 
 
 

@@ -9,6 +9,7 @@ import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull.Point;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoisePositions;
@@ -93,7 +94,7 @@ public class AllenMatchStick extends MatchStick {
 	private double minScaleForMAxisShape;
 
 	private final double[] PARAM_nCompDist = {0, 0.25, 0.5, 0.75, 1.0, 0.0, 0.0, 0.0 };
-//	private final double TangentSaveZone = Math.PI/64;
+	//	private final double TangentSaveZone = Math.PI/64;
 	private final double TangentSaveZone = Math.PI/6.0;
 
 	//AC ADDITIONS
@@ -450,13 +451,13 @@ public class AllenMatchStick extends MatchStick {
 							// check the angle
 							for (j = 1; j <= getJuncPt()[i].getnTangent(); j++)
 								if (getJuncPt()[i].getTangentOwner()[j] != id) // don't
-									// need
-									// to
-									// check
-									// with
-									// the
-									// replaced
-									// self
+								// need
+								// to
+								// check
+								// with
+								// the
+								// replaced
+								// self
 								{
 									nowTangent = getJuncPt()[i].getTangent()[j]; // soft
 									// copy
@@ -503,18 +504,18 @@ public class AllenMatchStick extends MatchStick {
 						shiftVec.sub(newPos, getJuncPt()[i].getPos());
 
 						if (nowUNdx != alignedPt) // not the aligned one, we
-							// need to translate
+						// need to translate
 						{
 							for (j = 1; j <= getJuncPt()[i].getnComp(); j++)
 								if (getJuncPt()[i].getCompIds()[j] != id) {
 									int nowCompNdx = getJuncPt()[i].getCompIds()[j];
 									for (k = 1; k <= getnComponent(); k++)
 										if (compLabel[k] == nowCompNdx) // the
-											// one
-											// should
-											// move
-											// with
-											// nowCompNdx
+										// one
+										// should
+										// move
+										// with
+										// nowCompNdx
 										{
 											int nowComp = k;
 											Point3d finalPos = new Point3d();
@@ -1150,9 +1151,9 @@ public class AllenMatchStick extends MatchStick {
 
 
 	/**
-    subFunction of: (replaceComponent, fineTuneComponent) <BR>
- Will determine the radius of the modified component
- If there is value in [][] oriValue, it is the radius value of the original component
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the radius of the modified component
+	 If there is value in [][] oriValue, it is the radius value of the original component
 	 */
 	protected void MutationSUB_radAssign2NewComp_Qualitative( int targetComp, double[][] oriNormalizedValue, QualitativeMorphParams qmp)
 	{
@@ -1401,12 +1402,12 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	/**
-    Derived from fineTuneComponent()
+	 Derived from fineTuneComponent()
 
-    AC: Modifications to keep finetunes to metric changes only.
-    	orientation of limb
-    	length of limb
-    	radius of limb (not changing radius profile)
+	 AC: Modifications to keep finetunes to metric changes only.
+	 orientation of limb
+	 length of limb
+	 radius of limb (not changing radius profile)
 	 */
 	protected boolean metricMorphComponent(int id, MetricMorphParams mmp)
 	{
@@ -1779,7 +1780,16 @@ public class AllenMatchStick extends MatchStick {
 					System.err.println(e.getMessage());
 				}
 			}
-			positionShape();
+			if (smoothSuccess) {
+				try {
+					positionShape();
+				} catch (MorphedMatchStick.MorphException e){
+					i++;
+					continue;
+				}
+				return true;
+			}
+
 
 //			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
 //			boolean sizeVetSuccess = false;
@@ -1789,8 +1799,7 @@ public class AllenMatchStick extends MatchStick {
 //					return true;
 //				}
 //			}
-			if (smoothSuccess)
-				return true;
+
 
 //			// else we need to gen another shape
 			i++;
@@ -1853,11 +1862,11 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	/**
-        subFunction of: (replaceComponent, fineTuneComponent) <BR>
-     Will determine the radius of the modified component
-     If there is value in [][] oriValue, it is the radius value of the original component
+	 subFunction of: (replaceComponent, fineTuneComponent) <BR>
+	 Will determine the radius of the modified component
+	 If there is value in [][] oriValue, it is the radius value of the original component
 
-	AC: Metric: modified to not change radProfile (both ends & Junc) except for general scaling
+	 AC: Metric: modified to not change radProfile (both ends & Junc) except for general scaling
 	 */
 	protected void MutationSUB_radAssign2NewComp_Metric( int targetComp, double[][] oriValue, MetricMorphParams mmp)
 	{
@@ -2697,9 +2706,9 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	/**
-    genMatchStick with nComp components
-    The first component generated is set as the baseComp
-    The rest of the components are all set as special ends.
+	 genMatchStick with nComp components
+	 The first component generated is set as the baseComp
+	 The rest of the components are all set as special ends.
 	 */
 	public boolean genMatchStick_comp(int nComp)
 	{
@@ -2788,7 +2797,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	/**
-    Deal with the creation of first MAxisArc component
+	 Deal with the creation of first MAxisArc component
 	 */
 	protected void createFirstComp() // create the first component of the MStick
 	{
@@ -2814,9 +2823,9 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	/**
-Adding a new MAxisArc to a MatchStick
-@param nowComp the index of the new added mAxis
-@param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
+	 Adding a new MAxisArc to a MatchStick
+	 @param nowComp the index of the new added mAxis
+	 @param type type from 1~4, indicate the type of addition, eg. E2E, E2J, E2B, B2E
 	 */
 	protected boolean Add_MStick(int nowComp, int type)
 	{
@@ -3241,10 +3250,10 @@ Adding a new MAxisArc to a MatchStick
 
 
 	/**
-    copy the whole structure
-    New params to copy (Allen):
-    specialEnd
-    specialEndComp
+	 copy the whole structure
+	 New params to copy (Allen):
+	 specialEnd
+	 specialEndComp
 	 */
 	public void copyFrom(AllenMatchStick in)
 	{
@@ -3984,73 +3993,73 @@ Adding a new MAxisArc to a MatchStick
 		this.specialEndComp = specialEndComp;
 	}
 
-    /**
-     * It is imperative that these properties are set before the object is generated/is smoothized.
-     *
+	/**
+	 * It is imperative that these properties are set before the object is generated/is smoothized.
+	 *
 	 * @param maxSizeDiameterDegrees
 	 * @param shade
 	 */
-    public void setProperties(double maxSizeDiameterDegrees, String shade) {
-        //OBJECT PROPERTIES
-        //SETTING SIZES
-        /**
-         * With this strategy of scale setting, we set our maxImageDimensionDegrees to
-         * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
-         * to be approx half the size.
-         */
+	public void setProperties(double maxSizeDiameterDegrees, String shade) {
+		//OBJECT PROPERTIES
+		//SETTING SIZES
+		/**
+		 * With this strategy of scale setting, we set our maxImageDimensionDegrees to
+		 * twice about what we want the actual size of our stimuli to be. Then we try to draw the stimuli
+		 * to be approx half the size.
+		 */
 //        double scale = maxImageDimensionDegrees /1.5;
-        double minScaleDegrees = maxSizeDiameterDegrees /2;
-        setScale(minScaleDegrees, maxSizeDiameterDegrees);
+		double minScaleDegrees = maxSizeDiameterDegrees /2;
+		setScale(minScaleDegrees, maxSizeDiameterDegrees);
 
-        //CONTRAST
-        double contrast = 0.5;
-        setContrast(contrast);
+		//CONTRAST
+		double contrast = 0.5;
+		setContrast(contrast);
 
-        //COLOR
-        RGBColor white = new RGBColor(1,1,1);
-        setStimColor(white);
+		//COLOR
+		RGBColor white = new RGBColor(1,1,1);
+		setStimColor(white);
 
-        //TEXTURE
-        setTextureType(shade);
+		//TEXTURE
+		setTextureType(shade);
 
-    }
+	}
 
 	/**
 	 A public function that will start generating an offspring of this existing shape
 	 The parent is the current shape.
 	 The result will be stored in this object
 
-	  While we've not reached a legal specified mutation
-	  	1. Decide if we're going to add or remove limbs
+	 While we've not reached a legal specified mutation
+	 1. Decide if we're going to add or remove limbs
 
-	  	2. Determines which limbs are leafs and which are not
+	 2. Determines which limbs are leafs and which are not
 
-	  	3. Decides for each limb, whether to do nothing, replace whole, do a fine change, or remove it
-	  	Probability depends on whether the limb is a leaf or not (we shouldn't remove a center limb or completely replace it)
+	 3. Decides for each limb, whether to do nothing, replace whole, do a fine change, or remove it
+	 Probability depends on whether the limb is a leaf or not (we shouldn't remove a center limb or completely replace it)
 
-	  	4. Checks if the number of changes that are occuring is not too big or small
-	  	IF everything is fine, we break out of the loop
+	 4. Checks if the number of changes that are occuring is not too big or small
+	 IF everything is fine, we break out of the loop
 
 
-	  Mutation Process Loop (If at any point, a mutation fails, we retry)
-	  	1. Make a backup of the specified changes
+	 Mutation Process Loop (If at any point, a mutation fails, we retry)
+	 1. Make a backup of the specified changes
 
-	  	2. Removal mutations
+	 2. Removal mutations
 
-	  	3. Whole change mutations
-	  	4. Fine change mutations
+	 3. Whole change mutations
+	 4. Fine change mutations
 
-	  	5. Add mutations - local loop to try multiple times
+	 5. Add mutations - local loop to try multiple times
 
-	  	6. Mutate junction radii
+	 6. Mutate junction radii
 
-	  Post - Process
+	 Post - Process
 
-	  	1. Check size of mstick
+	 1. Check size of mstick
 
-	  	2. Change final rotation
+	 2. Change final rotation
 
-	  	3. Smoothize
+	 3. Smoothize
 
 	 */
 	public boolean mutate(int debugParam) {

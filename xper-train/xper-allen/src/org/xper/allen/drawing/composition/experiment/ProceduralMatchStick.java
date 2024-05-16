@@ -103,7 +103,13 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         int nAttempts = 0;
         while (nAttempts < this.maxAttempts || this.maxAttempts == -1) {
             nAttempts++;
-            genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
+            try {
+                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
+            } catch (MorphException e){
+                System.out.println("Error with morph, retrying");
+                System.out.println(e.getMessage());
+                continue;
+            }
             int drivingComponent = getDrivingComponent();
             try {
                 checkInNoise(drivingComponent, 0.3);
