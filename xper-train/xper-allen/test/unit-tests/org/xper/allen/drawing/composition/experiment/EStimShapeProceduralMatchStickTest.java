@@ -149,8 +149,8 @@ public class EStimShapeProceduralMatchStickTest {
 //        pngMaker.createDrawerWindow();
 
         ReceptiveField receptiveField = new ReceptiveField() {
-            final double h = 5;
-            final double k = 5;
+            final double h = 30;
+            final double k = 30;
             final double r = 10;
 
             {
@@ -168,7 +168,7 @@ public class EStimShapeProceduralMatchStickTest {
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(
                 RFStrategy.PARTIALLY_INSIDE, receptiveField);
 
-        mStick.setProperties(5, "SHADE");
+        mStick.setProperties(4.5, "SHADE");
 
         mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
         testMatchStickDrawer.draw(new Drawable() {

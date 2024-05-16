@@ -92,20 +92,18 @@ public class GAMatchStick extends MorphedMatchStick {
         List<Point3d> pointsInside = new ArrayList<>();
 
         pointsToCheck.addAll(Arrays.asList(this.getComp()[compIndx].getVect_info()));
-        pointsToCheck.removeIf(new Predicate<Point3d>() {
-            @Override
-            public boolean test(Point3d point) {
-                return point == null;
-            }
-        });
+        int numPoints = 0;
 
         for (Point3d point: pointsToCheck){
-            if (rf.isInRF(point.x, point.y)) {
-                pointsInside.add(point);
+            if (point != null) {
+                numPoints++;
+                if (rf.isInRF(point.x, point.y)) {
+                    pointsInside.add(point);
+                }
             }
         }
 
-        double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
+        double percentageInRF = (double) pointsInside.size() / numPoints;
         System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + thresholdPercentageInRF);
         return percentageInRF >= thresholdPercentageInRF;
     }
@@ -228,23 +226,19 @@ public class GAMatchStick extends MorphedMatchStick {
         List<Point3d> pointsToCheck = new ArrayList<>();
         List<Point3d> pointsOutside = new ArrayList<>();
 
-        for (int i=1; i<=this.getnComponent(); i++){
-            pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
-        }
-        pointsToCheck.removeIf(new Predicate<Point3d>() {
-            @Override
-            public boolean test(Point3d point) {
-                return point == null;
-            }
-        });
+        pointsToCheck.addAll(Arrays.asList(this.getObj1().vect_info));
+        int numPoints = 0;
 
         for (Point3d point: pointsToCheck){
-            if (!rf.isInRF(point.x, point.y)) {
-                pointsOutside.add(point);
+            if (point!= null) {
+                numPoints++;
+                if (!rf.isInRF(point.x, point.y)) {
+                    pointsOutside.add(point);
+                }
             }
         }
 
-        double percentageOutOfRF = (double) pointsOutside.size() / pointsToCheck.size();
+        double percentageOutOfRF = (double) pointsOutside.size() / numPoints;
         System.out.println("Percentage out of RF: " + percentageOutOfRF + " Threshold: " + thresholdPercentageOutOfRF);
         return percentageOutOfRF >= thresholdPercentageOutOfRF;
 
