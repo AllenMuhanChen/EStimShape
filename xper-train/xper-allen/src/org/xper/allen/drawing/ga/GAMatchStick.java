@@ -84,12 +84,12 @@ public class GAMatchStick extends MorphedMatchStick {
 
 
     @Override
+    /**
+     * No checking we aren't already doing in positionShape which ensures everything we need
+     * relative to RF.
+     */
     protected boolean checkMStick() {
-        if (rf != null)
-            return true;
-        else{
-            return true;
-        }
+        return true;
     }
 
     private boolean checkCompInRF(int compIndx, double thresholdPercentageInRF) {
@@ -244,14 +244,11 @@ public class GAMatchStick extends MorphedMatchStick {
 
             rfCenter = rf.getCenter();
 
-            //We divide by the scale factor to counteract the scaling that happens in smoothing operation
-            //which will incorrectly rescale this translation, so we are dividing it here so it will cancel out.
             moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
 
             if (checkInAllInRF(thresholdPercentageInRF)) {
-                return;
             } else {
-                throw new MorphException("Could not find a point in the RF after 100 attempts");
+                throw new MorphException("Shape cannot fit in RF");
             }
         }
     }
