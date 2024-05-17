@@ -39,7 +39,7 @@ public class MorphedMatchStickTest {
     @Test
     @Ignore
     public void growingMatchStick() {
-        GrowingMatchStick growingMatchStick = new GrowingMatchStick();
+        GrowingMatchStick growingMatchStick = new GrowingMatchStick(1/3.0);
         growingMatchStick.setProperties(30.0, "SHADE");
         growingMatchStick.genGrowingMatchStick(parentMStick, 0.2);
         ThreadUtil.sleep(500);

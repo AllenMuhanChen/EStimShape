@@ -73,7 +73,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     }
 
     private T createRandMStick() {
-        GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy);
+        GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy, "SHADE");
         mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
@@ -128,10 +128,11 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             Coordinates2D rfCenter = generator.rfSource.getRFCenterDegrees();
             double eccentricity = Math.sqrt(Math.pow(rfCenter.getX() - imageCenterCoords.getX(), 2) + Math.pow(rfCenter.getY() - imageCenterCoords.getY(), 2));
-            double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadiusDegrees();
-            double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
-            double imageSizeInDegrees = distanceFromImageCenterToEdgeOfRf + margin;
-            System.out.println("Image size in degrees: " + imageSizeInDegrees);
+            double imageSizeInDegrees = generator.rfSource.getRFRadiusDegrees() * 4;
+//            double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadiusDegrees();
+//            double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
+//            double imageSizeInDegrees = distanceFromImageCenterToEdgeOfRf + margin;
+//            System.out.println("Image size in degrees: " + imageSizeInDegrees);
             return imageSizeInDegrees;
         } else {
             //TODO:

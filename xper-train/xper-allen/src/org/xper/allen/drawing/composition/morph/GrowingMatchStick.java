@@ -17,17 +17,14 @@ public class GrowingMatchStick extends GAMatchStick {
         this.sigma = sigma;
     }
 
-    public GrowingMatchStick() {
-        this.sigma = 1/3.0;
-    }
 
-    public GrowingMatchStick(ReceptiveField rf, double sigma, RFStrategy rfStrategy) {
-        super(rf, rfStrategy);
+    public GrowingMatchStick(ReceptiveField rf, double sigma, RFStrategy rfStrategy, String textureType1) {
+        super(rf, rfStrategy, textureType1);
         this.sigma = sigma;
     }
 
     public GrowingMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
-        this(rf, 1/3.0, rfStrategy);
+        this(rf, 1/3.0, rfStrategy, "SHADE");
     }
 
     private MorphedMatchStick genComponentMorphMatchStick(MorphedMatchStick matchStickToMorph, Map<Integer, ComponentMorphParameters> paramsForComps, MorphedMatchStick removedLimbMatchStick) {

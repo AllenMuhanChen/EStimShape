@@ -84,7 +84,7 @@ public class GAMatchStickTest {
             public boolean isInRF(double x, double y) {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
-        }, RFStrategy.PARTIALLY_INSIDE);
+        }, RFStrategy.PARTIALLY_INSIDE, "SHADE");
         GAMatchStick.setProperties(2.5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
@@ -106,7 +106,7 @@ public class GAMatchStickTest {
             public boolean isInRF(double x, double y) {
                 return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
             }
-        }, RFStrategy.COMPLETELY_INSIDE);
+        }, RFStrategy.COMPLETELY_INSIDE, "SHADE");
         GAMatchStick.setProperties(2.5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
