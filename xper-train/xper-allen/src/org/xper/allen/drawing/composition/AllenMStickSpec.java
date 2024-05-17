@@ -8,28 +8,20 @@ import java.io.FileWriter;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
+import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.stick.EndPt_Info;
 import org.xper.drawing.stick.JuncPt_Info;
 import org.xper.drawing.stick.VertexInfo;
 
 import com.thoughtworks.xstream.XStream;
 
-/**
- * @author allen chen
- *
- */
 
-/**
- * private classes in here were made into their own public class file.
- * @author r2_allen
- *
- */
 public class AllenMStickSpec {
     private AllenMAxisInfo mAxis = new AllenMAxisInfo();
     public VertexInfo vertex = new VertexInfo();
     public boolean animation;
     public String compPosTanStr = "";
-
+    RFStrategy rfStrategy;
 
     transient static XStream s;
 
@@ -224,6 +216,8 @@ public class AllenMStickSpec {
                         tempArc.getmTangent()[j].y + "," + tempArc.getmTangent()[j].z + "\n";
             }
         }
+
+        this.rfStrategy = inStick.getRfStrategy();
     }
 
 
@@ -346,5 +340,13 @@ public class AllenMStickSpec {
                 ", animation=" + animation +
                 ", compPosTanStr='" + compPosTanStr + '\'' +
                 '}';
+    }
+
+    public RFStrategy getRfStrategy() {
+        return rfStrategy;
+    }
+
+    public void setRfStrategy(RFStrategy rfStrategy) {
+        this.rfStrategy = rfStrategy;
     }
 }

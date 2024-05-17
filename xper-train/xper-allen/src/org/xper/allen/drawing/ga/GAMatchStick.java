@@ -19,9 +19,7 @@ import java.util.function.Predicate;
  */
 public class GAMatchStick extends MorphedMatchStick {
 
-    RFStrategy rfStrategy;
     ReceptiveField rf;
-    double thresholdPercentageInRF;
 
     public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy) {
         this.rf = rf;
@@ -244,7 +242,7 @@ public class GAMatchStick extends MorphedMatchStick {
 
     }
 
-
-
-
+    public RFStrategy getRfStrategy() {
+        return rfStrategy;
+    }
 }

@@ -20,9 +20,11 @@ public class RegimeOneStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         //Generate MStick
         GrowingMatchStick parentMStick = new GrowingMatchStick();
         parentMStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
-        parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+        parentMStick.genMatchStickFromFile(
+                generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
-        GrowingMatchStick childMStick = new GrowingMatchStick(generator.getReceptiveField(), rfStrategy);
+        GrowingMatchStick childMStick = new GrowingMatchStick(generator.getReceptiveField(),
+                parentMStick.getRfStrategy());
         childMStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
         childMStick.setStimColor(color);
         childMStick.genGrowingMatchStick(parentMStick, magnitude);

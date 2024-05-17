@@ -18,6 +18,7 @@ import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphPara
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.vo.NoiseParameters;
 import org.xper.allen.nafc.vo.NoiseType;
+import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.Coordinates2D;
@@ -31,6 +32,8 @@ import org.xper.drawing.RGBColor;
  *
  */
 public class AllenMatchStick extends MatchStick {
+
+	protected RFStrategy rfStrategy;
 
 	@Override
 	public boolean equals(Object obj) {
@@ -4537,5 +4540,13 @@ public class AllenMatchStick extends MatchStick {
 
 
 		return true;
+	}
+
+	public RFStrategy getRfStrategy() {
+		return rfStrategy;
+	}
+
+	public void setRfStrategy(RFStrategy rfStrategy) {
+		this.rfStrategy = rfStrategy;
 	}
 }

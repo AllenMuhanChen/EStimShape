@@ -21,7 +21,6 @@ import java.util.function.Predicate;
  *
  */
 public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
-    RFStrategy rfStrategy;
     public ReceptiveField rf;
 
     public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
