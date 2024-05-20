@@ -1,6 +1,6 @@
-from pga.config.canopy_config import GeneticAlgorithmConfig
-from pga.ga_classes import Phase
-from pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
+from src.pga.config.canopy_config import GeneticAlgorithmConfig
+from src.pga.ga_classes import Phase
+from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
     LeafingPhaseMutationMagnitudeAssigner, LeafingPhaseTransitioner
 
 

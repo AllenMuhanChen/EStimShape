@@ -6,12 +6,12 @@ from typing import List
 
 from mysql.connector import DatabaseError
 
-from pga.spike_parsing import ResponseParser
-from pga.response_processing import ResponseProcessor
-from pga.ga_classes import LineageDistributor, Node, Stimulus, LineageFactory
-from pga.lineage_selection import ClassicLineageDistributor
-from pga.regime_type import RegimeType
-from pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.spike_parsing import ResponseParser
+from src.pga.response_processing import ResponseProcessor
+from src.pga.ga_classes import LineageDistributor, Node, Stimulus, LineageFactory
+from src.pga.lineage_selection import ClassicLineageDistributor
+from src.pga.regime_type import RegimeType
+from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.pga.ga_classes import Phase, Lineage
 from clat.util import time_util
 

@@ -3,13 +3,11 @@ import math
 from typing import Callable
 
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
 from scipy.stats import gaussian_kde
 
-from pga.ga_classes import Lineage, Stimulus
-from pga.regime_type import RegimeType
-from pga.stim_types import StimType
+from src.pga.ga_classes import Lineage, Stimulus
 from src.pga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner
+from src.pga.stim_types import StimType
 
 
 class SmoothedSamplingFunction:

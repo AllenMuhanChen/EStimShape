@@ -1,6 +1,6 @@
 import numpy as np
 
-from pga.stim_types import StimType
+from src.pga.stim_types import StimType
 from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
 from scipy import stats

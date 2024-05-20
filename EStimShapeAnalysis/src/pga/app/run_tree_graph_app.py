@@ -17,7 +17,7 @@ from clat.util.connection import Connection
 
 import xml.etree.ElementTree as ET
 
-from startup import config
+from src.startup import config
 
 conn = config.ga_config.connection
 

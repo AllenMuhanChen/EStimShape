@@ -5,7 +5,7 @@ import pandas as pd
 import pytz
 from matplotlib import pyplot as plt, cm
 
-from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField, StimTypeField
+from src.analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField, StimTypeField
 from clat.compile import TrialCollector
 from clat.compile import CachedFieldList, CachedDatabaseField
 from clat.util import time_util

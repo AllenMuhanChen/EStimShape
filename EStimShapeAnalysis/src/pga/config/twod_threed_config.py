@@ -1,9 +1,9 @@
 # 2d vs 3d as a parameter
 import random
 
-from pga.config.rf_config import RFGeneticAlgorithmConfig
-from pga.ga_classes import MutationAssigner, Stimulus, Lineage
-from pga.stim_types import StimType
+from src.pga.config.rf_config import RFGeneticAlgorithmConfig
+from src.pga.ga_classes import MutationAssigner, Stimulus, Lineage
+from src.pga.stim_types import StimType
 
 
 class TwoDThreeDGAConfig(RFGeneticAlgorithmConfig):

@@ -3,13 +3,13 @@ from typing import Any
 
 from numpy import mean
 
-from pga.spike_parsing import ResponseParser
-from pga.response_processing import ResponseProcessor
-from pga.lineage_selection import ClassicLineageDistributor
-from pga.multi_ga_db_util import MultiGaDbUtil
-from pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
+from src.pga.spike_parsing import ResponseParser
+from src.pga.response_processing import ResponseProcessor
+from src.pga.lineage_selection import ClassicLineageDistributor
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
     LeafingPhaseMutationMagnitudeAssigner, LeafingPhaseTransitioner, HighEndSigmoid
-from pga.regime_two import CanopyPhaseParentSelector, CanopyPhaseMutationAssigner, CanopyPhaseMutationMagnitudeAssigner, \
+from src.pga.regime_two import CanopyPhaseParentSelector, CanopyPhaseMutationAssigner, CanopyPhaseMutationMagnitudeAssigner, \
     CanopyPhaseTransitioner
 from src.pga.ga_classes import Phase, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, RegimeTransitioner
 from src.pga.genetic_algorithm import GeneticAlgorithm

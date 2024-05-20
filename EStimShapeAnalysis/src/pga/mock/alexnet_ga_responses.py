@@ -11,7 +11,7 @@ import torchvision.transforms as transforms
 from torchvision import models
 from PIL import Image
 
-from startup import config
+from src.startup import config
 
 
 def main():

@@ -6,12 +6,12 @@ from time import sleep
 import numpy as np
 
 from clat.intan.channels import Channel
-from pga.config.rf_config import RFGeneticAlgorithmConfig
-from pga.config.twod_threed_config import TwoDThreeDGAConfig
-from pga.ga_classes import RegimeTransitioner, Phase
-from pga.mock import alexnet_ga_responses
-from pga.multi_ga_db_util import MultiGaDbUtil
-from pga.regime_zero import SeedingPhaseParentSelector, SeedingPhaseMutationAssigner, \
+from src.pga.config.rf_config import RFGeneticAlgorithmConfig
+from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
+from src.pga.ga_classes import RegimeTransitioner, Phase
+from src.pga.mock import alexnet_ga_responses
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.regime_zero import SeedingPhaseParentSelector, SeedingPhaseMutationAssigner, \
     SeedingPhaseMutationMagnitudeAssigner
 
 

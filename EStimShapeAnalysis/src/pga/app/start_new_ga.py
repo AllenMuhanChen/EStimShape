@@ -1,5 +1,5 @@
 from clat.util import time_util
-from startup import config
+from src.startup import config
 
 
 def main():

@@ -6,10 +6,10 @@ from time import sleep
 import numpy as np
 
 from clat.intan.channels import Channel
-from pga.config.rf_config import RFGeneticAlgorithmConfig
-from pga.spike_parsing import ResponseParser
-from pga.mock import mock_ga_responses
-from pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.config.rf_config import RFGeneticAlgorithmConfig
+from src.pga.spike_parsing import ResponseParser
+from src.pga.mock import mock_ga_responses
+from src.pga.multi_ga_db_util import MultiGaDbUtil
 
 
 class TestCombinedMockWithFakeNeuronResponse(unittest.TestCase):

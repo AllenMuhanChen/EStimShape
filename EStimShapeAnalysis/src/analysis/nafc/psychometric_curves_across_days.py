@@ -1,8 +1,8 @@
 import numpy as np
 from matplotlib import cm, pyplot as plt
 
-from analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField
-from analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve, unix_to_datetime, \
+from src.analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField
+from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_psychometric_curve, unix_to_datetime, \
     plot_psychometric_curve_on_ax
 from clat.compile import CachedFieldList
 from clat.util import time_util

@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QMainWindow, QPushButton, QWidget, QVBoxLayout, QStackedWidget, QHBoxLayout
 
-from pga.gui.cluster.mock_cluster_app import MockDataLoader, MockDataExporter, MockChannelMapper
+from src.pga.gui.cluster.mock_cluster_app import MockDataLoader, MockDataExporter, MockChannelMapper
 
 from clat.intan.channels import Channel
-from pga.gui.cluster.cluster_app import ClusterApplicationWindow
-from pga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer
+from src.pga.gui.cluster.cluster_app import ClusterApplicationWindow
+from src.pga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer
 
 
 def cluster_app():

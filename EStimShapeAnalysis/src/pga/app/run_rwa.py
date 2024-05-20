@@ -4,19 +4,19 @@ import jsonpickle
 import numpy as np
 import pandas as pd
 
-from analysis.ga.rwa import get_next
+from src.analysis.ga.rwa import get_next
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When
-from pga.multi_ga_db_util import MultiGaDbUtil
-from startup import config
-from pga.mock.mock_ga_responses import collect_trials
-from pga.mock.mock_rwa_analysis import remove_empty_response_trials, condition_spherical_angles, \
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.startup import config
+from src.pga.mock.mock_ga_responses import collect_trials
+from src.pga.mock.mock_rwa_analysis import remove_empty_response_trials, condition_spherical_angles, \
     hemisphericalize_orientation, compute_shaft_rwa, compute_termination_rwa, compute_junction_rwa, save
 from clat.compile.trial.cached_fields import CachedFieldList
 from clat.compile.trial.classic_database_fields import StimSpecDataField, StimSpecIdField, NewGaLineageField, \
     NewGaNameField, RegimeScoreField
-from analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
+from src.analysis.matchstick_fields import ShaftField, TerminationField, JunctionField
 
 
 

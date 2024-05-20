@@ -7,9 +7,9 @@ import numpy as np
 from matplotlib import pyplot as plt, cm
 matplotlib.use('TkAgg')
 
-from analysis.ga.rwa import get_next
+from src.analysis.ga.rwa import get_next
 from clat.util.connection import Connection
-from pga.mock.plot_rwa_top_n import plot_top_n_junctions_on_fig, plot_top_n_stimuli_on_termination, \
+from src.pga.mock.plot_rwa_top_n import plot_top_n_junctions_on_fig, plot_top_n_stimuli_on_termination, \
     plot_top_n_stimuli_on_shaft, find_distances_to_peak, print_top_stim_and_comp_ids, plot_top_n_stimuli_comp_maps
 
 

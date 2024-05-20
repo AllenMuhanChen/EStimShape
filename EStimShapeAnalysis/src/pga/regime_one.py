@@ -3,10 +3,10 @@ import math
 from dataclasses import dataclass
 from typing import Callable, List
 
-from pga.response_processing import ResponseProcessor
-from pga.multi_ga_db_util import MultiGaDbUtil
-from pga.regime_type import RegimeType
-from pga.stim_types import StimType
+from src.pga.response_processing import ResponseProcessor
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.regime_type import RegimeType
+from src.pga.stim_types import StimType
 from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
     RegimeTransitioner, Lineage
 import numpy as np

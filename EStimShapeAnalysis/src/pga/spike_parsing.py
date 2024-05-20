@@ -12,7 +12,7 @@ from clat.intan.marker_channels import epoch_using_marker_channels
 from clat.intan.one_file_spike_parsing import OneFileParser
 from clat.intan.spike_file import fetch_spike_tstamps_from_file
 from clat.util.connection import Connection
-from pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.multi_ga_db_util import MultiGaDbUtil
 
 
 class ResponseParser:

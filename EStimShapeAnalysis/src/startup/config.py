@@ -1,5 +1,5 @@
-from pga.config.twod_threed_config import TwoDThreeDGAConfig
-from pga.mock.alexnet_mock_ga import FullAutoAlexNetMockGeneticAlgorithmConfig, \
+from src.pga.config.twod_threed_config import TwoDThreeDGAConfig
+from src.pga.mock.alexnet_mock_ga import FullAutoAlexNetMockGeneticAlgorithmConfig, \
     TrainingAlexNetMockGeneticAlgorithmConfig
 
 ga_name = "New3D"

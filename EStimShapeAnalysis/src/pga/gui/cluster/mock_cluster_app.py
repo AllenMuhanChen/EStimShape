@@ -5,11 +5,11 @@ from PyQt5.QtWidgets import QApplication
 from sklearn.datasets import make_blobs, make_sparse_uncorrelated, make_classification
 
 from clat.intan.channels import Channel
-from pga.gui.cluster.cluster_app import ClusterApplicationWindow
-from pga.gui.cluster.cluster_app_classes import DataLoader, DataExporter, ChannelMapper
-from pga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer, KernelPCAReducer, \
+from src.pga.gui.cluster.cluster_app import ClusterApplicationWindow
+from src.pga.gui.cluster.cluster_app_classes import DataLoader, DataExporter, ChannelMapper
+from src.pga.gui.cluster.dimensionality_reduction import PCAReducer, MDSReducer, TSNEReducer, KernelPCAReducer, \
     SparsePCAReducer
-from pga.gui.cluster.probe_mapping import DBCChannelMapper
+from src.pga.gui.cluster.probe_mapping import DBCChannelMapper
 
 
 class MockDataLoader(DataLoader):

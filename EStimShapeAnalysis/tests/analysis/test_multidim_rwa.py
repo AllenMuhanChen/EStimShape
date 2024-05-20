@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
 
-from analysis.ga.rwa import Binner, rwa, raw_data, RWAMatrix, normalize_and_combine_rwas, get_next
-from pga.mock.mock_rwa_plot import draw_one_d_field, get_indices_for_fields
+from src.analysis.ga.rwa import Binner, rwa, raw_data, RWAMatrix, normalize_and_combine_rwas, get_next
+from src.pga.mock.mock_rwa_plot import draw_one_d_field, get_indices_for_fields
 
 
 def plot_data_and_rwa_variations(response_weighted_averages, summed_response_weighted, summed_unweighted):

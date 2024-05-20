@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from random import random
 from typing import Any
 
-from pga.ga_classes import LineageDistributor, Lineage, Phase, LineageFactory
-from pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.ga_classes import LineageDistributor, Lineage, Phase, LineageFactory
+from src.pga.multi_ga_db_util import MultiGaDbUtil
 
-from pga.regime_one import calculate_peak_response
-from pga.regime_type import RegimeType
+from src.pga.regime_one import calculate_peak_response
+from src.pga.regime_type import RegimeType
 
 
 def filter_by_regime_past(regime_index, regime_for_lineages: dict[int, RegimeType]) -> list[int]:

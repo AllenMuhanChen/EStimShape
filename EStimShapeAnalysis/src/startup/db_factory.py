@@ -1,7 +1,7 @@
 import mysql.connector
 
 from clat.util.connection import Connection
-from pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.multi_ga_db_util import MultiGaDbUtil
 
 HOST = '172.30.6.80'
 USER = 'xper_rw'

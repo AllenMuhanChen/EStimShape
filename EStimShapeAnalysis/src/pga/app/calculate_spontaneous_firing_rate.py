@@ -4,8 +4,8 @@ import xmltodict
 from clat.compile.task.base_database_fields import StimSpecIdField, StimSpecField
 from clat.compile.task.compile_task_id import TaskIdCollector
 from clat.compile.task.task_field import TaskFieldList, TaskField
-from pga.multi_ga_db_util import MultiGaDbUtil
-from startup import config
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.startup import config
 
 
 def main():

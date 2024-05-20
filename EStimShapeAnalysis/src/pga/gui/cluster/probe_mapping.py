@@ -3,7 +3,7 @@ from typing import Any
 import numpy as np
 from clat.intan.channels import Channel
 
-from pga.gui.cluster.cluster_app_classes import ChannelMapper
+from src.pga.gui.cluster.cluster_app_classes import ChannelMapper
 
 
 class DBCChannelMapper(ChannelMapper):

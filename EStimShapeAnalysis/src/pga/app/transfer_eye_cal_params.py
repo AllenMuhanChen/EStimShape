@@ -1,6 +1,6 @@
 from clat.eyecal.params import EyeCalibrationParameters
 from clat.util.connection import Connection
-from startup import config
+from src.startup import config
 
 
 def main():

@@ -1,7 +1,7 @@
 import numpy as np
 
-from pga.regime_type import RegimeType
-from pga.stim_types import StimType
+from src.pga.regime_type import RegimeType
+from src.pga.stim_types import StimType
 from src.pga.ga_classes import ParentSelector, MutationAssigner, RegimeTransitioner, MutationMagnitudeAssigner, \
     Lineage, Stimulus
 

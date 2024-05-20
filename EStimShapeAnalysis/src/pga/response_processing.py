@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable
 
-from pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.multi_ga_db_util import MultiGaDbUtil
 
 
 @dataclass(kw_only=True)

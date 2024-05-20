@@ -5,8 +5,8 @@ from matplotlib.pyplot import subplots
 
 from clat.compile import GaTypeField, GaLineageField, StimSpecIdField, StimSpecField
 from clat.compile import FieldList, get_data_from_trials
-from pga.mock.mock_ga_responses import collect_trials
-from pga.mock.mock_rwa_analysis import MockResponseField
+from src.pga.mock.mock_ga_responses import collect_trials
+from src.pga.mock.mock_rwa_analysis import MockResponseField
 from clat.util import time_util
 from clat.util.connection import Connection
 from clat.util.time_util import When

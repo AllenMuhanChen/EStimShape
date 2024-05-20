@@ -6,11 +6,11 @@ import numpy as np
 import xmltodict
 from matplotlib import pyplot as plt
 
-from analysis.ga.rwa import RWAMatrix, get_point_coordinates, get_point_indices, Binner
+from src.analysis.ga.rwa import RWAMatrix, get_point_coordinates, get_point_indices, Binner
 from clat.util.connection import Connection, get_time_range_for_experiment_id
 from clat.util.dictionary_util import apply_function_to_subdictionaries_values_with_keys
 from clat.util.time_util import When
-from pga.mock.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
+from src.pga.mock.mock_rwa_analysis import condition_theta_and_phi, hemisphericalize
 
 
 def find_distances_to_peak(rwa: RWAMatrix, n: int, conn: Connection, type: str):

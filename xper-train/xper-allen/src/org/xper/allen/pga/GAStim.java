@@ -24,7 +24,6 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
     protected Long stimId;
     protected String textureType;
     protected RGBColor color;
-    private double marginMultiplier = 0.5;
 
     public GAStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
         this.generator = generator;
@@ -72,7 +71,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         writeStimSpec(pngPath, mStickData);
     }
 
-    private T createRandMStick() {
+    protected T createRandMStick() {
         GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy, "SHADE");
         mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
         mStick.setStimColor(color);
@@ -92,7 +91,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         return stimId;
     }
 
-    private String drawPngs(MorphedMatchStick mStick) {
+    protected String drawPngs(MorphedMatchStick mStick) {
         //draw pngs
         List<String> labels = new LinkedList<>();
         labels.add(Long.toString(parentId));
@@ -101,13 +100,13 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         return pngPath;
     }
 
-    private void saveMStickSpec(T mStick) {
+    protected void saveMStickSpec(T mStick) {
         AllenMStickSpec mStickSpec = new AllenMStickSpec();
         mStickSpec.setMStickInfo(mStick, true);
         mStickSpec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + Long.toString(stimId), true);
     }
 
-    private void writeStimSpec(String pngPath, D mStickData) {
+    protected void writeStimSpec(String pngPath, D mStickData) {
         double imageSizeDeg = generator.getImageDimensionsDegrees();
 
         PngSpec stimSpec = new PngSpec();

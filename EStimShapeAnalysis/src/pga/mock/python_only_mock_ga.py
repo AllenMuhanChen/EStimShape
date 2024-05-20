@@ -3,10 +3,10 @@ import unittest
 
 
 from clat.intan.channels import Channel
-from pga.config.canopy_config import GeneticAlgorithmConfig
-from pga.mock.combined_mock_ga import FakeNeuronMockGeneticAlgorithmConfig
-from pga.multi_ga_db_util import MultiGaDbUtil
-from pga.spike_parsing import ResponseParser
+from src.pga.config.canopy_config import GeneticAlgorithmConfig
+from src.pga.mock.combined_mock_ga import FakeNeuronMockGeneticAlgorithmConfig
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.spike_parsing import ResponseParser
 
 
 class TestPythonOnlyMockWithNonNeuralResponse(unittest.TestCase):
