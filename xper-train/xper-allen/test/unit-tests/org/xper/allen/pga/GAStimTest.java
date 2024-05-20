@@ -68,9 +68,24 @@ public class GAStimTest {
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0));
 
-        mStick = partialStim.createMStick();
-        testMatchStickDrawer.drawMStick(mStick);
-        testMatchStickDrawer.drawCompMap(mStick);
-        ThreadUtil.sleep(10000);
+        GAMatchStick mStick1 = partialStim.createMStick();
+        testMatchStickDrawer.clear();
+        testMatchStickDrawer.drawMStick(mStick1);
+        testMatchStickDrawer.drawCompMap(mStick1);
+        ThreadUtil.sleep(1000);
+
+        PartialStim partialStim2  = new PartialStim(3L,
+                generator,
+                1L,
+                2,
+                new Coordinates2D(0,0),
+                0.5,
+                "SHADE",
+                new RGBColor(1.0, 1.0, 1.0));
+
+        GAMatchStick mStick2 = partialStim2.createMStick();
+        testMatchStickDrawer.drawMStick(mStick2);
+        testMatchStickDrawer.drawCompMap(mStick2);
+        ThreadUtil.sleep(1000);
     }
 }

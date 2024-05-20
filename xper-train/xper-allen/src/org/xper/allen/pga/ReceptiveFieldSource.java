@@ -65,7 +65,6 @@ public class ReceptiveFieldSource {
         long tstamp = readMaxTstampFromRFInfo();
         RFInfo rfInfo = readRFInfo(tstamp);
         double rfRadiusDegrees = rfInfo.getRadius();
-        System.out.println("RF Radius in degrees: " + rfRadiusDegrees + " RF Radius in mm: " + renderer.deg2mm(rfRadiusDegrees));
 
         return rfRadiusDegrees;
     }

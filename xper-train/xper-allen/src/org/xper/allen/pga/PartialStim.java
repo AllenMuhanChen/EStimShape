@@ -7,6 +7,8 @@ import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
+import java.util.Collections;
+
 public class PartialStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     private final Integer compIdInRF;
@@ -19,12 +21,14 @@ public class PartialStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     @Override
     protected GAMatchStick createMStick() {
-        GAMatchStick mStick = GAMatchStick.createPartialInsideRFMStick(compIdInRF,
+        GAMatchStick mStick = new GAMatchStick(
                 generator.getReceptiveField(),
+                RFStrategy.PARTIALLY_INSIDE,
                 "SHADE");
         mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
-        mStick.genMatchStickFromFile(
-                generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+        mStick.genPartialFromFile(
+                generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml",
+                compIdInRF);
 
 
         return mStick;

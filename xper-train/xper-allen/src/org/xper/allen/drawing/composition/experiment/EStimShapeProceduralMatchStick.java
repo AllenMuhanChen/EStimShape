@@ -116,7 +116,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         }
 
         double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
-        System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + thresholdPercentageInRF);
         return percentageInRF >= thresholdPercentageInRF;
     }
 
@@ -137,7 +136,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         }
 
         double percentageOutOfRF = (double) pointsOutside.size() / numPoints;
-        System.out.println("Percentage out of RF: " + percentageOutOfRF + " Threshold: " + thresholdPercentageOutOfRF);
         return percentageOutOfRF >= thresholdPercentageOutOfRF;
 
     }
@@ -163,7 +161,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         }
 
         double percentageInRF = (double) pointsInside.size() / numPoints;
-        System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + thresholdPercentageInRF);
         return percentageInRF >= thresholdPercentageInRF;
     }
 
@@ -209,7 +206,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         }
 
         double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
-        System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + fractionPointsInRFThreshold);
 
         if (percentageInRF >= fractionPointsInRFThreshold) {
         }

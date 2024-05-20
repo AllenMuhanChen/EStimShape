@@ -28,23 +28,13 @@ public class GAMatchStick extends MorphedMatchStick {
 
     ReceptiveField rf;
 
-    public static GAMatchStick createPartialInsideRFMStick(int compIdInRF, ReceptiveField rf, String textureType) {
-        GAMatchStick mStick = new GAMatchStick(compIdInRF, rf, textureType);
 
-        return mStick;
-    }
     public GAMatchStick(ReceptiveField rf, RFStrategy rfStrategy, String textureType) {
         this.rf = rf;
         this.rfStrategy = rfStrategy;
         this.textureType = textureType;
     }
 
-    public GAMatchStick(int compIdInRF, ReceptiveField rf, String textureType) {
-        this.rf = rf;
-        this.rfStrategy = RFStrategy.PARTIALLY_INSIDE;
-        this.textureType = textureType;
-        this.setSpecialEndComp(Collections.singletonList(compIdInRF));
-    }
 
     public GAMatchStick() {
     }
@@ -96,7 +86,44 @@ public class GAMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void genMatchStickFromShapeSpec( AllenMStickSpec inSpec, double[] rotation)
+    @Override
+    public void genMatchStickFromShapeSpec(AllenMStickSpec inSpec, double[] rotation){
+        genMatchStickFromShapeSpec(inSpec, rotation, inSpec.getmAxis().getSpecialEndComp());
+    }
+
+    public void genPartialFromFile(String fname, int compIdInRF) {
+        String in_specStr;
+        StringBuffer fileData = new StringBuffer(100000);
+        try
+        {
+            BufferedReader reader = new BufferedReader(
+                    new FileReader(fname));
+            char[] buf = new char[1024];
+            int numRead=0;
+            while((numRead=reader.read(buf)) != -1){
+                String readData = String.valueOf(buf, 0, numRead);
+                //System.out.println(readData);
+                fileData.append(readData);
+                buf = new char[1024];
+
+            }
+            reader.close();
+        }
+        catch (Exception e)
+        {
+            System.out.println("error in read XML spec file");
+            System.out.println(e);
+        }
+
+        in_specStr = fileData.toString();
+
+        AllenMStickSpec inSpec = new AllenMStickSpec();
+        inSpec = AllenMStickSpec.fromXml(in_specStr);
+
+        genMatchStickFromShapeSpec(inSpec, new double[] {0,0,0}, Collections.singletonList(compIdInRF));
+    }
+
+    public void genMatchStickFromShapeSpec(AllenMStickSpec inSpec, double[] rotation, List<Integer> specialEndComp)
     {
         // i can't see how inSpec is changed by this function
         //but it seems to be the case........
@@ -110,7 +137,7 @@ public class GAMatchStick extends MorphedMatchStick {
 
         // 1.5 AC Info
         setSpecialEnd(new LinkedList<>(inSpec.getmAxis().getSpecialEnd()));
-        setSpecialEndComp(inSpec.getmAxis().getSpecialEndComp());
+        setSpecialEndComp(specialEndComp);
         setBaseComp(inSpec.getmAxis().getBaseComp());
 
         // 2. tube info
@@ -607,7 +634,6 @@ public class GAMatchStick extends MorphedMatchStick {
         }
 
         double percentageInRF = (double) pointsInside.size() / numPoints;
-        System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + thresholdPercentageInRF);
         return percentageInRF >= thresholdPercentageInRF;
     }
 
@@ -636,7 +662,6 @@ public class GAMatchStick extends MorphedMatchStick {
         }
 
         double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
-        System.out.println("Percentage in RF: " + percentageInRF + " Threshold: " + thresholdPercentageInRF);
         return percentageInRF >= thresholdPercentageInRF;
     }
 
@@ -674,8 +699,12 @@ public class GAMatchStick extends MorphedMatchStick {
 
     @Override
     protected void positionShape() throws MorphException {
+
         Coordinates2D rfCenter;
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
+            int compInRF = getSpecialEndComp().get(0);
+            System.out.println("specialEndComp: " + getSpecialEndComp());
+            System.out.println("Comp in RF: " + compInRF);
 
             double percentageInsideRF = 1.0;
             double initialThresholdPercentageOutOfRF = 0.8;
@@ -688,19 +717,17 @@ public class GAMatchStick extends MorphedMatchStick {
                 int nAttempts = 0;
                 while (nAttempts < maxAttempts) {
                     // Choose random component to try to move inside of RF
-                    int randomCompIndx = new Random().nextInt(this.getnComponent()) + 1;
-                    setSpecialEndComp(Collections.singletonList(randomCompIndx));
 
                     // Choose a point inside of the chosen component to move
-                    Point3d pointToMove = this.getComp()[randomCompIndx].getMassCenter();
+                    Point3d pointToMove = this.getComp()[compInRF].getMassCenter();
 
                     // Choose a random point inside the RF to move the chosen point to.
                     Coordinates2D point = RandomPointInConvexPolygon.generateRandomPoint(rf.getOutline());
                     Point3d destination = new Point3d(point.getX(), point.getY(), 0.0);
                     movePointToDestination(pointToMove, destination);
 
-                    if (checkCompInRF(randomCompIndx, percentageInsideRF) &&
-                            checkEnoughShapeOutOfRF(randomCompIndx, initialThresholdPercentageOutOfRF)) {
+                    if (checkCompInRF(compInRF, percentageInsideRF) &&
+                            checkEnoughShapeOutOfRF(compInRF, initialThresholdPercentageOutOfRF)) {
                         return; // Exit if the condition is met
                     }
                     nAttempts++;
@@ -743,7 +770,6 @@ public class GAMatchStick extends MorphedMatchStick {
         }
 
         double percentageOutOfRF = (double) pointsOutside.size() / numPoints;
-        System.out.println("Percentage out of RF: " + percentageOutOfRF + " Threshold: " + thresholdPercentageOutOfRF);
         return percentageOutOfRF >= thresholdPercentageOutOfRF;
 
     }
