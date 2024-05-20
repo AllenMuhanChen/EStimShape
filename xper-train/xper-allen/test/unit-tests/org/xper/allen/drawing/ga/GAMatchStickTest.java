@@ -12,6 +12,42 @@ import static org.junit.Assert.assertEquals;
 
 public class GAMatchStickTest {
 
+    public static final ReceptiveField PARTIAL_RF = new ReceptiveField() {
+        double h = 20;
+        double k = 20;
+        double r = 10;
+
+        {
+            center = new Coordinates2D(h, k);
+            for (int i = 0; i < 100; i++) {
+                double angle = 2 * Math.PI * i / 100;
+                outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
+            }
+        }
+
+        @Override
+        public boolean isInRF(double x, double y) {
+            return (x - h) * (x - h) + (y - k) * (y - k) < r * r;
+        }
+    };
+    public static final ReceptiveField COMPLETE_RF = new ReceptiveField() {
+        double h = 20;
+        double k = 30;
+        double r = 10;
+
+        {
+            center = new Coordinates2D(h, k);
+            for (int i = 0; i < 100; i++) {
+                double angle = 2 * Math.PI * i / 100;
+                outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
+            }
+        }
+
+        @Override
+        public boolean isInRF(double x, double y) {
+            return (x - h) * (x - h) + (y - k) * (y - k) < r * r;
+        }
+    };
     private TestMatchStickDrawer testMatchStickDrawer;
 
     @Before
@@ -30,6 +66,31 @@ public class GAMatchStickTest {
 
 
         assertEquals(RFStrategy.COMPLETELY_INSIDE, spec.getRfStrategy());
+    }
+
+    @Test
+    public void draws_mstick_from_file_with_assigned_compId(){
+        GAMatchStick complete = new GAMatchStick(PARTIAL_RF, RFStrategy.COMPLETELY_INSIDE, "SHADE");
+        complete.setProperties(2.5, "SHADE");
+        complete.genMatchStickRand();
+
+
+        testMatchStickDrawer.drawMStick(complete);
+        testMatchStickDrawer.drawCompMap(complete);
+
+
+        AllenMStickSpec spec = new AllenMStickSpec();
+        spec.setMStickInfo(complete, false);
+        ThreadUtil.sleep(1000);
+
+        GAMatchStick partial = complete.createPartialInsideRFMStick(1, PARTIAL_RF, "SHADE");
+        partial.setProperties(2.5, "SHADE");
+        partial.genMatchStickFromShapeSpec(spec, new double[]{0,0,0});
+
+        testMatchStickDrawer.drawMStick(partial);
+        testMatchStickDrawer.drawCompMap(partial);
+        ThreadUtil.sleep(10000);
+
     }
 
     @Test
@@ -69,44 +130,14 @@ public class GAMatchStickTest {
     }
 
     private static GAMatchStick genPartiallyInside() {
-        GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
-            double h = 20;
-            double k = 20;
-            double r = 10;
-            {
-                center = new Coordinates2D(h, k);
-                for (int i = 0; i < 100; i++) {
-                    double angle = 2 * Math.PI * i / 100;
-                    outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
-                }
-            }
-            @Override
-            public boolean isInRF(double x, double y) {
-                return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
-            }
-        }, RFStrategy.PARTIALLY_INSIDE, "SHADE");
+        GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE, "SHADE");
         GAMatchStick.setProperties(2.5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
     }
 
     private static GAMatchStick genCompleteleyInside() {
-        GAMatchStick GAMatchStick = new GAMatchStick(new ReceptiveField() {
-            double h = 20;
-            double k = 30;
-            double r = 10;
-            {
-                center = new Coordinates2D(h, k);
-                for (int i = 0; i < 100; i++) {
-                    double angle = 2 * Math.PI * i / 100;
-                    outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
-                }
-            }
-            @Override
-            public boolean isInRF(double x, double y) {
-                return (x- h)*(x- h) + (y- k)*(y- k) < r * r;
-            }
-        }, RFStrategy.COMPLETELY_INSIDE, "SHADE");
+        GAMatchStick GAMatchStick = new GAMatchStick(COMPLETE_RF, RFStrategy.COMPLETELY_INSIDE, "SHADE");
         GAMatchStick.setProperties(2.5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;

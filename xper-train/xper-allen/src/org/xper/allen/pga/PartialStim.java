@@ -1,6 +1,7 @@
 package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.drawing.Coordinates2D;
@@ -8,17 +9,25 @@ import org.xper.drawing.RGBColor;
 
 public class PartialStim extends GAStim<GAMatchStick, AllenMStickData> {
 
-    private final double magnitude;
+    private final Integer compIdInRF;
 
-    public PartialStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
-        super(stimId, generator, parentId, coords, textureType, color, rfStrategy);
-        this.magnitude = magnitude;
-
+    public PartialStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, Coordinates2D coords, double magnitude, String textureType, RGBColor color) {
+        super(stimId, generator, parentId, coords, textureType, color,
+                RFStrategy.PARTIALLY_INSIDE);
+        this.compIdInRF = compIdInRF;
     }
 
     @Override
     protected GAMatchStick createMStick() {
-        return null;
+        GAMatchStick mStick = GAMatchStick.createPartialInsideRFMStick(compIdInRF,
+                generator.getReceptiveField(),
+                "SHADE");
+        mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
+        mStick.genMatchStickFromFile(
+                generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
+
+
+        return mStick;
     }
 
     @Override

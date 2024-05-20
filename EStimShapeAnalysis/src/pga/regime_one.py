@@ -1,17 +1,14 @@
 # regime_one.py
-import math
 from dataclasses import dataclass
 from typing import Callable, List
 
-from src.pga.response_processing import ResponseProcessor
-from src.pga.multi_ga_db_util import MultiGaDbUtil
-from src.pga.regime_type import RegimeType
-from src.pga.stim_types import StimType
-from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
-    RegimeTransitioner, Lineage
 import numpy as np
 
-from clat.util.connection import Connection
+from src.pga.ga_classes import Stimulus, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, \
+    RegimeTransitioner, Lineage
+from src.pga.multi_ga_db_util import MultiGaDbUtil
+from src.pga.response_processing import ResponseProcessor
+from src.pga.stim_types import StimType
 
 
 class RankOrderedDistribution:

@@ -69,52 +69,56 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
         System.out.println("StimIds to Generate: " + stimIdsToGenerate.size());
         for (Long stimId : stimIdsToGenerate) {
             StimGaInfoEntry stimInfo = dbUtil.readStimGaInfoEntry(stimId);
-            StimType stimType = StimType.valueOf(stimInfo.getStimType());
             double magnitude = stimInfo.getMutationMagnitude();
             Long parentId = stimInfo.getParentId();
 
-            System.out.println("StimId: " + stimId + " StimType: " + stimType + " Magnitude: " + magnitude);
 
-            // Create a new Stim object with the stim_type and magnitude (if applicable)
-            Stim stim;
-            if(stimType.equals(StimType.REGIME_ZERO)){
-                stim = new SeedingStim(stimId, this, initialCoords, "SHADE", color, rfStrategy);
-            }
-            else if (stimType.equals(StimType.REGIME_ZERO_2D))
-            {
-                stim = new SeedingStim(stimId, this, initialCoords, "2D", color, rfStrategy);
-            }
-            else if(stimType.equals(StimType.REGIME_ONE)){
-                stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
-            }
-            else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
-            }
-            else if(stimType.equals(StimType.REGIME_TWO)){
-                stim = new PruningStim(stimId, this, parentId, initialCoords, "SHADE", color, rfStrategy);
-            }
-            else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                stim = new PruningStim(stimId, this, parentId, initialCoords, "2D", color, rfStrategy);
-            }
-            else if(stimType.equals(StimType.REGIME_THREE)){
-                stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
-            }
-            else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
-            }
-            else if (stimType.equals(StimType.CATCH)){
-                stim = new CatchStim(stimId, this);
-            }
-            else{
-                throw new RuntimeException("Stim Type not recognized");
-            }
+            try {
+                StimType stimType;
+                stimType = StimType.valueOf(stimInfo.getStimType());
 
-            stims.add(stim);
+                System.out.println("StimId: " + stimId + " StimType: " + stimType + " Magnitude: " + magnitude);
+
+                // Create a new Stim object with the stim_type and magnitude (if applicable)
+                Stim stim;
+                if(stimType.equals(StimType.REGIME_ZERO)){
+                    stim = new SeedingStim(stimId, this, initialCoords, "SHADE", color, rfStrategy);
+                }
+                else if (stimType.equals(StimType.REGIME_ZERO_2D))
+                {
+                    stim = new SeedingStim(stimId, this, initialCoords, "2D", color, rfStrategy);
+                }
+                else if(stimType.equals(StimType.REGIME_ONE)){
+                    stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
+                }
+                else if(stimType.equals(StimType.REGIME_ONE_2D)){
+                    stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
+                }
+                else if(stimType.equals(StimType.REGIME_TWO)){
+                    stim = new PruningStim(stimId, this, parentId, initialCoords, "SHADE", color, rfStrategy);
+                }
+                else if(stimType.equals(StimType.REGIME_TWO_2D)){
+                    stim = new PruningStim(stimId, this, parentId, initialCoords, "2D", color, rfStrategy);
+                }
+                else if(stimType.equals(StimType.REGIME_THREE)){
+                    stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
+                }
+                else if(stimType.equals(StimType.REGIME_THREE_2D)){
+                    stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
+                }
+                else if (stimType.equals(StimType.CATCH)){
+                    stim = new CatchStim(stimId, this);
+                }
+                else{
+                    throw new RuntimeException("Stim Type not recognized");
+                }
+                stims.add(stim);
+            } catch (IllegalArgumentException e) {
+                System.err.println("StimType not recognized: " + stimInfo.getStimType());
+                //TODO: IMPLEMENT PARSING OF PARTIAL_X
+                // stim = new PartialStim(stimId, this, parentId, compIdInRF, initialCoords, magnitude, "SHADE", color);
+            }
         }
-
-//        if (isFirstGen()) {
-//            addCatchTrials();
-//        }
 
         System.err.println("Number of stims to generate: " + stims.size());
     }
