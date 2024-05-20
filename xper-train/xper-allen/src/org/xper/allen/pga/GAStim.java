@@ -118,26 +118,14 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
 
-    /**
-     * Idea is to have image centered at fixation and large enough so that part of the shape
-     * can extend into and then out the other side of the RF.
-     * @return
-     */
+
     protected double calculateMStickMaxSizeDegrees() {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            Coordinates2D rfCenter = generator.rfSource.getRFCenterDegrees();
-            double eccentricity = Math.sqrt(Math.pow(rfCenter.getX() - imageCenterCoords.getX(), 2) + Math.pow(rfCenter.getY() - imageCenterCoords.getY(), 2));
-            double imageSizeInDegrees = generator.rfSource.getRFRadiusDegrees() * 4;
-//            double distanceFromImageCenterToEdgeOfRf = eccentricity + generator.rfSource.getRFRadiusDegrees();
-//            double margin = marginMultiplier * distanceFromImageCenterToEdgeOfRf;
-//            double imageSizeInDegrees = distanceFromImageCenterToEdgeOfRf + margin;
-//            System.out.println("Image size in degrees: " + imageSizeInDegrees);
-            return imageSizeInDegrees;
+            int maxLimbs = 4;
+            return generator.rfSource.getRFRadiusDegrees() * maxLimbs;
         } else {
             //TODO:
-            double imageSizeDegrees = generator.rfSource.getRFRadiusDegrees() * 2;
-            System.out.println("MStick max size in degrees: " + imageSizeDegrees);
-            return imageSizeDegrees;
+            return generator.rfSource.getRFRadiusDegrees() * 2;
         }
     }
 

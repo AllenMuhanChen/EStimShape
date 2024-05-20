@@ -11,7 +11,7 @@ import org.xper.drawing.RGBColor;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
 
-public class SeedingStimTest {
+public class GAStimTest {
 
     private FromDbGABlockGenerator generator;
     private TestMatchStickDrawer testMatchStickDrawer;
@@ -39,13 +39,38 @@ public class SeedingStimTest {
 
         GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
-        testMatchStickDrawer.draw(new Drawable() {
-            @Override
-            public void draw() {
-                mStick.drawCompMap();
-            }
-        });
+        testMatchStickDrawer.drawCompMap(mStick);
         ThreadUtil.sleep(10000);
 
+    }
+
+    @Test
+    public void test_partial_stim_from_regime_zero(){
+        SeedingStim seedingStim = new SeedingStim(1L,
+                generator,
+                new Coordinates2D(0,0),
+                "SHADE",
+                new RGBColor(1.0, 1.0, 1.0),
+                RFStrategy.COMPLETELY_INSIDE);
+
+        GAMatchStick mStick = seedingStim.createMStick();
+        testMatchStickDrawer.drawMStick(mStick);
+        testMatchStickDrawer.drawCompMap(mStick);
+        testMatchStickDrawer.saveSpec(mStick, generator.getGeneratorSpecPath() + "/" + Long.toString(1L));
+        ThreadUtil.sleep(1000);
+
+        PartialStim partialStim = new PartialStim(2L,
+                generator,
+                1L,
+                1,
+                new Coordinates2D(0,0),
+                0.5,
+                "SHADE",
+                new RGBColor(1.0, 1.0, 1.0));
+
+        mStick = partialStim.createMStick();
+        testMatchStickDrawer.drawMStick(mStick);
+        testMatchStickDrawer.drawCompMap(mStick);
+        ThreadUtil.sleep(10000);
     }
 }
