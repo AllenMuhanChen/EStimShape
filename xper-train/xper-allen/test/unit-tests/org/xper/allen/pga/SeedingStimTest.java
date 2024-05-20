@@ -11,9 +11,7 @@ import org.xper.drawing.RGBColor;
 import org.xper.util.FileUtil;
 import org.xper.util.ThreadUtil;
 
-import static org.junit.Assert.*;
-
-public class RegimeZeroStimTest {
+public class SeedingStimTest {
 
     private FromDbGABlockGenerator generator;
     private TestMatchStickDrawer testMatchStickDrawer;
@@ -31,15 +29,15 @@ public class RegimeZeroStimTest {
     }
 
     @Test
-    public void test(){
-        RegimeZeroStim regimeZeroStim = new RegimeZeroStim(1L,
+    public void test_regime_zero_stim(){
+        SeedingStim seedingStim = new SeedingStim(1L,
                 generator,
                 new Coordinates2D(0,0),
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0),
                 RFStrategy.COMPLETELY_INSIDE);
 
-        GAMatchStick mStick = regimeZeroStim.createMStick();
+        GAMatchStick mStick = seedingStim.createMStick();
         testMatchStickDrawer.drawMStick(mStick);
         testMatchStickDrawer.draw(new Drawable() {
             @Override

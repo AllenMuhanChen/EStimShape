@@ -4,8 +4,8 @@ import org.xper.allen.drawing.composition.morph.PruningMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
-public class RegimeTwoStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
-    public RegimeTwoStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
+public class PruningStim extends GAStim<PruningMatchStick, PruningMatchStick.PruningMStickData>{
+    public PruningStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, String textureType, RGBColor color, RFStrategy rfStrategy) {
         super(stimId, generator, parentId, coords, textureType, color, rfStrategy);
     }
 

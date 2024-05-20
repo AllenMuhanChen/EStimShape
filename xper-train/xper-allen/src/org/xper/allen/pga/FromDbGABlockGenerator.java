@@ -78,29 +78,29 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             // Create a new Stim object with the stim_type and magnitude (if applicable)
             Stim stim;
             if(stimType.equals(StimType.REGIME_ZERO)){
-                stim = new RegimeZeroStim(stimId, this, initialCoords, "SHADE", color, rfStrategy);
+                stim = new SeedingStim(stimId, this, initialCoords, "SHADE", color, rfStrategy);
             }
             else if (stimType.equals(StimType.REGIME_ZERO_2D))
             {
-                stim = new RegimeZeroStim(stimId, this, initialCoords, "2D", color, rfStrategy);
+                stim = new SeedingStim(stimId, this, initialCoords, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_ONE)){
-                stim = new RegimeOneStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
+                stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                stim = new RegimeOneStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
+                stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_TWO)){
-                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "SHADE", color, rfStrategy);
+                stim = new PruningStim(stimId, this, parentId, initialCoords, "SHADE", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                stim = new RegimeTwoStim(stimId, this, parentId, initialCoords, "2D", color, rfStrategy);
+                stim = new PruningStim(stimId, this, parentId, initialCoords, "2D", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_THREE)){
-                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
+                stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
             }
             else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                stim = new RegimeThreeStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
+                stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
             }
             else if (stimType.equals(StimType.CATCH)){
                 stim = new CatchStim(stimId, this);

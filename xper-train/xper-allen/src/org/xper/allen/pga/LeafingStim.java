@@ -5,10 +5,10 @@ import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
-public class RegimeThreeStim extends GAStim<GrowingMatchStick, AllenMStickData> {
+public class LeafingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     private final double magnitude;
 
-    public RegimeThreeStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
+    public LeafingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Coordinates2D coords, double magnitude, String textureType, RGBColor color, RFStrategy rfStrategy) {
         super(stimId, generator, parentId, coords, textureType, color, rfStrategy);
         this.magnitude = magnitude;
     }
