@@ -29,7 +29,7 @@ public class MorphedMatchStickTest {
         parentMStick.setProperties(30, "SHADE");
 //        String test_stick_path = ResourceUtil.getResource("test-stick.xml");
 //        parentMStick.genMatchStickFromFile(test_stick_path);
-        parentMStick.genMatchStickRand();
+        parentMStick.genMatchStickRand(3);
 
 
         drawPng(parentMStick, 1L);

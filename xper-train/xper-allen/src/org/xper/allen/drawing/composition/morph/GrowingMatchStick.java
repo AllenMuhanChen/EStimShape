@@ -89,31 +89,51 @@ public class GrowingMatchStick extends GAMatchStick {
     }
 
     public void genInsideRFMorphedMStick(MorphedMatchStick matchStickToMorph, double magnitude) {
-        //Morphing Existing Comps - Either NON RF or RF Operation
-        //TODO: change this to not effect inside RF component
-        Map<Integer, ComponentMorphParameters> paramsForComps = specifyInsideRFCompMorphParams(matchStickToMorph, magnitude);
-        MorphedMatchStick compMorphedMatchstick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, matchStickToMorph);
-        copyFrom(compMorphedMatchstick);
-        positionShape();
+        int numAttempts = 0;
+        while (numAttempts < getMaxTotalAttempts()) {
+            try {
+                numAttempts++;
+                //Morphing Existing Comps - Either NON RF or RF Operation
+                //TODO: change this to not effect inside RF component
+                Map<Integer, ComponentMorphParameters> paramsForComps = specifyInsideRFCompMorphParams(matchStickToMorph, magnitude);
+                MorphedMatchStick compMorphedMatchstick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, matchStickToMorph);
+                copyFrom(compMorphedMatchstick);
+                positionShape();
+                return;
+            } catch (MorphedMatchStick.MorphException me) {
+                System.err.println(me.getMessage());
+                System.out.println("Morphing failed, trying again with new parameters");
+            }
+        }
+        if (numAttempts == getMaxTotalAttempts()) {
+            throw new MorphException("Could not generate inside rf morphed matchstick after " + getMaxTotalAttempts() + " attempts");
+        }
     }
 
     public void genOutsideRFMorphedMStick(MorphedMatchStick matchStickToMorph, double magnitude) {
-        //Removing Comps - Non RF operation
-        HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
-        MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
+        int numAttempts = 0;
+        while (numAttempts < getMaxTotalAttempts()) {
+            //Removing Comps - Non RF operation
+            HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
+            MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
 
-        //Morphing Existing Comps - NON RF
-        //TODO: change this to not effect inside RF component
-        Map<Integer, ComponentMorphParameters> paramsForComps = specifyOutsideRFCompMorphParams(removedLimbMatchStick, magnitude);
-        MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
+            //Morphing Existing Comps - NON RF
+            //TODO: change this to not effect inside RF component
+            Map<Integer, ComponentMorphParameters> paramsForComps = specifyOutsideRFCompMorphParams(removedLimbMatchStick, magnitude);
+            MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
 
-        //Adding New Comps - NON RF Operation
-        int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
-        genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
-
-        if (checkMStick()) ;
-        else {
-            throw new MorphException("Morphing failed");
+            //Adding New Comps - NON RF Operation
+            int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
+            genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
+            positionShape();
+            if (checkMStick()) ;
+            else {
+                throw new MorphException("Morphing failed");
+            }
+            return;
+        }
+        if (numAttempts == getMaxTotalAttempts()) {
+            throw new MorphException("Could not generate outside rf morphed matchstick after " + getMaxTotalAttempts() + " attempts");
         }
     }
 

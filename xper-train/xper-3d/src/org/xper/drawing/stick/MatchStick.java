@@ -286,7 +286,7 @@ public class MatchStick implements Drawable {
 		// again, or we should do it!
 		//        this.finalRotateAllPoints( finalRotation[0], finalRotation[1], finalRotation[2]);
 
-		boolean res = smoothizeMStick(true);
+		boolean res = smoothizeMStick();
 		if ( res == false) {
 			System.out.println("Fail to smooth while using info from a shapeSpec");
 			System.out.println("THIS SHOULD NOT HAPPEN");
@@ -368,7 +368,7 @@ public class MatchStick implements Drawable {
 					getComp()[i].RadApplied_Factory(); // since we didn't save these info
 				}
 
-				res = smoothizeMStick(true);
+				res = smoothizeMStick();
 				if ( res == false) // success to smooth
 				{
 					System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -483,7 +483,7 @@ public class MatchStick implements Drawable {
 						getComp()[i].RadApplied_Factory(); // since we didn't save these info
 					}
 
-					res = this.smoothizeMStick(true);
+					res = this.smoothizeMStick();
 					if ( res == false) // success to smooth
 					{
 						System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -584,7 +584,7 @@ public class MatchStick implements Drawable {
 					getComp()[i].RadApplied_Factory(); // since we didn't save these info
 				}
 
-				res = this.smoothizeMStick(true);
+				res = this.smoothizeMStick();
 				if ( res == false) // success to smooth
 				{
 					System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -702,7 +702,7 @@ public class MatchStick implements Drawable {
 
 		//do the finalRotateHere, or already did in fromShapeSpec
 		//this.finalRotateAllPoints( finalRotation[0], finalRotation[1], finalRotation[2]);
-		boolean res = smoothizeMStick(true);
+		boolean res = smoothizeMStick();
 		if ( res == false) // success to smooth
 		{
 			System.out.println("Fail to smooth while using info from a file (in file)");
@@ -786,7 +786,7 @@ public class MatchStick implements Drawable {
 
 			// this.centerShapeAtOrigin(-1);
 
-			boolean res = smoothizeMStick(true);
+			boolean res = smoothizeMStick();
 			if ( res == true) // success to smooth
 				break; //else we need to gen another shape
 			//          else
@@ -1950,7 +1950,7 @@ public class MatchStick implements Drawable {
 
 			this.changeFinalRotation();
 
-			return this.smoothizeMStick(true);
+			return this.smoothizeMStick();
 		}
 
 		return false;
@@ -2170,7 +2170,7 @@ public class MatchStick implements Drawable {
 
 			this.changeFinalRotation();
 
-			return this.smoothizeMStick(true);
+			return this.smoothizeMStick();
 		}
 
 		return false;
@@ -3349,13 +3349,14 @@ public class MatchStick implements Drawable {
 		int counter = 1, nRemove = 0;
 		for (i=1; i<=getnComponent(); i++)
 		{
-			if (removeFlg[i] != true)
+			if (!removeFlg[i])
 			{
 				compMap[i] = counter;
 				counter++;
 			}
-			else
+			else {
 				nRemove++;
+			}
 		}
 
 		// 2. go throuhg JuncPt, modify the related info
@@ -3391,20 +3392,18 @@ public class MatchStick implements Drawable {
 		for (i=1; i<=getnEndPt(); i++)
 			if (removeFlg[ getEndPt()[i].getComp()] == false) // end Pt we want to hold
 			{
-				getEndPt()[counter].copyFrom( getEndPt()[i]);
+				getEndPt()[counter].copyFrom(getEndPt()[i]);
 				counter++;
 			}
 		setnEndPt(counter -1);
 
 		// 5. mapping the compoLabel to make the comp info in Junc and endPt correct
-
 		for (i=1; i<= getnComponent(); i++)
 			if ( compMap[i] !=0)
 			{
-				this.getComp()[ compMap[i]].copyFrom( getComp()[i]);
+				this.getComp()[compMap[i]].copyFrom(getComp()[i]);
 			}
 		setnComponent(getnComponent() - nRemove);
-
 		//6. map the comp index at JuncPt and endPt to correct
 		for (i=1; i<= getnEndPt(); i++)
 		{
@@ -3828,7 +3827,7 @@ public class MatchStick implements Drawable {
 	 function that will merge all vect_info from each tube into one smooth, water-tight vect_info piece
 	 */
 
-	public boolean smoothizeMStick(boolean isScale)
+	public boolean smoothizeMStick()
 	{
 		showDebug = false;
 
@@ -3893,7 +3892,7 @@ public class MatchStick implements Drawable {
 			toCenter = 1;
 		System.out.println("new center tube: "+ toCenter);
 		this.centerShapeAtOrigin(toCenter);
-		if ( this.smoothizeMStick(true) ==  false)
+		if ( this.smoothizeMStick() ==  false)
 		{
 			System.out.println("FAIL smooth stick at switch center tube.");
 			System.out.println("THIS SHOULD NOT HAPPEN");
@@ -3906,7 +3905,7 @@ public class MatchStick implements Drawable {
 		int toCenter = aimedTube;
 		System.out.println("new center tube: "+ toCenter);
 		this.centerShapeAtOrigin(toCenter);
-		if ( this.smoothizeMStick(true) ==  false)
+		if ( this.smoothizeMStick() ==  false)
 		{
 			System.out.println("FAIL smooth stick at switch center tube.");
 			System.out.println("THIS SHOULD NOT HAPPEN");

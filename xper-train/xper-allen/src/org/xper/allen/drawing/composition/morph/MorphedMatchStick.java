@@ -55,8 +55,8 @@ public class MorphedMatchStick extends AllenMatchStick {
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
-                attemptSmoothizeMStick();
-                System.out.println("Smoothized finishes: " + getObj1());
+                applyRadiusProfile(1);
+                attemptSmoothizeMorphedMStick();
                 positionShape();
                 if (checkMStick()) break;
             } catch (MorphException e) {
@@ -86,11 +86,15 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttempts = 0;
         while (numAttempts < getMaxTotalAttempts()) {
             try {
+                numAttempts++;
                 addComps(nCompsToAdd);
                 centerShape();
-                attemptSmoothizeMStick();
-                if (checkMStick()) break;
-                break;
+                applyRadiusProfile(1);
+                attemptSmoothizeMorphedMStick();
+                positionShape();
+                if (checkMStick()) {
+                    return;
+                }
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
@@ -99,9 +103,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.err.println(e.getMessage());
                 System.out.println("Failed to morph matchstick.");
                 System.out.println("Retrying to morph matchstick...");
-            } finally{
-                numAttempts++;
-//                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS + " to morph matchstick");
             }
         }
         if (numAttempts >= getMaxTotalAttempts()) {
@@ -186,7 +187,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 }
                 removeComponent(removeFlags);
                 centerShape();
-                attemptSmoothizeMStick();
+                applyRadiusProfile(1);
+                attemptSmoothizeMorphedMStick();
+                positionShape();
                 if (checkMStick()) break;
                 break;
             } catch (MorphException e) {
@@ -195,15 +198,15 @@ public class MorphedMatchStick extends AllenMatchStick {
                 copyFrom(backup);
 //                e.printStackTrace();
                 System.err.println(e.getMessage());
-                System.out.println("Failed to morph matchstick.");
-                System.out.println("Retrying to morph matchstick...");
+                System.out.println("Failed to gen limb removed matchstick.");
+                System.out.println("Retrying to remove limbs...");
             } finally{
                 numAttempts++;
 //                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS + " to morph matchstick");
             }
         }
         if (numAttempts >= getMaxTotalAttempts()) {
-            throw new MorphException("Failed to morph matchstick after " + getMaxTotalAttempts() + " attempts.");
+            throw new MorphException("Failed gen limb removed matchstick after " + getMaxTotalAttempts() + " attempts.");
         }
     }
 
@@ -224,6 +227,11 @@ public class MorphedMatchStick extends AllenMatchStick {
         // The way we write like this can guarantee that we try to
         // generate a shape with "specific" # of components
 
+        genMatchStickRand(nComp);
+
+    }
+
+    public void genMatchStickRand(int nComp) {
         while (true) {
 
             while (true) {
@@ -238,7 +246,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
             centerShape();
 
-            boolean smoothSucceeded = smoothizeMStick(true);
+            boolean smoothSucceeded = smoothizeMStick();
 
 
             if (!smoothSucceeded) // fail to smooth
@@ -254,10 +262,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 break;
             }
         }
-
-
     }
-
 
     protected boolean checkMStick() {
         return true;
@@ -330,6 +335,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
         attemptMutateRadius(id, morphParams);
 
+//        getComp()[id].scaleTheObj(getScaleForMAxisShape());
         checkForTubeCollisions();
 //        checkForValidMStickSize();
 
@@ -370,10 +376,15 @@ public class MorphedMatchStick extends AllenMatchStick {
 
     }
 
-    protected void attemptSmoothizeMStick() {
+    /**
+     * Only to be used to smoothize a matchstick that is inherited in some way
+     * from another matchstick. When this version is used,
+     * the parameters will not be scaled again during the smoothing process.
+     */
+    protected void attemptSmoothizeMorphedMStick() {
         boolean res;
         try{
-            res = smoothizeMStick(false);
+            res = smoothizeMStick();
         } catch(Exception e){
             e.printStackTrace();
             throw new MorphException("Failed to smoothize the matchstick!");
@@ -422,9 +433,16 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     protected void applyRadiusProfile(int id) throws MorphException{
-        if (getComp()[id].RadApplied_Factory() == false){
-            throw new MorphException("Radius profile failed when attempting to be applied to component " + id);
+        for (int i=1; i<=getnComponent(); i++)
+        {
+            if( getComp()[i].RadApplied_Factory() == false) // a fail application
+            {
+                throw new MorphException("Radius profile failed when attempting to be applied to component " + i);
+            }
         }
+//        if (getComp()[id].RadApplied_Factory() == false){
+//            throw new MorphException("Radius profile failed when attempting to be applied to component " + id);
+//        }
     }
 
     private void mutateRadiusProfile(int id, ComponentMorphParameters morphParams, RadiusProfile oldRadiusProfile) {

@@ -90,7 +90,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 			sampleSpec = AllenMStickSpec.fromXml(task.getSampleSpec());
 			sampleMStick.genMatchStickFromShapeSpec(sampleSpec, rotation);
 			sampleMStick.setScale(sampleSpec.getMinSize(), sampleSpec.getMaxSize());
-			sampleMStick.smoothizeMStick(true);
+			sampleMStick.smoothizeMStick();
 			System.out.println("ncomp:" + sampleMStick.getScaleForMAxisShape());
 			numSamplePrepped++;
 		}
@@ -104,7 +104,7 @@ public class NAFCMStickScene extends AbstractTaskScene implements NAFCTaskScene{
 				choiceSpec[i] = AllenMStickSpec.fromXml(task.getChoiceSpec()[i]);
 				choiceMStick.get(i).genMatchStickFromShapeSpec(choiceSpec[i], rotation);
 				choiceMStick.get(i).setScale(choiceSpec[i].getMinSize(), choiceSpec[i].getMaxSize());
-				choiceMStick.get(i).smoothizeMStick(true);
+				choiceMStick.get(i).smoothizeMStick();
 				//choiceSpec[i].setMStickInfo(choiceMStick.get(i));
 
 			}

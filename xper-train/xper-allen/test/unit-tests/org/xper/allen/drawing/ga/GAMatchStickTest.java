@@ -131,12 +131,12 @@ public class GAMatchStickTest {
     }
 
     @Test
-    public void test_partial_morph(){
+    public void test_inside_rf_morph(){
         GAMatchStick GAMatchStick = genPartiallyInside();
         testMatchStickDrawer.drawMStick(GAMatchStick);
         testMatchStickDrawer.drawCompMap(GAMatchStick);
         ThreadUtil.sleep(1000);
-
+        testMatchStickDrawer.clear();
         GrowingMatchStick growingMatchStick;
         while (true) {
             growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
@@ -144,18 +144,42 @@ public class GAMatchStickTest {
             growingMatchStick.setProperties(2.5, "SHADE");
             try {
                 growingMatchStick.genInsideRFMorphedMStick(GAMatchStick, 0.2);
-                System.out.println("IsScale? : " + growingMatchStick.getComp()[1].isScaleOnce());
                 break;
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
         }
-        System.out.println("IsScale? : " + growingMatchStick.getComp()[1].isScaleOnce());
         testMatchStickDrawer.drawMStick(growingMatchStick);
         testMatchStickDrawer.drawCompMap(growingMatchStick);
         ThreadUtil.sleep(10000);
     }
+
+    @Test
+    public void test_outside_rf_morph(){
+        GAMatchStick GAMatchStick = genPartiallyInside();
+        testMatchStickDrawer.drawMStick(GAMatchStick);
+        testMatchStickDrawer.drawCompMap(GAMatchStick);
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+        GrowingMatchStick growingMatchStick;
+        while (true) {
+            growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            growingMatchStick.setProperties(2.5, "SHADE");
+            try {
+                growingMatchStick.genOutsideRFMorphedMStick(GAMatchStick, 0.2);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+        testMatchStickDrawer.drawMStick(growingMatchStick);
+        testMatchStickDrawer.drawCompMap(growingMatchStick);
+        ThreadUtil.sleep(10000);
+    }
+
 
     private static GAMatchStick genPartiallyInside() {
         GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE, "SHADE");
