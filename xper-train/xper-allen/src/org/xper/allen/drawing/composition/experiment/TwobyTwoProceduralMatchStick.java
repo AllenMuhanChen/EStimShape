@@ -53,7 +53,7 @@ public class TwobyTwoProceduralMatchStick extends ProceduralMatchStick {
         try {
             RadiusProfile newRadiusProfile = matchStickContainingLimbToSwapIn.retrieveOldRadiusProfile(limbToSwapIn);
             updateRadiusProfile(limbToSwapOut, newRadiusProfile);
-            applyRadiusProfile(limbToSwapOut);
+            applyRadiusProfile();
         } catch (MorphException e){
             throw new MorphException("Cannot swap radius");
         }

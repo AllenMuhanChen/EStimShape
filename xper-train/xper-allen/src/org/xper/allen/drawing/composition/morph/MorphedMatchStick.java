@@ -55,7 +55,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
-                applyRadiusProfile(1);
+                applyRadiusProfile();
                 attemptSmoothizeMorphedMStick();
                 positionShape();
                 if (checkMStick()) break;
@@ -89,7 +89,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 numAttempts++;
                 addComps(nCompsToAdd);
                 centerShape();
-                applyRadiusProfile(1);
+                applyRadiusProfile();
                 attemptSmoothizeMorphedMStick();
                 positionShape();
                 if (checkMStick()) {
@@ -187,7 +187,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 }
                 removeComponent(removeFlags);
                 centerShape();
-                applyRadiusProfile(1);
+                applyRadiusProfile();
                 attemptSmoothizeMorphedMStick();
                 positionShape();
                 if (checkMStick()) break;
@@ -415,7 +415,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         while(numAttempts < NUM_ATTEMPTS_PER_RADIUS_PROFILE){
             try {
                 mutateRadiusProfile(id, morphParams, oldRadiusProfile);
-                applyRadiusProfile(id);
+                applyRadiusProfile();
 //                System.out.println("Successfully generated valid radius for component " + id);
                 return;
             } catch (MorphException e){
@@ -432,7 +432,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
-    protected void applyRadiusProfile(int id) throws MorphException{
+    protected void applyRadiusProfile() throws MorphException{
         for (int i=1; i<=getnComponent(); i++)
         {
             if( getComp()[i].RadApplied_Factory() == false) // a fail application
