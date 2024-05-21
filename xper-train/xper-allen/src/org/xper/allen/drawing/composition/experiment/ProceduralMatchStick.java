@@ -670,7 +670,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             }
 
             centerShape();
-            boolean res = smoothizeMStick();
+            boolean res = smoothizeMStick(true);
             res = res && validMStickSize();
             if (res) {
                 break;

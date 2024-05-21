@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.drawing.Coordinates2D;
 import org.xper.util.ThreadUtil;
@@ -126,6 +127,33 @@ public class GAMatchStickTest {
             }
         });
 
+        ThreadUtil.sleep(10000);
+    }
+
+    @Test
+    public void test_partial_morph(){
+        GAMatchStick GAMatchStick = genPartiallyInside();
+        testMatchStickDrawer.drawMStick(GAMatchStick);
+        testMatchStickDrawer.drawCompMap(GAMatchStick);
+        ThreadUtil.sleep(1000);
+
+        GrowingMatchStick growingMatchStick;
+        while (true) {
+            growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            growingMatchStick.setProperties(2.5, "SHADE");
+            try {
+                growingMatchStick.genInsideRFMorphedMStick(GAMatchStick, 0.2);
+                System.out.println("IsScale? : " + growingMatchStick.getComp()[1].isScaleOnce());
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+        System.out.println("IsScale? : " + growingMatchStick.getComp()[1].isScaleOnce());
+        testMatchStickDrawer.drawMStick(growingMatchStick);
+        testMatchStickDrawer.drawCompMap(growingMatchStick);
         ThreadUtil.sleep(10000);
     }
 

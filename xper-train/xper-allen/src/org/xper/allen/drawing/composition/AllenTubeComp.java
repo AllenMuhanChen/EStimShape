@@ -99,6 +99,11 @@ public class AllenTubeComp extends TubeComp{
 			getVect_info()[i] = new Point3d( in.getVect_info()[i]);
 			getNormMat_info()[i] = new Vector3d(in.getNormMat_info()[i]);
 		}
+
+		setScaleOnce(in.isScaleOnce()); //AC Addition when switched over to location relative to RFs, which
+		// required not scaling the vect_info when doing morphs.
+
+
 		// Fac Info is always fix
 		// seems not need to copy the ringPT, cap_poleNS , we'll see later
 //		setRingPt(in.getRingPt());
@@ -106,6 +111,31 @@ public class AllenTubeComp extends TubeComp{
 //		setCap_poleS(in.getCap_poleS());
 //		setRingSample(in.getRingSample());
 //		setCapSample(in.getCapSample());
+	}
+
+
+	public void translateVectInfo(Point3d finalPos)
+	{
+		int i;
+//		System.out.println("AC 9958494: Im translating Comp");
+		boolean showDebug = false;
+		if ( showDebug)
+			System.out.println("In translate components....");
+		// make this.mAxisInfo.transRotHis_finalPos to new finalPos
+		// 1. translate the mAxis arc related info
+		Point3d oriPt = new Point3d(getmAxisInfo().getTransRotHis_finalPos());
+		Vector3d transVec = new Vector3d();
+		transVec.sub(finalPos, oriPt);
+
+
+
+		// 2. translate the vect info
+		// June 15th 2008, I suppose we can translate the vect_info directly, without taking care of the ringPt or PolePt info
+		for (i=1; i <= getnVect(); i++)
+		{
+			getVect_info()[i].add(transVec);
+		}
+		calcTubeRange(); // the AABB of the tube is changed
 	}
 
 	/**
@@ -181,6 +211,7 @@ public class AllenTubeComp extends TubeComp{
 		  int maxStep = 51;*/
 
 		if (isScaleOnce()) {
+			System.out.println("AC: Scaling the object");
 			scaleTheObj(scaleFactor);
 			setScaleOnce(false);
 		}

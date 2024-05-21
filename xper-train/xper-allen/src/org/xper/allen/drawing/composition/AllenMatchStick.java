@@ -352,7 +352,7 @@ public class AllenMatchStick extends MatchStick {
 			if(success){
 				boolean res;
 				try{
-					res = smoothizeMStick();
+					res = smoothizeMStick(true);
 				} catch(Exception e){
 					res = false;
 				}
@@ -664,7 +664,7 @@ public class AllenMatchStick extends MatchStick {
 			if(success){
 				boolean res;
 				try{
-					res = smoothizeMStick();
+					res = smoothizeMStick(true);
 				} catch(Exception e){
 					res = false;
 				}
@@ -720,6 +720,25 @@ public class AllenMatchStick extends MatchStick {
 		}
 	}
 
+	/**
+	 * This version applies translation to vect_info in smoothized matchstick if it exists AS WELL.
+	 * @param shiftVec
+	 */
+	protected void translateVectInfo(Vector3d shiftVec) {
+		for (int i=1; i<= getnComponent(); i++)
+		{
+			Point3d finalPos = new Point3d();
+			getComp()[i].translateVectInfo(finalPos);
+		}
+
+		if (getObj1()!=null){
+			for (int i=1; i<=getObj1().getnVect(); i++)
+			{
+				getObj1().vect_info[i].add(shiftVec);
+			}
+		}
+	}
+
 	public void finalMoveCenterOfMassTo(Point3d destination){
 		Point3d centerOfMass = getMassCenter();
 		Vector3d shiftVec = new Vector3d();
@@ -739,6 +758,7 @@ public class AllenMatchStick extends MatchStick {
 		shiftVec.sub(destination, point);
 		if ( destination.distance(point) > 0.001)
 		{
+//			translateVectInfo(shiftVec);
 			applyTranslation(shiftVec);
 		}
 		return shiftVec;
@@ -1389,7 +1409,7 @@ public class AllenMatchStick extends MatchStick {
 			if(success){
 				boolean res;
 				try{
-					res = smoothizeMStick();
+					res = smoothizeMStick(true);
 				} catch(Exception e){
 					res = false;
 				}
@@ -1777,7 +1797,7 @@ public class AllenMatchStick extends MatchStick {
 			if(compSuccess){
 
 				try {
-					smoothSuccess = this.smoothizeMStick();
+					smoothSuccess = this.smoothizeMStick(true);
 				} catch(Exception e){
 					smoothSuccess = false;
 					System.err.println(e.getMessage());
@@ -2641,7 +2661,7 @@ public class AllenMatchStick extends MatchStick {
 
 			// this.centerShapeAtOrigin(-1);
 
-			boolean res = smoothizeMStick();
+			boolean res = smoothizeMStick(true);
 			if (res == true) // success to smooth
 				break; // else we need to gen another shape
 			// else
@@ -2696,7 +2716,7 @@ public class AllenMatchStick extends MatchStick {
 
 			centerShape();
 
-			boolean res = smoothizeMStick();
+			boolean res = smoothizeMStick(true);
 			if (res == true) // success to smooth
 				break; // else we need to gen another shape
 			// else
@@ -3516,7 +3536,7 @@ public class AllenMatchStick extends MatchStick {
 
 		boolean res;
 		try {
-			res = smoothizeMStick();
+			res = smoothizeMStick(true);
 		} catch (NullPointerException e) {
 			res = true;
 			// TODO Auto-generated catch block
@@ -3603,7 +3623,7 @@ public class AllenMatchStick extends MatchStick {
 					getComp()[i].RadApplied_Factory(); // since we didn't save these info
 				}
 
-				res = smoothizeMStick();
+				res = smoothizeMStick(true);
 				if ( res == false) // success to smooth
 				{
 					System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -3718,7 +3738,7 @@ public class AllenMatchStick extends MatchStick {
 						getComp()[i].RadApplied_Factory(); // since we didn't save these info
 					}
 
-					res = this.smoothizeMStick();
+					res = this.smoothizeMStick(true);
 					if ( res == false) // success to smooth
 					{
 						System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -3819,7 +3839,7 @@ public class AllenMatchStick extends MatchStick {
 					getComp()[i].RadApplied_Factory(); // since we didn't save these info
 				}
 
-				res = this.smoothizeMStick();
+				res = this.smoothizeMStick(true);
 				if ( res == false) // success to smooth
 				{
 					System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -4265,7 +4285,7 @@ public class AllenMatchStick extends MatchStick {
 
 			this.changeFinalRotation();
 
-			return this.smoothizeMStick();
+			return this.smoothizeMStick(true);
 		}
 
 		return false;
@@ -4481,7 +4501,15 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	@Override
-	public boolean smoothizeMStick()
+	/**
+	 * isScale parameter was added to this. This is because brand new match sticks (i.e rand)
+	 * need to scale everything to match the proper size, however morphs inherit size from its parent,
+	 * so there's no need to scale everything again.
+	 *
+	 * I also added scaling of TubeComp vect_info because we need to use this for checking
+	 * whether certain limbs are in RF or not.
+	 */
+	public boolean smoothizeMStick(boolean isScale)
 	{
 		showDebug = false;
 
@@ -4517,8 +4545,8 @@ public class AllenMatchStick extends MatchStick {
 		this.setObj1(MObj[1]);
 
 		this.getObj1().rotateMesh(getFinalRotation());
-
-		this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
+		if (isScale)
+			this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
 
 
 
@@ -4527,15 +4555,22 @@ public class AllenMatchStick extends MatchStick {
 			setFinalShiftinDepth(this.getObj1().subCenterOfMass());
 		}
 
-		for (i=1; i<=getnComponent(); i++)
-		{
+		//AC addition for RF relative positioning: scale the comp vect_info as well.
+		//We do the scaling here instead of relying on TubeComp to do it because
+		//tubecomp will only do it during drawSurfPt, but we want to be able to rely
+		//on this information being accurate before and if we don't call drawSurfPt.
+		for (i = 1; i <= getnComponent(); i++) {
 			getComp()[i].setScaleOnce(false);
-			Point3d[] vect_info = getComp()[i].getVect_info();
-			for (Point3d point : vect_info) {
-				if (point != null) {
-					point.scale(getScaleForMAxisShape());;
+			System.out.println("Setting Scale Once to False");
+			if (isScale) {
+				Point3d[] vect_info = getComp()[i].getVect_info();
+				for (Point3d point : vect_info) {
+					if (point != null) {
+						point.scale(getScaleForMAxisShape());
+					}
 				}
 			}
+
 		}
 
 

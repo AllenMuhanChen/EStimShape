@@ -50,14 +50,15 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttempts = 0;
         while (numAttempts < getMaxTotalAttempts()) {
             try {
+                numAttempts++;
                 findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
                 attemptSmoothizeMStick();
+                System.out.println("Smoothized finishes: " + getObj1());
                 positionShape();
                 if (checkMStick()) break;
-                break;
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
@@ -66,9 +67,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.err.println(e.getMessage());
                 System.out.println("Failed to morph matchstick.");
                 System.out.println("Retrying to morph matchstick...");
-            } finally{
-                numAttempts++;
-//                System.out.println("Attempt " + numAttempts + " of " + MAX_TOTAL_ATTEMPTS + " to morph matchstick");
             }
         }
         if (numAttempts >= getMaxTotalAttempts()) {
@@ -240,7 +238,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
             centerShape();
 
-            boolean smoothSucceeded = smoothizeMStick();
+            boolean smoothSucceeded = smoothizeMStick(true);
 
 
             if (!smoothSucceeded) // fail to smooth
@@ -375,7 +373,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     protected void attemptSmoothizeMStick() {
         boolean res;
         try{
-            res = smoothizeMStick();
+            res = smoothizeMStick(false);
         } catch(Exception e){
             e.printStackTrace();
             throw new MorphException("Failed to smoothize the matchstick!");

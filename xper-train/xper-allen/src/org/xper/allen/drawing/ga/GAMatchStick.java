@@ -62,7 +62,7 @@ public class GAMatchStick extends MorphedMatchStick {
 
                     centerShape();
 
-                    boolean smoothSucceeded = smoothizeMStick();
+                    boolean smoothSucceeded = smoothizeMStick(true);
 
                     if (!smoothSucceeded) // fail to smooth
                     {
@@ -243,7 +243,7 @@ public class GAMatchStick extends MorphedMatchStick {
 
         boolean res;
         try {
-            res = smoothizeMStick();
+            res = smoothizeMStick(true);
         } catch (NullPointerException e) {
             res = true;
             // TODO Auto-generated catch block
@@ -331,7 +331,7 @@ public class GAMatchStick extends MorphedMatchStick {
                     getComp()[i].RadApplied_Factory(); // since we didn't save these info
                 }
 
-                res = smoothizeMStick();
+                res = smoothizeMStick(true);
                 if ( res == false) // success to smooth
                 {
                     System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -446,7 +446,7 @@ public class GAMatchStick extends MorphedMatchStick {
                         getComp()[i].RadApplied_Factory(); // since we didn't save these info
                     }
 
-                    res = this.smoothizeMStick();
+                    res = this.smoothizeMStick(true);
                     if ( res == false) // success to smooth
                     {
                         System.out.println("Fail to smooth while using info from a shapeSpec");
@@ -547,7 +547,7 @@ public class GAMatchStick extends MorphedMatchStick {
                     getComp()[i].RadApplied_Factory(); // since we didn't save these info
                 }
 
-                res = this.smoothizeMStick();
+                res = this.smoothizeMStick(true);
                 if ( res == false) // success to smooth
                 {
                     System.out.println("Fail to smooth while using info from a shapeSpec");

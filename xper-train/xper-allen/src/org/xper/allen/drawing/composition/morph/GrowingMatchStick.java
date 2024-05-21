@@ -35,24 +35,87 @@ public class GrowingMatchStick extends GAMatchStick {
     }
 
     public void genGrowingMatchStick(MorphedMatchStick matchStickToMorph, double magnitude) {
-        //Removing Comps
-        HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
-        MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
+        if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
+            //Removing Comps - Non RF operation
+            HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
+            MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
 
-        //Morphing Existing Comps
-        Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(removedLimbMatchStick, magnitude);
-        MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
+            //Morphing Existing Comps - Either NON RF or RF Operation
+            Map<Integer, ComponentMorphParameters> paramsForComps = specifyCompMorphParams(removedLimbMatchStick, magnitude);
+            MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
 
-        //Adding New Comps
-        int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
-        genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
+            //Adding New Comps - NON RF Operation
+            int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
+            genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
 
-        if (checkMStick());
-        else {
-            throw new MorphedMatchStick.MorphException("Morphing failed");
+            if (checkMStick()) ;
+            else {
+                throw new MorphedMatchStick.MorphException("Morphing failed");
+            }
+        } else {
+            boolean morphEntireShape = false;
+            //based on magnitude, determine if morphing should impact both inside and outside of RF
+            if (Math.random() < magnitude) {
+                morphEntireShape = true;
+            }
+
+            boolean morphInsideRF = false;
+            boolean morphOutsideRF = false;
+
+            //if morphing the entire shape, morph both inside and outside of RF
+            if (morphEntireShape) {
+                morphInsideRF = true;
+                morphOutsideRF = true;
+            } else {
+                //if not morphing the entire shape, randomly determine if morphing should impact inside or outside of RF
+                if (Math.random() < 0.5) {
+                    morphInsideRF = true;
+                } else {
+                    morphOutsideRF = true;
+                }
+            }
+
+
+            if (morphOutsideRF && !morphInsideRF){
+                genOutsideRFMorphedMStick(matchStickToMorph, magnitude);
+            }
+            if (morphInsideRF && !morphOutsideRF) {
+                genInsideRFMorphedMStick(matchStickToMorph, magnitude);
+
+            }
+
+
         }
     }
 
+    public void genInsideRFMorphedMStick(MorphedMatchStick matchStickToMorph, double magnitude) {
+        //Morphing Existing Comps - Either NON RF or RF Operation
+        //TODO: change this to not effect inside RF component
+        Map<Integer, ComponentMorphParameters> paramsForComps = specifyInsideRFCompMorphParams(matchStickToMorph, magnitude);
+        MorphedMatchStick compMorphedMatchstick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, matchStickToMorph);
+        copyFrom(compMorphedMatchstick);
+        positionShape();
+    }
+
+    public void genOutsideRFMorphedMStick(MorphedMatchStick matchStickToMorph, double magnitude) {
+        //Removing Comps - Non RF operation
+        HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
+        MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
+
+        //Morphing Existing Comps - NON RF
+        //TODO: change this to not effect inside RF component
+        Map<Integer, ComponentMorphParameters> paramsForComps = specifyOutsideRFCompMorphParams(removedLimbMatchStick, magnitude);
+        MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
+
+        //Adding New Comps - NON RF Operation
+        int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
+        genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
+
+        if (checkMStick()) ;
+        else {
+            throw new MorphException("Morphing failed");
+        }
+    }
 
     private int specifyNCompsToAdd(MorphedMatchStick matchStickToMorph, double magnitude) {
         int currentNComp = matchStickToMorph.getNComponent();
@@ -152,6 +215,32 @@ public class GrowingMatchStick extends GAMatchStick {
 //        return (int) (Math.random() * (range + 1)) + (currentNComp - maxNComp);
     }
 
+
+    private Map<Integer, ComponentMorphParameters> specifyOutsideRFCompMorphParams(MorphedMatchStick matchStickToMorph, double magnitude) {
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(sigma);
+        // Construct MorphParameters for components
+        Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
+        for (int i = 1; i<= matchStickToMorph.getNComponent(); i++) {
+            if (i!=matchStickToMorph.getSpecialEndComp().get(0)) {
+                ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
+                paramsForComps.put(i, params);
+            }
+        }
+        return paramsForComps;
+    }
+
+
+    private Map<Integer, ComponentMorphParameters> specifyInsideRFCompMorphParams(MorphedMatchStick matchStickToMorph, double magnitude) {
+        NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(sigma);
+        // Construct MorphParameters for components
+        Map<Integer, ComponentMorphParameters> paramsForComps = new HashMap<Integer, ComponentMorphParameters>();
+
+        ComponentMorphParameters params = new NormalDistributedComponentMorphParameters(magnitude, normalMorphDistributer);
+        paramsForComps.put(matchStickToMorph.getSpecialEndComp().get(0), params);
+
+
+        return paramsForComps;
+    }
 
     private Map<Integer, ComponentMorphParameters> specifyCompMorphParams(MorphedMatchStick matchStickToMorph, double magnitude) {
         NormalMorphDistributer normalMorphDistributer = new NormalMorphDistributer(sigma);
