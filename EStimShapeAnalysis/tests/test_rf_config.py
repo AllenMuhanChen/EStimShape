@@ -1,17 +1,22 @@
 import random
 import unittest
+from typing import List
 
-from src.pga.config.rf_config import ZoomingPhaseParentSelector, ZoomSetHandler
+from src.pga.config.rf_config import ZoomingPhaseParentSelector, ZoomSetHandler, ZoomingPhaseMutationAssigner
 from src.pga.ga_classes import Stimulus, LineageFactory
 
 
 class TestZoomingPhase(unittest.TestCase):
 
     def setUp(self):
+        zoom_set_handler = MockZoomSetHandler()
         self.selector = ZoomingPhaseParentSelector(
             spontaneous_firing_rate=15,
             significance_level=0.05,
-            zoom_set_handler=MockZoomSetHandler()
+            zoom_set_handler=zoom_set_handler
+        )
+        self.assigner = ZoomingPhaseMutationAssigner(
+            zoom_set_handler=zoom_set_handler
         )
 
         stimuli = [Stimulus(i, "Test", response_rate=i, response_vector=[i for _ in range(10)]) for i in
@@ -19,14 +24,38 @@ class TestZoomingPhase(unittest.TestCase):
         # shuffle stimuli randomly
         random.shuffle(stimuli)
 
-
         self.lineage = LineageFactory.create_lineage_from_stimuli(stimuli)
 
     def test_select_parents(self):
-        self.selector.select_parents(self.lineage, 10)
+        actual_parents = self.selector.select_parents(self.lineage, 10)
+        actual_parents_responses = [parent.response_rate for parent in actual_parents]
+        expected_parents_responses = [50, 40, 30, 30, 20, 20]
+
+        self.assertEqual(actual_parents_responses, expected_parents_responses)
+
+    def test_assign_mutation(self):
+        actual_assigned_mutations: List[str] = []
+
+        actual_parents = self.selector.select_parents(self.lineage, 10)
+
+        for stim in actual_parents:
+            actual_assigned_mutations.append(self.assigner.assign_mutation(self.lineage, stim))
+
+        print(actual_assigned_mutations)
+        expected_assigned_mutations = ['Zooming_2', 'Zooming_2', 'Zooming_1', 'Zooming_2', 'Zooming_1', 'Zooming_2']
+
+        self.assertEqual(actual_assigned_mutations, expected_assigned_mutations)
 
 
 class MockZoomSetHandler(ZoomSetHandler):
+    all_comps = [1, 2]
+    comp_map = {
+        20: [],
+        30: [],
+        40: [1],
+        50: [1],
+    }
+
     def is_no_set(self, stimulus: Stimulus) -> bool:
         if stimulus.response_rate == 20 or stimulus.response_rate == 30:
             return True
@@ -44,3 +73,13 @@ class MockZoomSetHandler(ZoomSetHandler):
             return 1
         elif self.is_no_set(stimulus):
             return 2
+
+    def get_next_stim_to_zoom(self, parent):
+        current_zoomed: List[int] = self.comp_map[parent.id]
+        for comp in self.all_comps:
+            if comp not in current_zoomed:
+                self.comp_map[parent.id].append(comp) #update
+                return comp
+
+
+

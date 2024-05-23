@@ -3,7 +3,7 @@ from typing import List
 from scipy.stats import stats
 
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
-from src.pga.ga_classes import Phase, MutationMagnitudeAssigner, Lineage, Stimulus, ParentSelector
+from src.pga.ga_classes import Phase, MutationMagnitudeAssigner, Lineage, Stimulus, ParentSelector, MutationAssigner
 from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
     LeafingPhaseMutationMagnitudeAssigner, LeafingPhaseTransitioner
 
@@ -22,6 +22,20 @@ class ZoomSetHandler:
     def get_how_many_stimuli_needed_to_make_full_set(self, stimulus: Stimulus) -> int:
         pass
 
+    def get_next_stim_to_zoom(self, parent) -> int:
+        pass
+
+
+class ZoomingPhaseMutationAssigner(MutationAssigner):
+    zoom_set_handler: ZoomSetHandler
+
+    def __init__(self, *, zoom_set_handler: ZoomSetHandler):
+        self.zoom_set_handler = zoom_set_handler
+
+    def assign_mutation(self, lineage: Lineage, parent: Stimulus) -> str:
+        stim_id = self.zoom_set_handler.get_next_stim_to_zoom(parent)
+        return f"Zooming_{stim_id}"
+
 
 class ZoomingPhaseParentSelector(ParentSelector):
     spontaneous_firing_rate: float
@@ -38,7 +52,8 @@ class ZoomingPhaseParentSelector(ParentSelector):
         # Perform a one-sample t-test to determine whether the firing rate is significantly different from the spontaneous firing rate.
         stimuli_above_significance = []
         for stimulus in lineage.stimuli:
-            t_stat, p_value = stats.ttest_1samp(stimulus.response_vector, self.spontaneous_firing_rate, alternative="greater")
+            t_stat, p_value = stats.ttest_1samp(stimulus.response_vector, self.spontaneous_firing_rate,
+                                                alternative="greater")
             if p_value < self.significance_level:
                 stimuli_above_significance.append(stimulus)
         print([stimulus.response_rate for stimulus in stimuli_above_significance])
@@ -87,6 +102,7 @@ class ZoomingPhaseParentSelector(ParentSelector):
 
 class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     database = "allen_estimshape_ga_dev_240207"
+
     def make_phases(self):
         return [self.seeding_phase(),
                 self.zooming_phase(),
