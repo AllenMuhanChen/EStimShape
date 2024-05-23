@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Protocol
 
+import xmltodict
+from clat.util.connection import Connection
 from scipy.stats import stats
 
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
@@ -8,23 +10,50 @@ from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutatio
     LeafingPhaseMutationMagnitudeAssigner, LeafingPhaseTransitioner
 
 
-class ZoomSetHandler:
+class ZoomSetHandler(Protocol):
+    conn: Connection
 
-    def is_no_set(self, stimulus: Stimulus) -> bool:
-        pass
+    def __init__(self, *, conn: Connection):
+        self.conn = conn
+
+    def is_empty_set(self, stimulus: Stimulus) -> bool:
+        query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
+        self.conn.execute(query, (stimulus.stim_id,))
+        count = self.conn.fetch_one()
+        return count == 0
 
     def is_partial_set(self, stimulus: Stimulus) -> bool:
-        pass
+        total_components_needed = self._get_num_comps_in(stimulus)
+        query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
+        self.conn.execute(query, (stimulus.stim_id,))
+        count = self.conn.fetch_one()
+        return 0 < count < total_components_needed
 
     def is_full_set(self, stimulus: Stimulus) -> bool:
-        pass
+        total_components_needed = self._get_num_comps_in(stimulus)
+        query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
+        self.conn.execute(query, (stimulus.stim_id,))
+        count = self.conn.fetch_one()
+        return count == total_components_needed
 
     def get_how_many_stimuli_needed_to_make_full_set(self, stimulus: Stimulus) -> int:
-        pass
+        total_components_needed = self._get_num_comps_in(stimulus)
+        query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
+        self.conn.execute(query, (stimulus.stim_id,))
+        count = self.conn.fetch_one()
+        return total_components_needed - count
 
     def get_next_stim_to_zoom(self, parent) -> int:
+        # Placeholder for get_next_stim_to_zoom implementation
         pass
 
+    def _get_num_comps_in(self, stimulus: Stimulus) -> int:
+        query = "SELECT data FROM StimSpec WHERE id=%s"
+        self.conn.execute(query, (stimulus.id,))
+        data = self.conn.fetch_one()
+        data_dict = xmltodict.parse(data)
+        n_comp = data_dict["AllenMStickData"]["analysisMStickSpec"]["mAxis"]["nComponent"]
+        return int(n_comp)
 
 class ZoomingPhaseMutationAssigner(MutationAssigner):
     zoom_set_handler: ZoomSetHandler
@@ -62,7 +91,7 @@ class ZoomingPhaseParentSelector(ParentSelector):
         no_sets = []
         partial_sets = []
         for stimulus in stimuli_above_significance:
-            if self.zoom_set_handler.is_no_set(stimulus):
+            if self.zoom_set_handler.is_empty_set(stimulus):
                 no_sets.append(stimulus)
             elif self.zoom_set_handler.is_partial_set(stimulus):
                 partial_sets.append(stimulus)

@@ -56,7 +56,7 @@ class MockZoomSetHandler(ZoomSetHandler):
         50: [1],
     }
 
-    def is_no_set(self, stimulus: Stimulus) -> bool:
+    def is_empty_set(self, stimulus: Stimulus) -> bool:
         if stimulus.response_rate == 20 or stimulus.response_rate == 30:
             return True
 
@@ -71,15 +71,23 @@ class MockZoomSetHandler(ZoomSetHandler):
     def get_how_many_stimuli_needed_to_make_full_set(self, stimulus):
         if self.is_partial_set(stimulus):
             return 1
-        elif self.is_no_set(stimulus):
+        elif self.is_empty_set(stimulus):
             return 2
 
     def get_next_stim_to_zoom(self, parent):
         current_zoomed: List[int] = self.comp_map[parent.id]
         for comp in self.all_comps:
             if comp not in current_zoomed:
-                self.comp_map[parent.id].append(comp) #update
+                self.comp_map[parent.id].append(comp)  # update
                 return comp
 
 
+from clat.util.connection import Connection
 
+
+def test__get_num_comps_in():
+    conn = Connection("allen_estimshape_ga_test_240508")
+    handler = ZoomSetHandler(conn=conn)
+    num_comps = handler._get_num_comps_in(Stimulus(1715196706133280, "Test"))
+    print(num_comps)
+    assert num_comps == 2
