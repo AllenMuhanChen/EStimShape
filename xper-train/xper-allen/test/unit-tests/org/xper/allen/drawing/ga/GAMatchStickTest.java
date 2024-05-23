@@ -180,6 +180,32 @@ public class GAMatchStickTest {
         ThreadUtil.sleep(10000);
     }
 
+    @Test
+    public void test_both_inside_and_outside_morph(){
+        GAMatchStick GAMatchStick = genPartiallyInside();
+        testMatchStickDrawer.drawMStick(GAMatchStick);
+        testMatchStickDrawer.drawCompMap(GAMatchStick);
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+        GrowingMatchStick growingMatchStick;
+        while (true) {
+            growingMatchStick = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            growingMatchStick.setProperties(2.5, "SHADE");
+            try {
+                growingMatchStick.genOutsideRFMorphedMStick(GAMatchStick, 0.2);
+                growingMatchStick.genInsideRFMorphedMStick(growingMatchStick, 0.2);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+        testMatchStickDrawer.drawMStick(growingMatchStick);
+        testMatchStickDrawer.drawCompMap(growingMatchStick);
+        ThreadUtil.sleep(10000);
+    }
+
 
     private static GAMatchStick genPartiallyInside() {
         GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE, "SHADE");

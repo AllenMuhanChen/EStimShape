@@ -9,14 +9,21 @@ from clat.util import time_util
 
 
 class Stimulus:
+    stim_id: int
+    mutation_type: str
+    mutation_magnitude: float
+    response_rate: float
+    response_vector: [float]
+    parent_id: int
+    gen_id: int
 
     def __init__(self, stim_id: int, mutation_type: str, mutation_magnitude: float = None, response_vector=None,
-                 driving_response=None, parent_id=None, gen_id=None):
+                 response_rate=None, parent_id=None, gen_id=None):
         self.id = stim_id
         self.mutation_type = mutation_type
         self.mutation_magnitude = mutation_magnitude
         self.response_vector = response_vector
-        self.response_rate = driving_response
+        self.response_rate = response_rate
         self.parent_id = parent_id
         self.gen_id = gen_id
 
@@ -218,10 +225,11 @@ class LineageFactory:
                 print("Warning: stimulus with no parent. This should only happen in unit tests")
                 tree.add_child(Node(stimulus))
 
-        return Lineage(stimuli[0], regimes, tree)
+        return Lineage(stimuli[0], regimes, 0, tree)
 
     @staticmethod
-    def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Phase] = None, gen_id: int = None) -> Lineage:
+    def create_lineage_from_tree(tree: Node, current_regime_index=0, regimes: [Phase] = None,
+                                 gen_id: int = None) -> Lineage:
         return Lineage(tree.data, regimes, tree=tree, current_regime_index=current_regime_index, gen_id=gen_id)
 
     @staticmethod

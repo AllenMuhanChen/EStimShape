@@ -81,7 +81,10 @@ public class GrowingMatchStick extends GAMatchStick {
             }
             if (morphInsideRF && !morphOutsideRF) {
                 genInsideRFMorphedMStick(matchStickToMorph, magnitude);
-
+            }
+            if (morphOutsideRF && morphInsideRF) {
+                genOutsideRFMorphedMStick(matchStickToMorph, magnitude);
+                genInsideRFMorphedMStick(this, magnitude);
             }
 
 

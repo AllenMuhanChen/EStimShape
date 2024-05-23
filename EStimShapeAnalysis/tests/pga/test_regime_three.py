@@ -44,7 +44,7 @@ class TestRegimeThreeParentSelector(unittest.TestCase):
 
     def test_select_parents_by_custom_weight(self):
         # Create a lineage with 10 stimuli having response rates from 1 to 10.
-        stimuli = [Stimulus(None, "Test", driving_response=i) for i in range(1, 11)]
+        stimuli = [Stimulus(None, "Test", response_rate=i) for i in range(1, 11)]
         lineage = LineageFactory.create_lineage_from_stimuli(stimuli)
 
         # Select 5 parents.
@@ -65,14 +65,14 @@ class TestRegimeThreeTransitioner(unittest.TestCase):
     def test_should_transition(self):
         # Create a lineage with 10 stimuli having response rates from 1 to 10.
 
-        stimuli = [Stimulus(None, "Test", driving_response=i) for i in range(1, 11)]
+        stimuli = [Stimulus(None, "Test", response_rate=i) for i in range(1, 11)]
         lineage = LineageFactory.create_lineage_from_stimuli(stimuli)
         # Check if we should transition to the next regime.
         # Since the response rates are uniformly distributed, we should transition.
         self.assertTrue(self.transitioner.should_transition(lineage))
 
         # Now create a lineage with a hole in the response distribution.
-        lineage.stimuli = [Stimulus(None, i, driving_response=i) for i in list(range(1, 6)) + list(range(8, 11))]
+        lineage.stimuli = [Stimulus(None, i, response_rate=i) for i in list(range(1, 6)) + list(range(8, 11))]
 
         # We should not transition because there is under-sampling.
         self.assertFalse(self.transitioner.should_transition(lineage))

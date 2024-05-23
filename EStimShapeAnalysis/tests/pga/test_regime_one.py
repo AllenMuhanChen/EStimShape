@@ -11,7 +11,7 @@ from src.pga.regime_one import RankOrderedDistribution, GrowingPhaseParentSelect
 
 
 def mock_get_all_stimuli_func():
-    return [Stimulus(None, i, driving_response=i) for i in range(1, 11)]
+    return [Stimulus(None, i, response_rate=i) for i in range(1, 11)]
 
 
 import unittest
@@ -124,7 +124,7 @@ class TestRegimeOneParentSelector(unittest.TestCase):
         self.selector = GrowingPhaseParentSelector(self.get_all_stimuli_func, [0.1, 0.2, 0.2, 0.2, 0.3],
                                                    [10, 10, 10, 10, 10])
 
-        stimuli = [Stimulus(None, i, driving_response=i) for i in [10, 8, 6, 5, 1]]
+        stimuli = [Stimulus(None, i, response_rate=i) for i in [10, 8, 6, 5, 1]]
         self.lineage = LineageFactory.create_lineage_from_stimuli(stimuli)
 
     def test_select_parents(self):
@@ -142,12 +142,12 @@ class TestRegimeOneTransitioner(unittest.TestCase):
     def setUp(self):
         self.transitioner = GrowingPhaseTransitioner(convergence_threshold=0.01)
         stimuli_with_gaps = [
-            Stimulus(0, "Test", driving_response=10, gen_id=1),
-            Stimulus(1, "Test", driving_response=8, gen_id=1, parent_id=0),
+            Stimulus(0, "Test", response_rate=10, gen_id=1),
+            Stimulus(1, "Test", response_rate=8, gen_id=1, parent_id=0),
             # Skipping gen_id=2, it's an empty generation
-            Stimulus(2, "Test", driving_response=7, gen_id=3, parent_id=1),
-            Stimulus(3, 3, driving_response=6, gen_id=3, parent_id=1),
-            Stimulus(4, "Test", driving_response=5, gen_id=4, parent_id=2)
+            Stimulus(2, "Test", response_rate=7, gen_id=3, parent_id=1),
+            Stimulus(3, 3, response_rate=6, gen_id=3, parent_id=1),
+            Stimulus(4, "Test", response_rate=5, gen_id=4, parent_id=2)
         ]
         self.lineage_with_gaps = Lineage(stimuli_with_gaps[0], None, gen_id=5)
         self.lineage_with_gaps.stimuli = stimuli_with_gaps

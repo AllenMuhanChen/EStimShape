@@ -123,14 +123,16 @@ class GrowingPhaseParentSelector(ParentSelector):
 
     def select_parents(self, lineage, batch_size):
         rank_ordered_distribution = RankOrderedDistribution(lineage.stimuli, self.proportions)
-        sampled_stimuli_from_all_lineages = rank_ordered_distribution.sample_total_amount_across_bins(
+        sampled_stimuli_from_lineage = rank_ordered_distribution.sample_total_amount_across_bins(
             bin_sample_probabilities=self.bin_sample_sizes_proportions, total=batch_size)
 
-        # Identify the stimuli from the current lineage in the rank-ordered distribution
-        parents = []
-        for stimulus in sampled_stimuli_from_all_lineages:
-            if any([stimulus == stimulus_from_lineage for stimulus_from_lineage in lineage.stimuli]):
-                parents.append(stimulus)
+        parents = sampled_stimuli_from_lineage
+        # # Identify the stimuli from the current lineage in the rank-ordered distribution
+        # #TODO: not sure if this is needed
+        # parents = []
+        # for stimulus in sampled_stimuli_from_lineage:
+        #     if any([stimulus == stimulus_from_lineage for stimulus_from_lineage in lineage.stimuli]):
+        #         parents.append(stimulus)
         return parents
 
 
@@ -158,7 +160,7 @@ class GetAllStimuliFunc:
             mutation_type = stim_ga_info_entry.stim_type
             response = stim_ga_info_entry.response
             response_vector = self.response_processor.fetch_response_vector_for(stim_id, ga_name=self.ga_name)
-            return Stimulus(stim_id, mutation_type, response_vector=response_vector, driving_response=response)
+            return Stimulus(stim_id, mutation_type, response_vector=response_vector, response_rate=response)
 
         stimuli = []
         for stim_id in stim_ids:
