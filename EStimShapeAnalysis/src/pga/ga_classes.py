@@ -201,10 +201,10 @@ class MutationMagnitudeAssigner(Protocol):
 
 class RegimeTransitioner(Protocol):
     @abstractmethod
-    def should_transition(self, lineage):
+    def should_transition(self, lineage: Lineage) -> bool:
         pass
 
-    def get_transition_data(self, lineage):
+    def get_transition_data(self, lineage: Lineage) -> str:
         return "Test"
 
 

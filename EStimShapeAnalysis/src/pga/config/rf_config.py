@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from typing import List, Protocol
 
@@ -90,23 +92,42 @@ class ZoomSetHandler(Protocol):
 
 class ZoomingPhaseTransitioner(RegimeTransitioner):
     zoom_set_handler: ZoomSetHandler
+    percentage_full_set_threshold: float
+    parent_selector: ZoomingPhaseParentSelector
 
-    def should_transition(self, lineage):
-        pass
+    total_num_eligible: int
+    num_full_sets: int
+    num_partial_sets: int
+
+    def __init__(self, *, zoom_set_handler: ZoomSetHandler, percentage_full_set_threshold: float,
+                 parent_selector: ZoomingPhaseParentSelector):
+        self.zoom_set_handler = zoom_set_handler
+        self.percentage_full_set_threshold = percentage_full_set_threshold
+        self.parent_selector = parent_selector
+
+    def should_transition(self, lineage: Lineage):
+        # Get all eligible stimuli for zooming
+        eligible_stimuli = self.parent_selector.fetch_significantly_above_spontaneous_stimuli(lineage)
+        self.parent_selector.filter_out_already_zoomed(eligible_stimuli)
+        self.total_num_eligible = len(eligible_stimuli)
+
+        # Check how many of these eligible stimuli have full set of zooming components
+        self.num_full_sets = 0
+        self.num_partial_sets = 0
+        for stim in eligible_stimuli:
+            if self.zoom_set_handler.is_full_set(stim):
+                self.num_full_sets += 1
+            elif self.zoom_set_handler.is_partial_set(stim):
+                self.num_partial_sets += 1
+
+        # If the percentage of stimuli with full sets is greater than the threshold, transition
+        return self.num_full_sets / self.total_num_eligible >= self.percentage_full_set_threshold
 
     def get_transition_data(self, lineage):
-        return "Test"
 
-
-class ZoomingPhaseMutationAssigner(MutationAssigner):
-    zoom_set_handler: ZoomSetHandler
-
-    def __init__(self, *, zoom_set_handler: ZoomSetHandler):
-        self.zoom_set_handler = zoom_set_handler
-
-    def assign_mutation(self, lineage: Lineage, parent: Stimulus) -> str:
-        stim_id = self.zoom_set_handler.get_next_stim_to_zoom(parent)
-        return f"Zooming_{stim_id}"
+        return f"Total number eligible for zooming: {self.total_num_eligible}, " \
+               f"Number of full sets: {self.num_full_sets}, " \
+               f"Number of partial sets: {self.num_partial_sets}"
 
 
 class ZoomingPhaseParentSelector(ParentSelector):
@@ -120,8 +141,8 @@ class ZoomingPhaseParentSelector(ParentSelector):
         self.zoom_set_handler = zoom_set_handler
 
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
-        potential_parents = self._fetch_significantly_above_spontaneous_stimuli(lineage)
-        self._filter_out_already_zoomed(potential_parents)
+        potential_parents = self.fetch_significantly_above_spontaneous_stimuli(lineage)
+        self.filter_out_already_zoomed(potential_parents)
 
         potential_parents_by_priority = self._prioritize_potential_parents(potential_parents)
 
@@ -129,7 +150,7 @@ class ZoomingPhaseParentSelector(ParentSelector):
 
         return parents
 
-    def _fetch_significantly_above_spontaneous_stimuli(self, lineage):
+    def fetch_significantly_above_spontaneous_stimuli(self, lineage):
         # Look at all stimuli above spontaneous firing rate
         # Perform a one-sample t-test to determine whether the firing rate is significantly different from the spontaneous firing rate.
         stimuli_above_significance = []
@@ -140,7 +161,7 @@ class ZoomingPhaseParentSelector(ParentSelector):
                 stimuli_above_significance.append(stimulus)
         return stimuli_above_significance
 
-    def _filter_out_already_zoomed(self, stimuli_above_significance):
+    def filter_out_already_zoomed(self, stimuli_above_significance):
         for stimulus in stimuli_above_significance:
             if self.zoom_set_handler.is_zoomed_already(stimulus):
                 stimuli_above_significance.remove(stimulus)
@@ -194,6 +215,17 @@ class ZoomingPhaseParentSelector(ParentSelector):
             parents.extend([parent] * num_to_add)
             num_stim_remaining -= num_to_add
         return parents
+
+
+class ZoomingPhaseMutationAssigner(MutationAssigner):
+    zoom_set_handler: ZoomSetHandler
+
+    def __init__(self, *, zoom_set_handler: ZoomSetHandler):
+        self.zoom_set_handler = zoom_set_handler
+
+    def assign_mutation(self, lineage: Lineage, parent: Stimulus) -> str:
+        stim_id = self.zoom_set_handler.get_next_stim_to_zoom(parent)
+        return f"Zooming_{stim_id}"
 
 
 class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
