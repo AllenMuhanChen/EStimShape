@@ -6,7 +6,8 @@ from clat.util.connection import Connection
 from scipy.stats import stats
 
 from src.pga.config.canopy_config import GeneticAlgorithmConfig
-from src.pga.ga_classes import Phase, MutationMagnitudeAssigner, Lineage, Stimulus, ParentSelector, MutationAssigner
+from src.pga.ga_classes import Phase, MutationMagnitudeAssigner, Lineage, Stimulus, ParentSelector, MutationAssigner, \
+    RegimeTransitioner
 from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
     LeafingPhaseMutationMagnitudeAssigner, LeafingPhaseTransitioner
 
@@ -73,6 +74,29 @@ class ZoomSetHandler(Protocol):
         n_comp = data_dict["AllenMStickData"]["analysisMStickSpec"]["mAxis"]["nComponent"]
         return int(n_comp)
 
+    def is_zoomed_already(self, stimulus: Stimulus) -> bool:
+        query = "SELECT data FROM StimSpec WHERE id=%s"
+        self.conn.execute(query, (stimulus.id,))
+        data = self.conn.fetch_one()
+        data_dict = xmltodict.parse(data)
+        rf_strategy = data_dict["AllenMStickData"]["rfStrategy"]
+        if rf_strategy == "PARTIALLY_INSIDE":
+            return True
+        elif rf_strategy == "COMPLETELY_INSIDE":
+            return False
+        else:
+            raise ValueError(f"Unknown RF strategy: {rf_strategy}")
+
+
+class ZoomingPhaseTransitioner(RegimeTransitioner):
+    zoom_set_handler: ZoomSetHandler
+
+    def should_transition(self, lineage):
+        pass
+
+    def get_transition_data(self, lineage):
+        return "Test"
+
 
 class ZoomingPhaseMutationAssigner(MutationAssigner):
     zoom_set_handler: ZoomSetHandler
@@ -96,6 +120,20 @@ class ZoomingPhaseParentSelector(ParentSelector):
         self.zoom_set_handler = zoom_set_handler
 
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
+        stimuli_above_significance = self._fetch_above_significance_stimuli(lineage)
+
+        self._filter_out_already_zoomed(stimuli_above_significance)
+
+        empty_sets, partial_sets = (
+            self._extract_empty_and_partial_sets(stimuli_above_significance))
+
+        parents_by_priority = self._combine_to_prioritized_list(empty_sets, partial_sets)
+
+        parents = self._sample_potential_parents(batch_size, parents_by_priority)
+
+        return parents
+
+    def _fetch_above_significance_stimuli(self, lineage):
         # Look at all stimuli above spontaneous firing rate
         # Perform a one-sample t-test to determine whether the firing rate is significantly different from the spontaneous firing rate.
         stimuli_above_significance = []
@@ -104,9 +142,20 @@ class ZoomingPhaseParentSelector(ParentSelector):
                                                 alternative="greater")
             if p_value < self.significance_level:
                 stimuli_above_significance.append(stimulus)
-        print([stimulus.response_rate for stimulus in stimuli_above_significance])
+        return stimuli_above_significance
 
-        # See if any have no zoom set, partial set, or full set
+    def _filter_out_already_zoomed(self, stimuli_above_significance):
+        for stimulus in stimuli_above_significance:
+            if self.zoom_set_handler.is_zoomed_already(stimulus):
+                stimuli_above_significance.remove(stimulus)
+
+
+    def _extract_empty_and_partial_sets(self, stimuli_above_significance):
+        """
+        Extracts separate lists of stimuli depending on whether they are empty or partial sets
+        empty: no components for this stim_id have been zoomed yet
+        partial: some components for this stim_id have been zoomed, but not all
+        """
         no_sets = []
         partial_sets = []
         for stimulus in stimuli_above_significance:
@@ -114,22 +163,23 @@ class ZoomingPhaseParentSelector(ParentSelector):
                 no_sets.append(stimulus)
             elif self.zoom_set_handler.is_partial_set(stimulus):
                 partial_sets.append(stimulus)
-        print(f"no sets: {[stimulus.response_rate for stimulus in no_sets]}")
-        print(f"partial sets: {[stimulus.response_rate for stimulus in partial_sets]}")
+        return no_sets, partial_sets
 
+    def _combine_to_prioritized_list(self, no_sets, partial_sets):
         # Priortize each set by response rate
         no_sets.sort(key=lambda stim: stim.response_rate, reverse=True)
         partial_sets.sort(key=lambda stim: stim.response_rate, reverse=True)
-
         # Prioritize partial sets and then no sets
         parents_by_priority: List[Stimulus] = []
         parents_by_priority.extend(partial_sets)
         parents_by_priority.extend(no_sets)
-        print(f"parents by priority: {[stimulus.response_rate for stimulus in parents_by_priority]}")
+        return parents_by_priority
 
-        # Generate actual list of Partial Stimuli.
+    def _sample_potential_parents(self, batch_size, parents_by_priority):
+        # Generate actual list of chosen parents.
         # Loop through the parents by priority, adding the number of stimuli needed to make a full set
         # Stop if we would add more than the batch size
+
         num_stim_remaining = batch_size
         parents = []
         while num_stim_remaining > 0:
@@ -142,9 +192,6 @@ class ZoomingPhaseParentSelector(ParentSelector):
                 num_to_add = num_stim_remaining
             parents.extend([parent] * num_to_add)
             num_stim_remaining -= num_to_add
-
-        print(f"parents: {[stimulus.response_rate for stimulus in parents]}")
-
         return parents
 
 
