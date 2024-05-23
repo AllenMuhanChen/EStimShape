@@ -91,3 +91,10 @@ def test__get_num_comps_in():
     num_comps = handler._get_num_comps_in(Stimulus(1715196706133280, "Test"))
     print(num_comps)
     assert num_comps == 2
+
+
+def test_get_next():
+    conn = Connection("allen_estimshape_ga_test_240508")
+    handler = ZoomSetHandler(conn=conn)
+    next_comp = handler.get_next_stim_to_zoom(Stimulus(1715196706133280, "Test"))
+    print(next_comp)

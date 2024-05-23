@@ -1,3 +1,4 @@
+import random
 from typing import List, Protocol
 
 import xmltodict
@@ -43,9 +44,26 @@ class ZoomSetHandler(Protocol):
         count = self.conn.fetch_one()
         return total_components_needed - count
 
-    def get_next_stim_to_zoom(self, parent) -> int:
-        # Placeholder for get_next_stim_to_zoom implementation
-        pass
+    def get_next_stim_to_zoom(self, parent: Stimulus) -> int:
+        # Find the remaining components left zoom
+        total_comps = self._get_num_comps_in(parent)
+        comp_ids = set(range(1, total_comps + 1))
+
+        query = "SELECT comp_id FROM ZoomingPhaseSets WHERE stim_id = %s"
+        self.conn.execute(query, (parent.id,))
+        existing_comps = {row[0] for row in self.conn.fetch_all()}
+        remaining_comps = list(comp_ids - existing_comps)
+
+        if not remaining_comps:
+            raise ValueError("No remaining components to choose from.")
+
+        # Choose a random component to zone and write that we've tested this in the database
+        chosen_comp_id = random.choice(remaining_comps)
+
+        insert_query = "INSERT INTO ZoomingPhaseSets (stim_id, comp_id) VALUES (%s, %s)"
+        self.conn.execute(insert_query, (parent.id, chosen_comp_id))
+
+        return chosen_comp_id
 
     def _get_num_comps_in(self, stimulus: Stimulus) -> int:
         query = "SELECT data FROM StimSpec WHERE id=%s"
@@ -54,6 +72,7 @@ class ZoomSetHandler(Protocol):
         data_dict = xmltodict.parse(data)
         n_comp = data_dict["AllenMStickData"]["analysisMStickSpec"]["mAxis"]["nComponent"]
         return int(n_comp)
+
 
 class ZoomingPhaseMutationAssigner(MutationAssigner):
     zoom_set_handler: ZoomSetHandler
