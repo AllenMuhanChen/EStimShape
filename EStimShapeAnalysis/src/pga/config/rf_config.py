@@ -120,20 +120,16 @@ class ZoomingPhaseParentSelector(ParentSelector):
         self.zoom_set_handler = zoom_set_handler
 
     def select_parents(self, lineage: Lineage, batch_size: int) -> list[Stimulus]:
-        stimuli_above_significance = self._fetch_above_significance_stimuli(lineage)
+        potential_parents = self._fetch_significantly_above_spontaneous_stimuli(lineage)
+        self._filter_out_already_zoomed(potential_parents)
 
-        self._filter_out_already_zoomed(stimuli_above_significance)
+        potential_parents_by_priority = self._prioritize_potential_parents(potential_parents)
 
-        empty_sets, partial_sets = (
-            self._extract_empty_and_partial_sets(stimuli_above_significance))
-
-        parents_by_priority = self._combine_to_prioritized_list(empty_sets, partial_sets)
-
-        parents = self._sample_potential_parents(batch_size, parents_by_priority)
+        parents = self._choose_from_potential_parents(batch_size, potential_parents_by_priority)
 
         return parents
 
-    def _fetch_above_significance_stimuli(self, lineage):
+    def _fetch_significantly_above_spontaneous_stimuli(self, lineage):
         # Look at all stimuli above spontaneous firing rate
         # Perform a one-sample t-test to determine whether the firing rate is significantly different from the spontaneous firing rate.
         stimuli_above_significance = []
@@ -149,6 +145,11 @@ class ZoomingPhaseParentSelector(ParentSelector):
             if self.zoom_set_handler.is_zoomed_already(stimulus):
                 stimuli_above_significance.remove(stimulus)
 
+    def _prioritize_potential_parents(self, potential_parents):
+        empty_sets, partial_sets = (
+            self._extract_empty_and_partial_sets(potential_parents))
+        parents_by_priority = self._combine_to_prioritized_list(empty_sets, partial_sets)
+        return parents_by_priority
 
     def _extract_empty_and_partial_sets(self, stimuli_above_significance):
         """
@@ -175,7 +176,7 @@ class ZoomingPhaseParentSelector(ParentSelector):
         parents_by_priority.extend(no_sets)
         return parents_by_priority
 
-    def _sample_potential_parents(self, batch_size, parents_by_priority):
+    def _choose_from_potential_parents(self, batch_size, parents_by_priority):
         # Generate actual list of chosen parents.
         # Loop through the parents by priority, adding the number of stimuli needed to make a full set
         # Stop if we would add more than the batch size
