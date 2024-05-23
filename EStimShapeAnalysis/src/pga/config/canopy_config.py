@@ -9,7 +9,8 @@ from src.pga.lineage_selection import ClassicLineageDistributor
 from src.pga.multi_ga_db_util import MultiGaDbUtil
 from src.pga.regime_three import LeafingPhaseParentSelector, LeafingPhaseMutationAssigner, \
     LeafingPhaseMutationMagnitudeAssigner, LeafingPhaseTransitioner, HighEndSigmoid
-from src.pga.regime_two import CanopyPhaseParentSelector, CanopyPhaseMutationAssigner, CanopyPhaseMutationMagnitudeAssigner, \
+from src.pga.regime_two import CanopyPhaseParentSelector, CanopyPhaseMutationAssigner, \
+    CanopyPhaseMutationMagnitudeAssigner, \
     CanopyPhaseTransitioner
 from src.pga.ga_classes import Phase, ParentSelector, MutationAssigner, MutationMagnitudeAssigner, RegimeTransitioner
 from src.pga.genetic_algorithm import GeneticAlgorithm
@@ -21,46 +22,65 @@ from src.pga.regime_zero import SeedingPhaseParentSelector, SeedingPhaseMutation
 from clat.util.connection import Connection
 
 
+def singleton(method):
+    """Decorator for singleton methods in a class."""
+    attr_name = f"_{method.__name__}_instance"
+
+    def wrapper(self, *args, **kwargs):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, method(self, *args, **kwargs))
+        return getattr(self, attr_name)
+
+    return wrapper
+
+
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
     num_trials_per_generation = 40
-    connection: Connection
+
     def __init__(self, *, database: str, base_intan_path: str):
         self.database = database
         self.base_intan_path = base_intan_path
-        self.var_fetcher = GAVarParameterFetcher(self.get_connection())
+        self.var_fetcher = GAVarParameterFetcher(self.connection())
         self.db_util = self.get_db_util()
         self.response_processor = self.make_response_processor()
         self.regimes = self.make_phases()
         self.num_catch_trials = 2
 
     def make_genetic_algorithm(self) -> GeneticAlgorithm:
-        ga = GeneticAlgorithm(name=self.ga_name,
-                              regimes=self.regimes,
-                              db_util=self.db_util,
-                              trials_per_generation=self.num_trials_per_generation,
-                              lineage_distributor=self.make_lineage_distributor(),
-                              response_parser=self.make_response_parser(),
-                              response_processor=self.response_processor,
-                              num_catch_trials=self.num_catch_trials)
+        ga = GeneticAlgorithm(
+            name=self.ga_name,
+            regimes=self.regimes,
+            db_util=self.db_util,
+            trials_per_generation=self.num_trials_per_generation,
+            lineage_distributor=self.make_lineage_distributor(),
+            response_parser=self.make_response_parser(),
+            response_processor=self.response_processor,
+            num_catch_trials=self.num_catch_trials
+        )
         return ga
 
     def make_phases(self):
-        return [self.seeding_phase(),
-                self.growing_phase(),
-                self.canopy_phase(),
-                self.leafing_phase()]
+        return [
+            self.seeding_phase(),
+            self.growing_phase(),
+            self.canopy_phase(),
+            self.leafing_phase()
+        ]
 
     def seeding_phase(self):
-        return Phase(self.seeding_phase_parent_selector(),
-                     self.seeding_phase_mutation_assigner(),
-                     self.seeding_phase_mutation_magnitude_assigner(),
-                     self.seeding_phase_transitioner())
+        return Phase(
+            self.seeding_phase_parent_selector(),
+            self.seeding_phase_mutation_assigner(),
+            self.seeding_phase_mutation_magnitude_assigner(),
+            self.seeding_phase_transitioner()
+        )
 
     def seeding_phase_transitioner(self):
         return SeedingPhaseTransitioner(
             self.spontaneous_firing_rate(),
-            self.seeding_phase_significance_threshold())
+            self.seeding_phase_significance_threshold()
+        )
 
     def seeding_phase_mutation_magnitude_assigner(self):
         return SeedingPhaseMutationMagnitudeAssigner()
@@ -75,7 +95,6 @@ class GeneticAlgorithmConfig:
         return self.var_fetcher.get("regime_zero_transition_significance_threshold", dtype=float)
 
     def spontaneous_firing_rate(self):
-        # TODO: analyze real data to get this number
         return self.var_fetcher.get("regime_zero_transition_spontaneous_firing_rate", dtype=float)
 
     def growing_phase(self):
@@ -83,12 +102,14 @@ class GeneticAlgorithmConfig:
             GrowingPhaseParentSelector(
                 self.get_all_stimuli_func(),
                 self.growing_phase_bin_proportions(),
-                self.growing_phase_bin_sample_sizes()),
+                self.growing_phase_bin_sample_sizes()
+            ),
             self.growing_phase_mutation_assigner(),
             GrowingPhaseMutationMagnitudeAssigner(),
             GrowingPhaseTransitioner(
                 self.convergence_threshold()
-            ))
+            )
+        )
 
     def growing_phase_mutation_assigner(self):
         return GrowingPhaseMutationAssigner()
@@ -103,25 +124,28 @@ class GeneticAlgorithmConfig:
         return self.var_fetcher.get("regime_one_transition_convergence_threshold", dtype=float)
 
     def get_all_stimuli_func(self):
-        return GetAllStimuliFunc(db_util=self.db_util,
-                                 ga_name=self.ga_name,
-                                 response_processor=self.response_processor)
+        return GetAllStimuliFunc(db_util=self.db_util, ga_name=self.ga_name, response_processor=self.response_processor)
 
     def make_response_processor(self) -> ResponseProcessor:
-        return ResponseProcessor(db_util=self.db_util,
-                                 repetition_combination_strategy=mean,
-                                 cluster_combination_strategy=sum)
-
-    # should be (n-1)*pair_threshold_high where n is max number of components
+        return ResponseProcessor(
+            db_util=self.db_util,
+            repetition_combination_strategy=mean,
+            cluster_combination_strategy=sum
+        )
 
     def canopy_phase(self):
         return Phase(
             CanopyPhaseParentSelector(
                 self.percentage_of_max_threshold(),
-                self.num_to_select()),
+                self.num_to_select()
+            ),
             CanopyPhaseMutationAssigner(),
             CanopyPhaseMutationMagnitudeAssigner(),
-            CanopyPhaseTransitioner(self.pair_threshold_high(), self.pair_threshold_low()))
+            CanopyPhaseTransitioner(
+                self.pair_threshold_high(),
+                self.pair_threshold_low()
+            )
+        )
 
     def percentage_of_max_threshold(self):
         return self.var_fetcher.get("regime_two_selection_percentage_of_max_threshold", dtype=float)
@@ -139,11 +163,15 @@ class GeneticAlgorithmConfig:
         return Phase(
             LeafingPhaseParentSelector(
                 self.weight_func(),
-                self.sampling_smoothing_bandwidth()),
+                self.sampling_smoothing_bandwidth()
+            ),
             self.leafing_phase_mutation_assigner(),
             LeafingPhaseMutationMagnitudeAssigner(),
-            LeafingPhaseTransitioner(self.get_under_sampling_threshold(),
-                                     bandwidth=self.sampling_smoothing_bandwidth()))
+            LeafingPhaseTransitioner(
+                self.get_under_sampling_threshold(),
+                bandwidth=self.sampling_smoothing_bandwidth()
+            )
+        )
 
     def leafing_phase_mutation_assigner(self):
         return LeafingPhaseMutationAssigner()
@@ -151,7 +179,8 @@ class GeneticAlgorithmConfig:
     def weight_func(self):
         return HighEndSigmoid(
             steepness=self.var_fetcher.get("regime_three_selection_weight_func_sigmoid_steepness", dtype=float),
-            offset=self.var_fetcher.get("regime_three_selection_weight_func_sigmoid_offset", dtype=float))
+            offset=self.var_fetcher.get("regime_three_selection_weight_func_sigmoid_offset", dtype=float)
+        )
 
     def sampling_smoothing_bandwidth(self):
         return self.var_fetcher.get("regime_three_selection_sampling_smoothing_bandwidth", dtype=float)
@@ -160,8 +189,7 @@ class GeneticAlgorithmConfig:
         return self.var_fetcher.get("regime_three_transition_under_sampling_threshold", dtype=float)
 
     def make_response_parser(self):
-        return ResponseParser(self.base_intan_path,
-                              self.db_util)
+        return ResponseParser(self.base_intan_path, self.db_util)
 
     def make_lineage_distributor(self):
         return ClassicLineageDistributor(
@@ -169,7 +197,8 @@ class GeneticAlgorithmConfig:
             max_lineages_to_build=self.max_lineages_to_build(),
             number_of_new_lineages_per_generation=self.num_new_lineages_per_generation(),
             regimes=self.regimes,
-            max_lineages_to_explore=self.max_lineages_to_explore())
+            max_lineages_to_explore=self.max_lineages_to_explore()
+        )
 
     def max_lineages_to_explore(self):
         return self.var_fetcher.get("lineage_distribution_max_lineages_to_explore", dtype=int)
@@ -180,16 +209,13 @@ class GeneticAlgorithmConfig:
     def num_new_lineages_per_generation(self):
         return self.var_fetcher.get("lineage_distribution_num_new_lineages_per_generation", dtype=int)
 
-    def get_connection(self):
-        if self.connection is None:
-            self.connection = Connection(self.database)
-        return self.connection
+    @singleton
+    def connection(self):
+        return Connection(self.database)
 
+    @singleton
     def get_db_util(self):
-        if self.db_util is None:
-            self.db_util = MultiGaDbUtil(self.get_connection())
-        return self.db_util
-
+        return MultiGaDbUtil(self.connection())
 
 
 class GAVarParameterFetcher:
@@ -197,7 +223,6 @@ class GAVarParameterFetcher:
         self.connection = connection
 
     def get_most_recent_experiment_and_gen_id(self, var_name: str):
-        # Query to find the most recent experiment_id and gen_id for a specific var_name
         query = """
         SELECT experiment_id, gen_id
         FROM GAVar

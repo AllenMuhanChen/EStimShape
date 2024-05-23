@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.pga.config.canopy_config import GeneticAlgorithmConfig
+from src.pga.config.canopy_config import GeneticAlgorithmConfig, singleton
 from src.pga.ga_classes import Phase
 from src.pga.zooming_phase import ZoomingPhaseParentSelector, ZoomingPhaseMutationMagnitudeAssigner, ZoomSetHandler, \
     ZoomingPhaseMutationAssigner, ZoomingPhaseTransitioner
@@ -30,10 +30,10 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
             significance_level=self.seeding_phase_significance_threshold(),
             zoom_set_handler=self.get_zoom_set_handler())
 
+    @singleton
     def get_zoom_set_handler(self):
-        if self.zoom_set_handler is None:
-            self.zoom_set_handler = ZoomSetHandler(conn=self.get_connection())
-        return self.zoom_set_handler
+        return ZoomSetHandler(conn=self.connection())
+
 
     def zooming_phase_mutation_assigner(self):
         return ZoomingPhaseMutationAssigner(zoom_set_handler=self.get_zoom_set_handler())
