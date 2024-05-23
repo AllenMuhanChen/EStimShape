@@ -2,7 +2,7 @@ import random
 import unittest
 from typing import List
 
-from src.pga.config.rf_config import ZoomingPhaseParentSelector, ZoomSetHandler, ZoomingPhaseMutationAssigner
+from src.pga.zooming_phase import ZoomSetHandler, ZoomingPhaseParentSelector, ZoomingPhaseMutationAssigner
 from src.pga.ga_classes import Stimulus, LineageFactory
 
 
