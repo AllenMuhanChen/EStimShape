@@ -28,19 +28,19 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
         return ZoomingPhaseParentSelector(
             spontaneous_firing_rate=self.spontaneous_firing_rate(),
             significance_level=self.seeding_phase_significance_threshold(),
-            zoom_set_handler=self.make_zoom_set_handler())
+            zoom_set_handler=self.get_zoom_set_handler())
 
-    def make_zoom_set_handler(self):
-        if not hasattr(self, "zoom_set_handler"):
-            self.zoom_set_handler = ZoomSetHandler(conn=self.connection)
+    def get_zoom_set_handler(self):
+        if self.zoom_set_handler is None:
+            self.zoom_set_handler = ZoomSetHandler(conn=self.get_connection())
         return self.zoom_set_handler
 
     def zooming_phase_mutation_assigner(self):
-        return ZoomingPhaseMutationAssigner(zoom_set_handler=self.make_zoom_set_handler())
+        return ZoomingPhaseMutationAssigner(zoom_set_handler=self.get_zoom_set_handler())
 
     def zooming_phase_transitioner(self):
         return ZoomingPhaseTransitioner(
-            zoom_set_handler=self.make_zoom_set_handler(),
+            zoom_set_handler=self.get_zoom_set_handler(),
             percentage_full_set_threshold=self.zooming_phase_complete_set_percent_threshold(),
             parent_selector=self.zooming_phase_parent_selector())
 

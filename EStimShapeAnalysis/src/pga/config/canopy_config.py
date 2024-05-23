@@ -24,13 +24,12 @@ from clat.util.connection import Connection
 class GeneticAlgorithmConfig:
     ga_name = "New3D"
     num_trials_per_generation = 40
-
+    connection: Connection
     def __init__(self, *, database: str, base_intan_path: str):
         self.database = database
         self.base_intan_path = base_intan_path
-        self.connection = self.make_connection()
-        self.var_fetcher = GAVarParameterFetcher(self.connection)
-        self.db_util = self.make_db_util()
+        self.var_fetcher = GAVarParameterFetcher(self.get_connection())
+        self.db_util = self.get_db_util()
         self.response_processor = self.make_response_processor()
         self.regimes = self.make_phases()
         self.num_catch_trials = 2
@@ -181,11 +180,16 @@ class GeneticAlgorithmConfig:
     def num_new_lineages_per_generation(self):
         return self.var_fetcher.get("lineage_distribution_num_new_lineages_per_generation", dtype=int)
 
-    def make_connection(self):
-        return Connection(self.database)
+    def get_connection(self):
+        if self.connection is None:
+            self.connection = Connection(self.database)
+        return self.connection
 
-    def make_db_util(self):
-        return MultiGaDbUtil(self.connection)
+    def get_db_util(self):
+        if self.db_util is None:
+            self.db_util = MultiGaDbUtil(self.get_connection())
+        return self.db_util
+
 
 
 class GAVarParameterFetcher:

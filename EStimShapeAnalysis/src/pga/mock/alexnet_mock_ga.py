@@ -62,7 +62,7 @@ class FullAutoAlexNetMockGeneticAlgorithmConfig(TwoDThreeDGAConfig):
     def seeding_phase_transitioner(self):
         return AlexNetSeedingPhaseTransitioner(0.0)
 
-    def make_db_util(self):
+    def get_db_util(self):
         return AlexNetMultiGaDbUtil(self.connection)
 
 

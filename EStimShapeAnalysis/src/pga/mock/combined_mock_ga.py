@@ -47,7 +47,7 @@ class FakeNeuronMockGeneticAlgorithmConfig(RFGeneticAlgorithmConfig):
     def make_response_parser(self):
         return FakeNeuronMockResponseParser(db_util=self.db_util)
 
-    def make_db_util(self) -> MultiGaDbUtil:
+    def get_db_util(self) -> MultiGaDbUtil:
         return FakeNeuronMockMultiGaDbUtil(self.connection)
 
 

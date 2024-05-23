@@ -56,7 +56,7 @@ class MockGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     def make_response_parser(self):
         return MockResponseParser(db_util=self.db_util)
 
-    def make_db_util(self) -> MultiGaDbUtil:
+    def get_db_util(self) -> MultiGaDbUtil:
         return MockMultiGaDbUtil(self.connection)
 
 class MockMultiGaDbUtil(MultiGaDbUtil):
