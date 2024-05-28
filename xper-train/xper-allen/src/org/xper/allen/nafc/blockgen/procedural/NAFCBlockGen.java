@@ -24,7 +24,7 @@ public class NAFCBlockGen extends AbstractMStickPngTrialGenerator<Stim> {
 
     List<List<NAFCStim>> stimBlocks = new LinkedList<List<NAFCStim>>();
     Map<List<NAFCStim>, GenParameters> paramsForBlocks = new LinkedHashMap<>();
-    Map<List<NAFCStim>,GenType> genTypesForBlocks = new LinkedHashMap<>();
+    Map<List<NAFCStim>, GenType> genTypesForBlocks = new LinkedHashMap<>();
 
     @Override
     protected void preWriteTrials() {
