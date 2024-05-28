@@ -3,10 +3,12 @@ package org.xper.allen.app.procedural;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
+import org.xper.allen.pga.ReceptiveFieldSource;
 
 import java.awt.*;
 import java.util.LinkedHashMap;
@@ -19,6 +21,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     @Dependency
     String gaSpecPath;
 
+    @Dependency
+    ReceptiveFieldSource rfSource;
 
     @Override
     protected void addTrials() {
@@ -117,5 +121,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             }
         });
         return eStimTrialParams;
+    }
+
+    public ReceptiveField getRF() {
+        return rfSource.getReceptiveField();
     }
 }

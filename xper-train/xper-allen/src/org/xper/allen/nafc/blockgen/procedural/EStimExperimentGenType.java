@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.Dependency;
+import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 
@@ -50,7 +51,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + parameters.stimId + "_spec.xml");
 
             //using estim values set on the IntanGUI
-            EStimProceduralStim stim = new EStimProceduralStim(generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
+            EStimProceduralStim stim = new EStimProceduralStim((EStimExperimentTrialGenerator) generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
             newBlock.add(stim);
         }
 
