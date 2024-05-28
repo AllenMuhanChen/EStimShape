@@ -2,6 +2,7 @@ package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
@@ -18,7 +19,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     @Override
     protected GrowingMatchStick createMStick() {
         //Generate MStick
-        GrowingMatchStick parentMStick = initializeFromFile();
+        GrowingMatchStick parentMStick = initializeFromFile(generator.getReceptiveField(), textureType);
         parentMStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
         parentMStick.genMatchStickFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
@@ -35,8 +36,8 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
         return childMStick;
     }
 
-    private GrowingMatchStick initializeFromFile() {
-        return new GrowingMatchStick(generator.getReceptiveField(),
+    public static GrowingMatchStick initializeFromFile(ReceptiveField receptiveField, String textureType) {
+        return new GrowingMatchStick(receptiveField,
                 1 / 3.0,
                 null,
                 textureType);
