@@ -18,7 +18,10 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     @Override
     protected GrowingMatchStick createMStick() {
         //Generate MStick
-        GrowingMatchStick parentMStick = new GrowingMatchStick(1/3.0);
+        GrowingMatchStick parentMStick = new GrowingMatchStick(generator.getReceptiveField(),
+                1/3.0,
+                null,
+                textureType);
         parentMStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
         parentMStick.genMatchStickFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");

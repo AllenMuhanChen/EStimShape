@@ -235,6 +235,9 @@ public class GAMatchStick extends MorphedMatchStick {
         getFinalShiftinDepth().y = inSpec.getmAxis().getFinalShiftInDepth()[1];
         getFinalShiftinDepth().z = inSpec.getmAxis().getFinalShiftInDepth()[2];
 
+        //AC added stuff
+        setRfStrategy(inSpec.getRfStrategy());
+
         // 6. calculate the smooth vect and fac info
 
         // 2008, Nov, we should not do a rotation again here, since the original ShapeSpec info should already be rotated

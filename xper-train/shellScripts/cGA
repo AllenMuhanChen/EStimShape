@@ -15,7 +15,7 @@ UPDATE SystemVar SET val=1000 WHERE name='xper_inter_trial_interval';
 UPDATE SystemVar SET val=0 WHERE name='xper_streak_to_start_punishment';
 UPDATE SystemVar SET val=0 WHERE name='xper_punishment_delay_length';
 UPDATE SystemVar SET val=true WHERE name='xper_fixation_on_with_stimuli';
-UPDATE SystemVar SET val=20 WHERE name='xper_max_image_dimension_degrees';
+UPDATE SystemVar SET val=30 WHERE name='xper_max_image_dimension_degrees';
 EOF
 
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_GA $DIST/xper.properties
