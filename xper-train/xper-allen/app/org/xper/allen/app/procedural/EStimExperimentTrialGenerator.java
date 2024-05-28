@@ -143,4 +143,20 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     public ReceptiveField getRF() {
         return rfSource.getReceptiveField();
     }
+
+    public String getGaSpecPath() {
+        return gaSpecPath;
+    }
+
+    public void setGaSpecPath(String gaSpecPath) {
+        this.gaSpecPath = gaSpecPath;
+    }
+
+    public ReceptiveFieldSource getRfSource() {
+        return rfSource;
+    }
+
+    public void setRfSource(ReceptiveFieldSource rfSource) {
+        this.rfSource = rfSource;
+    }
 }
