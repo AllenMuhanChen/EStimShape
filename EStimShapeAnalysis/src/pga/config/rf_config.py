@@ -9,6 +9,7 @@ from src.pga.zooming_phase import ZoomingPhaseParentSelector, ZoomingPhaseMutati
 class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     database = "allen_estimshape_ga_dev_240207"
     zoom_set_handler: ZoomSetHandler
+
     def make_phases(self):
         return [self.seeding_phase(),
                 self.zooming_phase(),
@@ -34,7 +35,6 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
     def get_zoom_set_handler(self):
         return ZoomSetHandler(conn=self.connection())
 
-
     def zooming_phase_mutation_assigner(self):
         return ZoomingPhaseMutationAssigner(zoom_set_handler=self.get_zoom_set_handler())
 
@@ -46,4 +46,3 @@ class RFGeneticAlgorithmConfig(GeneticAlgorithmConfig):
 
     def zooming_phase_complete_set_percent_threshold(self):
         return self.var_fetcher.get("zooming_phase_percentage_full_set_threshold", dtype=float)
-

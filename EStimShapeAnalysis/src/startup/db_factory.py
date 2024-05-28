@@ -9,12 +9,12 @@ PASS = 'up2nite'
 
 
 def main():
-    ga_database = "allen_estimshape_ga_test_240508"
-    nafc_database = "allen_estimshape_test_240508"
-    isogabor_database = "allen_isogabor_test_240508"
+    ga_database = "allen_estimshape_ga_test_240528"
+    nafc_database = "allen_estimshape_test_240528"
+    isogabor_database = "allen_isogabor_test_240528"
 
     # GA Database
-    create_db_from_template('allen_estimshape_ga_dev_240207',
+    create_db_from_template('allen_estimshape_ga_test_240508',
                             ga_database,
                             [
                                 "SystemVar",
@@ -22,7 +22,7 @@ def main():
                                 "GAVar"])
 
     # NAFC Database
-    create_db_from_template("allen_estimshape_train_231211",
+    create_db_from_template("allen_estimshape_test_240508",
                             nafc_database,
                             [
                                 "SystemVar",

@@ -13,7 +13,7 @@ def main():
 
 
 def calculate_spontaneous_firing():
-    conn = config.ga_config.connection
+    conn = config.ga_config.connection()
     task_id_collector = TaskIdCollector(conn)
     task_ids = task_id_collector.collect_task_ids()
 

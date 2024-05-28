@@ -83,7 +83,7 @@ class DbDataExporter(DataExporter):
 
 if __name__ == '__main__':
     app = get_qapplication_instance()
-    window = ClusterApplicationWindow(DbDataLoader(config.ga_config.connection),
+    window = ClusterApplicationWindow(DbDataLoader(config.ga_config.connection()),
                                       DbDataExporter(config.ga_config.db_util),
                                       [PCAReducer(),
                                        MDSReducer(),

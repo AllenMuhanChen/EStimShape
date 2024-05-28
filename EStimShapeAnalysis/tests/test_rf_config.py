@@ -74,7 +74,7 @@ class MockZoomSetHandler(ZoomSetHandler):
         elif self.is_empty_set(stimulus):
             return 2
 
-    def get_next_stim_to_zoom(self, parent):
+    def get_next_comp_to_zoom(self, parent):
         current_zoomed: List[int] = self.comp_map[parent.id]
         for comp in self.all_comps:
             if comp not in current_zoomed:
@@ -96,5 +96,5 @@ def test__get_num_comps_in():
 def test_get_next():
     conn = Connection("allen_estimshape_ga_test_240508")
     handler = ZoomSetHandler(conn=conn)
-    next_comp = handler.get_next_stim_to_zoom(Stimulus(1715196706133280, "Test"))
+    next_comp = handler.get_next_comp_to_zoom(Stimulus(1715196706133280, "Test"))
     print(next_comp)

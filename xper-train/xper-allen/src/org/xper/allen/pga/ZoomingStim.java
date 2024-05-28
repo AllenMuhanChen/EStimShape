@@ -1,19 +1,16 @@
 package org.xper.allen.pga;
 
 import org.xper.allen.drawing.composition.AllenMStickData;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
 
-import java.util.Collections;
-
-public class PartialStim extends GAStim<GAMatchStick, AllenMStickData> {
+public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
 
     private final Integer compIdInRF;
 
-    public PartialStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, Coordinates2D coords, double magnitude, String textureType, RGBColor color) {
+    public ZoomingStim(Long stimId, FromDbGABlockGenerator generator, Long parentId, Integer compIdInRF, Coordinates2D coords, double magnitude, String textureType, RGBColor color) {
         super(stimId, generator, parentId, coords, textureType, color,
                 RFStrategy.PARTIALLY_INSIDE);
         this.compIdInRF = compIdInRF;

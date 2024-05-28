@@ -3,7 +3,6 @@ package org.xper.allen.pga;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.drawing.Coordinates2D;
@@ -45,7 +44,7 @@ public class GAStimTest {
     }
 
     @Test
-    public void test_partial_stim_from_regime_zero(){
+    public void test_zooming_stim_from_regime_zero(){
         SeedingStim seedingStim = new SeedingStim(1L,
                 generator,
                 new Coordinates2D(0,0),
@@ -59,7 +58,7 @@ public class GAStimTest {
         testMatchStickDrawer.saveSpec(mStick, generator.getGeneratorSpecPath() + "/" + Long.toString(1L));
         ThreadUtil.sleep(1000);
 
-        PartialStim partialStim = new PartialStim(2L,
+        ZoomingStim zoomingStim = new ZoomingStim(2L,
                 generator,
                 1L,
                 1,
@@ -68,13 +67,13 @@ public class GAStimTest {
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0));
 
-        GAMatchStick mStick1 = partialStim.createMStick();
+        GAMatchStick mStick1 = zoomingStim.createMStick();
         testMatchStickDrawer.clear();
         testMatchStickDrawer.drawMStick(mStick1);
         testMatchStickDrawer.drawCompMap(mStick1);
         ThreadUtil.sleep(1000);
 
-        PartialStim partialStim2  = new PartialStim(3L,
+        ZoomingStim zoomingStim2 = new ZoomingStim(3L,
                 generator,
                 1L,
                 2,
@@ -83,7 +82,7 @@ public class GAStimTest {
                 "SHADE",
                 new RGBColor(1.0, 1.0, 1.0));
 
-        GAMatchStick mStick2 = partialStim2.createMStick();
+        GAMatchStick mStick2 = zoomingStim2.createMStick();
         testMatchStickDrawer.drawMStick(mStick2);
         testMatchStickDrawer.drawCompMap(mStick2);
         ThreadUtil.sleep(1000);

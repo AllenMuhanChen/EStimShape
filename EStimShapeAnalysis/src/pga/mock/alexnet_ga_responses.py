@@ -19,7 +19,7 @@ def main():
     run_training()
 
 def run_training():
-    conn = config.ga_config.connection
+    conn = config.ga_config.connection()
 
     channel_numbers_top_to_bottom = [15, 16, 1, 30, 8, 23, 0, 31, 14, 17, 2, 29, 13, 18, 7, 24, 3, 28, 12, 19, 4, 27, 9,
                                      22, 11, 20, 5, 26, 10, 21, 6, 25]
@@ -27,7 +27,7 @@ def run_training():
 
     units = [70, 7, 12, 30, 36, 22, 28, 10]
     loc_xs = [6, 7]
-    loc_ys = [6, 7]
+    loc_ys = [0, 1]
 
 
 
@@ -37,7 +37,8 @@ def run_training():
     fields.append(StimSpecIdField(conn=conn, name="StimId"))
     fields.append(StimSpecField(conn=conn, name="StimSpec"))
     fields.append(StimPathField(conn=conn, name="StimPath"))
-    data = fields.to_data(collect_task_ids(conn))
+    ids = collect_task_ids(conn)
+    data = fields.to_data(ids)
     existing_task_ids = fetch_existing_task_ids(conn)
     data = data[~data['TaskId'].isin(existing_task_ids)]  # Filter out existing task IDs
     data = data[data["StimPath"] != "None"]

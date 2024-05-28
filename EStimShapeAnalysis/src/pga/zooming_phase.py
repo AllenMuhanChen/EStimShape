@@ -19,32 +19,32 @@ class ZoomSetHandler(Protocol):
 
     def is_empty_set(self, stimulus: Stimulus) -> bool:
         query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
-        self.conn.execute(query, (stimulus.stim_id,))
+        self.conn.execute(query, (stimulus.id,))
         count = self.conn.fetch_one()
         return count == 0
 
     def is_partial_set(self, stimulus: Stimulus) -> bool:
         total_components_needed = self._get_num_comps_in(stimulus)
         query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
-        self.conn.execute(query, (stimulus.stim_id,))
+        self.conn.execute(query, (stimulus.id,))
         count = self.conn.fetch_one()
         return 0 < count < total_components_needed
 
     def is_full_set(self, stimulus: Stimulus) -> bool:
         total_components_needed = self._get_num_comps_in(stimulus)
         query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
-        self.conn.execute(query, (stimulus.stim_id,))
+        self.conn.execute(query, (stimulus.id,))
         count = self.conn.fetch_one()
         return count == total_components_needed
 
     def get_how_many_stimuli_needed_to_make_full_set(self, stimulus: Stimulus) -> int:
         total_components_needed = self._get_num_comps_in(stimulus)
         query = "SELECT COUNT(*) FROM ZoomingPhaseSets WHERE stim_id = %s"
-        self.conn.execute(query, (stimulus.stim_id,))
+        self.conn.execute(query, (stimulus.id,))
         count = self.conn.fetch_one()
         return total_components_needed - count
 
-    def get_next_stim_to_zoom(self, parent: Stimulus) -> int:
+    def get_next_comp_to_zoom(self, parent: Stimulus) -> int:
         # Find the remaining components left zoom
         total_comps = self._get_num_comps_in(parent)
         comp_ids = set(range(1, total_comps + 1))
@@ -78,7 +78,7 @@ class ZoomSetHandler(Protocol):
         self.conn.execute(query, (stimulus.id,))
         data = self.conn.fetch_one()
         data_dict = xmltodict.parse(data)
-        rf_strategy = data_dict["AllenMStickData"]["rfStrategy"]
+        rf_strategy = data_dict["AllenMStickData"]['analysisMStickSpec']['rfStrategy']
         if rf_strategy == "PARTIALLY_INSIDE":
             return True
         elif rf_strategy == "COMPLETELY_INSIDE":
@@ -221,8 +221,8 @@ class ZoomingPhaseMutationAssigner(MutationAssigner):
         self.zoom_set_handler = zoom_set_handler
 
     def assign_mutation(self, lineage: Lineage, parent: Stimulus) -> str:
-        stim_id = self.zoom_set_handler.get_next_stim_to_zoom(parent)
-        return f"Zooming_{stim_id}"
+        comp_id = self.zoom_set_handler.get_next_comp_to_zoom(parent)
+        return f"Zooming_{comp_id}"
 
 
 class ZoomingPhaseMutationMagnitudeAssigner(MutationMagnitudeAssigner):

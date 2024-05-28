@@ -16,6 +16,8 @@ import org.xper.util.ThreadUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim> {
     @Dependency
@@ -55,7 +57,8 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
 
     @Override
     protected void addTrials() {
-        Coordinates2D initialCoords = new Coordinates2D(0, 0);
+        Coordinates2D pngCoordinates = new Coordinates2D(0, 0); //we want this (0,0) by convention and change location of drawn objects within the image itself
+
 
         // Read database to find stim_ids from StimGaInfo that don't have a StimSpec
         Long experimentId = dbUtil.readCurrentExperimentId(gaName);
@@ -72,7 +75,7 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
             double magnitude = stimInfo.getMutationMagnitude();
             Long parentId = stimInfo.getParentId();
 
-
+            //For the cases where the type is an ENUM type
             try {
                 StimType stimType;
                 stimType = StimType.valueOf(stimInfo.getStimType());
@@ -82,29 +85,29 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                 // Create a new Stim object with the stim_type and magnitude (if applicable)
                 Stim stim;
                 if(stimType.equals(StimType.REGIME_ZERO)){
-                    stim = new SeedingStim(stimId, this, initialCoords, "SHADE", color, rfStrategy);
+                    stim = new SeedingStim(stimId, this, pngCoordinates, "SHADE", color, rfStrategy);
                 }
                 else if (stimType.equals(StimType.REGIME_ZERO_2D))
                 {
-                    stim = new SeedingStim(stimId, this, initialCoords, "2D", color, rfStrategy);
+                    stim = new SeedingStim(stimId, this, pngCoordinates, "2D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE)){
-                    stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
+                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "SHADE", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_ONE_2D)){
-                    stim = new GrowingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
+                    stim = new GrowingStim(stimId, this, parentId, pngCoordinates, magnitude, "2D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_TWO)){
-                    stim = new PruningStim(stimId, this, parentId, initialCoords, "SHADE", color, rfStrategy);
+                    stim = new PruningStim(stimId, this, parentId, pngCoordinates, "SHADE", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_TWO_2D)){
-                    stim = new PruningStim(stimId, this, parentId, initialCoords, "2D", color, rfStrategy);
+                    stim = new PruningStim(stimId, this, parentId, pngCoordinates, "2D", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_THREE)){
-                    stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "SHADE", color, rfStrategy);
+                    stim = new LeafingStim(stimId, this, parentId, pngCoordinates, magnitude, "SHADE", color, rfStrategy);
                 }
                 else if(stimType.equals(StimType.REGIME_THREE_2D)){
-                    stim = new LeafingStim(stimId, this, parentId, initialCoords, magnitude, "2D", color, rfStrategy);
+                    stim = new LeafingStim(stimId, this, parentId, pngCoordinates, magnitude, "2D", color, rfStrategy);
                 }
                 else if (stimType.equals(StimType.CATCH)){
                     stim = new CatchStim(stimId, this);
@@ -113,10 +116,22 @@ public class FromDbGABlockGenerator extends AbstractMStickPngTrialGenerator<Stim
                     throw new RuntimeException("Stim Type not recognized");
                 }
                 stims.add(stim);
+            //Non ENUM types
             } catch (IllegalArgumentException e) {
-                System.err.println("StimType not recognized: " + stimInfo.getStimType());
-                //TODO: IMPLEMENT PARSING OF PARTIAL_X
-                // stim = new PartialStim(stimId, this, parentId, compIdInRF, initialCoords, magnitude, "SHADE", color);
+                String stimTypeString = stimInfo.getStimType();
+                System.err.println("StimType not recognized: " + stimTypeString);
+
+                // Check for "Zooming_x" pattern
+                Pattern pattern = Pattern.compile("Zooming_(\\d+)");
+                Matcher matcher = pattern.matcher(stimTypeString);
+                if (matcher.matches()) {
+                    int zoomingValue = Integer.parseInt(matcher.group(1));
+                    System.out.println("Detected Zooming_x with x = " + zoomingValue);
+
+                    stims.add(new ZoomingStim(stimId, this, parentId, zoomingValue, pngCoordinates, magnitude, "SHADE", color));
+                } else {
+                   throw new RuntimeException("Stim Type not recognized");
+                }
             }
         }
 
