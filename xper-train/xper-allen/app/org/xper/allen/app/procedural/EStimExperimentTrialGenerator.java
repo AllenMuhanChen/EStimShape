@@ -1,5 +1,6 @@
 package org.xper.allen.app.procedural;
 
+import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
@@ -9,7 +10,10 @@ import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
 import org.xper.allen.pga.ReceptiveFieldSource;
+import org.xper.exception.XGLException;
+import org.xper.util.FileUtil;
 
+import javax.swing.*;
 import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -23,6 +27,19 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     @Dependency
     ReceptiveFieldSource rfSource;
+
+    public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            throw new XGLException(e);
+        }
+
+        JavaConfigApplicationContext context = new JavaConfigApplicationContext(
+                FileUtil.loadConfigClass("experiment.config_class"));
+        EStimExperimentTrialGenerator gui = context.getBean(EStimExperimentTrialGenerator.class);
+        gui.generate();
+    }
 
     @Override
     protected void addTrials() {
