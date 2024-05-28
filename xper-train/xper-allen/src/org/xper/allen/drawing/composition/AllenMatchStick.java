@@ -142,6 +142,493 @@ public class AllenMatchStick extends MatchStick {
 		drawSkeleton(false);
 	}
 
+	public void genMatchStickFromShapeSpec(AllenMStickSpec inSpec, double[] rotation, List<Integer> specialEndComp)
+	{
+		// i can't see how inSpec is changed by this function
+		//but it seems to be the case........
+		//AC: Alden, it's because you're not using deep copy of rotCenter and finalPos.
+		cleanData();
+
+		// 1. general info
+		int nComp = inSpec.getmAxis().getnComponent();
+		setnComponent(nComp);
+		int i, j, k;
+
+		// 1.5 AC Info
+		setSpecialEnd(new LinkedList<>(inSpec.getmAxis().getSpecialEnd()));
+		setSpecialEndComp(specialEndComp);
+		setBaseComp(inSpec.getmAxis().getBaseComp());
+
+		// 2. tube info
+		for (i=1; i<=nComp; i++)
+		{
+			//debug
+			//System.out.println("comp " + i + " : ");
+			getComp()[i] = new AllenTubeComp();
+			getComp()[i].setBranchUsed(inSpec.getmAxis().getTube()[i].isBranchUsed());
+			getComp()[i].setConnectType(inSpec.getmAxis().getTube()[i].getConnectType());
+			for (j=0; j<3; j++)
+				for (k=0; k<2; k++)
+				{
+					getComp()[i].getRadInfo()[j][k] = inSpec.getmAxis().getTube()[i].getRadInfo()[j][k];
+					// System.out.print(comp[i].radInfo[j][k] + " " );
+				}
+			//System.out.println(" " );
+
+			getComp()[i].getmAxisInfo().setArcLen(inSpec.getmAxis().getTube()[i].getmAxis_arcLen());
+			getComp()[i].getmAxisInfo().setRad(inSpec.getmAxis().getTube()[i].getmAxis_rad());
+			getComp()[i].getmAxisInfo().setBranchPt(inSpec.getmAxis().getTube()[i].getmAxis_branchPt());
+			//System.out.println("branchPt " + comp[i].mAxisInfo.branchPt);
+
+			getComp()[i].getmAxisInfo().setTransRotHis_alignedPt(inSpec.getmAxis().getTube()[i].getTransRotHis_alignedPt());
+			getComp()[i].getmAxisInfo().setTransRotHis_rotCenter(inSpec.getmAxis().getTube()[i].getTransRotHis_rotCenter());
+			getComp()[i].getmAxisInfo().getTransRotHis_finalPos().set(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
+			//getComp()[i].getmAxisInfo().setTransRotHis_finalPos(new Point3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalPos()));
+			getComp()[i].getmAxisInfo().getTransRotHis_finalTangent().set(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
+			//getComp()[i].getmAxisInfo().setTransRotHis_finalTangent(new Vector3d( inSpec.getmAxis().getTube()[i].getTransRotHis_finalTangent()));
+			getComp()[i].getmAxisInfo().setTransRotHis_devAngle(inSpec.getmAxis().getTube()[i].getTransRotHis_devAngle());
+		}
+
+		// 3. endPt info
+		setnEndPt(inSpec.getmAxis().getnEndPt());
+
+		for (i=1; i<=getnEndPt(); i++)
+		{
+			getEndPt()[i] = new EndPt_struct();
+			getEndPt()[i].setComp(inSpec.getmAxis().getEndPt()[i].getComp());
+			getEndPt()[i].setuNdx(inSpec.getmAxis().getEndPt()[i].getuNdx());
+			getEndPt()[i].setPos(new Point3d( inSpec.getmAxis().getEndPt()[i].getPos()));
+			getEndPt()[i].setTangent(new Vector3d( inSpec.getmAxis().getEndPt()[i].getTangent()));
+			getEndPt()[i].setRad(inSpec.getmAxis().getEndPt()[i].getRad());
+		}
+
+		// 4. juncPt info
+		setnJuncPt(inSpec.getmAxis().getnJuncPt());
+		for (i=1; i<=getnJuncPt(); i++)
+		{
+			getJuncPt()[i] = new JuncPt_struct();
+			getJuncPt()[i].setnComp(inSpec.getmAxis().getJuncPt()[i].getnComp());
+			getJuncPt()[i].setnTangent(inSpec.getmAxis().getJuncPt()[i].getnTangent());
+			getJuncPt()[i].setRad(inSpec.getmAxis().getJuncPt()[i].getRad());
+			getJuncPt()[i].setPos(new Point3d(inSpec.getmAxis().getJuncPt()[i].getPos()));
+
+			for (j=1; j<= getJuncPt()[i].getnComp(); j++)
+			{
+				getJuncPt()[i].getCompIds()[j] = inSpec.getmAxis().getJuncPt()[i].getComp()[j];
+				getJuncPt()[i].getuNdx()[j] = inSpec.getmAxis().getJuncPt()[i].getuNdx()[j];
+			}
+			for (j=1; j<= getJuncPt()[i].getnTangent(); j++)
+			{
+				getJuncPt()[i].getTangent()[j] = new Vector3d( inSpec.getmAxis().getJuncPt()[i].getTangent()[j]);
+				getJuncPt()[i].getTangentOwner()[j] = inSpec.getmAxis().getJuncPt()[i].getTangentOwner()[j];
+			}
+
+		}
+
+		// May 22nd, we find after GA
+		// sometimes the tangent will be wrong direction
+		// (while we assume the tangent in JuncPt, EndPt are correct
+		// In this case we want to do the modifcation!
+		// This might not be the ultimate solving way
+		// but, just do it for now
+
+		for (i=1; i<=nComp; i++) {
+			getComp()[i].getmAxisInfo().genArc( getComp()[i].getmAxisInfo().getRad(), getComp()[i].getmAxisInfo().getArcLen());
+			getComp()[i].getmAxisInfo().transRotMAxis(getComp()[i].getmAxisInfo().getTransRotHis_alignedPt(),
+					getComp()[i].getmAxisInfo().getTransRotHis_finalPos(),
+					getComp()[i].getmAxisInfo().getTransRotHis_rotCenter(),
+					getComp()[i].getmAxisInfo().getTransRotHis_finalTangent(),
+					getComp()[i].getmAxisInfo().getTransRotHis_devAngle());
+			getComp()[i].RadApplied_Factory(); // since we didn't save these info
+		}
+
+
+
+		// 5. final rotation info
+		setFinalRotation(new double[3]);
+		for (i=0; i<3; i++)
+			getFinalRotation()[i] = inSpec.getmAxis().getFinalRotation()[i] + rotation[i];
+
+		setFinalShiftinDepth(new Point3d());
+		getFinalShiftinDepth().x = inSpec.getmAxis().getFinalShiftInDepth()[0];
+		getFinalShiftinDepth().y = inSpec.getmAxis().getFinalShiftInDepth()[1];
+		getFinalShiftinDepth().z = inSpec.getmAxis().getFinalShiftInDepth()[2];
+
+		//AC added stuff
+		setRfStrategy(inSpec.getRfStrategy());
+
+		// 6. calculate the smooth vect and fac info
+
+		// 2008, Nov, we should not do a rotation again here, since the original ShapeSpec info should already be rotated
+		// again, or we should do it!
+		//        this.finalRotateAllPoints( finalRotation[0], finalRotation[1], finalRotation[2]);
+
+		boolean res;
+		try {
+			res = smoothizeMStick();
+		} catch (NullPointerException e) {
+			res = true;
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if ( res == false) {
+			System.out.println("Fail to smooth while using info from a shapeSpec");
+			System.out.println("THIS SHOULD NOT HAPPEN");
+			return;
+		}
+
+		// ***** IMPORTANT
+		// temp, Feb 15th 2011
+		// a temporary work away for the thin tube in post-hoc
+		// we want to have the correct smooth of the matchStick type shape
+		// in that case, we don't worry if the original mesh and now mesh is incompatible
+		// So, we will jus activate the following 3 lines. which igonroe all the below codes
+		//        int a = 3;
+		//if (a==3)
+		//  return;
+
+
+		//May 22nd
+		// we found in our old generating system
+		// the 'finalTangent' is sometimes at 'wrong direction'
+		// At here we want to check the similarity ( reproducibility)
+		// of our new synthesized shape & original vertex distance
+		if ( res == true)
+		{
+			positionShape();
+			return;
+//			            if ( inSpec.getNVect() < 10) // this might happen, not sure
+//			            {
+//			//                System.out.println("no old smooth vertex info yet");
+//			                return;
+//			            }
+//			            Point3d[] oriVecList = inSpec.getVectInfo();
+//			            double vect_dist = 0.0;
+//			            int nVect1 = this.obj1.nVect;
+//			            int nVect2 = inSpec.getNVect();
+//			            System.out.println("      vec # check " + nVect1 + " " + nVect2);
+//			            if ( nVect1 != nVect2)
+//			            {
+//			                res = false;
+//			                System.out.println("            vec # unmatch");
+//			            }
+//			            if ( res == true)
+//			            {
+//			                for (i= 1; i<= this.obj1.nVect; i++)
+//			                {
+//			                    Point3d p1 = new Point3d(obj1.vect_info[i]);
+//			                    Point3d p2 = oriVecList[i];
+//			                    vect_dist += p1.distance(p2);
+//			                }
+//			                System.out.println("            total vect dist is :" + vect_dist);
+//			                if ( vect_dist > 5.0)
+//			                    res = false;
+//			            }
+		}
+
+		boolean tryFlip = true;
+		// step1. try to flip the tangent dir of single tube
+		if ( res == false)
+		{
+
+			System.out.println("we should try to switch the tangent dir");
+			if ( tryFlip == false)
+				return;
+			// this.nComponent = -1;
+			int tryComp;
+			for (tryComp= 1; tryComp <=nComp; tryComp++)
+			{
+				//key line  ---> flip the tangent dir
+				System.out.println("try to flip comp " + tryComp);
+				getComp()[tryComp].getmAxisInfo().getTransRotHis_finalTangent().negate();
+
+				for (i=1; i<=nComp; i++)
+				{
+					getComp()[i].getmAxisInfo().genArc( getComp()[i].getmAxisInfo().getRad(), getComp()[i].getmAxisInfo().getArcLen());
+					getComp()[i].getmAxisInfo().transRotMAxis(getComp()[i].getmAxisInfo().getTransRotHis_alignedPt(),
+							getComp()[i].getmAxisInfo().getTransRotHis_finalPos(),
+							getComp()[i].getmAxisInfo().getTransRotHis_rotCenter(),
+							getComp()[i].getmAxisInfo().getTransRotHis_finalTangent(),
+							getComp()[i].getmAxisInfo().getTransRotHis_devAngle());
+					getComp()[i].RadApplied_Factory(); // since we didn't save these info
+				}
+
+				res = smoothizeMStick();
+				if ( res == false) // success to smooth
+				{
+					System.out.println("Fail to smooth while using info from a shapeSpec");
+					System.out.println("THIS SHOULD NOT HAPPEN");
+				}
+
+
+				if ( res == true)
+				{
+					Point3d[] oriVecList = inSpec.getVectInfo();
+					double vect_dist = 0.0;
+					int nVect1 = getObj1().getnVect();
+					int nVect2 = inSpec.getNVect();
+					System.out.println("vec # check " + nVect1 + " " + nVect2);
+					if ( nVect1 != nVect2)
+					{
+						res = false;
+						System.out.println("vec # unmatch");
+					}
+					if ( res == true)
+					{
+						for (i= 1; i<= getObj1().getnVect(); i++)
+						{
+							Point3d p1 = new Point3d(getObj1().vect_info[i]);
+							Point3d p2 = oriVecList[i];
+							vect_dist += p1.distance(p2);
+						}
+						System.out.println("total vect dist is :" + vect_dist);
+						if ( vect_dist > 5.0)
+							res = false;
+					}
+				}
+
+				//debug, remember to remove it //feb 15 2011
+
+				if ( res == true) // great this flip work
+				{
+					System.out.println("flip " + tryComp + " work");
+					break;
+				}
+				else                //flip back
+					getComp()[tryComp].getmAxisInfo().getTransRotHis_finalTangent().negate();
+
+			} // for loop
+		}
+
+		if ( res == false)
+		{
+			System.out.println("try flip all final tangent one-by-one, no work!");
+			System.out.println("check this shape out!!!");
+			// July 23rd 2009
+			//debug, may need to remove later
+			//  this.nComponent = -1;
+
+		}
+		// step2. try to change the finalTangent dir to what we have in JuncPt/EndPt
+		boolean JuncAssignWork = false;
+		if ( res == false)
+		{
+
+			System.out.println("try to use tangent Info in Junc/End Pt");
+
+			int tryComp;
+			for (tryComp= 1; tryComp <=nComp; tryComp++)
+			{
+				// collect all the possible tangent into an array
+				Vector3d[] candidate = new Vector3d[20];
+				for (i=0; i<20; i++) candidate[i] = new Vector3d();
+				int nCandidate = 0;
+				for (i=1; i<= getnEndPt(); i++)
+				{
+					if (getEndPt()[i].getComp() == tryComp)
+					{
+						candidate[nCandidate].set( getEndPt()[i].getTangent());
+						candidate[nCandidate+1].set( getEndPt()[i].getTangent());
+						candidate[nCandidate+1].negate();
+						nCandidate +=2;
+					}
+				}
+
+				for (i=1; i<= getnJuncPt(); i++)
+				{
+					for (j=1; j<= getJuncPt()[i].getnTangent(); j++)
+						if  (getJuncPt()[i].getTangentOwner()[j] == tryComp)
+						{
+							candidate[nCandidate].set( getJuncPt()[i].getTangent()[j]);
+							candidate[nCandidate+1].set( getJuncPt()[i].getTangent()[j]);
+							candidate[nCandidate+1].negate();
+							nCandidate +=2;
+
+						}
+				}
+
+				for (k=0; k< nCandidate; k++)
+				{
+					//key line  ---> flip the tangent dir
+					System.out.println("try to assign comp " + tryComp + " with " + k + " candidate");
+					Vector3d oriVec = new Vector3d(getComp()[tryComp].getmAxisInfo().getTransRotHis_finalTangent());
+					getComp()[tryComp].getmAxisInfo().getTransRotHis_finalTangent().set(candidate[k]);
+					//comp[tryComp].mAxisInfo.transRotHis_finalTangent.negate();
+					//if (tryComp > 1) //flip back last one
+					//comp[tryComp-1].mAxisInfo.transRotHis_finalTangent.negate();
+
+					for (i=1; i<=nComp; i++)
+					{
+						getComp()[i].getmAxisInfo().genArc( getComp()[i].getmAxisInfo().getRad(), getComp()[i].getmAxisInfo().getArcLen());
+						getComp()[i].getmAxisInfo().transRotMAxis(getComp()[i].getmAxisInfo().getTransRotHis_alignedPt(),
+								getComp()[i].getmAxisInfo().getTransRotHis_finalPos(),
+								getComp()[i].getmAxisInfo().getTransRotHis_rotCenter(),
+								getComp()[i].getmAxisInfo().getTransRotHis_finalTangent(),
+								getComp()[i].getmAxisInfo().getTransRotHis_devAngle());
+						getComp()[i].RadApplied_Factory(); // since we didn't save these info
+					}
+
+					res = this.smoothizeMStick();
+					if ( res == false) // success to smooth
+					{
+						System.out.println("Fail to smooth while using info from a shapeSpec");
+						System.out.println("THIS SHOULD NOT HAPPEN");
+					}
+
+					if ( res == true)
+					{
+						Point3d[] oriVecList = inSpec.getVectInfo();
+						double vect_dist = 0.0;
+						int nVect1 = getObj1().getnVect();
+						int nVect2 = inSpec.getNVect();
+						System.out.println("vec # check " + nVect1 + " " + nVect2);
+						if ( nVect1 != nVect2)
+						{
+							res = false;
+							System.out.println("vec # unmatch");
+						}
+						if ( res == true)
+						{
+							for (i= 1; i<= getObj1().getnVect(); i++)
+							{
+								Point3d p1 = new Point3d(getObj1().vect_info[i]);
+								Point3d p2 = oriVecList[i];
+								vect_dist += p1.distance(p2);
+							}
+							System.out.println("total vect dist is :" + vect_dist);
+							if ( vect_dist > 5.0)
+								res = false;
+						}
+					}
+
+					if ( res == true) // great this flip work
+					{
+						System.out.println("flip " + tryComp + " work");
+						JuncAssignWork = true;
+						break;
+					}
+					else //set back
+						getComp()[tryComp].getmAxisInfo().getTransRotHis_finalTangent().set(oriVec);
+				} //for loop of k
+				if (JuncAssignWork == true)
+					break;
+			} // for loop
+		}
+
+		if ( res == false)
+		{
+			System.out.println("try flip all final tangent one-by-one, no work!");
+			System.out.println("check this shape out!!!");
+			// July 23rd 2009
+			//debug, may need to remove later
+			//  this.nComponent = -1;
+
+		}
+		// step3. try a intensive all possible flip
+		if ( res == false)
+		{
+			System.out.println("Intensive flip trial...");
+			if ( tryFlip == false)
+				return;
+			// this.nComponent = -1;
+			int tryTimes= 1;
+
+			for (tryTimes = 1; tryTimes <= Math.pow(2, getnComponent()) -1; tryTimes++)
+			{
+				//key line  ---> flip the tangent dir
+				System.out.println("try to flip times " + tryTimes);
+				int[] flipState = new int[getnComponent()];
+				int divider = (int) Math.pow(2, getnComponent()-1);
+				int nowV = tryTimes;
+				for (j=0; j <getnComponent(); j++)
+				{
+					//System.out.println( j + " " + nowV + " " + divider);
+					flipState[j] = nowV / divider;
+					nowV = nowV % divider;
+					divider = divider /2;
+				}
+
+				//debug
+				for (j=0; j<getnComponent(); j++)
+					System.out.print( flipState[j] + " " );
+				System.out.println(" ");
+				System.out.println("nComp " + nComp);
+				System.out.println("nComponent " + getnComponent());
+				for (j=1; j<=nComp; j++)
+					if (flipState[j-1] == 1)
+						getComp()[j].getmAxisInfo().getTransRotHis_finalTangent().negate();
+
+				for (i=1; i<=nComp; i++)
+				{
+					getComp()[i].getmAxisInfo().genArc( getComp()[i].getmAxisInfo().getRad(), getComp()[i].getmAxisInfo().getArcLen());
+					getComp()[i].getmAxisInfo().transRotMAxis(getComp()[i].getmAxisInfo().getTransRotHis_alignedPt(),
+							getComp()[i].getmAxisInfo().getTransRotHis_finalPos(),
+							getComp()[i].getmAxisInfo().getTransRotHis_rotCenter(),
+							getComp()[i].getmAxisInfo().getTransRotHis_finalTangent(),
+							getComp()[i].getmAxisInfo().getTransRotHis_devAngle());
+					getComp()[i].RadApplied_Factory(); // since we didn't save these info
+				}
+
+				res = this.smoothizeMStick();
+				if ( res == false) // success to smooth
+				{
+					System.out.println("Fail to smooth while using info from a shapeSpec");
+					System.out.println("THIS SHOULD NOT HAPPEN");
+				}
+
+				if ( res == true)
+				{
+					Point3d[] oriVecList = inSpec.getVectInfo();
+					double vect_dist = 0.0;
+					int nVect1 = this.getObj1().getnVect();
+					int nVect2 = inSpec.getNVect();
+					System.out.println("vec # check " + nVect1 + " " + nVect2);
+					if ( nVect1 != nVect2)
+					{
+						res = false;
+						System.out.println("vec # unmatch");
+					}
+					if ( res == true)
+					{
+						for (i= 1; i<= getObj1().getnVect(); i++)
+						{
+							Point3d p1 = new Point3d(getObj1().vect_info[i]);
+							Point3d p2 = oriVecList[i];
+							vect_dist += p1.distance(p2);
+						}
+						System.out.println("total vect dist is :" + vect_dist);
+						if ( vect_dist > 5.0)
+							res = false;
+					}
+				}
+
+				if ( res == true) // great this flip work
+				{
+					System.out.println("flip " + tryTimes+ " work");
+					break;
+				}
+				//flip back
+				for (j=1; j<=nComp; j++)
+					if (flipState[j-1] == 1)
+						getComp()[j].getmAxisInfo().getTransRotHis_finalTangent().negate();
+
+			} // for loop
+		}
+
+		// not implement yet
+		//step4. change multiple tangent to the Junc/End Pt info
+		if ( res == false)
+		{
+			System.out.println("try flip all intensive flip, still no work!");
+			System.out.println("check this shape out!!!");
+			System.out.println("check this shape out!!!");
+
+			//this.nComponent = -1;
+		}
+
+		positionShape();
+	}
+
 	public void drawCompMap(){
 		init();
 		try {
