@@ -32,9 +32,12 @@ class LeafingPhaseParentSelector(ParentSelector):
     def select_parents(self, lineage, batch_size):
         # Calculate the sampling function.
         responses = [s.response_rate for s in lineage.stimuli]
+        #for whatever reason if the max and min are the same, we just return a random sample
+
         if max(responses) - min(responses) == 0:
-            normalized_responses = [0] * len(responses)
-        normalized_responses = [response - min(responses) / (max(responses) - min(responses)) for response in responses]
+            return np.random.choice(lineage.stimuli, size=batch_size, replace=True)
+
+        normalized_responses = [(response - min(responses)) / (max(responses) - min(responses)) for response in responses]
         sampling_func = self.sampling_func(normalized_responses)
 
         # Calculate the fitness scores.

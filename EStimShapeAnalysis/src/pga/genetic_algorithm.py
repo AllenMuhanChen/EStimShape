@@ -158,7 +158,8 @@ class GeneticAlgorithm:
                     self.db_util.read_stim_ga_info_entry(stim.id)
                 except Exception:
                     # If the stim is not in the db, write it
-                    self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id, lineage_id=lineage.id,
+                    self.db_util.write_stim_ga_info(stim_id=stim.id, parent_id=stim.parent_id,
+                                                    lineage_id=lineage.id,
                                                     stim_type=stim.mutation_type,
                                                     mutation_magnitude=stim.mutation_magnitude,
                                                     gen_id=self.gen_id)

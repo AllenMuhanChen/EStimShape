@@ -714,7 +714,7 @@ public class GAMatchStick extends MorphedMatchStick {
             double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
             double minThresholdPercentageOutOfRF = 0.1; // Minimum threshold percentage allowed
 
-            int maxAttempts = 1000;
+            int maxAttempts = 500;
 
             while (initialThresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
                 int nAttempts = 0;
