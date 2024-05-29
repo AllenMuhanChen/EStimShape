@@ -44,7 +44,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
 
     @Override
     protected void positionShape() throws MorphException {
-
         RFUtils.positionAroundRF(rfStrategy, this, rf);
     }
 
@@ -52,7 +51,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     protected boolean checkMStick(int drivingComponentIndex) {
         try {
 //            checkMStickSize(); //no need to check size with our old methods if we are testing if it's completely inside RF
-//            checkInRF();
             return true;
         } catch (MorphException e) {
             System.out.println(e.getMessage());

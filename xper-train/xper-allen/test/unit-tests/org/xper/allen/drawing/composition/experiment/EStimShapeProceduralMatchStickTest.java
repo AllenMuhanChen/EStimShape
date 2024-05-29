@@ -155,6 +155,7 @@ public class EStimShapeProceduralMatchStickTest {
 
             {
                 center = new Coordinates2D(h, k);
+                radius = r;
                 for (int i = 0; i < 100; i++) {
                     double angle = 2 * Math.PI * i / 100;
                     outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
@@ -214,6 +215,7 @@ public class EStimShapeProceduralMatchStickTest {
 
             {
                 center = new Coordinates2D(h, k);
+                radius=r;
                 for (int i = 0; i < 100; i++) {
                     double angle = 2 * Math.PI * i / 100;
                     outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));

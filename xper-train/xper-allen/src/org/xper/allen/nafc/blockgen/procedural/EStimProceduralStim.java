@@ -35,7 +35,7 @@ public class EStimProceduralStim extends ProceduralStim{
     protected void generateMatchSticksAndSaveSpecs() {
         while(true) {
             try {
-                ProceduralMatchStick sample = generateSample();
+                EStimShapeProceduralMatchStick sample = generateSample();
 
                 noiseComponentIndex = sample.getDrivingComponent();
 
@@ -58,20 +58,20 @@ public class EStimProceduralStim extends ProceduralStim{
     }
 
     @Override
-    protected ProceduralMatchStick generateSample() {
+    protected EStimShapeProceduralMatchStick generateSample() {
 
-            //Generate Sample
-            EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
-                    RFStrategy.PARTIALLY_INSIDE,
-                    ((EStimExperimentTrialGenerator) generator).getRF()
-            );
-            sample.setProperties(RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
-            sample.setStimColor(parameters.color);
-            sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
+        //Generate Sample
+        EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
+                RFStrategy.PARTIALLY_INSIDE,
+                ((EStimExperimentTrialGenerator) generator).getRF()
+        );
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        sample.setStimColor(parameters.color);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
 
-            mSticks.setSample(sample);
-            mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
-            return sample;
+        mSticks.setSample(sample);
+        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        return sample;
 
     }
 

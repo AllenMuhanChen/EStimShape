@@ -2248,16 +2248,16 @@ public class AllenMatchStick extends MatchStick {
 	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf, int nComp) {
 		int i=0; //Number of times tried to generate a comp and smoothize it
 		boolean compSuccess = false;
-		while (i<2) {
+		while (i<10) {
 			int j=0; //Number of times tried to generate a comp.
 			this.cleanData();
-			while (j<10) {
+			while (true) {
 				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf) == true){
 					compSuccess = true;
 					break;
 				}
 				else {
-					j++;
+//					j++;
 //					System.out.println("Attempt "+j + " to generate comp");
 				}
 				// else
@@ -2685,7 +2685,7 @@ public class AllenMatchStick extends MatchStick {
 		// 4. Apply the radius value onto each component
 		for (i=1; i<=getnComponent(); i++)
 		{
-			if( this.getComp()[i].RadApplied_Factory() == false) // a fail application
+			if(!this.getComp()[i].RadApplied_Factory()) // a fail application
 			{
 				if(showDebug)
 					System.out.println("Failed RadApplied");
@@ -2701,7 +2701,7 @@ public class AllenMatchStick extends MatchStick {
 		}
 
 		// 5. check if the final shape is not working ( collide after skin application)
-		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
+//		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 
 		if ( validMStickSize() ==  false)
 		{
@@ -3791,7 +3791,7 @@ public class AllenMatchStick extends MatchStick {
 			getJuncPt()[i] = new JuncPt_struct();
 			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
-		this.setObj1(in.getObj1());
+		this.setObj1(new MStickObj4Smooth(in.getObj1()));
 
 		for (i=1; i<=getnComponent(); i++)
 			getLeafBranch()[i] = in.getLeafBranch()[i];

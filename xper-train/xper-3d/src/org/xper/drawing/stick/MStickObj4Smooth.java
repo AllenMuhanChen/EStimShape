@@ -29,6 +29,55 @@ public class MStickObj4Smooth {
     public double contrast = 0.5;
     public RGBColor stimColor = new RGBColor(1,1,1);
 
+
+    public MStickObj4Smooth(MStickObj4Smooth original) {
+        this.nComponent = original.nComponent;
+        this.nIntersectPatch = original.nIntersectPatch;
+        this.nVect = original.nVect;
+        this.nFac = original.nFac;
+        this.doLighting = original.doLighting;
+        this.contrast = original.contrast;
+        this.stimColor = new RGBColor(original.stimColor.getRed(), original.stimColor.getGreen(), original.stimColor.getBlue());
+
+        this.maxXYZ = new Point3d(original.maxXYZ);
+        this.minXYZ = new Point3d(original.minXYZ);
+
+        this.vect_type = new int[original.vect_type.length];
+        System.arraycopy(original.vect_type, 0, this.vect_type, 0, original.vect_type.length);
+
+        this.vectTag = new int[original.vectTag.length];
+        System.arraycopy(original.vectTag, 0, this.vectTag, 0, original.vectTag.length);
+
+        this.vect_info = new Point3d[original.vect_info.length];
+        for (int i = 0; i < original.vect_info.length; i++) {
+            if (original.vect_info[i] != null) {
+                this.vect_info[i] = new Point3d(original.vect_info[i]);
+            }
+        }
+
+        this.normMat_info = new Vector3d[original.normMat_info.length];
+        for (int i = 0; i < original.normMat_info.length; i++) {
+            if (original.normMat_info[i] != null) {
+                this.normMat_info[i] = new Vector3d(original.normMat_info[i]);
+            }
+        }
+
+        this.facInfo = new int[original.facInfo.length][3];
+        for (int i = 0; i < original.facInfo.length; i++) {
+            System.arraycopy(original.facInfo[i], 0, this.facInfo[i], 0, original.facInfo[i].length);
+        }
+
+        this.comp = new TubeComp[original.comp.length];
+        for (int i = 1; i <= original.nComponent; i++) {
+            if (original.comp[i] != null) {
+                this.comp[i] = new TubeComp();
+                this.comp[i].copyFrom(original.comp[i]);
+            }
+        }
+    }
+
+
+
     public void setInfo(int inVect, Point3d[] ivect_info, Vector3d[] inormMat_info, int inFac, int[][] ifacInfo)
     {
         int i, j;
