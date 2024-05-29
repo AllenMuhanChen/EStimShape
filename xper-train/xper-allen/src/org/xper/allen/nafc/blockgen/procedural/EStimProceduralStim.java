@@ -31,6 +31,27 @@ public class EStimProceduralStim extends ProceduralStim{
         generateSampleCompMap();
     }
 
+    @Override
+    protected void generateMatchSticksAndSaveSpecs() {
+        while(true) {
+            try {
+                ProceduralMatchStick sample = generateSample();
+
+                noiseComponentIndex = sample.getDrivingComponent();
+
+                generateMatch(sample);
+
+                generateProceduralDistractors(sample);
+
+                generateRandDistractors();
+
+                break;
+            } catch (ProceduralMatchStick.MorphRepetitionException e) {
+                System.out.println("MorphRepetition FAILED: " + e.getMessage());
+            }
+        }
+    }
+
     private void generateSampleCompMap() {
         List<String> labels = new LinkedList<>();
         generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels, generator.getGeneratorPngPath());
@@ -38,7 +59,7 @@ public class EStimProceduralStim extends ProceduralStim{
 
     @Override
     protected ProceduralMatchStick generateSample() {
-        while (true) {
+
             //Generate Sample
             EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
                     RFStrategy.PARTIALLY_INSIDE,
@@ -46,17 +67,12 @@ public class EStimProceduralStim extends ProceduralStim{
             );
             sample.setProperties(RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
             sample.setStimColor(parameters.color);
-            try {
-                sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
-            } catch (ProceduralMatchStick.MorphRepetitionException e) {
-                System.out.println("MorphRepetition FAILED: " + e.getMessage());
-                continue;
-            }
+            sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
 
             mSticks.setSample(sample);
             mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
             return sample;
-        }
+
     }
 
     protected void writeEStimSpec() {
