@@ -1,0 +1,11 @@
+#!/bin/bash
+source version
+source paths
+
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
+sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
+cd $DIST/allen
+
+java -jar EStimExperimentGenerator.jar
+
+
