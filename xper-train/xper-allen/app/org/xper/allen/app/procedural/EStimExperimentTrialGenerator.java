@@ -47,7 +47,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         //input Parameters
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
         long stimId = 1716913436993343L;
-        int compId = 1;
+        int compId = 2;
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();

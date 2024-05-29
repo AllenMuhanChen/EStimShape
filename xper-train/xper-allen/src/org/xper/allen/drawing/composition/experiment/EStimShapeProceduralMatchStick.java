@@ -25,6 +25,7 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
         this.rfStrategy = rfStrategy;
         this.rf = rf;
+        this.noiseRadiusDegrees = rf.radius;
     }
 
 

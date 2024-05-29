@@ -94,7 +94,7 @@ public class EStimShapeProceduralMatchStickTest {
 
                 System.out.println(circle.getX() + " " + circle.getY());
 
-                double radius = ProceduralMatchStick.NOISE_RADIUS_DEGREES;
+                double radius = 10;
                 int numSegments = 100; // Increase for a smoother circle
 
                 GL11.glBegin(GL11.GL_LINE_LOOP);
@@ -125,7 +125,7 @@ public class EStimShapeProceduralMatchStickTest {
                 Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
                 System.out.println(circle.getX() + " " + circle.getY());
 
-                double radius = ProceduralMatchStick.NOISE_RADIUS_DEGREES;
+                double radius = 10;
                 int numSegments = 100; // Increase for a smoother circle
 
                 GL11.glBegin(GL11.GL_LINE_LOOP);
@@ -182,7 +182,7 @@ public class EStimShapeProceduralMatchStickTest {
                 Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
 
-                double radius = ProceduralMatchStick.NOISE_RADIUS_DEGREES;
+                double radius = 10;
                 int numSegments = 100; // Increase for a smoother circle
 
                 GL11.glBegin(GL11.GL_LINE_LOOP);

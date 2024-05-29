@@ -2,6 +2,11 @@
 source version
 source paths
 
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_PROCEDURAL <<EOF
+UPDATE SystemVar SET val=30 WHERE name='xper_max_image_dimension_degrees';
+EOF
+
+
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/allen/xper.properties
 cd $DIST/allen

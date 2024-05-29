@@ -6,6 +6,7 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.pga.RFStrategy;
+import org.xper.allen.pga.RFUtils;
 import org.xper.allen.util.AllenDbUtil;
 
 public class EStimProceduralStim extends ProceduralStim{
@@ -29,7 +30,7 @@ public class EStimProceduralStim extends ProceduralStim{
                     RFStrategy.PARTIALLY_INSIDE,
                     ((EStimExperimentTrialGenerator) generator).getRF()
             );
-            sample.setProperties(parameters.getSize(), parameters.textureType);
+            sample.setProperties(RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
             sample.setStimColor(parameters.color);
             try {
                 sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);

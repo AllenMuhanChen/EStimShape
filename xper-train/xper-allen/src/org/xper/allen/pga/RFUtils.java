@@ -56,6 +56,7 @@ public class RFUtils {
                     }
                     nAttempts++;
                 }
+                System.out.println("Reducing threshold percentage for points outside of RF");
                 initialThresholdPercentageOutOfRF -= reductionStep; // Reduce threshold for next outer loop iteration
             }
 
@@ -100,17 +101,12 @@ public class RFUtils {
 //            pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
 //        }
         pointsToCheck.addAll(Arrays.asList(mStick.getObj1().vect_info));
-        pointsToCheck.removeIf(new Predicate<Point3d>() {
-            @Override
-            public boolean test(Point3d point) {
-                return point == null;
-            }
-        });
 
         for (Point3d point: pointsToCheck){
-//            System.out.println("Checking point: " + point.x + ", " + point.y);
-            if (rf.isInRF(point.x, point.y)) {
-                pointsInside.add(point);
+            if (point != null) {
+                if (rf.isInRF(point.x, point.y)) {
+                    pointsInside.add(point);
+                }
             }
         }
 

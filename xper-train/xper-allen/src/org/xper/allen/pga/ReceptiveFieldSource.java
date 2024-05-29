@@ -38,7 +38,7 @@ public class ReceptiveFieldSource {
         long tstamp = readMaxTstampFromRFInfo();
         RFInfo rfInfo = readRFInfo(tstamp);
         List<Coordinates2D> outlineMm = rfInfo.getOutline();
-        return new ConcaveHullReceptiveField(outlineMm, getRFCenterMm());
+        return new ConcaveHullReceptiveField(outlineMm, getRFCenterMm(), getRFRadiusMm());
     }
 
     public Coordinates2D getRFCenterMm(){

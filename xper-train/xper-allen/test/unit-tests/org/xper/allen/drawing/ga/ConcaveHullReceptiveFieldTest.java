@@ -20,7 +20,7 @@ public class ConcaveHullReceptiveFieldTest {
                 new Coordinates2D(-1, 0),
                 new Coordinates2D(0, 1));
 
-        ConcaveHullReceptiveField concaveHullReceptiveField = new ConcaveHullReceptiveField(hullPoints, null);
+        ConcaveHullReceptiveField concaveHullReceptiveField = new ConcaveHullReceptiveField(hullPoints, null, 1);
 
         // Test the case where the point is outside the hull
         assertFalse(concaveHullReceptiveField.isInRF(0, 0));
@@ -44,7 +44,7 @@ public class ConcaveHullReceptiveFieldTest {
                 new Coordinates2D(1, 1),
                 new Coordinates2D(1, 0));
 
-        ConcaveHullReceptiveField concaveHullReceptiveField = new ConcaveHullReceptiveField(hullPoints, null);
+        ConcaveHullReceptiveField concaveHullReceptiveField = new ConcaveHullReceptiveField(hullPoints, null, 1);
 
         // Test the case where the point is outside the hull
         assertFalse(concaveHullReceptiveField.isInRF(0, -0.0001));
