@@ -330,6 +330,8 @@ public class ProceduralStim implements NAFCStim {
         stimSpecWriter.writeStimSpec();
     }
 
+
+
     protected void setTaskId(Long sample) {
         this.taskId = sample;
     }

@@ -9,6 +9,9 @@ import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.allen.util.AllenDbUtil;
 
+import java.util.LinkedList;
+import java.util.List;
+
 public class EStimProceduralStim extends ProceduralStim{
     public EStimProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, int noiseComponentIndex) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
@@ -20,6 +23,17 @@ public class EStimProceduralStim extends ProceduralStim{
         assignTaskId();
         writeStimSpec();
         writeEStimSpec();
+    }
+
+    @Override
+    public void preWrite(){
+        super.preWrite();
+        generateSampleCompMap();
+    }
+
+    private void generateSampleCompMap() {
+        List<String> labels = new LinkedList<>();
+        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels, generator.getGeneratorPngPath());
     }
 
     @Override
