@@ -22,11 +22,11 @@ public class GaussianNoiseMapCalculation {
         Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
 
         double sigmaPixels = degToPixels(renderer, sigmaDegrees);
-        Coordinates2D noiseOriginPixels = convertToPixelCoordinates(noiseOrigin, renderer);
+        Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
 
         return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
                 noiseOriginPixels.getX(), noiseOriginPixels.getY(),
-                degToPixels(renderer, mStick.noiseRadiusDegrees), amplitude,
+                mmToPixels(renderer, mStick.noiseRadiusDegrees), amplitude,
                 sigmaPixels, sigmaPixels,
                 background);
 
@@ -34,7 +34,13 @@ public class GaussianNoiseMapCalculation {
 
     private static double degToPixels(AbstractRenderer renderer, double degrees) {
         double mm = renderer.deg2mm(degrees);
-        Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(mm, mm));
+        Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(degrees, degrees));
+        return pixels.getX();
+
+    }
+
+    private static double mmToPixels(AbstractRenderer renderer, double degrees) {
+        Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(degrees, degrees));
         return pixels.getX();
 
     }
@@ -71,10 +77,8 @@ public class GaussianNoiseMapCalculation {
         );
     }
 
-    private static Coordinates2D convertToPixelCoordinates(Point3d point3d, AbstractRenderer renderer) {
-        double mm_x = renderer.deg2mm(point3d.x);
-        double mm_y = renderer.deg2mm(point3d.y);
-        Coordinates2D world_x_y = renderer.coord2pixel(new Coordinates2D(mm_x, mm_y));
+    private static Coordinates2D convertMmToPixelCoordinates(Point3d point3d, AbstractRenderer renderer) {
+        Coordinates2D world_x_y = renderer.coord2pixel(new Coordinates2D(point3d.x, point3d.y));
 
         double scaledX = world_x_y.getX();
         double scaledY = world_x_y.getY();

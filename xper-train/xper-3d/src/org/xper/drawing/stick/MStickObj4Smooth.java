@@ -29,7 +29,10 @@ public class MStickObj4Smooth {
     public double contrast = 0.5;
     public RGBColor stimColor = new RGBColor(1,1,1);
 
-
+    /**
+     * AC: Deep copy constructor
+     * @param original
+     */
     public MStickObj4Smooth(MStickObj4Smooth original) {
         this.nComponent = original.nComponent;
         this.nIntersectPatch = original.nIntersectPatch;
