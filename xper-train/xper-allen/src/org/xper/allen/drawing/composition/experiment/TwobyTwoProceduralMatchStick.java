@@ -19,7 +19,7 @@ public class TwobyTwoProceduralMatchStick extends ProceduralMatchStick {
 
         MutateSUB_reAssignJunctionRadius();
         centerShape();
-        attemptSmoothizeMorphedMStick();
+        attemptSmoothizeMStick();
     }
 
     private void swapSkeleton(int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn) {

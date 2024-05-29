@@ -56,7 +56,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
                 applyRadiusProfile();
-                attemptSmoothizeMorphedMStick();
+                attemptSmoothizeMStick();
                 positionShape();
                 if (checkMStick()) break;
             } catch (MorphException e) {
@@ -90,7 +90,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 addComps(nCompsToAdd);
                 centerShape();
                 applyRadiusProfile();
-                attemptSmoothizeMorphedMStick();
+                attemptSmoothizeMStick();
                 positionShape();
                 if (checkMStick()) {
                     return;
@@ -188,7 +188,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 removeComponent(removeFlags);
                 centerShape();
                 applyRadiusProfile();
-                attemptSmoothizeMorphedMStick();
+                attemptSmoothizeMStick();
                 positionShape();
                 if (checkMStick()) break;
                 break;
@@ -376,12 +376,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
     }
 
-    /**
-     * Only to be used to smoothize a matchstick that is inherited in some way
-     * from another matchstick. When this version is used,
-     * the parameters will not be scaled again during the smoothing process.
-     */
-    protected void attemptSmoothizeMorphedMStick() {
+    public void attemptSmoothizeMStick() {
         boolean res;
         try{
             res = smoothizeMStick();

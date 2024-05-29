@@ -7,14 +7,19 @@ import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
+import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.allen.util.AllenDbUtil;
 
+import javax.vecmath.Point3d;
 import java.util.LinkedList;
 import java.util.List;
 
 public class EStimProceduralStim extends ProceduralStim{
+    private final ReceptiveFieldSource rfSource;
+
     public EStimProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, int noiseComponentIndex) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
+        this.rfSource = generator.getRfSource();
     }
 
     @Override
@@ -52,11 +57,6 @@ public class EStimProceduralStim extends ProceduralStim{
         }
     }
 
-    private void generateSampleCompMap() {
-        List<String> labels = new LinkedList<>();
-        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels, generator.getGeneratorPngPath());
-    }
-
     @Override
     protected EStimShapeProceduralMatchStick generateSample() {
 
@@ -73,6 +73,25 @@ public class EStimProceduralStim extends ProceduralStim{
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
         return sample;
 
+    }
+
+    private void generateSampleCompMap() {
+        List<String> labels = new LinkedList<>();
+        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels, generator.getGeneratorPngPath());
+    }
+
+    @Override
+    protected void generateMatch(ProceduralMatchStick sample) {
+        //Generate Match
+        ProceduralMatchStick match = new ProceduralMatchStick();
+        match.setProperties(parameters.getSize(), parameters.textureType);
+        match.setStimColor(parameters.color);
+        match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
+        match.moveCenterOfMassTo(new Point3d(0,0,0));
+
+
+        mSticks.setMatch(match);
+        mStickSpecs.setMatch(mStickToSpec(match, stimObjIds.getMatch()));
     }
 
     protected void writeEStimSpec() {
