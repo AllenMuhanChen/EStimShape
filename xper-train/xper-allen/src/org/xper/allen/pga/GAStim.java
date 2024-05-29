@@ -73,7 +73,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected T createRandMStick() {
         GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy, "SHADE");
-        mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
+        mStick.setProperties(RFUtils.calculateMStickMaxSizeDegrees(rfStrategy, generator.rfSource), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
         return (T) mStick;
@@ -118,18 +118,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
         generator.getDbUtil().writeStimSpec(stimId, stimSpec.toXml(), mStickData.toXml());
     }
 
-
-    protected double calculateMStickMaxSizeDegrees() {
-        if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            int maxLimbs = 4;
-            return generator.rfSource.getRFRadiusDegrees() * maxLimbs;
-        } else {
-            //TODO:
-            return generator.rfSource.getRFRadiusDegrees() * 2;
-        }
-    }
-
-//    public RGBColor getRFColor(){
+    //    public RGBColor getRFColor(){
 //        RGBColor rfColor;
 //        try {
 //            rfColor = new RGBColor(generator.rfSource.getRFColor());

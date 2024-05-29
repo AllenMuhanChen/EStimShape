@@ -16,7 +16,7 @@ public class SeedingStim extends GAStim<GAMatchStick, AllenMStickData> {
         GAMatchStick mStick = new GAMatchStick(
                 generator.getReceptiveField(),
                 RFStrategy.COMPLETELY_INSIDE, "SHADE");
-        mStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
+        mStick.setProperties(RFUtils.calculateMStickMaxSizeDegrees(rfStrategy, generator.rfSource), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
         return mStick;

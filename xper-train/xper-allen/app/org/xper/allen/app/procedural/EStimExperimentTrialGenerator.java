@@ -5,10 +5,11 @@ import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
-import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
+import org.xper.allen.pga.RFStrategy;
+import org.xper.allen.pga.RFUtils;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
@@ -37,16 +38,16 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
-        EStimExperimentTrialGenerator gui = context.getBean(EStimExperimentTrialGenerator.class);
-        gui.generate();
+        EStimExperimentTrialGenerator generator = context.getBean(EStimExperimentTrialGenerator.class);
+        generator.generate();
     }
 
     @Override
     protected void addTrials() {
         //input Parameters
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
-        long stimId = 0;
-        int compId = 0;
+        long stimId = 1716913436993343L;
+        int compId = 1;
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
@@ -74,7 +75,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
             ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-            baseMStick.setProperties(getImageDimensionsDegrees(), "SHADE");
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI

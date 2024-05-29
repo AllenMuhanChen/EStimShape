@@ -4,14 +4,13 @@ import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.pga.RFStrategy;
+import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.stickMath_lib;
 
-import javax.vecmath.Point3d;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
-import java.util.function.Predicate;
 
 /**
  * MatchSticks that are used to generate stimuli for the GA Experiment.
@@ -128,53 +127,10 @@ public class GAMatchStick extends MorphedMatchStick {
         return true;
     }
 
-    private boolean checkCompInRF(int compIndx, double thresholdPercentageInRF) {
-        List<Point3d> pointsToCheck = new ArrayList<>();
-        List<Point3d> pointsInside = new ArrayList<>();
-
-        pointsToCheck.addAll(Arrays.asList(this.getComp()[compIndx].getVect_info()));
-        int numPoints = 0;
-
-        for (Point3d point: pointsToCheck){
-            if (point != null) {
-                numPoints++;
-                if (rf.isInRF(point.x, point.y)) {
-                    pointsInside.add(point);
-                }
-            }
-        }
-
-        double percentageInRF = (double) pointsInside.size() / numPoints;
-        return percentageInRF >= thresholdPercentageInRF;
-    }
 
 
 
-    private boolean checkAllInRF(double thresholdPercentageInRF) {
-        List<Point3d> pointsToCheck = new ArrayList<>();
-        List<Point3d> pointsInside = new ArrayList<>();
 
-//        for (int i=1; i<=this.getnComponent(); i++){
-//            pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
-//        }
-        pointsToCheck.addAll(Arrays.asList(this.getObj1().vect_info));
-        pointsToCheck.removeIf(new Predicate<Point3d>() {
-            @Override
-            public boolean test(Point3d point) {
-                return point == null;
-            }
-        });
-
-        for (Point3d point: pointsToCheck){
-//            System.out.println("Checking point: " + point.x + ", " + point.y);
-            if (rf.isInRF(point.x, point.y)) {
-                pointsInside.add(point);
-            }
-        }
-
-        double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
-        return percentageInRF >= thresholdPercentageInRF;
-    }
 
     @Override
     public void drawCompMap(){
@@ -211,79 +167,10 @@ public class GAMatchStick extends MorphedMatchStick {
     @Override
     protected void positionShape() throws MorphException {
 
-        Coordinates2D rfCenter;
-        if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            int compInRF = getSpecialEndComp().get(0);
-            System.out.println("specialEndComp: " + getSpecialEndComp());
-            System.out.println("Comp in RF: " + compInRF);
-
-            double percentageInsideRF = 1.0;
-            double initialThresholdPercentageOutOfRF = 0.8;
-            double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
-            double minThresholdPercentageOutOfRF = 0.1; // Minimum threshold percentage allowed
-
-            int maxAttempts = 500;
-
-            while (initialThresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
-                int nAttempts = 0;
-                while (nAttempts < maxAttempts) {
-                    // Choose random component to try to move inside of RF
-
-                    // Choose a point inside of the chosen component to move
-                    Point3d pointToMove = this.getComp()[compInRF].getMassCenter();
-
-                    // Choose a random point inside the RF to move the chosen point to.
-                    Coordinates2D point = RandomPointInConvexPolygon.generateRandomPoint(rf.getOutline());
-                    Point3d destination = new Point3d(point.getX(), point.getY(), 0.0);
-                    movePointToDestination(pointToMove, destination);
-
-                    if (checkCompInRF(compInRF, percentageInsideRF) &&
-                            checkEnoughShapeOutOfRF(compInRF, initialThresholdPercentageOutOfRF)) {
-                        return; // Exit if the condition is met
-                    }
-                    nAttempts++;
-                }
-                initialThresholdPercentageOutOfRF -= reductionStep; // Reduce threshold for next outer loop iteration
-            }
-
-            throw new MorphException("Could not find a point in the RF after " + maxAttempts + " attempts per threshold reduction");
-
-        } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
-
-            rfCenter = rf.getCenter();
-            moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
-
-            if (!checkAllInRF(1.0)) {
-                throw new MorphException("Shape cannot fit in RF");
-            }
-        }
+        RFUtils.positionAroundRF(rfStrategy, this, rf);
     }
 
-    private boolean checkEnoughShapeOutOfRF(int compInRF, double thresholdPercentageOutOfRF){
-        List<Point3d> pointsToCheck = new ArrayList<>();
-        List<Point3d> pointsOutside = new ArrayList<>();
 
-        for (int i=1; i<=this.getnComponent(); i++){
-            if (i != compInRF) {
-                pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
-            }
-        }
-
-        int numPoints = 0;
-
-        for (Point3d point: pointsToCheck){
-            if (point!= null) {
-                numPoints++;
-                if (!rf.isInRF(point.x, point.y)) {
-                    pointsOutside.add(point);
-                }
-            }
-        }
-
-        double percentageOutOfRF = (double) pointsOutside.size() / numPoints;
-        return percentageOutOfRF >= thresholdPercentageOutOfRF;
-
-    }
 
     public RFStrategy getRfStrategy() {
         return rfStrategy;

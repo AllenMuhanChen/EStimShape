@@ -20,7 +20,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     protected GrowingMatchStick createMStick() {
         //Generate MStick
         GrowingMatchStick parentMStick = initializeFromFile(generator.getReceptiveField(), textureType);
-        parentMStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
+        parentMStick.setProperties(RFUtils.calculateMStickMaxSizeDegrees(rfStrategy, generator.rfSource), textureType);
         parentMStick.genMatchStickFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
@@ -30,7 +30,7 @@ public class GrowingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
                 parentMStick.getRfStrategy(),
                 textureType);
 
-        childMStick.setProperties(calculateMStickMaxSizeDegrees(), textureType);
+        childMStick.setProperties(RFUtils.calculateMStickMaxSizeDegrees(rfStrategy, generator.rfSource), textureType);
         childMStick.setStimColor(color);
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;

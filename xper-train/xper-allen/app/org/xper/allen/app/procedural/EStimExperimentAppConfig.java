@@ -25,6 +25,7 @@ public class EStimExperimentAppConfig {
 
     @Autowired
     ClassicConfig classicConfig;
+
     @Autowired
     BaseConfig baseConfig;
 
@@ -42,7 +43,6 @@ public class EStimExperimentAppConfig {
         generator.setGeneratorNoiseMapPath(proceduralAppConfig.generatorNoiseMapPath);
         generator.setExperimentNoiseMapPath(proceduralAppConfig.experimentNoiseMapPath);
         generator.setNafcTrialDbUtil(proceduralAppConfig.nafcTrialDbUtil());
-
         generator.setGaSpecPath(proceduralAppConfig.gaSpecPath);
         generator.setRfSource(rfSource());
         return generator;
