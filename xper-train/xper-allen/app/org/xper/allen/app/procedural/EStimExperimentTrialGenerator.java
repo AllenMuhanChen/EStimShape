@@ -73,9 +73,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<ReceptiveField> behTrialRFs = assignRFsToBehTrials(numEStimTrials, numDeltaTrials, numBehavioralTrials, getRF());
 
         List<Stim> behavioralTrials = makeBehavioralTrials(behavioralTrialParams, behTrialRFs);
+        stims.addAll(behavioralTrials);
         stims.addAll(eStimTrials);
         stims.addAll(deltaTrials);
-        stims.addAll(behavioralTrials);
     }
 
     public static List<ReceptiveField> assignRFsToBehTrials(int numEStimTrials, int numDeltaTrials, int numBehavioralTrials, ReceptiveField realRf) {

@@ -53,7 +53,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 }
                 numAttempts++;
             }
-            if (checkMStick(morphComponentIndx)) break;
+            if (checkMStick(getDrivingComponent())) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + this.maxAttempts + " attempts");
