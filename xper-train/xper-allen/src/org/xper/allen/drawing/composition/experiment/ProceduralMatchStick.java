@@ -48,6 +48,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         this.maxAttempts = baseMatchStick.maxAttempts;
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
             while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
+                System.out.println("ATtempting genMatchFromLeaf: " + numAttempts);
                 if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
                     break;
                 }

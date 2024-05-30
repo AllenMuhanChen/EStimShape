@@ -44,7 +44,7 @@ public class EStimShapeBehavioralStim extends EStimShapeProceduralStim{
 
     protected void generateNonBaseMatchSticksAndSaveSpecs() {
         int nAttempts = 0;
-        int maxAttempts = 15;
+        int maxAttempts = 2;
         while(nAttempts < maxAttempts) {
             nAttempts++;
             try {
@@ -79,6 +79,7 @@ public class EStimShapeBehavioralStim extends EStimShapeProceduralStim{
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
+        baseMatchStick.setMaxAttempts(3);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0);
 
         mSticks.setSample(sample);

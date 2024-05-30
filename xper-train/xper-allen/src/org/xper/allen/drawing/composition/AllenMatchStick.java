@@ -2248,7 +2248,7 @@ public class AllenMatchStick extends MatchStick {
 	public boolean genMatchStickFromLeaf(int leafIndx, AllenMatchStick amsOfLeaf, int nComp) {
 		int i=0; //Number of times tried to generate a comp and smoothize it
 		boolean compSuccess = false;
-		while (i<10) {
+		while (i<2) {
 			int j=0; //Number of times tried to generate a comp.
 			this.cleanData();
 			while (true) {
