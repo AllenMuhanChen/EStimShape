@@ -1,33 +1,35 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
+import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
 import java.util.LinkedList;
 import java.util.List;
 
-public class DeltaStim extends ProceduralStim {
-    private final ProceduralStim baseStim;
+public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
+
+    private final EStimShapeProceduralStim baseStim;
     private final boolean isDeltaMorph;
     private final boolean isDeltaNoise;
 
-    public DeltaStim(ProceduralStim baseStim, boolean isDeltaMorph, boolean isDeltaNoise){
+    public EStimShapeDeltaStim(EStimShapeProceduralStim baseStim, boolean isDeltaMorph, boolean isDeltaNoise){
         super(
-                baseStim.generator,
+                (EStimExperimentTrialGenerator) baseStim.generator,
                 baseStim.getParameters(),
                 baseStim.baseMatchStick,
-                -1);
+                -1,-1);
         this.baseStim = baseStim;
         this.isDeltaMorph = isDeltaMorph;
         this.isDeltaNoise = isDeltaNoise;
     }
 
-
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
         while (true) {
             try {
-                ProceduralMatchStick sample = generateSample();
+                EStimShapeProceduralMatchStick sample = generateSample();
 
                 assignDrivingAndDeltaIndices(sample);
 
@@ -42,6 +44,17 @@ public class DeltaStim extends ProceduralStim {
                 System.out.println(mre.getMessage());
             }
         }
+    }
+
+    @Override
+    protected EStimShapeProceduralMatchStick generateSample() {
+        //Generate Sample
+        EStimShapeProceduralMatchStick sample = (EStimShapeProceduralMatchStick) baseStim.mSticks.getSample();
+
+        System.out.println("New Noise Component Index: " + noiseComponentIndex);
+        mSticks.setSample(sample);
+        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        return sample;
     }
 
 
@@ -60,29 +73,6 @@ public class DeltaStim extends ProceduralStim {
             noiseComponentIndex = deltaIndex;
         }
 
-    }
-
-
-    @Override
-    protected ProceduralMatchStick generateSample() {
-        //Generate Sample
-        ProceduralMatchStick sample = baseStim.mSticks.getSample();
-
-        System.out.println("New Noise Component Index: " + noiseComponentIndex);
-        mSticks.setSample(sample);
-        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
-        return sample;
-    }
-
-    @Override
-    protected void drawSample(AllenPNGMaker pngMaker, String generatorPngPath) {
-        //Sample
-        List<String> labels = new LinkedList<>();
-        labels.add("sample");
-        List<String> sampleLabels = labels;
-        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
-        System.out.println("Sample Path: " + samplePath);
-        experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
     }
 
     @Override
@@ -114,6 +104,5 @@ public class DeltaStim extends ProceduralStim {
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
-
 
 }

@@ -18,10 +18,10 @@ import java.awt.*;
 import java.util.LinkedList;
 import java.util.List;
 
-public class EStimProceduralStim extends ProceduralStim{
+public class EStimShapeProceduralStim extends ProceduralStim{
     private final ReceptiveFieldSource rfSource;
 
-    public EStimProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, int noiseComponentIndex) {
+    public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, int noiseComponentIndex) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
         this.rfSource = generator.getRfSource();
     }

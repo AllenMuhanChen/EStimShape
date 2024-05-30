@@ -122,7 +122,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");
     }
 
-    public int getDeltaCompId() {
+    public int assignDeltaCompId() {
         int drivingComponent = getDrivingComponent();
         List<Integer> allComps = getCompIds();
         decideLeafBranch();

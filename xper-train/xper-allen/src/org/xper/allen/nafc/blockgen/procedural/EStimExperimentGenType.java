@@ -51,7 +51,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + parameters.stimId + "_spec.xml");
 
             //using estim values set on the IntanGUI
-            EStimProceduralStim stim = new EStimProceduralStim((EStimExperimentTrialGenerator) generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
+            EStimShapeProceduralStim stim = new EStimShapeProceduralStim((EStimExperimentTrialGenerator) generator, parameters.getProceduralStimParameters(), baseMStick, morphIndex, noiseIndex);
             newBlock.add(stim);
         }
 

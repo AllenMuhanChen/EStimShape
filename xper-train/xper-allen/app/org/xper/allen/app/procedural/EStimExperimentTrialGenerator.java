@@ -51,7 +51,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
         numEStimTrialsForNoiseChances.put(0.5, 2);
 
-        int numDeltaSets = 0;
+        int numDeltaSets = 1;
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
 //        numBehavioralTrialsForNoiseChances.put(0.5, 10);
@@ -77,7 +77,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
-            EStimProceduralStim stim = new EStimProceduralStim(
+            EStimShapeProceduralStim stim = new EStimShapeProceduralStim(
                     this,
                     parameters, baseMStick, compId, compId);
             eStimTrials.add(stim);
@@ -90,10 +90,10 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> deltaTrials = new LinkedList<>();
         for (int i = 0; i< numDeltaSets; i++){
             int randIndex = (int) (Math.random() * eStimTrialParams.size());
-            ProceduralStim baseStim = (ProceduralStim) eStimTrials.get(randIndex);
-            ProceduralStim deltaMorph = new DeltaStim(baseStim, true, false);
-            ProceduralStim deltaNoise = new DeltaStim(baseStim, false, true);
-            ProceduralStim deltaBoth = new DeltaStim(baseStim, true, true);
+            EStimShapeProceduralStim baseStim = (EStimShapeProceduralStim) eStimTrials.get(randIndex);
+            EStimShapeDeltaStim deltaMorph = new EStimShapeDeltaStim(baseStim, true, false);
+            EStimShapeDeltaStim deltaNoise = new EStimShapeDeltaStim(baseStim, false, true);
+            EStimShapeDeltaStim deltaBoth = new EStimShapeDeltaStim(baseStim, true, true);
             deltaTrials.add(deltaMorph);
             deltaTrials.add(deltaNoise);
             deltaTrials.add(deltaBoth);
