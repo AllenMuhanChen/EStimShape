@@ -6,21 +6,21 @@ public class NAFCTrialParameters {
 	private Lims sampleDistanceLims;
 	private Lims choiceDistanceLims;
 	private double size;
-	private double eyeWinSize;
+	private double eyeWinRadius;
 
 	public NAFCTrialParameters(NAFCTrialParameters other) {
 		this.sampleDistanceLims = other.sampleDistanceLims;
 		this.choiceDistanceLims = other.choiceDistanceLims;
 		this.size = other.size;
-		this.eyeWinSize = other.eyeWinSize;
+		this.eyeWinRadius = other.eyeWinRadius;
 	}
 
-	public NAFCTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize) {
+	public NAFCTrialParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinRadius) {
 		super();
 		this.sampleDistanceLims = sampleDistanceLims;
 		this.choiceDistanceLims = choiceDistanceLims;
 		this.size = size;
-		this.eyeWinSize = eyeWinSize;
+		this.eyeWinRadius = eyeWinRadius;
 	}
 
 	public NAFCTrialParameters() {
@@ -68,11 +68,11 @@ public class NAFCTrialParameters {
 		this.size = size;
 	}
 
-	public double getEyeWinSize() {
-		return eyeWinSize;
+	public double getEyeWinRadius() {
+		return eyeWinRadius;
 	}
 
-	public void setEyeWinSize(double eyeWinSize) {
-		this.eyeWinSize = eyeWinSize;
+	public void setEyeWinRadius(double eyeWinRadius) {
+		this.eyeWinRadius = eyeWinRadius;
 	}
 }

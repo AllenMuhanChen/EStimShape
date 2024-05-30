@@ -12,7 +12,7 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 	NumberOfMorphCategories numMorphCategories;
 
 	public RandNoisyTrialParameters(NumberOfDistractorsForRandTrial numDistractors, NumberOfMorphCategories numMorphCategories, NoisyTrialParameters noisyTrialParameters) {
-		super(noisyTrialParameters.getSampleDistanceLims(), noisyTrialParameters.getChoiceDistanceLims(), noisyTrialParameters.getSize(), noisyTrialParameters.getEyeWinSize(), noisyTrialParameters.getNoiseParameters());
+		super(noisyTrialParameters.getSampleDistanceLims(), noisyTrialParameters.getChoiceDistanceLims(), noisyTrialParameters.getSize(), noisyTrialParameters.getEyeWinRadius(), noisyTrialParameters.getNoiseParameters());
 		this.numDistractors = numDistractors;
 		this.numMorphCategories = numMorphCategories;
 		this.numChoices = numDistractors.getTotalNumDistractors()+1;
@@ -28,7 +28,7 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 	}
 
 	private int numChoices;
-	
+
 	static XStream s = new XStream();
 
 	static {
@@ -43,7 +43,7 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 		return toXml(this);
 	}
 
-	
+
 	public NumberOfDistractorsForRandTrial getNumDistractors() {
 		return numDistractors;
 	}
@@ -65,6 +65,6 @@ public class RandNoisyTrialParameters extends NoisyTrialParameters {
 	}
 
 
-	
-	
+
+
 }

@@ -2,7 +2,6 @@ package org.xper.allen.nafc.blockgen.psychometric;
 
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.NAFCTrialParameters;
-import org.xper.allen.nafc.blockgen.HandicappedNAFCTrialParameters;
 import org.xper.allen.nafc.vo.NoiseParameters;
 
 import com.thoughtworks.xstream.XStream;
@@ -17,7 +16,7 @@ public class NoisyTrialParameters extends NAFCTrialParameters{
 	}
 
 	public NoisyTrialParameters(NoisyTrialParameters other) {
-		super(other.getSampleDistanceLims(), other.getChoiceDistanceLims(), other.getSize(), other.getEyeWinSize());
+		super(other.getSampleDistanceLims(), other.getChoiceDistanceLims(), other.getSize(), other.getEyeWinRadius());
 		this.noiseParameters = other.noiseParameters;
 	}
 

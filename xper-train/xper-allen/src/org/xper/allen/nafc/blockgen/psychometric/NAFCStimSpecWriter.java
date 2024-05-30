@@ -87,7 +87,7 @@ public class NAFCStimSpecWriter {
 	private void assignTargetEyeWindowSizes() {
 		targetEyeWinSizes = new double[numChoices];
 		for(int j=0; j < numChoices; j++) {
-			targetEyeWinSizes[j] = trialParameters.getEyeWinSize();
+			targetEyeWinSizes[j] = trialParameters.getEyeWinRadius();
 		}
 	}
 

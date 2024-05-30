@@ -83,7 +83,7 @@ public class ProceduralRandGenType<T extends GenParameters> extends GenType<T>{
             choiceDistMinField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getLowerLim()));
             choiceDistMaxField.setText(String.valueOf(stimParameters.getChoiceDistanceLims().getUpperLim()));
             sizeField.setText(String.valueOf(stimParameters.getSize()));
-            eyeWinSizeField.setText(String.valueOf(stimParameters.getEyeWinSize()));
+            eyeWinSizeField.setText(String.valueOf(stimParameters.getEyeWinRadius()));
             noiseChanceField.setText(String.valueOf(stimParameters.noiseChance));
             noiseRateField.setText(String.valueOf(stimParameters.noiseRate));
             numChoicesField.setText(String.valueOf(stimParameters.numChoices));
