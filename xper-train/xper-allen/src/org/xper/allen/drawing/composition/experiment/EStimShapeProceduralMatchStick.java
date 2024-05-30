@@ -52,6 +52,8 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
             return true;
         } catch (MorphException e) {
             System.out.println(e.getMessage());
+        } catch (NoiseException ne){
+            System.out.println(ne.getMessage());
         }
         return false;
     }

@@ -56,7 +56,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
                 generateRandDistractors();
 
                 break;
-            } catch (ProceduralMatchStick.MorphRepetitionException e) {
+            } catch (Exception e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
             }
         }
