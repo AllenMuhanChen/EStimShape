@@ -50,7 +50,7 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     @Override
     protected boolean checkMStick(int drivingComponentIndex) {
         try {
-//            checkMStickSize(); //no need to check size with our old methods if we are testing if it's completely inside RF
+            checkInNoise(drivingComponentIndex, 0.3);
             return true;
         } catch (MorphException e) {
             System.out.println(e.getMessage());

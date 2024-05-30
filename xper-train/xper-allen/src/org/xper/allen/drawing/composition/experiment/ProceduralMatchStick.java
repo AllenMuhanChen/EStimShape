@@ -151,7 +151,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         try {
 //            finalPositionShape();
             checkMStickSize();
-//            checkInNoise(drivingComponentIndex, 0.6);
+            checkInNoise(drivingComponentIndex, 0.3);
 //                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
             return true;
         } catch (ObjectCenteredPositionException e) {

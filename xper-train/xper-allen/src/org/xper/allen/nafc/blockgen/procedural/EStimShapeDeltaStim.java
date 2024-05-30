@@ -83,9 +83,8 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
         if (isDeltaMorph){
             labels.add("deltaMorph");
         }
-        List<String> proceduralDistractorLabels = labels;
         for (int i = 0; i < numProceduralDistractors; i++) {
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), labels, generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
