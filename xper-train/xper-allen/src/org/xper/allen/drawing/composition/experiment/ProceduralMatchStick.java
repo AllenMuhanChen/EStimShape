@@ -26,7 +26,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
 //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
-    public double noiseRadiusDegrees = 10;
+    public double noiseRadiusMm = 10;
     public int maxAttempts = 15;
     protected Point3d noiseOrigin;
 
@@ -149,10 +149,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
     protected boolean checkMStick(int drivingComponentIndex) {
         try {
-//            finalPositionShape();
             checkMStickSize();
-            checkInNoise(drivingComponentIndex, 0.3);
-//                compareObjectCenteredPositionTo(objCenteredPosForDrivingComp);
             return true;
         } catch (ObjectCenteredPositionException e) {
 //            System.out.println(e.getMessage());
@@ -351,7 +348,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         List<Point2d> pointsOutside = new LinkedList<>();
         for (ConcaveHull.Point point: pointsToCheck){
-            if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusDegrees)){
+            if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
             }
         }
@@ -378,7 +375,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         int numPointsOutside = 0;
         for (Point2d point: pointsToCheckIfOutside){
-            if (!isPointWithinCircle(point, new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusDegrees)){
+            if (!isPointWithinCircle(point, new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
                 numPointsOutside++;
             }
         }
@@ -444,7 +441,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         projectedPoint = pointAlong2dTangent(startingPosition,
                 tangent,
-                noiseRadiusDegrees);
+                noiseRadiusMm);
         return projectedPoint;
     }
 
@@ -531,7 +528,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 //        }
 //        averageStartingPosition.scale(1.0/startingPositions.size());
         Point3d startingPosition = chooseStartingPoint(junc, bisector_3d);
-        projectedPoint = pointAlong2dTangent(startingPosition, bisector_3d, noiseRadiusDegrees);
+        projectedPoint = pointAlong2dTangent(startingPosition, bisector_3d, noiseRadiusMm);
         return projectedPoint;
     }
 

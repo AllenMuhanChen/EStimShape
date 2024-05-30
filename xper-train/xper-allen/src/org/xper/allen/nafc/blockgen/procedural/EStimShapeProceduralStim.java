@@ -85,9 +85,14 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels, generator.getGeneratorPngPath());
     }
 
+    /**
+     * Instead of just shallow copying the sample, we generate a new match stick from the sample
+     * by generating from shapespec, this ensures we convert from the sample's coordinate system
+     * to one appropiate for the match.
+     * @param sample
+     */
     @Override
     protected void generateMatch(ProceduralMatchStick sample) {
-        //Generate Match
         ProceduralMatchStick match = new ProceduralMatchStick();
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
@@ -102,6 +107,32 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected void writeEStimSpec() {
         AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
         dbUtil.writeEStimObjData(getStimId(), "EStimEnabled", "");
+    }
+
+
+    @Override
+    protected void generateProceduralDistractors(ProceduralMatchStick sample) {
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
+            correctNoiseRadius(proceduralDistractor);
+            proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
+            proceduralDistractor.setStimColor(parameters.color);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
+            mSticks.proceduralDistractors.add(proceduralDistractor);
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
+        }
+    }
+
+    /**
+     * Because the procedural distractors are drawn zoomed in, we need to adjust the noise
+     * radius for the checkInNoise to work properly. We basically just calculate the ratio
+     * of the image dimensions in degrees and the specified size of the match stick, and
+     * then multiply this ratio by the size of noiseRadius to scale it properly.
+     * @param proceduralDistractor
+     */
+    private void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
+        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        proceduralDistractor.noiseRadiusMm = rfSource.getRFRadiusMm() * scaleFactor;
     }
 
     @Override

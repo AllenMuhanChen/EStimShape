@@ -1,7 +1,6 @@
 package org.xper.allen.drawing.composition.experiment;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.allen.drawing.ga.RandomPointInConvexPolygon;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
@@ -9,7 +8,6 @@ import org.xper.drawing.Coordinates2D;
 
 import javax.vecmath.Point3d;
 import java.util.*;
-import java.util.function.Predicate;
 
 /**
  * MatchSticks that are used to generate stimuli for the EStimShape NAFC Experiment.
@@ -25,7 +23,7 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     public EStimShapeProceduralMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
         this.rfStrategy = rfStrategy;
         this.rf = rf;
-        this.noiseRadiusDegrees = rf.radius*2;
+        this.noiseRadiusMm = rf.radius*2;
     }
 
 

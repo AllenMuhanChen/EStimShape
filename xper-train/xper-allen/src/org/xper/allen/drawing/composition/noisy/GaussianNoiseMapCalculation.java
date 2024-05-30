@@ -26,7 +26,7 @@ public class GaussianNoiseMapCalculation {
 
         return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
                 noiseOriginPixels.getX(), noiseOriginPixels.getY(),
-                mmToPixels(renderer, mStick.noiseRadiusDegrees), amplitude,
+                mmToPixels(renderer, mStick.noiseRadiusMm), amplitude,
                 sigmaPixels, sigmaPixels,
                 background);
 
