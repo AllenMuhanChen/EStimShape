@@ -46,6 +46,7 @@ public class EStimProceduralStim extends ProceduralStim{
             try {
                 EStimShapeProceduralMatchStick sample = generateSample();
 
+                morphComponentIndex = sample.getDrivingComponent();
                 noiseComponentIndex = sample.getDrivingComponent();
 
                 generateMatch(sample);

@@ -123,8 +123,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     ProceduralStimParameters parameters = new ProceduralStimParameters(
                             new Lims(0, 0),
                             new Lims(10, 10),
-                            getImageDimensionsDegrees(),
-                            getImageDimensionsDegrees(),
+                            getImageDimensionsDegrees(), //not used?
+                            RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource),
                             noiseChance,
                             4,
                             2,
