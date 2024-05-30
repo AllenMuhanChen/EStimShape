@@ -4,6 +4,7 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.procedural.*;
@@ -11,6 +12,7 @@ import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimPara
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.allen.pga.ReceptiveFieldSource;
+import org.xper.drawing.Coordinates2D;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
@@ -59,20 +61,61 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
         List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
 
-        //Assigning Fake RFS
-        List<ReceptiveField> fakeRFs = new LinkedList<>();
-        for (int i = 0; i < behavioralTrialParams.size(); i++){
-            fakeRFs.add(rfSource.getReceptiveField());
-        }
 
-
-        //Make Trials
+        //Make EStimTrials and Delta Trials
         List<Stim> eStimTrials = makeEStimTrials(eStimTrialParams, stimColor, stimId, compId);
         List<Stim> deltaTrials = makeDeltaTrials(numDeltaSets, eStimTrialParams, eStimTrials);
-        List<Stim> behavioralTrials = makeBehavioralTrials(behavioralTrialParams, fakeRFs);
+
+        //Assigning Fake RFS
+        int numEStimTrials = eStimTrials.size();
+        int numDeltaTrials = deltaTrials.size();
+        int numBehavioralTrials = behavioralTrialParams.size();
+        List<ReceptiveField> behTrialRFs = assignRFsToBehTrials(numEStimTrials, numDeltaTrials, numBehavioralTrials, getRF());
+
+        List<Stim> behavioralTrials = makeBehavioralTrials(behavioralTrialParams, behTrialRFs);
         stims.addAll(eStimTrials);
         stims.addAll(deltaTrials);
         stims.addAll(behavioralTrials);
+    }
+
+    public static List<ReceptiveField> assignRFsToBehTrials(int numEStimTrials, int numDeltaTrials, int numBehavioralTrials, ReceptiveField realRf) {
+        int numTestTrials = numEStimTrials + numDeltaTrials;
+        int numTotalTrials = numTestTrials + numBehavioralTrials;
+        int numToDistributeToFakeRFs = numTotalTrials - (2*numTestTrials);
+        double numRFs = (double) numTotalTrials / numToDistributeToFakeRFs;
+        if (numRFs % 1 != 0){
+            throw new IllegalArgumentException("Number of Behavioral Trials must be a multiple of the number of EStimTrials and DeltaTrials");
+        }
+        int numFakeRFs = (int) (numRFs - 1); //minus one for the real one
+        int numTrialsPerRF = (int) (numTotalTrials/numRFs);
+        double eccentricity = realRf.getCenter().distance(new Coordinates2D(0, 0));
+        double angleDf = 360.0 / numRFs;
+
+        double realRFAngle = RFUtils.cartesianToPolarAngle(realRf.getCenter());
+        Set<ReceptiveField> fakeRFs = new HashSet<>();
+        for (int i = 1; i <= numFakeRFs; i++){
+            double angle = realRFAngle + angleDf * i;
+            Coordinates2D fakeCenter = RFUtils.polarToCartesian(eccentricity, angle);
+            ReceptiveField fakeRF = new CircleReceptiveField(fakeCenter, realRf.radius);
+            fakeRFs.add(fakeRF);
+        }
+
+        List<ReceptiveField> behTrialRFs = new LinkedList<>();
+        //Assign To Fake RFs
+        fakeRFs.forEach(new java.util.function.Consumer<ReceptiveField>() {
+            @Override
+            public void accept(ReceptiveField fakeRF) {
+                for (int i = 0; i < numTrialsPerRF; i++){
+                    behTrialRFs.add(fakeRF);
+                }
+            }
+        }
+        );
+        //Assign to Real RF
+        for (int i=0; i<numTrialsPerRF/2; i++){
+            behTrialRFs.add(realRf);
+        }
+        return behTrialRFs;
     }
 
     private List<Stim> makeEStimTrials(List<ProceduralStimParameters> eStimTrialParams, Color stimColor, long stimId, int compId) {

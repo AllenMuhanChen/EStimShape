@@ -140,4 +140,16 @@ public class RFUtils {
 
     }
 
+    public static Coordinates2D polarToCartesian(double eccentricity, double angleDegrees) {
+        double angle = angleDegrees * Math.PI / 180;
+        double x = eccentricity * Math.cos(angle);
+        double y = eccentricity * Math.sin(angle);
+        return new Coordinates2D(x, y);
+    }
+
+    public static double cartesianToPolarAngle(Coordinates2D center) {
+        double x = center.getX();
+        double y = center.getY();
+        return Math.atan2(y, x) * 180 / Math.PI;
+    }
 }
