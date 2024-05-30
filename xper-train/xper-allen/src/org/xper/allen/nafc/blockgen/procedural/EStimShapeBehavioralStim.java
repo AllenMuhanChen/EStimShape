@@ -3,18 +3,22 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
 public class EStimShapeBehavioralStim extends EStimShapeProceduralStim{
 
-    public EStimShapeBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters) {
+    private ReceptiveField rf;
+
+    public EStimShapeBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
         super(
                 generator,
                 parameters,
                 null,
                 -1,
                 -1);
+        this.rf = rf;
     }
 
     @Override
@@ -71,7 +75,7 @@ public class EStimShapeBehavioralStim extends EStimShapeProceduralStim{
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                ((EStimExperimentTrialGenerator) generator).getRF()
+                rf
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);

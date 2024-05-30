@@ -59,10 +59,17 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
         List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
 
+        //Assigning Fake RFS
+        List<ReceptiveField> fakeRFs = new LinkedList<>();
+        for (int i = 0; i < behavioralTrialParams.size(); i++){
+            fakeRFs.add(rfSource.getReceptiveField());
+        }
+
+
         //Make Trials
         List<Stim> eStimTrials = makeEStimTrials(eStimTrialParams, stimColor, stimId, compId);
         List<Stim> deltaTrials = makeDeltaTrials(numDeltaSets, eStimTrialParams, eStimTrials);
-        List<Stim> behavioralTrials = makeBehavioralTrials(behavioralTrialParams);
+        List<Stim> behavioralTrials = makeBehavioralTrials(behavioralTrialParams, fakeRFs);
         stims.addAll(eStimTrials);
         stims.addAll(deltaTrials);
         stims.addAll(behavioralTrials);
@@ -101,13 +108,15 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         return deltaTrials;
     }
 
-    private List<Stim> makeBehavioralTrials(List<ProceduralStimParameters> behavioralTrialParams) {
+    private List<Stim> makeBehavioralTrials(List<ProceduralStimParameters> behavioralTrialParams, List<ReceptiveField> fakeRFs) {
         //Add Behavioral Trials
         List<Stim> behavioralTrials = new LinkedList<>();
-        for (ProceduralStimParameters parameters : behavioralTrialParams){
-            EStimShapeBehavioralStim stim = new EStimShapeBehavioralStim(this, parameters);
+        for (int i = 0; i< behavioralTrialParams.size(); i++){
+            ProceduralStimParameters parameters = behavioralTrialParams.get(i);
+            EStimShapeBehavioralStim stim = new EStimShapeBehavioralStim(this, parameters, fakeRFs.get(i));
             behavioralTrials.add(stim);
         }
+
         return behavioralTrials;
     }
 
