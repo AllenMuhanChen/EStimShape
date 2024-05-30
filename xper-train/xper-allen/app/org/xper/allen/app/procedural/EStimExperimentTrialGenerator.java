@@ -16,10 +16,8 @@ import org.xper.util.FileUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiConsumer;
 
 public class EStimExperimentTrialGenerator extends NAFCBlockGen {
@@ -51,7 +49,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
-        numEStimTrialsForNoiseChances.put(0.5, 10);
+        numEStimTrialsForNoiseChances.put(0.5, 2);
 
         int numDeltaSets = 0;
 
@@ -75,7 +73,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
             ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
@@ -114,19 +112,29 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     }
 
     private List<ProceduralStimParameters> assignTrialParams(Color stimColor, Map<Double, Integer> numTrialsForNoiseChances) {
+        //Specifying universal parameters
+        double eyeWinRadius = calculateEyeWinRadius();
+        int numChoices = 4;
+        double choiceRadius = RadialSquares.calculateRequiredRadius(
+                numChoices,
+                eyeWinRadius,
+                eyeWinRadius/2);
+
         //Init EStim Trial Parameters
         List<ProceduralStimParameters> eStimTrialParams = new LinkedList<>();
         numTrialsForNoiseChances.forEach(new BiConsumer<Double, Integer>() {
             @Override
             public void accept(Double noiseChance, Integer numTrials) {
+
                 for (int i = 0; i < numTrials; i++) {
+
                     ProceduralStimParameters parameters = new ProceduralStimParameters(
                             new Lims(0, 0),
-                            new Lims(10, 10),
+                            new Lims(choiceRadius, choiceRadius),
                             getImageDimensionsDegrees(), //not used?
-                            RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource),
+                            eyeWinRadius,
                             noiseChance,
-                            4,
+                            numChoices,
                             2,
                             0.5,
                             0.5,
@@ -139,6 +147,13 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             }
         });
         return eStimTrialParams;
+    }
+
+    private double calculateEyeWinRadius() {
+        double shapeSquareLength = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double squareDiagonal = Math.sqrt(2) * shapeSquareLength;
+        double eyeWinRadius = squareDiagonal /2;
+        return eyeWinRadius;
     }
 
     public ReceptiveField getRF() {

@@ -10,10 +10,9 @@ import javax.vecmath.Point3d;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 
 public class RFUtils {
-    public static double calculateMStickMaxSizeDegrees(RFStrategy rfStrategy, ReceptiveFieldSource rfSource) {
+    public static double calculateMStickMaxSizeDiameterDegrees(RFStrategy rfStrategy, ReceptiveFieldSource rfSource) {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             int maxLimbs = 4;
             return rfSource.getRFRadiusDegrees() * maxLimbs;

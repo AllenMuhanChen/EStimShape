@@ -70,7 +70,7 @@ public class EStimProceduralStim extends ProceduralStim{
                 RFStrategy.PARTIALLY_INSIDE,
                 ((EStimExperimentTrialGenerator) generator).getRF()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
 
@@ -136,7 +136,7 @@ public class EStimProceduralStim extends ProceduralStim{
         double imageSizeSample = generator.getImageDimensionsDegrees();
         ImageDimensions dimensionsSample = new ImageDimensions(imageSizeSample, imageSizeSample);
 
-        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
         ImageDimensions dimensionsChoices = new ImageDimensions(imageSizeChoices, imageSizeChoices);
 
         //Sample
