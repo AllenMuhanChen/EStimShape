@@ -1,0 +1,25 @@
+#!/bin/bash
+source paths
+
+# List of property files to update
+PROPERTIES_FILES=(
+    "$XPER_PROPERTIES_GA"
+    "$XPER_PROPERTIES_PROCEDURAL"
+    "$XPER_PROPERTIES_ISOGABOR"
+)
+
+# Function to update console.eye_simulation to true
+update_eye_simulation() {
+    local file=$1
+    if grep -q "console.eye_simulation=" "$file"; then
+        sed -i 's/console.eye_simulation=false/console.eye_simulation=false/' "$file"
+        echo "Updated console.eye_simulation to false in $file"
+    else
+        echo "console.eye_simulation property not found in $file"
+    fi
+}
+
+# Loop through each property file and update it
+for file in "${PROPERTIES_FILES[@]}"; do
+    update_eye_simulation "$file"
+done
