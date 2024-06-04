@@ -14,7 +14,7 @@ def main():
     isogabor_database = "allen_isogabor_train_240604"
 
     # GA Database
-    create_db_from_template('allen_estimshape_ga_test_240508',
+    create_db_from_template('allen_estimshape_ga_train_240604',
                             ga_database,
                             [
                                 "SystemVar",
@@ -22,14 +22,14 @@ def main():
                                 "GAVar"])
 
     # NAFC Database
-    create_db_from_template("allen_estimshape_test_240508",
+    create_db_from_template("allen_estimshape_train_240604",
                             nafc_database,
                             [
                                 "SystemVar",
                                 "InternalState"])
 
     # ISOGABOR Database
-    create_db_from_template("allen_isogabor_dev_240322",
+    create_db_from_template("allen_isogabor_train_240604",
                             isogabor_database,
                             [
                                 "SystemVar",

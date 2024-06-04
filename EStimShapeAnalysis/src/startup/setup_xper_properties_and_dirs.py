@@ -11,6 +11,8 @@ def main():
 
     update_version_shellscript()
 
+    make_misc_dirs()
+
 
 class PathMaker:
     def __init__(self):
@@ -242,6 +244,13 @@ def update_version_shellscript():
         version_file.write(version_content)
 
     print("Version file updated successfully.")
+
+
+def make_misc_dirs():
+    pathmaker = PathMaker()
+    pathmaker.add_path(config.java_output_dir)
+    pathmaker.add_path(config.rwa_output_dir)
+    pathmaker.generate()
 
 
 if __name__ == "__main__":
