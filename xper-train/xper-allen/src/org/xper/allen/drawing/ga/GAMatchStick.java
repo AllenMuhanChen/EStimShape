@@ -116,6 +116,8 @@ public class GAMatchStick extends MorphedMatchStick {
         inSpec = AllenMStickSpec.fromXml(in_specStr);
 
         genMatchStickFromShapeSpec(inSpec, new double[] {0,0,0}, Collections.singletonList(compIdInRF));
+        this.rfStrategy = RFStrategy.PARTIALLY_INSIDE;
+        positionShape();
     }
 
     @Override

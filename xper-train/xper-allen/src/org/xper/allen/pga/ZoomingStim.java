@@ -23,6 +23,7 @@ public class ZoomingStim extends GAStim<GAMatchStick, AllenMStickData> {
                 RFStrategy.PARTIALLY_INSIDE,
                 "SHADE");
         mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource), textureType);
+        mStick.setStimColor(color);
         mStick.genPartialFromFile(
                 generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml",
                 compIdInRF);

@@ -9,9 +9,9 @@ PASS = 'up2nite'
 
 
 def main():
-    ga_database = "allen_estimshape_ga_test_240528"
-    nafc_database = "allen_estimshape_test_240528"
-    isogabor_database = "allen_isogabor_test_240528"
+    ga_database = "allen_estimshape_ga_train_240604"
+    nafc_database = "allen_estimshape_train_240604"
+    isogabor_database = "allen_isogabor_train_240604"
 
     # GA Database
     create_db_from_template('allen_estimshape_ga_test_240508',

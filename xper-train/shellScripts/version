@@ -1,5 +1,5 @@
 #!/bin/bash
 #All we need to do is change VERSION. 
-VERSION_PROCEDURAL=allen_estimshape_test_240508
-VERSION_ISOGABOR=allen_isogabor_test_240508
-VERSION_GA=allen_estimshape_ga_test_240508
+VERSION_PROCEDURAL=allen_estimshape_train_240604
+VERSION_ISOGABOR=allen_isogabor_train_240604
+VERSION_GA=allen_estimshape_ga_train_240604

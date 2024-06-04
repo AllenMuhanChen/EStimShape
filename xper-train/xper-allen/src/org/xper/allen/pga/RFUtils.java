@@ -19,7 +19,7 @@ public class RFUtils {
             return rfSource.getRFRadiusDegrees() * maxLimbs;
         } else {
             //TODO:
-            return rfSource.getRFRadiusDegrees() * 2;
+            return rfSource.getRFRadiusDegrees() /2;
         }
     }
 
@@ -63,6 +63,7 @@ public class RFUtils {
         } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
 
             rfCenter = rf.getCenter();
+            System.out.println("RF Center: " + rfCenter);
             mStick.moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
 
             if (!checkAllInRF(1.0, rf, mStick)) {
@@ -111,20 +112,23 @@ public class RFUtils {
         List<Point3d> pointsToCheck = new ArrayList<>();
         List<Point3d> pointsInside = new ArrayList<>();
 
-//        for (int i=1; i<=this.getnComponent(); i++){
-//            pointsToCheck.addAll(Arrays.asList(this.getComp()[i].getVect_info()));
-//        }
-        pointsToCheck.addAll(Arrays.asList(mStick.getObj1().vect_info));
+        for (int i=1; i<=mStick.getnComponent(); i++){
+            pointsToCheck.addAll(Arrays.asList(mStick.getComp()[i].getVect_info()));
+        }
+//        pointsToCheck.addAll(Arrays.asList(mStick.getObj1().vect_info));
 
+        int numPoints = 0;
         for (Point3d point: pointsToCheck){
             if (point != null) {
+                numPoints++;
                 if (rf.isInRF(point.x, point.y)) {
                     pointsInside.add(point);
                 }
             }
         }
 
-        double percentageInRF = (double) pointsInside.size() / pointsToCheck.size();
+        double percentageInRF = (double) pointsInside.size() / numPoints;
+        System.out.println("Percentage in RF: " + percentageInRF);
         return percentageInRF >= thresholdPercentageInRF;
     }
 

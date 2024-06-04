@@ -12,7 +12,7 @@ PROPERTIES_FILES=(
 update_eye_simulation() {
     local file=$1
     if grep -q "console.eye_simulation=" "$file"; then
-        sed -i 's/console.eye_simulation=false/console.eye_simulation=false/' "$file"
+        sed -i 's/console.eye_simulation=true/console.eye_simulation=false/' "$file"
         echo "Updated console.eye_simulation to false in $file"
     else
         echo "console.eye_simulation property not found in $file"

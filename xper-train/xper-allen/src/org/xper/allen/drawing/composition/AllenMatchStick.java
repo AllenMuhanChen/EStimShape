@@ -295,7 +295,7 @@ public class AllenMatchStick extends MatchStick {
 		// of our new synthesized shape & original vertex distance
 		if ( res == true)
 		{
-			positionShape();
+//			positionShape();
 			return;
 //			            if ( inSpec.getNVect() < 10) // this might happen, not sure
 //			            {

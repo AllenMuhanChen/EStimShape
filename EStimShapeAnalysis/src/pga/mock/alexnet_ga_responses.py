@@ -25,9 +25,9 @@ def run_training():
                                      22, 11, 20, 5, 26, 10, 21, 6, 25]
     channel_strings_top_to_bottom = [f"A-{num:03}" for num in channel_numbers_top_to_bottom]
 
-    units = [70, 7, 12, 30, 36, 22, 28, 10]
+    units = [70, 71, 117, 30, 36, 22, 28, 10]
     loc_xs = [6, 7]
-    loc_ys = [0, 1]
+    loc_ys = [6, 7]
 
 
 

@@ -79,7 +79,7 @@ public class EStimShapeProceduralMatchStickTest {
         };
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField);
 
-        mStick.setProperties(2, "SHADE");
+        mStick.setProperties(5, "SHADE");
 
         mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
         testMatchStickDrawer.draw(new Drawable() {
@@ -94,7 +94,7 @@ public class EStimShapeProceduralMatchStickTest {
 
                 System.out.println(circle.getX() + " " + circle.getY());
 
-                double radius = 10;
+                double radius = mStick.noiseRadiusMm;
                 int numSegments = 100; // Increase for a smoother circle
 
                 GL11.glBegin(GL11.GL_LINE_LOOP);
@@ -183,7 +183,7 @@ public class EStimShapeProceduralMatchStickTest {
                 Point3d circle = mStick.calculateNoiseOrigin(mStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
 
-                double radius = 10;
+                double radius = mStick.noiseRadiusMm;
                 int numSegments = 100; // Increase for a smoother circle
 
                 GL11.glBegin(GL11.GL_LINE_LOOP);
