@@ -10,6 +10,7 @@ allen_dist = "/home/r2_allen/git/EStimShape/xper-train/dist/allen"
 image_path = f"/home/r2_allen/Documents/EStimShape/{ga_database}/stimuli/ga/pngs"
 java_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/java_output"
 rwa_output_dir = f"/home/r2_allen/Documents/EStimShape/{ga_database}/rwa"
+eyecal_dir=f"/home/r2_allen/Documents/EStimShape/{ga_database}/eyecal"
 base_intan_path = f"/run/user/1003/gvfs/sftp:host=172.30.9.78/home/i2_allen/Documents/EStimShape/{ga_database}/ga"
 
 # ga_config = TwoDThreeDGAConfig(database=ga_database,

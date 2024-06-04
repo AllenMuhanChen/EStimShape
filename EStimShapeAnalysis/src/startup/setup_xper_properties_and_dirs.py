@@ -14,29 +14,17 @@ def main():
     make_misc_dirs()
 
 
-class PathMaker:
-    def __init__(self):
-        """Initializes an empty list to hold paths."""
-        self.paths = []
+def make_path(path):
+    """
+    Adds a new path to the list of paths.
 
-    def add_path(self, path):
-        """
-        Adds a new path to the list of paths.
+    Args:
+        path: A string representing the directory path to add.
+    """
+    os.makedirs(path, exist_ok=True)
 
-        Args:
-            path: A string representing the directory path to add.
-        """
-        self.paths.append(path)
 
-    def generate(self):
-        """
-        Creates all paths in the list, including any necessary parent directories.
-        """
-        for path in self.paths:
-            # Create the path along with any necessary parent directories
-            os.makedirs(path, exist_ok=True)
 
-        print("Paths generated successfully.")
 
 
 class XperPropertiesModifier:
@@ -135,11 +123,9 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     # Save changes
     modifier.save_changes()
     print("xper.properties.ga file modified successfully.")
-    # PathMaker
-    pathmaker = PathMaker()
-    pathmaker.add_path(generator_png_path)
-    pathmaker.add_path(generator_spec_path)
-    pathmaker.generate()
+    make_path(generator_png_path)
+    make_path(generator_spec_path)
+
 
 
 def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
@@ -191,12 +177,10 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
 
     print("xper.properties.procedural file modified successfully.")
 
-    # PathMaker
-    pathmaker = PathMaker()
-    pathmaker.add_path(generator_png_path)
-    pathmaker.add_path(generator_spec_path)
-    pathmaker.add_path(generator_noisemap_path)
-    pathmaker.generate()
+    make_path(generator_png_path)
+    make_path(generator_spec_path)
+    make_path(generator_noisemap_path)
+
 
 
 def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
@@ -247,10 +231,10 @@ def update_version_shellscript():
 
 
 def make_misc_dirs():
-    pathmaker = PathMaker()
-    pathmaker.add_path(config.java_output_dir)
-    pathmaker.add_path(config.rwa_output_dir)
-    pathmaker.generate()
+    make_path(config.java_output_dir)
+    make_path(config.rwa_output_dir)
+    make_path(config.eyecal_dir)
+
 
 
 if __name__ == "__main__":
