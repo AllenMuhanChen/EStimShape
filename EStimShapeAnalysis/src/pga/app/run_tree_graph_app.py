@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 
 import PIL
 import plotly.graph_objects as go
@@ -19,7 +20,7 @@ import xml.etree.ElementTree as ET
 
 from src.startup import config
 
-conn = config.ga_config.connection
+conn = config.ga_config.connection()
 
 
 class MockTreeGraphApp(TreeGraphApp):
@@ -317,11 +318,13 @@ def get_edge_colors(edges: list[tuple[int, int]]):
     edge_colors = {}
     for edge in edges:
         regime = fetch_regime_for_stim_id(edge[1])
-        color = colors_for_regimes[regime]
+        if re.match(r"Zooming_\d+", regime):
+            color = "orange"
+        else:
+            color = colors_for_regimes.get(regime, "default_color")  # Provide a default color if regime is not found
         edge_colors[edge] = color
 
     return edge_colors
-
 
 def fetch_regime_for_stim_id(stim_id):
     conn.execute("SELECT stim_type from StimGaInfo where stim_id = %s", (stim_id,))
