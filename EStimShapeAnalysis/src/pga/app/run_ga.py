@@ -4,8 +4,8 @@ import subprocess
 from src.startup import config
 
 
-def main():
-    r, g, b = prompt_rgb_values()
+def main(r, g, b):
+    # r, g, b = prompt_rgb_values()
     ga = config.ga_config.make_genetic_algorithm()
     ga.run()
     experiment_id = ga.experiment_id
@@ -38,4 +38,4 @@ def run_trial_generator(experiment_id: int, generation: int, r: int, g: int, b: 
 
 
 if __name__ == "__main__":
-    main()
+    main(255, 0, 0)

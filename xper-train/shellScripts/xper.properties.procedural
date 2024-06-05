@@ -3,7 +3,7 @@ matlab.home=/usr/local/matlab70_sp1
 xper.native_library_path=${matlab.home}/bin/glnx86;${matlab.home}/sys/os/glnx86
 
 jdbc.driver=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_train_240604?rewriteBatchedStatements=true
+jdbc.url=jdbc:mysql://172.30.6.80/allen_estimshape_test_240604?rewriteBatchedStatements=true
 
 
 jdbc.username=xper_rw
@@ -37,14 +37,14 @@ mock.config_class=
 # parameters
 #############################################################################
 #path of computer running stimulus generator
-generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/pngs
+generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240604/stimuli/procedural/pngs
 #path of computer running experiment
-experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/pngs
-generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/specs
-generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/pngs
-experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/pngs
+experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240604/stimuli/procedural/pngs
+generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240604/stimuli/procedural/specs
+generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240604/stimuli/procedural/pngs
+experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_test_240604/stimuli/procedural/pngs
 #############
-ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_train_240604/stimuli/ga/specs
+ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_test_240604/stimuli/ga/specs
 
 
 acq.server_host=172.30.6.80
@@ -54,7 +54,7 @@ acq.driver_name=comedi
 
 console.host=172.30.6.80
 
-console.eye_simulation=false
+console.eye_simulation=true
 
 experiment.host=172.30.6.90
 
@@ -84,7 +84,7 @@ mock.matlab_spike_function_name=RandomSpike
 #############################################################################
 intan.host=172.30.9.78
 intan.port.command=5000
-intan.default_save_path=/home/i2_allen/Documents/EStimShape/allen_estimshape_train_240604/nafc
+intan.default_save_path=/home/i2_allen/Documents/EStimShape/allen_estimshape_test_240604/nafc
 intan.default_base_filename=NAFC
 intan.remote_directory=/run/user/1003/gvfs/sftp:host=172.30.9.78
 generator.spike_dat_path=/home/r2_allen/DocuEStimShape/dev_221110/spikefiles_dev_221110

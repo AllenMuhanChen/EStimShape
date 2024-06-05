@@ -8,10 +8,10 @@ USER = 'xper_rw'
 PASS = 'up2nite'
 
 
-def main():
-    ga_database = "allen_estimshape_ga_train_240604"
-    nafc_database = "allen_estimshape_train_240604"
-    isogabor_database = "allen_isogabor_train_240604"
+def main(type: str, date: str):
+    ga_database = "allen_estimshape_ga_%s_%s" % (type, date)
+    nafc_database = "allen_estimshape_%s_%s" % (type, date)
+    isogabor_database = "allen_isogabor_%s_%s" % (type, date)
 
     # GA Database
     create_db_from_template('allen_estimshape_ga_train_240604',
@@ -37,6 +37,32 @@ def main():
                                 "SinGain",
                                 "MonitorLin"]
                             )
+
+    update_config_file(ga_database, nafc_database, isogabor_database)
+
+
+def update_config_file(ga_db, nafc_db, isogabor_db):
+    target_file = '/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/startup/config.py'
+
+    # Read the target file
+    with open(target_file, 'r') as file:
+        lines = file.readlines()
+
+    # Prepare the new content
+    new_lines = []
+    for line in lines:
+        if line.startswith("ga_database ="):
+            new_lines.append(f'ga_database = "{ga_db}"\n')
+        elif line.startswith("nafc_database ="):
+            new_lines.append(f'nafc_database = "{nafc_db}"\n')
+        elif line.startswith("isogabor_database ="):
+            new_lines.append(f'isogabor_database = "{isogabor_db}"\n')
+        else:
+            new_lines.append(line)
+
+    # Write the modified content back to the file
+    with open(target_file, 'w') as file:
+        file.writelines(new_lines)
 
 
 def create_db_from_template(source_db_name, dest_db_name, copy_data_tables):

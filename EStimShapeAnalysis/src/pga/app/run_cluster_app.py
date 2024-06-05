@@ -80,8 +80,7 @@ class DbDataExporter(DataExporter):
             self.db_util.write_cluster_info(current_experiment_id, current_gen_id, channel.value)
 
 
-
-if __name__ == '__main__':
+def main():
     app = get_qapplication_instance()
     window = ClusterApplicationWindow(DbDataLoader(config.ga_config.connection()),
                                       DbDataExporter(config.ga_config.db_util),
@@ -93,3 +92,7 @@ if __name__ == '__main__':
                                       DBCChannelMapper("A"))
     window.show()
     app.exec_()
+
+
+if __name__ == '__main__':
+    main()
