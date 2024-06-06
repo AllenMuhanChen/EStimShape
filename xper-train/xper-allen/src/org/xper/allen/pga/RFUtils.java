@@ -19,7 +19,7 @@ public class RFUtils {
             return rfSource.getRFRadiusDegrees() * maxLimbs;
         } else {
             //TODO:
-            return rfSource.getRFRadiusDegrees() /2;
+            return rfSource.getRFRadiusDegrees() * 2;
         }
     }
 

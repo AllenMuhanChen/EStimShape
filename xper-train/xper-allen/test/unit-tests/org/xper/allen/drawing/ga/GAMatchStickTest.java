@@ -1,6 +1,7 @@
 package org.xper.allen.drawing.ga;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
@@ -12,6 +13,8 @@ import org.xper.util.ThreadUtil;
 import static org.junit.Assert.assertEquals;
 
 public class GAMatchStickTest {
+
+    String figPath = "/home/r2_allen/Pictures";
 
     public static final ReceptiveField PARTIAL_RF = new ReceptiveField() {
         double h = 20;
@@ -59,6 +62,8 @@ public class GAMatchStickTest {
         testMatchStickDrawer.setup(500, 500);
 
     }
+
+
 
     @Test
     public void test_mstick_writes_rf_strategy_to_spec(){
@@ -208,10 +213,134 @@ public class GAMatchStickTest {
         ThreadUtil.sleep(10000);
     }
 
+    @Ignore
+    @Test
+    public void fig_examples_of_inside_vs_outside_morphs(){
+        GAMatchStick baseMatchStick = genPartiallyInside();
+        testMatchStickDrawer.drawMStick(baseMatchStick);
+        testMatchStickDrawer.drawRF(baseMatchStick);
+        testMatchStickDrawer.saveImage(figPath + "/base_mstick.png");
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+        GrowingMatchStick inside;
+        while (true) {
+            inside = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            inside.setProperties(5, "SHADE");
+            try {
+                inside.genInsideRFMorphedMStick(baseMatchStick, 0.7);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+        testMatchStickDrawer.drawMStick(inside);
+        testMatchStickDrawer.drawRF(inside);
+        testMatchStickDrawer.saveImage(figPath + "/inside_morph.png");
+        testMatchStickDrawer.clear();
+
+        GrowingMatchStick outside;
+        while (true) {
+            outside = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            outside.setProperties(5, "SHADE");
+            try {
+                outside.genOutsideRFMorphedMStick(baseMatchStick, 0.4);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        testMatchStickDrawer.drawMStick(outside);
+        testMatchStickDrawer.saveImage(figPath + "/outside_morph.png");
+        testMatchStickDrawer.clear();
+
+        GrowingMatchStick both;
+        while (true) {
+            both = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            both.setProperties(5, "SHADE");
+            try {
+                both.genOutsideRFMorphedMStick(baseMatchStick, 0.7);
+                both.genInsideRFMorphedMStick(both, 0.4);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        testMatchStickDrawer.drawMStick(both);
+        testMatchStickDrawer.drawRF(both);
+        testMatchStickDrawer.saveImage(figPath + "/both_morph.png");
+        ThreadUtil.sleep(10000);
+    }
+
+    @Ignore
+    @Test
+    public void fig_examples_of_diff_mutation_magnitudes(){
+        GAMatchStick baseMatchStick = genPartiallyInside();
+        testMatchStickDrawer.drawMStick(baseMatchStick);
+        testMatchStickDrawer.saveImage(figPath + "/base_mstick.png");
+        ThreadUtil.sleep(1000);
+        testMatchStickDrawer.clear();
+        GrowingMatchStick low;
+        while (true) {
+            low = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            low.setProperties(5, "SHADE");
+            try {
+                low.genOutsideRFMorphedMStick(baseMatchStick, 0.1);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        testMatchStickDrawer.drawMStick(low);
+        testMatchStickDrawer.saveImage(figPath + "/low_morph.png");
+        testMatchStickDrawer.clear();
+
+        GrowingMatchStick mid;
+        while (true) {
+            mid = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            mid.setProperties(5, "SHADE");
+            try {
+                mid.genOutsideRFMorphedMStick(baseMatchStick, 0.4);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        testMatchStickDrawer.drawMStick(mid);
+        testMatchStickDrawer.saveImage(figPath + "/mid_morph.png");
+        testMatchStickDrawer.clear();
+
+        GrowingMatchStick high;
+        while (true) {
+            high = new GrowingMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE);
+
+            high.setProperties(5, "SHADE");
+            try {
+                high.genOutsideRFMorphedMStick(baseMatchStick, 0.7);
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        testMatchStickDrawer.drawMStick(high);
+        testMatchStickDrawer.saveImage(figPath + "/high_morph.png");
+
+    }
+
 
     private static GAMatchStick genPartiallyInside() {
         GAMatchStick GAMatchStick = new GAMatchStick(PARTIAL_RF, RFStrategy.PARTIALLY_INSIDE, "SHADE");
-        GAMatchStick.setProperties(2.5, "SHADE");
+        GAMatchStick.setProperties(5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
     }

@@ -100,11 +100,20 @@ public class TestMatchStickDrawer {
         return spec;
     }
 
-    public void drawCompMap(GAMatchStick complete) {
+    public void drawCompMap(GAMatchStick mStick) {
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                complete.drawCompMap();
+                mStick.drawCompMap();
+            }
+        });
+    }
+
+    public void drawRF(GAMatchStick mStick) {
+        window.draw(new Drawable() {
+            @Override
+            public void draw() {
+                mStick.drawRF();
             }
         });
     }

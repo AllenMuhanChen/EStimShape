@@ -1,8 +1,10 @@
 package org.xper.allen.pga;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.drawing.ga.GAMatchStick;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.drawing.Coordinates2D;
@@ -14,6 +16,7 @@ public class GAStimTest {
 
     private FromDbGABlockGenerator generator;
     private TestMatchStickDrawer testMatchStickDrawer;
+    private String figPath;
 
     @Before
     public void setUp() throws Exception {
@@ -25,6 +28,8 @@ public class GAStimTest {
 
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);
+
+        figPath = "/home/r2_allen/Pictures";
     }
 
     @Test
@@ -87,4 +92,65 @@ public class GAStimTest {
         testMatchStickDrawer.drawCompMap(mStick2);
         ThreadUtil.sleep(1000);
     }
+
+    @Ignore
+    @Test
+    public void fig_examples_of_partial_and_complete_inside_rf(){
+
+        SeedingStim seedingStim = new SeedingStim(1L,
+                generator,
+                new Coordinates2D(0,0),
+                "SHADE",
+                new RGBColor(1.0, 1.0, 1.0),
+                RFStrategy.COMPLETELY_INSIDE);
+
+        GAMatchStick mStick = seedingStim.createMStick();
+        testMatchStickDrawer.drawMStick(mStick);
+        testMatchStickDrawer.drawRF(mStick);
+        testMatchStickDrawer.saveSpec(mStick, generator.getGeneratorSpecPath() + "/" + Long.toString(1L));
+        testMatchStickDrawer.saveImage(figPath +"/complete_inside_rf.png");
+        ThreadUtil.sleep(1000);
+
+        ZoomingStim zoomingStim = new ZoomingStim(2L,
+                generator,
+                1L,
+                1,
+                new Coordinates2D(0,0),
+                0.5,
+                "SHADE",
+                new RGBColor(1.0, 1.0, 1.0));
+
+        GAMatchStick mStick1 = zoomingStim.createMStick();
+        testMatchStickDrawer.clear();
+        testMatchStickDrawer.drawMStick(mStick1);
+        testMatchStickDrawer.drawRF(mStick1);
+        testMatchStickDrawer.saveImage(figPath +"/zooming_stim.png");
+        ThreadUtil.sleep(1000);
+    }
+
+    @Ignore
+    @Test
+    public void fig_examples_of_seeding_stim(){
+
+        int numStim = 5;
+        for (int i = 0; i < numStim; i++){
+            SeedingStim seedingStim = new SeedingStim((long)i,
+                    generator,
+                    new Coordinates2D(0,0),
+                    "SHADE",
+                    new RGBColor(1.0, 1.0, 1.0),
+                    RFStrategy.COMPLETELY_INSIDE);
+
+            GAMatchStick mStick = seedingStim.createMStick();
+            testMatchStickDrawer.drawMStick(mStick);
+            testMatchStickDrawer.drawRF(mStick);
+            testMatchStickDrawer.saveSpec(mStick, figPath +"/seeding_stim_" + Integer.toString(i));
+            testMatchStickDrawer.saveImage(figPath +"/seeding_stim_" + Integer.toString(i) + ".png");
+            ThreadUtil.sleep(100);
+            testMatchStickDrawer.clear();
+        }
+    }
+
+
+
 }

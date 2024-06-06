@@ -141,7 +141,7 @@ public class GAMatchStick extends MorphedMatchStick {
         drawRF();
     }
 
-    private void drawRF() {
+    public void drawRF() {
         List<Coordinates2D> outline = rf.getOutline();
 
         // Assuming the Coordinates2D class has methods getX() and getY() to access coordinates.
