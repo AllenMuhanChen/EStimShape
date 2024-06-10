@@ -26,6 +26,8 @@ public class DeltaStim extends ProceduralStim {
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
         while (true) {
+            mSticks = new Procedural<>();
+            mStickSpecs = new Procedural<>();
             try {
                 ProceduralMatchStick sample = generateSample();
 

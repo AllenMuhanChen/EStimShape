@@ -15,8 +15,9 @@ public class ProceduralRandStim extends ProceduralStim{
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
         while (true) {
+            this.mSticks = new Procedural<>();
+            this.mStickSpecs = new Procedural<>();
             try {
-                mSticks = new Procedural<>();
                 baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(MAX_TRIES);
                 System.out.println("Driving Component: " + morphComponentIndex);
