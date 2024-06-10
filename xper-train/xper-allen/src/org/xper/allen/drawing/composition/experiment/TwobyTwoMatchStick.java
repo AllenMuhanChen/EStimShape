@@ -12,6 +12,7 @@ import javax.vecmath.Point3d;
 public class TwobyTwoMatchStick extends ProceduralMatchStick {
 
     public void genSwappedBaseAndDrivingComponentMatchStick(TwobyTwoMatchStick secondMatchStick, int drivingComponentIndex, TwobyTwoMatchStick thirdMatchStick, boolean doPositionShape){
+
         genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15, doPositionShape);
     }
 
