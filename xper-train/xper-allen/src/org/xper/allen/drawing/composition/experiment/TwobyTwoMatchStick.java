@@ -45,46 +45,13 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
         //SWAP SKELETON
         try {
             //swap arc
-            AllenTubeComp compToSwapIn = matchStickContainingLimbToSwapIn.getTubeComp(limbToSwapIn);
 
             try {
+                AllenTubeComp compToSwapIn = matchStickContainingLimbToSwapIn.getTubeComp(limbToSwapIn);
+
                 newArc = new MorphedMAxisArc(compToSwapIn.getmAxisInfo());
 
-                //Finding alignedPt from arc to swap in:
-                    //We want to move the uNDX point of the arc associated with the juction point of the limb to swap in
-
-                int alignedPt=-1;
-                for (JuncPt_struct juncPt : matchStickContainingLimbToSwapIn.getJuncPt()) {
-                    if (juncPt != null)
-                        for (int i=1; i<=juncPt.getnComp(); i++){
-                            if (juncPt.getCompIds()[i] == limbToSwapIn){
-                                alignedPt = juncPt.getuNdx()[i];
-                                break;
-                            }
-
-                        }
-                }
-
-                //Finding final pos from junction
-                Point3d finalPos = null;
-                for (JuncPt_struct juncPt : this.getJuncPt()) {
-                    if (juncPt != null)
-                        for (int i=1; i<=juncPt.getnComp(); i++){
-                            if (juncPt.getCompIds()[i] == limbToSwapIn){
-                                finalPos = new Point3d(juncPt.getPos());
-                                break;
-                            }
-                        }
-                }
-
-
-                newArc.transRotMAxis(
-                        alignedPt,
-                        finalPos,
-                        newArc.getTransRotHis_rotCenter(),
-                        newArc.getTransRotHis_finalTangent(),
-                        0);
-//                checkJunctions(limbToSwapOut, newArc);
+                alignSwappedInLimbWithJunc(matchStickContainingLimbToSwapIn, limbToSwapIn, compToSwapIn);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -101,6 +68,44 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
 
         //UPDATE REST OF SKELETON
         updateEndPtsAndJunctionPositions();
+    }
+
+    private void alignSwappedInLimbWithJunc(MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn, AllenTubeComp compToSwapIn) {
+        //Finding alignedPt from arc to swap in:
+        //We want to move the uNDX point of the arc associated with the juction point of the limb to swap in
+
+        int alignedPt=-1;
+        for (JuncPt_struct juncPt : matchStickContainingLimbToSwapIn.getJuncPt()) {
+            if (juncPt != null)
+                for (int i=1; i<=juncPt.getnComp(); i++){
+                    if (juncPt.getCompIds()[i] == limbToSwapIn){
+                        alignedPt = juncPt.getuNdx()[i];
+                        break;
+                    }
+
+                }
+        }
+
+        //Finding final pos from junction
+        Point3d finalPos = null;
+        for (JuncPt_struct juncPt : this.getJuncPt()) {
+            if (juncPt != null)
+                for (int i=1; i<=juncPt.getnComp(); i++){
+                    if (juncPt.getCompIds()[i] == limbToSwapIn){
+                        finalPos = new Point3d(juncPt.getPos());
+                        break;
+                    }
+                }
+        }
+
+        newArc.transRotMAxis(
+                alignedPt,
+                finalPos,
+                newArc.getTransRotHis_rotCenter(),
+                newArc.getTransRotHis_finalTangent(),
+                0); //rotation already present in copied arc, don't want to rotate again
+        //set rotation to match swapped in arc because transRotMAXis overrides
+        newArc.setTransRotHis_devAngle(compToSwapIn.getmAxisInfo().getTransRotHis_devAngle());
     }
 
     private void swapRadius(int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn) {
