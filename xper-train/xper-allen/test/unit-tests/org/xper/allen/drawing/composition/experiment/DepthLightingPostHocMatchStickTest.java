@@ -121,7 +121,7 @@ public class DepthLightingPostHocMatchStickTest {
         for (int i=0; i<numShapeVariations; i++) {
             DepthLightingPostHocMatchStick newMStick = new DepthLightingPostHocMatchStick();
             newMStick.setProperties(12, "SHADE");
-            newMStick.genNewDrivingComponentMatchStick(baseMStick, 0.7, 0.5);
+            newMStick.genNewDrivingComponentMatchStick(baseMStick, 0.7, 0.5, true);
             originalAngleMSticks.add(newMStick);
         }
 
@@ -174,7 +174,7 @@ public class DepthLightingPostHocMatchStickTest {
         for (int i=0; i<numShapeVariations; i++) {
             DepthLightingPostHocMatchStick newMStick = new DepthLightingPostHocMatchStick();
             newMStick.setProperties(12, "SHADE");
-            newMStick.genNewComponentMatchStick(baseMStick, 2, 2, 0.75, 0.5);
+            newMStick.genNewComponentMatchStick(baseMStick, 2, 2, 0.75, 0.5, true);
             originalAngleMSticks.add(newMStick);
         }
 
@@ -323,7 +323,7 @@ public class DepthLightingPostHocMatchStickTest {
 
             }
         });
-        newMStick.genMorphedComponentsMatchStick(morphParameters, baseMStick);
+        newMStick.genMorphedComponentsMatchStick(morphParameters, baseMStick, true);
 
         drawer.clear();
         drawer.drawMStick(newMStick);

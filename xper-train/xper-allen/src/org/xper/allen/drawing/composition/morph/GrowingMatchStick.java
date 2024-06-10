@@ -30,7 +30,7 @@ public class GrowingMatchStick extends GAMatchStick {
     private MorphedMatchStick genComponentMorphMatchStick(MorphedMatchStick matchStickToMorph, Map<Integer, ComponentMorphParameters> paramsForComps, MorphedMatchStick removedLimbMatchStick) {
         MorphedMatchStick compMorphedMatchStick = new MorphedMatchStick();
         compMorphedMatchStick.setProperties(getScaleForMAxisShape(), matchStickToMorph.getTextureType());
-        compMorphedMatchStick.genMorphedComponentsMatchStick(paramsForComps, removedLimbMatchStick);
+        compMorphedMatchStick.genMorphedComponentsMatchStick(paramsForComps, removedLimbMatchStick, true);
         return compMorphedMatchStick;
     }
 

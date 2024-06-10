@@ -4959,7 +4959,7 @@ public class AllenMatchStick extends MatchStick {
 		return shaftDatas;
 	}
 
-	private double angleDiff(double angle1, double angle2) {
+	public double angleDiff(double angle1, double angle2) {
 		double diff = angle1 - angle2;
 		while(diff < 0){
 			diff+=2*Math.PI;

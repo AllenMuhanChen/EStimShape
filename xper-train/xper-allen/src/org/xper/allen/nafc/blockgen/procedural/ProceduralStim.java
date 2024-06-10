@@ -4,7 +4,6 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.*;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
@@ -131,7 +130,7 @@ public class ProceduralStim implements NAFCStim {
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5, true);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }

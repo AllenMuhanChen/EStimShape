@@ -37,7 +37,7 @@ public class PruningMatchStick extends GAMatchStick {
         }
 
         // Call MorphedMatchStick
-        genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph);
+        genMorphedComponentsMatchStick(paramsForComps, this.matchStickToMorph, true);
 
     }
 

@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
 
-import static org.junit.Assert.*;
 import static org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStickTest.PARTIAL_RF;
 
 public class EStimShapeTwoByTwoMatchStickTest {
@@ -42,7 +41,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genNewBaseMatchStick(firstMStick, 1);
+        secondMStick.genNewBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
         testMatchStickDrawer.drawMStick(secondMStick);
         testMatchStickDrawer.drawCompMap(secondMStick);
         testMatchStickDrawer.saveImage(figPath + "/secondMStick");
@@ -50,7 +49,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         thirdMStick.setProperties(5, "SHADE");
-        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5);
+        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
         testMatchStickDrawer.drawMStick(thirdMStick);
         testMatchStickDrawer.drawCompMap(thirdMStick);
         testMatchStickDrawer.saveImage(figPath + "/thirdMStick");
@@ -58,7 +57,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         fourthMStick.setProperties(5, "SHADE");
-        fourthMStick.genFourthMatchStick(secondMStick, 1, thirdMStick);
+        fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true);
         testMatchStickDrawer.drawMStick(fourthMStick);
         testMatchStickDrawer.drawCompMap(fourthMStick);
         testMatchStickDrawer.saveImage(figPath + "/fourthMStick");

@@ -44,7 +44,42 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     @Override
     protected void addTrials() {
-        addTrials_Deltas();
+//        addTrials_Deltas();
+        addTrials_TwoByTwo();
+    }
+
+    private void addTrials_TwoByTwo(){
+        //input Parameters
+        Color stimColor = new Color(0.5f, 0.5f, 0.5f);
+        long stimId = 1717531847396095L;
+        int compId = 2;
+
+        //Parameters
+        Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
+        numEStimTrialsForNoiseChances.put(0.5, 5);
+
+        List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
+
+        List<Stim> eStimTrials = new LinkedList<>();
+        //Add EStim Trials
+        for (ProceduralStimParameters parameters : eStimTrialParams) {
+            ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
+            baseMStick.setStimColor(stimColor);
+            baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
+            //using estim values set on the IntanGUI
+            EStimShapeTwoByTwoStim eStimTrial = new EStimShapeTwoByTwoStim(
+                    this,
+                    parameters, baseMStick, compId, true);
+            EStimShapeTwoByTwoStim negativeControlTrial = new EStimShapeTwoByTwoStim(
+                    this,
+                    parameters, baseMStick, compId, false);
+            eStimTrials.add(eStimTrial);
+            eStimTrials.add(negativeControlTrial);
+        }
+
+        stims.addAll(eStimTrials);
+
     }
 
     private void addTrials_Deltas() {
@@ -57,10 +92,10 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
         numEStimTrialsForNoiseChances.put(0.5, 5);
 
-        int numDeltaSets = 5;
+        int numDeltaSets = 0;
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.5, 22);
+        numBehavioralTrialsForNoiseChances.put(0.5, 20);
 
         List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
         List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
@@ -79,6 +114,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         stims.addAll(behavioralTrials);
         stims.addAll(eStimTrials);
         stims.addAll(deltaTrials);
+
     }
 
     public static List<ReceptiveField> assignRFsToBehTrials(int numEStimTrials, int numDeltaTrials, int numBehavioralTrials, ReceptiveField realRf) {

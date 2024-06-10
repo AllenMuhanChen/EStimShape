@@ -1,7 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.util.AllenDbUtil;
@@ -53,7 +52,7 @@ public class ProceduralRandStim extends ProceduralStim{
         ProceduralMatchStick match = new ProceduralMatchStick();
         match.setProperties(parameters.getSize(), "SHADE");
         match.setStimColor(parameters.color);
-        match.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, 0.1, 0.5);
+        match.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, 0.1, 0.5, true);
         mSticks.setMatch(match);
         mStickSpecs.setMatch(mStickToSpec(match, stimObjIds.getMatch()));
 
@@ -61,7 +60,7 @@ public class ProceduralRandStim extends ProceduralStim{
             ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
             proceduralDistractor.setProperties(parameters.getSize(), "SHADE");
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5, true);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }

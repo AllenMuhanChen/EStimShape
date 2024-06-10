@@ -38,6 +38,10 @@ public class CoordinateConverter {
         public AngularCoordinates getAngularCoordinates(){
             return new AngularCoordinates(theta, phi);
         }
+
+        public String toString(){
+            return "r: " + r + " theta: " + theta + " phi: " + phi;
+        }
     }
 
     public static SphericalCoordinates cartesianToSpherical(double x, double y, double z) {
@@ -111,5 +115,12 @@ public class CoordinateConverter {
 
         return points;
     }
+
+    public static double angleDiff(double theta1, double theta2) {
+        double diff = Math.abs(theta1 - theta2);
+        return Math.min(diff, 2 * Math.PI - diff);
+    }
+
+
 
 }

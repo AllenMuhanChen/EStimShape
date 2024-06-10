@@ -86,7 +86,7 @@ public class MorphedMatchStickTest {
 
         MorphedMatchStick childMStick = new MorphedMatchStick();
         childMStick.setProperties(30.0, "SHADE");
-        childMStick.genMorphedComponentsMatchStick(morphParams, parentMStick);
+        childMStick.genMorphedComponentsMatchStick(morphParams, parentMStick, true);
         ThreadUtil.sleep(500);
         drawPng(childMStick, 2L);
 

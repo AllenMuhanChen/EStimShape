@@ -1,6 +1,5 @@
 package org.xper.allen.drawing.composition.experiment;
 
-import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.MorphedMAxisArc;
@@ -9,15 +8,14 @@ import org.xper.allen.drawing.composition.morph.RadiusProfile;
 import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point3d;
-import java.util.Arrays;
 
 public class TwobyTwoMatchStick extends ProceduralMatchStick {
 
-    public void genFourthMatchStick(TwobyTwoMatchStick secondMatchStick, int drivingComponentIndex, TwobyTwoMatchStick thirdMatchStick){
-        genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15);
+    public void genSwappedBaseAndDrivingComponentMatchStick(TwobyTwoMatchStick secondMatchStick, int drivingComponentIndex, TwobyTwoMatchStick thirdMatchStick, boolean doPositionShape){
+        genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15, doPositionShape);
     }
 
-    public void genComponentSwappedMatchStick(AllenMatchStick matchStickToMorph, int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn, int maxAttempts) throws MorphException{
+    public void genComponentSwappedMatchStick(AllenMatchStick matchStickToMorph, int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn, int maxAttempts, boolean doPositionShape) throws MorphException{
 
         int numAttempts = 0;
         while (numAttempts < maxAttempts || maxAttempts == -1) {
@@ -28,7 +26,8 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
                 checkForTubeCollisions();
                 centerShape();
                 attemptSmoothizeMStick();
-                positionShape();
+                if (doPositionShape)
+                    positionShape();
                 return;
             } catch (MorphException e) {
                 System.out.println(e.getMessage());
@@ -117,6 +116,25 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
         } catch (MorphException e){
             throw new MorphException("Cannot swap radius");
         }
+    }
+
+    protected boolean checkMStick(int drivingComponentIndex) {
+        try {
+            checkMStickSize();
+            return true;
+        } catch (ObjectCenteredPositionException e) {
+//            System.out.println(e.getMessage());
+            System.out.println("Error with object centered position, retrying");
+        } catch (NoiseException e) {
+//            System.out.println(e.getMessage());
+            System.out.println("Error with noise, retrying");
+        } catch (MStickSizeException e) {
+//            System.out.println(e.getMessage());
+            System.out.println("Error with matchStick size, retrying");
+        } catch (MorphException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
 }

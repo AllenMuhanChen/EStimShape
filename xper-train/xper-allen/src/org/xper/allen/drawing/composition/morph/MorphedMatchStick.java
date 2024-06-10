@@ -38,12 +38,12 @@ public class MorphedMatchStick extends AllenMatchStick {
 
 
 
-    public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph){
+    public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape){
         this.showComponents = false;
 
         MorphedMatchStick backup = new MorphedMatchStick();
         backup.copyFrom(matchStickToMorph);
-        copyFrom(backup);
+//        copyFrom(backup);
 
 
         // Attempt to morph every component. If we fail, then restart with the backup.
@@ -51,18 +51,19 @@ public class MorphedMatchStick extends AllenMatchStick {
         while (numAttempts < getMaxTotalAttempts()) {
             try {
                 numAttempts++;
+                copyFrom(backup);
                 findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
                 centerShape();
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
-                positionShape();
-                if (checkMStick()) break;
+                if (doPositionShape)
+                    positionShape();
+                if (checkMStick()) return;
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
-                copyFrom(backup);
 //                e.printStackTrace();
                 System.err.println(e.getMessage());
                 System.out.println("Failed to morph matchstick.");
@@ -313,7 +314,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
             try {
                 morphComponent(componentIndex, morphParams);
-//                System.out.println("Successfully morphed component " + componentIndex);
+                System.out.println("Successfully morphed component " + componentIndex);
                 return;
             } catch (MorphException e) {
                 System.err.println(e.getMessage());

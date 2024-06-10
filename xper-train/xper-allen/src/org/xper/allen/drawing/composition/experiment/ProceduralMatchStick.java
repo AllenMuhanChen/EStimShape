@@ -24,8 +24,8 @@ import java.util.function.BiConsumer;
 public class ProceduralMatchStick extends MorphedMatchStick {
 
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
-//protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
-    protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(5.0, Math.PI / 4, Math.PI / 4);
+    //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
+    protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(1000, Math.PI / 4, Math.PI / 4);
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     protected Point3d noiseOrigin;
@@ -63,12 +63,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
 
 
-    public void genNewDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness) {
+    public void genNewDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape) {
         int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
-        genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, drivingComponentIndx, magnitude, discreteness);
+        genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, drivingComponentIndx, magnitude, discreteness, doPositionShape);
     }
 
-    public void genNewComponentMatchStick(ProceduralMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, double magnitude, double discreteness) {
+    public void genNewComponentMatchStick(ProceduralMatchStick baseMatchStick, int morphComponentIndx, int noiseComponentIndx, double magnitude, double discreteness, boolean doPositionShape) {
         Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
         morphParametersForComponents.put(morphComponentIndx, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
@@ -77,7 +77,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         this.maxAttempts = baseMatchStick.maxAttempts;
         while ((numAttempts < this.maxAttempts || this.maxAttempts == -1)) {
             try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick);
+                genMorphedComponentsMatchStick(morphParametersForComponents, baseMatchStick, doPositionShape);
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
@@ -213,8 +213,11 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     protected Map<Integer, SphericalCoordinates> calcObjCenteredPosForDrivingComp(ProceduralMatchStick baseMatchStick, int drivingComponentIndex) {
+        Point3d shapeMassCenter = baseMatchStick.getMassCenter();
         Point3d drivingComponentMassCenter = baseMatchStick.getMassCenterForComponent(drivingComponentIndex);
-        SphericalCoordinates drivingComponentObjectCenteredPosition = CoordinateConverter.cartesianToSpherical(drivingComponentMassCenter);
+        Point3d drivingComponentObjectCenteredPositionPoint = new Point3d(drivingComponentMassCenter);
+        drivingComponentObjectCenteredPositionPoint.sub(shapeMassCenter);
+        SphericalCoordinates drivingComponentObjectCenteredPosition = CoordinateConverter.cartesianToSpherical(drivingComponentObjectCenteredPositionPoint);
         Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp = new HashMap<>();
         objCenteredPosForDrivingComp.put(drivingComponentIndex, drivingComponentObjectCenteredPosition);
         return objCenteredPosForDrivingComp;
@@ -223,9 +226,11 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     /**
      * Generates a new matchStick from morphing the base component in the targetMatchStick
      *
+     * @param doPositionShape
+     * @param maxAttempts
      * @param targetMatchStick
      */
-    public void genNewBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex) {
+    public void genNewBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, boolean doPositionShape, int maxAttempts) {
         int baseComponentIndex;
         if (drivingComponentIndex == 1) {
             baseComponentIndex = 2;
@@ -235,20 +240,33 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             throw new IllegalArgumentException("drivingComponentIndex must be 1 or 2");
         }
 
-        Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+
         //TODO: could refractor ComponentMorphParameters into data class and factory for different applications
-        morphParametersForComponents.put(baseComponentIndex, new NormalDistributedComponentMorphParameters(0.5, new NormalMorphDistributer(1.0)));
-        while (true) {
-            genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick);
+        Map<Integer, SphericalCoordinates> originalObjCenteredPos = calcObjCenteredPosForDrivingComp(targetMatchStick, drivingComponentIndex);
+
+        int nAttempts = 0;
+        while (nAttempts < maxAttempts || maxAttempts == -1) {
             try {
-                Map<Integer, SphericalCoordinates> originalObjCenteredPos = calcObjCenteredPosForDrivingComp(targetMatchStick, drivingComponentIndex);
+                nAttempts++;
+                Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(0.5, new NormalMorphDistributer(1 / 3.0));
+                morphParametersForComponents.put(baseComponentIndex, morphParams);
+                genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape);
+                System.out.println("Outside: This massCenter: " + this.getComp()[drivingComponentIndex].getMassCenter().toString());
                 compareObjectCenteredPositionTo(originalObjCenteredPos);
-                break;
+                return;
             } catch (ObjectCenteredPositionException e) {
-                System.out.println("Object Centered Position is off. Retrying...");
+                cleanData();
+                this.setObj1(null);
+                System.out.println("Error with object centered position, retrying");
+                System.out.println(e.getMessage());
             } catch (MorphException e) {
                 e.printStackTrace();
             }
+        }
+
+        if (nAttempts >= maxAttempts && maxAttempts != -1) {
+            throw new MorphRepetitionException("Could not generate matchStick FROM BASE COMPONENT after " + this.maxAttempts + " attempts");
         }
     }
 
@@ -262,18 +280,25 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         toCompareToObjectCenteredPositionForComponents.forEach(new BiConsumer<Integer, SphericalCoordinates>() {
             @Override
             public void accept(Integer integer, SphericalCoordinates sphericalCoordinates) {
-                Point3d massCenter = getMassCenterForComponent(integer);
-                actualObjectCenteredPositionForComponents.put(integer, CoordinateConverter.cartesianToSpherical(massCenter));
+                Point3d massCenterForShape = getMassCenter();
+                Point3d massCenterForComp = getMassCenterForComponent(integer);
+                Point3d objCenteredPositionForComp = new Point3d(massCenterForComp);
+                objCenteredPositionForComp.sub(massCenterForShape);
+                System.out.println("Mass Center: " + massCenterForComp.toString());
+                actualObjectCenteredPositionForComponents.put(integer, CoordinateConverter.cartesianToSpherical(objCenteredPositionForComp));
             }
         });
 
         toCompareToObjectCenteredPositionForComponents.forEach(new BiConsumer<Integer, SphericalCoordinates>() {
             @Override
-            public void accept(Integer compIndex, SphericalCoordinates sphericalCoordinates) {
+            public void accept(Integer compIndex, SphericalCoordinates toCompareToSphericalCoordinates) {
                 SphericalCoordinates actualObjectCenteredPosition = actualObjectCenteredPositionForComponents.get(compIndex);
-                if (Math.abs(actualObjectCenteredPosition.r - sphericalCoordinates.r) > objCenteredPositionTolerance.r ||
-                        Math.abs(actualObjectCenteredPosition.theta - sphericalCoordinates.theta) > objCenteredPositionTolerance.theta ||
-                        Math.abs(actualObjectCenteredPosition.phi - sphericalCoordinates.phi) > objCenteredPositionTolerance.phi) {
+
+                if (Math.abs(actualObjectCenteredPosition.r - toCompareToSphericalCoordinates.r) > objCenteredPositionTolerance.r ||
+                        angleDiff(actualObjectCenteredPosition.theta, toCompareToSphericalCoordinates.theta) > objCenteredPositionTolerance.theta ||
+                        angleDiff(actualObjectCenteredPosition.phi, toCompareToSphericalCoordinates.phi) > objCenteredPositionTolerance.phi) {
+                    System.out.println("New: " + actualObjectCenteredPosition.toString());
+                    System.out.println("Original: " + toCompareToSphericalCoordinates.toString());
                     throw new ObjectCenteredPositionException("Object Centered Position is off for component " + compIndex);
                 }
             }

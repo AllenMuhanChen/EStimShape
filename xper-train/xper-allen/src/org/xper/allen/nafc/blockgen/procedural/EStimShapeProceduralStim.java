@@ -47,7 +47,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         while(true) {
             System.out.println("Trying to generate EStimShapeProceduralStim");
             try {
-                EStimShapeProceduralMatchStick sample = generateSample();
+                EStimShapeProceduralMatchStick sample = (EStimShapeProceduralMatchStick) generateSample();
 
                 morphComponentIndex = sample.getDrivingComponent();
                 noiseComponentIndex = sample.getDrivingComponent();
@@ -66,7 +66,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     }
 
     @Override
-    protected EStimShapeProceduralMatchStick generateSample() {
+    protected ProceduralMatchStick generateSample() {
 
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
@@ -123,7 +123,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
-            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5);
+            proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, noiseComponentIndex, parameters.morphMagnitude, 0.5, true);
             mSticks.proceduralDistractors.add(proceduralDistractor);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
         }
@@ -136,7 +136,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      * then multiply this ratio by the size of noiseRadius to scale it properly.
      * @param proceduralDistractor
      */
-    private void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
+    protected void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
         double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
         proceduralDistractor.noiseRadiusMm = rfSource.getRFRadiusMm() * scaleFactor;
     }

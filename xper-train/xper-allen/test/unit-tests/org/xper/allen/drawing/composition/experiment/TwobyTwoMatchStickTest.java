@@ -8,8 +8,6 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
-import org.xper.allen.pga.RFUtils;
-import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.drawing.Coordinates2D;
 import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
@@ -76,17 +74,17 @@ public class TwobyTwoMatchStickTest {
 
         TwobyTwoMatchStick secondMStick = new TwobyTwoMatchStick();
         secondMStick.setProperties(40, "SHADE");
-        secondMStick.genNewBaseMatchStick(firstMStick, 1);
+        secondMStick.genNewBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
         drawPng(secondMStick, 3L);
 
         TwobyTwoMatchStick thirdMStick = new TwobyTwoMatchStick();
         thirdMStick.setProperties(40, "SHADE");
-        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5);
+        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
         drawPng(thirdMStick, 4L);
 
         TwobyTwoMatchStick fourthMStick = new TwobyTwoMatchStick();
         fourthMStick.setProperties(40, "SHADE");
-        fourthMStick.genFourthMatchStick(secondMStick, 1, thirdMStick);
+        fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true);
         drawPng(fourthMStick, 5L);
     }
 
@@ -100,17 +98,17 @@ public class TwobyTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genNewBaseMatchStick(firstMStick, 1);
+        secondMStick.genNewBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
         drawPng(secondMStick, 12L);
 
         EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         thirdMStick.setProperties(5, "SHADE");
-        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5);
+        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
         drawPng(thirdMStick, 13L);
 
         EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         fourthMStick.setProperties(5, "SHADE");
-        fourthMStick.genFourthMatchStick(secondMStick, 1, thirdMStick);
+        fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true);
         drawPng(fourthMStick, 14L);
     }
 
