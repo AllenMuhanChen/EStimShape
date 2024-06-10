@@ -232,12 +232,11 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      */
     public void genNewBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, boolean doPositionShape, int maxAttempts) {
         int baseComponentIndex;
-        if (drivingComponentIndex == 1) {
-            baseComponentIndex = 2;
-        } else if (drivingComponentIndex == 2) {
-            baseComponentIndex = 1;
-        } else {
-            throw new IllegalArgumentException("drivingComponentIndex must be 1 or 2");
+        List<Integer> baseCompIndcs = new LinkedList<>();
+        for (int compId : targetMatchStick.getCompIds()) {
+            if (compId != drivingComponentIndex) {
+                baseCompIndcs.add(compId);
+            }
         }
 
 
@@ -250,7 +249,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
                 NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(0.5, new NormalMorphDistributer(1 / 3.0));
-                morphParametersForComponents.put(baseComponentIndex, morphParams);
+                for (int i = 0; i < baseCompIndcs.size(); i++) {
+                    baseComponentIndex = baseCompIndcs.get(i);
+                    morphParametersForComponents.put(baseComponentIndex, morphParams);
+                }
                 genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape);
                 System.out.println("Outside: This massCenter: " + this.getComp()[drivingComponentIndex].getMassCenter().toString());
                 compareObjectCenteredPositionTo(originalObjCenteredPos);

@@ -97,7 +97,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 2);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 3);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
