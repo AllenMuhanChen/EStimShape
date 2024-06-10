@@ -132,8 +132,6 @@ public class GAMatchStick extends MorphedMatchStick {
 
 
 
-
-
     @Override
     public void drawCompMap(){
         super.drawCompMap();

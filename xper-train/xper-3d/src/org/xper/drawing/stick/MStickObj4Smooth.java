@@ -708,7 +708,7 @@ public class MStickObj4Smooth {
     public boolean objectMerge( MStickObj4Smooth inObj, boolean specialTreat)
     {
         // two main roles here are this (1) & inObj (2)
-        boolean showDebug = false;
+        boolean showDebug = true;
         if (showDebug)
         {
             System.out.println("start merging object procedure....\n\n");

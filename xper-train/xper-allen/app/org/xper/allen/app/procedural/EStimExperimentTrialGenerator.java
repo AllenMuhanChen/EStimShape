@@ -44,23 +44,26 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     @Override
     protected void addTrials() {
+        addTrials_Deltas();
+    }
+
+    private void addTrials_Deltas() {
         //input Parameters
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
-        long stimId = 1716913436993343L;
+        long stimId = 1717531847396095L;
         int compId = 2;
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
-        numEStimTrialsForNoiseChances.put(0.5, 20);
+        numEStimTrialsForNoiseChances.put(0.5, 5);
 
-        int numDeltaSets = 0;
+        int numDeltaSets = 5;
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.5, 60);
+        numBehavioralTrialsForNoiseChances.put(0.5, 22);
 
         List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
         List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
-
 
         //Make EStimTrials and Delta Trials
         List<Stim> eStimTrials = makeEStimTrials(eStimTrialParams, stimColor, stimId, compId);
@@ -127,10 +130,14 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
-            EStimShapeProceduralStim stim = new EStimShapeProceduralStim(
+            EStimShapeProceduralStim eStimTrial = new EStimShapeProceduralStim(
                     this,
-                    parameters, baseMStick, compId, compId);
-            eStimTrials.add(stim);
+                    parameters, baseMStick, compId, true);
+            EStimShapeProceduralStim negativeControlTrial = new EStimShapeProceduralStim(
+                    this,
+                    parameters, baseMStick, compId, false);
+            eStimTrials.add(eStimTrial);
+            eStimTrials.add(negativeControlTrial);
         }
         return eStimTrials;
     }

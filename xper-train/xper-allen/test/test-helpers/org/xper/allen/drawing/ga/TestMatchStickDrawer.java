@@ -100,7 +100,7 @@ public class TestMatchStickDrawer {
         return spec;
     }
 
-    public void drawCompMap(GAMatchStick mStick) {
+    public void drawCompMap(AllenMatchStick mStick) {
         window.draw(new Drawable() {
             @Override
             public void draw() {

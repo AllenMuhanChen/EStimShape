@@ -20,10 +20,12 @@ import java.util.List;
 
 public class EStimShapeProceduralStim extends ProceduralStim{
     private final ReceptiveFieldSource rfSource;
+    private final boolean isEStimEnabled;
 
-    public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, int noiseComponentIndex) {
+    public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
         this.rfSource = generator.getRfSource();
+        this.isEStimEnabled = isEStimEnabled;
     }
 
     @Override
@@ -43,6 +45,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
         while(true) {
+            System.out.println("Trying to generate EStimShapeProceduralStim");
             try {
                 EStimShapeProceduralMatchStick sample = generateSample();
 
@@ -105,8 +108,11 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     }
 
     protected void writeEStimSpec() {
-        AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
-        dbUtil.writeEStimObjData(getStimId(), "EStimEnabled", "");
+        if (isEStimEnabled) {
+            AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
+            dbUtil.writeEStimObjData(getStimId(), "EStimEnabled", "");
+        }
+
     }
 
 

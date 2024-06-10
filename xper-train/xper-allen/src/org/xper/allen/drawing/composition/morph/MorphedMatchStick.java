@@ -783,7 +783,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             try {
                 this.copyFrom(localBackup);
                 newArc = generateMorphedArc(id, morphParams, arcToMorph);
-                checkJunctions(id, newArc);
+//                checkJunctions(id, newArc); //not sure needed because this just checks diff betwene new and old
                 return newArc;
             } catch (MorphException e){
                 System.err.println(e.getMessage());

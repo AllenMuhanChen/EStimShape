@@ -102,6 +102,7 @@ public class ProceduralStim implements NAFCStim {
 
     protected ProceduralMatchStick generateSample() {
         while (true) {
+            System.out.println("Trying to generate sample for ProceduralStim");
             //Generate Sample
             ProceduralMatchStick sample = new ProceduralMatchStick();
             sample.setProperties(parameters.getSize(), parameters.textureType);

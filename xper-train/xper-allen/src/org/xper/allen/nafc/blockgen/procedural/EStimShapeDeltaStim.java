@@ -19,7 +19,7 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
                 (EStimExperimentTrialGenerator) baseStim.generator,
                 baseStim.getParameters(),
                 baseStim.baseMatchStick,
-                -1,-1);
+                -1, true);
         this.baseStim = baseStim;
         this.isDeltaMorph = isDeltaMorph;
         this.isDeltaNoise = isDeltaNoise;
@@ -28,6 +28,7 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
         while (true) {
+            System.out.println("Trying to generate EStimShapeDeltaStim");
             try {
                 EStimShapeProceduralMatchStick sample = generateSample();
 

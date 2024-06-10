@@ -21,7 +21,9 @@ public class GaussianNoiseMapCalculation {
 
         Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
 
-        double sigmaPixels = degToPixels(renderer, sigmaDegrees);
+
+//        double sigmaPixels = degToPixels(renderer, sigmaDegrees);
+        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
         Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
 
         return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,

@@ -33,7 +33,7 @@ public class RFUtils {
             double percentageInsideRF = 1.0;
             double initialThresholdPercentageOutOfRF = 0.8;
             double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
-            double minThresholdPercentageOutOfRF = 0.1; // Minimum threshold percentage allowed
+            double minThresholdPercentageOutOfRF = 0; // Minimum threshold percentage allowed
 
             int numPointsToTry = 100;
 

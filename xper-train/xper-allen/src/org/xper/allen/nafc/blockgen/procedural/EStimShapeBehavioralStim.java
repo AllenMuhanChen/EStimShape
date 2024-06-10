@@ -17,13 +17,14 @@ public class EStimShapeBehavioralStim extends EStimShapeProceduralStim{
                 parameters,
                 null,
                 -1,
-                -1);
+                true);
         this.rf = rf;
     }
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
         while (true) {
+            System.out.println("Trying to generate EStimShapeBehavioralStim");
             try {
                 mSticks = new Procedural<>();
                 baseMatchStick = genRandBaseMStick();
