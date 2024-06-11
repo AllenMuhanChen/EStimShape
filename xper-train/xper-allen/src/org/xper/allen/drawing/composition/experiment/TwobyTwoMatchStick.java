@@ -153,4 +153,33 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
         }
     }
 
+    @Override
+    public void genMorphedDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape) {
+        int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
+        int numAttempts = 0;
+        this.maxAttempts = baseMatchStick.maxAttempts;
+        while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
+            try {
+                genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, magnitude, discreteness, doPositionShape, 15);
+            } catch(MorphException e) {
+                System.out.println(e.getMessage());
+                continue;
+            } finally{
+                numAttempts++;
+            }
+
+            try {
+                checkMStickSize();
+                int newDrivingComponentIndx = getDrivingComponent();
+                checkInNoise(newDrivingComponentIndx, 0.3);
+            } catch (MorphException e) {
+                System.out.println(e.getMessage());
+                continue;
+            }
+
+            break;
+        }
+
+    }
+
 }
