@@ -294,12 +294,12 @@ public class ProceduralMatchStickTest {
 
         ProceduralMatchStick distractor1 = new ProceduralMatchStick();
         distractor1.setProperties(size, "SHADE");
-        distractor1.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true);
+        distractor1.genMorphedDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true);
         drawPng(distractor1, setId, 2L);
 
         ProceduralMatchStick distractor2 = new ProceduralMatchStick();
         distractor2.setProperties(size, "SHADE");
-        distractor2.genNewDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true);
+        distractor2.genMorphedDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true);
         drawPng(distractor2, setId, 3L);
     }
 

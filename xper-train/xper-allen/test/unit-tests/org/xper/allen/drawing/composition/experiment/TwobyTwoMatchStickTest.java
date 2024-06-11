@@ -74,12 +74,12 @@ public class TwobyTwoMatchStickTest {
 
         TwobyTwoMatchStick secondMStick = new TwobyTwoMatchStick();
         secondMStick.setProperties(40, "SHADE");
-        secondMStick.genNewBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
         drawPng(secondMStick, 3L);
 
         TwobyTwoMatchStick thirdMStick = new TwobyTwoMatchStick();
         thirdMStick.setProperties(40, "SHADE");
-        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
+        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
         drawPng(thirdMStick, 4L);
 
         TwobyTwoMatchStick fourthMStick = new TwobyTwoMatchStick();
@@ -98,12 +98,12 @@ public class TwobyTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genNewBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
         drawPng(secondMStick, 12L);
 
         EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         thirdMStick.setProperties(5, "SHADE");
-        thirdMStick.genNewDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
+        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
         drawPng(thirdMStick, 13L);
 
         EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);

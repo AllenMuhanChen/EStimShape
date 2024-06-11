@@ -268,10 +268,6 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
-    protected boolean checkMStick() {
-        return true;
-    }
-
     private void findCompsToPreserve(Set<Integer> morphParametersForComponents) {
         compsToPreserve.clear();
         List<Integer> components = getCompIds();

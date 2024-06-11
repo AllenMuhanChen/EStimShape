@@ -14,7 +14,7 @@ public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
 
     private final RFStrategy rfStrategy;
     private final ReceptiveField rf;
-    private final double noiseRadiusMm;
+
 
     public EStimShapeTwoByTwoMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
         this.rfStrategy = rfStrategy;

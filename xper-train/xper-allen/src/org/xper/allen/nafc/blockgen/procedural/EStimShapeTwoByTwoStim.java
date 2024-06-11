@@ -2,6 +2,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
+import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
 import org.xper.allen.pga.RFStrategy;
@@ -24,7 +25,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             this.mStickSpecs = new Procedural<>();
             System.out.println("Trying to generate EStimShapeProceduralStim");
             try {
-                EStimShapeProceduralMatchStick sample = (EStimShapeProceduralMatchStick) generateSample();
+                EStimShapeTwoByTwoMatchStick sample = (EStimShapeTwoByTwoMatchStick) generateSample();
 
                 morphComponentIndex = sample.getDrivingComponent();
                 noiseComponentIndex = sample.getDrivingComponent();
@@ -64,7 +65,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         correctNoiseRadius(swappedBaseMStick);
         swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType);
         swappedBaseMStick.setStimColor(parameters.color);
-        swappedBaseMStick.genNewBaseMatchStick(match, morphComponentIndex, false, 100);
+        swappedBaseMStick.genMorphedBaseMatchStick(match, morphComponentIndex, false, 100);
         mSticks.proceduralDistractors.add(swappedBaseMStick);
         mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick, stimObjIds.proceduralDistractors.get(0)));
 
@@ -72,7 +73,8 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         correctNoiseRadius(swappedInNoiseMStick);
         swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
         swappedInNoiseMStick.setStimColor(parameters.color);
-        swappedInNoiseMStick.genNewDrivingComponentMatchStick(match, 0.5, 0.5, false);
+        swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match, 0.5, 0.5,
+                false);
         mSticks.proceduralDistractors.add(swappedInNoiseMStick);
         mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick, stimObjIds.proceduralDistractors.get(1)));
 
@@ -91,7 +93,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     protected ProceduralMatchStick generateSample() {
 
         //Generate Sample
-        EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
+        EStimShapeTwoByTwoMatchStick sample = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 ((EStimExperimentTrialGenerator) generator).getRF()
         );

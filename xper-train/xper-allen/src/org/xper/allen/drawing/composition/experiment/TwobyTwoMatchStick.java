@@ -5,9 +5,11 @@ import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.MorphedMAxisArc;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.RadiusProfile;
+import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point3d;
+import java.util.Map;
 
 public class TwobyTwoMatchStick extends ProceduralMatchStick {
 
@@ -16,8 +18,38 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
         genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15, doPositionShape);
     }
 
-    public void genComponentSwappedMatchStick(AllenMatchStick matchStickToMorph, int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn, int maxAttempts, boolean doPositionShape) throws MorphException{
+    @Override
+    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp) {
+        SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
+        if (nComp == 0){
+            nComp = chooseNumComps();
+        }
+        int nAttempts = 0;
+        while (nAttempts < this.maxAttempts || this.maxAttempts == -1) {
+            nAttempts++;
+            try {
+                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
 
+            } catch (MorphException e){
+                System.out.println("Error with morph, retrying");
+                System.out.println(e.getMessage());
+                continue;
+            }
+            int drivingComponent = getDrivingComponent();
+            SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(baseMatchStick, drivingComponent);
+            try {
+                checkInNoise(drivingComponent, 0.3);
+//                compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+                continue;
+            }
+            return;
+        }
+        throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");
+    }
+
+    public void genComponentSwappedMatchStick(AllenMatchStick matchStickToMorph, int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn, int maxAttempts, boolean doPositionShape) throws MorphException{
         int numAttempts = 0;
         while (numAttempts < maxAttempts || maxAttempts == -1) {
             try {
