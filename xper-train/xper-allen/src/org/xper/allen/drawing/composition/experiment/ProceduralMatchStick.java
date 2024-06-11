@@ -240,7 +240,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
                 }
                 genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape);
-                System.out.println("Outside: This massCenter: " + this.getComp()[drivingComponentIndex].getMassCenter().toString());
                 SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponentIndex);
                 compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
                 checkMStickSize();

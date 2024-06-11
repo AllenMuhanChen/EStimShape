@@ -39,7 +39,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
             SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(baseMatchStick, drivingComponent);
             try {
                 checkInNoise(drivingComponent, 0.3);
-//                compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);
+                compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);
             } catch (Exception e) {
                 System.out.println(e.getMessage());
                 continue;
