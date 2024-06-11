@@ -69,7 +69,7 @@ public class TwobyTwoMatchStickTest {
     public void test_msticks() {
         TwobyTwoMatchStick firstMStick = new TwobyTwoMatchStick();
         firstMStick.setProperties(40, "SHADE");
-        firstMStick.genMatchStickFromComponent(baseMStick, 1, 2);
+        firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         drawPng(firstMStick, 2L);
 
         TwobyTwoMatchStick secondMStick = new TwobyTwoMatchStick();
@@ -92,7 +92,7 @@ public class TwobyTwoMatchStickTest {
     public void test_partially_inside(){
         EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         firstMStick.setProperties(5, "SHADE");
-        firstMStick.genMatchStickFromComponent(baseMStick, 1, 2);
+        firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         drawPng(firstMStick, 11L);
 
 

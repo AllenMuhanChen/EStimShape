@@ -18,11 +18,9 @@ import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
 
 import javax.vecmath.Point3d;
-import javax.vecmath.Vector3d;
 import java.awt.*;
 import java.util.Collections;
 
-import static org.junit.Assert.*;
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class EStimShapeProceduralMatchStickTest {
@@ -81,7 +79,7 @@ public class EStimShapeProceduralMatchStickTest {
 
         mStick.setProperties(5, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
@@ -171,7 +169,7 @@ public class EStimShapeProceduralMatchStickTest {
 
         mStick.setProperties(4.5, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
         testMatchStickDrawer.draw(new Drawable() {
             @Override
             public void draw() {
@@ -231,7 +229,7 @@ public class EStimShapeProceduralMatchStickTest {
 
         mStick.setProperties(5, "SHADE");
 
-        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3);
+        mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
 
         drawPng(mStick, "partially_in_rf");
     }

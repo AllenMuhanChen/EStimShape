@@ -107,7 +107,7 @@ public class ProceduralStim implements NAFCStim {
             sample.setProperties(parameters.getSize(), parameters.textureType);
             sample.setStimColor(parameters.color);
             try {
-                sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
+                sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true);
             } catch (ProceduralMatchStick.MorphRepetitionException e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
                 continue;

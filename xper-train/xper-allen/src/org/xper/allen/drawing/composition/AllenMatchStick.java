@@ -1174,7 +1174,7 @@ public class AllenMatchStick extends MatchStick {
 	 * and the point we are moving when translating.
 	 *
 	 */
-	protected void centerShape() {
+	public void centerShape() {
 //		centerShapeAtOrigin(getSpecialEndComp().get(0));
 		moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
 	}
@@ -2251,13 +2251,13 @@ public class AllenMatchStick extends MatchStick {
 		while (i<2) {
 			int j=0; //Number of times tried to generate a comp.
 			this.cleanData();
-			while (true) {
+			while (j<2) {
 				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf) == true){
 					compSuccess = true;
 					break;
 				}
 				else {
-//					j++;
+					j++;
 //					System.out.println("Attempt "+j + " to generate comp");
 				}
 				// else

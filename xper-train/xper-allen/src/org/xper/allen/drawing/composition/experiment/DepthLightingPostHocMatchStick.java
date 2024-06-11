@@ -29,7 +29,7 @@ public class DepthLightingPostHocMatchStick extends ProceduralMatchStick {
     }
 
 
-    protected void centerShape() {
+    public void centerShape() {
 
     }
 

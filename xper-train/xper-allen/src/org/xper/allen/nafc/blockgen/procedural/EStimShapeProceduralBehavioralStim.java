@@ -7,17 +7,17 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
-public class EStimShapeBehavioralStim extends EStimShapeProceduralStim{
+public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim{
 
     private ReceptiveField rf;
 
-    public EStimShapeBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
+    public EStimShapeProceduralBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
         super(
                 generator,
                 parameters,
                 null,
                 -1,
-                true);
+                false);
         this.rf = rf;
     }
 
@@ -82,7 +82,7 @@ public class EStimShapeBehavioralStim extends EStimShapeProceduralStim{
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
         baseMatchStick.setMaxAttempts(3);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0, true);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));

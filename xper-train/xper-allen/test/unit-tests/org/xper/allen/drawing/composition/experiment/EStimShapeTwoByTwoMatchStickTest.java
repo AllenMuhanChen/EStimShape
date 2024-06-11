@@ -32,7 +32,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
     public void test_partially_inside(){
         EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         firstMStick.setProperties(5, "SHADE");
-        firstMStick.genMatchStickFromComponent(baseMStick, 1, 2);
+        firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         testMatchStickDrawer.drawMStick(firstMStick);
         testMatchStickDrawer.drawCompMap(firstMStick);
         testMatchStickDrawer.saveImage(figPath + "/firstMStick");

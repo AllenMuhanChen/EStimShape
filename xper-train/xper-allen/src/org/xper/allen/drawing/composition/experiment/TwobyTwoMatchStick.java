@@ -9,7 +9,6 @@ import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point3d;
-import java.util.Map;
 
 public class TwobyTwoMatchStick extends ProceduralMatchStick {
 
@@ -19,7 +18,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
     }
 
     @Override
-    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp) {
+    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos) {
         SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
         if (nComp == 0){
             nComp = chooseNumComps();
@@ -28,7 +27,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
         while (nAttempts < this.maxAttempts || this.maxAttempts == -1) {
             nAttempts++;
             try {
-                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
+                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp, 5);
             } catch (MorphException e){
                 System.out.println("Error with morph, retrying");
                 System.out.println(e.getMessage());
@@ -40,7 +39,8 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
             System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
             try {
                 checkInNoise(drivingComponent, 0.3);
-                compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);
+                if (doCompareObjCenteredPos)
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);
             } catch (Exception e) {
                 System.out.println(e.getMessage());
                 continue;

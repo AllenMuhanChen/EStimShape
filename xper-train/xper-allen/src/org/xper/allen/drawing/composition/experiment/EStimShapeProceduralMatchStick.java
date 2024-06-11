@@ -35,7 +35,7 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
     }
 
     @Override
-    protected void centerShape(){
+    public void centerShape(){
         moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
     }
 

@@ -1,7 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
-import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
@@ -9,12 +8,11 @@ import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.time.TimeUtil;
 
-import javax.vecmath.Point3d;
 import java.util.LinkedList;
 import java.util.List;
 
 public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
-    private final int baseDrivingComponent;
+    protected int baseDrivingComponent;
 
     public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
@@ -102,7 +100,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, nComp);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, nComp, true);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
@@ -116,7 +114,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
-
+        match.centerShape();
 
         mSticks.setMatch(match);
         mStickSpecs.setMatch(mStickToSpec(match, stimObjIds.getMatch()));

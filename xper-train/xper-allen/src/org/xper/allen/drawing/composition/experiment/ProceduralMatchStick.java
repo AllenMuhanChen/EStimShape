@@ -17,7 +17,7 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 import java.util.*;
-import java.util.function.BiConsumer;
+
 /**
  * Matchsticks procedurally generated from base components, and delta versions of those matchsticks
  */
@@ -37,8 +37,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      * @param baseMatchStick
      * @param morphComponentIndx
      * @param nComp if 0, then choose randomly
+     * @param maxAttempts
      */
-    public void genMatchStickFromComponent(ProceduralMatchStick baseMatchStick, int morphComponentIndx, int nComp) {
+    public void genMatchStickFromComponent(ProceduralMatchStick baseMatchStick, int morphComponentIndx, int nComp, int maxAttempts) {
         // calculate the object centered position of the base matchStick's drivingComponent
 //        Map<Integer, SphericalCoordinates> objCenteredPosForDrivingComp =
 //                calcObjCenteredPosForDrivingComp(baseMatchStick, drivingComponentIndex);
@@ -46,16 +47,15 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             nComp = chooseNumComps();
         }
         int numAttempts = 0;
-        this.maxAttempts = baseMatchStick.maxAttempts;
-        while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
+        while (numAttempts < maxAttempts || maxAttempts == -1) {
             System.out.println("ATtempting genMatchFromLeaf: " + numAttempts);
             numAttempts++;
             if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
                 break;
             }
         }
-        if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
-            throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + this.maxAttempts + " attempts");
+        if (numAttempts >= maxAttempts && maxAttempts != -1) {
+            throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + maxAttempts + " attempts");
         }
     }
 
@@ -108,7 +108,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected void positionShape() {
     }
 
-    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp) {
+    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos) {
         if (nComp == 0){
             nComp = chooseNumComps();
         }
@@ -116,7 +116,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         while (nAttempts < this.maxAttempts || this.maxAttempts == -1) {
             nAttempts++;
             try {
-                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
+                genMatchStickFromComponent(baseMatchStick, fromCompId, nComp, this.maxAttempts);
             } catch (MorphException e){
                 System.out.println("Error with morph, retrying");
                 System.out.println(e.getMessage());
@@ -274,10 +274,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 angleDiff(actual.phi, expected.phi) > tolerances.phi) {
             throw new ObjectCenteredPositionException("Object Centered Position is off");
         }
-    }
-
-    protected void centerShape() {
-        centerSpecialJunctionAtOrigin();
     }
 
     protected Vector3d centerSpecialJunctionAtOrigin(){

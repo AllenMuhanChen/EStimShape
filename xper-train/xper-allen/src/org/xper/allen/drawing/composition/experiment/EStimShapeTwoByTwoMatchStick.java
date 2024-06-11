@@ -30,7 +30,7 @@ public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
     }
 
     @Override
-    protected void centerShape(){
+    public void centerShape(){
         moveCenterOfMassTo(new Point3d(0.0, 0.0, 0.0));
     }
 

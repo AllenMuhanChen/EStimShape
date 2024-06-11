@@ -58,7 +58,11 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
         numEStimTrialsForNoiseChances.put(0.5, 5);
 
+        Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
+        numBehavioralTrialsForNoiseChances.put(0.5, 20);
+
         List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
+        List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
 
         List<Stim> eStimTrials = new LinkedList<>();
         //Add EStim Trials
@@ -78,7 +82,20 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             eStimTrials.add(negativeControlTrial);
         }
 
-        stims.addAll(eStimTrials);
+        //Add Behavioral Trials
+        List<ReceptiveField> behTrialRFs = assignRFsToBehTrials(eStimTrials.size(), 0, behavioralTrialParams.size(), getRF());
+
+        List<Stim> behavioralTrials = new LinkedList<>();
+        for (int i = 0; i< behavioralTrialParams.size(); i++){
+            ProceduralStimParameters parameters = behavioralTrialParams.get(i);
+            EStimShapeTwoByTwoBehavioralStim stim = new EStimShapeTwoByTwoBehavioralStim(this, parameters, behTrialRFs.get(i));
+            behavioralTrials.add(stim);
+        }
+
+
+        stims.addAll(behavioralTrials);
+
+//        stims.addAll(eStimTrials);
 
     }
 
@@ -199,7 +216,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> behavioralTrials = new LinkedList<>();
         for (int i = 0; i< behavioralTrialParams.size(); i++){
             ProceduralStimParameters parameters = behavioralTrialParams.get(i);
-            EStimShapeBehavioralStim stim = new EStimShapeBehavioralStim(this, parameters, fakeRFs.get(i));
+            EStimShapeProceduralBehavioralStim stim = new EStimShapeProceduralBehavioralStim(this, parameters, fakeRFs.get(i));
             behavioralTrials.add(stim);
         }
 

@@ -77,7 +77,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
