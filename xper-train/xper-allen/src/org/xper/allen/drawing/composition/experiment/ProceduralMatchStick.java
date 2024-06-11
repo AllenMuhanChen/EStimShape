@@ -25,7 +25,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
-    protected SphericalCoordinates objCenteredPositionTolerance = new SphericalCoordinates(1000, Math.PI / 8, Math.PI / 2 );
+    protected SphericalCoordinates objCenteredPositionTolerance =
+            new SphericalCoordinates(1000, Math.PI / 4, Math.PI / 2 );
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     protected Point3d noiseOrigin;
@@ -201,9 +202,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return objCenteredPosForDrivingComp;
     }
 
-    protected SphericalCoordinates calcObjCenteredPosForComp(ProceduralMatchStick baseMatchStick, int drivingComponentIndex) {
-        Point3d shapeMassCenter = baseMatchStick.getMassCenter();
-        Point3d drivingComponentMassCenter = baseMatchStick.getMassCenterForComponent(drivingComponentIndex);
+    public static SphericalCoordinates calcObjCenteredPosForComp(ProceduralMatchStick matchStick, int compId) {
+        Point3d shapeMassCenter = matchStick.getMassCenter();
+        Point3d drivingComponentMassCenter = matchStick.getMassCenterForComponent(compId);
         Point3d drivingComponentObjectCenteredPositionPoint = new Point3d(drivingComponentMassCenter);
         drivingComponentObjectCenteredPositionPoint.sub(shapeMassCenter);
         return CoordinateConverter.cartesianToSpherical(drivingComponentObjectCenteredPositionPoint);
@@ -267,7 +268,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void compareObjectCenteredPositions(SphericalCoordinates expected, SphericalCoordinates actual, SphericalCoordinates tolerances) {
+    public static void compareObjectCenteredPositions(SphericalCoordinates expected, SphericalCoordinates actual, SphericalCoordinates tolerances) {
         if (Math.abs(actual.r - expected.r) > tolerances.r ||
                 angleDiff(actual.theta, expected.theta) > tolerances.theta ||
                 angleDiff(actual.phi, expected.phi) > tolerances.phi) {

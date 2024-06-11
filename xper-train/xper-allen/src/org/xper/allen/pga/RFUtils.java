@@ -50,7 +50,6 @@ public class RFUtils {
 
                     if (checkCompInRF(compInRF, percentageInsideRF, mStick, rf) &&
                             checkEnoughShapeOutOfRF(compInRF, initialThresholdPercentageOutOfRF, rf, mStick)) {
-                        System.out.println("Final position: " + mStick.getComp()[compInRF].getMassCenter());
                         return;
                     }
                 }

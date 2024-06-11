@@ -29,14 +29,15 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
             nAttempts++;
             try {
                 genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
-
             } catch (MorphException e){
                 System.out.println("Error with morph, retrying");
                 System.out.println(e.getMessage());
                 continue;
             }
             int drivingComponent = getDrivingComponent();
-            SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(baseMatchStick, drivingComponent);
+            SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, drivingComponent);
+            System.out.println("Original obj centered pos: " + originalObjCenteredPos.toString());
+            System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
             try {
                 checkInNoise(drivingComponent, 0.3);
                 compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);

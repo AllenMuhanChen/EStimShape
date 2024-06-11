@@ -4964,15 +4964,10 @@ public class AllenMatchStick extends MatchStick {
 		return shaftDatas;
 	}
 
-	public double angleDiff(double angle1, double angle2) {
+	public static double angleDiff(double angle1, double angle2) {
 		double diff = angle1 - angle2;
-		while(diff < 0){
-			diff+=2*Math.PI;
-		}
-		while(diff>2*Math.PI){
-			diff-=2*Math.PI;
-		}
-		return diff;
+		diff = (diff + Math.PI) % (2 * Math.PI) - Math.PI;
+		return Math.abs(diff);
 	}
 
 	private Vector3d calculateBisectorVector(Vector3d[] bisectedVectors) {
