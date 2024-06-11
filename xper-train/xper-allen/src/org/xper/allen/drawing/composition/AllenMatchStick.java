@@ -2498,7 +2498,7 @@ public class AllenMatchStick extends MatchStick {
 		getComp()[i].getRadInfo()[1][1] = nowRad;
 	}
 
-	public List<Integer> leafIndxToEndPts(int leafIndex, AllenMatchStick ams) {
+	public List<Integer> findEndPtsThatContainLeaf(int leafIndex, AllenMatchStick ams) {
 		ArrayList<Integer> output = new ArrayList<Integer>();
 		for (int j = 1; j <= ams.getnEndPt(); j++) {
 			if (ams.getEndPtStruct(j).getComp() == leafIndex)
@@ -2507,11 +2507,15 @@ public class AllenMatchStick extends MatchStick {
 		return output;
 	}
 
-	public List<Integer> leafIndxToJuncPts(int leafIndex, AllenMatchStick ams) {
+	public List<Integer> findJuncsThatContainLeaf(int leafIndex, AllenMatchStick ams) {
 		ArrayList<Integer> output = new ArrayList<Integer>();
 		for (int j = 1; j <= ams.getnJuncPt(); j++) {
-			if (Arrays.asList(ams.getJuncPtStruct(j).getCompIds()).contains(leafIndex));
-			output.add(j);
+			for (int k = 1; k <= ams.getJuncPt()[j].getnComp(); k++) {
+				if (ams.getJuncPt()[j].getCompIds()[k] == leafIndex) {
+					output.add(j);
+					break;
+				}
+			}
 		}
 		return output;
 	}
@@ -2531,6 +2535,7 @@ public class AllenMatchStick extends MatchStick {
 		}
 
 		//STARTING LEAF
+		System.out.println("Leaf INdx: " + leafIndx);
 		getComp()[1].copyFrom(amsOfLeaf.getTubeComp(leafIndx));
 		double PROB_addToBaseEndNotBranch = 1;
 		int add_trial = 0;
@@ -2540,32 +2545,37 @@ public class AllenMatchStick extends MatchStick {
 		while (true)
 		{
 			//FINDING JUNCS AND ENDS THAT ARE ASSOCIATED WITH THE LEAF SPECIFIED BY LEAFINDX
-			ArrayList<Integer> juncList= (ArrayList<Integer>) leafIndxToJuncPts(leafIndx, amsOfLeaf);
-			ArrayList<Integer> endList= (ArrayList<Integer>) leafIndxToEndPts(leafIndx, amsOfLeaf);
+			ArrayList<Integer> juncList= (ArrayList<Integer>) findJuncsThatContainLeaf(leafIndx, amsOfLeaf);
+			Integer specialJuncINdx = juncList.get(0);
+			System.out.println("tan: " + amsOfLeaf.getJuncPt()[specialJuncINdx].getTangent()[1]);
+			System.out.println(("special junc indx: " + specialJuncINdx));
+			ArrayList<Integer> endList= (ArrayList<Integer>) findEndPtsThatContainLeaf(leafIndx, amsOfLeaf);
 
 			EndPt_struct specialEnd = new EndPt_struct();
 			JuncPt_struct notSpecialJunc = new JuncPt_struct();
 			EndPt_struct notSpecialEnd = new EndPt_struct();
 			//CHOOSE JUNC FROM LEAF
-			int compJIndx;
+			int compIndxInJunctStruct;
 			int nseUNdx = 0;
 			Point3d nsePos = new Point3d();
+			System.out.println("NSE POS: " + nsePos);
 			Vector3d nseTangent = new Vector3d();
 			double nseRad = 0;
 			for(int juncIndx : juncList) {
-				compJIndx = amsOfLeaf.getJuncPt()[juncIndx].getJIndexOfComp(leafIndx);
-				if (compJIndx != 0) { //checking if this junc contains the leafIndx
-					int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compJIndx];
+				compIndxInJunctStruct = amsOfLeaf.getJuncPt()[juncIndx].getJIndexOfComp(leafIndx);
+				if (compIndxInJunctStruct != 0) { //checking if this junc contains the leafIndx
+					int junc_uNdx = amsOfLeaf.getJuncPt()[juncIndx].getuNdx()[compIndxInJunctStruct];
 
-					//JUNC IS AN END
+					//JUNC IS NOT BRANCH PT
 					if (junc_uNdx == 51 || junc_uNdx == 1) {
 						notSpecialJunc.copyFrom(amsOfLeaf.getJuncPt()[juncIndx]);
 
 						//SET NOT-SPECIAL END PARAMS BASED OFF THIS JUNC
-						compJIndx = notSpecialJunc.getJIndexOfComp(leafIndx);
-						nseUNdx = notSpecialJunc.getuNdx()[compJIndx];
+						compIndxInJunctStruct = notSpecialJunc.getJIndexOfComp(leafIndx);
+						System.out.println("JIndex of Comp: " + compIndxInJunctStruct);
+						nseUNdx = notSpecialJunc.getuNdx()[compIndxInJunctStruct];
 						nsePos = notSpecialJunc.getPos();
-						nseTangent = notSpecialJunc.getTangentOfOwner(leafIndx); //TODO: check this (might be wrong
+						nseTangent = notSpecialJunc.getTangent()[notSpecialJunc.getTangentOwner()[compIndxInJunctStruct]]; //TODO: check this (might be wrong
 						nseRad = notSpecialJunc.getRad();
 
 						//DEFINE SPECIAL END TO BE THE OTHER END PT
@@ -2610,8 +2620,10 @@ public class AllenMatchStick extends MatchStick {
 			Vector3d seTangent = specialEnd.getTangent();
 			double seRad = specialEnd.getRad();
 
-			getEndPt()[getSpecialEnd().get(0)] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
-			getEndPt()[getSpecialEnd().get(0)+1] = new EndPt_struct(seComp, nseUNdx, nsePos, nseTangent, nseRad);
+			getEndPt()[1] = new EndPt_struct(seComp, seUNdx, sePos, seTangent, seRad);
+			System.out.println("nse tangent: " + nseTangent);
+			System.out.println("se tangent: " + seTangent);
+			getEndPt()[2] = new EndPt_struct(seComp, nseUNdx, nsePos, nseTangent, nseRad);
 
 
 			setnJuncPt(0);
@@ -2720,6 +2732,7 @@ public class AllenMatchStick extends MatchStick {
 
 	private int baseComp = 0;
 	protected boolean Add_BaseMStick(int nowComp, int type) {
+		System.out.println("Adding Base MStick with type " + type);
 		boolean showDebug = false;
 		//Base System: a single leaf is pre-defined to have one end and one juncion. The base is formed by adding to this junction
 		//point, either E2J or B2J.
@@ -2752,7 +2765,9 @@ public class AllenMatchStick extends MatchStick {
 			// 2. trnasRot the nowArc to the correction configuration
 			int alignedPt = 1;
 			Point3d finalPos = new Point3d(getEndPt()[nowPtNdx].getPos());
+			System.out.println("final pos of endPt: " + finalPos);
 			Vector3d oriTangent = new Vector3d(getEndPt()[nowPtNdx].getTangent());
+			System.out.println("oriTangent: " + oriTangent);
 //			oriTangent.negate(); //unsure if this breaks. tested for noise
 			Vector3d finalTangent = new Vector3d();
 			trialCount = 1;

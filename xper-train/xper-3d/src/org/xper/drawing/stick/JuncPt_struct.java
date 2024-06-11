@@ -53,12 +53,12 @@ public class JuncPt_struct {
        * @return
        */
       public int getJIndexOfComp(int compId) {
-    	  for(int JIndx=1; JIndx<comp.length; JIndx++) {
+    	  for(int JIndx=1; JIndx<=comp.length; JIndx++) {
     		  if(comp[JIndx]==compId) {
     			  return JIndx;
     		  }
     	  }
-//    	  System.out.println("getIndexOfComp(int compId) returned 0, this should means that compId is not a component in this Junc");
+    	  System.out.println("getIndexOfComp(int compId) returned 0, this should means that compId is not a component in this Junc");
     	  return 0;
       }
 

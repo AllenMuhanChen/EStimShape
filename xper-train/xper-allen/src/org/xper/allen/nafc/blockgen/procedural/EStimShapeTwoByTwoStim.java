@@ -14,8 +14,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
+    private final int baseDrivingComponent;
+
     public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
+        this.baseDrivingComponent = morphComponentIndex;
     }
 
     @Override
@@ -99,7 +102,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 3);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, 3);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
