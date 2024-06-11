@@ -4056,7 +4056,7 @@ public class AllenMatchStick extends MatchStick {
 		// the 'finalTangent' is sometimes at 'wrong direction'
 		// At here we want to check the similarity ( reproducibility)
 		// of our new synthesized shape & original vertex distance
-		if ( res == true)
+		if (res)
 		{
 			return;
 //			            if ( inSpec.getNVect() < 10) // this might happen, not sure
