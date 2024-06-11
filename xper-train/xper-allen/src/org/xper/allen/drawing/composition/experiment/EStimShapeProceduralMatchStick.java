@@ -45,20 +45,6 @@ public class EStimShapeProceduralMatchStick extends ProceduralMatchStick {
         RFUtils.positionAroundRF(rfStrategy, this, rf);
     }
 
-    @Override
-    protected boolean checkMStick(int drivingComponentIndex) {
-        try {
-            checkInNoise(drivingComponentIndex, 0.3);
-            return true;
-        } catch (MorphException e) {
-            System.out.println(e.getMessage());
-        } catch (NoiseException ne){
-            System.out.println(ne.getMessage());
-        }
-        return false;
-    }
-
-
     private void drawRF() {
         List<Coordinates2D> outline = rf.getOutline();
 

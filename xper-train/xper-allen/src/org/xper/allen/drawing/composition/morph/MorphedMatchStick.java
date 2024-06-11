@@ -20,7 +20,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     // 50% add to end, 50%
     // add to junc
     protected final double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0 };
-//    protected final double[] PARAM_nCompDist = {0, 0.33, 0.66, 1.0, 0.0, 0.0, 0.0, 0.0 };
+    //    protected final double[] PARAM_nCompDist = {0, 0.33, 0.66, 1.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 //    protected final double[] PARAM_nCompDist = {0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
     protected final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
@@ -60,7 +60,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 attemptSmoothizeMStick();
                 if (doPositionShape)
                     positionShape();
-                if (checkMStick()) return;
+                return;
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
@@ -93,9 +93,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
                 positionShape();
-                if (checkMStick()) {
-                    return;
-                }
+                return;
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
@@ -191,7 +189,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
                 positionShape();
-                if (checkMStick()) break;
                 break;
             } catch (MorphException e) {
                 cleanData();
@@ -211,6 +208,12 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
+    protected void checkMStickSize() throws MStickSizeException {
+        boolean success = this.validMStickSize();
+        if (!success) {
+            throw new MStickSizeException("MatchStick size is invalid");
+        }
+    }
 
     @Override
     public void genMatchStickRand() {
@@ -256,12 +259,12 @@ public class MorphedMatchStick extends AllenMatchStick {
             }
 
             positionShape();
-
-            boolean sizeCheckSucceeded = checkMStick();
-            if (sizeCheckSucceeded) // success
-            {
-                break;
+            try {
+                checkMStickSize();
+            } catch (MStickSizeException e) {
+                continue;
             }
+            break;
         }
     }
 
@@ -903,5 +906,11 @@ public class MorphedMatchStick extends AllenMatchStick {
 
     public void setMaxTotalAttempts(int maxTotalAttempts) {
         MAX_TOTAL_ATTEMPTS = maxTotalAttempts;
+    }
+
+    public static class MStickSizeException extends MorphException{
+        public MStickSizeException(String message){
+            super(message);
+        }
     }
 }

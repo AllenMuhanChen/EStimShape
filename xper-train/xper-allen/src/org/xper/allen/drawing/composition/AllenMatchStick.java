@@ -2703,7 +2703,7 @@ public class AllenMatchStick extends MatchStick {
 		// 5. check if the final shape is not working ( collide after skin application)
 //		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 
-		if ( validMStickSize() ==  false)
+		if (!validMStickSize())
 		{
 //			System.err.println("FAIL AT VALIDSIZE");
 			if ( showDebug)

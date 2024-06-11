@@ -47,14 +47,11 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
-            while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
-                System.out.println("ATtempting genMatchFromLeaf: " + numAttempts);
-                if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
-                    break;
-                }
-                numAttempts++;
+            System.out.println("ATtempting genMatchFromLeaf: " + numAttempts);
+            numAttempts++;
+            if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
+                break;
             }
-            if (checkMStick(getDrivingComponent())) break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + this.maxAttempts + " attempts");
@@ -85,8 +82,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 numAttempts++;
             }
 
-//            System.out.println("Checking MStick");
-            if (checkMStick(noiseComponentIndx)) break;
+            checkMStickSize();
+            break;
         }
         if (numAttempts >= this.maxAttempts && this.maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick WITH NEW DRIVING COMP after " + this.maxAttempts + " attempts");
@@ -96,7 +93,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected void positionShape() {
     }
 
-    public int genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp) {
+    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp) {
         if (nComp == 0){
             nComp = chooseNumComps();
         }
@@ -118,7 +115,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 System.out.println(e.getMessage());
                 continue;
             }
-            return fromCompId;
+            return;
         }
         throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");
     }
@@ -148,26 +145,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return getSpecialEndComp().get(0);
     }
 
-    protected boolean checkMStick(int drivingComponentIndex) {
-        try {
-            checkMStickSize();
-            return true;
-        } catch (ObjectCenteredPositionException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with object centered position, retrying");
-        } catch (NoiseException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with noise, retrying");
-        } catch (MStickSizeException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with matchStick size, retrying");
-        } catch (MorphException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-
 //    protected boolean validMStickSize() {
 ////        double buffer = 0.5; //in degrees, on each side. So total buffer is 1 degree
 //        double maxRadius = getScaleForMAxisShape(); // degree
@@ -192,19 +169,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 //        }
 //        return true;
 //    }
-
-    protected void checkMStickSize() throws MStickSizeException {
-        boolean success = this.validMStickSize();
-        if (!success) {
-            throw new MStickSizeException("MatchStick size is invalid");
-        }
-    }
-
-    public static class MStickSizeException extends MorphException{
-        public MStickSizeException(String message){
-            super(message);
-        }
-    }
 
     public static class MorphRepetitionException extends MorphException{
         public MorphRepetitionException(String message){
@@ -256,6 +220,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape);
                 System.out.println("Outside: This massCenter: " + this.getComp()[drivingComponentIndex].getMassCenter().toString());
                 compareObjectCenteredPositionTo(originalObjCenteredPos);
+                checkMStickSize();
                 return;
             } catch (ObjectCenteredPositionException e) {
                 cleanData();

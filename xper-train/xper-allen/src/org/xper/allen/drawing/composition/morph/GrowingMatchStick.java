@@ -47,11 +47,6 @@ public class GrowingMatchStick extends GAMatchStick {
             //Adding New Comps - NON RF Operation
             int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
             genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
-
-            if (checkMStick()) ;
-            else {
-                throw new MorphedMatchStick.MorphException("Morphing failed");
-            }
         } else {
             boolean morphEntireShape = false;
             //based on magnitude, determine if morphing should impact both inside and outside of RF
@@ -116,24 +111,26 @@ public class GrowingMatchStick extends GAMatchStick {
     public void genOutsideRFMorphedMStick(MorphedMatchStick matchStickToMorph, double magnitude) {
         int numAttempts = 0;
         while (numAttempts < getMaxTotalAttempts()) {
-            //Removing Comps - Non RF operation
-            HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
-            MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
+            numAttempts++;
+            try {
+                //Removing Comps - Non RF operation
+                HashSet<Integer> componentsToRemove = specifyCompsToRemove(matchStickToMorph, magnitude);
+                MorphedMatchStick removedLimbMatchStick = genRemovedLimbsMatchStick(matchStickToMorph, componentsToRemove);
 
-            //Morphing Existing Comps - NON RF
-            //TODO: change this to not effect inside RF component
-            Map<Integer, ComponentMorphParameters> paramsForComps = specifyOutsideRFCompMorphParams(removedLimbMatchStick, magnitude);
-            MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
+                //Morphing Existing Comps - NON RF
+                //TODO: change this to not effect inside RF component
+                Map<Integer, ComponentMorphParameters> paramsForComps = specifyOutsideRFCompMorphParams(removedLimbMatchStick, magnitude);
+                MorphedMatchStick compMorphedMatchStick = genComponentMorphMatchStick(matchStickToMorph, paramsForComps, removedLimbMatchStick);
 
-            //Adding New Comps - NON RF Operation
-            int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
-            genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
-            positionShape();
-            if (checkMStick()) ;
-            else {
-                throw new MorphException("Morphing failed");
+                //Adding New Comps - NON RF Operation
+                int nCompsToAdd = specifyNCompsToAdd(compMorphedMatchStick, magnitude);
+                genAddedLimbsMatchStick(compMorphedMatchStick, nCompsToAdd);
+                positionShape();
+            } catch (MorphedMatchStick.MorphException me) {
+                System.err.println(me.getMessage());
+                continue;
             }
-            return;
+            break;
         }
         if (numAttempts == getMaxTotalAttempts()) {
             throw new MorphException("Could not generate outside rf morphed matchstick after " + getMaxTotalAttempts() + " attempts");

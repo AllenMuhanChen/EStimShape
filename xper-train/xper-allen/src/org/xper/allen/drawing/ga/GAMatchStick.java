@@ -121,18 +121,6 @@ public class GAMatchStick extends MorphedMatchStick {
     }
 
     @Override
-    /**
-     * No checking we aren't already doing in positionShape which ensures everything we need
-     * relative to RF.
-     */
-    protected boolean checkMStick() {
-        return true;
-    }
-
-
-
-
-    @Override
     public void drawCompMap(){
         super.drawCompMap();
 

@@ -29,6 +29,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
                 attemptSmoothizeMStick();
                 if (doPositionShape)
                     positionShape();
+                checkMStickSize();
                 return;
             } catch (MorphException e) {
                 System.out.println(e.getMessage());
@@ -117,25 +118,6 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
         } catch (MorphException e){
             throw new MorphException("Cannot swap radius");
         }
-    }
-
-    protected boolean checkMStick(int drivingComponentIndex) {
-        try {
-            checkMStickSize();
-            return true;
-        } catch (ObjectCenteredPositionException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with object centered position, retrying");
-        } catch (NoiseException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with noise, retrying");
-        } catch (MStickSizeException e) {
-//            System.out.println(e.getMessage());
-            System.out.println("Error with matchStick size, retrying");
-        } catch (MorphException e) {
-            e.printStackTrace();
-        }
-        return false;
     }
 
 }
