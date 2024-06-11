@@ -29,8 +29,6 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
             nAttempts++;
             try {
                 genMatchStickFromComponent(baseMatchStick, fromCompId, nComp);
-                centerShape();
-                checkMStickSize();
             } catch (MorphException e){
                 System.out.println("Error with morph, retrying");
                 System.out.println(e.getMessage());
