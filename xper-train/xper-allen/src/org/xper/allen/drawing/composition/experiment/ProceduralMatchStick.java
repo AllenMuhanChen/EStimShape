@@ -61,7 +61,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
 
 
-    public void genMorphedDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape) {
+    public void genMorphedDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise) {
         int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
@@ -213,11 +213,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     /**
      * Generates a new matchStick from morphing the base component in the targetMatchStick
      *
-     * @param doPositionShape
-     * @param maxAttempts
      * @param targetMatchStick
+     * @param maxAttempts
+     * @param doPositionShape
+     * @param doCompareObjCenteredPos
      */
-    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, boolean doPositionShape, int maxAttempts) {
+    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, int maxAttempts, boolean doPositionShape, boolean doCompareObjCenteredPos) {
         int baseComponentIndex;
         List<Integer> baseCompIndcs = new LinkedList<>();
         for (int compId : targetMatchStick.getCompIds()) {
@@ -242,7 +243,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 }
                 genMorphedComponentsMatchStick(morphParametersForComponents, targetMatchStick, doPositionShape);
                 SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponentIndex);
-                compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
+                if (doCompareObjCenteredPos)
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
                 checkMStickSize();
                 return;
             } catch (ObjectCenteredPositionException e) {

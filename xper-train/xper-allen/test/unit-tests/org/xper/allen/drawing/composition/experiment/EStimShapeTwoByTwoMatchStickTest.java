@@ -41,7 +41,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, true, secondMStick.maxAttempts);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         testMatchStickDrawer.drawMStick(secondMStick);
         testMatchStickDrawer.drawCompMap(secondMStick);
         testMatchStickDrawer.saveImage(figPath + "/secondMStick");
@@ -49,7 +49,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         thirdMStick.setProperties(5, "SHADE");
-        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true);
+        thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true);
         testMatchStickDrawer.drawMStick(thirdMStick);
         testMatchStickDrawer.drawCompMap(thirdMStick);
         testMatchStickDrawer.saveImage(figPath + "/thirdMStick");

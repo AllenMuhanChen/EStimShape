@@ -66,7 +66,8 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         correctNoiseRadius(swappedBaseMStick);
         swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType);
         swappedBaseMStick.setStimColor(parameters.color);
-        swappedBaseMStick.genMorphedBaseMatchStick(match, morphComponentIndex, false, 100);
+        swappedBaseMStick.genMorphedBaseMatchStick(match, morphComponentIndex, 100,
+                false, true);
         mSticks.proceduralDistractors.add(swappedBaseMStick);
         mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick, stimObjIds.proceduralDistractors.get(0)));
 
@@ -75,7 +76,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
         swappedInNoiseMStick.setStimColor(parameters.color);
         swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match, 0.7, 0.5,
-                false);
+                false, true);
         mSticks.proceduralDistractors.add(swappedInNoiseMStick);
         mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick, stimObjIds.proceduralDistractors.get(1)));
 
@@ -92,15 +93,17 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected ProceduralMatchStick generateSample() {
-        int nComp = (int) Math.round(Math.random()) + 1;
+        int nComp = (int) Math.round(Math.random()) + 1; //2 to 3
         //Generate Sample
         EStimShapeTwoByTwoMatchStick sample = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 ((EStimExperimentTrialGenerator) generator).getRF()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE,
+                ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, nComp, true);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, nComp,
+                true);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));

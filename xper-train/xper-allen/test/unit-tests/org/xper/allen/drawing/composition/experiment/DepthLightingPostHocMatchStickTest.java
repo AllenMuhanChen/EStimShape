@@ -121,7 +121,7 @@ public class DepthLightingPostHocMatchStickTest {
         for (int i=0; i<numShapeVariations; i++) {
             DepthLightingPostHocMatchStick newMStick = new DepthLightingPostHocMatchStick();
             newMStick.setProperties(12, "SHADE");
-            newMStick.genMorphedDrivingComponentMatchStick(baseMStick, 0.7, 0.5, true);
+            newMStick.genMorphedDrivingComponentMatchStick(baseMStick, 0.7, 0.5, true, true);
             originalAngleMSticks.add(newMStick);
         }
 
