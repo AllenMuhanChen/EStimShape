@@ -199,7 +199,7 @@ public class AllenMStickSpec {
                 vertex.setVertexInfo(inStick.getSmoothObj());
             } catch (Exception e) {
                 e.printStackTrace();
-
+                throw new RuntimeException("Could not set vertex info");
             }
 
 

@@ -21,6 +21,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
+        nComp = (int) Math.round(Math.random()+2);
         while(true) {
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();
@@ -93,7 +94,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected ProceduralMatchStick generateSample() {
-        int nComp = (int) Math.round(Math.random()) + 1; //2 to 3
+
         //Generate Sample
         EStimShapeTwoByTwoMatchStick sample = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
