@@ -54,7 +54,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 copyFrom(backup);
                 findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
-//                MutateSUB_reAssignJunctionRadius();
+                MutateSUB_reAssignJunctionRadius();
                 centerShape();
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
@@ -319,6 +319,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.err.println(e.getMessage());
                 System.out.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams);
                 morphParams.redistribute();
+                copyFrom(localBackup);
             } finally {
                 numAttempts++;
             }
@@ -421,6 +422,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     protected void applyRadiusProfile() throws MorphException{
         for (int i=1; i<=getnComponent(); i++)
         {
+            System.out.println("Distractor Comp Rad Info " + i + ": " + getComp()[i].getRadInfo()[0][1] + " " + getComp()[i].getRadInfo()[1][1] + " " + getComp()[i].getRadInfo()[2][1]);
             if(!getComp()[i].RadApplied_Factory()) // a fail application
             {
                 throw new MorphException("Radius profile failed when attempting to be applied to component " + i);
@@ -773,7 +775,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         while(numAttemptsToGenerateArc < NUM_ATTEMPTS_PER_ARC){
             try {
                 newArc = generateMorphedArc(id, morphParams, arcToMorph);
-//                checkJunctions(id, newArc); //not sure needed because this just checks diff betwene new and old
+                checkJunctions(id, newArc); //not sure needed because this just checks diff betwene new and old
                 return newArc;
             } catch (MorphException e){
                 System.err.println(e.getMessage());
@@ -808,20 +810,20 @@ public class MorphedMatchStick extends AllenMatchStick {
                     midBranchFlg = true;
                 }
 
-                // check the angle
-                for (int j=1; j<=junction.getnTangent(); j++) {
-                    if (junction.getTangentOwner()[j] != id) // don't need to check with the replaced self
-                    {
-                        Vector3d nowTangent = junction.getTangent()[j]; // soft copy is fine here
-                        if (nowTangent.angle(finalTangent) <= getTangentSaveZone()) // angle btw the two tangent vector
-                            throw new MorphException("Tangent angle too small!");
-                        if (midBranchFlg == true) {
-                            finalTangent.negate();
-                            if (nowTangent.angle(finalTangent) <= getTangentSaveZone()) //
-                                throw new MorphException("Tangent angle too small!");
-                        }
-                    }
-                }
+//                // check the angle
+//                for (int j=1; j<=junction.getnTangent(); j++) {
+//                    if (junction.getTangentOwner()[j] != id) // don't need to check with the replaced self
+//                    {
+//                        Vector3d nowTangent = junction.getTangent()[j]; // soft copy is fine here
+//                        if (nowTangent.angle(finalTangent) <= getTangentSaveZone()) // angle btw the two tangent vector
+//                            throw new MorphException("Tangent angle too small!");
+//                        if (midBranchFlg == true) {
+//                            finalTangent.negate();
+//                            if (nowTangent.angle(finalTangent) <= getTangentSaveZone()) //
+//                                throw new MorphException("Tangent angle too small!");
+//                        }
+//                    }
+//                }
             }
         });
     }

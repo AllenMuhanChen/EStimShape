@@ -744,8 +744,8 @@ public class MStickObj4Smooth {
                 }
             }
 //            System.out.println(minDist);
-//            if (minDist >= 1.2)
-            if (minDist >= 3.5)
+            if (minDist >= 1.2)
+//            if (minDist >= 3.5)
             {
 
                 System.out.println("The two tube are not contacting.....fail");

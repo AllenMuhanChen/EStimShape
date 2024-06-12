@@ -13,6 +13,7 @@ import java.util.List;
 
 public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     protected int baseDrivingComponent;
+    private int nComp;
 
     public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
@@ -21,7 +22,8 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-        nComp = (int) Math.round(Math.random()+2);
+//        nComp = (int) Math.round(Math.random()+2);
+        nComp=3;
         while(true) {
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();

@@ -16,6 +16,7 @@ import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
+import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
 
@@ -140,6 +141,7 @@ public class AllenDrawingManager implements Drawable {
 	 * @return
 	 */
 	public String drawStimulus(Drawable obj, Long stimObjId, List<String> labels) {
+		ThreadUtil.sleep(100);
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 		renderer.draw(new Drawable() {

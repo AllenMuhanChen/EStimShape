@@ -2662,10 +2662,10 @@ public class AllenMatchStick extends MatchStick {
 			randNdx = stickMath_lib.rand01();
 			if (randNdx < getPROB_addToEndorJunc())
 			{
-				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
+//				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
 					addSuccess = Add_AccessoryMStick(nowComp, 1);
-				else
-					addSuccess = Add_AccessoryMStick(nowComp, 2);
+//				else
+//					addSuccess = Add_AccessoryMStick(nowComp, 2);
 			}
 			else
 			{
@@ -2686,21 +2686,23 @@ public class AllenMatchStick extends MatchStick {
 		//up to here, the eligible skeleton should be ready
 		// 3. Assign the radius value
 		RadiusAssign(1); // KEEP FIRST ELEMENT SAME RADIUS
+//		MutateSUB_reAssignJunctionRadius();
 		// 4. Apply the radius value onto each component
-		for (i=1; i<=getnComponent(); i++)
-		{
+		for (i=1; i<=getnComponent(); i++){
+			System.out.println("Comp Rad Info " + i + ": " + comp[i].getRadInfo()[0][1] + " " + comp[i].getRadInfo()[1][1] + " " + comp[i].getRadInfo()[2][1]);
+
 			if(!this.getComp()[i].RadApplied_Factory()) // a fail application
 			{
-				if(showDebug)
-					System.out.println("Failed RadApplied");
+				System.out.println("Failed RadApplied for comp " + i);
+				System.out.println(getComp()[i].getRadInfo()[0][1] + " " + getComp()[i].getRadInfo()[1][1] + " " + getComp()[i].getRadInfo()[2][1]);
 				return false;
 			}
 		}
 
 		if (this.finalTubeCollisionCheck())
 		{
-			if ( showDebug)
-				System.out.println("\n FAIL the final Tube collsion Check ....\n");
+
+			System.out.println("\n FAIL the final Tube collsion Check ....\n");
 			return false;
 		}
 
@@ -2710,8 +2712,7 @@ public class AllenMatchStick extends MatchStick {
 		if (!validMStickSize())
 		{
 //			System.err.println("FAIL AT VALIDSIZE");
-			if ( showDebug)
-				System.out.println("\n FAIL the MStick size check ....\n");
+			System.out.println("\n FAIL the MStick size check ....\n");
 			return false;
 		}
 
@@ -2763,11 +2764,10 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				break;
-//				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
-//					break;
-//				if ( trialCount++ == 300)
-//					return false;
+				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
+					break;
+				if ( trialCount++ == 300)
+					return false;
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
@@ -2784,7 +2784,7 @@ public class AllenMatchStick extends MatchStick {
 
 			// 4. replace old endPt with new endPt
 			getEndPt()[nowPtNdx] = null;
-			getEndPt()[nowPtNdx] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], nowArc.getRad());
+			getEndPt()[nowPtNdx] = new EndPt_struct(nowComp, 51, nowArc.getmPts()[51], nowArc.getmTangent()[51], 100);
 
 			//			 2.5 call the function to check if this new arc is valid
 			if (checkSkeletonNearby(nowComp) == true)
@@ -2940,7 +2940,14 @@ public class AllenMatchStick extends MatchStick {
 			int[] compList = { getEndPt()[nowPtNdx].getComp(), nowComp};
 			int[] uNdxList = { getEndPt()[nowPtNdx].getuNdx(), 1};
 			Vector3d[] tangentList = { oriTangent, finalTangent};
-			getJuncPt()[getnJuncPt()] = new JuncPt_struct(2, compList, uNdxList, finalPos, 2, tangentList, compList, getEndPt()[nowPtNdx].getRad());
+			getJuncPt()[getnJuncPt()] = new JuncPt_struct(2,
+					compList,
+					uNdxList,
+					finalPos,
+					2,
+					tangentList,
+					compList,
+					getEndPt()[nowPtNdx].getRad());
 			getComp()[nowComp].initSet( nowArc, false, 1); // the MAxisInfo, and the branchUsed
 
 			// 2.5 call the function to check if this new arc is valid
