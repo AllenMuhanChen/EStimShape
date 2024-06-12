@@ -9,6 +9,7 @@ import org.xper.allen.pga.RFUtils;
 
 public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
     private ReceptiveField rf;
+    private int nComp;
 
     public EStimShapeTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
         super(generator, parameters, null, -1, false);
@@ -17,13 +18,14 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
+        nComp = (int) Math.round(Math.random()+2);
         while(true) {
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();
-            System.out.println("Trying to generate EStimShapeProceduralStim");
+            System.out.println("Trying to generate EStimShapeTwoByTwoBehavioralStim");
             try {
                 baseMatchStick = genRandBaseMStick();
-                this.baseDrivingComponent = baseMatchStick.chooseRandLeaf();
+                baseDrivingComponent = baseMatchStick.chooseRandLeaf();
                 EStimShapeTwoByTwoMatchStick sample = (EStimShapeTwoByTwoMatchStick)
                         generateSample();
 
@@ -37,13 +39,13 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
                 break;
             } catch (Exception e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
+                e.printStackTrace();
             }
         }
     }
 
     @Override
     protected ProceduralMatchStick generateSample() {
-        int nComp = (int) Math.round(Math.random()) + 1;
         //Generate Sample
         EStimShapeTwoByTwoMatchStick sample = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,

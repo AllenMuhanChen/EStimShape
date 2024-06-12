@@ -49,14 +49,13 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         int numAttempts = 0;
         while (numAttempts < maxAttempts || maxAttempts == -1) {
             System.out.println("ATtempting genMatchFromLeaf: " + numAttempts);
-            numAttempts++;
             if (genMatchStickFromLeaf(morphComponentIndx, baseMatchStick, nComp)) {
-                break;
+                return;
+            } else{
+                numAttempts++;
             }
         }
-        if (numAttempts >= maxAttempts && maxAttempts != -1) {
-            throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + maxAttempts + " attempts");
-        }
+        throw new MorphRepetitionException("Could not generate matchStick FROM DRIVING COMPONENT after " + maxAttempts + " attempts");
     }
 
 

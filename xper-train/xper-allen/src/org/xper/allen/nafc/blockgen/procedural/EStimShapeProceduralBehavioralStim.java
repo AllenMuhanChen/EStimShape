@@ -26,7 +26,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
         while (true) {
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();
-            System.out.println("Trying to generate EStimShapeBehavioralStim");
+            System.out.println("Trying to generate EStimShapeProceduralBehavioralStim");
             try {
                 baseMatchStick = genRandBaseMStick();
                 baseMatchStick.setMaxAttempts(15);
@@ -34,6 +34,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
                 break;
             } catch (ProceduralMatchStick.MorphRepetitionException me) {
                 System.err.println("MorphRepetition FAILED: " + me.getMessage());
+                me.printStackTrace();
             } catch(ProceduralMatchStick.MorphException me) {
                 System.err.println("Morph EXCEPTION: " + me.getMessage());
             } catch (Exception e) {

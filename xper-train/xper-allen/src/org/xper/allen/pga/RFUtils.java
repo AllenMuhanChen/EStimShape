@@ -27,17 +27,15 @@ public class RFUtils {
         Coordinates2D rfCenter;
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             int compInRF = mStick.getSpecialEndComp().get(0);
-            System.out.println("specialEndComp: " + mStick.getSpecialEndComp());
-            System.out.println("Comp in RF: " + compInRF);
-
             double percentageInsideRF = 1.0;
-            double initialThresholdPercentageOutOfRF = 0.8;
+
+            double initialThresholdPercentageOutOfRF = 0.8; //percentage of shape NOT INCLUDING the component in the RF
             double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
-            double minThresholdPercentageOutOfRF = 0; // Minimum threshold percentage allowed
+            double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
 
-            int numPointsToTry = 100;
-
-            while (initialThresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
+            int numPointsToTry = 50;
+            double thresholdPercentageOutOfRF = initialThresholdPercentageOutOfRF;
+            while (thresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
                 // Generate a uniform span of points within the RF
                 List<Coordinates2D> pointsToTest = generateUniformPointsInCircle(rf.getCenter(), rf.radius, numPointsToTry);
                 // Permute the points
@@ -49,12 +47,11 @@ public class RFUtils {
                     mStick.movePointToDestination(pointToMove, destination);
 
                     if (checkCompInRF(compInRF, percentageInsideRF, mStick, rf) &&
-                            checkEnoughShapeOutOfRF(compInRF, initialThresholdPercentageOutOfRF, rf, mStick)) {
+                            checkEnoughShapeOutOfRF(compInRF, thresholdPercentageOutOfRF, rf, mStick)) {
                         return;
                     }
                 }
-                System.out.println("Reducing threshold percentage for points outside of RF");
-                initialThresholdPercentageOutOfRF -= reductionStep; // Reduce threshold for next outer loop iteration
+                thresholdPercentageOutOfRF -= reductionStep; // Reduce threshold for next outer loop iteration
             }
 
             throw new MorphedMatchStick.MorphException("Could not find a point in the RF after testing " + numPointsToTry + " points per threshold reduction");
@@ -88,22 +85,18 @@ public class RFUtils {
     }
 
     private static boolean checkCompInRF(int compIndx, double thresholdPercentageInRF, AllenMatchStick mStick, ReceptiveField rf) {
-        List<Point3d> pointsToCheck = new ArrayList<>();
-        List<Point3d> pointsInside = new ArrayList<>();
-
-        pointsToCheck.addAll(Arrays.asList(mStick.getComp()[compIndx].getVect_info()));
         int numPoints = 0;
-
-        for (Point3d point: pointsToCheck){
+        int numPointsInside = 0;
+        for (Point3d point: mStick.getComp()[compIndx].getVect_info()){
             if (point != null) {
                 numPoints++;
                 if (rf.isInRF(point.x, point.y)) {
-                    pointsInside.add(point);
+                    numPointsInside++;
                 }
             }
         }
 
-        double percentageInRF = (double) pointsInside.size() / numPoints;
+        double percentageInRF = (double) numPointsInside / numPoints;
         return percentageInRF >= thresholdPercentageInRF;
     }
 

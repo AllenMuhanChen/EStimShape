@@ -94,8 +94,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
 
         stims.addAll(behavioralTrials);
-
-//        stims.addAll(eStimTrials);
+        stims.addAll(eStimTrials);
 
     }
 

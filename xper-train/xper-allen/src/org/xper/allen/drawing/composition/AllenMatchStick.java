@@ -89,7 +89,7 @@ public class AllenMatchStick extends MatchStick {
 	private final double PROB_addToEndorJunc = 1; // 50% add to end or
 	// junction pt, 50% to the
 	// branch
-	private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
+	private final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
 	// 50% add to end, 50%
 	// add to junc
 	private final double PROB_addTiptoBranch = 0; 	// when "add new component to the branch is true"
@@ -98,7 +98,7 @@ public class AllenMatchStick extends MatchStick {
 
 	private final double[] PARAM_nCompDist = {0, 0.25, 0.5, 0.75, 1.0, 0.0, 0.0, 0.0 };
 	//	private final double TangentSaveZone = Math.PI/64;
-	private final double TangentSaveZone = Math.PI/6.0;
+	private final double TangentSaveZone = Math.PI/8.0;
 
 	//AC ADDITIONS
 	private List<Integer> specialEnd = new ArrayList<Integer>();
@@ -1245,7 +1245,6 @@ public class AllenMatchStick extends MatchStick {
 		shiftVec.sub(destination, point);
 		if ( destination.distance(point) > 0.001)
 		{
-//			translateVectInfo(shiftVec);
 			applyTranslation(shiftVec);
 		}
 		return shiftVec;
@@ -2252,7 +2251,7 @@ public class AllenMatchStick extends MatchStick {
 			int j=0; //Number of times tried to generate a comp.
 			this.cleanData();
 			while (j<2) {
-				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf) == true){
+				if (genMatchStickFromLeaf_comp(leafIndx, nComp, amsOfLeaf)){
 					compSuccess = true;
 					break;
 				}
@@ -2295,6 +2294,7 @@ public class AllenMatchStick extends MatchStick {
 					positionShape();
 				} catch (MorphedMatchStick.MorphException e){
 					i++;
+					System.out.println(e.getMessage());
 					continue;
 				}
 				return true;
@@ -2642,7 +2642,7 @@ public class AllenMatchStick extends MatchStick {
 			else {
 				addSuccess = Add_BaseMStick(nowComp, 2);
 			}
-			if (addSuccess == true) { // otherwise, we'll run this while loop again, and re-generate this component
+			if (addSuccess) { // otherwise, we'll run this while loop again, and re-generate this component
 				nowComp=3;
 				break;
 			}
@@ -2655,8 +2655,7 @@ public class AllenMatchStick extends MatchStick {
 		///////////////////////////////////////////////////////////////////////////
 		add_trial = 0;
 		double randNdx;
-		addSuccess = false;
-		while (true && nowComp <= nComp)
+		while (nowComp <= nComp)
 		{
 			if ( showDebug)
 				System.out.println("adding new MAxis on, now # " +  nowComp);
@@ -2675,7 +2674,7 @@ public class AllenMatchStick extends MatchStick {
 				else
 					addSuccess = Add_AccessoryMStick(nowComp, 4);
 			}
-			if (addSuccess == true) // otherwise, we'll run this while loop again, and re-generate this component
+			if (addSuccess) // otherwise, we'll run this while loop again, and re-generate this component
 				nowComp ++;
 			if (nowComp == nComp+1)
 				break;
@@ -2698,7 +2697,7 @@ public class AllenMatchStick extends MatchStick {
 			}
 		}
 
-		if ( this.finalTubeCollisionCheck() == true)
+		if (this.finalTubeCollisionCheck())
 		{
 			if ( showDebug)
 				System.out.println("\n FAIL the final Tube collsion Check ....\n");
@@ -2764,16 +2763,18 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
-					break;
-				if ( trialCount++ == 300)
-					return false;
+				break;
+//				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
+//					break;
+//				if ( trialCount++ == 300)
+//					return false;
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
 
 
 			// 3. update the EndPT to JuncPt
+			getComp()[nowComp] = new AllenTubeComp();
 			setnJuncPt(getnJuncPt() + 1);
 			int[] compList = { getEndPt()[nowPtNdx].getComp(), nowComp};
 			int[] uNdxList = { getEndPt()[nowPtNdx].getuNdx(), alignedPt};

@@ -3,10 +3,12 @@ package org.xper.allen.pga;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.xper.Dependency;
+import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ConcaveHullReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.RGBColor;
+import org.xper.drawing.object.Circle;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.rfplot.RFInfo;
 import org.xper.rfplot.V4RFInfo;
@@ -35,38 +37,30 @@ public class ReceptiveFieldSource {
     }
 
     public ReceptiveField getReceptiveField() {
-        long tstamp = readMaxTstampFromRFInfo();
-        RFInfo rfInfo = readRFInfo(tstamp);
-        List<Coordinates2D> outlineMm = rfInfo.getOutline();
-        return new ConcaveHullReceptiveField(outlineMm, getRFCenterMm(), getRFRadiusMm());
+        return new CircleReceptiveField(getRFCenterMm(), getRFRadiusMm());
     }
 
     public Coordinates2D getRFCenterMm(){
         Coordinates2D rfCenterDegrees = getRFCenterDegrees();
-        Coordinates2D rfCenterMm = new Coordinates2D(
+        return new Coordinates2D(
                 renderer.deg2mm(rfCenterDegrees.getX()),
                 renderer.deg2mm(rfCenterDegrees.getY()));
-        return rfCenterMm;
     }
 
     public Coordinates2D getRFCenterDegrees() {
         long tstamp = readMaxTstampFromRFInfo();
         RFInfo rfInfo = readRFInfo(tstamp);
-        Coordinates2D rfCenterDegrees = rfInfo.getCenter();
-        return rfCenterDegrees;
+        return rfInfo.getCenter();
     }
 
     public double getRFRadiusMm(){
-        double rfRadiusMm = renderer.deg2mm(getRFRadiusDegrees());
-        return rfRadiusMm;
+        return renderer.deg2mm(getRFRadiusDegrees());
     }
 
     public double getRFRadiusDegrees(){
         long tstamp = readMaxTstampFromRFInfo();
         RFInfo rfInfo = readRFInfo(tstamp);
-        double rfRadiusDegrees = rfInfo.getRadius();
-
-        return rfRadiusDegrees;
+        return rfInfo.getRadius();
     }
 
     public RGBColor getRFColor(){

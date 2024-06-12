@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 public class MorphedMatchStick extends AllenMatchStick {
     protected int MAX_TOTAL_ATTEMPTS = 15;
     private final double PROB_addToEndorJunc = 1.0; // x% add to end or JuncPt, 1-x% add to branch
-    private final double PROB_addToEnd_notJunc = 0.3; // when "addtoEndorJunc",
+    private final double PROB_addToEnd_notJunc = 0.5; // when "addtoEndorJunc",
     // 50% add to end, 50%
     // add to junc
     protected final double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0 };
@@ -30,7 +30,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
     private static final int NUM_ATTEMPTS_PER_ARC = 10;
-    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 2;
+    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 1;
     protected AllenMAxisArc newArc;
     private int[] compLabel;
     private MorphedMatchStick localBackup;
@@ -350,12 +350,9 @@ public class MorphedMatchStick extends AllenMatchStick {
                 updateJuncPtsForNewComp(id);
                 updateComponentInfo(id);
                 checkForCollisions(id);
-//                System.out.println("Successfully generated valid skeleton for component " + id);
                 return;
             } catch (MorphException e){
                 System.err.println(e.getMessage());
-//                System.out.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_SKELETON + " to generate valid skeleton for component " + id);
-//                System.out.println("Retrying to generate valid morphed arc");
             } finally {
                 numAttempts++;
             }
@@ -411,12 +408,9 @@ public class MorphedMatchStick extends AllenMatchStick {
             try {
                 mutateRadiusProfile(id, morphParams, oldRadiusProfile);
                 applyRadiusProfile();
-//                System.out.println("Successfully generated valid radius for component " + id);
                 return;
             } catch (MorphException e){
                 System.err.println(e.getMessage());
-//                System.out.println("FAILED Attempt " + numAttempts + " of " + NUM_ATTEMPTS_PER_RADIUS_PROFILE + " to generate valid radius for component " + id);
-//                System.out.println("Retrying mutate radius");
                 copyFrom(backup);
             } finally {
                 numAttempts++;
@@ -430,7 +424,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     protected void applyRadiusProfile() throws MorphException{
         for (int i=1; i<=getnComponent(); i++)
         {
-            if( getComp()[i].RadApplied_Factory() == false) // a fail application
+            if(!getComp()[i].RadApplied_Factory()) // a fail application
             {
                 throw new MorphException("Radius profile failed when attempting to be applied to component " + i);
             }
@@ -781,7 +775,6 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttemptsToGenerateArc = 0;
         while(numAttemptsToGenerateArc < NUM_ATTEMPTS_PER_ARC){
             try {
-                this.copyFrom(localBackup);
                 newArc = generateMorphedArc(id, morphParams, arcToMorph);
 //                checkJunctions(id, newArc); //not sure needed because this just checks diff betwene new and old
                 return newArc;
@@ -789,6 +782,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.err.println(e.getMessage());
                 System.out.println("Failed to generate a valid morphed arc.");
                 System.out.println("Retrying generate a valid morphed arc");
+                this.copyFrom(localBackup);
             } finally {
                 numAttemptsToGenerateArc++;
             }
