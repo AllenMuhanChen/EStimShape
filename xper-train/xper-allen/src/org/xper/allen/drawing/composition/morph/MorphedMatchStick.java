@@ -30,7 +30,7 @@ public class MorphedMatchStick extends AllenMatchStick {
     private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
     private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
     private static final int NUM_ATTEMPTS_PER_ARC = 10;
-    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 1;
+    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 10;
     protected AllenMAxisArc newArc;
     private int[] compLabel;
     private MorphedMatchStick localBackup;
@@ -402,8 +402,6 @@ public class MorphedMatchStick extends AllenMatchStick {
     private void attemptMutateRadius(int id, ComponentMorphParameters morphParams) {
         int numAttempts = 0;
         RadiusProfile oldRadiusProfile = retrieveOldRadiusProfile(id);
-        MorphedMatchStick backup = new MorphedMatchStick();
-        backup.copyFrom(this);
         while(numAttempts < NUM_ATTEMPTS_PER_RADIUS_PROFILE){
             try {
                 mutateRadiusProfile(id, morphParams, oldRadiusProfile);
@@ -411,7 +409,6 @@ public class MorphedMatchStick extends AllenMatchStick {
                 return;
             } catch (MorphException e){
                 System.err.println(e.getMessage());
-                copyFrom(backup);
             } finally {
                 numAttempts++;
             }

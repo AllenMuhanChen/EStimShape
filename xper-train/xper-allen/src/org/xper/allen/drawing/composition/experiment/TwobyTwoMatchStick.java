@@ -96,7 +96,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
             updateComponentInfo(limbToSwapOut);
             checkForCollisions(limbToSwapOut);
         } catch (MorphException e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
             throw new MorphException("Cannot swap skeletons, causes collision");
         }
 

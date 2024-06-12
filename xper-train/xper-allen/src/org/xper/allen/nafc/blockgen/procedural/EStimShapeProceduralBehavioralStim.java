@@ -34,7 +34,6 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
                 break;
             } catch (ProceduralMatchStick.MorphRepetitionException me) {
                 System.err.println("MorphRepetition FAILED: " + me.getMessage());
-                me.printStackTrace();
             } catch(ProceduralMatchStick.MorphException me) {
                 System.err.println("Morph EXCEPTION: " + me.getMessage());
             } catch (Exception e) {

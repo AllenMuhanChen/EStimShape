@@ -2365,7 +2365,6 @@ public class MatchStick implements Drawable {
 			//return true;
 		}catch (Exception e) {
 			System.out.println("Centering failed for some reason.");
-			e.printStackTrace();
 		}
 	}
 	/**

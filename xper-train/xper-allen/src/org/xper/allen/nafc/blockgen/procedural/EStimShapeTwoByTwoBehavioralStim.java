@@ -39,7 +39,6 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
                 break;
             } catch (Exception e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
-                e.printStackTrace();
             }
         }
     }
