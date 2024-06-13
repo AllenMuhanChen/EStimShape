@@ -97,8 +97,8 @@ public class AllenMatchStick extends MatchStick {
 	private double minScaleForMAxisShape;
 
 	private final double[] PARAM_nCompDist = {0, 0.25, 0.5, 0.75, 1.0, 0.0, 0.0, 0.0 };
-	//	private final double TangentSaveZone = Math.PI/64;
-	private final double TangentSaveZone = Math.PI/8.0;
+//		private final double TangentSaveZone = Math.PI/64;
+	private final double TangentSaveZone = Math.PI/6.0;
 
 	//AC ADDITIONS
 	private List<Integer> specialEnd = new ArrayList<Integer>();
@@ -2666,10 +2666,10 @@ public class AllenMatchStick extends MatchStick {
 			randNdx = stickMath_lib.rand01();
 			if (randNdx < getPROB_addToEndorJunc())
 			{
-//				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
+				if (getnJuncPt() == 0 || stickMath_lib.rand01() < getPROB_addToEnd_notJunc())
 					addSuccess = Add_AccessoryMStick(nowComp, 1);
-//				else
-//					addSuccess = Add_AccessoryMStick(nowComp, 2);
+				else
+					addSuccess = Add_AccessoryMStick(nowComp, 2);
 			}
 			else
 			{
@@ -2683,7 +2683,7 @@ public class AllenMatchStick extends MatchStick {
 			if (nowComp == nComp+1)
 				break;
 			add_trial++;
-			if ( add_trial > 100)
+			if ( add_trial > 200)
 				return false;
 		}
 
@@ -2767,10 +2767,10 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
-					break;
-				if ( trialCount++ == 300)
-					return false;
+//				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
+				break;
+//				if ( trialCount++ == 300)
+//					return false;
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
@@ -2929,10 +2929,11 @@ public class AllenMatchStick extends MatchStick {
 			while (true)
 			{
 				finalTangent = stickMath_lib.randomUnitVec();
-				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
-					break;
-				if ( trialCount++ == 300)
-					return false;
+				break;
+//				if ( oriTangent.angle(finalTangent) > getTangentSaveZone() ) // angle btw the two tangent vector
+//					break;
+//				if ( trialCount++ == 300)
+//					return false;
 			}
 			double devAngle = stickMath_lib.randDouble(0.0, 2 * Math.PI);
 			nowArc.transRotMAxis(alignedPt, finalPos, alignedPt, finalTangent, devAngle);
