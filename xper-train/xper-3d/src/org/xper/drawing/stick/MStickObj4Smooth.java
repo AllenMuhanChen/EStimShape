@@ -21,12 +21,12 @@ public class MStickObj4Smooth {
 
     public Point3d[] vect_info = new Point3d[25000]; // not sure if 15000 will work..let's see
     public Vector3d[] normMat_info = new Vector3d[25000];
-    private int[][] facInfo = new int[45000][3];
+    private int[][] facInfo;
     private int nVect;
     private int nFac;
 
-    public boolean doLighting = false;
     public double contrast = 0.5;
+    public boolean doLighting;
     public RGBColor stimColor = new RGBColor(1,1,1);
 
     /**
@@ -164,7 +164,7 @@ public class MStickObj4Smooth {
                     = new Vector3d( obj2.normMat_info[i]);
             this.vect_type[i] = 0;
         }
-
+        this.facInfo = new int[45000][3];
         for (i=0; i< obj2.getnFac(); i++)
             for (j=0; j<3; j++)
             {
@@ -331,6 +331,7 @@ public class MStickObj4Smooth {
     {
         nComponent = 1;
         setnVect(0); setnFac(0);
+        facInfo = new int[45000][3];
     }
     /**
      Constructor, use a TubeComp to be set as the first component of this MStickSMooth object
@@ -355,6 +356,7 @@ public class MStickObj4Smooth {
 
             vectTag[i] = 1;
         }
+         facInfo = new int[45000][3];
         for (i=0; i< in_comp.getnFac(); i++)
             for (j=0; j<3; j++)
                 getFacInfo()[i][j] = in_comp.getFacInfo()[i][j];
