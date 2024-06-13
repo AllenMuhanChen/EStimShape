@@ -77,7 +77,7 @@ public class EStimShapeProceduralMatchStickTest {
         };
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(RFStrategy.COMPLETELY_INSIDE, receptiveField);
 
-        mStick.setProperties(5, "SHADE");
+        mStick.setProperties(2.5, "SHADE");
 
         mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
         testMatchStickDrawer.draw(new Drawable() {

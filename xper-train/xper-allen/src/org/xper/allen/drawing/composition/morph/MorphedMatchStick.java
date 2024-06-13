@@ -27,10 +27,10 @@ public class MorphedMatchStick extends AllenMatchStick {
     private double TangentSaveZone = 0; //Should be zero here, because we're manually specifying a new tangent
     // with the morph parameters, so we don't need to check the relation to the old tangent.
 
-    private static final int NUM_ATTEMPTS_PER_COMPONENT = 5;
-    private static final int NUM_ATTEMPTS_PER_SKELETON = 5;
-    private static final int NUM_ATTEMPTS_PER_ARC = 10;
-    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 10;
+    private static final int NUM_ATTEMPTS_PER_COMPONENT = 15;
+    private static final int NUM_ATTEMPTS_PER_SKELETON = 2;
+    private static final int NUM_ATTEMPTS_PER_ARC = 2;
+    private static final double NUM_ATTEMPTS_PER_RADIUS_PROFILE = 2;
     protected AllenMAxisArc newArc;
     private int[] compLabel;
     private MorphedMatchStick localBackup;
@@ -54,7 +54,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 copyFrom(backup);
                 findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
-                MutateSUB_reAssignJunctionRadius();
+//                MutateSUB_reAssignJunctionRadius();
                 centerShape();
                 applyRadiusProfile();
                 attemptSmoothizeMStick();
@@ -291,10 +291,14 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void morphAllComponents(Map<Integer, ComponentMorphParameters> morphParametersForComponents) {
+        System.out.println("Attempting to morph " + morphParametersForComponents.size() + " components.");
+        final int[] numSuccessfulMorphs = {0};
         morphParametersForComponents.forEach(new BiConsumer<Integer, ComponentMorphParameters>() {
             @Override
             public void accept(Integer componentIndex, ComponentMorphParameters morphParams) {
                 attemptToMorphComponent(componentIndex, morphParams);
+                numSuccessfulMorphs[0]++;
+                System.out.println("Successfully morphed " + numSuccessfulMorphs[0] + " components out of " + morphParametersForComponents.size() + " components.");
             }
         });
     }
@@ -415,14 +419,13 @@ public class MorphedMatchStick extends AllenMatchStick {
             }
         }
         if (numAttempts >= NUM_ATTEMPTS_PER_RADIUS_PROFILE){
-            throw new MorphException("Failed to generate valid radius for using a morphed component " + id + " after " + NUM_ATTEMPTS_PER_ARC + " attempts.");
+            throw new MorphException("Failed to generate valid radius for using a morphed component " + id + " after " + NUM_ATTEMPTS_PER_RADIUS_PROFILE + " attempts.");
         }
     }
 
     protected void applyRadiusProfile() throws MorphException{
         for (int i=1; i<=getnComponent(); i++)
         {
-            System.out.println("Distractor Comp Rad Info " + i + ": " + getComp()[i].getRadInfo()[0][1] + " " + getComp()[i].getRadInfo()[1][1] + " " + getComp()[i].getRadInfo()[2][1]);
             if(!getComp()[i].RadApplied_Factory()) // a fail application
             {
                 throw new MorphException("Radius profile failed when attempting to be applied to component " + i);
@@ -715,12 +718,13 @@ public class MorphedMatchStick extends AllenMatchStick {
     protected void updateJuncPtsForNewComp(int id) {
         forEachJunctionThatContainsComp(id, new BiConsumer<JuncPt_struct, Integer>() {
             @Override
-            public void accept(JuncPt_struct junction, Integer compIndx) {
-                int nowUNdx = junction.getuNdx()[compIndx];
+            public void accept(JuncPt_struct junction, Integer compIndxInComp) {
+                int nowUNdx = junction.getuNdx()[compIndxInComp];
                 Vector3d finalTangent = newArc.getmTangent()[nowUNdx];
                 if (nowUNdx == 51)
                     finalTangent.negate();
                 Point3d newPos = newArc.getmPts()[nowUNdx];
+                //Define shiftVec as distance between new position and the current incorrect junction position
                 Point3d shiftVec = new Point3d();
                 shiftVec.sub(newPos, junction.getPos());
 
@@ -728,19 +732,15 @@ public class MorphedMatchStick extends AllenMatchStick {
                 // Translate it to its final position
 //                if(true) {
                 if(nowUNdx != newArc.getTransRotHis_alignedPt()){
-//                    System.err.println("past the nowUndx check");
                     for (int j=1; j<=junction.getnComp(); j++){
                         int nowCompIndex = junction.getCompIds()[j];
                         if ( nowCompIndex != id){
-//                            System.err.println("past the nowCompIndex check");
                             for (int k=1; k<=getnComponent(); k++){
-//                                if (compLabel[k] != 0) {
                                 if (compLabel[k] == nowCompIndex) {
-//                                    System.err.println("comp label success: " + compLabel[k]);
                                     AllenTubeComp attachedComp = getComp()[k];
                                     Point3d finalPos = new Point3d();
                                     finalPos.add(attachedComp.getmAxisInfo().getTransRotHis_finalPos(), shiftVec);
-                                    attachedComp.translateComp(finalPos);
+                                    attachedComp.translateComp(newPos);
                                 }
                             }
                         }
@@ -781,12 +781,12 @@ public class MorphedMatchStick extends AllenMatchStick {
                 System.err.println(e.getMessage());
                 System.out.println("Failed to generate a valid morphed arc.");
                 System.out.println("Retrying generate a valid morphed arc");
-                this.copyFrom(localBackup);
+//                this.copyFrom(localBackup);
             } finally {
                 numAttemptsToGenerateArc++;
             }
         }
-        throw new MorphException("Failed to generate a valid morphed arc after " + NUM_ATTEMPTS_PER_COMPONENT + " attempts.");
+        throw new MorphException("Failed to generate a valid morphed arc after " + NUM_ATTEMPTS_PER_ARC + " attempts.");
 
     }
 
@@ -830,6 +830,7 @@ public class MorphedMatchStick extends AllenMatchStick {
 
     private MorphedMAxisArc generateMorphedArc(int id, ComponentMorphParameters morphParams, MorphedMAxisArc arcToMorph) {
         int alignedPt = MutationSUB_determineHinge(id);
+//        int alignedPt = arcToMorph.getTransRotHis_alignedPt();
         MorphedMAxisArc newArc = new MorphedMAxisArc();
         newArc.genMorphedArc(arcToMorph, alignedPt, morphParams);
         return newArc;

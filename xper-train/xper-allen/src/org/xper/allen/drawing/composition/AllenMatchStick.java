@@ -2288,6 +2288,8 @@ public class AllenMatchStick extends MatchStick {
 					smoothSuccess = false;
 					System.err.println(e.getMessage());
 				}
+			} else{
+				System.out.println("Failed to smoothize in genMatchStickFromLeaf");
 			}
 			if (smoothSuccess) {
 				try {
@@ -2298,6 +2300,8 @@ public class AllenMatchStick extends MatchStick {
 					continue;
 				}
 				return true;
+			} else{
+				System.out.println("Failed to positionShape in genMatchStickFromLeaf");
 			}
 
 
@@ -2689,7 +2693,6 @@ public class AllenMatchStick extends MatchStick {
 //		MutateSUB_reAssignJunctionRadius();
 		// 4. Apply the radius value onto each component
 		for (i=1; i<=getnComponent(); i++){
-			System.out.println("Comp Rad Info " + i + ": " + comp[i].getRadInfo()[0][1] + " " + comp[i].getRadInfo()[1][1] + " " + comp[i].getRadInfo()[2][1]);
 
 			if(!this.getComp()[i].RadApplied_Factory()) // a fail application
 			{

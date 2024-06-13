@@ -34,6 +34,7 @@ public class MStickObj4Smooth {
      * @param original
      */
     public MStickObj4Smooth(MStickObj4Smooth original) {
+        // Copy primitive types and immutable objects directly
         this.nComponent = original.nComponent;
         this.nIntersectPatch = original.nIntersectPatch;
         this.nVect = original.nVect;
@@ -45,31 +46,28 @@ public class MStickObj4Smooth {
         this.maxXYZ = new Point3d(original.maxXYZ);
         this.minXYZ = new Point3d(original.minXYZ);
 
-        this.vect_type = new int[original.vect_type.length];
-        System.arraycopy(original.vect_type, 0, this.vect_type, 0, original.vect_type.length);
+        // Efficiently copy primitive type arrays
+        this.vect_type = original.vect_type.clone();
+        this.vectTag = original.vectTag.clone();
 
-        this.vectTag = new int[original.vectTag.length];
-        System.arraycopy(original.vectTag, 0, this.vectTag, 0, original.vectTag.length);
-
+        // Deep copy arrays of objects
         this.vect_info = new Point3d[original.vect_info.length];
         for (int i = 0; i < original.vect_info.length; i++) {
-            if (original.vect_info[i] != null) {
-                this.vect_info[i] = new Point3d(original.vect_info[i]);
-            }
+            this.vect_info[i] = (original.vect_info[i] != null) ? new Point3d(original.vect_info[i]) : null;
         }
 
         this.normMat_info = new Vector3d[original.normMat_info.length];
         for (int i = 0; i < original.normMat_info.length; i++) {
-            if (original.normMat_info[i] != null) {
-                this.normMat_info[i] = new Vector3d(original.normMat_info[i]);
-            }
+            this.normMat_info[i] = (original.normMat_info[i] != null) ? new Vector3d(original.normMat_info[i]) : null;
         }
 
-        this.facInfo = new int[original.facInfo.length][3];
+        // Deep copy 2D arrays
+        this.facInfo = new int[original.facInfo.length][];
         for (int i = 0; i < original.facInfo.length; i++) {
-            System.arraycopy(original.facInfo[i], 0, this.facInfo[i], 0, original.facInfo[i].length);
+            this.facInfo[i] = original.facInfo[i].clone();
         }
 
+        // Deep copy complex objects using copyFrom method
         this.comp = new TubeComp[original.comp.length];
         for (int i = 1; i <= original.nComponent; i++) {
             if (original.comp[i] != null) {
@@ -78,6 +76,7 @@ public class MStickObj4Smooth {
             }
         }
     }
+
 
 
 
