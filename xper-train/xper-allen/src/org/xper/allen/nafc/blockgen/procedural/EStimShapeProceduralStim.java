@@ -15,12 +15,14 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import javax.vecmath.Point3d;
 import java.awt.*;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 public class EStimShapeProceduralStim extends ProceduralStim{
     private final ReceptiveFieldSource rfSource;
     private final boolean isEStimEnabled;
+    private long[] eStimObjData;
 
     public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
@@ -32,8 +34,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     public void writeStim() {
         writeStimObjDataSpecs();
         assignTaskId();
-        writeStimSpec();
         writeEStimSpec();
+        writeStimSpec();
     }
 
     @Override
@@ -112,7 +114,10 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected void writeEStimSpec() {
         if (isEStimEnabled) {
             AllenDbUtil dbUtil = (AllenDbUtil) generator.getDbUtil();
-            dbUtil.writeEStimObjData(getStimId(), "EStimEnabled", "");
+            eStimObjData = new long[]{getStimId()};
+            dbUtil.writeEStimObjData(eStimObjData[0], "EStimEnabled", "");
+        } else {
+            eStimObjData = new long[]{1L};
         }
 
     }
@@ -159,7 +164,9 @@ public class EStimShapeProceduralStim extends ProceduralStim{
                 parameters,
                 coords,
                 parameters.numChoices,
-                stimObjIds, RewardPolicy.LIST, rewardList);
+                stimObjIds,
+                eStimObjData,
+                RewardPolicy.LIST, rewardList);
 
         stimSpecWriter.writeStimSpec();
     }

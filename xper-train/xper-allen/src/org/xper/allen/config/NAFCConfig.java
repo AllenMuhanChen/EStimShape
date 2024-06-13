@@ -16,8 +16,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
-import org.xper.allen.intan.NAFCTrialIntanStimulationRecordingController;
-import org.xper.allen.intan.NAFCTrialTriggerIntanStimulationRecordingController;
+import org.xper.allen.intan.NAFCDigitalTriggerIntanStimulationRecordingController;
+import org.xper.allen.intan.NAFCTrialF1TriggerIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
 import org.xper.config.*;
@@ -448,8 +448,8 @@ public class NAFCConfig {
 	}
 
 	@Bean
-	public NAFCTrialTriggerIntanStimulationRecordingController intanStimController() {
-		NAFCTrialTriggerIntanStimulationRecordingController intanController = new NAFCTrialTriggerIntanStimulationRecordingController();
+	public NAFCDigitalTriggerIntanStimulationRecordingController intanStimController() {
+		NAFCDigitalTriggerIntanStimulationRecordingController intanController = new NAFCDigitalTriggerIntanStimulationRecordingController();
 		intanController.seteStimEnabled(intanConfig.intanEStimEnabled);
 		intanController.setIntan(intanConfig.intan());
 		intanController.setRecordingEnabled(intanConfig.intanRecordingEnabled());
@@ -461,11 +461,11 @@ public class NAFCConfig {
 	@Bean
 	public NAFCTrialDrawingController drawingController() {
 		NAFCMarkStimTrialDrawingController controller;
-		if (markEveryStep) {
-			controller = new NAFCMarkEveryStepTrialDrawingController();
-		} else {
-			controller = new NAFCMarkStimTrialDrawingController();
-		}
+//		if (markEveryStep) {
+//			controller = new NAFCMarkEveryStepTrialDrawingController();
+
+		controller = new NAFCMarkStimTrialDrawingController();
+
 		controller.setWindow(classicConfig.monkeyWindow());
 		controller.setTaskScene(taskScene());
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());

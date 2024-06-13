@@ -2,7 +2,6 @@ package org.xper.allen.intan;
 
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.classic.vo.TrialContext;
-import org.xper.intan.stimulation.EStimParameters;
 
 import java.util.Objects;
 
@@ -13,14 +12,23 @@ import java.util.Objects;
  *
  *
  */
-public class NAFCTrialTriggerIntanStimulationRecordingController extends NAFCTrialIntanStimulationRecordingController {
+public class NAFCTrialF1TriggerIntanStimulationRecordingController extends NAFCTrialIntanStimulationRecordingController {
 
     @Override
     public void prepareEStim(long timestamp, TrialContext context) {
+        System.out.println("PrepareEStim");
+        System.out.println("Connected: " + connected);
+        System.out.println("EStimEnabled: " + eStimEnabled);
         if (connected & eStimEnabled) {
+            System.out.println("Connected and Enabled");
             NAFCExperimentTask task = (NAFCExperimentTask) context.getCurrentTask();
+            System.out.println("Task EStimSpec: " + task.geteStimSpec());
+            System.out.println("Task StimId: " + task.getStimId());
             String eStimSpec = task.geteStimSpec();
             validEStimParameters = Objects.equals(eStimSpec, "EStimEnabled");
+            if (validEStimParameters){
+                System.out.println("EStim Is Enabled");
+            }
         }
     }
 }

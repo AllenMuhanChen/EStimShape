@@ -50,6 +50,7 @@ public class NAFCTrialIntanStimulationRecordingController extends IntanRecording
 		if (connected & eStimEnabled) {
 			if (validEStimParameters) {
 				getIntan().trigger();
+				System.out.println("EStim Triggered");
 			}
 		}
 	}

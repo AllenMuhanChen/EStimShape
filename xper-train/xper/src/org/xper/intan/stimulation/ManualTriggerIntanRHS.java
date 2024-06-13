@@ -12,8 +12,6 @@ import java.util.Map;
  * This class should be used for when the user wants to manually trigger stimulation with java code (and the f1 key)
  */
 public class ManualTriggerIntanRHS extends IntanRHD {
-
-
     /**
      * Default Parameters that are true for every trial and channel throughout the entire experiment
      */
@@ -57,18 +55,21 @@ public class ManualTriggerIntanRHS extends IntanRHD {
         intanClient.set(tcpNameForIntanChannel(channel) + ".secondphaseamplitudemicroamps", Double.toString(waveformParameters.a2));
     }
 
-    private void uploadParameters(Collection<RHSChannel> channels){
+    public void uploadParameters(Collection<RHSChannel> channels){
+        stop();
         for (RHSChannel channel : channels){
+            waitForUpload();
             intanClient.execute("uploadstimparameters", tcpNameForIntanChannel(channel));
         }
+        record();
     }
 
 
-    private void enableStimulationOn(RHSChannel channel) {
+    public void enableStimulationOn(RHSChannel channel) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".stimenabled", "true");
     }
 
-    private void disableStimulationOn(RHSChannel channel) {
+    public void disableStimulationOn(RHSChannel channel) {
         intanClient.set(tcpNameForIntanChannel(channel) + ".stimenabled", "false");
     }
 

@@ -18,22 +18,23 @@ import org.xper.eye.vo.EyeWindow;
 public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		@Dependency
 		NAFCExperimentMessageHandler messageHandler;
-		
+
 		@Dependency
 		NAFCExperimentMessageReceiver messageReceiver;
-		
+
 		@Dependency
 		RewardButtonExperimentRunnerClient experimentRunnerClient;
+
 		public void reward(){
 			experimentRunnerClient.reward();
-			System.out.println("Juice delivered because of console command "); 
+			System.out.println("Juice delivered because of console command ");
 		}
-		
+
 		public NAFCTrialStatistics getNAFCTrialStatistics () {
 			NAFCTrialStatistics stat = (NAFCTrialStatistics) messageHandler.getNAFCTrialStatistics();
 			return stat;
 		}
-		
+
 		public void start () {
 			getEyePositionInDegree().set(new Coordinates2D(0,0));
 			messageReceiver.start();
@@ -41,15 +42,15 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 				getSamplingServer().start();
 			}
 		}
-		
+
 		public void resume () {
 			experimentRunnerClient.resume();
 		}
-		
+
 		public void pause () {
 			experimentRunnerClient.pause();
 		}
-		
+
 		public void stop () {
 			try {
 				experimentRunnerClient.stop();
@@ -64,21 +65,21 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 		public void setMessageHandler(NAFCExperimentMessageHandler msghandler) {
 			this.messageHandler = msghandler;
 		}
-		
+
 		public Set<String> getEyeDeviceIds () {
 			return messageHandler.getEyeDeviceIds();
 		}
-		
+
 		public Set<Entry<String, EyeDeviceReading>> getEyeDeviceReading () {
 			return messageHandler.getEyeDeviceReadingEntries();
 		}
 
-		
+
 		public Coordinates2D getEyeZero (String id) {
 			Coordinates2D eyeZero = messageHandler.getEyeZeroByDeviceId(id);
 			return eyeZero;
 		}
-		
+
 		public double getData(int channel) {
 			EyeDeviceIdChannelPair deviceChannel = getChannelMap().get(channel);
 			Coordinates2D eyeZero = messageHandler
@@ -101,7 +102,7 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 			return messageHandler;
 		}
 
-		
+
 		public EyeWindow getEyeWindow () {
 			EyeWindow window = messageHandler.getEyeWindow();
 			return window;

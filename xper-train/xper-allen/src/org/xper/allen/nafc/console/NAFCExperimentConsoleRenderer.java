@@ -9,12 +9,15 @@ import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.GLUtil;
 
+/**
+ * Pretty much responsible for everything that is drawn in the black window of the NAFCConsole
+
+ */
 public class NAFCExperimentConsoleRenderer extends TrialExperimentConsoleRenderer{
 	@Dependency
 	NAFCExperimentMessageHandler messageHandler;
 
 	double targetIndicatorSize = 2.5;
-	int invert;
 
 	public NAFCExperimentConsoleRenderer() {
 		super();

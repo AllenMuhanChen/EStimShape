@@ -431,63 +431,6 @@ public class NAFCExperimentConsole extends JFrame implements
         trialStatPanel.add(completeTrialCount,
         		new GridBagConstraints(5,4,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,10));
 
-        ///////////////////////
-        /*
-        trialStatPanel.add(new JLabel("Complete"),
-        		new GridBagConstraints(0,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
-        completeTrialCount = new JLabel("0");
-        trialStatPanel.add(getCompleteTrialCount(),
-        		new GridBagConstraints(1,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-
-        trialStatPanel.add(new JLabel("Break"),
-        		new GridBagConstraints(0,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
-        breakTrialCount = new JLabel("0");
-        trialStatPanel.add(breakTrialCount,
-        		new GridBagConstraints(1,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-
-        trialStatPanel.add(new JLabel("Eye Fail"),
-        		new GridBagConstraints(0,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),40,0));
-        failTrialCount = new JLabel("0");
-        trialStatPanel.add(failTrialCount,
-        		new GridBagConstraints(1,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),60,0));
-
-        // -- shs behavioral outcome labels:
-        trialStatPanel.add(new JLabel("PASS"),
-        		new GridBagConstraints(2,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialPassCount = new JLabel("0");
-        trialStatPanel.add(trialPassCount,
-        		new GridBagConstraints(3,0,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-
-        trialStatPanel.add(new JLabel("FAIL"),
-        		new GridBagConstraints(2,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialFailCount = new JLabel("0");
-        trialStatPanel.add(trialFailCount,
-        		new GridBagConstraints(3,1,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-
-        trialStatPanel.add(new JLabel("BREAK"),
-        		new GridBagConstraints(2,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialBreakCount = new JLabel("0");
-        trialStatPanel.add(trialBreakCount,
-        		new GridBagConstraints(3,2,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-
-        trialStatPanel.add(new JLabel("NOGO"),
-        		new GridBagConstraints(2,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-        trialNogoCount = new JLabel("0");
-        trialStatPanel.add(trialNogoCount,
-        		new GridBagConstraints(3,3,1,1,0.0,0.0,GridBagConstraints.LINE_END,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
-*/
-
-//        completeTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
-//        breakTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
-//        failTrialCount.setHorizontalAlignment(SwingConstants.RIGHT);
-//        completeTrialCount.setPreferredSize(new Dimension(50,20));
-/*
-        trialPassCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        trialPassCount.setPreferredSize(new Dimension(50,20));
-        trialFailCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        trialBreakCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        trialNogoCount.setHorizontalAlignment(SwingConstants.RIGHT);
-        */
         eyeDeviceSelect = new JComboBox();
         eyeDevicePanel.add(eyeDeviceSelect,
         		new GridBagConstraints(0,0,3,1,0.0,0.0,GridBagConstraints.LINE_START,GridBagConstraints.NONE,new Insets(0,0,0,0),0,0));
@@ -599,7 +542,8 @@ public class NAFCExperimentConsole extends JFrame implements
 			});
 		}
 	}
-//AC JUICE BUTTON 10/25/21
+
+	//AC JUICE BUTTON 10/25/21
 	void reward(){
 		model.reward();
 	}
@@ -696,32 +640,6 @@ public class NAFCExperimentConsole extends JFrame implements
 	protected void updateStatistics() {
 		NAFCTrialStatistics stat = model.getNAFCTrialStatistics();
 
-//		String lastCount = this.completeTrialCount.getText();
-//		String thisCount = StringUtil.format(stat.getCompleteTrials(),0);
-//		this.completeTrialCount.setText(thisCount);
-//		if (thisCount.equals(lastCount)) {
-//			this.completeTrialCount.setForeground(Color.BLACK);
-//		} else {
-//			this.completeTrialCount.setForeground(Color.RED);
-//		}
-//
-//		String lastBreak = this.breakTrialCount.getText();
-//		String thisBreak = StringUtil.format(stat.getBrokenTrials(), 0);
-//		this.breakTrialCount.setText(thisBreak);
-//		if (thisBreak.equals(lastBreak)) {
-//			this.breakTrialCount.setForeground(Color.BLACK);
-//		} else {
-//			this.breakTrialCount.setForeground(Color.RED);
-//		}
-//
-//		String lastFail = this.failTrialCount.getText();
-//		String thisFail = StringUtil.format(stat.getFailedTrials(), 0);
-//		this.failTrialCount.setText(thisFail);
-//		if (thisFail.equals(lastFail)) {
-//			this.failTrialCount.setForeground(Color.BLACK);
-//		} else {
-//			this.failTrialCount.setForeground(Color.RED);
-//		}
 		updateLabelCount(fixationSuccess, stat.getFixationSuccess());
 		updateLabelCount(fixationEyeInFail, stat.getFixationEyeInFail());
 		updateLabelCount(fixationEyeInHoldFail, stat.getFixationEyeInHoldFail());
@@ -732,16 +650,6 @@ public class NAFCExperimentConsole extends JFrame implements
 		updateLabelCount(choiceRewardedIncorrect, stat.getChoiceRewardedIncorrect());
 		updateLabelCount(choiceEyeFail, stat.getChoiceEyeFail());
 		updateLabelCount(completeTrialCount,stat.getCompleteTrials());
-
-		/*
-		updateLabelCount(breakTrialCount,stat.getBrokenTrials());
-		updateLabelCount(failTrialCount,stat.getFailedTrials());
-
-		updateLabelCount(trialPassCount,stat.getAllTrialsPASS());
-		updateLabelCount(trialFailCount,stat.getTargetSelectionEyeFail());
-		updateLabelCount(trialBreakCount,stat.getTargetSelectionEyeBreak());
-		updateLabelCount(trialNogoCount,stat.getAllTrialsNOGO());
-		*/
 	}
 
 	public void updateLabelCount(JLabel label, int trialCount) {
@@ -776,6 +684,7 @@ public class NAFCExperimentConsole extends JFrame implements
 					Context context = new Context();
 					consoleRenderer.getRenderer().draw(new Drawable() {
 						public void draw(Context context) {
+							//Drawing the choices, etc.
 							consoleRenderer.drawCanvas(context, currentDeviceId.get());
 							if (!isMonitorMode()) {
 								currentPlugin.drawCanvas(context, currentDeviceId.get());
@@ -800,7 +709,6 @@ public class NAFCExperimentConsole extends JFrame implements
 		}
 	}
 
-    protected JLabel breakTrialCount;
     protected JLabel completeTrialCount;
     protected Canvas consoleCanvas;
     protected JComboBox eyeDeviceSelect;
@@ -813,7 +721,6 @@ public class NAFCExperimentConsole extends JFrame implements
     protected JLabel eyeWindowSize;
     protected JLabel eyeZeroX;
     protected JLabel eyeZeroY;
-    protected JLabel failTrialCount;
     protected JLabel mouseXCanvas;
     protected JLabel mouseXDegree;
     protected JLabel mouseXWorld;
@@ -823,10 +730,6 @@ public class NAFCExperimentConsole extends JFrame implements
     protected JLabel modeLabel;
     protected JButton pauseResumeButton;
     protected JButton rewardButton;
-    protected JLabel trialPassCount;
-    protected JLabel trialFailCount;
-    protected JLabel trialBreakCount;
-    protected JLabel trialNogoCount;
     //////
     protected JLabel fixationSuccess;
     protected JLabel fixationEyeInFail;
@@ -837,7 +740,6 @@ public class NAFCExperimentConsole extends JFrame implements
     protected JLabel choiceIncorrect;
     protected JLabel choiceRewardedIncorrect;
     protected JLabel choiceEyeFail;
-    protected JLabel completeTrials;
 
 	public void messageReceived() {
 		SwingUtilities.invokeLater(new Runnable() {

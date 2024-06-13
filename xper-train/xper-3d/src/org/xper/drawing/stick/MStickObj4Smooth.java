@@ -78,6 +78,45 @@ public class MStickObj4Smooth {
     }
 
 
+    public MStickObj4Smooth()
+    {
+        nComponent = 1;
+        setnVect(0); setnFac(0);
+        facInfo = new int[45000][3];
+    }
+    /**
+     Constructor, use a TubeComp to be set as the first component of this MStickSMooth object
+     */
+    public MStickObj4Smooth( TubeComp in_comp)
+    {
+        boolean showDebug = false;
+        nComponent = 1;
+        comp = new TubeComp[MAX_COMP];
+        comp[1] = in_comp; // here we use the loose copy ( which should be fine)
+
+        //hard copy the vect, normMat, fac info from first tube to the object
+        int i, j;
+        this.setnVect(in_comp.getnVect());
+        this.setnFac(in_comp.getnFac());
+        if (showDebug)
+            System.out.println("the new obj with vec :" + getnVect() + " n face " + getnFac());
+        for (i=1; i<= in_comp.getnVect(); i++)
+        {
+            vect_info[i] = new Point3d( in_comp.getVect_info()[i]);
+            normMat_info[i] = new Vector3d( in_comp.getNormMat_info()[i]);
+
+            vectTag[i] = 1;
+        }
+        facInfo = new int[45000][3];
+        for (i=0; i< in_comp.getnFac(); i++)
+            for (j=0; j<3; j++)
+                getFacInfo()[i][j] = in_comp.getFacInfo()[i][j];
+
+        this.setMaxXYZ(new Point3d( in_comp.getMaxXYZ()));
+        this.setMinXYZ(new Point3d( in_comp.getMinXYZ()));
+    }
+
+
 
 
     public void setInfo(int inVect, Point3d[] ivect_info, Vector3d[] inormMat_info, int inFac, int[][] ifacInfo)
@@ -327,43 +366,6 @@ public class MStickObj4Smooth {
     }
 
 
-    public MStickObj4Smooth()
-    {
-        nComponent = 1;
-        setnVect(0); setnFac(0);
-        facInfo = new int[45000][3];
-    }
-    /**
-     Constructor, use a TubeComp to be set as the first component of this MStickSMooth object
-     */
-    public MStickObj4Smooth( TubeComp in_comp)
-    {
-        boolean showDebug = false;
-        nComponent = 1;
-        comp = new TubeComp[MAX_COMP];
-        comp[1] = in_comp; // here we use the loose copy ( which should be fine)
-
-        //hard copy the vect, normMat, fac info from first tube to the object
-        int i, j;
-        this.setnVect(in_comp.getnVect());
-        this.setnFac(in_comp.getnFac());
-        if (showDebug)
-            System.out.println("the new obj with vec :" + getnVect() + " n face " + getnFac());
-        for (i=1; i<= in_comp.getnVect(); i++)
-        {
-            vect_info[i] = new Point3d( in_comp.getVect_info()[i]);
-            normMat_info[i] = new Vector3d( in_comp.getNormMat_info()[i]);
-
-            vectTag[i] = 1;
-        }
-         facInfo = new int[45000][3];
-        for (i=0; i< in_comp.getnFac(); i++)
-            for (j=0; j<3; j++)
-                getFacInfo()[i][j] = in_comp.getFacInfo()[i][j];
-
-        this.setMaxXYZ(new Point3d( in_comp.getMaxXYZ()));
-        this.setMinXYZ(new Point3d( in_comp.getMinXYZ()));
-    }
 
 
 

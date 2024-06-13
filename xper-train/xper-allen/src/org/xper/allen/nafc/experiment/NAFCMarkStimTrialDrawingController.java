@@ -29,7 +29,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 	public void trialStart(NAFCTrialContext context) {
 		getTaskScene().trialStart(context);
 
-		getTaskScene().nextMarker();
+//		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
@@ -37,8 +37,8 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
-		getTaskScene().nextMarker();
-		getTaskScene().drawBlank(context, false, true);
+//		getTaskScene().nextMarker();
+		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
 
@@ -50,6 +50,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void showSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
+			getTaskScene().nextMarker();
 			getTaskScene().drawSample(context, true);
 			String filename;
 			try {
@@ -92,6 +93,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void showChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
+			getTaskScene().nextMarker();
 			getTaskScene().drawChoices(context, false);
 			screenShotter.takeScreenShot(String.valueOf(task.getStimId()) + "_choices");
 		} else {

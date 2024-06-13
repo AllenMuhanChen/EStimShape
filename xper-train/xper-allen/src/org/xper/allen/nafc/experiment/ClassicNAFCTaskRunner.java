@@ -131,9 +131,8 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         }while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()* 1000L);
 
         //SHOW SAMPLE
-        SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
-        System.out.println("EStim Fired");
         drawingController.showSample(currentTask, currentContext); //THIS is called by prepare fixation
+        SimpleEStimEventUtil.fireEStimOn(timeUtil.currentTimeMicros(), eStimEventListeners, currentContext);
         long sampleOnLocalTime = timeUtil.currentTimeMicros();
         currentContext.setSampleOnTime(sampleOnLocalTime);
         NAFCEventUtil.fireSampleOnEvent(sampleOnLocalTime, choiceEventListeners, currentContext);
