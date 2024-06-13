@@ -65,7 +65,7 @@ public class IntanRecordingController implements TrialEventListener, ExperimentE
         connected = false;
     }
 
-    private void tryConnection() {
+    protected void tryConnection() {
         try {
             getIntan().connect();
             connected = true;

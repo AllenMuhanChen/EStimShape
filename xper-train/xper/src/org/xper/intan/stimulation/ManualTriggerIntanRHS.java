@@ -56,12 +56,12 @@ public class ManualTriggerIntanRHS extends IntanRHD {
     }
 
     public void uploadParameters(Collection<RHSChannel> channels){
-        stop();
+
         for (RHSChannel channel : channels){
             waitForUpload();
             intanClient.execute("uploadstimparameters", tcpNameForIntanChannel(channel));
         }
-        record();
+
     }
 
 
