@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.experiment;
 
 import org.xper.Dependency;
+import org.xper.allen.drawing.LeftRightScreenMarker;
 import org.xper.allen.nafc.NAFCTaskScene;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.classic.MarkStimTrialDrawingController;
@@ -9,13 +10,22 @@ import org.xper.experiment.ExperimentTask;
 import org.xper.time.DefaultTimeUtil;
 import org.xper.time.TimeUtil;
 
-public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingController implements NAFCTrialDrawingController{
+/**
+ * Has specific behavior where during sample right marker is on and during choice left marker is on.
+ *
+ * This is so that you can trigger Intan stimulation off of the right marker for microstimulation
+ * (In my setup on rig 2 that's DIGITAL-IN-01)
+ */
+public class NAFCMarkStimAndEStimTrialDrawingController extends MarkStimTrialDrawingController implements NAFCTrialDrawingController{
 
 	@Dependency
 	private NAFCTaskScene taskScene;
 
 	@Dependency
 	ScreenShotter screenShotter;
+
+	@Dependency
+	LeftRightScreenMarker leftRightMarker;
 
 	boolean initialized = false;
 
@@ -28,8 +38,6 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void trialStart(NAFCTrialContext context) {
 		getTaskScene().trialStart(context);
-
-//		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
@@ -37,7 +45,6 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	@Override
 	public void slideFinish(ExperimentTask task, TrialContext context) {
-//		getTaskScene().nextMarker();
 		getTaskScene().drawBlank(context, false, false);
 		getWindow().swapBuffers();
 	}
@@ -50,7 +57,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void showSample(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
-			getTaskScene().nextMarker();
+			leftRightMarker.right();
 			getTaskScene().drawSample(context, true);
 			String filename;
 			try {
@@ -93,7 +100,7 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void showChoice(NAFCExperimentTask task, NAFCTrialContext context) {
 		if(task != null) {
-			getTaskScene().nextMarker();
+			leftRightMarker.left();
 			getTaskScene().drawChoices(context, false);
 			screenShotter.takeScreenShot(String.valueOf(task.getStimId()) + "_choices");
 		} else {
@@ -164,5 +171,13 @@ public class NAFCMarkStimTrialDrawingController extends MarkStimTrialDrawingCont
 
 	public void setScreenShotter(ScreenShotter screenShotter) {
 		this.screenShotter = screenShotter;
+	}
+
+	public LeftRightScreenMarker getLeftRightMarker() {
+		return leftRightMarker;
+	}
+
+	public void setLeftRightMarker(LeftRightScreenMarker leftRightMarker) {
+		this.leftRightMarker = leftRightMarker;
 	}
 }

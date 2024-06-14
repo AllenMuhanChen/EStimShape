@@ -30,6 +30,8 @@ public class ProceduralAppConfig {
     @Autowired
     public NAFCMStickPngAppConfig pngConfig;
 
+    @Autowired
+    public NAFCConfig nafcConfig;
     @ExternalValue("generator.noisemap_path")
     public String generatorNoiseMapPath;
 
@@ -44,7 +46,7 @@ public class ProceduralAppConfig {
         NoisyNAFCPngScene scene = new NoisyNAFCPngScene();
         scene.setRenderer(pngConfig.config.experimentGLRenderer());
         scene.setFixation(experimentFixationPoint());
-        scene.setMarker(pngConfig.classicConfig.screenMarker());
+        scene.setMarker(nafcConfig.screenMarker());
         scene.setBlankScreen(new BlankScreen());
         scene.setScreenHeight(pngConfig.classicConfig.xperMonkeyScreenHeight());
         scene.setScreenWidth(pngConfig.classicConfig.xperMonkeyScreenWidth());

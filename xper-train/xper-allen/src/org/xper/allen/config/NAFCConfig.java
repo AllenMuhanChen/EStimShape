@@ -16,8 +16,8 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.springframework.config.java.util.DefaultScopes;
 import org.xper.acq.mock.SocketSamplingDeviceServer;
+import org.xper.allen.drawing.LeftRightScreenMarker;
 import org.xper.allen.intan.NAFCDigitalTriggerIntanStimulationRecordingController;
-import org.xper.allen.intan.NAFCTrialF1TriggerIntanStimulationRecordingController;
 import org.xper.allen.nafc.experiment.*;
 import org.xper.allen.nafc.eye.NAFCEyeMonitorController;
 import org.xper.config.*;
@@ -460,17 +460,26 @@ public class NAFCConfig {
 
 	@Bean
 	public NAFCTrialDrawingController drawingController() {
-		NAFCMarkStimTrialDrawingController controller;
+		NAFCMarkStimAndEStimTrialDrawingController controller;
 //		if (markEveryStep) {
 //			controller = new NAFCMarkEveryStepTrialDrawingController();
 
-		controller = new NAFCMarkStimTrialDrawingController();
+		controller = new NAFCMarkStimAndEStimTrialDrawingController();
 
 		controller.setWindow(classicConfig.monkeyWindow());
 		controller.setTaskScene(taskScene());
 		controller.setFixationOnWithStimuli(classicConfig.xperFixationOnWithStimuli());
 		controller.setScreenShotter(screenShotter());
+		controller.setLeftRightMarker(screenMarker());
 		return controller;
+	}
+
+	@Bean
+	public LeftRightScreenMarker screenMarker() {
+		LeftRightScreenMarker leftRightScreenMarker = new LeftRightScreenMarker();
+		leftRightScreenMarker.setSize(classicConfig.xperScreenMarkerSize());
+		leftRightScreenMarker.setViewportIndex(classicConfig.xperScreenMarkerViewportIndex());
+		return leftRightScreenMarker;
 	}
 
 	@Bean
@@ -489,7 +498,7 @@ public class NAFCConfig {
 		NAFCGaussScene scene = new NAFCGaussScene();
 		scene.setRenderer(experimentGLRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
-		scene.setMarker(classicConfig.screenMarker());
+		scene.setMarker(screenMarker());
 		scene.setBlankScreen(new BlankScreen());
 		scene.setDistance(classicConfig.xperMonkeyScreenDistance());
 		scene.setBackgroundColor(classicConfig.xperBackgroundColor());

@@ -11,11 +11,13 @@ import org.xper.allen.nafc.message.NAFCEventUtil;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
 import org.xper.classic.Punisher;
+import org.xper.classic.TrialEventListener;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
 import org.xper.eye.EyeTargetSelector;
 import org.xper.time.TimeUtil;
+import org.xper.util.EventUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,6 +112,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         NAFCTrialDrawingController drawingController = stateObject.getDrawingController();
         NAFCExperimentTask currentTask = stateObject.getCurrentTask();
         NAFCTrialContext currentContext = stateObject.getCurrentContext();
+        List<? extends TrialEventListener> trialEventListeners = stateObject.getTrialEventListeners();
         List<? extends ChoiceEventListener> choiceEventListeners = stateObject.getChoiceEventListeners();
         List<? extends EStimEventListener> eStimEventListeners = stateObject.geteStimEventListeners();
         EyeTargetSelector targetSelector = stateObject.getTargetSelector();
@@ -127,8 +130,17 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
         //show SAMPLE after delay
         long blankOnLocalTime = timeUtil.currentTimeMicros();
         do {
+            if(!eyeController.isEyeIn()) {
+                long eyeInHoldFailLocalTime = timeUtil.currentTimeMicros();
+                currentContext.setEyeInHoldFailTime(eyeInHoldFailLocalTime);
+                drawingController.eyeInHoldFail(currentContext);
+                EventUtil.fireEyeInHoldFailEvent(eyeInHoldFailLocalTime,
+                        trialEventListeners, currentContext);
+
+                return NAFCTrialResult.EYE_IN_HOLD_FAIL;
+            }
             //do nothing
-        }while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()* 1000L);
+        } while(timeUtil.currentTimeMicros()<blankOnLocalTime + stateObject.getBlankTargetScreenDisplayTime()* 1000L);
 
         //SHOW SAMPLE
         drawingController.showSample(currentTask, currentContext); //THIS is called by prepare fixation

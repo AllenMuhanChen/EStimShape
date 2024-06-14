@@ -12,7 +12,7 @@ import java.util.Objects;
  *
  *
  */
-public class NAFCTrialF1TriggerIntanStimulationRecordingController extends NAFCTrialIntanStimulationRecordingController {
+public class NAFCF1TriggerIntanStimulationRecordingController extends NAFCIntanStimulationRecordingController {
 
     @Override
     public void prepareEStim(long timestamp, TrialContext context) {

@@ -2,25 +2,50 @@ package org.xper.allen.intan;
 
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.classic.vo.TrialContext;
-import org.xper.experiment.listener.ExperimentEventListener;
-import org.xper.intan.stimulation.EStimParameters;
 import org.xper.intan.stimulation.RHSChannel;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
 import static org.xper.intan.stimulation.ManualTriggerIntanRHS.tcpNameForIntanChannel;
 
-public class NAFCDigitalTriggerIntanStimulationRecordingController extends NAFCTrialIntanStimulationRecordingController {
+/**
+ * This is used if you want to trigger stimulation on Intan with a DIGITAL-IN signal.
+ * This controller is intended for the user to specify the EStim Parameters on the Intan GUI internally.
+ *
+ * The best way to do so inside of IntanRHX is to specify single pulse stim with desired refractory period
+ * to define pulse train period, and set trigger source to LEVEL. This way
+ * as long as the digital in signal is HIGH, the stimulation will continuously be triggered
+ * with the desired pulse train period.
+ *
+ * This is intended to be used alongside NAFCMarkStimAndEStimTrialDrawingController, which
+ * specifies sample on right-marker and choice on left-marker, so this can be pre-set on the RHXGUI
+ * to trigger EStim on the sample right-marker. This way, no matter if the monkey aborts trials, the triggers
+ * will always stay aligned properly to trigger EStim.
+ */
+public class NAFCDigitalTriggerIntanStimulationRecordingController extends NAFCIntanStimulationRecordingController {
 
     private Set<RHSChannel> stimulationChannels;
 
     @Override
     public void experimentStart(long timestamp) {
         tryConnection();
+        identifyStimulationEnabledChannels();
+    }
 
+    @Override
+    public void trialInit(long timestamp, TrialContext context) {
+        if (recordingEnabled && !connected) {
+            experimentStart(timestamp);
+        }
+    }
+
+    /**
+     * Based on what's set in the GUI. Essentially looks for any channels with
+     * a non-zero amplitude and adds them to the stimulationChannels set.
+     */
+    private void identifyStimulationEnabledChannels() {
         stimulationChannels = new HashSet<>();
         for (RHSChannel channel : RHSChannel.values()) {
             try {
@@ -39,7 +64,6 @@ public class NAFCDigitalTriggerIntanStimulationRecordingController extends NAFCT
         System.out.println("Stimulation Channels: " + stimulationChannels);
     }
 
-
     @Override
     public void prepareEStim(long timestamp, TrialContext context) {
         if (connected & eStimEnabled) {
@@ -57,9 +81,10 @@ public class NAFCDigitalTriggerIntanStimulationRecordingController extends NAFCT
                     getIntan().disableStimulationOn(channel);
                 }
             }
-            getIntan().stop();
-            getIntan().uploadParameters(stimulationChannels);
+            getIntan().stop(); //needed to use uploadParameters
+            getIntan().uploadParameters(stimulationChannels); //needed to update the stimulation parameters
             fileNamingStrategy.rename(context.getCurrentTask().getTaskId());
+            getIntan().waitForUpload();
             getIntan().record();
         }
     }

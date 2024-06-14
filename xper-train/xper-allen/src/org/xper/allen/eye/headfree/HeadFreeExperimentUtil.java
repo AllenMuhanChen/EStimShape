@@ -4,14 +4,10 @@ import java.util.List;
 
 import org.xper.allen.nafc.experiment.NAFCExperimentState;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
-import org.xper.allen.nafc.experiment.NAFCExperimentUtil;
-import org.xper.allen.nafc.experiment.NAFCMarkEveryStepTrialDrawingController;
-import org.xper.allen.nafc.experiment.NAFCMarkStimTrialDrawingController;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.nafc.experiment.NAFCTrialDrawingController;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.classic.TrialEventListener;
-import org.xper.classic.vo.TrialContext;
 import org.xper.experiment.EyeController;
 import org.xper.time.TimeUtil;
 import org.xper.util.EventUtil;
@@ -43,12 +39,12 @@ public class HeadFreeExperimentUtil{
 		EventUtil.fireTrialStartEvent(trialStartLocalTime, trialEventListeners,
 				currentContext);
 
-		//PREPARING SAMPLE & CHOICE! 
-		drawingController.prepareSample(currentTask, currentContext); 
+		//PREPARING SAMPLE & CHOICE!
+		drawingController.prepareSample(currentTask, currentContext);
 		drawingController.prepareChoice(currentTask, currentContext);
 
 
-		
+
 		while(fixationAttempt < maxFixationAttempts-1) {
 			fixationAttempt++;
 			NAFCTrialResult res = getFixationOnly(state, threadHelper, trialStartLocalTime);
@@ -69,8 +65,8 @@ public class HeadFreeExperimentUtil{
 				.getTrialEventListeners();
 		EyeController eyeController = state.getEyeController();
 		NAFCExperimentTask currentTask = state.getCurrentTask();
-		
-		
+
+
 		drawingController.prepareFixationOn(currentContext);
 		//time before fixation point on
 		ThreadUtil.sleepOrPinUtil(trialStartLocalTime
@@ -127,6 +123,6 @@ public class HeadFreeExperimentUtil{
 		EventUtil.fireFixationSucceedEvent(eyeHoldSuccessLocalTime,
 				trialEventListeners, currentContext);
 
-		return NAFCTrialResult.FIXATION_SUCCESS;		
+		return NAFCTrialResult.FIXATION_SUCCESS;
 	}
 }

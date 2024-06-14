@@ -8,16 +8,19 @@ import org.xper.classic.vo.TrialContext;
 import org.xper.intan.IntanRecordingController;
 import org.xper.intan.stimulation.*;
 
-import java.util.Arrays;
-
 /**
  * Handles Recording and Stimulation for NAFC experiments.
+ *
+ * This is supposed to handle inside of xper specification of stimulation parameters per trial.
+ *
+ * The stimulation is triggered by xper code via EStimEventListener.
  *
  * We want separate events for preparing estim and triggering it as we want more control over
  * the timing of these things rather than just relying on slide, trial or experiment events.
  *
+ *
  */
-public class NAFCTrialIntanStimulationRecordingController extends IntanRecordingController implements EStimEventListener, ChoiceEventListener
+public class NAFCIntanStimulationRecordingController extends IntanRecordingController implements EStimEventListener, ChoiceEventListener
 {
 	@Dependency
 	ManualTriggerIntanRHS intan;

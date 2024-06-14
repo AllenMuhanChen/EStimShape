@@ -34,7 +34,7 @@ public class NAFCMStickPngAppConfig{
 		NAFCPngScene scene = new NAFCPngScene();
 		scene.setRenderer(config.experimentGLRenderer());
 		scene.setFixation(classicConfig.experimentFixationPoint());
-		scene.setMarker(classicConfig.screenMarker());
+		scene.setMarker(config.screenMarker());
 		scene.setBlankScreen(new BlankScreen());
 		scene.setScreenHeight(classicConfig.xperMonkeyScreenHeight());
 		scene.setScreenWidth(classicConfig.xperMonkeyScreenWidth());

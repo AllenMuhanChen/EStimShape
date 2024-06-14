@@ -108,7 +108,7 @@ public class IntanRHD {
      * necessary to wait for any uploads to finish first before running any set run mode
      * commands
      */
-    protected void waitForUpload() {
+    public void waitForUpload() {
         intanClient.waitFor(new Condition() {
             @Override
             public boolean check() {
