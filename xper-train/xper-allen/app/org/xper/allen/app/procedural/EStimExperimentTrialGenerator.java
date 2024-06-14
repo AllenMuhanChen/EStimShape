@@ -117,7 +117,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
 
         //Make EStimTrials and Delta Trials
-        List<Stim> eStimTrials = makeEStimTrials(eStimTrialParams, stimColor, stimId, compId);
+        List<Stim> eStimTrials = makeEStimProceduralTrials(eStimTrialParams, stimColor, stimId, compId);
         List<Stim> deltaTrials = makeDeltaTrials(numDeltaSets, eStimTrialParams, eStimTrials);
 
         //Assigning Fake RFS
@@ -173,7 +173,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         return behTrialRFs;
     }
 
-    private List<Stim> makeEStimTrials(List<ProceduralStimParameters> eStimTrialParams, Color stimColor, long stimId, int compId) {
+    private List<Stim> makeEStimProceduralTrials(List<ProceduralStimParameters> eStimTrialParams, Color stimColor, long stimId, int compId) {
         List<Stim> eStimTrials = new LinkedList<>();
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
