@@ -68,4 +68,10 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
         baseMStick.genMatchStickRand();
         return baseMStick;
     }
+
+    @Override
+    public RewardBehavior specifyRewardBehavior() {
+        return RewardBehaviors.rewardMatchOnly();
+    }
+
 }

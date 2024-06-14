@@ -50,26 +50,11 @@ public class NAFCStimSpecWriter {
 		this.rewardList = rewardList;
 	}
 
-
-	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
-							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
-							  NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
-		super();
-		this.taskId = taskId;
-		this.dbUtil = dbUtil;
-		this.trialParameters = trialParameters;
-		this.coords = coords;
-		this.numChoices = numChoices;
-		this.stimObjIds = stimObjIds;
-		this.eStimObjData = new long[]{1};
-		this.rewardPolicy = rewardPolicy;
-		this.rewardList = rewardList;
-	}
-
-	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
+	public NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
 							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
 							  NAFC<Long> stimObjIds, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
 		super();
+		this.stimType = stimType;
 		this.taskId = taskId;
 		this.dbUtil = dbUtil;
 		this.trialParameters = trialParameters;

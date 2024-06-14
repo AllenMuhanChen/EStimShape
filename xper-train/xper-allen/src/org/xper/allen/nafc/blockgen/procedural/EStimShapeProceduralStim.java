@@ -4,7 +4,6 @@ import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
-import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
@@ -15,14 +14,13 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import javax.vecmath.Point3d;
 import java.awt.*;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 public class EStimShapeProceduralStim extends ProceduralStim{
     private final ReceptiveFieldSource rfSource;
     private final boolean isEStimEnabled;
-    private long[] eStimObjData;
+    protected long[] eStimObjData;
 
     public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
@@ -150,15 +148,9 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     @Override
     protected void writeStimSpec(){
-        // Only reward for choosing the correct, or procedural distractor, not a random distractor.
-        int numProceduralDistractors = this.parameters.numChoices - this.parameters.numRandDistractors - 1;
-        int[] rewardList = new int[numProceduralDistractors + 1];
-        rewardList[0] = 0; //match
-        for (int i = 1; i <= numProceduralDistractors; i++) { //procedural distractors
-            rewardList[i] = i;
-        }
-
+        RewardBehavior result = this.specifyRewardBehavior();
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+                this.getClass().getSimpleName(),
                 getStimId(),
                 (AllenDbUtil) generator.getDbUtil(),
                 parameters,
@@ -166,9 +158,14 @@ public class EStimShapeProceduralStim extends ProceduralStim{
                 parameters.numChoices,
                 stimObjIds,
                 eStimObjData,
-                RewardPolicy.LIST, rewardList);
+                result.rewardPolicy, result.rewardList);
 
         stimSpecWriter.writeStimSpec();
+    }
+
+    @Override
+    public RewardBehavior specifyRewardBehavior() {
+        return RewardBehaviors.rewardReasonableChoicesOnly(this.parameters);
     }
 
     /**

@@ -4,8 +4,10 @@ import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
+import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
+import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
 
 import java.util.LinkedList;
@@ -127,5 +129,9 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     }
 
 
+    @Override
+    public RewardBehavior specifyRewardBehavior() {
+        return RewardBehaviors.rewardAnyChoice();
+    }
 
 }

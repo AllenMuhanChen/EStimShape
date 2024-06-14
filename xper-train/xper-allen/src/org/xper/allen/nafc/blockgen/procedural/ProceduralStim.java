@@ -7,7 +7,6 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.blockgen.*;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
-import org.xper.allen.nafc.experiment.RewardPolicy;
 import org.xper.allen.nafc.vo.MStickStimObjData;
 
 import org.xper.allen.specs.NoisyPngSpec;
@@ -319,17 +318,26 @@ public class ProceduralStim implements NAFCStim {
     }
 
     protected void writeStimSpec(){
+        RewardBehavior rewardBehavior = specifyRewardBehavior();
         NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-                getStimId(),
+                this.getClass().getSimpleName(), getStimId(),
                 (AllenDbUtil) generator.getDbUtil(),
                 parameters,
                 coords,
                 parameters.numChoices,
-                stimObjIds, RewardPolicy.LIST, new int[]{0});
+                stimObjIds,
+                rewardBehavior.rewardPolicy,
+                rewardBehavior.rewardList
+        );
 
         stimSpecWriter.writeStimSpec();
     }
 
+
+    @Override
+    public RewardBehavior specifyRewardBehavior() {
+        return RewardBehaviors.rewardMatchOnly();
+    }
 
 
     protected void setTaskId(Long sample) {

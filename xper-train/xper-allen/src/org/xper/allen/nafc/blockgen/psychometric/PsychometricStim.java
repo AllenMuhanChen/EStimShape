@@ -80,7 +80,7 @@ public class PsychometricStim implements Stim {
 		assignTaskId();
 
 		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
-				getStimId(),
+				this.getClass().getSimpleName(), getStimId(),
 				dbUtil,
 				trialParameters,
 				coords,
