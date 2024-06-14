@@ -18,8 +18,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class EStimShapeProceduralStim extends ProceduralStim{
-    private final ReceptiveFieldSource rfSource;
-    private final boolean isEStimEnabled;
+    protected final ReceptiveFieldSource rfSource;
+    protected final boolean isEStimEnabled;
     protected long[] eStimObjData;
 
     public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {

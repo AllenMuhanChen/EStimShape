@@ -131,7 +131,12 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     public RewardBehavior specifyRewardBehavior() {
-        return RewardBehaviors.rewardAnyChoice();
+        if (isEStimEnabled) {
+            return RewardBehaviors.rewardAnyChoice();
+        } else{
+            return RewardBehaviors.rewardMatchOnly();
+        }
+
     }
 
 }
