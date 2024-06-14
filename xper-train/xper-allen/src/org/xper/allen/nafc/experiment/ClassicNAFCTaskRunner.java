@@ -260,7 +260,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 if (rewardPolicy == RewardPolicy.ANY) {
                     if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
                         NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
-                        System.out.println("Correct Choice");
+                        System.out.println("Correct Choice - Rewarded By Default");
                     }
                     else {
                         NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);

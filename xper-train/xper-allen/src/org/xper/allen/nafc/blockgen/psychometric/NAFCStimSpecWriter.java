@@ -22,21 +22,9 @@ public class NAFCStimSpecWriter {
 	private RewardPolicy rewardPolicy;
 	private int[] rewardList;
 
-	public NAFCStimSpecWriter(Long taskId, AllenDbUtil dbUtil,
-							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
-							  NAFC<Long> stimObjIds, long[] eStimObjData) {
-		super();
-		this.taskId = taskId;
-		this.dbUtil = dbUtil;
-		this.trialParameters = trialParameters;
-		this.coords = coords;
-		this.numChoices = numChoices;
-		this.stimObjIds = stimObjIds;
-		this.eStimObjData = eStimObjData;
-	}
-	public NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
-							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
-							  NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
+	private NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
+							   NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+							   NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
 		super();
 		this.stimType = stimType;
 		this.taskId = taskId;
@@ -50,9 +38,9 @@ public class NAFCStimSpecWriter {
 		this.rewardList = rewardList;
 	}
 
-	public NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
-							  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
-							  NAFC<Long> stimObjIds, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
+	private NAFCStimSpecWriter(String stimType, Long taskId, AllenDbUtil dbUtil,
+							   NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+							   NAFC<Long> stimObjIds, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
 		super();
 		this.stimType = stimType;
 		this.taskId = taskId;
@@ -71,6 +59,18 @@ public class NAFCStimSpecWriter {
 	private List<Coordinates2D> targetEyeWinCoords = new ArrayList<Coordinates2D>();
 	private double[] targetEyeWinSizes;
 	private long[] choiceIds;
+
+	public static NAFCStimSpecWriter createForNoEStim(String stimType, Long taskId, AllenDbUtil dbUtil,
+													  NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+													  NAFC<Long> stimObjIds, RewardPolicy rewardPolicy, int[] rewardList) {
+		return new NAFCStimSpecWriter(stimType, taskId, dbUtil, trialParameters, coords, numChoices, stimObjIds, rewardPolicy, rewardList);
+	}
+
+	public static NAFCStimSpecWriter createForEStim(String stimType, Long taskId, AllenDbUtil dbUtil,
+													NAFCTrialParameters trialParameters, NAFC<Coordinates2D> coords, int numChoices,
+													NAFC<Long> stimObjIds, long[] eStimObjData, RewardPolicy rewardPolicy, int[] rewardList) {
+		return new NAFCStimSpecWriter(stimType, taskId, dbUtil, trialParameters, coords, numChoices, stimObjIds, eStimObjData, rewardPolicy, rewardList);
+	}
 
 	public void writeStimSpec() {
 		assignEyeWindowCoordinates();

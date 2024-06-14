@@ -10,7 +10,7 @@ public class RewardBehaviors {
     }
 
     public static RewardBehavior rewardAnyChoice() {
-        int[] rewardList = new int[0];
+        int[] rewardList = {0};
 
         RewardPolicy rewardPolicy = RewardPolicy.ANY;
         return new RewardBehavior(rewardPolicy, rewardList);

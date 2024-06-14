@@ -104,7 +104,7 @@ public class RandStim implements Stim {
 	}
 
 	private void writeStimSpec(){
-		NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+		NAFCStimSpecWriter stimSpecWriter = NAFCStimSpecWriter.createForNoEStim(
 				this.getClass().getSimpleName(), getStimId(),
 				dbUtil,
 				trialParameters,

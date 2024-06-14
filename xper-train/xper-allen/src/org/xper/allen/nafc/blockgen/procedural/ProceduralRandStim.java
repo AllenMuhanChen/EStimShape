@@ -87,7 +87,7 @@ public class ProceduralRandStim extends ProceduralStim{
 
     @Override
     protected void writeStimSpec(){
-        NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+        NAFCStimSpecWriter stimSpecWriter = NAFCStimSpecWriter.createForNoEStim(
                 new ProceduralRandGenType(generator).getLabel(),
                 getStimId(),
                 (AllenDbUtil) generator.getDbUtil(),

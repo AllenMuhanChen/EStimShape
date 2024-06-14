@@ -12,7 +12,8 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
     private int nComp;
 
     public EStimShapeTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
-        super(generator, parameters, null, -1, false);
+        super(generator, parameters, null, -1,
+            false);
         this.rf = rf;
     }
 

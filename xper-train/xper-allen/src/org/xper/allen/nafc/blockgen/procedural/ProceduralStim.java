@@ -319,7 +319,7 @@ public class ProceduralStim implements NAFCStim {
 
     protected void writeStimSpec(){
         RewardBehavior rewardBehavior = specifyRewardBehavior();
-        NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+        NAFCStimSpecWriter stimSpecWriter = NAFCStimSpecWriter.createForNoEStim(
                 this.getClass().getSimpleName(), getStimId(),
                 (AllenDbUtil) generator.getDbUtil(),
                 parameters,

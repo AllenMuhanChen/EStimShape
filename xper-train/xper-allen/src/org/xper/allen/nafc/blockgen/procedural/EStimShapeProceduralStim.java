@@ -148,8 +148,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
     @Override
     protected void writeStimSpec(){
-        RewardBehavior result = this.specifyRewardBehavior();
-        NAFCStimSpecWriter stimSpecWriter = new NAFCStimSpecWriter(
+        RewardBehavior result = specifyRewardBehavior();
+        NAFCStimSpecWriter stimSpecWriter = NAFCStimSpecWriter.createForEStim(
                 this.getClass().getSimpleName(),
                 getStimId(),
                 (AllenDbUtil) generator.getDbUtil(),
