@@ -135,8 +135,13 @@ public class ProceduralAppConfig {
         return Arrays.asList(0.0, 0.2, 0.3, 0.5, 1.0);
     }
 
+//    @Bean
+//    public List<Double> xperNoiseRewardFunctionRewards() {
+//        return Arrays.asList(1.5, 1.5, 2.5, 3.3, 4.5);
+//    }
+
     @Bean
     public List<Double> xperNoiseRewardFunctionRewards() {
-        return Arrays.asList(1.5, 1.5, 2.5, 3.3, 4.5);
+        return Arrays.asList(2.0, 2.0, 4.5, 4.5, 4.5);
     }
 }

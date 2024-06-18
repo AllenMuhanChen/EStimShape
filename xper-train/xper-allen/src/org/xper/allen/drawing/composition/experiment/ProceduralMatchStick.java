@@ -235,7 +235,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             try {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(0.5, new NormalMorphDistributer(1 / 3.0));
+                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(0.8, new NormalMorphDistributer(1 / 3.0));
                 for (int i = 0; i < baseCompIndcs.size(); i++) {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
@@ -253,6 +253,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 System.out.println(e.getMessage());
             } catch (MorphException e) {
                 e.printStackTrace();
+                cleanData();
+                this.setObj1(null);
             }
         }
 

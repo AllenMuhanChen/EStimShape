@@ -1243,10 +1243,7 @@ public class AllenMatchStick extends MatchStick {
 	public Vector3d movePointToDestination(Point3d point, Point3d destination) {
 		Vector3d shiftVec = new Vector3d();
 		shiftVec.sub(destination, point);
-		if ( destination.distance(point) > 0.001)
-		{
-			applyTranslation(shiftVec);
-		}
+		applyTranslation(shiftVec);
 		return shiftVec;
 	}
 

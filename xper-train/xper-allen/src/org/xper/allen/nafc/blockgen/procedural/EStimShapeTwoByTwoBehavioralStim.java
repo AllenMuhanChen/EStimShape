@@ -9,18 +9,15 @@ import org.xper.allen.pga.RFUtils;
 
 public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
     private ReceptiveField rf;
-    private int nComp;
 
-    public EStimShapeTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
+    public EStimShapeTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf, int nComp) {
         super(generator, parameters, null, -1,
-            false);
+            false, nComp);
         this.rf = rf;
     }
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-        nComp = (int) Math.round(Math.random()+2);
-//        nComp=3;
         while(true) {
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();
@@ -54,7 +51,7 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, nComp, false);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, this.nComp, false);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));

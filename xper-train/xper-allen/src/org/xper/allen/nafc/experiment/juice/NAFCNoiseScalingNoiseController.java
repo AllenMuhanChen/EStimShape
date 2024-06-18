@@ -24,16 +24,24 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
     public void sampleOn(long timestamp, NAFCTrialContext context) {
         NAFCExperimentTask task = context.getCurrentTask();
         NoisyPngSpec sampleSpec = NoisyPngSpec.fromXml(task.getSampleSpec());
+
+        //Noise Related Reward
         double noiseChance = sampleSpec.getNoiseChance();
         System.err.println("Noise Rate: " + noiseChance);
         try {
             rewardMultiplier = noiseRewardFunction.value(noiseChance);
-            System.err.println("Reward Multiplier: " + rewardMultiplier);
         } catch (FunctionEvaluationException e){
             System.err.println(e.getMessage());
             System.out.println("Function evaluation failed, rewardMultiplier defaulting to 1");
             rewardMultiplier = 1;
         }
+
+        //4AFC Reward Multiplier
+        System.out.println("Choices: " + task.getChoiceSpec().length);
+        if (task.getChoiceSpec().length == 4){
+            rewardMultiplier = rewardMultiplier * 2;
+        }
+        System.err.println("Reward Multiplier: " + rewardMultiplier);
     }
 
     private void deliverReward(long timestamp) {

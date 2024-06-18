@@ -87,6 +87,7 @@ public class NAFCExperimentConsole extends JFrame implements
 	KeyStroke lockUnlockKey = KeyStroke.getKeyStroke(KeyEvent.VK_L, 0);
 	KeyStroke pauseResumeKey = KeyStroke.getKeyStroke(KeyEvent.VK_P, 0);
 	KeyStroke rewardKey = KeyStroke.getKeyStroke(KeyEvent.VK_R, 0);
+	KeyStroke restartKey = KeyStroke.getKeyStroke(KeyEvent.VK_R, KeyEvent.CTRL_DOWN_MASK);
 	IConsolePlugin currentPlugin = null;
 
 	boolean paused = true;
@@ -134,6 +135,16 @@ public class NAFCExperimentConsole extends JFrame implements
 		};
 		keyMap.put(monitorToken, monitorAction);
 		actMap.put(monitorAction, monitorAction);
+
+		//AC
+		Action restartAction = new AbstractAction() {
+
+			public void actionPerformed(ActionEvent e) {
+				model.restart();
+			}
+		};
+		keyMap.put(restartKey, restartAction);
+		actMap.put(restartAction, restartAction);
 
 		for (final IConsolePlugin p : consolePlugins) {
 			KeyStroke token = p.getToken();

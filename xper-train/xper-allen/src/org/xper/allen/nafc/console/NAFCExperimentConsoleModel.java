@@ -35,6 +35,9 @@ public class NAFCExperimentConsoleModel extends ExperimentConsoleModel{
 			return stat;
 		}
 
+		public void restart() {
+			experimentRunnerClient.restart();
+		}
 		public void start () {
 			getEyePositionInDegree().set(new Coordinates2D(0,0));
 			messageReceiver.start();

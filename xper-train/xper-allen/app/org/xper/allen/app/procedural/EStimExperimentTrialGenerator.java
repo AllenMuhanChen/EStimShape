@@ -43,6 +43,11 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     }
 
     @Override
+    public void shuffleTrials() {
+        Collections.shuffle(stims);
+    }
+
+    @Override
     protected void addTrials() {
 //        addTrials_Deltas();
         addTrials_TwoByTwo();
@@ -59,10 +64,20 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         numEStimTrialsForNoiseChances.put(0.5, 10);
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.5, 30);
+        numBehavioralTrialsForNoiseChances.put(0.0, 25);
+        Map<Double, Integer> numTrainingTrialsForNoiseChances = new LinkedHashMap<>();
+        numTrainingTrialsForNoiseChances.put(0.0, 15);
 
-        List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
-        List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
+        List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(
+                stimColor, numEStimTrialsForNoiseChances);
+        List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(
+                stimColor, numBehavioralTrialsForNoiseChances);
+        List<ProceduralStimParameters> trainingTrialParams = assignTrainingTrialParams(
+                stimColor,
+                numTrainingTrialsForNoiseChances,
+                3);
+        behavioralTrialParams.addAll(trainingTrialParams);
+
 
         List<Stim> eStimTrials = new LinkedList<>();
         //Add EStim Trials
@@ -74,10 +89,12 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             //using estim values set on the IntanGUI
             EStimShapeTwoByTwoStim eStimTrial = new EStimShapeTwoByTwoStim(
                     this,
-                    parameters, baseMStick, compId, true);
+                    parameters, baseMStick, compId, true,
+                    2);
             EStimShapeTwoByTwoStim negativeControlTrial = new EStimShapeTwoByTwoStim(
                     this,
-                    parameters, baseMStick, compId, false);
+                    parameters, baseMStick, compId, false,
+                    2);
             eStimTrials.add(eStimTrial);
             eStimTrials.add(negativeControlTrial);
         }
@@ -88,13 +105,16 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> behavioralTrials = new LinkedList<>();
         for (int i = 0; i< behavioralTrialParams.size(); i++){
             ProceduralStimParameters parameters = behavioralTrialParams.get(i);
-            EStimShapeTwoByTwoBehavioralStim stim = new EStimShapeTwoByTwoBehavioralStim(this, parameters, behTrialRFs.get(i));
+            EStimShapeTwoByTwoBehavioralStim stim = new EStimShapeTwoByTwoBehavioralStim(
+                    this, parameters,
+                    behTrialRFs.get(i),
+                    2);
             behavioralTrials.add(stim);
         }
 
 
-//        stims.addAll(behavioralTrials);
-        stims.addAll(eStimTrials);
+        stims.addAll(behavioralTrials);
+//        stims.addAll(eStimTrials);
 
     }
 
@@ -112,6 +132,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
         numBehavioralTrialsForNoiseChances.put(0.5, 20);
+
+
 
         List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(stimColor, numEStimTrialsForNoiseChances);
         List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(stimColor, numBehavioralTrialsForNoiseChances);
@@ -229,7 +251,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         double choiceRadius = RadialSquares.calculateRequiredRadius(
                 numChoices,
                 eyeWinRadius,
-                eyeWinRadius/2);
+                eyeWinRadius/1.5);
 
         //Init EStim Trial Parameters
         List<ProceduralStimParameters> eStimTrialParams = new LinkedList<>();
@@ -242,11 +264,48 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     ProceduralStimParameters parameters = new ProceduralStimParameters(
                             new Lims(0, 0),
                             new Lims(choiceRadius, choiceRadius),
-                            getImageDimensionsDegrees(), //not used?
+                            getImageDimensionsDegrees() * 0.9, //not used?
                             eyeWinRadius,
                             noiseChance,
                             numChoices,
-                            2,
+                            0,
+                            0.5,
+                            0.5,
+                            stimColor,
+                            "SHADE"
+                    );
+
+                    eStimTrialParams.add(parameters);
+                }
+            }
+        });
+        return eStimTrialParams;
+    }
+
+    private List<ProceduralStimParameters> assignTrainingTrialParams(Color stimColor, Map<Double, Integer> numTrialsForNoiseChances, int numChoices) {
+        //Specifying universal parameters
+        double eyeWinRadius = calculateEyeWinRadius();
+        double choiceRadius = RadialSquares.calculateRequiredRadius(
+                numChoices,
+                eyeWinRadius,
+                eyeWinRadius/1.5);
+
+        //Init EStim Trial Parameters
+        List<ProceduralStimParameters> eStimTrialParams = new LinkedList<>();
+        numTrialsForNoiseChances.forEach(new BiConsumer<Double, Integer>() {
+            @Override
+            public void accept(Double noiseChance, Integer numTrials) {
+
+                for (int i = 0; i < numTrials; i++) {
+
+                    ProceduralStimParameters parameters = new ProceduralStimParameters(
+                            new Lims(0, 0),
+                            new Lims(choiceRadius, choiceRadius),
+                            getImageDimensionsDegrees() * 0.9, //not used?
+                            eyeWinRadius,
+                            noiseChance,
+                            numChoices,
+                            0,
                             0.5,
                             0.5,
                             stimColor,

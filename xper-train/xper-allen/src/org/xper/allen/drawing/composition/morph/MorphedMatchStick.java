@@ -216,6 +216,32 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     @Override
+    protected boolean validMStickSize()
+    {
+        double screenDist = 500;
+        double maxDiameterDegrees = getScaleForMAxisShape(); // DIAMETER in degrees
+        System.out.println("In validMStickSize: size " + maxDiameterDegrees);
+        double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
+        double maxRadiusRadians = maxDiameterRadians / 2;
+        double radiusMm = screenDist * Math.tan(maxRadiusRadians);
+        double buffer = 0.1; // 10% buffer
+        radiusMm = radiusMm * (1 - buffer);
+        int i, j;
+
+        Point3d ori = new Point3d(0.0,0.0,0.0);
+        double dis;
+        for (i=1; i<=getnComponent(); i++)
+            for (j=1; j<= getComp()[i].getnVect(); j++) {
+                dis = getComp()[i].getVect_info()[j].distance(ori);
+                if ( dis > radiusMm ) {
+                    System.out.println("Component " + i + " has a vector that is too long: " + dis + " mm");
+                    return false;
+                }
+            }
+        return true;
+    }
+
+    @Override
     public void genMatchStickRand() {
         int nComp;
 //		 double[] nCompDist = { 0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1.00};

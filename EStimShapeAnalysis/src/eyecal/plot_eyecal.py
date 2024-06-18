@@ -11,7 +11,7 @@ import os
 
 
 def main():
-    current_conn = config.ga_database
+    current_conn = config.ga_config.connection()
     eyecal_path = config.eyecal_dir
 
     trial_collector = TrialCollector(conn=current_conn, when=time_util.from_x_days_ago(0))

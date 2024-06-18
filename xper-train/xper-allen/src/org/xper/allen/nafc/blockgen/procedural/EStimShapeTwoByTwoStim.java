@@ -4,10 +4,8 @@ import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
-import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
-import org.xper.allen.util.AllenDbUtil;
 import org.xper.time.TimeUtil;
 
 import java.util.LinkedList;
@@ -15,17 +13,23 @@ import java.util.List;
 
 public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     protected int baseDrivingComponent;
-    private int nComp;
+    protected int nComp;
 
-    public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
+    public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, int nComp) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
         this.baseDrivingComponent = morphComponentIndex;
+        if (nComp == 0){
+            this.nComp = (int) Math.round(Math.random()+2);
+        }
+        else{
+            this.nComp = nComp;
+        }
+        this.numProceduralDistractors = parameters.numChoices - numRandDistractors - 1;
+        this.numRandDistractors = 0;
     }
 
     @Override
     protected void generateMatchSticksAndSaveSpecs() {
-        nComp = (int) Math.round(Math.random()+2);
-//        nComp=3;
         while(true) {
             this.mSticks = new Procedural<>();
             this.mStickSpecs = new Procedural<>();
@@ -52,7 +56,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         TimeUtil timeUtil = generator.getGlobalTimeUtil();
         long sampleId = timeUtil.currentTimeMicros();
         long matchId = sampleId + 1;
-        numProceduralDistractors = 3;
+        System.out.println(numProceduralDistractors);
         numRandDistractors = 0;
         List<Long> proceduralDistractorIds = new LinkedList<>();
         for (int i = 0; i < numProceduralDistractors; i++) {
@@ -68,32 +72,39 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick match) {
         TwobyTwoMatchStick swappedBaseMStick = new TwobyTwoMatchStick();
-        correctNoiseRadius(swappedBaseMStick);
-        swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType);
-        swappedBaseMStick.setStimColor(parameters.color);
-        swappedBaseMStick.genMorphedBaseMatchStick(match, morphComponentIndex, 100,
-                false, true);
-        mSticks.proceduralDistractors.add(swappedBaseMStick);
-        mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick, stimObjIds.proceduralDistractors.get(0)));
+        if (numProceduralDistractors >= 1) {
+            correctNoiseRadius(swappedBaseMStick);
+            swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType);
+            swappedBaseMStick.setStimColor(parameters.color);
+            swappedBaseMStick.genMorphedBaseMatchStick(match, morphComponentIndex, 100,
+                    false, true);
+            mSticks.proceduralDistractors.add(swappedBaseMStick);
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick, stimObjIds.proceduralDistractors.get(0)));
+        }
 
         TwobyTwoMatchStick swappedInNoiseMStick = new TwobyTwoMatchStick();
-        correctNoiseRadius(swappedInNoiseMStick);
-        swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
-        swappedInNoiseMStick.setStimColor(parameters.color);
-        swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match, 0.7, 0.5,
-                false, true);
-        mSticks.proceduralDistractors.add(swappedInNoiseMStick);
-        mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick, stimObjIds.proceduralDistractors.get(1)));
+        if (numProceduralDistractors >= 2) {
+            correctNoiseRadius(swappedInNoiseMStick);
+            swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
+            swappedInNoiseMStick.setStimColor(parameters.color);
+            swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match,
+                    0.8, 0.5,
+                    false, true);
+            mSticks.proceduralDistractors.add(swappedInNoiseMStick);
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick, stimObjIds.proceduralDistractors.get(1)));
+        }
 
         TwobyTwoMatchStick swappedBothMStick = new TwobyTwoMatchStick();
-        correctNoiseRadius(swappedBothMStick);
-        swappedBothMStick.setProperties(parameters.getSize(), parameters.textureType);
-        swappedBothMStick.setStimColor(parameters.color);
-        swappedBothMStick.genSwappedBaseAndDrivingComponentMatchStick(swappedBaseMStick,
-                morphComponentIndex,
-                swappedInNoiseMStick, false);
-        mSticks.proceduralDistractors.add(swappedBothMStick);
-        mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBothMStick, stimObjIds.proceduralDistractors.get(2)));
+        if (numProceduralDistractors >= 3) {
+            correctNoiseRadius(swappedBothMStick);
+            swappedBothMStick.setProperties(parameters.getSize(), parameters.textureType);
+            swappedBothMStick.setStimColor(parameters.color);
+            swappedBothMStick.genSwappedBaseAndDrivingComponentMatchStick(swappedBaseMStick,
+                    morphComponentIndex,
+                    swappedInNoiseMStick, false);
+            mSticks.proceduralDistractors.add(swappedBothMStick);
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBothMStick, stimObjIds.proceduralDistractors.get(2)));
+        }
     }
 
     @Override
