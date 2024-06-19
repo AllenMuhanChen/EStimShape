@@ -88,7 +88,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
             swappedInNoiseMStick.setStimColor(parameters.color);
             swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match,
-                    0.8, 0.5,
+                    0.7, 0.5,
                     false, true);
             mSticks.proceduralDistractors.add(swappedInNoiseMStick);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick, stimObjIds.proceduralDistractors.get(1)));

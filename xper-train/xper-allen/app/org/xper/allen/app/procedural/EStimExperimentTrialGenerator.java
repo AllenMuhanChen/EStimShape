@@ -64,9 +64,11 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         numEStimTrialsForNoiseChances.put(0.5, 10);
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.0, 25);
+        numBehavioralTrialsForNoiseChances.put(0.0, 10);
+        numBehavioralTrialsForNoiseChances.put(0.05, 10);
+        numBehavioralTrialsForNoiseChances.put(0.1, 20);
         Map<Double, Integer> numTrainingTrialsForNoiseChances = new LinkedHashMap<>();
-        numTrainingTrialsForNoiseChances.put(0.0, 15);
+        numTrainingTrialsForNoiseChances.put(0.0, 0);
 
         List<ProceduralStimParameters> eStimTrialParams = assignTrialParams(
                 stimColor, numEStimTrialsForNoiseChances);
@@ -264,12 +266,12 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     ProceduralStimParameters parameters = new ProceduralStimParameters(
                             new Lims(0, 0),
                             new Lims(choiceRadius, choiceRadius),
-                            getImageDimensionsDegrees() * 0.9, //not used?
+                            getImageDimensionsDegrees() * 0.85, //not used?
                             eyeWinRadius,
                             noiseChance,
                             numChoices,
                             0,
-                            0.5,
+                            0.7,
                             0.5,
                             stimColor,
                             "SHADE"

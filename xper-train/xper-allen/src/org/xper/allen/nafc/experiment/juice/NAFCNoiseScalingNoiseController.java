@@ -38,8 +38,8 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
 
         //4AFC Reward Multiplier
         System.out.println("Choices: " + task.getChoiceSpec().length);
-        if (task.getChoiceSpec().length == 4){
-            rewardMultiplier = rewardMultiplier * 2;
+        if (task.getChoiceSpec().length == 3){
+            rewardMultiplier = rewardMultiplier * 0.5;
         }
         System.err.println("Reward Multiplier: " + rewardMultiplier);
     }
