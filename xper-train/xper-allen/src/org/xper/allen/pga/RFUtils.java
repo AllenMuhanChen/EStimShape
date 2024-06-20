@@ -43,9 +43,9 @@ public class RFUtils {
             Collections.shuffle(pointsToTest);
 
             // First, check if the component is inside the RF
-            for (Coordinates2D point : pointsToTest) {
+            for (Coordinates2D pointToTest : pointsToTest) {
                 Point3d pointToMove = mStick.getComp()[compInRF].getMassCenter();
-                Point3d destination = new Point3d(point.getX(), point.getY(), 0.0);
+                Point3d destination = new Point3d(pointToTest.getX(), pointToTest.getY(), 0.0);
                 mStick.movePointToDestination(pointToMove, destination);
 
                 isCompInRF = checkCompInRF(compInRF, percentageInsideRF, mStick, rf);

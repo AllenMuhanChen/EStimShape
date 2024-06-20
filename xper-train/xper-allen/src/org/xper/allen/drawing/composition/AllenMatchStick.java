@@ -2282,33 +2282,28 @@ public class AllenMatchStick extends MatchStick {
 				try {
 					smoothSuccess = this.smoothizeMStick();
 				} catch(Exception e){
-					smoothSuccess = false;
 					System.err.println(e.getMessage());
 				}
-			} else{
-				System.out.println("Failed to smoothize in genMatchStickFromLeaf");
 			}
-			if (smoothSuccess) {
-				try {
-					positionShape();
-				} catch (MorphedMatchStick.MorphException e){
-					i++;
-					System.out.println(e.getMessage());
-					continue;
-				}
-
-			} else{
-				System.out.println("Failed to positionShape in genMatchStickFromLeaf");
-			}
-
 			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
 			boolean sizeVetSuccess = false;
 			if (smoothSuccess){ // success to smooth
 				sizeVetSuccess = vetLeafBaseSize(leafIndx);
-				if(sizeVetSuccess) {
-					return true;
+				if (!sizeVetSuccess){
+					System.out.println("Failed to vet leaf base size");
 				}
 			}
+
+
+			if (sizeVetSuccess) {
+				try {
+					positionShape();
+					return true;
+				} catch (MorphedMatchStick.MorphException e){
+					System.out.println(e.getMessage());
+				}
+			}
+
 
 
 
@@ -2331,13 +2326,9 @@ public class AllenMatchStick extends MatchStick {
 		Point3d[] baseVect_info = getComp()[getBaseComp()].getVect_info();
 		Point3d[] baseBox = getBoundingBox(baseNVect, baseVect_info);
 		double baseArea = findAreaOfBox(baseBox);
-
-
-		if(leafArea < baseArea*MAX_LEAF_TO_BASE_AREA_RATIO && leafArea > baseArea*MIN_LEAF_TO_BASE_AREA_RATIO) {
-			return true;
-		}else {
-			return false;
-		}
+		System.out.println("Leaf area: "+leafArea);
+		System.out.println("Base area: "+baseArea);
+        return leafArea < baseArea * MAX_LEAF_TO_BASE_AREA_RATIO && leafArea > baseArea * MIN_LEAF_TO_BASE_AREA_RATIO;
 	}
 
 	public static double findAreaOfBox(Point3d[] box) {
