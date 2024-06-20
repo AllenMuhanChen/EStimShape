@@ -7,6 +7,8 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
+import static org.xper.allen.pga.RFUtils.checkCompCanFitInRF;
+
 public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim{
 
     private ReceptiveField rf;
@@ -73,6 +75,10 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
 
     @Override
     protected EStimShapeProceduralMatchStick generateSample() {
+        //Check Random Base Match Stick
+        int randLeaf = baseMatchStick.chooseRandLeaf();
+        checkCompCanFitInRF(baseMatchStick, rf, randLeaf);
+
 
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
@@ -82,7 +88,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
         baseMatchStick.setMaxAttempts(3);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseMatchStick.chooseRandLeaf(), 0, true);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, randLeaf, 0, true);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
@@ -92,9 +98,10 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
 
     private ProceduralMatchStick genRandBaseMStick() {
         ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(parameters.getSize(), "SHADE");
+        baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         baseMStick.setStimColor(parameters.color);
         baseMStick.genMatchStickRand();
+
         return baseMStick;
     }
 

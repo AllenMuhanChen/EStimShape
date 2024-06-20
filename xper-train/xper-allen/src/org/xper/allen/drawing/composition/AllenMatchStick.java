@@ -2319,12 +2319,12 @@ public class AllenMatchStick extends MatchStick {
 	protected boolean vetLeafBaseSize(int leafIdToComparetoBase) {
 		int leafNVect = getComp()[leafIdToComparetoBase].getnVect();
 		Point3d[] leafVect_info = getComp()[leafIdToComparetoBase].getVect_info();
-		Point3d[] leafBox = getBoundingBox(leafNVect, leafVect_info);
+		Point3d[] leafBox = getBoundingBoxForVects(leafNVect, leafVect_info);
 		double leafArea = findAreaOfBox(leafBox);
 
 		int baseNVect = getComp()[getBaseComp()].getnVect(); //TODO: could extend this beyond base, and add accessories
 		Point3d[] baseVect_info = getComp()[getBaseComp()].getVect_info();
-		Point3d[] baseBox = getBoundingBox(baseNVect, baseVect_info);
+		Point3d[] baseBox = getBoundingBoxForVects(baseNVect, baseVect_info);
 		double baseArea = findAreaOfBox(baseBox);
 		System.out.println("Leaf area: "+leafArea);
 		System.out.println("Base area: "+baseArea);
@@ -2344,7 +2344,7 @@ public class AllenMatchStick extends MatchStick {
 		return leafArea;
 	}
 
-	private Point3d[] getBoundingBox(int nVect, Point3d[] vect_info) {
+	public static Point3d[] getBoundingBoxForVects(int nVect, Point3d[] vect_info) {
 		Point3d[] box = new Point3d[2];
 		box[0] = new Point3d(5000,5000,5000);
 		box[1] = new Point3d(-5000,-5000,-5000);

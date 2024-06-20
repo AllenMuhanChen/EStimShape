@@ -27,15 +27,13 @@ public class RFUtils {
         Coordinates2D rfCenter;
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
             int compInRF = mStick.getSpecialEndComp().get(0);
+
+//            checkCompCanFitInRF(mStick, rf, compInRF);
+
             double percentageInsideRF = 1.0;
-
-            double initialThresholdPercentageOutOfRF = 0.8; // percentage of shape NOT INCLUDING the component in the RF
-            double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
-            double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
-
             int numPointsToTry = 100;
             boolean isCompInRF = false;
-            boolean isEnoughOutOfRF = false;
+
 
             // Generate a uniform span of points within the RF
             List<Coordinates2D> pointsToTest = generateUniformPointsInCircle(rf.getCenter(), rf.radius, numPointsToTry);
@@ -58,7 +56,12 @@ public class RFUtils {
                 throw new MorphedMatchStick.MorphException("Component could not be placed inside RF after testing " + numPointsToTry + " points.");
             }
 
+            double initialThresholdPercentageOutOfRF = 0.8; // percentage of shape NOT INCLUDING the component in the RF
+            double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
+            double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
+
             // Now, check if enough of the shape is outside the RF with reduction in the threshold
+            boolean isEnoughOutOfRF = false;
             double thresholdPercentageOutOfRF = initialThresholdPercentageOutOfRF;
             while (thresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
                 for (Coordinates2D point : pointsToTest) {
@@ -89,6 +92,14 @@ public class RFUtils {
         }
     }
 
+    public static void checkCompCanFitInRF(AllenMatchStick mStick, ReceptiveField rf, int compInRF) {
+        Point3d[] box = AllenMatchStick.getBoundingBoxForVects(mStick.getComp()[compInRF].getnVect(), mStick.getComp()[compInRF].getVect_info());
+        double boxWidth = box[1].x - box[0].x;
+        double boxHeight = box[1].y - box[0].y;
+        if (Math.max(boxWidth, boxHeight) > 2* rf.radius) {
+            throw new MorphedMatchStick.MorphException("Component is too large to fit in RF");
+        }
+    }
 
     private static List<Coordinates2D> generateUniformPointsInCircle(Coordinates2D center, double radius, int numPoints) {
         List<Coordinates2D> points = new ArrayList<>();
