@@ -38,7 +38,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
             System.out.println("Original obj centered pos: " + originalObjCenteredPos.toString());
             System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
             try {
-                checkInNoise(drivingComponent, 0.3);
+                checkInNoise(drivingComponent, 0.7);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);
             } catch (Exception e) {
@@ -62,7 +62,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
                 attemptSmoothizeMStick();
                 if (doPositionShape)
                     positionShape();
-                checkMStickSize();
+//                checkMStickSize();
                 return;
             } catch (MorphException e) {
                 System.out.println(e.getMessage());
@@ -173,7 +173,7 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
                 checkMStickSize();
                 int newDrivingComponentIndx = getDrivingComponent();
                 if (doCheckNoise)
-                    checkInNoise(newDrivingComponentIndx, 0.3);
+                    checkInNoise(newDrivingComponentIndx, 0.7);
             } catch (MorphException e) {
                 System.out.println(e.getMessage());
                 continue;

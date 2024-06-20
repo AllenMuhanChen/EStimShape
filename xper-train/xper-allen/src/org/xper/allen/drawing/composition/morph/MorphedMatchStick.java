@@ -208,38 +208,14 @@ public class MorphedMatchStick extends AllenMatchStick {
         }
     }
 
-    protected void checkMStickSize() throws MStickSizeException {
+    public void checkMStickSize() throws MStickSizeException {
         boolean success = this.validMStickSize();
         if (!success) {
             throw new MStickSizeException("MatchStick size is invalid");
         }
     }
 
-    @Override
-    protected boolean validMStickSize()
-    {
-        double screenDist = 500;
-        double maxDiameterDegrees = getScaleForMAxisShape(); // DIAMETER in degrees
-        System.out.println("In validMStickSize: size " + maxDiameterDegrees);
-        double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
-        double maxRadiusRadians = maxDiameterRadians / 2;
-        double radiusMm = screenDist * Math.tan(maxRadiusRadians);
-        double buffer = 0.1; // 10% buffer
-        radiusMm = radiusMm * (1 - buffer);
-        int i, j;
 
-        Point3d ori = new Point3d(0.0,0.0,0.0);
-        double dis;
-        for (i=1; i<=getnComponent(); i++)
-            for (j=1; j<= getComp()[i].getnVect(); j++) {
-                dis = getComp()[i].getVect_info()[j].distance(ori);
-                if ( dis > radiusMm ) {
-                    System.out.println("Component " + i + " has a vector that is too long: " + dis + " mm");
-                    return false;
-                }
-            }
-        return true;
-    }
 
     @Override
     public void genMatchStickRand() {
@@ -342,6 +318,10 @@ public class MorphedMatchStick extends AllenMatchStick {
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
             try {
+//                if (this.getComp()[componentIndex].getmAxisInfo().getRad() >= 1000) {
+//                    System.out.println("Redistributing Rotation");
+//                    ((NormalDistributedComponentMorphParameters)morphParams).redistributeRotationMagntiude();
+//                }
                 morphComponent(componentIndex, morphParams);
                 System.out.println("Successfully morphed component " + componentIndex);
                 return;
@@ -358,19 +338,12 @@ public class MorphedMatchStick extends AllenMatchStick {
     }
 
     private void morphComponent(int id, ComponentMorphParameters morphParams) throws MorphException{
-//        System.out.println("Morphing component " + id);
         compLabel = MutationSUB_compRelation2Target(id);
-
         attemptToGenerateValidComponentSkeleton(id, morphParams);
         updateEndPtsAndJunctionPositions();
-
         attemptMutateRadius(id, morphParams);
-
-//        getComp()[id].scaleTheObj(getScaleForMAxisShape());
         checkForTubeCollisions();
 //        checkForValidMStickSize();
-
-
     }
 
     private void attemptToGenerateValidComponentSkeleton(int id, ComponentMorphParameters morphParams) {

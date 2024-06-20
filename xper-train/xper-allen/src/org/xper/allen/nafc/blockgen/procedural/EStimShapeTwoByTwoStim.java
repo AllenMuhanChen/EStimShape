@@ -134,6 +134,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
         match.centerShape();
+//        match.checkMStickSize();
 
         mSticks.setMatch(match);
         mStickSpecs.setMatch(mStickToSpec(match, stimObjIds.getMatch()));

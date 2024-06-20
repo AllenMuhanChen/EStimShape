@@ -26,7 +26,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance =
-            new SphericalCoordinates(10, Math.PI / 4, Math.PI / 2 );
+            new SphericalCoordinates(100, Math.PI / 4, Math.PI / 2 );
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     protected Point3d noiseOrigin;
@@ -235,7 +235,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             try {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(0.8, new NormalMorphDistributer(1 / 3.0));
+                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
+                        0.7, new NormalMorphDistributer(1 / 3.0));
                 for (int i = 0; i < baseCompIndcs.size(); i++) {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
@@ -245,6 +246,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
                 checkMStickSize();
+                checkLeafBaseRatio();
                 return;
             } catch (ObjectCenteredPositionException e) {
                 cleanData();
@@ -260,6 +262,14 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         if (nAttempts >= maxAttempts && maxAttempts != -1) {
             throw new MorphRepetitionException("Could not generate matchStick FROM BASE COMPONENT after " + this.maxAttempts + " attempts");
+        }
+    }
+
+    private void checkLeafBaseRatio() {
+        int leafIndx = getDrivingComponent();
+        boolean succeed = vetLeafBaseSize(leafIndx);
+        if (!succeed){
+            throw new MorphException("Leaf to Base Size Ratio Check Failed");
         }
     }
 

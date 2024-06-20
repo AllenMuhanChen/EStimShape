@@ -34,7 +34,13 @@ def copy_rfinfo_table(source_schema: str, target_schema: str, conn: Connection):
         return
 
     # Define the insert query for the target schema
-    insert_query = f"INSERT INTO {target_schema}.RFInfo (tstamp, info, channel) VALUES (%s, %s, %s)"
+    insert_query = f"""
+    INSERT INTO {target_schema}.RFInfo (tstamp, info, channel)
+    VALUES (%s, %s, %s)
+    ON DUPLICATE KEY UPDATE
+    info = VALUES(info),
+    channel = VALUES(channel)
+    """
 
     # Insert the fetched data into the target schema
     for row in rfinfo_data:

@@ -3,11 +3,11 @@ import datetime
 import numpy as np
 import pandas as pd
 import pytz
+from clat.compile.trial.cached_fields import CachedFieldList
+from clat.compile.trial.trial_collector import TrialCollector
 from matplotlib import pyplot as plt, cm
 
 from src.analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField, StimTypeField
-from clat.compile import TrialCollector
-from clat.compile import CachedFieldList, CachedDatabaseField
 from clat.util import time_util
 from clat.util.connection import Connection, since_nth_most_recent_experiment
 from clat.util.time_util import When
@@ -19,16 +19,16 @@ def collect_choice_trials(conn: Connection, when: When = time_util.all()) -> lis
 
 
 def main():
-    conn = Connection("allen_estimshape_train_231211")
+    conn = Connection("allen_estimshape_train_240604")
     date_and_time = time_util.on_date_and_time(2024,
-                                               1, 30,
+                                               6, 19,
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
-    since_date = time_util.from_date_to_now(2024, 1, 25)
-    last_experiment = since_nth_most_recent_experiment(conn, n=3)
+    since_date = time_util.from_date_to_now(2024, 6, 19)
+    last_experiment = since_nth_most_recent_experiment(conn, n=1)
 
     # trial_tstamps = collect_choice_trials(conn, date_and_time)
-    trial_tstamps = collect_choice_trials(conn, since_date)
+    trial_tstamps = collect_choice_trials(conn, last_experiment)
 
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
@@ -41,12 +41,12 @@ def main():
 
     # FILTER DATA
     fig, ax = plt.subplots(figsize=(12, 10))
-    data_1_hard_distractor = data[data['NumRandDistractors'] == 2]
-    data_2_hard_distractors = data[data['NumRandDistractors'] == 1]
+    # data_1_hard_distractor = data[data['NumRandDistractors'] == 2]
+    # data_2_hard_distractors = data[data['NumRandDistractors'] == 1]
     # plot_psychometric_curves_side_by_side(data_1_hard_distractor, data_2_hard_distractors, '1 Hard Distractor',
     #                                       '2 Hard Distractors', show_n=True)
-    plot_psychometric_curve_on_ax(data_1_hard_distractor, ax, label='1 Hard Distractor', show_n=False)
-    plot_psychometric_curve_on_ax(data_2_hard_distractors, ax, title="Psychometric Curves", label='2 Hard Distractors', show_n=False)
+    plot_psychometric_curve_on_ax(data, ax, label='All Trials', show_n=True, num_rep_min=3)
+    # plot_psychometric_curve_on_ax(data_2_hard_distractors, ax, title="Psychometric Curves", label='2 Hard Distractors', show_n=False)
     ax.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
     ax.legend(fontsize=18)
     plt.show()
@@ -75,7 +75,7 @@ def plot_psychometric_curve(df, title=None, color=None, label=None, show_n=False
     Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
     """
     fig, ax = plt.subplots(figsize=(10, 6))
-    plot_psychometric_curve_on_ax(df, ax, title=title, color=color, label=label, show_n=show_n)
+    plot_psychometric_curve_on_ax(df, ax, title=title, color=color, label=label, show_n=show_n, num_rep_min=5)
     plt.show()
 
 

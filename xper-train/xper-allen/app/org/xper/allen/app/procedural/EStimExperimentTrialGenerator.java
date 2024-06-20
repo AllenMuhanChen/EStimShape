@@ -64,9 +64,10 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         numEStimTrialsForNoiseChances.put(0.5, 10);
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.0, 10);
-        numBehavioralTrialsForNoiseChances.put(0.05, 10);
         numBehavioralTrialsForNoiseChances.put(0.1, 20);
+        numBehavioralTrialsForNoiseChances.put(0.2, 20);
+//        numBehavioralTrialsForNoiseChances.put(0.3, 10);
+//        numBehavioralTrialsForNoiseChances.put(0.4, 10);
         Map<Double, Integer> numTrainingTrialsForNoiseChances = new LinkedHashMap<>();
         numTrainingTrialsForNoiseChances.put(0.0, 0);
 
@@ -92,11 +93,11 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             EStimShapeTwoByTwoStim eStimTrial = new EStimShapeTwoByTwoStim(
                     this,
                     parameters, baseMStick, compId, true,
-                    2);
+                    0);
             EStimShapeTwoByTwoStim negativeControlTrial = new EStimShapeTwoByTwoStim(
                     this,
                     parameters, baseMStick, compId, false,
-                    2);
+                    0);
             eStimTrials.add(eStimTrial);
             eStimTrials.add(negativeControlTrial);
         }
@@ -110,7 +111,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             EStimShapeTwoByTwoBehavioralStim stim = new EStimShapeTwoByTwoBehavioralStim(
                     this, parameters,
                     behTrialRFs.get(i),
-                    2);
+                    0);
             behavioralTrials.add(stim);
         }
 
@@ -266,7 +267,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     ProceduralStimParameters parameters = new ProceduralStimParameters(
                             new Lims(0, 0),
                             new Lims(choiceRadius, choiceRadius),
-                            getImageDimensionsDegrees() * 0.85, //not used?
+                            getImageDimensionsDegrees(), //not used?
                             eyeWinRadius,
                             noiseChance,
                             numChoices,

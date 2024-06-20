@@ -21,7 +21,7 @@ public class NormalMorphDistributer {
         double amountLeftToDistribute = magnitude;
         int numParams = magnitudesToDistributeTo.size();
         double maxPerParam = (1.0 / numParams);
-        double buffer = 0.1 * maxPerParam; // magnitude being 1.0 may lead to impossible configurations, so we'd like to avoid this.
+        double buffer = 0.05 * maxPerParam; // magnitude being 1.0 may lead to impossible configurations, so we'd like to avoid this.
         maxPerParam = maxPerParam - buffer;
         while (Math.round(amountLeftToDistribute*100000.0)/100000.0 > 0.0) {
             Collections.shuffle(magnitudesToDistributeTo);

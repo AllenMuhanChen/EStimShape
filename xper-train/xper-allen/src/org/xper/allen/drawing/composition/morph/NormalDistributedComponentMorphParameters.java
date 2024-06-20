@@ -107,6 +107,7 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         magnitudes.add(lengthMagnitude);
         magnitudes.add(radiusProfileMagnitude);
 
+
         Double amountOfRotationMagnitudeToRedistribute = rotationMagnitude.get();
         Double amountToRedistribute = amountOfRotationMagnitudeToRedistribute/magnitudes.size();
 

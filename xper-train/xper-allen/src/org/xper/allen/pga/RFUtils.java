@@ -29,35 +29,56 @@ public class RFUtils {
             int compInRF = mStick.getSpecialEndComp().get(0);
             double percentageInsideRF = 1.0;
 
-            double initialThresholdPercentageOutOfRF = 0.8; //percentage of shape NOT INCLUDING the component in the RF
+            double initialThresholdPercentageOutOfRF = 0.8; // percentage of shape NOT INCLUDING the component in the RF
             double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
             double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
 
-            int numPointsToTry = 50;
+            int numPointsToTry = 100;
+            boolean isCompInRF = false;
+            boolean isEnoughOutOfRF = false;
+
+            // Generate a uniform span of points within the RF
+            List<Coordinates2D> pointsToTest = generateUniformPointsInCircle(rf.getCenter(), rf.radius, numPointsToTry);
+            // Permute the points
+            Collections.shuffle(pointsToTest);
+
+            // First, check if the component is inside the RF
+            for (Coordinates2D point : pointsToTest) {
+                Point3d pointToMove = mStick.getComp()[compInRF].getMassCenter();
+                Point3d destination = new Point3d(point.getX(), point.getY(), 0.0);
+                mStick.movePointToDestination(pointToMove, destination);
+
+                isCompInRF = checkCompInRF(compInRF, percentageInsideRF, mStick, rf);
+                if (isCompInRF) {
+                    break;
+                }
+            }
+
+            if (!isCompInRF) {
+                throw new MorphedMatchStick.MorphException("Component could not be placed inside RF after testing " + numPointsToTry + " points.");
+            }
+
+            // Now, check if enough of the shape is outside the RF with reduction in the threshold
             double thresholdPercentageOutOfRF = initialThresholdPercentageOutOfRF;
             while (thresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
-                // Generate a uniform span of points within the RF
-                List<Coordinates2D> pointsToTest = generateUniformPointsInCircle(rf.getCenter(), rf.radius, numPointsToTry);
-                // Permute the points
-                Collections.shuffle(pointsToTest);
-
                 for (Coordinates2D point : pointsToTest) {
                     Point3d pointToMove = mStick.getComp()[compInRF].getMassCenter();
                     Point3d destination = new Point3d(point.getX(), point.getY(), 0.0);
                     mStick.movePointToDestination(pointToMove, destination);
 
-                    if (checkCompInRF(compInRF, percentageInsideRF, mStick, rf) &&
-                            checkEnoughShapeOutOfRF(compInRF, thresholdPercentageOutOfRF, rf, mStick)) {
+                    isEnoughOutOfRF = checkEnoughShapeOutOfRF(compInRF, thresholdPercentageOutOfRF, rf, mStick);
+                    if (isEnoughOutOfRF) {
                         return;
                     }
                 }
                 thresholdPercentageOutOfRF -= reductionStep; // Reduce threshold for next outer loop iteration
             }
 
+            System.out.println("isCompInRF: " + isCompInRF);
+            System.out.println("isEnoughOutOfRF: " + isEnoughOutOfRF);
             throw new MorphedMatchStick.MorphException("Could not find a point in the RF after testing " + numPointsToTry + " points per threshold reduction");
 
         } else if (rfStrategy.equals(RFStrategy.COMPLETELY_INSIDE)) {
-
             rfCenter = rf.getCenter();
             System.out.println("RF Center: " + rfCenter);
             mStick.moveCenterOfMassTo(new Point3d(rfCenter.getX(), rfCenter.getY(), 0.0));
@@ -67,6 +88,7 @@ public class RFUtils {
             }
         }
     }
+
 
     private static List<Coordinates2D> generateUniformPointsInCircle(Coordinates2D center, double radius, int numPoints) {
         List<Coordinates2D> points = new ArrayList<>();

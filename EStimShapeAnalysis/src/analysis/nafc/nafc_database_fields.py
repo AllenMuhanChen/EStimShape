@@ -1,6 +1,6 @@
 import xmltodict
+from clat.compile.trial.cached_fields import CachedDatabaseField
 
-from clat.compile import CachedDatabaseField
 from clat.util.connection import Connection
 from clat.util.time_util import When
 

@@ -76,8 +76,8 @@ public class AllenMatchStick extends MatchStick {
 		return true;
 	}
 
-	public static final double MAX_LEAF_TO_BASE_AREA_RATIO = 0.66;
-	public static final double MIN_LEAF_TO_BASE_AREA_RATIO = 0.2;
+	public static final double MAX_LEAF_TO_BASE_AREA_RATIO =3.0;
+	public static final double MIN_LEAF_TO_BASE_AREA_RATIO = 0.333;
 	private AllenTubeComp[] comp = new AllenTubeComp[9];
 	private int nEndPt;
 	private int nJuncPt;
@@ -2296,20 +2296,20 @@ public class AllenMatchStick extends MatchStick {
 					System.out.println(e.getMessage());
 					continue;
 				}
-				return true;
+
 			} else{
 				System.out.println("Failed to positionShape in genMatchStickFromLeaf");
 			}
 
+			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
+			boolean sizeVetSuccess = false;
+			if (smoothSuccess){ // success to smooth
+				sizeVetSuccess = vetLeafBaseSize(leafIndx);
+				if(sizeVetSuccess) {
+					return true;
+				}
+			}
 
-//			//VET THE RELATIVE SIZE BETWEEN LEAF AND BASE (IN TERMS OF BOUNDING BOX)
-//			boolean sizeVetSuccess = false;
-//			if (smoothSuccess == true){ // success to smooth
-//				sizeVetSuccess = vetLeafBaseSize(leafIndx);
-//				if(sizeVetSuccess) {
-//					return true;
-//				}
-//			}
 
 
 //			// else we need to gen another shape
@@ -2321,9 +2321,9 @@ public class AllenMatchStick extends MatchStick {
 	protected void positionShape() {
 	}
 
-	private boolean vetLeafBaseSize(int leafIndx) {
-		int leafNVect = getComp()[leafIndx].getnVect();
-		Point3d[] leafVect_info = getComp()[leafIndx].getVect_info();
+	protected boolean vetLeafBaseSize(int leafIdToComparetoBase) {
+		int leafNVect = getComp()[leafIdToComparetoBase].getnVect();
+		Point3d[] leafVect_info = getComp()[leafIdToComparetoBase].getVect_info();
 		Point3d[] leafBox = getBoundingBox(leafNVect, leafVect_info);
 		double leafArea = findAreaOfBox(leafBox);
 
@@ -2709,6 +2709,7 @@ public class AllenMatchStick extends MatchStick {
 		// 5. check if the final shape is not working ( collide after skin application)
 //		this.centerShapeAtOrigin(getSpecialEndComp().get(0));
 
+		centerShape();
 		if (!validMStickSize())
 		{
 //			System.err.println("FAIL AT VALIDSIZE");
@@ -3744,24 +3745,33 @@ public class AllenMatchStick extends MatchStick {
 //
 //		return true;
 //	}
+
+	/**
+	 * This version checks compared to mass center instead of 0,0 because we can have stimuli that
+	 * are located off of the center of the screen before calling this.
+	 * @return
+	 */
 	@Override
 	protected boolean validMStickSize()
 	{
 		double screenDist = 500;
 		double maxDiameterDegrees = getScaleForMAxisShape(); // DIAMETER in degrees
+		System.out.println("In validMStickSize: size " + maxDiameterDegrees);
 		double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
 		double maxRadiusRadians = maxDiameterRadians / 2;
 		double radiusMm = screenDist * Math.tan(maxRadiusRadians);
-
 		int i, j;
 
-		Point3d ori = new Point3d(0.0,0.0,0.0);
+//		Point3d ori = getMassCenter();
+		Point3d ori = new Point3d(0,0,0);
 		double dis;
 		for (i=1; i<=getnComponent(); i++)
 			for (j=1; j<= getComp()[i].getnVect(); j++) {
 				dis = getComp()[i].getVect_info()[j].distance(ori);
-				if ( dis > radiusMm )
+				if ( dis > radiusMm ) {
+					System.out.println("Component " + i + " has a vector that is too long: " + dis + " mm" + " when the " + radiusMm + " mm is the max");
 					return false;
+				}
 			}
 		return true;
 	}
