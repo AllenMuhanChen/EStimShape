@@ -64,9 +64,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         numEStimTrialsForNoiseChances.put(0.5, 20);
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.1, 20);
+        numBehavioralTrialsForNoiseChances.put(0.1, 10);
         numBehavioralTrialsForNoiseChances.put(0.2, 20);
-//        numBehavioralTrialsForNoiseChances.put(0.3, 5);
+        numBehavioralTrialsForNoiseChances.put(0.3, 10);
 //        numBehavioralTrialsForNoiseChances.put(0.4, 5);
 //        numBehavioralTrialsForNoiseChances.put(0.5, 5);
 //        numBehavioralTrialsForNoiseChances.put(0.6, 5);
