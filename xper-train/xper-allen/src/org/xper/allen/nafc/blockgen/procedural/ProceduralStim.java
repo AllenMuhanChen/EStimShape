@@ -368,7 +368,7 @@ public class ProceduralStim implements NAFCStim {
         public ProceduralStimParameters() {
         }
 
-        public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color, String textureType) {
+        public ProceduralStimParameters(Lims sampleDistanceLims, Lims choiceDistanceLims, double size, double eyeWinSize, double noiseChance, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color, String textureType, double noiseRate) {
             super(sampleDistanceLims, choiceDistanceLims, size, eyeWinSize);
             this.noiseChance = noiseChance;
             this.numChoices = numChoices;
@@ -377,6 +377,7 @@ public class ProceduralStim implements NAFCStim {
             this.morphDiscreteness = morphDiscreteness;
             this.color = color;
             this.textureType = textureType;
+            this.noiseRate = noiseRate;
         }
 
         public ProceduralStimParameters(NAFCTrialParameters other, double noiseChance, double noiseRate, int numChoices, int numRandDistractors, double morphMagnitude, double morphDiscreteness, Color color, String textureType) {

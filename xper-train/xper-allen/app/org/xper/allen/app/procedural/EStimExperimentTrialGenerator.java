@@ -277,8 +277,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                             0.7,
                             0.5,
                             stimColor,
-                            "SHADE"
-                    );
+                            "SHADE",
+                            0.5);
+
 
                     eStimTrialParams.add(parameters);
                 }
@@ -314,8 +315,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                             0.5,
                             0.5,
                             stimColor,
-                            "SHADE"
-                    );
+                            "SHADE",
+                            1);
 
                     eStimTrialParams.add(parameters);
                 }

@@ -24,6 +24,7 @@ UPDATE SystemVar SET val=500 WHERE name='xper_required_eye_in_and_hold_time';
 UPDATE SystemVar SET val=1 WHERE name='xper_eye_window_algorithm_base_window_size';
 UPDATE SystemVar SET val=1 WHERE name='xper_eye_window_algorithm_initial_window_size';
 UPDATE SystemVar SET val=35 WHERE name = 'xper_max_image_dimension_degrees';
+UPDATE SystemVar SET val=60 WHERE name = 'xper_noise_rate';
 EOF
 
 sudo -S <<< r2_allen cp $XPER_PROPERTIES_PROCEDURAL $DIST/xper.properties
