@@ -76,8 +76,11 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             correctNoiseRadius(swappedBaseMStick);
             swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType);
             swappedBaseMStick.setStimColor(parameters.color);
-            swappedBaseMStick.genMorphedBaseMatchStick(match, morphComponentIndex, 100,
-                    false, true);
+            swappedBaseMStick.genMorphedBaseMatchStick(match,
+                    morphComponentIndex,
+                    100,
+                    false,
+                    true);
             mSticks.proceduralDistractors.add(swappedBaseMStick);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick, stimObjIds.proceduralDistractors.get(0)));
         }
@@ -88,7 +91,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
             swappedInNoiseMStick.setStimColor(parameters.color);
             swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match,
-                    0.7, 0.5,
+                    0.7, 1.0/3.0,
                     false, true);
             mSticks.proceduralDistractors.add(swappedInNoiseMStick);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick, stimObjIds.proceduralDistractors.get(1)));

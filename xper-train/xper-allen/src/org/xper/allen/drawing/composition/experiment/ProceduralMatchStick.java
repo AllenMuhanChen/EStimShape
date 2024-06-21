@@ -236,7 +236,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
                 NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
-                        0.7, new NormalMorphDistributer(1 / 3.0));
+                        0.7,
+                        new NormalMorphDistributer(
+                                1 / 3.0));
                 for (int i = 0; i < baseCompIndcs.size(); i++) {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
@@ -452,10 +454,13 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
+//        double shiftAmount = junc.getRad() * getScaleForMAxisShape();
+//        double shiftAmount = 0;
+        double shiftAmount = junc.getRad();
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
                 junc.getPos(), //this is shifted by applyTranslation
-                junc.getRad() * getScaleForMAxisShape()); // this is not shifted by smoothize
+                shiftAmount); // this is not shifted by smoothize
         return startingPosition;
     }
 

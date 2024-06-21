@@ -2294,8 +2294,17 @@ public class AllenMatchStick extends MatchStick {
 				}
 			}
 
-
+			//TODO: add size check here?
+			boolean mStickSizeSuccess = false;
 			if (sizeVetSuccess) {
+				mStickSizeSuccess = validMStickSize();
+				if (!mStickSizeSuccess){
+					System.out.println("Failed to vet mStick size");
+				}
+			}
+
+
+			if (mStickSizeSuccess) {
 				try {
 					positionShape();
 					return true;
@@ -5028,7 +5037,7 @@ public class AllenMatchStick extends MatchStick {
 			int target = i;
 			boolean res  = false;
 			res = nowObj.objectMerge( MObj[target], false);
-			if (res == false) {
+			if (!res) {
 				System.err.println("FAIL AT OBJECT MERGE");
 				return false;
 			}

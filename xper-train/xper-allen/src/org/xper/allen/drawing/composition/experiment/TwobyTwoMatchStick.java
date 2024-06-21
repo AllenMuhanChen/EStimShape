@@ -17,9 +17,13 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
         genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15, doPositionShape);
     }
 
-    @Override
-    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos) {
-        SphericalCoordinates originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
+
+    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp,
+                                                  boolean doCompareObjCenteredPos) {
+        SphericalCoordinates originalObjCenteredPos = null;
+        if (doCompareObjCenteredPos) {
+            originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
+        }
         if (nComp == 0){
             nComp = chooseNumComps();
         }
@@ -34,13 +38,16 @@ public class TwobyTwoMatchStick extends ProceduralMatchStick {
                 continue;
             }
             int drivingComponent = getDrivingComponent();
-            SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, drivingComponent);
-            System.out.println("Original obj centered pos: " + originalObjCenteredPos.toString());
-            System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
+            SphericalCoordinates newDrivingComponentPos = null;
+            if (doCompareObjCenteredPos) {
+                newDrivingComponentPos = calcObjCenteredPosForComp(this, drivingComponent);
+                System.out.println("Original obj centered pos: " + originalObjCenteredPos.toString());
+                System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
+            }
             try {
                 checkInNoise(drivingComponent, 0.7);
                 if (doCompareObjCenteredPos)
-                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos);
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
             } catch (Exception e) {
                 System.out.println(e.getMessage());
                 continue;

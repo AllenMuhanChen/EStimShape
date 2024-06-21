@@ -25,7 +25,7 @@ def main():
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
     since_date = time_util.from_date_to_now(2024, 6, 19)
-    last_experiment = since_nth_most_recent_experiment(conn, n=1)
+    last_experiment = since_nth_most_recent_experiment(conn, n=3)
 
     # trial_tstamps = collect_choice_trials(conn, date_and_time)
     trial_tstamps = collect_choice_trials(conn, last_experiment)

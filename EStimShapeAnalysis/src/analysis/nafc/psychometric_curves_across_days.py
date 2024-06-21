@@ -9,15 +9,16 @@ from src.analysis.nafc.psychometric_curves import collect_choice_trials, plot_ps
 from clat.util import time_util
 from clat.util.connection import Connection
 
+from src.startup import config
+
 
 def main():
-    conn = Connection("allen_estimshape_train_231211")
+    conn = Connection("allen_estimshape_train_240604")
     trial_tstamps = collect_choice_trials(conn, time_util.from_date_to_now(2024,
-                                                                       1, 25,
+                                                                           6, 17,
                                                                            ))
 
-
-    print (unix_to_datetime(time_util.now()))
+    print(unix_to_datetime(time_util.now()))
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))
     fields.append(NoiseChanceField(conn))
@@ -27,10 +28,10 @@ def main():
     print(data.to_string())
 
     # FILTER DATA
-    data = data[data['NumRandDistractors'] == 2]
 
     plot_psychometric_curves_by_day(data)
     plt.show()
+
 
 def plot_psychometric_curves_by_day(df):
     show_n = True
@@ -48,10 +49,9 @@ def plot_psychometric_curves_by_day(df):
 
     fig, ax = plt.subplots(figsize=(12, 8))
 
-
     for (date, group), color in zip(grouped, colors):
-        plot_psychometric_curve_on_ax(group, ax, title=f"Psychometric Curve for {date}", color=color, label=str(date), show_n=show_n)
-
+        plot_psychometric_curve_on_ax(group, ax, title=f"Psychometric Curve for {date}", color=color, label=str(date),
+                                      show_n=show_n)
 
     ax.legend(title="Date")
     ax.set_title('Psychometric Curves by Day')

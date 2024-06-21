@@ -142,4 +142,8 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
     public RadiusProfile getRadiusProfile() {
         return radiusProfile;
     }
+
+    public String toString() {
+        return "Orientation: " + orientation + " Rotation: " + rotation + " Length: " + length + " Curvature: " + curvature + " RadiusProfile: " + radiusProfile;
+    }
 }

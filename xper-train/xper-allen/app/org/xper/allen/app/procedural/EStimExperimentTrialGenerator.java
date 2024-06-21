@@ -61,13 +61,15 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
-        numEStimTrialsForNoiseChances.put(0.5, 10);
+        numEStimTrialsForNoiseChances.put(0.5, 20);
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.1, 15);
-        numBehavioralTrialsForNoiseChances.put(0.2, 15);
-        numBehavioralTrialsForNoiseChances.put(0.3, 10);
-//        numBehavioralTrialsForNoiseChances.put(0.4, 10);
+        numBehavioralTrialsForNoiseChances.put(0.1, 20);
+        numBehavioralTrialsForNoiseChances.put(0.2, 20);
+//        numBehavioralTrialsForNoiseChances.put(0.3, 5);
+//        numBehavioralTrialsForNoiseChances.put(0.4, 5);
+//        numBehavioralTrialsForNoiseChances.put(0.5, 5);
+//        numBehavioralTrialsForNoiseChances.put(0.6, 5);
         Map<Double, Integer> numTrainingTrialsForNoiseChances = new LinkedHashMap<>();
         numTrainingTrialsForNoiseChances.put(0.0, 0);
 
@@ -99,7 +101,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     parameters, baseMStick, compId, false,
                     0);
             eStimTrials.add(eStimTrial);
-            eStimTrials.add(negativeControlTrial);
+//            eStimTrials.add(negativeControlTrial);
         }
 
         //Add Behavioral Trials
@@ -267,7 +269,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     ProceduralStimParameters parameters = new ProceduralStimParameters(
                             new Lims(0, 0),
                             new Lims(choiceRadius, choiceRadius),
-                            getImageDimensionsDegrees(), //not used?
+                            getImageDimensionsDegrees() * 0.95,
                             eyeWinRadius,
                             noiseChance,
                             numChoices,
