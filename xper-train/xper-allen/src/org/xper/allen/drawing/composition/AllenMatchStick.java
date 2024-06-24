@@ -1248,6 +1248,7 @@ public class AllenMatchStick extends MatchStick {
 	}
 
 	public Point3d getMassCenter(){
+
 		Point3d cMass = new Point3d();
 		int totalVect = 0;
 		for (int i=1; i<=getnComponent(); i++)
@@ -4817,6 +4818,8 @@ public class AllenMatchStick extends MatchStick {
 		analysisMStickSpec.setMStickInfo(this, false);
 
 		data.setAnalysisMStickSpec(analysisMStickSpec);
+		Point3d massCenter = getMassCenter();
+		data.setMassCenter(massCenter);
 		data.setShaftData(calculateShaftData());
 		data.setTerminationData(calculateTerminationData());
 		data.setJunctionData(calculateJunctionData());
@@ -4826,6 +4829,7 @@ public class AllenMatchStick extends MatchStick {
 
 	private Point3d toObjCenteredCoords(Point3d point){
 		Point3d massCenter = getMassCenter();
+		massCenter.scale(getScaleForMAxisShape());
 		Point3d objectCenteredCoords = new Point3d(point);
 		objectCenteredCoords.sub(massCenter);
 		return objectCenteredCoords;
@@ -4957,9 +4961,11 @@ public class AllenMatchStick extends MatchStick {
 			AllenMAxisArc mAxis = tube.getmAxisInfo();
 
 			//Position - Spherical Coordinates
-			Point3d shaftCenterCartesian = toObjCenteredCoords(mAxis.getmPts()[26]);
+			Point3d shaftCenter = mAxis.getmPts()[26];
+			Point3d shaftCenterObjCentered = toObjCenteredCoords(shaftCenter);
 
-			SphericalCoordinates shaftCenterSpherical = CoordinateConverter.cartesianToSpherical(shaftCenterCartesian);
+
+			SphericalCoordinates shaftCenterSpherical = CoordinateConverter.cartesianToSpherical(shaftCenterObjCentered);
 			shaftData.angularPosition = shaftCenterSpherical.getAngularCoordinates();
 			shaftData.radialPosition = shaftCenterSpherical.r;
 

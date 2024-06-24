@@ -3,7 +3,9 @@ package org.xper.allen.drawing.ga;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.composition.AllenMStickData;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.morph.GrowingMatchStick;
 import org.xper.allen.pga.RFStrategy;
@@ -350,5 +352,27 @@ public class GAMatchStickTest {
         GAMatchStick.setProperties(2.5, "SHADE");
         GAMatchStick.genMatchStickRand();
         return GAMatchStick;
+    }
+
+    @Test
+    public void testPartialMStickData(){
+        GAMatchStick GAMatchStick = genPartiallyInside();
+        AllenMStickData mStickData = GAMatchStick.getMStickData();
+
+        testMatchStickDrawer.drawMStick(GAMatchStick);
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+        testMatchStickDrawer.drawMassCenter(mStickData);
+
+
+        GL11.glMatrixMode(GL11.GL_MODELVIEW);
+        GL11.glPushMatrix(); // Save the current matrix
+        // Translate the drawing by the mass center
+        GL11.glTranslatef((float) mStickData.getMassCenter().x, (float) mStickData.getMassCenter().y, (float) mStickData.getMassCenter().z);
+        testMatchStickDrawer.drawMStickData(GAMatchStick, mStickData);
+        GL11.glPopMatrix(); // Restore the original matrix
+
+
+        ThreadUtil.sleep(10000);
+
     }
 }

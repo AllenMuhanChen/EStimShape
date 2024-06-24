@@ -176,8 +176,8 @@ public class ProceduralMatchStickTest {
 //        drawingManager.init();
         boolean drawNewStim = true;
         boolean drawNewNoise = true;
-        Color color = new Color(255, 255, 255);
-        double noiseAmplitude = 0.25;
+        Color color = new Color(255/2, 255/2, 255/2);
+        double noiseAmplitude = 1;
 
 
 
@@ -213,7 +213,7 @@ public class ProceduralMatchStickTest {
 
         }
         if (drawNewNoise) {
-            drawingManager.setBackgroundColor(1f,0,0);
+            drawingManager.setBackgroundColor(0f,0,0);
             drawingManager.drawGaussNoiseMap(sampleMStick, 0L, Collections.singletonList("Noise"), noiseAmplitude, sampleMStick.getSpecialEndComp().get(0));
         }
 
@@ -244,43 +244,43 @@ public class ProceduralMatchStickTest {
 
         // Add buffer to store the frames
         List<BufferedImage> frames = new ArrayList<>();
+        drawingManager.renderer.init();
         for (int i = 0; i < numNoiseFrames; i++) {
-            int finalI = i;
+//            int finalI = i;
             drawingManager.renderer.draw(new Drawable() {
                 @Override
                 public void draw() {
 
                     blankScreen.draw(null);
-                    drawingManager.renderer.init();
                     image.draw(true, context, 0, new Coordinates2D(0.0, 0.0), new ImageDimensions(5, 5));
-
-                    String filename = "frame_" + finalI;
+//                    String filename = "frame_" + finalI;
 
 
 
                     // Capture the frame
-                    byte[] imageData = screenShotBinary((int) drawingManager.window.getWidth(), (int) drawingManager.window.getHeight());
-                    BufferedImage frame = null;
-                    try{
-                        frame = convertToBufferedImage(imageData);
-                    } catch (IOException e){
-                        System.out.println("Error converting to buffered image");
-                    }
-                    frames.add(frame);
+//                    byte[] imageData = screenShotBinary((int) drawingManager.window.getWidth(), (int) drawingManager.window.getHeight());
+//                    BufferedImage frame = null;
+//                    try{
+//                        frame = convertToBufferedImage(imageData);
+//                    } catch (IOException e){
+//                        System.out.println("Error converting to buffered image");
+//                    }
+//                    frames.add(frame);
 
-                    if (finalI < numNoiseFrames) { // change this number to save more or fewer frames
-                        try {
-                            File outputfile = new File("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/test_mjpeg/frame_" + finalI + ".jpg");
-                            ImageIO.write(frame, "jpg", outputfile);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+//                    if (finalI < numNoiseFrames) { // change this number to save more or fewer frames
+////                        try {
+////                            File outputfile = new File("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/test_mjpeg/frame_" + finalI + ".jpg");
+////                            ImageIO.write(frame, "jpg", outputfile);
+////                        } catch (Exception e) {
+////                            e.printStackTrace();
+////                        }
+//                    }
 
-                    drawingManager.window.swapBuffers();
+
 
                 }
             });
+            drawingManager.window.swapBuffers();
         }
     }
 

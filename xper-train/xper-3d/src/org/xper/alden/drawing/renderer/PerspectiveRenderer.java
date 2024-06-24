@@ -23,10 +23,11 @@ public class PerspectiveRenderer extends AbstractRenderer {
 		GL11.glMatrixMode (GL11.GL_MODELVIEW);
 		GL11.glLoadIdentity();
 		GL11.glTranslated (0, 0, -distance);
+
 	}
 
 	public void draw(Drawable scene) {
-		setup();
+//		setup();
 		scene.draw();
 	}
 

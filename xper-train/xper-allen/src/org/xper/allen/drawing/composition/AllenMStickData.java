@@ -3,6 +3,7 @@ package org.xper.allen.drawing.composition;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.annotations.XStreamImplicitCollection;
 
+import javax.vecmath.Point3d;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.List;
@@ -12,6 +13,7 @@ public class AllenMStickData {
     List<TerminationData> terminationData;
     List<JunctionData> junctionData;
     AllenMStickSpec analysisMStickSpec;
+    Point3d massCenter;
 
     static XStream s;
 
@@ -100,5 +102,13 @@ public class AllenMStickData {
                 ", junctionData=" + junctionData +
                 ", analysisMStickSpec=" + analysisMStickSpec +
                 '}';
+    }
+
+    public Point3d getMassCenter() {
+        return massCenter;
+    }
+
+    public void setMassCenter(Point3d massCenter) {
+        this.massCenter = massCenter;
     }
 }

@@ -58,7 +58,7 @@ public class NoisyTranslatableResizableImages extends TranslatableResizableImage
 	}
 
 	public void loadNoise(String pathname, Color color) {
-		String noiseType = "pink";
+		String noiseType = "twinkle";
 		System.out.println("AC4747823: noisepathname: " + pathname);
 		try {
 			File imageFile = new File(pathname);
