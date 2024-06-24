@@ -37,8 +37,13 @@ public class TestMatchStickDrawer {
         COMP_COLORS.put(1, new RGBColor(1,0,0));
         COMP_COLORS.put(2, new RGBColor(0,1,0));
         COMP_COLORS.put(3, new RGBColor(0,0,1));
-        COMP_COLORS.put(4, new RGBColor(1,1,0));
-        COMP_COLORS.put(5, new RGBColor(0,1,1));
+    }
+
+    private static final LinkedHashMap<Integer, RGBColor> JUNC_COLORS = new LinkedHashMap<>();
+    static {
+        JUNC_COLORS.put(0, new RGBColor(1,1,0));
+        JUNC_COLORS.put(1, new RGBColor(1,0,1));
+        JUNC_COLORS.put(2, new RGBColor(0,1,1));
     }
 
     public void setup(int height, int width){
@@ -140,13 +145,60 @@ public class TestMatchStickDrawer {
     public void drawMStickData(AllenMatchStick mStick, AllenMStickData data){
         int numShafts = data.getShaftData().size();
         List<Point3d> shaftPositions = getShaftPositions(data);
-
         drawShaftPositions(numShafts, shaftPositions);
+
+        List<Point3d> jucPositions = getJuncPositions(data);
+        drawJuncPositions(jucPositions);
+
+        List<Point3d> endPositions = getEndPositions(data);
+        drawEndPositions(endPositions);
+
+        for (int i= 0; i< numShafts; i++) {
+            AllenTubeComp tubeComp = mStick.getComp()[i + 1];
+            AllenMAxisArc mAxis = tubeComp.getmAxisInfo();
+            drawRadius(i, data.getShaftData().get(i).radius, shaftPositions.get(i), mAxis.getmTangent()[26]);
+        }
+        for (int i=0; i<jucPositions.size(); i++){
+            drawRadius(i, data.getJunctionData().get(i).getRadius(), jucPositions.get(i), CoordinateConverter.sphericalToVector(new CoordinateConverter.SphericalCoordinates(1, data.getJunctionData().get(i).getAngleBisectorDirection())));
+        }
+        for (int i=0; i<endPositions.size(); i++){
+            drawRadius(i, data.getTerminationData().get(i).getRadius(), endPositions.get(i), CoordinateConverter.sphericalToVector(new CoordinateConverter.SphericalCoordinates(1, data.getTerminationData().get(i).getDirection())));
+        }
+    }
+
+    private void drawEndPositions(List<Point3d> endPositions) {
+        for (int i = 0; i< endPositions.size(); i++) {
+            drawPoint(endPositions.get(i), COMP_COLORS.get(i), 5f);
+        }
+    }
+
+    private List<Point3d> getEndPositions(AllenMStickData data) {
+        List<Point3d> endPositions = new LinkedList<>();
+        for (TerminationData endData: data.getTerminationData()){
+            Point3d position = convertPolarCoords(endData.getAngularPosition(), endData.getRadialPosition());
+            endPositions.add(position);
+        }
+        return endPositions;
+    }
+
+    private void drawJuncPositions(List<Point3d> juncPositions) {
+        for (int i = 0; i< juncPositions.size(); i++) {
+            drawPoint(juncPositions.get(i), JUNC_COLORS.get(i), 5f);
+        }
+    }
+
+    private List<Point3d> getJuncPositions(AllenMStickData data) {
+        List<Point3d> jucPositions = new LinkedList<>();
+        for (JunctionData jucData: data.getJunctionData()){
+            Point3d position = convertPolarCoords(jucData.getAngularPosition(), jucData.getRadialPosition());
+            jucPositions.add(position);
+        }
+        return jucPositions;
     }
 
     private void drawShaftPositions(int numShafts, List<Point3d> shaftPositions) {
         for (int i = 0; i< numShafts; i++) {
-            drawShaftPosition(i, shaftPositions.get(i));
+            drawPoint(shaftPositions.get(i), COMP_COLORS.get(i), 5f);
         }
     }
 
@@ -155,7 +207,7 @@ public class TestMatchStickDrawer {
         List<Point3d> shaftPositions = new LinkedList<>();
         for (int i = 0; i< numShafts; i++) {
             ShaftData shaftData = data.getShaftData().get(i);
-            Point3d position = convertShaftPosition(shaftData.angularPosition, shaftData.radialPosition);
+            Point3d position = convertPolarCoords(shaftData.angularPosition, shaftData.radialPosition);
             shaftPositions.add(position);
         }
         return shaftPositions;
@@ -170,7 +222,7 @@ public class TestMatchStickDrawer {
         drawLine(shaftLengthLine, COMP_COLORS.get(i));
     }
 
-    private static Point3d convertShaftPosition(AngularCoordinates angularPosition, double radialPosition) {
+    private static Point3d convertPolarCoords(AngularCoordinates angularPosition, double radialPosition) {
         // Calculate the position using spherical coordinates
         Vector3d shaftAxis = CoordinateConverter.sphericalToVector(new CoordinateConverter.SphericalCoordinates(radialPosition, angularPosition));
 
@@ -179,15 +231,13 @@ public class TestMatchStickDrawer {
         return position;
     }
 
-    private void drawShaftPosition(int i, Point3d position) {
-        drawPoint(position, COMP_COLORS.get(i));
-    }
 
-    private void drawPoint(Point3d position, RGBColor rgbColor) {
+
+    private void drawPoint(Point3d position, RGBColor rgbColor, final float size) {
         window.draw(new Drawable() {
             @Override
             public void draw() {
-                GL11.glPointSize(10f);  // Set the size of the point
+                GL11.glPointSize(size);  // Set the size of the point
                 GL11.glBegin(GL11.GL_POINTS);
                 GL11.glColor3f(rgbColor.getRed(), rgbColor.getGreen(), rgbColor.getBlue());
                 GL11.glVertex3d(position.x, position.y, position.z);
@@ -224,7 +274,7 @@ public class TestMatchStickDrawer {
     }
 
 
-    private void testRadius(int i, double radius, Point3d startPoint, Vector3d tangent) {
+    private void drawRadius(int i, double radius, Point3d startPoint, Vector3d tangent) {
         Vector3d normal = new Vector3d();
         normal.cross(tangent, new Vector3d(1,0,0));
         List<Point3d> disk = new LinkedList<>();
@@ -271,7 +321,7 @@ public class TestMatchStickDrawer {
     public void drawMassCenter(AllenMStickData data) {
 
         Point3d objCenter = data.getMassCenter();
-        drawPoint(objCenter, new RGBColor(1,1,0));
+        drawPoint(objCenter, new RGBColor(1,1,0), 5f);
 
     }
 }
