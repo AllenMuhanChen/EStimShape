@@ -25,6 +25,7 @@ public class EStimExperimentSetGenerator {
     String generatorSetPath;
     private AllenPNGMaker pngMaker;
     private double maxSizeDiameterDegreesFromRF;
+    private int nComp;
 
     public static void main(String[] args) {
         try {
@@ -46,8 +47,11 @@ public class EStimExperimentSetGenerator {
      * IV: morphed out of noise + morphed in noise component
      */
     public void generateSet() {
+        //PARAMETERS
         long stimId = 1717531847396095L;
         int compId = 2;
+        nComp = 2;
+
 
         pngMaker = generator.getPngMaker();
         pngMaker.createDrawerWindow();
@@ -101,7 +105,7 @@ public class EStimExperimentSetGenerator {
         stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         stick1.genMatchStickFromComponentInNoise(baseMStick,
                 compId,
-                0,
+                nComp,
                 true);
         return stick1;
     }
