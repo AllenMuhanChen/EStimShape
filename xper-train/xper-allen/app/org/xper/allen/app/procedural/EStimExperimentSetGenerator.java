@@ -6,6 +6,7 @@ import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.RGBColor;
@@ -42,6 +43,7 @@ public class EStimExperimentSetGenerator {
      * I: first out of noise + hypothesis in noise component
      * II: morphed out of noise + hypothesis in noise component
      * III: first out of noise + morphed in noise component
+     * IV: morphed out of noise + morphed in noise component
      */
     public void generateSet() {
         long stimId = 1717531847396095L;
@@ -52,21 +54,30 @@ public class EStimExperimentSetGenerator {
 
         EStimShapeTwoByTwoMatchStick baseMStick = loadBaseMStick(stimId);
 
-        EStimShapeTwoByTwoMatchStick stick1 = makeStickI(baseMStick, compId);
-        saveSpec(stick1, stimId, compId, "I");
-        savePng(stick1, stimId, "I");
+        while (true) {
+            try {
+                EStimShapeTwoByTwoMatchStick stick1 = makeStickI(baseMStick, compId);
+                saveSpec(stick1, stimId, compId, "I");
+                savePng(stick1, stimId, "I");
 
-        EStimShapeTwoByTwoMatchStick stick2 = makeStickII(stick1);
-        saveSpec(stick2, stimId, compId, "II");
-        savePng(stick2, stimId, "II");
+                EStimShapeTwoByTwoMatchStick stick2 = makeStickII(stick1);
+                saveSpec(stick2, stimId, compId, "II");
+                savePng(stick2, stimId, "II");
 
-        EStimShapeTwoByTwoMatchStick stick3 = makeStickIII(stick1);
-        saveSpec(stick3, stimId, compId, "III");
-        savePng(stick3, stimId, "III");
+                EStimShapeTwoByTwoMatchStick stick3 = makeStickIII(stick1);
+                saveSpec(stick3, stimId, compId, "III");
+                savePng(stick3, stimId, "III");
 
-        EStimShapeTwoByTwoMatchStick stick4 = makeStickIV(stick2, stick3);
-        saveSpec(stick4, stimId, compId, "IV");
-        savePng(stick4, stimId, "IV");
+                EStimShapeTwoByTwoMatchStick stick4 = makeStickIV(stick2, stick3);
+                saveSpec(stick4, stimId, compId, "IV");
+                savePng(stick4, stimId, "IV");
+            } catch (Exception e){
+                System.out.println(e.getMessage());
+                continue;
+            }
+
+            break;
+        }
 
         pngMaker.close();
     }
@@ -78,24 +89,36 @@ public class EStimExperimentSetGenerator {
         );
         maxSizeDiameterDegreesFromRF = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource());
         baseMStick.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        baseMStick.setStimColor(new RGBColor(0.5, 0.5, 0.5));
         baseMStick.genMatchStickFromFile(generator.getGaSpecPath() + "/" + stimId + "_spec.xml");
         return baseMStick;
     }
 
-    private EStimShapeTwoByTwoMatchStick makeStickIV(EStimShapeTwoByTwoMatchStick stick2, EStimShapeTwoByTwoMatchStick stick3) {
-        EStimShapeTwoByTwoMatchStick stick4 = new EStimShapeTwoByTwoMatchStick(
+    private EStimShapeTwoByTwoMatchStick makeStickI(EStimShapeTwoByTwoMatchStick baseMStick, int compId) {
+        EStimShapeTwoByTwoMatchStick stick1 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
         );
-        stick4.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        stick4.genSwappedBaseAndDrivingComponentMatchStick(
-                stick2,
-                stick2.getDrivingComponent(),
-                stick3,
-                true
+        stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+        stick1.genMatchStickFromComponentInNoise(baseMStick,
+                compId,
+                0,
+                true);
+        return stick1;
+    }
+
+    private EStimShapeTwoByTwoMatchStick makeStickII(EStimShapeTwoByTwoMatchStick stick1) {
+        EStimShapeTwoByTwoMatchStick stick2 = new EStimShapeTwoByTwoMatchStick(
+                RFStrategy.PARTIALLY_INSIDE,
+                generator.getRF()
         );
-        return stick4;
+        stick2.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+        stick2.genMorphedBaseMatchStick(
+                stick1,
+                stick1.getDrivingComponent(),
+                100,
+                true,
+                true);
+        return stick2;
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickIII(EStimShapeTwoByTwoMatchStick stick1) {
@@ -113,34 +136,19 @@ public class EStimExperimentSetGenerator {
         return stick3;
     }
 
-    private EStimShapeTwoByTwoMatchStick makeStickII(EStimShapeTwoByTwoMatchStick stick1) {
-        EStimShapeTwoByTwoMatchStick stick2 = new EStimShapeTwoByTwoMatchStick(
+    private EStimShapeTwoByTwoMatchStick makeStickIV(EStimShapeTwoByTwoMatchStick stick2, EStimShapeTwoByTwoMatchStick stick3) {
+        EStimShapeTwoByTwoMatchStick stick4 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
         );
-        stick2.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        stick2.setStimColor(new RGBColor(0.5, 0.5, 0.5));
-        stick2.genMorphedBaseMatchStick(
-                stick1,
-                stick1.getDrivingComponent(),
-                100,
-                true,
-                true);
-        return stick2;
-    }
-
-    private EStimShapeTwoByTwoMatchStick makeStickI(EStimShapeTwoByTwoMatchStick baseMStick, int compId) {
-        EStimShapeTwoByTwoMatchStick stick1 = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF()
+        stick4.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+        stick4.genSwappedBaseAndDrivingComponentMatchStick(
+                stick2,
+                stick2.getDrivingComponent(),
+                stick3,
+                true
         );
-        stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        stick1.setStimColor(new RGBColor(0.5, 0.5, 0.5));
-        stick1.genMatchStickFromComponentInNoise(baseMStick,
-                compId,
-                0,
-                true);
-        return stick1;
+        return stick4;
     }
 
     private void savePng(EStimShapeTwoByTwoMatchStick stick2, long stimId, String II) {
