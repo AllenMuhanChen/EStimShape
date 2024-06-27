@@ -1,8 +1,9 @@
-package org.xper.allen.app.procedural;
+package org.xper.allen.app.estimshape;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
+import org.xper.allen.app.procedural.RadialSquares;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;

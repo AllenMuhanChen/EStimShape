@@ -1,4 +1,4 @@
-package org.xper.allen.app.procedural;
+package org.xper.allen.app.estimshape;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.Bean;
@@ -7,7 +7,9 @@ import org.springframework.config.java.annotation.Import;
 import org.springframework.config.java.annotation.Lazy;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
+import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
+import org.xper.allen.app.procedural.ProceduralAppConfig;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.config.BaseConfig;
 import org.xper.config.ClassicConfig;

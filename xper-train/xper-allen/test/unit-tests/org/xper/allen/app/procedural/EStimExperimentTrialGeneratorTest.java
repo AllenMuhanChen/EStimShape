@@ -1,6 +1,7 @@
 package org.xper.allen.app.procedural;
 
 import org.junit.Test;
+import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.drawing.Coordinates2D;

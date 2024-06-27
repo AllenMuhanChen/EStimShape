@@ -42,6 +42,7 @@ generator.png_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_24
 experiment.png_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/pngs
 generator.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/specs
 generator.noisemap_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/pngs
+generator.set_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/sets
 experiment.noisemap_path=/run/user/1004/gvfs/sftp:host=172.30.6.80/home/r2_allen/Documents/EStimShape/allen_estimshape_train_240604/stimuli/procedural/pngs
 #############
 ga.spec_path=/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_train_240604/stimuli/ga/specs

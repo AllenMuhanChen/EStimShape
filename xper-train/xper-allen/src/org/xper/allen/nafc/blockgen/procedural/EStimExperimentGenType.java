@@ -1,7 +1,7 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
 import org.xper.Dependency;
-import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.NAFCStim;
 

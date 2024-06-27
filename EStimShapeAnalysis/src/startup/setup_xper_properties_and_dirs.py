@@ -145,6 +145,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
     experiment_png_path = f"{recording_computer_sftp}{r_nafc_path}/pngs"
     generator_spec_path = f"{r_nafc_path}/specs"
     generator_noisemap_path = generator_png_path
+    generator_set_path = f"{stimuli_base_r}/sets"
     experiment_noisemap_path = experiment_png_path
 
     version_ga = config.ga_database
@@ -164,6 +165,7 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
         "experiment.png_path": experiment_png_path,
         "generator.spec_path": generator_spec_path,
         "generator.noisemap_path": generator_noisemap_path,
+        "generator.set_path": generator_set_path,
         "experiment.noisemap_path": experiment_noisemap_path,
         "ga.spec_path": ga_spec_path,
         "intan.default_save_path": intan_path,

@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;

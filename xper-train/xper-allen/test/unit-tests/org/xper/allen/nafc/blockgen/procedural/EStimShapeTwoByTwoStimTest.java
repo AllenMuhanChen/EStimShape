@@ -3,7 +3,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.util.FileUtil;
 

@@ -1,12 +1,11 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.procedural.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
-import org.xper.allen.util.CoordinateConverter;
 
 public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
     private ReceptiveField rf;
