@@ -1,14 +1,12 @@
 package org.xper.allen.app.estimshape;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.config.java.annotation.Bean;
-import org.springframework.config.java.annotation.Configuration;
-import org.springframework.config.java.annotation.Import;
-import org.springframework.config.java.annotation.Lazy;
+import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
+import org.xper.allen.app.procedural.EStimExperimentSetGenerator;
 import org.xper.allen.app.procedural.ProceduralAppConfig;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.config.BaseConfig;
@@ -31,6 +29,9 @@ public class EStimExperimentAppConfig {
     @Autowired
     BaseConfig baseConfig;
 
+    @ExternalValue("generator.set_path")
+    String generatorSetPath;
+
     @Bean
     public EStimExperimentTrialGenerator generator(){
         EStimExperimentTrialGenerator generator = new EStimExperimentTrialGenerator();
@@ -48,6 +49,14 @@ public class EStimExperimentAppConfig {
         generator.setGaSpecPath(proceduralAppConfig.gaSpecPath);
         generator.setRfSource(rfSource());
         return generator;
+    }
+
+    @Bean
+    public EStimExperimentSetGenerator setGenerator(){
+        EStimExperimentSetGenerator setGenerator = new EStimExperimentSetGenerator();
+        setGenerator.setGenerator(generator());
+        setGenerator.setGeneratorSetPath(generatorSetPath);
+        return setGenerator;
     }
 
     @Bean

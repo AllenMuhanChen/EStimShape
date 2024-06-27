@@ -17,7 +17,7 @@ acq.config_class=
 
 # JK
 #
-experiment.config_class=org.xper.allen.app.procedural.EStimExperimentAppConfig
+experiment.config_class=org.xper.allen.app.estimshape.EStimExperimentAppConfig
 experiment.ga.config_class=
 
 # if not specified, the default isTrue org.xper.config.FixCalConfig
