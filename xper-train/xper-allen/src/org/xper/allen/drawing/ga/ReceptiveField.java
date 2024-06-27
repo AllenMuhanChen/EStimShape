@@ -25,4 +25,8 @@ public abstract class ReceptiveField {
     public Coordinates2D getCenter() {
         return center;
     }
+
+    public double getRadius() {
+        return radius;
+    }
 }

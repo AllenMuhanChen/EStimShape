@@ -14,7 +14,9 @@ import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
 import javax.swing.*;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 
 public class EStimExperimentSetGenerator {
 
@@ -155,10 +157,17 @@ public class EStimExperimentSetGenerator {
         return stick4;
     }
 
-    private void savePng(EStimShapeTwoByTwoMatchStick stick2, long stimId, String II) {
+    private void savePng(EStimShapeTwoByTwoMatchStick stick2, long stimId, String type) {
         pngMaker.createAndSavePNG(stick2,
                 stimId,
-                Collections.singletonList(II),
+                Collections.singletonList(type),
+                generatorSetPath
+        );
+        LinkedList<String> labels = new LinkedList<>();
+        labels.add(type);
+        pngMaker.createAndSaveCompMap(stick2,
+                stimId,
+                labels,
                 generatorSetPath
         );
     }
