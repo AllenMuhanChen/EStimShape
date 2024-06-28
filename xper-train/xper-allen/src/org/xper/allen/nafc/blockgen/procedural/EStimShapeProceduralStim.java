@@ -80,7 +80,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true);
 
         mSticks.setSample(sample);
-        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        mStickSpecs.setSample(mStickToSpec(sample));
         return sample;
 
     }
@@ -106,7 +106,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
 
         mSticks.setMatch(match);
-        mStickSpecs.setMatch(mStickToSpec(match, stimObjIds.getMatch()));
+        mStickSpecs.setMatch(mStickToSpec(match));
     }
 
     protected void writeEStimSpec() {
@@ -130,7 +130,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.proceduralDistractors.add(proceduralDistractor);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor));
         }
     }
 

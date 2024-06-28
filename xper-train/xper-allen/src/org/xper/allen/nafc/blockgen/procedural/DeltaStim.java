@@ -72,7 +72,7 @@ public class DeltaStim extends ProceduralStim {
 
         System.out.println("New Noise Component Index: " + noiseComponentIndex);
         mSticks.setSample(sample);
-        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        mStickSpecs.setSample(mStickToSpec(sample));
         return sample;
     }
 

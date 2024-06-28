@@ -6,15 +6,12 @@ import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
-import org.xper.drawing.RGBColor;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
 import javax.swing.*;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 

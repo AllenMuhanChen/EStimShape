@@ -11,11 +11,11 @@ import org.xper.time.TimeUtil;
 import java.util.LinkedList;
 import java.util.List;
 
-public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
+public class EStimShapeProceduralTwoByTwoStim extends EStimShapeProceduralStim{
     protected int baseDrivingComponent;
     protected int nComp;
 
-    public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, int nComp) {
+    public EStimShapeProceduralTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, int nComp) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
         this.baseDrivingComponent = morphComponentIndex;
         if (nComp == 0){
@@ -82,7 +82,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
                     false,
                     true);
             mSticks.proceduralDistractors.add(swappedBaseMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick, stimObjIds.proceduralDistractors.get(0)));
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick));
         }
 
         TwobyTwoMatchStick swappedInNoiseMStick = new TwobyTwoMatchStick();
@@ -94,7 +94,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
                     0.7, 1.0/3.0,
                     false, true);
             mSticks.proceduralDistractors.add(swappedInNoiseMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick, stimObjIds.proceduralDistractors.get(1)));
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick));
         }
 
         TwobyTwoMatchStick swappedBothMStick = new TwobyTwoMatchStick();
@@ -106,7 +106,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
                     morphComponentIndex,
                     swappedInNoiseMStick, false);
             mSticks.proceduralDistractors.add(swappedBothMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBothMStick, stimObjIds.proceduralDistractors.get(2)));
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBothMStick));
         }
     }
 
@@ -125,7 +125,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
                 true);
 
         mSticks.setSample(sample);
-        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        mStickSpecs.setSample(mStickToSpec(sample));
         return sample;
 
     }
@@ -140,7 +140,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 //        match.checkMStickSize();
 
         mSticks.setMatch(match);
-        mStickSpecs.setMatch(mStickToSpec(match, stimObjIds.getMatch()));
+        mStickSpecs.setMatch(mStickToSpec(match));
     }
 
 

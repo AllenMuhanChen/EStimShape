@@ -7,10 +7,10 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
-public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
+public class EStimShapeProceduralTwoByTwoBehavioralStim extends EStimShapeProceduralTwoByTwoStim {
     private ReceptiveField rf;
 
-    public EStimShapeTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf, int nComp) {
+    public EStimShapeProceduralTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf, int nComp) {
         super(generator, parameters, null, -1,
             false, nComp);
         this.rf = rf;
@@ -54,7 +54,7 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim{
         sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, this.nComp, false);
 
         mSticks.setSample(sample);
-        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        mStickSpecs.setSample(mStickToSpec(sample));
         return sample;
 
     }

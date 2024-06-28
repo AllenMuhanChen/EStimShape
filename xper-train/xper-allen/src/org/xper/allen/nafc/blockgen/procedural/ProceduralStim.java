@@ -113,7 +113,7 @@ public class ProceduralStim implements NAFCStim {
             }
 
             mSticks.setSample(sample);
-            mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+            mStickSpecs.setSample(mStickToSpec(sample));
             return sample;
         }
     }
@@ -121,7 +121,7 @@ public class ProceduralStim implements NAFCStim {
     protected void generateMatch(ProceduralMatchStick sample) {
         //Generate Match
         mSticks.setMatch(sample);
-        mStickSpecs.setMatch(mStickToSpec(sample, stimObjIds.getMatch()));
+        mStickSpecs.setMatch(mStickToSpec(sample));
     }
 
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
@@ -131,7 +131,7 @@ public class ProceduralStim implements NAFCStim {
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
             mSticks.proceduralDistractors.add(proceduralDistractor);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor, stimObjIds.proceduralDistractors.get(i)));
+            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor));
         }
     }
 
@@ -143,11 +143,11 @@ public class ProceduralStim implements NAFCStim {
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
             mSticks.randDistractors.add(randDistractor);
-            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor, stimObjIds.randDistractors.get(i)));
+            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor));
         }
     }
 
-    protected AllenMStickSpec mStickToSpec(AllenMatchStick mStick, Long stimObjId) {
+    protected AllenMStickSpec mStickToSpec(AllenMatchStick mStick) {
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(mStick, true);
 //        spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + stimObjId, true);
@@ -356,14 +356,14 @@ public class ProceduralStim implements NAFCStim {
 
     public static class ProceduralStimParameters extends NAFCTrialParameters{
 
-        double noiseChance;
-        int numChoices;
-        int numRandDistractors;
-        double morphMagnitude;
-        double morphDiscreteness;
-        Color color;
-        double noiseRate = 1;
-        String textureType;
+        public double noiseChance;
+        public int numChoices;
+        public int numRandDistractors;
+        public double morphMagnitude;
+        public double morphDiscreteness;
+        public Color color;
+        public double noiseRate = 1;
+        public String textureType;
 
         public ProceduralStimParameters() {
         }

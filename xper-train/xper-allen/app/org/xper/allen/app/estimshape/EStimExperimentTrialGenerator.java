@@ -95,11 +95,11 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
-            EStimShapeTwoByTwoStim eStimTrial = new EStimShapeTwoByTwoStim(
+            EStimShapeProceduralTwoByTwoStim eStimTrial = new EStimShapeProceduralTwoByTwoStim(
                     this,
                     parameters, baseMStick, compId, true,
                     0);
-            EStimShapeTwoByTwoStim negativeControlTrial = new EStimShapeTwoByTwoStim(
+            EStimShapeProceduralTwoByTwoStim negativeControlTrial = new EStimShapeProceduralTwoByTwoStim(
                     this,
                     parameters, baseMStick, compId, false,
                     0);
@@ -113,7 +113,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> behavioralTrials = new LinkedList<>();
         for (int i = 0; i< behavioralTrialParams.size(); i++){
             ProceduralStimParameters parameters = behavioralTrialParams.get(i);
-            EStimShapeTwoByTwoBehavioralStim stim = new EStimShapeTwoByTwoBehavioralStim(
+            EStimShapeProceduralTwoByTwoBehavioralStim stim = new EStimShapeProceduralTwoByTwoBehavioralStim(
                     this, parameters,
                     behTrialRFs.get(i),
                     0);

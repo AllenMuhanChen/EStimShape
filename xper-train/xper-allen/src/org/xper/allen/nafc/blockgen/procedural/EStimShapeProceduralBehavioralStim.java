@@ -91,7 +91,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
         sample.genMatchStickFromComponentInNoise(baseMatchStick, randLeaf, 0, true);
 
         mSticks.setSample(sample);
-        mStickSpecs.setSample(mStickToSpec(sample, stimObjIds.getSample()));
+        mStickSpecs.setSample(mStickToSpec(sample));
         return sample;
 
     }
