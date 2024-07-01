@@ -444,7 +444,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         // Choose a starting point
         Point3d startingPosition = chooseStartingPoint(junc, tangent);
-
+        System.out.println("Starting position: " + startingPosition);
         projectedPoint = pointAlong2dTangent(startingPosition,
                 tangent,
                 noiseRadiusMm);

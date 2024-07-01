@@ -1140,6 +1140,7 @@ public class MStickObj4Smooth {
         return center;
     }
 
+
     public Point3d[] getBoundingBox() {
         Point3d[] box = new Point3d[2];
         box[0] = new Point3d(5000,5000,5000);

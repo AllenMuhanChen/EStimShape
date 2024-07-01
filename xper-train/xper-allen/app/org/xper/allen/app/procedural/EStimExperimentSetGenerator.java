@@ -22,6 +22,7 @@ public class EStimExperimentSetGenerator {
 
     @Dependency
     String generatorSetPath;
+
     private AllenPNGMaker pngMaker;
     private double maxSizeDiameterDegreesFromRF;
     private int nComp;
@@ -62,7 +63,7 @@ public class EStimExperimentSetGenerator {
                 EStimShapeTwoByTwoMatchStick stick1 = makeStickI(baseMStick, compId);
                 saveSpec(stick1, stimId, compId, "I");
                 savePng(stick1, stimId, "I");
-
+                pngMaker.createAndSaveGaussNoiseMap(stick1, stimId, Collections.singletonList("I"), generator.getGeneratorSetPath(), 1.0, stick1.getDrivingComponent());
                 EStimShapeTwoByTwoMatchStick stick2 = makeStickII(stick1);
                 saveSpec(stick2, stimId, compId, "II");
                 savePng(stick2, stimId, "II");
@@ -90,7 +91,8 @@ public class EStimExperimentSetGenerator {
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
         );
-        maxSizeDiameterDegreesFromRF = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource());
+        maxSizeDiameterDegreesFromRF = RFUtils.calculateMStickMaxSizeDiameterDegrees(
+                RFStrategy.PARTIALLY_INSIDE, generator.getRfSource());
         baseMStick.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         baseMStick.genMatchStickFromFile(generator.getGaSpecPath() + "/" + stimId + "_spec.xml");
         return baseMStick;
@@ -177,7 +179,7 @@ public class EStimExperimentSetGenerator {
                         + stimId + "_"
                         + compId + "_"
                         + type
-                        + "_spec.xml");
+                        );
     }
 
     public EStimExperimentTrialGenerator getGenerator() {

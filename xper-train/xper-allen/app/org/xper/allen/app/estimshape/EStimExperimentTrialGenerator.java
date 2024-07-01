@@ -4,10 +4,12 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
 import org.xper.allen.Stim;
 import org.xper.allen.app.procedural.RadialSquares;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.nafc.blockgen.estimshape.EStimShapeTwoByTwoStim;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
 import org.xper.allen.pga.RFStrategy;
@@ -19,9 +21,16 @@ import org.xper.util.FileUtil;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     @Dependency
@@ -29,6 +38,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     @Dependency
     ReceptiveFieldSource rfSource;
+
+    @Dependency
+    String generatorSetPath;
 
     public static void main(String[] args) {
         try {
@@ -51,10 +63,103 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     @Override
     protected void addTrials() {
 //        addTrials_Deltas();
+//        addTrials_ProceduralTwoByTwo();
         addTrials_TwoByTwo();
     }
 
     private void addTrials_TwoByTwo(){
+        //input Parameters
+        Color stimColor = new Color(0.5f, 0.5f, 0.5f);
+
+        //Parameters
+        Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
+        numBehavioralTrialsForNoiseChances.put(1.0, 1);
+
+
+        //Assigning
+        List<Path> paths = findSetSpecPaths(Paths.get(generatorSetPath));
+        System.out.println(paths.size() + " paths found");
+
+        Set<AllenMStickSpec> mStickSet = new HashSet<>();
+        for (Path path : paths) {
+            String in_specStr;
+            StringBuffer fileData = new StringBuffer(100000);
+            try
+            {
+                BufferedReader reader = new BufferedReader(
+                        new FileReader(path.toString()));
+                char[] buf = new char[1024];
+                int numRead=0;
+                while((numRead=reader.read(buf)) != -1){
+                    String readData = String.valueOf(buf, 0, numRead);
+                    //System.out.println(readData);
+                    fileData.append(readData);
+                    buf = new char[1024];
+
+                }
+                reader.close();
+            }
+            catch (Exception e)
+            {
+                System.out.println("error in read XML spec file");
+                System.out.println(e);
+            }
+
+            in_specStr = fileData.toString();
+            mStickSet.add(AllenMStickSpec.fromXml(in_specStr));
+        }
+
+        System.out.println(mStickSet.size() + " specs found");
+
+
+        for (AllenMStickSpec sampleSpec : mStickSet) {
+            Set<AllenMStickSpec> baseProceduralDistractorSpecs = new HashSet<>(mStickSet);
+            baseProceduralDistractorSpecs.remove(sampleSpec);
+
+
+            List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(
+                    stimColor, numBehavioralTrialsForNoiseChances);
+
+            for (ProceduralStimParameters parameters : behavioralTrialParams) {
+                EStimShapeTwoByTwoStim behavioralTrial = new EStimShapeTwoByTwoStim(
+                        this,
+                        parameters,
+                        sampleSpec,
+                        baseProceduralDistractorSpecs
+                );
+
+            stims.add(behavioralTrial);
+
+            }
+        }
+
+    }
+
+    public static List<Path> findSetSpecPaths(Path directory) {
+        List<Path> matchedFiles = new ArrayList<>();
+        // Pattern to match: any initial numbers, an underscore, more numbers, an underscore, Roman numerals, '_spec.xml'
+        String pattern = "^(\\d+)_([\\d]+)_([IVXLCDM]+)_spec\\.xml$";
+        Pattern compiledPattern = Pattern.compile(pattern);
+
+        try {
+            Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Matcher matcher = compiledPattern.matcher(file.getFileName().toString());
+                    if (matcher.matches()) {
+                        matchedFiles.add(file);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return matchedFiles;
+    }
+
+    private void addTrials_ProceduralTwoByTwo(){
         //input Parameters
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
         long stimId = 1717531847396095L;
@@ -353,5 +458,13 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     public void setRfSource(ReceptiveFieldSource rfSource) {
         this.rfSource = rfSource;
+    }
+
+    public String getGeneratorSetPath() {
+        return generatorSetPath;
+    }
+
+    public void setGeneratorSetPath(String generatorSetPath) {
+        this.generatorSetPath = generatorSetPath;
     }
 }

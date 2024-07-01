@@ -104,7 +104,6 @@ public class TestMatchStickDrawer {
     public String saveNoiseMap(String filepath, ProceduralMatchStick obj, double amplitude, int specialCompIndx) {
         BufferedImage img = GaussianNoiseMapCalculation.generateGaussianNoiseMapFor(obj,
                 width, height,
-                3.0/3,
                 amplitude,  0, window.renderer, specialCompIndx);
 
         filepath=filepath+".png";

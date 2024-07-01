@@ -15,7 +15,6 @@ public class GaussianNoiseMapCalculation {
 
     public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
                                                             int width, int height,
-                                                            double sigmaDegrees,
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer, int specialCompIndx){
 

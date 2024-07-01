@@ -48,6 +48,7 @@ public class EStimExperimentAppConfig {
         generator.setNafcTrialDbUtil(proceduralAppConfig.nafcTrialDbUtil());
         generator.setGaSpecPath(proceduralAppConfig.gaSpecPath);
         generator.setRfSource(rfSource());
+        generator.setGeneratorSetPath(generatorSetPath);
         return generator;
     }
 

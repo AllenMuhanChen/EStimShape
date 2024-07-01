@@ -1,13 +1,20 @@
 package org.xper.allen.drawing.composition.experiment;
 
 import org.lwjgl.opengl.GL11;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.stick.EndPt_struct;
+import org.xper.drawing.stick.JuncPt_struct;
+import org.xper.drawing.stick.MStickObj4Smooth;
 
 import javax.vecmath.Point3d;
+import javax.vecmath.Vector3d;
+import java.util.LinkedList;
 import java.util.List;
 
 public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
@@ -41,7 +48,6 @@ public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
     }
 
 
-
     private void drawRF() {
         double radius = rf.getRadius();
         Coordinates2D center = rf.getCenter();
@@ -71,6 +77,84 @@ public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
         GL11.glEnd(); // Finish drawing
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
+    }
+
+    @Override
+    /**
+     * isScale parameter was added to this. This is because brand new match sticks (i.e rand)
+     * need to scale everything to match the proper size, however morphs inherit size from its parent,
+     * so there's no need to scale everything again.
+     *
+     * I also added scaling of TubeComp vect_info because we need to use this for checking
+     * whether certain limbs are in RF or not.
+     */
+    public boolean smoothizeMStick()
+    {
+        showDebug = false;
+
+
+        int i;
+        MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
+        // 1. generate 1 tube Object for each TubeComp
+        for (i=1; i<= getnComponent(); i++)
+            MObj[i] = new MStickObj4Smooth(getComp()[i]); // use constructor to do the initialization
+
+        if (getnComponent() == 1) {
+            this.setObj1(MObj[1]);
+            return true;
+        }
+
+        // 2. Start adding tube by tube
+        MStickObj4Smooth nowObj = MObj[1]; // use soft copy is fine here
+        for (i=2; i<= getnComponent(); i++) {
+            int target = i;
+            boolean res  = false;
+            res = nowObj.objectMerge( MObj[target], false);
+            if (!res) {
+                System.err.println("FAIL AT OBJECT MERGE");
+                return false;
+            }
+        }
+
+        // 3. general smooth afterward
+        nowObj.smoothVertexAndNormMat(6, 15); // smooth the vertex by 4 times. normal by 10times
+
+
+
+        this.setObj1(MObj[1]);
+        this.getObj1().rotateMesh(getFinalRotation());
+
+        //Shift back to (0,0)
+        Point3d shiftVec = getMassCenter();
+        getObj1().translateFwd(shiftVec);
+        this.getObj1().scaleTheObj(getScaleForMAxisShape()); //AC: IMPORTANT CHANGE
+        getObj1().translateBack(shiftVec);
+
+
+        if (isDoCenterObject()) {
+            setFinalShiftinDepth(this.getObj1().subCenterOfMass());
+        }
+
+        //AC addition for RF relative positioning: scale the comp vect_info as well.
+        //We do the scaling here instead of relying on TubeComp to do it because
+        //tubecomp will only do it during drawSurfPt, but we want to be able to rely
+        //on this information being accurate before and if we don't call drawSurfPt.
+        //If we are properly calling RadAppliedFactory then we don't have to worry about keeping this
+        //information stable for smoothing the next morph of this mStick.
+        for (i = 1; i <= getnComponent(); i++) {
+            getComp()[i].setScaleOnce(false); //don't scale it again when drawSurfPt is called because we do it here
+            Point3d[] vect_info = getComp()[i].getVect_info();
+            for (Point3d point : vect_info) {
+                if (point != null) {
+                    point.sub(shiftVec);
+                    point.scale(getScaleForMAxisShape());
+                    point.add(shiftVec);
+                }
+            }
+        }
+
+
+        return true;
     }
 
 
