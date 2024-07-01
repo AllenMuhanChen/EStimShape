@@ -72,15 +72,22 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
 
         //Parameters
-        Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(1.0, 1);
+        //Noise
+        Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
+        noiseConditions.put(1.0, 1);
 
+        //ESTIM
+        List<Boolean> isEStimEnabledConditions = new LinkedList<>();
+        isEStimEnabledConditions.add(true);
+        isEStimEnabledConditions.add(false);
+        isEStimEnabledConditions.add(false);
+        isEStimEnabledConditions.add(false);
 
         //Assigning
         List<Path> paths = findSetSpecPaths(Paths.get(generatorSetPath));
         System.out.println(paths.size() + " paths found");
 
-        Set<AllenMStickSpec> mStickSet = new HashSet<>();
+        Set<AllenMStickSpec> setConditions = new HashSet<>();
         for (Path path : paths) {
             String in_specStr;
             StringBuffer fileData = new StringBuffer(100000);
@@ -106,30 +113,36 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             }
 
             in_specStr = fileData.toString();
-            mStickSet.add(AllenMStickSpec.fromXml(in_specStr));
+            setConditions.add(AllenMStickSpec.fromXml(in_specStr));
         }
 
-        System.out.println(mStickSet.size() + " specs found");
+        System.out.println(setConditions.size() + " specs found");
 
 
-        for (AllenMStickSpec sampleSpec : mStickSet) {
-            Set<AllenMStickSpec> baseProceduralDistractorSpecs = new HashSet<>(mStickSet);
-            baseProceduralDistractorSpecs.remove(sampleSpec);
+        //BIG LOOP - looping through all conditions
 
+        //EStim Enabled or not
+        for (Boolean isEStimEnabled: isEStimEnabledConditions) {
+            //Sample
+            for (AllenMStickSpec sampleSpec : setConditions) {
+                Set<AllenMStickSpec> baseProceduralDistractorSpecs = new HashSet<>(setConditions);
+                baseProceduralDistractorSpecs.remove(sampleSpec);
 
-            List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(
-                    stimColor, numBehavioralTrialsForNoiseChances);
+                List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(
+                        stimColor, noiseConditions);
+                //Noise
+                for (ProceduralStimParameters parameters : behavioralTrialParams) {
+                    EStimShapeTwoByTwoStim behavioralTrial = new EStimShapeTwoByTwoStim(
+                            this,
+                            parameters,
+                            sampleSpec,
+                            baseProceduralDistractorSpecs,
+                            isEStimEnabled
+                    );
 
-            for (ProceduralStimParameters parameters : behavioralTrialParams) {
-                EStimShapeTwoByTwoStim behavioralTrial = new EStimShapeTwoByTwoStim(
-                        this,
-                        parameters,
-                        sampleSpec,
-                        baseProceduralDistractorSpecs
-                );
+                    stims.add(behavioralTrial);
 
-            stims.add(behavioralTrial);
-
+                }
             }
         }
 

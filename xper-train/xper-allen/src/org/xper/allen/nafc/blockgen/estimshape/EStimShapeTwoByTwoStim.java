@@ -2,25 +2,13 @@ package org.xper.allen.nafc.blockgen.estimshape;
 
 import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
-import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
 import org.xper.allen.nafc.blockgen.procedural.EStimShapeProceduralStim;
-import org.xper.allen.nafc.blockgen.procedural.NAFCBlockGen;
-import org.xper.allen.nafc.blockgen.procedural.ProceduralStim;
-import org.xper.allen.nafc.vo.MStickStimObjData;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
-import org.xper.allen.specs.NoisyPngSpec;
-import org.xper.allen.util.AllenDbUtil;
-import org.xper.rfplot.drawing.png.ImageDimensions;
 
-import java.awt.*;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
 
 public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim {
 
@@ -34,9 +22,9 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim {
             EStimExperimentTrialGenerator generator,
             ProceduralStimParameters parameters,
             AllenMStickSpec sampleSpec,
-            Collection<AllenMStickSpec> baseProceduralDistractorSpecs) {
+            Collection<AllenMStickSpec> baseProceduralDistractorSpecs, boolean isEStimEnabled) {
         super(generator, parameters, null, -1,
-                false);
+                isEStimEnabled);
         this.generator = (EStimExperimentTrialGenerator) generator;
         this.sampleSpec = sampleSpec;
         this.baseProceduralDistractorSpecs = baseProceduralDistractorSpecs;
