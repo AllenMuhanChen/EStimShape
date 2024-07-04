@@ -7,7 +7,8 @@ from clat.compile.trial.cached_fields import CachedFieldList
 from clat.compile.trial.trial_collector import TrialCollector
 from matplotlib import pyplot as plt, cm
 
-from src.analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField, StimTypeField
+from src.analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField, \
+    StimTypeField, ChoiceField, AnswerField
 from clat.util import time_util
 from clat.util.connection import Connection, since_nth_most_recent_experiment
 from clat.util.time_util import When
@@ -24,7 +25,7 @@ def main():
                                                6, 19,
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
-    since_date = time_util.from_date_to_now(2024, 6, 19)
+    since_date = time_util.from_date_to_now(2024, 7, 4)
     last_experiment = since_nth_most_recent_experiment(conn, n=3)
 
     # trial_tstamps = collect_choice_trials(conn, date_and_time)
@@ -35,20 +36,30 @@ def main():
     fields.append(NoiseChanceField(conn))
     fields.append(NumRandDistractorsField(conn))
     fields.append(StimTypeField(conn))
+    fields.append(ChoiceField(conn))
+    fields.append(AnswerField(conn))
 
     data = fields.to_data(trial_tstamps)
-    print(data.to_string())
-
+    data_psychometric = data[data['StimType'] == 'EStimShapePsychometricTwoByTwoStim']
+    data = data[data['StimType'] == 'EStimShapeTwoByTwoBehavioralStim']
+    print(data_psychometric.to_string())
+    #print number of each choice
+    print(data_psychometric['Choice'].value_counts())
     # FILTER DATA
-    fig, ax = plt.subplots(figsize=(12, 10))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 10))
+
     # data_1_hard_distractor = data[data['NumRandDistractors'] == 2]
     # data_2_hard_distractors = data[data['NumRandDistractors'] == 1]
     # plot_psychometric_curves_side_by_side(data_1_hard_distractor, data_2_hard_distractors, '1 Hard Distractor',
     #                                       '2 Hard Distractors', show_n=True)
-    plot_psychometric_curve_on_ax(data, ax, label='All Trials', show_n=True, num_rep_min=3)
+    plot_psychometric_curve_on_ax(data, ax1, label='Procedural Trials', show_n=True, num_rep_min=0)
+
+    plot_psychometric_curve_on_ax(data_psychometric, ax2, label='Pyschometric Trials', show_n=True,
+                                  num_rep_min=0)
     # plot_psychometric_curve_on_ax(data_2_hard_distractors, ax, title="Psychometric Curves", label='2 Hard Distractors', show_n=False)
-    ax.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
-    ax.legend(fontsize=18)
+    ax1.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
+    ax2.invert_xaxis()
+    ax1.legend(fontsize=18)
     plt.show()
 
 def plot_psycho_delta(data):

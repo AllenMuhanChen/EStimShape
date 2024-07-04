@@ -3,9 +3,11 @@ package org.xper.allen.nafc.experiment.juice;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.xper.Dependency;
+import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.nafc.message.ChoiceEventListener;
+import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.juice.Juice;
 
@@ -41,7 +43,16 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
         if (task.getChoiceSpec().length == 3){
             rewardMultiplier = rewardMultiplier * 0.5;
         }
+
+        //Psychometric Reward Multiplier
+        NAFCStimSpecSpec stimSpec = NAFCStimSpecSpec.fromXml(task.getStimSpec());
+        String stimType = stimSpec.getStimType();
+        if (stimType.equals("EStimShapePsychometricTwoByTwoStim")){
+            rewardMultiplier = (rewardMultiplier * 2) + 2;
+        }
         System.err.println("Reward Multiplier: " + rewardMultiplier);
+
+
     }
 
     private void deliverReward(long timestamp) {

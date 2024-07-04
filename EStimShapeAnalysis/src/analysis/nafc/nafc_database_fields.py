@@ -1,3 +1,6 @@
+import ast
+import re
+
 import xmltodict
 from clat.compile.trial.cached_fields import CachedDatabaseField
 
@@ -23,7 +26,7 @@ class StimSpecField(CachedDatabaseField):
     def __init__(self, conn: Connection):
         super().__init__(conn)
 
-    def get(self, when: When):
+    def get(self, when: When) -> dict:
         return get_stim_spec(self.conn, when)
 
 
@@ -70,6 +73,108 @@ class IsCorrectField(CachedDatabaseField):
             return False
         else:
             return "No Data"
+
+
+class AnswerField(StimSpecField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "Answer"
+
+    def get(self, when: When):
+        query = """
+              SELECT msg
+              FROM BehMsg
+              WHERE (type = 'ChoiceSelectionCorrect' OR type = 'ChoiceSelectionIncorect')
+                AND tstamp BETWEEN %s AND %s;
+              """
+        self.conn.execute(query, params=(int(when.start), int(when.stop)))
+        msgs = self.conn.fetch_one()
+
+        if msgs:
+            pass
+        answer_indx = ast.literal_eval(msgs)
+
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        answer_stim_obj_id = stim_spec['StimSpec']['choiceObjData']['long'][answer_indx[0]]
+        answer_png_path = self._get_choice_png_path(answer_stim_obj_id)
+        answer_set_condition = extract_roman_numeral(answer_png_path)
+        return answer_set_condition
+
+    def _get_choice_png_path(self, choice_stim_obj_id):
+        query = """
+        SELECT spec
+        FROM StimObjData
+        WHERE id=%s;
+        """
+        self.conn.execute(query, params=(choice_stim_obj_id,))
+        results = self.conn.fetch_one()
+        stim_obj_spec = xmltodict.parse(results)
+        choice_path = stim_obj_spec['StimSpec']['pngPath']
+        return choice_path
+
+
+
+def extract_roman_numeral(file_path: str) -> str:
+    # Define the regular expression pattern for Roman numerals
+    roman_numeral_pattern = r'_([IVXLCDM]+)\.png$'
+
+    # Search for the pattern in the file path
+    match = re.search(roman_numeral_pattern, file_path)
+
+    # If a match is found, return the Roman numeral
+    if match:
+        return match.group(1)
+    else:
+        return None
+
+
+class ChoiceField(StimSpecField):
+
+    def get_name(self):
+        return "Choice"
+
+    def get(self, when: When):
+        choice = self._get_choice_index(when)
+
+        choice_stim_obj_id = self._get_choice_stim_obj_id(choice, when)
+
+        choice_path = self._get_choice_png_path(choice_stim_obj_id)
+
+        choice_set_condition = extract_roman_numeral(choice_path)
+
+        return choice_set_condition
+
+    def _get_choice_png_path(self, choice_stim_obj_id):
+        query = """
+        SELECT spec
+        FROM StimObjData
+        WHERE id=%s;
+        """
+        self.conn.execute(query, params=(choice_stim_obj_id,))
+        results = self.conn.fetch_one()
+        stim_obj_spec = xmltodict.parse(results)
+        choice_path = stim_obj_spec['StimSpec']['pngPath']
+        return choice_path
+
+    def _get_choice_stim_obj_id(self, choice, when):
+        stim_spec = self.get_cached_super(when, StimSpecField)
+        choice_stim_obj_id = stim_spec['StimSpec']['choiceObjData']['long'][int(choice)]
+        return choice_stim_obj_id
+
+    def _get_choice_index(self, when):
+        query = """
+                SELECT msg
+                FROM BehMsg
+                WHERE (type = 'ChoiceSelectionSuccess')
+                  AND tstamp BETWEEN %s AND %s;
+                """
+        self.conn.execute(query, params=(int(when.start), int(when.stop)))
+        choices = self.conn.fetch_all()
+        if choices:
+            choice = choices[0][0]
+        return choice
 
 
 class NoiseChanceField(StimSpecDataField):

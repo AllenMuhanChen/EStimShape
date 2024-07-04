@@ -216,8 +216,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      * @param maxAttempts
      * @param doPositionShape
      * @param doCompareObjCenteredPos
+     * @param magnitude
+     * @param discreteness
      */
-    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, int maxAttempts, boolean doPositionShape, boolean doCompareObjCenteredPos) {
+    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, int maxAttempts, boolean doPositionShape, boolean doCompareObjCenteredPos, double magnitude, double discreteness) {
         int baseComponentIndex;
         List<Integer> baseCompIndcs = new LinkedList<>();
         for (int compId : targetMatchStick.getCompIds()) {
@@ -236,9 +238,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
                 NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
-                        0.7,
+                        magnitude,
                         new NormalMorphDistributer(
-                                1 / 3.0));
+                                discreteness));
                 for (int i = 0; i < baseCompIndcs.size(); i++) {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);

@@ -9,7 +9,7 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
-import org.xper.allen.nafc.blockgen.estimshape.EStimShapeTwoByTwoStim;
+import org.xper.allen.nafc.blockgen.estimshape.EStimShapePsychometricTwoByTwoStim;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
 import org.xper.allen.pga.RFStrategy;
@@ -63,7 +63,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     @Override
     protected void addTrials() {
 //        addTrials_Deltas();
-//        addTrials_ProceduralTwoByTwo();
+        addTrials_ProceduralTwoByTwo();
         addTrials_TwoByTwo();
     }
 
@@ -72,22 +72,33 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
 
         //Parameters
+        //Num Repetitions of Each Condition
+        int X = 1;
+
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
-        noiseConditions.put(1.0, 1);
+//        noiseConditions.put(0.3, 1);
+//        noiseConditions.put(0.1, 1);
+//        noiseConditions.put(0.1, 1);
+        noiseConditions.put(0.2, 1);
+        noiseConditions.put(0.1, 1);
+        noiseConditions.put(0.15, 1);
+        noiseConditions.put(0.05, 1);
+        noiseConditions.put(0.025, 1);
+        noiseConditions.put(0.0, 1);
 
         //ESTIM
         List<Boolean> isEStimEnabledConditions = new LinkedList<>();
-        isEStimEnabledConditions.add(true);
-        isEStimEnabledConditions.add(false);
-        isEStimEnabledConditions.add(false);
+//        isEStimEnabledConditions.add(true);
+//        isEStimEnabledConditions.add(false);
+//        isEStimEnabledConditions.add(false);
         isEStimEnabledConditions.add(false);
 
         //Assigning
         List<Path> paths = findSetSpecPaths(Paths.get(generatorSetPath));
         System.out.println(paths.size() + " paths found");
 
-        Set<AllenMStickSpec> setConditions = new HashSet<>();
+        Map<String, AllenMStickSpec> setConditions = new HashMap<>();
         for (Path path : paths) {
             String in_specStr;
             StringBuffer fileData = new StringBuffer(100000);
@@ -113,39 +124,86 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             }
 
             in_specStr = fileData.toString();
-            setConditions.add(AllenMStickSpec.fromXml(in_specStr));
+            setConditions.put(extractRomanNumeral(path.toString()), AllenMStickSpec.fromXml(in_specStr));
         }
 
-        System.out.println(setConditions.size() + " specs found");
+        HashMap<String, AllenMStickSpec> sampleConditions = new HashMap<>(setConditions);
+//        setConditions.remove("I");
+//        sampleConditions.remove("III");
+//        setConditions.remove("III");
+        String emphasizeCondition = "V";
+        double emphasizeChance = 0.5;
+        boolean doEmphasizeCondition = Math.random() < emphasizeChance;
 
-
+        String deEmphasizeCondition = "IV";
+        double deEmphasizeChance = 0.5;
         //BIG LOOP - looping through all conditions
+        boolean doDeEmphasizeCondition = deEmphasizeChance > Math.random();
 
         //EStim Enabled or not
         for (Boolean isEStimEnabled: isEStimEnabledConditions) {
             //Sample
-            for (AllenMStickSpec sampleSpec : setConditions) {
-                Set<AllenMStickSpec> baseProceduralDistractorSpecs = new HashSet<>(setConditions);
-                baseProceduralDistractorSpecs.remove(sampleSpec);
+            for (String setCondition : sampleConditions.keySet()) {
+
+                AllenMStickSpec sampleSpec = sampleConditions.get(setCondition);
+                Map<String, AllenMStickSpec> baseProceduralDistractorSpecs;
+                if (setCondition.equals(emphasizeCondition) && doEmphasizeCondition){
+                    baseProceduralDistractorSpecs = new LinkedHashMap<>();
+                } else {
+                    baseProceduralDistractorSpecs = new LinkedHashMap<>(setConditions);
+                    baseProceduralDistractorSpecs.remove(setCondition);
+                }
+
+                //If special condition (i.e III) is NOT the sample, don't include it as an option
+                if (!setCondition.equals(deEmphasizeCondition) && doDeEmphasizeCondition){
+                    baseProceduralDistractorSpecs.remove(deEmphasizeCondition);
+                }
 
                 List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(
                         stimColor, noiseConditions);
-                //Noise
+                //Noise Chance
                 for (ProceduralStimParameters parameters : behavioralTrialParams) {
-                    EStimShapeTwoByTwoStim behavioralTrial = new EStimShapeTwoByTwoStim(
-                            this,
-                            parameters,
-                            sampleSpec,
-                            baseProceduralDistractorSpecs,
-                            isEStimEnabled
-                    );
 
-                    stims.add(behavioralTrial);
+                    //Repetitions for each condition
+                    if (setCondition.equals(emphasizeCondition) && doEmphasizeCondition) {
+                        parameters.numRandDistractors = 3;
+                    }
+                    else{
+                        parameters.numRandDistractors = 0;
+                    }
+                    for (int i=0; i<X; i++) {
+
+
+
+                        EStimShapePsychometricTwoByTwoStim behavioralTrial = new EStimShapePsychometricTwoByTwoStim(
+                                this,
+                                parameters,
+                                sampleSpec,
+                                baseProceduralDistractorSpecs,
+                                isEStimEnabled,
+                                setCondition
+                        );
+
+                        stims.add(behavioralTrial);
+                    }
 
                 }
             }
         }
 
+    }
+
+    public static String extractRomanNumeral(String filePath) {
+        // Pattern to match: any initial numbers, an underscore, more numbers, an underscore, Roman numerals, '_spec.xml'
+        String pattern = "^(\\d+)_([\\d]+)_([IVXLCDM]+)_spec\\.xml$";
+        Pattern compiledPattern = Pattern.compile(pattern);
+        Matcher matcher = compiledPattern.matcher(Paths.get(filePath).getFileName().toString());
+
+        if (matcher.matches()) {
+            return matcher.group(3); // Group 3 is the Roman numeral
+        } else {
+            return null; // Return null if no match is found
+        }
     }
 
     public static List<Path> findSetSpecPaths(Path directory) {
@@ -180,17 +238,17 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
-        numEStimTrialsForNoiseChances.put(0.5, 30);
+        numEStimTrialsForNoiseChances.put(0.5, 16);
 
         Map<Double, Integer> numBehavioralTrialsForNoiseChances = new LinkedHashMap<>();
-        numBehavioralTrialsForNoiseChances.put(0.1, 10);
-        numBehavioralTrialsForNoiseChances.put(0.2, 10);
-        numBehavioralTrialsForNoiseChances.put(0.3, 10);
-        numBehavioralTrialsForNoiseChances.put(0.4, 10);
-        numBehavioralTrialsForNoiseChances.put(0.5, 5);
-        numBehavioralTrialsForNoiseChances.put(0.6, 5);
-        numBehavioralTrialsForNoiseChances.put(0.7, 5);
-        numBehavioralTrialsForNoiseChances.put(1.0, 5);
+        numBehavioralTrialsForNoiseChances.put(0.0, 4);
+        numBehavioralTrialsForNoiseChances.put(0.05, 4);
+        numBehavioralTrialsForNoiseChances.put(0.1, 4);
+        numBehavioralTrialsForNoiseChances.put(0.2, 4);
+        numBehavioralTrialsForNoiseChances.put(0.3, 4);
+        numBehavioralTrialsForNoiseChances.put(0.4, 4);
+        numBehavioralTrialsForNoiseChances.put(0.5, 4);
+        numBehavioralTrialsForNoiseChances.put(1.0, 4);
         Map<Double, Integer> numTrainingTrialsForNoiseChances = new LinkedHashMap<>();
         numTrainingTrialsForNoiseChances.put(0.0, 0);
 
@@ -213,11 +271,11 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
-            EStimShapeProceduralTwoByTwoStim eStimTrial = new EStimShapeProceduralTwoByTwoStim(
+            EStimShapeTwoByTwoStim eStimTrial = new EStimShapeTwoByTwoStim(
                     this,
                     parameters, baseMStick, compId, true,
                     0);
-            EStimShapeProceduralTwoByTwoStim negativeControlTrial = new EStimShapeProceduralTwoByTwoStim(
+            EStimShapeTwoByTwoStim negativeControlTrial = new EStimShapeTwoByTwoStim(
                     this,
                     parameters, baseMStick, compId, false,
                     0);
@@ -231,7 +289,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> behavioralTrials = new LinkedList<>();
         for (int i = 0; i< behavioralTrialParams.size(); i++){
             ProceduralStimParameters parameters = behavioralTrialParams.get(i);
-            EStimShapeProceduralTwoByTwoBehavioralStim stim = new EStimShapeProceduralTwoByTwoBehavioralStim(
+            EStimShapeTwoByTwoBehavioralStim stim = new EStimShapeTwoByTwoBehavioralStim(
                     this, parameters,
                     behTrialRFs.get(i),
                     0);
@@ -390,7 +448,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     ProceduralStimParameters parameters = new ProceduralStimParameters(
                             new Lims(0, 0),
                             new Lims(choiceRadius, choiceRadius),
-                            getImageDimensionsDegrees() * 0.95,
+                            getImageDimensionsDegrees(),
                             eyeWinRadius,
                             noiseChance,
                             numChoices,

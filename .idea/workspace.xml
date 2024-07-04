@@ -2,7 +2,20 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ef850e9a-559c-45d1-83f3-a8817ba93678" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/EStimShapeAnalysis/src/analysis/nafc/psychometric_curves.py" beforeDir="false" afterPath="$PROJECT_DIR$/EStimShapeAnalysis/src/analysis/nafc/psychometric_curves.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/cCal" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/cCal" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.ga" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.ga" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.isogabor" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.isogabor" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.procedural" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/shellScripts/xper.properties.procedural" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/estimshape/EStimExperimentTrialGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/estimshape/EStimExperimentTrialGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/procedural/ProceduralAppConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/app/org/xper/allen/app/procedural/ProceduralAppConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/estimshape/EStimShapeTwoByTwoStim.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/estimshape/EStimShapePsychometricTwoByTwoStim.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeProceduralTwoByTwoBehavioralStim.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeTwoByTwoBehavioralStim.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeProceduralTwoByTwoStim.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/blockgen/procedural/EStimShapeTwoByTwoStim.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/experiment/juice/NAFCNoiseScalingNoiseController.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/nafc/experiment/juice/NAFCNoiseScalingNoiseController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/specs/NAFCStimSpecSpec.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/src/org/xper/allen/specs/NAFCStimSpecSpec.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/xper-train/xper-allen/test/unit-tests/org/xper/allen/nafc/blockgen/procedural/EStimShapeProceduralTwoByTwoStimTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/xper-train/xper-allen/test/unit-tests/org/xper/allen/nafc/blockgen/procedural/EStimShapeTwoByTwoStimTest.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -12,9 +25,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 7
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
   <component name="ProjectId" id="2gbKgcTNAsAUHFrR0RlyWOLtai1" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -25,7 +38,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/home/r2_allen/git/EStimShape",
+    "last_opened_file_path": "/home/r2_allen/git/EStimShape/EStimShapeAnalysis",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -38,7 +51,12 @@
       <option name="presentableId" value="Default" />
       <updated>1715960950480</updated>
       <workItem from="1715960951732" duration="23000" />
+      <workItem from="1720024580919" duration="24000" />
+      <workItem from="1720024611945" duration="10000" />
     </task>
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
 </project>

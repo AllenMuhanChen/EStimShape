@@ -11,11 +11,11 @@ import org.xper.time.TimeUtil;
 import java.util.LinkedList;
 import java.util.List;
 
-public class EStimShapeProceduralTwoByTwoStim extends EStimShapeProceduralStim{
+public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     protected int baseDrivingComponent;
     protected int nComp;
 
-    public EStimShapeProceduralTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, int nComp) {
+    public EStimShapeTwoByTwoStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, int nComp) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
         this.baseDrivingComponent = morphComponentIndex;
         if (nComp == 0){
@@ -80,7 +80,7 @@ public class EStimShapeProceduralTwoByTwoStim extends EStimShapeProceduralStim{
                     morphComponentIndex,
                     100,
                     false,
-                    true);
+                    true, 0.7, 1 / 3.0);
             mSticks.proceduralDistractors.add(swappedBaseMStick);
             mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick));
         }

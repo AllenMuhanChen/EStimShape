@@ -7,7 +7,7 @@ import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.util.FileUtil;
 
-public class EStimShapeProceduralTwoByTwoStimTest {
+public class EStimShapeTwoByTwoStimTest {
 
     private EStimExperimentTrialGenerator generator;
     private TestMatchStickDrawer testMatchStickDrawer;

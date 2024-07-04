@@ -7,10 +7,10 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
-public class EStimShapeProceduralTwoByTwoBehavioralStim extends EStimShapeProceduralTwoByTwoStim {
+public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
     private ReceptiveField rf;
 
-    public EStimShapeProceduralTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf, int nComp) {
+    public EStimShapeTwoByTwoBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf, int nComp) {
         super(generator, parameters, null, -1,
             false, nComp);
         this.rf = rf;

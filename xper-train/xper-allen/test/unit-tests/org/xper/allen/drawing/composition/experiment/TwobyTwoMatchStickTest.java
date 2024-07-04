@@ -74,7 +74,7 @@ public class TwobyTwoMatchStickTest {
 
         TwobyTwoMatchStick secondMStick = new TwobyTwoMatchStick();
         secondMStick.setProperties(40, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
         drawPng(secondMStick, 3L);
 
         TwobyTwoMatchStick thirdMStick = new TwobyTwoMatchStick();
@@ -98,7 +98,7 @@ public class TwobyTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
         drawPng(secondMStick, 12L);
 
         EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);

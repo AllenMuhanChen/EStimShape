@@ -4,7 +4,7 @@ source paths
 
 #Often VARYING SystemVars - HeadFixed now. 
 mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
-UPDATE SystemVar SET val=400 WHERE name='xper_juice_reward_length';
+UPDATE SystemVar SET val=375 WHERE name='xper_juice_reward_length';
 UPDATE SystemVar SET val=500 WHERE name='xper_required_eye_in_and_hold_time';
 UPDATE SystemVar SET val=0 WHERE name='xper_blank_target_screen_display_time';
 UPDATE SystemVar SET val=1 WHERE name='xper_left_iscan_eye_zero_algorithm_eye_window_threshold';
