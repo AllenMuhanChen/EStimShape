@@ -25,10 +25,9 @@ def main():
                                                6, 19,
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
-    since_date = time_util.from_date_to_now(2024, 7, 4)
-    last_experiment = since_nth_most_recent_experiment(conn, n=3)
+    since_date = time_util.from_date_to_now(2024, 7, 5)
+    last_experiment = since_nth_most_recent_experiment(conn, n=1)
 
-    # trial_tstamps = collect_choice_trials(conn, date_and_time)
     trial_tstamps = collect_choice_trials(conn, last_experiment)
 
     fields = CachedFieldList()

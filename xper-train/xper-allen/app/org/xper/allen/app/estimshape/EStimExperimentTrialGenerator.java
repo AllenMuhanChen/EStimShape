@@ -82,9 +82,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 //        noiseConditions.put(0.1, 1);
         noiseConditions.put(0.2, 1);
         noiseConditions.put(0.1, 1);
-        noiseConditions.put(0.15, 1);
-        noiseConditions.put(0.05, 1);
-        noiseConditions.put(0.025, 1);
+//        noiseConditions.put(0.15, 1);
+        noiseConditions.put(0.05, 2);
+        noiseConditions.put(0.025, 2);
         noiseConditions.put(0.0, 1);
 
         //ESTIM
@@ -131,46 +131,51 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 //        setConditions.remove("I");
 //        sampleConditions.remove("III");
 //        setConditions.remove("III");
-        String emphasizeCondition = "V";
-        double emphasizeChance = 0.5;
-        boolean doEmphasizeCondition = Math.random() < emphasizeChance;
+        String emphasizeCondition = "IV";
+        double emphasizeChance = 0.75;
 
-        String deEmphasizeCondition = "IV";
+        String deEmphasizeCondition = "II";
         double deEmphasizeChance = 0.5;
         //BIG LOOP - looping through all conditions
-        boolean doDeEmphasizeCondition = deEmphasizeChance > Math.random();
 
         //EStim Enabled or not
         for (Boolean isEStimEnabled: isEStimEnabledConditions) {
             //Sample
             for (String setCondition : sampleConditions.keySet()) {
+                boolean doEmphasizeCondition = Math.random() < emphasizeChance;
+                boolean doDeEmphasizeCondition = deEmphasizeChance > Math.random();
 
                 AllenMStickSpec sampleSpec = sampleConditions.get(setCondition);
-                Map<String, AllenMStickSpec> baseProceduralDistractorSpecs;
-                if (setCondition.equals(emphasizeCondition) && doEmphasizeCondition){
-                    baseProceduralDistractorSpecs = new LinkedHashMap<>();
-                } else {
-                    baseProceduralDistractorSpecs = new LinkedHashMap<>(setConditions);
-                    baseProceduralDistractorSpecs.remove(setCondition);
-                }
 
-                //If special condition (i.e III) is NOT the sample, don't include it as an option
-                if (!setCondition.equals(deEmphasizeCondition) && doDeEmphasizeCondition){
-                    baseProceduralDistractorSpecs.remove(deEmphasizeCondition);
-                }
 
                 List<ProceduralStimParameters> behavioralTrialParams = assignTrialParams(
                         stimColor, noiseConditions);
                 //Noise Chance
                 for (ProceduralStimParameters parameters : behavioralTrialParams) {
 
-                    //Repetitions for each condition
+                    //MANAGING BIASES
+                    Map<String, AllenMStickSpec> baseProceduralDistractorSpecs;
+                    if (setCondition.equals(emphasizeCondition) && doEmphasizeCondition){
+                        baseProceduralDistractorSpecs = new LinkedHashMap<>();
+                    } else {
+                        baseProceduralDistractorSpecs = new LinkedHashMap<>(setConditions);
+                        baseProceduralDistractorSpecs.remove(setCondition);
+                    }
+
+                    //If special condition (i.e III) is NOT the sample, don't include it as an option
+                    if (!setCondition.equals(deEmphasizeCondition) && doDeEmphasizeCondition){
+                        baseProceduralDistractorSpecs.remove(deEmphasizeCondition);
+                    }
+
                     if (setCondition.equals(emphasizeCondition) && doEmphasizeCondition) {
                         parameters.numRandDistractors = 3;
-                    }
-                    else{
+                    } else if (!setCondition.equals(deEmphasizeCondition) && doDeEmphasizeCondition) {
+                        parameters.numRandDistractors = 1;
+                    } else{
                         parameters.numRandDistractors = 0;
                     }
+
+                    //Repetitions for each condition
                     for (int i=0; i<X; i++) {
 
 

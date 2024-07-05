@@ -49,8 +49,9 @@ public class EStimExperimentSetGenerator {
      */
     public void generateSet() {
         //PARAMETERS
-        long stimId = 1717531847396095L;
-        int compId = 1;
+//        long stimId = 1717531847396095L;
+        long stimId = 1717531847374356L;
+        int compId = 2;
         nComp = 2;
 
 
@@ -126,7 +127,7 @@ public class EStimExperimentSetGenerator {
                 true,
                 true,
                 0.5,
-                1 / 3.0);
+                1 / 2.0);
         return stick2;
     }
 
@@ -139,7 +140,7 @@ public class EStimExperimentSetGenerator {
         stick3.genMorphedDrivingComponentMatchStick(
                 stick1,
                 0.5,
-                1.0/3.0,
+                1.0/2.0,
                 true,
                 true);
         return stick3;
