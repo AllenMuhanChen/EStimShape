@@ -14,6 +14,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class GaussianNoiseMapper implements NoiseMapper {
     @Dependency
@@ -40,12 +41,47 @@ public class GaussianNoiseMapper implements NoiseMapper {
         return ouptutFile.getAbsolutePath();
     }
 
+    @Override
+    public String mapNoise(ProceduralMatchStick mStick,
+                           double amplitude,
+                           List<Integer> specialCompIndx,
+                           AbstractRenderer renderer,
+                           String path) {
+        File ouptutFile = new File(path);
+        BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndx);
+        try {
+            ImageIO.write(img, "png", ouptutFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return ouptutFile.getAbsolutePath();
+    }
+
     public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
                                                             int width, int height,
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer, int specialCompIndx){
 
         Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
+
+
+        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
+        Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
+
+        return GaussianNoiseMapper.generateTruncatedGaussianNoiseMap(width, height,
+                noiseOriginPixels.getX(), noiseOriginPixels.getY(),
+                mmToPixels(renderer, mStick.noiseRadiusMm), amplitude,
+                sigmaPixels, sigmaPixels,
+                background);
+
+    }
+
+    public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
+                                                            int width, int height,
+                                                            double amplitude, double background,
+                                                            AbstractRenderer renderer, List<Integer> specialCompIndcs){
+
+        Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndcs);
 
 
         double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);

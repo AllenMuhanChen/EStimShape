@@ -17,6 +17,7 @@ import javax.vecmath.Point3d;
 import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 import java.util.*;
+import java.util.function.IntPredicate;
 
 /**
  * Matchsticks procedurally generated from base components, and delta versions of those matchsticks
@@ -418,11 +419,49 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return point3d;
     }
 
-//
-//    public Point3d getNoiseOriginToDraw(){
-//        Point3d oldOrigin = this.noiseOrigin;
-//
-//    }
+    public Point3d calculateNoiseOrigin(List<Integer> specialCompIndcs){
+        Point3d point3d = new Point3d();
+
+        int specialCompId = -1;
+        if (specialCompIndcs.size() == 1) {
+            specialCompId = specialCompIndcs.get(0);
+        }
+        else if (specialCompIndcs.size() >= 2){
+            specialCompId = -1;
+            //get the component that's not the special one
+            for (int i=1; i<=getnComponent(); i++){
+                if (!specialCompIndcs.contains(i)){
+                    specialCompId = i;
+                }
+            }
+            if (specialCompId == -1) {
+                throw new NoiseException("Could not find a special component");
+            }
+        }
+
+        for (JuncPt_struct junc : getJuncPt()) {
+            if (junc != null) {
+                int finalSpecialCompId = specialCompId;
+                int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
+                    @Override
+                    public boolean test(int x) {
+                        return x == finalSpecialCompId;
+                    }
+                }).toArray().length;
+                if (numMatch == 1) {
+                    if (junc.getnComp() == 2) {
+                        point3d = calcProjectionFromSingleJunctionWithSingleComp(specialCompId, junc);
+                    } else if (junc.getnComp() > 2) {
+                        point3d = calcProjectionFromJunctionWithMultiComp(specialCompId, junc);
+                    }
+                }
+            }
+        }
+
+
+        return point3d;
+    }
+
 
     protected Point3d calcProjectionFromSingleJunctionWithSingleComp(Integer specialCompIndx, JuncPt_struct junc) {
         Point3d projectedPoint;

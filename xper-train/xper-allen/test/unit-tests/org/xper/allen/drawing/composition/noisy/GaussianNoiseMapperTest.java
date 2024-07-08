@@ -12,6 +12,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
@@ -36,19 +37,36 @@ public class GaussianNoiseMapperTest {
     }
 
     @Test
-    public void testGaussianNoiseMatchStick() throws IOException {
-        // Generate a match stick
+    public void testGaussianNoiseMatchStickWithDifferentSpecialComps() throws IOException {
+        // Generate a match stick with 3 components
         TwobyTwoMatchStick matchStick = new TwobyTwoMatchStick();
         matchStick.setProperties(8, "SHADE");
-        matchStick.genMatchStickRand(2);
+        matchStick.genMatchStickRand(3);
 
+        // Test different combinations of special components
+        java.util.List<java.util.List<Integer>> specialCompCombinations = Arrays.asList(
+//                Arrays.asList(1),
+//                Arrays.asList(2),
+//                Arrays.asList(3),
+                Arrays.asList(1, 2),
+                Arrays.asList(1, 3),
+                Arrays.asList(2, 3)
+//                Arrays.asList(1, 2, 3)
+        );
+
+        for (java.util.List<Integer> specialComps : specialCompCombinations) {
+            testGaussianNoiseForSpecialComps(matchStick, specialComps);
+        }
+    }
+
+    private void testGaussianNoiseForSpecialComps(TwobyTwoMatchStick matchStick, java.util.List<Integer> specialComps) throws IOException {
         // Draw the original match stick
         drawer.clear();
         drawer.drawMStick(matchStick);
-        String imagePath = drawer.saveImage(testBin + "/original_matchstick_gaussian");
+        String imagePath = drawer.saveImage(testBin + "/original_matchstick_" + specialComps.toString());
 
         // Generate Gaussian noise map
-        String noiseMapPath = gaussianNoiseMapper.mapNoise(matchStick, 0.5, 1, drawer.window.renderer, testBin + "/gaussian_noise_map.png");
+        String noiseMapPath = gaussianNoiseMapper.mapNoise(matchStick, 0.5, specialComps, drawer.window.renderer, testBin + "/gaussian_noise_map_" + specialComps.toString() + ".png");
 
         // Load original image and noise map
         BufferedImage originalImage = ImageIO.read(new File(imagePath));
@@ -58,7 +76,7 @@ public class GaussianNoiseMapperTest {
         BufferedImage noisyImage = applyNoise(originalImage, noiseMap);
 
         // Save noisy image
-        ImageIO.write(noisyImage, "PNG", new File(testBin + "/noisy_matchstick_gaussian.png"));
+        ImageIO.write(noisyImage, "PNG", new File(testBin + "/noisy_matchstick_" + specialComps.toString() + ".png"));
 
         // Display noisy image
         displayImage(noisyImage);

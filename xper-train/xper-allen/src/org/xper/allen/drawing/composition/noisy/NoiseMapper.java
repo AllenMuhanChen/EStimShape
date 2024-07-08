@@ -4,6 +4,7 @@ import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 
 import java.awt.image.BufferedImage;
+import java.util.List;
 
 public interface NoiseMapper {
     public String mapNoise(ProceduralMatchStick mStick,
@@ -11,4 +12,10 @@ public interface NoiseMapper {
                          int specialCompIndx,
                          AbstractRenderer renderer,
                          String path) ;
+
+    String mapNoise(ProceduralMatchStick mStick,
+                    double amplitude,
+                    List<Integer> specialCompIndx,
+                    AbstractRenderer renderer,
+                    String path);
 }

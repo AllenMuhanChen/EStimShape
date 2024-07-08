@@ -13,7 +13,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-
+import java.util.List;
 
 import javax.vecmath.Point2d;
 import javax.vecmath.Vector3d;
@@ -40,6 +40,11 @@ public class LineNoiseMapper implements NoiseMapper{
             throw new RuntimeException(e);
         }
         return outputFile.getAbsolutePath();
+    }
+
+    @Override
+    public String mapNoise(ProceduralMatchStick mStick, double amplitude, List<Integer> specialCompIndx, AbstractRenderer renderer, String path) {
+        return null;
     }
 
     public static BufferedImage generateLineNoiseMapFor(ProceduralMatchStick mStick,
