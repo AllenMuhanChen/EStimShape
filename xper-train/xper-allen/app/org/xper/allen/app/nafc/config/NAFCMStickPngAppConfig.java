@@ -9,14 +9,17 @@ import org.springframework.config.java.annotation.valuesource.SystemPropertiesVa
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
 import org.xper.allen.config.MStickPngConfig;
 import org.xper.allen.config.NAFCConfig;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParameterGenerator;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParameterGenerator;
 import org.xper.allen.nafc.NAFCPngScene;
 import org.xper.allen.nafc.blockgen.MStickPngBlockGen;
 import org.xper.config.AcqConfig;
 import org.xper.config.ClassicConfig;
 import org.xper.drawing.object.BlankScreen;
-
+import org.xper.utils.RGBColor;
 
 @Configuration(defaultLazy=Lazy.TRUE)
 @SystemPropertiesValueSource
@@ -58,6 +61,7 @@ public class NAFCMStickPngAppConfig{
 		gen.setQmpGenerator(qmpGenerator());
 		return gen;
 	}
+
 
 
 	@Bean

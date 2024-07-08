@@ -1,5 +1,6 @@
 package org.xper.allen.drawing.composition.noisy;
 
+import org.xper.Dependency;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.drawing.Coordinates2D;
@@ -11,7 +12,21 @@ import javax.vecmath.Vector3d;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
-public class GaussianNoiseMapCalculation {
+public class GaussianNoiseMapper implements NoiseMapper {
+    @Dependency
+    public int width;
+    @Dependency
+    public int height;
+    @Dependency
+    private double background;
+
+
+    @Override
+    public BufferedImage mapNoise(ProceduralMatchStick mStick,
+                                  double amplitude,
+                                  int specialCompIndx, AbstractRenderer renderer) {
+        return generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndx);
+    }
 
     public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
                                                             int width, int height,
@@ -25,7 +40,7 @@ public class GaussianNoiseMapCalculation {
         double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
         Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
 
-        return GaussianNoiseMapCalculation.generateTruncatedGaussianNoiseMap(width, height,
+        return GaussianNoiseMapper.generateTruncatedGaussianNoiseMap(width, height,
                 noiseOriginPixels.getX(), noiseOriginPixels.getY(),
                 mmToPixels(renderer, mStick.noiseRadiusMm), amplitude,
                 sigmaPixels, sigmaPixels,
@@ -185,5 +200,28 @@ public class GaussianNoiseMapCalculation {
         return noiseMap;
     }
 
+    public int getWidth() {
+        return width;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public void setHeight(int height) {
+        this.height = height;
+    }
+
+    public double getBackground() {
+        return background;
+    }
+
+    public void setBackground(double background) {
+        this.background = background;
+    }
 
 }

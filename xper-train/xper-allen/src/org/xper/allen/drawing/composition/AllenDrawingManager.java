@@ -9,18 +9,21 @@ import java.util.List;
 
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.PixelFormat;
+import org.xper.Dependency;
 import org.xper.alden.drawing.drawables.BaseWindow;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.alden.drawing.renderer.PerspectiveRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NoiseMapCalculation;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
 
 public class AllenDrawingManager implements Drawable {
+	private final NoiseMapper noiseMapper;
 	Drawable stimObj;
 
 	List<AllenMatchStick> stimObjs = new ArrayList<>();
@@ -44,10 +47,13 @@ public class AllenDrawingManager implements Drawable {
 	public AbstractRenderer renderer;
 
 
-	public AllenDrawingManager(int width, int height) {
+
+
+	public AllenDrawingManager(int width, int height, NoiseMapper noiseMapper) {
 		super();
 		this.width = width;
 		this.height = height;
+		this.noiseMapper = noiseMapper;
 	}
 
 	/**
@@ -80,7 +86,7 @@ public class AllenDrawingManager implements Drawable {
 	 * @param additionalLabels
 	 * @return
 	 */
-	public String drawNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> additionalLabels) {
+	public String drawCompGraphNoiseMap(AllenMatchStick obj, Long stimObjId, List<String> additionalLabels) {
 		LinkedList<String> labels = new LinkedList<>();
 		labels.add("noisemap");
 		labels.addAll(additionalLabels);
@@ -90,7 +96,7 @@ public class AllenDrawingManager implements Drawable {
 			@Override
 			public void draw() {
 				// TODO Auto-generated method stub
-				drawNoiseMap(obj);
+				drawCompGraphNoiseMap(obj);
 			}
 		});
 
@@ -98,12 +104,29 @@ public class AllenDrawingManager implements Drawable {
 		return pngMaker.saveImage(stimObjId,labels,height,width, imageFolderName);
 	}
 
+	public String drawNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {
+		LinkedList<String> labels = new LinkedList<>();
+		labels.add("noisemap");
+		labels.addAll(additionalLabels);
+
+		BufferedImage img = noiseMapper.mapNoise(obj, amplitude, specialCompIndx, renderer);
+		String path = imageFolderName + "/" + stimObjId;
+		for (String str:labels) {
+			if(!str.isEmpty())
+				path=path+"_"+str;
+		}
+		path=path+".png";
+		File ouptutFile = new File(path);
+		ImageIO.write(img, "png", ouptutFile);
+		return ouptutFile.getAbsolutePath();
+	}
+
 	public String drawGaussNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {
 		LinkedList<String> labels = new LinkedList<>();
 		labels.add("noisemap");
 		labels.addAll(additionalLabels);
 
-		BufferedImage img = GaussianNoiseMapCalculation.generateGaussianNoiseMapFor(obj,
+		BufferedImage img = GaussianNoiseMapper.generateGaussianNoiseMapFor(obj,
 				width, height,
 				amplitude, 0, renderer, specialCompIndx);
 		String path = imageFolderName + "/" + stimObjId;
@@ -167,13 +190,13 @@ public class AllenDrawingManager implements Drawable {
 
 
 
-	public void drawNoiseMap(AllenMatchStick obj) {
+	public void drawCompGraphNoiseMap(AllenMatchStick obj) {
 		GL11.glClearColor(r_bkgrd,g_bkgrd,b_bkgrd,1);
 		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 		obj.drawGraphNoiseMap(new NoiseMapCalculation(obj, obj.noiseChanceBounds, obj.noiseNormalizedPositions));
 	}
 
-	public void drawNoiseMap() {
+	public void drawCompGraphNoiseMap() {
 		if (nStim > 0) {
 			stimObjs.get(stimCounter).drawGraphNoiseMap(new NoiseMapCalculation(stimObjs.get(stimCounter), stimObjs.get(stimCounter).noiseChanceBounds, stimObjs.get(stimCounter).noiseNormalizedPositions));
 		}

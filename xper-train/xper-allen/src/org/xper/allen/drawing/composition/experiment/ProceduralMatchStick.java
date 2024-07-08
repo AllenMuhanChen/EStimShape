@@ -6,7 +6,7 @@ import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.morph.NormalDistributedComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
-import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
@@ -649,9 +649,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      * @return A new 3D point along the tangent with z set to 0.
      */
     public static Point3d pointAlong2dTangent(Point3d startPoint, Vector3d tangent, double distance) {
-        Vector2d projectedTangent = GaussianNoiseMapCalculation.projectTo2D(tangent);
+        Vector2d projectedTangent = GaussianNoiseMapper.projectTo2D(tangent);
         Point2d start2d = new Point2d(startPoint.x, startPoint.y);
-        Point2d result2d = GaussianNoiseMapCalculation.point2dAlongTangent(start2d, projectedTangent, distance);
+        Point2d result2d = GaussianNoiseMapper.point2dAlongTangent(start2d, projectedTangent, distance);
         return new Point3d(result2d.x, result2d.y, 0);
     }
 

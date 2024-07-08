@@ -4,7 +4,7 @@ import org.lwjgl.opengl.GL11;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.*;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.util.CoordinateConverter;
 import org.xper.drawing.RGBColor;
 import org.xper.drawing.TestDrawingWindow;
@@ -102,7 +102,7 @@ public class TestMatchStickDrawer {
     }
 
     public String saveNoiseMap(String filepath, ProceduralMatchStick obj, double amplitude, int specialCompIndx) {
-        BufferedImage img = GaussianNoiseMapCalculation.generateGaussianNoiseMapFor(obj,
+        BufferedImage img = GaussianNoiseMapper.generateGaussianNoiseMapFor(obj,
                 width, height,
                 amplitude,  0, window.renderer, specialCompIndx);
 

@@ -22,7 +22,7 @@ public class PsychometricNoiseMapGenerator extends NoiseMapGenerator {
 		this.mStick = mStick;
 		this.psychometricIds = psychometricIds;
 		this.noiseParameters = noiseParameters;
-		
+
 		generate();
 	}
 
@@ -31,8 +31,8 @@ public class PsychometricNoiseMapGenerator extends NoiseMapGenerator {
 	protected void assignParamsForNoiseMapGen() {
 		mStick.setNoiseParameters(noiseParameters);
 	}
-	
-	
+
+
 	@Override
 	protected void generateNoiseMap() {
 		AllenPNGMaker pngMaker = generator.getPngMaker();
@@ -40,8 +40,8 @@ public class PsychometricNoiseMapGenerator extends NoiseMapGenerator {
 		List<String> noiseMapLabels = new LinkedList<String>();
 		noiseMapLabels.add(Long.toString(psychometricIds.setId));
 		noiseMapLabels.add(Integer.toString(psychometricIds.stimId));
-		String generatorNoiseMapPath = pngMaker.createAndSaveNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPsychometricNoiseMapPath());
-		
+		String generatorNoiseMapPath = pngMaker.createAndSaveCompGraphNoiseMap(mStick, id, noiseMapLabels, generator.getGeneratorPsychometricNoiseMapPath());
+
 		experimentNoiseMapPath = generator.convertPsychometricToExperiment(generatorNoiseMapPath);
 	}
 

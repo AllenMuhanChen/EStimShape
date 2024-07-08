@@ -200,7 +200,7 @@ public class ProceduralStim implements NAFCStim {
         System.out.println("Not Delta: Noise Component Index: " + noiseComponentIndex);
         List<String> noiseMapLabels = new LinkedList<>();
         noiseMapLabels.add("sample");
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(
                 mSticks.getSample(),
                 stimObjIds.getSample(),
                 noiseMapLabels,
