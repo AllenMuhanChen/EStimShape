@@ -30,6 +30,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     protected Point3d noiseOrigin;
+    public Vector3d projectedTangent;
 
     /**
      * Generates a new matchStick from the base matchStick's driving component
@@ -437,18 +438,18 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         // Find tangent to project along for noise origin
         int tangentOwnerId = baseCompId;
-        Vector3d tangent = getJuncTangentForSingle(junc, tangentOwnerId);
-        tangent = new Vector3d(tangent.x, tangent.y, 0);
+        projectedTangent = getJuncTangentForSingle(junc, tangentOwnerId);
+        projectedTangent = new Vector3d(projectedTangent.x, projectedTangent.y, 0);
         // Find point along base component to start the projection from
 //        Point3d[] connectedMpts = getComp()[baseCompId].getmAxisInfo().getmPts();
 //        int junctionUNdx = junc.getuNdx()[junc.getJIndexOfComp(baseCompId)];
 //        Point3d startingPosition = choosePositionAlongMAxisFromJuncUNdx(junctionUNdx, connectedMpts, 10);
 
         // Choose a starting point
-        Point3d startingPosition = chooseStartingPoint(junc, tangent);
+        Point3d startingPosition = chooseStartingPoint(junc, projectedTangent);
         System.out.println("Starting position: " + startingPosition);
         projectedPoint = pointAlong2dTangent(startingPosition,
-                tangent,
+                projectedTangent,
                 noiseRadiusMm);
         return projectedPoint;
     }
@@ -520,7 +521,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         bisector.normalize();
         bisector.negate();
         Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getY(), 0);
-
+        this.projectedTangent = bisector_3d;
         // Calculate a starting point
 //        LinkedList<Point3d> startingPositions = new LinkedList<>();
 //        for (Integer jIndx: jIndicesForSmallestExternalAngle){

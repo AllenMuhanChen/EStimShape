@@ -3,13 +3,20 @@ package org.xper.allen.drawing.composition.noisy;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.drawing.Coordinates2D;
-
+import org.xper.drawing.stick.JuncPt_struct;
+import javax.vecmath.Point2d;
 import javax.imageio.ImageIO;
+import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
+import javax.vecmath.Vector3d;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+
+
+import javax.vecmath.Point2d;
+import javax.vecmath.Vector3d;
 
 import static org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper.convertMmToPixelCoordinates;
 import static org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper.mmToPixels;
@@ -39,19 +46,32 @@ public class LineNoiseMapper implements NoiseMapper{
                                                         int width, int height,
                                                         double amplitude, double background,
                                                         AbstractRenderer renderer, int specialCompIndx) {
+        mStick.noiseRadiusMm = 0;
         Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
+        Vector3d projectedTangent = mStick.projectedTangent;
+
+        // Calculate the perpendicular vector in the X,Y plane
+        Vector3d perpendicularVector = new Vector3d(-projectedTangent.y, projectedTangent.x, 0);
+        perpendicularVector.normalize();
+
         Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
 
-        // You might want to add parameters to ProceduralMatchStick for these values
-        double lineAngle = 0; // Horizontal line
-        double lineOffset = noiseOriginPixels.getY() - height/2; // Offset from center
-        boolean aboveLine = true; // Noise above the line
+        Point3d specialPoint = mStick.getComp()[specialCompIndx].getMassCenter();
+        Coordinates2D specialPointPixels = convertMmToPixelCoordinates(specialPoint, renderer);
 
-        return generateLineNoiseMap(width, height, lineAngle, lineOffset, amplitude, background, aboveLine);
+        // Determine if specialPoint is above or below the line
+        double distance = (specialPointPixels.getX() - noiseOriginPixels.getX()) * perpendicularVector.x +
+                (specialPointPixels.getY() - noiseOriginPixels.getY()) * perpendicularVector.y;
+
+        boolean aboveLine = distance < 0;
+
+        return generateLineNoiseMap(width, height, perpendicularVector,
+                new Point2d(noiseOriginPixels.getX(), noiseOriginPixels.getY()),
+                amplitude, background, aboveLine);
     }
 
     public static BufferedImage generateLineNoiseMap(int width, int height,
-                                                     double lineAngle, double lineOffset,
+                                                     Vector3d lineDirection, Point2d interceptPoint,
                                                      double noiseLevel, double background,
                                                      boolean aboveLine) {
         BufferedImage noiseMap = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -60,7 +80,8 @@ public class LineNoiseMapper implements NoiseMapper{
         int backgroundRed = (int) (Math.min(background, 1.0) * 255);
         int noiseLevelRed = (int) (Math.min(noiseLevel, 1.0) * 255);
 
-        double angleRad = Math.toRadians(lineAngle);
+        // Calculate 2D angle from Vector3d
+        double angleRad = Math.atan2(lineDirection.y, lineDirection.x);
         double cosAngle = Math.cos(angleRad);
         double sinAngle = Math.sin(angleRad);
 
@@ -71,7 +92,7 @@ public class LineNoiseMapper implements NoiseMapper{
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 // Calculate the signed distance from the point to the line
-                double distance = (x - width/2) * normalX + (y - height/2) * normalY - lineOffset;
+                double distance = (x - interceptPoint.x) * normalX + (y - interceptPoint.y) * normalY;
 
                 // Determine if this point is on the specified side of the line
                 boolean isOnSpecifiedSide = (aboveLine && distance > 0) || (!aboveLine && distance < 0);

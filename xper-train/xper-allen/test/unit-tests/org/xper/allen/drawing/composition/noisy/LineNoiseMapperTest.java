@@ -55,7 +55,7 @@ public class LineNoiseMapperTest {
         // Generate a match stick
         TwobyTwoMatchStick matchStick = new TwobyTwoMatchStick();
         matchStick.setProperties(8, "SHADE");
-        matchStick.genMatchStickRand();
+        matchStick.genMatchStickRand(2);
 
         // Draw the original match stick
         drawer.clear();
@@ -117,7 +117,7 @@ public class LineNoiseMapperTest {
 
         // Wait for the user to close the window
         try {
-            Thread.sleep(5000);  // Display for 5 seconds
+            Thread.sleep(50000);  // Display for 5 seconds
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
