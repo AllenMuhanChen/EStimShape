@@ -5,12 +5,15 @@ import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.drawing.Coordinates2D;
 
+import javax.imageio.ImageIO;
 import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector2d;
 import javax.vecmath.Vector3d;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 public class GaussianNoiseMapper implements NoiseMapper {
     @Dependency
@@ -22,10 +25,19 @@ public class GaussianNoiseMapper implements NoiseMapper {
 
 
     @Override
-    public BufferedImage mapNoise(ProceduralMatchStick mStick,
+    public String mapNoise(ProceduralMatchStick mStick,
                                   double amplitude,
-                                  int specialCompIndx, AbstractRenderer renderer) {
-        return generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndx);
+                                  int specialCompIndx,
+                                  AbstractRenderer renderer,
+                                  String path) {
+        File ouptutFile = new File(path);
+        BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndx);
+        try {
+            ImageIO.write(img, "png", ouptutFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return ouptutFile.getAbsolutePath();
     }
 
     public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
@@ -36,7 +48,6 @@ public class GaussianNoiseMapper implements NoiseMapper {
         Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
 
 
-//        double sigmaPixels = degToPixels(renderer, sigmaDegrees);
         double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
         Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
 
@@ -45,13 +56,6 @@ public class GaussianNoiseMapper implements NoiseMapper {
                 mmToPixels(renderer, mStick.noiseRadiusMm), amplitude,
                 sigmaPixels, sigmaPixels,
                 background);
-
-    }
-
-    private static double degToPixels(AbstractRenderer renderer, double degrees) {
-        double mm = renderer.deg2mm(degrees);
-        Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(degrees, degrees));
-        return pixels.getX();
 
     }
 

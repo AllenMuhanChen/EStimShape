@@ -109,16 +109,15 @@ public class AllenDrawingManager implements Drawable {
 		labels.add("noisemap");
 		labels.addAll(additionalLabels);
 
-		BufferedImage img = noiseMapper.mapNoise(obj, amplitude, specialCompIndx, renderer);
 		String path = imageFolderName + "/" + stimObjId;
 		for (String str:labels) {
-			if(!str.isEmpty())
+			if(!str.isEmpty()) {
 				path=path+"_"+str;
+			}
 		}
 		path=path+".png";
-		File ouptutFile = new File(path);
-		ImageIO.write(img, "png", ouptutFile);
-		return ouptutFile.getAbsolutePath();
+
+        return noiseMapper.mapNoise(obj, amplitude, specialCompIndx, renderer, path);
 	}
 
 	public String drawGaussNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {

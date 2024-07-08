@@ -6,7 +6,9 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import java.awt.image.BufferedImage;
 
 public interface NoiseMapper {
-    BufferedImage mapNoise(ProceduralMatchStick mStick,
-                           double amplitude,
-                           int specialCompIndx, AbstractRenderer renderer);
+    public String mapNoise(ProceduralMatchStick mStick,
+                         double amplitude,
+                         int specialCompIndx,
+                         AbstractRenderer renderer,
+                         String path) ;
 }

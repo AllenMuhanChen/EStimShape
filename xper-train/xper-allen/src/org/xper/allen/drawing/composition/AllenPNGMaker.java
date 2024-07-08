@@ -196,7 +196,7 @@ public class AllenPNGMaker{
 		return saveImage(stimObjId, labels, height, width, imageFolderName);
 	}
 
-	public String saveImage(long stimObjId, List<String> labels, int height, int width,String imageFolderName) {
+	public static String saveImage(long stimObjId, List<String> labels, int height, int width,String imageFolderName) {
 		byte[] data = screenShotBinary(width,height);
 
 		String path = imageFolderName + "/" + stimObjId;
