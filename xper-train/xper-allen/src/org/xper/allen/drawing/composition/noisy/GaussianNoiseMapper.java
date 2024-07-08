@@ -59,7 +59,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
 
     }
 
-    private static double mmToPixels(AbstractRenderer renderer, double degrees) {
+    static double mmToPixels(AbstractRenderer renderer, double degrees) {
         Coordinates2D pixels = renderer.mm2pixel(new Coordinates2D(degrees, degrees));
         return pixels.getX();
 
@@ -97,7 +97,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
         );
     }
 
-    private static Coordinates2D convertMmToPixelCoordinates(Point3d point3d, AbstractRenderer renderer) {
+    public static Coordinates2D convertMmToPixelCoordinates(Point3d point3d, AbstractRenderer renderer) {
         Coordinates2D world_x_y = renderer.coord2pixel(new Coordinates2D(point3d.x, point3d.y));
 
         double scaledX = world_x_y.getX();
