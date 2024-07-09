@@ -1,0 +1,9 @@
+#!/bin/bash
+source version
+source paths
+
+mysql --host=172.30.6.80 --user=xper_rw --password=up2nite $VERSION_GA <<EOF
+DELETE FROM TaskToDo
+WHERE task_id NOT IN (SELECT task_id FROM TaskDone)
+   OR task_id IN (SELECT task_id FROM TaskDone WHERE part_done = 1);
+EOF

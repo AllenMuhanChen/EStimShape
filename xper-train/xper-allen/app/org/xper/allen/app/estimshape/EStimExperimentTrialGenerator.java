@@ -64,10 +64,10 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     protected void addTrials() {
 //        addTrials_Deltas();
         addTrials_ProceduralTwoByTwo();
-        addTrials_TwoByTwo();
+        addTrials_TwoByTwo_training();
     }
 
-    private void addTrials_TwoByTwo(){
+    private void addTrials_TwoByTwo_training(){
         //input Parameters
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
 
@@ -77,15 +77,18 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
-//        noiseConditions.put(0.3, 1);
-//        noiseConditions.put(0.1, 1);
-//        noiseConditions.put(0.1, 1);
         noiseConditions.put(0.2, 1);
         noiseConditions.put(0.1, 1);
 //        noiseConditions.put(0.15, 1);
-        noiseConditions.put(0.05, 2);
-        noiseConditions.put(0.025, 2);
+//        noiseConditions.put(0.05, 2);
+//        noiseConditions.put(0.025, 2);
         noiseConditions.put(0.0, 1);
+
+        String emphasizeCondition = "V";
+        double emphasizeChance = 0.0;
+
+        String deEmphasizeCondition = "V";
+        double deEmphasizeChance = 0.0;
 
         //ESTIM
         List<Boolean> isEStimEnabledConditions = new LinkedList<>();
@@ -128,14 +131,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         }
 
         HashMap<String, AllenMStickSpec> sampleConditions = new HashMap<>(setConditions);
-//        setConditions.remove("I");
-//        sampleConditions.remove("III");
-//        setConditions.remove("III");
-        String emphasizeCondition = "IV";
-        double emphasizeChance = 0.75;
 
-        String deEmphasizeCondition = "II";
-        double deEmphasizeChance = 0.5;
+
         //BIG LOOP - looping through all conditions
 
         //EStim Enabled or not
