@@ -44,11 +44,11 @@ public class GaussianNoiseMapper implements NoiseMapper {
     @Override
     public String mapNoise(ProceduralMatchStick mStick,
                            double amplitude,
-                           List<Integer> specialCompIndx,
+                           List<Integer> specialCompIndcs,
                            AbstractRenderer renderer,
                            String path) {
         File ouptutFile = new File(path);
-        BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndx);
+        BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndcs);
         try {
             ImageIO.write(img, "png", ouptutFile);
         } catch (IOException e) {

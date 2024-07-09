@@ -2,84 +2,174 @@ package org.xper.allen.drawing.composition.noisy;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
+import org.lwjgl.opengl.GL11;
+import org.springframework.config.java.context.JavaConfigApplicationContext;
+import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.composition.AllenDrawingManager;
+import org.xper.allen.drawing.composition.AllenMStickSpec;
+import org.xper.allen.drawing.composition.AllenPNGMaker;
+import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
+import org.xper.allen.pga.RFStrategy;
+import org.xper.drawing.Coordinates2D;
+import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
+import org.xper.util.ThreadUtil;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.vecmath.Point3d;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class GaussianNoiseMapperTest {
 
     private String testBin;
-    private TestMatchStickDrawer drawer;
+    private TestMatchStickDrawer testMatchStickDrawer;
     private GaussianNoiseMapper gaussianNoiseMapper;
+    private ProceduralMatchStick baseMStick;
+    private AllenPNGMaker pngMaker;
+    private AllenDrawingManager drawingManager;
+    private JavaConfigApplicationContext context;
 
     @Before
     public void setUp() throws Exception {
         initXperLibs();
         testBin = ResourceUtil.getResource("testBin");
 
-        drawer = new TestMatchStickDrawer();
-        drawer.setup(190, 190);
+        context = new JavaConfigApplicationContext(
+                FileUtil.loadConfigClass("experiment.config_class"));
+
+        testMatchStickDrawer = new TestMatchStickDrawer();
+        testMatchStickDrawer.setup(500, 500);
 
         gaussianNoiseMapper = new GaussianNoiseMapper();
-        gaussianNoiseMapper.setWidth(190);
-        gaussianNoiseMapper.setHeight(190);
+        gaussianNoiseMapper.setWidth(500);
+        gaussianNoiseMapper.setHeight(500);
         gaussianNoiseMapper.setBackground(0); // Set background to black
+
+        baseMStick = new ProceduralMatchStick();
+        baseMStick.setProperties(4, "SHADE");
+        baseMStick.setStimColor(new Color(255,255,255));
+        baseMStick.genMatchStickRand();
+        baseMStick.setMaxAttempts(-1);
+
+//        pngMaker = context.getBean(AllenPNGMaker.class);
+////        pngMaker.createDrawerWindow();
+//        drawingManager = pngMaker.window;
     }
 
     @Test
-    public void testGaussianNoiseMatchStickWithDifferentSpecialComps() throws IOException {
-        // Generate a match stick with 3 components
-        TwobyTwoMatchStick matchStick = new TwobyTwoMatchStick();
-        matchStick.setProperties(8, "SHADE");
-        matchStick.genMatchStickRand(3);
+    public void testGaussianNoiseWithDifferentSpecialCompIds() throws IOException {
+        ReceptiveField receptiveField = createReceptiveField();
+
+        EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(
+                RFStrategy.PARTIALLY_INSIDE, receptiveField);
+
+        mStick.setProperties(5, "SHADE");
+        while (true) {
+            try {
+                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
+            } catch (Exception e) {
+                continue;
+            }
+            break;
+        }
+
 
         // Test different combinations of special components
-        java.util.List<java.util.List<Integer>> specialCompCombinations = Arrays.asList(
-//                Arrays.asList(1),
-//                Arrays.asList(2),
-//                Arrays.asList(3),
-                Arrays.asList(1, 2),
-                Arrays.asList(1, 3),
-                Arrays.asList(2, 3)
-//                Arrays.asList(1, 2, 3)
-        );
+        List<List<Integer>> specialCompCombinations;
+        specialCompCombinations = new LinkedList<>();
+        specialCompCombinations.add(Collections.singletonList(3));
+        specialCompCombinations.add(Arrays.asList(1, 2));
 
-        for (java.util.List<Integer> specialComps : specialCompCombinations) {
-            testGaussianNoiseForSpecialComps(matchStick, specialComps);
+        for (List<Integer> specialComps : specialCompCombinations) {
+            testGaussianNoiseForSpecialComps(mStick, specialComps);
         }
     }
 
-    private void testGaussianNoiseForSpecialComps(TwobyTwoMatchStick matchStick, java.util.List<Integer> specialComps) throws IOException {
+    private void testGaussianNoiseForSpecialComps(EStimShapeProceduralMatchStick mStick, List<Integer> specialComps) throws IOException {
+        String suffix = "_specialComps_" + specialComps.toString().replaceAll("[\\[\\] ]", "");
+
         // Draw the original match stick
-        drawer.clear();
-        drawer.drawMStick(matchStick);
-        String imagePath = drawer.saveImage(testBin + "/original_matchstick_" + specialComps.toString());
+        testMatchStickDrawer.clear();
+        testMatchStickDrawer.draw(new Drawable() {
+            @Override
+            public void draw() {
+                mStick.drawCompMap();
 
-        // Generate Gaussian noise map
-        String noiseMapPath = gaussianNoiseMapper.mapNoise(matchStick, 0.5, specialComps, drawer.window.renderer, testBin + "/gaussian_noise_map_" + specialComps.toString() + ".png");
+                // Now, draw the circle
+                GL11.glColor3f(1.0f, 0.0f, 0.0f);
+                System.out.println(mStick.getSpecialEndComp().get(0));
+                Point3d circle = mStick.calculateNoiseOrigin(specialComps); // Replace with the circle's center X-coordinate
 
-        // Load original image and noise map
-        BufferedImage originalImage = ImageIO.read(new File(imagePath));
-        BufferedImage noiseMap = ImageIO.read(new File(noiseMapPath));
+                System.out.println(circle.getX() + " " + circle.getY());
 
-        // Apply noise manually
-        BufferedImage noisyImage = applyNoise(originalImage, noiseMap);
+                double radius = mStick.noiseRadiusMm;
+                int numSegments = 100; // Increase for a smoother circle
 
-        // Save noisy image
-        ImageIO.write(noisyImage, "PNG", new File(testBin + "/noisy_matchstick_" + specialComps.toString() + ".png"));
+                GL11.glBegin(GL11.GL_LINE_LOOP);
+                for (int i = 0; i < numSegments; i++) {
+                    double theta = 2.0 * Math.PI * i / numSegments; // Current angle
+                    double x = radius * Math.cos(theta); // Calculate the x component
+                    double y = radius * Math.sin(theta); // Calculate the y component
+                    GL11.glVertex2d(x + circle.getX(), y + circle.getY()); // Output vertex
+                }
+                GL11.glEnd();
+            }
+        });
+        ThreadUtil.sleep(5000);
 
-        // Display noisy image
-        displayImage(noisyImage);
+
+//        String imagePath = testMatchStickDrawer.saveImage(testBin + "/original_matchstick" + suffix);
+//
+//        // Generate Gaussian noise map
+//        String noiseMapPath = gaussianNoiseMapper.mapNoise(mStick, 0.5, specialComps, testMatchStickDrawer.window.renderer, testBin + "/gaussian_noise_map" + suffix + ".png");
+//
+//        // Load original image and noise map
+//        BufferedImage originalImage = ImageIO.read(new File(imagePath));
+//        BufferedImage noiseMap = ImageIO.read(new File(noiseMapPath));
+//
+//        // Apply noise manually
+//        BufferedImage noisyImage = applyNoise(originalImage, noiseMap);
+//
+//        // Save noisy image
+//        ImageIO.write(noisyImage, "PNG", new File(testBin + "/noisy_matchstick" + suffix + ".png"));
+//
+//        // Display noisy image
+//        displayImage(noisyImage, "Noisy MatchStick - Special Comps: " + specialComps);
+
+    }
+
+    private ReceptiveField createReceptiveField() {
+        return new ReceptiveField() {
+            final double h = 5;
+            final double k = 5;
+            final double r = 10;
+
+            {
+                center = new Coordinates2D(h, k);
+                radius = r;
+                for (int i = 0; i < 100; i++) {
+                    double angle = 2 * Math.PI * i / 100;
+                    outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
+                }
+            }
+            @Override
+            public boolean isInRF(double x, double y) {
+                return (x - h) * (x - h) + (y - k) * (y - k) < r * r;
+            }
+        };
     }
 
     private BufferedImage applyNoise(BufferedImage original, BufferedImage noise) {
@@ -92,15 +182,11 @@ public class GaussianNoiseMapperTest {
                 int origColor = original.getRGB(x, y);
                 int noiseColor = noise.getRGB(x, y);
 
-                // Extract alpha channel from original image
                 int alpha = (origColor >> 24) & 0xff;
-
-                // Apply noise to RGB channels
                 int red = Math.min(255, ((origColor >> 16) & 0xff) + ((noiseColor >> 16) & 0xff));
                 int green = Math.min(255, ((origColor >> 8) & 0xff) + ((noiseColor >> 8) & 0xff));
                 int blue = Math.min(255, (origColor & 0xff) + (noiseColor & 0xff));
 
-                // Combine channels
                 int newColor = (alpha << 24) | (red << 16) | (green << 8) | blue;
                 result.setRGB(x, y, newColor);
             }
@@ -109,17 +195,17 @@ public class GaussianNoiseMapperTest {
         return result;
     }
 
-    private void displayImage(BufferedImage image) {
-        JFrame frame = new JFrame();
+    private void displayImage(BufferedImage image, String title) {
+        JFrame frame = new JFrame(title);
         JLabel label = new JLabel(new ImageIcon(image));
         frame.getContentPane().add(label, BorderLayout.CENTER);
         frame.pack();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setVisible(true);
 
         // Wait for the user to close the window
         try {
-            Thread.sleep(5000);  // Display for 5 seconds
+            Thread.sleep(10000);  // Display for 5 seconds
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

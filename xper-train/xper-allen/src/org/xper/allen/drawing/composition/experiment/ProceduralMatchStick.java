@@ -422,40 +422,53 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     public Point3d calculateNoiseOrigin(List<Integer> specialCompIndcs){
         Point3d point3d = new Point3d();
 
-        int specialCompId = -1;
-        if (specialCompIndcs.size() == 1) {
-            specialCompId = specialCompIndcs.get(0);
-        }
-        else if (specialCompIndcs.size() >= 2){
-            specialCompId = -1;
-            //get the component that's not the special one
+        if (specialCompIndcs.size() == 1){
+
+            int specialCompId = specialCompIndcs.get(0);
+
+            for (JuncPt_struct junc : getJuncPt()) {
+                if (junc != null) {
+                    int finalSpecialCompId = specialCompId;
+                    int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
+                        @Override
+                        public boolean test(int x) {
+                            return x == finalSpecialCompId;
+                        }
+                    }).toArray().length;
+                    if (numMatch == 1) {
+                        if (junc.getnComp() == 2) {
+                            int baseCompId = findBaseCompId(specialCompId, junc);
+                            return calcProjectionFromSingleJunctionWithSingleComp(baseCompId, junc);
+                        } else if (junc.getnComp() > 2) {
+                            return calcProjectionFromJunctionWithMultiComp(specialCompId, junc);
+                        }
+                    }
+                }
+            }
+        } else{
+            int baseCompId = -1;
             for (int i=1; i<=getnComponent(); i++){
                 if (!specialCompIndcs.contains(i)){
-                    specialCompId = i;
+                    baseCompId = i;
                 }
             }
-            if (specialCompId == -1) {
-                throw new NoiseException("Could not find a special component");
-            }
-        }
 
-        for (JuncPt_struct junc : getJuncPt()) {
-            if (junc != null) {
-                int finalSpecialCompId = specialCompId;
-                int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
-                    @Override
-                    public boolean test(int x) {
-                        return x == finalSpecialCompId;
-                    }
-                }).toArray().length;
-                if (numMatch == 1) {
-                    if (junc.getnComp() == 2) {
-                        point3d = calcProjectionFromSingleJunctionWithSingleComp(specialCompId, junc);
-                    } else if (junc.getnComp() > 2) {
-                        point3d = calcProjectionFromJunctionWithMultiComp(specialCompId, junc);
+            for (JuncPt_struct junc : getJuncPt()) {
+                if (junc != null) {
+                    int finalBaseCompId = baseCompId;
+                    int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
+                        @Override
+                        public boolean test(int x) {
+                            return x == finalBaseCompId;
+                        }
+                    }).toArray().length;
+
+                    if (numMatch == 1) {
+                        return calcProjectionFromSingleJunctionWithSingleComp(baseCompId, junc);
                     }
                 }
             }
+
         }
 
 
@@ -463,26 +476,15 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
 
-    protected Point3d calcProjectionFromSingleJunctionWithSingleComp(Integer specialCompIndx, JuncPt_struct junc) {
-        Point3d projectedPoint;
-        // Find some important info about the junction
-        int baseCompId = -1;
-        int[] connectedComps = junc.getCompIds();
-        for (int comp : connectedComps) {
-            if (comp != specialCompIndx && comp != 0) {
-                baseCompId = comp;
-            }
-        }
 
+
+    protected Point3d calcProjectionFromSingleJunctionWithSingleComp(Integer baseCompId, JuncPt_struct junc) {
+        Point3d projectedPoint;
 
         // Find tangent to project along for noise origin
         int tangentOwnerId = baseCompId;
         projectedTangent = getJuncTangentForSingle(junc, tangentOwnerId);
         projectedTangent = new Vector3d(projectedTangent.x, projectedTangent.y, 0);
-        // Find point along base component to start the projection from
-//        Point3d[] connectedMpts = getComp()[baseCompId].getmAxisInfo().getmPts();
-//        int junctionUNdx = junc.getuNdx()[junc.getJIndexOfComp(baseCompId)];
-//        Point3d startingPosition = choosePositionAlongMAxisFromJuncUNdx(junctionUNdx, connectedMpts, 10);
 
         // Choose a starting point
         Point3d startingPosition = chooseStartingPoint(junc, projectedTangent);
@@ -491,6 +493,17 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 projectedTangent,
                 noiseRadiusMm);
         return projectedPoint;
+    }
+
+    private static int findBaseCompId(Integer specialCompIndx, JuncPt_struct junc) {
+        int baseCompId = -1;
+        int[] connectedComps = junc.getCompIds();
+        for (int comp : connectedComps) {
+            if (comp != specialCompIndx && comp != 0) {
+                baseCompId = comp;
+            }
+        }
+        return baseCompId;
     }
 
     protected Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
@@ -547,7 +560,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         // Get the pair with the smallest external angle
         List<Vector3d> tangentPairWithSmallestExternalAngle = Collections.min(externalAnglesForTangentPairs.entrySet(), Comparator.comparingDouble(Map.Entry::getValue)).getKey();
-        List<Integer> jIndicesForSmallestExternalAngle = jIndicesForTangentPairs.get(tangentPairWithSmallestExternalAngle);
 
         // Calculate bisector of smallest external angle
         Vector2d bisector = new Vector2d();
@@ -561,23 +573,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         bisector.negate();
         Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getY(), 0);
         this.projectedTangent = bisector_3d;
-        // Calculate a starting point
-//        LinkedList<Point3d> startingPositions = new LinkedList<>();
-//        for (Integer jIndx: jIndicesForSmallestExternalAngle){
 
-//            int junctionUNdx = junc.getuNdx()[jIndx];
-//            Point3d[] connectedMpts = getComp()[junc.getCompIds()[jIndx]].getmAxisInfo().getmPts();
-//            startingPosition = choosePositionAlongMAxisFromJuncUNdx(
-//                    junctionUNdx, connectedMpts, 20);
-//            startingPositions.add(startingPosition);
-//        }
-
-//         Calculate average of starting positions
-//        Point3d averageStartingPosition = new Point3d();
-//        for (Point3d startingPosition: startingPositions){
-//            averageStartingPosition.add(startingPosition);
-//        }
-//        averageStartingPosition.scale(1.0/startingPositions.size());
         Point3d startingPosition = chooseStartingPoint(junc, bisector_3d);
         projectedPoint = pointAlong2dTangent(startingPosition, bisector_3d, noiseRadiusMm);
         return projectedPoint;
