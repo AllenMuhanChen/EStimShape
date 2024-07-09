@@ -86,8 +86,10 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
 
         Map<String, Double> emphasizeChancesForConditions = new HashMap<>();
-        emphasizeChancesForConditions.put("III", 0.8);
-        emphasizeChancesForConditions.put("IV", 0.8);
+        HashMap<String, Integer> emphNumToRemoveForConditions = new HashMap<>();
+        emphasizeChancesForConditions.put("III", 0.8); emphNumToRemoveForConditions.put("III", 2);
+        emphasizeChancesForConditions.put("IV", 0.8); emphNumToRemoveForConditions.put("IV", 2);
+
 
         Map<String, Double> minimizeChancesForConditions = new HashMap<>();
         minimizeChancesForConditions.put("I", 0.8);
@@ -158,23 +160,20 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                         doEmphasizeConditionsForConditions.put(condition, emphasizeChancesForConditions.get(condition) > Math.random());
                     }
 
-                    //Calculate do minimize for each condition
-                    Map<String, Boolean> doMinimizeConditionsForConditions = new HashMap<>();
-                    for (String condition : minimizeChancesForConditions.keySet()){
-                        doMinimizeConditionsForConditions.put(condition, minimizeChancesForConditions.get(condition) > Math.random());
-                    }
-
-
-                    Map<String, AllenMStickSpec> baseProceduralDistractorSpecs;
-
+                    Map<String, AllenMStickSpec> baseProceduralDistractorSpecs =
+                            new LinkedHashMap<>(setConditions);
+                    baseProceduralDistractorSpecs.remove(sampleCondition);
                     //MANAGING BIASES
                     parameters.numRandDistractors = 0;
                     if (isEmphasize(sampleCondition, doEmphasizeConditionsForConditions)){
-                        baseProceduralDistractorSpecs = new LinkedHashMap<>();
-                        parameters.numRandDistractors = 3;
-                    } else{
-                        baseProceduralDistractorSpecs = new LinkedHashMap<>(setConditions);
-                        baseProceduralDistractorSpecs.remove(sampleCondition);
+                        for (int i=0; i<emphNumToRemoveForConditions.get(sampleCondition); i++){
+                            //remove a random one
+                            String randomKey = new ArrayList<>(baseProceduralDistractorSpecs.keySet()).get(
+                                    (int) (Math.random() * baseProceduralDistractorSpecs.size())
+                            );
+                            baseProceduralDistractorSpecs.remove(randomKey);
+                            parameters.numRandDistractors++;
+                        }
                     }
 
 
