@@ -129,8 +129,8 @@ public class EStimShapeProceduralStim extends ProceduralStim{
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
-            mSticks.proceduralDistractors.add(proceduralDistractor);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor));
+            mSticks.addProceduralDistractor(proceduralDistractor);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }
     }
 

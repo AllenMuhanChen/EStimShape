@@ -26,7 +26,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance =
-            new SphericalCoordinates(100, Math.PI / 4, Math.PI / 2 );
+            new SphericalCoordinates(100, Math.PI / 5, Math.PI / 2 );
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     protected Point3d noiseOrigin;
@@ -355,13 +355,15 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         }
 
         List<Point2d> pointsOutside = new LinkedList<>();
+        int numPointsInside = 0;
         for (ConcaveHull.Point point: pointsToCheck){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
+                numPointsInside++;
             }
         }
-
-        if (!pointsOutside.isEmpty()){
+        double percentRequiredInside = 0.75;
+        if ((double) numPointsInside / pointsToCheck.size() < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle");
         }
 
@@ -457,8 +459,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
 //        double shiftAmount = junc.getRad() * getScaleForMAxisShape();
-//        double shiftAmount = 0;
-        double shiftAmount = junc.getRad();
+        double shiftAmount = 0;
+//        double shiftAmount = junc.getRad();
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
                 junc.getPos(), //this is shifted by applyTranslation

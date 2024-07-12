@@ -125,4 +125,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         System.out.println("Sample Path: " + samplePath);
         experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
     }
+
+    public String getSampleSetCondition() {
+        return sampleSetCondition;
+    }
 }

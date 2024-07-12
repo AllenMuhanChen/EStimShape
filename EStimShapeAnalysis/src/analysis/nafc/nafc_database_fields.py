@@ -115,7 +115,6 @@ class AnswerField(StimSpecField):
         return choice_path
 
 
-
 def extract_roman_numeral(file_path: str) -> str:
     # Define the regular expression pattern for Roman numerals
     roman_numeral_pattern = r'_([IVXLCDM]+)\.png$'
@@ -190,6 +189,34 @@ class NoiseChanceField(StimSpecDataField):
         noiseChance = stim_spec_data[next(iter(stim_spec_data))]["noiseChance"]
         noiseChance = float(noiseChance)
         return noiseChance
+
+
+class GenIdField(CachedDatabaseField):
+    def __init__(self, conn: Connection):
+        super().__init__(conn)
+
+    def get_name(self):
+        return "GenId"
+
+    def get(self, when: When):
+        stim_spec_id = get_stim_spec_id(self.conn, when)
+        if stim_spec_id is None:
+            return None
+
+        # SQL to get the gen_id from TaskToDo based on the stim_id
+        query = """
+        SELECT gen_id
+        FROM TaskToDo
+        WHERE stim_id = %s
+        LIMIT 1;
+        """
+        self.conn.execute(query, params=(stim_spec_id,))
+        result = self.conn.fetch_one()
+
+        if result:
+            return result
+
+
 
 
 class NumRandDistractorsField(StimSpecDataField):

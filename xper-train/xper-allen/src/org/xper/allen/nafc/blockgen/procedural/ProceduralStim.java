@@ -83,7 +83,7 @@ public class ProceduralStim implements NAFCStim {
         for (int i = 0; i < numRandDistractors; i++) {
             randDistractorIds.add(matchId + i + 1 + numProceduralDistractors);
         }
-        stimObjIds = new Procedural<Long>(sampleId, matchId, proceduralDistractorIds, randDistractorIds);
+        stimObjIds = new Procedural<>(sampleId, matchId, proceduralDistractorIds, randDistractorIds);
     }
 
     protected void generateMatchSticksAndSaveSpecs() {
@@ -130,8 +130,8 @@ public class ProceduralStim implements NAFCStim {
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
-            mSticks.proceduralDistractors.add(proceduralDistractor);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor));
+            mSticks.addProceduralDistractor(proceduralDistractor);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }
     }
 
@@ -142,8 +142,8 @@ public class ProceduralStim implements NAFCStim {
             randDistractor.setProperties(parameters.getSize(), parameters.textureType);
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
-            mSticks.randDistractors.add(randDistractor);
-            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor));
+            mSticks.addRandDistractor(randDistractor);
+            mStickSpecs.addRandDistractor(mStickToSpec(randDistractor));
         }
     }
 

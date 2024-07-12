@@ -29,6 +29,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,14 +57,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     }
 
     @Override
-    public void shuffleTrials() {
-        Collections.shuffle(stims);
-    }
-
-    @Override
     protected void addTrials() {
 //        addTrials_Deltas();
-        addTrials_ProceduralTwoByTwo();
+//        addTrials_ProceduralTwoByTwo();
         addTrials_TwoByTwo_training();
     }
 
@@ -77,22 +73,30 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
+        noiseConditions.put(0.5, 1);
+        noiseConditions.put(0.4, 1);
+        noiseConditions.put(0.3, 1);
+        noiseConditions.put(0.25, 1);
         noiseConditions.put(0.2, 1);
+        noiseConditions.put(0.15, 1);
         noiseConditions.put(0.1, 1);
-//        noiseConditions.put(0.15, 1);
-//        noiseConditions.put(0.05, 2);
-//        noiseConditions.put(0.025, 2);
+        noiseConditions.put(0.05, 1);
         noiseConditions.put(0.0, 1);
 
 
         Map<String, Double> emphasizeChancesForConditions = new HashMap<>();
+        emphasizeChancesForConditions.put("I", 0.0);
+        emphasizeChancesForConditions.put("III", 0.0);
         HashMap<String, Integer> emphNumToRemoveForConditions = new HashMap<>();
-        emphasizeChancesForConditions.put("III", 0.8); emphNumToRemoveForConditions.put("III", 2);
-        emphasizeChancesForConditions.put("IV", 0.8); emphNumToRemoveForConditions.put("IV", 2);
+        emphNumToRemoveForConditions.put("I", 1);
+        emphNumToRemoveForConditions.put("III", 1);
+
 
 
         Map<String, Double> minimizeChancesForConditions = new HashMap<>();
-        minimizeChancesForConditions.put("I", 0.8);
+        minimizeChancesForConditions.put("II", 0.0);
+        minimizeChancesForConditions.put("III", 0.0);
+
 
 
         //ESTIM
@@ -163,10 +167,15 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                     Map<String, AllenMStickSpec> baseProceduralDistractorSpecs =
                             new LinkedHashMap<>(setConditions);
                     baseProceduralDistractorSpecs.remove(sampleCondition);
+
                     //MANAGING BIASES
                     parameters.numRandDistractors = 0;
                     if (isEmphasize(sampleCondition, doEmphasizeConditionsForConditions)){
                         for (int i=0; i<emphNumToRemoveForConditions.get(sampleCondition); i++){
+
+                            if (baseProceduralDistractorSpecs.isEmpty()){
+                                break;
+                            }
                             //remove a random one
                             String randomKey = new ArrayList<>(baseProceduralDistractorSpecs.keySet()).get(
                                     (int) (Math.random() * baseProceduralDistractorSpecs.size())
@@ -205,6 +214,46 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
             }
         }
 
+    }
+
+    @Override
+    public void shuffleTrials() {
+        Map<String, List<Stim>> groupedStims = new HashMap<String, List<Stim>>();
+        List<String> allConditions = new ArrayList<String>();
+
+        // Group stims by set condition, including a special group for "other" stims
+        for (Stim stim : stims) {
+            String condition;
+            if (stim instanceof EStimShapePsychometricTwoByTwoStim) {
+                condition = ((EStimShapePsychometricTwoByTwoStim) stim).getSampleSetCondition();
+            } else {
+                condition = "other";
+            }
+
+            if (!groupedStims.containsKey(condition)) {
+                groupedStims.put(condition, new ArrayList<Stim>());
+                allConditions.add(condition);
+            }
+            groupedStims.get(condition).add(stim);
+        }
+
+        List<Stim> shuffledStims = new ArrayList<Stim>();
+        boolean remaining = true;
+
+        while (remaining) {
+            remaining = false;
+            Collections.shuffle(allConditions);
+            for (String condition : allConditions) {
+                List<Stim> conditionStims = groupedStims.get(condition);
+                if (!conditionStims.isEmpty()) {
+                    remaining = true;
+                    int index = (int) (Math.random() * conditionStims.size());
+                    shuffledStims.add(conditionStims.remove(index));
+                }
+            }
+        }
+
+        stims = shuffledStims;
     }
 
     private static boolean isEmphasize(String setCondition, Map<String, Boolean> doEmphasizeConditionsForConditions) {
