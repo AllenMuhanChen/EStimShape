@@ -37,9 +37,14 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 
 	private int assignedRadProfileBin;
 
+	public  int minToChange;
+	public int maxToChange;
 
-	public RadProfileQualitativeMorph() {
+	public RadProfileQualitativeMorph(int minToChange, int maxToChange, boolean juncEnabled) {
 		radProfileBins = new ArrayList<Vector3d>();
+		this.minToChange = minToChange;
+		this.maxToChange = maxToChange;
+		this.juncEnabled = juncEnabled;
 	}
 
 	public void loadParams(double oldJunc, double oldMid, double oldEnd) {
@@ -72,7 +77,8 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 		//		int closestEndBin = findClosestBin(endBins, oldEnd);
 		int closestRadProfileBin = findClosestRadProfileBin(radProfileBins, oldRadProfile);
 		//Decide how many to change
-		int numToMorph = stickMath_lib.randInt(1, 2);
+
+		int numToMorph = stickMath_lib.randInt(minToChange, maxToChange);
 		//Decide which to change
 		List<Integer> locList = new LinkedList<>(); //1-junc, 2-mid, 3-end
 		if(isJuncEnabled()) {

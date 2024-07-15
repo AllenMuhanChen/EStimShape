@@ -1,5 +1,7 @@
 package org.xper.allen.drawing.composition.morph;
 
+import org.xper.allen.drawing.composition.AllenMAxisArc;
+
 import javax.vecmath.Vector3d;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,7 +36,7 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
     }
 
     @Override
-    public Double morphCurvature(Double oldCurvature){
+    public Double morphCurvature(Double oldCurvature, AllenMAxisArc arcToMorph){
         CurvatureMorpher curvatureMorpher = new CurvatureMorpher();
         curvature = curvatureMorpher.morphCurvature(oldCurvature, curvatureMagnitude);
         return curvature;

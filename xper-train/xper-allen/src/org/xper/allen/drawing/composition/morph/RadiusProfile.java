@@ -33,4 +33,12 @@ public class RadiusProfile {
     public RadiusInfo getRadiusInfo(Integer id) {
         return infoForRadius.get(id);
     }
+
+    public String toString() {
+        String str = "";
+        for (Map.Entry<Integer, RadiusInfo> entry : infoForRadius.entrySet()) {
+            str += entry.getKey() + ": " + entry.getValue().toString() + "\n";
+        }
+        return str;
+    }
 }

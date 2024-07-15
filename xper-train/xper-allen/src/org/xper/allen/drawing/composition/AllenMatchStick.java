@@ -1364,7 +1364,7 @@ public class AllenMatchStick extends MatchStick {
 		//CURVATURE AND ROTATION
 		if(qmp.curvatureRotationFlag) {
 			qmp.curvRotQualMorph.loadParams(getComp()[id].getmAxisInfo().getRad(), getComp()[id].getmAxisInfo().getTransRotHis_devAngle());
-			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo().getArcLen(),getComp()[id].getmAxisInfo());
+			qmp.curvRotQualMorph.calculate(getComp()[id].getmAxisInfo());
 		} // Curvature Rotation
 
 

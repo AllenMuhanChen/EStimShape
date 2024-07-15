@@ -58,4 +58,8 @@ public class RadiusInfo {
     public void setPreserve(Boolean preserve) {
         this.preserve = preserve;
     }
+
+    public String toString() {
+        return "Radius: " + radius + ", U index: " + uNdx + ", Type: " + radiusType + ", Preserve: " + preserve;
+    }
 }
