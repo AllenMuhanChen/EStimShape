@@ -48,7 +48,7 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
         NAFCStimSpecSpec stimSpec = NAFCStimSpecSpec.fromXml(task.getStimSpec());
         String stimType = stimSpec.getStimType();
         if (stimType.equals("EStimShapePsychometricTwoByTwoStim")){
-            rewardMultiplier = (rewardMultiplier * 1.5) + 0.75;
+//            rewardMultiplier = (rewardMultiplier * 1.5) + 0.75;
         }
         System.err.println("Reward Multiplier: " + rewardMultiplier);
 

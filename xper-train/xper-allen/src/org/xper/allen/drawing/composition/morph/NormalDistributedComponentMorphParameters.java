@@ -34,17 +34,17 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
     }
 
     @Override
-    public Double morphRotation(Double oldRotation){
-        AngleMorpher angleMorpher = new AngleMorpher();
-        rotation = angleMorpher.morphAngle(oldRotation, rotationMagnitude);
-        return rotation;
-    }
-
-    @Override
     public Double morphCurvature(Double oldCurvature){
         CurvatureMorpher curvatureMorpher = new CurvatureMorpher();
         curvature = curvatureMorpher.morphCurvature(oldCurvature, curvatureMagnitude);
         return curvature;
+    }
+
+    @Override
+    public Double morphRotation(Double oldRotation){
+        AngleMorpher angleMorpher = new AngleMorpher();
+        rotation = angleMorpher.morphAngle(oldRotation, rotationMagnitude);
+        return rotation;
     }
 
     @Override
@@ -93,32 +93,6 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         this.lengthMagnitude = lengthMagnitude.get();
         this.curvatureMagnitude = curvatureMagnitude.get();
         this.radiusProfileMagnitude = radiusProfileMagnitude.get();
-    }
-
-    public void redistributeRotationMagntiude(){
-        AtomicReference<Double> orientationMagnitude = new AtomicReference<>(this.orientationMagnitude);
-        AtomicReference<Double> rotationMagnitude = new AtomicReference<>(this.rotationMagnitude);
-        AtomicReference<Double> lengthMagnitude = new AtomicReference<>(this.lengthMagnitude);
-        AtomicReference<Double> curvatureMagnitude = new AtomicReference<>(this.curvatureMagnitude);
-        AtomicReference<Double> radiusProfileMagnitude = new AtomicReference<>(this.radiusProfileMagnitude);
-
-        List<AtomicReference<Double>> magnitudes = new ArrayList<>();
-        magnitudes.add(orientationMagnitude);
-        magnitudes.add(lengthMagnitude);
-        magnitudes.add(radiusProfileMagnitude);
-
-
-        Double amountOfRotationMagnitudeToRedistribute = rotationMagnitude.get();
-        Double amountToRedistribute = amountOfRotationMagnitudeToRedistribute/magnitudes.size();
-
-        normalMorphDistributer.distributeMagnitudeTo(magnitudes, amountToRedistribute);
-
-        this.orientationMagnitude = orientationMagnitude.get();
-        this.lengthMagnitude = lengthMagnitude.get();
-        this.radiusProfileMagnitude = radiusProfileMagnitude.get();
-        this.curvatureMagnitude = curvatureMagnitude.get();
-        this.rotationMagnitude = 0.0;
-
     }
 
     public enum RADIUS_TYPE{JUNCTION, MIDPT, ENDPT}

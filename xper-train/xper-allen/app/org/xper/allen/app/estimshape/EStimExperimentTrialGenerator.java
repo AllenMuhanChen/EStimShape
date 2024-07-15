@@ -85,16 +85,16 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
 
         Map<String, Double> emphasizeChancesForConditions = new HashMap<>();
-        emphasizeChancesForConditions.put("I", 0.0);
+        emphasizeChancesForConditions.put("I", 0.5);
         emphasizeChancesForConditions.put("III", 0.0);
         HashMap<String, Integer> emphNumToRemoveForConditions = new HashMap<>();
-        emphNumToRemoveForConditions.put("I", 1);
+        emphNumToRemoveForConditions.put("I", 2);
         emphNumToRemoveForConditions.put("III", 1);
 
 
 
         Map<String, Double> minimizeChancesForConditions = new HashMap<>();
-        minimizeChancesForConditions.put("II", 0.0);
+        minimizeChancesForConditions.put("IV", 0.25);
         minimizeChancesForConditions.put("III", 0.0);
 
 
@@ -218,42 +218,48 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     @Override
     public void shuffleTrials() {
-        Map<String, List<Stim>> groupedStims = new HashMap<String, List<Stim>>();
-        List<String> allConditions = new ArrayList<String>();
-
-        // Group stims by set condition, including a special group for "other" stims
-        for (Stim stim : stims) {
-            String condition;
-            if (stim instanceof EStimShapePsychometricTwoByTwoStim) {
-                condition = ((EStimShapePsychometricTwoByTwoStim) stim).getSampleSetCondition();
-            } else {
-                condition = "other";
-            }
-
-            if (!groupedStims.containsKey(condition)) {
-                groupedStims.put(condition, new ArrayList<Stim>());
-                allConditions.add(condition);
-            }
-            groupedStims.get(condition).add(stim);
-        }
-
-        List<Stim> shuffledStims = new ArrayList<Stim>();
-        boolean remaining = true;
-
-        while (remaining) {
-            remaining = false;
-            Collections.shuffle(allConditions);
-            for (String condition : allConditions) {
-                List<Stim> conditionStims = groupedStims.get(condition);
-                if (!conditionStims.isEmpty()) {
-                    remaining = true;
-                    int index = (int) (Math.random() * conditionStims.size());
-                    shuffledStims.add(conditionStims.remove(index));
-                }
-            }
-        }
-
-        stims = shuffledStims;
+        Collections.shuffle(stims);
+//        Map<String, List<Stim>> groupedStims = new HashMap<String, List<Stim>>();
+//        List<String> mainConditions = new ArrayList<String>();
+//        List<Stim> otherStims = new ArrayList<Stim>();
+//
+//        // Group stims by set condition, separate out "other" stims
+//        for (Stim stim : stims) {
+//            if (stim instanceof EStimShapePsychometricTwoByTwoStim) {
+//                String condition = ((EStimShapePsychometricTwoByTwoStim) stim).getSampleSetCondition();
+//                if (!groupedStims.containsKey(condition)) {
+//                    groupedStims.put(condition, new ArrayList<Stim>());
+//                    mainConditions.add(condition);
+//                }
+//                groupedStims.get(condition).add(stim);
+//            } else {
+//                otherStims.add(stim);
+//            }
+//        }
+//
+//        List<Stim> shuffledStims = new ArrayList<Stim>();
+//        boolean remaining = true;
+//
+//        // Distribute main condition stims
+//        while (remaining) {
+//            remaining = false;
+//            Collections.shuffle(mainConditions);
+//            for (String condition : mainConditions) {
+//                List<Stim> conditionStims = groupedStims.get(condition);
+//                if (!conditionStims.isEmpty()) {
+//                    remaining = true;
+//                    shuffledStims.add(conditionStims.remove(0));
+//                }
+//            }
+//        }
+//
+//        // Randomly insert other stims
+//        for (Stim otherStim : otherStims) {
+//            int insertIndex = (int) (Math.random() * (shuffledStims.size() + 1));
+//            shuffledStims.add(insertIndex, otherStim);
+//        }
+//
+//        stims = shuffledStims;
     }
 
     private static boolean isEmphasize(String setCondition, Map<String, Boolean> doEmphasizeConditionsForConditions) {

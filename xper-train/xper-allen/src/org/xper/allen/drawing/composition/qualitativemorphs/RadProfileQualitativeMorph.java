@@ -35,17 +35,10 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 
 	public List<Vector3d> radProfileBins;
 
-	//	private int assignedJuncBin;
-	//	private int assignedMidBin;
-	//	private int assignedEndBin;
 	private int assignedRadProfileBin;
 
 
 	public RadProfileQualitativeMorph() {
-		//		juncBins = new ArrayList<Bin<Double>>();
-		//		midBins = new ArrayList<Bin<Double>>();
-		//		endBins = new ArrayList<Bin<Double>>();
-		//		
 		radProfileBins = new ArrayList<Vector3d>();
 	}
 
@@ -85,7 +78,7 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 		if(isJuncEnabled()) {
 			locList.add(1);
 		}
-		locList.add(2); 
+		locList.add(2);
 		locList.add(3);
 		Collections.shuffle(locList);
 
@@ -111,8 +104,8 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 	}
 
 	/**
-	 * 
-	 * 05/11/22 Update to use JuncEnabled logic. 
+	 *
+	 * 05/11/22 Update to use JuncEnabled logic.
 	 * @param binList
 	 * @param assignedBin
 	 * @return
@@ -123,7 +116,7 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 			while(true) {
 				newRadProfile = new Vector3d(stickMath_lib.rand01(),stickMath_lib.rand01(),stickMath_lib.rand01());
 				double angle = newRadProfile.angle(binList.get(assignedRadProfileBin));
-				
+
 				if(angle<getBinAngleDeviation()) {
 					break;
 				}
@@ -162,7 +155,7 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 	}
 
 	/**
-	 * Chooses the furthest bin within 10 random pulls from the binList. 
+	 * Chooses the furthest bin within 10 random pulls from the binList.
 	 * @param <T>
 	 * @param binList
 	 * @param closestBin
@@ -365,8 +358,8 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 	}
 
 	/**
-	 * binAngleDeviation: max angles in rad a newVector should be from 
-	 * from specified vector in the bin. 
+	 * binAngleDeviation: max angles in rad a newVector should be from
+	 * from specified vector in the bin.
 	 * @return
 	 */
 	private double getBinAngleDeviation() {
