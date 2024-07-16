@@ -21,7 +21,7 @@ public class MetricMorphOrientation {
 	/**
 	 * outterLowerBound < innerUpperBound < innerLowerBound < outerUpperBound
 	 * A < B < C < D
-	 * output can be between (A & B) or (C & D) but NOT (B & C) 
+	 * output can be between (A & B) or (C & D) but NOT (B & C)
 	 * @return
 	 */
 	public Vector3d calculateVector() {
@@ -63,7 +63,7 @@ public class MetricMorphOrientation {
 		else
 			return false;
 	}
-	
+
 	/**
 	 * Check if vector changes quadrants (passes a canonical boundary)
 	 * @param newVector

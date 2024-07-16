@@ -3,6 +3,7 @@ package org.xper.allen.drawing.composition.morph;
 import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.metricmorphs.LengthMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphOrientation;
+import org.xper.allen.drawing.composition.metricmorphs.SizeMetricMorphMagnitude;
 import org.xper.allen.drawing.composition.qualitativemorphs.Bin;
 import org.xper.allen.drawing.composition.qualitativemorphs.CurvatureRotationQualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.RadProfileQualitativeMorph;
@@ -17,18 +18,20 @@ public class BaseMorphParameters implements ComponentMorphParameters {
     private CurvatureRotationQualitativeMorph curvatureRotationMorph;
     private LengthMetricMorphMagnitude lengthMorph;
     private MetricMorphOrientation orientationMorph;
+    private SizeMetricMorphMagnitude thicknessMorph;
     private double newRotation;
 
     //major flags
-    boolean doCurvatureRotation = false;
-    boolean doRadProfile = true;
+    boolean doCurvatureRotation;
+    boolean doRadProfile;
     //minor flags
     boolean doLength;
     boolean doOrientation;
+    boolean doRadThickness;
 
     //metric morph params:
     // Metric morph limits
-    private final double LENGTH_PERCENT_CHANGE_LOWER = 0.05;
+    private final double LENGTH_PERCENT_CHANGE_LOWER = 0.15;
     private final double LENGTH_PERCENT_CHANGE_UPPER = 0.25;
     private final double ORIENTATION_ANGLE_CHANGE_LOWER = 5 * Math.PI / 180;
     private final double ORIENTATION_ANGLE_CHANGE_UPPER = 20 * Math.PI / 180;
@@ -70,6 +73,7 @@ public class BaseMorphParameters implements ComponentMorphParameters {
         if (!doOrientation) {
             return oldOrientation;
         }
+        orientationMorph.setOldVector(oldOrientation);
         return orientationMorph.calculateVector();
     }
 
@@ -99,15 +103,10 @@ public class BaseMorphParameters implements ComponentMorphParameters {
         if (!doLength) {
             return oldLength;
         }
-        return lengthMorph.calculateMagnitude();
+        return lengthMorph.calculateMagnitude(oldLength);
     }
-
     @Override
     public RadiusProfile morphRadius(RadiusProfile oldRadiusProfile) {
-        if (!doRadProfile) {
-            return oldRadiusProfile;
-        }
-
         Map<Integer, RadiusInfo> oldRadiusInfoForPoints = oldRadiusProfile.getInfoForRadius();
 
         // Find the junction, midpoint, and endpoint radii
@@ -129,25 +128,54 @@ public class BaseMorphParameters implements ComponentMorphParameters {
             }
         }
 
-        // Load and calculate new radii
-        radProfileMorph.loadParams(junctionInfo.getRadius(), midpointInfo.getRadius(), endpointInfo.getRadius());
-        radProfileMorph.calculate();
+        if (junctionInfo == null || midpointInfo == null || endpointInfo == null) {
+            throw new IllegalArgumentException("Old radius profile is missing necessary information");
+        }
+
+        // Calculate original thickness (normalization factor)
+        double originalThickness = Math.max(junctionInfo.getRadius(),
+                Math.max(midpointInfo.getRadius(), endpointInfo.getRadius()));
+
+        // Apply metric size morphing to thickness if enabled
+        double newThickness = originalThickness;
+        if (doRadThickness) {
+            newThickness = thicknessMorph.calculateMagnitude(originalThickness);
+        }
+
+        // Calculate normalized radii
+        double normalizedJunc = junctionInfo.getRadius() / originalThickness;
+        double normalizedMid = midpointInfo.getRadius() / originalThickness;
+        double normalizedEnd = endpointInfo.getRadius() / originalThickness;
+
+        double newNormalizedJunc = normalizedJunc;
+        double newNormalizedMid = normalizedMid;
+        double newNormalizedEnd = normalizedEnd;
+
+        // Apply radProfile morphing if enabled
+        if (doRadProfile) {
+            radProfileMorph.loadParams(normalizedJunc, normalizedMid, normalizedEnd);
+            radProfileMorph.calculate();
+            newNormalizedJunc = radProfileMorph.getNewJunc();
+            newNormalizedMid = radProfileMorph.getNewMid();
+            newNormalizedEnd = radProfileMorph.getNewEnd();
+        }
 
         // Create new radius profile
         RadiusProfile newRadiusProfile = new RadiusProfile();
         newRadiusProfile.addRadiusInfo(junctionInfo.getuNdx(),
-                new RadiusInfo(radProfileMorph.getNewJunc(), junctionInfo.getuNdx(), RADIUS_TYPE.JUNCTION, false));
+                new RadiusInfo(newNormalizedJunc * originalThickness, junctionInfo.getuNdx(), RADIUS_TYPE.JUNCTION, false));
         newRadiusProfile.addRadiusInfo(midpointInfo.getuNdx(),
-                new RadiusInfo(radProfileMorph.getNewMid(), midpointInfo.getuNdx(), RADIUS_TYPE.MIDPT, false));
+                new RadiusInfo(newNormalizedMid * newThickness, midpointInfo.getuNdx(), RADIUS_TYPE.MIDPT, false));
         newRadiusProfile.addRadiusInfo(endpointInfo.getuNdx(),
-                new RadiusInfo(radProfileMorph.getNewEnd(), endpointInfo.getuNdx(), RADIUS_TYPE.ENDPT, false));
+                new RadiusInfo(newNormalizedEnd * newThickness, endpointInfo.getuNdx(), RADIUS_TYPE.ENDPT, false));
 
         return newRadiusProfile;
     }
 
     @Override
     public void distribute() {
-        radProfileMorph = new RadProfileQualitativeMorph(1, 2,
+        radProfileMorph = new RadProfileQualitativeMorph(1,
+                2,
                 false);
         curvatureRotationMorph = new CurvatureRotationQualitativeMorph();
         initializeRadProfileBins();
@@ -171,16 +199,25 @@ public class BaseMorphParameters implements ComponentMorphParameters {
 
         // Distribute minor morphs
         doLength = Math.random() < 0.5; // Length can be true in any case
+        doRadThickness = Math.random() < 0.5; // Thickness can be true in any case
         doOrientation = doCurvatureRotation; // Orientation only if curvatureRotation is true
+
 
         // Initialize metric morph parameters
         if (doLength) {
+            lengthMorph = new LengthMetricMorphMagnitude(3.5);
             lengthMorph.percentChangeLowerBound = LENGTH_PERCENT_CHANGE_LOWER;
             lengthMorph.percentChangeUpperBound = LENGTH_PERCENT_CHANGE_UPPER;
         }
         if (doOrientation) {
+            orientationMorph = new MetricMorphOrientation();
             orientationMorph.setAngleChangeLowerBound(ORIENTATION_ANGLE_CHANGE_LOWER);
             orientationMorph.setAngleChangeUpperBound(ORIENTATION_ANGLE_CHANGE_UPPER);
+        }
+        if (doRadThickness) {
+            thicknessMorph = new SizeMetricMorphMagnitude();
+            thicknessMorph.percentChangeLowerBound = 0.19;
+            thicknessMorph.percentChangeUpperBound = 0.2;
         }
     }
 

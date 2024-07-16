@@ -2388,8 +2388,7 @@ public class AllenMatchStick extends MatchStick {
 		double nowRad= -100.0, u_value;
 		double radiusScale = 1;
 		if(mmp.sizeFlag){
-			mmp.sizeMagnitude.oldValue = radiusScale;
-			radiusScale = mmp.sizeMagnitude.calculateMagnitude();
+			radiusScale = mmp.sizeMagnitude.calculateMagnitude(radiusScale);
 		}
 
 		/*

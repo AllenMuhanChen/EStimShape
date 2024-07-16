@@ -5,18 +5,18 @@ import org.xper.drawing.stick.stickMath_lib;
 public class SizeMetricMorphMagnitude{
 	public double percentChangeLowerBound;
 	public double percentChangeUpperBound;
-	public double oldValue;
 	public double newValue;
-	public final static double range = 1;
+	public final static double range = 1.0;
 	public final static double min = 0.1;
-	
+
 	/**
 	 * outterLowerBound < innerUpperBound < innerLowerBound < outerUpperBound
 	 * A < B < C < D
-	 * output can be between (A & B) or (C & D) but NOT (B & C) 
+	 * output can be between (A & B) or (C & D) but NOT (B & C)
 	 * @return
+	 * @param oldValue
 	 */
-	public double calculateMagnitude() {
+	public double calculateMagnitude(double oldValue) {
 		double newValue;
 		double outerLowerBound = (oldValue - percentChangeUpperBound*range);
 		if(outerLowerBound < min)
@@ -32,5 +32,5 @@ public class SizeMetricMorphMagnitude{
 		this.newValue = newValue;
 		return newValue;
 	}
-	
+
 }
