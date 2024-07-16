@@ -320,7 +320,7 @@ public class DepthLightingPostHocMatchStickTest {
             }
 
             @Override
-            public void redistribute() {
+            public void distribute() {
 
             }
         });

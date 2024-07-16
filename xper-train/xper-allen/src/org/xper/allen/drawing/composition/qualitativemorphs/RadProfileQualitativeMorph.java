@@ -40,7 +40,8 @@ public class RadProfileQualitativeMorph extends QualitativeMorph{
 	public  int minToChange;
 	public int maxToChange;
 
-	public RadProfileQualitativeMorph(int minToChange, int maxToChange, boolean juncEnabled) {
+	public RadProfileQualitativeMorph(int minToChange, int maxToChange,
+									  boolean juncEnabled) {
 		radProfileBins = new ArrayList<Vector3d>();
 		this.minToChange = minToChange;
 		this.maxToChange = maxToChange;

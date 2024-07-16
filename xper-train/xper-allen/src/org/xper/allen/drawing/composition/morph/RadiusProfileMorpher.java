@@ -48,16 +48,16 @@ public class RadiusProfileMorpher {
                 @Override
                 public void accept(Integer pointIndex, RadiusInfo oldRadiusInfo) {
                     double normalizedMagnitude = normalizedMagnitudeForRadii.get(pointIndex);
-                    NormalDistributedComponentMorphParameters.RADIUS_TYPE radiusType = oldRadiusInfo.getRadiusType();
+                    RADIUS_TYPE radiusType = oldRadiusInfo.getRadiusType();
                     double MIN_RADIUS;
                     double MAX_RADIUS;
-                    if (radiusType == NormalDistributedComponentMorphParameters.RADIUS_TYPE.JUNCTION) {
+                    if (radiusType == RADIUS_TYPE.JUNCTION) {
                         MIN_RADIUS = length / 10.0;
                         MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1 / curvature));
-                    } else if (radiusType == NormalDistributedComponentMorphParameters.RADIUS_TYPE.ENDPT) {
+                    } else if (radiusType == RADIUS_TYPE.ENDPT) {
                         MIN_RADIUS = 0.00001;
                         MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1 / curvature));
-                    } else if (radiusType == NormalDistributedComponentMorphParameters.RADIUS_TYPE.MIDPT) {
+                    } else if (radiusType == RADIUS_TYPE.MIDPT) {
                         MIN_RADIUS = length / 10.0;
                         MAX_RADIUS = Math.min(length / 3.0, 0.5 * (1 / curvature));
                     } else {

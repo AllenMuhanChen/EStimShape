@@ -24,5 +24,5 @@ public interface ComponentMorphParameters {
 
     RadiusProfile morphRadius(RadiusProfile oldRadiusProfile);
 
-    void redistribute();
+    void distribute();
 }

@@ -91,7 +91,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 				isOkay = false;
 			}
 		}
-	is180RotationOkay = isOkay;
+		is180RotationOkay = isOkay;
 	}
 	/**
 	 * The bins need to be very specific for this morph.
@@ -128,7 +128,7 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 			rotationFlag = true;
 			curvatureFlag = true;
 
-			assignedCurvatureBin = 0;
+			assignedCurvatureBin = 0; //high curv
 
 		}
 		//If curved already
@@ -150,7 +150,13 @@ public class CurvatureRotationQualitativeMorph extends QualitativeMorph{
 				else {
 					rotationFlag = false;
 					curvatureFlag = true;
-					assignedCurvatureBin = 2;
+					boolean isRNGStraight = stickMath_lib.rand01()<0.5;
+					if(isRNGStraight) {
+						assignedCurvatureBin = 2; //straight curv
+					}
+					else {
+						assignedCurvatureBin = 1; //medium curv
+					}
 				}
 			}
 		}

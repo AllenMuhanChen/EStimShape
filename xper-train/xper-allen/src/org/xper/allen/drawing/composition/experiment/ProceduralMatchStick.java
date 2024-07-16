@@ -1,10 +1,7 @@
 package org.xper.allen.drawing.composition.experiment;
 
 import org.xper.allen.drawing.composition.AllenTubeComp;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.composition.morph.NormalDistributedComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
+import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapCalculation;
 import org.xper.allen.util.CoordinateConverter;
@@ -219,7 +216,13 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      * @param magnitude
      * @param discreteness
      */
-    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, int maxAttempts, boolean doPositionShape, boolean doCompareObjCenteredPos, double magnitude, double discreteness) {
+    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick,
+                                         int drivingComponentIndex,
+                                         int maxAttempts,
+                                         boolean doPositionShape,
+                                         boolean doCompareObjCenteredPos,
+                                         double magnitude,
+                                         double discreteness) {
         int baseComponentIndex;
         List<Integer> baseCompIndcs = new LinkedList<>();
         for (int compId : targetMatchStick.getCompIds()) {
@@ -237,10 +240,11 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             try {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
-                        magnitude,
-                        new NormalMorphDistributer(
-                                discreteness));
+                BaseMorphParameters morphParams = new BaseMorphParameters();
+//                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
+//                        magnitude,
+//                        new NormalMorphDistributer(
+//                                discreteness));
                 for (int i = 0; i < baseCompIndcs.size(); i++) {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
@@ -359,11 +363,14 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         for (ConcaveHull.Point point: pointsToCheck){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
+
+            } else{
                 numPointsInside++;
             }
         }
-        double percentRequiredInside = 0.75;
-        if ((double) numPointsInside / pointsToCheck.size() < percentRequiredInside){
+        double percentRequiredInside = 0.9;
+        double actualNumPointsInside = (double) numPointsInside / pointsToCheck.size();
+        if (actualNumPointsInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle");
         }
 
@@ -459,8 +466,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
 //        double shiftAmount = junc.getRad() * getScaleForMAxisShape();
-        double shiftAmount = 0;
-//        double shiftAmount = junc.getRad();
+//        double shiftAmount = 0;
+        double shiftAmount = junc.getRad();
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
                 junc.getPos(), //this is shifted by applyTranslation

@@ -42,7 +42,7 @@ public class DepthLightingPostHocComponentMorphParameters implements ComponentMo
     }
 
     @Override
-    public void redistribute() {
+    public void distribute() {
 
     }
 }

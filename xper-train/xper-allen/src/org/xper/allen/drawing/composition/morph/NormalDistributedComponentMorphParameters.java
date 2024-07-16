@@ -18,7 +18,7 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         distributeMagnitude();
     }
 
-    public void redistribute() {
+    public void distribute() {
         distributeMagnitude();
     }
 
@@ -96,8 +96,6 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         this.curvatureMagnitude = curvatureMagnitude.get();
         this.radiusProfileMagnitude = radiusProfileMagnitude.get();
     }
-
-    public enum RADIUS_TYPE{JUNCTION, MIDPT, ENDPT}
 
     public Vector3d getOrientation() {
         return orientation;

@@ -122,9 +122,9 @@ public class BaseMorphParametersTest {
     @Test
     public void testMorphRadius() {
         RadiusProfile oldRadiusProfile = new RadiusProfile();
-        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(1.0, 1, NormalDistributedComponentMorphParameters.RADIUS_TYPE.JUNCTION, false));
-        oldRadiusProfile.addRadiusInfo(26, new RadiusInfo(0.8, 26, NormalDistributedComponentMorphParameters.RADIUS_TYPE.MIDPT, false));
-        oldRadiusProfile.addRadiusInfo(51, new RadiusInfo(0.6, 51, NormalDistributedComponentMorphParameters.RADIUS_TYPE.ENDPT, false));
+        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(1.0, 1, RADIUS_TYPE.JUNCTION, false));
+        oldRadiusProfile.addRadiusInfo(26, new RadiusInfo(0.8, 26, RADIUS_TYPE.MIDPT, false));
+        oldRadiusProfile.addRadiusInfo(51, new RadiusInfo(0.6, 51, RADIUS_TYPE.ENDPT, false));
 
         RadiusProfile newRadiusProfile = baseMorphParameters.morphRadius(oldRadiusProfile);
 
