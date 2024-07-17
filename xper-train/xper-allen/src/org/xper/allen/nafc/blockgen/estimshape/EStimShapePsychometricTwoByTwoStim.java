@@ -11,7 +11,6 @@ import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -54,8 +53,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSpec, new double[]{0,0,0});
-
-        sample.positionShape();
+        sample.doSmallMutation(true, true);
         System.out.println("noise origin: " + sample.calculateNoiseOrigin(sample.getDrivingComponent()));
         noiseComponentIndex = sample.getDrivingComponent();
         mSticks.setSample(sample);
