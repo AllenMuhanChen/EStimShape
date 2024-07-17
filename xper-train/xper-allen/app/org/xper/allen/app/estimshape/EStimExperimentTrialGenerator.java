@@ -69,33 +69,33 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Parameters
         //Num Repetitions of Each Condition
-        int X = 2;
+        int X = 10;
 
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
-        noiseConditions.put(0.5, 1);
-        noiseConditions.put(0.4, 1);
-        noiseConditions.put(0.3, 1);
-        noiseConditions.put(0.25, 1);
-        noiseConditions.put(0.2, 1);
-        noiseConditions.put(0.15, 1);
-        noiseConditions.put(0.1, 1);
-        noiseConditions.put(0.05, 1);
+//        noiseConditions.put(0.5, 1);
+//        noiseConditions.put(0.4, 1);
+//        noiseConditions.put(0.3, 1);
+//        noiseConditions.put(0.25, 1);
+//        noiseConditions.put(0.2, 1);
+//        noiseConditions.put(0.15, 1);
+//        noiseConditions.put(0.1, 1);
+//        noiseConditions.put(0.05, 1);
         noiseConditions.put(0.0, 1);
 
 
         Map<String, Double> emphasizeChancesForConditions = new HashMap<>();
-        emphasizeChancesForConditions.put("I", 0.5);
-        emphasizeChancesForConditions.put("III", 0.0);
+//        emphasizeChancesForConditions.put("IV", 0.5);
+//        emphasizeChancesForConditions.put("III", 0.0);
         HashMap<String, Integer> emphNumToRemoveForConditions = new HashMap<>();
-        emphNumToRemoveForConditions.put("I", 2);
-        emphNumToRemoveForConditions.put("III", 1);
+//        emphNumToRemoveForConditions.put("IV", 1);
+//        emphNumToRemoveForConditions.put("III", 1);
 
 
 
         Map<String, Double> minimizeChancesForConditions = new HashMap<>();
-        minimizeChancesForConditions.put("IV", 0.25);
-        minimizeChancesForConditions.put("III", 0.0);
+//        minimizeChancesForConditions.put("II", 0.25);
+//        minimizeChancesForConditions.put("III", 0.75);
 
 
 

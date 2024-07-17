@@ -183,22 +183,14 @@ public class BaseMorphParameters implements ComponentMorphParameters {
 
         // Implement the desired probability distribution
         double random = Math.random();
-        if (random < 1.0 / 3.0) {
-            // Only curvatureRotation
-            doCurvatureRotation = true;
-            doRadProfile = false;
-        } else if (random < 2.0 / 3.0) {
-            // Only radProfile
-            doCurvatureRotation = false;
-            doRadProfile = true;
-        } else {
-            // Both curvatureRotation and radProfile
-            doCurvatureRotation = true;
-            doRadProfile = true;
-        }
+
+        // Both curvatureRotation and radProfile
+        doCurvatureRotation = true;
+        doRadProfile = true;
+
 
         // Distribute minor morphs
-        doLength = Math.random() < 0.5; // Length can be true in any case
+        doLength = false;
         doRadThickness = Math.random() < 0.5; // Thickness can be true in any case
         doOrientation = doCurvatureRotation; // Orientation only if curvatureRotation is true
 

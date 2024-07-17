@@ -26,10 +26,10 @@ def main():
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
     since_date = time_util.from_date_to_now(2024, 7, 10)
-    last_experiment = since_nth_most_recent_experiment(conn, n=1)
-    start_gen_id = 0
+    last_experiment = since_nth_most_recent_experiment(conn, n=2)
+    start_gen_id = 436
 
-    trial_tstamps = collect_choice_trials(conn, since_date)
+    trial_tstamps = collect_choice_trials(conn, last_experiment)
 
     fields = CachedFieldList()
     fields.append(IsCorrectField(conn))

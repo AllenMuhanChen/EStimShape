@@ -54,6 +54,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSpec, new double[]{0,0,0});
+
+        sample.positionShape();
         System.out.println("noise origin: " + sample.calculateNoiseOrigin(sample.getDrivingComponent()));
         noiseComponentIndex = sample.getDrivingComponent();
         mSticks.setSample(sample);

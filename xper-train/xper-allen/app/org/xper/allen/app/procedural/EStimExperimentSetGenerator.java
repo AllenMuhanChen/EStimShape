@@ -50,7 +50,7 @@ public class EStimExperimentSetGenerator {
     public void generateSet() {
         //PARAMETERS
 //        long stimId = 1717531847396095L;
-        long stimId = 1717531847412873L;
+        long stimId = 1717531847361040L;
         int compId = 2;
         nComp = 2;
 

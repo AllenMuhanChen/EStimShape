@@ -50,9 +50,22 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
         if (stimType.equals("EStimShapePsychometricTwoByTwoStim")){
 //            rewardMultiplier = (rewardMultiplier * 1.5) + 0.75;
         }
+
+//        // Rand Multiplier Penalty
+//        int randCount = 0;
+//        for (int i = 0; i < task.getChoiceSpec().length; i++) {
+//            NoisyPngSpec choiceSpec = NoisyPngSpec.fromXml(task.getChoiceSpec()[i]);
+//            String choicePngPath = choiceSpec.getPngPath();
+//            if (choicePngPath.contains("rand")) {
+//                randCount++;
+//            }
+//        }
+//
+//        int proceduralCount = 4 - randCount;
+//        rewardMultiplier = (proceduralCount / 4.0) * rewardMultiplier;
+//        rewardMultiplier = Math.max(1, rewardMultiplier);
+
         System.err.println("Reward Multiplier: " + rewardMultiplier);
-
-
     }
 
     private void deliverReward(long timestamp) {
