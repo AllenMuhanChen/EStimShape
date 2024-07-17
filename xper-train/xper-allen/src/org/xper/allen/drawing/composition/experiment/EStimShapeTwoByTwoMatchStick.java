@@ -14,7 +14,7 @@ import javax.vecmath.Point3d;
 import java.util.HashMap;
 import java.util.Map;
 
-public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
+public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
     private final RFStrategy rfStrategy;
     private final ReceptiveField rf;

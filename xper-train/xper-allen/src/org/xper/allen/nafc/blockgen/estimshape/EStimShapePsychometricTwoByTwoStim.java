@@ -4,7 +4,7 @@ import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
-import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
+import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.nafc.blockgen.procedural.EStimShapeProceduralStim;
 import org.xper.allen.nafc.blockgen.procedural.Procedural;
 import org.xper.allen.pga.RFStrategy;
@@ -19,7 +19,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     private final String sampleSetCondition;
     //input parameters
     EStimExperimentTrialGenerator generator;
-    AllenMStickSpec sampleSpec;
+    AllenMStickSpec sampleSetSpec;
     Map<String, AllenMStickSpec> baseProceduralDistractorSpecs;
 
     Procedural<String> setType = new Procedural<>();
@@ -34,7 +34,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         super(generator, parameters, null, -1,
                 isEStimEnabled);
         this.generator = (EStimExperimentTrialGenerator) generator;
-        this.sampleSpec = sampleSpec;
+        this.sampleSetSpec = sampleSpec;
         this.baseProceduralDistractorSpecs = baseProceduralDistractorSpecs;
         parameters.numChoices = baseProceduralDistractorSpecs.size() + 1 + parameters.numRandDistractors;
         this.sampleSetCondition = sampleSetCondition;
@@ -52,7 +52,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
                 parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromShapeSpec(sampleSpec, new double[]{0,0,0});
+        sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
         sample.doSmallMutation(true, true);
         System.out.println("noise origin: " + sample.calculateNoiseOrigin(sample.getDrivingComponent()));
         noiseComponentIndex = sample.getDrivingComponent();
@@ -60,10 +60,10 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         mStickSpecs.setSample(mStickToSpec(sample));
 
         //match
-        TwobyTwoMatchStick match = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick match = new TwoByTwoMatchStick();
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
-        match.genMatchStickFromShapeSpec(sampleSpec, new double[]{0,0,0});
+        match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
         match.centerShape();
         mSticks.setMatch(match);
         mStickSpecs.setMatch(mStickToSpec(match));
@@ -72,10 +72,11 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         //choices
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
             AllenMStickSpec choiceSpec = baseProceduralDistractorSpecs.get(setCondition);
-            TwobyTwoMatchStick choice = new TwobyTwoMatchStick();
+            TwoByTwoMatchStick choice = new TwoByTwoMatchStick();
             choice.setProperties(parameters.getSize(), parameters.textureType);
             choice.setStimColor(parameters.color);
             choice.genMatchStickFromShapeSpec(choiceSpec, new double[]{0,0,0});
+            choice.doSmallMutation(true, true);
             choice.centerShape();
             mSticks.addProceduralDistractor(choice);
             mStickSpecs.addProceduralDistractor(mStickToSpec(choice));

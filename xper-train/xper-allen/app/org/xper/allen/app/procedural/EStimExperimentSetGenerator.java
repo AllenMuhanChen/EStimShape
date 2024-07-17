@@ -6,7 +6,7 @@ import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
-import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
+import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.exception.XGLException;
@@ -163,7 +163,7 @@ public class EStimExperimentSetGenerator {
     }
 
     private void savePng(EStimShapeTwoByTwoMatchStick stick, long stimId, String type) {
-        TwobyTwoMatchStick stickToDraw = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick stickToDraw = new TwoByTwoMatchStick();
         stickToDraw.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         AllenMStickSpec stickSpec = new AllenMStickSpec();
         stickSpec.setMStickInfo(stick, true);

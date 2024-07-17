@@ -16,10 +16,10 @@ import java.util.Collections;
 
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
-public class TwobyTwoMatchStickTest {
+public class TwoByTwoMatchStickTest {
 
     private String testBin;
-    private TwobyTwoMatchStick baseMStick;
+    private TwoByTwoMatchStick baseMStick;
     private AllenPNGMaker pngMaker;
 
     public static final ReceptiveField PARTIAL_RF = new ReceptiveField() {
@@ -56,7 +56,7 @@ public class TwobyTwoMatchStickTest {
         pngMaker.createDrawerWindow();
 
 
-        baseMStick = new TwobyTwoMatchStick();
+        baseMStick = new TwoByTwoMatchStick();
         baseMStick.setProperties(8, "SHADE");
         baseMStick.genMatchStickRand();
 
@@ -67,22 +67,22 @@ public class TwobyTwoMatchStickTest {
 
     @Test
     public void test_msticks() {
-        TwobyTwoMatchStick firstMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick firstMStick = new TwoByTwoMatchStick();
         firstMStick.setProperties(40, "SHADE");
         firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         drawPng(firstMStick, 2L);
 
-        TwobyTwoMatchStick secondMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick secondMStick = new TwoByTwoMatchStick();
         secondMStick.setProperties(40, "SHADE");
         secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
         drawPng(secondMStick, 3L);
 
-        TwobyTwoMatchStick thirdMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick thirdMStick = new TwoByTwoMatchStick();
         thirdMStick.setProperties(40, "SHADE");
         thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true);
         drawPng(thirdMStick, 4L);
 
-        TwobyTwoMatchStick fourthMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick fourthMStick = new TwoByTwoMatchStick();
         fourthMStick.setProperties(40, "SHADE");
         fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true);
         drawPng(fourthMStick, 5L);
@@ -112,7 +112,7 @@ public class TwobyTwoMatchStickTest {
         drawPng(fourthMStick, 14L);
     }
 
-    private void drawPng(TwobyTwoMatchStick matchStick, long id) {
+    private void drawPng(TwoByTwoMatchStick matchStick, long id) {
 //        pngMaker = new AllenPNGMaker(500, 500);
         AllenMStickSpec spec = new AllenMStickSpec();
         spec.setMStickInfo(matchStick, true);
