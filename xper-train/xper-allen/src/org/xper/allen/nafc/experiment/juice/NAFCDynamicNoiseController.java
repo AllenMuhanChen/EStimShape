@@ -3,7 +3,6 @@ package org.xper.allen.nafc.experiment.juice;
 import org.apache.commons.math.FunctionEvaluationException;
 import org.apache.commons.math.analysis.UnivariateRealFunction;
 import org.xper.Dependency;
-import org.xper.allen.nafc.NAFCStim;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.nafc.message.ChoiceEventListener;
@@ -12,8 +11,17 @@ import org.xper.allen.specs.NoisyPngSpec;
 import org.xper.juice.Juice;
 
 import java.sql.Timestamp;
-import java.util.List;
-public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
+
+/**
+ * Scales reward with difficulty:
+ *  noiseChance
+ *  number of choices
+ *  psychometric reward (disabled)
+ *
+ *
+ *  Scales reward with streaks of correct choices
+ */
+public class NAFCDynamicNoiseController implements ChoiceEventListener {
     @Dependency
     Juice juice;
 
@@ -21,6 +29,11 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
     UnivariateRealFunction noiseRewardFunction;
 
     private double rewardMultiplier = 1;
+
+    //streaks
+    private int correctStreak = 0;
+    int streakThreshold = 3;
+    boolean isStreak = false;
 
     @Override
     public void sampleOn(long timestamp, NAFCTrialContext context) {
@@ -44,12 +57,19 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
             rewardMultiplier = rewardMultiplier * 0.5;
         }
 
-        //Psychometric Reward Multiplier
-        NAFCStimSpecSpec stimSpec = NAFCStimSpecSpec.fromXml(task.getStimSpec());
-        String stimType = stimSpec.getStimType();
-        if (stimType.equals("EStimShapePsychometricTwoByTwoStim")){
-//            rewardMultiplier = (rewardMultiplier * 1.5) + 0.75;
+        //STREAKS
+        System.out.println("Correct Streak: " + correctStreak);
+        if (isStreak){
+            System.out.println("STREAK MULTIPLIER ACTIVATED");
+            rewardMultiplier = rewardMultiplier * 2;
         }
+
+//        //Psychometric Reward Multiplier
+//        NAFCStimSpecSpec stimSpec = NAFCStimSpecSpec.fromXml(task.getStimSpec());
+//        String stimType = stimSpec.getStimType();
+//        if (stimType.equals("EStimShapePsychometricTwoByTwoStim")){
+//            rewardMultiplier = (rewardMultiplier * 1.5) + 0.75;
+//        }
 
 //        // Rand Multiplier Penalty
 //        int randCount = 0;
@@ -64,6 +84,8 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
 //        int proceduralCount = 4 - randCount;
 //        rewardMultiplier = (proceduralCount / 4.0) * rewardMultiplier;
 //        rewardMultiplier = Math.max(1, rewardMultiplier);
+
+
 
         System.err.println("Reward Multiplier: " + rewardMultiplier);
     }
@@ -86,11 +108,27 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
     @Override
     public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
         deliverReward(timestamp);
+        addToStreak();
+    }
+
+    private void addToStreak() {
+        correctStreak++;
+        if (correctStreak >= streakThreshold){
+            isStreak = true;
+        } else{
+            isStreak = false;
+        }
+    }
+
+    private void resetStreak() {
+        correctStreak = 0;
+        isStreak = false;
     }
 
     @Override
     public void choiceSelectionDefaultCorrect(long timestamp) {
         deliverReward(timestamp);
+        addToStreak();
     }
 
     @Override
@@ -127,14 +165,16 @@ public class NAFCNoiseScalingNoiseController implements ChoiceEventListener {
 
     @Override
     public void choiceSelectionNull(long timestamp) {
-
+        resetStreak();
     }
 
 
     @Override
     public void choiceSelectionIncorrect(long timestamp, int[] rewardList) {
-
+        resetStreak();
     }
+
+
 
     public Juice getJuice() {
         return juice;
