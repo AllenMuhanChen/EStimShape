@@ -45,7 +45,7 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 
     //streaks
     private int correctStreak = 0;
-    int streakThreshold = 0;
+    int streakThreshold = 3;
     boolean isStreak = false;
 
     @Override
@@ -92,10 +92,6 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 //        int proceduralCount = 4 - randCount;
 //        rewardMultiplier = (proceduralCount / 4.0) * rewardMultiplier;
 //        rewardMultiplier = Math.max(1, rewardMultiplier);
-
-
-
-        System.err.println("Reward Multiplier: " + rewardMultiplier);
     }
 
     private void drawStreak(Context context) {
@@ -111,6 +107,8 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
     }
 
     private void deliverReward(long timestamp) {
+        System.err.println("Reward Multiplier: " + rewardMultiplier);
+
         for (int i = 0; i< Math.floor(rewardMultiplier); i++){
             juice.deliver();
             System.out.println("Multiplier Juice delivered @ " + new Timestamp(timestamp /1000).toString());
@@ -132,7 +130,7 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         //STREAKS
         System.out.println("Correct Streak: " + correctStreak);
         if (isStreak){
-            System.out.println("STREAK MULTIPLIER ACTIVATED: " + rewardMultiplier);
+            System.out.println("STREAK MULTIPLIER ACTIVATED");
             rewardMultiplier = rewardMultiplier * 2;
         }
 
