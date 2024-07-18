@@ -15,6 +15,7 @@ import org.xper.allen.nafc.experiment.juice.LinearControlPointFunction;
 import org.xper.allen.nafc.experiment.juice.NAFCDynamicNoiseController;
 import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.noisy.nafc.NoisyNAFCPngScene;
+import org.xper.classic.MarkStimTrialDrawingController;
 import org.xper.drawing.object.BlankScreen;
 import org.xper.drawing.object.FixationPoint;
 
@@ -119,6 +120,8 @@ public class ProceduralAppConfig {
         NAFCDynamicNoiseController controller = new NAFCDynamicNoiseController();
         controller.setJuice(pngConfig.classicConfig.xperDynamicJuice());
         controller.setNoiseRewardFunction(noiseRewardFunction());
+        controller.setRenderer(pngConfig.config.experimentGLRenderer());
+        controller.setDrawingController((MarkStimTrialDrawingController) pngConfig.config.drawingController());
         return controller;
     }
 

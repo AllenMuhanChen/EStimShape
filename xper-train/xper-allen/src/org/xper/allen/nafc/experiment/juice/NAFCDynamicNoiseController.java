@@ -6,9 +6,16 @@ import org.xper.Dependency;
 import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.nafc.message.ChoiceEventListener;
-import org.xper.allen.specs.NAFCStimSpecSpec;
 import org.xper.allen.specs.NoisyPngSpec;
+import org.xper.classic.MarkStimTrialDrawingController;
+import org.xper.classic.TrialDrawingController;
+import org.xper.drawing.Context;
+import org.xper.drawing.Drawable;
+import org.xper.drawing.GLUtil;
+import org.xper.drawing.object.Circle;
+import org.xper.drawing.renderer.Renderer;
 import org.xper.juice.Juice;
+import org.xper.util.ThreadUtil;
 
 import java.sql.Timestamp;
 
@@ -28,11 +35,17 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
     @Dependency
     UnivariateRealFunction noiseRewardFunction;
 
+    @Dependency
+    MarkStimTrialDrawingController drawingController;
+
+    @Dependency
+    Renderer renderer;
+
     private double rewardMultiplier = 1;
 
     //streaks
     private int correctStreak = 0;
-    int streakThreshold = 3;
+    int streakThreshold = 0;
     boolean isStreak = false;
 
     @Override
@@ -90,6 +103,19 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         System.err.println("Reward Multiplier: " + rewardMultiplier);
     }
 
+    private void drawStreak(Context context) {
+        Drawable streak = new Drawable() {
+            @Override
+            public void draw(Context context) {
+                GLUtil.drawCircle(new Circle(true, 5), 0, 0, 0,0,255,0);
+            }
+
+        };
+        renderer.draw(streak, context);
+        drawingController.getWindow().swapBuffers();
+        ThreadUtil.sleep(5000);
+    }
+
     private void deliverReward(long timestamp) {
         for (int i = 0; i< Math.floor(rewardMultiplier); i++){
             juice.deliver();
@@ -106,9 +132,13 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
     }
 
     @Override
-    public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
+    public void choiceSelectionCorrect(long timestamp, int[] rewardList, Context context) {
         deliverReward(timestamp);
         addToStreak();
+        if (isStreak){
+            drawStreak(context);
+
+        }
     }
 
     private void addToStreak() {
@@ -190,5 +220,21 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 
     public void setNoiseRewardFunction(UnivariateRealFunction noiseRewardFunction) {
         this.noiseRewardFunction = noiseRewardFunction;
+    }
+
+    public TrialDrawingController getDrawingController() {
+        return drawingController;
+    }
+
+    public void setDrawingController(MarkStimTrialDrawingController drawingController) {
+        this.drawingController = drawingController;
+    }
+
+    public Renderer getRenderer() {
+        return renderer;
+    }
+
+    public void setRenderer(Renderer renderer) {
+        this.renderer = renderer;
     }
 }

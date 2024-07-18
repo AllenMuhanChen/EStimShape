@@ -1,6 +1,7 @@
 package org.xper.allen.nafc.message;
 
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
+import org.xper.drawing.Context;
 
 public interface ChoiceEventListener {
 	public void sampleOn(long timestamp, NAFCTrialContext context);
@@ -12,7 +13,7 @@ public interface ChoiceEventListener {
 	public void choiceSelectionSuccess(long timestamp, int choice);
 	//public void choiceSelectionEyeBreak(long timestamp);
 	public void choiceSelectionNull(long timestamp);
-	public void choiceSelectionCorrect(long timestamp, int[] rewardList);
+	public void choiceSelectionCorrect(long timestamp, int[] rewardList, Context context);
 	public void choiceSelectionIncorrect(long timestamp, int[] rewardList);
 	public void choiceSelectionDefaultCorrect(long timestamp);
 }

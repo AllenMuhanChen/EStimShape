@@ -16,6 +16,7 @@ import org.xper.classic.TrialExperimentMessageDispatcher;
 import org.xper.classic.vo.TrialContext;
 import org.xper.db.vo.BehMsgEntry;
 import org.xper.db.vo.TrialMessage;
+import org.xper.drawing.Context;
 import org.xper.exception.OverflowException;
 import org.xper.exception.RuntimeIOException;
 import org.xper.util.SocketUtil;
@@ -130,7 +131,7 @@ public class NAFCExperimentMessageDispatcher extends TrialExperimentMessageDispa
 	}
 
 	@Override
-	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
+	public void choiceSelectionCorrect(long timestamp, int[] rewardList, Context context) {
 		enqueue(timestamp, "ChoiceSelectionCorrect", Arrays.toString(rewardList));
 		trialStat.setChoiceCorrect(trialStat.getChoiceCorrect()+1);
 	}
