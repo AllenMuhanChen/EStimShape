@@ -70,12 +70,7 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
             rewardMultiplier = rewardMultiplier * 0.5;
         }
 
-        //STREAKS
-        System.out.println("Correct Streak: " + correctStreak);
-        if (isStreak){
-            System.out.println("STREAK MULTIPLIER ACTIVATED");
-            rewardMultiplier = rewardMultiplier * 2;
-        }
+
 
 //        //Psychometric Reward Multiplier
 //        NAFCStimSpecSpec stimSpec = NAFCStimSpecSpec.fromXml(task.getStimSpec());
@@ -113,7 +108,6 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
         };
         renderer.draw(streak, context);
         drawingController.getWindow().swapBuffers();
-        ThreadUtil.sleep(5000);
     }
 
     private void deliverReward(long timestamp) {
@@ -133,12 +127,19 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 
     @Override
     public void choiceSelectionCorrect(long timestamp, int[] rewardList, Context context) {
-        deliverReward(timestamp);
         addToStreak();
+
+        //STREAKS
+        System.out.println("Correct Streak: " + correctStreak);
+        if (isStreak){
+            System.out.println("STREAK MULTIPLIER ACTIVATED: " + rewardMultiplier);
+            rewardMultiplier = rewardMultiplier * 2;
+        }
+
         if (isStreak){
             drawStreak(context);
-
         }
+        deliverReward(timestamp);
     }
 
     private void addToStreak() {
