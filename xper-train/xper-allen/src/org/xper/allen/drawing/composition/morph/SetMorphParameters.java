@@ -17,12 +17,18 @@ public class SetMorphParameters implements ComponentMorphParameters {
     private CurvatureMetricMorphMagnitude curvatureMorph;
     private RotationMetricMorphMagnitude rotationMorph;
 
-    public SetMorphParameters(double maxImageDimensionDegrees) {
+    //flags
+    boolean doThickness;
+    boolean doLength;
+    boolean doOrientation;
+
+    public SetMorphParameters() {
         thicknessMorph = new SizeMetricMorphMagnitude();
-        lengthMorph = new LengthMetricMorphMagnitude(maxImageDimensionDegrees / 2);
+        lengthMorph = new LengthMetricMorphMagnitude(10);
         orientationMorph = new MetricMorphOrientation();
-        curvatureMorph = new CurvatureMetricMorphMagnitude(maxImageDimensionDegrees);
-        rotationMorph = new RotationMetricMorphMagnitude();
+
+
+
 
         // Set default values for percent changes
         thicknessMorph.percentChangeLowerBound = 0.22;
@@ -61,14 +67,56 @@ public class SetMorphParameters implements ComponentMorphParameters {
 
     @Override
     public RadiusProfile morphRadius(RadiusProfile oldRadiusProfile) {
-//        RadiusProfile newProfile = new RadiusProfile();
-//        for (Map.Entry<Integer, RadiusInfo> entry : oldRadiusProfile.getInfoForRadius().entrySet()) {
-//            RadiusInfo oldInfo = entry.getValue();
-////            double newRadius = thicknessMorph.calculateMagnitude(oldRadiusProfile);
-////            RadiusInfo newInfo = new RadiusInfo(newRadius, oldInfo.getuNdx(), oldInfo.getRadiusType(), oldInfo.getPreserve());
-////            newProfile.addRadiusInfo(entry.getKey(), newInfo);
-//        }
-//        return newProfile;
+        Map<Integer, RadiusInfo> oldRadiusInfoForPoints = oldRadiusProfile.getInfoForRadius();
+
+        // Find the junction, midpoint, and endpoint radii
+        RadiusInfo junctionInfo = null;
+        RadiusInfo midpointInfo = null;
+        RadiusInfo endpointInfo = null;
+
+        for (RadiusInfo info : oldRadiusInfoForPoints.values()) {
+            switch (info.getRadiusType()) {
+                case JUNCTION:
+                    junctionInfo = info;
+                    break;
+                case MIDPT:
+                    midpointInfo = info;
+                    break;
+                case ENDPT:
+                    endpointInfo = info;
+                    break;
+            }
+        }
+
+        if (junctionInfo == null || midpointInfo == null || endpointInfo == null) {
+            throw new IllegalArgumentException("Old radius profile is missing necessary information");
+        }
+
+        // Calculate original thickness (normalization factor)
+        double originalThickness = Math.max(junctionInfo.getRadius(),
+                Math.max(midpointInfo.getRadius(), endpointInfo.getRadius()));
+
+        double newThickness = originalThickness;
+        if (doThickness) {
+            newThickness = thicknessMorph.calculateMagnitude(originalThickness);
+            // Calculate new thickness (normalized by original thickness
+        }
+
+        // Calculate normalized radii
+        double normalizedJunc = junctionInfo.getRadius() / originalThickness;
+        double normalizedMid = midpointInfo.getRadius() / originalThickness;
+        double normalizedEnd = endpointInfo.getRadius() / originalThickness;
+
+        // Create new radius profile
+        RadiusProfile newRadiusProfile = new RadiusProfile();
+        newRadiusProfile.addRadiusInfo(junctionInfo.getuNdx(),
+                new RadiusInfo(normalizedJunc * originalThickness, junctionInfo.getuNdx(), RADIUS_TYPE.JUNCTION, false));
+        newRadiusProfile.addRadiusInfo(midpointInfo.getuNdx(),
+                new RadiusInfo(normalizedMid * newThickness, midpointInfo.getuNdx(), RADIUS_TYPE.MIDPT, false));
+        newRadiusProfile.addRadiusInfo(endpointInfo.getuNdx(),
+                new RadiusInfo(normalizedEnd * newThickness, endpointInfo.getuNdx(), RADIUS_TYPE.ENDPT, false));
+
+        return newRadiusProfile;
     }
 
     @Override
