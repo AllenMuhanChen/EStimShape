@@ -61,9 +61,10 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
 
-        boolean mutationSuccess = attemptMutation(sample);
+        boolean mutationSuccess = attemptSetMutation(sample);
         if (!mutationSuccess) {
             System.out.println("Warning: Failed to generate a valid mutation for sample after " + MAX_MUTATION_ATTEMPTS + " attempts.");
+            throw new RuntimeException();
         }
 
         System.out.println("noise origin: " + sample.calculateNoiseOrigin(sample.getDrivingComponent()));
@@ -92,7 +93,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             choice.setStimColor(parameters.color);
             choice.genMatchStickFromShapeSpec(choiceSpec, new double[]{0,0,0});
 
-            boolean mutationSuccess = attemptMutation(choice);
+            boolean mutationSuccess = attemptSetMutation(choice);
             if (!mutationSuccess) {
                 System.out.println("Warning: Failed to generate a valid mutation for procedural distractor after " + MAX_MUTATION_ATTEMPTS + " attempts.");
             }
@@ -104,10 +105,12 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         }
     }
 
-    private boolean attemptMutation(TwoByTwoMatchStick matchStick) {
+    private boolean attemptSetMutation(TwoByTwoMatchStick matchStick) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
-                matchStick.doSmallMutation(true, false);
+                matchStick.doSmallMutation(
+                        true,
+                        false);
                 return true;  // Mutation successful
             } catch (Exception e) {
                 System.out.println("Mutation attempt " + (attempt + 1) + " failed: " + e.getMessage());

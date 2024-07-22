@@ -46,6 +46,8 @@ public class SetMorphParameters implements ComponentMorphParameters {
         orientationAngleMax = Math.PI * 2;
 
         numberOfMorphs = 2;
+
+        distribute();
     }
 
     @Override
