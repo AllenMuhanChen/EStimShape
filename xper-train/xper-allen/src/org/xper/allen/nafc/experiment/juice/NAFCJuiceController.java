@@ -3,10 +3,9 @@ package org.xper.allen.nafc.experiment.juice;
 import java.sql.Timestamp;
 
 import org.xper.Dependency;
-import org.xper.allen.nafc.experiment.NAFCExperimentTask;
 import org.xper.allen.nafc.experiment.NAFCTrialContext;
 import org.xper.allen.nafc.message.ChoiceEventListener;
-import org.xper.allen.specs.NoisyPngSpec;
+import org.xper.drawing.Context;
 import org.xper.juice.Juice;
 
 
@@ -31,7 +30,7 @@ public class NAFCJuiceController implements ChoiceEventListener {
 
 
 	@Override
-	public void choiceSelectionCorrect(long timestamp, int[] rewardList) {
+	public void choiceSelectionCorrect(long timestamp, int[] rewardList, Context context) {
 		System.out.println("Juice delivered @ " + new Timestamp(timestamp/1000).toString());
 		juice.deliver();
 		for (int i = 0; i< choiceCorrectMultiplier-1; i++){
