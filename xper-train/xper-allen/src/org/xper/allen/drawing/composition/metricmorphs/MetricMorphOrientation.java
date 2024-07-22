@@ -85,7 +85,6 @@ public class MetricMorphOrientation {
 	}
 	/**
 	 * Checks if vector within a certain degree region from canonical boundaries
-	 * @param num
 	 * @return
 	 */
 	private boolean checkInCanonicalBoundary(Vector3d vector) {
