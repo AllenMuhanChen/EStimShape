@@ -41,7 +41,7 @@ public class SetMorphParameters implements ComponentMorphParameters {
         lengthPercentChange = 0.50;
         lengthMin = 1.5;
 
-        orientationAngleChange = Math.PI / 2;
+        orientationAngleChange = Math.PI / 4;
         orientationAngleMin = 0;
         orientationAngleMax = Math.PI * 2;
 
