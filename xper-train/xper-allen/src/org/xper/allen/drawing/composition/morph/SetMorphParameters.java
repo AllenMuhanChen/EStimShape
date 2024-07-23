@@ -113,9 +113,12 @@ public class SetMorphParameters implements ComponentMorphParameters {
             if (oldInfo.getRadiusType() == RADIUS_TYPE.ENDPT) {
                 rMin = 0.00001;
                 rMax = Math.min(arcLength / 3.0, 0.5 * rad);
-            } else {  // JUNCTION or MIDPT
+            } else if (oldInfo.getRadiusType() == RADIUS_TYPE.MIDPT){  // JUNCTION or MIDPT
                 rMin = arcLength / 10.0;
                 rMax = Math.min(arcLength / 3.0, 0.5 * rad);
+            } else{
+                rMin = oldInfo.getRadius();
+                rMax = oldInfo.getRadius();
             }
 
             newRadius = Math.max(rMin, Math.min(rMax, newRadius));
