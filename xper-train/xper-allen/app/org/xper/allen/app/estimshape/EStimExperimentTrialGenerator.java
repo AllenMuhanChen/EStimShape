@@ -65,7 +65,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     private void addTrials_TwoByTwo_training(){
         //input Parameters
-        Color stimColor = new Color(0.5f, 0.5f, 0.5f);
+        Color stimColor = new Color(1f, 1f, 1f);
 
         //Parameters
         //Num Repetitions of Each Condition
