@@ -7,16 +7,19 @@ import java.util.Random;
 
 public class SetMorphParameters implements ComponentMorphParameters {
     // Morphing parameters
-    private double thicknessPercentChange;
+    private double thicknessMaxPercentChange;
+    private double thicknessMinPercentChange;
     private double thicknessMin;
     private double thicknessMax;
 
-    private double lengthPercentChange;
+    private double lengthMaxPercentChange;
+    private double lengthMinPercentChange;
     private double lengthMin;
     private double lengthMax;
     private double rad;
 
-    private double orientationAngleChange;
+    private double orientationMaxAngleChange;
+    private double orientationMinAngleChange;
     private double orientationAngleMin;
     private double orientationAngleMax;
 
@@ -34,18 +37,21 @@ public class SetMorphParameters implements ComponentMorphParameters {
 
     public SetMorphParameters() {
         // Set default values
-        thicknessPercentChange = 0.5;
+        thicknessMaxPercentChange = 0.5;
+        thicknessMinPercentChange = 0.4;
         thicknessMin = 0.5;
         thicknessMax = 2.0;
 
-        lengthPercentChange = 0.50;
+        lengthMaxPercentChange = 0.50;
+        lengthMinPercentChange = 0.40;
         lengthMin = 1.5;
 
-        orientationAngleChange = Math.PI / 4;
+        orientationMaxAngleChange = Math.PI / 4;
+        orientationMinAngleChange = Math.PI / 8;
         orientationAngleMin = 0;
         orientationAngleMax = Math.PI * 2;
 
-        numberOfMorphs = 2;
+        numberOfMorphs = 3;
 
         distribute();
     }
@@ -57,7 +63,7 @@ public class SetMorphParameters implements ComponentMorphParameters {
         double angle = Math.acos(oldOrientation.z);
         double phi = Math.atan2(oldOrientation.y, oldOrientation.x);
 
-        double change = (random.nextDouble() * 2 - 1) * orientationAngleChange;
+        double change = generateChange(orientationMinAngleChange, orientationMaxAngleChange);
         angle += change;
         angle = Math.max(orientationAngleMin, Math.min(orientationAngleMax, angle));
 
@@ -87,7 +93,7 @@ public class SetMorphParameters implements ComponentMorphParameters {
     public Double morphLength(Double oldLength) {
         if (!doLength) return oldLength;
 
-        double percentChange = (random.nextDouble() * 2 - 1) * lengthPercentChange;
+        double percentChange = generateChange(lengthMinPercentChange, lengthMaxPercentChange);
         double newLength = oldLength * (1 + percentChange);
         return Math.max(lengthMin, Math.min(lengthMax, newLength));
     }
@@ -97,7 +103,7 @@ public class SetMorphParameters implements ComponentMorphParameters {
         if (!doThickness) return oldRadiusProfile;
 
         RadiusProfile newRadiusProfile = new RadiusProfile();
-        double percentChange = (random.nextDouble() * 2 - 1) * thicknessPercentChange;
+        double percentChange = generateChange(thicknessMinPercentChange, thicknessMaxPercentChange);
 
         for (Map.Entry<Integer, RadiusInfo> entry : oldRadiusProfile.getInfoForRadius().entrySet()) {
             RadiusInfo oldInfo = entry.getValue();
@@ -121,6 +127,11 @@ public class SetMorphParameters implements ComponentMorphParameters {
         return newRadiusProfile;
     }
 
+    private double generateChange(double minChange, double maxChange) {
+        double change = random.nextDouble() * (maxChange - minChange) + minChange;
+        return random.nextBoolean() ? change : -change;
+    }
+
     @Override
     public void distribute() {
         doThickness = doLength = doOrientation = false;
@@ -136,20 +147,23 @@ public class SetMorphParameters implements ComponentMorphParameters {
     }
 
     // Getters and setters
-    public void setThicknessParameters(double percentChange, double min, double max) {
-        this.thicknessPercentChange = percentChange;
+    public void setThicknessParameters(double percentChange, double minPercentChange, double min, double max) {
+        this.thicknessMaxPercentChange = percentChange;
+        this.thicknessMinPercentChange = minPercentChange;
         this.thicknessMin = min;
         this.thicknessMax = max;
     }
 
-    public void setLengthParameters(double percentChange, double min, double max) {
-        this.lengthPercentChange = percentChange;
+    public void setLengthParameters(double percentChange, double minPercentChange, double min, double max) {
+        this.lengthMaxPercentChange = percentChange;
+        this.lengthMinPercentChange = minPercentChange;
         this.lengthMin = min;
         this.lengthMax = max;
     }
 
-    public void setOrientationParameters(double angleChange, double min, double max) {
-        this.orientationAngleChange = angleChange;
+    public void setOrientationParameters(double angleChange, double minAngleChange, double min, double max) {
+        this.orientationMaxAngleChange = angleChange;
+        this.orientationMinAngleChange = minAngleChange;
         this.orientationAngleMin = min;
         this.orientationAngleMax = max;
     }
