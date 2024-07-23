@@ -71,7 +71,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     private void generateMorphedSet() {
         morphedSetSpecs = new LinkedHashMap<>();
         //I* - B1D1
-        EStimShapeTwoByTwoMatchStick morphedStickI = morphStickI();
+        EStimShapeTwoByTwoMatchStick morphedStickI = setMorphI();
         AllenMStickSpec morphedStickISpec = mStickToSpec(morphedStickI);
         this.morphedSetSpecs.put("I", morphedStickISpec);
 
@@ -87,7 +87,37 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         B2Stick.genMatchStickFromShapeSpec(setSpecs.get("II"), new double[]{0,0,0});
         boolean setMutationSuccess = attemptSetMutation(B2Stick);
 
+        EStimShapeTwoByTwoMatchStick morphedStickII = setMorphII(B2Stick, morphedStickI);
+        AllenMStickSpec morphedStickIISpec = mStickToSpec(morphedStickII);
+        this.morphedSetSpecs.put("II", morphedStickIISpec);
 
+        //III* - B1D2
+        EStimShapeTwoByTwoMatchStick morphedStickIII = setMorphIII(morphedStickI);
+        AllenMStickSpec morphedStickIIISpec = mStickToSpec(morphedStickIII);
+        this.morphedSetSpecs.put("III", morphedStickIIISpec);
+
+        //IV*
+        EStimShapeTwoByTwoMatchStick morphedStickIV = setMorphIV(morphedStickII, morphedStickIII);
+        AllenMStickSpec morphedStickIVSpec = mStickToSpec(morphedStickIV);
+        this.morphedSetSpecs.put("IV", morphedStickIVSpec);
+
+    }
+
+    private EStimShapeTwoByTwoMatchStick setMorphI() {
+        EStimShapeTwoByTwoMatchStick stickI = new EStimShapeTwoByTwoMatchStick(
+                RFStrategy.PARTIALLY_INSIDE,
+                generator.getRF()
+        );
+        stickI.setProperties(
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                parameters.textureType);
+
+        stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
+        boolean setMutationSuccess = attemptSetMutation(stickI);
+        return stickI;
+    }
+
+    private EStimShapeTwoByTwoMatchStick setMorphII(EStimShapeTwoByTwoMatchStick B2Stick, EStimShapeTwoByTwoMatchStick morphedStickI) {
         EStimShapeTwoByTwoMatchStick morphedStickII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -96,14 +126,13 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
                 parameters.textureType);
         morphedStickII.genComponentSwappedMatchStick(
-                B2Stick ,B2Stick.getDrivingComponent(),
+                B2Stick, B2Stick.getDrivingComponent(),
                 morphedStickI, morphedStickI.getDrivingComponent(),
                 15, true);
+        return morphedStickII;
+    }
 
-        AllenMStickSpec morphedStickIISpec = mStickToSpec(morphedStickII);
-        this.morphedSetSpecs.put("II", morphedStickIISpec);
-
-        //III* - B1D2
+    private EStimShapeTwoByTwoMatchStick setMorphIII(EStimShapeTwoByTwoMatchStick morphedStickI) {
         EStimShapeTwoByTwoMatchStick D2Stick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -126,11 +155,10 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 morphedStickI, morphedStickI.getDrivingComponent(),
                 D2Stick, D2Stick.getDrivingComponent(),
                 15, true);
+        return morphedStickIII;
+    }
 
-        AllenMStickSpec morphedStickIIISpec = mStickToSpec(morphedStickIII);
-        this.morphedSetSpecs.put("III", morphedStickIIISpec);
-
-        //IV*
+    private EStimShapeTwoByTwoMatchStick setMorphIV(EStimShapeTwoByTwoMatchStick morphedStickII, EStimShapeTwoByTwoMatchStick morphedStickIII) {
         EStimShapeTwoByTwoMatchStick morphedStickIV = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -144,24 +172,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 morphedStickII, morphedStickII.getDrivingComponent(),
                 morphedStickIII, morphedStickIII.getDrivingComponent(),
                 15, true);
-
-        AllenMStickSpec morphedStickIVSpec = mStickToSpec(morphedStickIV);
-        this.morphedSetSpecs.put("IV", morphedStickIVSpec);
-
-    }
-
-    private EStimShapeTwoByTwoMatchStick morphStickI() {
-        EStimShapeTwoByTwoMatchStick stickI = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF()
-        );
-        stickI.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
-                parameters.textureType);
-
-        stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
-        boolean setMutationSuccess = attemptSetMutation(stickI);
-        return stickI;
+        return morphedStickIV;
     }
 
     public ProceduralMatchStick generateSample() {
