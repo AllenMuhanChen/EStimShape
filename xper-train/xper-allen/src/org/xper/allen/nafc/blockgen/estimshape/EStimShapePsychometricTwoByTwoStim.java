@@ -134,8 +134,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             }
         }
 
-        boolean setMutationSuccess = attemptSetMutation(stickI, baseCompIds, baseMagnitude);
-        setMutationSuccess = attemptSetMutation(stickI, Collections.singletonList(stickI.getDrivingComponent()), drivingMagnitude);
+        attemptSetMutation(stickI, baseCompIds, baseMagnitude);
+        attemptSetMutation(stickI, Collections.singletonList(stickI.getDrivingComponent()), drivingMagnitude);
 
         return stickI;
     }
@@ -153,7 +153,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
         List<Integer> baseCompIds = identifyBaseComps(B2Stick);
 
-        boolean setMutationSuccess = attemptSetMutation(B2Stick, baseCompIds, baseMagnitude);
+        attemptSetMutation(B2Stick, baseCompIds, baseMagnitude);
 
         EStimShapeTwoByTwoMatchStick morphedStickII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
@@ -276,16 +276,16 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
      * @param magnitude
      * @return
      */
-    private boolean attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph, Double magnitude) {
+    private void attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph, Double magnitude) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
                 if (magnitude > 1.0 && magnitude <= 2.0){
                     matchStick.doMediumMutation(
                             matchStick,
-                            compsToMorph, magnitude -1, 0.5,
+                            compsToMorph, magnitude-1, 0.5,
                             true,
-                            false,
-                            true);
+                            false
+                    );
                 } else if (magnitude <= 1.0 && magnitude >= 0.0){
                     matchStick.doSmallMutation(
                             matchStick, compsToMorph, magnitude,
@@ -296,13 +296,13 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                     throw new IllegalArgumentException("Magnitude must be between 0 and 2");
                 }
 
-                return true;  // Mutation successful
+                return;  // Mutation successful
             } catch (Exception e) {
                 System.out.println("Mutation attempt " + (attempt + 1) + " failed: " + e.getMessage());
 
             }
         }
-        return false;  // All mutation attempts failed
+        throw new ProceduralMatchStick.MorphRepetitionException("Could not do set mutation after " + MAX_MUTATION_ATTEMPTS + " attempts");  // All mutation attempts failed
     }
 
     protected void drawPNGs() {
