@@ -235,12 +235,14 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     private boolean attemptSetMutation(TwoByTwoMatchStick matchStick) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
-                if (magnitude > 1.0){
+                if (magnitude > 1.0 && magnitude <= 2.0){
                     matchStick.doMediumMutation(true, false, magnitude-1, 0.5);
-                } else{
+                } else if (magnitude < 1.0 && magnitude >= 0.0){
                     matchStick.doSmallMutation(
                             true,
                             false);
+                } else{
+                    throw new IllegalArgumentException("Magnitude must be between 0 and 2");
                 }
 
                 return true;  // Mutation successful
