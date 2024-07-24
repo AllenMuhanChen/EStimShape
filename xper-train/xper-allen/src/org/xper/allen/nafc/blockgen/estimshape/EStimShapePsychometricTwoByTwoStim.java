@@ -31,6 +31,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
     Map<String, AllenMStickSpec> setSpecs = new LinkedHashMap<>();
     Map<String, AllenMStickSpec> morphedSetSpecs;
+    private Double magnitude;
 
     public EStimShapePsychometricTwoByTwoStim(
             EStimExperimentTrialGenerator generator,
@@ -38,13 +39,14 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             AllenMStickSpec sampleSpec,
             Map<String,AllenMStickSpec> baseProceduralDistractorSpecs,
             boolean isEStimEnabled,
-            String sampleSetCondition) {
+            String sampleSetCondition, double magnitude) {
         super(generator, parameters, null, -1, isEStimEnabled);
         this.generator = (EStimExperimentTrialGenerator) generator;
         this.sampleSetSpec = sampleSpec;
         this.baseProceduralDistractorSpecs = baseProceduralDistractorSpecs;
         parameters.numChoices = baseProceduralDistractorSpecs.size() + 1 + parameters.numRandDistractors;
         this.sampleSetCondition = sampleSetCondition;
+        this.magnitude = magnitude;
 
         setSpecs.put(sampleSetCondition, sampleSetSpec);
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
@@ -233,9 +235,14 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     private boolean attemptSetMutation(TwoByTwoMatchStick matchStick) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
-                matchStick.doSmallMutation(
-                        true,
-                        false);
+                if (magnitude > 1.0){
+                    matchStick.doMediumMutation(true, false, magnitude-1, 0.5);
+                } else{
+                    matchStick.doSmallMutation(
+                            true,
+                            false);
+                }
+
                 return true;  // Mutation successful
             } catch (Exception e) {
                 System.out.println("Mutation attempt " + (attempt + 1) + " failed: " + e.getMessage());

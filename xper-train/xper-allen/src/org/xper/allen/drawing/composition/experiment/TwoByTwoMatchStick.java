@@ -39,6 +39,32 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         }
     }
 
+    public void doMediumMutation(boolean doPositionShape, boolean doCheckNoise, Double magnitude, double discreteness){
+        int nAttempts = 0;
+        int maxAttempts = 10;
+        TwoByTwoMatchStick backup = new TwoByTwoMatchStick();
+        backup.copyFrom(this);
+
+        while (nAttempts < maxAttempts) {
+            nAttempts++;
+            Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+            for (int i = 1; i <= getnComponent(); i++) {
+                morphParametersForComponents.put(i, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
+            }
+            try {
+                genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
+                if (doCheckNoise){
+                    checkInNoise(getDrivingComponent(), 0.7);
+                }
+                return;
+            } catch (MorphedMatchStick.MorphException e) {
+                copyFrom(backup);
+                System.out.println(e.getMessage());
+                System.out.println("Retrying genMediumMutationMatchStick() " + nAttempts + " out of " + maxAttempts);
+            }
+        }
+    }
+
     public void genSwappedBaseAndDrivingComponentMatchStick(TwoByTwoMatchStick secondMatchStick, int drivingComponentIndex, TwoByTwoMatchStick thirdMatchStick, boolean doPositionShape){
 
         genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15, doPositionShape);

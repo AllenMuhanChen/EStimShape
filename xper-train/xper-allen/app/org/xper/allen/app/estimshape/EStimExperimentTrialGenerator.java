@@ -29,7 +29,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -204,7 +203,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                                 sampleSpec,
                                 baseProceduralDistractorSpecs,
                                 isEStimEnabled,
-                                sampleCondition
+                                sampleCondition,
+                                1.5
                         );
 
                         stims.add(behavioralTrial);
