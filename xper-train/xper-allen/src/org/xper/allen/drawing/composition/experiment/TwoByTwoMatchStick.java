@@ -13,11 +13,9 @@ import java.util.Map;
 public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
 
-    public void doSmallMutation(boolean doPositionShape, boolean doCheckNoise, double magnitude){
+    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, boolean doPositionShape, boolean doCheckNoise, double magnitude){
         int nAttempts = 0;
         int maxAttempts = 10;
-        TwoByTwoMatchStick backup = new TwoByTwoMatchStick();
-        backup.copyFrom(this);
 
         while (nAttempts < maxAttempts) {
             nAttempts++;
@@ -32,18 +30,16 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
-                copyFrom(backup);
+                copyFrom(mStickToMorph);
                 System.out.println(e.getMessage());
                 System.out.println("Retrying genSmallMutationMatchStick() " + nAttempts + " out of " + maxAttempts);
             }
         }
     }
 
-    public void doMediumMutation(boolean doPositionShape, boolean doCheckNoise, Double magnitude, double discreteness){
+    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, boolean doPositionShape, boolean doCheckNoise, Double magnitude, double discreteness){
         int nAttempts = 0;
         int maxAttempts = 10;
-        TwoByTwoMatchStick backup = new TwoByTwoMatchStick();
-        backup.copyFrom(this);
 
         while (nAttempts < maxAttempts) {
             nAttempts++;
@@ -58,7 +54,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
-                copyFrom(backup);
+                copyFrom(mStickToMorph);
                 System.out.println(e.getMessage());
                 System.out.println("Retrying genMediumMutationMatchStick() " + nAttempts + " out of " + maxAttempts);
             }

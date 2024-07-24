@@ -232,17 +232,18 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         }
     }
 
-    private boolean attemptSetMutation(TwoByTwoMatchStick matchStick) {
+    private boolean attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
                 if (magnitude > 1.0 && magnitude <= 2.0){
-                    matchStick.doMediumMutation(true,
+                    matchStick.doMediumMutation(matchStick,
+                            true,
                             false,
                             magnitude-1,
                             0.5);
                 } else if (magnitude < 1.0 && magnitude >= 0.0){
                     matchStick.doSmallMutation(
-                            true,
+                            matchStick, true,
                             false,
                                     magnitude);
                 } else{

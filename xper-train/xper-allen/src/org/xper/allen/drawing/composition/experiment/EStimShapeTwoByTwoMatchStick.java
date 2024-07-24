@@ -26,58 +26,6 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
 
 
-    public void doSmallMutation(boolean doPositionShape, boolean doCheckNoise, double magnitude){
-        int nAttempts = 0;
-        int maxAttempts = 10;
-        EStimShapeTwoByTwoMatchStick backup = new EStimShapeTwoByTwoMatchStick(rfStrategy, rf);
-        backup.copyFrom(this);
-
-        while (nAttempts < maxAttempts) {
-            nAttempts++;
-            Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-            for (int i = 1; i <= getnComponent(); i++) {
-                morphParametersForComponents.put(i, new SetMorphParameters(magnitude));
-            }
-            try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
-                if (doCheckNoise){
-                    checkInNoise(getDrivingComponent(), 0.7);
-                }
-                return;
-            } catch (MorphedMatchStick.MorphException e) {
-                copyFrom(backup);
-                System.out.println(e.getMessage());
-                System.out.println("Retrying genSmallMutationMatchStick() " + nAttempts + " out of " + maxAttempts);
-            }
-        }
-    }
-
-    public void doMediumMutation(boolean doPositionShape, boolean doCheckNoise, Double magnitude, double discreteness){
-        int nAttempts = 0;
-        int maxAttempts = 10;
-        EStimShapeTwoByTwoMatchStick backup = new EStimShapeTwoByTwoMatchStick(rfStrategy, rf);
-        backup.copyFrom(this);
-
-        while (nAttempts < maxAttempts) {
-            nAttempts++;
-            Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-            for (int i = 1; i <= getnComponent(); i++) {
-                morphParametersForComponents.put(i, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
-            }
-            try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
-                if (doCheckNoise){
-                    checkInNoise(getDrivingComponent(), 0.7);
-                }
-                return;
-            } catch (MorphedMatchStick.MorphException e) {
-                copyFrom(backup);
-                System.out.println(e.getMessage());
-                System.out.println("Retrying genMediumMutationMatchStick() " + nAttempts + " out of " + maxAttempts);
-            }
-        }
-    }
-
     @Override
     public void drawCompMap(){
         super.drawCompMap();
