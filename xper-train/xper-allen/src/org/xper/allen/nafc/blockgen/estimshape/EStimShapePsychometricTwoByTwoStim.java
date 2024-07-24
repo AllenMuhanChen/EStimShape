@@ -242,7 +242,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                             true,
                             false,
                             true);
-                } else if (magnitude < 1.0 && magnitude >= 0.0){
+                } else if (magnitude <= 1.0 && magnitude >= 0.0){
                     matchStick.doSmallMutation(
                             matchStick, magnitude,
                             true,
