@@ -34,26 +34,41 @@ public class SetMorphParameters implements ComponentMorphParameters {
     private Random random = new Random();
 
     private double arcLength;
+    private double magnitude;
 
-    public SetMorphParameters() {
-        // Set default values
-        thicknessMaxPercentChange = 0.5;
-        thicknessMinPercentChange = 0.4;
+    public SetMorphParameters(double magnitude) {
+        this.magnitude = Math.max(0, Math.min(1, magnitude)); // Ensure magnitude is between 0 and 1
+
+        // Set default values based on magnitude
+        setThicknessParameters();
+        setLengthParameters();
+        setOrientationParameters();
+
         thicknessMin = 0.5;
         thicknessMax = 2.0;
-
-        lengthMaxPercentChange = 0.50;
-        lengthMinPercentChange = 0.40;
         lengthMin = 1.5;
-
-        orientationMaxAngleChange = Math.PI / 4;
-        orientationMinAngleChange = Math.PI / 8;
         orientationAngleMin = 0;
         orientationAngleMax = Math.PI * 2;
 
         numberOfMorphs = 3;
 
         distribute();
+    }
+
+    private void setThicknessParameters() {
+        thicknessMaxPercentChange = magnitude;
+        thicknessMinPercentChange = magnitude > 0.1 ? magnitude - 0.1 : magnitude / 2;
+    }
+
+    private void setLengthParameters() {
+        lengthMaxPercentChange = magnitude;
+        lengthMinPercentChange = magnitude > 0.1 ? magnitude - 0.1 : magnitude / 2;
+    }
+
+    private void setOrientationParameters() {
+        orientationMaxAngleChange = magnitude * Math.PI / 2; // Max change is 90 degrees when magnitude is 1
+        orientationMinAngleChange = magnitude > 0.1 ?
+                (magnitude - 0.1) * Math.PI / 2 : magnitude * Math.PI / 4;
     }
 
     @Override

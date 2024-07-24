@@ -13,7 +13,7 @@ import java.util.Map;
 public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
 
-    public void doSmallMutation(boolean doPositionShape, boolean doCheckNoise){
+    public void doSmallMutation(boolean doPositionShape, boolean doCheckNoise, double magnitude){
         int nAttempts = 0;
         int maxAttempts = 10;
         TwoByTwoMatchStick backup = new TwoByTwoMatchStick();
@@ -23,7 +23,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             nAttempts++;
             Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
             for (int i = 1; i <= getnComponent(); i++) {
-                morphParametersForComponents.put(i, new SetMorphParameters());
+                morphParametersForComponents.put(i, new SetMorphParameters(magnitude));
             }
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);

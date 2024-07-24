@@ -69,6 +69,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         //Parameters
         //Num Repetitions of Each Condition
         int X = 10;
+        double magnitude = 0.5;
 
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
@@ -204,7 +205,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                                 baseProceduralDistractorSpecs,
                                 isEStimEnabled,
                                 sampleCondition,
-                                1.5
+                                magnitude
                         );
 
                         stims.add(behavioralTrial);
