@@ -125,12 +125,15 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
 
         //Mutate all compIds -> gives us B1* and D1*
-        LinkedList<Integer> compsToMorph = new LinkedList<>();
+        LinkedList<Integer> baseCompIds = new LinkedList<>();
         for (int compId = 1; compId <= stickI.getnComponent(); compId++) {
-            compsToMorph.add(compId);
+            if (compId != stickI.getDrivingComponent()) {
+                baseCompIds.add(compId);
+            }
         }
 
-        boolean setMutationSuccess = attemptSetMutation(stickI, compsToMorph);
+        boolean setMutationSuccess = attemptSetMutation(stickI, baseCompIds, magnitude);
+        setMutationSuccess = attemptSetMutation(stickI, Collections.singletonList(stickI.getDrivingComponent()), magnitude);
 
         return stickI;
     }
@@ -148,7 +151,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
         List<Integer> baseCompIds = identifyBaseComps(B2Stick);
 
-        boolean setMutationSuccess = attemptSetMutation(B2Stick, baseCompIds);
+        boolean setMutationSuccess = attemptSetMutation(B2Stick, baseCompIds, magnitude);
 
         EStimShapeTwoByTwoMatchStick morphedStickII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
@@ -173,7 +176,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
                 parameters.textureType);
         D2Stick.genMatchStickFromShapeSpec(setSpecs.get("III"), new double[]{0,0,0});
-        attemptSetMutation(D2Stick, Collections.singletonList(D2Stick.getDrivingComponent()));
+        attemptSetMutation(D2Stick, Collections.singletonList(D2Stick.getDrivingComponent()), magnitude);
 
         EStimShapeTwoByTwoMatchStick morphedStickIII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
@@ -268,15 +271,16 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
      * IV* - B2* D2*
      * @param matchStick
      * @param compsToMorph
+     * @param magnitude
      * @return
      */
-    private boolean attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph) {
+    private boolean attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph, Double magnitude) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
                 if (magnitude > 1.0 && magnitude <= 2.0){
                     matchStick.doMediumMutation(
                             matchStick,
-                            compsToMorph, magnitude-1, 0.5,
+                            compsToMorph, magnitude -1, 0.5,
                             true,
                             false,
                             true);
