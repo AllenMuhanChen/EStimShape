@@ -205,8 +205,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
                                 baseProceduralDistractorSpecs,
                                 isEStimEnabled,
                                 sampleCondition,
-                                magnitude
-                        );
+                                magnitude,
+                                0.5);
 
                         stims.add(behavioralTrial);
                     }

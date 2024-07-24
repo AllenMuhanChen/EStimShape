@@ -23,12 +23,13 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     EStimExperimentTrialGenerator generator;
     AllenMStickSpec sampleSetSpec;
     Map<String, AllenMStickSpec> baseProceduralDistractorSpecs;
+    Double baseMagnitude;
+    double drivingMagnitude;
+
 
     Procedural<String> setType = new Procedural<>();
-
     Map<String, AllenMStickSpec> setSpecs = new LinkedHashMap<>();
     Map<String, AllenMStickSpec> morphedSetSpecs;
-    private Double magnitude;
 
     public EStimShapePsychometricTwoByTwoStim(
             EStimExperimentTrialGenerator generator,
@@ -36,14 +37,15 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             AllenMStickSpec sampleSpec,
             Map<String,AllenMStickSpec> baseProceduralDistractorSpecs,
             boolean isEStimEnabled,
-            String sampleSetCondition, double magnitude) {
+            String sampleSetCondition, double baseMagnitude, double drivingMagnitude) {
         super(generator, parameters, null, -1, isEStimEnabled);
         this.generator = (EStimExperimentTrialGenerator) generator;
         this.sampleSetSpec = sampleSpec;
         this.baseProceduralDistractorSpecs = baseProceduralDistractorSpecs;
         parameters.numChoices = baseProceduralDistractorSpecs.size() + 1 + parameters.numRandDistractors;
         this.sampleSetCondition = sampleSetCondition;
-        this.magnitude = magnitude;
+        this.baseMagnitude = baseMagnitude;
+        this.drivingMagnitude = drivingMagnitude;
 
         setSpecs.put(sampleSetCondition, sampleSetSpec);
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
@@ -132,8 +134,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             }
         }
 
-        boolean setMutationSuccess = attemptSetMutation(stickI, baseCompIds, magnitude);
-        setMutationSuccess = attemptSetMutation(stickI, Collections.singletonList(stickI.getDrivingComponent()), magnitude);
+        boolean setMutationSuccess = attemptSetMutation(stickI, baseCompIds, baseMagnitude);
+        setMutationSuccess = attemptSetMutation(stickI, Collections.singletonList(stickI.getDrivingComponent()), drivingMagnitude);
 
         return stickI;
     }
@@ -151,7 +153,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
         List<Integer> baseCompIds = identifyBaseComps(B2Stick);
 
-        boolean setMutationSuccess = attemptSetMutation(B2Stick, baseCompIds, magnitude);
+        boolean setMutationSuccess = attemptSetMutation(B2Stick, baseCompIds, baseMagnitude);
 
         EStimShapeTwoByTwoMatchStick morphedStickII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
@@ -176,7 +178,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
                 parameters.textureType);
         D2Stick.genMatchStickFromShapeSpec(setSpecs.get("III"), new double[]{0,0,0});
-        attemptSetMutation(D2Stick, Collections.singletonList(D2Stick.getDrivingComponent()), magnitude);
+        attemptSetMutation(D2Stick, Collections.singletonList(D2Stick.getDrivingComponent()), drivingMagnitude);
 
         EStimShapeTwoByTwoMatchStick morphedStickIII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
