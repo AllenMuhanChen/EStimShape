@@ -13,9 +13,14 @@ import java.util.Map;
 public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
 
-    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, boolean doPositionShape, boolean doCheckNoise, double magnitude){
+    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
         int nAttempts = 0;
         int maxAttempts = 10;
+
+        SphericalCoordinates originalObjCenteredPos = null;
+        if (doCompareObjCenteredPos) {
+            originalObjCenteredPos = calcObjCenteredPosForComp(this, getDrivingComponent());
+        }
 
         while (nAttempts < maxAttempts) {
             nAttempts++;
@@ -28,6 +33,10 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 if (doCheckNoise){
                     checkInNoise(getDrivingComponent(), 0.7);
                 }
+                if (doCompareObjCenteredPos) {
+                    SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, getDrivingComponent());
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
+                }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
                 copyFrom(mStickToMorph);
@@ -37,9 +46,14 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         }
     }
 
-    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, boolean doPositionShape, boolean doCheckNoise, Double magnitude, double discreteness){
+    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, Double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
         int nAttempts = 0;
         int maxAttempts = 10;
+
+        SphericalCoordinates originalObjCenteredPos = null;
+        if (doCompareObjCenteredPos) {
+            originalObjCenteredPos = calcObjCenteredPosForComp(this, getDrivingComponent());
+        }
 
         while (nAttempts < maxAttempts) {
             nAttempts++;
@@ -51,6 +65,10 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
                 if (doCheckNoise){
                     checkInNoise(getDrivingComponent(), 0.7);
+                }
+                if (doCompareObjCenteredPos) {
+                    SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, getDrivingComponent());
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
                 }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
