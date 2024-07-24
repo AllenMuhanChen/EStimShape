@@ -124,13 +124,14 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
         stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
 
-        //Mutate all compIds -> gives us B1* and R1*
+        //Mutate all compIds -> gives us B1* and D1*
         LinkedList<Integer> compsToMorph = new LinkedList<>();
         for (int compId = 1; compId <= stickI.getnComponent(); compId++) {
             compsToMorph.add(compId);
         }
 
         boolean setMutationSuccess = attemptSetMutation(stickI, compsToMorph);
+
         return stickI;
     }
 
@@ -250,6 +251,25 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         }
     }
 
+    /**
+     * A set mutation is a morph of the entire set of components. So, if our four components are:
+     * B1 B2 D1 and D2 (B: base, D: driving) and our four two by two stimuli were:
+     * I - B1 D1
+     * II - B2 D1
+     * III - B1 D2
+     * IV - B2 D2
+     *
+     * then a set mutation would be a morph of all four components to:
+     * B1* B2* D1* and D2* and then make the set of two by two stimuli based on this mutated set:
+     *
+     * I* - B1* D1*
+     * II* - B2* D1*
+     * III* - B1* D2*
+     * IV* - B2* D2*
+     * @param matchStick
+     * @param compsToMorph
+     * @return
+     */
     private boolean attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
