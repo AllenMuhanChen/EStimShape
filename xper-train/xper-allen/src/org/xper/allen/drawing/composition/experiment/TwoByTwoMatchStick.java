@@ -8,12 +8,13 @@ import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point3d;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
 
-    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
+    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
         int nAttempts = 0;
         int maxAttempts = 10;
         SphericalCoordinates objCenteredPosTolerance = new SphericalCoordinates(magnitude, magnitude * 180 * Math.PI / 180, magnitude * 180 * Math.PI / 180);
@@ -25,8 +26,8 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         while (nAttempts < maxAttempts) {
             nAttempts++;
             Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-            for (int i = 1; i <= getnComponent(); i++) {
-                morphParametersForComponents.put(i, new SetMorphParameters(magnitude));
+            for (Integer compId: compsToMorph) {
+                morphParametersForComponents.put(compId, new SetMorphParameters(magnitude));
             }
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
@@ -46,7 +47,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         }
     }
 
-    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, Double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
+    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, Double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
         int nAttempts = 0;
         int maxAttempts = 10;
         SphericalCoordinates objCenteredPosTolerance = new SphericalCoordinates(magnitude, magnitude * 180 * Math.PI / 180, magnitude * 180 * Math.PI / 180);
@@ -58,8 +59,8 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         while (nAttempts < maxAttempts) {
             nAttempts++;
             Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-            for (int i = 1; i <= getnComponent(); i++) {
-                morphParametersForComponents.put(i, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
+            for (Integer compId: compsToMorph) {
+                morphParametersForComponents.put(compId, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness)));
             }
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);

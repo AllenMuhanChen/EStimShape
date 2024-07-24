@@ -12,10 +12,7 @@ import org.xper.allen.nafc.blockgen.procedural.Procedural;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim {
 
@@ -79,28 +76,17 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
             try {
                 morphedSetSpecs = new LinkedHashMap<>();
-                //I* - B1D1
+                //I* - B1* D1*
                 EStimShapeTwoByTwoMatchStick morphedStickI = setMorphI();
                 AllenMStickSpec morphedStickISpec = mStickToSpec(morphedStickI);
                 this.morphedSetSpecs.put("I", morphedStickISpec);
 
-                //II* - B2D1
-                EStimShapeTwoByTwoMatchStick B2Stick = new EStimShapeTwoByTwoMatchStick(
-                        RFStrategy.PARTIALLY_INSIDE,
-                        generator.getRF()
-                ); //stick containing B2
-
-                B2Stick.setProperties(
-                        RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
-                        parameters.textureType);
-                B2Stick.genMatchStickFromShapeSpec(setSpecs.get("II"), new double[]{0, 0, 0});
-                boolean setMutationSuccess = attemptSetMutation(B2Stick);
-
-                EStimShapeTwoByTwoMatchStick morphedStickII = setMorphII(B2Stick, morphedStickI);
+                //II* - B2* D1*
+                EStimShapeTwoByTwoMatchStick morphedStickII = setMorphII(morphedStickI);
                 AllenMStickSpec morphedStickIISpec = mStickToSpec(morphedStickII);
                 this.morphedSetSpecs.put("II", morphedStickIISpec);
 
-                //III* - B1D2
+                //III* - B1* D2*
                 EStimShapeTwoByTwoMatchStick morphedStickIII = setMorphIII(morphedStickI);
                 AllenMStickSpec morphedStickIIISpec = mStickToSpec(morphedStickIII);
                 this.morphedSetSpecs.put("III", morphedStickIIISpec);
@@ -117,6 +103,16 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         }
     }
 
+    private static List<Integer> identifyBaseComps(EStimShapeTwoByTwoMatchStick B2Stick) {
+        List<Integer> baseCompIds = new ArrayList<>();
+        for (int compId = 1; compId <= B2Stick.getnComponent(); compId++) {
+            if (compId != B2Stick.getDrivingComponent()) {
+                baseCompIds.add(compId);
+            }
+        }
+        return baseCompIds;
+    }
+
     private EStimShapeTwoByTwoMatchStick setMorphI() {
         EStimShapeTwoByTwoMatchStick stickI = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
@@ -127,11 +123,32 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 parameters.textureType);
 
         stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
-        boolean setMutationSuccess = attemptSetMutation(stickI);
+
+        //Mutate all compIds -> gives us B1* and R1*
+        LinkedList<Integer> compsToMorph = new LinkedList<>();
+        for (int compId = 1; compId <= stickI.getnComponent(); compId++) {
+            compsToMorph.add(compId);
+        }
+
+        boolean setMutationSuccess = attemptSetMutation(stickI, compsToMorph);
         return stickI;
     }
 
-    private EStimShapeTwoByTwoMatchStick setMorphII(EStimShapeTwoByTwoMatchStick B2Stick, EStimShapeTwoByTwoMatchStick morphedStickI) {
+    private EStimShapeTwoByTwoMatchStick setMorphII(EStimShapeTwoByTwoMatchStick morphedStickI) {
+        EStimShapeTwoByTwoMatchStick B2Stick = new EStimShapeTwoByTwoMatchStick(
+                RFStrategy.PARTIALLY_INSIDE,
+                generator.getRF()
+        );
+
+        B2Stick.setProperties(
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                parameters.textureType);
+        B2Stick.genMatchStickFromShapeSpec(setSpecs.get("II"), new double[]{0, 0, 0});
+
+        List<Integer> baseCompIds = identifyBaseComps(B2Stick);
+
+        boolean setMutationSuccess = attemptSetMutation(B2Stick, baseCompIds);
+
         EStimShapeTwoByTwoMatchStick morphedStickII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -155,6 +172,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
                 parameters.textureType);
         D2Stick.genMatchStickFromShapeSpec(setSpecs.get("III"), new double[]{0,0,0});
+        attemptSetMutation(D2Stick, Collections.singletonList(D2Stick.getDrivingComponent()));
 
         EStimShapeTwoByTwoMatchStick morphedStickIII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
@@ -232,19 +250,19 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         }
     }
 
-    private boolean attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick) {
+    private boolean attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph) {
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
                 if (magnitude > 1.0 && magnitude <= 2.0){
                     matchStick.doMediumMutation(
                             matchStick,
-                            magnitude-1, 0.5,
+                            compsToMorph, magnitude-1, 0.5,
                             true,
                             false,
                             true);
                 } else if (magnitude <= 1.0 && magnitude >= 0.0){
                     matchStick.doSmallMutation(
-                            matchStick, magnitude,
+                            matchStick, compsToMorph, magnitude,
                             true,
                             false,
                             true);
