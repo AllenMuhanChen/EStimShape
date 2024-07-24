@@ -23,7 +23,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance =
-            new SphericalCoordinates(100, Math.PI / 5, Math.PI / 2 );
+            new SphericalCoordinates(1.0, Math.PI / 5, Math.PI / 2 );
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     protected Point3d noiseOrigin;
@@ -282,7 +282,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     public void compareObjectCenteredPositions(SphericalCoordinates expected, SphericalCoordinates actual) {
-        if (Math.abs(actual.r - expected.r) > objCenteredPositionTolerance.r ||
+        double rPercentDifference = Math.abs(actual.r - expected.r) / expected.r;
+        if (rPercentDifference > objCenteredPositionTolerance.r ||
                 angleDiff(actual.theta, expected.theta) > objCenteredPositionTolerance.theta ||
                 angleDiff(actual.phi, expected.phi) > objCenteredPositionTolerance.phi) {
             throw new ObjectCenteredPositionException("Object Centered Position is off");
@@ -290,7 +291,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     public static void compareObjectCenteredPositions(SphericalCoordinates expected, SphericalCoordinates actual, SphericalCoordinates tolerances) {
-        if (Math.abs(actual.r - expected.r) > tolerances.r ||
+        double rPercentDifference = Math.abs(actual.r - expected.r) / expected.r;
+        if (rPercentDifference > tolerances.r ||
                 angleDiff(actual.theta, expected.theta) > tolerances.theta ||
                 angleDiff(actual.phi, expected.phi) > tolerances.phi) {
             throw new ObjectCenteredPositionException("Object Centered Position is off");

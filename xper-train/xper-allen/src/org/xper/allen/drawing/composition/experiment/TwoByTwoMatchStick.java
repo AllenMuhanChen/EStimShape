@@ -16,7 +16,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
     public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
         int nAttempts = 0;
         int maxAttempts = 10;
-
+        SphericalCoordinates objCenteredPosTolerance = new SphericalCoordinates(magnitude, magnitude * 180 * Math.PI / 180, magnitude * 180 * Math.PI / 180);
         SphericalCoordinates originalObjCenteredPos = null;
         if (doCompareObjCenteredPos) {
             originalObjCenteredPos = calcObjCenteredPosForComp(this, getDrivingComponent());
@@ -35,7 +35,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 }
                 if (doCompareObjCenteredPos) {
                     SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, getDrivingComponent());
-                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, objCenteredPosTolerance);
                 }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
@@ -49,7 +49,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
     public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, Double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
         int nAttempts = 0;
         int maxAttempts = 10;
-
+        SphericalCoordinates objCenteredPosTolerance = new SphericalCoordinates(magnitude, magnitude * 180 * Math.PI / 180, magnitude * 180 * Math.PI / 180);
         SphericalCoordinates originalObjCenteredPos = null;
         if (doCompareObjCenteredPos) {
             originalObjCenteredPos = calcObjCenteredPosForComp(this, getDrivingComponent());
@@ -68,7 +68,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 }
                 if (doCompareObjCenteredPos) {
                     SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, getDrivingComponent());
-                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, objCenteredPosTolerance);
                 }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
