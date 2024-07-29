@@ -48,6 +48,7 @@ public class ProceduralStim implements NAFCStim {
     protected Procedural<String> experimentPngPaths = new Procedural<>();
     protected String experimentNoiseMapPath;
     protected Procedural<Coordinates2D> coords = new Procedural<>();
+    protected Procedural<List<String>> labels = new Procedural<>();
 
     protected Long taskId;
 
@@ -162,8 +163,8 @@ public class ProceduralStim implements NAFCStim {
         drawSample(pngMaker, generatorPngPath);
 
         //Match
-        List<String> matchLabels = Arrays.asList("match");
-        String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), matchLabels, generatorPngPath);
+        labels.getMatch().add("match");
+        String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), labels.getMatch(), generatorPngPath);
         experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
         System.out.println("Match Path: " + matchPath);
 
@@ -172,7 +173,7 @@ public class ProceduralStim implements NAFCStim {
         //Rand Distractor
         List<String> randDistractorLabels = Arrays.asList("rand");
         for (int i = 0; i < numRandDistractors; i++) {
-            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.randDistractors.get(i),stimObjIds.randDistractors.get(i), randDistractorLabels, generatorPngPath);
+            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), randDistractorLabels, generatorPngPath);
             experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
             System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
@@ -181,8 +182,9 @@ public class ProceduralStim implements NAFCStim {
     protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Procedural Distractors
         List<String> proceduralDistractorLabels = Arrays.asList("procedural");
+        labels.addProceduralDistractor(proceduralDistractorLabels);
         for (int i = 0; i < numProceduralDistractors; i++) {
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), proceduralDistractorLabels, generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
@@ -289,32 +291,32 @@ public class ProceduralStim implements NAFCStim {
 
         //Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
-            xCenter = coords.proceduralDistractors.get(i).getX();
-            yCenter = coords.proceduralDistractors.get(i).getY();
-            path = experimentPngPaths.proceduralDistractors.get(i);
+            xCenter = coords.getProceduralDistractors().get(i).getX();
+            yCenter = coords.getProceduralDistractors().get(i).getY();
+            path = experimentPngPaths.getProceduralDistractors().get(i);
             NoisyPngSpec proceduralDistractorSpec = new NoisyPngSpec(
                     xCenter, yCenter,
                     dimensions,
                     path,
                     noiseMapPath,
                     color);
-            MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.proceduralDistractors.get(i));
-            dbUtil.writeStimObjData(stimObjIds.proceduralDistractors.get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
+            MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.getProceduralDistractors().get(i));
+            dbUtil.writeStimObjData(stimObjIds.getProceduralDistractors().get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
         }
 
         //Rand Distractors
         for (int i = 0; i < numRandDistractors; i++) {
-            xCenter = coords.randDistractors.get(i).getX();
-            yCenter = coords.randDistractors.get(i).getY();
-            path = experimentPngPaths.randDistractors.get(i);
+            xCenter = coords.getRandDistractors().get(i).getX();
+            yCenter = coords.getRandDistractors().get(i).getY();
+            path = experimentPngPaths.getRandDistractors().get(i);
             NoisyPngSpec randDistractorSpec = new NoisyPngSpec(
                     xCenter, yCenter,
                     dimensions,
                     path,
                     noiseMapPath,
                     color);
-            MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.randDistractors.get(i));
-            dbUtil.writeStimObjData(stimObjIds.randDistractors.get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
+            MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.getRandDistractors().get(i));
+            dbUtil.writeStimObjData(stimObjIds.getRandDistractors().get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
         }
     }
 

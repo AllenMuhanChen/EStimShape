@@ -361,7 +361,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         //Rand Distractor
         List<String> randDistractorLabels = Arrays.asList("rand");
         for (int i = 0; i < numRandDistractors; i++) {
-            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.randDistractors.get(i),stimObjIds.randDistractors.get(i), randDistractorLabels, generatorPngPath);
+            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), randDistractorLabels, generatorPngPath);
             experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
             System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
@@ -370,8 +370,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
-            List<String> proceduralDistractorLabels = Arrays.asList("procedural", setType.proceduralDistractors.get(i));
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.proceduralDistractors.get(i),stimObjIds.proceduralDistractors.get(i), proceduralDistractorLabels, generatorPngPath);
+            List<String> proceduralDistractorLabels = Arrays.asList("procedural", setType.getProceduralDistractors().get(i));
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), proceduralDistractorLabels, generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }

@@ -81,8 +81,8 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
                     100,
                     false,
                     true, 0.7, 1 / 3.0);
-            mSticks.proceduralDistractors.add(swappedBaseMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick));
+            mSticks.addProceduralDistractor(swappedBaseMStick);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(swappedBaseMStick));
         }
 
         TwoByTwoMatchStick swappedInNoiseMStick = new TwoByTwoMatchStick();
@@ -93,8 +93,8 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match,
                     0.7, 1.0/3.0,
                     false, true);
-            mSticks.proceduralDistractors.add(swappedInNoiseMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick));
+            mSticks.addProceduralDistractor(swappedInNoiseMStick);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(swappedInNoiseMStick));
         }
 
         TwoByTwoMatchStick swappedBothMStick = new TwoByTwoMatchStick();
@@ -105,8 +105,8 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedBothMStick.genSwappedBaseAndDrivingComponentMatchStick(swappedBaseMStick,
                     morphComponentIndex,
                     swappedInNoiseMStick, false);
-            mSticks.proceduralDistractors.add(swappedBothMStick);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBothMStick));
+            mSticks.addProceduralDistractor(swappedBothMStick);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(swappedBothMStick));
         }
     }
 

@@ -62,8 +62,8 @@ public class ProceduralRandStim extends ProceduralStim{
             proceduralDistractor.setProperties(parameters.getSize(), "SHADE");
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
-            mSticks.proceduralDistractors.add(proceduralDistractor);
-            mStickSpecs.proceduralDistractors.add(mStickToSpec(proceduralDistractor));
+            mSticks.addProceduralDistractor(proceduralDistractor);
+            mStickSpecs.addProceduralDistractor(mStickToSpec(proceduralDistractor));
         }
 
         //Generate Rand Distractors
@@ -72,8 +72,8 @@ public class ProceduralRandStim extends ProceduralStim{
             randDistractor.setProperties(parameters.getSize(), "SHADE");
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();
-            mSticks.randDistractors.add(randDistractor);
-            mStickSpecs.randDistractors.add(mStickToSpec(randDistractor));
+            mSticks.addRandDistractor(randDistractor);
+            mStickSpecs.addRandDistractor(mStickToSpec(randDistractor));
         }
     }
 

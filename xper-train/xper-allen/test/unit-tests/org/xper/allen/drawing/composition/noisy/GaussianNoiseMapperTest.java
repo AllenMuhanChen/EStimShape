@@ -110,10 +110,8 @@ public class GaussianNoiseMapperTest {
 
                 // Now, draw the circle
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
-                System.out.println(mStick.getSpecialEndComp().get(0));
                 Point3d circle = mStick.calculateNoiseOrigin(specialComps); // Replace with the circle's center X-coordinate
 
-                System.out.println(circle.getX() + " " + circle.getY());
 
                 double radius = mStick.noiseRadiusMm;
                 int numSegments = 100; // Increase for a smoother circle

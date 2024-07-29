@@ -221,32 +221,32 @@ public class EStimShapeProceduralStim extends ProceduralStim{
 
         //Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
-            xCenter = coords.proceduralDistractors.get(i).getX();
-            yCenter = coords.proceduralDistractors.get(i).getY();
-            path = experimentPngPaths.proceduralDistractors.get(i);
+            xCenter = coords.getProceduralDistractors().get(i).getX();
+            yCenter = coords.getProceduralDistractors().get(i).getY();
+            path = experimentPngPaths.getProceduralDistractors().get(i);
             NoisyPngSpec proceduralDistractorSpec = new NoisyPngSpec(
                     xCenter, yCenter,
                     dimensionsChoices,
                     path,
                     noiseMapPath,
                     color);
-            MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.proceduralDistractors.get(i));
-            dbUtil.writeStimObjData(stimObjIds.proceduralDistractors.get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
+            MStickStimObjData proceduralDistractorMStickObjData = new MStickStimObjData("procedural", mStickSpecs.getProceduralDistractors().get(i));
+            dbUtil.writeStimObjData(stimObjIds.getProceduralDistractors().get(i), proceduralDistractorSpec.toXml(), proceduralDistractorMStickObjData.toXml());
         }
 
         //Rand Distractors
         for (int i = 0; i < numRandDistractors; i++) {
-            xCenter = coords.randDistractors.get(i).getX();
-            yCenter = coords.randDistractors.get(i).getY();
-            path = experimentPngPaths.randDistractors.get(i);
+            xCenter = coords.getRandDistractors().get(i).getX();
+            yCenter = coords.getRandDistractors().get(i).getY();
+            path = experimentPngPaths.getRandDistractors().get(i);
             NoisyPngSpec randDistractorSpec = new NoisyPngSpec(
                     xCenter, yCenter,
                     dimensionsChoices,
                     path,
                     noiseMapPath,
                     color);
-            MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.randDistractors.get(i));
-            dbUtil.writeStimObjData(stimObjIds.randDistractors.get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
+            MStickStimObjData randDistractorMStickObjData = new MStickStimObjData("rand", mStickSpecs.getRandDistractors().get(i));
+            dbUtil.writeStimObjData(stimObjIds.getRandDistractors().get(i), randDistractorSpec.toXml(), randDistractorMStickObjData.toXml());
         }
     }
 }
