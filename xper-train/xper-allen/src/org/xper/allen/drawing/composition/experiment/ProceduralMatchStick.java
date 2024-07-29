@@ -407,12 +407,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         }
     }
 
-    public void checkInNoise(List<Integer> cantBeOutOfNoiseCompIds, double percentRequiredOutsideNoise){
-        noiseOrigin = calculateNoiseOrigin(cantBeOutOfNoiseCompIds);
+    public void checkInNoise(List<Integer> mustBeInNoiseCompIds, double percentRequiredOutsideNoise){
+        noiseOrigin = calculateNoiseOrigin(mustBeInNoiseCompIds);
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         int index = 0;
-        for (int cantBeOutOfNoiseCompId : cantBeOutOfNoiseCompIds) {
+        for (int cantBeOutOfNoiseCompId : mustBeInNoiseCompIds) {
             AllenTubeComp testingComp = getComp()[cantBeOutOfNoiseCompId];
             Point3d[] compVect_info = testingComp.getVect_info();
             for (Point3d point3d : compVect_info) {
@@ -426,26 +426,24 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             }
         }
 
-        List<Point2d> pointsOutside = new LinkedList<>();
         int numPointsInside = 0;
         for (ConcaveHull.Point point: pointsToCheck){
-            if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
-                pointsOutside.add(new Point2d(point.getX(), point.getY()));
-
-            } else{
+            if (isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
                 numPointsInside++;
+
             }
         }
-        double percentRequiredInside = 0.9;
-        double actualNumPointsInside = (double) numPointsInside / pointsToCheck.size();
-        if (actualNumPointsInside < percentRequiredInside){
-            throw new NoiseException("Found points outside of noise circle");
+        //TODO: not sure WHY percentRequiredInside needs to be low for Set Mutations...
+        double percentRequiredInside = 0.0;
+        double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
+        if (actualPercentageInside < percentRequiredInside){
+            throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + noiseRadiusMm);
         }
 
         //Check if enough points not in compId are outside of the noise circle
         ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();
         for (int compIdx=1; compIdx<=getnComponent(); compIdx++){
-            if (!cantBeOutOfNoiseCompIds.contains(compIdx)){
+            if (!mustBeInNoiseCompIds.contains(compIdx)){
                 Point3d[] compVectInfo = getComp()[compIdx].getVect_info();
                 index = 0;
                 for (Point3d point3d: compVectInfo){

@@ -8,7 +8,6 @@ import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.nafc.blockgen.procedural.EStimShapeProceduralStim;
-import org.xper.allen.nafc.blockgen.procedural.Procedural;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
@@ -31,7 +30,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
     Map<String, AllenMStickSpec> setSpecs = new LinkedHashMap<>();
     Map<String, AllenMStickSpec> morphedSetSpecs;
-    private List<Integer> compIdsToNoise;
+    private final List<Integer> compIdsToNoise = new ArrayList<>();
+
 
     public EStimShapePsychometricTwoByTwoStim(
             EStimExperimentTrialGenerator generator,
@@ -145,6 +145,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     }
 
     private EStimShapeTwoByTwoMatchStick setMorphI() {
+        int nAttempts = 0;
         EStimShapeTwoByTwoMatchStick stickI = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -154,6 +155,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 parameters.textureType);
 
         stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
+
+
 
         //Mutate all compIds -> gives us B1* and D1*
         LinkedList<Integer> baseCompIds = new LinkedList<>();
@@ -195,6 +198,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 B2Stick, B2Stick.getDrivingComponent(),
                 morphedStickI, morphedStickI.getDrivingComponent(),
                 100, true);
+
+
         return morphedStickII;
     }
 
@@ -222,6 +227,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 morphedStickI, morphedStickI.getDrivingComponent(),
                 D2Stick, D2Stick.getDrivingComponent(),
                 100, true);
+
+
         return morphedStickIII;
     }
 
@@ -239,6 +246,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 morphedStickII, morphedStickII.getDrivingComponent(),
                 morphedStickIII, morphedStickIII.getDrivingComponent(),
                 100, true);
+
+
         return morphedStickIV;
     }
 
@@ -252,8 +261,6 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
-        this.compIdsToNoise = identifyCompsToNoise(sample, isDeltaNoise);
-        sample.checkInNoise(compIdsToNoise, 0.5);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
         labels.getSample().add(isDeltaNoise ? "isDeltaNoise" : "notDeltaNoise");
@@ -261,7 +268,6 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     }
 
     private List<Integer> identifyCompsToNoise(EStimShapeTwoByTwoMatchStick sample, boolean isDeltaNoise) {
-        List<Integer> compIdsToNoise = new ArrayList<>();
         if (!isDeltaNoise) {
             compIdsToNoise.add(sample.getDrivingComponent());
         } else {
@@ -323,24 +329,31 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
      * @return
      */
     private void attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph, Double magnitude) {
+        List<Integer> compsToNoise = identifyCompsToNoise(matchStick, isDeltaNoise);
+        EStimShapeTwoByTwoMatchStick backup = new EStimShapeTwoByTwoMatchStick(
+                RFStrategy.PARTIALLY_INSIDE,
+                generator.getRF()
+        );
+        backup.copyFrom(matchStick);
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
                 if (magnitude > 1.0 && magnitude <= 2.0){
                     matchStick.doMediumMutation(
-                            matchStick,
+                            backup,
                             compsToMorph, magnitude-1, 0.5,
                             true,
-                            false
-                    );
+                            true,
+                            compsToNoise);
                 } else if (magnitude <= 1.0 && magnitude >= 0.0){
                     matchStick.doSmallMutation(
-                            matchStick, compsToMorph, magnitude,
+                            backup, compsToMorph, magnitude,
                             true,
-                            false,
-                            true);
+                            true,
+                            true, compsToNoise);
                 } else{
                     throw new IllegalArgumentException("Magnitude must be between 0 and 2");
                 }
+
 
                 return;  // Mutation successful
             } catch (Exception e) {

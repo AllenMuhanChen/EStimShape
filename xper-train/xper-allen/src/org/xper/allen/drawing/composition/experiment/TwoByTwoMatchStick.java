@@ -14,7 +14,7 @@ import java.util.Map;
 public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
 
-    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
+    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos, List<Integer> compsToNoise){
         int nAttempts = 0;
         int maxAttempts = 10;
         SphericalCoordinates objCenteredPosTolerance = new SphericalCoordinates(magnitude, magnitude * 180 * Math.PI / 180, magnitude * 180 * Math.PI / 180);
@@ -32,7 +32,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
                 if (doCheckNoise){
-                    checkInNoise(getDrivingComponent(), 0.7);
+                    checkInNoise(compsToNoise, 0.75);
                 }
                 if (doCompareObjCenteredPos) {
                     SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, getDrivingComponent());
@@ -47,10 +47,10 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         }
     }
 
-    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, Double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise){
+    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, Double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise, List<Integer> compsToNoise){
         int nAttempts = 0;
         int maxAttempts = 10;
-
+        copyFrom(mStickToMorph);
         while (nAttempts < maxAttempts) {
             nAttempts++;
             Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
@@ -61,7 +61,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
                 if (doCheckNoise){
-                    checkInNoise(getDrivingComponent(), 0.7);
+                    checkInNoise(compsToNoise, 0.75);
                 }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
