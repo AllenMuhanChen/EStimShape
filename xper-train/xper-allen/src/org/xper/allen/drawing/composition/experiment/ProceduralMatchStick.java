@@ -407,6 +407,72 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         }
     }
 
+    public void checkInNoise(List<Integer> cantBeOutOfNoiseCompIds, double percentRequiredOutsideNoise){
+
+
+        noiseOrigin = calculateNoiseOrigin(cantBeOutOfNoiseCompIds);
+
+        ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
+        int index = 0;
+        for (int cantBeOutOfNoiseCompId : cantBeOutOfNoiseCompIds) {
+            AllenTubeComp testingComp = getComp()[cantBeOutOfNoiseCompId];
+            Point3d[] compVect_info = testingComp.getVect_info();
+            for (Point3d point3d : compVect_info) {
+                if (point3d != null) {
+                    if (index % 1 == 0) //For speed, we only check every other point for the hull
+                    {
+                        pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
+                    }
+                    index++;
+                }
+            }
+        }
+
+        List<Point2d> pointsOutside = new LinkedList<>();
+        int numPointsInside = 0;
+        for (ConcaveHull.Point point: pointsToCheck){
+            if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
+                pointsOutside.add(new Point2d(point.getX(), point.getY()));
+
+            } else{
+                numPointsInside++;
+            }
+        }
+        double percentRequiredInside = 0.9;
+        double actualNumPointsInside = (double) numPointsInside / pointsToCheck.size();
+        if (actualNumPointsInside < percentRequiredInside){
+            throw new NoiseException("Found points outside of noise circle");
+        }
+
+        //Check if enough points not in compId are outside of the noise circle
+        ArrayList<Point2d> pointsToCheckIfOutside = new ArrayList<>();
+        for (int compIdx=1; compIdx<=getnComponent(); compIdx++){
+            if (!cantBeOutOfNoiseCompIds.contains(compIdx)){
+                Point3d[] compVectInfo = getComp()[compIdx].getVect_info();
+                index = 0;
+                for (Point3d point3d: compVectInfo){
+                    if (point3d != null){
+                        if (index % 1 == 0) //For speed, we only check every other point for the hull
+                            pointsToCheckIfOutside.add(new Point2d(point3d.getX(), point3d.getY()));
+                        index++;
+                    }
+                }
+            }
+        }
+
+        int numPointsOutside = 0;
+        for (Point2d point: pointsToCheckIfOutside){
+            if (!isPointWithinCircle(point, new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
+                numPointsOutside++;
+            }
+        }
+        double percentOutside = (double) numPointsOutside / pointsToCheckIfOutside.size();
+        System.out.println("%%%% OUTSIDE: " + percentOutside);
+        if (percentOutside < percentRequiredOutsideNoise){
+            throw new NoiseException("Not enough points outside of noise circle");
+        }
+    }
+
 
     protected boolean isPointWithinCircle(Point2d point, Point2d center, double radius) {
         return point.distance(center) <= radius;

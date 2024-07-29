@@ -62,13 +62,20 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
     @Override
     public void generateMatchSticksAndSaveSpecs(){
-        generateMorphedSet();
-        replaceSetWithMorphedSet();
+        while (true) {
+            try {
+                generateMorphedSet();
+                replaceSetWithMorphedSet();
 
-        generateSample();
-        generateMatch();
-        generateProceduralDistractors();
-        generateRandDistractors();
+                generateSample();
+                generateMatch();
+                generateProceduralDistractors();
+                generateRandDistractors();
+                return;
+            } catch (Exception e) {
+                System.out.println("Morphed set generation failed: " + e.getMessage());
+            }
+        }
     }
 
     /**
@@ -245,8 +252,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
-
         this.compIdsToNoise = identifyCompsToNoise(sample, isDeltaNoise);
+        sample.checkInNoise(compIdsToNoise, 0.5);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
         labels.getSample().add(isDeltaNoise ? "isDeltaNoise" : "notDeltaNoise");

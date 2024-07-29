@@ -29,7 +29,6 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     @Override
     public void drawCompMap(){
         super.drawCompMap();
-
         drawRF();
     }
 
