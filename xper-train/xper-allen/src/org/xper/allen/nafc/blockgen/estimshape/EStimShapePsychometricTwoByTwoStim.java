@@ -16,9 +16,8 @@ import java.util.*;
 
 public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim {
 
-    private final String sampleSetCondition;
+
     private final int MAX_MUTATION_ATTEMPTS = 100;  // Maximum number of mutation attempts
-    private final List<Integer> compIdsToNoise;
 
     //input parameters
     EStimExperimentTrialGenerator generator;
@@ -26,11 +25,14 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     Map<String, AllenMStickSpec> baseProceduralDistractorSpecs;
     Double baseMagnitude;
     double drivingMagnitude;
+    private final boolean isDeltaNoise;
+    private final String sampleSetCondition;
 
 
     Procedural<String> setType = new Procedural<>();
     Map<String, AllenMStickSpec> setSpecs = new LinkedHashMap<>();
     Map<String, AllenMStickSpec> morphedSetSpecs;
+    private List<Integer> compIdsToNoise;
 
     public EStimShapePsychometricTwoByTwoStim(
             EStimExperimentTrialGenerator generator,
@@ -41,7 +43,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             String sampleSetCondition,
             double baseMagnitude,
             double drivingMagnitude,
-            List<Integer> compIdsToNoise) {
+            boolean isDeltaNoise) {
         super(generator, parameters, null, -1, isEStimEnabled);
         this.generator = (EStimExperimentTrialGenerator) generator;
         this.sampleSetSpec = sampleSpec;
@@ -50,7 +52,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         this.sampleSetCondition = sampleSetCondition;
         this.baseMagnitude = baseMagnitude;
         this.drivingMagnitude = drivingMagnitude;
-        this.compIdsToNoise = compIdsToNoise;
+        this.isDeltaNoise = isDeltaNoise;
 
         setSpecs.put(sampleSetCondition, sampleSetSpec);
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
@@ -247,10 +249,24 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
 
-        noiseComponentIndex = sample.getDrivingComponent();
+        this.compIdsToNoise = identifyCompsToNoise(sample, isDeltaNoise);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
         return sample;
+    }
+
+    private List<Integer> identifyCompsToNoise(EStimShapeTwoByTwoMatchStick sample, boolean isDeltaNoise) {
+        List<Integer> compIdsToNoise = new ArrayList<>();
+        if (!isDeltaNoise) {
+            compIdsToNoise.add(sample.getDrivingComponent());
+        } else {
+            for (int compId = 1; compId <= sample.getnComponent(); compId++) {
+                if (compId != sample.getDrivingComponent()) {
+                    compIdsToNoise.add(compId);
+                }
+            }
+        }
+        return compIdsToNoise;
     }
 
     private void generateMatch() {
