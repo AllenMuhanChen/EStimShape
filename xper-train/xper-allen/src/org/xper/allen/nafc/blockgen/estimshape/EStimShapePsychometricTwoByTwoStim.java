@@ -29,7 +29,6 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     private final String sampleSetCondition;
 
 
-    Procedural<String> setType = new Procedural<>();
     Map<String, AllenMStickSpec> setSpecs = new LinkedHashMap<>();
     Map<String, AllenMStickSpec> morphedSetSpecs;
     private List<Integer> compIdsToNoise;
@@ -78,12 +77,10 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
      */
     @Override
     protected void generateNoiseMap() {
-        List<String> noiseMapLabels = new LinkedList<>();
-        noiseMapLabels.add("sample");
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(
                 mSticks.getSample(),
                 stimObjIds.getSample(),
-                noiseMapLabels,
+                labels.getSample(),
                 generator.getGeneratorNoiseMapPath(),
                 parameters.noiseChance, compIdsToNoise);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
@@ -252,6 +249,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         this.compIdsToNoise = identifyCompsToNoise(sample, isDeltaNoise);
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
+        labels.getSample().add(isDeltaNoise ? "isDeltaNoise" : "notDeltaNoise");
         return sample;
     }
 
@@ -277,10 +275,11 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         match.centerShape();
         mSticks.setMatch(match);
         mStickSpecs.setMatch(mStickToSpec(match));
-        setType.setMatch(sampleSetCondition);
+        labels.getMatch().add(sampleSetCondition);
     }
 
     private void generateProceduralDistractors() {
+        int i = 0;
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
             AllenMStickSpec choiceSpec = baseProceduralDistractorSpecs.get(setCondition);
             TwoByTwoMatchStick choice = new TwoByTwoMatchStick();
@@ -291,7 +290,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             choice.centerShape();
             mSticks.addProceduralDistractor(choice);
             mStickSpecs.addProceduralDistractor(mStickToSpec(choice));
-            setType.addProceduralDistractor(setCondition);
+            labels.getProceduralDistractors().get(i).add(setCondition);
+            i++;
         }
     }
 
@@ -351,8 +351,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         drawSample(pngMaker, generatorPngPath);
 
         //Match
-        List<String> matchLabels = Arrays.asList("match", setType.getMatch());
-        String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), matchLabels, generatorPngPath);
+        String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), labels.getMatch(), generatorPngPath);
         experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
         System.out.println("Match Path: " + matchPath);
 
@@ -361,7 +360,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         //Rand Distractor
         List<String> randDistractorLabels = Arrays.asList("rand");
         for (int i = 0; i < numRandDistractors; i++) {
-            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), randDistractorLabels, generatorPngPath);
+            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), labels.getRandDistractors().get(i), generatorPngPath);
             experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
             System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
@@ -370,8 +369,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Procedural Distractors
         for (int i = 0; i < numProceduralDistractors; i++) {
-            List<String> proceduralDistractorLabels = Arrays.asList("procedural", setType.getProceduralDistractors().get(i));
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), proceduralDistractorLabels, generatorPngPath);
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), labels.getProceduralDistractors().get(i), generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
@@ -379,8 +377,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
     protected void drawSample(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Sample
-        List<String> sampleLabels = Arrays.asList("sample");
-        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
+        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), labels.getSample(), generatorPngPath);
         System.out.println("Sample Path: " + samplePath);
         experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
     }

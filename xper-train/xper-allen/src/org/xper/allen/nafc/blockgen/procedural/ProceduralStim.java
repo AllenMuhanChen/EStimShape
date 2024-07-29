@@ -55,10 +55,22 @@ public class ProceduralStim implements NAFCStim {
     @Override
     public void preWrite() {
         assignStimObjIds();
+        assignLabels();
         generateMatchSticksAndSaveSpecs();
         drawPNGs();
         generateNoiseMap();
         assignCoords();
+    }
+
+    protected void assignLabels() {
+        labels.setSample(new LinkedList<>(Arrays.asList("sample")));
+        labels.setMatch(new LinkedList<>(Arrays.asList("match")));
+        for (int i = 0; i < numProceduralDistractors; i++) {
+            labels.addProceduralDistractor(new LinkedList<>(Arrays.asList("procedural")));
+        }
+        for (int i = 0; i < numRandDistractors; i++) {
+            labels.addRandDistractor(new LinkedList<>(Arrays.asList("rand")));
+        }
     }
 
     @Override
@@ -163,7 +175,6 @@ public class ProceduralStim implements NAFCStim {
         drawSample(pngMaker, generatorPngPath);
 
         //Match
-        labels.getMatch().add("match");
         String matchPath = pngMaker.createAndSavePNG(mSticks.getMatch(),stimObjIds.getMatch(), labels.getMatch(), generatorPngPath);
         experimentPngPaths.setMatch(generator.convertPngPathToExperiment(matchPath));
         System.out.println("Match Path: " + matchPath);
@@ -171,9 +182,8 @@ public class ProceduralStim implements NAFCStim {
         drawProceduralDistractors(pngMaker, generatorPngPath);
 
         //Rand Distractor
-        List<String> randDistractorLabels = Arrays.asList("rand");
         for (int i = 0; i < numRandDistractors; i++) {
-            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), randDistractorLabels, generatorPngPath);
+            String randDistractorPath = pngMaker.createAndSavePNG(mSticks.getRandDistractors().get(i), stimObjIds.getRandDistractors().get(i), labels.getRandDistractors().get(i), generatorPngPath);
             experimentPngPaths.addRandDistractor(generator.convertPngPathToExperiment(randDistractorPath));
             System.out.println("Rand Distractor Path: " + randDistractorPath);
         }
@@ -181,10 +191,8 @@ public class ProceduralStim implements NAFCStim {
 
     protected void drawProceduralDistractors(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Procedural Distractors
-        List<String> proceduralDistractorLabels = Arrays.asList("procedural");
-        labels.addProceduralDistractor(proceduralDistractorLabels);
         for (int i = 0; i < numProceduralDistractors; i++) {
-            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), proceduralDistractorLabels, generatorPngPath);
+            String proceduralDistractorPath = pngMaker.createAndSavePNG(mSticks.getProceduralDistractors().get(i), stimObjIds.getProceduralDistractors().get(i), labels.getProceduralDistractors().get(i), generatorPngPath);
             experimentPngPaths.addProceduralDistractor(generator.convertPngPathToExperiment(proceduralDistractorPath));
             System.out.println("Procedural Distractor Path: " + proceduralDistractorPath);
         }
@@ -192,20 +200,16 @@ public class ProceduralStim implements NAFCStim {
 
     protected void drawSample(AllenPNGMaker pngMaker, String generatorPngPath) {
         //Sample
-        List<String> sampleLabels = Arrays.asList("sample");
-        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), sampleLabels, generatorPngPath);
+        String samplePath = pngMaker.createAndSavePNG(mSticks.getSample(),stimObjIds.getSample(), labels.getSample(), generatorPngPath);
         System.out.println("Sample Path: " + samplePath);
         experimentPngPaths.setSample(generator.convertPngPathToExperiment(samplePath));
     }
 
     protected void generateNoiseMap() {
-        System.out.println("Not Delta: Noise Component Index: " + noiseComponentIndex);
-        List<String> noiseMapLabels = new LinkedList<>();
-        noiseMapLabels.add("sample");
         String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(
                 mSticks.getSample(),
                 stimObjIds.getSample(),
-                noiseMapLabels,
+                labels.getSample(),
                 generator.getGeneratorNoiseMapPath(),
                 parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
