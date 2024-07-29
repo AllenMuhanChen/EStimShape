@@ -2,7 +2,7 @@ package org.xper.allen.drawing.composition.morph;
 
 public class LengthMorpher {
 
-    private static final Double MIN_LENGTH = 1.5;
+    private static final Double MIN_LENGTH = 2.0;
     private static final double RADIUS_VIEW = 5.0;
     private double MAX_LENGTH;
 

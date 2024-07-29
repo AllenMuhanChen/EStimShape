@@ -46,7 +46,7 @@ public class SetMorphParameters implements ComponentMorphParameters {
 
         thicknessMin = 0.5;
         thicknessMax = 2.0;
-        lengthMin = 1.5;
+        lengthMin = 2.0;
         orientationAngleMin = 0;
         orientationAngleMax = Math.PI * 2;
 
