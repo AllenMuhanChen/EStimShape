@@ -586,8 +586,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
 //        double shiftAmount = junc.getRad() * getScaleForMAxisShape();
-//        double shiftAmount = 0;
-        double shiftAmount = junc.getRad();
+        double shiftAmount = 0;
+//        double shiftAmount = junc.getRad();
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
                 junc.getPos(), //this is shifted by applyTranslation
