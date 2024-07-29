@@ -18,6 +18,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
     private final String sampleSetCondition;
     private final int MAX_MUTATION_ATTEMPTS = 100;  // Maximum number of mutation attempts
+    private final List<Integer> compIdsToNoise;
 
     //input parameters
     EStimExperimentTrialGenerator generator;
@@ -37,7 +38,10 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
             AllenMStickSpec sampleSpec,
             Map<String,AllenMStickSpec> baseProceduralDistractorSpecs,
             boolean isEStimEnabled,
-            String sampleSetCondition, double baseMagnitude, double drivingMagnitude) {
+            String sampleSetCondition,
+            double baseMagnitude,
+            double drivingMagnitude,
+            List<Integer> compIdsToNoise) {
         super(generator, parameters, null, -1, isEStimEnabled);
         this.generator = (EStimExperimentTrialGenerator) generator;
         this.sampleSetSpec = sampleSpec;
@@ -46,6 +50,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         this.sampleSetCondition = sampleSetCondition;
         this.baseMagnitude = baseMagnitude;
         this.drivingMagnitude = drivingMagnitude;
+        this.compIdsToNoise = compIdsToNoise;
 
         setSpecs.put(sampleSetCondition, sampleSetSpec);
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
@@ -64,6 +69,24 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         generateProceduralDistractors();
         generateRandDistractors();
     }
+
+    /**
+     * Has new noise map procedure that accepts a list of comps to try to put in the noise.
+     *
+     */
+    @Override
+    protected void generateNoiseMap() {
+        List<String> noiseMapLabels = new LinkedList<>();
+        noiseMapLabels.add("sample");
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(
+                mSticks.getSample(),
+                stimObjIds.getSample(),
+                noiseMapLabels,
+                generator.getGeneratorNoiseMapPath(),
+                parameters.noiseChance, compIdsToNoise);
+        experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
+    }
+
 
     private void replaceSetWithMorphedSet() {
         //Replacing the specs with the morphed specs
