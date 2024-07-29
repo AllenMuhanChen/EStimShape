@@ -408,8 +408,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     public void checkInNoise(List<Integer> cantBeOutOfNoiseCompIds, double percentRequiredOutsideNoise){
-
-
         noiseOrigin = calculateNoiseOrigin(cantBeOutOfNoiseCompIds);
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();

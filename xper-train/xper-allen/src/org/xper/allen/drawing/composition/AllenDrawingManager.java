@@ -106,8 +106,8 @@ public class AllenDrawingManager implements Drawable {
 
 	public String drawNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {
 		LinkedList<String> labels = new LinkedList<>();
-		labels.add("noisemap");
 		labels.addAll(additionalLabels);
+		labels.add("noisemap");
 
 		String path = imageFolderName + "/" + stimObjId;
 		for (String str:labels) {
@@ -122,8 +122,8 @@ public class AllenDrawingManager implements Drawable {
 
 	public String drawNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, List<Integer> specialCompIdcs) throws IOException {
 		LinkedList<String> labels = new LinkedList<>();
-		labels.add("noisemap");
 		labels.addAll(additionalLabels);
+		labels.add("noisemap");
 
 		String path = imageFolderName + "/" + stimObjId;
 		for (String str:labels) {
@@ -138,8 +138,8 @@ public class AllenDrawingManager implements Drawable {
 
 	public String drawGaussNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {
 		LinkedList<String> labels = new LinkedList<>();
-		labels.add("noisemap");
 		labels.addAll(additionalLabels);
+		labels.add("noisemap");
 
 		BufferedImage img = GaussianNoiseMapper.generateGaussianNoiseMapFor(obj,
 				width, height,

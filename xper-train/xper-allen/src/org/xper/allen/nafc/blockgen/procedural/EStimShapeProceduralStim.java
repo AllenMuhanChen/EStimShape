@@ -86,8 +86,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     }
 
     private void generateSampleCompMap() {
-        List<String> labels = new LinkedList<>();
-        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels, generator.getGeneratorPngPath());
+        generator.getPngMaker().createAndSaveCompMap(mSticks.getSample(), stimObjIds.getSample(), labels.getSample(), generator.getGeneratorPngPath());
     }
 
     /**
