@@ -486,9 +486,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return point3d;
     }
 
-
-
-
+    /**
+     * Bases projection based on the base comp.
+     * @param baseCompId
+     * @param junc
+     * @return
+     */
     protected Point3d calcProjectionFromSingleJunctionWithSingleComp(Integer baseCompId, JuncPt_struct junc) {
         Point3d projectedPoint;
 
@@ -540,6 +543,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
     }
 
+    /**
+     * Bases projection based off of the members of the junction that are NOT the specialComp
+     * @param specialCompId
+     * @param junc
+     * @return
+     */
     protected Point3d calcProjectionFromJunctionWithMultiComp(Integer specialCompId, JuncPt_struct junc) {
         Point3d projectedPoint;
         // Collect tangents for this junction - excluding special component

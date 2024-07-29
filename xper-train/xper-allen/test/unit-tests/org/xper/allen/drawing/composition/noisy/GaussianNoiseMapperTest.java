@@ -76,7 +76,7 @@ public class GaussianNoiseMapperTest {
         EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(
                 RFStrategy.PARTIALLY_INSIDE, receptiveField);
 
-        mStick.setProperties(5, "SHADE");
+        mStick.setProperties(3, "SHADE");
         while (true) {
             try {
                 mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
@@ -131,23 +131,23 @@ public class GaussianNoiseMapperTest {
         ThreadUtil.sleep(5000);
 
 
-//        String imagePath = testMatchStickDrawer.saveImage(testBin + "/original_matchstick" + suffix);
-//
-//        // Generate Gaussian noise map
-//        String noiseMapPath = gaussianNoiseMapper.mapNoise(mStick, 0.5, specialComps, testMatchStickDrawer.window.renderer, testBin + "/gaussian_noise_map" + suffix + ".png");
-//
-//        // Load original image and noise map
-//        BufferedImage originalImage = ImageIO.read(new File(imagePath));
-//        BufferedImage noiseMap = ImageIO.read(new File(noiseMapPath));
-//
-//        // Apply noise manually
-//        BufferedImage noisyImage = applyNoise(originalImage, noiseMap);
-//
-//        // Save noisy image
-//        ImageIO.write(noisyImage, "PNG", new File(testBin + "/noisy_matchstick" + suffix + ".png"));
-//
-//        // Display noisy image
-//        displayImage(noisyImage, "Noisy MatchStick - Special Comps: " + specialComps);
+        String imagePath = testMatchStickDrawer.saveImage(testBin + "/original_matchstick" + suffix);
+
+        // Generate Gaussian noise map
+        String noiseMapPath = gaussianNoiseMapper.mapNoise(mStick, 0.5, specialComps, testMatchStickDrawer.window.renderer, testBin + "/gaussian_noise_map" + suffix + ".png");
+
+        // Load original image and noise map
+        BufferedImage originalImage = ImageIO.read(new File(imagePath));
+        BufferedImage noiseMap = ImageIO.read(new File(noiseMapPath));
+
+        // Apply noise manually
+        BufferedImage noisyImage = applyNoise(originalImage, noiseMap);
+
+        // Save noisy image
+        ImageIO.write(noisyImage, "PNG", new File(testBin + "/noisy_matchstick" + suffix + ".png"));
+
+        // Display noisy image
+        displayImage(noisyImage, "Noisy MatchStick - Special Comps: " + specialComps);
 
     }
 
