@@ -1,10 +1,7 @@
 package org.xper.allen.drawing.composition.experiment;
 
 import org.xper.allen.drawing.composition.AllenTubeComp;
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.composition.morph.NormalDistributedComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
+import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
 import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.util.CoordinateConverter;
@@ -27,7 +24,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected double[] PARAM_nCompDist = {0, 0.33, 0.67, 1.0, 0.0, 0.0, 0.0, 0.0};
     //protected double[] PARAM_nCompDist = {0, 0, 1, 0, 0.0, 0.0, 0.0, 0.0};
     protected SphericalCoordinates objCenteredPositionTolerance =
-            new SphericalCoordinates(100, Math.PI / 4, Math.PI / 2 );
+            new SphericalCoordinates(1.0, Math.PI / 5, Math.PI / 2 );
     public double noiseRadiusMm = 10;
     public int maxAttempts = 5;
     protected Point3d noiseOrigin;
@@ -221,7 +218,13 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      * @param magnitude
      * @param discreteness
      */
-    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick, int drivingComponentIndex, int maxAttempts, boolean doPositionShape, boolean doCompareObjCenteredPos, double magnitude, double discreteness) {
+    public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick,
+                                         int drivingComponentIndex,
+                                         int maxAttempts,
+                                         boolean doPositionShape,
+                                         boolean doCompareObjCenteredPos,
+                                         double magnitude,
+                                         double discreteness) {
         int baseComponentIndex;
         List<Integer> baseCompIndcs = new LinkedList<>();
         for (int compId : targetMatchStick.getCompIds()) {
@@ -239,10 +242,11 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             try {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
-                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
-                        magnitude,
-                        new NormalMorphDistributer(
-                                discreteness));
+                BaseMorphParameters morphParams = new BaseMorphParameters();
+//                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
+//                        magnitude,
+//                        new NormalMorphDistributer(
+//                                discreteness));
                 for (int i = 0; i < baseCompIndcs.size(); i++) {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
@@ -280,7 +284,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     public void compareObjectCenteredPositions(SphericalCoordinates expected, SphericalCoordinates actual) {
-        if (Math.abs(actual.r - expected.r) > objCenteredPositionTolerance.r ||
+        double rPercentDifference = Math.abs(actual.r - expected.r) / expected.r;
+        if (rPercentDifference > objCenteredPositionTolerance.r ||
                 angleDiff(actual.theta, expected.theta) > objCenteredPositionTolerance.theta ||
                 angleDiff(actual.phi, expected.phi) > objCenteredPositionTolerance.phi) {
             throw new ObjectCenteredPositionException("Object Centered Position is off");
@@ -288,7 +293,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     public static void compareObjectCenteredPositions(SphericalCoordinates expected, SphericalCoordinates actual, SphericalCoordinates tolerances) {
-        if (Math.abs(actual.r - expected.r) > tolerances.r ||
+        double rPercentDifference = Math.abs(actual.r - expected.r) / expected.r;
+        if (rPercentDifference > tolerances.r ||
                 angleDiff(actual.theta, expected.theta) > tolerances.theta ||
                 angleDiff(actual.phi, expected.phi) > tolerances.phi) {
             throw new ObjectCenteredPositionException("Object Centered Position is off");
@@ -357,13 +363,18 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         }
 
         List<Point2d> pointsOutside = new LinkedList<>();
+        int numPointsInside = 0;
         for (ConcaveHull.Point point: pointsToCheck){
             if (!isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
                 pointsOutside.add(new Point2d(point.getX(), point.getY()));
+
+            } else{
+                numPointsInside++;
             }
         }
-
-        if (!pointsOutside.isEmpty()){
+        double percentRequiredInside = 0.9;
+        double actualNumPointsInside = (double) numPointsInside / pointsToCheck.size();
+        if (actualNumPointsInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle");
         }
 

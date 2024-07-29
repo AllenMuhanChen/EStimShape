@@ -2,17 +2,77 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
-import org.xper.allen.drawing.composition.morph.MorphedMAxisArc;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
-import org.xper.allen.drawing.composition.morph.RadiusProfile;
+import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point3d;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class TwobyTwoMatchStick extends ProceduralMatchStick {
+public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
-    public void genSwappedBaseAndDrivingComponentMatchStick(TwobyTwoMatchStick secondMatchStick, int drivingComponentIndex, TwobyTwoMatchStick thirdMatchStick, boolean doPositionShape){
+
+    public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos){
+        int nAttempts = 0;
+        int maxAttempts = 10;
+        SphericalCoordinates objCenteredPosTolerance = new SphericalCoordinates(magnitude, magnitude * 180 * Math.PI / 180, magnitude * 180 * Math.PI / 180);
+        SphericalCoordinates originalObjCenteredPos = null;
+        if (doCompareObjCenteredPos) {
+            originalObjCenteredPos = calcObjCenteredPosForComp(this, getDrivingComponent());
+        }
+
+        while (nAttempts < maxAttempts) {
+            nAttempts++;
+            Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+            for (Integer compId: compsToMorph) {
+                morphParametersForComponents.put(compId, new SetMorphParameters(magnitude));
+            }
+            try {
+                genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
+                if (doCheckNoise){
+                    checkInNoise(getDrivingComponent(), 0.7);
+                }
+                if (doCompareObjCenteredPos) {
+                    SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, getDrivingComponent());
+                    compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, objCenteredPosTolerance);
+                }
+                return;
+            } catch (MorphedMatchStick.MorphException e) {
+                copyFrom(mStickToMorph);
+                System.out.println(e.getMessage());
+                System.out.println("Retrying genSmallMutationMatchStick() " + nAttempts + " out of " + maxAttempts);
+            }
+        }
+    }
+
+    public void doMediumMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, Double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise){
+        int nAttempts = 0;
+        int maxAttempts = 10;
+
+        while (nAttempts < maxAttempts) {
+            nAttempts++;
+            Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
+            for (Integer compId: compsToMorph) {
+                morphParametersForComponents.put(compId, new NormalDistributedComponentMorphParameters(magnitude, new NormalMorphDistributer(discreteness),
+                        90 * Math.PI / 180));
+            }
+            try {
+                genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
+                if (doCheckNoise){
+                    checkInNoise(getDrivingComponent(), 0.7);
+                }
+                return;
+            } catch (MorphedMatchStick.MorphException e) {
+                copyFrom(mStickToMorph);
+                System.out.println(e.getMessage());
+                System.out.println("Retrying genMediumMutationMatchStick() " + nAttempts + " out of " + maxAttempts);
+            }
+        }
+    }
+
+    public void genSwappedBaseAndDrivingComponentMatchStick(TwoByTwoMatchStick secondMatchStick, int drivingComponentIndex, TwoByTwoMatchStick thirdMatchStick, boolean doPositionShape){
 
         genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15, doPositionShape);
     }

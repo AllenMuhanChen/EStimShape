@@ -3,6 +3,7 @@ package org.xper.allen.drawing.composition.experiment;
 import org.junit.Before;
 import org.junit.Test;
 import org.xper.alden.drawing.drawables.Drawable;
+import org.xper.allen.drawing.composition.AllenMAxisArc;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.RadiusInfo;
@@ -292,7 +293,7 @@ public class DepthLightingPostHocMatchStickTest {
             }
 
             @Override
-            public Double morphCurvature(Double oldCurvature) {
+            public Double morphCurvature(Double oldCurvature, AllenMAxisArc arcToMorph) {
                 return oldCurvature;
             }
 
@@ -319,7 +320,7 @@ public class DepthLightingPostHocMatchStickTest {
             }
 
             @Override
-            public void redistribute() {
+            public void distribute() {
 
             }
         });

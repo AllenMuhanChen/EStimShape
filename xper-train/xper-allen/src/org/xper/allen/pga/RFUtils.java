@@ -15,7 +15,7 @@ import java.util.List;
 public class RFUtils {
     public static double calculateMStickMaxSizeDiameterDegrees(RFStrategy rfStrategy, ReceptiveFieldSource rfSource) {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            int maxLimbs = 4;
+            int maxLimbs = 6;
             return rfSource.getRFRadiusDegrees() * maxLimbs;
         } else {
             //TODO:

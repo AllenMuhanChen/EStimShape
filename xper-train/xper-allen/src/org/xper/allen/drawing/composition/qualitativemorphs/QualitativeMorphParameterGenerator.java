@@ -12,13 +12,13 @@ public class QualitativeMorphParameterGenerator {
 	private boolean manualMode = false;
 	private QualitativeMorphParams qmp;
 	private double maxImageDimensionDegrees;
-	
-	
+
+
 	public QualitativeMorphParameterGenerator(double maxImageDimensionDegrees) {
 		this.setMaxImageDimensionDegrees(maxImageDimensionDegrees);
 		this.setQmp(new QualitativeMorphParams());
 	}
-	
+
 	public QualitativeMorphParams getQMP(int numCategories) {
 		chooseMorphs(numCategories);
 
@@ -29,9 +29,9 @@ public class QualitativeMorphParameterGenerator {
 			positionBins.add(new Bin<Integer>(1,1));
 			positionBins.add(new Bin<Integer>(20,32));
 			positionBins.add(new Bin<Integer>(51,51));
-			
+
 			getQmp().objCenteredPosQualMorph.setAngleDifferenceBounds(new Double[] {90 * Math.PI/180, 270 * Math.PI/180});
-			
+
 		}
 		{//Curvature And Rotation
 			getQmp().curvRotQualMorph = new CurvatureRotationQualitativeMorph();
@@ -46,7 +46,7 @@ public class QualitativeMorphParameterGenerator {
 		}
 		{//Size: Length & Width
 			getQmp().sizeQualMorph = new SizeQualitativeMorph(getMaxImageDimensionDegrees()/2);
-			//These bins will be scaled depending on the particular limb's arcLen and curvature 
+			//These bins will be scaled depending on the particular limb's arcLen and curvature
 			List<Bin<Double>> lengthBins = getQmp().sizeQualMorph.lengthBins;
 			lengthBins.add(new Bin<Double>(0.2, 0.3));
 			lengthBins.add(new Bin<Double>(0.55, 0.65));
@@ -57,7 +57,7 @@ public class QualitativeMorphParameterGenerator {
 			thicknessBins.add(new Bin<Double>(0.8, 1.0));
 		}
 		{//radProfile
-			getQmp().radProfileQualMorph = new RadProfileQualitativeMorph();
+			getQmp().radProfileQualMorph = new RadProfileQualitativeMorph(1, 2, false);
 			//double dev=0.1;
 			double mini = 0.5;
 			double fat = 1;
@@ -78,9 +78,9 @@ public class QualitativeMorphParameterGenerator {
 		}
 		return getQmp();
 	}
-	
+
 	/**
-	 * Chooses Morphs randomly. Give only numCategories. 
+	 * Chooses Morphs randomly. Give only numCategories.
 	 * @param numCategories
 	 */
 	protected void chooseMorphs(int numCategories) {

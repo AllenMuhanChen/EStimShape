@@ -8,7 +8,7 @@ from clat.compile.trial.trial_collector import TrialCollector
 from matplotlib import pyplot as plt, cm
 
 from src.analysis.nafc.nafc_database_fields import IsCorrectField, NoiseChanceField, NumRandDistractorsField, \
-    StimTypeField, ChoiceField, AnswerField
+    StimTypeField, ChoiceField, AnswerField, GenIdField
 from clat.util import time_util
 from clat.util.connection import Connection, since_nth_most_recent_experiment
 from clat.util.time_util import When
@@ -25,8 +25,9 @@ def main():
                                                6, 19,
                                                start_time=None,  # "16:49:00"
                                                end_time=None)
-    since_date = time_util.from_date_to_now(2024, 7, 5)
-    last_experiment = since_nth_most_recent_experiment(conn, n=1)
+    since_date = time_util.from_date_to_now(2024, 7, 10)
+    last_experiment = since_nth_most_recent_experiment(conn, n=2)
+    start_gen_id = 436
 
     trial_tstamps = collect_choice_trials(conn, last_experiment)
 
@@ -37,38 +38,134 @@ def main():
     fields.append(StimTypeField(conn))
     fields.append(ChoiceField(conn))
     fields.append(AnswerField(conn))
+    fields.append(GenIdField(conn))
 
     data = fields.to_data(trial_tstamps)
+
+    # Filter data by GenId
+    data = data[data['GenId'] >= start_gen_id]
+
     data_psychometric = data[data['StimType'] == 'EStimShapePsychometricTwoByTwoStim']
-    data = data[data['StimType'] == 'EStimShapeTwoByTwoBehavioralStim']
+    data_procedural = data[data['StimType'] == 'EStimShapeTwoByTwoBehavioralStim']
+    data_psychometric_untouched = data_psychometric[data_psychometric['NumRandDistractors'] == 0]
     print(data_psychometric.to_string())
-    #print number of each choice
+    # print number of each choice
     print(data_psychometric['Choice'].value_counts())
+    print(data_psychometric_untouched['Choice'].value_counts())
     # FILTER DATA
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 10))
+    fig, axes = plt.subplots(2, 3, figsize=(8, 12))
 
-    # data_1_hard_distractor = data[data['NumRandDistractors'] == 2]
-    # data_2_hard_distractors = data[data['NumRandDistractors'] == 1]
-    # plot_psychometric_curves_side_by_side(data_1_hard_distractor, data_2_hard_distractors, '1 Hard Distractor',
-    #                                       '2 Hard Distractors', show_n=True)
-    plot_psychometric_curve_on_ax(data, ax1, label='Procedural Trials', show_n=True, num_rep_min=0)
+    axes_psychometric = axes[0, :]
+    axes_choices = axes[1, :]
+    answer_types = ["I", "II", "III", "IV"]
+    color_for_all = 'black'
+    colors_for_answers = cm.get_cmap('tab10').colors
+    #PROCEDURAL
+    plot_psychometric_curve_on_ax(data_procedural, axes_psychometric[0], title='Procedural Trials', show_n=True,
+                                  num_rep_min=0, color=color_for_all)
 
-    plot_psychometric_curve_on_ax(data_psychometric, ax2, label='Pyschometric Trials', show_n=True,
-                                  num_rep_min=0)
-    # plot_psychometric_curve_on_ax(data_2_hard_distractors, ax, title="Psychometric Curves", label='2 Hard Distractors', show_n=False)
-    ax1.invert_xaxis()  # Invert x-axis to have higher NoiseChance first
-    ax2.invert_xaxis()
-    ax1.legend(fontsize=18)
+    #PSYCHOMETRIC-ALL
+    plot_psychometric_curve_on_ax(data_psychometric, axes_psychometric[1], title='Pyschometric Trials', show_n=True,
+                                  num_rep_min=0, label="All", color=color_for_all, linewidth=2)
+    for answer in answer_types:
+        plot_psychometric_curve_on_ax(filter_to_sample_type(data_psychometric, answer), axes_psychometric[1],
+                                      show_n=True,
+                                      num_rep_min=0,
+                                      label=answer,
+                                      color=colors_for_answers[answer_types.index(answer)],
+                                      linestyle='--')
+    plot_choices_per_sample(data_psychometric, axes_choices[1])
+
+    #PSYCHOMETRIC-UNTOUCHED
+    plot_psychometric_curve_on_ax(data_psychometric_untouched, axes_psychometric[2],
+                                  title='Pyschometric Trials - Untouched', show_n=True,
+                                  num_rep_min=0, label="All", color=color_for_all)
+    for answer in answer_types:
+        plot_psychometric_curve_on_ax(filter_to_sample_type(data_psychometric_untouched, answer), axes_psychometric[2],
+                                      show_n=True,
+                                      num_rep_min=0,
+                                      label=answer,
+                                      color=colors_for_answers[answer_types.index(answer)],
+                                      linestyle='--')
+    # New plot for choices per sample
+    plot_choices_per_sample(data_psychometric_untouched, axes_choices[2])
+
+    plot_incorrect_choices(data_psychometric, axes_choices[0])
+
+    for ax in axes[0, :]:
+        ax.invert_xaxis()
+        ax.set_ylim([0, 110])
+        ax.legend()
+
     plt.show()
 
-def plot_psycho_delta(data):
-    data = data[data['NumRandDistractors'] == 2]
-    data_psychometric = data[data['StimType'] == 'RandProcedural']
-    data_delta = data[data['StimType'] == 'RandDeltaProcedural']
-    # plot_binned_psychometric_curves(data, 2)
-    plot_psychometric_curves_side_by_side(
-        data_psychometric, data_delta, 'Psychometric', 'Delta', show_n=True)
-    plt.show()
+
+def plot_incorrect_choices(data, ax):
+    choice_types = ["I", "II", "III", "IV"]
+    incorrect_choices = {choice: 0 for choice in choice_types}
+    no_choice = 0  # Counter for None or invalid choices
+
+    for _, row in data.iterrows():
+        if row['Choice'] != row['Answer']:
+            if row['Choice'] in choice_types:
+                incorrect_choices[row['Choice']] += 1
+            else:
+                no_choice += 1
+
+    ax.bar(choice_types, [incorrect_choices[choice] for choice in choice_types])
+
+    # Add a bar for 'None' or invalid choices if there are any
+    if no_choice > 0:
+        ax.bar(len(choice_types), no_choice)
+        choice_types.append('None')
+
+    ax.set_xlabel('Choice')
+    ax.set_ylabel('Number of Incorrect Selections')
+    ax.set_title('Incorrect Choices')
+    ax.set_xticks(range(len(choice_types)))
+    ax.set_xticklabels(choice_types)
+
+    # Add value labels on top of each bar
+    for i, v in enumerate(list(incorrect_choices.values()) + ([no_choice] if no_choice > 0 else [])):
+        ax.text(i, v, str(v), ha='center', va='bottom')
+
+    return no_choice  # Return the count of None/invalid choices for debugging
+def plot_choices_per_sample(data, ax):
+    answer_types = ["I", "II", "III", "IV"]
+    choice_types = ["I", "II", "III", "IV"]
+
+    choice_data = {choice: [] for choice in choice_types}
+
+    for answer in answer_types:
+        answer_data = data[data['Answer'] == answer]
+        choice_counts = answer_data['Choice'].value_counts().reindex(choice_types).fillna(0)
+
+        for choice in choice_types:
+            choice_data[choice].append(choice_counts[choice])
+
+    x = np.arange(len(answer_types))
+    width = 0.2
+
+    for i, choice in enumerate(choice_types):
+        offset = (i - 1.5) * width
+        ax.bar(x + offset, choice_data[choice], width, label=f'Choice {choice}')
+
+    ax.set_xlabel('Sample')
+    ax.set_ylabel('Count')
+    ax.set_title('Choices per Sample Type')
+    ax.set_xticks(x)
+    ax.set_xticklabels(answer_types)
+    ax.legend()
+
+    # Add value labels on top of each bar
+    for i, choice in enumerate(choice_types):
+        offset = (i - 1.5) * width
+        for j, v in enumerate(choice_data[choice]):
+            ax.text(j + offset, v, str(int(v)), ha='center', va='bottom')
+
+
+def filter_to_sample_type(data, sample_type):
+    return data[data['Answer'] == sample_type]
 
 
 def unix_to_datetime(unix_timestamp):
@@ -80,6 +177,7 @@ def unix_to_datetime(unix_timestamp):
     local_dt = utc_dt.astimezone(pytz.timezone('US/Eastern'))
     return local_dt
 
+
 def plot_psychometric_curve(df, title=None, color=None, label=None, show_n=False):
     """
     Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
@@ -89,32 +187,7 @@ def plot_psychometric_curve(df, title=None, color=None, label=None, show_n=False
     plt.show()
 
 
-
-def plot_psychometric_curves_side_by_side(df1, df2, title1=None, title2=None, color1=None, color2=None, label1=None, label2=None, show_n=False):
-    """
-    Plots two DataFrames side by side in a subplot.
-    """
-    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(20, 8))  # Create 1 row, 2 columns subplot
-
-    # Plotting each DataFrame on its respective ax
-    plot_psychometric_curve_on_ax(df1, axs[0], title=title1, color=color1, label=label1, show_n=show_n, num_rep_min=1)
-    plot_psychometric_curve_on_ax(df2, axs[1], title=title2, color=color2, label=label2, show_n=show_n, num_rep_min=1)
-
-    # Adjust subplot parameters for better layout
-    plt.subplots_adjust(wspace=0.3)
-
-    # Add an overall title if needed
-    if title1 or title2:
-        plt.suptitle(f'{title1} and {title2}')
-
-    # scale both plots the same
-    axs[0].set_ylim([20, 100])
-    axs[1].set_ylim([20, 100])
-
-    plt.show()
-
-
-def plot_psychometric_curve_on_ax(df, ax, title=None, color=None, label=None, show_n=False, num_rep_min=10):
+def plot_psychometric_curve_on_ax(df, ax, title=None, show_n=False, num_rep_min=10, **plot_kwargs):
     """
     Plots a single line based on NoiseChance and IsCorrect values in the given DataFrame.
     Plots on the provided matplotlib Axes (ax).
@@ -129,9 +202,9 @@ def plot_psychometric_curve_on_ax(df, ax, title=None, color=None, label=None, sh
     # Sort the percent_correct Series in ascending order of 'NoiseChance'
     percent_correct = percent_correct.sort_index(ascending=True)
 
-    ax.set_title(title, fontsize=28)
-    ax.set_xlabel('Noise Chance (%)', fontsize=20)
-    ax.set_ylabel('Percent Correct', fontsize=20)
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel('Noise Chance (%)', fontsize=14)
+    ax.set_ylabel('Percent Correct', fontsize=14)
     ax.grid(True)
 
     # Setting the x-axis labels to where there are data points
@@ -142,9 +215,9 @@ def plot_psychometric_curve_on_ax(df, ax, title=None, color=None, label=None, sh
     ax.set_xticklabels(ticks, rotation=45, fontsize=14, color='black', fontweight='regular')
     ax.tick_params(axis='y', labelsize=14)
 
-
     # Plotting as a line graph on the given ax
-    line = ax.plot(percent_correct.index, percent_correct.values, color=color, marker='o', label=label)
+
+    line = ax.plot(percent_correct.index, percent_correct.values, **plot_kwargs)
 
     # Adding text for num_reps above each data point
     if show_n:
@@ -152,9 +225,11 @@ def plot_psychometric_curve_on_ax(df, ax, title=None, color=None, label=None, sh
             reps = num_reps[noise_chance]
             ax.text(noise_chance, y_val, f'{reps}', color=line[0].get_color(), ha='center', va='bottom')
 
+
 def plot_binned_psychometric_curves(df, num_bins):
     """
     Plots percent correct binned into num_bins bins, using a separate line for each bin.
+    This is used to visualize psychometric shift across time.
     """
     # Convert 'NoiseChance' to numeric if it's not already
     if df['NoiseChance'].dtype == 'O':

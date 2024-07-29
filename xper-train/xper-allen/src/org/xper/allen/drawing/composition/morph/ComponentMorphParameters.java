@@ -1,17 +1,28 @@
 package org.xper.allen.drawing.composition.morph;
 
+import org.xper.allen.drawing.composition.AllenMAxisArc;
+
 import javax.vecmath.Vector3d;
 
 public interface ComponentMorphParameters {
     Vector3d morphOrientation(Vector3d oldOrientation);
 
-    Double morphRotation(Double oldRotation);
+    /**
+     * moprhCurvature is called before morphRotation, so if there is any
+     * dependence between curvature and rotation, then this should be implemented
+     * via class fields.
+     *
+     * @param oldCurvature
+     * @param arcToMorph
+     * @return
+     */
+    Double morphCurvature(Double oldCurvature, AllenMAxisArc arcToMorph);
 
-    Double morphCurvature(Double oldCurvature);
+    Double morphRotation(Double oldRotation);
 
     Double morphLength(Double oldLength);
 
     RadiusProfile morphRadius(RadiusProfile oldRadiusProfile);
 
-    void redistribute();
+    void distribute();
 }

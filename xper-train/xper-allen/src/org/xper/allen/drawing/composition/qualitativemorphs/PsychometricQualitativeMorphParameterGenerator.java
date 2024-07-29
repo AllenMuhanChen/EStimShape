@@ -6,10 +6,6 @@ import java.util.List;
 
 import javax.vecmath.Vector3d;
 
-import org.xper.Dependency;
-import org.xper.allen.nafc.vo.NoiseType;
-import org.xper.drawing.stick.stickMath_lib;
-
 public class PsychometricQualitativeMorphParameterGenerator {
 	public List<QualitativeMorphParams> qmps;
 	private double maxImageDimensionDegrees;
@@ -48,7 +44,7 @@ public class PsychometricQualitativeMorphParameterGenerator {
 			}
 			{//Size: Length & Width
 				qmps.get(i).sizeQualMorph = new SizeQualitativeMorph(getMaxImageDimensionDegrees()/2);
-				//These bins will be scaled depending on the particular limb's arcLen and curvature 
+				//These bins will be scaled depending on the particular limb's arcLen and curvature
 				List<Bin<Double>> lengthBins = qmps.get(i).sizeQualMorph.lengthBins;
 				lengthBins.add(new Bin<Double>(0.2, 0.3));
 				lengthBins.add(new Bin<Double>(0.55, 0.65));
@@ -59,7 +55,7 @@ public class PsychometricQualitativeMorphParameterGenerator {
 				thicknessBins.add(new Bin<Double>(0.8, 1.0));
 			}
 			{//radProfile
-				qmps.get(i).radProfileQualMorph = new RadProfileQualitativeMorph();
+				qmps.get(i).radProfileQualMorph = new RadProfileQualitativeMorph(1, 2, false);
 				//double dev=0.1;
 				double mini = 0.5;
 				double fat = 1;

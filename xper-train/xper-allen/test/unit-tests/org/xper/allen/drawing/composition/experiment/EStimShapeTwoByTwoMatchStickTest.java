@@ -5,11 +5,11 @@ import org.junit.Test;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
 
-import static org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStickTest.PARTIAL_RF;
+import static org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStickTest.PARTIAL_RF;
 
 public class EStimShapeTwoByTwoMatchStickTest {
 
-    private TwobyTwoMatchStick baseMStick;
+    private TwoByTwoMatchStick baseMStick;
     private TestMatchStickDrawer testMatchStickDrawer;
     private String figPath;
 
@@ -18,7 +18,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);
 
-        baseMStick = new TwobyTwoMatchStick();
+        baseMStick = new TwoByTwoMatchStick();
         baseMStick.setMaxAttempts(-1);
         baseMStick.setProperties(8, "SHADE");
         baseMStick.genMatchStickRand();

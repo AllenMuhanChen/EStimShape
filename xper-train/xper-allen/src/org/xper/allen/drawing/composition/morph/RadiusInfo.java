@@ -3,10 +3,10 @@ package org.xper.allen.drawing.composition.morph;
 public class RadiusInfo {
     Double radius;
     Integer uNdx;
-    NormalDistributedComponentMorphParameters.RADIUS_TYPE radiusType;
+    RADIUS_TYPE radiusType;
     Boolean preserve;
 
-    public RadiusInfo(Double radius, Integer uNdx, NormalDistributedComponentMorphParameters.RADIUS_TYPE radiusType, Boolean preserve) {
+    public RadiusInfo(Double radius, Integer uNdx, RADIUS_TYPE radiusType, Boolean preserve) {
         this.radius = radius;
         this.uNdx = uNdx;
         this.radiusType = radiusType;
@@ -43,11 +43,11 @@ public class RadiusInfo {
         this.uNdx = uNdx;
     }
 
-    public NormalDistributedComponentMorphParameters.RADIUS_TYPE getRadiusType() {
+    public RADIUS_TYPE getRadiusType() {
         return radiusType;
     }
 
-    public void setRadiusType(NormalDistributedComponentMorphParameters.RADIUS_TYPE radiusType) {
+    public void setRadiusType(RADIUS_TYPE radiusType) {
         this.radiusType = radiusType;
     }
 
@@ -57,5 +57,9 @@ public class RadiusInfo {
 
     public void setPreserve(Boolean preserve) {
         this.preserve = preserve;
+    }
+
+    public String toString() {
+        return "Radius: " + radius + ", U index: " + uNdx + ", Type: " + radiusType + ", Preserve: " + preserve;
     }
 }

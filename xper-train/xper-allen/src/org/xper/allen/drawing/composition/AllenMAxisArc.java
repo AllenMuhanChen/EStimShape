@@ -1,16 +1,10 @@
 package org.xper.allen.drawing.composition;
 
-import java.util.Random;
-
-import javax.media.j3d.Transform3D;
-import javax.vecmath.AxisAngle4d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.metricmorphs.MetricMorphParams;
-import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorph;
 import org.xper.allen.drawing.composition.qualitativemorphs.QualitativeMorphParams;
 import org.xper.drawing.stick.MAxisArc;
 import org.xper.drawing.stick.stickMath_lib;
@@ -259,8 +253,7 @@ public class AllenMAxisArc extends MAxisArc {
 		 */
 		if(mmp.lengthFlag) {
 			double oriArcLen = inArc.getArcLen();
-			mmp.lengthMagnitude.oldValue = oriArcLen;
-			newArcLen = mmp.lengthMagnitude.calculateMagnitude();
+			newArcLen = mmp.lengthMagnitude.calculateMagnitude(oriArcLen);
 		}
 
 		// 2. orientation

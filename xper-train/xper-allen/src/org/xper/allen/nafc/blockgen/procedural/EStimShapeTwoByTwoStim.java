@@ -3,7 +3,7 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
-import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
+import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.time.TimeUtil;
@@ -71,7 +71,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick match) {
-        TwobyTwoMatchStick swappedBaseMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick swappedBaseMStick = new TwoByTwoMatchStick();
         if (numProceduralDistractors >= 1) {
             correctNoiseRadius(swappedBaseMStick);
             swappedBaseMStick.setProperties(parameters.getSize(), parameters.textureType);
@@ -85,7 +85,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedBaseMStick));
         }
 
-        TwobyTwoMatchStick swappedInNoiseMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick swappedInNoiseMStick = new TwoByTwoMatchStick();
         if (numProceduralDistractors >= 2) {
             correctNoiseRadius(swappedInNoiseMStick);
             swappedInNoiseMStick.setProperties(parameters.getSize(), parameters.textureType);
@@ -97,7 +97,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             mStickSpecs.proceduralDistractors.add(mStickToSpec(swappedInNoiseMStick));
         }
 
-        TwobyTwoMatchStick swappedBothMStick = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick swappedBothMStick = new TwoByTwoMatchStick();
         if (numProceduralDistractors >= 3) {
             correctNoiseRadius(swappedBothMStick);
             swappedBothMStick.setProperties(parameters.getSize(), parameters.textureType);
@@ -132,7 +132,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
 
     @Override
     protected void generateMatch(ProceduralMatchStick sample) {
-        TwobyTwoMatchStick match = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick match = new TwoByTwoMatchStick();
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});

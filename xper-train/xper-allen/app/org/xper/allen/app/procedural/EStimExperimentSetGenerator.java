@@ -6,7 +6,7 @@ import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
-import org.xper.allen.drawing.composition.experiment.TwobyTwoMatchStick;
+import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.exception.XGLException;
@@ -50,7 +50,7 @@ public class EStimExperimentSetGenerator {
     public void generateSet() {
         //PARAMETERS
 //        long stimId = 1717531847396095L;
-        long stimId = 1717531847374356L;
+        long stimId = 1717531847361040L;
         int compId = 2;
         nComp = 2;
 
@@ -67,6 +67,7 @@ public class EStimExperimentSetGenerator {
                 saveSpec(stick1, stimId, compId, "I");
                 savePng(stick1, stimId, "I");
                 EStimShapeTwoByTwoMatchStick stick2 = makeStickII(stick1);
+//                EStimShapeTwoByTwoMatchStick stick2 = makeStickI(baseMStick, compId);
                 saveSpec(stick2, stimId, compId, "II");
                 savePng(stick2, stimId, "II");
 
@@ -126,8 +127,8 @@ public class EStimExperimentSetGenerator {
                 100,
                 true,
                 true,
-                0.5,
-                1 / 2.0);
+                0.6,
+                1 / 3.0);
         return stick2;
     }
 
@@ -139,8 +140,8 @@ public class EStimExperimentSetGenerator {
         stick3.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         stick3.genMorphedDrivingComponentMatchStick(
                 stick1,
-                0.5,
-                1.0/2.0,
+                0.6,
+                1.0/3.0,
                 true,
                 true);
         return stick3;
@@ -162,7 +163,7 @@ public class EStimExperimentSetGenerator {
     }
 
     private void savePng(EStimShapeTwoByTwoMatchStick stick, long stimId, String type) {
-        TwobyTwoMatchStick stickToDraw = new TwobyTwoMatchStick();
+        TwoByTwoMatchStick stickToDraw = new TwoByTwoMatchStick();
         stickToDraw.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         AllenMStickSpec stickSpec = new AllenMStickSpec();
         stickSpec.setMStickInfo(stick, true);

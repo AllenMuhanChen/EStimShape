@@ -1,11 +1,14 @@
 package org.xper.allen.drawing.composition.morph;
 
+import org.xper.allen.drawing.composition.AllenMAxisArc;
+
 import javax.vecmath.Vector3d;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class NormalDistributedComponentMorphParameters implements ComponentMorphParameters {
 
+    private double maxOrientationChange = -1;
     public Double magnitude;
     private NormalMorphDistributer normalMorphDistributer;
 
@@ -16,7 +19,14 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         distributeMagnitude();
     }
 
-    public void redistribute() {
+    public NormalDistributedComponentMorphParameters(Double magnitude, NormalMorphDistributer normalMorphDistributer, double maxRotationRadians) {
+        this.magnitude = magnitude;
+        this.normalMorphDistributer = normalMorphDistributer;
+        this.maxOrientationChange = maxRotationRadians;
+        distributeMagnitude();
+    }
+
+    public void distribute() {
         distributeMagnitude();
     }
 
@@ -28,9 +38,22 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
 
     @Override
     public Vector3d morphOrientation(Vector3d oldOrientation){
-        Vector3DMorpher vector3DMorpher = new Vector3DMorpher();
+        Vector3DMorpher vector3DMorpher;
+        if (maxOrientationChange != -1){
+            vector3DMorpher = new Vector3DMorpher(maxOrientationChange);
+        } else{
+            vector3DMorpher = new Vector3DMorpher();
+        }
+
         orientation = vector3DMorpher.morphVector(oldOrientation, orientationMagnitude);
         return orientation;
+    }
+
+    @Override
+    public Double morphCurvature(Double oldCurvature, AllenMAxisArc arcToMorph){
+        CurvatureMorpher curvatureMorpher = new CurvatureMorpher();
+        curvature = curvatureMorpher.morphCurvature(oldCurvature, curvatureMagnitude);
+        return curvature;
     }
 
     @Override
@@ -38,13 +61,6 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         AngleMorpher angleMorpher = new AngleMorpher();
         rotation = angleMorpher.morphAngle(oldRotation, rotationMagnitude);
         return rotation;
-    }
-
-    @Override
-    public Double morphCurvature(Double oldCurvature){
-        CurvatureMorpher curvatureMorpher = new CurvatureMorpher();
-        curvature = curvatureMorpher.morphCurvature(oldCurvature, curvatureMagnitude);
-        return curvature;
     }
 
     @Override
@@ -94,34 +110,6 @@ public class NormalDistributedComponentMorphParameters implements ComponentMorph
         this.curvatureMagnitude = curvatureMagnitude.get();
         this.radiusProfileMagnitude = radiusProfileMagnitude.get();
     }
-
-    public void redistributeRotationMagntiude(){
-        AtomicReference<Double> orientationMagnitude = new AtomicReference<>(this.orientationMagnitude);
-        AtomicReference<Double> rotationMagnitude = new AtomicReference<>(this.rotationMagnitude);
-        AtomicReference<Double> lengthMagnitude = new AtomicReference<>(this.lengthMagnitude);
-        AtomicReference<Double> curvatureMagnitude = new AtomicReference<>(this.curvatureMagnitude);
-        AtomicReference<Double> radiusProfileMagnitude = new AtomicReference<>(this.radiusProfileMagnitude);
-
-        List<AtomicReference<Double>> magnitudes = new ArrayList<>();
-        magnitudes.add(orientationMagnitude);
-        magnitudes.add(lengthMagnitude);
-        magnitudes.add(radiusProfileMagnitude);
-
-
-        Double amountOfRotationMagnitudeToRedistribute = rotationMagnitude.get();
-        Double amountToRedistribute = amountOfRotationMagnitudeToRedistribute/magnitudes.size();
-
-        normalMorphDistributer.distributeMagnitudeTo(magnitudes, amountToRedistribute);
-
-        this.orientationMagnitude = orientationMagnitude.get();
-        this.lengthMagnitude = lengthMagnitude.get();
-        this.radiusProfileMagnitude = radiusProfileMagnitude.get();
-        this.curvatureMagnitude = curvatureMagnitude.get();
-        this.rotationMagnitude = 0.0;
-
-    }
-
-    public enum RADIUS_TYPE{JUNCTION, MIDPT, ENDPT}
 
     public Vector3d getOrientation() {
         return orientation;

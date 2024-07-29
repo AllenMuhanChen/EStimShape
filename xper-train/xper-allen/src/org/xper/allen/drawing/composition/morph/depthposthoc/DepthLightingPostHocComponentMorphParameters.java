@@ -1,14 +1,9 @@
 package org.xper.allen.drawing.composition.morph.depthposthoc;
 
-import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.NormalDistributedComponentMorphParameters;
-import org.xper.allen.drawing.composition.morph.NormalMorphDistributer;
-import org.xper.allen.drawing.composition.morph.RadiusProfile;
-import org.xper.allen.util.CoordinateConverter;
+import org.xper.allen.drawing.composition.AllenMAxisArc;
+import org.xper.allen.drawing.composition.morph.*;
 
 import javax.vecmath.Vector3d;
-
-import static org.xper.allen.util.CoordinateConverter.*;
 
 public class DepthLightingPostHocComponentMorphParameters implements ComponentMorphParameters {
     public DepthLightingPostHocComponentMorphParameters() {
@@ -32,7 +27,7 @@ public class DepthLightingPostHocComponentMorphParameters implements ComponentMo
     }
 
     @Override
-    public Double morphCurvature(Double oldCurvature) {
+    public Double morphCurvature(Double oldCurvature, AllenMAxisArc arcToMorph) {
         return oldCurvature;
     }
 
@@ -47,7 +42,7 @@ public class DepthLightingPostHocComponentMorphParameters implements ComponentMo
     }
 
     @Override
-    public void redistribute() {
+    public void distribute() {
 
     }
 }

@@ -1,6 +1,6 @@
 import os
 import re
-
+from datetime import datetime
 from src.startup import config
 
 
@@ -127,11 +127,13 @@ def setup_ga_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"
     make_path(generator_spec_path)
 
 
-
 def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly
     version_nafc = config.nafc_database
     recording_computer_sftp = r2_sftp
+
+    # Get current date in YYMMDD format
+    current_date = datetime.now().strftime("%y%m%d")
 
     # Define paths to the properties file and directories
     xper_properties_file_path = '/home/r2_allen/git/EStimShape/xper-train/shellScripts/xper.properties.procedural'
@@ -140,12 +142,12 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
 
     # PATHS
     stimuli_base_r = f"/home/r2_allen/Documents/EStimShape/{version_nafc}/stimuli"
-    r_nafc_path = f"{stimuli_base_r}/procedural"
+    r_nafc_path = f"{stimuli_base_r}/{current_date}/procedural"
     generator_png_path = f"{r_nafc_path}/pngs"
     experiment_png_path = f"{recording_computer_sftp}{r_nafc_path}/pngs"
     generator_spec_path = f"{r_nafc_path}/specs"
     generator_noisemap_path = generator_png_path
-    generator_set_path = f"{stimuli_base_r}/sets"
+    generator_set_path = f"{stimuli_base_r}/{current_date}/sets"
     experiment_noisemap_path = experiment_png_path
 
     version_ga = config.ga_database
@@ -179,11 +181,11 @@ def setup_nafc_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.8
 
     print("xper.properties.procedural file modified successfully.")
 
+    # Create directories
     make_path(generator_png_path)
     make_path(generator_spec_path)
     make_path(generator_noisemap_path)
-
-
+    make_path(generator_set_path)
 
 def setup_isogabor_xper_properties(r2_sftp="/run/user/1004/gvfs/sftp:host=172.30.6.80"):
     # Define the necessary versions directly

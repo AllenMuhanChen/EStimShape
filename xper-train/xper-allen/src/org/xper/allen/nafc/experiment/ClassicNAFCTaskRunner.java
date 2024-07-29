@@ -10,8 +10,8 @@ import org.xper.allen.nafc.message.ChoiceEventListener;
 import org.xper.allen.nafc.message.NAFCEventUtil;
 import org.xper.allen.nafc.vo.NAFCTrialResult;
 import org.xper.allen.saccade.db.vo.EStimObjDataEntry;
-import org.xper.classic.Punisher;
 import org.xper.classic.TrialEventListener;
+import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
 import org.xper.experiment.EyeController;
 import org.xper.experiment.TaskDoneCache;
@@ -230,7 +230,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                     NAFCEventUtil.fireChoiceSelectionDefaultCorrectEvent(choiceDoneLocalTime, choiceEventListeners);
                 }
                 if (rewardPolicy == RewardPolicy.NONE) {
-                    NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+                    NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList, currentContext);
                 }
                 else {
                     NAFCEventUtil.fireChoiceSelectionEyeFailEvent(choiceDoneLocalTime, choiceEventListeners, currentContext);
@@ -241,7 +241,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 NAFCEventUtil.fireChoiceSelectionSuccessEvent(choiceDoneLocalTime, choiceEventListeners, choice);
                 if (rewardPolicy == RewardPolicy.LIST) {
                     if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
-                        NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+                        NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList, currentContext);
                         punisher.resetPunishment();
                         System.out.println("Correct Choice");
                     }
@@ -259,7 +259,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 }
                 if (rewardPolicy == RewardPolicy.ANY) {
                     if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
-                        NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+                        NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList, currentContext);
                         System.out.println("Correct Choice - Rewarded By Default");
                     }
                     else {
@@ -269,7 +269,7 @@ public class ClassicNAFCTaskRunner implements NAFCTaskRunner {
                 }
                 if (rewardPolicy == RewardPolicy.ALWAYS) {
                     if (contains(rewardList, selectorResult.getSelection())) { //if the selector result is contained in the rewardList
-                        NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList);
+                        NAFCEventUtil.fireChoiceSelectionCorrectEvent(choiceDoneLocalTime, choiceEventListeners, rewardList, currentContext);
                         System.out.println("Correct Choice");
                     }
                     else {

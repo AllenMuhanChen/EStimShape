@@ -19,7 +19,7 @@ public class RadiusProfileMorpherTest {
     @Test
     public void magnitude_of_zero_leads_to_same(){
         RadiusProfile oldRadiusProfile = new RadiusProfile();
-        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(2.5, null, NormalDistributedComponentMorphParameters.RADIUS_TYPE.ENDPT, true));
+        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(2.5, null, RADIUS_TYPE.ENDPT, true));
         Double length = 9.0;
         Double curvature = 1/6.0;
 
@@ -35,7 +35,7 @@ public class RadiusProfileMorpherTest {
     public void magnitude_of_one_goes_to_furthest_min_or_max() {
 
         RadiusProfile oldRadiusProfile = new RadiusProfile();
-        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(2.5, null, NormalDistributedComponentMorphParameters.RADIUS_TYPE.ENDPT, true));
+        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(2.5, null, RADIUS_TYPE.ENDPT, true));
         Double length = 9.0;
         Double curvature = 1/6.0;
 
@@ -43,7 +43,7 @@ public class RadiusProfileMorpherTest {
         assertEquals(0.00001, newRadiusProfile.getRadiusInfo(1).getRadius(), 0.00001);
 
         oldRadiusProfile = new RadiusProfile();
-        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(1.0, null, NormalDistributedComponentMorphParameters.RADIUS_TYPE.JUNCTION, true));
+        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(1.0, null, RADIUS_TYPE.JUNCTION, true));
 
         newRadiusProfile = morpher.morphRadiusProfile(oldRadiusProfile, length, curvature, 1.0);
         assertEquals(3.0, newRadiusProfile.getRadiusInfo(1).getRadius(), 0.00001);
@@ -52,7 +52,7 @@ public class RadiusProfileMorpherTest {
     @Test
     public void test_magnitude_half(){
         RadiusProfile oldRadiusProfile = new RadiusProfile();
-        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(2.0, null, NormalDistributedComponentMorphParameters.RADIUS_TYPE.JUNCTION, true));
+        oldRadiusProfile.addRadiusInfo(1, new RadiusInfo(2.0, null, RADIUS_TYPE.JUNCTION, true));
         Double length = 9.0;
         Double curvature = 1/6.0;
 

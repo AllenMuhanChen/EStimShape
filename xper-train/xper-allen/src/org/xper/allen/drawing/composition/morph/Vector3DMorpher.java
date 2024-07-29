@@ -9,9 +9,19 @@ import javax.vecmath.Vector3d;
 import java.util.Random;
 
 public class Vector3DMorpher {
+
+    private double maxRotationRadians = Math.PI;
+
+    public Vector3DMorpher() {
+    }
+
+    public Vector3DMorpher(double maxRotationRadians) {
+        this.maxRotationRadians = maxRotationRadians;
+    }
+
     public Vector3d morphVector(Vector3d oldVector, double magnitude){
         // Determine the final angle (shortest) between the oldVector and newVector
-        double totalRotation = magnitude * Math.PI; // 180-degree rotation when rotationFactor = 1
+        double totalRotation = magnitude * maxRotationRadians; // 180-degree rotation when rotationFactor = 1
 
         // Generate Random Rotation Axis That is Orthogonal to the OldVector
         Vector3d randomRotationAxis = new Vector3d();

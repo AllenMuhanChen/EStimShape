@@ -1,23 +1,18 @@
 package org.xper.allen.drawing.composition.experiment;
 
 import org.lwjgl.opengl.GL11;
-import org.xper.allen.drawing.composition.AllenMStickSpec;
-import org.xper.allen.drawing.composition.AllenTubeComp;
-import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.morph.*;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.stick.EndPt_struct;
-import org.xper.drawing.stick.JuncPt_struct;
 import org.xper.drawing.stick.MStickObj4Smooth;
 
 import javax.vecmath.Point3d;
-import javax.vecmath.Vector3d;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
+public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
     private final RFStrategy rfStrategy;
     private final ReceptiveField rf;
@@ -28,6 +23,8 @@ public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
         this.rf = rf;
         this.noiseRadiusMm = rf.radius*2;
     }
+
+
 
     @Override
     public void drawCompMap(){
@@ -91,7 +88,6 @@ public class EStimShapeTwoByTwoMatchStick extends TwobyTwoMatchStick{
     public boolean smoothizeMStick()
     {
         showDebug = false;
-
 
         int i;
         MStickObj4Smooth[] MObj = new MStickObj4Smooth[getnComponent()+1];
