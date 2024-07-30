@@ -327,7 +327,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 return;
             } catch (MorphException e) {
                 System.err.println(e.getMessage());
-                System.out.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams);
+                System.out.println("Failed to Morph Component " + componentIndex + " with parameters " + morphParams + " because of " + e.getMessage());
                 morphParams.distribute();
                 copyFrom(localBackup);
             } finally {

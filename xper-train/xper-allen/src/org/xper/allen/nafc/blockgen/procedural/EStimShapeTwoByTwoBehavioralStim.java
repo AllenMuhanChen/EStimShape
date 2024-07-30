@@ -7,6 +7,8 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 
+import java.util.Collections;
+
 public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
     private ReceptiveField rf;
 
@@ -14,6 +16,7 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
         super(generator, parameters, null, -1,
             false, nComp);
         this.rf = rf;
+        this.nComp = 2;
     }
 
     @Override
@@ -24,7 +27,7 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
             System.out.println("Trying to generate EStimShapeTwoByTwoBehavioralStim");
             try {
                 baseMatchStick = genRandBaseMStick();
-                baseDrivingComponent = baseMatchStick.chooseRandLeaf();
+                baseDrivingComponent = 1;
                 EStimShapeTwoByTwoMatchStick sample = (EStimShapeTwoByTwoMatchStick)
                         generateSample();
 
@@ -49,9 +52,12 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
                 RFStrategy.PARTIALLY_INSIDE,
                 rf
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        sample.setProperties(
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(
+                        RFStrategy.PARTIALLY_INSIDE,
+                        ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, this.nComp, false);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, this.nComp, false, sample.maxAttempts);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -59,11 +65,17 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
 
     }
 
-    private ProceduralMatchStick genRandBaseMStick() {
-        ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-        baseMStick.setProperties(parameters.getSize(), "SHADE");
+    private EStimShapeTwoByTwoMatchStick genRandBaseMStick() {
+        EStimShapeTwoByTwoMatchStick baseMStick = new EStimShapeTwoByTwoMatchStick(
+                RFStrategy.PARTIALLY_INSIDE,
+                rf);
+        baseMStick.setProperties(
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(
+                RFStrategy.PARTIALLY_INSIDE,  ((EStimExperimentTrialGenerator) generator).getRfSource()), "SHADE");
         baseMStick.setStimColor(parameters.color);
-        baseMStick.genMatchStickRand();
+        baseMStick.genMatchStickRand(2);
+        baseMStick.setSpecialEndComp(Collections.singletonList(1));
+        baseMStick.positionShape();
         return baseMStick;
     }
 

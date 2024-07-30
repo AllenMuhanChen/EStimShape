@@ -6,7 +6,6 @@ import org.lwjgl.opengl.GL11;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
-import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
@@ -79,7 +78,7 @@ public class GaussianNoiseMapperTest {
         mStick.setProperties(3, "SHADE");
         while (true) {
             try {
-                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true);
+                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
             } catch (Exception e) {
                 continue;
             }

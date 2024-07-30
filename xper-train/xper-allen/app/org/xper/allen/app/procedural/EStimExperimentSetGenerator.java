@@ -50,7 +50,7 @@ public class EStimExperimentSetGenerator {
     public void generateSet() {
         //PARAMETERS
 //        long stimId = 1717531847396095L;
-        long stimId = 1717531847361040L;
+        long stimId = 1717531847398316L;
         int compId = 2;
         nComp = 2;
 
@@ -110,12 +110,13 @@ public class EStimExperimentSetGenerator {
         stick1.genMatchStickFromComponentInNoise(baseMStick,
                 compId,
                 nComp,
-                true);
-
+                true, stick1.maxAttempts);
+        stick1.setMaxAttempts(15);
         return stick1;
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickII(EStimShapeTwoByTwoMatchStick stick1) {
+        System.out.println("WORKING ON II");
         EStimShapeTwoByTwoMatchStick stick2 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -133,6 +134,7 @@ public class EStimExperimentSetGenerator {
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickIII(EStimShapeTwoByTwoMatchStick stick1) {
+        System.out.println("WORKING ON III");
         EStimShapeTwoByTwoMatchStick stick3 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -143,11 +145,12 @@ public class EStimExperimentSetGenerator {
                 0.6,
                 1.0/3.0,
                 true,
-                true);
+                true, stick1.maxAttempts);
         return stick3;
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickIV(EStimShapeTwoByTwoMatchStick stick2, EStimShapeTwoByTwoMatchStick stick3) {
+        System.out.println("WORKING ON IV");
         EStimShapeTwoByTwoMatchStick stick4 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF()
@@ -157,7 +160,7 @@ public class EStimExperimentSetGenerator {
                 stick2,
                 stick2.getDrivingComponent(),
                 stick3,
-                true
+                true, 15
         );
         return stick4;
     }

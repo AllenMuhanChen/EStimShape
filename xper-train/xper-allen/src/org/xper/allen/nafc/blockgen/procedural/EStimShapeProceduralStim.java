@@ -14,8 +14,6 @@ import org.xper.rfplot.drawing.png.ImageDimensions;
 
 import javax.vecmath.Point3d;
 import java.awt.*;
-import java.util.LinkedList;
-import java.util.List;
 
 public class EStimShapeProceduralStim extends ProceduralStim{
     protected final ReceptiveFieldSource rfSource;
@@ -77,7 +75,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));

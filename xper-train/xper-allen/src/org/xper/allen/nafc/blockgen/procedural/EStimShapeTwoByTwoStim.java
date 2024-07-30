@@ -78,7 +78,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedBaseMStick.setStimColor(parameters.color);
             swappedBaseMStick.genMorphedBaseMatchStick(match,
                     morphComponentIndex,
-                    100,
+                    30,
                     false,
                     true, 0.7, 1 / 3.0);
             mSticks.addProceduralDistractor(swappedBaseMStick);
@@ -92,7 +92,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedInNoiseMStick.setStimColor(parameters.color);
             swappedInNoiseMStick.genMorphedDrivingComponentMatchStick(match,
                     0.7, 1.0/3.0,
-                    false, true);
+                    false, true, 30);
             mSticks.addProceduralDistractor(swappedInNoiseMStick);
             mStickSpecs.addProceduralDistractor(mStickToSpec(swappedInNoiseMStick));
         }
@@ -104,7 +104,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
             swappedBothMStick.setStimColor(parameters.color);
             swappedBothMStick.genSwappedBaseAndDrivingComponentMatchStick(swappedBaseMStick,
                     morphComponentIndex,
-                    swappedInNoiseMStick, false);
+                    swappedInNoiseMStick, false, 15);
             mSticks.addProceduralDistractor(swappedBothMStick);
             mStickSpecs.addProceduralDistractor(mStickToSpec(swappedBothMStick));
         }
@@ -122,7 +122,7 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
                 ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, nComp,
-                true);
+                true, 15);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));

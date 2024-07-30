@@ -59,7 +59,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
 
 
-    public void genMorphedDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise) {
+    public void genMorphedDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise, int maxAttempts) {
         int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
         int numAttempts = 0;
         this.maxAttempts = baseMatchStick.maxAttempts;
@@ -95,7 +95,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 numAttempts++;
             }
 
-            checkMStickSize();
+//            checkMStickSize();
             break;
         }
         if (numAttempts >= maxAttempts && maxAttempts != -1) {
@@ -106,7 +106,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     protected void positionShape() {
     }
 
-    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos) {
+    public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp, boolean doCompareObjCenteredPos, int maxAttempts1) {
         if (nComp == 0){
             nComp = chooseNumComps();
         }
@@ -255,7 +255,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponentIndex);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
-                checkMStickSize();
+//                checkMStickSize();
                 checkLeafBaseRatio();
                 return;
             } catch (ObjectCenteredPositionException e) {
@@ -372,7 +372,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 numPointsInside++;
             }
         }
-        double percentRequiredInside = 0.9;
+        double percentRequiredInside = 0.0;
         double actualNumPointsInside = (double) numPointsInside / pointsToCheck.size();
         if (actualNumPointsInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle");

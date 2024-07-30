@@ -15,7 +15,7 @@ import java.util.List;
 public class RFUtils {
     public static double calculateMStickMaxSizeDiameterDegrees(RFStrategy rfStrategy, ReceptiveFieldSource rfSource) {
         if (rfStrategy.equals(RFStrategy.PARTIALLY_INSIDE)) {
-            int maxLimbs = 6;
+            int maxLimbs = 4;
             return rfSource.getRFRadiusDegrees() * maxLimbs;
         } else {
             //TODO:
@@ -34,7 +34,7 @@ public class RFUtils {
             double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
             double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
 
-            int numPointsToTry = 100;
+            int numPointsToTry = 200;
             double thresholdPercentageOutOfRF = initialThresholdPercentageOutOfRF;
             while (thresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
                 // Generate a uniform span of points within the RF

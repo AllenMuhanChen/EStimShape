@@ -72,14 +72,14 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
         }
     }
 
-    public void genSwappedBaseAndDrivingComponentMatchStick(TwoByTwoMatchStick secondMatchStick, int drivingComponentIndex, TwoByTwoMatchStick thirdMatchStick, boolean doPositionShape){
+    public void genSwappedBaseAndDrivingComponentMatchStick(TwoByTwoMatchStick secondMatchStick, int drivingComponentIndex, TwoByTwoMatchStick thirdMatchStick, boolean doPositionShape, int maxAttempts){
 
-        genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, 15, doPositionShape);
+        genComponentSwappedMatchStick(secondMatchStick, drivingComponentIndex, thirdMatchStick, drivingComponentIndex, maxAttempts, doPositionShape);
     }
 
 
     public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp,
-                                                  boolean doCompareObjCenteredPos) {
+                                                  boolean doCompareObjCenteredPos, int maxAttempts) {
         SphericalCoordinates originalObjCenteredPos = null;
         if (doCompareObjCenteredPos) {
             originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
@@ -88,7 +88,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             nComp = chooseNumComps();
         }
         int nAttempts = 0;
-        while (nAttempts < this.maxAttempts || this.maxAttempts == -1) {
+        while (nAttempts < maxAttempts || maxAttempts == -1) {
             nAttempts++;
             try {
                 genMatchStickFromComponent(baseMatchStick, fromCompId, nComp, 5);
@@ -105,7 +105,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
             }
             try {
-                checkInNoise(drivingComponent, 0.7);
+                checkInNoise(drivingComponent, 0.5);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
             } catch (Exception e) {
@@ -114,7 +114,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             }
             return;
         }
-        throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + this.maxAttempts + " attempts");
+        throw new MorphRepetitionException("Could not generate matchStick FROM COMPONENT IN NOISE after " + maxAttempts + " attempts");
     }
 
     public void genComponentSwappedMatchStick(AllenMatchStick matchStickToMorph, int limbToSwapOut, MorphedMatchStick matchStickContainingLimbToSwapIn, int limbToSwapIn, int maxAttempts, boolean doPositionShape) throws MorphException{
@@ -216,19 +216,19 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             updateRadiusProfile(limbToSwapOut, newRadiusProfile);
             applyRadiusProfile();
         } catch (MorphException e){
-            throw new MorphException("Cannot swap radius");
+            throw new MorphException("Cannot swap radius: " + e.getMessage());
         }
     }
 
     @Override
-    public void genMorphedDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise) {
+    public void genMorphedDrivingComponentMatchStick(ProceduralMatchStick baseMatchStick, double magnitude, double discreteness, boolean doPositionShape, boolean doCheckNoise, int maxAttempts) {
         int drivingComponentIndx = baseMatchStick.getSpecialEndComp().get(0);
         int numAttempts = 0;
-        this.maxAttempts = baseMatchStick.maxAttempts;
+        this.maxAttempts = maxAttempts;
         while (numAttempts < this.maxAttempts || this.maxAttempts == -1) {
             try {
                 genNewComponentMatchStick(baseMatchStick, drivingComponentIndx, magnitude, discreteness, doPositionShape, 15);
-                centerShape();
+//                centerShape();
             } catch(MorphException e) {
                 System.out.println(e.getMessage());
                 continue;
@@ -237,7 +237,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             }
 
             try {
-                checkMStickSize();
+//                checkMStickSize();
                 int newDrivingComponentIndx = getDrivingComponent();
                 if (doCheckNoise)
                     checkInNoise(newDrivingComponentIndx, 0.7);

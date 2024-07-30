@@ -24,7 +24,22 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
         this.noiseRadiusMm = rf.radius*3;
     }
 
+    @Override
+    public void genMatchStickRand(int nComp) {
+        while (true) {
+            while (true) {
+                if (genMatchStick_comp(nComp)) {
+                    break;
+                }
+            }
 
+            centerShape();
+            boolean res = smoothizeMStick();
+            if (res) {
+                break;
+            }// else we need to gen another shape
+        }
+    }
 
     @Override
     public void drawCompMap(){

@@ -64,13 +64,13 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     private void addTrials_TwoByTwo_training(){
         //input Parameters
-        Color stimColor = new Color(1f, 1f, 1f);
+        Color stimColor = new Color(0.5f, 0.5f, 0.5f);
 
         //Parameters
         //Num Repetitions of Each Condition
         int X = 2;
         double baseMagnitude = 1.5;
-        double drivingMagnitude = 0.5;
+        double drivingMagnitude = 1.5;
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
         noiseConditions.put(0.5, 1);
@@ -307,8 +307,8 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     private void addTrials_ProceduralTwoByTwo(){
         //input Parameters
         Color stimColor = new Color(0.5f, 0.5f, 0.5f);
-        long stimId = 1717531847396095L;
-        int compId = 2;
+        long stimId = 1717531847398316L;
+        int compId = 3;
 
         //Parameters
         Map<Double, Integer> numEStimTrialsForNoiseChances = new LinkedHashMap<>();
