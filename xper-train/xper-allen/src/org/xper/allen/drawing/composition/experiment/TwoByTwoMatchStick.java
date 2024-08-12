@@ -7,6 +7,7 @@ import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
 
 import javax.vecmath.Point3d;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +99,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 continue;
             }
             int drivingComponent = getDrivingComponent();
+            List<Integer> compsToNoise = Collections.singletonList(drivingComponent);
             SphericalCoordinates newDrivingComponentPos = null;
             if (doCompareObjCenteredPos) {
                 newDrivingComponentPos = calcObjCenteredPosForComp(this, drivingComponent);
@@ -105,7 +107,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
             }
             try {
-                checkInNoise(drivingComponent, 0.5);
+                checkInNoise(compsToNoise, 0.5);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
             } catch (Exception e) {
@@ -239,8 +241,9 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             try {
 //                checkMStickSize();
                 int newDrivingComponentIndx = getDrivingComponent();
+                List<Integer> compsToNoise = Collections.singletonList(newDrivingComponentIndx);
                 if (doCheckNoise)
-                    checkInNoise(newDrivingComponentIndx, 0.7);
+                    checkInNoise(compsToNoise, 0.7);
             } catch (MorphException e) {
                 System.out.println(e.getMessage());
                 continue;

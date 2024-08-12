@@ -73,7 +73,7 @@ public abstract class GAStim<T extends GAMatchStick, D extends AllenMStickData> 
 
     protected T createRandMStick() {
         GAMatchStick mStick = new GAMatchStick(generator.getReceptiveField(), rfStrategy, "SHADE");
-        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource), textureType);
+        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
         mStick.setStimColor(color);
         mStick.genMatchStickRand();
         return (T) mStick;

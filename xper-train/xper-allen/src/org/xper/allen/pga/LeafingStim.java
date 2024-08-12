@@ -16,12 +16,12 @@ public class LeafingStim extends GAStim<GrowingMatchStick, AllenMStickData> {
     @Override
     protected GrowingMatchStick createMStick() {
         GrowingMatchStick parentMStick = GrowingStim.initializeFromFile(generator.getReceptiveField(), textureType);
-        parentMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource), textureType);
+        parentMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
         parentMStick.genMatchStickFromFile(generator.getGeneratorSpecPath() + "/" + parentId + "_spec.xml");
 
         GrowingMatchStick childMStick = new GrowingMatchStick(generator.getReceptiveField(),
                 parentMStick.getRfStrategy());
-        childMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource), textureType);
+        childMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(rfStrategy, generator.rfSource.getRFRadiusDegrees()), textureType);
         childMStick.setStimColor(color);
         childMStick.genGrowingMatchStick(parentMStick, magnitude);
         return childMStick;

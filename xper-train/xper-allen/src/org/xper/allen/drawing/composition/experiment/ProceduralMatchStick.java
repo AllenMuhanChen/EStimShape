@@ -121,8 +121,9 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 continue;
             }
             int drivingComponent = getDrivingComponent();
+            List<Integer> compsToNoise = Collections.singletonList(drivingComponent);
             try {
-                checkInNoise(drivingComponent, 0.3);
+                checkInNoise(compsToNoise, 0.5);
             } catch (Exception e) {
                 System.out.println("Error with noise, retrying");
                 System.out.println(e.getMessage());
@@ -372,7 +373,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 numPointsInside++;
             }
         }
-        double percentRequiredInside = 0.0;
+        double percentRequiredInside = 1.0;
         double actualNumPointsInside = (double) numPointsInside / pointsToCheck.size();
         if (actualNumPointsInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle");
@@ -434,7 +435,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             }
         }
         //TODO: not sure WHY percentRequiredInside needs to be low for Set Mutations...
-        double percentRequiredInside = 0.0;
+        double percentRequiredInside = 1.0;
         double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
         if (actualPercentageInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + noiseRadiusMm);
@@ -475,21 +476,22 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     public Point3d calculateNoiseOrigin(int specialCompId) {
-        Point3d point3d = new Point3d();
-        for (JuncPt_struct junc : getJuncPt()) {
-            if (junc != null) {
-                int numMatch = Arrays.stream(junc.getCompIds()).filter(x -> x == specialCompId).toArray().length;
-                if (numMatch == 1) {
-                    if (junc.getnComp() == 2) {
-                        point3d = calcProjectionFromSingleJunctionWithSingleComp(specialCompId, junc);
-                    } else if (junc.getnComp() > 2){
-                        point3d = calcProjectionFromJunctionWithMultiComp(specialCompId, junc);
-                    }
-                }
-            }
-        }
-
-        return point3d;
+        return calculateNoiseOrigin(Collections.singletonList(specialCompId));
+//        Point3d point3d = new Point3d();
+//        for (JuncPt_struct junc : getJuncPt()) {
+//            if (junc != null) {
+//                int numMatch = Arrays.stream(junc.getCompIds()).filter(x -> x == specialCompId).toArray().length;
+//                if (numMatch == 1) {
+//                    if (junc.getnComp() == 2) {
+//                        point3d = calcProjectionFromSingleJunctionWithSingleComp(specialCompId, junc);
+//                    } else if (junc.getnComp() > 2){
+//                        point3d = calcProjectionFromJunctionWithMultiComp(specialCompId, junc);
+//                    }
+//                }
+//            }
+//        }
+//
+//        return point3d;
     }
 
     public Point3d calculateNoiseOrigin(List<Integer> specialCompIndcs){
@@ -502,18 +504,21 @@ public class ProceduralMatchStick extends MorphedMatchStick {
             for (JuncPt_struct junc : getJuncPt()) {
                 if (junc != null) {
                     int finalSpecialCompId = specialCompId;
-                    int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
+                    int numCompsInJuncThatMatchSpecialId = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
                         @Override
                         public boolean test(int x) {
                             return x == finalSpecialCompId;
                         }
                     }).toArray().length;
-                    if (numMatch == 1) {
+                    boolean isContainsSpecialId = numCompsInJuncThatMatchSpecialId == 1;
+                    if (isContainsSpecialId) {
                         if (junc.getnComp() == 2) {
                             int baseCompId = findBaseCompId(specialCompId, junc);
                             return calcProjectionFromSingleJunctionWithSingleComp(baseCompId, junc);
                         } else if (junc.getnComp() > 2) {
                             return calcProjectionFromJunctionWithMultiComp(specialCompId, junc);
+                        } else{
+                            throw new IllegalArgumentException("Junction has less than 2 components");
                         }
                     }
                 }

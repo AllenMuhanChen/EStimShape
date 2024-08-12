@@ -7,12 +7,15 @@ import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.alden.drawing.drawables.Drawable;
 import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
-import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
+import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
+import org.xper.allen.pga.RFUtils;
+import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.drawing.Coordinates2D;
+import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.util.FileUtil;
 import org.xper.util.ResourceUtil;
 import org.xper.util.ThreadUtil;
@@ -72,13 +75,14 @@ public class GaussianNoiseMapperTest {
     public void testGaussianNoiseWithDifferentSpecialCompIds() throws IOException {
         ReceptiveField receptiveField = createReceptiveField();
 
-        EStimShapeProceduralMatchStick mStick = new EStimShapeProceduralMatchStick(
+        EStimShapeTwoByTwoMatchStick mStick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE, receptiveField);
 
-        mStick.setProperties(3, "SHADE");
+
+        mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, AbstractRenderer.mm2deg(receptiveField.getRadius(), 500)), "SHADE");
         while (true) {
             try {
-                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 3, true, mStick.maxAttempts);
+                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 2, true, mStick.maxAttempts);
             } catch (Exception e) {
                 continue;
             }
@@ -97,7 +101,7 @@ public class GaussianNoiseMapperTest {
         }
     }
 
-    private void testGaussianNoiseForSpecialComps(EStimShapeProceduralMatchStick mStick, List<Integer> specialComps) throws IOException {
+    private void testGaussianNoiseForSpecialComps(ProceduralMatchStick mStick, List<Integer> specialComps) throws IOException {
         String suffix = "_specialComps_" + specialComps.toString().replaceAll("[\\[\\] ]", "");
 
         // Draw the original match stick

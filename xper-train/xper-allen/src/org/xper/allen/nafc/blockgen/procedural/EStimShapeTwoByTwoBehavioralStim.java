@@ -55,7 +55,7 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
         sample.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(
                         RFStrategy.PARTIALLY_INSIDE,
-                        ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+                        ((EStimExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, baseDrivingComponent, this.nComp, false, sample.maxAttempts);
 
@@ -71,7 +71,7 @@ public class EStimShapeTwoByTwoBehavioralStim extends EStimShapeTwoByTwoStim {
                 rf);
         baseMStick.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(
-                RFStrategy.PARTIALLY_INSIDE,  ((EStimExperimentTrialGenerator) generator).getRfSource()), "SHADE");
+                RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), "SHADE");
         baseMStick.setStimColor(parameters.color);
         baseMStick.genMatchStickRand(2);
         baseMStick.setSpecialEndComp(Collections.singletonList(1));

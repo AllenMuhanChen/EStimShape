@@ -151,7 +151,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 generator.getRF()
         );
         stickI.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
 
         stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
@@ -179,7 +179,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         );
 
         B2Stick.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
         B2Stick.genMatchStickFromShapeSpec(setSpecs.get("II"), new double[]{0, 0, 0});
 
@@ -192,7 +192,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 generator.getRF()
         );
         morphedStickII.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
         morphedStickII.genComponentSwappedMatchStick(
                 B2Stick, B2Stick.getDrivingComponent(),
@@ -209,7 +209,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 generator.getRF()
         );
         D2Stick.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
         D2Stick.genMatchStickFromShapeSpec(setSpecs.get("III"), new double[]{0,0,0});
         attemptSetMutation(D2Stick, Collections.singletonList(D2Stick.getDrivingComponent()), drivingMagnitude);
@@ -220,7 +220,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         );
 
         morphedStickIII.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
 
         morphedStickIII.genComponentSwappedMatchStick(
@@ -239,7 +239,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         );
 
         morphedStickIV.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
 
         morphedStickIV.genComponentSwappedMatchStick(
@@ -257,7 +257,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 generator.getRF()
         );
         sample.setProperties(
-                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource()),
+                RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
@@ -267,7 +267,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         return sample;
     }
 
-    private List<Integer> identifyCompsToNoise(EStimShapeTwoByTwoMatchStick sample, boolean isDeltaNoise) {
+    protected List<Integer> identifyCompsToNoise(ProceduralMatchStick sample, boolean isDeltaNoise) {
         if (!isDeltaNoise) {
             compIdsToNoise.add(sample.getDrivingComponent());
         } else {

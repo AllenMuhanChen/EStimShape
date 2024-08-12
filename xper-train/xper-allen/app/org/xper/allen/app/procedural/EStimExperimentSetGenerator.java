@@ -95,7 +95,7 @@ public class EStimExperimentSetGenerator {
                 generator.getRF()
         );
         maxSizeDiameterDegreesFromRF = RFUtils.calculateMStickMaxSizeDiameterDegrees(
-                RFStrategy.PARTIALLY_INSIDE, generator.getRfSource());
+                RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees());
         baseMStick.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         baseMStick.genMatchStickFromFile(generator.getGaSpecPath() + "/" + stimId + "_spec.xml");
         return baseMStick;

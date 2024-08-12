@@ -73,7 +73,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
                 RFStrategy.PARTIALLY_INSIDE,
                 ((EStimExperimentTrialGenerator) generator).getRF()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts);
 
@@ -139,7 +139,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      * @param proceduralDistractor
      */
     protected void correctNoiseRadius(ProceduralMatchStick proceduralDistractor) {
-        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double scaleFactor = generator.getImageDimensionsDegrees() / RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
         proceduralDistractor.noiseRadiusMm = rfSource.getRFRadiusMm() * scaleFactor;
     }
 
@@ -180,7 +180,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         double imageSizeSample = generator.getImageDimensionsDegrees();
         ImageDimensions dimensionsSample = new ImageDimensions(imageSizeSample, imageSizeSample);
 
-        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double imageSizeChoices = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
         ImageDimensions dimensionsChoices = new ImageDimensions(imageSizeChoices, imageSizeChoices);
 
         //Sample

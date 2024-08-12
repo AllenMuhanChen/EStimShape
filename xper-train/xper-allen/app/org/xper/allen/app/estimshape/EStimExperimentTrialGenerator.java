@@ -344,7 +344,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
             ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
@@ -461,7 +461,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
             ProceduralMatchStick baseMStick = new ProceduralMatchStick();
-            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource), "SHADE");
+            baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
             //using estim values set on the IntanGUI
@@ -582,7 +582,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
     }
 
     private double calculateEyeWinRadius() {
-        double shapeSquareLength = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource);
+        double shapeSquareLength = RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees());
         double squareDiagonal = Math.sqrt(2) * shapeSquareLength;
         double eyeWinRadius = squareDiagonal /2;
         return eyeWinRadius;
