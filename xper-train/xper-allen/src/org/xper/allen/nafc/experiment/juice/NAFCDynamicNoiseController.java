@@ -167,7 +167,7 @@ public class NAFCDynamicNoiseController implements ChoiceEventListener {
 
     @Override
     public void sampleEyeInHoldFail(long timestamp) {
-
+        resetStreak();
     }
 
     @Override

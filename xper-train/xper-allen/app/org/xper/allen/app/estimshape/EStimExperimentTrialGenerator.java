@@ -68,12 +68,15 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Parameters
         //Num Repetitions of Each Condition
-        int X = 2;
+        int X = 5;
         double baseMagnitude = 1.5;
         double drivingMagnitude = 1.5;
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
-        noiseConditions.put(0.5, 1);
+        noiseConditions.put(0.0, 1);
+//        noiseConditions.put(0.1, 1);
+//        noiseConditions.put(0.2, 1);
+//        noiseConditions.put(0.3, 1);
 
 
         Map<String, Double> emphasizeChancesForConditions = new HashMap<>();
