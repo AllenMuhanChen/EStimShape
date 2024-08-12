@@ -9,6 +9,7 @@ import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
@@ -73,16 +74,17 @@ public class GaussianNoiseMapperTest {
 
     @Test
     public void testGaussianNoiseWithDifferentSpecialCompIds() throws IOException {
-        ReceptiveField receptiveField = createReceptiveField();
+        ReceptiveField receptiveField = new CircleReceptiveField(new Coordinates2D(5,5), 10);
 
         EStimShapeTwoByTwoMatchStick mStick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE, receptiveField);
 
+        int nComp = 3;
 
         mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, AbstractRenderer.mm2deg(receptiveField.getRadius(), 500)), "SHADE");
         while (true) {
             try {
-                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, 2, true, mStick.maxAttempts);
+                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, nComp, true, mStick.maxAttempts);
             } catch (Exception e) {
                 continue;
             }
@@ -92,14 +94,25 @@ public class GaussianNoiseMapperTest {
 
         // Test different combinations of special components
         List<List<Integer>> specialCompCombinations;
-        specialCompCombinations = new LinkedList<>();
-        specialCompCombinations.add(Collections.singletonList(3));
-        specialCompCombinations.add(Arrays.asList(1, 2));
+        if (nComp == 3) {
+            specialCompCombinations = new LinkedList<>();
+            specialCompCombinations.add(Collections.singletonList(3));
+            specialCompCombinations.add(Arrays.asList(1, 2));
+        } else if (nComp == 2){
+            specialCompCombinations = new LinkedList<>();
+            specialCompCombinations.add(Collections.singletonList(2));
+            specialCompCombinations.add(Collections.singletonList(1));
+
+        } else {
+            throw new IllegalArgumentException("Invalid number of components: " + nComp);
+        }
 
         for (List<Integer> specialComps : specialCompCombinations) {
             testGaussianNoiseForSpecialComps(mStick, specialComps);
         }
     }
+
+
 
     private void testGaussianNoiseForSpecialComps(ProceduralMatchStick mStick, List<Integer> specialComps) throws IOException {
         String suffix = "_specialComps_" + specialComps.toString().replaceAll("[\\[\\] ]", "");
@@ -114,7 +127,7 @@ public class GaussianNoiseMapperTest {
                 // Now, draw the circle
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
                 Point3d circle = mStick.calculateNoiseOrigin(specialComps); // Replace with the circle's center X-coordinate
-
+                System.out.println("NOISE ORIGIN: " + circle);
 
                 double radius = mStick.noiseRadiusMm;
                 int numSegments = 100; // Increase for a smoother circle
@@ -129,7 +142,7 @@ public class GaussianNoiseMapperTest {
                 GL11.glEnd();
             }
         });
-        ThreadUtil.sleep(5000);
+        ThreadUtil.sleep(2000);
 
 
         String imagePath = testMatchStickDrawer.saveImage(testBin + "/original_matchstick" + suffix);
@@ -152,26 +165,6 @@ public class GaussianNoiseMapperTest {
 
     }
 
-    private ReceptiveField createReceptiveField() {
-        return new ReceptiveField() {
-            final double h = 5;
-            final double k = 5;
-            final double r = 10;
-
-            {
-                center = new Coordinates2D(h, k);
-                radius = r;
-                for (int i = 0; i < 100; i++) {
-                    double angle = 2 * Math.PI * i / 100;
-                    outline.add(new Coordinates2D(h + r * Math.cos(angle), k + r * Math.sin(angle)));
-                }
-            }
-            @Override
-            public boolean isInRF(double x, double y) {
-                return (x - h) * (x - h) + (y - k) * (y - k) < r * r;
-            }
-        };
-    }
 
     private BufferedImage applyNoise(BufferedImage original, BufferedImage noise) {
         int width = original.getWidth();
