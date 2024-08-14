@@ -31,7 +31,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 morphParametersForComponents.put(compId, new SetMorphParameters(magnitude));
             }
             try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
+                genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape);
                 if (doCheckNoise){
                     checkInNoise(compsToNoise, 0.75);
                 }
@@ -60,7 +60,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                         90 * Math.PI / 180));
             }
             try {
-                genMorphedComponentsMatchStick(morphParametersForComponents, this, doPositionShape);
+                genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape);
                 if (doCheckNoise){
                     checkInNoise(compsToNoise, 0.75);
                 }

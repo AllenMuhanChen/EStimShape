@@ -413,8 +413,8 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         int index = 0;
-        for (int cantBeOutOfNoiseCompId : mustBeInNoiseCompIds) {
-            AllenTubeComp testingComp = getComp()[cantBeOutOfNoiseCompId];
+        for (int mustBeInNoiseCompId : mustBeInNoiseCompIds) {
+            AllenTubeComp testingComp = getComp()[mustBeInNoiseCompId];
             Point3d[] compVect_info = testingComp.getVect_info();
             for (Point3d point3d : compVect_info) {
                 if (point3d != null) {
@@ -431,7 +431,10 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         for (ConcaveHull.Point point: pointsToCheck){
             if (isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(noiseOrigin.getX(), noiseOrigin.getY()), noiseRadiusMm)){
                 numPointsInside++;
-
+            } else{
+                double error = Math.abs(point.distance(new Point2d(noiseOrigin.getX(), noiseOrigin.getY())) - noiseRadiusMm);
+                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
+                 + " with error: " + error);
             }
         }
         //TODO: not sure WHY percentRequiredInside needs to be low for Set Mutations...
@@ -494,12 +497,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
 //        return point3d;
     }
 
-    public Point3d calculateNoiseOrigin(List<Integer> specialCompIndcs){
+    public Point3d calculateNoiseOrigin(List<Integer> compsToBeInNoise){
         Point3d point3d = new Point3d();
 
-        if (specialCompIndcs.size() == 1){
+        if (compsToBeInNoise.size() == 1){
 
-            int specialCompId = specialCompIndcs.get(0);
+            int specialCompId = compsToBeInNoise.get(0);
 
             for (JuncPt_struct junc : getJuncPt()) {
                 if (junc != null) {
@@ -526,7 +529,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         } else{
             int baseCompId = -1;
             for (int i=1; i<=getnComponent(); i++){
-                if (!specialCompIndcs.contains(i)){
+                if (!compsToBeInNoise.contains(i)){
                     baseCompId = i;
                 }
             }
@@ -563,8 +566,7 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         Point3d projectedPoint;
 
         // Find tangent to project along for noise origin
-        int tangentOwnerId = baseCompId;
-        projectedTangent = getJuncTangentForSingle(junc, tangentOwnerId);
+        projectedTangent = getJuncTangentForSingle(junc, baseCompId);
         projectedTangent = new Vector3d(projectedTangent.x, projectedTangent.y, 0);
 
         // Choose a starting point
@@ -677,7 +679,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
     }
 
     private Vector3d getJuncTangentForMulti(JuncPt_struct junc, int tangentOwnerCompId) {
-//        Vector3d tangent = junc.getTangent()[junc.getTangentOwner()[tangentOwnerId]];
         Vector3d tangent = junc.getTangentOfOwner(tangentOwnerCompId);
         Vector3d reversedTangent = new Vector3d(tangent);
         reversedTangent.negate();
@@ -688,14 +689,14 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         return tangent;
     }
 
-    private Vector3d getJuncTangentForSingle(JuncPt_struct junc, int tangentOwnerId) {
-        Vector3d tangent = junc.getTangentOfOwner(tangentOwnerId);
+    private Vector3d getJuncTangentForSingle(JuncPt_struct junc, int baseCompId) {
+        Vector3d tangent = junc.getTangentOfOwner(baseCompId);
         Vector3d reversedTangent = new Vector3d(tangent);
         reversedTangent.negate();
         ArrayList<Vector3d> possibleTangents = new ArrayList<>(2);
         possibleTangents.add(tangent);
         possibleTangents.add(reversedTangent);
-        tangent = getVectorPointingFurthestAwayFromPoint(possibleTangents, junc.getPos(), getComp()[tangentOwnerId].getmAxisInfo().getmPts()[26]);
+        tangent = getVectorPointingFurthestAwayFromPoint(possibleTangents, junc.getPos(), getComp()[baseCompId].getmAxisInfo().getmPts()[26]);
         return tangent;
     }
 

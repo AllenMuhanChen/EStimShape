@@ -45,6 +45,36 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     public void drawCompMap(){
         super.drawCompMap();
         drawRF();
+//
+//        double radius = noiseRadiusMm;
+//        Coordinates2D center = new Coordinates2D(noiseOrigin.x, noiseOrigin.y);
+//        //draw noise
+//        if (radius <= 0 || center == null) {
+//            return; // Nothing to draw if radius is zero or negative, or center is null.
+//        }
+//
+//        GL11.glDisable(GL11.GL_DEPTH_TEST);
+//
+//        // Set the color to draw with, e.g., white
+//        GL11.glColor3f(1.0f, 1.0f, 1.0f); // RGB color values: White
+//
+//        // Begin drawing the circle
+//        GL11.glBegin(GL11.GL_LINE_LOOP); // GL_LINE_LOOP for a closed loop
+//
+//        int numSegments = 100; // Number of segments to approximate the circle
+//        double angleIncrement = 2.0 * Math.PI / numSegments;
+//
+//        for (int i = 0; i < numSegments; i++) {
+//            double angle = i * angleIncrement;
+//            float x = (float) (center.getX() + radius * Math.cos(angle));
+//            float y = (float) (center.getY() + radius * Math.sin(angle));
+//            GL11.glVertex2f(x, y); // Provide each vertex
+//        }
+//
+//        GL11.glEnd(); // Finish drawing
+//
+//        GL11.glEnable(GL11.GL_DEPTH_TEST);
+
     }
 
     @Override

@@ -65,7 +65,7 @@ public class GaussianNoiseMapperTest {
         baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
-        baseMStick.setMaxAttempts(-1);
+        baseMStick.setMaxAttempts(100);
 
 //        pngMaker = context.getBean(AllenPNGMaker.class);
 ////        pngMaker.createDrawerWindow();
@@ -79,7 +79,7 @@ public class GaussianNoiseMapperTest {
         EStimShapeTwoByTwoMatchStick mStick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE, receptiveField);
 
-        int nComp = 3;
+        int nComp = 2;
 
         mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, AbstractRenderer.mm2deg(receptiveField.getRadius(), 500)), "SHADE");
         while (true) {
@@ -96,12 +96,12 @@ public class GaussianNoiseMapperTest {
         List<List<Integer>> specialCompCombinations;
         if (nComp == 3) {
             specialCompCombinations = new LinkedList<>();
-            specialCompCombinations.add(Collections.singletonList(3));
-            specialCompCombinations.add(Arrays.asList(1, 2));
+            specialCompCombinations.add(Collections.singletonList(1));
+            specialCompCombinations.add(Arrays.asList(2, 3));
         } else if (nComp == 2){
             specialCompCombinations = new LinkedList<>();
-            specialCompCombinations.add(Collections.singletonList(2));
             specialCompCombinations.add(Collections.singletonList(1));
+            specialCompCombinations.add(Collections.singletonList(2));
 
         } else {
             throw new IllegalArgumentException("Invalid number of components: " + nComp);

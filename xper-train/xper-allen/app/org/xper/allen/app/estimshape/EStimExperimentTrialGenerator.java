@@ -73,7 +73,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         double drivingMagnitude = 1.5;
         //Noise
         Map<Double, Integer> noiseConditions = new LinkedHashMap<>();
-        noiseConditions.put(0.0, 1);
+        noiseConditions.put(1.0, 1);
 //        noiseConditions.put(0.1, 1);
 //        noiseConditions.put(0.2, 1);
 //        noiseConditions.put(0.3, 1);
@@ -100,7 +100,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Delta Noise
         List<Boolean> isDeltaNoiseConditions = new LinkedList<>();
-        isDeltaNoiseConditions.add(true);
+//        isDeltaNoiseConditions.add(true);
         isDeltaNoiseConditions.add(false);
 
         //Assigning

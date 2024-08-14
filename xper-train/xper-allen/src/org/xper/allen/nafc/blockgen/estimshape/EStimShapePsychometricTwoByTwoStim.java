@@ -157,7 +157,6 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
 
 
-
         //Mutate all compIds -> gives us B1* and D1*
         LinkedList<Integer> baseCompIds = new LinkedList<>();
         for (int compId = 1; compId <= stickI.getnComponent(); compId++) {
@@ -360,6 +359,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 System.out.println("Mutation attempt " + (attempt + 1) + " failed: " + e.getMessage());
 
             }
+
         }
         throw new ProceduralMatchStick.MorphRepetitionException("Could not do set mutation after " + MAX_MUTATION_ATTEMPTS + " attempts");  // All mutation attempts failed
     }
