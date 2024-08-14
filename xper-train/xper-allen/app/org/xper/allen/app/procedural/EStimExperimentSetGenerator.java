@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.exception.XGLException;
@@ -23,6 +24,9 @@ public class EStimExperimentSetGenerator {
 
     @Dependency
     String generatorSetPath;
+
+    @Dependency
+    NoiseMapper noiseMapper;
 
     private AllenPNGMaker pngMaker;
     private double maxSizeDiameterDegreesFromRF;
@@ -92,8 +96,8 @@ public class EStimExperimentSetGenerator {
     private EStimShapeTwoByTwoMatchStick loadBaseMStick(long stimId) {
         EStimShapeTwoByTwoMatchStick baseMStick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF()
-        );
+                generator.getRF(),
+                null);
         maxSizeDiameterDegreesFromRF = RFUtils.calculateMStickMaxSizeDiameterDegrees(
                 RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees());
         baseMStick.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
@@ -104,13 +108,13 @@ public class EStimExperimentSetGenerator {
     private EStimShapeTwoByTwoMatchStick makeStickI(EStimShapeTwoByTwoMatchStick baseMStick, int compId) {
         EStimShapeTwoByTwoMatchStick stick1 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF()
-        );
+                generator.getRF(),
+                null);
         stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         stick1.genMatchStickFromComponentInNoise(baseMStick,
                 compId,
                 nComp,
-                true, stick1.maxAttempts);
+                true, stick1.maxAttempts, noiseMapper);
         stick1.setMaxAttempts(15);
         return stick1;
     }
@@ -119,8 +123,8 @@ public class EStimExperimentSetGenerator {
         System.out.println("WORKING ON II");
         EStimShapeTwoByTwoMatchStick stick2 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF()
-        );
+                generator.getRF(),
+                null);
         stick2.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         stick2.genMorphedBaseMatchStick(
                 stick1,
@@ -137,8 +141,8 @@ public class EStimExperimentSetGenerator {
         System.out.println("WORKING ON III");
         EStimShapeTwoByTwoMatchStick stick3 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF()
-        );
+                generator.getRF(),
+                null);
         stick3.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         stick3.genMorphedDrivingComponentMatchStick(
                 stick1,
@@ -153,8 +157,8 @@ public class EStimExperimentSetGenerator {
         System.out.println("WORKING ON IV");
         EStimShapeTwoByTwoMatchStick stick4 = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF()
-        );
+                generator.getRF(),
+                null);
         stick4.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
         stick4.genSwappedBaseAndDrivingComponentMatchStick(
                 stick2,
@@ -166,7 +170,7 @@ public class EStimExperimentSetGenerator {
     }
 
     private void savePng(EStimShapeTwoByTwoMatchStick stick, long stimId, String type) {
-        TwoByTwoMatchStick stickToDraw = new TwoByTwoMatchStick();
+        TwoByTwoMatchStick stickToDraw = new TwoByTwoMatchStick(noiseMapper);
         stickToDraw.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         AllenMStickSpec stickSpec = new AllenMStickSpec();
         stickSpec.setMStickInfo(stick, true);
@@ -211,5 +215,13 @@ public class EStimExperimentSetGenerator {
 
     public void setGeneratorSetPath(String generatorSetPath) {
         this.generatorSetPath = generatorSetPath;
+    }
+
+    public NoiseMapper getNoiseMapper() {
+        return noiseMapper;
+    }
+
+    public void setNoiseMapper(NoiseMapper noiseMapper) {
+        this.noiseMapper = noiseMapper;
     }
 }

@@ -3776,7 +3776,7 @@ public class AllenMatchStick extends MatchStick {
 	public static double degToMm(double maxDiameterDegrees, double screenDist) {
 		System.out.println("In validMStickSize: size " + maxDiameterDegrees);
 		double maxDiameterRadians = maxDiameterDegrees * Math.PI / 180;
-		double diameterMm = screenDist * Math.tan(maxDiameterDegrees);
+		double diameterMm = screenDist * Math.tan(maxDiameterRadians);
 		return diameterMm;
 	}
 

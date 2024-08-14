@@ -14,7 +14,6 @@ import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
-import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.renderer.AbstractRenderer;
 import org.xper.util.FileUtil;
@@ -61,7 +60,7 @@ public class GaussianNoiseMapperTest {
         gaussianNoiseMapper.setHeight(500);
         gaussianNoiseMapper.setBackground(0); // Set background to black
 
-        baseMStick = new ProceduralMatchStick();
+        baseMStick = new ProceduralMatchStick(new GaussianNoiseMapper());
         baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
@@ -77,14 +76,14 @@ public class GaussianNoiseMapperTest {
         ReceptiveField receptiveField = new CircleReceptiveField(new Coordinates2D(5,5), 10);
 
         EStimShapeTwoByTwoMatchStick mStick = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE, receptiveField);
+                RFStrategy.PARTIALLY_INSIDE, receptiveField, null);
 
         int nComp = 2;
 
         mStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, AbstractRenderer.mm2deg(receptiveField.getRadius(), 500)), "SHADE");
         while (true) {
             try {
-                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, nComp, true, mStick.maxAttempts);
+                mStick.genMatchStickFromComponentInNoise(baseMStick, 1, nComp, true, mStick.maxAttempts, new GaussianNoiseMapper());
             } catch (Exception e) {
                 continue;
             }
@@ -126,7 +125,7 @@ public class GaussianNoiseMapperTest {
 
                 // Now, draw the circle
                 GL11.glColor3f(1.0f, 0.0f, 0.0f);
-                Point3d circle = mStick.calculateNoiseOrigin(specialComps); // Replace with the circle's center X-coordinate
+                Point3d circle = GaussianNoiseMapper.calculateNoiseOrigin(mStick, specialComps); // Replace with the circle's center X-coordinate
                 System.out.println("NOISE ORIGIN: " + circle);
 
                 double radius = mStick.noiseRadiusMm;

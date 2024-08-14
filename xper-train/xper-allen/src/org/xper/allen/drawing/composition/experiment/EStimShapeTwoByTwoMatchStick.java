@@ -2,6 +2,7 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.morph.*;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
@@ -9,8 +10,6 @@ import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.MStickObj4Smooth;
 
 import javax.vecmath.Point3d;
-import java.util.HashMap;
-import java.util.Map;
 
 public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
@@ -18,11 +17,14 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     private final ReceptiveField rf;
 
 
-    public EStimShapeTwoByTwoMatchStick(RFStrategy rfStrategy, ReceptiveField rf) {
+    public EStimShapeTwoByTwoMatchStick(RFStrategy rfStrategy, ReceptiveField rf, NoiseMapper noiseMapper) {
+        super(noiseMapper);
         this.rfStrategy = rfStrategy;
         this.rf = rf;
         this.noiseRadiusMm = rf.radius*3;
     }
+
+
 
     @Override
     public void genMatchStickRand(int nComp) {

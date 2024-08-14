@@ -71,11 +71,11 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                ((EStimExperimentTrialGenerator) generator).getRF()
+                ((EStimExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
         );
         sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
-        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts);
+        sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
@@ -95,7 +95,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
      */
     @Override
     protected void generateMatch(ProceduralMatchStick sample) {
-        ProceduralMatchStick match = new ProceduralMatchStick();
+        ProceduralMatchStick match = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
@@ -121,7 +121,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     @Override
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
-            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
+            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             correctNoiseRadius(proceduralDistractor);
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);

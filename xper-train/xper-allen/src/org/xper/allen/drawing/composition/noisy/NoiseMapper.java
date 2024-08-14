@@ -13,9 +13,13 @@ public interface NoiseMapper {
                          AbstractRenderer renderer,
                          String path) ;
 
-    String mapNoise(ProceduralMatchStick mStick,
+    public String mapNoise(ProceduralMatchStick mStick,
                     double amplitude,
                     List<Integer> specialCompIndx,
                     AbstractRenderer renderer,
                     String path);
+
+    public void checkInNoise(ProceduralMatchStick mStick,
+                             List<Integer> compsToNoise,
+                             double percentRequiredOutsideNoise);
 }

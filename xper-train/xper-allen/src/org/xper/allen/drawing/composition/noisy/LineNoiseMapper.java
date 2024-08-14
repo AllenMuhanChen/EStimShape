@@ -47,6 +47,11 @@ public class LineNoiseMapper implements NoiseMapper{
         return null;
     }
 
+    @Override
+    public void checkInNoise(ProceduralMatchStick mStick, List<Integer> compsToNoise, double percentRequiredOutsideNoise) {
+
+    }
+
     public static BufferedImage generateLineNoiseMapFor(ProceduralMatchStick mStick,
                                                         int width, int height,
                                                         double amplitude, double background,

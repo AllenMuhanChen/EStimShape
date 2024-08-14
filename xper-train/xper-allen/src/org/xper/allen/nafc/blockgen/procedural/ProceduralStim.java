@@ -115,11 +115,11 @@ public class ProceduralStim implements NAFCStim {
         while (true) {
             System.out.println("Trying to generate sample for ProceduralStim");
             //Generate Sample
-            ProceduralMatchStick sample = new ProceduralMatchStick();
+            ProceduralMatchStick sample = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             sample.setProperties(parameters.getSize(), parameters.textureType);
             sample.setStimColor(parameters.color);
             try {
-                sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts);
+                sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
             } catch (ProceduralMatchStick.MorphRepetitionException e) {
                 System.out.println("MorphRepetition FAILED: " + e.getMessage());
                 continue;
@@ -139,7 +139,7 @@ public class ProceduralStim implements NAFCStim {
 
     protected void generateProceduralDistractors(ProceduralMatchStick sample) {
         for (int i = 0; i < numProceduralDistractors; i++) {
-            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick();
+            ProceduralMatchStick proceduralDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             proceduralDistractor.setProperties(parameters.getSize(), parameters.textureType);
             proceduralDistractor.setStimColor(parameters.color);
             proceduralDistractor.genNewComponentMatchStick(sample, morphComponentIndex, parameters.morphMagnitude, 0.5, true, proceduralDistractor.maxAttempts);
@@ -151,7 +151,7 @@ public class ProceduralStim implements NAFCStim {
     protected void generateRandDistractors() {
         //Generate Rand Distractors
         for (int i = 0; i<numRandDistractors; i++) {
-            ProceduralMatchStick randDistractor = new ProceduralMatchStick();
+            ProceduralMatchStick randDistractor = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             randDistractor.setProperties(parameters.getSize(), parameters.textureType);
             randDistractor.setStimColor(parameters.color);
             randDistractor.genMatchStickRand();

@@ -8,6 +8,7 @@ import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStickTest;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.nafc.blockgen.Lims;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
@@ -36,7 +37,7 @@ public class ProceduralStimTest extends ProceduralMatchStickTest {
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(FileUtil.loadConfigClass("experiment.config_class"));
 
         generator = context.getBean(NAFCBlockGen.class);
-        baseMStick = new ProceduralMatchStick();
+        baseMStick = new ProceduralMatchStick(new GaussianNoiseMapper());
         baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();

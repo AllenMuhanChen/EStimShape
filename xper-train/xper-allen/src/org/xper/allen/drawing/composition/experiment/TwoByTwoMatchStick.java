@@ -3,6 +3,8 @@ package org.xper.allen.drawing.composition.experiment;
 import org.xper.allen.drawing.composition.AllenMatchStick;
 import org.xper.allen.drawing.composition.AllenTubeComp;
 import org.xper.allen.drawing.composition.morph.*;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.util.CoordinateConverter.SphericalCoordinates;
 import org.xper.drawing.stick.JuncPt_struct;
 
@@ -14,6 +16,9 @@ import java.util.Map;
 
 public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
+    public TwoByTwoMatchStick(NoiseMapper noiseMapper) {
+        super(noiseMapper);
+    }
 
     public void doSmallMutation(EStimShapeTwoByTwoMatchStick mStickToMorph, List<Integer> compsToMorph, double magnitude, boolean doPositionShape, boolean doCheckNoise, boolean doCompareObjCenteredPos, List<Integer> compsToNoise){
         int nAttempts = 0;
@@ -33,7 +38,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape);
                 if (doCheckNoise){
-                    checkInNoise(compsToNoise, 0.75);
+                    noiseMapper.checkInNoise(this, compsToNoise, 0.75);
                 }
                 if (doCompareObjCenteredPos) {
                     SphericalCoordinates newDrivingComponentPos = calcObjCenteredPosForComp(this, getDrivingComponent());
@@ -62,7 +67,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
             try {
                 genMorphedComponentsMatchStick(morphParametersForComponents, mStickToMorph, doPositionShape);
                 if (doCheckNoise){
-                    checkInNoise(compsToNoise, 0.75);
+                    noiseMapper.checkInNoise(this, compsToNoise, 0.75);
                 }
                 return;
             } catch (MorphedMatchStick.MorphException e) {
@@ -80,7 +85,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
 
 
     public void genMatchStickFromComponentInNoise(ProceduralMatchStick baseMatchStick, int fromCompId, int nComp,
-                                                  boolean doCompareObjCenteredPos, int maxAttempts) {
+                                                  boolean doCompareObjCenteredPos, int maxAttempts, NoiseMapper noiseMapper) {
         SphericalCoordinates originalObjCenteredPos = null;
         if (doCompareObjCenteredPos) {
             originalObjCenteredPos = calcObjCenteredPosForComp(baseMatchStick, fromCompId);
@@ -107,7 +112,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 System.out.println("New driving component pos: " + newDrivingComponentPos.toString());
             }
             try {
-                checkInNoise(compsToNoise, 0.5);
+                noiseMapper.checkInNoise(this, compsToNoise, 0.5);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingComponentPos, this.objCenteredPositionTolerance);
             } catch (Exception e) {
@@ -243,7 +248,7 @@ public class TwoByTwoMatchStick extends ProceduralMatchStick {
                 int newDrivingComponentIndx = getDrivingComponent();
                 List<Integer> compsToNoise = Collections.singletonList(newDrivingComponentIndx);
                 if (doCheckNoise)
-                    checkInNoise(compsToNoise, 0.7);
+                    noiseMapper.checkInNoise(this, compsToNoise, 0.7);
             } catch (MorphException e) {
                 System.out.println(e.getMessage());
                 continue;

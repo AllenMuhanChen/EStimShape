@@ -4,6 +4,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.morph.ComponentMorphParameters;
 import org.xper.allen.drawing.composition.morph.depthposthoc.DepthLightingPostHocComponentMorphParameters;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.utils.Lighting;
 
 import java.nio.FloatBuffer;
@@ -15,10 +16,12 @@ public class DepthLightingPostHocMatchStick extends ProceduralMatchStick {
     public float[] light_position;
 
     public DepthLightingPostHocMatchStick(float[] light_position) {
+        super(new GaussianNoiseMapper());
         this.light_position = light_position;
     }
 
     public DepthLightingPostHocMatchStick() {
+        super(new GaussianNoiseMapper());
         light_position = new float[]{0.0f, 0.0f, 500.0f, 1.0f};
     }
 

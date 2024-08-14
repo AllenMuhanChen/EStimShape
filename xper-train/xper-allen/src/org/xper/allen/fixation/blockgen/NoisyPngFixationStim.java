@@ -30,7 +30,7 @@ public class NoisyPngFixationStim implements Stim {
     @Override
     public void writeStim() {
         //Generate MStick
-        ProceduralMatchStick mStick = new ProceduralMatchStick();
+        ProceduralMatchStick mStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
         mStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
         mStick.setStimColor(params.color);
         mStick.genMatchStickRand();

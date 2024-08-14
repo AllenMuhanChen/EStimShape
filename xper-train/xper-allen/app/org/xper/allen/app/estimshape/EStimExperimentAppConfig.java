@@ -42,6 +42,7 @@ public class EStimExperimentAppConfig {
         generator.setGeneratorSpecPath(pngConfig.mStickPngConfig.generatorSpecPath);
         generator.setPngMaker(pngConfig.mStickPngConfig.pngMaker());
         generator.setImageDimensionDegrees(pngConfig.mStickPngConfig.xperMaxImageDimensionDegrees());
+        generator.setNoiseMapper(pngConfig.mStickPngConfig.noiseMapper());
         //Dependencies of ProceduuralExperimentgenerator
         generator.setGeneratorNoiseMapPath(proceduralAppConfig.generatorNoiseMapPath);
         generator.setExperimentNoiseMapPath(proceduralAppConfig.experimentNoiseMapPath);
@@ -57,6 +58,7 @@ public class EStimExperimentAppConfig {
         EStimExperimentSetGenerator setGenerator = new EStimExperimentSetGenerator();
         setGenerator.setGenerator(generator());
         setGenerator.setGeneratorSetPath(generatorSetPath);
+        setGenerator.setNoiseMapper(pngConfig.mStickPngConfig.noiseMapper());
         return setGenerator;
     }
 

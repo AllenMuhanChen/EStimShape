@@ -2,6 +2,7 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.allen.pga.RFStrategy;
 
@@ -18,7 +19,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);
 
-        baseMStick = new TwoByTwoMatchStick();
+        baseMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
         baseMStick.setMaxAttempts(-1);
         baseMStick.setProperties(8, "SHADE");
         baseMStick.genMatchStickRand();
@@ -30,7 +31,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
     @Test
     public void test_partially_inside(){
-        EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick firstMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         firstMStick.setProperties(5, "SHADE");
         firstMStick.genMatchStickFromComponent(baseMStick, 1, 2, firstMStick.maxAttempts);
         testMatchStickDrawer.drawMStick(firstMStick);
@@ -39,7 +40,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         testMatchStickDrawer.clear();
 
 
-        EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         secondMStick.setProperties(5, "SHADE");
         secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
         testMatchStickDrawer.drawMStick(secondMStick);
@@ -47,7 +48,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         testMatchStickDrawer.saveImage(figPath + "/secondMStick");
         testMatchStickDrawer.clear();
 
-        EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         thirdMStick.setProperties(5, "SHADE");
         thirdMStick.genMorphedDrivingComponentMatchStick(firstMStick, 0.5, 0.5, true, true, firstMStick.maxAttempts);
         testMatchStickDrawer.drawMStick(thirdMStick);
@@ -55,7 +56,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
         testMatchStickDrawer.saveImage(figPath + "/thirdMStick");
         testMatchStickDrawer.clear();
 
-        EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF);
+        EStimShapeTwoByTwoMatchStick fourthMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         fourthMStick.setProperties(5, "SHADE");
         fourthMStick.genSwappedBaseAndDrivingComponentMatchStick(secondMStick, 1, thirdMStick, true, 15);
         testMatchStickDrawer.drawMStick(fourthMStick);

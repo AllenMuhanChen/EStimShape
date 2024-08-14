@@ -9,6 +9,7 @@ import org.xper.allen.drawing.composition.AllenDrawingManager;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.noisy.ConcaveHull;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.noisy.NoisyTranslatableResizableImages;
 import org.xper.drawing.Context;
 import org.xper.drawing.Coordinates2D;
@@ -36,6 +37,7 @@ import static org.xper.allen.drawing.composition.AllenPNGMaker.allocBytes;
 import static org.xper.drawing.TestDrawingWindow.initXperLibs;
 
 public class ProceduralMatchStickTest {
+    private final GaussianNoiseMapper noiseMapper = new GaussianNoiseMapper();
     private String testBin;
     private ProceduralMatchStick baseMStick;
     private AllenPNGMaker pngMaker;
@@ -58,7 +60,7 @@ public class ProceduralMatchStickTest {
 
 
 
-        baseMStick = new ProceduralMatchStick();
+        baseMStick = new ProceduralMatchStick(noiseMapper);
         baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
         baseMStick.genMatchStickRand();
@@ -79,7 +81,7 @@ public class ProceduralMatchStickTest {
      * For testing the behavior of noise circle location relative to the stimulus (visualized as a hull)
      */
     public void drawHullAndNoiseCircle(){
-        testMStick = new ProceduralMatchStick();
+        testMStick = new ProceduralMatchStick(noiseMapper);
         testMStick.PARAM_nCompDist = new double[]{0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         testMStick.genMatchStickFromLeaf(1, baseMStick);
 
@@ -181,7 +183,7 @@ public class ProceduralMatchStickTest {
 
 
 
-        baseMStick = new ProceduralMatchStick();
+        baseMStick = new ProceduralMatchStick(noiseMapper);
         int size = 5;
         baseMStick.setProperties(size, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
@@ -192,7 +194,7 @@ public class ProceduralMatchStickTest {
         drawingManager.drawStimulus(baseMStick, -1L, Collections.singletonList("Base"));
         ProceduralMatchStick sampleMStick;
         if (drawNewStim) {
-            sampleMStick = new ProceduralMatchStick();
+            sampleMStick = new ProceduralMatchStick(noiseMapper);
 //            sampleMStick.showDebug = true;
             sampleMStick.PARAM_nCompDist = new double[]{0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
             sampleMStick.setProperties(size, "SHADE");
@@ -208,7 +210,7 @@ public class ProceduralMatchStickTest {
             spec.writeInfo2File(testBin + "/" + 0 + "_" + "Stim", true);
             ThreadUtil.sleep(100);
         } else {
-            sampleMStick = new ProceduralMatchStick();
+            sampleMStick = new ProceduralMatchStick(noiseMapper);
             sampleMStick.genMatchStickFromFile("/home/r2_allen/git/EStimShape/xper-train/xper-allen/test/test-resources/testBin/0_Stim_spec.xml");
 
         }
@@ -286,18 +288,18 @@ public class ProceduralMatchStickTest {
 
     private void generateStimAndProceduralDistractors(long setId) {
         drawPng(baseMStick, setId, 0L);
-        ProceduralMatchStick sampleMStick = new ProceduralMatchStick();
+        ProceduralMatchStick sampleMStick = new ProceduralMatchStick(noiseMapper);
         int size = 2;
         sampleMStick.setProperties(size, "SHADE");
         sampleMStick.genMatchStickFromComponent(baseMStick, 1, 0, sampleMStick.maxAttempts);
         drawPng(sampleMStick, setId, 1L);
 
-        ProceduralMatchStick distractor1 = new ProceduralMatchStick();
+        ProceduralMatchStick distractor1 = new ProceduralMatchStick(noiseMapper);
         distractor1.setProperties(size, "SHADE");
         distractor1.genMorphedDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true, true, sampleMStick.maxAttempts);
         drawPng(distractor1, setId, 2L);
 
-        ProceduralMatchStick distractor2 = new ProceduralMatchStick();
+        ProceduralMatchStick distractor2 = new ProceduralMatchStick(noiseMapper);
         distractor2.setProperties(size, "SHADE");
         distractor2.genMorphedDrivingComponentMatchStick(sampleMStick, 0.5, 0.5, true, true, sampleMStick.maxAttempts);
         drawPng(distractor2, setId, 3L);

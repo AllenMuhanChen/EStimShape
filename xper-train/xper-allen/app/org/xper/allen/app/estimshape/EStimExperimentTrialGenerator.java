@@ -6,6 +6,7 @@ import org.xper.allen.Stim;
 import org.xper.allen.app.procedural.RadialSquares;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
@@ -41,6 +42,9 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     @Dependency
     String generatorSetPath;
+
+    @Dependency
+    NoiseMapper noiseMapper;
 
     public static void main(String[] args) {
         try {
@@ -343,7 +347,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> eStimTrials = new LinkedList<>();
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
-            ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+            ProceduralMatchStick baseMStick = new ProceduralMatchStick(noiseMapper);
             baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
@@ -460,7 +464,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
         List<Stim> eStimTrials = new LinkedList<>();
         //Add EStim Trials
         for (ProceduralStimParameters parameters : eStimTrialParams) {
-            ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+            ProceduralMatchStick baseMStick = new ProceduralMatchStick(noiseMapper);
             baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, rfSource.getRFRadiusDegrees()), "SHADE");
             baseMStick.setStimColor(stimColor);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + stimId + "_spec.xml");
@@ -614,5 +618,13 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
     public void setGeneratorSetPath(String generatorSetPath) {
         this.generatorSetPath = generatorSetPath;
+    }
+
+    public NoiseMapper getNoiseMapper() {
+        return noiseMapper;
+    }
+
+    public void setNoiseMapper(NoiseMapper noiseMapper) {
+        this.noiseMapper = noiseMapper;
     }
 }

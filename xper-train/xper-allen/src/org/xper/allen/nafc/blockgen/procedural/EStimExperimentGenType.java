@@ -45,7 +45,7 @@ public class EStimExperimentGenType extends ProceduralRandGenType<EStimExperimen
         //use that trial's base matchstick to generate the rest of the trials
         for (int i = 0; i < parameters.getNumTrials(); i++) {
             //Generate the base matchstick
-            ProceduralMatchStick baseMStick = new ProceduralMatchStick();
+            ProceduralMatchStick baseMStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
             baseMStick.setProperties(generator.getImageDimensionsDegrees(), "SHADE");
             baseMStick.setStimColor(parameters.getProceduralStimParameters().color);
             baseMStick.genMatchStickFromFile(gaSpecPath + "/" + parameters.stimId + "_spec.xml");
