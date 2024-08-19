@@ -2,6 +2,7 @@ package org.xper.allen.drawing.composition.experiment;
 
 import org.lwjgl.opengl.GL11;
 import org.xper.allen.drawing.composition.morph.*;
+import org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper;
 import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.pga.RFStrategy;
@@ -9,7 +10,9 @@ import org.xper.allen.pga.RFUtils;
 import org.xper.drawing.Coordinates2D;
 import org.xper.drawing.stick.MStickObj4Smooth;
 
+import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
+import java.util.List;
 
 public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
@@ -47,35 +50,69 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     public void drawCompMap(){
         super.drawCompMap();
         drawRF();
-//
-//        double radius = noiseRadiusMm;
-//        Coordinates2D center = new Coordinates2D(noiseOrigin.x, noiseOrigin.y);
-//        //draw noise
-//        if (radius <= 0 || center == null) {
-//            return; // Nothing to draw if radius is zero or negative, or center is null.
-//        }
-//
-//        GL11.glDisable(GL11.GL_DEPTH_TEST);
-//
-//        // Set the color to draw with, e.g., white
-//        GL11.glColor3f(1.0f, 1.0f, 1.0f); // RGB color values: White
-//
-//        // Begin drawing the circle
-//        GL11.glBegin(GL11.GL_LINE_LOOP); // GL_LINE_LOOP for a closed loop
-//
-//        int numSegments = 100; // Number of segments to approximate the circle
-//        double angleIncrement = 2.0 * Math.PI / numSegments;
-//
-//        for (int i = 0; i < numSegments; i++) {
-//            double angle = i * angleIncrement;
-//            float x = (float) (center.getX() + radius * Math.cos(angle));
-//            float y = (float) (center.getY() + radius * Math.sin(angle));
-//            GL11.glVertex2f(x, y); // Provide each vertex
-//        }
-//
-//        GL11.glEnd(); // Finish drawing
-//
-//        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        if(noiseMapper!=null){
+            //ALL POINTS FROM THE OBJ1
+            GL11.glColor4f(1.0f, 1.0f, 0.0f, 0.5f);
+            List<Point2d> pointsToDraw = ((GaussianNoiseMapper) noiseMapper).debug_points_obj1;
+            for (Point2d point : pointsToDraw) {
+                GL11.glPointSize(0.1f);
+                GL11.glBegin(GL11.GL_POINTS);
+                GL11.glVertex2d(point.x, point.y);
+                GL11.glEnd();
+            }
+
+            //ALL POINTS FROM VECT_INFO of in Noise comp
+            GL11.glColor4f(0.0f, 0.0f, 1.0f, 0.5f);
+            List<Point2d> pointsToDraw_all = ((GaussianNoiseMapper) noiseMapper).debug_points_vect;
+            for (Point2d point : pointsToDraw_all) {
+                GL11.glPointSize(0.1f);
+                GL11.glBegin(GL11.GL_POINTS);
+                GL11.glVertex2d(point.x, point.y);
+                GL11.glEnd();
+            }
+
+            //OUTSIDE OF NOISE POINTS
+            GL11.glDisable(GL11.GL_DEPTH_TEST);
+            GL11.glColor4f(0.0f, 1.0f, 0.0f, 0.5f);
+            List<Point2d> pointsToDraw_outside = ((GaussianNoiseMapper) noiseMapper).debug_points_outside;
+            for (Point2d point : pointsToDraw_outside) {
+                GL11.glPointSize(0.1f);
+                GL11.glBegin(GL11.GL_POINTS);
+                GL11.glVertex2d(point.x, point.y);
+                GL11.glEnd();
+            }
+        }
+
+        //NOISE
+        double radius = noiseRadiusMm;;
+        Point2d debugNoiseOrigin = ((GaussianNoiseMapper) noiseMapper).debug_noise_origin;
+        Coordinates2D center = new Coordinates2D(debugNoiseOrigin.getX(), debugNoiseOrigin.getY());
+        //draw noise
+        if (radius <= 0 || center == null) {
+            return; // Nothing to draw if radius is zero or negative, or center is null.
+        }
+
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+
+        // Set the color to draw with, e.g., white
+
+        // Begin drawing the circle
+        GL11.glBegin(GL11.GL_LINE_LOOP); // GL_LINE_LOOP for a closed loop
+        GL11.glColor3f(1.0f, 0.0f, 0.0f);
+
+        int numSegments = 100; // Number of segments to approximate the circle
+        double angleIncrement = 2.0 * Math.PI / numSegments;
+
+        for (int i = 0; i < numSegments; i++) {
+            double angle = i * angleIncrement;
+            float x = (float) (center.getX() + radius * Math.cos(angle));
+            float y = (float) (center.getY() + radius * Math.sin(angle));
+            GL11.glVertex2f(x, y); // Provide each vertex
+        }
+
+        GL11.glEnd(); // Finish drawing
+
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
 
     }
 

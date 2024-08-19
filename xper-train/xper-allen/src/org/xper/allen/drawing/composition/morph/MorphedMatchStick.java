@@ -51,7 +51,7 @@ public class MorphedMatchStick extends AllenMatchStick {
         while (numAttempts < getMaxTotalAttempts()) {
             try {
                 numAttempts++;
-                copyFrom(backup);
+
                 findCompsToPreserve(morphParametersForComponents.keySet());
                 morphAllComponents(morphParametersForComponents);
 //                MutateSUB_reAssignJunctionRadius();
@@ -64,6 +64,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
+                copyFrom(backup);
 //                e.printStackTrace();
                 System.err.println(e.getMessage());
                 System.out.println("Failed to morph matchstick.");

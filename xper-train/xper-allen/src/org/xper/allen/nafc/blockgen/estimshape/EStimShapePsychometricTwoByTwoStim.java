@@ -7,6 +7,7 @@ import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStic
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
 import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
+import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.nafc.blockgen.procedural.EStimShapeProceduralStim;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
@@ -17,6 +18,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
 
     private final int MAX_MUTATION_ATTEMPTS = 100;  // Maximum number of mutation attempts
+    private final double percentRequiredOutsideNoise = 0.5;
 
     //input parameters
     EStimExperimentTrialGenerator generator;
@@ -31,7 +33,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     Map<String, AllenMStickSpec> setSpecs = new LinkedHashMap<>();
     Map<String, AllenMStickSpec> morphedSetSpecs;
     private final List<Integer> compIdsToNoise = new ArrayList<>();
-
+    private NoiseMapper noiseMapper;
 
     public EStimShapePsychometricTwoByTwoStim(
             EStimExperimentTrialGenerator generator,
@@ -52,7 +54,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         this.baseMagnitude = baseMagnitude;
         this.drivingMagnitude = drivingMagnitude;
         this.isDeltaNoise = isDeltaNoise;
-
+        this.noiseMapper = generator.getNoiseMapper();
         setSpecs.put(sampleSetCondition, sampleSetSpec);
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
             setSpecs.put(setCondition, baseProceduralDistractorSpecs.get(setCondition));
@@ -149,14 +151,15 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         EStimShapeTwoByTwoMatchStick stickI = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
         stickI.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
 
         stickI.genMatchStickFromShapeSpec(setSpecs.get("I"), new double[]{0,0,0});
-
-
+        System.out.println("Pre Set Mute driving component: " + stickI.getDrivingComponent());
+        System.out.println("Pre Set Mute center of mass: " + stickI.getMassCenterForComponent(stickI.getDrivingComponent()));
+        System.out.println("Pre Set Mute real center: " + stickI.getComp()[stickI.getDrivingComponent()].getMassCenter());
         //Mutate all compIds -> gives us B1* and D1*
         LinkedList<Integer> baseCompIds = new LinkedList<>();
         for (int compId = 1; compId <= stickI.getnComponent(); compId++) {
@@ -166,8 +169,10 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         }
 
         attemptSetMutation(stickI, baseCompIds, baseMagnitude);
-        attemptSetMutation(stickI, Collections.singletonList(stickI.getDrivingComponent()), drivingMagnitude);
+//        attemptSetMutation(stickI, Collections.singletonList(stickI.getDrivingComponent()), drivingMagnitude);
 
+        List<Integer> compsToNoise = identifyCompsToNoise(stickI, isDeltaNoise);
+        noiseMapper.checkInNoise(stickI, compsToNoise, percentRequiredOutsideNoise);
         return stickI;
     }
 
@@ -175,7 +180,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         EStimShapeTwoByTwoMatchStick B2Stick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
 
         B2Stick.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
@@ -189,7 +194,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         EStimShapeTwoByTwoMatchStick morphedStickII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
         morphedStickII.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
@@ -198,6 +203,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 morphedStickI, morphedStickI.getDrivingComponent(),
                 100, true);
 
+        List<Integer> compsToNoise = identifyCompsToNoise(morphedStickII, isDeltaNoise);
+        noiseMapper.checkInNoise(morphedStickII, compsToNoise, percentRequiredOutsideNoise);
 
         return morphedStickII;
     }
@@ -206,7 +213,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         EStimShapeTwoByTwoMatchStick D2Stick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
         D2Stick.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
@@ -216,7 +223,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         EStimShapeTwoByTwoMatchStick morphedStickIII = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
 
         morphedStickIII.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
@@ -227,6 +234,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 D2Stick, D2Stick.getDrivingComponent(),
                 100, true);
 
+        List<Integer> compsToNoise = identifyCompsToNoise(morphedStickIII, isDeltaNoise);
+        noiseMapper.checkInNoise(morphedStickIII, compsToNoise, percentRequiredOutsideNoise);
 
         return morphedStickIII;
     }
@@ -235,7 +244,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         EStimShapeTwoByTwoMatchStick morphedStickIV = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
 
         morphedStickIV.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
@@ -247,6 +256,9 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 100, true);
 
 
+        List<Integer> compsToNoise = identifyCompsToNoise(morphedStickIV, isDeltaNoise);
+        noiseMapper.checkInNoise(morphedStickIV, compsToNoise, percentRequiredOutsideNoise);
+
         return morphedStickIV;
     }
 
@@ -254,12 +266,14 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         EStimShapeTwoByTwoMatchStick sample = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
         sample.setProperties(
                 RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees()),
                 parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
+
+
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
         labels.getSample().add(isDeltaNoise ? "isDeltaNoise" : "notDeltaNoise");
@@ -280,7 +294,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     }
 
     private void generateMatch() {
-        TwoByTwoMatchStick match = new TwoByTwoMatchStick(generator.getNoiseMapper());
+        TwoByTwoMatchStick match = new TwoByTwoMatchStick(noiseMapper);
         match.setProperties(parameters.getSize(), parameters.textureType);
         match.setStimColor(parameters.color);
         match.genMatchStickFromShapeSpec(mStickSpecs.getSample(), new double[]{0,0,0});
@@ -294,7 +308,7 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
         int i = 0;
         for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
             AllenMStickSpec choiceSpec = baseProceduralDistractorSpecs.get(setCondition);
-            TwoByTwoMatchStick choice = new TwoByTwoMatchStick(generator.getNoiseMapper());
+            TwoByTwoMatchStick choice = new TwoByTwoMatchStick(noiseMapper);
             choice.setProperties(parameters.getSize(), parameters.textureType);
             choice.setStimColor(parameters.color);
             choice.genMatchStickFromShapeSpec(choiceSpec, new double[]{0,0,0});
@@ -322,32 +336,32 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
      * II* - B2* D1*
      * III* - B1* D2*
      * IV* - B2* D2*
-     * @param matchStick
+     * @param stickToMorph
      * @param compsToMorph
      * @param magnitude
      * @return
      */
-    private void attemptSetMutation(EStimShapeTwoByTwoMatchStick matchStick, List<Integer> compsToMorph, Double magnitude) {
-        List<Integer> compsToNoise = identifyCompsToNoise(matchStick, isDeltaNoise);
+    private void attemptSetMutation(EStimShapeTwoByTwoMatchStick stickToMorph, List<Integer> compsToMorph, Double magnitude) {
+        List<Integer> compsToNoise = identifyCompsToNoise(stickToMorph, isDeltaNoise);
         EStimShapeTwoByTwoMatchStick backup = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
-        backup.copyFrom(matchStick);
+                noiseMapper);
+        backup.copyFrom(stickToMorph);
         for (int attempt = 0; attempt < MAX_MUTATION_ATTEMPTS; attempt++) {
             try {
                 if (magnitude > 1.0 && magnitude <= 2.0){
-                    matchStick.doMediumMutation(
+                    stickToMorph.doMediumMutation(
                             backup,
-                            compsToMorph, magnitude-1, 0.5,
+                            compsToMorph, magnitude-1, percentRequiredOutsideNoise,
                             true,
-                            true,
+                            false,
                             compsToNoise);
                 } else if (magnitude <= 1.0 && magnitude >= 0.0){
-                    matchStick.doSmallMutation(
+                    stickToMorph.doSmallMutation(
                             backup, compsToMorph, magnitude,
                             true,
-                            true,
+                            false,
                             true, compsToNoise);
                 } else{
                     throw new IllegalArgumentException("Magnitude must be between 0 and 2");
@@ -356,6 +370,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
 
                 return;  // Mutation successful
             } catch (Exception e) {
+                e.printStackTrace();
+                stickToMorph.copyFrom(backup);
                 System.out.println("Mutation attempt " + (attempt + 1) + " failed: " + e.getMessage());
 
             }

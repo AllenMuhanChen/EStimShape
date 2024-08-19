@@ -72,6 +72,13 @@ public class GaussianNoiseMapperTest {
     }
 
     @Test
+    public void testGaussianNoiseWithSetMutations(){
+        // load the base mStick,
+
+        // generate
+    }
+
+    @Test
     public void testGaussianNoiseWithDifferentSpecialCompIds() throws IOException {
         ReceptiveField receptiveField = new CircleReceptiveField(new Coordinates2D(5,5), 10);
 
@@ -84,6 +91,7 @@ public class GaussianNoiseMapperTest {
         while (true) {
             try {
                 mStick.genMatchStickFromComponentInNoise(baseMStick, 1, nComp, true, mStick.maxAttempts, new GaussianNoiseMapper());
+
             } catch (Exception e) {
                 continue;
             }

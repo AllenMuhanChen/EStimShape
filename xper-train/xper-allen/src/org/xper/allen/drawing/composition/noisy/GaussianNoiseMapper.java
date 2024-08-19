@@ -27,6 +27,10 @@ public class GaussianNoiseMapper implements NoiseMapper {
     public int height;
     @Dependency
     private double background;
+    public List<Point2d> debug_points_outside = new LinkedList<>();
+    public List<Point2d> debug_points_vect = new LinkedList<>();
+    public List<Point2d> debug_points_obj1 = new LinkedList<>();
+    public Point2d debug_noise_origin;
 
     public static Point3d calculateNoiseOrigin(ProceduralMatchStick proceduralMatchStick, List<Integer> compsToBeInNoise){
         Point3d point3d = new Point3d();
@@ -89,6 +93,16 @@ public class GaussianNoiseMapper implements NoiseMapper {
 
     public void checkInNoise(ProceduralMatchStick proceduralMatchStick, List<Integer> mustBeInNoiseCompIds, double percentRequiredOutsideNoise){
         proceduralMatchStick.setNoiseOrigin(calculateNoiseOrigin(proceduralMatchStick, mustBeInNoiseCompIds));
+        debug_noise_origin = new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY());
+        debug_points_vect.clear();
+        debug_points_obj1.clear();
+        debug_points_outside.clear();
+
+        for (Point3d point : proceduralMatchStick.getObj1().vect_info){
+            if (point != null) {
+                debug_points_obj1.add(new Point2d(point.getX(), point.getY()));
+            }
+        }
 
         ArrayList<ConcaveHull.Point> pointsToCheck = new ArrayList<>();
         int index = 0;
@@ -97,10 +111,8 @@ public class GaussianNoiseMapper implements NoiseMapper {
             Point3d[] compVect_info = testingComp.getVect_info();
             for (Point3d point3d : compVect_info) {
                 if (point3d != null) {
-                    if (index % 1 == 0) //For speed, we only check every other point for the hull
-                    {
-                        pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
-                    }
+                    debug_points_vect.add(new Point2d(point3d.getX(), point3d.getY()));
+                    pointsToCheck.add(new ConcaveHull.Point(point3d.getX(), point3d.getY()));
                     index++;
                 }
             }
@@ -111,9 +123,10 @@ public class GaussianNoiseMapper implements NoiseMapper {
             if (isPointWithinCircle(new Point2d(point.getX(), point.getY()), new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY()), proceduralMatchStick.noiseRadiusMm)){
                 numPointsInside++;
             } else{
+                debug_points_outside.add(new Point2d(point.getX(), point.getY()));
                 double error = Math.abs(point.distance(new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY())) - proceduralMatchStick.noiseRadiusMm);
                 System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
-                 + " with error: " + error);
+                        + " with error: " + error);
             }
         }
         //TODO: not sure WHY percentRequiredInside needs to be low for Set Mutations...
@@ -150,6 +163,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
         if (percentOutside < percentRequiredOutsideNoise){
             throw new NoiseException("Not enough points outside of noise circle");
         }
+        System.out.println("SUCCEEDED CHECK IN NOISE");
     }
 
     protected static boolean isPointWithinCircle(Point2d point, Point2d center, double radius) {
@@ -171,7 +185,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
         proceduralMatchStick.projectedTangent = new Vector3d(proceduralMatchStick.projectedTangent.x, proceduralMatchStick.projectedTangent.y, 0);
 
         // Choose a starting point
-        Point3d startingPosition = chooseStartingPoint(junc, proceduralMatchStick.projectedTangent);
+        Point3d startingPosition = chooseStartingPoint(junc, proceduralMatchStick.projectedTangent, proceduralMatchStick.getScaleForMAxisShape());
         System.out.println("Starting position: " + startingPosition);
         projectedPoint = pointAlong2dTangent(startingPosition,
                 proceduralMatchStick.projectedTangent,
@@ -330,16 +344,16 @@ public class GaussianNoiseMapper implements NoiseMapper {
         Vector3d bisector_3d = new Vector3d(bisector.getX(), bisector.getY(), 0);
         proceduralMatchStick.projectedTangent = bisector_3d;
 
-        Point3d startingPosition = chooseStartingPoint(junc, bisector_3d);
+        Point3d startingPosition = chooseStartingPoint(junc, bisector_3d, proceduralMatchStick.getScaleForMAxisShape());
         projectedPoint = pointAlong2dTangent(startingPosition, bisector_3d, proceduralMatchStick.noiseRadiusMm);
         return projectedPoint;
     }
 
-    public static Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent) {
+    public static Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
-//        double shiftAmount = junc.getRad() * getScaleForMAxisShape();
-        double shiftAmount = 0;
+        double shiftAmount = junc.getRad() * scaleForMAxisShape;
+//        double shiftAmount = 0;
 //        double shiftAmount = junc.getRad();
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
@@ -360,10 +374,10 @@ public class GaussianNoiseMapper implements NoiseMapper {
 
     @Override
     public String mapNoise(ProceduralMatchStick mStick,
-                                  double amplitude,
-                                  int specialCompIndx,
-                                  AbstractRenderer renderer,
-                                  String path) {
+                           double amplitude,
+                           int specialCompIndx,
+                           AbstractRenderer renderer,
+                           String path) {
         File ouptutFile = new File(path);
         BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndx);
         try {

@@ -58,8 +58,6 @@ public class ProceduralMatchStickTest {
         pngMaker.createDrawerWindow();
         drawingManager = pngMaker.window;
 
-
-
         baseMStick = new ProceduralMatchStick(noiseMapper);
         baseMStick.setProperties(4, "SHADE");
         baseMStick.setStimColor(new Color(255,255,255));
