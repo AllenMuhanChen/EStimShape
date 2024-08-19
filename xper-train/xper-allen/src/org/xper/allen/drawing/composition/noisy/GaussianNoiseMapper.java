@@ -27,12 +27,16 @@ public class GaussianNoiseMapper implements NoiseMapper {
     public int height;
     @Dependency
     private double background;
+    @Dependency
+    private boolean doEnforceHiddenJunction;
+
     public List<Point2d> debug_points_outside = new LinkedList<>();
     public List<Point2d> debug_points_vect = new LinkedList<>();
     public List<Point2d> debug_points_obj1 = new LinkedList<>();
     public Point2d debug_noise_origin;
 
-    public static Point3d calculateNoiseOrigin(ProceduralMatchStick proceduralMatchStick, List<Integer> compsToBeInNoise){
+
+    public Point3d calculateNoiseOrigin(ProceduralMatchStick proceduralMatchStick, List<Integer> compsToBeInNoise){
         Point3d point3d = new Point3d();
 
         if (compsToBeInNoise.size() == 1){
@@ -130,7 +134,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
             }
         }
         //TODO: not sure WHY percentRequiredInside needs to be low for Set Mutations...
-        double percentRequiredInside = 1.0;
+        double percentRequiredInside = doEnforceHiddenJunction ? 1.0 : 0.75;
         double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
         if (actualPercentageInside < percentRequiredInside){
             throw new NoiseException("Found points outside of noise circle: " + actualPercentageInside + "% inside + with noise Radius: " + proceduralMatchStick.noiseRadiusMm);
@@ -177,7 +181,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
      * @param junc
      * @return
      */
-    public static Point3d calcProjectionFromSingleJunctionWithSingleComp(ProceduralMatchStick proceduralMatchStick, Integer baseCompId, JuncPt_struct junc) {
+    public Point3d calcProjectionFromSingleJunctionWithSingleComp(ProceduralMatchStick proceduralMatchStick, Integer baseCompId, JuncPt_struct junc) {
         Point3d projectedPoint;
 
         // Find tangent to project along for noise origin
@@ -299,7 +303,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
      * @param junc
      * @return
      */
-    public static Point3d calcProjectionFromJunctionWithMultiComp(ProceduralMatchStick proceduralMatchStick, Integer specialCompId, JuncPt_struct junc) {
+    public Point3d calcProjectionFromJunctionWithMultiComp(ProceduralMatchStick proceduralMatchStick, Integer specialCompId, JuncPt_struct junc) {
         Point3d projectedPoint;
         // Collect tangents for this junction - excluding special component
         List<Vector3d> nonSpecialTangents = new LinkedList<>();
@@ -349,12 +353,10 @@ public class GaussianNoiseMapper implements NoiseMapper {
         return projectedPoint;
     }
 
-    public static Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
+    public Point3d chooseStartingPoint(JuncPt_struct junc, Vector3d tangent, double scaleForMAxisShape) {
         Vector3d reverseTangent = new Vector3d(tangent);
         reverseTangent.negate(); //reverse so we end up with a point inside of the shape
-        double shiftAmount = junc.getRad() * scaleForMAxisShape;
-//        double shiftAmount = 0;
-//        double shiftAmount = junc.getRad();
+        double shiftAmount = doEnforceHiddenJunction ? junc.getRad() * scaleForMAxisShape : 0.0;
         Point3d startingPosition = choosePositionAlongTangent(
                 reverseTangent,
                 junc.getPos(), //this is shifted by applyTranslation
@@ -404,12 +406,12 @@ public class GaussianNoiseMapper implements NoiseMapper {
         return ouptutFile.getAbsolutePath();
     }
 
-    public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
+    public BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
                                                             int width, int height,
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer, int specialCompIndx){
 
-        Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
+        Point3d noiseOrigin = calculateNoiseOrigin(mStick, Collections.singletonList(specialCompIndx));
 
 
         double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
@@ -423,7 +425,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
 
     }
 
-    public static BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
+    public BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,
                                                             int width, int height,
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer, List<Integer> specialCompIndcs){
@@ -611,4 +613,11 @@ public class GaussianNoiseMapper implements NoiseMapper {
         this.background = background;
     }
 
+    public boolean isDoEnforceHiddenJunction() {
+        return doEnforceHiddenJunction;
+    }
+
+    public void setDoEnforceHiddenJunction(boolean doEnforceHiddenJunction) {
+        this.doEnforceHiddenJunction = doEnforceHiddenJunction;
+    }
 }

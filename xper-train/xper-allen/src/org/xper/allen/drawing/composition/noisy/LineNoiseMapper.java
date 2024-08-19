@@ -3,10 +3,9 @@ package org.xper.allen.drawing.composition.noisy;
 import org.xper.alden.drawing.renderer.AbstractRenderer;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.drawing.Coordinates2D;
-import org.xper.drawing.stick.JuncPt_struct;
+
 import javax.vecmath.Point2d;
 import javax.imageio.ImageIO;
-import javax.vecmath.Point2d;
 import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
 import java.awt.*;
@@ -15,11 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import javax.vecmath.Point2d;
-import javax.vecmath.Vector3d;
-
 import static org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper.convertMmToPixelCoordinates;
-import static org.xper.allen.drawing.composition.noisy.GaussianNoiseMapper.mmToPixels;
 
 public class LineNoiseMapper implements NoiseMapper{
     private int width;
@@ -57,7 +52,7 @@ public class LineNoiseMapper implements NoiseMapper{
                                                         double amplitude, double background,
                                                         AbstractRenderer renderer, int specialCompIndx) {
         mStick.noiseRadiusMm = 0;
-        Point3d noiseOrigin = mStick.calculateNoiseOrigin(specialCompIndx);
+        Point3d noiseOrigin = mStick.calculateGaussNoiseOrigin(specialCompIndx);
         Vector3d projectedTangent = mStick.projectedTangent;
 
         // Calculate the perpendicular vector in the X,Y plane

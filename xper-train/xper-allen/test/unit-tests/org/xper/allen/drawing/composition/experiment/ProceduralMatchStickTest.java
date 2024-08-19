@@ -126,7 +126,7 @@ public class ProceduralMatchStickTest {
 
                 // Now, draw the circle
                 System.out.println(testMStick.getSpecialEndComp().get(0));
-                Point3d circle = testMStick.calculateNoiseOrigin(testMStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
+                Point3d circle = testMStick.calculateGaussNoiseOrigin(testMStick.getSpecialEndComp().get(0)); // Replace with the circle's center X-coordinate
 
                 double radius = 10;
                 int numSegments = 100; // Increase for a smoother circle
@@ -144,7 +144,7 @@ public class ProceduralMatchStickTest {
 
             }
         });
-        Point3d x = testMStick.calculateNoiseOrigin(testMStick.getSpecialEndComp().get(0));
+        Point3d x = testMStick.calculateGaussNoiseOrigin(testMStick.getSpecialEndComp().get(0));
         System.out.println(x);
         ThreadUtil.sleep(100000);
         window.close();

@@ -346,8 +346,13 @@ public class ProceduralMatchStick extends MorphedMatchStick {
         }
     }
 
-    public Point3d calculateNoiseOrigin(int specialCompId) {
-        return GaussianNoiseMapper.calculateNoiseOrigin(this, Collections.singletonList(specialCompId));
+    /**
+     * DEPRECRATED. Just not removing to avoid breaking some tests.
+     * @param specialCompId
+     * @return
+     */
+    public Point3d calculateGaussNoiseOrigin(int specialCompId) {
+        return ((GaussianNoiseMapper)noiseMapper).calculateNoiseOrigin(this, Collections.singletonList(specialCompId));
 //        Point3d point3d = new Point3d();
 //        for (JuncPt_struct junc : getJuncPt()) {
 //            if (junc != null) {
