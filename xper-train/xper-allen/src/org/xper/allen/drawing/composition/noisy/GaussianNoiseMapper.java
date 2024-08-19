@@ -30,6 +30,10 @@ public class GaussianNoiseMapper implements NoiseMapper {
     @Dependency
     private boolean doEnforceHiddenJunction;
 
+    /*
+    08/19/24 AC: These debugging variables were used to visualize the noise circle and the points that were used to check
+    whether or not points inside set mutated mSticks were within the noise circle.
+     */
     public List<Point2d> debug_points_outside = new LinkedList<>();
     public List<Point2d> debug_points_vect = new LinkedList<>();
     public List<Point2d> debug_points_obj1 = new LinkedList<>();

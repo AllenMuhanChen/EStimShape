@@ -50,6 +50,42 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
     public void drawCompMap(){
         super.drawCompMap();
         drawRF();
+        //NOISE
+        double radius = noiseRadiusMm;
+
+        Point3d noiseOrigin = this.getNoiseOrigin();
+        Coordinates2D center = new Coordinates2D(noiseOrigin.getX(), noiseOrigin.getY());
+        //draw noise
+        if (radius <= 0 || center == null) {
+            return;
+        }
+
+        GL11.glDisable(GL11.GL_DEPTH_TEST);
+
+        // Set the color to draw with, e.g., white
+
+        // Begin drawing the circle
+        GL11.glBegin(GL11.GL_LINE_LOOP); // GL_LINE_LOOP for a closed loop
+        GL11.glColor3f(1.0f, 0.0f, 0.0f);
+
+        int numSegments = 100; // Number of segments to approximate the circle
+        double angleIncrement = 2.0 * Math.PI / numSegments;
+
+        for (int i = 0; i < numSegments; i++) {
+            double angle = i * angleIncrement;
+            float x = (float) (center.getX() + radius * Math.cos(angle));
+            float y = (float) (center.getY() + radius * Math.sin(angle));
+            GL11.glVertex2f(x, y); // Provide each vertex
+        }
+
+        GL11.glEnd(); // Finish drawing
+
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+//        draw_debug_gaussian_mapper();
+
+    }
+
+    private void draw_debug_gaussian_mapper() {
         if(noiseMapper!=null){
             //ALL POINTS FROM THE OBJ1
             GL11.glColor4f(1.0f, 1.0f, 0.0f, 0.5f);
@@ -84,12 +120,13 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
         }
 
         //NOISE
-        double radius = noiseRadiusMm;;
+        double radius = noiseRadiusMm;
+        ;
         Point2d debugNoiseOrigin = ((GaussianNoiseMapper) noiseMapper).debug_noise_origin;
         Coordinates2D center = new Coordinates2D(debugNoiseOrigin.getX(), debugNoiseOrigin.getY());
         //draw noise
         if (radius <= 0 || center == null) {
-            return; // Nothing to draw if radius is zero or negative, or center is null.
+            return;
         }
 
         GL11.glDisable(GL11.GL_DEPTH_TEST);
@@ -113,7 +150,6 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
         GL11.glEnd(); // Finish drawing
 
         GL11.glEnable(GL11.GL_DEPTH_TEST);
-
     }
 
     @Override

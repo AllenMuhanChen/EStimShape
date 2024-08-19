@@ -272,7 +272,8 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
                 parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromShapeSpec(sampleSetSpec, new double[]{0,0,0});
-
+        List<Integer> compsToNoise = identifyCompsToNoise(sample, isDeltaNoise);
+        noiseMapper.checkInNoise(sample, compsToNoise, 0.5);
 
         mSticks.setSample(sample);
         mStickSpecs.setSample(mStickToSpec(sample));
