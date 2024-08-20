@@ -28,6 +28,14 @@ public class GaussianNoiseMapper implements NoiseMapper {
     @Dependency
     private double background;
     @Dependency
+    /**
+     * If true, the noise circle will chosen so that the junction of the in-noise components is completely hidden.
+     * If false, the noise circle will be chosen so that 75% of the points in the in-noise components are inside the noise circle.
+     *
+     * When the junction is fully hidden, because of the gaussian fade, the noise circle will be larger than the junction, which
+     * can obscure more of the shape than wanted.
+     *
+     */
     private boolean doEnforceHiddenJunction;
 
     /*
@@ -137,7 +145,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
                         + " with error: " + error);
             }
         }
-        //TODO: not sure WHY percentRequiredInside needs to be low for Set Mutations...
+        //TODO: potential improvement: we could replace the mechanism for this by somehow identifying points in the junction itself
         double percentRequiredInside = doEnforceHiddenJunction ? 1.0 : 0.75;
         double actualPercentageInside = (double) numPointsInside / pointsToCheck.size();
         if (actualPercentageInside < percentRequiredInside){

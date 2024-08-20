@@ -85,6 +85,9 @@ public class EStimShapeTwoByTwoMatchStick extends TwoByTwoMatchStick {
 
     }
 
+    /**
+     * deprecrated
+     */
     private void draw_debug_gaussian_mapper() {
         if(noiseMapper!=null){
             //ALL POINTS FROM THE OBJ1
