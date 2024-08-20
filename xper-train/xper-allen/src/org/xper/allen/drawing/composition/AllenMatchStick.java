@@ -3818,7 +3818,8 @@ public class AllenMatchStick extends MatchStick {
 			getJuncPt()[i] = new JuncPt_struct();
 			getJuncPt()[i].copyFrom(in.getJuncPt()[i]);
 		}
-		this.setObj1(new MStickObj4Smooth(in.getObj1()));
+		if (in.getObj1() != null)
+			this.setObj1(new MStickObj4Smooth(in.getObj1()));
 
 		for (i=1; i<=getnComponent(); i++)
 			getLeafBranch()[i] = in.getLeafBranch()[i];

@@ -30,10 +30,10 @@ public class RFUtils {
             double percentageInsideRF = 1.0;
 
             double initialThresholdPercentageOutOfRF = 0.8;
-            double reductionStep = 0.05; // Step to reduce thresholdPercentageOutOfRF
+            double reductionStep = 0.1; // Step to reduce thresholdPercentageOutOfRF
             double minThresholdPercentageOutOfRF = 0.5; // Minimum threshold percentage allowed
 
-            int numPointsToTry = 200;
+            int numPointsToTry = 100;
             double thresholdPercentageOutOfRF = initialThresholdPercentageOutOfRF;
             while (thresholdPercentageOutOfRF >= minThresholdPercentageOutOfRF) {
                 // Generate a uniform span of points within the RF

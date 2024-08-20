@@ -3,13 +3,13 @@ package org.xper.allen.nafc.blockgen.procedural;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.config.java.context.JavaConfigApplicationContext;
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.ga.TestMatchStickDrawer;
 import org.xper.util.FileUtil;
 
 public class EStimShapeTwoByTwoStimTest {
 
-    private EStimExperimentTrialGenerator generator;
+    private EStimShapeExperimentTrialGenerator generator;
     private TestMatchStickDrawer testMatchStickDrawer;
     private String figPath;
 
@@ -20,7 +20,7 @@ public class EStimShapeTwoByTwoStimTest {
                 FileUtil.loadConfigClass("experiment.ga.config_class"));
 
 
-        generator = context.getBean(EStimExperimentTrialGenerator.class);
+        generator = context.getBean(EStimShapeExperimentTrialGenerator.class);
 
         testMatchStickDrawer = new TestMatchStickDrawer();
         testMatchStickDrawer.setup(500, 500);

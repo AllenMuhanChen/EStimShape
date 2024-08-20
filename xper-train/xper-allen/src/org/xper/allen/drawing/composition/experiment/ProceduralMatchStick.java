@@ -223,16 +223,12 @@ public class ProceduralMatchStick extends MorphedMatchStick {
      * @param maxAttempts
      * @param doPositionShape
      * @param doCompareObjCenteredPos
-     * @param magnitude
-     * @param discreteness
      */
     public void genMorphedBaseMatchStick(ProceduralMatchStick targetMatchStick,
                                          int drivingComponentIndex,
                                          int maxAttempts,
                                          boolean doPositionShape,
-                                         boolean doCompareObjCenteredPos,
-                                         double magnitude,
-                                         double discreteness) {
+                                         boolean doCompareObjCenteredPos) {
         int baseComponentIndex;
         List<Integer> baseCompIndcs = new LinkedList<>();
         for (int compId : targetMatchStick.getCompIds()) {
@@ -251,10 +247,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 nAttempts++;
                 Map<Integer, ComponentMorphParameters> morphParametersForComponents = new HashMap<>();
                 BaseMorphParameters morphParams = new BaseMorphParameters();
-//                NormalDistributedComponentMorphParameters morphParams = new NormalDistributedComponentMorphParameters(
-//                        magnitude,
-//                        new NormalMorphDistributer(
-//                                discreteness));
                 for (int i = 0; i < baseCompIndcs.size(); i++) {
                     baseComponentIndex = baseCompIndcs.get(i);
                     morphParametersForComponents.put(baseComponentIndex, morphParams);
@@ -263,7 +255,6 @@ public class ProceduralMatchStick extends MorphedMatchStick {
                 SphericalCoordinates newDrivingObjectCenteredPos = calcObjCenteredPosForComp(this, drivingComponentIndex);
                 if (doCompareObjCenteredPos)
                     compareObjectCenteredPositions(originalObjCenteredPos, newDrivingObjectCenteredPos);
-//                checkMStickSize();
                 checkLeafBaseRatio();
                 return;
             } catch (ObjectCenteredPositionException e) {

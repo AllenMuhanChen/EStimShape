@@ -75,7 +75,7 @@ public class TwoByTwoMatchStickTest {
 
         TwoByTwoMatchStick secondMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
         secondMStick.setProperties(40, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         drawPng(secondMStick, 3L);
 
         TwoByTwoMatchStick thirdMStick = new TwoByTwoMatchStick(new GaussianNoiseMapper());
@@ -99,7 +99,7 @@ public class TwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         drawPng(secondMStick, 12L);
 
         EStimShapeTwoByTwoMatchStick thirdMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);

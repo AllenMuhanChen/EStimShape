@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.ga.ReceptiveField;
@@ -13,7 +13,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
 
     private ReceptiveField rf;
 
-    public EStimShapeProceduralBehavioralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
+    public EStimShapeProceduralBehavioralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ReceptiveField rf) {
         super(
                 generator,
                 parameters,
@@ -85,7 +85,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
                 RFStrategy.PARTIALLY_INSIDE,
                 rf, generator.getPngMaker().getNoiseMapper()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
         baseMatchStick.setMaxAttempts(3);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, randLeaf, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
@@ -98,7 +98,7 @@ public class EStimShapeProceduralBehavioralStim extends EStimShapeProceduralStim
 
     private ProceduralMatchStick genRandBaseMStick() {
         ProceduralMatchStick baseMStick = new ProceduralMatchStick(generator.getPngMaker().getNoiseMapper());
-        baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
+        baseMStick.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         baseMStick.setStimColor(parameters.color);
         baseMStick.genMatchStickRand();
 

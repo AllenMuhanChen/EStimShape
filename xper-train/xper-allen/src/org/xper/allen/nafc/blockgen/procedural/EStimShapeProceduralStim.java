@@ -1,6 +1,6 @@
 package org.xper.allen.nafc.blockgen.procedural;
 
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.experiment.EStimShapeProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.nafc.blockgen.psychometric.NAFCStimSpecWriter;
@@ -20,7 +20,7 @@ public class EStimShapeProceduralStim extends ProceduralStim{
     protected final boolean isEStimEnabled;
     protected long[] eStimObjData;
 
-    public EStimShapeProceduralStim(EStimExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
+    public EStimShapeProceduralStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled) {
         super(generator, parameters, baseMatchStick, morphComponentIndex);
         this.rfSource = generator.getRfSource();
         this.isEStimEnabled = isEStimEnabled;
@@ -71,9 +71,9 @@ public class EStimShapeProceduralStim extends ProceduralStim{
         //Generate Sample
         EStimShapeProceduralMatchStick sample = new EStimShapeProceduralMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
-                ((EStimExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
+                ((EStimShapeExperimentTrialGenerator) generator).getRF(), generator.getPngMaker().getNoiseMapper()
         );
-        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
+        sample.setProperties(RFUtils.calculateMStickMaxSizeDiameterDegrees(RFStrategy.PARTIALLY_INSIDE, ((EStimShapeExperimentTrialGenerator) generator).getRfSource().getRFRadiusDegrees()), parameters.textureType);
         sample.setStimColor(parameters.color);
         sample.genMatchStickFromComponentInNoise(baseMatchStick, morphComponentIndex, 0, true, sample.maxAttempts, generator.getPngMaker().getNoiseMapper());
 

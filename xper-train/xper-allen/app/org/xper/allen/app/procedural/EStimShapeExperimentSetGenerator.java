@@ -2,25 +2,32 @@ package org.xper.allen.app.procedural;
 
 import org.springframework.config.java.context.JavaConfigApplicationContext;
 import org.xper.Dependency;
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
+import org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator;
 import org.xper.allen.drawing.composition.AllenMStickSpec;
 import org.xper.allen.drawing.composition.AllenPNGMaker;
 import org.xper.allen.drawing.composition.experiment.EStimShapeTwoByTwoMatchStick;
+import org.xper.allen.drawing.composition.experiment.ProceduralMatchStick;
 import org.xper.allen.drawing.composition.experiment.TwoByTwoMatchStick;
+import org.xper.allen.drawing.composition.morph.MorphedMatchStick;
 import org.xper.allen.drawing.composition.noisy.NoiseMapper;
+import org.xper.allen.nafc.blockgen.estimshape.StickProvider;
 import org.xper.allen.pga.RFStrategy;
 import org.xper.allen.pga.RFUtils;
 import org.xper.exception.XGLException;
 import org.xper.util.FileUtil;
 
 import javax.swing.*;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 
-public class EStimExperimentSetGenerator {
+import static org.xper.allen.nafc.blockgen.MStickGenerationUtils.attemptMorph;
+
+public class EStimShapeExperimentSetGenerator {
 
     @Dependency
-    private EStimExperimentTrialGenerator generator;
+    private EStimShapeExperimentTrialGenerator generator;
 
     @Dependency
     String generatorSetPath;
@@ -32,6 +39,7 @@ public class EStimExperimentSetGenerator {
     private double maxSizeDiameterDegreesFromRF;
     private int nComp;
 
+
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -41,7 +49,7 @@ public class EStimExperimentSetGenerator {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
-        EStimExperimentSetGenerator setGenerator = context.getBean(EStimExperimentSetGenerator.class);
+        EStimShapeExperimentSetGenerator setGenerator = context.getBean(EStimShapeExperimentSetGenerator.class);
         setGenerator.generateSet();
     }
 
@@ -82,8 +90,14 @@ public class EStimExperimentSetGenerator {
                 EStimShapeTwoByTwoMatchStick stick4 = makeStickIV(stick2, stick3);
                 saveSpec(stick4, stimId, compId, "IV");
                 savePng(stick4, stimId, "IV");
-            } catch (Exception e){
-                System.out.println(e.getMessage());
+            } catch(MorphedMatchStick.MorphException me) {
+                System.out.println("Failed Morph: because of reason");
+                System.err.println(me.getMessage());
+                continue;
+
+            }
+            catch (Exception e){
+                e.printStackTrace();
                 continue;
             }
 
@@ -97,7 +111,7 @@ public class EStimExperimentSetGenerator {
         EStimShapeTwoByTwoMatchStick baseMStick = new EStimShapeTwoByTwoMatchStick(
                 RFStrategy.PARTIALLY_INSIDE,
                 generator.getRF(),
-                null);
+                noiseMapper);
         maxSizeDiameterDegreesFromRF = RFUtils.calculateMStickMaxSizeDiameterDegrees(
                 RFStrategy.PARTIALLY_INSIDE, generator.getRfSource().getRFRadiusDegrees());
         baseMStick.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
@@ -106,67 +120,111 @@ public class EStimExperimentSetGenerator {
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickI(EStimShapeTwoByTwoMatchStick baseMStick, int compId) {
-        EStimShapeTwoByTwoMatchStick stick1 = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF(),
-                null);
-        stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        stick1.genMatchStickFromComponentInNoise(baseMStick,
-                compId,
-                nComp,
-                true, stick1.maxAttempts, noiseMapper);
-        stick1.setMaxAttempts(15);
-        return stick1;
+        return attemptMorph(new StickProvider<EStimShapeTwoByTwoMatchStick>() {
+            @Override
+            public EStimShapeTwoByTwoMatchStick makeStick() {
+                EStimShapeTwoByTwoMatchStick stick1 = new EStimShapeTwoByTwoMatchStick(
+                        RFStrategy.PARTIALLY_INSIDE,
+                        generator.getRF(),
+                        noiseMapper);
+                stick1.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick1.genMatchStickFromComponentInNoise(baseMStick,
+                        compId,
+                        nComp,
+                        true, stick1.maxAttempts, noiseMapper);
+                stick1.setMaxAttempts(15);
+
+                List<Integer> deltaCompsToNoise = identifyCompsToNoise(stick1, true);
+                noiseMapper.checkInNoise(stick1, deltaCompsToNoise, 0.5);
+                return stick1;
+            }
+        }, 15);
+
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickII(EStimShapeTwoByTwoMatchStick stick1) {
-        System.out.println("WORKING ON II");
-        EStimShapeTwoByTwoMatchStick stick2 = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF(),
-                null);
-        stick2.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        stick2.genMorphedBaseMatchStick(
-                stick1,
-                stick1.getDrivingComponent(),
-                100,
-                true,
-                true,
-                0.6,
-                1 / 3.0);
-        return stick2;
+        return attemptMorph(new StickProvider<EStimShapeTwoByTwoMatchStick>() {
+            @Override
+            public EStimShapeTwoByTwoMatchStick makeStick() {
+                System.out.println("WORKING ON II");
+                EStimShapeTwoByTwoMatchStick stick2 = new EStimShapeTwoByTwoMatchStick(
+                        RFStrategy.PARTIALLY_INSIDE,
+                        generator.getRF(),
+                        noiseMapper);
+                stick2.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick2.genMorphedBaseMatchStick(
+                        stick1,
+                        stick1.getDrivingComponent(),
+                        100,
+                        true,
+                        true
+                );
+                List<Integer> deltaCompsToNoise = identifyCompsToNoise(stick2, true);
+                noiseMapper.checkInNoise(stick2, deltaCompsToNoise, 0.5);
+                return stick2;
+            }
+        }, 15);
+
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickIII(EStimShapeTwoByTwoMatchStick stick1) {
-        System.out.println("WORKING ON III");
-        EStimShapeTwoByTwoMatchStick stick3 = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF(),
-                null);
-        stick3.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        stick3.genMorphedDrivingComponentMatchStick(
-                stick1,
-                0.6,
-                1.0/3.0,
-                true,
-                true, stick1.maxAttempts);
-        return stick3;
+        return attemptMorph(new StickProvider<EStimShapeTwoByTwoMatchStick>() {
+            @Override
+            public EStimShapeTwoByTwoMatchStick makeStick() {
+                System.out.println("WORKING ON III");
+                EStimShapeTwoByTwoMatchStick stick3 = new EStimShapeTwoByTwoMatchStick(
+                        RFStrategy.PARTIALLY_INSIDE,
+                        generator.getRF(),
+                        noiseMapper);
+                stick3.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick3.genMorphedDrivingComponentMatchStick(
+                        stick1,
+                        0.6,
+                        1.0/3.0,
+                        true,
+                        true, stick1.maxAttempts);
+                List<Integer> deltaCompsToNoise = identifyCompsToNoise(stick3, true);
+                noiseMapper.checkInNoise(stick3, deltaCompsToNoise, 0.5);
+                return stick3;
+            }
+        }, 15);
     }
 
     private EStimShapeTwoByTwoMatchStick makeStickIV(EStimShapeTwoByTwoMatchStick stick2, EStimShapeTwoByTwoMatchStick stick3) {
-        System.out.println("WORKING ON IV");
-        EStimShapeTwoByTwoMatchStick stick4 = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE,
-                generator.getRF(),
-                null);
-        stick4.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
-        stick4.genSwappedBaseAndDrivingComponentMatchStick(
-                stick2,
-                stick2.getDrivingComponent(),
-                stick3,
-                true, 15
-        );
-        return stick4;
+        return attemptMorph(new StickProvider<EStimShapeTwoByTwoMatchStick>() {
+            @Override
+            public EStimShapeTwoByTwoMatchStick makeStick() {
+                System.out.println("WORKING ON IV");
+                EStimShapeTwoByTwoMatchStick stick4 = new EStimShapeTwoByTwoMatchStick(
+                        RFStrategy.PARTIALLY_INSIDE,
+                        generator.getRF(),
+                        noiseMapper);
+                stick4.setProperties(maxSizeDiameterDegreesFromRF, "SHADE");
+                stick4.genSwappedBaseAndDrivingComponentMatchStick(
+                        stick2,
+                        stick2.getDrivingComponent(),
+                        stick3,
+                        true, 15
+                );
+                List<Integer> deltaCompsToNoise = identifyCompsToNoise(stick4, true);
+                noiseMapper.checkInNoise(stick4, deltaCompsToNoise, 0.5);
+                return stick4;
+            }
+        }, 15);
+    }
+
+    protected List<Integer> identifyCompsToNoise(ProceduralMatchStick sample, boolean isDeltaNoise) {
+        List<Integer> compIdsToNoise = new ArrayList<>();
+        if (!isDeltaNoise) {
+            compIdsToNoise.add(sample.getDrivingComponent());
+        } else {
+            for (int compId = 1; compId <= sample.getnComponent(); compId++) {
+                if (compId != sample.getDrivingComponent()) {
+                    compIdsToNoise.add(compId);
+                }
+            }
+        }
+        return compIdsToNoise;
     }
 
     private void savePng(EStimShapeTwoByTwoMatchStick stick, long stimId, String type) {
@@ -201,11 +259,11 @@ public class EStimExperimentSetGenerator {
                         );
     }
 
-    public EStimExperimentTrialGenerator getGenerator() {
+    public EStimShapeExperimentTrialGenerator getGenerator() {
         return generator;
     }
 
-    public void setGenerator(EStimExperimentTrialGenerator generator) {
+    public void setGenerator(EStimShapeExperimentTrialGenerator generator) {
         this.generator = generator;
     }
 

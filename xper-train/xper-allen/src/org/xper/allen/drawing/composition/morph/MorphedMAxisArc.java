@@ -9,6 +9,9 @@ public class MorphedMAxisArc extends AllenMAxisArc {
 
     public MorphedMAxisArc(AllenMAxisArc arc) {
         super();
+        if (arc == null) {
+            return;
+        }
         copyFrom(arc);
     }
 

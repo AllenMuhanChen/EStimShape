@@ -41,9 +41,9 @@ public class MorphedMatchStick extends AllenMatchStick {
     public void genMorphedComponentsMatchStick(Map<Integer, ComponentMorphParameters> morphParametersForComponents, MorphedMatchStick matchStickToMorph, boolean doPositionShape){
         this.showComponents = false;
 
-        MorphedMatchStick backup = new MorphedMatchStick();
-        backup.copyFrom(matchStickToMorph);
-//        copyFrom(backup);
+        localBackup = new MorphedMatchStick();
+        localBackup.copyFrom(matchStickToMorph);
+        copyFrom(localBackup);
 
 
         // Attempt to morph every component. If we fail, then restart with the backup.
@@ -64,7 +64,7 @@ public class MorphedMatchStick extends AllenMatchStick {
             } catch (MorphException e) {
                 cleanData();
                 this.setObj1(null);
-                copyFrom(backup);
+                copyFrom(localBackup);
 //                e.printStackTrace();
                 System.err.println(e.getMessage());
                 System.out.println("Failed to morph matchstick.");
@@ -313,8 +313,6 @@ public class MorphedMatchStick extends AllenMatchStick {
 
      */
     private void attemptToMorphComponent(Integer componentIndex, ComponentMorphParameters morphParams) {
-        localBackup = new MorphedMatchStick();
-        localBackup.copyFrom(this);
 
         int numAttempts=0;
         while (numAttempts < NUM_ATTEMPTS_PER_COMPONENT) {
@@ -357,6 +355,7 @@ public class MorphedMatchStick extends AllenMatchStick {
                 checkForCollisions(id);
                 return;
             } catch (MorphException e){
+                copyFrom(localBackup);
                 System.err.println(e.getMessage());
             } finally {
                 numAttempts++;

@@ -33,7 +33,7 @@ import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class EStimExperimentTrialGenerator extends NAFCBlockGen {
+public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
     @Dependency
     String gaSpecPath;
 
@@ -55,7 +55,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         JavaConfigApplicationContext context = new JavaConfigApplicationContext(
                 FileUtil.loadConfigClass("experiment.config_class"));
-        EStimExperimentTrialGenerator generator = context.getBean(EStimExperimentTrialGenerator.class);
+        EStimShapeExperimentTrialGenerator generator = context.getBean(EStimShapeExperimentTrialGenerator.class);
         generator.generate();
     }
 
@@ -104,7 +104,7 @@ public class EStimExperimentTrialGenerator extends NAFCBlockGen {
 
         //Delta Noise
         List<Boolean> isDeltaNoiseConditions = new LinkedList<>();
-//        isDeltaNoiseConditions.add(true);
+        isDeltaNoiseConditions.add(true);
         isDeltaNoiseConditions.add(false);
 
         //Assigning

@@ -42,7 +42,7 @@ public class EStimShapeTwoByTwoMatchStickTest {
 
         EStimShapeTwoByTwoMatchStick secondMStick = new EStimShapeTwoByTwoMatchStick(RFStrategy.PARTIALLY_INSIDE, PARTIAL_RF, null);
         secondMStick.setProperties(5, "SHADE");
-        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true, 0.7, 1 / 3.0);
+        secondMStick.genMorphedBaseMatchStick(firstMStick, 1, secondMStick.maxAttempts, true, true);
         testMatchStickDrawer.drawMStick(secondMStick);
         testMatchStickDrawer.drawCompMap(secondMStick);
         testMatchStickDrawer.saveImage(figPath + "/secondMStick");

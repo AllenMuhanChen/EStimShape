@@ -4,9 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.config.java.annotation.*;
 import org.springframework.config.java.annotation.valuesource.SystemPropertiesValueSource;
 import org.springframework.config.java.plugin.context.AnnotationDrivenConfig;
-import org.xper.allen.app.estimshape.EStimExperimentTrialGenerator;
 import org.xper.allen.app.nafc.config.NAFCMStickPngAppConfig;
-import org.xper.allen.app.procedural.EStimExperimentSetGenerator;
+import org.xper.allen.app.procedural.EStimShapeExperimentSetGenerator;
 import org.xper.allen.app.procedural.ProceduralAppConfig;
 import org.xper.allen.pga.ReceptiveFieldSource;
 import org.xper.config.BaseConfig;
@@ -33,8 +32,8 @@ public class EStimExperimentAppConfig {
     String generatorSetPath;
 
     @Bean
-    public EStimExperimentTrialGenerator generator(){
-        EStimExperimentTrialGenerator generator = new EStimExperimentTrialGenerator();
+    public EStimShapeExperimentTrialGenerator generator(){
+        EStimShapeExperimentTrialGenerator generator = new EStimShapeExperimentTrialGenerator();
         generator.setDbUtil(pngConfig.config.allenDbUtil());
         generator.setGlobalTimeUtil(pngConfig.acqConfig.timeClient());
         generator.setGeneratorPngPath(pngConfig.mStickPngConfig.generatorPngPath);
@@ -54,8 +53,8 @@ public class EStimExperimentAppConfig {
     }
 
     @Bean
-    public EStimExperimentSetGenerator setGenerator(){
-        EStimExperimentSetGenerator setGenerator = new EStimExperimentSetGenerator();
+    public EStimShapeExperimentSetGenerator setGenerator(){
+        EStimShapeExperimentSetGenerator setGenerator = new EStimShapeExperimentSetGenerator();
         setGenerator.setGenerator(generator());
         setGenerator.setGeneratorSetPath(generatorSetPath);
         setGenerator.setNoiseMapper(pngConfig.mStickPngConfig.noiseMapper());

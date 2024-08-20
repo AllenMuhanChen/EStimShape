@@ -140,9 +140,9 @@ public class GaussianNoiseMapper implements NoiseMapper {
                 numPointsInside++;
             } else{
                 debug_points_outside.add(new Point2d(point.getX(), point.getY()));
-                double error = Math.abs(point.distance(new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY())) - proceduralMatchStick.noiseRadiusMm);
-                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
-                        + " with error: " + error);
+//                double error = Math.abs(point.distance(new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY())) - proceduralMatchStick.noiseRadiusMm);
+////                System.out.println("OUTSIDE: " + point.getX() + ", " + point.getY()
+//                        + " with error: " + error);
             }
         }
         //TODO: potential improvement: we could replace the mechanism for this by somehow identifying points in the junction itself

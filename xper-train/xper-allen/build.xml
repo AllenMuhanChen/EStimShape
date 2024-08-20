@@ -246,7 +246,7 @@
 				<include name="org/xper/allen/app/procedural/EStimExperimentTrialGenerator" />
 			</fileset>
 			<manifest>
-				<attribute name="Main-Class" value="org.xper.allen.app.estimshape.EStimExperimentTrialGenerator" />
+				<attribute name="Main-Class" value="org.xper.allen.app.estimshape.EStimShapeExperimentTrialGenerator" />
 				<attribute name="Class-Path" value=". ${manifest.classpath} xper.jar xper_allen.jar xper_3d.jar"/>
 			</manifest>
 		</jar>
