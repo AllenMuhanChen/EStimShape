@@ -37,28 +37,23 @@ public class EStimShapePsychometricTwoByTwoStim extends EStimShapeProceduralStim
     private NoiseMapper noiseMapper;
 
     public EStimShapePsychometricTwoByTwoStim(
-            EStimShapeExperimentTrialGenerator generator,
-            ProceduralStimParameters parameters,
-            AllenMStickSpec sampleSpec,
-            Map<String,AllenMStickSpec> baseProceduralDistractorSpecs,
-            boolean isEStimEnabled,
-            String sampleSetCondition,
-            double baseMagnitude,
-            double drivingMagnitude,
-            boolean isDeltaNoise) {
-        super(generator, parameters, null, -1, isEStimEnabled);
-        this.generator = (EStimShapeExperimentTrialGenerator) generator;
-        this.sampleSetSpec = sampleSpec;
-        this.baseProceduralDistractorSpecs = baseProceduralDistractorSpecs;
-        parameters.numChoices = baseProceduralDistractorSpecs.size() + 1 + parameters.numRandDistractors;
-        this.sampleSetCondition = sampleSetCondition;
-        this.baseMagnitude = baseMagnitude;
-        this.drivingMagnitude = drivingMagnitude;
-        this.isDeltaNoise = isDeltaNoise;
+            EStimShapeExperimentTrialGenerator generator, EStimShapePsychometricTwoByTwoParameters parameters) {
+
+        super(generator, parameters, null, -1, parameters.isEStimEnabled());
+
+        //local variables extracted from parameters
+        this.generator = generator;
+        this.sampleSetSpec = parameters.getSampleSpec();
+        this.baseProceduralDistractorSpecs = parameters.getBaseProceduralDistractorSpecs();
+        parameters.numChoices = parameters.getBaseProceduralDistractorSpecs().size() + 1 + parameters.numRandDistractors;
+        this.sampleSetCondition = parameters.getSampleSetCondition();
+        this.baseMagnitude = parameters.getBaseMagnitude();
+        this.drivingMagnitude = parameters.getDrivingMagnitude();
+        this.isDeltaNoise = parameters.isDeltaNoise();
         this.noiseMapper = generator.getNoiseMapper();
-        setSpecs.put(sampleSetCondition, sampleSetSpec);
-        for (String setCondition : baseProceduralDistractorSpecs.keySet()) {
-            setSpecs.put(setCondition, baseProceduralDistractorSpecs.get(setCondition));
+        setSpecs.put(parameters.getSampleSetCondition(), sampleSetSpec);
+        for (String setCondition : parameters.getBaseProceduralDistractorSpecs().keySet()) {
+            setSpecs.put(setCondition, parameters.getBaseProceduralDistractorSpecs().get(setCondition));
         }
     }
 

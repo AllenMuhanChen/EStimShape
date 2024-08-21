@@ -15,7 +15,12 @@ public class EStimShapeTwoByTwoStim extends EStimShapeProceduralStim{
     protected int baseDrivingComponent;
     protected int nComp;
 
-    public EStimShapeTwoByTwoStim(EStimShapeExperimentTrialGenerator generator, ProceduralStimParameters parameters, ProceduralMatchStick baseMatchStick, int morphComponentIndex, boolean isEStimEnabled, int nComp) {
+    public EStimShapeTwoByTwoStim(EStimShapeExperimentTrialGenerator generator,
+                                  ProceduralStimParameters parameters,
+                                  ProceduralMatchStick baseMatchStick,
+                                  int morphComponentIndex,
+                                  boolean isEStimEnabled,
+                                  int nComp) {
         super(generator, parameters, baseMatchStick, morphComponentIndex, isEStimEnabled);
         this.baseDrivingComponent = morphComponentIndex;
         if (nComp == 0){

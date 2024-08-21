@@ -162,7 +162,7 @@ public class ProceduralStim implements NAFCStim {
 
     protected AllenMStickSpec mStickToSpec(AllenMatchStick mStick) {
         AllenMStickSpec spec = new AllenMStickSpec();
-        spec.setMStickInfo(mStick, true);
+        spec.setMStickInfo(mStick, false);
 //        spec.writeInfo2File(generator.getGeneratorSpecPath() + "/" + stimObjId, true);
         return spec;
     }
@@ -403,5 +403,16 @@ public class ProceduralStim implements NAFCStim {
             this.textureType = textureType;
         }
 
+        public ProceduralStimParameters(ProceduralStimParameters other) {
+            super(other);
+            this.noiseChance = other.noiseChance;
+            this.numChoices = other.numChoices;
+            this.numRandDistractors = other.numRandDistractors;
+            this.morphMagnitude = other.morphMagnitude;
+            this.morphDiscreteness = other.morphDiscreteness;
+            this.color = other.color;
+            this.noiseRate = other.noiseRate;
+            this.textureType = other.textureType;
+        }
     }
 }

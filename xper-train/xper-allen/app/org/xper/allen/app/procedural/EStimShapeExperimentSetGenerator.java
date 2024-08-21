@@ -250,13 +250,13 @@ public class EStimShapeExperimentSetGenerator {
 
     private void saveSpec(EStimShapeTwoByTwoMatchStick stick4, long stimId, int compId, String type) {
         AllenMStickSpec stick4Spec = new AllenMStickSpec();
-        stick4Spec.setMStickInfo(stick4, true);
+        stick4Spec.setMStickInfo(stick4, false);
         stick4Spec.writeInfo2File(
                 generatorSetPath + "/"
                         + stimId + "_"
                         + compId + "_"
                         + type
-                        );
+                        , false);
     }
 
     public EStimShapeExperimentTrialGenerator getGenerator() {

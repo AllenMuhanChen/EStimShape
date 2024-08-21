@@ -10,6 +10,7 @@ import org.xper.allen.drawing.composition.noisy.NoiseMapper;
 import org.xper.allen.drawing.ga.CircleReceptiveField;
 import org.xper.allen.drawing.ga.ReceptiveField;
 import org.xper.allen.nafc.blockgen.Lims;
+import org.xper.allen.nafc.blockgen.estimshape.EStimShapePsychometricTwoByTwoParameters;
 import org.xper.allen.nafc.blockgen.estimshape.EStimShapePsychometricTwoByTwoStim;
 import org.xper.allen.nafc.blockgen.procedural.*;
 import org.xper.allen.nafc.blockgen.procedural.ProceduralStim.ProceduralStimParameters;
@@ -161,7 +162,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
                 for (Boolean isDeltaNoise: isDeltaNoiseConditions)
                 {
                     //Noise Chance
-                    for (ProceduralStimParameters parameters : behavioralTrialParams) {
+                    for (ProceduralStimParameters proceduralStimParameters : behavioralTrialParams) {
 
                         //Calculate do emphasize for each condition
                         Map<String, Boolean> doEmphasizeConditionsForConditions = new HashMap<>();
@@ -174,7 +175,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
                         baseProceduralDistractorSpecs.remove(sampleCondition);
 
                         //MANAGING BIASES
-                        parameters.numRandDistractors = 0;
+                        proceduralStimParameters.numRandDistractors = 0;
                         if (isEmphasize(sampleCondition, doEmphasizeConditionsForConditions)){
                             for (int i=0; i<emphNumToRemoveForConditions.get(sampleCondition); i++){
 
@@ -186,7 +187,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
                                         (int) (Math.random() * baseProceduralDistractorSpecs.size())
                                 );
                                 baseProceduralDistractorSpecs.remove(randomKey);
-                                parameters.numRandDistractors++;
+                                proceduralStimParameters.numRandDistractors++;
                             }
                         }
 
@@ -196,7 +197,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
                             if (!sampleCondition.equals(condition) && minimizeChancesForConditions.get(condition) > Math.random()){
                                 if (baseProceduralDistractorSpecs.containsKey(condition)) {
                                     baseProceduralDistractorSpecs.remove(condition);
-                                    parameters.numRandDistractors++;
+                                    proceduralStimParameters.numRandDistractors++;
                                 }
                             }
                         }
@@ -205,14 +206,14 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
                         for (int i=0; i<X; i++) {
                             EStimShapePsychometricTwoByTwoStim behavioralTrial = new EStimShapePsychometricTwoByTwoStim(
                                     this,
-                                    parameters,
-                                    sampleSpec,
-                                    baseProceduralDistractorSpecs,
-                                    isEStimEnabled,
-                                    sampleCondition,
-                                    baseMagnitude,
-                                    drivingMagnitude,
-                                    isDeltaNoise);
+                                    new EStimShapePsychometricTwoByTwoParameters(proceduralStimParameters,
+                                            sampleSpec,
+                                            baseProceduralDistractorSpecs,
+                                            isEStimEnabled,
+                                            sampleCondition,
+                                            baseMagnitude,
+                                            drivingMagnitude,
+                                            isDeltaNoise));
 
                             stims.add(behavioralTrial);
                         }
