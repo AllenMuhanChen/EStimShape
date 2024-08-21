@@ -72,7 +72,7 @@ public class EStimShapeExperimentTrialGenerator extends NAFCBlockGen {
 
         //Parameters
         //Num Repetitions of Each Condition
-        int X = 5;
+        int X = 1;
         double baseMagnitude = 1.5;
         double drivingMagnitude = 1.5;
         //Noise

@@ -392,14 +392,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
                            int specialCompIndx,
                            AbstractRenderer renderer,
                            String path) {
-        File ouptutFile = new File(path);
-        BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndx);
-        try {
-            ImageIO.write(img, "png", ouptutFile);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return ouptutFile.getAbsolutePath();
+        return mapNoise(mStick, amplitude, Collections.singletonList(specialCompIndx), renderer, path);
     }
 
     @Override
@@ -423,17 +416,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
                                                             double amplitude, double background,
                                                             AbstractRenderer renderer, int specialCompIndx){
 
-        Point3d noiseOrigin = calculateNoiseOrigin(mStick, Collections.singletonList(specialCompIndx));
-
-
-        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
-        Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
-
-        return GaussianNoiseMapper.generateTruncatedGaussianNoiseMap(width, height,
-                noiseOriginPixels.getX(), noiseOriginPixels.getY(),
-                mmToPixels(renderer, mStick.noiseRadiusMm), amplitude,
-                sigmaPixels, sigmaPixels,
-                background);
+        return generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, Collections.singletonList(specialCompIndx));
 
     }
 
@@ -445,7 +428,8 @@ public class GaussianNoiseMapper implements NoiseMapper {
         Point3d noiseOrigin = calculateNoiseOrigin(mStick, specialCompIndcs);
 
 
-        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
+//        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/6);
+        double sigmaPixels = mmToPixels(renderer, mStick.noiseRadiusMm/12);
         Coordinates2D noiseOriginPixels = convertMmToPixelCoordinates(noiseOrigin, renderer);
 
         return GaussianNoiseMapper.generateTruncatedGaussianNoiseMap(width, height,
