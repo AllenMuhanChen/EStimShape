@@ -155,7 +155,7 @@ public class EStimShapeExperimentSetGenerator {
                 stick2.genMorphedBaseMatchStick(
                         stick1,
                         stick1.getDrivingComponent(),
-                        100,
+                        15,
                         true,
                         true
                 );

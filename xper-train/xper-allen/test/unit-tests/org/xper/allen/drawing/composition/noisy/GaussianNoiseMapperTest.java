@@ -83,7 +83,7 @@ public class GaussianNoiseMapperTest {
         ReceptiveField receptiveField = new CircleReceptiveField(new Coordinates2D(5,5), 10);
 
         EStimShapeTwoByTwoMatchStick mStick = new EStimShapeTwoByTwoMatchStick(
-                RFStrategy.PARTIALLY_INSIDE, receptiveField, null);
+                RFStrategy.PARTIALLY_INSIDE, receptiveField, gaussianNoiseMapper);
 
         int nComp = 2;
 

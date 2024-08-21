@@ -36,7 +36,7 @@ public class GaussianNoiseMapper implements NoiseMapper {
      * can obscure more of the shape than wanted.
      *
      */
-    private boolean doEnforceHiddenJunction;
+    private boolean doEnforceHiddenJunction = false;
 
     /*
     08/19/24 AC: These debugging variables were used to visualize the noise circle and the points that were used to check
