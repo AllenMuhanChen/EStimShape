@@ -246,7 +246,7 @@ public class EStimShapeProceduralMatchStickTest {
         spec.setMStickInfo(matchStick, true);
         spec.writeInfo2File(testBin + "/" + label, true);
         pngMaker.createAndSavePNG(matchStick, 1L, Collections.singletonList(Long.toString(1)), testBin);
-        pngMaker.createAndSaveGaussNoiseMap(matchStick, 1L, Collections.singletonList(Long.toString(1)), testBin, 0.5, 1);
+        pngMaker.createAndSaveNoiseMap(matchStick, 1L, Collections.singletonList(Long.toString(1)), testBin, 0.5, 1);
     }
 
 

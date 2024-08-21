@@ -105,18 +105,6 @@ public class AllenPNGMaker{
 		}
 	}
 
-
-	public String createAndSaveGaussNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> labels, String destinationFolder, double amplitude, int specialCompIndx) {
-		window.setImageFolderName(destinationFolder);
-		window.setBackgroundColor(1.0f, 0.0f, 0.0f);
-		System.out.println("creating and saving NoiseMap PNG...");
-		try {
-			return window.drawGaussNoiseMap(obj, stimObjId,labels, amplitude, specialCompIndx);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	public void close() {
 		window.close();
 	}

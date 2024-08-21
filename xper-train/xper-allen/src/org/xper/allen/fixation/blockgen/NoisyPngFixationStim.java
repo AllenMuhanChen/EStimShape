@@ -45,7 +45,7 @@ public class NoisyPngFixationStim implements Stim {
 
         //Create NoiseMap
         int noiseCompIndx = mStick.chooseRandLeaf();
-        String noiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap((ProceduralMatchStick) mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath(), params.noiseChance, noiseCompIndx);
+        String noiseMapPath = generator.getPngMaker().createAndSaveNoiseMap((ProceduralMatchStick) mStick, id, Collections.singletonList(""), generator.getGeneratorPngPath(), params.noiseChance, noiseCompIndx);
         noiseMapPath = generator.convertPngPathToExperiment(noiseMapPath);
 
         //Assign Coordinates

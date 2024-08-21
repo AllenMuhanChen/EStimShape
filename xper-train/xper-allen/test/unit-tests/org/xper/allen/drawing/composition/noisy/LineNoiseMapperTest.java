@@ -63,7 +63,7 @@ public class LineNoiseMapperTest {
         String imagePath = drawer.saveImage(testBin + "/original_matchstick");
 
         // Generate line noise map
-        String noiseMapPath = lineNoiseMapper.mapNoise(matchStick, 0.5, 1, drawer.window.renderer, testBin + "/line_noise_map.png");
+        String noiseMapPath = lineNoiseMapper.mapNoise(matchStick, 0.5, Collections.singletonList(1), drawer.window.renderer, testBin + "/line_noise_map.png");
 
         // Load original image and noise map
         BufferedImage originalImage = ImageIO.read(new File(imagePath));

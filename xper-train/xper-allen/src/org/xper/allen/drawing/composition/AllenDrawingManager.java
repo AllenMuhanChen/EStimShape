@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -105,19 +106,7 @@ public class AllenDrawingManager implements Drawable {
 	}
 
 	public String drawNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, int specialCompIndx) throws IOException {
-		LinkedList<String> labels = new LinkedList<>();
-		labels.addAll(additionalLabels);
-		labels.add("noisemap");
-
-		String path = imageFolderName + "/" + stimObjId;
-		for (String str:labels) {
-			if(!str.isEmpty()) {
-				path=path+"_"+str;
-			}
-		}
-		path=path+".png";
-
-        return noiseMapper.mapNoise(obj, amplitude, specialCompIndx, renderer, path);
+		return drawNoiseMap(obj, stimObjId, additionalLabels, amplitude, Collections.singletonList(specialCompIndx));
 	}
 
 	public String drawNoiseMap(ProceduralMatchStick obj, Long stimObjId, List<String> additionalLabels, double amplitude, List<Integer> specialCompIdcs) throws IOException {

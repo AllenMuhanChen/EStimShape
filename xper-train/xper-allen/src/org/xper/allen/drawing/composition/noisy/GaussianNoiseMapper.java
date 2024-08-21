@@ -47,66 +47,23 @@ public class GaussianNoiseMapper implements NoiseMapper {
     public List<Point2d> debug_points_obj1 = new LinkedList<>();
     public Point2d debug_noise_origin;
 
-
-    public Point3d calculateNoiseOrigin(ProceduralMatchStick proceduralMatchStick, List<Integer> compsToBeInNoise){
-        Point3d point3d = new Point3d();
-
-        if (compsToBeInNoise.size() == 1){
-
-            int specialCompId = compsToBeInNoise.get(0);
-
-            for (JuncPt_struct junc : proceduralMatchStick.getJuncPt()) {
-                if (junc != null) {
-                    int finalSpecialCompId = specialCompId;
-                    int numCompsInJuncThatMatchSpecialId = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
-                        @Override
-                        public boolean test(int x) {
-                            return x == finalSpecialCompId;
-                        }
-                    }).toArray().length;
-                    boolean isContainsSpecialId = numCompsInJuncThatMatchSpecialId == 1;
-                    if (isContainsSpecialId) {
-                        if (junc.getnComp() == 2) {
-                            int baseCompId = ProceduralMatchStick.findBaseCompId(specialCompId, junc);
-                            return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc);
-                        } else if (junc.getnComp() > 2) {
-                            return calcProjectionFromJunctionWithMultiComp(proceduralMatchStick, specialCompId, junc);
-                        } else{
-                            throw new IllegalArgumentException("Junction has less than 2 components");
-                        }
-                    }
-                }
-            }
-        } else{
-            int baseCompId = -1;
-            for (int i = 1; i<= proceduralMatchStick.getnComponent(); i++){
-                if (!compsToBeInNoise.contains(i)){
-                    baseCompId = i;
-                }
-            }
-
-            for (JuncPt_struct junc : proceduralMatchStick.getJuncPt()) {
-                if (junc != null) {
-                    int finalBaseCompId = baseCompId;
-                    int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
-                        @Override
-                        public boolean test(int x) {
-                            return x == finalBaseCompId;
-                        }
-                    }).toArray().length;
-
-                    if (numMatch == 1) {
-                        return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc);
-                    }
-                }
-            }
-
+    @Override
+    public String mapNoise(ProceduralMatchStick mStick,
+                           double amplitude,
+                           List<Integer> specialCompIndcs,
+                           AbstractRenderer renderer,
+                           String path) {
+        File ouptutFile = new File(path);
+        BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndcs);
+        try {
+            ImageIO.write(img, "png", ouptutFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
-
-        return point3d;
+        return ouptutFile.getAbsolutePath();
     }
 
+    @Override
     public void checkInNoise(ProceduralMatchStick proceduralMatchStick, List<Integer> mustBeInNoiseCompIds, double percentRequiredOutsideNoise){
         proceduralMatchStick.setNoiseOrigin(calculateNoiseOrigin(proceduralMatchStick, mustBeInNoiseCompIds));
         debug_noise_origin = new Point2d(proceduralMatchStick.getNoiseOrigin().getX(), proceduralMatchStick.getNoiseOrigin().getY());
@@ -181,6 +138,67 @@ public class GaussianNoiseMapper implements NoiseMapper {
         }
         System.out.println("SUCCEEDED CHECK IN NOISE");
     }
+
+    public Point3d calculateNoiseOrigin(ProceduralMatchStick proceduralMatchStick, List<Integer> compsToBeInNoise){
+        Point3d point3d = new Point3d();
+
+        if (compsToBeInNoise.size() == 1){
+
+            int specialCompId = compsToBeInNoise.get(0);
+
+            for (JuncPt_struct junc : proceduralMatchStick.getJuncPt()) {
+                if (junc != null) {
+                    int finalSpecialCompId = specialCompId;
+                    int numCompsInJuncThatMatchSpecialId = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
+                        @Override
+                        public boolean test(int x) {
+                            return x == finalSpecialCompId;
+                        }
+                    }).toArray().length;
+                    boolean isContainsSpecialId = numCompsInJuncThatMatchSpecialId == 1;
+                    if (isContainsSpecialId) {
+                        if (junc.getnComp() == 2) {
+                            int baseCompId = ProceduralMatchStick.findBaseCompId(specialCompId, junc);
+                            return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc);
+                        } else if (junc.getnComp() > 2) {
+                            return calcProjectionFromJunctionWithMultiComp(proceduralMatchStick, specialCompId, junc);
+                        } else{
+                            throw new IllegalArgumentException("Junction has less than 2 components");
+                        }
+                    }
+                }
+            }
+        } else{
+            int baseCompId = -1;
+            for (int i = 1; i<= proceduralMatchStick.getnComponent(); i++){
+                if (!compsToBeInNoise.contains(i)){
+                    baseCompId = i;
+                }
+            }
+
+            for (JuncPt_struct junc : proceduralMatchStick.getJuncPt()) {
+                if (junc != null) {
+                    int finalBaseCompId = baseCompId;
+                    int numMatch = Arrays.stream(junc.getCompIds()).filter(new IntPredicate() {
+                        @Override
+                        public boolean test(int x) {
+                            return x == finalBaseCompId;
+                        }
+                    }).toArray().length;
+
+                    if (numMatch == 1) {
+                        return calcProjectionFromSingleJunctionWithSingleComp(proceduralMatchStick, baseCompId, junc);
+                    }
+                }
+            }
+
+        }
+
+
+        return point3d;
+    }
+
+
 
     protected static boolean isPointWithinCircle(Point2d point, Point2d center, double radius) {
         return point.distance(center) <= radius;
@@ -384,31 +402,6 @@ public class GaussianNoiseMapper implements NoiseMapper {
         startingPosition.add(normalizedTangent);
         return startingPosition;
 
-    }
-
-    @Override
-    public String mapNoise(ProceduralMatchStick mStick,
-                           double amplitude,
-                           int specialCompIndx,
-                           AbstractRenderer renderer,
-                           String path) {
-        return mapNoise(mStick, amplitude, Collections.singletonList(specialCompIndx), renderer, path);
-    }
-
-    @Override
-    public String mapNoise(ProceduralMatchStick mStick,
-                           double amplitude,
-                           List<Integer> specialCompIndcs,
-                           AbstractRenderer renderer,
-                           String path) {
-        File ouptutFile = new File(path);
-        BufferedImage img = generateGaussianNoiseMapFor(mStick, width, height, amplitude, background, renderer, specialCompIndcs);
-        try {
-            ImageIO.write(img, "png", ouptutFile);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return ouptutFile.getAbsolutePath();
     }
 
     public BufferedImage generateGaussianNoiseMapFor(ProceduralMatchStick mStick,

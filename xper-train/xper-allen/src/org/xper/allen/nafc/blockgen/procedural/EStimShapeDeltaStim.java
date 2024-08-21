@@ -101,7 +101,7 @@ public class EStimShapeDeltaStim extends EStimShapeProceduralStim{
         } else {
             System.out.println("Not Delta: Noise Component Index: " + noiseComponentIndex);
         }
-        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveGaussNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
+        String generatorNoiseMapPath = generator.getPngMaker().createAndSaveNoiseMap(mSticks.getSample(), stimObjIds.getSample(), noiseMapLabels, generator.getGeneratorNoiseMapPath(), parameters.noiseChance, noiseComponentIndex);
         experimentNoiseMapPath = generator.convertGeneratorNoiseMapToExperiment(generatorNoiseMapPath);
     }
 
