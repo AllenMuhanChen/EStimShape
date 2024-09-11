@@ -1,8 +1,7 @@
 import numpy as np
 from PIL import Image
-import colorsys
-from colormath.color_objects import LabColor, sRGBColor
-from colormath.color_conversions import convert_color
+from skimage import color
+
 
 def normalize_lightness(lightness):
     lightness_zeros_removed = lightness[lightness > 0]
@@ -10,59 +9,53 @@ def normalize_lightness(lightness):
     lightness_normalized = np.clip((lightness - l_min) / (l_max - l_min), 0, 1)
     return lightness_normalized
 
-def lab_to_rgb(lab):
-    rgb = convert_color(LabColor(lab[0], lab[1], lab[2]), sRGBColor)
-    return np.clip([rgb.rgb_r, rgb.rgb_g, rgb.rgb_b], 0, 1)
 
-def create_isoluminant_colormap(hue_values):
-    L = 70  # Constant lightness value (0-100)
-    colormap = np.zeros((hue_values.shape[0], hue_values.shape[1], 3))
-    for i in range(hue_values.shape[0]):
-        for j in range(hue_values.shape[1]):
-            hue = hue_values[i, j] * 360  # Scale hue to 0-360
-            a = np.cos(np.radians(hue)) * 50
-            b = np.sin(np.radians(hue)) * 50
-            colormap[i, j] = lab_to_rgb([L, a, b])
-            print(i, j)
-    return colormap
+def create_lab_colormap(hue_values):
+    L = np.full_like(hue_values, 70)  # Constant lightness
+    a = np.cos(2 * np.pi * hue_values) * 100
+    b = np.sin(2 * np.pi * hue_values) * 100
+    lab = np.dstack((L, a, b))
+    return color.lab2rgb(lab)
 
-def process_image(input_path, colormap_output_path, final_output_path):
+
+def process_image(input_path, grayscale_output_path, colormap_output_path, final_output_path):
+    # Open the image
     img = Image.open(input_path).convert('RGBA')
     img_array = np.array(img)
-    img_normalized = img_array.astype(float) / 255.0
 
-    lightness = np.zeros((img_array.shape[0], img_array.shape[1]))
-    for i in range(img_array.shape[0]):
-        for j in range(img_array.shape[1]):
-            _, l, _ = colorsys.rgb_to_hls(img_normalized[i, j, 0],
-                                          img_normalized[i, j, 1],
-                                          img_normalized[i, j, 2])
-            lightness[i, j] = l
+    # Separate RGB and alpha
+    rgb = img_array[:, :, :3].astype(float) / 255.0
+    alpha = img_array[:, :, 3]
 
-    lightness_normalized = normalize_lightness(lightness)
-    hue_map = lightness_normalized
+    # Convert RGB to grayscale using CIELAB luminance
+    lab = color.rgb2lab(rgb)
+    grayscale = lab[:, :, 0] / 100.0  # L channel normalized to 0-1
 
-    # Create and save perceptually isoluminant colormap
-    colormap = create_isoluminant_colormap(hue_map)
-    colormap_with_alpha = np.dstack((colormap, np.ones(hue_map.shape)))
+    # Save grayscale image
+    grayscale_image = Image.fromarray((grayscale * 255).astype(np.uint8))
+    grayscale_image.save(grayscale_output_path)
+
+    # Normalize grayscale to create hue map
+    hue_map = normalize_lightness(grayscale)
+
+    # Create and save CIELAB-based colormap
+    colormap = create_lab_colormap(hue_map)
+    colormap_with_alpha = np.dstack((colormap, np.ones_like(grayscale)))
     Image.fromarray((colormap_with_alpha * 255).astype(np.uint8)).save(colormap_output_path)
 
-    # Apply hue modulation while preserving original brightness
-    final_image = np.zeros_like(img_array, dtype=float)
-    for i in range(img_array.shape[0]):
-        for j in range(img_array.shape[1]):
-            h, l, s = colorsys.rgb_to_hls(img_normalized[i, j, 0],
-                                          img_normalized[i, j, 1],
-                                          img_normalized[i, j, 2])
-            new_h = hue_map[i, j]
-            r, g, b = colorsys.hls_to_rgb(new_h, l, 0.5)
-            final_image[i, j] = [r * 255, g * 255, b * 255, img_array[i, j, 3]]
+    # Multiply grayscale image with CIELAB-based colormap
+    colored_image = np.expand_dims(grayscale, axis=2) * colormap
 
-    final_image = np.clip(final_image, 0, 255).astype(np.uint8)
-    Image.fromarray(final_image).save(final_output_path)
+    # Combine with original alpha channel
+    final_image = np.dstack((colored_image, alpha / 255.0))
+
+    # Save final image
+    Image.fromarray((final_image * 255).astype(np.uint8)).save(final_output_path)
+
 
 # Example usage
 input_image_path = "/home/r2_allen/Documents/EStimShape/allen_estimshape_ga_train_240604/stimuli/ga/pngs/1717521925194310_0.png"
-colormap_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/perceptual_isoluminant_colormap.png"
-final_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/final_hue_modulated_image.png"
-process_image(input_image_path, colormap_output_path, final_output_path)
+grayscale_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/grayscale_image.png"
+colormap_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/lab_colormap.png"
+final_output_path = "/home/r2_allen/git/EStimShape/EStimShapeAnalysis/src/contours/final_multiplied_image.png"
+process_image(input_image_path, grayscale_output_path, colormap_output_path, final_output_path)
